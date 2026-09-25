@@ -1,0 +1,83 @@
+import { useQuery } from "@tanstack/react-query";
+import { marked } from "marked";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useLocation } from "react-router";
+
+import { data, fmtDate, when, type HistoryEpisode } from "@/api/data";
+import { toggleBookmark, useBookmarks } from "@/lib/marks";
+import { share } from "@/lib/share";
+import { useBackButton, useBottomButtons } from "@/tg/hooks";
+import { haptic, openLink, setClosingConfirmation } from "@/tg/sdk";
+import { Empty, Icon, Img, Skeleton, thumbOf, timestamp, useGo, youtube } from "@/ui/ui";
+
+marked.setOptions({ gfm: true, breaks: false });
+const KIND: Record<string, string> = { class: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History", study: "4 Chapters a Day", encyclopedia: "Encyclopedia" };
+
+/** The note's markdown, with the video mount dropped (the app has its own player button). */
+function render(md: string): string {
+  const src = md.replace(/<!--\s*truncate\s*-->/g, "").replace(/[ \t]+taught in \[[^\]]+\]\(\/study\/[^)]+\)/g, "").replace(/<div class="class-video-mount"[^>]*><\/div>/g, "");
+  return (marked.parse(src) as string).replace(/<(li|p)>\s*<strong>([A-Z][^<:]{1,40}):<\/strong>\s*/g, '<$1><span class="who">$2</span>');
+}
+
+/** A class, episode, study or encyclopedia note: the recording on top, the write-up below. */
+export function NoteScreen() {
+  const location = useLocation();
+  const path = location.pathname.replace(/^\/note/, "") || "/";
+  const go = useGo();
+  useBackButton(false);
+  const note = useQuery({ queryKey: ["note", path], queryFn: () => data.note(path) });
+  const isHistory = path.startsWith("/history/");
+  const episode = useQuery({ queryKey: ["episode", path], queryFn: () => data.episode(path.replace(/^\/history\//, "")), enabled: isHistory });
+  const html = useMemo(() => (note.data ? render(note.data.body) : ""), [note.data]);
+  const [marks, setMarks] = useBookmarks();
+  const kept = marks.some((m) => m.id === path);
+  const video = note.data?.videoId ?? episode.data?.videoId ?? null;
+
+  useBottomButtons(
+    note.data ? { text: "Share", onClick: () => void share({ kind: "note", title: note.data!.title, text: KIND[note.data!.kind] ?? "CyberJudah", sitePath: path }) } : null,
+    video ? { text: "▶ Watch", onClick: () => openLink(youtube(video)) } : null,
+  );
+  // Reading a long note: keep a stray swipe from closing the app mid-read.
+  useEffect(() => { setClosingConfirmation(true); return () => setClosingConfirmation(false); }, []);
+  useEffect(() => {
+    if (!html || !location.hash) return;
+    const t = setTimeout(() => document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView({ block: "start" }), 60);
+    return () => clearTimeout(t);
+  }, [html, location.hash]);
+  const onClick = (e: MouseEvent<HTMLDivElement>) => {
+    const a = (e.target as HTMLElement).closest("a"); const href = a?.getAttribute("href") ?? "";
+    if (!a) return;
+    e.preventDefault();
+    if (/^https?:/.test(href)) openLink(href); else if (href.startsWith("/")) go(href);
+  };
+
+  if (note.isPending) return <main className="screen"><Skeleton rows={6} /></main>;
+  if (note.isError || !note.data) return <main className="screen"><Empty title="This note did not load">It may have moved. Search for it instead.</Empty></main>;
+  const n = note.data;
+  return (
+    <main className="screen">
+      <header className="note-head">
+        <p className="kicker">{[KIND[n.kind] ?? "", when(n.date, n.teacher)].filter(Boolean).join(" · ")}</p>
+        <h1>{n.title}</h1>
+        <div className="head__actions">
+          <button type="button" className="icon-btn" aria-pressed={kept} aria-label={kept ? "Remove bookmark" : "Bookmark"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: path, kind: "note", title: n.title, text: [KIND[n.kind], fmtDate(n.date)].filter(Boolean).join(" · "), href: path })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={18} /></button>
+        </div>
+      </header>
+      {video ? <button type="button" className="watch" onClick={() => openLink(youtube(video))} aria-label={`Watch ${n.title}`}><Img src={thumbOf(video, true)} eager /><span><Icon name="play" size={18} /> Watch the recording</span></button> : null}
+      <div className="note" onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />
+      {isHistory && episode.data?.turns?.length ? <Transcript ep={episode.data} /> : null}
+    </main>
+  );
+}
+
+/** Our Hidden History: the verbatim transcript, each turn a tap from the moment in the recording. */
+function Transcript({ ep }: { ep: HistoryEpisode }) {
+  const [open, setOpen] = useState(false);
+  const turns = open ? ep.turns : ep.turns.slice(0, 6);
+  return (
+    <section className="section">
+      <div className="section__head"><h2>Transcript</h2><button type="button" className="link" onClick={() => setOpen(!open)}>{open ? "Show less" : `All ${ep.turns.length} turns`}</button></div>
+      <div className="transcript">{turns.map((t, i) => <p key={i}><button type="button" onClick={() => openLink(youtube(ep.videoId, t.t))}>{timestamp(t.t)}</button>{t.text}</p>)}</div>
+    </section>
+  );
+}
