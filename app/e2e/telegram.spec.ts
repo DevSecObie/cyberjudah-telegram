@@ -123,7 +123,7 @@ test("settings: theme, spacing and offline books", async ({ page }) => {
   await page.click(".sheet__item >> text=Jude");
   await expect(page.locator(".pill--ok")).toHaveText("offline");
   const cached = await page.evaluate(async () => (await (await caches.open("cj-offline-v1")).keys()).length);
-  expect(cached).toBeGreaterThanOrEqual(2);
+  expect(cached).toBeGreaterThanOrEqual(1);
 });
 
 test("search opens a typed reference, and the settings button opens settings", async ({ page }) => {

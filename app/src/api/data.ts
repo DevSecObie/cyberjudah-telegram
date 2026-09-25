@@ -49,7 +49,6 @@ const abs = <T extends { thumb: string }>(rows: T[]) => rows.map((r) => (r.thumb
 export const data = {
   books: () => get<Book[]>("/api/kjv/books.json"),
   chapter: (slug: string, ch: number) => get<Chapter>(`/api/kjv/${slug}/${ch}.json`),
-  web: (slug: string, ch: number) => get<string[]>(`/api/web/${slug}/${ch}.json`),
   xref: (slug: string, ch: number) => get<Xref>(`/api/xref/${slug}/${ch}.json`),
   concordance: (slug: string, ch: number) => get<{ cited_by: Citation[] }>(`/api/concordance/${slug}/${ch}.json`),
   notes: () => get<NoteRow[]>("/api/notes/index.json"),

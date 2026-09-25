@@ -206,7 +206,6 @@ html[data-tg="yes"] .steps { display: none; }
 .toggle[aria-checked="true"] .switch::after { transform: translateX(20px); }
 .v--hl { background: color-mix(in srgb, var(--a-amber, #fcee0a) 16%, transparent); }
 .v[data-bm]::after { content: ""; display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 2px; background: var(--a-accent); vertical-align: middle; }
-.parallel { display: block; margin: 4px 0 10px 0; padding: 8px 12px; border-radius: 10px; background: var(--a-card); font-size: 0.86em; color: var(--a-muted); line-height: 1.5; }
 .xrefs { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 10px; }
 .xrefs a { font: 500 12px var(--a-mono); color: var(--a-accent); padding: 4px 8px; border-radius: 8px; background: var(--a-card); }
 .progress { height: 6px; border-radius: 3px; background: var(--a-card-2); overflow: hidden; }

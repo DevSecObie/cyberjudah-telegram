@@ -18,9 +18,8 @@ app and its bot; the text and the notes live where they are written.
 ## What the app does
 
 **Read.** Every book by testament, a chapter grid that shows what you have read, a reader with
-three text sizes, the World English Bible beside each verse when you want a plainer reading,
-cross references per verse, and under every chapter the classes, laws and precepts that cite
-it. Tap verses to share them, highlight them, bookmark them, post them to a story or send them
+three text sizes, cross references per verse, and under every chapter the classes, laws and
+precepts that cite it. Tap verses to share them, highlight them, bookmark them, post them to a story or send them
 through the bot's inline mode.
 
 **Watch and listen.** The Sabbath classes, the Captains, Our Hidden History and the Truth
@@ -51,8 +50,7 @@ read it. A history of the last thirty chapters opened.
 **Listen.** The chapter read aloud (the device's own voice), verse by verse with the verse
 being read lit, at 0.8× to 1.5×, from any verse.
 
-**Offline.** Save a book to the device and read it, with the WEB text beside it, without a
-connection.
+**Offline.** Save a book to the device and read it without a connection.
 
 **Yours, on every device.** Bookmarks, highlights, notes, reading progress, the plan, text
 size, theme, recent searches and your location are kept in Telegram's cloud storage, so a

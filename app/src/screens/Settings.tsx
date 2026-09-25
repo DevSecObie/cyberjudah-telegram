@@ -82,7 +82,7 @@ export function Settings() {
       {offlineSupported ? (
         <Section title="Offline books" action={<button type="button" className="link" onClick={() => void offline()}>Save a book</button>}>
           {saving ? <div className="progress"><i style={{ width: `${saving.pct}%` }} /></div> : null}
-          {saved.length ? <List>{saved.map((s) => <Row key={s} onClick={() => void forget(s)} title={books.data?.find((b) => b.slug === s)?.book ?? s} sub="Saved on this device · tap to remove" trailing={<span className="pill pill--ok">offline</span>} />)}</List> : <p className="hint">Saved books read without a connection, with the WEB text beside them.</p>}
+          {saved.length ? <List>{saved.map((s) => <Row key={s} onClick={() => void forget(s)} title={books.data?.find((b) => b.slug === s)?.book ?? s} sub="Saved on this device · tap to remove" trailing={<span className="pill pill--ok">offline</span>} />)}</List> : <p className="hint">Saved books read without a connection.</p>}
         </Section>
       ) : null}
       <Section title="Daily verse">

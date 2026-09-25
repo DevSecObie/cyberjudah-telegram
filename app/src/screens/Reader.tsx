@@ -34,9 +34,7 @@ export function Reader() {
   const text = useQuery({ queryKey: ["chapter", slug, ch], queryFn: () => data.chapter(slug, ch), staleTime: Infinity });
   const cites = useQuery({ queryKey: ["cites", slug, ch], queryFn: () => data.concordance(slug, ch).then((c) => merge(c.cited_by)).catch(() => [] as Citation[]) });
   const [size, setSize] = useStored<(typeof SIZES)[number]>("size", "regular");
-  const [parallel, setParallel] = useStored("parallel", false);
   const [showXref, setShowXref] = useStored("xref", false);
-  const web = useQuery({ queryKey: ["web", slug, ch], queryFn: () => data.web(slug, ch).catch(() => [] as string[]), enabled: parallel });
   const xref = useQuery({ queryKey: ["xref", slug, ch], queryFn: () => data.xref(slug, ch).catch(() => ({})), enabled: showXref });
   const [marks, setMarks] = useBookmarks();
   const [hl, setHl] = useHighlights();
@@ -117,7 +115,6 @@ export function Reader() {
         <button type="button" className="icon-btn" aria-label="Books" onClick={() => go(`/bible/${slug}`)}><Icon name="list" size={18} /></button>
         <h1>{name || " "}</h1>
         {speech.supported ? <button type="button" className="icon-btn" aria-pressed={speech.playing} aria-label={speech.playing ? "Stop listening" : "Listen to this chapter"} onClick={() => (speech.playing ? speech.stop() : speech.play(selected[0] ?? 1))}><Icon name="play" size={16} /></button> : null}
-        <button type="button" className="icon-btn" aria-pressed={parallel} aria-label="Parallel text (WEB)" onClick={() => setParallel(!parallel)}>WEB</button>
         <button type="button" className="icon-btn" aria-pressed={showXref} aria-label="Cross references" onClick={() => setShowXref(!showXref)}><Icon name="link" size={16} /></button>
         <button type="button" className="icon-btn" aria-label={`Text size: ${size}`} onClick={() => { haptic("select"); setSize(SIZES[(SIZES.indexOf(size) + 1) % SIZES.length]); }}>Aa</button>
       </div>
@@ -134,7 +131,6 @@ export function Reader() {
                   <sup>{row.verse}</sup>{row.text}
                 </span>
                 {note ? <span className="vnote" onClick={() => { setVerses([row.verse]); void more(); }}>{note}</span> : null}
-                {parallel && web.data?.[row.verse - 1] ? <span className="parallel">{web.data[row.verse - 1]}</span> : null}
                 {refs?.length ? <span className="xrefs">{refs.slice(0, 8).map(([s, c, v]) => <Link key={`${s}${c}${v}`} to={`/read/${s}/${c}?v=${v}`}>{list.find((b) => b.slug === s)?.book ?? s} {c}:{v}</Link>)}</span> : null}
               </span>
             );
