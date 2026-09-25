@@ -12,6 +12,9 @@ the HMAC with the bot token (see `bot/src/initdata.ts`) and refuses anything old
 | `POST /api/share` | tma | `{ kind: "verse"\|"note"\|"app", title, text, url, startapp }` | `{ id }` – a prepared inline message id for `WebApp.shareMessage(id)` (allow_user_chats, group_chats, channel_chats) |
 | `POST /api/subscribe` | tma | `{ on: boolean, hour?: 0-23, tz?: minutes offset }` | `{ subscribed }` – daily verse, sent by the cron at that local hour; call after `requestWriteAccess` |
 | `POST /api/invoice` | tma | `{ stars: 50\|100\|500 }` | `{ link }` – Telegram Stars invoice link for `WebApp.openInvoice` |
+| `GET /api/dictionary` | none | `q?`, `letter?`, `page?` | `{ count, page, pages, rows: [{slug, term}], related: [...] }` – Easton's Bible Dictionary |
+| `GET /api/dictionary/lookup` | none | `word` | the entry a word in the text means, or 404 |
+| `GET /api/dictionary/:slug` | none | | `{ slug, term, definitions: string[] }` |
 | `GET /api/verse-of-day` | none | | `{ ref, slug, chapter, verse, text, startapp }` |
 | `GET /card/:slug/:chapter/:verse.svg` | none | | an SVG verse card (for previews) |
 

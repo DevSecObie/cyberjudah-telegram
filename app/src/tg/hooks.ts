@@ -19,6 +19,9 @@ export function useBackButton(root: boolean, onBack?: () => boolean | void) {
     if (!has("6.1")) return;
     const cb = () => {
       haptic("select");
+      // An open sheet closes first, like a phone app.
+      const sheet = document.querySelector<HTMLElement>("[data-sheet-open]");
+      if (sheet) { sheet.closest(".sheet__scrim")?.dispatchEvent(new MouseEvent("click", { bubbles: true })); return; }
       if (handler.current?.() === true) return;
       if (canGoBack) navigate(-1); else navigate("/", { replace: true });
     };

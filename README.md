@@ -39,10 +39,26 @@ laws and precepts each one turns on; the topics.
 **Sabbath.** Share your location once and the app counts down to sunset, and tells you when
 the Sabbath ends.
 
-**Yours, on every device.** Bookmarks, highlights, reading progress, text size, recent
-searches and your location are kept in Telegram's cloud storage, so a phone and a desktop
-show the same things. A verse every morning from the bot, at the hour you choose. Optionally
-lock the app behind your fingerprint or face.
+**Study.** Six highlight colours, a note on any verse, bookmarks with tags, and a dictionary
+(Easton's, 3,963 entries: names, places, words) that opens straight from a verse with the
+entries for the words in it. Copy a passage with its reference; find every class and note
+that cites it.
+
+**Plan.** The whole library in order at two, four or six chapters a day, with today's
+chapters to tick off, a streak, and how far along you are. The app ticks a chapter as you
+read it. A history of the last thirty chapters opened.
+
+**Listen.** The chapter read aloud (the device's own voice), verse by verse with the verse
+being read lit, at 0.8× to 1.5×, from any verse.
+
+**Offline.** Save a book to the device and read it, with the WEB text beside it, without a
+connection.
+
+**Yours, on every device.** Bookmarks, highlights, notes, reading progress, the plan, text
+size, theme, recent searches and your location are kept in Telegram's cloud storage, so a
+phone and a desktop show the same things. Dark, sepia or light; a book face or the system
+face; three line spacings. A verse every morning from the bot, at the hour you choose.
+Optionally lock the app behind your fingerprint or face.
 
 ## Every Mini App feature, and where it is used
 
@@ -53,7 +69,7 @@ lock the app behind your fingerprint or face.
 | `MainButton`, `SecondaryButton` | 6.1 / 7.10 | every screen's action: next chapter, Share, Watch, Use my location |
 | `SettingsButton` | 6.10 | the ··· menu opens Settings |
 | `HapticFeedback` | 6.1 | taps, selections, success and warnings |
-| `showPopup`, `showAlert`, `showConfirm` | 6.2 | the verse menu, confirmations |
+| `showPopup`, `showAlert`, `showConfirm` | 6.2 | confirmations (the verse menu is the app's own sheet: Telegram's popups take three buttons) |
 | `showScanQrPopup` | 6.4 | Search: scan a link on a flyer |
 | `readTextFromClipboard` | 6.4 | Search: paste a link or a reference |
 | `switchInlineQuery` | 6.7 | a verse into any chat via `@bot` |

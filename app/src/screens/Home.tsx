@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
 import { data, fmtDate, when } from "@/api/data";
-import { useLast, useProgress, chaptersRead } from "@/lib/marks";
+import { useLast, usePlan, useProgress, chaptersRead } from "@/lib/marks";
+import { planDay } from "@/lib/plan";
 import { countdown, sabbath } from "@/lib/sun";
 import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
 import { user } from "@/tg/sdk";
@@ -21,6 +22,9 @@ export function Home() {
   useBackButton(true);
   const [last] = useLast();
   const [progress] = useProgress();
+  const [plan] = usePlan();
+  const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
+  const today = plan && books.data ? planDay(plan, books.data, progress) : null;
   const [loc] = useStored<{ lat: number; lng: number } | null>("loc", null);
   const verse = useQuery({ queryKey: ["votd"], queryFn: () => fetch("/api/verse-of-day").then((r) => r.json() as Promise<Verse>), staleTime: 60 * 60_000 });
   const classes = useQuery({ queryKey: ["classes"], queryFn: data.classes });
@@ -49,6 +53,13 @@ export function Home() {
         <Card href="/sabbath" className="sabbath">
           <span className="sabbath__icon"><Icon name="sun" /></span>
           <span><b>{sab.sabbath ? "Shabbat shalom" : `Sabbath in ${countdown(sab.next, now)}`}</b><span>{sab.label} · {sab.next.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span></span>
+        </Card>
+      ) : null}
+
+      {today ? (
+        <Card href="/plan" className="continue">
+          <span className="continue__icon"><Icon name="check" /></span>
+          <span><b>Today's reading · {today.label}</b><span>{today.done ? "Done for today" : `${today.chapters.filter((c) => c.read).length} of ${today.chapters.length} read`}{plan!.streak ? ` · ${plan!.streak} day streak` : ""}</span></span>
         </Card>
       ) : null}
 

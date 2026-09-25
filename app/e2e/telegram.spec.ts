@@ -54,24 +54,76 @@ test("tabs are roots, detail screens push, and the back button walks them", asyn
   await expect(page).toHaveURL(/\/bible/);
 });
 
-test("bookmarks and highlights persist through CloudStorage", async ({ page }) => {
+test("the verse sheet: colour highlight, note and bookmark persist through CloudStorage", async ({ page }) => {
   await page.goto(`/read/psalms/23?v=1${LAUNCH}`);
   await expect(page.locator("#v1")).toHaveAttribute("aria-pressed", "true");
   await press(page, "second");
-  await page.evaluate(() => (window as unknown as { __tg: { answerPopup(id: string): void } }).__tg.answerPopup("bm"));
-  await expect(page.locator("#v1")).toHaveAttribute("data-bm", "");
+  await page.click('.swatch[aria-label="Green"]');
+  await expect(page.locator("#v1")).toHaveAttribute("data-hl", "g");
   await press(page, "second");
-  await page.evaluate(() => (window as unknown as { __tg: { answerPopup(id: string): void } }).__tg.answerPopup("hl"));
-  await expect(page.locator("#v1")).toHaveClass(/v--hl/);
+  await page.click(".sheet__item >> text=Add a note");
+  await page.fill("#sheet-text", "The shepherd psalm.");
+  await page.click(".sheet__form button[type=submit]");
+  await expect(page.locator("#v1")).toHaveAttribute("data-note", "");
+  await expect(page.locator(".vnote")).toHaveText("The shepherd psalm.");
+  await press(page, "second");
+  await page.click(".sheet__item >> text=Bookmark");
   await expect(page.locator("#v1")).toHaveAttribute("data-bm", "");
   const cloud = await page.evaluate(() => (window as unknown as { __tg: { cloud: Record<string, string> } }).__tg.cloud);
   expect(JSON.parse(cloud.bm)[0].title).toBe("Psalms 23:1");
   expect(cloud.hl).toContain("psalms/23");
+  expect(JSON.parse(cloud.nt_psalms_23)["1"]).toBe("The shepherd psalm.");
+  // The back button closes an open sheet before it leaves the screen.
+  await press(page, "second");
+  await expect(page.locator(".sheet")).toBeVisible();
+  await press(page, "back");
+  await expect(page.locator(".sheet")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/read\/psalms\/23/);
   // A full reload would reset the mock's cloud; walk there inside the app instead.
   await press(page, "back");
   await page.click(".tab >> text=More");
-  await page.click(".row >> text=Bookmarks & highlights");
+  await page.click(".row >> text=Bookmarks, highlights");
   await expect(page.locator(".row__title").first()).toContainText("The Lord is my shepherd");
+  await page.click('[role=tab] >> text=Notes');
+  await expect(page.locator(".row__title").first()).toHaveText("The shepherd psalm.");
+});
+
+test("the reading plan ticks today's chapters and keeps a streak", async ({ page }) => {
+  await page.goto(`/plan${LAUNCH}`);
+  await press(page, "main");
+  await page.click(".sheet__item >> text=4 chapters a day");
+  await expect(page.locator(".card__label")).toHaveText("Today");
+  await expect(page.locator(".plan-row")).toHaveCount(4);
+  for (let i = 0; i < 4; i++) await page.locator(".plan-row i").nth(i).click();
+  await expect(page.locator(".plan-row[data-read]")).toHaveCount(4);
+  expect((await state(page)).main).toBe("Tomorrow's reading");
+  await press(page, "main");
+  await expect(page.locator(".kicker")).toContainText("Day 2");
+  await expect(page.locator(".card__ref")).toContainText("1 day streak");
+});
+
+test("the dictionary looks up the words of a verse", async ({ page }) => {
+  await page.goto(`/read/genesis/2?v=8${LAUNCH}`);
+  await expect(page.locator("#v8")).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(async () => (await state(page)).second).toBe("More…");
+  await press(page, "second");
+  await page.click(".sheet__item >> text=Look up in the dictionary");
+  await expect(page).toHaveURL(/\/dictionary\?from=/);
+  await expect(page.locator(".row__title", { hasText: "Eden" })).toBeVisible();
+  await page.locator(".row", { has: page.locator(".row__title", { hasText: /^Eden$/ }) }).first().click();
+  await expect(page.locator(".title")).toHaveText("Eden");
+  await expect(page.locator(".dict p").first()).toContainText("Delight");
+});
+
+test("settings: theme, spacing and offline books", async ({ page }) => {
+  await page.goto(`/settings${LAUNCH}`);
+  await page.click('[role=tab] >> text=Sepia');
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "sepia");
+  await page.click(".link >> text=Save a book");
+  await page.click(".sheet__item >> text=Jude");
+  await expect(page.locator(".pill--ok")).toHaveText("offline");
+  const cached = await page.evaluate(async () => (await (await caches.open("cj-offline-v1")).keys()).length);
+  expect(cached).toBeGreaterThanOrEqual(2);
 });
 
 test("search opens a typed reference, and the settings button opens settings", async ({ page }) => {

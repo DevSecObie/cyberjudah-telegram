@@ -13,7 +13,10 @@ import { NoteScreen } from "@/screens/Note";
 import { Bible } from "@/screens/Bible";
 import { Reader } from "@/screens/Reader";
 import { More } from "@/screens/More";
-import { Settings } from "@/screens/Settings";
+import { Settings, ThemeApplier } from "@/screens/Settings";
+import { Plan } from "@/screens/Plan";
+import { History } from "@/screens/History";
+import { Dictionary, DictionaryEntry } from "@/screens/Dictionary";
 import { Bookmarks } from "@/screens/Bookmarks";
 import { Sabbath } from "@/screens/Sabbath";
 import { LawIndex, LawSectionScreen, Precepts, PreceptScreen, Cases, CaseScreen, Topics, TopicScreen, Study, Encyclopedia } from "@/screens/Library";
@@ -38,6 +41,7 @@ export function App() {
   const root = ROOTS.has(location.pathname);
   return (
     <div id="shell" data-tabs={root ? "" : undefined}>
+      <ThemeApplier />
       <Lock />
       <Routes>
         <Route path="/" element={<Home />} />
@@ -48,6 +52,10 @@ export function App() {
         <Route path="/read/:book/:chapter" element={<Reader />} />
         <Route path="/note/*" element={<NoteScreen />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/plan" element={<Plan />} />
+        <Route path="/history" element={<History />} />
+        <Route path="/dictionary" element={<Dictionary />} />
+        <Route path="/dictionary/:slug" element={<DictionaryEntry />} />
         <Route path="/bookmarks" element={<Bookmarks />} />
         <Route path="/sabbath" element={<Sabbath />} />
         <Route path="/study" element={<Study />} />

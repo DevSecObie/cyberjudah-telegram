@@ -10,6 +10,7 @@ import { List, Row, Screen, Section } from "@/ui/ui";
 
 const STUDY: [string, string, string][] = [
   ["/study", "4 Chapters a Day", "The daily reading, a note for every chapter"],
+  ["/dictionary", "Dictionary", "Easton's: names, places and words"],
   ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book"],
   ["/topics", "Topics", "Classes and episodes by what they cover"],
 ];
@@ -29,7 +30,9 @@ export function More() {
     <Screen title="More">
       <Section title="Yours">
         <List>
-          <Row href="/bookmarks" icon="bookmark" title="Bookmarks & highlights" sub={marks.length ? `${marks.length} saved` : "Verses and classes you keep"} />
+          <Row href="/plan" icon="check" title="Reading plan" sub="The whole library, a few chapters a day" />
+          <Row href="/bookmarks" icon="bookmark" title="Bookmarks, highlights & notes" sub={marks.length ? `${marks.length} bookmarks` : "Verses and classes you keep"} />
+          <Row href="/history" icon="clock" title="History" sub="The chapters you opened" />
           <Row href="/sabbath" icon="sun" title="Sabbath" sub="Sunset where you are, and the countdown" />
           <Row href="/settings" icon="bell" title="Settings" sub={`Daily verse, lock, text size${chaptersRead(progress) ? ` · ${chaptersRead(progress)} chapters read` : ""}`} />
         </List>

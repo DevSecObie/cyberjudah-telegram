@@ -9,6 +9,7 @@ import { runSearch } from "./search";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
 import { bookLabel } from "./verse-of-day.mjs";
+import { dictionary } from "./dictionary";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
@@ -20,7 +21,7 @@ const STARS = new Set([50, 100, 500]);
  * proves it came from Telegram and names the person. Nothing else is trusted.
  */
 app.use("/api/*", async (c, next) => {
-  if (c.req.path === "/api/verse-of-day") return next();
+  if (c.req.path === "/api/verse-of-day" || c.req.path.startsWith("/api/dictionary")) return next();
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
   const data = m ? await validateInitData(m[1], c.env.BOT_TOKEN, 86400) : null;
   if (!data?.user) return c.json({ error: "unauthorized" }, 401);
@@ -109,6 +110,9 @@ app.post("/api/invoice", async (c) => {
     return c.json({ error: "invoice-failed" }, 502);
   }
 });
+
+// The dictionary is public: nothing personal in a lookup, and the cache can serve everyone.
+app.route("/api/dictionary", dictionary);
 
 app.get("/api/verse-of-day", async (c) => {
   const v = await todaysVerse(c.env, c.executionCtx);

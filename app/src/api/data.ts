@@ -5,10 +5,20 @@
 export const DATA_ORIGIN: string = (import.meta.env.VITE_DATA_ORIGIN as string | undefined) || "https://data.cyberjudah.io";
 export const SITE_URL = "https://cyberjudah.io";
 
+import { cachedResponse } from "@/lib/offline";
+
+/** Network first; a saved (offline) copy when the network fails. */
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${DATA_ORIGIN}${path}`, { headers: { accept: "application/json" } });
-  if (!res.ok) throw new Error(`${res.status} ${path}`);
-  return (await res.json()) as T;
+  const url = `${DATA_ORIGIN}${path}`;
+  try {
+    const res = await fetch(url, { headers: { accept: "application/json" } });
+    if (!res.ok) throw new Error(`${res.status} ${path}`);
+    return (await res.json()) as T;
+  } catch (e) {
+    const cached = await cachedResponse(url);
+    if (cached) return (await cached.json()) as T;
+    throw e;
+  }
 }
 
 export type Book = { book: string; slug: string; chapters: number; verses: number; testament: "Old Testament" | "New Testament" | "Apocrypha"; url: string; chapterIds: number[] };

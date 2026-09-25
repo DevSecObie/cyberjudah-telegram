@@ -1,0 +1,10 @@
+{
+  "source": "Easton's Bible Dictionary",
+  "dataset": "JWBickel/BibleDictionaries",
+  "revision": "9fa48b8350242c1b2b99fafa41617bbeb2741fce",
+  "url": "https://huggingface.co/datasets/JWBickel/BibleDictionaries/resolve/9fa48b8350242c1b2b99fafa41617bbeb2741fce/Easton%27s%20Bible%20Dictionary.jsonl",
+  "sha256": "978e09fdb66e9c6b722085f868c0cc84030df9e15c6188a06390f3822888082a",
+  "entries": 3963,
+  "transformation": "Parsed JSONL; preserved term and definition strings; added unique URL slugs and sorted by term.",
+  "license": "Dataset card does not specify a license. Attribution retained; no claim of a new license."
+}
