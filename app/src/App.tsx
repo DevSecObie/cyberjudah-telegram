@@ -17,6 +17,7 @@ import { Settings, ThemeApplier } from "@/screens/Settings";
 import { Plan } from "@/screens/Plan";
 import { History } from "@/screens/History";
 import { Dictionary, DictionaryEntry } from "@/screens/Dictionary";
+import { Relations } from "@/screens/Relations";
 import { Bookmarks } from "@/screens/Bookmarks";
 import { Sabbath } from "@/screens/Sabbath";
 import { LawIndex, LawSectionScreen, Precepts, PreceptScreen, Cases, CaseScreen, Topics, TopicScreen, Study, Encyclopedia } from "@/screens/Library";
@@ -53,6 +54,7 @@ export function App() {
         <Route path="/note/*" element={<NoteScreen />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/plan" element={<Plan />} />
+        <Route path="/relations" element={<Relations />} />
         <Route path="/history" element={<History />} />
         <Route path="/dictionary" element={<Dictionary />} />
         <Route path="/dictionary/:slug" element={<DictionaryEntry />} />

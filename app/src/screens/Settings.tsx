@@ -8,6 +8,7 @@ import { alert, api, app, features, haptic, openInvoice, platform, requestWriteA
 import { secure } from "@/tg/store";
 import { useSheet } from "@/ui/sheet";
 import { List, Row, Screen, Section, Segmented } from "@/ui/ui";
+import { useRelationsDisplay } from "@/lib/relations";
 
 function Toggle({ on, onChange, title, sub }: { on: boolean; onChange: (v: boolean) => void; title: string; sub?: string }) {
   return <button type="button" className="toggle" role="switch" aria-checked={on} onClick={() => { haptic("select"); onChange(!on); }}><span><b>{title}</b>{sub ? <small>{sub}</small> : null}</span><span className="switch" /></button>;
@@ -25,6 +26,7 @@ export function Settings() {
   const [font, setFont] = useStored<Font>("font", "serif");
   const [spacing, setSpacing] = useStored<Spacing>("spacing", "regular");
   const [justify, setJustify] = useStored("justify", false);
+  const [relDisplay, setRelDisplay] = useRelationsDisplay();
   const [fullscreen, setFs] = useStored("fullscreen", false);
   const [portrait, setPortrait] = useStored("portrait", false);
   const [daily, setDaily] = useState<boolean | null>(null);
@@ -75,6 +77,7 @@ export function Settings() {
           <Row onClick={() => setFont(font === "serif" ? "sans" : "serif")} title="Typeface" sub={font === "serif" ? "Newsreader, a book face" : "The system face"} trailing={<span className="pill">{font === "serif" ? "Serif" : "Sans"}</span>} />
           <Row onClick={() => setSpacing(spacing === "tight" ? "regular" : spacing === "regular" ? "airy" : "tight")} title="Line spacing" sub={spacing} trailing={<span className="pill">≡</span>} />
           <Toggle on={justify} onChange={setJustify} title="Justify the text" />
+          <Row onClick={() => setRelDisplay(relDisplay === "inline" ? "block" : "inline")} title="Relations display" sub={relDisplay === "inline" ? "Line break: the related passages, notes and entries as tags under the verse" : "With icon: a count beside the verse number"} trailing={<span className="pill">{relDisplay === "inline" ? "Line break" : "With icon"}</span>} />
           {features.fullscreen ? <Toggle on={fullscreen} onChange={setFs} title="Full screen" sub="Hide Telegram's header while reading" /> : null}
           {features.fullscreen && (platform === "ios" || platform === "android") ? <Toggle on={portrait} onChange={setPortrait} title="Lock portrait" sub="Keep the reader upright" /> : null}
         </List>

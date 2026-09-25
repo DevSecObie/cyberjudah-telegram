@@ -41,6 +41,20 @@ test("launch lands on the deep link's screen and the reader drives the bottom ba
   await expect(page).toHaveURL(/\/read\/john\/3/);
 });
 
+test("cross references unfold the related verse beside the scripture", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#v1")).toBeVisible();
+  await page.click('.icon-btn[aria-label="Cross references"]');
+  const chip = page.locator("#v1 ~ .xrefs .xref__chip").first();
+  await expect(chip).toBeVisible();
+  const label = await chip.textContent();
+  await chip.click();
+  await expect(page.locator(".xref__text").first()).toContainText(/\w+/);
+  await expect(page.locator(".xref__text sup").first()).toHaveText(label!.split(":")[1]);
+  await page.click(".xref__go");
+  await expect(page).toHaveURL(/\/read\/[a-z0-9-]+\/\d+\?v=\d+/);
+});
+
 test("tabs are roots, detail screens push, and the back button walks them", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
   await expect(page.locator(".hello h1")).toHaveText("CyberJudah");
@@ -113,6 +127,50 @@ test("the dictionary looks up the words of a verse", async ({ page }) => {
   await page.locator(".row", { has: page.locator(".row__title", { hasText: /^Eden$/ }) }).first().click();
   await expect(page.locator(".title")).toHaveText("Eden");
   await expect(page.locator(".dict p").first()).toContainText("Delight");
+});
+
+test("relations: a verse linked to a passage shows as a tag under the verse, with edit and delete", async ({ page }) => {
+  await page.goto(`/read/psalms/23?v=1${LAUNCH}`);
+  await expect(page.locator("#v1")).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(async () => (await state(page)).second).toBe("More…");
+  await press(page, "second");
+  await page.click(".sheet__item >> text=Relation");
+  await page.fill("#rel-q", "John 10:11");
+  await expect(page.locator(".rel-result__title", { hasText: "John 10:11" })).toBeVisible();
+  await expect(page.locator(".rel-result__desc").first()).toContainText("good shepherd");
+  await page.click(".rel-result");
+  // The tag sits under Psalms 23:1 and opens John 10:11.
+  const tag = page.locator("#v1 ~ .rel-inline .rel-tag");
+  await expect(tag).toHaveCount(1);
+  await expect(tag).toContainText("John 10:11");
+  const cloud = await page.evaluate(() => (window as unknown as { __tg: { cloud: Record<string, string> } }).__tg.cloud);
+  expect(JSON.parse(cloud.rel_psalms_23)[0].type).toBe("linked");
+  expect(JSON.parse(cloud.rel_john_10)[0].id).toBe(JSON.parse(cloud.rel_psalms_23)[0].id);
+  await tag.click();
+  await expect(page).toHaveURL(/\/read\/john\/10\?v=11/);
+  // The other end shows it too, and the relations screen reads "is linked to".
+  await expect(page.locator("#v11 ~ .rel-inline .rel-tag")).toContainText("Psalms 23:1");
+  await page.locator("#v11 ~ .rel-inline .rel-tag").click();
+  await expect(page).toHaveURL(/\/read\/psalms\/23\?v=1/);
+  await expect.poll(async () => (await state(page)).second).toBe("More…");
+  await press(page, "second");
+  await page.click(".sheet__item >> text=Edit relations");
+  await expect(page).toHaveURL(/\/relations\?endpoint=psalms-23-1/);
+  await expect(page.locator(".rel-row__title")).toContainText("is linked to");
+  await expect(page.locator(".rel-row__title")).toContainText("John 10:11");
+  // Edit: refers to, forward, with a label.
+  await page.click('.rel-row .icon-btn[aria-label="Options"]');
+  await page.click(".sheet__item >> text=Edit");
+  await page.click(".sheet__item >> text=refers to");
+  await page.click(".sheet__item >> nth=0");
+  await page.fill("#sheet-text", "The shepherd");
+  await page.click(".sheet__form button[type=submit]");
+  await expect(page.locator(".rel-row__title")).toContainText("refers to");
+  await expect(page.locator(".rel-row__body small")).toHaveText("The shepherd");
+  // Delete.
+  await page.click('.rel-row .icon-btn[aria-label="Options"]');
+  await page.click(".sheet__item >> text=Remove");
+  await expect(page.locator(".rel-empty p")).toHaveText("No relations");
 });
 
 test("settings: theme, spacing and offline books", async ({ page }) => {

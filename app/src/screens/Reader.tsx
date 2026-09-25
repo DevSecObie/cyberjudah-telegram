@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { compressVerses, data, shelf, verseNumbers, type Citation } from "@/api/data";
@@ -8,9 +8,13 @@ import { advance, planDay } from "@/lib/plan";
 import { inlineVerse, share, storyVerse } from "@/lib/share";
 import { useSpeech } from "@/lib/tts";
 import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
-import { alert, features, haptic } from "@/tg/sdk";
+import { alert, features, haptic, openLink } from "@/tg/sdk";
 import { useSheet } from "@/ui/sheet";
 import { Empty, Icon, List, Row, Section, Skeleton, useGo } from "@/ui/ui";
+import { Xrefs } from "@/ui/xrefs";
+import { RelationsCount, RelationsText } from "@/ui/relations";
+import { RelationTargetPicker, verseLabel } from "@/screens/Relations";
+import { endpointHref, useChapterRelations, useRelationsDisplay, verseKey, type VerseEndpoint, type VerseRelationItem } from "@/lib/relations";
 
 const SIZES = ["compact", "regular", "large"] as const;
 
@@ -34,6 +38,9 @@ export function Reader() {
   const text = useQuery({ queryKey: ["chapter", slug, ch], queryFn: () => data.chapter(slug, ch), staleTime: Infinity });
   const cites = useQuery({ queryKey: ["cites", slug, ch], queryFn: () => data.concordance(slug, ch).then((c) => merge(c.cited_by)).catch(() => [] as Citation[]) });
   const [size, setSize] = useStored<(typeof SIZES)[number]>("size", "regular");
+  const [relDisplay] = useRelationsDisplay();
+  const rel = useChapterRelations(slug, ch, relDisplay);
+  const [relPicker, setRelPicker] = useState<VerseEndpoint | null>(null);
   const [showXref, setShowXref] = useStored("xref", false);
   const xref = useQuery({ queryKey: ["xref", slug, ch], queryFn: () => data.xref(slug, ch).catch(() => ({})), enabled: showXref });
   const [marks, setMarks] = useBookmarks();
@@ -70,6 +77,10 @@ export function Reader() {
   useEffect(() => { if (!text.data || !selected.length) return; const t = setTimeout(() => document.getElementById(`v${selected[0]}`)?.scrollIntoView({ block: "center" }), 60); return () => clearTimeout(t); }, [text.data, slug, ch]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (speech.current) document.getElementById(`v${speech.current}`)?.scrollIntoView({ block: "center", behavior: "smooth" }); }, [speech.current]);
 
+  const selectedEndpoint = (): VerseEndpoint => { const keys = selected.map((v) => verseKey(slug, ch, v)); return { type: "verse", verseKeys: keys, label: verseLabel(keys, list) }; };
+  const openRelationItem = (it: VerseRelationItem) => { const href = endpointHref(it.target); if (it.target.type === "link") openLink(href); else navigate(href); };
+  const openVerseRelations = (v: number) => navigate(`/relations?endpoint=${verseKey(slug, ch, v)}`);
+
   /** The verse menu: highlight colours, a note, bookmark, copy, look up, share elsewhere. */
   const more = async () => {
     const first = selected[0];
@@ -81,6 +92,8 @@ export function Reader() {
         ...(hasHl ? [{ id: "unhl", text: "Remove highlight" }] : []),
         { id: "note", text: notes[String(first)] ? "Edit note" : "Add a note", hint: "Kept with the verse, on every device", icon: <Icon name="note" size={16} /> },
         { id: "bm", text: marks.some((m) => m.id === `${slug}/${ch}/${compressVerses(selected)}`) ? "Remove bookmark" : "Bookmark", icon: <Icon name="bookmark" size={16} /> },
+        { id: "relation", text: "Relation", hint: "Connect these verses to a passage, a note, a class, a dictionary entry or a link", icon: <Icon name="merge" size={16} /> },
+        ...(rel.items[first]?.length ? [{ id: "relations", text: "Edit relations", hint: `${rel.items[first].length} on this verse`, icon: <Icon name="merge" size={16} /> }] : []),
         { id: "copy", text: "Copy", hint: "The verses with their reference", icon: <Icon name="copy" size={16} /> },
         { id: "dict", text: "Look up in the dictionary", hint: "Names, places and words in these verses", icon: <Icon name="book" size={16} /> },
         { id: "find", text: "Find in the library", hint: "Every class and note that cites this passage", icon: <Icon name="search" size={16} /> },
@@ -96,6 +109,8 @@ export function Reader() {
       if (n?.id === "text") { const nextNotes = { ...notes }; if (n.value) nextNotes[String(first)] = n.value.slice(0, 1000); else delete nextNotes[String(first)]; setNotes(nextNotes); haptic("success"); }
     }
     if (a.id === "bm") { setMarks(toggleBookmark(marks, { id: `${slug}/${ch}/${compressVerses(selected)}`, kind: "verse", title: passage, text: passageText(), href: `/bible/${slug}/${ch}?v=${compressVerses(selected)}` })); haptic("success"); }
+    if (a.id === "relation") setRelPicker(selectedEndpoint());
+    if (a.id === "relations") openVerseRelations(first);
     if (a.id === "copy") { try { await navigator.clipboard.writeText(`${passageText()}\n— ${passage} (KJV)`); haptic("success"); } catch { void alert("Copying is not allowed here. Select the text instead."); } }
     if (a.id === "dict") navigate(`/dictionary?from=${encodeURIComponent(passageText().slice(0, 300))}`);
     if (a.id === "find") navigate(`/search?q=${encodeURIComponent(passage)}`);
@@ -128,10 +143,11 @@ export function Reader() {
               <span key={row.verse}>
                 <span id={`v${row.verse}`} className="v" role="button" tabIndex={0} aria-pressed={on} data-hl={chapterHl.get(row.verse)} data-note={note ? "" : undefined} data-reading={speech.current === row.verse ? "" : undefined} data-cited={counts.get(row.verse) ? "" : undefined} data-bm={marks.some((m) => m.id.startsWith(`${key}/`) && verseNumbers(m.id.split("/")[2]).includes(row.verse)) ? "" : undefined}
                   onClick={() => { if (!window.getSelection()?.toString()) toggle(row.verse); }} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(row.verse); } }}>
-                  <sup>{row.verse}</sup>{row.text}
+                  <sup>{row.verse}</sup>{relDisplay === "block" && rel.items[row.verse]?.length ? <RelationsCount count={rel.items[row.verse].length} onClick={() => openVerseRelations(row.verse)} /> : null}{row.text}
                 </span>
+                {relDisplay === "inline" && rel.items[row.verse]?.length ? <RelationsText items={rel.items[row.verse]} onClick={openRelationItem} /> : null}
                 {note ? <span className="vnote" onClick={() => { setVerses([row.verse]); void more(); }}>{note}</span> : null}
-                {refs?.length ? <span className="xrefs">{refs.slice(0, 8).map(([s, c, v]) => <Link key={`${s}${c}${v}`} to={`/read/${s}/${c}?v=${v}`}>{list.find((b) => b.slug === s)?.book ?? s} {c}:{v}</Link>)}</span> : null}
+                {refs?.length ? <Xrefs refs={refs} books={list} /> : null}
               </span>
             );
           })}
@@ -146,6 +162,7 @@ export function Reader() {
         </div>
       ) : null}
       {taught.length ? <div style={{ marginTop: 28 }}><Section title={selected.length ? `Taught from ${passage}` : "Taught from this chapter"}><List>{taught.slice(0, 40).map((c) => <Row key={c.url + (c.verses ?? "")} href={c.url} meta={`${shelf(c.url, c.kind)}${c.verses ? ` · v. ${c.verses}` : ""}`} title={c.label} />)}</List></Section></div> : null}
+      {relPicker ? <RelationTargetPicker source={relPicker} onClose={() => setRelPicker(null)} onCreated={() => { setRelPicker(null); setVerses([]); }} /> : null}
       <nav className="steps" aria-label="Chapters">
         {prev ? <Link to={`/read/${prev.slug}/${prev.ch}`}>← {prev.name}</Link> : null}
         {next ? <Link data-main="" to={`/read/${next.slug}/${next.ch}`}>{next.name} →</Link> : null}

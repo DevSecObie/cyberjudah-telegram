@@ -43,6 +43,13 @@ the Sabbath ends.
 entries for the words in it. Copy a passage with its reference; find every class and note
 that cites it.
 
+**Relations.** Bible Strong's study relations, as they are there: connect verses to another
+passage, a note, a class or a law, a dictionary entry or a link, with a kind (linked to,
+refers to, explains, contrasts with, mentions), a direction and a label. They show under the
+verse as tags (or as a count beside the verse number), a tap opens the target, and a
+relations screen lists, edits and deletes them. Bible Strong's inline cross references
+(the related verse unfolding under the reference) are here too.
+
 **Plan.** The whole library in order at two, four or six chapters a day, with today's
 chapters to tick off, a streak, and how far along you are. The app ticks a chapter as you
 read it. A history of the last thirty chapters opened.
