@@ -101,6 +101,7 @@ function AssistantTurn({ t }: { t: Turn }) {
       <AnswerText text={t.content} sources={lookup} />
       {sources.length ? (
         <div className="sources">
+          <p className="sources__label">Sources</p>
           {sources.map((s) => <a key={s.n} className="source" href={passagePath(s)} onClick={(e) => { e.preventDefault(); haptic("select"); window.history.pushState(null, "", passagePath(s)); window.dispatchEvent(new PopStateEvent("popstate")); }}><b className="answer__n">{s.n}</b><span><span className="source__title">{s.title}</span><small>{passageLabel(s)}</small></span><Icon name="chevron" size={14} /></a>)}
         </div>
       ) : null}
@@ -108,19 +109,8 @@ function AssistantTurn({ t }: { t: Turn }) {
   );
 }
 
-/** The answer with its [n] citations as chips that open the passage. */
-function AnswerText({ text, sources }: { text: string; sources: Source[] }) {
-  return (
-    <>
-      {text.split(/\n{2,}/).filter(Boolean).map((para, i) => (
-        <p key={i}>
-          {para.split(/(\[\d{1,2}(?:\s*,\s*\d{1,2})*\])/g).map((part, k) => {
-            const ns = /^\[/.test(part) ? (part.match(/\d{1,2}/g) ?? []).map(Number) : null;
-            if (!ns) return part;
-            return ns.map((n) => { const s = sources.find((x) => x.n === n); return s ? <a key={`${k}-${n}`} className="cite" href={passagePath(s)} onClick={(e) => { e.preventDefault(); haptic("select"); window.history.pushState(null, "", passagePath(s)); window.dispatchEvent(new PopStateEvent("popstate")); }}>{n}</a> : <sup key={`${k}-${n}`}>{n}</sup>; });
-          })}
-        </p>
-      ))}
-    </>
-  );
+/** The answer as prose: the model's [n] markers are kept for the source list and hidden from the text. */
+function AnswerText({ text }: { text: string; sources: Source[] }) {
+  const clean = text.replace(/\s*\[\d{1,2}(?:\s*,\s*\d{1,2})*\]/g, "").replace(/\s*\[\d{0,2}$/, "").replace(/ +([.,;:!?])/g, "$1");
+  return <>{clean.split(/\n{2,}/).filter(Boolean).map((para, i) => <p key={i}>{para}</p>)}</>;
 }

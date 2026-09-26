@@ -467,3 +467,4 @@ html[data-theme="light"] .rel-inline, html[data-theme="sepia"] .rel-inline { box
 .composer__go { flex: none; width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--a-accent); color: var(--a-bg) !important; display: grid; place-items: center; cursor: pointer; }
 .composer__go:disabled { opacity: .45; }
 .chat__new { align-self: center; margin-top: 6px; }
+.sources__label { margin: 0 0 2px; font: 600 11px/1.2 var(--a-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--a-muted); }
