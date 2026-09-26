@@ -1,0 +1,45 @@
+name: Feature request
+description: Propose an outcome for users or operators
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: Who experiences it, and what are they trying to accomplish?
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Product outcome
+      options:
+        - Acquisition
+        - Activation
+        - Study depth
+        - Retention
+        - Sharing
+        - Reliability or operations
+        - Security or privacy
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed experience
+      description: Describe the user flow rather than only the implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: measure
+    attributes:
+      label: Success measure
+      description: What observable result would show that this solved the problem?
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks and dependencies
+      description: Include Telegram, Cloudflare, upstream-data, privacy, cost, and compatibility considerations.
