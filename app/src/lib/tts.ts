@@ -13,15 +13,22 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
   const [rate, setRate] = useState(1);
   const queue = useRef<{ verse: number; text: string }[]>([]);
   const rateRef = useRef(rate); rateRef.current = rate;
-  const voice = () => {
+  // One voice for the whole chapter, chosen once when playback starts: the voice list loads
+  // asynchronously, so choosing per verse would read the first verses in the default voice
+  // and switch once the list arrived.
+  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const pick = (vs: SpeechSynthesisVoice[]) => vs.find((v) => /en[-_](GB|US)/i.test(v.lang) && /natural|premium|enhanced|neural/i.test(v.name)) ?? vs.find((v) => /^en/i.test(v.lang)) ?? vs[0] ?? null;
+  const voices = () => new Promise<SpeechSynthesisVoice[]>((resolve) => {
     const vs = speechSynthesis.getVoices();
-    return vs.find((v) => /en[-_](GB|US)/i.test(v.lang) && /natural|premium|enhanced|neural/i.test(v.name)) ?? vs.find((v) => /^en/i.test(v.lang)) ?? null;
-  };
+    if (vs.length) { resolve(vs); return; }
+    const t = setTimeout(() => resolve(speechSynthesis.getVoices()), 1500);
+    speechSynthesis.addEventListener("voiceschanged", () => { clearTimeout(t); resolve(speechSynthesis.getVoices()); }, { once: true });
+  });
   const speakNext = () => {
     const item = queue.current.shift();
     if (!item) { setPlaying(false); setCurrent(null); return; }
     const u = new SpeechSynthesisUtterance(item.text);
-    u.rate = rateRef.current; u.lang = "en-GB"; const v = voice(); if (v) u.voice = v;
+    u.rate = rateRef.current; const v = voiceRef.current; if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "en-GB";
     u.onstart = () => setCurrent(item.verse > 0 ? item.verse : null);
     u.onend = speakNext;
     u.onerror = () => { setPlaying(false); setCurrent(null); };
@@ -32,7 +39,7 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
     speechSynthesis.cancel();
     queue.current = [...(from === 1 ? [{ verse: 0, text: intro }] : []), ...verses.filter((v) => v.verse >= from)];
     setPlaying(true);
-    speakNext();
+    void voices().then((vs) => { voiceRef.current = pick(vs); speakNext(); });
   };
   const stop = () => { if (!ttsSupported) return; queue.current = []; speechSynthesis.cancel(); setPlaying(false); setCurrent(null); };
   const toggle = () => { if (!ttsSupported) return; if (playing) { if (speechSynthesis.paused) { speechSynthesis.resume(); } else { speechSynthesis.pause(); } } else play(current ?? 1); };
