@@ -35,7 +35,11 @@ const dir = mkdtempSync(join(tmpdir(), "cj-search-"));
 const file = join(dir, "search.sql");
 writeFileSync(file, sql);
 try {
-  execFileSync("npx", ["wrangler", "d1", "execute", DB, local ? "--local" : "--remote", "--yes", "--file", file], { stdio: "inherit", cwd: new URL("..", import.meta.url) });
+  // D1's import occasionally drops mid-way ("Not currently importing anything"); one more try covers it.
+  for (let attempt = 1; ; attempt++) {
+    try { execFileSync("npx", ["wrangler", "d1", "execute", DB, local ? "--local" : "--remote", "--yes", "--file", file], { stdio: "inherit", cwd: new URL("..", import.meta.url) }); break; }
+    catch (e) { if (attempt >= 2) throw e; console.error("the import failed; trying once more in 15 s"); await new Promise((r) => setTimeout(r, 15000)); }
+  }
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

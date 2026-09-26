@@ -245,7 +245,7 @@ test("the reading plan ticks today's chapters and keeps a streak", async ({ page
   await expect(page.locator(".card__ref")).toContainText("1 day streak");
 });
 
-test("settings: theme, spacing and offline books", async ({ page }) => {
+liveDataTest("settings: theme, spacing and offline books", async ({ page }) => {
   await page.goto(`/settings${LAUNCH}`);
   await page.click('[role=tab] >> text=Sepia');
   await expect(page.locator("html")).toHaveAttribute("data-theme", "sepia");
