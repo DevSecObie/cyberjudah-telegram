@@ -79,10 +79,19 @@ jobs:
           D1=$(bash scripts/d1-id.sh cyberjudah-telegram)
           KV=$(bash scripts/kv-id.sh SUBS)
           sed -i "s/00000000-0000-0000-0000-000000000000/$D1/; s/00000000000000000000000000000000/$KV/" wrangler.jsonc
-          # The Vectorize index of the teachings and the R2 bucket of spoken verses: created once, kept after.
-          npx wrangler vectorize create cyberjudah-teachings --dimensions=1024 --metric=cosine 2>/dev/null || true
-          npx wrangler vectorize create-metadata-index cyberjudah-teachings --property-name=kind --type=string 2>/dev/null || true
-          npx wrangler r2 bucket create cyberjudah-audio 2>/dev/null || true
+          # The Vectorize index of the teachings and the R2 bucket of spoken verses: created once,
+          # kept after. The API token needs Vectorize Edit, Workers AI Read and R2 Edit for this;
+          # a missing permission stops here, by name, rather than inside the deploy.
+          if ! npx wrangler vectorize list 2>/dev/null | grep -q cyberjudah-teachings; then
+            npx wrangler vectorize create cyberjudah-teachings --dimensions=1024 --metric=cosine \
+              || { echo "::error::Could not create the Vectorize index. Give the CLOUDFLARE_API_TOKEN the 'Vectorize Edit' permission (Cloudflare dashboard → My Profile → API Tokens → edit the token → add Account · Vectorize · Edit, plus Workers AI · Read and Workers R2 Storage · Edit)."; exit 1; }
+            npx wrangler vectorize create-metadata-index cyberjudah-teachings --property-name=kind --type=string || true
+          fi
+          if ! npx wrangler r2 bucket list 2>/dev/null | grep -q cyberjudah-audio; then
+            npx wrangler r2 bucket create cyberjudah-audio \
+              || { echo "::error::Could not create the R2 bucket. Give the CLOUDFLARE_API_TOKEN the 'Workers R2 Storage Edit' permission."; exit 1; }
+          fi
+          set -o pipefail
           npx wrangler deploy 2>&1 | tee deploy.log
           # The Worker's public URL, from wrangler's own output, unless the repo names one.
           URL="${{ vars.WORKER_URL }}"
