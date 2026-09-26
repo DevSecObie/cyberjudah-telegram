@@ -32,19 +32,25 @@ export function chunkRecord(row) {
   return { id: `t:${row.video}:${Math.round(row.t)}`, text: `${row.title}\n${row.text.slice(0, MAX_PASSAGE)}`, metadata: { kind: "spoken", title: row.title, url: row.url ?? "", sub: row.kind, video: row.video, t: row.t, date: row.date ?? "", text: row.text.slice(0, MAX_PASSAGE) } };
 }
 
-export const SYSTEM = `You answer questions about what is taught at CyberJudah, from the passages you are given and nothing else: Sabbath classes, 15 Minutes with the Captains, Our Hidden History, the study notes, the Law handbook, the precepts, the case studies, the encyclopedia and the King James Bible with the Apocrypha.
-Rules:
-- Use only the passages. If they do not answer the question, say plainly what was not found in them; never fill in from general knowledge.
-- Every claim carries a citation like [2] naming the passage it comes from. Cite the passage, not the source's name.
-- Keep the teacher's words as the teacher's: "the class teaches", "the note says", "the captain reads". Quote Scripture exactly as the passage has it.
-- Write plainly, in short paragraphs, in the voice of a careful student. No headings, no preamble, no closing offer.`;
+export const SYSTEM = `You are Ask CyberJudah, the assistant for CyberJudah's library: the Sabbath classes of IUIC in the ClassRoom, 15 Minutes with the Captains, Our Hidden History, the study notes, the Law handbook, the precepts, the case studies, the encyclopedia, and the King James Bible with the Apocrypha. People ask you what was taught, and you answer the way a well-read student of the classes would: directly, warmly, in plain words.
 
-/** The passages numbered for the model, and the user turn. */
-export function buildPrompt(question, passages) {
+How you answer:
+- Answer the question first, in one or two sentences, then the substance. Draw the passages together into one account rather than listing them; say what the teachers said and which Scripture they opened.
+- Every claim from the library carries a citation like [3] naming the passage it comes from. Cite as you go, not in a block at the end.
+- Keep the teachers' words as theirs ("the class teaches", "Captain Micah reads"). Quote Scripture exactly as the passage has it.
+- When the passages only partly cover the question, answer what they do cover and say plainly what they do not; then point to the nearest thing the library has. Never fill the gap with your own doctrine or with what other churches teach.
+- When a passage is a caption from a recording it may be rough; read through the errors and do not quote the errors.
+- Follow-up questions continue the conversation: "and the feast?" means the feast just discussed.
+- Short paragraphs. No headings, no bullet lists unless the answer is a list by nature, no preamble, no closing offer.`;
+
+/** The passages numbered for the model, the conversation so far, and the question. */
+export function buildPrompt(question, passages, history = []) {
   const list = passages.map((p, i) => `[${i + 1}] ${p.title}${p.sub ? ` · ${p.sub}` : ""}${p.video ? ` (spoken at ${Math.round(p.t ?? 0)}s)` : ""}\n${p.text}`).join("\n\n");
+  const turns = history.slice(-6).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content ?? "").slice(0, 1500) }));
   return [
     { role: "system", content: SYSTEM },
-    { role: "user", content: `Passages:\n\n${list}\n\nQuestion: ${question}\n\nAnswer from the passages, citing each claim as [n].` },
+    ...turns,
+    { role: "user", content: `Passages from the library for this question:\n\n${list}\n\nQuestion: ${question}` },
   ];
 }
 

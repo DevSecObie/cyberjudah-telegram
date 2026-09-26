@@ -10,6 +10,7 @@ export const SYSTEM: string;
 export function hash(s: string): string;
 export function docRecord(row: { kind: string; title: string; url: string; sub?: string; text?: string }): { id: string; text: string; metadata: Record<string, string> };
 export function chunkRecord(row: { video: string; t: number; text: string; kind: string; title: string; url?: string; date?: string }): { id: string; text: string; metadata: Record<string, string | number> };
-export function buildPrompt(question: string, passages: Passage[]): { role: "system" | "user"; content: string }[];
+export type Turn = { role: "user" | "assistant"; content: string };
+export function buildPrompt(question: string, passages: Passage[], history?: Turn[]): { role: "system" | "user" | "assistant"; content: string }[];
 export function citations(answer: string, count: number): number[];
 export function dedupeMatches<T extends Match>(matches: T[]): T[];

@@ -38,8 +38,11 @@ and nothing is loaded twice. A hit opens the class notes at that moment when the
 written up, or the recording page with the captions around the moment (read from the
 transcript file in the repository) and a "Watch from" button into the video.
 
-**Ask the teachings.** A question, answered from the closest passages of the library and
-the transcripts only, every claim cited and every citation a tap into its source. The
+**Ask CyberJudah.** A conversation with the library: each answer is written from the closest
+passages of the classes, the notes, the law and the Scripture (the twenty nearest in meaning
+and the best keyword matches, reranked), streamed in as the model writes it, every claim
+cited and every citation a tap into its source; follow-ups continue the thread. What the
+passages do not cover is said to be not covered, never filled in. The
 passages are embedded with Workers AI (bge-m3) into a Vectorize index by
 `bot/scripts/embed.mjs`, nightly and on demand from the deploy workflow ("Also embed");
 `/api/ask` retrieves the closest ones and has llama 3.3 70b answer from them, with the rule

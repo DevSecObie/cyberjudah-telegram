@@ -37,7 +37,7 @@ export function More() {
           <Row href="/settings" icon="bell" title="Settings" sub={`Daily verse, lock, text size${chaptersRead(progress) ? ` · ${chaptersRead(progress)} chapters read` : ""}`} />
         </List>
       </Section>
-      <Section title="Ask"><List><Row href="/ask" icon="search" title="Ask the teachings" sub="A question, answered from the classes and the law, with its sources" /></List></Section>
+      <Section title="Ask"><List><Row href="/ask" icon="note" title="Ask CyberJudah" sub="Ask anything about what was taught; answers with their sources" /></List></Section>
       <Section title="Study"><List>{STUDY.map(([to, t, s]) => <Row key={to} href={to} title={t} sub={s} />)}</List></Section>
       <Section title="Law"><List>{LAW.map(([to, t, s]) => <Row key={to} href={to} title={t} sub={s} />)}</List></Section>
       <Section title="CyberJudah">

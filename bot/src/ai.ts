@@ -1,6 +1,7 @@
 import { chapter } from "./data";
+import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
-import { ANSWER_MODEL, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, VOICE_MODEL, VOICES, type Passage } from "./ai.mjs";
+import { ANSWER_MODEL, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 
 /**
  * The AI features, all through Workers AI and the Vectorize index of the teachings:
@@ -22,16 +23,22 @@ const passageOf = (m: { metadata?: Record<string, unknown>; score: number }): Pa
   return { kind: String(md.kind ?? ""), title: String(md.title ?? ""), url: String(md.url ?? ""), sub: String(md.sub ?? ""), video: md.video ? String(md.video) : undefined, t: md.t !== undefined ? Number(md.t) : undefined, date: md.date ? String(md.date) : undefined, text: String(md.text ?? ""), score: m.score };
 };
 
-/** The passages closest in meaning to the text, one per page or recording moment. */
+/**
+ * The passages for a question: the twenty closest in meaning from the index and the best
+ * keyword matches from the library search, together, reranked by whether they answer it.
+ */
 export async function retrieve(env: Env, text: string, topK = 12): Promise<(Passage & { score: number })[]> {
-  const [vector] = await embed(env, [text]);
-  if (!vector) return [];
-  // Vectorize returns the metadata (the passage itself) for at most twenty matches.
-  const res = await env.VEC.query(vector, { topK: 20, returnMetadata: "all" });
+  const [vectorRes, keywordRes] = await Promise.all([
+    embed(env, [text]).then(([vector]) => (vector ? env.VEC.query(vector, { topK: 20, returnMetadata: "all" }) : { matches: [] as VectorizeMatches["matches"] })),
+    runSearch(env.DB, text, undefined, 3, true).catch(() => null),
+  ]);
   // A passage must say something: scraps of captions ("do", "yeah so") sit close to every question.
-  const said = res.matches.filter((m) => String((m.metadata as Record<string, unknown> | undefined)?.text ?? "").split(/\s+/).length >= 20);
+  const said = vectorRes.matches.filter((m) => String((m.metadata as Record<string, unknown> | undefined)?.text ?? "").split(/\s+/).length >= 20);
   const close = dedupeMatches(said).map(passageOf);
-  return rerank(env, text, close, topK);
+  const keyed: (Passage & { score: number })[] = keywordRes?.ok ? keywordRes.hits.filter((h) => h.text && h.text.split(/\s+/).length >= 20).map((h) => ({ kind: h.kind, title: h.title, url: h.url, sub: h.sub, text: h.text!.slice(0, 1400), score: 0.5 })) : [];
+  const seen = new Set(close.map((p) => `${p.kind}|${p.url}|${p.sub ?? ""}`));
+  const all = [...close, ...keyed.filter((p) => !seen.has(`${p.kind}|${p.url}|${p.sub ?? ""}`))];
+  return rerank(env, text, all, topK);
 }
 
 /**
@@ -52,31 +59,84 @@ async function rerank<T extends Passage>(env: Env, question: string, passages: T
 }
 
 export type Answer = { ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; ms: number } | { ok: false; reason: string };
-const ASK_LIMIT = 40;
+const ASK_LIMIT = 100;
 
-/** A question answered from the closest passages only, each claim cited; forty a day per person. */
-export async function ask(env: Env, q: string, userId: number, ctx?: Exec): Promise<Answer> {
-  const t0 = Date.now();
-  const question = q.trim().slice(0, 400);
-  if (question.length < 3) return { ok: false, reason: "too-short" };
-  const day = new Date().toISOString().slice(0, 10);
-  const key = `ask:${userId}:${day}`;
+/** The question with its conversation: a short follow-up borrows the words of the turn before it. */
+const retrievalText = (question: string, history: Turn[]) => {
+  const prev = [...history].reverse().find((t) => t.role === "user")?.content ?? "";
+  return question.split(/\s+/).length < 6 && prev ? `${prev} ${question}` : question;
+};
+
+async function allowed(env: Env, userId: number, ctx?: Exec): Promise<boolean> {
+  const key = `ask:${userId}:${new Date().toISOString().slice(0, 10)}`;
   const used = Number((await env.SUBS.get(key)) ?? 0);
-  if (used >= ASK_LIMIT) return { ok: false, reason: "limit" };
+  if (used >= ASK_LIMIT) return false;
   const put = env.SUBS.put(key, String(used + 1), { expirationTtl: 2 * 86400 });
   if (ctx) ctx.waitUntil(put); else await put;
+  return true;
+}
+
+/** A question answered in one piece (the bot and older clients); a hundred a day per person. */
+export async function ask(env: Env, q: string, userId: number, ctx?: Exec, history: Turn[] = []): Promise<Answer> {
+  const t0 = Date.now();
+  const question = q.trim().slice(0, 400);
+  if (question.length < 2) return { ok: false, reason: "too-short" };
+  if (!(await allowed(env, userId, ctx))) return { ok: false, reason: "limit" };
   try {
-    const passages = await retrieve(env, question, 8);
-    if (!passages.length) return { ok: true, q: question, answer: "Nothing in the library is close to that question yet.", sources: [], ms: Date.now() - t0 };
-    const res = await env.AI.run(ANSWER_MODEL, { messages: buildPrompt(question, passages), max_tokens: 700, temperature: 0.2 }) as { response?: string };
+    const passages = await retrieve(env, retrievalText(question, history), 8);
+    const res = await env.AI.run(ANSWER_MODEL, { messages: buildPrompt(question, passages, history), max_tokens: 900, temperature: 0.3 }) as { response?: string };
     const answer = (res.response ?? "").trim();
-    const used = citations(answer, passages.length);
-    const sources = (used.length ? used : passages.slice(0, 4).map((_, i) => i + 1)).map((n) => ({ ...passages[n - 1], n }));
-    return { ok: true, q: question, answer, sources, ms: Date.now() - t0 };
+    return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
   } catch (e) {
     console.error(JSON.stringify({ event: "ask_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 200) }));
     return { ok: false, reason: "unavailable" };
   }
+}
+
+const sourcesOf = (answer: string, passages: Passage[]) => {
+  const used = citations(answer, passages.length);
+  return (used.length ? used : passages.slice(0, 4).map((_, i) => i + 1)).map((n) => ({ ...passages[n - 1], n }));
+};
+
+/**
+ * The same, streamed: one JSON line with the passages first, then a line per piece of the
+ * answer as the model writes it, then a line with the sources it cited.
+ */
+export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[]): Promise<Response> {
+  const question = q.trim().slice(0, 400);
+  const line = (o: unknown) => `${JSON.stringify(o)}\n`;
+  if (question.length < 2) return new Response(line({ error: "too-short" }), { status: 400, headers: { "content-type": "application/x-ndjson" } });
+  if (!(await allowed(env, userId, ctx))) return new Response(line({ error: "limit" }), { status: 429, headers: { "content-type": "application/x-ndjson" } });
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (o: unknown) => controller.enqueue(encoder.encode(line(o)));
+      try {
+        const passages = await retrieve(env, retrievalText(question, history), 8);
+        send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
+        const out = await env.AI.run(ANSWER_MODEL, { messages: buildPrompt(question, passages, history), max_tokens: 900, temperature: 0.3, stream: true }) as ReadableStream<Uint8Array>;
+        let answer = "", buffer = "";
+        const reader = out.getReader(); const decoder = new TextDecoder();
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const events = buffer.split("\n\n"); buffer = events.pop() ?? "";
+          for (const ev of events) for (const l of ev.split("\n")) {
+            if (!l.startsWith("data:")) continue;
+            const data = l.slice(5).trim();
+            if (data === "[DONE]") continue;
+            try { const piece = (JSON.parse(data) as { response?: string }).response ?? ""; if (piece) { answer += piece; send({ delta: piece }); } } catch { /* a partial event */ }
+          }
+        }
+        send({ done: true, sources: sourcesOf(answer, passages) });
+      } catch (e) {
+        console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
+        send({ error: "unavailable" });
+      } finally { controller.close(); }
+    },
+  });
+  return new Response(stream, { headers: { "content-type": "application/x-ndjson", "cache-control": "no-store" } });
 }
 
 export type Similar = { ok: true; q: string; hits: (Passage & { score: number })[]; ms: number } | { ok: false; reason: string };

@@ -7,7 +7,7 @@ import { createBot, todaysVerse } from "./bot";
 import { chapter, escapeHtml, openLink } from "./data";
 import { runSearch } from "./search";
 import { searchTeachings, taughtIn, transcriptAround } from "./teachings";
-import { ask, similar, speakVerse } from "./ai";
+import { ask, askStream, similar, speakVerse } from "./ai";
 import { VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -76,8 +76,10 @@ app.get("/api/transcript/:video", async (c) => {
 // The AI: a question answered from the teachings with citations, search by meaning, and
 // the reading voices (a verse at a time, cached).
 app.post("/api/ask", async (c) => {
-  const body = await c.req.json<{ q?: string }>().catch(() => null);
-  const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx);
+  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean }>().catch(() => null);
+  const history = (Array.isArray(body?.history) ? body!.history! : []).filter((t) => t && (t.role === "user" || t.role === "assistant") && typeof t.content === "string").slice(-8).map((t) => ({ role: t.role as "user" | "assistant", content: t.content! }));
+  if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history);
+  const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history);
   return c.json(res, res.ok ? 200 : res.reason === "limit" ? 429 : res.reason === "too-short" ? 400 : 503);
 });
 app.get("/api/similar", async (c) => {

@@ -16,6 +16,11 @@ test("the prompt numbers the passages and the citations read back in order of us
   assert.equal(msgs[0].role, "system");
   assert.ok(msgs[1].content.includes("[1] A\none"));
   assert.ok(msgs[1].content.includes("[2] B (spoken at 30s)\ntwo"));
+  const withHistory = buildPrompt("and the feast?", [{ kind: "class", title: "A", url: "/a", text: "one" }], [{ role: "user", content: "What is the Passover?" }, { role: "assistant", content: "The class teaches…" }]);
+  assert.equal(withHistory.length, 4);
+  assert.equal(withHistory[1].role, "user");
+  assert.equal(withHistory[2].role, "assistant");
+  assert.ok(withHistory[3].content.endsWith("Question: and the feast?"));
   assert.deepEqual(citations("The class teaches it [2]. Also [1, 2] and [9].", 2), [2, 1]);
   assert.deepEqual(citations("nothing", 2), []);
 });

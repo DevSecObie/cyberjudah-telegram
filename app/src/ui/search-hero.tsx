@@ -86,7 +86,7 @@ export function LiveResults({ q, onOpen, onAll, onSpoken, onAsk }: { q: string; 
   if (!live.enabled) return null;
   const r = live.data;
   const said = spoken.data?.ok ? spoken.data : null;
-  const askRow = onAsk && /\s/.test(live.q) ? <button type="button" className="live__spoken live__ask" onClick={() => onAsk(live.q)}><Icon name="note" size={16} /><span>Ask the teachings: <b>{live.q}</b></span><Icon name="chevron" size={14} /></button> : null;
+  const askRow = onAsk && /\s/.test(live.q) ? <button type="button" className="live__spoken live__ask" onClick={() => onAsk(live.q)}><Icon name="note" size={16} /><span>Ask CyberJudah: <b>{live.q}</b></span><Icon name="chevron" size={14} /></button> : null;
   const spokenRow = onSpoken && said?.hits.length ? <button type="button" className="live__spoken" onClick={() => onSpoken(live.q)}><Icon name="play" size={16} /><span>Spoken in the recordings: <b>{said.hits.length}{said.more ? "+" : ""}</b> moment{said.hits.length === 1 && !said.more ? "" : "s"}</span><Icon name="chevron" size={14} /></button> : null;
   if (live.isPending) return <div className="live"><p className="live__hint">Searching…</p></div>;
   if (!r || !r.ok || !r.hits.length) return <div className="live">{askRow}{spokenRow}<p className="live__hint">Nothing yet for “{live.q}”. Press Enter to search every word.</p></div>;
