@@ -6,6 +6,7 @@
 export const EMBED_MODEL = "@cf/baai/bge-m3";
 export const ANSWER_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 export const VOICE_MODEL = "@cf/deepgram/aura-1";
+export const RERANK_MODEL = "@cf/baai/bge-reranker-base";
 export const VOICES = [
   { id: "asteria", name: "Asteria", note: "warm, clear" }, { id: "luna", name: "Luna", note: "soft" }, { id: "stella", name: "Stella", note: "bright" },
   { id: "athena", name: "Athena", note: "measured" }, { id: "hera", name: "Hera", note: "steady" },

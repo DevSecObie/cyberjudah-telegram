@@ -1,6 +1,6 @@
 import { chapter } from "./data";
 import type { Env, Exec } from "./env";
-import { ANSWER_MODEL, buildPrompt, citations, dedupeMatches, EMBED_MODEL, VOICE_MODEL, VOICES, type Passage } from "./ai.mjs";
+import { ANSWER_MODEL, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, VOICE_MODEL, VOICES, type Passage } from "./ai.mjs";
 
 /**
  * The AI features, all through Workers AI and the Vectorize index of the teachings:
@@ -29,7 +29,25 @@ export async function retrieve(env: Env, text: string, topK = 12): Promise<(Pass
   const res = await env.VEC.query(vector, { topK: 50, returnMetadata: "all" });
   // A passage must say something: scraps of captions ("do", "yeah so") sit close to every question.
   const said = res.matches.filter((m) => String((m.metadata as Record<string, unknown> | undefined)?.text ?? "").split(/\s+/).length >= 20);
-  return dedupeMatches(said).slice(0, topK).map(passageOf);
+  const close = dedupeMatches(said).slice(0, Math.max(topK * 3, 24)).map(passageOf);
+  return rerank(env, text, close, topK);
+}
+
+/**
+ * The closest passages read against the question by a reranker, which orders them by whether
+ * they answer it rather than by how near their words sit; the vector order stands when the
+ * reranker is unavailable.
+ */
+async function rerank<T extends Passage>(env: Env, question: string, passages: T[], topK: number): Promise<T[]> {
+  if (passages.length <= 1) return passages.slice(0, topK);
+  try {
+    // The published type leaves `query` out; the model takes it.
+    const input = { query: question, contexts: passages.map((p) => ({ text: `${p.title}\n${p.text}`.slice(0, 2000) })), top_k: topK } as unknown as Parameters<typeof env.AI.run<typeof RERANK_MODEL>>[1];
+    const res = await env.AI.run(RERANK_MODEL, input) as { response?: { id?: number; score?: number }[] };
+    const order = (res.response ?? []).filter((r) => typeof r.id === "number" && passages[r.id!]).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+    if (!order.length) return passages.slice(0, topK);
+    return order.slice(0, topK).map((r) => passages[r.id!]);
+  } catch { return passages.slice(0, topK); }
 }
 
 export type Answer = { ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; ms: number } | { ok: false; reason: string };

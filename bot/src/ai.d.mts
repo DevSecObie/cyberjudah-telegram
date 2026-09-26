@@ -3,6 +3,7 @@ export type Match = { id: string; score: number; metadata?: Record<string, unkno
 export const EMBED_MODEL: "@cf/baai/bge-m3";
 export const ANSWER_MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 export const VOICE_MODEL: "@cf/deepgram/aura-1";
+export const RERANK_MODEL: "@cf/baai/bge-reranker-base";
 export const VOICES: { id: string; name: string; note: string }[];
 export const MAX_PASSAGE: number;
 export const SYSTEM: string;
