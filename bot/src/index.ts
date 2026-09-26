@@ -7,6 +7,8 @@ import { createBot, todaysVerse } from "./bot";
 import { chapter, escapeHtml, openLink } from "./data";
 import { runSearch } from "./search";
 import { searchTranscripts, transcriptAround } from "./transcripts";
+import { ask, similar, speakVerse } from "./ai";
+import { VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
 import { bookLabel } from "./verse-of-day.mjs";
@@ -64,6 +66,24 @@ app.get("/api/transcript/:video", async (c) => {
   if (!/^[A-Za-z0-9_-]{6,20}$/.test(video)) return c.json({ ok: false, reason: "bad-video" }, 400);
   const res = await transcriptAround(c.env, video, Math.max(0, Number(c.req.query("t")) || 0));
   return c.json(res, res.ok ? 200 : res.reason === "not-found" ? 404 : 503);
+});
+
+// The AI: a question answered from the teachings with citations, search by meaning, and
+// the reading voices (a verse at a time, cached).
+app.post("/api/ask", async (c) => {
+  const body = await c.req.json<{ q?: string }>().catch(() => null);
+  const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx);
+  return c.json(res, res.ok ? 200 : res.reason === "limit" ? 429 : res.reason === "too-short" ? 400 : 503);
+});
+app.get("/api/similar", async (c) => {
+  const res = await similar(c.env, c.req.query("q") ?? "", Math.min(Math.max(Number(c.req.query("limit")) || 20, 1), 40));
+  return c.json(res, res.ok ? 200 : 503);
+});
+app.get("/api/voices", (c) => c.json({ voices: VOICES }));
+app.get("/api/tts/:slug/:ch/:verse", (c) => {
+  const slug = c.req.param("slug"), ch = Number(c.req.param("ch")), verse = Number(c.req.param("verse"));
+  if (!/^[a-z0-9-]{2,40}$/.test(slug) || !(ch >= 1 && ch <= 200) || !(verse >= 1 && verse <= 200)) return c.json({ ok: false, reason: "bad-reference" }, 400);
+  return speakVerse(c.env, slug, ch, verse, c.req.query("voice") ?? "asteria", c.executionCtx);
 });
 
 app.post("/api/share", async (c) => {

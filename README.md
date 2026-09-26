@@ -44,6 +44,25 @@ load). The full set is a few hundred MB, beyond the free D1 plan's 500 MB databa
 the day); on Workers Paid (Cloudflare dashboard → Workers & Pages → Plans) it fits with room
 and the first run loads everything.
 
+**Ask the teachings.** A question, answered from the closest passages of the library and
+the transcripts only, every claim cited and every citation a tap into its source. The
+passages are embedded with Workers AI (bge-m3) into a Vectorize index by
+`bot/scripts/embed.mjs`, nightly and on demand from the deploy workflow ("Also embed");
+`/api/ask` retrieves the closest ones and has llama 3.3 70b answer from them, with the rule
+that what is not in the passages is said to be not found. Forty questions a day per person.
+The same index gives the Search screen its "By meaning" mode.
+
+**Reading voices.** The Bible tab's Voice sheet lists Workers AI's Deepgram Aura voices
+beside the device's own; a verse is generated once and kept in R2 (`cyberjudah-audio`), so
+a chapter costs its first listener only.
+
+**Drafts of unwritten classes.** The `draft-notes` workflow reads a class's captions in
+parts, lists the Scripture opened (with the second it was read), the points made and the
+announcements, then writes a note in the house format with the verses quoted from the KJV
+text, and opens one pull request to the cyberjudah repository for review. It needs a
+`CYBERJUDAH_TOKEN` repository secret (a fine-grained token with contents and pull-request
+write on that repository); without it the drafts land as a workflow artifact.
+
 **Telegram's own components.** Everything outside the Bible tab is built on
 [TelegramUI](https://github.com/telegram-mini-apps-dev/TelegramUI), Telegram's React kit
 for Mini Apps (its tab bar, cells and sections, segmented controls, chips, inputs, buttons,

@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { haptic } from "@/tg/sdk";
+import { useAiVoices } from "@/lib/tts";
 import { Feather, Ion } from "../icons";
 import { HEADER_HEIGHT } from "../dom/Chapter";
 import { Sheet } from "./Sheet";
@@ -17,6 +18,7 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
   hasPrev: boolean; hasNext: boolean; onPrev: () => void; onNext: () => void; speech: Speech; fullscreen: boolean; hidden: boolean; bottomBar: number; reference: string; verseCount: number; repeat: boolean; setRepeat: (v: boolean) => void; expanded: boolean; setExpanded: (v: boolean) => void;
 }) {
   const [voices, setVoices] = useState(false);
+  const aiVoices = useAiVoices();
   if (hidden) return null;
   const arrowsY = fullscreen ? HEADER_HEIGHT + 60 + bottomBar : 0;
   const centerY = fullscreen ? HEADER_HEIGHT : 0;
@@ -47,8 +49,12 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
             <button type="button" className="bs-chip" aria-pressed={repeat} onClick={() => setRepeat(!repeat)}>Repeat</button>
             <button type="button" className="bs-chip" onClick={() => { speech.stop(); setExpanded(false); }}>Stop</button>
           </div>
-          <Sheet open={voices} onClose={() => setVoices(false)} title="Voice" subTitle={speech.voices.length ? `${speech.voices.length} English voices on this device` : "No English voice on this device"} height="half">
+          <Sheet open={voices} onClose={() => setVoices(false)} title="Voice" subTitle={aiVoices.data?.length ? `${aiVoices.data.length} reading voices, and ${speech.voices.length} on this device` : speech.voices.length ? `${speech.voices.length} English voices on this device` : "No English voice on this device"} height="half">
             <div className="bs-fontlist">
+              {aiVoices.data?.map((v) => {
+                const id = `ai:${v.id}`, on = speech.voice === id;
+                return <button key={id} type="button" role="radio" aria-checked={on} className="bs-fontrow" onClick={() => { speech.setVoice(id); setVoices(false); if (speech.playing) speech.play(speech.current ?? 1); }}><span style={{ color: on ? "var(--bs-primary)" : "var(--bs-default)" }}>{v.name}<small style={{ display: "block", fontSize: 12, color: "var(--bs-tertiary)" }}>Reading voice · {v.note}</small></span>{on ? <Feather name="check" size={20} color="var(--bs-primary)" /> : null}</button>;
+              })}
               {speech.voices.map((v) => {
                 const on = (speech.voice ?? speech.currentVoice) === v.name;
                 return <button key={v.name} type="button" role="radio" aria-checked={on} className="bs-fontrow" onClick={() => { speech.setVoice(v.name); setVoices(false); if (speech.playing) speech.play(speech.current ?? 1); }}><span style={{ color: on ? "var(--bs-primary)" : "var(--bs-default)" }}>{v.name.replace(/^Microsoft |^Google /, "")}<small style={{ display: "block", fontSize: 12, color: "var(--bs-tertiary)" }}>{v.lang}{/natural|premium|enhanced|neural|siri/i.test(v.name) ? " · high quality" : ""}{v.localService ? "" : " · online"}</small></span>{on ? <Feather name="check" size={20} color="var(--bs-primary)" /> : null}</button>;

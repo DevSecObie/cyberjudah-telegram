@@ -102,7 +102,7 @@ export function BibleTab() {
   const [tagsTarget, setTagsTarget] = useState<number[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const say = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2200); };
-  const speech = useSpeech(verses, chapterLabel);
+  const speech = useSpeech(verses, chapterLabel, slug && ch ? { slug, chapter: ch } : undefined);
   const [repeat, setRepeat] = useState(false);
   const [audioOpen, setAudioOpen] = useState(false);
   useEffect(() => { if (!speech.playing && audioOpen && repeat && verses.length) speech.play(1); }, [speech.playing]); // eslint-disable-line react-hooks/exhaustive-deps

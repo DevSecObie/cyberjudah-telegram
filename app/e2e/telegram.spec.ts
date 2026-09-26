@@ -293,8 +293,8 @@ test("a reference typed on Home opens the chapter", async ({ page }) => {
 test("the spoken search finds the words exactly as typed, and opens the recording at that second", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
   await page.fill("#q", "Most High");
-  await expect(page.locator(".live__spoken")).toContainText(/Said word for word in \d+ recordings/);
-  await page.click(".live__spoken");
+  await expect(page.locator(".live__spoken:not(.live__ask)")).toContainText(/Said word for word in \d+ recordings/);
+  await page.click(".live__spoken:not(.live__ask)");
   await expect(page).toHaveURL(/in=transcripts/);
   await page.goto(`/search?in=transcripts${LAUNCH}`);
   await expect(page.locator('[role=tab][aria-selected="true"]')).toHaveText("Spoken, word for word");

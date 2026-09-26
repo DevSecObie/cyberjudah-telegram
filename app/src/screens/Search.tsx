@@ -8,9 +8,11 @@ import { api, features, readClipboard, scanQr } from "@/tg/sdk";
 import { Button, Chip, Chips, Empty, Icon, List, Row, Screen, Section, Segmented, Skeleton, timestamp, useGo } from "@/ui/ui";
 import { fmtDate } from "@/api/data";
 import { KIND_NAME } from "./Home";
-import { hitPath, KIND_LABEL, KIND_ORDER, Lit, LiveResults, SearchHero, transcriptPath, useTranscriptSearch, type SearchResult, type TranscriptHit } from "@/ui/search-hero";
+import { hitPath, KIND_LABEL, KIND_ORDER, Lit, LiveResults, SearchHero, transcriptPath, useSimilar, useTranscriptSearch, type SearchResult, type TranscriptHit } from "@/ui/search-hero";
+import { passageLabel, passagePath } from "./Ask";
 
 const EXAMPLES = ["Passover", "Sabbath", "Melchizedek", "usury", "Ezekiel 37", "\"seventh day\"", "the twelve tribes"];
+const MEANING_EXAMPLES = ["lending money for gain", "who the lost sheep are", "keeping the feast days", "raising children in the faith", "the fourth beast"];
 const SPOKEN_EXAMPLES = ["Matthew 15:24", "the lost sheep", "Deuteronomy 28", "Most High", "so-called", "Shabbat shalom"];
 const TEACHING = new Set(["class", "captains", "history", "study"]);
 
@@ -33,7 +35,7 @@ export function referencePath(q: string): string | null {
 export function Search() {
   const [params, setParams] = useSearchParams();
   const q = params.get("q") ?? "", only = params.get("only") ?? undefined;
-  const where = params.get("in") === "transcripts" ? "transcripts" : "teachings";
+  const where = params.get("in") === "transcripts" ? "transcripts" : params.get("in") === "meaning" ? "meaning" : "teachings";
   const go = useGo();
   const [input, setInput] = useState(q);
   const [recent, setRecent] = useRecentSearches();
@@ -41,7 +43,7 @@ export function Search() {
   useBackButton(!q, () => { if (q) { setParams({}, { replace: true }); return true; } });
   useBottomButtons(null, null);
   const set = (next: Record<string, string | undefined>, replace = false) => {
-    const p = new URLSearchParams(); for (const [k, v] of Object.entries({ q, only, in: where === "transcripts" ? "transcripts" : undefined, ...next })) if (v) p.set(k, v);
+    const p = new URLSearchParams(); for (const [k, v] of Object.entries({ q, only, in: where === "teachings" ? undefined : where, ...next })) if (v) p.set(k, v);
     setParams(p, { replace });
   };
   const submit = (text = input) => {
@@ -58,11 +60,16 @@ export function Search() {
 
   return (
     <Screen kicker="The teaching library" title="Search teachings" action={<span className="head__actions">{features.clipboard ? <button type="button" className="icon-btn" aria-label="Paste" onClick={paste}><Icon name="copy" size={18} /></button> : null}{features.qr ? <button type="button" className="icon-btn" aria-label="Scan a QR code" onClick={scan}><Icon name="qr" size={20} /></button> : null}</span>}>
-      <Segmented label="Where" value={where} onChange={(w) => set({ in: w === "transcripts" ? "transcripts" : undefined }, true)} options={[["teachings", "Teachings"], ["transcripts", "Spoken, word for word"]]} />
+      <Segmented label="Where" value={where} onChange={(w) => set({ in: w === "teachings" ? undefined : w }, true)} options={[["teachings", "Teachings"], ["transcripts", "Word for word"], ["meaning", "By meaning"]]} />
       <SearchHero value={input} onChange={setInput} onSubmit={submit} autoFocus={!q}>
-        {typing && where === "teachings" ? <LiveResults q={input} onAll={submit} onSpoken={(t) => { setInput(t); set({ q: t, only: undefined, in: "transcripts" }); }} /> : null}
+        {typing && where === "teachings" ? <LiveResults q={input} onAll={submit} onSpoken={(t) => { setInput(t); set({ q: t, only: undefined, in: "transcripts" }); }} onAsk={(t) => go(`/ask?q=${encodeURIComponent(t)}`)} /> : null}
       </SearchHero>
-      {where === "transcripts" ? (q && !typing ? <Spoken q={q} /> : (
+      {where === "meaning" ? (q && !typing ? <Meaning q={q} /> : (
+        <>
+          <p className="hint">Search by what you mean, not the words: <b>lending money for gain</b> finds the classes on usury, <b>the lost sheep</b> finds Matthew 15 and every class that read it. The closest passages of the library and the transcripts, whatever their wording.</p>
+          <Section title="Try"><Chips>{MEANING_EXAMPLES.map((e) => <Chip key={e} onClick={() => { setInput(e); submit(e); }}>{e}</Chip>)}</Chips></Section>
+        </>
+      )) : where === "transcripts" ? (q && !typing ? <Spoken q={q} /> : (
         <>
           <p className="hint">Every recording's captions, searched for <b>exactly</b> what you type: the words in that order, side by side. A hit opens the class notes at that moment, or the recording where the words were said. A Scripture like <b>Matthew 15:24</b> finds where it was read.</p>
           <Section title="Try"><Chips>{SPOKEN_EXAMPLES.map((e) => <Chip key={e} onClick={() => { setInput(e); submit(e); }}>{e}</Chip>)}</Chips></Section>
@@ -137,4 +144,19 @@ function SpokenPage({ q, offset, limit }: { q: string; offset: number; limit: nu
 }
 function SpokenRow({ h, q }: { h: TranscriptHit; q: string }) {
   return <Row href={transcriptPath(h)} meta={<>{KIND_NAME[h.kind as keyof typeof KIND_NAME] ?? h.kind}{h.date ? ` · ${fmtDate(h.date)}` : ""} · <b className="tx__at">{timestamp(h.t)}</b></>} title={h.title} sub={<Lit text={h.snippet} needle={q} phrase />} />;
+}
+
+/** The closest passages in meaning: the library and the transcripts together, best first. */
+function Meaning({ q }: { q: string }) {
+  const res = useSimilar(q);
+  if (res.isPending) return <Skeleton rows={6} />;
+  const r = res.data;
+  if (!r || !r.ok) return <Empty title="The index is not answering right now">Check your connection and try again.</Empty>;
+  if (!r.hits.length) return <Empty title="Nothing close to that yet">The index fills nightly; try the teachings search meanwhile.</Empty>;
+  return (
+    <>
+      <p className="hint">The <b>{r.hits.length}</b> closest passages, whatever their wording.</p>
+      <List>{r.hits.map((h, i) => <Row key={i} href={passagePath(h)} meta={passageLabel(h)} title={h.title} sub={h.text.slice(0, 180)} />)}</List>
+    </>
+  );
 }

@@ -19,6 +19,12 @@
   "d1_databases": [{ "binding": "DB", "database_name": "cyberjudah-telegram", "database_id": "00000000-0000-0000-0000-000000000000" }],
   // Daily-verse subscriptions: sub:<userId> -> { chatId, hour, tz }.
   "kv_namespaces": [{ "binding": "SUBS", "id": "00000000000000000000000000000000" }],
+  // Workers AI (embeddings, the answering model, the reading voices), the Vectorize index of
+  // the teachings (scripts/embed.mjs fills it) and the R2 bucket that caches spoken chapters.
+  // The deploy workflow creates the index and the bucket when they are missing.
+  "ai": { "binding": "AI" },
+  "vectorize": [{ "binding": "VEC", "index_name": "cyberjudah-teachings" }],
+  "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "cyberjudah-audio" }],
   // Hourly: the daily verse goes to every subscriber whose local hour is now.
   "triggers": { "crons": ["0 * * * *"] },
   // Secrets, set by the deploy workflow with `wrangler secret put`: BOT_TOKEN, WEBHOOK_SECRET,

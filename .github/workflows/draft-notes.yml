@@ -1,0 +1,49 @@
+name: draft-notes
+
+# Drafts class notes from the captions for classes that have none, and opens one pull
+# request to the cyberjudah repository with them for review. On demand only.
+on:
+  workflow_dispatch:
+    inputs:
+      count:
+        description: "How many unwritten classes to draft (newest first)"
+        type: number
+        default: 2
+      videos:
+        description: "Or specific YouTube video ids, space-separated"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - working-directory: bot
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # A fine-grained token with contents and pull-request write on DevSecObie/cyberjudah,
+          # added under Settings → Secrets and variables → Actions. Without it the drafts are
+          # kept as a workflow artifact instead.
+          CYBERJUDAH_TOKEN: ${{ secrets.CYBERJUDAH_TOKEN }}
+          VIDEOS: ${{ inputs.videos }}
+          COUNT: ${{ inputs.count }}
+        run: |
+          set -- --count "$COUNT" --out drafts
+          for v in $VIDEOS; do set -- "$@" --video "$v"; done
+          node scripts/draft-note.mjs "$@"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: class-note-drafts
+          path: bot/drafts
+          if-no-files-found: ignore

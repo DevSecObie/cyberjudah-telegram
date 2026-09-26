@@ -418,3 +418,15 @@ html[data-theme="light"] .rel-inline, html[data-theme="sepia"] .rel-inline { box
 .spoken__notes b { font: 600 15px var(--a-ui); }
 .spoken__notes small { color: var(--a-muted); font-size: 13px; }
 .hint--lede { font-size: 16px; color: var(--a-ink); }
+
+/* Ask the teachings: the answer, its citations, and the thinking line. */
+.answer { padding: 16px 18px; border-radius: 18px; background: var(--a-card); border: 1px solid var(--a-line); font: 400 17px/1.6 var(--a-read); color: var(--a-ink-2); }
+.answer p { margin: 0 0 12px; }
+.answer p:last-child { margin-bottom: 0; }
+.cite, .answer__n { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; margin: 0 1px; border-radius: 6px; background: color-mix(in srgb, var(--a-accent) 18%, transparent); color: var(--a-accent) !important; font: 700 12px var(--a-mono); vertical-align: 2px; }
+.answer--thinking { display: flex; align-items: center; gap: 12px; font: 400 15px var(--a-ui); color: var(--a-muted); }
+.answer__dots { display: inline-flex; gap: 4px; }
+.answer__dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--a-accent); animation: app-pulse 1.2s ease-in-out infinite; }
+.answer__dots i:nth-child(2) { animation-delay: 0.2s; } .answer__dots i:nth-child(3) { animation-delay: 0.4s; }
+.live__ask { background: color-mix(in srgb, var(--a-hot) 8%, transparent); }
+.live__ask b { color: var(--a-ink-2); }

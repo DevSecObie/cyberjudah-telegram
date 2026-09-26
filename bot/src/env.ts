@@ -2,6 +2,9 @@ export type Env = {
   DB: D1Database;
   SUBS: KVNamespace;
   ASSETS: Fetcher;
+  AI: Ai;
+  VEC: Vectorize;
+  AUDIO: R2Bucket;
   DATA_ORIGIN: string;
   SITE_URL: string;
   /** The Mini App's direct link from @BotFather (https://t.me/<bot>/<app>); empty until /newapp. */

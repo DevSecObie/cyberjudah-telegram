@@ -1,0 +1,14 @@
+export type Passage = { kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string; text: string };
+export type Match = { id: string; score: number; metadata?: Record<string, unknown> };
+export const EMBED_MODEL: "@cf/baai/bge-m3";
+export const ANSWER_MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+export const VOICE_MODEL: "@cf/deepgram/aura-1";
+export const VOICES: { id: string; name: string; note: string }[];
+export const MAX_PASSAGE: number;
+export const SYSTEM: string;
+export function hash(s: string): string;
+export function docRecord(row: { kind: string; title: string; url: string; sub?: string; text?: string }): { id: string; text: string; metadata: Record<string, string> };
+export function chunkRecord(row: { video: string; t: number; text: string; kind: string; title: string; url?: string; date?: string }): { id: string; text: string; metadata: Record<string, string | number> };
+export function buildPrompt(question: string, passages: Passage[]): { role: "system" | "user"; content: string }[];
+export function citations(answer: string, count: number): number[];
+export function dedupeMatches<T extends Match>(matches: T[]): T[];
