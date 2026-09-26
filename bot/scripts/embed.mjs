@@ -53,7 +53,7 @@ const sql = async (query) => {
   return r[0]?.results ?? [];
 };
 const embedTexts = async (texts) => (await cf(`/accounts/${ACCOUNT}/ai/run/${EMBED_MODEL}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: texts }) })).data;
-const deleteIds = async (ids) => { for (let i = 0; i < ids.length; i += 1000) await cf(`/accounts/${ACCOUNT}/vectorize/v2/indexes/${INDEX}/delete_by_ids`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: ids.slice(i, i + 1000) }) }); };
+const deleteIds = async (ids) => { for (let i = 0; i < ids.length; i += 100) await cf(`/accounts/${ACCOUNT}/vectorize/v2/indexes/${INDEX}/delete_by_ids`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: ids.slice(i, i + 100) }) }); };
 const upsert = async (vectors) => cf(`/accounts/${ACCOUNT}/vectorize/v2/indexes/${INDEX}/upsert`, { method: "POST", headers: { "content-type": "application/x-ndjson" }, body: vectors.map((v) => JSON.stringify(v)).join("\n") });
 const lit = (v) => `'${String(v).replace(/'/g, "''")}'`;
 
