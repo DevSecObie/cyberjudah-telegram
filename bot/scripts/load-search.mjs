@@ -33,7 +33,9 @@ console.error(`${(sql.length / 1e6).toFixed(1)} MB of SQL`);
 
 const dir = mkdtempSync(join(tmpdir(), "cj-search-"));
 const file = join(dir, "search.sql");
-writeFileSync(file, sql);
+// A byte-identical file re-imported soon after the last one makes D1 "resume" a finished import
+// and fail; a comment with the time keeps every run's upload fresh.
+writeFileSync(file, Buffer.concat([sql, Buffer.from(`\n-- loaded ${new Date().toISOString()}\n`)]));
 try {
   // D1's import occasionally drops mid-way ("Not currently importing anything"); one more try covers it.
   for (let attempt = 1; ; attempt++) {
