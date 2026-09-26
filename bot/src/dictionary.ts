@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 
 import entries from "../data/easton.json";
+// data/easton.json is fetched by scripts/fetch-dictionary.mjs (from the cyberjudah repo) before build.
 
 /**
  * Easton's Bible Dictionary (1897, public domain; provenance in data/provenance.json): 3,963

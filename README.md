@@ -111,6 +111,7 @@ for `/`; `bible_` may be left off a chapter. `john_3_16`, `psalms_23`, `john_3_1
 
 ```
 npm ci
+node bot/scripts/fetch-dictionary.mjs   # Easton's dictionary, from the cyberjudah repo
 npm run dev            # the app at http://localhost:5173 (browser mode, web fallbacks)
 npm run typecheck && npm test
 npm run build          # app/dist, which the worker serves

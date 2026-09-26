@@ -21,6 +21,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - run: node bot/scripts/fetch-dictionary.mjs
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
@@ -42,6 +43,7 @@ jobs:
       - run: npm run build
         env:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
+      - run: node bot/scripts/fetch-dictionary.mjs
       - name: Deploy the worker
         working-directory: bot
         env:

@@ -6,3 +6,5 @@ dist
 test-results
 playwright-report
 .DS_Store
+bot/data/easton.json
+bot/data/provenance.json

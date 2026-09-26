@@ -43,7 +43,7 @@ export function Home() {
   return (
     <Screen>
       <div className="hello">
-        <img src="/icon.png" alt="" width={44} height={44} />
+        <img src="https://cyberjudah.io/assets/brand/cyber-lion.png" alt="" width={44} height={44} />
         <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>CyberJudah</h1></div>
       </div>
 
