@@ -40,7 +40,9 @@ seconds, with an FTS5 index over them, unicode61 tokenizer); `bot/scripts/load-t
 loads them from the cyberjudah repository incrementally, by git blob sha, nightly and on
 demand (run the deploy workflow with "Also load the transcripts" ticked for the first, full
 load). The full set is a few hundred MB, beyond the free D1 plan's 500 MB database and
-100,000 rows-written-per-day; on Workers Paid it fits with room.
+100,000 rows-written-per-day (a run that hits the limit keeps what it loaded and stops for
+the day); on Workers Paid (Cloudflare dashboard → Workers & Pages → Plans) it fits with room
+and the first run loads everything.
 
 **Telegram's own components.** Everything outside the Bible tab is built on
 [TelegramUI](https://github.com/telegram-mini-apps-dev/TelegramUI), Telegram's React kit

@@ -68,7 +68,11 @@ const remoteSql = async (stmts) => {
     const sql = group.map((x) => `${x};`).join("\n");
     for (let attempt = 1; ; attempt++) {
       try { out.push(...await cfApi(`/accounts/${ACCOUNT}/d1/database/${id}/query`, { method: "POST", body: JSON.stringify({ sql }) })); break; }
-      catch (e) { if (attempt >= 3) throw e; await new Promise((r) => setTimeout(r, 3000 * attempt)); }
+      catch (e) {
+        // D1's free plan allows 100,000 row writes a day; what loaded so far stays, the rest waits.
+        if (/7500|row write limit/.test(e.message)) throw Object.assign(new Error("D1's daily row-write limit is reached (free plan). What loaded so far is kept; the nightly run continues, or the full set loads at once on Workers Paid."), { quota: true });
+        if (attempt >= 3) throw e; await new Promise((r) => setTimeout(r, 3000 * attempt));
+      }
     }
     group = []; size = 0;
   };
@@ -137,7 +141,8 @@ const work = todo.slice(0, LIMIT);
 let batch = [], bytes = 0, done = 0, chunksTotal = 0;
 const flush = async () => {
   if (!batch.length) return;
-  await runSql(batchSql(batch));
+  try { await runSql(batchSql(batch)); }
+  catch (e) { if (!e.quota) throw e; console.error(`::warning::${e.message} ${done} of ${work.length} loaded this run.`); process.exit(0); }
   done += batch.length;
   console.error(`loaded ${done}/${work.length} (${chunksTotal} chunks so far)`);
   batch = []; bytes = 0;
