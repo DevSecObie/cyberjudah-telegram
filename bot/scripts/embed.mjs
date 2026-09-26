@@ -8,17 +8,28 @@
  * only what is new or changed. The first run is the big one (about 700,000 passages, an
  * hour or two); a nightly run after that takes minutes.
  *
- *   node scripts/embed.mjs [--limit N] [--only docs|spoken] [--dry]
+ *   node scripts/embed.mjs [--limit N] [--only docs|spoken] [--spoken-from d1|github] [--dry]
  *
- * Needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+ * --spoken-from github reads the transcripts from the cyberjudah repository instead of D1
+ * (the same chunks, the same vector ids), for when D1 cannot take the load yet; the marks
+ * in `embedded` are written when D1 allows, else the nightly run re-embeds those chunks
+ * once (an upsert, so nothing doubles).
+ *
+ * Needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID; GITHUB_TOKEN raises GitHub's rate limit.
  */
 import { chunkRecord, docRecord, EMBED_MODEL, hash } from "../src/ai.mjs";
+import { chunkSegments, videoOfThumb } from "../src/transcripts.mjs";
 
 const args = process.argv.slice(2);
 const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
 const DRY = args.includes("--dry");
 const LIMIT = Number(opt("--limit")) || Infinity;
 const ONLY = opt("--only");
+const SPOKEN_FROM = opt("--spoken-from") ?? process.env.SPOKEN_SOURCE ?? "d1";
+const REPO = process.env.TRANSCRIPTS_REPO ?? "DevSecObie/cyberjudah", BRANCH = process.env.TRANSCRIPTS_BRANCH ?? "main";
+const DATA_ORIGIN = process.env.DATA_ORIGIN ?? "https://data.cyberjudah.io";
+const gh = { accept: "application/vnd.github+json", ...(process.env.GITHUB_TOKEN ? { authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}) };
+const getJson = async (url, headers = {}) => { for (let a = 1; ; a++) { const r = await fetch(url, { headers }); if (r.ok) return r.json(); if (a >= 4 || (r.status < 500 && r.status !== 403 && r.status !== 429)) throw new Error(`${url}: ${r.status}`); await new Promise((x) => setTimeout(x, 2000 * a)); } };
 const DB = "cyberjudah-telegram", INDEX = "cyberjudah-teachings";
 const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID, TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 if (!ACCOUNT || !TOKEN) { console.error("CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are needed"); process.exit(1); }
@@ -64,7 +75,30 @@ async function* records() {
       last = rows[rows.length - 1].id;
     }
   }
-  if (ONLY !== "docs") {
+  if (ONLY !== "docs" && SPOKEN_FROM === "github") {
+    // The recordings' pages, by video id, so a spoken passage links to its class notes.
+    const pages = new Map();
+    try {
+      for (const f of ["classes", "captains"]) for (const r of await getJson(`${DATA_ORIGIN}/search/${f}.json`)) { const v = videoOfThumb(r.thumb); if (v) pages.set(v, { url: r.url, title: r.title, date: r.date ?? "" }); }
+      for (const r of await getJson(`${DATA_ORIGIN}/api/history/index.json`)) if (r.videoId) pages.set(r.videoId, { url: r.url, title: r.title, date: r.date ?? "" });
+    } catch (e) { console.error(`feeds: ${e.message}`); }
+    const FEEDS = { classes: "blog/transcripts", captains: "captains/transcripts", history: "history/transcripts" };
+    const KIND = { classes: "class", captains: "captains", history: "history" };
+    for (const [feed, dir] of Object.entries(FEEDS)) {
+      const tree = await getJson(`https://api.github.com/repos/${REPO}/git/trees/${BRANCH}:${dir}`, gh);
+      const files = tree.tree.filter((e) => e.type === "blob" && e.path.endsWith(".json"));
+      console.error(`${dir}: ${files.length} transcripts`);
+      for (let i = 0; i < files.length; i += 8) {
+        const batch = await Promise.all(files.slice(i, i + 8).map((e) => getJson(`https://raw.githubusercontent.com/${REPO}/${BRANCH}/${dir}/${e.path}`).catch(() => null)));
+        for (const t of batch) {
+          if (!t?.segments?.length) continue;
+          const page = pages.get(t.videoId);
+          const title = page?.title || t.cleanTitle || t.title || t.videoId;
+          for (const c of chunkSegments(t.segments)) yield chunkRecord({ video: t.videoId, t: c.t, text: c.text, kind: KIND[feed], title, url: page?.url ?? "", date: t.date || page?.date || "" });
+        }
+      }
+    }
+  } else if (ONLY !== "docs") {
     for (let last = 0; ; ) {
       const rows = await sql(`SELECT c.id, c.video, c.t, c.text, f.kind, f.title, f.url, f.date FROM transcript_chunks c JOIN transcript_files f ON f.video = c.video WHERE c.id > ${last} ORDER BY c.id LIMIT ${PAGE}`);
       for (const r of rows) yield chunkRecord(r);
@@ -74,7 +108,7 @@ async function* records() {
   }
 }
 
-let seen = 0, todo = 0, done = 0;
+let seen = 0, todo = 0, done = 0, marksBlocked = false;
 let pending = [];
 const inflight = new Set();
 const flushEmbedded = async (batch) => {
@@ -82,7 +116,10 @@ const flushEmbedded = async (batch) => {
   if (DRY) return vectors.length;
   for (let i = 0; i < vectors.length; i += UPSERT_BATCH) await upsert(vectors.slice(i, i + UPSERT_BATCH));
   const marks = batch.map((r) => `(${lit(r.id)},${lit(r.hash)})`);
-  for (let i = 0; i < marks.length; i += 500) await sql(`INSERT OR REPLACE INTO embedded(id, hash) VALUES ${marks.slice(i, i + 500).join(",")}`);
+  if (!marksBlocked) {
+    try { for (let i = 0; i < marks.length; i += 500) await sql(`INSERT OR REPLACE INTO embedded(id, hash) VALUES ${marks.slice(i, i + 500).join(",")}`); }
+    catch (e) { if (!/7500|row write limit/.test(e.message)) throw e; marksBlocked = true; console.error("::warning::D1 is at its daily write limit; the vectors still load, and the nightly run re-embeds these once to mark them."); }
+  }
   return vectors.length;
 };
 const schedule = async (batch) => {

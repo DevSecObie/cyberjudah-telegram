@@ -16,6 +16,10 @@ on:
         description: "Also embed the library and the transcripts into the Vectorize index (new and changed passages)"
         type: boolean
         default: false
+      spoken_from_repo:
+        description: "Embed the transcripts straight from the cyberjudah repository (when D1 cannot take them yet)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -172,4 +176,6 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SPOKEN_SOURCE: ${{ inputs.spoken_from_repo && 'github' || 'd1' }}
         run: node scripts/embed.mjs
