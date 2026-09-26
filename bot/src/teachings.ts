@@ -1,6 +1,6 @@
 import type { Env, Exec } from "./env";
 import { ftsExpr, parseQuery } from "./search";
-import { FEEDS, passageExcerpt } from "./teachings.mjs";
+import { FEEDS, noteUrl, passageExcerpt } from "./teachings.mjs";
 import { chunkSegments } from "./transcripts.mjs";
 
 /**
@@ -21,7 +21,7 @@ export async function searchTeachings(env: Env, q: string, feed: string, page: n
   const sql = `SELECT title, highlight(teaching_passages,0,char(57344),char(57345)) AS matchedTitle, highlight(teaching_passages,1,char(57344),char(57345)) AS matchedText, feed, date, video, start, note, cues FROM teaching_passages WHERE teaching_passages MATCH ?1 AND (?2 = '' OR feed = ?2) ORDER BY bm25(teaching_passages,4,1), rowid LIMIT 21 OFFSET ?3`;
   try {
     const res = await env.TEACH.prepare(sql).bind(ftsExpr(parsed, "AND"), f, page * 20).all<Row>();
-    const hits = res.results.slice(0, 20).map(({ matchedText, cues, note, ...hit }) => ({ ...hit, note: note ?? "", ...passageExcerpt(matchedText, cues, hit.start) }));
+    const hits = res.results.slice(0, 20).map(({ matchedText, cues, note, ...hit }) => ({ ...hit, note: noteUrl(note), ...passageExcerpt(matchedText, cues, hit.start) }));
     return { ok: true, q: text, feed: f, page, hits, more: res.results.length > 20, ms: Date.now() - t0 };
   } catch (e) {
     console.error(JSON.stringify({ event: "teachings_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 120) }));
@@ -44,7 +44,7 @@ FROM hits AS h JOIN top USING (video) ORDER BY top.n DESC, top.d DESC, h.video, 
 export async function taughtIn(env: Env, slug: string, chapter: number, verses: number[]): Promise<{ ok: true; rows: TaughtRow[]; total: number } | { ok: false; reason: string }> {
   try {
     const res = await env.TEACH.prepare(taughtSql).bind(slug, chapter, JSON.stringify(verses)).all<TaughtRow & { total: number }>();
-    return { ok: true, rows: res.results, total: res.results[0]?.total ?? 0 };
+    return { ok: true, rows: res.results.map((r) => ({ ...r, note: noteUrl(r.note) })), total: res.results[0]?.total ?? 0 };
   } catch { return { ok: false, reason: "unavailable" }; }
 }
 
@@ -79,6 +79,6 @@ export async function transcriptAround(env: Env, video: string, t: number, ctx?:
 async function noteFor(env: Env, video: string, _ctx?: Exec): Promise<{ url: string; title: string; date: string } | null> {
   try {
     const row = await env.TEACH.prepare("SELECT note, title, date FROM teaching_refs WHERE video = ?1 AND note IS NOT NULL LIMIT 1").bind(video).first<{ note: string; title: string; date: string }>();
-    return row?.note ? { url: row.note, title: row.title, date: row.date ?? "" } : null;
+    return row?.note ? { url: noteUrl(row.note), title: row.title, date: row.date ?? "" } : null;
   } catch { return null; }
 }

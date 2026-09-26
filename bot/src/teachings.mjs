@@ -51,6 +51,13 @@ export function passageExcerpt(marked, cuesJson, passageStart) {
   return { excerpt, start, timing: exact ? "caption" : "passage" };
 }
 
+/**
+ * A note URL as the site publishes it. The corpus indexer takes a note's slug from its file
+ * name, which for older notes repeats the date ("2012-12-24-2012-12-24-the-truth…") where the
+ * published page has it once.
+ */
+export const noteUrl = (note) => (note ?? "").replace(/(\d{4}-\d{2}-\d{2})-\1-/, "$1-");
+
 /** The marked text as plain runs and matches: [{ text, match }] */
 export function runs(marked) {
   return marked.split(/([^]*)/g).filter(Boolean).map((part) => part.startsWith(OPEN) && part.endsWith(CLOSE) ? { text: part.slice(1, -1), match: true } : { text: part, match: false });

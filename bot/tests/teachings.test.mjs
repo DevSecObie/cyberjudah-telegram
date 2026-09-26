@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CLOSE, OPEN, passageExcerpt, runs } from "../src/teachings.mjs";
+import { CLOSE, OPEN, noteUrl, passageExcerpt, runs } from "../src/teachings.mjs";
 
 test("the excerpt sits around the first match and the video opens at that caption", () => {
   const words = Array.from({ length: 120 }, (_, i) => `w${i}`);
@@ -22,4 +22,10 @@ test("without cue offsets the passage start is kept", () => {
 
 test("runs split the marks out for rendering", () => {
   assert.deepEqual(runs(`x ${OPEN}y${CLOSE} z`), [{ text: "x ", match: false }, { text: "y", match: true }, { text: " z", match: false }]);
+});
+
+test("a note URL with the date repeated is the published one with it once", () => {
+  assert.equal(noteUrl("/classes/2012/2012-12-24-2012-12-24-the-truth"), "/classes/2012/2012-12-24-the-truth");
+  assert.equal(noteUrl("/classes/2026/2026-09-19-final-call"), "/classes/2026/2026-09-19-final-call");
+  assert.equal(noteUrl(null), "");
 });

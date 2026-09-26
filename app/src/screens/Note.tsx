@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { marked } from "marked";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
-import { useLocation } from "react-router";
+import { Navigate, useLocation } from "react-router";
 
 import { data, fmtDate, when, type HistoryEpisode } from "@/api/data";
 import { toggleBookmark, useBookmarks, useLastNote } from "@/lib/marks";
@@ -68,7 +68,11 @@ export function NoteScreen() {
   };
 
   if (note.isPending) return <main className="screen"><Skeleton rows={6} /></main>;
-  if (note.isError || !note.data) return <main className="screen"><Empty title="This note did not load">It may have moved. Search for it instead.</Empty></main>;
+  if (note.isError || !note.data) {
+    // A recording hit whose notes are missing still opens the recording at its moment.
+    if (at !== null && video) return <Navigate to={`/watch/${encodeURIComponent(video)}?t=${Math.round(at)}`} replace />;
+    return <main className="screen"><Empty title="This note did not load">It may have moved. Search for it instead.</Empty></main>;
+  }
   const n = note.data;
   return (
     <main className="screen">
