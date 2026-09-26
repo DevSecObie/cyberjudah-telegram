@@ -26,10 +26,11 @@ const passageOf = (m: { metadata?: Record<string, unknown>; score: number }): Pa
 export async function retrieve(env: Env, text: string, topK = 12): Promise<(Passage & { score: number })[]> {
   const [vector] = await embed(env, [text]);
   if (!vector) return [];
-  const res = await env.VEC.query(vector, { topK: 50, returnMetadata: "all" });
+  // Vectorize returns the metadata (the passage itself) for at most twenty matches.
+  const res = await env.VEC.query(vector, { topK: 20, returnMetadata: "all" });
   // A passage must say something: scraps of captions ("do", "yeah so") sit close to every question.
   const said = res.matches.filter((m) => String((m.metadata as Record<string, unknown> | undefined)?.text ?? "").split(/\s+/).length >= 20);
-  const close = dedupeMatches(said).slice(0, Math.max(topK * 3, 24)).map(passageOf);
+  const close = dedupeMatches(said).map(passageOf);
   return rerank(env, text, close, topK);
 }
 
