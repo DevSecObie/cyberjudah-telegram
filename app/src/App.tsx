@@ -11,6 +11,7 @@ import { Home } from "@/screens/Home";
 import { Search } from "@/screens/Search";
 import { Classes } from "@/screens/Classes";
 import { NoteScreen } from "@/screens/Note";
+import { Watch } from "@/screens/Watch";
 import { BibleTab } from "@/bible/BibleTab";
 import { More } from "@/screens/More";
 import { Settings, ThemeApplier } from "@/screens/Settings";
@@ -57,6 +58,7 @@ export function App() {
         <Route path="/more" element={<More />} />
         <Route path="/read/:book/:chapter" element={<BibleTab />} />
         <Route path="/note/*" element={<NoteScreen />} />
+        <Route path="/watch/:video" element={<Watch />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/plan" element={<Plan />} />
         <Route path="/relations" element={<Relations />} />

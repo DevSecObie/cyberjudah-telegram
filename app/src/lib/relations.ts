@@ -33,7 +33,7 @@ export const isDirectional = (t: RelationType) => DIRECTIONAL.includes(t);
 const TYPE_TEXT: Record<string, string> = { linked: "linked to", references: "refers to", explains: "explains", contrasts: "contrasts with", mentions: "mentions", referencedBy: "referenced by", explainedBy: "explained by", mentionedBy: "mentioned by" };
 const TITLE_TEXT: Record<string, string> = { linked: "is linked to", references: "refers to", explains: "explains", contrasts: "contrasts with", mentions: "mentions", referencedBy: "is referenced by", explainedBy: "is explained by", mentionedBy: "is mentioned by" };
 const PASSIVE: Record<string, string> = { references: "referencedBy", explains: "explainedBy", mentions: "mentionedBy" };
-export const ENDPOINT_TYPE_LABEL: Record<Endpoint["type"], string> = { verse: "Passage", note: "Note", entry: "Library", dictionary: "Dictionary", link: "Link" };
+export const ENDPOINT_TYPE_LABEL: Record<Endpoint["type"], string> = { verse: "Scripture", note: "Note", entry: "Library", dictionary: "Dictionary", link: "Link" };
 
 export const verseKey = (slug: string, ch: number, v: number) => `${slug}-${ch}-${v}`;
 export const parseVerseKey = (k: string) => { const m = /^(.+)-(\d+)-(\d+)$/.exec(k); return m ? { slug: m[1], chapter: +m[2], verse: +m[3] } : null; };

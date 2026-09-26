@@ -44,7 +44,7 @@ const goInApp = (page: Page, to: string) => page.evaluate((t) => { history.pushS
 
 test.beforeEach(async ({ page }) => setup(page));
 
-test("a deep link opens the passage in focus, 'Read whole chapter' expands it, the ✕ leaves focus", async ({ page }) => {
+test("a deep link opens the Scripture in focus, 'Read whole chapter' expands it, the ✕ leaves focus", async ({ page }) => {
   await page.goto(`/?tgWebAppStartParam=john_3_16${LAUNCH}&tgWebAppStartParam=john_3_16`);
   await expect(page).toHaveURL(/\/read\/john\/3\?v=16/);
   await expect(page.locator("#verset-16")).toBeVisible();
@@ -52,7 +52,7 @@ test("a deep link opens the passage in focus, 'Read whole chapter' expands it, t
   await expect(page.locator(".bs-context__main")).toHaveText("Read whole chapter");
   await expect(page.locator("#verset-20")).toHaveCount(0);
   await page.click(".bs-context__main");
-  await expect(page.locator(".bs-context__main")).toHaveText("Back to passage");
+  await expect(page.locator(".bs-context__main")).toHaveText("Back to the Scripture");
   await expect(page.locator("#verset-20")).toBeVisible();
   await page.click(".bs-context__exit");
   await expect(page.locator(".bs-pill--book")).toHaveText("John 3");
@@ -148,7 +148,7 @@ test("the book pill opens Books; a chapter tile opens the chapter; the chevrons 
 
 test("Font and settings: night theme, verse mode, text size, fonts, all kept in the cloud", async ({ page }) => {
   await page.goto(`/read/psalms/23${LAUNCH}`);
-  await page.click('.bs-iconbtn[aria-label="Passage options"]');
+  await page.click('.bs-iconbtn[aria-label="Scripture options"]');
   await page.click(".bs-menu__item >> text=Font and settings");
   await expect(page.locator(".bs-params__row").first()).toContainText("Theme");
   await page.click('.bs-touchicon[aria-label="Day"]');
@@ -288,4 +288,30 @@ test("a reference typed on Home opens the chapter", async ({ page }) => {
   await page.press("#q", "Enter");
   await expect(page).toHaveURL(/\/(read|bible)\/psalms\/23\?v=4/);
   await expect(page.locator(".bs-header__focus")).toHaveText("Psalms 23:4 - KJV");
+});
+
+test("the spoken search finds the words exactly as typed, and opens the recording at that second", async ({ page }) => {
+  await page.goto(`/${LAUNCH}`);
+  await page.fill("#q", "Most High");
+  await expect(page.locator(".live__spoken")).toContainText(/Said word for word in \d+ recordings/);
+  await page.click(".live__spoken");
+  await expect(page).toHaveURL(/in=transcripts/);
+  await page.goto(`/search?in=transcripts${LAUNCH}`);
+  await expect(page.locator('[role=tab][aria-selected="true"]')).toHaveText("Spoken, word for word");
+  await page.fill("#q", "Most High");
+  await page.press("#q", "Enter");
+  await expect(page).toHaveURL(/in=transcripts/);
+  await expect(page.locator(".hint").first()).toContainText("Said in");
+  await expect(page.locator(".row__sub mark").first()).toHaveText(/most high/i);
+  await expect(page.locator(".tx__at").first()).toHaveText(/\d+:\d\d/);
+  await page.click(".row >> nth=0");
+  await expect(page).toHaveURL(/\/(watch|note)\//);
+  await expect(page.locator(".tx__chunk[data-here]")).toBeVisible();
+  await expect(page.locator(".watch")).toContainText("Watch from");
+});
+
+test("a Scripture typed in the spoken search finds where it was read", async ({ page }) => {
+  await page.goto(`/search?in=transcripts&q=Deuteronomy%2028${LAUNCH}`);
+  await expect(page.locator(".hint").first()).toContainText("Said in");
+  await expect(page.locator(".row__sub").first()).toContainText(/deuteronomy 28/i);
 });

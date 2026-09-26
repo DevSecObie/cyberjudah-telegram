@@ -120,14 +120,14 @@ export function RelationTargetPicker({ source, onClose, onCreated }: { source: E
 
   const sections = useMemo(() => {
     const out: { id: string; title: string; items: Target[] }[] = [];
-    if (refKeys) { const verses = refText.data?.verses.filter((v) => refKeys.some((k) => parseVerseKey(k)!.verse === v.verse)); const label = verseLabel(refKeys, books.data); out.push({ id: "passages", title: "Passages", items: [{ id: `verse:${refKeys.join(",")}`, type: "verse", title: label, description: verses?.map((v) => v.text).join(" "), endpoint: { type: "verse", verseKeys: refKeys, label } }] }); }
+    if (refKeys) { const verses = refText.data?.verses.filter((v) => refKeys.some((k) => parseVerseKey(k)!.verse === v.verse)); const label = verseLabel(refKeys, books.data); out.push({ id: "passages", title: "Scriptures", items: [{ id: `verse:${refKeys.join(",")}`, type: "verse", title: label, description: verses?.map((v) => v.text).join(" "), endpoint: { type: "verse", verseKeys: refKeys, label } }] }); }
     const lc = debounced.toLowerCase();
     const n = lc ? notes.filter((x) => `${x.title} ${x.description}`.toLowerCase().includes(lc)) : notes;
     if (n.length) out.push({ id: "notes", title: "Notes", items: n });
     const KIND: Record<string, string> = { class: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History", study: "Study note", encyclopedia: "Encyclopedia", law: "Law", precept: "Precept", case: "Case study", verse: "Scripture" };
     const lib = (library.data?.hits ?? []).filter((h) => h.kind !== "verse").map<Target>((h) => ({ id: `entry:${h.url}`, type: "entry", title: h.title, subtitle: KIND[h.kind] ?? h.kind, description: h.snippet, endpoint: { type: "entry", url: h.url, kind: h.kind, label: h.title } }));
     const versesHits = (library.data?.hits ?? []).filter((h) => h.kind === "verse").map<Target>((h) => { const m = /^\/bible\/([a-z0-9-]+)\/(\d+)#v(\d+)/.exec(h.url); const key = m ? verseKey(m[1], +m[2], +m[3]) : ""; return { id: `verse:${key}`, type: "verse", title: h.title, description: h.snippet, endpoint: { type: "verse", verseKeys: [key], label: h.title } }; }).filter((t) => t.endpoint.type === "verse" && t.endpoint.verseKeys[0]);
-    if (versesHits.length && !refKeys) out.push({ id: "passages", title: "Passages", items: versesHits });
+    if (versesHits.length && !refKeys) out.push({ id: "passages", title: "Scriptures", items: versesHits });
     if (lib.length) out.push({ id: "library", title: "Library", items: lib });
     const d = (dict.data?.rows ?? []).map<Target>((r) => ({ id: `dictionary:${r.slug}`, type: "dictionary", title: r.term, subtitle: "Dictionary", endpoint: { type: "dictionary", slug: r.slug, label: r.term } }));
     if (d.length) out.push({ id: "dictionary", title: "Dictionary", items: d });
@@ -136,7 +136,7 @@ export function RelationTargetPicker({ source, onClose, onCreated }: { source: E
   }, [refKeys, refText.data, books.data, debounced, notes, library.data, dict.data]);
 
   const pick = async (t: Target) => {
-    if (endpointsMatch(source, t.endpoint)) { void alert("A passage cannot relate to itself."); return; }
+    if (endpointsMatch(source, t.endpoint)) { void alert("A Scripture cannot relate to itself."); return; }
     const r = await createRelation([source, t.endpoint]);
     if (!r) { void alert("This relation already exists."); return; }
     haptic("success"); onCreated(r);
@@ -147,9 +147,9 @@ export function RelationTargetPicker({ source, onClose, onCreated }: { source: E
       <div className="sheet sheet--tall" role="dialog" aria-modal="true" aria-label="Add relation" data-sheet-open="">
         <div className="sheet__grip" aria-hidden="true" />
         <p className="sheet__title">Add relation<small>{source.label}</small></p>
-        <SearchField id="rel-q" value={q} onChange={setQ} placeholder="Passage, note, class, dictionary, link..." autoFocus />
+        <SearchField id="rel-q" value={q} onChange={setQ} placeholder="Scripture, note, class, dictionary, link..." autoFocus />
         <div className="rel-results">
-          {!sections.length ? (loading ? <Skeleton rows={3} /> : <div className="rel-empty rel-empty--small"><Icon name="search" size={40} /><p>{debounced ? "No target found" : "Search for a passage, a note, a class, a dictionary entry or a link"}</p></div>) : sections.map((s) => {
+          {!sections.length ? (loading ? <Skeleton rows={3} /> : <div className="rel-empty rel-empty--small"><Icon name="search" size={40} /><p>{debounced ? "No target found" : "Search for a Scripture, a note, a class, a dictionary entry or a link"}</p></div>) : sections.map((s) => {
             const shown = more[s.id] ?? PREVIEW;
             return (
               <section key={s.id} className="rel-section">

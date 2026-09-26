@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
+    inputs:
+      transcripts:
+        description: "Also load the transcripts into D1 (new and changed files; the first run loads all of them)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -108,3 +113,22 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: node scripts/load-search.mjs
+
+  refresh-transcripts:
+    # The captions of every recording, for the exact search: new and changed files only,
+    # nightly after the cyberjudah repo's hourly transcript runs, or on demand.
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.transcripts)
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - working-directory: bot
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/load-transcripts.mjs

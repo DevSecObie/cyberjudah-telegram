@@ -3,10 +3,10 @@
  * A-Z a-z 0-9 _ - and 512 characters, so a page path is written with `_` for `/` (no slug in
  * the library uses an underscore). A Bible chapter may carry its verses as a last segment,
  * ranges joined by `x`, and the `bible_` prefix may be left off, so a person can type
- * `john_3_16` or `psalms_23`:
+ * `matthew_15_24` or `psalms_23`:
  *
- *   bible_john_3_16-18   ->  /bible/john/3?v=16-18#v16
- *   john_3_16x18         ->  /bible/john/3?v=16,18#v16
+ *   bible_matthew_15_24-26 ->  /bible/matthew/15?v=24-26#v24
+ *   matthew_15_24x26     ->  /bible/matthew/15?v=24,26#v24
  *   classes_2026_slug    ->  /classes/2026/slug
  *   (empty)              ->  /
  */

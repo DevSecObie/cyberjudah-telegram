@@ -23,6 +23,6 @@ engine/README.md). The worker's D1 holds `search_docs`, loaded from `search.sql.
 `bot/scripts/load-search.mjs` (the deploy workflow runs it on every deploy).
 
 Deep links: `https://t.me/<bot>/<app>?startapp=<param>`; `shared/links.mjs` is the codec
-(`john_3_16` → `/read/john/3?v=16`, `classes_2026_<slug>` → `/note/classes/2026/<slug>`).
+(`matthew_15_24` → `/read/matthew/15?v=24`, `classes_2026_<slug>` → `/note/classes/2026/<slug>`).
 The bot's `/start <param>` replies with a button that opens the app at that param.
-Inline mode: `@<bot> john 3:16` or `@<bot> passover` answers with verse cards.
+Inline mode: `@<bot> matthew 15:24` or `@<bot> passover` answers with verse cards.

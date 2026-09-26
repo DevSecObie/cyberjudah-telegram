@@ -6,6 +6,7 @@ import { validateInitData, type InitData } from "./initdata.mjs";
 import { createBot, todaysVerse } from "./bot";
 import { chapter, escapeHtml, openLink } from "./data";
 import { runSearch } from "./search";
+import { searchTranscripts, transcriptAround } from "./transcripts";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
 import { bookLabel } from "./verse-of-day.mjs";
@@ -48,6 +49,21 @@ app.get("/api/search", async (c) => {
   const limit = Math.min(Math.max(Number(c.req.query("limit")) || 8, 1), 100);
   const res = await runSearch(c.env.DB, q, only, limit);
   return c.json(res, res.ok ? 200 : 503);
+});
+
+// The exact search over the transcripts, and the captions around a moment of a recording.
+app.get("/api/transcripts", async (c) => {
+  const q = (c.req.query("q") ?? "").slice(0, 200);
+  const limit = Math.min(Math.max(Number(c.req.query("limit")) || 20, 1), 100);
+  const offset = Math.max(Number(c.req.query("offset")) || 0, 0);
+  const res = await searchTranscripts(c.env, q, limit, offset, c.executionCtx);
+  return c.json(res, res.ok ? 200 : 503);
+});
+app.get("/api/transcript/:video", async (c) => {
+  const video = c.req.param("video");
+  if (!/^[A-Za-z0-9_-]{6,20}$/.test(video)) return c.json({ ok: false, reason: "bad-video" }, 400);
+  const res = await transcriptAround(c.env, video, Math.max(0, Number(c.req.query("t")) || 0));
+  return c.json(res, res.ok ? 200 : res.reason === "not-found" ? 404 : 503);
 });
 
 app.post("/api/share", async (c) => {

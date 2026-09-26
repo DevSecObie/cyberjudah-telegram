@@ -17,7 +17,14 @@ export type SearchResult = { ok: true; q: string; mode: "strict" | "loose" | "mi
 export const KIND_LABEL: Record<string, string> = { class: "Sabbath classes", captains: "15 Min w/ Captains", history: "Our Hidden History", study: "Study notes", law: "Laws", precept: "Precepts", case: "Case studies", encyclopedia: "Encyclopedia", verse: "Scripture" };
 /** Teaching first: what was taught, then the law, then the text itself. */
 export const KIND_ORDER = ["class", "captains", "history", "study", "law", "precept", "case", "encyclopedia", "verse"];
-export const PROMPTS = ["What was taught on the Passover?", "Who was Melchizedek?", "Deuteronomy 28", "the Sabbath", "usury", "\"the twelve tribes\"", "Isaiah 58", "why we keep the feasts"];
+export const PROMPTS = ["What was taught on the Passover?", "Who was Melchizedek?", "Matthew 15:24", "the Sabbath", "usury", "\"the twelve tribes\"", "Isaiah 58", "why we keep the feasts"];
+export type TranscriptHit = { video: string; t: number; snippet: string; kind: string; title: string; url: string; date: string };
+export type TranscriptResult = { ok: true; q: string; expr: string; total: number; recordings: number; hits: TranscriptHit[] } | { ok: false; reason: string };
+/** A spoken hit opens the class notes at that moment when there are notes, else the recording itself. */
+export const transcriptPath = (h: TranscriptHit) => h.url ? `/note${h.url}?t=${Math.round(h.t)}&video=${encodeURIComponent(h.video)}` : `/watch/${encodeURIComponent(h.video)}?t=${Math.round(h.t)}`;
+export function useTranscriptSearch(q: string, limit = 20, offset = 0, enabled = true) {
+  return useQuery({ queryKey: ["transcripts", q, limit, offset], enabled: enabled && q.trim().length >= 2, queryFn: () => api<TranscriptResult>(`/api/transcripts?q=${encodeURIComponent(q.trim())}&limit=${limit}&offset=${offset}`), staleTime: 60_000 });
+}
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 /** A hit's link: a class section by its heading, a verse by its number. */
@@ -31,10 +38,13 @@ export function useLiveSearch(q: string, limit = 3) {
   return { q: debounced, enabled, ...res };
 }
 
-export function Lit({ text, needle }: { text: string; needle: string }) {
-  const words = needle.replace(/"/g, "").split(/\s+/).filter((w) => w.length > 1);
+const esc = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** The needle lit in the text: the whole phrase where it appears as typed, else each word. */
+export function Lit({ text, needle, phrase }: { text: string; needle: string; phrase?: boolean }) {
+  const words = needle.replace(/"/g, "").split(/[^\p{L}\p{N}']+/u).filter((w) => w.length > (phrase ? 0 : 1));
   if (!words.length) return <>{text}</>;
-  const re = new RegExp(`(${words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "ig");
+  const whole = phrase ? new RegExp(`(${words.map(esc).join("[^\\p{L}\\p{N}]+")})`, "iu") : null;
+  const re = whole && whole.test(text) ? new RegExp(whole.source, "igu") : new RegExp(`(${words.map(esc).join("|")})`, "ig");
   return <>{text.split(re).map((part, i) => (i % 2 ? <mark key={i}>{part}</mark> : part))}</>;
 }
 
@@ -60,16 +70,20 @@ export function SearchHero({ value, onChange, onSubmit, autoFocus, big, children
 }
 
 /** The live list under the field: up to three hits per kind, teaching first. */
-export function LiveResults({ q, onOpen, onAll }: { q: string; onOpen?: () => void; onAll: (q: string) => void }) {
+export function LiveResults({ q, onOpen, onAll, onSpoken }: { q: string; onOpen?: () => void; onAll: (q: string) => void; onSpoken?: (q: string) => void }) {
   const live = useLiveSearch(q);
+  const spoken = useTranscriptSearch(live.q, 1, 0, live.enabled && !!onSpoken);
   if (!live.enabled) return null;
   const r = live.data;
+  const said = spoken.data?.ok ? spoken.data : null;
+  const spokenRow = onSpoken && said?.recordings ? <button type="button" className="live__spoken" onClick={() => onSpoken(live.q)}><Icon name="play" size={16} /><span>Said word for word in <b>{said.recordings}</b> recording{said.recordings === 1 ? "" : "s"}</span><Icon name="chevron" size={14} /></button> : null;
   if (live.isPending) return <div className="live"><p className="live__hint">Searching…</p></div>;
-  if (!r || !r.ok || !r.hits.length) return <div className="live"><p className="live__hint">Nothing yet for “{live.q}”. Press Enter to search every word.</p></div>;
+  if (!r || !r.ok || !r.hits.length) return <div className="live">{spokenRow}<p className="live__hint">Nothing yet for “{live.q}”. Press Enter to search every word.</p></div>;
   const total = Object.values(r.counts).reduce((a, b) => a + b, 0);
   const kinds = KIND_ORDER.filter((k) => r.hits.some((h) => h.kind === k));
   return (
     <div className="live" role="listbox" aria-label="Results as you type">
+      {spokenRow}
       {kinds.map((k) => (
         <div key={k} className="live__group">
           <p className="live__label">{KIND_LABEL[k] ?? k}{r.counts[k] ? <span> {r.counts[k]}</span> : null}</p>

@@ -1,0 +1,12 @@
+export type Chunk = { t: number; text: string };
+export type TranscriptFile = { video: string; sha: string; kind: string; title: string; url: string; date: string; duration: number | null; chunks: Chunk[] };
+export const CHUNK_SECONDS: number;
+export const CHUNK_WORDS: number;
+export const OVERLAP_SEGMENTS: number;
+export function chunkSegments(segments: [number, string][]): Chunk[];
+export function words(s: string): string[];
+export function exactExpr(text: string, ref?: { book: string; chapter: number; verse?: number } | null): string;
+export function dedupeHits<T extends { video: string; t: number }>(hits: T[], windowSeconds?: number): T[];
+export function videoOfThumb(thumb: string | null | undefined): string | null;
+export const SCHEMA: string[];
+export function batchSql(files: TranscriptFile[]): string[];

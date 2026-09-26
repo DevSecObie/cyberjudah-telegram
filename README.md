@@ -22,11 +22,25 @@ app and its bot; the text and the notes live where they are written.
 lists what matches, grouped teaching first (Sabbath classes, the Captains, Our Hidden
 History, study notes, then the law, precepts, cases and encyclopedia) with the words lit.
 Enter opens the full results, the classes first and scripture folded behind "Show the
-verses that say this"; a reference like `John 3:16` opens the chapter. Under the search:
+verses that say this"; a reference like `Matthew 15:24` opens the chapter. Under the search:
 where you left off (the class you were watching, the chapter you were reading), this
 week's class, and the feed of everything taught with the topics as filters. A class page
 shows the books it teaches from, jumps to the section a search hit named, and offers the
 next and previous class.
+
+**Spoken, word for word.** The second search goes through the captions of every recording
+(about 8,500: the Sabbath classes, the Captains, Our Hidden History) for exactly what was
+typed: the words in that order, side by side, case and punctuation aside, with no stemming
+and no "any of these words". A Scripture reference is the one allowance the captions force:
+`Matthew 15:24` also finds "Matthew 15 verse 24" and "Matthew chapter 15 and 24". A hit
+carries the second it was said; it opens the class notes at that moment when the class is
+written up, or the recording page with the captions around the moment and a "Watch from"
+button into the video. The captions live in D1 (`transcript_chunks`, chunks of about 45
+seconds, with an FTS5 index over them, unicode61 tokenizer); `bot/scripts/load-transcripts.mjs`
+loads them from the cyberjudah repository incrementally, by git blob sha, nightly and on
+demand (run the deploy workflow with "Also load the transcripts" ticked for the first, full
+load). The full set is a few hundred MB, beyond the free D1 plan's 500 MB database and
+100,000 rows-written-per-day; on Workers Paid it fits with room.
 
 **Telegram's own components.** Everything outside the Bible tab is built on
 [TelegramUI](https://github.com/telegram-mini-apps-dev/TelegramUI), Telegram's React kit
@@ -111,9 +125,9 @@ the app runs as a mobile web app with web fallbacks (share sheet, geolocation, l
 ## Deep links
 
 `https://t.me/<bot>/<app>?startapp=<page>` opens a screen. `<page>` is the site path with `_`
-for `/`; `bible_` may be left off a chapter. `john_3_16`, `psalms_23`, `john_3_16-18x20`
+for `/`; `bible_` may be left off a chapter. `matthew_15_24`, `psalms_23`, `matthew_15_24-26x28`
 (verses 16–18 and 20), `classes`, `classes_2026_<slug>`, `law`, `precepts_usury`. The codec is
-`shared/links.mjs`. `/start john_3_16` in the bot chat does the same with a button.
+`shared/links.mjs`. `/start matthew_15_24` in the bot chat does the same with a button.
 
 ## Running it
 
@@ -134,7 +148,7 @@ To try it inside Telegram during development, expose the worker (for example wit
 Four secrets and the deploy workflow do the rest.
 
 1. **The bot.** In [@BotFather](https://t.me/BotFather): `/newbot` gives the token. Then
-   `/setinline` on the bot (placeholder like `john 3:16 or a word`) so `@bot …` works in chats.
+   `/setinline` on the bot (placeholder like `matthew 15:24 or a word`) so `@bot …` works in chats.
 2. **Cloudflare.** *My Profile → API Tokens → Create Token*, template "Edit Cloudflare
    Workers", and add **D1 Edit** and **Workers KV Storage Edit** to its permissions. The account
    ID is on the Workers & Pages overview page.

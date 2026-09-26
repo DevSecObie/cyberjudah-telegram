@@ -5,10 +5,13 @@ import { useSearchParams } from "react-router";
 import { useRecentSearches } from "@/lib/marks";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { api, features, readClipboard, scanQr } from "@/tg/sdk";
-import { Chip, Chips, Empty, Icon, List, Row, Screen, Section, Skeleton, useGo } from "@/ui/ui";
-import { hitPath, KIND_LABEL, KIND_ORDER, Lit, LiveResults, SearchHero, type SearchResult } from "@/ui/search-hero";
+import { Button, Chip, Chips, Empty, Icon, List, Row, Screen, Section, Segmented, Skeleton, timestamp, useGo } from "@/ui/ui";
+import { fmtDate } from "@/api/data";
+import { KIND_NAME } from "./Home";
+import { hitPath, KIND_LABEL, KIND_ORDER, Lit, LiveResults, SearchHero, transcriptPath, useTranscriptSearch, type SearchResult, type TranscriptHit } from "@/ui/search-hero";
 
 const EXAMPLES = ["Passover", "Sabbath", "Melchizedek", "usury", "Ezekiel 37", "\"seventh day\"", "the twelve tribes"];
+const SPOKEN_EXAMPLES = ["Matthew 15:24", "the lost sheep", "Deuteronomy 28", "Most High", "so-called", "Shabbat shalom"];
 const TEACHING = new Set(["class", "captains", "history", "study"]);
 
 /** "john 3:16", "1 kings 8", "ps 23" -> a reader path, so a reference typed in search opens the chapter. */
@@ -30,6 +33,7 @@ export function referencePath(q: string): string | null {
 export function Search() {
   const [params, setParams] = useSearchParams();
   const q = params.get("q") ?? "", only = params.get("only") ?? undefined;
+  const where = params.get("in") === "transcripts" ? "transcripts" : "teachings";
   const go = useGo();
   const [input, setInput] = useState(q);
   const [recent, setRecent] = useRecentSearches();
@@ -37,12 +41,12 @@ export function Search() {
   useBackButton(!q, () => { if (q) { setParams({}, { replace: true }); return true; } });
   useBottomButtons(null, null);
   const set = (next: Record<string, string | undefined>, replace = false) => {
-    const p = new URLSearchParams(); for (const [k, v] of Object.entries({ q, only, ...next })) if (v) p.set(k, v);
+    const p = new URLSearchParams(); for (const [k, v] of Object.entries({ q, only, in: where === "transcripts" ? "transcripts" : undefined, ...next })) if (v) p.set(k, v);
     setParams(p, { replace });
   };
   const submit = (text = input) => {
     const t = text.trim(); if (!t) return;
-    const ref = referencePath(t);
+    const ref = where === "teachings" ? referencePath(t) : null;
     if (ref) { go(ref); return; }
     setRecent([t, ...recent.filter((x) => x.toLowerCase() !== t.toLowerCase())].slice(0, 8));
     set({ q: t, only: undefined });
@@ -53,15 +57,22 @@ export function Search() {
   const typing = input.trim() !== q;
 
   return (
-    <Screen title="Search the teachings" action={<span className="head__actions">{features.clipboard ? <button type="button" className="icon-btn" aria-label="Paste" onClick={paste}><Icon name="copy" size={18} /></button> : null}{features.qr ? <button type="button" className="icon-btn" aria-label="Scan a QR code" onClick={scan}><Icon name="qr" size={20} /></button> : null}</span>}>
+    <Screen kicker="The teaching library" title="Search teachings" action={<span className="head__actions">{features.clipboard ? <button type="button" className="icon-btn" aria-label="Paste" onClick={paste}><Icon name="copy" size={18} /></button> : null}{features.qr ? <button type="button" className="icon-btn" aria-label="Scan a QR code" onClick={scan}><Icon name="qr" size={20} /></button> : null}</span>}>
+      <Segmented label="Where" value={where} onChange={(w) => set({ in: w === "transcripts" ? "transcripts" : undefined }, true)} options={[["teachings", "Teachings"], ["transcripts", "Spoken, word for word"]]} />
       <SearchHero value={input} onChange={setInput} onSubmit={submit} autoFocus={!q}>
-        {typing ? <LiveResults q={input} onAll={submit} /> : null}
+        {typing && where === "teachings" ? <LiveResults q={input} onAll={submit} onSpoken={(t) => { setInput(t); set({ q: t, only: undefined, in: "transcripts" }); }} /> : null}
       </SearchHero>
-      {!q ? (
+      {where === "transcripts" ? (q && !typing ? <Spoken q={q} /> : (
         <>
+          <p className="hint">Every recording's captions, searched for <b>exactly</b> what you type: the words in that order, side by side. A hit opens the class notes at that moment, or the recording where the words were said. A Scripture like <b>Matthew 15:24</b> finds where it was read.</p>
+          <Section title="Try"><Chips>{SPOKEN_EXAMPLES.map((e) => <Chip key={e} onClick={() => { setInput(e); submit(e); }}>{e}</Chip>)}</Chips></Section>
+        </>
+      )) : !q ? (
+        <>
+          <p className="hint hint--lede">Find a Scripture. Open the recording where it was spoken. Read the class notes alongside it.</p>
           {recent.length ? <Section title="Recent" action={<button type="button" className="link" onClick={() => setRecent([])}>Clear</button>}><List>{recent.map((r) => <Row key={r} onClick={() => { setInput(r); submit(r); }} title={r} trailing={<span className="row__chev"><Icon name="clock" size={16} /></span>} />)}</List></Section> : null}
           <Section title="Try"><Chips>{EXAMPLES.map((e) => <Chip key={e} onClick={() => { setInput(e); submit(e); }}>{e}</Chip>)}</Chips></Section>
-          <p className="hint">Every class, episode, study note, law, precept and case, and every verse. A reference like <b>John 3:16</b> opens the chapter; quote a phrase for an exact match.</p>
+          <p className="hint">Every class, episode, study note, law, precept and case, and every verse. A reference like <b>Matthew 15:24</b> opens the chapter; quote a phrase for an exact match.</p>
         </>
       ) : !typing ? <Results q={q} only={only} onOnly={(k) => set({ only: k })} /> : null}
     </Screen>
@@ -97,4 +108,33 @@ function Results({ q, only, onOnly }: { q: string; only?: string; onOnly: (k?: s
       })}
     </>
   );
+}
+
+/** The exact hits, newest recording first, each with the second it was said. */
+function Spoken({ q }: { q: string }) {
+  const [pages, setPages] = useState(1);
+  const PAGE = 20;
+  const first = useTranscriptSearch(q, PAGE, 0);
+  if (first.isPending) return <Skeleton rows={6} />;
+  const r = first.data;
+  if (!r || !r.ok) return <Empty title="The transcripts are not answering right now">Check your connection and try again.</Empty>;
+  if (!r.total) return <Empty title={`“${q}” was not said in any recording`}>Word for word, that is. Try fewer words, or search the teachings instead.</Empty>;
+  return (
+    <>
+      <p className="hint">Said in <b>{r.recordings}</b> recording{r.recordings === 1 ? "" : "s"}{r.total > r.recordings ? `, ${r.total} times` : ""}. Newest first.</p>
+      <List>
+        {r.hits.map((h) => <SpokenRow key={`${h.video}-${h.t}`} h={h} q={q} />)}
+        {Array.from({ length: pages - 1 }, (_, i) => <SpokenPage key={i} q={q} offset={(i + 1) * PAGE} limit={PAGE} />)}
+      </List>
+      {r.hits.length >= PAGE && pages * PAGE < r.total ? <Button mode="bezeled" size="m" stretched onClick={() => setPages(pages + 1)}>Show more</Button> : null}
+    </>
+  );
+}
+function SpokenPage({ q, offset, limit }: { q: string; offset: number; limit: number }) {
+  const res = useTranscriptSearch(q, limit, offset);
+  if (!res.data?.ok) return null;
+  return <>{res.data.hits.map((h) => <SpokenRow key={`${h.video}-${h.t}`} h={h} q={q} />)}</>;
+}
+function SpokenRow({ h, q }: { h: TranscriptHit; q: string }) {
+  return <Row href={transcriptPath(h)} meta={<>{KIND_NAME[h.kind as keyof typeof KIND_NAME] ?? h.kind}{h.date ? ` · ${fmtDate(h.date)}` : ""} · <b className="tx__at">{timestamp(h.t)}</b></>} title={h.title} sub={<Lit text={h.snippet} needle={q} phrase />} />;
 }

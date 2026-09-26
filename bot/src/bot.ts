@@ -42,7 +42,7 @@ const HELP = [
   "/support — support the work with Telegram Stars",
   "/help — this",
   "",
-  "In any chat, type <code>@BOT john 3:16</code> or <code>@BOT passover</code> to send a verse or a search hit.",
+  "In any chat, type <code>@BOT matthew 15:24</code> or <code>@BOT passover</code> to send a verse or a search hit.",
 ].join("\n");
 
 export async function createBot(env: Env, origin: string, exec?: Exec): Promise<Bot> {

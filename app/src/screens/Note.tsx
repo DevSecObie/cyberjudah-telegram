@@ -11,6 +11,7 @@ import { share } from "@/lib/share";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { haptic, openLink, setClosingConfirmation } from "@/tg/sdk";
 import { Empty, Icon, Img, Skeleton, thumbOf, timestamp, useGo, youtube } from "@/ui/ui";
+import { TranscriptExcerpt, useTranscriptAround } from "./Watch";
 
 marked.setOptions({ gfm: true, breaks: false });
 const KIND: Record<string, string> = { class: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History", study: "4 Chapters a Day", encyclopedia: "Encyclopedia" };
@@ -43,11 +44,14 @@ export function NoteScreen() {
   const next = feedIdx > 0 ? teachings.data![feedIdx - 1] : undefined;
   const prev = feedIdx >= 0 ? teachings.data![feedIdx + 1] : undefined;
   useEffect(() => { if (note.data && (isHistory || path.startsWith("/classes/") || path.startsWith("/captains/"))) setLastNote({ href: `/note${path}`, title: note.data.title, at: Date.now() }); }, [note.data?.title]); // eslint-disable-line react-hooks/exhaustive-deps
-  const video = note.data?.videoId ?? episode.data?.videoId ?? null;
+  const video = note.data?.videoId ?? episode.data?.videoId ?? params.get("video") ?? null;
+  // A search hit in the captions: the moment it was said, with the words around it.
+  const at = params.has("t") ? Math.max(0, Number(params.get("t")) || 0) : null;
+  const spoken = useTranscriptAround(at !== null ? video : null, at ?? 0);
 
   useBottomButtons(
     note.data ? { text: "Share", onClick: () => void share({ kind: "note", title: note.data!.title, text: KIND[note.data!.kind] ?? "CyberJudah", sitePath: path }) } : null,
-    video ? { text: "▶ Watch", onClick: () => openLink(youtube(video)) } : null,
+    video ? { text: at !== null ? `▶ Watch from ${timestamp(at)}` : "▶ Watch", onClick: () => openLink(youtube(video, at ?? 0)) } : null,
   );
   // Reading a long note: keep a stray swipe from closing the app mid-read.
   useEffect(() => { setClosingConfirmation(true); return () => setClosingConfirmation(false); }, []);
@@ -75,7 +79,8 @@ export function NoteScreen() {
           <button type="button" className="icon-btn" aria-pressed={kept} aria-label={kept ? "Remove bookmark" : "Bookmark"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: path, kind: "note", title: n.title, text: [KIND[n.kind], fmtDate(n.date)].filter(Boolean).join(" · "), href: path })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={18} /></button>
         </div>
       </header>
-      {video ? <button type="button" className="watch" onClick={() => openLink(youtube(video))} aria-label={`Watch ${n.title}`}><Img src={thumbOf(video, true)} eager /><span><Icon name="play" size={18} /> Watch the recording</span></button> : null}
+      {video ? <button type="button" className="watch" onClick={() => openLink(youtube(video, at ?? 0))} aria-label={`Watch ${n.title}`}><Img src={thumbOf(video, true)} eager /><span><Icon name="play" size={18} /> {at !== null ? `Watch from ${timestamp(at)}` : "Watch the recording"}</span></button> : null}
+      {at !== null && video && spoken.data?.ok ? <TranscriptExcerpt video={video} t={at} chunks={spoken.data.chunks} /> : null}
       {me?.books.length ? <div className="taught"><span className="taught__label">Taught from</span>{me.books.slice(0, 6).map((b) => <Link key={b} to={`/read/${b.toLowerCase().replace(/\s+/g, "-")}/1`} className="taught__book">{b}</Link>)}</div> : null}
       <div className="note" onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />
       {isHistory && episode.data?.turns?.length ? <Transcript ep={episode.data} find={params.get("find") ?? ""} /> : null}

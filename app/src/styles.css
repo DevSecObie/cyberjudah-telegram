@@ -403,3 +403,18 @@ html[data-theme="light"] .rel-inline, html[data-theme="sepia"] .rel-inline { box
 .upnext__card b { display: block; font: 600 16px/1.3 var(--a-ui); color: var(--a-ink-2); margin: 2px 0; }
 .upnext__card span { font: 500 12px var(--a-mono); color: var(--a-muted); }
 .transcript p[data-found] { background: color-mix(in srgb, var(--a-accent) 14%, transparent); border-radius: 10px; padding: 8px 10px; margin-left: -10px; margin-right: -10px; }
+
+/* Spoken, word for word: the transcript hits, the captions around a moment, the notes link. */
+.live__spoken { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 16px; border: 0; border-bottom: 1px solid var(--a-line); background: color-mix(in srgb, var(--a-accent) 8%, transparent); color: var(--a-ink-2); font: 500 14.5px var(--a-ui); text-align: left; cursor: pointer; }
+.live__spoken span { flex: 1; }
+.live__spoken b { color: var(--a-accent); }
+.tx { display: grid; gap: 10px; padding: 4px 0; }
+.tx__chunk { margin: 0; padding: 10px 12px; border-radius: 12px; font: 400 16px/1.55 var(--a-read); color: var(--a-ink); }
+.tx__chunk[data-here] { background: color-mix(in srgb, var(--a-accent) 12%, transparent); box-shadow: inset 3px 0 0 var(--a-accent); color: var(--a-ink-2); }
+.tx__chunk button { display: inline-block; margin: 0 8px 0 0; padding: 1px 7px; border: 0; border-radius: 6px; background: var(--a-card-2); color: var(--a-accent) !important; font: 600 12px var(--a-mono) !important; cursor: pointer; vertical-align: 1px; }
+.tx__at { color: var(--a-accent); font-weight: 600; }
+.spoken__notes { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--a-card); border: 1px solid var(--a-line); color: var(--a-ink-2); }
+.spoken__notes span { flex: 1; display: grid; }
+.spoken__notes b { font: 600 15px var(--a-ui); }
+.spoken__notes small { color: var(--a-muted); font-size: 13px; }
+.hint--lede { font-size: 16px; color: var(--a-ink); }

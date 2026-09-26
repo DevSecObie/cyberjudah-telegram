@@ -66,7 +66,7 @@ export function Home() {
         <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>What do you want to learn?</h1></div>
       </div>
       <SearchHero value={q} onChange={setQ} onSubmit={submit} big>
-        <LiveResults q={q} onAll={submit} />
+        <LiveResults q={q} onAll={submit} onSpoken={(t) => navigate(`/search?q=${encodeURIComponent(t)}&in=transcripts`)} />
       </SearchHero>
 
       {(lastNote || last) ? (
@@ -101,7 +101,7 @@ export function Home() {
       </Section>
 
       <Card glow href={verse.data ? `/read/${verse.data.slug}/${verse.data.chapter}?v=${verse.data.verse}` : "/bible"}>
-        <p className="card__label">Today's passage</p>
+        <p className="card__label">Today's Scripture</p>
         {verse.data ? <><p className="verse">{verse.data.text}</p><p className="card__ref">{verse.data.ref}</p></> : <p className="verse" style={{ opacity: 0.5 }}>Loading the day's verse…</p>}
       </Card>
     </Screen>
