@@ -41,8 +41,10 @@ transcript file in the repository) and a "Watch from" button into the video.
 **Ask CyberJudah.** A conversation with the library: each answer is written from the closest
 passages of the classes, the notes, the law and the Scripture (the twenty nearest in meaning
 and the best keyword matches, reranked), streamed in as the model writes it, every claim
-cited and every citation a tap into its source; follow-ups continue the thread. What the
-passages do not cover is said to be not covered, never filled in. The
+from the library cited and every citation a tap into its source; follow-ups continue the
+thread. It explains and reasons from the Scripture within the assembly's doctrine as the
+library teaches it, marks what is its own explanation, and never brings in other churches'
+doctrines or contradicts the classes. The
 passages are embedded with Workers AI (bge-m3) into a Vectorize index by
 `bot/scripts/embed.mjs`, nightly and on demand from the deploy workflow ("Also embed");
 `/api/ask` retrieves the closest ones and has llama 3.3 70b answer from them, with the rule
