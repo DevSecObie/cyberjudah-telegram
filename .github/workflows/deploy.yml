@@ -89,7 +89,7 @@ jobs:
           fi
           if ! npx wrangler r2 bucket list 2>/dev/null | grep -q cyberjudah-audio; then
             npx wrangler r2 bucket create cyberjudah-audio \
-              || { echo "::error::Could not create the R2 bucket. Give the CLOUDFLARE_API_TOKEN the 'Workers R2 Storage Edit' permission."; exit 1; }
+              || { echo "::error::Could not create the R2 bucket. If the message says to enable R2: Cloudflare dashboard → R2 Object Storage → Get started (the free allowance is enough; it asks to confirm a plan). Otherwise give the CLOUDFLARE_API_TOKEN the 'Workers R2 Storage Edit' permission."; exit 1; }
           fi
           set -o pipefail
           npx wrangler deploy 2>&1 | tee deploy.log
@@ -157,8 +157,9 @@ jobs:
   embed:
     # The Vectorize index follows the library and the transcripts: new and changed passages,
     # nightly after the transcripts load, or on demand (the first run embeds everything).
-    needs: refresh-transcripts
-    if: always() && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.embed))
+    # After the deploy, so the index it fills exists.
+    needs: [deploy, refresh-transcripts]
+    if: always() && needs.deploy.result != 'failure' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.embed))
     runs-on: ubuntu-latest
     timeout-minutes: 340
     steps:
