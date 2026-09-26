@@ -76,7 +76,6 @@ jobs:
           # The Worker needs the same secrets Telegram will present; wrangler stores them on the Worker.
           printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
           printf '%s' "$WEBHOOK_SECRET" | npx wrangler secret put WEBHOOK_SECRET
-          [ -z "${{ vars.TELEGRAM_APP_URL }}" ] || printf '%s' "${{ vars.TELEGRAM_APP_URL }}" | npx wrangler secret put APP_URL
           printf '%s' "$WORKER_URL" | npx wrangler secret put WORKER_URL
           node scripts/setup.mjs
 

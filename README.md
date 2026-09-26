@@ -136,9 +136,9 @@ Four secrets and the deploy workflow do the rest.
    the KV namespace, deploys the Worker, loads the search index, stores the secrets on the
    Worker, and registers the webhook, the commands and the menu button. The run's log prints
    the Worker's URL.
-5. **BotFather again:** `/newapp` for the bot with that Worker URL and a short name (e.g.
-   `read`). Set the GitHub **variable** `TELEGRAM_APP_URL` to `https://t.me/<bot>/<name>` and
-   run the workflow once more, so shared links open inside the app.
+5. The Mini App is registered in @BotFather as `https://t.me/CyberJudah_bot/cybr` (`/newapp`,
+   with the Worker URL); the app and the bot use that link for shares and buttons. A fork
+   sets its own in `bot/wrangler.jsonc` (`APP_URL`) and `app/src/lib/share.ts`.
 
 A nightly run reloads the search index so it follows the library. Optional variable
 `WORKER_URL` overrides the URL the workflow reads from wrangler (for a custom domain).

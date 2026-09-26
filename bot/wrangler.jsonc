@@ -25,6 +25,8 @@
   // APP_URL (the t.me link, once /newapp is done) and WORKER_URL (this Worker's public URL).
   "vars": {
     "DATA_ORIGIN": "https://data.cyberjudah.io",
-    "SITE_URL": "https://cyberjudah.io"
+    "SITE_URL": "https://cyberjudah.io",
+    // The Mini App's direct link from @BotFather (/newapp). Shared links and buttons open the app.
+    "APP_URL": "https://t.me/CyberJudah_bot/cybr"
   }
 }

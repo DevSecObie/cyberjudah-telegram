@@ -2,7 +2,8 @@ import { appLink, pathToStartParam } from "@shared/links.mjs";
 import { SITE_URL } from "@/api/data";
 import { api, features, shareMessage, shareToStory, shareUrl, switchInline } from "@/tg/sdk";
 
-export const APP_URL: string = (import.meta.env.VITE_APP_URL as string | undefined) || "";
+/** The Mini App's direct link from @BotFather; VITE_APP_URL overrides it for a fork. */
+export const APP_URL: string = (import.meta.env.VITE_APP_URL as string | undefined) || "https://t.me/CyberJudah_bot/cybr";
 
 /**
  * Sharing, best first: a prepared inline message through the bot (a rich card with an

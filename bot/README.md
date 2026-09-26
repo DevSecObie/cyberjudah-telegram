@@ -26,7 +26,7 @@ scripts/d1-id.sh    finds or creates the D1 database, prints its id
 | `WEBHOOK_SECRET` | secret | any random string; sent by Telegram as `X-Telegram-Bot-Api-Secret-Token` |
 | `DATA_ORIGIN` | var | the data set, `https://data.cyberjudah.io` |
 | `SITE_URL` | var | the website, for source links |
-| `APP_URL` | var | the Mini App's direct link, `https://t.me/<bot>/<app>`, once /newapp is done; empty means links go to the site |
+| `APP_URL` | var | the Mini App's direct link, `https://t.me/CyberJudah_bot/cybr` (in wrangler.jsonc) |
 | `WORKER_URL` | var | this Worker's public URL, so the cron can send `web_app` buttons (the webhook derives it from the request) |
 
 ```
