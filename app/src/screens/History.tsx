@@ -14,8 +14,8 @@ export function History() {
   useBackButton(false);
   const [rows, setRows] = useHistory();
   return (
-    <Screen title="History" kicker="The last thirty chapters you opened" action={rows.length ? <button type="button" className="link" onClick={async () => { if (await confirm("Clear your history?")) setRows([]); }}>Clear</button> : undefined}>
-      {!rows.length ? <Empty title="Nothing yet">Chapters you read appear here, newest first.</Empty> : <List>{rows.map((r) => <Row key={`${r.slug}${r.chapter}${r.at}`} href={`/bible/${r.slug}/${r.chapter}`} title={r.name} meta={ago(r.at)} />)}</List>}
+    <Screen title="Recently viewed" kicker="The last thirty chapters you opened" action={rows.length ? <button type="button" className="link" onClick={async () => { if (await confirm("Clear your history?")) setRows([]); }}>Clear</button> : undefined}>
+      {!rows.length ? <Empty title="No recently viewed content.">Chapters you read appear here, newest first.</Empty> : <List>{rows.map((r) => <Row key={`${r.slug}${r.chapter}${r.at}`} href={`/read/${r.slug}/${r.chapter}`} title={r.name} meta={ago(r.at)} />)}</List>}
     </Screen>
   );
 }

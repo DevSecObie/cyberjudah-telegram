@@ -1,0 +1,56 @@
+import { useEffect, type ReactNode } from "react";
+
+import { Feather } from "../icons";
+
+/**
+ * Bible Strong's bottom sheet (common/sheet): a handle, an optional header with a centred
+ * title, a back arrow or a right control, scrolling content and a footer. `backdrop` false
+ * leaves the page tappable behind it, as the selected-verses sheet does. Telegram's back
+ * button closes it first (tg/hooks marks `[data-sheet-open]`).
+ */
+export function Sheet({ open, onClose, backdrop = true, height = "auto", title, subTitle, hasBack, onBack, right, left, children, footer, className, label }: {
+  open: boolean; onClose: () => void; backdrop?: boolean; height?: "auto" | "half" | "full" | "40"; title?: ReactNode; subTitle?: ReactNode; hasBack?: boolean; onBack?: () => void; right?: ReactNode; left?: ReactNode; children?: ReactNode; footer?: ReactNode; className?: string; label?: string;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <div className={`sheet__scrim bs-scrim${backdrop ? "" : " bs-scrim--clear"}`} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className={`bs-sheet bs-sheet--${height}${className ? ` ${className}` : ""}`} role="dialog" aria-modal={backdrop} aria-label={label ?? (typeof title === "string" ? title : "Sheet")} data-sheet-open="">
+        <div className="bs-sheet__handle" aria-hidden="true" />
+        {title !== undefined ? (
+          <div className="bs-sheet__header">
+            <div className="bs-sheet__side">{hasBack ? <button type="button" className="bs-iconbtn" aria-label="Back" onClick={onBack ?? onClose}><Feather name="arrow-left" size={20} /></button> : left}</div>
+            <div className="bs-sheet__titles"><b>{title}</b>{subTitle ? <small>{subTitle}</small> : null}</div>
+            <div className="bs-sheet__side bs-sheet__side--right">{right}</div>
+          </div>
+        ) : null}
+        <div className="bs-sheet__body">{children}</div>
+        {footer ? <div className="bs-sheet__footer">{footer}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+/** Bible Strong's `Button`: primary fill, or `reverse` (outlined) for a secondary action. */
+export function Button({ children, onClick, reverse, disabled, small }: { children: ReactNode; onClick: () => void; reverse?: boolean; disabled?: boolean; small?: boolean }) {
+  return <button type="button" className={`bs-btn${reverse ? " bs-btn--reverse" : ""}${small ? " bs-btn--small" : ""}`} disabled={disabled} onClick={onClick}>{children}</button>;
+}
+
+/** Bible Strong's `Switch` on the web: a 36×22 track with a white thumb. */
+export function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} aria-label={label} className="bs-switchrow" onClick={() => onChange(!on)}>
+      <span className="bs-switchrow__label">{label}</span>
+      <span className="bs-switch" data-on={on ? "" : undefined}><span /></span>
+    </button>
+  );
+}
+
+export function Checkbox({ checked }: { checked: boolean }) {
+  return <span className="bs-checkbox" data-checked={checked ? "" : undefined} aria-hidden="true">{checked ? <Feather name="check" size={14} color="var(--bs-reverse)" /> : null}</span>;
+}

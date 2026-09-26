@@ -17,45 +17,35 @@ app and its bot; the text and the notes live where they are written.
 
 ## What the app does
 
-**Read.** Every book by testament, a chapter grid that shows what you have read, a reader with
-three text sizes, cross references per verse, and under every chapter the classes, laws and
-precepts that cite it. Tap verses to share them, highlight them, bookmark them, post them to a story or send them
-through the bot's inline mode.
+**Read, as Bible Strong reads.** The Bible tab is a port of [Bible Strong](https://github.com/smontlouis/bible-strong)'s
+Bible screen, behaviour for behaviour: its header (the book and chapter pill joined to the
+version pill, the chevrons that jump to a verse, the ⋮ menu), its verse rendering (the
+numbers, the 19 px text, the eight themes, the text size, line height, alignment and verse
+mode settings), its gestures (tap to select, long press for the verse's resources, swipe for
+the next chapter, a fast scroll that hides the header), its selected-verses sheet (the colour
+bar with the five highlight colours and your own, then Annotate, Study and Share pages of
+actions under a sliding tab bar), its focus mode for a shared passage ("Read whole chapter",
+"Back to passage"), its book selector (list or grid, classical or alphabetical, with or
+without verses), its footer (previous and next chapter, the audio pill and its card), and
+its "Font and settings" sheet with every row. Its Lexicon, Compare and parallel features
+need Strong's numbers and a second version, which this library does not carry, so those
+are the only parts left out.
 
-**Watch and listen.** The Sabbath classes, the Captains, Our Hidden History and the Truth
-series, newest first, filtered by topic, book or teacher. A class opens with its recording on
-top and the write-up below; an episode carries its transcript, each turn a tap from that
-moment in the recording.
-
-**Search.** One box for the whole library: verses, classes, study notes, laws, precepts, cases
-and the encyclopedia, grouped by kind. A reference like `John 3:16` opens the chapter. Scan a
-QR code from a flyer, or paste a link, and it opens the page.
-
-**The law.** The handbook by part and section, each law with its scripture quoted; the
-precepts A to Z with every reference; the case studies by era, judgment or blessing, with the
-laws and precepts each one turns on; the topics.
-
-**Sabbath.** Share your location once and the app counts down to sunset, and tells you when
-the Sabbath ends.
-
-**Study.** Six highlight colours, a note on any verse, bookmarks with tags, and a dictionary
-(Easton's, 3,963 entries: names, places, words) that opens straight from a verse with the
-entries for the words in it. Copy a passage with its reference; find every class and note
-that cites it.
-
-**Relations.** Bible Strong's study relations, as they are there: connect verses to another
-passage, a note, a class or a law, a dictionary entry or a link, with a kind (linked to,
-refers to, explains, contrasts with, mentions), a direction and a label. They show under the
-verse as tags (or as a count beside the verse number), a tap opens the target, and a
-relations screen lists, edits and deletes them. Bible Strong's inline cross references
-(the related verse unfolding under the reference) are here too.
+**Study.** Highlights in six colours (each editable: hex, name, and whether it washes the
+background, colours the text or underlines), tags on highlights, notes and links attached to
+verses as relations (they show under the verse as Bible Strong's tags, or as a count beside
+the number), bookmarks on a verse or a chapter (eight, coloured, movable), study relations
+between passages, notes, classes, laws, dictionary entries and links, and a resource sheet
+per verse: Easton's dictionary for its words, the laws and precepts that cite it, its cross
+references, and the classes that teach from it. Copy and share in Bible Strong's format, with
+its share options; export a passage or a chapter with its notes.
 
 **Plan.** The whole library in order at two, four or six chapters a day, with today's
 chapters to tick off, a streak, and how far along you are. The app ticks a chapter as you
 read it. A history of the last thirty chapters opened.
 
-**Listen.** The chapter read aloud (the device's own voice), verse by verse with the verse
-being read lit, at 0.8× to 1.5×, from any verse.
+**Listen.** The chapter read aloud (the device's own voice), verse by verse, from any verse,
+at 0.5× to 2×, on repeat if you like, from the footer's audio card.
 
 **Offline.** Save a book to the device and read it without a connection.
 
@@ -144,3 +134,9 @@ A nightly run reloads the search index so it follows the library. Optional varia
 `WORKER_URL` overrides the URL the workflow reads from wrangler (for a custom domain).
 
 The bot's own README (`bot/README.md`) covers the API, the inline mode and the cron.
+
+## Licence
+
+The Bible tab ports code and design from Bible Strong, which is released under the GNU
+General Public License v3, so this repository is under the GPL-3.0 too (see `LICENSE`). The
+library's text and notes remain CyberJudah's, published from the cyberjudah repository.

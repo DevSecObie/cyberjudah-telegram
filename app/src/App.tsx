@@ -10,8 +10,7 @@ import { Home } from "@/screens/Home";
 import { Search } from "@/screens/Search";
 import { Classes } from "@/screens/Classes";
 import { NoteScreen } from "@/screens/Note";
-import { Bible } from "@/screens/Bible";
-import { Reader } from "@/screens/Reader";
+import { BibleTab } from "@/bible/BibleTab";
 import { More } from "@/screens/More";
 import { Settings, ThemeApplier } from "@/screens/Settings";
 import { Plan } from "@/screens/Plan";
@@ -24,6 +23,7 @@ import { LawIndex, LawSectionScreen, Precepts, PreceptScreen, Cases, CaseScreen,
 
 /** Tab roots keep the tab bar; everything else is pushed on top and Telegram's back returns. */
 const ROOTS = new Set(["/", "/search", "/classes", "/bible", "/more"]);
+const isRoot = (path: string) => ROOTS.has(path) || path.startsWith("/read/") || path.startsWith("/bible/");
 
 export function App() {
   const location = useLocation();
@@ -39,7 +39,7 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const root = ROOTS.has(location.pathname);
+  const root = isRoot(location.pathname);
   return (
     <div id="shell" data-tabs={root ? "" : undefined}>
       <ThemeApplier />
@@ -48,9 +48,11 @@ export function App() {
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
         <Route path="/classes" element={<Classes />} />
-        <Route path="/bible" element={<Bible />} />
+        <Route path="/bible" element={<BibleTab />} />
+        <Route path="/bible/:book" element={<BibleTab />} />
+        <Route path="/bible/:book/:chapter" element={<BibleTab />} />
         <Route path="/more" element={<More />} />
-        <Route path="/read/:book/:chapter" element={<Reader />} />
+        <Route path="/read/:book/:chapter" element={<BibleTab />} />
         <Route path="/note/*" element={<NoteScreen />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/plan" element={<Plan />} />
