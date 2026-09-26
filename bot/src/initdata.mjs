@@ -40,7 +40,7 @@ export async function validateInitData(initData, botToken, maxAgeSec = 86400, no
   if (!sameHex(expected, hash)) return null;
   const auth_date = Number(params.get("auth_date"));
   if (!Number.isFinite(auth_date) || auth_date <= 0) return null;
-  if (now / 1000 - auth_date > maxAgeSec) return null;
+  const ageSec = now / 1000 - auth_date;\n  if (ageSec < -30 || ageSec > maxAgeSec) return null;
   const out = { auth_date, hash };
   for (const [k, v] of params) {
     if (k === "hash" || k === "auth_date") continue;
