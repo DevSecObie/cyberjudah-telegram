@@ -21,11 +21,10 @@
   "kv_namespaces": [{ "binding": "SUBS", "id": "00000000000000000000000000000000" }],
   // Hourly: the daily verse goes to every subscriber whose local hour is now.
   "triggers": { "crons": ["0 * * * *"] },
-  // Secrets, set with `wrangler secret put`: BOT_TOKEN, WEBHOOK_SECRET.
+  // Secrets, set by the deploy workflow with `wrangler secret put`: BOT_TOKEN, WEBHOOK_SECRET,
+  // APP_URL (the t.me link, once /newapp is done) and WORKER_URL (this Worker's public URL).
   "vars": {
     "DATA_ORIGIN": "https://data.cyberjudah.io",
-    "SITE_URL": "https://cyberjudah.io",
-    "APP_URL": "",
-    "WORKER_URL": ""
+    "SITE_URL": "https://cyberjudah.io"
   }
 }

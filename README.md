@@ -123,16 +123,24 @@ To try it inside Telegram during development, expose the worker (for example wit
 
 ## Setting it up
 
-1. **The bot.** In [@BotFather](https://t.me/BotFather): `/newbot`; then `/newapp` for it with
-   the worker's URL (`https://cyberjudah-telegram.<account>.workers.dev`, or a custom domain)
-   and a short name, e.g. `read`; `/setinline` to turn on inline mode with a placeholder like
-   `a verse or a word…`; and *Bot Settings → Configure Mini App* to make it the main app.
-2. **Cloudflare.** Secrets on the worker: `BOT_TOKEN`, `WEBHOOK_SECRET` (any long random
-   string). `wrangler kv namespace create SUBS` and put its id in `bot/wrangler.jsonc`.
-3. **GitHub.** Secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `BOT_TOKEN`,
-   `WEBHOOK_SECRET`; variables `WORKER_URL` (the worker's https URL) and `TELEGRAM_APP_URL`
-   (`https://t.me/<bot>/<app>`). The deploy workflow builds the app, deploys the worker,
-   loads the search index into D1, and registers the webhook, the commands and the menu
-   button. A nightly run reloads the search index so it follows the library.
+Four secrets and the deploy workflow do the rest.
+
+1. **The bot.** In [@BotFather](https://t.me/BotFather): `/newbot` gives the token. Then
+   `/setinline` on the bot (placeholder like `john 3:16 or a word`) so `@bot …` works in chats.
+2. **Cloudflare.** *My Profile → API Tokens → Create Token*, template "Edit Cloudflare
+   Workers", and add **D1 Edit** and **Workers KV Storage Edit** to its permissions. The account
+   ID is on the Workers & Pages overview page.
+3. **GitHub → Settings → Secrets and variables → Actions → Secrets:** `CLOUDFLARE_API_TOKEN`,
+   `CLOUDFLARE_ACCOUNT_ID`, `BOT_TOKEN`, and `WEBHOOK_SECRET` (any long random string).
+4. Run the **deploy** workflow (Actions → deploy → Run workflow). It creates the D1 database and
+   the KV namespace, deploys the Worker, loads the search index, stores the secrets on the
+   Worker, and registers the webhook, the commands and the menu button. The run's log prints
+   the Worker's URL.
+5. **BotFather again:** `/newapp` for the bot with that Worker URL and a short name (e.g.
+   `read`). Set the GitHub **variable** `TELEGRAM_APP_URL` to `https://t.me/<bot>/<name>` and
+   run the workflow once more, so shared links open inside the app.
+
+A nightly run reloads the search index so it follows the library. Optional variable
+`WORKER_URL` overrides the URL the workflow reads from wrangler (for a custom domain).
 
 The bot's own README (`bot/README.md`) covers the API, the inline mode and the cron.

@@ -45,14 +45,23 @@ jobs:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
       - run: node bot/scripts/fetch-dictionary.mjs
       - name: Deploy the worker
+        id: deploy
         working-directory: bot
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          ID=$(bash scripts/d1-id.sh cyberjudah-telegram)
-          sed -i "s/00000000-0000-0000-0000-000000000000/$ID/" wrangler.jsonc
-          npx wrangler deploy
+          # The D1 database and the KV namespace are found or created here, so nothing
+          # account-specific is committed; wrangler.jsonc carries placeholders.
+          D1=$(bash scripts/d1-id.sh cyberjudah-telegram)
+          KV=$(bash scripts/kv-id.sh SUBS)
+          sed -i "s/00000000-0000-0000-0000-000000000000/$D1/; s/00000000000000000000000000000000/$KV/" wrangler.jsonc
+          npx wrangler deploy 2>&1 | tee deploy.log
+          # The Worker's public URL, from wrangler's own output, unless the repo names one.
+          URL="${{ vars.WORKER_URL }}"
+          [ -n "$URL" ] || URL=$(grep -o 'https://[a-z0-9.-]*workers\.dev' deploy.log | head -1)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Worker: $URL"
           # The search index follows the library: reload it from the data set on every deploy.
           node scripts/load-search.mjs
       - name: Register the webhook, commands and menu button
@@ -60,8 +69,16 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
-          WORKER_URL: ${{ vars.WORKER_URL }}
-        run: node scripts/setup.mjs
+          WORKER_URL: ${{ steps.deploy.outputs.url }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # The Worker needs the same secrets Telegram will present; wrangler stores them on the Worker.
+          printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
+          printf '%s' "$WEBHOOK_SECRET" | npx wrangler secret put WEBHOOK_SECRET
+          [ -z "${{ vars.TELEGRAM_APP_URL }}" ] || printf '%s' "${{ vars.TELEGRAM_APP_URL }}" | npx wrangler secret put APP_URL
+          printf '%s' "$WORKER_URL" | npx wrangler secret put WORKER_URL
+          node scripts/setup.mjs
 
   refresh-search:
     # The library changes when the cyberjudah repo publishes; keep the search index fresh.
