@@ -130,7 +130,7 @@ Four secrets and the deploy workflow do the rest.
 2. **Cloudflare.** *My Profile → API Tokens → Create Token*, template "Edit Cloudflare
    Workers", and add **D1 Edit** and **Workers KV Storage Edit** to its permissions. The account
    ID is on the Workers & Pages overview page.
-3. **GitHub → Settings → Secrets and variables → Actions → Secrets:** `CLOUDFLARE_API_TOKEN`,
+3. **GitHub → Settings → Secrets and variables → Actions → Repository secrets** (the *Secrets* tab, not *Variables*, and not under an environment): `CLOUDFLARE_API_TOKEN`,
    `CLOUDFLARE_ACCOUNT_ID`, `BOT_TOKEN`, and `WEBHOOK_SECRET` (any long random string).
 4. Run the **deploy** workflow (Actions → deploy → Run workflow). It creates the D1 database and
    the KV namespace, deploys the Worker, loads the search index, stores the secrets on the
