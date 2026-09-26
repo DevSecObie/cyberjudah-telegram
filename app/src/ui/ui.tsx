@@ -36,7 +36,6 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
 
 const TABS: { to: string; label: string; icon: IconName }[] = [
   { to: "/", label: "Home", icon: "home" },
-  { to: "/search", label: "Search", icon: "search" },
   { to: "/classes", label: "Classes", icon: "play" },
   { to: "/bible", label: "Bible", icon: "book" },
   { to: "/more", label: "More", icon: "more" },

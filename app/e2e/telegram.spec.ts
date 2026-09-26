@@ -256,47 +256,26 @@ liveDataTest("settings: theme, spacing and offline books", async ({ page }) => {
   expect(cached).toBeGreaterThanOrEqual(1);
 });
 
-test("search opens a typed reference, and the settings button opens settings", async ({ page }) => {
+test("the settings button opens settings", async ({ page }) => {
   await page.goto(`/search${LAUNCH}`);
-  await page.fill("#q", "Isaiah 58:13");
-  await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/\/read\/isaiah\/58\?v=13/);
-  await expect(page.locator("#verset-13")).toBeVisible();
   await press(page, "settings");
   await expect(page).toHaveURL(/\/settings/);
   await expect(page.locator("text=Daily verse")).toBeVisible();
 });
 
-liveDataTest("Home searches the teachings as you type; Enter opens the results, teaching first, scripture folded", async ({ page }) => {
+test("Home is the front door: one field, search the classes or ask CyberJudah", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
   await expect(page.locator(".hero__prompt[data-on]")).toBeVisible();
-  await page.fill("#q", "passover");
-  await expect(page.locator(".live__label").first()).toContainText("Sabbath classes");
-  await expect(page.locator(".live__row mark").first()).toHaveText(/passover/i);
-  await page.press("#q", "Enter");
-  await expect(page).toHaveURL(/\/search\?q=passover/);
-  await expect(page.locator(".hint").first()).toContainText("teachings");
-  await expect(page.locator(".section__head h2").first()).toHaveText("Sabbath classes");
-  await expect(page.locator(".fold")).toContainText("verses that say this");
-  await page.click(".fold");
-  await expect(page.locator(".section__head h2 >> text=Scripture")).toBeVisible();
-  await page.click(".chip >> text=Laws");
-  await expect(page).toHaveURL(/only=law/);
-  await expect(page.locator(".row__title").first()).toContainText(/passover/i);
-});
-
-test("Home asks CyberJudah from the front door and remembers the choice", async ({ page }) => {
-  await page.goto(`/${LAUNCH}`);
-  await page.click('[role=tab] >> text=Ask CyberJudah');
-  await expect(page.locator("#q")).toHaveAttribute("aria-label", "Ask CyberJudah");
+  await expect(page.locator(".tab")).toHaveCount(4);
   await page.fill("#q", "Why do we keep the Passover?");
-  await page.press("#q", "Enter");
+  await page.click(".door__btn--ask");
   await expect(page).toHaveURL(/\/ask/);
   await expect(page.locator(".bubble--me")).toHaveText("Why do we keep the Passover?");
   await page.goBack();
-  await expect(page.locator('[role=tab][aria-selected="true"]')).toHaveText("Ask CyberJudah");
-  await page.click('[role=tab] >> text=Search the teachings');
-  await expect(page.locator("#q")).toHaveAttribute("aria-label", "Search the teachings");
+  await page.fill("#q", "Seattle");
+  await page.press("#q", "Enter");
+  await expect(page).toHaveURL(/\/search\?q=Seattle/);
+  await expect(page.locator(".head .title")).toHaveText("Search");
 });
 
 liveDataTest("a class opens like YouTube: the player pinned, the notes in a sheet beneath it", async ({ page }) => {
@@ -312,34 +291,24 @@ liveDataTest("a class opens like YouTube: the player pinned, the notes in a shee
   await expect(page.locator(".player")).toBeVisible();
 });
 
-test("a reference typed on Home opens the chapter", async ({ page }) => {
-  await page.goto(`/${LAUNCH}`);
-  await page.fill("#q", "ps 23:4");
-  await page.press("#q", "Enter");
-  await expect(page).toHaveURL(/\/(read|bible)\/psalms\/23\?v=4/);
-  await expect(page.locator(".bs-header__focus")).toHaveText("Psalms 23:4 - KJV");
-});
-
 liveDataTest("the recordings search works as the site's: matches lit, a moment to watch, notes alongside", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
   await page.fill("#q", "Most High");
-  await expect(page.locator(".live__spoken:not(.live__ask)")).toContainText(/Spoken in the recordings/);
-  await page.click(".live__spoken:not(.live__ask)");
-  await expect(page).toHaveURL(/in=recordings/);
-  await expect(page.locator('[role=tab][aria-selected="true"]')).toHaveText("Recordings");
+  await page.press("#q", "Enter");
+  await expect(page).toHaveURL(/\/search\?q=Most%20High/);
   await expect(page.locator(".hint").first()).toContainText(/Results 1–\d+ for/);
   await expect(page.locator(".rec mark").first()).toHaveText(/most|high/i);
   await expect(page.locator(".rec__meta b").first()).toHaveText(/\d+:\d\d/);
   await page.click(".chip >> text=Sabbath class");
   await expect(page).toHaveURL(/feed=classes/);
   await expect(page.locator(".rec__meta").first()).toContainText("Sabbath class");
-  await page.click(".rec__title button >> nth=0");
+  await page.click(".rec >> nth=0");
   await expect(page).toHaveURL(/\/(watch|note)\//);
   await expect(page.locator(".watch")).toContainText("Watch from");
 });
 
 liveDataTest("a quoted phrase in the recordings search is exact", async ({ page }) => {
-  await page.goto(`/search?in=recordings&q=%22most%20high%22${LAUNCH}`);
+  await page.goto(`/search?q=%22most%20high%22${LAUNCH}`);
   await expect(page.locator(".rec").first()).toBeVisible();
   await expect(page.locator(".rec__excerpt").first()).toContainText(/most high/i);
 });

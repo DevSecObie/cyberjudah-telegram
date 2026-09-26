@@ -376,8 +376,11 @@ html[data-theme="light"] .rel-inline, html[data-theme="sepia"] .rel-inline { box
 .hero[data-mode="ask"] .hero__go { background: var(--a-hot); }
 .hero[data-mode="ask"][data-focus] .hero__field { border-color: color-mix(in srgb, var(--a-hot) 60%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--a-hot) 14%, transparent), 0 10px 30px rgba(0,0,0,.25); }
 .hero[data-mode="ask"] .hero__glow { background: radial-gradient(60% 80% at 20% 0%, color-mix(in srgb, var(--a-hot) 24%, transparent), transparent 70%), radial-gradient(50% 70% at 90% 100%, color-mix(in srgb, var(--a-accent) 14%, transparent), transparent 70%); }
-.door { display: grid; gap: 10px; margin-top: 12px; }
-.home .seg { margin-bottom: -4px; }
+.door { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: -8px; }
+.door__btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 12px; white-space: nowrap; border-radius: 14px; border: 1px solid var(--a-line); background: var(--a-card); color: var(--a-ink-2); font: 600 14.5px var(--a-ui); cursor: pointer; transition: opacity .2s; }
+.door__btn:disabled { opacity: .45; }
+.door__btn--ask { background: var(--a-hot); border-color: transparent; color: var(--a-bg); }
+.hint--center { text-align: center; margin-top: -8px; }
 .live { margin-top: 10px; border-radius: 18px; background: var(--a-card); border: 1px solid var(--a-line); overflow: hidden; animation: rise .18s ease-out; }
 .live__hint { margin: 0; padding: 14px 16px; color: var(--a-muted); font-size: 14px; }
 .live__group + .live__group { border-top: 1px solid var(--a-line); }
@@ -470,6 +473,9 @@ html[data-theme="light"] .rel-inline, html[data-theme="sepia"] .rel-inline { box
 .rec__title { margin: 0; font: 600 17px/1.3 var(--a-ui); color: var(--a-ink-2); }
 .rec__title button { border: 0; background: none; padding: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .rec__excerpt { margin: 0; font: 400 15px/1.6 var(--a-ui); color: var(--a-ink); }
+a.rec { color: inherit; text-decoration: none; }
+.rec__meta, .rec__title, .rec__excerpt { display: block; }
+.rec__links { display: block; font: 600 13px var(--a-ui); color: var(--a-accent); }
 .rec mark, .live mark { background: color-mix(in srgb, var(--a-amber, #fcee0a) 35%, transparent); color: var(--a-ink-2); border-radius: 3px; padding: 0 2px; font-weight: 600; }
 .rec__links { display: flex; flex-wrap: wrap; gap: 16px; }
 

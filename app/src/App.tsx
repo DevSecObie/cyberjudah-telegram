@@ -25,7 +25,7 @@ import { Sabbath } from "@/screens/Sabbath";
 import { LawIndex, LawSectionScreen, Precepts, PreceptScreen, Cases, CaseScreen, Topics, TopicScreen, Study, Encyclopedia } from "@/screens/Library";
 
 /** Tab roots keep the tab bar; everything else is pushed on top and Telegram's back returns. */
-const ROOTS = new Set(["/", "/search", "/classes", "/bible", "/more"]);
+const ROOTS = new Set(["/", "/classes", "/bible", "/more"]);
 const isRoot = (path: string) => ROOTS.has(path) || path.startsWith("/read/") || path.startsWith("/bible/");
 
 export function App() {

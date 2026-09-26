@@ -3,14 +3,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { data, fmtDate, type FeedRow, type HistoryRow } from "@/api/data";
-import { useLast, useLastNote, usePlan, useProgress } from "@/lib/marks";
-import { planDay } from "@/lib/plan";
+import { useLast, useLastNote } from "@/lib/marks";
 import { countdown, sabbath } from "@/lib/sun";
 import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
-import { user } from "@/tg/sdk";
-import { Card, Chip, Chips, Icon, Img, Screen, Section, Segmented, Skeleton, useGo } from "@/ui/ui";
-import { ASK_PROMPTS, LiveResults, SearchHero } from "@/ui/search-hero";
-import { referencePath } from "./Search";
+import { haptic, user } from "@/tg/sdk";
+import { Card, Icon, Img, Screen, Section, Skeleton } from "@/ui/ui";
+import { SearchHero } from "@/ui/search-hero";
 
 type Verse = { ref: string; slug: string; chapter: number; verse: number; text: string };
 export type Teaching = { kind: "class" | "captains" | "history"; url: string; title: string; date: string; teacher: string; thumb: string; topics: string[]; books: string[]; sub?: string; collection?: string };
@@ -31,37 +29,26 @@ export function useTeachings() {
 }
 
 /**
- * Home is the front door: one field that searches the teachings by their words or asks
- * CyberJudah a question, the way the reader chooses; then where you left off, this
- * week's class, and the feed of everything taught, with the topics as filters.
+ * Home is the front door: the search of what was said in the classes, Ask CyberJudah, then
+ * where you left off, this week's class and the latest teachings.
  */
 export function Home() {
-  const go = useGo();
   const navigate = useNavigate();
   useBackButton(true);
   const [q, setQ] = useState("");
-  const [door, setDoor] = useStored<"search" | "ask">("door", "search");
   const [last] = useLast();
   const [lastNote] = useLastNote();
-  const [progress] = useProgress();
-  const [plan] = usePlan();
-  const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
-  const today = plan && books.data ? planDay(plan, books.data, progress) : null;
   const [loc] = useStored<{ lat: number; lng: number } | null>("loc", null);
   const verse = useQuery({ queryKey: ["votd"], queryFn: () => fetch("/api/verse-of-day").then((r) => r.json() as Promise<Verse>), staleTime: 60 * 60_000 });
   const feed = useTeachings();
-  const [topic, setTopic] = useState("");
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30_000); return () => clearInterval(t); }, []);
   const sab = loc ? sabbath(now, loc.lat, loc.lng) : null;
-  const ask = (text: string) => { const t = text.trim(); if (t) navigate(`/ask?q=${encodeURIComponent(t)}`); };
-  const search = (text: string) => { const t = text.trim(); if (!t) return; const ref = referencePath(t); if (ref) { go(ref); return; } navigate(`/search?q=${encodeURIComponent(t)}`); };
-  const submit = door === "ask" ? ask : search;
+  const search = (text: string) => { const t = text.trim(); if (t) navigate(`/search?q=${encodeURIComponent(t)}`); };
   useBottomButtons(null, null);
 
   const latestClass = feed.data?.find((t) => t.kind === "class");
-  const topics = useMemo(() => { const n = new Map<string, number>(); for (const t of feed.data ?? []) for (const x of t.topics) n.set(x, (n.get(x) ?? 0) + 1); return [...n].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([t]) => t); }, [feed.data]);
-  const rows = useMemo(() => (feed.data ?? []).filter((t) => t.url !== latestClass?.url && (!topic || t.topics.includes(topic))).slice(0, 24), [feed.data, topic, latestClass]);
+  const rows = useMemo(() => (feed.data ?? []).filter((t) => t.url !== latestClass?.url).slice(0, 8), [feed.data, latestClass]);
 
   return (
     <Screen className="home">
@@ -69,15 +56,12 @@ export function Home() {
         <img src="https://cyberjudah.io/assets/brand/cyber-lion.png" alt="" width={44} height={44} />
         <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>What do you want to learn?</h1></div>
       </div>
-      <Segmented label="Search or ask" value={door} onChange={setDoor} options={[["search", "Search the teachings"], ["ask", "Ask CyberJudah"]]} />
-      <SearchHero value={q} onChange={setQ} onSubmit={submit} mode={door} big>
-        {door === "ask" ? (
-          <div className="door">
-            <p className="hint">Ask anything about what was taught. The answer is drawn from the classes, the Captains, the notes, the law and the Scripture, with its sources.</p>
-            <Chips>{ASK_PROMPTS.map((e) => <Chip key={e} onClick={() => ask(e)}>{e}</Chip>)}</Chips>
-          </div>
-        ) : <LiveResults q={q} onAll={search} onSpoken={(t) => navigate(`/search?q=${encodeURIComponent(t)}&in=recordings`)} onAsk={ask} />}
-      </SearchHero>
+      <SearchHero value={q} onChange={setQ} onSubmit={search} big />
+      <div className="door">
+        <button type="button" className="door__btn" onClick={() => search(q)} disabled={!q.trim()}><Icon name="search" size={18} /> Search</button>
+        <button type="button" className="door__btn door__btn--ask" onClick={() => { haptic("select"); navigate(q.trim() ? `/ask?q=${encodeURIComponent(q.trim())}` : "/ask"); }}><Icon name="note" size={18} /> Ask CyberJudah</button>
+      </div>
+      <p className="hint hint--center">Search finds the moment a word, a name or a Scripture was said in a class. Ask answers your question from the teachings, with its sources.</p>
 
       {(lastNote || last) ? (
         <div className="resume">
@@ -87,7 +71,6 @@ export function Home() {
       ) : null}
 
       {sab ? <Card href="/sabbath" className="sabbath"><span className="sabbath__icon"><Icon name="sun" /></span><span><b>{sab.sabbath ? "Shabbat shalom" : `Sabbath in ${countdown(sab.next, now)}`}</b><span>{sab.label} · {sab.next.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span></span></Card> : null}
-      {today && !today.done ? <Card href="/plan" className="continue"><span className="continue__icon"><Icon name="check" /></span><span><b>Today's reading · {today.label}</b><span>{today.chapters.filter((c) => c.read).length} of {today.chapters.length} read{plan!.streak ? ` · ${plan!.streak} day streak` : ""}</span></span></Card> : null}
 
       {feed.isPending ? <Skeleton rows={3} thumb /> : latestClass ? (
         <Section title="This week's class">
@@ -98,8 +81,7 @@ export function Home() {
         </Section>
       ) : null}
 
-      <Section title="The teachings" action={<Link to="/classes">All classes</Link>}>
-        {topics.length ? <Chips><Chip on={!topic} onClick={() => setTopic("")}>Latest</Chip>{topics.map((t) => <Chip key={t} on={topic === t} onClick={() => setTopic(topic === t ? "" : t)}>{t}</Chip>)}</Chips> : null}
+      <Section title="Latest teachings" action={<Link to="/classes">All classes</Link>}>
         <div className="feed">
           {rows.map((t) => (
             <Link key={t.url} to={`/note${t.url}`} className="feed__card">

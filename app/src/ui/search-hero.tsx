@@ -17,7 +17,7 @@ export type SearchResult = { ok: true; q: string; mode: "strict" | "loose" | "mi
 export const KIND_LABEL: Record<string, string> = { class: "Sabbath classes", captains: "15 Min w/ Captains", history: "Our Hidden History", study: "Study notes", law: "Laws", precept: "Precepts", case: "Case studies", encyclopedia: "Encyclopedia", verse: "Scripture" };
 /** Teaching first: what was taught, then the law, then the text itself. */
 export const KIND_ORDER = ["class", "captains", "history", "study", "law", "precept", "case", "encyclopedia", "verse"];
-export const PROMPTS = ["Passover", "Melchizedek", "Matthew 15:24", "the Sabbath", "usury", "\"the twelve tribes\"", "Isaiah 58", "Seattle"];
+export const PROMPTS = ["Passover", "Seattle", "Matthew 15:24", "the lost sheep", "\"most high\"", "usury", "Melchizedek"];
 export const ASK_PROMPTS = ["Why do we keep the Passover?", "Who are the twelve tribes today?", "What does the law say about usury?", "How is the Sabbath kept?", "Who was Melchizedek?", "What was taught about honouring parents?"];
 export type TeachingHit = { title: string; matchedTitle: string; excerpt: string; feed: string; date: string; video: string; start: number; note: string; timing: "caption" | "passage" };
 export type TeachingsResult = { ok: true; q: string; feed: string; page: number; hits: TeachingHit[]; more: boolean } | { ok: false; reason: string };
@@ -28,10 +28,6 @@ export const teachingPath = (h: { video: string; start: number; note?: string })
 export function useTeachingsSearch(q: string, feed = "", page = 0, enabled = true) {
   return useQuery({ queryKey: ["teachings", q, feed, page], enabled: enabled && q.trim().length >= 2, queryFn: () => api<TeachingsResult>(`/api/teachings?q=${encodeURIComponent(q.trim())}&feed=${encodeURIComponent(feed)}&page=${page}`), staleTime: 60_000 });
 }
-export type SimilarResult = { ok: true; q: string; hits: { kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string; text: string; score: number }[] } | { ok: false; reason: string };
-export function useSimilar(q: string, enabled = true) {
-  return useQuery({ queryKey: ["similar", q], enabled: enabled && q.trim().length >= 2, queryFn: () => api<SimilarResult>(`/api/similar?q=${encodeURIComponent(q.trim())}&limit=20`), staleTime: 5 * 60_000 });
-}
 /** The site marks matches with U+E000 … U+E001; render them as <mark>. */
 export function Marked({ text }: { text: string }) {
   return <>{text.split(/(\uE000[^\uE000\uE001]*\uE001)/g).filter(Boolean).map((part, i) => part.startsWith("\uE000") ? <mark key={i}>{part.slice(1, -1)}</mark> : part)}</>;
@@ -41,13 +37,6 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(
 /** A hit's link: a class section by its heading, a verse by its number. */
 export const hitPath = (h: Hit) => { const base = toAppPath(h.url) ?? h.url; return h.sub && /^\/(classes|captains|history|study)\//.test(h.url) ? `${base}#${slug(h.sub)}` : base; };
 
-export function useLiveSearch(q: string, limit = 3) {
-  const [debounced, setDebounced] = useState(q);
-  useEffect(() => { const t = setTimeout(() => setDebounced(q.trim()), 220); return () => clearTimeout(t); }, [q]);
-  const enabled = debounced.length >= 2;
-  const res = useQuery({ queryKey: ["live", debounced, limit], enabled, queryFn: () => api<SearchResult>(`/api/search?q=${encodeURIComponent(debounced)}&limit=${limit}`), staleTime: 60_000 });
-  return { q: debounced, enabled, ...res };
-}
 
 const esc = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /** The needle lit in the text: the whole phrase where it appears as typed, else each word. */
@@ -80,38 +69,5 @@ export function SearchHero({ value, onChange, onSubmit, autoFocus, big, mode = "
       </div>
       {children}
     </form>
-  );
-}
-
-/** The live list under the field: up to three hits per kind, teaching first. */
-export function LiveResults({ q, onOpen, onAll, onSpoken, onAsk }: { q: string; onOpen?: () => void; onAll: (q: string) => void; onSpoken?: (q: string) => void; onAsk?: (q: string) => void }) {
-  const live = useLiveSearch(q);
-  const spoken = useTeachingsSearch(live.q, "", 0, live.enabled && !!onSpoken);
-  if (!live.enabled) return null;
-  const r = live.data;
-  const said = spoken.data?.ok ? spoken.data : null;
-  const askRow = onAsk && /\s/.test(live.q) ? <button type="button" className="live__spoken live__ask" onClick={() => onAsk(live.q)}><Icon name="note" size={16} /><span>Ask CyberJudah: <b>{live.q}</b></span><Icon name="chevron" size={14} /></button> : null;
-  const spokenRow = onSpoken && said?.hits.length ? <button type="button" className="live__spoken" onClick={() => onSpoken(live.q)}><Icon name="play" size={16} /><span>Spoken in the recordings: <b>{said.hits.length}{said.more ? "+" : ""}</b> moment{said.hits.length === 1 && !said.more ? "" : "s"}</span><Icon name="chevron" size={14} /></button> : null;
-  if (live.isPending) return <div className="live"><p className="live__hint">Searching…</p></div>;
-  if (!r || !r.ok || !r.hits.length) return <div className="live">{askRow}{spokenRow}<p className="live__hint">Nothing yet for “{live.q}”. Press Enter to search every word.</p></div>;
-  const total = Object.values(r.counts).reduce((a, b) => a + b, 0);
-  const kinds = KIND_ORDER.filter((k) => r.hits.some((h) => h.kind === k));
-  return (
-    <div className="live" role="listbox" aria-label="Results as you type">
-      {askRow}
-      {spokenRow}
-      {kinds.map((k) => (
-        <div key={k} className="live__group">
-          <p className="live__label">{KIND_LABEL[k] ?? k}{r.counts[k] ? <span> {r.counts[k]}</span> : null}</p>
-          {r.hits.filter((h) => h.kind === k).slice(0, k === "verse" ? 2 : 3).map((h) => (
-            <Link key={h.url + h.sub} to={hitPath(h)} className="live__row" role="option" onClick={() => { haptic("select"); onOpen?.(); }}>
-              <span className="live__title"><Lit text={h.title} needle={live.q} />{h.sub ? <small> · {h.sub}</small> : null}</span>
-              {h.snippet ? <span className="live__snip"><Lit text={h.snippet} needle={live.q} /></span> : null}
-            </Link>
-          ))}
-        </div>
-      ))}
-      <button type="button" className="live__all" onClick={() => onAll(live.q)}>See all {total} results <Icon name="chevron" size={14} /></button>
-    </div>
   );
 }
