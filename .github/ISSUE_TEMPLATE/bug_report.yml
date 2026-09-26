@@ -1,0 +1,42 @@
+name: Bug report
+description: Report a reproducible problem
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the behavior and what you expected.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Telegram Mini App
+        - Browser fallback
+        - Bot commands
+        - Inline mode or sharing
+        - Search or transcripts
+        - Daily verse
+        - Deployment or ingestion
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: Client and version
+      description: Telegram platform/version or browser/version.
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant non-sensitive logs
+      description: Remove tokens, initData, user details, and production credentials.
