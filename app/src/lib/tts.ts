@@ -17,7 +17,19 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
   // asynchronously, so choosing per verse would read the first verses in the default voice
   // and switch once the list arrived.
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
-  const pick = (vs: SpeechSynthesisVoice[]) => vs.find((v) => /en[-_](GB|US)/i.test(v.lang) && /natural|premium|enhanced|neural/i.test(v.name)) ?? vs.find((v) => /^en/i.test(v.lang)) ?? vs[0] ?? null;
+  const [available, setAvailable] = useState<SpeechSynthesisVoice[]>([]);
+  const [voiceName, setVoiceName] = useState<string | null>(() => { try { return localStorage.getItem("ttsVoice"); } catch { return null; } });
+  const voiceNameRef = useRef(voiceName); voiceNameRef.current = voiceName;
+  // The reader's choice first; else the best English voice on the device (the "natural",
+  // "premium", "enhanced" or "neural" ones read far better than the compact defaults).
+  const pick = (vs: SpeechSynthesisVoice[]) => vs.find((v) => v.name === voiceNameRef.current) ?? vs.find((v) => /^en/i.test(v.lang) && /natural|premium|enhanced|neural|siri/i.test(v.name)) ?? vs.find((v) => /en[-_](GB|US)/i.test(v.lang)) ?? vs.find((v) => /^en/i.test(v.lang)) ?? vs[0] ?? null;
+  useEffect(() => {
+    if (!ttsSupported) return;
+    const load = () => setAvailable(speechSynthesis.getVoices().filter((v) => /^en/i.test(v.lang)));
+    load(); speechSynthesis.addEventListener("voiceschanged", load);
+    return () => speechSynthesis.removeEventListener("voiceschanged", load);
+  }, []);
+  const setVoice = (name: string | null) => { setVoiceName(name); try { if (name) localStorage.setItem("ttsVoice", name); else localStorage.removeItem("ttsVoice"); } catch { /* ignore */ } };
   const voices = () => new Promise<SpeechSynthesisVoice[]>((resolve) => {
     const vs = speechSynthesis.getVoices();
     if (vs.length) { resolve(vs); return; }
@@ -45,5 +57,5 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
   const toggle = () => { if (!ttsSupported) return; if (playing) { if (speechSynthesis.paused) { speechSynthesis.resume(); } else { speechSynthesis.pause(); } } else play(current ?? 1); };
   useEffect(() => () => { if (ttsSupported) speechSynthesis.cancel(); }, []);
   useEffect(() => { stop(); /* a new chapter */ }, [verses]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { supported: ttsSupported, playing, paused: playing && ttsSupported && speechSynthesis.paused, current, rate, setRate, play, stop, toggle };
+  return { supported: ttsSupported, playing, paused: playing && ttsSupported && speechSynthesis.paused, current, rate, setRate, play, stop, toggle, voices: available, voice: voiceName, setVoice, currentVoice: voiceRef.current?.name ?? null };
 }

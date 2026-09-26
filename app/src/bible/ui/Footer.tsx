@@ -1,6 +1,9 @@
+import { useState } from "react";
+
 import { haptic } from "@/tg/sdk";
 import { Feather, Ion } from "../icons";
 import { HEADER_HEIGHT } from "../dom/Chapter";
+import { Sheet } from "./Sheet";
 
 /**
  * BibleFooter: the previous and next chapter buttons (40 px circles at the sides), and the
@@ -8,11 +11,12 @@ import { HEADER_HEIGHT } from "../dom/Chapter";
  * reference being read, chapter skips, previous/next verse, play/stop, and the Speed and
  * Repeat chips. In fullscreen the arrows slide off and the pill drops by the header height.
  */
-export type Speech = { supported: boolean; playing: boolean; paused: boolean; current: number | null; rate: number; setRate: (r: number) => void; play: (from?: number) => void; stop: () => void; toggle: () => void };
+export type Speech = { supported: boolean; playing: boolean; paused: boolean; current: number | null; rate: number; setRate: (r: number) => void; play: (from?: number) => void; stop: () => void; toggle: () => void; voices: SpeechSynthesisVoice[]; voice: string | null; setVoice: (name: string | null) => void; currentVoice: string | null };
 
 export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, hidden, bottomBar, reference, verseCount, repeat, setRepeat, expanded, setExpanded }: {
   hasPrev: boolean; hasNext: boolean; onPrev: () => void; onNext: () => void; speech: Speech; fullscreen: boolean; hidden: boolean; bottomBar: number; reference: string; verseCount: number; repeat: boolean; setRepeat: (v: boolean) => void; expanded: boolean; setExpanded: (v: boolean) => void;
 }) {
+  const [voices, setVoices] = useState(false);
   if (hidden) return null;
   const arrowsY = fullscreen ? HEADER_HEIGHT + 60 + bottomBar : 0;
   const centerY = fullscreen ? HEADER_HEIGHT : 0;
@@ -38,10 +42,19 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
             <button type="button" className="bs-audio__ctl" aria-label="Next chapter" disabled={!hasNext} onClick={onNext}><Ion name="play-skip-forward" size={20} color="var(--bs-tertiary)" /></button>
           </div>
           <div className="bs-audio__chips">
+            <button type="button" className="bs-chip" onClick={() => setVoices(true)}>Voice</button>
             <button type="button" className="bs-chip" onClick={nextRate}>Speed {speech.rate}x</button>
             <button type="button" className="bs-chip" aria-pressed={repeat} onClick={() => setRepeat(!repeat)}>Repeat</button>
             <button type="button" className="bs-chip" onClick={() => { speech.stop(); setExpanded(false); }}>Stop</button>
           </div>
+          <Sheet open={voices} onClose={() => setVoices(false)} title="Voice" subTitle={speech.voices.length ? `${speech.voices.length} English voices on this device` : "No English voice on this device"} height="half">
+            <div className="bs-fontlist">
+              {speech.voices.map((v) => {
+                const on = (speech.voice ?? speech.currentVoice) === v.name;
+                return <button key={v.name} type="button" role="radio" aria-checked={on} className="bs-fontrow" onClick={() => { speech.setVoice(v.name); setVoices(false); if (speech.playing) speech.play(speech.current ?? 1); }}><span style={{ color: on ? "var(--bs-primary)" : "var(--bs-default)" }}>{v.name.replace(/^Microsoft |^Google /, "")}<small style={{ display: "block", fontSize: 12, color: "var(--bs-tertiary)" }}>{v.lang}{/natural|premium|enhanced|neural|siri/i.test(v.name) ? " · high quality" : ""}{v.localService ? "" : " · online"}</small></span>{on ? <Feather name="check" size={20} color="var(--bs-primary)" /> : null}</button>;
+              })}
+            </div>
+          </Sheet>
         </div>
       ) : (
         <div className="bs-playpill" style={{ bottom: 10 + bottomBar, transform: `translateY(${centerY}px)` }}>
