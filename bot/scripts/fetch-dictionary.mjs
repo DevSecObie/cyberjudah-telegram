@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Fetches Easton's Bible Dictionary from the cyberjudah repository (site/src/data/dictionary),
-// where it is kept with its provenance, into bot/data so the worker can bundle it. Run before
-// `wrangler dev` or `wrangler deploy`; the deploy workflow does.
+// Refreshes Easton's Bible Dictionary in bot/data from the cyberjudah repository, pinned to the
+// last commit that carried it (the site has since replaced Easton's with its own glossary).
+// bot/data/easton.json and provenance.json are tracked here, so this only runs by hand.
 import { mkdirSync, writeFileSync } from "node:fs";
-const BASE = process.env.DICTIONARY_BASE ?? "https://raw.githubusercontent.com/DevSecObie/cyberjudah/main/site/src/data/dictionary";
+const BASE = process.env.DICTIONARY_BASE ?? "https://raw.githubusercontent.com/DevSecObie/cyberjudah/9e26f72/site/src/data/dictionary";
 mkdirSync(new URL("../data/", import.meta.url), { recursive: true });
 for (const name of ["easton.json", "provenance.json"]) {
   const res = await fetch(`${BASE}/${name}`);
