@@ -48,3 +48,11 @@ test("rejects data older than the window", async () => {
   assert.ok(await validateInitData(old, TOKEN, 90000, now));
   assert.equal(await validateInitData(sign({ ...fresh, auth_date: "nope" }), TOKEN, 86400, now), null);
 });
+
+
+test("rejects launch data dated materially in the future", async () => {
+  const future = sign({ ...fresh, auth_date: String(Math.floor(now / 1000) + 31) });
+  assert.equal(await validateInitData(future, TOKEN, 86400, now), null);
+  const clockSkew = sign({ ...fresh, auth_date: String(Math.floor(now / 1000) + 30) });
+  assert.ok(await validateInitData(clockSkew, TOKEN, 86400, now));
+});
