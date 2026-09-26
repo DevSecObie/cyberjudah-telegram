@@ -80,7 +80,7 @@ export function batchSql(files) {
     `DELETE FROM transcript_chunks WHERE video IN (${videos})`,
   ];
   const rows = files.flatMap((f) => f.chunks.map((c) => `(${lit(f.video)},${lit(c.t)},${lit(c.text)})`));
-  for (let i = 0; i < rows.length; i += 80) stmts.push(`INSERT INTO transcript_chunks(video, t, text) VALUES ${rows.slice(i, i + 80).join(",")}`);
+  for (let i = 0; i < rows.length; i += 150) stmts.push(`INSERT INTO transcript_chunks(video, t, text) VALUES ${rows.slice(i, i + 150).join(",")}`);
   stmts.push(`INSERT INTO transcript_fts(rowid, text) SELECT id, text FROM transcript_chunks WHERE video IN (${videos})`);
   stmts.push(`INSERT OR REPLACE INTO transcript_files(video, sha, kind, title, url, date, duration, chunks) VALUES ${files.map((f) => `(${lit(f.video)},${lit(f.sha)},${lit(f.kind)},${lit(f.title)},${lit(f.url)},${lit(f.date)},${lit(f.duration)},${f.chunks.length})`).join(",")}`);
   return stmts;

@@ -33,19 +33,65 @@ const BRANCH = process.env.TRANSCRIPTS_BRANCH ?? "main";
 const DATA_ORIGIN = process.env.DATA_ORIGIN ?? "https://data.cyberjudah.io";
 const FEEDS = { classes: "blog/transcripts", captains: "captains/transcripts", history: "history/transcripts" };
 const KIND = { classes: "class", captains: "captains", history: "history" };
-const BATCH_BYTES = 6_000_000;
+const BATCH_BYTES = 2_000_000;
 const CWD = new URL("..", import.meta.url);
 const gh = { accept: "application/vnd.github+json", ...(process.env.GITHUB_TOKEN ? { authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}) };
 
-const d1 = (extra) => execFileSync("npx", ["wrangler", "d1", "execute", DB, LOCAL ? "--local" : "--remote", "--yes", ...extra], { cwd: CWD, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"], maxBuffer: 64e6 });
-const runSql = (stmts) => {
+/**
+ * Remote runs go through D1's HTTP query API (no import lock on the database, no database
+ * id in the config); --local goes through wrangler into the dev database.
+ */
+const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID, TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+const cfApi = async (path, init = {}) => {
+  const res = await fetch(`https://api.cloudflare.com/client/v4${path}`, { ...init, headers: { authorization: `Bearer ${TOKEN}`, "content-type": "application/json", ...(init.headers ?? {}) } });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body.success) throw new Error(`Cloudflare API ${path}: ${res.status} ${JSON.stringify(body.errors ?? body).slice(0, 300)}`);
+  return body.result;
+};
+let dbId = null;
+const databaseId = async () => {
+  if (dbId) return dbId;
+  if (!ACCOUNT || !TOKEN) throw new Error("CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are needed (or --local)");
+  const list = await cfApi(`/accounts/${ACCOUNT}/d1/database?name=${encodeURIComponent(DB)}&per_page=100`);
+  const found = list.find((d) => d.name === DB);
+  if (!found) throw new Error(`no D1 database named ${DB}`);
+  return (dbId = found.uuid);
+};
+const REQUEST_BYTES = 90_000;
+/** One HTTP request per ~90 KB of SQL, in order; a failure is retried, then thrown. */
+const remoteSql = async (stmts) => {
+  const id = await databaseId();
+  const out = [];
+  let group = [], size = 0;
+  const send = async () => {
+    if (!group.length) return;
+    const sql = group.map((x) => `${x};`).join("\n");
+    for (let attempt = 1; ; attempt++) {
+      try { out.push(...await cfApi(`/accounts/${ACCOUNT}/d1/database/${id}/query`, { method: "POST", body: JSON.stringify({ sql }) })); break; }
+      catch (e) { if (attempt >= 3) throw e; await new Promise((r) => setTimeout(r, 3000 * attempt)); }
+    }
+    group = []; size = 0;
+  };
+  for (const st of stmts) {
+    if (size && size + st.length > REQUEST_BYTES) await send();
+    group.push(st); size += st.length + 2;
+  }
+  await send();
+  return out;
+};
+const d1 = (extra) => execFileSync("npx", ["wrangler", "d1", "execute", DB, "--local", "--yes", ...extra], { cwd: CWD, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"], maxBuffer: 64e6 });
+const runSql = async (stmts) => {
   if (DRY) { console.error(`dry: ${stmts.length} statements, ${(stmts.join(";\n").length / 1e6).toFixed(1)} MB`); return; }
+  if (!LOCAL) { await remoteSql(stmts); return; }
   const dir = mkdtempSync(join(tmpdir(), "cj-transcripts-"));
   const file = join(dir, "batch.sql");
   writeFileSync(file, stmts.map((s) => `${s};`).join("\n"));
   try { d1(["--file", file]); } finally { rmSync(dir, { recursive: true, force: true }); }
 };
-const query = (sql) => { const out = d1(["--json", "--command", sql]); const start = out.indexOf("["); return JSON.parse(out.slice(start))[0]?.results ?? []; };
+const query = async (sql) => {
+  if (!LOCAL) return (await remoteSql([sql]))[0]?.results ?? [];
+  const out = d1(["--json", "--command", sql]); const start = out.indexOf("["); return JSON.parse(out.slice(start))[0]?.results ?? [];
+};
 
 async function getJson(url, headers = {}) {
   for (let attempt = 1; ; attempt++) {
@@ -63,8 +109,8 @@ try {
   for (const r of await getJson(`${DATA_ORIGIN}/api/history/index.json`)) if (r.videoId) pages.set(r.videoId, { url: r.url, title: r.title, date: r.date ?? "" });
 } catch (e) { console.error(`feeds: ${e.message} (recordings will load without their pages)`); }
 
-runSql(SCHEMA);
-const loaded = new Map(DRY ? [] : query("SELECT video, sha FROM transcript_files").map((r) => [r.video, r.sha]));
+await runSql(SCHEMA);
+const loaded = new Map(DRY ? [] : (await query("SELECT video, sha FROM transcript_files")).map((r) => [r.video, r.sha]));
 console.error(`${loaded.size} transcripts already loaded`);
 
 const todo = [];
@@ -89,9 +135,9 @@ const work = todo.slice(0, LIMIT);
 
 // Fetch eight at a time; commit a batch as soon as it holds about 6 MB of SQL.
 let batch = [], bytes = 0, done = 0, chunksTotal = 0;
-const flush = () => {
+const flush = async () => {
   if (!batch.length) return;
-  runSql(batchSql(batch));
+  await runSql(batchSql(batch));
   done += batch.length;
   console.error(`loaded ${done}/${work.length} (${chunksTotal} chunks so far)`);
   batch = []; bytes = 0;
@@ -106,8 +152,8 @@ for (let i = 0; i < work.length; i += 8) {
   for (const f of files) {
     batch.push(f); chunksTotal += f.chunks.length;
     bytes += f.chunks.reduce((n, c) => n + c.text.length + 40, 0);
-    if (bytes >= BATCH_BYTES) flush();
+    if (bytes >= BATCH_BYTES) await flush();
   }
 }
-flush();
+await flush();
 console.error(`done: ${done} transcripts loaded, ${todo.length - work.length} left for the next run`);
