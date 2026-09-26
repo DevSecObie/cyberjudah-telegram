@@ -8,16 +8,8 @@ on:
     - cron: "17 3 * * *"
   workflow_dispatch:
     inputs:
-      transcripts:
-        description: "Also load the transcripts into D1 (new and changed files; the first run loads all of them)"
-        type: boolean
-        default: false
       embed:
         description: "Also embed the library and the transcripts into the Vectorize index (new and changed passages)"
-        type: boolean
-        default: false
-      spoken_from_repo:
-        description: "Embed the transcripts straight from the cyberjudah repository (when D1 cannot take them yet)"
         type: boolean
         default: false
 
@@ -81,8 +73,9 @@ jobs:
           # The D1 database and the KV namespace are found or created here, so nothing
           # account-specific is committed; wrangler.jsonc carries placeholders.
           D1=$(bash scripts/d1-id.sh cyberjudah-telegram)
+          TEACH=$(bash scripts/d1-id.sh cyberjudah)
           KV=$(bash scripts/kv-id.sh SUBS)
-          sed -i "s/00000000-0000-0000-0000-000000000000/$D1/; s/00000000000000000000000000000000/$KV/" wrangler.jsonc
+          sed -i "s/00000000-0000-0000-0000-000000000000/$D1/; s/11111111-1111-1111-1111-111111111111/$TEACH/; s/00000000000000000000000000000000/$KV/" wrangler.jsonc
           # The Vectorize index of the teachings and the R2 bucket of spoken verses: created once,
           # kept after. The API token needs Vectorize Edit, Workers AI Read and R2 Edit for this;
           # a missing permission stops here, by name, rather than inside the deploy.
@@ -139,30 +132,11 @@ jobs:
           sed -i "s/00000000-0000-0000-0000-000000000000/$D1/" wrangler.jsonc
           node scripts/load-search.mjs
 
-  refresh-transcripts:
-    # The captions of every recording, for the exact search: new and changed files only,
-    # nightly after the cyberjudah repo's hourly transcript runs, or on demand.
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.transcripts)
-    runs-on: ubuntu-latest
-    timeout-minutes: 340
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm ci --no-audit --no-fund
-      - working-directory: bot
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/load-transcripts.mjs
-
   embed:
     # The Vectorize index follows the library and the transcripts: new and changed passages,
     # nightly after the transcripts load, or on demand (the first run embeds everything).
     # After the deploy, so the index it fills exists.
-    needs: [deploy, refresh-transcripts]
+    needs: deploy
     if: always() && needs.deploy.result != 'failure' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.embed))
     runs-on: ubuntu-latest
     timeout-minutes: 340
@@ -177,5 +151,4 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SPOKEN_SOURCE: ${{ inputs.spoken_from_repo && 'github' || 'd1' }}
         run: node scripts/embed.mjs

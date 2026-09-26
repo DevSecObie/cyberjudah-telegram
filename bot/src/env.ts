@@ -1,5 +1,7 @@
 export type Env = {
   DB: D1Database;
+  /** The site's own D1 database (cyberjudah): teaching_passages and teaching_refs, filled by the cyberjudah repository. */
+  TEACH: D1Database;
   SUBS: KVNamespace;
   ASSETS: Fetcher;
   AI: Ai;
@@ -11,6 +13,8 @@ export type Env = {
   APP_URL: string;
   /** This Worker's public URL (https://cyberjudah-telegram.<account>.workers.dev), for web_app buttons sent by the cron. */
   WORKER_URL: string;
+  /** The repository the transcripts are read from (owner/name); DevSecObie/cyberjudah when unset. */
+  TRANSCRIPTS_REPO?: string;
   BOT_TOKEN: string;
   WEBHOOK_SECRET: string;
 };

@@ -16,7 +16,12 @@
   },
   // search_docs (FTS5) loaded from the engine's search.sql.gz by scripts/load-search.mjs. The
   // id is filled in by the deploy workflow (scripts/d1-id.sh); nothing account-specific is committed.
-  "d1_databases": [{ "binding": "DB", "database_name": "cyberjudah-telegram", "database_id": "00000000-0000-0000-0000-000000000000" }],
+  "d1_databases": [
+    { "binding": "DB", "database_name": "cyberjudah-telegram", "database_id": "00000000-0000-0000-0000-000000000000" },
+    // The site's database: teaching_passages and teaching_refs (the /teachings search and
+    // "where was this chapter taught"), filled by the cyberjudah repository's workflows.
+    { "binding": "TEACH", "database_name": "cyberjudah", "database_id": "11111111-1111-1111-1111-111111111111" }
+  ],
   // Daily-verse subscriptions: sub:<userId> -> { chatId, hour, tz }.
   "kv_namespaces": [{ "binding": "SUBS", "id": "00000000000000000000000000000000" }],
   // Workers AI (embeddings, the answering model, the reading voices), the Vectorize index of

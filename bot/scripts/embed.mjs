@@ -1,19 +1,18 @@
 #!/usr/bin/env node
 /**
  * Fills the Vectorize index of the teachings: every library document (search_docs) and every
- * transcript chunk (transcript_chunks) embedded with bge-m3 through Workers AI, with the
+ * transcript chunk embedded with bge-m3 through Workers AI, with the
  * passage kept in the vector's metadata so an answer needs no second lookup.
  *
  * Incremental: the table `embedded` in D1 keeps each record's content hash, so a run embeds
  * only what is new or changed. The first run is the big one (about 700,000 passages, an
  * hour or two); a nightly run after that takes minutes.
  *
- *   node scripts/embed.mjs [--limit N] [--only docs|spoken] [--spoken-from d1|github] [--dry]
+ *   node scripts/embed.mjs [--limit N] [--only docs|spoken] [--dry]
  *
- * --spoken-from github reads the transcripts from the cyberjudah repository instead of D1
- * (the same chunks, the same vector ids), for when D1 cannot take the load yet; the marks
- * in `embedded` are written when D1 allows, else the nightly run re-embeds those chunks
- * once (an upsert, so nothing doubles).
+ * The transcripts are read from the cyberjudah repository (blog/transcripts, captains/transcripts,
+ * history/transcripts) and cut into chunks of about 45 seconds; the marks in `embedded`
+ * skip what was embedded before.
  *
  * Needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID; GITHUB_TOKEN raises GitHub's rate limit.
  */
@@ -25,7 +24,7 @@ const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1
 const DRY = args.includes("--dry");
 const LIMIT = Number(opt("--limit")) || Infinity;
 const ONLY = opt("--only");
-const SPOKEN_FROM = opt("--spoken-from") ?? process.env.SPOKEN_SOURCE ?? "d1";
+const SPOKEN_FROM = opt("--spoken-from") ?? process.env.SPOKEN_SOURCE ?? "github";
 const REPO = process.env.TRANSCRIPTS_REPO ?? "DevSecObie/cyberjudah", BRANCH = process.env.TRANSCRIPTS_BRANCH ?? "main";
 const DATA_ORIGIN = process.env.DATA_ORIGIN ?? "https://data.cyberjudah.io";
 const gh = { accept: "application/vnd.github+json", ...(process.env.GITHUB_TOKEN ? { authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}) };
@@ -97,13 +96,6 @@ async function* records() {
           for (const c of chunkSegments(t.segments)) yield chunkRecord({ video: t.videoId, t: c.t, text: c.text, kind: KIND[feed], title, url: page?.url ?? "", date: t.date || page?.date || "" });
         }
       }
-    }
-  } else if (ONLY !== "docs") {
-    for (let last = 0; ; ) {
-      const rows = await sql(`SELECT c.id, c.video, c.t, c.text, f.kind, f.title, f.url, f.date FROM transcript_chunks c JOIN transcript_files f ON f.video = c.video WHERE c.id > ${last} ORDER BY c.id LIMIT ${PAGE}`);
-      for (const r of rows) yield chunkRecord(r);
-      if (rows.length < PAGE) break;
-      last = rows[rows.length - 1].id;
     }
   }
 }

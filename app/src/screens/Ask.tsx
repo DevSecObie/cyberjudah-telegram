@@ -6,7 +6,7 @@ import { fmtDate } from "@/api/data";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { api, haptic } from "@/tg/sdk";
 import { Button, Chip, Chips, Empty, Icon, List, Row, Screen, Section, timestamp } from "@/ui/ui";
-import { KIND_LABEL, hitPath, SearchHero, transcriptPath } from "@/ui/search-hero";
+import { KIND_LABEL, hitPath, SearchHero, teachingPath } from "@/ui/search-hero";
 import { KIND_NAME } from "./Home";
 
 export type Passage = { kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string; text: string };
@@ -14,7 +14,7 @@ export type Answer = { ok: true; q: string; answer: string; sources: (Passage & 
 const EXAMPLES = ["Why do we keep the Passover?", "What does the law say about usury?", "Who are the twelve tribes today?", "What was taught about honouring parents?", "How is the Sabbath kept?"];
 
 /** Where a cited passage opens: the class at its moment, the note at its section, the verse. */
-export const passagePath = (p: Passage) => p.video ? transcriptPath({ video: p.video, t: p.t ?? 0, snippet: "", kind: p.sub ?? "", title: p.title, url: p.url, date: p.date ?? "" }) : hitPath({ kind: p.kind, title: p.title, url: p.url, sub: p.sub ?? "", snippet: "" });
+export const passagePath = (p: Passage) => p.video ? teachingPath({ video: p.video, start: p.t ?? 0, note: p.url }) : hitPath({ kind: p.kind, title: p.title, url: p.url, sub: p.sub ?? "", snippet: "" });
 export const passageLabel = (p: Passage) => p.video ? `${KIND_NAME[p.sub as keyof typeof KIND_NAME] ?? "Recording"}${p.date ? ` · ${fmtDate(p.date)}` : ""} · ${timestamp(p.t ?? 0)}` : `${KIND_LABEL[p.kind] ?? p.kind}${p.sub ? ` · ${p.sub}` : ""}`;
 
 /**

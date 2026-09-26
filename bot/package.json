@@ -11,7 +11,6 @@
     "typecheck": "tsc --noEmit",
     "setup": "node scripts/setup.mjs",
     "load-search": "node scripts/load-search.mjs",
-    "load-transcripts": "node scripts/load-transcripts.mjs",
     "embed": "node scripts/embed.mjs",
     "fetch-dictionary": "node scripts/fetch-dictionary.mjs"
   },

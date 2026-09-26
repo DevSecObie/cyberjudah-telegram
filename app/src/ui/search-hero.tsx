@@ -18,16 +18,22 @@ export const KIND_LABEL: Record<string, string> = { class: "Sabbath classes", ca
 /** Teaching first: what was taught, then the law, then the text itself. */
 export const KIND_ORDER = ["class", "captains", "history", "study", "law", "precept", "case", "encyclopedia", "verse"];
 export const PROMPTS = ["What was taught on the Passover?", "Who was Melchizedek?", "Matthew 15:24", "the Sabbath", "usury", "\"the twelve tribes\"", "Isaiah 58", "why we keep the feasts"];
-export type TranscriptHit = { video: string; t: number; snippet: string; kind: string; title: string; url: string; date: string };
-export type TranscriptResult = { ok: true; q: string; expr: string; total: number; recordings: number; hits: TranscriptHit[] } | { ok: false; reason: string };
+export type TeachingHit = { title: string; matchedTitle: string; excerpt: string; feed: string; date: string; video: string; start: number; note: string; timing: "caption" | "passage" };
+export type TeachingsResult = { ok: true; q: string; feed: string; page: number; hits: TeachingHit[]; more: boolean } | { ok: false; reason: string };
+export const FEED_NAME: Record<string, string> = { classes: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History" };
 /** A spoken hit opens the class notes at that moment when there are notes, else the recording itself. */
-export const transcriptPath = (h: TranscriptHit) => h.url ? `/note${h.url}?t=${Math.round(h.t)}&video=${encodeURIComponent(h.video)}` : `/watch/${encodeURIComponent(h.video)}?t=${Math.round(h.t)}`;
+export const teachingPath = (h: { video: string; start: number; note?: string }) => h.note ? `/note${h.note}?t=${Math.round(h.start)}&video=${encodeURIComponent(h.video)}` : `/watch/${encodeURIComponent(h.video)}?t=${Math.round(h.start)}`;
+/** The site's /teachings search: words together, or a quoted phrase, over every recording's passages. */
+export function useTeachingsSearch(q: string, feed = "", page = 0, enabled = true) {
+  return useQuery({ queryKey: ["teachings", q, feed, page], enabled: enabled && q.trim().length >= 2, queryFn: () => api<TeachingsResult>(`/api/teachings?q=${encodeURIComponent(q.trim())}&feed=${encodeURIComponent(feed)}&page=${page}`), staleTime: 60_000 });
+}
 export type SimilarResult = { ok: true; q: string; hits: { kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string; text: string; score: number }[] } | { ok: false; reason: string };
 export function useSimilar(q: string, enabled = true) {
   return useQuery({ queryKey: ["similar", q], enabled: enabled && q.trim().length >= 2, queryFn: () => api<SimilarResult>(`/api/similar?q=${encodeURIComponent(q.trim())}&limit=20`), staleTime: 5 * 60_000 });
 }
-export function useTranscriptSearch(q: string, limit = 20, offset = 0, enabled = true) {
-  return useQuery({ queryKey: ["transcripts", q, limit, offset], enabled: enabled && q.trim().length >= 2, queryFn: () => api<TranscriptResult>(`/api/transcripts?q=${encodeURIComponent(q.trim())}&limit=${limit}&offset=${offset}`), staleTime: 60_000 });
+/** The site marks matches with U+E000 … U+E001; render them as <mark>. */
+export function Marked({ text }: { text: string }) {
+  return <>{text.split(/(\uE000[^\uE000\uE001]*\uE001)/g).filter(Boolean).map((part, i) => part.startsWith("\uE000") ? <mark key={i}>{part.slice(1, -1)}</mark> : part)}</>;
 }
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -76,12 +82,12 @@ export function SearchHero({ value, onChange, onSubmit, autoFocus, big, children
 /** The live list under the field: up to three hits per kind, teaching first. */
 export function LiveResults({ q, onOpen, onAll, onSpoken, onAsk }: { q: string; onOpen?: () => void; onAll: (q: string) => void; onSpoken?: (q: string) => void; onAsk?: (q: string) => void }) {
   const live = useLiveSearch(q);
-  const spoken = useTranscriptSearch(live.q, 1, 0, live.enabled && !!onSpoken);
+  const spoken = useTeachingsSearch(live.q, "", 0, live.enabled && !!onSpoken);
   if (!live.enabled) return null;
   const r = live.data;
   const said = spoken.data?.ok ? spoken.data : null;
   const askRow = onAsk && /\s/.test(live.q) ? <button type="button" className="live__spoken live__ask" onClick={() => onAsk(live.q)}><Icon name="note" size={16} /><span>Ask the teachings: <b>{live.q}</b></span><Icon name="chevron" size={14} /></button> : null;
-  const spokenRow = onSpoken && said?.recordings ? <button type="button" className="live__spoken" onClick={() => onSpoken(live.q)}><Icon name="play" size={16} /><span>Said word for word in <b>{said.recordings}</b> recording{said.recordings === 1 ? "" : "s"}</span><Icon name="chevron" size={14} /></button> : null;
+  const spokenRow = onSpoken && said?.hits.length ? <button type="button" className="live__spoken" onClick={() => onSpoken(live.q)}><Icon name="play" size={16} /><span>Spoken in the recordings: <b>{said.hits.length}{said.more ? "+" : ""}</b> moment{said.hits.length === 1 && !said.more ? "" : "s"}</span><Icon name="chevron" size={14} /></button> : null;
   if (live.isPending) return <div className="live"><p className="live__hint">Searching…</p></div>;
   if (!r || !r.ok || !r.hits.length) return <div className="live">{askRow}{spokenRow}<p className="live__hint">Nothing yet for “{live.q}”. Press Enter to search every word.</p></div>;
   const total = Object.values(r.counts).reduce((a, b) => a + b, 0);

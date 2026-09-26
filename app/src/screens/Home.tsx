@@ -66,7 +66,7 @@ export function Home() {
         <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>What do you want to learn?</h1></div>
       </div>
       <SearchHero value={q} onChange={setQ} onSubmit={submit} big>
-        <LiveResults q={q} onAll={submit} onSpoken={(t) => navigate(`/search?q=${encodeURIComponent(t)}&in=transcripts`)} onAsk={(t) => navigate(`/ask?q=${encodeURIComponent(t)}`)} />
+        <LiveResults q={q} onAll={submit} onSpoken={(t) => navigate(`/search?q=${encodeURIComponent(t)}&in=recordings`)} onAsk={(t) => navigate(`/ask?q=${encodeURIComponent(t)}`)} />
       </SearchHero>
 
       {(lastNote || last) ? (

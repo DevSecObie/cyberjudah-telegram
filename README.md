@@ -28,21 +28,15 @@ week's class, and the feed of everything taught with the topics as filters. A cl
 shows the books it teaches from, jumps to the section a search hit named, and offers the
 next and previous class.
 
-**Spoken, word for word.** The second search goes through the captions of every recording
-(about 8,500: the Sabbath classes, the Captains, Our Hidden History) for exactly what was
-typed: the words in that order, side by side, case and punctuation aside, with no stemming
-and no "any of these words". A Scripture reference is the one allowance the captions force:
-`Matthew 15:24` also finds "Matthew 15 verse 24" and "Matthew chapter 15 and 24". A hit
-carries the second it was said; it opens the class notes at that moment when the class is
-written up, or the recording page with the captions around the moment and a "Watch from"
-button into the video. The captions live in D1 (`transcript_chunks`, chunks of about 45
-seconds, with an FTS5 index over them, unicode61 tokenizer); `bot/scripts/load-transcripts.mjs`
-loads them from the cyberjudah repository incrementally, by git blob sha, nightly and on
-demand (run the deploy workflow with "Also load the transcripts" ticked for the first, full
-load). The full set is a few hundred MB, beyond the free D1 plan's 500 MB database and
-100,000 rows-written-per-day (a run that hits the limit keeps what it loaded and stops for
-the day); on Workers Paid (Cloudflare dashboard → Workers & Pages → Plans) it fits with room
-and the first run loads everything.
+**The recordings, as the site searches them.** The Search screen's "Recordings" mode is the
+site's `/teachings` page: the spoken passages of every recording (about 8,500: the Sabbath
+classes, the Captains, Our Hidden History) searched for words together, or a quoted phrase
+exactly, with the matches lit, twenty a page, filtered by collection. The Worker reads the
+site's own D1 database (`cyberjudah`, its `teaching_passages` and `teaching_refs` tables,
+built by the cyberjudah repository's corpus indexer), so the app and the site answer alike
+and nothing is loaded twice. A hit opens the class notes at that moment when the class is
+written up, or the recording page with the captions around the moment (read from the
+transcript file in the repository) and a "Watch from" button into the video.
 
 **Ask the teachings.** A question, answered from the closest passages of the library and
 the transcripts only, every claim cited and every citation a tap into its source. The

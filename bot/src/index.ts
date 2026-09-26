@@ -6,7 +6,7 @@ import { validateInitData, type InitData } from "./initdata.mjs";
 import { createBot, todaysVerse } from "./bot";
 import { chapter, escapeHtml, openLink } from "./data";
 import { runSearch } from "./search";
-import { searchTranscripts, transcriptAround } from "./transcripts";
+import { searchTeachings, taughtIn, transcriptAround } from "./teachings";
 import { ask, similar, speakVerse } from "./ai";
 import { VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
@@ -53,18 +53,23 @@ app.get("/api/search", async (c) => {
   return c.json(res, res.ok ? 200 : 503);
 });
 
-// The exact search over the transcripts, and the captions around a moment of a recording.
-app.get("/api/transcripts", async (c) => {
-  const q = (c.req.query("q") ?? "").slice(0, 200);
-  const limit = Math.min(Math.max(Number(c.req.query("limit")) || 20, 1), 100);
-  const offset = Math.max(Number(c.req.query("offset")) || 0, 0);
-  const res = await searchTranscripts(c.env, q, limit, offset, c.executionCtx);
+// The teachings search as the site has it (the spoken passages of every recording), where a
+// chapter was taught, and the captions around a moment of a recording.
+app.get("/api/teachings", async (c) => {
+  const res = await searchTeachings(c.env, c.req.query("q") ?? "", c.req.query("feed") ?? "", Math.min(1000, Math.max(0, Math.floor(Number(c.req.query("page")) || 0))));
+  return c.json(res, res.ok ? 200 : 503);
+});
+app.get("/api/taught/:slug/:chapter", async (c) => {
+  const slug = c.req.param("slug"), chapter = Number(c.req.param("chapter"));
+  if (!/^[a-z0-9-]{1,40}$/.test(slug) || !(chapter >= 1 && chapter <= 200)) return c.json({ ok: false, reason: "bad-reference" }, 400);
+  const verses = (c.req.query("v") ?? "").split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0 && n < 200).slice(0, 200);
+  const res = await taughtIn(c.env, slug, chapter, verses);
   return c.json(res, res.ok ? 200 : 503);
 });
 app.get("/api/transcript/:video", async (c) => {
   const video = c.req.param("video");
   if (!/^[A-Za-z0-9_-]{6,20}$/.test(video)) return c.json({ ok: false, reason: "bad-video" }, 400);
-  const res = await transcriptAround(c.env, video, Math.max(0, Number(c.req.query("t")) || 0));
+  const res = await transcriptAround(c.env, video, Math.max(0, Number(c.req.query("t")) || 0), c.executionCtx);
   return c.json(res, res.ok ? 200 : res.reason === "not-found" ? 404 : 503);
 });
 

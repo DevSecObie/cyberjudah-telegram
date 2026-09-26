@@ -293,28 +293,26 @@ test("a reference typed on Home opens the chapter", async ({ page }) => {
   await expect(page.locator(".bs-header__focus")).toHaveText("Psalms 23:4 - KJV");
 });
 
-liveDataTest("the spoken search finds the words exactly as typed, and opens the recording at that second", async ({ page }) => {
+liveDataTest("the recordings search works as the site's: matches lit, a moment to watch, notes alongside", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
   await page.fill("#q", "Most High");
-  await expect(page.locator(".live__spoken:not(.live__ask)")).toContainText(/Said word for word in \d+ recordings/);
+  await expect(page.locator(".live__spoken:not(.live__ask)")).toContainText(/Spoken in the recordings/);
   await page.click(".live__spoken:not(.live__ask)");
-  await expect(page).toHaveURL(/in=transcripts/);
-  await page.goto(`/search?in=transcripts${LAUNCH}`);
-  await expect(page.locator('[role=tab][aria-selected="true"]')).toHaveText("Spoken, word for word");
-  await page.fill("#q", "Most High");
-  await page.press("#q", "Enter");
-  await expect(page).toHaveURL(/in=transcripts/);
-  await expect(page.locator(".hint").first()).toContainText("Said in");
-  await expect(page.locator(".row__sub mark").first()).toHaveText(/most high/i);
-  await expect(page.locator(".tx__at").first()).toHaveText(/\d+:\d\d/);
-  await page.click(".row >> nth=0");
+  await expect(page).toHaveURL(/in=recordings/);
+  await expect(page.locator('[role=tab][aria-selected="true"]')).toHaveText("Recordings");
+  await expect(page.locator(".hint").first()).toContainText(/Results 1–\d+ for/);
+  await expect(page.locator(".rec mark").first()).toHaveText(/most|high/i);
+  await expect(page.locator(".rec__meta b").first()).toHaveText(/\d+:\d\d/);
+  await page.click(".chip >> text=Sabbath class");
+  await expect(page).toHaveURL(/feed=classes/);
+  await expect(page.locator(".rec__meta").first()).toContainText("Sabbath class");
+  await page.click(".rec__title button >> nth=0");
   await expect(page).toHaveURL(/\/(watch|note)\//);
-  await expect(page.locator(".tx__chunk[data-here]")).toBeVisible();
   await expect(page.locator(".watch")).toContainText("Watch from");
 });
 
-liveDataTest("a Scripture typed in the spoken search finds where it was read", async ({ page }) => {
-  await page.goto(`/search?in=transcripts&q=Deuteronomy%2028${LAUNCH}`);
-  await expect(page.locator(".hint").first()).toContainText("Said in");
-  await expect(page.locator(".row__sub").first()).toContainText(/deuteronomy 28/i);
+liveDataTest("a quoted phrase in the recordings search is exact", async ({ page }) => {
+  await page.goto(`/search?in=recordings&q=%22most%20high%22${LAUNCH}`);
+  await expect(page.locator(".rec").first()).toBeVisible();
+  await expect(page.locator(".rec__excerpt").first()).toContainText(/most high/i);
 });
