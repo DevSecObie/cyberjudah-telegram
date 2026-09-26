@@ -169,6 +169,14 @@ A nightly run reloads the search index so it follows the library. Optional varia
 
 The bot's own README (`bot/README.md`) covers the API, the inline mode and the cron.
 
+## Product readiness and operations
+
+- [Security policy](SECURITY.md)
+- [Privacy and data handling](PRIVACY.md)
+- [Contributing](CONTRIBUTING.md)
+- [Product-readiness and transcript-search growth plan](docs/PRODUCT_READINESS.md)
+- [Operations runbook](docs/OPERATIONS.md)
+
 ## Licence
 
 The Bible tab ports code and design from Bible Strong, which is released under the GNU
