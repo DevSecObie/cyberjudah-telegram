@@ -27,7 +27,7 @@ export function Settings() {
   const [spacing, setSpacing] = useStored<Spacing>("spacing", "regular");
   const [justify, setJustify] = useStored("justify", false);
   const [relDisplay, setRelDisplay] = useRelationsDisplay();
-  const [fullscreen, setFs] = useStored("fullscreen", false);
+  const [fullscreen, setFs, fsLoaded] = useStored("fullscreen", true);
   const [portrait, setPortrait] = useStored("portrait", false);
   const [daily, setDaily] = useState<boolean | null>(null);
   const [hour, setHour] = useStored("daily-hour", 8);
@@ -36,7 +36,7 @@ export function Settings() {
   const [saved, setSaved] = useState<string[]>([]);
   const [saving, setSaving] = useState<{ slug: string; pct: number } | null>(null);
   useEffect(() => { void api<{ subscribed: boolean }>("/api/me").then((m) => setDaily(m.subscribed)).catch(() => setDaily(false)); void secure.get("lock").then((v) => setLock(v === "on")); void savedBooks().then(setSaved); }, []);
-  useEffect(() => { setFullscreen(fullscreen); }, [fullscreen]);
+  useEffect(() => { if (!fsLoaded) return; setFullscreen(fullscreen); try { localStorage.setItem("cj:fullscreen", fullscreen ? "on" : "off"); } catch { /* private mode */ } }, [fullscreen, fsLoaded]);
   useEffect(() => { lockPortrait(portrait); }, [portrait]);
 
   const subscribe = async (on: boolean, h = hour) => {
@@ -78,7 +78,7 @@ export function Settings() {
           <Row onClick={() => setSpacing(spacing === "tight" ? "regular" : spacing === "regular" ? "airy" : "tight")} title="Line spacing" sub={spacing} trailing={<span className="pill">≡</span>} />
           <Toggle on={justify} onChange={setJustify} title="Justify the text" />
           <Row onClick={() => setRelDisplay(relDisplay === "inline" ? "block" : "inline")} title="Relations display" sub={relDisplay === "inline" ? "Line break: the related passages, notes and entries as tags under the verse" : "With icon: a count beside the verse number"} trailing={<span className="pill">{relDisplay === "inline" ? "Line break" : "With icon"}</span>} />
-          {features.fullscreen ? <Toggle on={fullscreen} onChange={setFs} title="Full screen" sub="Hide Telegram's header while reading" /> : null}
+          {features.fullscreen ? <Toggle on={fullscreen} onChange={setFs} title="Full screen" sub="The app fills the screen, without Telegram's header" /> : null}
           {features.fullscreen && (platform === "ios" || platform === "android") ? <Toggle on={portrait} onChange={setPortrait} title="Lock portrait" sub="Keep the reader upright" /> : null}
         </List>
       </Section>

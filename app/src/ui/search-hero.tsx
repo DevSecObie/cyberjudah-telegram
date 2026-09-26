@@ -58,7 +58,6 @@ export function SearchHero({ value, onChange, onSubmit, autoFocus, big, mode = "
   useEffect(() => { if (value) return; const t = setInterval(() => setI((n) => (n + 1) % prompts.length), 3000); return () => clearInterval(t); }, [value, prompts.length]);
   return (
     <form className={`hero${big ? " hero--big" : ""}`} data-focus={focused ? "" : undefined} data-mode={ask ? "ask" : undefined} role="search" onSubmit={(e) => { e.preventDefault(); hideKeyboard(); onSubmit(value); }}>
-      <div className="hero__glow" aria-hidden="true" />
       <div className="hero__field">
         <Icon name={ask ? "note" : "search"} size={20} />
         <input ref={inputRef} id="q" type="search" enterKeyHint={ask ? "send" : "search"} autoComplete="off" autoCorrect="off" spellCheck={false} value={value} autoFocus={autoFocus} aria-label={ask ? "Ask CyberJudah" : "Search the teachings"} placeholder=" "

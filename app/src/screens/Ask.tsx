@@ -71,7 +71,7 @@ export function Ask() {
 
   return (
     <main className="screen chat">
-      <header className="head"><div><p className="kicker">CyberJudah</p><h1 className="title">Ask CyberJudah</h1></div></header>
+      <header className="head"><div><p className="kicker">CyberJudah</p><h1 className="title">Ask CyberJudah</h1></div>{turns.length ? <button type="button" className="chat__new" onClick={() => { setTurns([]); setInput(""); }}>New chat</button> : null}</header>
       {!turns.length ? (
         <div className="chat__intro">
           <p className="hint hint--lede">Ask anything about what was taught. Answers come from the classes, the Captains, the notes, the law, the cases and the Scripture, and every claim shows where it came from. Ask a follow-up to go deeper.</p>
@@ -83,10 +83,11 @@ export function Ask() {
         <div ref={endRef} />
       </div>
       <form className="composer" onSubmit={(e) => { e.preventDefault(); void send(input); }}>
-        <textarea ref={boxRef} value={input} rows={1} placeholder={turns.length ? "Ask a follow-up…" : "Ask CyberJudah…"} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(input); } }} />
-        <button type="submit" className="composer__go" aria-label="Send" disabled={busy || !input.trim()}><Icon name="chevron" size={20} /></button>
+        <div className="composer__box">
+          <textarea ref={boxRef} value={input} rows={1} placeholder={turns.length ? "Ask a follow-up…" : "Ask CyberJudah…"} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(input); } }} />
+          <button type="submit" className="composer__go" aria-label="Send" disabled={busy || !input.trim()}><Icon name="chevron" size={20} /></button>
+        </div>
       </form>
-      {turns.length ? <button type="button" className="link chat__new" onClick={() => { setTurns([]); setInput(""); }}>New conversation</button> : null}
     </main>
   );
 }

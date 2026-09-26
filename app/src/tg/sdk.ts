@@ -152,6 +152,9 @@ export function boot(colors: { bg: string; header: string; bottomBar: string }) 
   root.dataset.tg = "yes";
   app.ready();
   app.expand();
+  // Full screen from the first paint on phones (8.0): the app is a screen of its own, not a
+  // panel under Telegram's header. Settings can turn it off, and that choice is applied there.
+  if (features.fullscreen && isMobile && localStorage.getItem("cj:fullscreen") !== "off") app.requestFullscreen();
   if (has("6.1")) { app.setHeaderColor(colors.header); app.setBackgroundColor(colors.bg); }
   if (features.bottomBarColor) app.setBottomBarColor(colors.bottomBar);
   if (features.swipes) app.disableVerticalSwipes();

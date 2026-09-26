@@ -1,6 +1,6 @@
 /* The Bible tab, styled as Bible Strong's: every value below is one of its (goober styles,
    Tailwind classes or theme tokens), on the --bs-* palette the tab sets on its root. */
-.bs { position: fixed; inset: 0 0 var(--a-tabs) 0; z-index: 50; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+.bs { position: fixed; inset: var(--safe-top, 0px) 0 var(--a-tabs) 0; z-index: 50; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow: hidden; -webkit-tap-highlight-color: transparent; }
 .bs button { font: inherit; color: inherit; }
 .bs :focus-visible, .bs-sheet :focus-visible { outline: none; }
 .bs-scroll { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; animation: bs-fadein 300ms ease-out; }
