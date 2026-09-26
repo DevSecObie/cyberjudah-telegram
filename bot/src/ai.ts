@@ -1,3 +1,5 @@
+import Anthropic from "@anthropic-ai/sdk";
+
 import { chapter } from "./data";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
@@ -84,12 +86,50 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   if (!(await allowed(env, userId, ctx))) return { ok: false, reason: "limit" };
   try {
     const passages = await retrieve(env, retrievalText(question, history), 8);
-    const res = await env.AI.run(ANSWER_MODEL, { messages: buildPrompt(question, passages, history), max_tokens: 900, temperature: 0.3 }) as { response?: string };
-    const answer = (res.response ?? "").trim();
+    const answer = await answerOnce(env, buildPrompt(question, passages, history));
     return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
   } catch (e) {
     console.error(JSON.stringify({ event: "ask_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 200) }));
     return { ok: false, reason: "unavailable" };
+  }
+}
+
+type Msg = { role: "system" | "user" | "assistant"; content: string };
+const CLAUDE_DEFAULT = "claude-opus-5";
+
+/** The answer, whole: Claude when the key is set, Llama on Workers AI otherwise. */
+async function answerOnce(env: Env, messages: Msg[]): Promise<string> {
+  if (env.ANTHROPIC_API_KEY) {
+    const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+    const res = await client.messages.create({ model: env.CLAUDE_MODEL || CLAUDE_DEFAULT, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" }, system: messages.filter((m) => m.role === "system").map((m) => m.content).join("\n\n"), messages: messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role as "user" | "assistant", content: m.content })) });
+    return res.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("").trim();
+  }
+  const res = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: 900, temperature: 0.3 }) as { response?: string };
+  return (res.response ?? "").trim();
+}
+
+/** The answer as it is written, piece by piece. */
+async function* answerPieces(env: Env, messages: Msg[]): AsyncGenerator<string> {
+  if (env.ANTHROPIC_API_KEY) {
+    const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+    const stream = client.messages.stream({ model: env.CLAUDE_MODEL || CLAUDE_DEFAULT, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" }, system: messages.filter((m) => m.role === "system").map((m) => m.content).join("\n\n"), messages: messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role as "user" | "assistant", content: m.content })) });
+    for await (const event of stream) if (event.type === "content_block_delta" && event.delta.type === "text_delta") yield event.delta.text;
+    return;
+  }
+  const out = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: 900, temperature: 0.3, stream: true }) as ReadableStream<Uint8Array>;
+  let buffer = "";
+  const reader = out.getReader(); const decoder = new TextDecoder();
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const events = buffer.split("\n\n"); buffer = events.pop() ?? "";
+    for (const ev of events) for (const l of ev.split("\n")) {
+      if (!l.startsWith("data:")) continue;
+      const data = l.slice(5).trim();
+      if (data === "[DONE]") continue;
+      try { const piece = (JSON.parse(data) as { response?: string }).response ?? ""; if (piece) yield piece; } catch { /* a partial event */ }
+    }
   }
 }
 
@@ -114,21 +154,8 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
       try {
         const passages = await retrieve(env, retrievalText(question, history), 8);
         send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
-        const out = await env.AI.run(ANSWER_MODEL, { messages: buildPrompt(question, passages, history), max_tokens: 900, temperature: 0.3, stream: true }) as ReadableStream<Uint8Array>;
-        let answer = "", buffer = "";
-        const reader = out.getReader(); const decoder = new TextDecoder();
-        for (;;) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const events = buffer.split("\n\n"); buffer = events.pop() ?? "";
-          for (const ev of events) for (const l of ev.split("\n")) {
-            if (!l.startsWith("data:")) continue;
-            const data = l.slice(5).trim();
-            if (data === "[DONE]") continue;
-            try { const piece = (JSON.parse(data) as { response?: string }).response ?? ""; if (piece) { answer += piece; send({ delta: piece }); } } catch { /* a partial event */ }
-          }
-        }
+        let answer = "";
+        for await (const piece of answerPieces(env, buildPrompt(question, passages, history))) { answer += piece; send({ delta: piece }); }
         send({ done: true, sources: sourcesOf(answer, passages) });
       } catch (e) {
         console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));

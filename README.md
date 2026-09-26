@@ -47,8 +47,12 @@ library teaches it, marks what is its own explanation, and never brings in other
 doctrines or contradicts the classes. The
 passages are embedded with Workers AI (bge-m3) into a Vectorize index by
 `bot/scripts/embed.mjs`, nightly and on demand from the deploy workflow ("Also embed");
-`/api/ask` retrieves the closest ones and has llama 3.3 70b answer from them, with the rule
-that what is not in the passages is said to be not found. Forty questions a day per person.
+`/api/ask` retrieves the closest ones, reranks them (bge-reranker-base) and has the model
+answer from the best eight, streamed as newline-delimited JSON. The model is Claude when the
+repository has an `ANTHROPIC_API_KEY` secret (the deploy stores it on the Worker;
+`CLAUDE_MODEL` in wrangler.jsonc picks the model, `claude-opus-5` by default,
+`claude-sonnet-5` for the cheaper one), else Llama 3.3 70B on Workers AI. A hundred
+questions a day per person.
 The same index gives the Search screen its "By meaning" mode.
 
 **Reading voices.** The Bible tab's Voice sheet lists Workers AI's Deepgram Aura voices

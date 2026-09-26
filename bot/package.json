@@ -15,6 +15,7 @@
     "fetch-dictionary": "node scripts/fetch-dictionary.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "grammy": "^1.38.0",
     "hono": "^4.9.0"
   },

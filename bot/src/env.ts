@@ -17,6 +17,10 @@ export type Env = {
   TRANSCRIPTS_REPO?: string;
   BOT_TOKEN: string;
   WEBHOOK_SECRET: string;
+  /** Set as a Worker secret from the ANTHROPIC_API_KEY repository secret: Ask CyberJudah answers with Claude; without it, with Llama on Workers AI. */
+  ANTHROPIC_API_KEY?: string;
+  /** The Claude model Ask CyberJudah answers with (claude-opus-5 when unset). */
+  CLAUDE_MODEL?: string;
 };
 
 /** A daily-verse subscription, KV key sub:<userId>. hour is local, tz the offset in minutes. */

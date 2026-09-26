@@ -38,6 +38,9 @@
     "DATA_ORIGIN": "https://data.cyberjudah.io",
     "SITE_URL": "https://cyberjudah.io",
     // The Mini App's direct link from @BotFather (/newapp). Shared links and buttons open the app.
-    "APP_URL": "https://t.me/CyberJudah_bot/cybr"
+    "APP_URL": "https://t.me/CyberJudah_bot/cybr",
+    // Ask CyberJudah's model when the ANTHROPIC_API_KEY secret is set (claude-sonnet-5 is the
+    // cheaper choice; claude-opus-5 the strongest). Without the key, Llama 3.3 70B on Workers AI.
+    "CLAUDE_MODEL": "claude-opus-5"
   }
 }
