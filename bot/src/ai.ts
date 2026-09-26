@@ -42,8 +42,8 @@ async function rerank<T extends Passage>(env: Env, question: string, passages: T
   if (passages.length <= 1) return passages.slice(0, topK);
   try {
     // The published type leaves `query` out; the model takes it.
-    const input = { query: question, contexts: passages.map((p) => ({ text: `${p.title}\n${p.text}`.slice(0, 2000) })), top_k: topK } as unknown as Parameters<typeof env.AI.run<typeof RERANK_MODEL>>[1];
-    const res = await env.AI.run(RERANK_MODEL, input) as { response?: { id?: number; score?: number }[] };
+    const input = { query: question, contexts: passages.map((p) => ({ text: `${p.title}\n${p.text}`.slice(0, 2000) })), top_k: topK };
+    const res = await (env.AI as unknown as { run(model: string, input: unknown): Promise<unknown> }).run(RERANK_MODEL, input) as { response?: { id?: number; score?: number }[] };
     const order = (res.response ?? []).filter((r) => typeof r.id === "number" && passages[r.id!]).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
     if (!order.length) return passages.slice(0, topK);
     return order.slice(0, topK).map((r) => passages[r.id!]);
