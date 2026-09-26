@@ -1,99 +1,109 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router";
 
-import { data, fmtDate, when } from "@/api/data";
-import { useLast, usePlan, useProgress, chaptersRead } from "@/lib/marks";
+import { data, fmtDate, type FeedRow, type HistoryRow } from "@/api/data";
+import { useLast, useLastNote, usePlan, useProgress } from "@/lib/marks";
 import { planDay } from "@/lib/plan";
 import { countdown, sabbath } from "@/lib/sun";
 import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
 import { user } from "@/tg/sdk";
-import { Card, Icon, Img, Screen, Section, Skeleton, useGo } from "@/ui/ui";
+import { Card, Chip, Chips, Icon, Img, Screen, Section, Skeleton, useGo } from "@/ui/ui";
+import { LiveResults, SearchHero } from "@/ui/search-hero";
+import { referencePath } from "./Search";
 
 type Verse = { ref: string; slug: string; chapter: number; verse: number; text: string };
+export type Teaching = { kind: "class" | "captains" | "history"; url: string; title: string; date: string; teacher: string; thumb: string; topics: string[]; books: string[]; sub?: string; collection?: string };
+export const KIND_NAME: Record<Teaching["kind"], string> = { class: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History" };
 
-const SHORTCUTS: [string, string, string][] = [
-  ["/classes?feed=classes", "Sabbath Classes", "watch"], ["/classes?feed=captains", "15 Min w/ Captains", "watch"], ["/classes?feed=history", "Hidden History", "listen"],
-  ["/law", "The Law", "handbook"], ["/precepts", "Precepts", "a–z"], ["/study", "4 Chapters a Day", "daily"],
-];
+/** Everything taught, newest first, in one feed. */
+export function useTeachings() {
+  return useQuery({
+    queryKey: ["teachings"],
+    queryFn: async (): Promise<Teaching[]> => {
+      const [classes, captains, history] = await Promise.all([data.classes(), data.captains(), data.history().catch(() => [] as HistoryRow[])]);
+      const row = (kind: Teaching["kind"]) => (r: FeedRow): Teaching => ({ kind, url: r.url, title: r.title, date: r.date, teacher: r.teacher, thumb: r.thumb, topics: r.topics ?? [], books: r.books ?? [], collection: r.collection });
+      const hist = history.map<Teaching>((r) => ({ kind: "history", url: r.url, title: r.title, date: r.date ?? "", teacher: r.teacher, thumb: r.thumb, topics: r.topics, books: [], sub: r.episode ? `Episode ${r.episode}` : undefined }));
+      return [...classes.map(row("class")), ...captains.map(row("captains")), ...hist].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    },
+    staleTime: 10 * 60_000,
+  });
+}
 
+/**
+ * Home is a doorway: the search of the teachings first, then where you left off, this
+ * week's class, and the feed of everything taught, with the topics as filters.
+ */
 export function Home() {
   const go = useGo();
+  const navigate = useNavigate();
   useBackButton(true);
+  const [q, setQ] = useState("");
   const [last] = useLast();
+  const [lastNote] = useLastNote();
   const [progress] = useProgress();
   const [plan] = usePlan();
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const today = plan && books.data ? planDay(plan, books.data, progress) : null;
   const [loc] = useStored<{ lat: number; lng: number } | null>("loc", null);
   const verse = useQuery({ queryKey: ["votd"], queryFn: () => fetch("/api/verse-of-day").then((r) => r.json() as Promise<Verse>), staleTime: 60 * 60_000 });
-  const classes = useQuery({ queryKey: ["classes"], queryFn: data.classes });
-  const captains = useQuery({ queryKey: ["captains"], queryFn: data.captains });
+  const feed = useTeachings();
+  const [topic, setTopic] = useState("");
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30_000); return () => clearInterval(t); }, []);
   const sab = loc ? sabbath(now, loc.lat, loc.lng) : null;
-  const read = chaptersRead(progress);
+  const submit = (text: string) => { const t = text.trim(); if (!t) return; const ref = referencePath(t); if (ref) { go(ref); return; } navigate(`/search?q=${encodeURIComponent(t)}`); };
+  useBottomButtons(null, null);
 
-  useBottomButtons(
-    last ? { text: `Continue · ${last.name}`, onClick: () => go(`/bible/${last.slug}/${last.chapter}`) } : { text: "Open the Bible", onClick: () => go("/bible") },
-    { text: "Search", onClick: () => go("/search") },
-  );
-  const latest = <T extends { date: string }>(rows?: T[]) => [...(rows ?? [])].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
+  const latestClass = feed.data?.find((t) => t.kind === "class");
+  const topics = useMemo(() => { const n = new Map<string, number>(); for (const t of feed.data ?? []) for (const x of t.topics) n.set(x, (n.get(x) ?? 0) + 1); return [...n].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([t]) => t); }, [feed.data]);
+  const rows = useMemo(() => (feed.data ?? []).filter((t) => t.url !== latestClass?.url && (!topic || t.topics.includes(topic))).slice(0, 24), [feed.data, topic, latestClass]);
 
   return (
-    <Screen>
+    <Screen className="home">
       <div className="hello">
         <img src="https://cyberjudah.io/assets/brand/cyber-lion.png" alt="" width={44} height={44} />
-        <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>CyberJudah</h1></div>
+        <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>What do you want to learn?</h1></div>
       </div>
+      <SearchHero value={q} onChange={setQ} onSubmit={submit} big>
+        <LiveResults q={q} onAll={submit} />
+      </SearchHero>
 
-      <button type="button" className="field field--button" onClick={() => go("/search")}><Icon name="search" size={18} /><span>Search scripture, classes, law…</span></button>
-
-      {sab ? (
-        <Card href="/sabbath" className="sabbath">
-          <span className="sabbath__icon"><Icon name="sun" /></span>
-          <span><b>{sab.sabbath ? "Shabbat shalom" : `Sabbath in ${countdown(sab.next, now)}`}</b><span>{sab.label} · {sab.next.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span></span>
-        </Card>
+      {(lastNote || last) ? (
+        <div className="resume">
+          {lastNote ? <Link to={lastNote.href} className="resume__item"><span className="resume__icon"><Icon name="play" size={18} /></span><span><small>Continue watching</small><b>{lastNote.title}</b></span></Link> : null}
+          {last ? <Link to={`/read/${last.slug}/${last.chapter}`} className="resume__item"><span className="resume__icon"><Icon name="book" size={18} /></span><span><small>Continue reading</small><b>{last.name}</b></span></Link> : null}
+        </div>
       ) : null}
 
-      {today ? (
-        <Card href="/plan" className="continue">
-          <span className="continue__icon"><Icon name="check" /></span>
-          <span><b>Today's reading · {today.label}</b><span>{today.done ? "Done for today" : `${today.chapters.filter((c) => c.read).length} of ${today.chapters.length} read`}{plan!.streak ? ` · ${plan!.streak} day streak` : ""}</span></span>
-        </Card>
+      {sab ? <Card href="/sabbath" className="sabbath"><span className="sabbath__icon"><Icon name="sun" /></span><span><b>{sab.sabbath ? "Shabbat shalom" : `Sabbath in ${countdown(sab.next, now)}`}</b><span>{sab.label} · {sab.next.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span></span></Card> : null}
+      {today && !today.done ? <Card href="/plan" className="continue"><span className="continue__icon"><Icon name="check" /></span><span><b>Today's reading · {today.label}</b><span>{today.chapters.filter((c) => c.read).length} of {today.chapters.length} read{plan!.streak ? ` · ${plan!.streak} day streak` : ""}</span></span></Card> : null}
+
+      {feed.isPending ? <Skeleton rows={3} thumb /> : latestClass ? (
+        <Section title="This week's class">
+          <Link to={`/note${latestClass.url}`} className="feature">
+            <span className="feature__img"><Img src={latestClass.thumb} eager /><span className="feature__play"><Icon name="play" size={22} /></span></span>
+            <span className="feature__body"><small>{[fmtDate(latestClass.date), latestClass.teacher].filter(Boolean).join(" · ")}</small><b>{latestClass.title}</b>{latestClass.books.length ? <span className="feed__books">{latestClass.books.slice(0, 4).map((b) => <em key={b}>{b}</em>)}</span> : null}</span>
+          </Link>
+        </Section>
       ) : null}
 
-      {last ? (
-        <Card href={`/bible/${last.slug}/${last.chapter}`} className="continue">
-          <span className="continue__icon"><Icon name="book" /></span>
-          <span><b>Continue reading</b><span>{last.name}{read ? ` · ${read} chapters read` : ""}</span></span>
-        </Card>
-      ) : null}
+      <Section title="The teachings" action={<Link to="/classes">All classes</Link>}>
+        {topics.length ? <Chips><Chip on={!topic} onClick={() => setTopic("")}>Latest</Chip>{topics.map((t) => <Chip key={t} on={topic === t} onClick={() => setTopic(topic === t ? "" : t)}>{t}</Chip>)}</Chips> : null}
+        <div className="feed">
+          {rows.map((t) => (
+            <Link key={t.url} to={`/note${t.url}`} className="feed__card">
+              <span className="feed__img"><Img src={t.thumb} /><span className="feed__kind">{KIND_NAME[t.kind]}</span></span>
+              <span className="feed__body"><b>{t.title}</b><small>{[t.sub, fmtDate(t.date), t.teacher].filter(Boolean).join(" · ")}</small></span>
+            </Link>
+          ))}
+        </div>
+      </Section>
 
-      <Card glow href={verse.data ? `/bible/${verse.data.slug}/${verse.data.chapter}?v=${verse.data.verse}` : "/bible"}>
+      <Card glow href={verse.data ? `/read/${verse.data.slug}/${verse.data.chapter}?v=${verse.data.verse}` : "/bible"}>
         <p className="card__label">Today's passage</p>
         {verse.data ? <><p className="verse">{verse.data.text}</p><p className="card__ref">{verse.data.ref}</p></> : <p className="verse" style={{ opacity: 0.5 }}>Loading the day's verse…</p>}
       </Card>
-
-      <Section title="Latest classes" action={<Link to="/classes?feed=classes">See all</Link>}>
-        {classes.isPending ? <Skeleton rows={2} thumb /> : (
-          <div className="rail">
-            {latest(classes.data).map((c) => <Link key={c.url} className="tile" to={`/note${c.url}`}><span className="tile__img">{c.thumb ? <Img src={c.thumb} /> : null}</span><b>{c.title}</b><span>{when(c.date, c.teacher)}</span></Link>)}
-          </div>
-        )}
-      </Section>
-
-      <Section title="Explore">
-        <div className="grid">{SHORTCUTS.map(([to, label, tag]) => <Link key={to} to={to}><b>{label}</b><span>{tag}</span></Link>)}</div>
-      </Section>
-
-      <Section title="15 Minutes w/ The Captains" action={<Link to="/classes?feed=captains">See all</Link>}>
-        {captains.isPending ? <Skeleton rows={2} thumb /> : (
-          <div className="rail">
-            {latest(captains.data).map((c) => <Link key={c.url} className="tile" to={`/note${c.url}`}><span className="tile__img">{c.thumb ? <Img src={c.thumb} /> : null}</span><b>{c.title}</b><span>{fmtDate(c.date)}</span></Link>)}
-          </div>
-        )}
-      </Section>
     </Screen>
   );
 }

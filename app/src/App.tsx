@@ -4,8 +4,9 @@ import { Route, Routes, useLocation, useNavigate } from "react-router";
 import { launchPath } from "@shared/links.mjs";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
-import { useSettingsButton } from "@/tg/hooks";
-import { TabBar } from "@/ui/ui";
+import { useSettingsButton, useStored } from "@/tg/hooks";
+import { AppRoot } from "@telegram-apps/telegram-ui";
+import { Button, TabBar } from "@/ui/ui";
 import { Home } from "@/screens/Home";
 import { Search } from "@/screens/Search";
 import { Classes } from "@/screens/Classes";
@@ -40,8 +41,10 @@ export function App() {
   }, []);
 
   const root = isRoot(location.pathname);
+  const [theme] = useStored<string>("theme", "dark");
+  const appearance = theme === "light" || theme === "sepia" ? "light" : theme === "system" ? (app?.colorScheme ?? "dark") : "dark";
   return (
-    <div id="shell" data-tabs={root ? "" : undefined}>
+    <AppRoot className="cj" appearance={appearance} platform={app?.platform === "ios" || app?.platform === "macos" ? "ios" : "base"} id="shell" data-tabs={root ? "" : undefined}>
       <ThemeApplier />
       <Lock />
       <Routes>
@@ -76,7 +79,7 @@ export function App() {
         <Route path="*" element={<Home />} />
       </Routes>
       {root ? <TabBar /> : null}
-    </div>
+    </AppRoot>
   );
 }
 
@@ -104,7 +107,7 @@ function Lock() {
         <img src="https://cyberjudah.io/assets/brand/cyber-lion.png" alt="" />
         <h1>CyberJudah</h1>
         <p>Unlock with your fingerprint or face.</p>
-        <button type="button" className="btn" onClick={() => app!.BiometricManager.authenticate({ reason: "Unlock CyberJudah" }, (ok) => { if (ok) setLocked(false); })}>Unlock</button>
+        <Button size="l" onClick={() => app!.BiometricManager.authenticate({ reason: "Unlock CyberJudah" }, (ok) => { if (ok) setLocked(false); })}>Unlock</Button>
       </div>
     </div>
   );

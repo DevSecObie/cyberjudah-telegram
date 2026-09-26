@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
-import { Link, NavLink, useNavigate } from "react-router";
+import { Children, type ReactNode } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton, Tabbar } from "@telegram-apps/telegram-ui";
 
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
@@ -41,17 +42,22 @@ const TABS: { to: string; label: string; icon: IconName }[] = [
   { to: "/more", label: "More", icon: "more" },
 ];
 
-/** Tabs replace instead of push, so Telegram's back button never walks through tab taps. */
+/**
+ * Telegram's own tab bar (TelegramUI's Tabbar). Tabs replace instead of push, so Telegram's
+ * back button never walks through tab taps.
+ */
 export function TabBar() {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const active = (to: string) => (to === "/" ? pathname === "/" : to === "/bible" ? pathname.startsWith("/bible") || pathname.startsWith("/read/") : pathname.startsWith(to));
   return (
-    <nav className="tabs" aria-label="Sections">
+    <Tabbar className="tabs" aria-label="Sections">
       {TABS.map((t) => (
-        <NavLink key={t.to} to={t.to} end={t.to === "/"} replace className="tab" onClick={() => haptic("select")}>
+        <Tabbar.Item key={t.to} className="tab" text={t.label} selected={active(t.to)} aria-current={active(t.to) ? "page" : undefined} onClick={() => { haptic("select"); if (!active(t.to)) navigate(t.to, { replace: true }); }}>
           <Icon name={t.icon} size={24} />
-          <span>{t.label}</span>
-        </NavLink>
+        </Tabbar.Item>
       ))}
-    </nav>
+    </Tabbar>
   );
 }
 
@@ -70,15 +76,15 @@ export function Section({ title, action, children }: { title?: ReactNode; action
 
 export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: [T, string][]; onChange: (v: T) => void; label: string }) {
   return (
-    <div className="seg" role="tablist" aria-label={label}>
-      {options.map(([v, text]) => <button key={v} type="button" role="tab" aria-selected={v === value} onClick={() => { if (v !== value) { haptic("select"); onChange(v); } }}>{text}</button>)}
-    </div>
+    <SegmentedControl className="seg" role="tablist" aria-label={label}>
+      {options.map(([v, text]) => <SegmentedControl.Item key={v} role="tab" aria-selected={v === value} selected={v === value} onClick={() => { if (v !== value) { haptic("select"); onChange(v); } }}>{text}</SegmentedControl.Item>)}
+    </SegmentedControl>
   );
 }
 
 export function Chips({ children }: { children: ReactNode }) { return <div className="chips">{children}</div>; }
 export function Chip({ on, onClick, children }: { on?: boolean; onClick: () => void; children: ReactNode }) {
-  return <button type="button" className="chip" aria-pressed={on} onClick={() => { haptic("select"); onClick(); }}>{children}</button>;
+  return <TgChip Component="button" type="button" className="chip" mode={on ? "mono" : "outline"} aria-pressed={on} onClick={() => { haptic("select"); onClick(); }}>{children}</TgChip>;
 }
 
 /** Navigate to a site or app path, preferring the app's own screen. */
@@ -91,38 +97,50 @@ export function Img({ src, eager }: { src: string; eager?: boolean }) {
   return <img src={src} alt="" loading={eager ? "eager" : "lazy"} decoding="async" onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />;
 }
 
-/** A tappable list row. `href` is a site or app path. */
+/** A tappable list row: TelegramUI's Cell. `href` is a site or app path. */
 export function Row({ href, onClick, title, sub, meta, thumb, trailing, icon }: { href?: string; onClick?: () => void; title: ReactNode; sub?: ReactNode; meta?: ReactNode; thumb?: string; trailing?: ReactNode; icon?: IconName }) {
-  const inner = (
-    <>
-      {thumb !== undefined ? <span className="row__thumb">{thumb ? <Img src={thumb} /> : null}</span> : icon ? <span className="row__icon"><Icon name={icon} size={20} /></span> : null}
-      <span className="row__body">{meta ? <span className="row__meta">{meta}</span> : null}<span className="row__title">{title}</span>{sub ? <span className="row__sub">{sub}</span> : null}</span>
-      {trailing ?? <span className="row__chev"><Icon name="chevron" size={18} /></span>}
-    </>
-  );
-  if (href) { const to = toAppPath(href) ?? href; return <Link className="row" to={to} onClick={() => haptic("select")}>{inner}</Link>; }
-  return <button type="button" className="row" onClick={() => { haptic("select"); onClick?.(); }}>{inner}</button>;
+  const slots = {
+    className: "row",
+    multiline: true,
+    before: thumb !== undefined ? <span className="row__thumb">{thumb ? <Img src={thumb} /> : null}</span> : icon ? <span className="row__icon"><Icon name={icon} size={20} /></span> : undefined,
+    subhead: meta ? <span className="row__meta">{meta}</span> : undefined,
+    subtitle: sub ? <span className="row__sub">{sub}</span> : undefined,
+    after: trailing ?? <span className="row__chev"><Icon name="chevron" size={18} /></span>,
+    children: <span className="row__title">{title}</span>,
+  };
+  if (href) return <Cell Component={Link} {...({ to: toAppPath(href) ?? href } as object)} onClick={() => haptic("select")} {...slots} />;
+  return <Cell Component="button" type="button" onClick={() => { haptic("select"); onClick?.(); }} {...slots} />;
 }
 
-export function List({ children }: { children: ReactNode }) { return <div className="list">{children}</div>; }
+/** A grouped list: TelegramUI's Section body, a divider between rows. */
+export function List({ children }: { children: ReactNode }) { return <TgSection className="list">{Children.toArray(children)}</TgSection>; }
 
 export function SearchField({ value, onChange, onSubmit, placeholder, autoFocus, id, trailing }: { value: string; onChange: (v: string) => void; onSubmit?: () => void; placeholder: string; autoFocus?: boolean; id: string; trailing?: ReactNode }) {
   return (
     <form className="field" role="search" onSubmit={(e) => { e.preventDefault(); (document.activeElement as HTMLElement | null)?.blur(); onSubmit?.(); }}>
-      <Icon name="search" size={18} />
-      <input id={id} type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" spellCheck={false} value={value} placeholder={placeholder} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} aria-label={placeholder} />
-      {value ? <button type="button" className="field__clear" aria-label="Clear" onClick={() => onChange("")}>×</button> : trailing}
+      <Input id={id} type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" spellCheck={false} value={value} placeholder={placeholder} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} aria-label={placeholder}
+        before={<Icon name="search" size={18} />} after={value ? <button type="button" className="field__clear" aria-label="Clear" onClick={() => onChange("")}>×</button> : trailing} />
     </form>
   );
 }
 
 export function Skeleton({ rows = 6, thumb = false }: { rows?: number; thumb?: boolean }) {
-  return <div className="list" aria-busy="true" aria-label="Loading">{Array.from({ length: rows }, (_, i) => <div key={i} className="row row--skel">{thumb ? <span className="row__thumb" /> : null}<span className="row__body"><span className="skel" style={{ width: "40%" }} /><span className="skel" style={{ width: `${70 + ((i * 13) % 25)}%` }} /></span></div>)}</div>;
+  return (
+    <TgSection className="list" aria-busy="true" aria-label="Loading">
+      {Array.from({ length: rows }, (_, i) => (
+        <TgSkeleton key={i} visible>
+          <Cell className="row row--skel" multiline before={thumb ? <span className="row__thumb" /> : undefined} subtitle={<span className="skel" style={{ width: `${70 + ((i * 13) % 25)}%` }} />}><span className="skel" style={{ width: "40%" }} /></Cell>
+        </TgSkeleton>
+      ))}
+    </TgSection>
+  );
 }
 
 export function Empty({ title, children }: { title: string; children?: ReactNode }) {
-  return <div className="empty"><p className="empty__title">{title}</p>{children ? <div className="empty__body">{children}</div> : null}</div>;
+  return <Placeholder className="empty" header={title} description={children} />;
 }
+
+export { Button };
 
 export function Card({ children, glow, href, onClick, className }: { children: ReactNode; glow?: boolean; href?: string; onClick?: () => void; className?: string }) {
   const cls = `card${glow ? " card--glow" : ""}${className ? ` ${className}` : ""}`;

@@ -17,6 +17,24 @@ app and its bot; the text and the notes live where they are written.
 
 ## What the app does
 
+**Search first.** Home opens on the search of the teachings: a field that rotates prompts
+("What was taught on the Passover?", "Who was Melchizedek?") and, from the second letter,
+lists what matches, grouped teaching first (Sabbath classes, the Captains, Our Hidden
+History, study notes, then the law, precepts, cases and encyclopedia) with the words lit.
+Enter opens the full results, the classes first and scripture folded behind "Show the
+verses that say this"; a reference like `John 3:16` opens the chapter. Under the search:
+where you left off (the class you were watching, the chapter you were reading), this
+week's class, and the feed of everything taught with the topics as filters. A class page
+shows the books it teaches from, jumps to the section a search hit named, and offers the
+next and previous class.
+
+**Telegram's own components.** Everything outside the Bible tab is built on
+[TelegramUI](https://github.com/telegram-mini-apps-dev/TelegramUI), Telegram's React kit
+for Mini Apps (its tab bar, cells and sections, segmented controls, chips, inputs, buttons,
+placeholders and skeletons), themed to the site's palette and the reader's theme. The search
+field and results follow two 21st.dev patterns: the rotating-placeholder input and the
+grouped command palette.
+
 **Read, as Bible Strong reads.** The Bible tab is a port of [Bible Strong](https://github.com/smontlouis/bible-strong)'s
 Bible screen, behaviour for behaviour: its header (the book and chapter pill joined to the
 version pill, the chevrons that jump to a verse, the ⋮ menu), its verse rendering (the

@@ -29,9 +29,28 @@ html[data-fullscreen="yes"] .reader__bar { padding-top: 4px; }
   font: 400 16px/1.45 var(--a-ui);
   -webkit-tap-highlight-color: transparent;
 }
-#root[data-tabs] { padding-bottom: calc(var(--a-tabs) + 16px); }
+#root [data-tabs] { padding-bottom: calc(var(--a-tabs) + 16px); }
 #root a { color: inherit; text-decoration: none; }
-#root button { font: inherit; color: inherit; }
+#root button:not([class*="tgui-"]) { font: inherit; color: inherit; }
+
+/* TelegramUI (Telegram's own component kit) reads these; they follow the app's palette and
+   the reader's theme rather than the chat's, so every Cell, Tabbar and Chip is CyberJudah's. */
+#root .cj {
+  --tgui--font-family: var(--a-ui);
+  --tgui--bg_color: var(--a-bg); --tgui--secondary_bg_color: var(--a-bg); --tgui--header_bg_color: var(--a-bg);
+  --tgui--section_bg_color: var(--a-card); --tgui--card_bg_color: var(--a-card); --tgui--segmented_control_active_bg: var(--a-card);
+  --tgui--tertiary_bg_color: var(--a-card-2); --tgui--quartenary_bg_color: var(--a-card-2);
+  --tgui--text_color: var(--a-ink-2); --tgui--hint_color: var(--a-muted); --tgui--subtitle_text_color: var(--a-muted); --tgui--section_header_text_color: var(--a-muted); --tgui--secondary_hint_color: var(--a-muted);
+  --tgui--link_color: var(--a-accent); --tgui--accent_text_color: var(--a-accent); --tgui--button_color: var(--a-accent); --tgui--button_text_color: var(--a-bg);
+  --tgui--destructive_text_color: var(--a-hot);
+  --tgui--divider: var(--a-line); --tgui--outline: var(--a-line);
+  --tgui--surface_primary: color-mix(in srgb, var(--a-bg) 88%, transparent);
+  --tgui--plain_background: var(--a-card-2); --tgui--plain_foreground: var(--a-ink);
+  --tgui--skeleton: color-mix(in srgb, var(--a-ink) 8%, transparent);
+  --tgui--secondary_fill: color-mix(in srgb, var(--a-accent) 14%, transparent);
+  --tgui--base--section--box_shadow: none;
+  min-height: 100dvh;
+}
 #root :focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; border-radius: 10px; }
 
 .screen {
@@ -51,48 +70,30 @@ html[data-fullscreen="yes"] .reader__bar { padding-top: 4px; }
 .section__head h2 { margin: 0; font: 600 13px/1.2 var(--a-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--a-muted); }
 .section__head a, .link { font: 500 14px var(--a-ui); color: var(--a-accent); background: none; border: 0; padding: 0; cursor: pointer; }
 
-/* Tab bar */
-.tabs {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  z-index: 40;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  padding: 6px max(8px, calc((100vw - 640px) / 2)) var(--safe-bottom, env(safe-area-inset-bottom, 0px));
-  background: color-mix(in srgb, var(--a-bg) 88%, transparent);
-  backdrop-filter: blur(16px) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  border-top: 1px solid var(--a-line);
-}
-.tab { display: grid; justify-items: center; gap: 3px; padding: 6px 0 8px; color: var(--a-muted); font: 500 10.5px/1 var(--a-ui); }
-.tab[aria-current="page"] { color: var(--a-accent); }
+/* Tab bar: TelegramUI's, fixed to the bottom, blurred over the page. */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 0 max(8px, calc((100vw - 640px) / 2)) var(--safe-bottom, env(safe-area-inset-bottom, 0px)) !important; backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); }
+.tabs .tab { padding: 8px 12px; gap: 4px; }
 
-/* Search field */
-.field { display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 12px; border-radius: 14px; background: var(--a-card-2); color: var(--a-muted); border: 1px solid transparent; }
-.field:focus-within { border-color: color-mix(in srgb, var(--a-accent) 55%, transparent); }
-.field input { flex: 1; min-width: 0; height: 100%; background: none; border: 0; outline: 0; color: var(--a-ink-2); font: 400 17px var(--a-ui); }
-.field input::placeholder { color: var(--a-muted); }
+/* Search field: TelegramUI's Input. */
+.field { display: block; }
 .field input::-webkit-search-cancel-button { display: none; }
 .field__clear { width: 26px; height: 26px; border-radius: 50%; border: 0; background: var(--a-line); color: var(--a-ink) !important; font-size: 17px !important; line-height: 1; cursor: pointer; }
-.field--button { width: 100%; cursor: text; font: 400 17px var(--a-ui); text-align: left; }
 
-/* Segmented control */
-.seg { display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--a-card-2); overflow-x: auto; scrollbar-width: none; }
+/* Segmented control: TelegramUI's. */
+.seg { overflow-x: auto; scrollbar-width: none; }
+.seg button { padding: 9px 4px; font-size: 13.5px; }
 .seg::-webkit-scrollbar { display: none; }
-.seg button { flex: 1 0 auto; min-height: 34px; padding: 0 12px; border: 0; border-radius: 9px; background: none; color: var(--a-muted); font: 600 13.5px var(--a-ui); cursor: pointer; white-space: nowrap; }
-.seg button[aria-selected="true"] { background: var(--a-card); color: var(--a-ink-2); box-shadow: 0 1px 0 var(--a-line), 0 2px 8px rgba(0, 0, 0, 0.35); }
 
 /* Chips */
 .chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
 .chips::-webkit-scrollbar { display: none; }
-.chip { flex: none; min-height: 34px; padding: 0 14px; border-radius: 17px; border: 1px solid var(--a-line); background: none; color: var(--a-ink); font: 500 14px var(--a-ui); cursor: pointer; white-space: nowrap; }
-.chip[aria-pressed="true"] { background: var(--a-accent); border-color: var(--a-accent); color: var(--a-bg); }
+.chip { flex: none; border: 0; background: none; cursor: pointer; white-space: nowrap; }
+.chip[aria-pressed="true"] { background: var(--a-accent); box-shadow: none; }
+.chip[aria-pressed="true"] > * { color: var(--a-bg); }
 
-/* Grouped lists */
-.list { border-radius: 16px; background: var(--a-card); overflow: hidden; }
-.row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 11px 14px; background: none; border: 0; text-align: left; cursor: pointer; position: relative; }
-.row + .row::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; border-top: 1px solid var(--a-line); }
-.row:active { background: var(--a-card-2); }
+/* Grouped lists: TelegramUI's Section and Cell, with the app's thumbnails and clamps. */
+.list { overflow: hidden; }
+.row { width: 100%; text-align: left; cursor: pointer; }
 .row__thumb { flex: none; width: 88px; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: var(--a-card-2); }
 .row__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .row__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
@@ -240,7 +241,6 @@ html[data-tg="yes"] .steps { display: none; }
 .lock img { width: 72px; height: 72px; border-radius: 20px; margin-bottom: 16px; }
 .lock h1 { margin: 0 0 8px; font: 700 24px var(--a-ui); color: var(--a-ink-2); }
 .lock p { color: var(--a-muted); margin: 0 0 20px; }
-.tabs { padding-left: max(8px, calc((100vw - 640px) / 2)); padding-right: max(8px, calc((100vw - 640px) / 2)); }
 
 /* Themes: the reader's choice, over Telegram's own dark or light. Everything reads tokens. */
 html[data-theme="light"] { --color-void: #f6f4ee; --color-panel: #ffffff; --color-panel-2: #ece9e0; --color-hair: #ddd8cc; --color-ink: #2a2620; --color-ink-2: #14120e; --color-muted: #6f6a60; --color-cyan: #0077a8; --color-magenta: #c8155a; color-scheme: light; }
@@ -335,3 +335,71 @@ html[data-theme="light"] .rel-inline, html[data-theme="sepia"] .rel-inline { box
 .rel-result__title { display: flex; align-items: center; gap: 6px; font: 700 15px var(--a-ui); color: var(--a-ink-2); }
 .rel-result__desc { font: 400 13px/1.4 var(--a-ui); color: var(--a-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .rel-seemore { align-self: flex-start; margin: 8px 16px; padding: 6px 10px; border: 0; border-radius: 6px; background: var(--a-card-2); color: var(--a-accent); font: 700 13px var(--a-ui); cursor: pointer; }
+
+/* The search hero: a glowing field that rotates prompts and lists teachings as you type. */
+.hero { position: relative; }
+.hero__field input:focus-visible { outline: none; }
+.hero__glow { position: absolute; inset: -14px -10px; border-radius: 28px; background: radial-gradient(60% 80% at 20% 0%, color-mix(in srgb, var(--a-accent) 26%, transparent), transparent 70%), radial-gradient(50% 70% at 90% 100%, color-mix(in srgb, var(--a-hot) 16%, transparent), transparent 70%); opacity: 0; transition: opacity .35s; pointer-events: none; filter: blur(8px); }
+.hero[data-focus] .hero__glow, .hero--big .hero__glow { opacity: 1; }
+.hero__field { position: relative; display: flex; align-items: center; gap: 10px; height: 54px; padding: 0 8px 0 16px; border-radius: 18px; background: var(--a-card); border: 1px solid var(--a-line); color: var(--a-muted); box-shadow: 0 10px 30px rgba(0,0,0,.25); transition: border-color .2s, box-shadow .2s; }
+.hero--big .hero__field { height: 58px; }
+.hero[data-focus] .hero__field { border-color: color-mix(in srgb, var(--a-accent) 60%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--a-accent) 14%, transparent), 0 10px 30px rgba(0,0,0,.25); }
+.hero__field input { flex: 1; min-width: 0; height: 100%; background: none; border: 0; outline: 0; color: var(--a-ink-2); font: 400 17px var(--a-ui); position: relative; z-index: 1; }
+.hero__field input::-webkit-search-cancel-button { display: none; }
+.hero__prompts { position: absolute; left: 46px; right: 56px; top: 0; bottom: 0; overflow: hidden; pointer-events: none; }
+.hero__prompt { position: absolute; inset: 0; display: flex; align-items: center; font: 400 17px var(--a-ui); color: var(--a-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transform: translateY(14px); transition: opacity .35s ease, transform .35s ease; }
+.hero__prompt[data-on] { opacity: 1; transform: translateY(0); }
+.hero__clear { width: 26px; height: 26px; border-radius: 50%; border: 0; background: var(--a-line); color: var(--a-ink) !important; font-size: 17px !important; line-height: 1; cursor: pointer; z-index: 1; }
+.hero__go { width: 38px; height: 38px; border-radius: 12px; border: 0; background: var(--a-accent); color: var(--a-bg) !important; display: grid; place-items: center; cursor: pointer; z-index: 1; transition: opacity .2s, transform .2s; }
+.hero__go:disabled { opacity: 0; transform: scale(.6); pointer-events: none; }
+.live { margin-top: 10px; border-radius: 18px; background: var(--a-card); border: 1px solid var(--a-line); overflow: hidden; animation: rise .18s ease-out; }
+.live__hint { margin: 0; padding: 14px 16px; color: var(--a-muted); font-size: 14px; }
+.live__group + .live__group { border-top: 1px solid var(--a-line); }
+.live__label { margin: 0; padding: 10px 16px 4px; font: 600 11px var(--a-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--a-muted); }
+.live__label span { color: var(--a-accent); margin-left: 2px; }
+.live__row { display: flex; flex-direction: column; gap: 2px; padding: 8px 16px 10px; }
+.live__row:active { background: var(--a-card-2); }
+.live__title { font: 500 15px/1.3 var(--a-ui); color: var(--a-ink-2); }
+.live__title small { font: 500 12px var(--a-mono); color: var(--a-muted); }
+.live__snip { font: 400 13px/1.4 var(--a-ui); color: var(--a-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.live mark, .row__title mark { background: color-mix(in srgb, var(--a-accent) 22%, transparent); color: var(--a-ink-2); border-radius: 3px; padding: 0 1px; }
+.live__all { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; min-height: 46px; border: 0; border-top: 1px solid var(--a-line); background: var(--a-card-2); color: var(--a-accent); font: 600 14px var(--a-ui); cursor: pointer; }
+.fold { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 48px; padding: 0 16px; border-radius: 14px; border: 1px dashed var(--a-line); background: none; color: var(--a-muted); font: 500 14px var(--a-ui); cursor: pointer; }
+
+/* Home: where you left off, this week's class, the feed of teachings. */
+.home .hello h1 { font-size: 22px; }
+.resume { display: grid; gap: 8px; }
+.resume__item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--a-card); border: 1px solid var(--a-line); }
+.resume__icon { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--a-accent) 16%, transparent); color: var(--a-accent); }
+.resume__item small { display: block; font: 500 11px var(--a-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--a-muted); }
+.resume__item b { display: block; font: 600 15px/1.3 var(--a-ui); color: var(--a-ink-2); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.feature { display: block; border-radius: 20px; overflow: hidden; background: var(--a-card); border: 1px solid var(--a-line); }
+.feature__img { position: relative; display: block; aspect-ratio: 16 / 9; background: var(--a-card-2); }
+.feature__img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.feature__img::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,.55)); }
+.feature__play, .feed__play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.92); color: #05070f; box-shadow: 0 8px 30px rgba(0,0,0,.4); z-index: 1; }
+.feed__play { width: 40px; height: 40px; }
+.feature__body { display: block; padding: 14px 16px 16px; }
+.feature__body small { display: block; font: 500 11.5px var(--a-mono); color: var(--a-accent); letter-spacing: .04em; margin-bottom: 4px; }
+.feature__body b { display: block; font: 700 19px/1.25 var(--a-ui); color: var(--a-ink-2); letter-spacing: -0.01em; }
+.feed { display: grid; gap: 14px; }
+.feed__card { display: grid; grid-template-columns: 132px 1fr; gap: 12px; align-items: start; }
+.feed__img { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: var(--a-card-2); }
+.feed__img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.feed__kind { position: absolute; left: 6px; bottom: 6px; padding: 2px 6px; border-radius: 6px; background: rgba(5,7,15,.78); color: #fff; font: 600 9.5px var(--a-ui); letter-spacing: .04em; text-transform: uppercase; }
+.feed__body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.feed__body b { font: 600 15px/1.3 var(--a-ui); color: var(--a-ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.feed__body small { font: 500 11.5px var(--a-mono); color: var(--a-muted); }
+.feed__books { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.feed__books em { font: 500 11px var(--a-ui); font-style: normal; color: var(--a-accent); background: color-mix(in srgb, var(--a-accent) 12%, transparent); padding: 2px 7px; border-radius: 8px; }
+
+/* A class page: the books it teaches from, the next one, a found transcript turn. */
+.taught { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.taught__label { font: 600 11px var(--a-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--a-muted); margin-right: 4px; }
+.taught__book { font: 500 13px var(--a-ui); color: var(--a-accent); background: color-mix(in srgb, var(--a-accent) 12%, transparent); padding: 5px 11px; border-radius: 12px; }
+.upnext { display: grid; gap: 10px; margin-top: 8px; }
+.upnext__card { display: block; padding: 12px 14px; border-radius: 14px; background: var(--a-card); border: 1px solid var(--a-line); }
+.upnext__card small { display: block; font: 500 11px var(--a-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--a-accent); }
+.upnext__card b { display: block; font: 600 16px/1.3 var(--a-ui); color: var(--a-ink-2); margin: 2px 0; }
+.upnext__card span { font: 500 12px var(--a-mono); color: var(--a-muted); }
+.transcript p[data-found] { background: color-mix(in srgb, var(--a-accent) 14%, transparent); border-radius: 10px; padding: 8px 10px; margin-left: -10px; margin-right: -10px; }

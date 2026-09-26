@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -10,7 +11,16 @@ import path from "node:path";
  */
 const MOCK = fs.readFileSync(new URL("./telegram-mock.js", import.meta.url), "utf8");
 const DATA = process.env.DATA_DIR ?? "";
-const LAUNCH = "#tgWebAppData=query_id%3DAAH%26user%3D%257B%2522id%2522%253A1%252C%2522first_name%2522%253A%2522Test%2522%257D%26auth_date%3D1%26hash%3Dx&tgWebAppVersion=9.1&tgWebAppPlatform=ios";
+/** Launch data signed with the local bot token (bot/.dev.vars), so the Worker's API accepts it. */
+const BOT_TOKEN = process.env.BOT_TOKEN ?? "123456:ABC-DEF";
+const signed = () => {
+  const params: Record<string, string> = { query_id: "AAH", user: JSON.stringify({ id: 1, first_name: "Test" }), auth_date: String(Math.floor(Date.now() / 1000)) };
+  const check = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join("\n");
+  const secret = crypto.createHmac("sha256", "WebAppData").update(BOT_TOKEN).digest();
+  const hash = crypto.createHmac("sha256", secret).update(check).digest("hex");
+  return `#tgWebAppData=${encodeURIComponent(new URLSearchParams({ ...params, hash }).toString())}&tgWebAppVersion=9.1&tgWebAppPlatform=ios`;
+};
+const LAUNCH = signed();
 
 async function setup(page: Page) {
   await page.route("https://telegram.org/**", (r) => r.fulfill({ contentType: "application/javascript", body: MOCK }));
@@ -207,7 +217,7 @@ test("relations: a verse linked to a passage shows as a tag under the verse, wit
 
 test("tabs are roots, detail screens push, and the back button walks them", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
-  await expect(page.locator(".hello h1")).toHaveText("CyberJudah");
+  await expect(page.locator(".hello h1")).toHaveText("What do you want to learn?");
   expect((await state(page)).back).toBe(false);
   await page.click(".tab >> text=Bible");
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
@@ -252,4 +262,30 @@ test("search opens a typed reference, and the settings button opens settings", a
   await press(page, "settings");
   await expect(page).toHaveURL(/\/settings/);
   await expect(page.locator("text=Daily verse")).toBeVisible();
+});
+
+test("Home searches the teachings as you type; Enter opens the results, teaching first, scripture folded", async ({ page }) => {
+  await page.goto(`/${LAUNCH}`);
+  await expect(page.locator(".hero__prompt[data-on]")).toBeVisible();
+  await page.fill("#q", "passover");
+  await expect(page.locator(".live__label").first()).toContainText("Sabbath classes");
+  await expect(page.locator(".live__row mark").first()).toHaveText(/passover/i);
+  await page.press("#q", "Enter");
+  await expect(page).toHaveURL(/\/search\?q=passover/);
+  await expect(page.locator(".hint").first()).toContainText("teachings");
+  await expect(page.locator(".section__head h2").first()).toHaveText("Sabbath classes");
+  await expect(page.locator(".fold")).toContainText("verses that say this");
+  await page.click(".fold");
+  await expect(page.locator(".section__head h2 >> text=Scripture")).toBeVisible();
+  await page.click(".chip >> text=Laws");
+  await expect(page).toHaveURL(/only=law/);
+  await expect(page.locator(".row__title").first()).toContainText(/passover/i);
+});
+
+test("a reference typed on Home opens the chapter", async ({ page }) => {
+  await page.goto(`/${LAUNCH}`);
+  await page.fill("#q", "ps 23:4");
+  await page.press("#q", "Enter");
+  await expect(page).toHaveURL(/\/(read|bible)\/psalms\/23\?v=4/);
+  await expect(page.locator(".bs-header__focus")).toHaveText("Psalms 23:4 - KJV");
 });

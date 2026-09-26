@@ -25,6 +25,8 @@ export const useBookmarks = () => useStored<Bookmark[]>("bm", []);
 export const useHighlights = () => useStored<Highlights>("hl", {});
 export const useProgress = () => useStored<Progress>("read", {});
 export const useLast = () => useStored<Last | null>("last", null);
+/** The last class or episode opened, to continue watching from Home. */
+export const useLastNote = () => useStored<{ href: string; title: string; at: number } | null>("lastnote", null);
 export const useHistory = () => useStored<HistoryRow[]>("hist", []);
 export const usePlan = () => useStored<Plan>("plan", null);
 export const useRecentSearches = () => useStored<string[]>("recent", []);

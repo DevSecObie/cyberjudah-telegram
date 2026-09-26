@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./App";
 import { SheetProvider } from "./ui/sheet";
 import { boot } from "./tg/sdk";
+import "@telegram-apps/telegram-ui/dist/styles.css";
 import "./styles.css";
 
 boot({ bg: "#05070f", header: "#05070f", bottomBar: "#05070f" });

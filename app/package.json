@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.2",
+    "@telegram-apps/telegram-ui": "^2.1.13",
     "marked": "^16.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
