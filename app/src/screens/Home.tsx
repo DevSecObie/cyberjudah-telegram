@@ -8,8 +8,8 @@ import { planDay } from "@/lib/plan";
 import { countdown, sabbath } from "@/lib/sun";
 import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
 import { user } from "@/tg/sdk";
-import { Card, Chip, Chips, Icon, Img, Screen, Section, Skeleton, useGo } from "@/ui/ui";
-import { LiveResults, SearchHero } from "@/ui/search-hero";
+import { Card, Chip, Chips, Icon, Img, Screen, Section, Segmented, Skeleton, useGo } from "@/ui/ui";
+import { ASK_PROMPTS, LiveResults, SearchHero } from "@/ui/search-hero";
 import { referencePath } from "./Search";
 
 type Verse = { ref: string; slug: string; chapter: number; verse: number; text: string };
@@ -31,7 +31,8 @@ export function useTeachings() {
 }
 
 /**
- * Home is a doorway: the search of the teachings first, then where you left off, this
+ * Home is the front door: one field that searches the teachings by their words or asks
+ * CyberJudah a question, the way the reader chooses; then where you left off, this
  * week's class, and the feed of everything taught, with the topics as filters.
  */
 export function Home() {
@@ -39,6 +40,7 @@ export function Home() {
   const navigate = useNavigate();
   useBackButton(true);
   const [q, setQ] = useState("");
+  const [door, setDoor] = useStored<"search" | "ask">("door", "search");
   const [last] = useLast();
   const [lastNote] = useLastNote();
   const [progress] = useProgress();
@@ -52,7 +54,9 @@ export function Home() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30_000); return () => clearInterval(t); }, []);
   const sab = loc ? sabbath(now, loc.lat, loc.lng) : null;
-  const submit = (text: string) => { const t = text.trim(); if (!t) return; const ref = referencePath(t); if (ref) { go(ref); return; } navigate(`/search?q=${encodeURIComponent(t)}`); };
+  const ask = (text: string) => { const t = text.trim(); if (t) navigate(`/ask?q=${encodeURIComponent(t)}`); };
+  const search = (text: string) => { const t = text.trim(); if (!t) return; const ref = referencePath(t); if (ref) { go(ref); return; } navigate(`/search?q=${encodeURIComponent(t)}`); };
+  const submit = door === "ask" ? ask : search;
   useBottomButtons(null, null);
 
   const latestClass = feed.data?.find((t) => t.kind === "class");
@@ -65,8 +69,14 @@ export function Home() {
         <img src="https://cyberjudah.io/assets/brand/cyber-lion.png" alt="" width={44} height={44} />
         <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>What do you want to learn?</h1></div>
       </div>
-      <SearchHero value={q} onChange={setQ} onSubmit={submit} big>
-        <LiveResults q={q} onAll={submit} onSpoken={(t) => navigate(`/search?q=${encodeURIComponent(t)}&in=recordings`)} onAsk={(t) => navigate(`/ask?q=${encodeURIComponent(t)}`)} />
+      <Segmented label="Search or ask" value={door} onChange={setDoor} options={[["search", "Search the teachings"], ["ask", "Ask CyberJudah"]]} />
+      <SearchHero value={q} onChange={setQ} onSubmit={submit} mode={door} big>
+        {door === "ask" ? (
+          <div className="door">
+            <p className="hint">Ask anything about what was taught. The answer is drawn from the classes, the Captains, the notes, the law and the Scripture, with its sources.</p>
+            <Chips>{ASK_PROMPTS.map((e) => <Chip key={e} onClick={() => ask(e)}>{e}</Chip>)}</Chips>
+          </div>
+        ) : <LiveResults q={q} onAll={search} onSpoken={(t) => navigate(`/search?q=${encodeURIComponent(t)}&in=recordings`)} onAsk={ask} />}
       </SearchHero>
 
       {(lastNote || last) ? (

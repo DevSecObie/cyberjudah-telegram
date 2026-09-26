@@ -285,6 +285,20 @@ liveDataTest("Home searches the teachings as you type; Enter opens the results, 
   await expect(page.locator(".row__title").first()).toContainText(/passover/i);
 });
 
+test("Home asks CyberJudah from the front door and remembers the choice", async ({ page }) => {
+  await page.goto(`/${LAUNCH}`);
+  await page.click('[role=tab] >> text=Ask CyberJudah');
+  await expect(page.locator("#q")).toHaveAttribute("aria-label", "Ask CyberJudah");
+  await page.fill("#q", "Why do we keep the Passover?");
+  await page.press("#q", "Enter");
+  await expect(page).toHaveURL(/\/ask/);
+  await expect(page.locator(".bubble--me")).toHaveText("Why do we keep the Passover?");
+  await page.goBack();
+  await expect(page.locator('[role=tab][aria-selected="true"]')).toHaveText("Ask CyberJudah");
+  await page.click('[role=tab] >> text=Search the teachings');
+  await expect(page.locator("#q")).toHaveAttribute("aria-label", "Search the teachings");
+});
+
 test("a reference typed on Home opens the chapter", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
   await page.fill("#q", "ps 23:4");

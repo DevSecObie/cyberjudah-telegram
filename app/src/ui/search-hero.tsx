@@ -17,7 +17,8 @@ export type SearchResult = { ok: true; q: string; mode: "strict" | "loose" | "mi
 export const KIND_LABEL: Record<string, string> = { class: "Sabbath classes", captains: "15 Min w/ Captains", history: "Our Hidden History", study: "Study notes", law: "Laws", precept: "Precepts", case: "Case studies", encyclopedia: "Encyclopedia", verse: "Scripture" };
 /** Teaching first: what was taught, then the law, then the text itself. */
 export const KIND_ORDER = ["class", "captains", "history", "study", "law", "precept", "case", "encyclopedia", "verse"];
-export const PROMPTS = ["What was taught on the Passover?", "Who was Melchizedek?", "Matthew 15:24", "the Sabbath", "usury", "\"the twelve tribes\"", "Isaiah 58", "why we keep the feasts"];
+export const PROMPTS = ["Passover", "Melchizedek", "Matthew 15:24", "the Sabbath", "usury", "\"the twelve tribes\"", "Isaiah 58", "Seattle"];
+export const ASK_PROMPTS = ["Why do we keep the Passover?", "Who are the twelve tribes today?", "What does the law say about usury?", "How is the Sabbath kept?", "Who was Melchizedek?", "What was taught about honouring parents?"];
 export type TeachingHit = { title: string; matchedTitle: string; excerpt: string; feed: string; date: string; video: string; start: number; note: string; timing: "caption" | "passage" };
 export type TeachingsResult = { ok: true; q: string; feed: string; page: number; hits: TeachingHit[]; more: boolean } | { ok: false; reason: string };
 export const FEED_NAME: Record<string, string> = { classes: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History" };
@@ -58,21 +59,24 @@ export function Lit({ text, needle, phrase }: { text: string; needle: string; ph
   return <>{text.split(re).map((part, i) => (i % 2 ? <mark key={i}>{part}</mark> : part))}</>;
 }
 
-export function SearchHero({ value, onChange, onSubmit, autoFocus, big, children }: { value: string; onChange: (v: string) => void; onSubmit: (q: string) => void; autoFocus?: boolean; big?: boolean; children?: ReactNode }) {
+/** The search field, or in ask mode the question field: same box, the prompts and the button change. */
+export function SearchHero({ value, onChange, onSubmit, autoFocus, big, mode = "search", children }: { value: string; onChange: (v: string) => void; onSubmit: (q: string) => void; autoFocus?: boolean; big?: boolean; mode?: "search" | "ask"; children?: ReactNode }) {
   const [i, setI] = useState(0);
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { if (value) return; const t = setInterval(() => setI((n) => (n + 1) % PROMPTS.length), 3000); return () => clearInterval(t); }, [value]);
+  const ask = mode === "ask";
+  const prompts = ask ? ASK_PROMPTS : PROMPTS;
+  useEffect(() => { if (value) return; const t = setInterval(() => setI((n) => (n + 1) % prompts.length), 3000); return () => clearInterval(t); }, [value, prompts.length]);
   return (
-    <form className={`hero${big ? " hero--big" : ""}`} data-focus={focused ? "" : undefined} role="search" onSubmit={(e) => { e.preventDefault(); hideKeyboard(); onSubmit(value); }}>
+    <form className={`hero${big ? " hero--big" : ""}`} data-focus={focused ? "" : undefined} data-mode={ask ? "ask" : undefined} role="search" onSubmit={(e) => { e.preventDefault(); hideKeyboard(); onSubmit(value); }}>
       <div className="hero__glow" aria-hidden="true" />
       <div className="hero__field">
-        <Icon name="search" size={20} />
-        <input ref={inputRef} id="q" type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" spellCheck={false} value={value} autoFocus={autoFocus} aria-label="Search the teachings" placeholder=" "
+        <Icon name={ask ? "note" : "search"} size={20} />
+        <input ref={inputRef} id="q" type="search" enterKeyHint={ask ? "send" : "search"} autoComplete="off" autoCorrect="off" spellCheck={false} value={value} autoFocus={autoFocus} aria-label={ask ? "Ask CyberJudah" : "Search the teachings"} placeholder=" "
           onChange={(e) => onChange(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
-        {!value ? <span className="hero__prompts" aria-hidden="true">{PROMPTS.map((p, k) => <span key={p} className="hero__prompt" data-on={k === i ? "" : undefined}>{p}</span>)}</span> : null}
+        {!value ? <span className="hero__prompts" aria-hidden="true">{prompts.map((p, k) => <span key={p} className="hero__prompt" data-on={k === i % prompts.length ? "" : undefined}>{p}</span>)}</span> : null}
         {value ? <button type="button" className="hero__clear" aria-label="Clear" onClick={() => { onChange(""); inputRef.current?.focus(); }}>×</button> : null}
-        <button type="submit" className="hero__go" aria-label="Search" disabled={!value.trim()}><Icon name="chevron" size={18} /></button>
+        <button type="submit" className="hero__go" aria-label={ask ? "Ask" : "Search"} disabled={!value.trim()}><Icon name="chevron" size={18} /></button>
       </div>
       {children}
     </form>

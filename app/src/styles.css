@@ -352,6 +352,11 @@ html[data-theme="light"] .rel-inline, html[data-theme="sepia"] .rel-inline { box
 .hero__clear { width: 26px; height: 26px; border-radius: 50%; border: 0; background: var(--a-line); color: var(--a-ink) !important; font-size: 17px !important; line-height: 1; cursor: pointer; z-index: 1; }
 .hero__go { width: 38px; height: 38px; border-radius: 12px; border: 0; background: var(--a-accent); color: var(--a-bg) !important; display: grid; place-items: center; cursor: pointer; z-index: 1; transition: opacity .2s, transform .2s; }
 .hero__go:disabled { opacity: 0; transform: scale(.6); pointer-events: none; }
+.hero[data-mode="ask"] .hero__go { background: var(--a-hot); }
+.hero[data-mode="ask"][data-focus] .hero__field { border-color: color-mix(in srgb, var(--a-hot) 60%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--a-hot) 14%, transparent), 0 10px 30px rgba(0,0,0,.25); }
+.hero[data-mode="ask"] .hero__glow { background: radial-gradient(60% 80% at 20% 0%, color-mix(in srgb, var(--a-hot) 24%, transparent), transparent 70%), radial-gradient(50% 70% at 90% 100%, color-mix(in srgb, var(--a-accent) 14%, transparent), transparent 70%); }
+.door { display: grid; gap: 10px; margin-top: 12px; }
+.home .seg { margin-bottom: -4px; }
 .live { margin-top: 10px; border-radius: 18px; background: var(--a-card); border: 1px solid var(--a-line); overflow: hidden; animation: rise .18s ease-out; }
 .live__hint { margin: 0; padding: 14px 16px; color: var(--a-muted); font-size: 14px; }
 .live__group + .live__group { border-top: 1px solid var(--a-line); }
