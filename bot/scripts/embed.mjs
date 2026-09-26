@@ -40,7 +40,8 @@ const cf = async (path, init = {}, raw = false) => {
     const body = await res.json().catch(() => ({}));
     if (res.ok && body.success !== false) return raw ? body : body.result;
     const msg = `${path}: ${res.status} ${JSON.stringify(body.errors ?? body).slice(0, 300)}`;
-    if (attempt >= 4 || (res.status < 500 && res.status !== 429)) throw new Error(msg);
+    // A timeout (408) or a rate limit (429) from Workers AI is retried like a server error.
+    if (attempt >= 5 || (res.status < 500 && res.status !== 429 && res.status !== 408)) throw new Error(msg);
     await new Promise((r) => setTimeout(r, 2000 * attempt));
   }
 };
