@@ -299,6 +299,19 @@ test("Home asks CyberJudah from the front door and remembers the choice", async 
   await expect(page.locator("#q")).toHaveAttribute("aria-label", "Search the teachings");
 });
 
+liveDataTest("a class opens like YouTube: the player pinned, the notes in a sheet beneath it", async ({ page }) => {
+  await page.goto(`/note/classes/2026/2026-03-28-religion-the-false-prophet${LAUNCH}`);
+  await expect(page.locator(".nsheet[data-open]")).toBeVisible();
+  await expect(page.locator(".nsheet__head")).toContainText("Class notes");
+  await expect(page.locator(".nsheet .note h2").first()).toBeVisible();
+  await page.click(".nsheet__close");
+  await expect(page.locator(".nsheet[data-open]")).toHaveCount(0);
+  await expect(page.locator(".note-head h1")).toHaveText("Religion - The False Prophet");
+  await page.click(".notes-open");
+  await expect(page.locator(".nsheet[data-open]")).toBeVisible();
+  await expect(page.locator(".player")).toBeVisible();
+});
+
 test("a reference typed on Home opens the chapter", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
   await page.fill("#q", "ps 23:4");

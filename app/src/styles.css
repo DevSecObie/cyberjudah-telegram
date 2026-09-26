@@ -161,6 +161,27 @@ html[data-tg="yes"] .steps { display: none; }
 
 /* Note */
 .note-head { display: flex; flex-direction: column; gap: 8px; }
+/* The player page: the recording pinned on top, full bleed, the page scrolling under it. */
+.screen--player { padding-top: 0; }
+.player { position: sticky; top: 0; z-index: 70; margin: 0 -16px; padding-top: var(--safe-top, 0px); background: var(--a-bg); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.player__box { position: relative; aspect-ratio: 16 / 9; background: #000; overflow: hidden; }
+.player__box iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.player .watch { border-radius: 0; height: 100%; }
+.notes-open { display: grid; grid-template-columns: 1fr auto; column-gap: 10px; align-items: center; width: 100%; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--a-line); background: var(--a-card); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.notes-open__head { display: flex; align-items: center; gap: 8px; color: var(--a-accent); }
+.notes-open__head b { font: 600 14px var(--a-ui); color: var(--a-ink-2); }
+.notes-open__head small { font: 500 12px var(--a-mono); color: var(--a-muted); }
+.notes-open__lede { grid-column: 1; font: 400 14px/1.4 var(--a-ui); color: var(--a-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px; }
+.notes-open > svg { grid-column: 2; grid-row: 1 / 3; color: var(--a-muted); }
+.nsheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; display: flex; flex-direction: column; background: var(--a-bg); border-top: 1px solid var(--a-line); transform: translateY(105%); transition: transform .28s cubic-bezier(.2,.8,.2,1); visibility: hidden; }
+.nsheet[data-open] { transform: translateY(0); visibility: visible; }
+.nsheet__head { position: relative; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; border-bottom: 1px solid var(--a-line); }
+.nsheet__head h2 { margin: 0; font: 600 16px var(--a-ui); color: var(--a-ink-2); }
+.nsheet__head small { display: block; font: 400 13px var(--a-ui); color: var(--a-muted); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.nsheet__head > div { min-width: 0; }
+.nsheet__grip { position: absolute; top: 5px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--a-line); }
+.nsheet__close { width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--a-card); color: var(--a-ink-2); font: 400 20px/1 var(--a-ui); cursor: pointer; }
+.nsheet__body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 16px 16px calc(24px + var(--safe-bottom, 0px)); max-width: 640px; width: 100%; margin: 0 auto; box-sizing: border-box; }
 .note-head h1 { margin: 0; font: 600 27px/1.2 var(--a-read); color: var(--a-ink-2); text-wrap: balance; }
 .watch { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; border: 0; padding: 0; background: var(--a-card-2); cursor: pointer; }
 .watch img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0.85; }

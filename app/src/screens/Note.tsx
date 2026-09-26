@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { marked } from "marked";
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router";
 
 import { data, fmtDate, when, type HistoryEpisode } from "@/api/data";
@@ -10,30 +9,24 @@ import { useTeachings } from "./Home";
 import { share } from "@/lib/share";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { haptic, openLink, setClosingConfirmation } from "@/tg/sdk";
-import { Empty, Icon, Img, Skeleton, thumbOf, timestamp, useGo, youtube } from "@/ui/ui";
+import { NoteBody, noteLede } from "@/ui/note-body";
+import { NotesOpener, NotesSheet, Player } from "@/ui/player";
+import { Empty, Icon, Skeleton, timestamp, youtube } from "@/ui/ui";
 import { TranscriptExcerpt, useTranscriptAround } from "./Watch";
 
-marked.setOptions({ gfm: true, breaks: false });
 const KIND: Record<string, string> = { class: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History", study: "4 Chapters a Day", encyclopedia: "Encyclopedia" };
 
-/** The note's markdown, with the video mount dropped (the app has its own player button). */
-function render(md: string): string {
-  const src = md.replace(/<!--\s*truncate\s*-->/g, "").replace(/[ \t]+taught in \[[^\]]+\]\(\/study\/[^)]+\)/g, "").replace(/<div class="class-video-mount"[^>]*><\/div>/g, "");
-  const slug = (t: string) => t.toLowerCase().replace(/<[^>]+>/g, "").replace(/&[a-z]+;/g, " ").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  // Headings carry an id from their text, so a search hit opens the class at its section.
-  return (marked.parse(src) as string).replace(/<(li|p)>\s*<strong>([A-Z][^<:]{1,40}):<\/strong>\s*/g, '<$1><span class="who">$2</span>').replace(/<h([2-4])>(.*?)<\/h\1>/g, (_m, l: string, t: string) => `<h${l} id="${slug(t)}">${t}</h${l}>`);
-}
-
-/** A class, episode, study or encyclopedia note: the recording on top, the write-up below. */
+/**
+ * A class, episode, study or encyclopedia note. With a recording it is laid out like YouTube
+ * on a phone: the player pinned on top and the write-up in a sheet beneath it that scrolls
+ * on its own, so the class keeps playing while you read. Without one, the write-up itself.
+ */
 export function NoteScreen() {
   const location = useLocation();
   const path = location.pathname.replace(/^\/note/, "") || "/";
-  const go = useGo();
-  useBackButton(false);
   const note = useQuery({ queryKey: ["note", path], queryFn: () => data.note(path) });
   const isHistory = path.startsWith("/history/");
   const episode = useQuery({ queryKey: ["episode", path], queryFn: () => data.episode(path.replace(/^\/history\//, "")), enabled: isHistory });
-  const html = useMemo(() => (note.data ? render(note.data.body) : ""), [note.data]);
   const [marks, setMarks] = useBookmarks();
   const [, setLastNote] = useLastNote();
   const [params] = useSearchParams();
@@ -48,24 +41,24 @@ export function NoteScreen() {
   // A search hit in the captions: the moment it was said, with the words around it.
   const at = params.has("t") ? Math.max(0, Number(params.get("t")) || 0) : null;
   const spoken = useTranscriptAround(at !== null ? video : null, at ?? 0);
+  // Coming to read (no moment given), the notes open at once; coming from a spoken moment, the words around it come first.
+  const [start, setStart] = useState(at ?? 0);
+  const [playing, setPlaying] = useState(false);
+  const [notes, setNotes] = useState(at === null || !!location.hash);
+  useBackButton(false, () => { if (notes && video && at !== null) { setNotes(false); return true; } });
+  const seek = (t: number) => { setStart(t); setPlaying(true); setNotes(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
   useBottomButtons(
     note.data ? { text: "Share", onClick: () => void share({ kind: "note", title: note.data!.title, text: KIND[note.data!.kind] ?? "CyberJudah", sitePath: path }) } : null,
-    video ? { text: at !== null ? `▶ Watch from ${timestamp(at)}` : "▶ Watch", onClick: () => openLink(youtube(video, at ?? 0)) } : null,
+    video ? { text: "Open in YouTube", onClick: () => openLink(youtube(video, start)) } : null,
   );
   // Reading a long note: keep a stray swipe from closing the app mid-read.
   useEffect(() => { setClosingConfirmation(true); return () => setClosingConfirmation(false); }, []);
   useEffect(() => {
-    if (!html || !location.hash) return;
-    const t = setTimeout(() => document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView({ block: "start" }), 60);
+    if (!note.data || !location.hash) return;
+    const t = setTimeout(() => document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView({ block: "start" }), 120);
     return () => clearTimeout(t);
-  }, [html, location.hash]);
-  const onClick = (e: MouseEvent<HTMLDivElement>) => {
-    const a = (e.target as HTMLElement).closest("a"); const href = a?.getAttribute("href") ?? "";
-    if (!a) return;
-    e.preventDefault();
-    if (/^https?:/.test(href)) openLink(href); else if (href.startsWith("/")) go(href);
-  };
+  }, [note.data, location.hash, notes]);
 
   if (note.isPending) return <main className="screen"><Skeleton rows={6} /></main>;
   if (note.isError || !note.data) {
@@ -74,32 +67,46 @@ export function NoteScreen() {
     return <main className="screen"><Empty title="This note did not load">It may have moved. Search for it instead.</Empty></main>;
   }
   const n = note.data;
+  const head = (
+    <header className="note-head">
+      <p className="kicker">{[KIND[n.kind] ?? "", when(n.date, n.teacher)].filter(Boolean).join(" · ")}</p>
+      <h1>{n.title}</h1>
+      <div className="head__actions">
+        <button type="button" className="icon-btn" aria-pressed={kept} aria-label={kept ? "Remove bookmark" : "Bookmark"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: path, kind: "note", title: n.title, text: [KIND[n.kind], fmtDate(n.date)].filter(Boolean).join(" · "), href: path })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={18} /></button>
+      </div>
+    </header>
+  );
+  const taught = me?.books.length ? <div className="taught"><span className="taught__label">Taught from</span>{me.books.slice(0, 6).map((b) => <Link key={b} to={`/read/${b.toLowerCase().replace(/\s+/g, "-")}/1`} className="taught__book">{b}</Link>)}</div> : null;
+  const upnext = next || prev ? (
+    <div className="upnext">
+      {next ? <Link to={`/note${next.url}`} className="upnext__card"><small>Up next</small><b>{next.title}</b><span>{when(next.date, next.teacher)}</span></Link> : null}
+      {prev ? <Link to={`/note${prev.url}`} className="upnext__card"><small>Before this</small><b>{prev.title}</b><span>{when(prev.date, prev.teacher)}</span></Link> : null}
+    </div>
+  ) : null;
+  if (video) return (
+    <main className="screen screen--player">
+      <Player video={video} start={start} playing={playing} onPlay={() => setPlaying(true)} title={n.title} />
+      {head}
+      <NotesOpener lede={noteLede(n.body)} onOpen={() => setNotes(true)} />
+      {at !== null && spoken.data?.ok ? <TranscriptExcerpt video={video} t={at} chunks={spoken.data.chunks} onSeek={seek} /> : null}
+      {taught}
+      {isHistory && episode.data?.turns?.length ? <Transcript ep={episode.data} find={params.get("find") ?? ""} onSeek={seek} /> : null}
+      {upnext}
+      <NotesSheet open={notes} onClose={() => setNotes(false)} sub={n.title}><NoteBody md={n.body} /></NotesSheet>
+    </main>
+  );
   return (
     <main className="screen">
-      <header className="note-head">
-        <p className="kicker">{[KIND[n.kind] ?? "", when(n.date, n.teacher)].filter(Boolean).join(" · ")}</p>
-        <h1>{n.title}</h1>
-        <div className="head__actions">
-          <button type="button" className="icon-btn" aria-pressed={kept} aria-label={kept ? "Remove bookmark" : "Bookmark"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: path, kind: "note", title: n.title, text: [KIND[n.kind], fmtDate(n.date)].filter(Boolean).join(" · "), href: path })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={18} /></button>
-        </div>
-      </header>
-      {video ? <button type="button" className="watch" onClick={() => openLink(youtube(video, at ?? 0))} aria-label={`Watch ${n.title}`}><Img src={thumbOf(video, true)} eager /><span><Icon name="play" size={18} /> {at !== null ? `Watch from ${timestamp(at)}` : "Watch the recording"}</span></button> : null}
-      {at !== null && video && spoken.data?.ok ? <TranscriptExcerpt video={video} t={at} chunks={spoken.data.chunks} /> : null}
-      {me?.books.length ? <div className="taught"><span className="taught__label">Taught from</span>{me.books.slice(0, 6).map((b) => <Link key={b} to={`/read/${b.toLowerCase().replace(/\s+/g, "-")}/1`} className="taught__book">{b}</Link>)}</div> : null}
-      <div className="note" onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />
-      {isHistory && episode.data?.turns?.length ? <Transcript ep={episode.data} find={params.get("find") ?? ""} /> : null}
-      {next || prev ? (
-        <div className="upnext">
-          {next ? <Link to={`/note${next.url}`} className="upnext__card"><small>Up next</small><b>{next.title}</b><span>{when(next.date, next.teacher)}</span></Link> : null}
-          {prev ? <Link to={`/note${prev.url}`} className="upnext__card"><small>Before this</small><b>{prev.title}</b><span>{when(prev.date, prev.teacher)}</span></Link> : null}
-        </div>
-      ) : null}
+      {head}
+      {taught}
+      <NoteBody md={n.body} />
+      {upnext}
     </main>
   );
 }
 
 /** Our Hidden History: the verbatim transcript, each turn a tap from the moment in the recording. */
-function Transcript({ ep, find }: { ep: HistoryEpisode; find: string }) {
+function Transcript({ ep, find, onSeek }: { ep: HistoryEpisode; find: string; onSeek: (t: number) => void }) {
   const [open, setOpen] = useState(false);
   const found = find ? ep.turns.findIndex((t) => t.text.toLowerCase().includes(find.toLowerCase().slice(0, 40))) : -1;
   useEffect(() => { if (found >= 0) { setOpen(true); setTimeout(() => document.getElementById(`turn-${found}`)?.scrollIntoView({ block: "center" }), 80); } }, [found]);
@@ -107,7 +114,7 @@ function Transcript({ ep, find }: { ep: HistoryEpisode; find: string }) {
   return (
     <section className="section">
       <div className="section__head"><h2>Transcript</h2><button type="button" className="link" onClick={() => setOpen(!open)}>{open ? "Show less" : `All ${ep.turns.length} turns`}</button></div>
-      <div className="transcript">{turns.map((t, i) => <p key={i} id={`turn-${i}`} data-found={i === found ? "" : undefined}><button type="button" onClick={() => openLink(youtube(ep.videoId, t.t))}>{timestamp(t.t)}</button>{t.text}</p>)}</div>
+      <div className="transcript">{turns.map((t, i) => <p key={i} id={`turn-${i}`} data-found={i === found ? "" : undefined}><button type="button" onClick={() => onSeek(t.t)}>{timestamp(t.t)}</button>{t.text}</p>)}</div>
     </section>
   );
 }
