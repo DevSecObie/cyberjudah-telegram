@@ -52,6 +52,7 @@ const sql = async (query) => {
   return r[0]?.results ?? [];
 };
 const embedTexts = async (texts) => (await cf(`/accounts/${ACCOUNT}/ai/run/${EMBED_MODEL}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: texts }) })).data;
+const deleteIds = async (ids) => { for (let i = 0; i < ids.length; i += 1000) await cf(`/accounts/${ACCOUNT}/vectorize/v2/indexes/${INDEX}/delete_by_ids`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: ids.slice(i, i + 1000) }) }); };
 const upsert = async (vectors) => cf(`/accounts/${ACCOUNT}/vectorize/v2/indexes/${INDEX}/upsert`, { method: "POST", headers: { "content-type": "application/x-ndjson" }, body: vectors.map((v) => JSON.stringify(v)).join("\n") });
 const lit = (v) => `'${String(v).replace(/'/g, "''")}'`;
 
@@ -63,6 +64,9 @@ for (let offset = 0; ; offset += 20000) {
   if (rows.length < 20000) break;
 }
 console.error(`${known.size} passages embedded before`);
+const knownByVideo = new Map();
+for (const id of known.keys()) if (id.startsWith("t:")) { const v = id.slice(2, id.lastIndexOf(":")); if (!knownByVideo.has(v)) knownByVideo.set(v, []); knownByVideo.get(v).push(id); }
+const stale = [];
 
 /** The records to embed, streamed page by page from D1. */
 async function* records() {
@@ -93,7 +97,10 @@ async function* records() {
           if (!t?.segments?.length) continue;
           const page = pages.get(t.videoId);
           const title = page?.title || t.cleanTitle || t.title || t.videoId;
-          for (const c of chunkSegments(t.segments)) yield chunkRecord({ video: t.videoId, t: c.t, text: c.text, kind: KIND[feed], title, url: page?.url ?? "", date: t.date || page?.date || "" });
+          const produced = new Set();
+          for (const c of chunkSegments(t.segments)) { const r = chunkRecord({ video: t.videoId, t: c.t, text: c.text, kind: KIND[feed], title, url: page?.url ?? "", date: t.date || page?.date || "" }); produced.add(r.id); yield r; }
+          // Chunks embedded before that the chunker no longer makes (the scraps) leave the index.
+          for (const id of knownByVideo.get(t.videoId) ?? []) if (!produced.has(id)) stale.push(id);
         }
       }
     }
@@ -130,4 +137,9 @@ for await (const r of records()) {
 }
 if (pending.length) await schedule(pending);
 await Promise.all(inflight);
+if (stale.length && !DRY) {
+  await deleteIds(stale);
+  for (let i = 0; i < stale.length; i += 500) await sql(`DELETE FROM embedded WHERE id IN (${stale.slice(i, i + 500).map(lit).join(",")})`);
+  console.error(`${stale.length} stale passages removed from the index`);
+}
 console.error(`done: ${seen} passages seen, ${done} embedded this run${DRY ? " (dry)" : ""}`);

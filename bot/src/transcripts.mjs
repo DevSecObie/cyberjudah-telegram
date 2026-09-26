@@ -11,6 +11,8 @@
 export const CHUNK_SECONDS = 45;
 export const CHUNK_WORDS = 70;
 export const OVERLAP_SEGMENTS = 3;
+/** A chunk with fewer words than this says nothing on its own ("do", "yeah so"); it joins the one before, or is left out. */
+export const MIN_WORDS = 25;
 
 /** [[t, text], ...] -> [{ t, text }, ...] */
 export function chunkSegments(segments) {
@@ -25,7 +27,16 @@ export function chunkSegments(segments) {
     if (j >= segs.length) break;
     i = Math.max(i + 1, j - OVERLAP_SEGMENTS);
   }
-  return out;
+  // A short last chunk joins the one before it; a short only chunk is left out.
+  const words = (c) => c.text.split(" ").length;
+  while (out.length > 1 && words(out[out.length - 1]) < MIN_WORDS) {
+    const tail = out.pop();
+    const prev = out[out.length - 1];
+    const seen = prev.text.split(" ");
+    const extra = tail.text.split(" ").filter((w, k) => k >= OVERLAP_SEGMENTS * 8 || !seen.includes(w));
+    prev.text = `${prev.text} ${extra.join(" ")}`.trim();
+  }
+  return out.filter((c) => words(c) >= MIN_WORDS);
 }
 
 /** The video id in a YouTube thumbnail URL, which the feeds carry instead of the id. */

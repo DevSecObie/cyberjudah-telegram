@@ -26,8 +26,10 @@ const passageOf = (m: { metadata?: Record<string, unknown>; score: number }): Pa
 export async function retrieve(env: Env, text: string, topK = 12): Promise<(Passage & { score: number })[]> {
   const [vector] = await embed(env, [text]);
   if (!vector) return [];
-  const res = await env.VEC.query(vector, { topK: Math.min(topK * 2, 50), returnMetadata: "all" });
-  return dedupeMatches(res.matches).slice(0, topK).map(passageOf);
+  const res = await env.VEC.query(vector, { topK: 50, returnMetadata: "all" });
+  // A passage must say something: scraps of captions ("do", "yeah so") sit close to every question.
+  const said = res.matches.filter((m) => String((m.metadata as Record<string, unknown> | undefined)?.text ?? "").split(/\s+/).length >= 20);
+  return dedupeMatches(said).slice(0, topK).map(passageOf);
 }
 
 export type Answer = { ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; ms: number } | { ok: false; reason: string };
@@ -45,7 +47,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec): Prom
   const put = env.SUBS.put(key, String(used + 1), { expirationTtl: 2 * 86400 });
   if (ctx) ctx.waitUntil(put); else await put;
   try {
-    const passages = await retrieve(env, question, 10);
+    const passages = await retrieve(env, question, 8);
     if (!passages.length) return { ok: true, q: question, answer: "Nothing in the library is close to that question yet.", sources: [], ms: Date.now() - t0 };
     const res = await env.AI.run(ANSWER_MODEL, { messages: buildPrompt(question, passages), max_tokens: 700, temperature: 0.2 }) as { response?: string };
     const answer = (res.response ?? "").trim();

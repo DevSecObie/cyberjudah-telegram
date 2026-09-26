@@ -16,9 +16,19 @@ test("chunks follow the captions: about 45 seconds or 70 words, overlapping by t
   assert.deepEqual(chunkSegments([[10, "  "]]), []);
 });
 
+test("scraps are never chunks: a short tail joins the chunk before, a short only chunk is left out", () => {
+  assert.deepEqual(chunkSegments([[0, "do"], [2, "do do"]]), []);
+  const segs = [...Array.from({ length: 14 }, (_, i) => [i * 3, `word${i} two three four five six`]), [60, "do"], [62, "yeah"]];
+  const chunks = chunkSegments(segs);
+  assert.ok(chunks.length >= 1);
+  assert.ok(chunks.every((c) => c.text.split(" ").length >= 25));
+  assert.ok(chunks[chunks.length - 1].text.endsWith("do yeah"));
+});
+
 test("a chunk's time sits three seconds before its words", () => {
-  assert.equal(chunkSegments([[14.64, "bless this is Raleigh"]])[0].t, 11.6);
-  assert.equal(chunkSegments([[1, "x"]])[0].t, 0);
+  const long = "bless this is Raleigh and we had a first edition of the class with everyone here today and more words to make it twenty five words";
+  assert.equal(chunkSegments([[14.64, long]])[0].t, 11.6);
+  assert.equal(chunkSegments([[1, long]])[0].t, 0);
 });
 
 test("the video id comes out of a thumbnail URL", () => {
