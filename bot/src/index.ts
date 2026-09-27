@@ -28,7 +28,8 @@ const STARS = new Set([50, 100, 500]);
  * proves it came from Telegram and names the person. Nothing else is trusted.
  */
 app.use("/api/*", async (c, next) => {
-  if (c.req.path === "/api/verse-of-day" || c.req.path.startsWith("/api/dictionary")) return next();
+  // The frames' geometry is public like the sheets themselves: the library's build reads it to place frames in the notes.
+  if (c.req.path === "/api/verse-of-day" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
   // Three days: a Mini App stays open across a weekend of study without its launch data going stale.
   const data = m ? await validateInitData(m[1], c.env.BOT_TOKEN, 3 * 86400) : null;
@@ -95,7 +96,7 @@ app.get("/api/taught/:slug/:chapter", async (c) => {
 app.get("/api/frames/:video", async (c) => {
   const b = await board(c.env, c.req.param("video"));
   if (!b || !b.levels.length) return c.json({ ok: false, levels: [], duration: 0 }, 404);
-  return c.json({ ok: true, ...publicBoard(b) }, 200, { "cache-control": "public, max-age=3600" });
+  return c.json({ ok: true, ...publicBoard(b) }, 200, { "cache-control": "public, max-age=3600", "access-control-allow-origin": "*" });
 });
 app.post("/api/frames/:video/warm", async (c) => {
   const { user } = c.get("tma");

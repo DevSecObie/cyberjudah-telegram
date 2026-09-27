@@ -25,7 +25,8 @@ export function renderNote(md: string, frames?: { video: string; board: Board | 
   // Headings carry an id from their text, so a search hit opens the class at its section.
   let html = (marked.parse(src) as string).replace(/<(li|p)>\s*<strong>([A-Z][^<:]{1,40}):<\/strong>\s*/g, '<$1><span class="who">$2</span>').replace(/<h([2-4])>(.*?)<\/h\1>/g, (_m, l: string, t: string) => `<h${l} id="${slug(t)}">${t}</h${l}>`);
   html = html.replace(MOMENT, (_m, video: string, t: string, label: string) => `<em>[<a class="moment__at" href="https://www.youtube.com/watch?v=${video}&t=${t}s" data-t="${t}">${label}</a>]</em>`);
-  if (!frames?.visuals?.length) return html;
+  // The library's build places the frames itself when it can; then nothing is added here.
+  if (!frames?.visuals?.length || /class="shown"/.test(html)) return html;
   // The blocks in reading order, each with the moment it starts; a picture lands at the end of the block it was shown in.
   const marks = [...html.matchAll(/<p><strong>.*?<a class="moment__at"[^>]*data-t="(\d+)"/g)].map((m) => ({ t: Number(m[1]), at: m.index! }));
   const figure = (v: Visual) => {
