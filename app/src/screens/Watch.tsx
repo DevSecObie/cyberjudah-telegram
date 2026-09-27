@@ -8,7 +8,7 @@ import { api, openLink } from "@/tg/sdk";
 import { NoteBody, noteLede } from "@/ui/note-body";
 import { NotesOpener, NotesSheet, Player } from "@/ui/player";
 import { Empty, Skeleton, timestamp, youtube } from "@/ui/ui";
-import { KIND_NAME, useLive } from "./Home";
+import { KIND_NAME, useLive, useRecent } from "./Home";
 
 export type TranscriptWindow = { ok: true; video: string; kind: string; title: string; url: string; date: string; duration: number | null; t: number; chunks: { t: number; text: string }[] } | { ok: false; reason: string };
 export const useTranscriptAround = (video: string | null, t: number) => useQuery({ queryKey: ["transcript", video, Math.round(t)], enabled: !!video, queryFn: () => api<TranscriptWindow>(`/api/transcript/${encodeURIComponent(video!)}?t=${Math.round(t)}`), staleTime: 60 * 60_000 });
@@ -30,8 +30,10 @@ export function Watch() {
   const res = useTranscriptAround(isLive ? null : video, t);
   const live = useLive(isLive);
   const r = res.data;
+  const recent = useRecent();
+  const meta = recent.data?.find((v) => v.video === video);
   const note = useQuery({ queryKey: ["note", r?.ok ? r.url : ""], queryFn: () => data.note(r!.ok ? r!.url : "/"), enabled: !!(r?.ok && r.url) });
-  useBottomButtons(r?.ok || isLive ? { text: "Open in YouTube", onClick: () => openLink(youtube(video, isLive ? 0 : start)) } : null, null);
+  useBottomButtons(res.isPending ? null : { text: "Open in YouTube", onClick: () => openLink(youtube(video, isLive ? 0 : start)) }, null);
   useEffect(() => { if (r?.ok) setTimeout(() => document.querySelector(".tx__chunk[data-here]")?.scrollIntoView({ block: "center" }), 60); }, [r]);
   const seek = (at: number) => { setStart(at); setPlaying(true); window.scrollTo({ top: 0, behavior: "smooth" }); };
   if (isLive) return (
@@ -45,7 +47,16 @@ export function Watch() {
     </main>
   );
   if (res.isPending) return <main className="screen"><Skeleton rows={5} /></main>;
-  if (!r || !r.ok) return <main className="screen"><Empty title="This recording is not in the transcripts yet">Its captions load with the next refresh.</Empty></main>;
+  if (!r || !r.ok) return (
+    <main className="screen screen--player">
+      <Player video={video} start={start} playing={playing} onPlay={() => setPlaying(true)} title={meta?.title || "Class recording"} />
+      <header className="note-head">
+        <p className="kicker">{["Sabbath class", meta ? fmtDate(meta.published.slice(0, 10)) : ""].filter(Boolean).join(" · ")}</p>
+        <h1>{meta?.title || "Class recording"}</h1>
+      </header>
+      <p className="hint">The notes and the captions for this class are on their way. Watch the recording meanwhile; the search and Ask CyberJudah pick it up once the captions land.</p>
+    </main>
+  );
   return (
     <main className="screen screen--player">
       <Player video={video} start={start} playing={playing} onPlay={() => setPlaying(true)} title={r.title} />

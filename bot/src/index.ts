@@ -7,7 +7,7 @@ import { createBot, todaysVerse } from "./bot";
 import { chapter, escapeHtml, openLink } from "./data";
 import { runSearch } from "./search";
 import { searchTeachings, taughtIn, transcriptAround } from "./teachings";
-import { liveNow } from "./live";
+import { liveNow, recentVideos } from "./live";
 import { ask, askStream, similar, speakVerse } from "./ai";
 import { VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
@@ -62,6 +62,8 @@ app.get("/api/teachings", async (c) => {
 });
 // Whether a class is on the air right now (the channel's live stream), for the Home screen.
 app.get("/api/live", async (c) => c.json(await liveNow(c.env, c.executionCtx)));
+// The channel's newest recordings, so a class is listed before its notes are written.
+app.get("/api/recent", async (c) => c.json({ videos: await recentVideos(c.env, c.executionCtx) }));
 app.get("/api/taught/:slug/:chapter", async (c) => {
   const slug = c.req.param("slug"), chapter = Number(c.req.param("chapter"));
   if (!/^[a-z0-9-]{1,40}$/.test(slug) || !(chapter >= 1 && chapter <= 200)) return c.json({ ok: false, reason: "bad-reference" }, 400);

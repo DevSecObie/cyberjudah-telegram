@@ -421,6 +421,7 @@ html[data-theme="light"] .rel-inline, html[data-theme="sepia"] .rel-inline { box
 .feed__body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .feed__body b { font: 600 15px/1.3 var(--a-ui); color: var(--a-ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .feed__body small { font: 400 13px var(--a-ui); color: var(--a-muted); }
+.soon { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 6px; background: var(--a-card-2); color: var(--a-ink); font: 500 11.5px/1.5 var(--a-ui); vertical-align: 1px; }
 .feed__books { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .feed__books em { font: 500 12px var(--a-ui); font-style: normal; color: var(--a-ink); background: var(--a-card-2); padding: 2px 8px; border-radius: 8px; }
 

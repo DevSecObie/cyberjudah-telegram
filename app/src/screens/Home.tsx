@@ -15,11 +15,17 @@ type Verse = { ref: string; slug: string; chapter: number; verse: number; text: 
 export type LiveNow = { live: boolean; upcoming: boolean; video: string | null; title: string | null; starts: string | null };
 /** Whether a class is on the air, asked again every minute while Home is open. */
 export const useLive = (enabled = true) => useQuery({ queryKey: ["live"], queryFn: () => api<LiveNow>("/api/live"), enabled, refetchInterval: 60_000, staleTime: 45_000, retry: false });
-export type Teaching = { kind: "class" | "captains" | "history"; url: string; title: string; date: string; teacher: string; thumb: string; topics: string[]; books: string[]; sub?: string; collection?: string };
+export type Teaching = { kind: "class" | "captains" | "history"; url: string; title: string; date: string; teacher: string; thumb: string; topics: string[]; books: string[]; sub?: string; collection?: string; video?: string; pending?: boolean };
+export type RecentVideo = { video: string; title: string; published: string; views: number | null };
+const videoOfThumb = (thumb: string) => /\/vi\/([A-Za-z0-9_-]{6,})\//.exec(thumb ?? "")?.[1] ?? null;
+/** Where a teaching opens: its notes, or the recording itself while the notes are still coming. */
+export const teachingTo = (t: Teaching) => (t.pending && t.video ? `/watch/${encodeURIComponent(t.video)}` : `/note${t.url}`);
+/** The channel's newest uploads, so a class is in the app before its notes are written. */
+export const useRecent = () => useQuery({ queryKey: ["recent"], queryFn: () => api<{ videos: RecentVideo[] }>("/api/recent").then((r) => r.videos), staleTime: 10 * 60_000, retry: false });
 export const KIND_NAME: Record<Teaching["kind"], string> = { class: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History" };
 
-/** Everything taught, newest first, in one feed. */
-export function useTeachings() {
+/** Everything with notes, newest first, in one feed. */
+function useNotedTeachings() {
   return useQuery({
     queryKey: ["teachings"],
     queryFn: async (): Promise<Teaching[]> => {
@@ -30,6 +36,19 @@ export function useTeachings() {
     },
     staleTime: 10 * 60_000,
   });
+}
+
+/** Everything taught, with the recordings that have no notes yet listed among them, newest first. */
+export function useTeachings() {
+  const notes = useNotedTeachings();
+  const recent = useRecent();
+  const data = useMemo(() => {
+    if (!notes.data) return notes.data;
+    const have = new Set(notes.data.map((t) => videoOfThumb(t.thumb)).filter(Boolean));
+    const extra = (recent.data ?? []).filter((v) => !have.has(v.video)).map<Teaching>((v) => ({ kind: "class", url: `/watch/${v.video}`, title: v.title, date: v.published.slice(0, 10), teacher: "", thumb: `https://img.youtube.com/vi/${v.video}/mqdefault.jpg`, topics: [], books: [], video: v.video, pending: true }));
+    return extra.length ? [...notes.data, ...extra].sort((a, b) => (b.date || "").localeCompare(a.date || "")) : notes.data;
+  }, [notes.data, recent.data]);
+  return { ...notes, data };
 }
 
 /**
@@ -93,9 +112,9 @@ export function Home() {
 
       {feed.isPending ? <Skeleton rows={3} thumb /> : latestClass ? (
         <Section title="This week's class">
-          <Link to={`/note${latestClass.url}`} className="feature">
+          <Link to={teachingTo(latestClass)} className="feature">
             <span className="feature__img"><Img src={latestClass.thumb} eager /><span className="feature__play"><Icon name="play" size={22} /></span></span>
-            <span className="feature__body"><small>{[fmtDate(latestClass.date), latestClass.teacher].filter(Boolean).join(" · ")}</small><b>{latestClass.title}</b>{latestClass.books.length ? <span className="feed__books">{latestClass.books.slice(0, 4).map((b) => <em key={b}>{b}</em>)}</span> : null}</span>
+            <span className="feature__body"><small>{[fmtDate(latestClass.date), latestClass.teacher].filter(Boolean).join(" · ")}{latestClass.pending ? <span className="soon">Notes coming soon</span> : null}</small><b>{latestClass.title}</b>{latestClass.books.length ? <span className="feed__books">{latestClass.books.slice(0, 4).map((b) => <em key={b}>{b}</em>)}</span> : null}</span>
           </Link>
         </Section>
       ) : null}
@@ -103,9 +122,9 @@ export function Home() {
       <Section title="Latest teachings" action={<Link to="/classes">All classes</Link>}>
         <div className="feed">
           {rows.map((t) => (
-            <Link key={t.url} to={`/note${t.url}`} className="feed__card">
+            <Link key={t.url} to={teachingTo(t)} className="feed__card">
               <span className="feed__img"><Img src={t.thumb} /><span className="feed__kind">{KIND_NAME[t.kind]}</span></span>
-              <span className="feed__body"><b>{t.title}</b><small>{[t.sub, fmtDate(t.date), t.teacher].filter(Boolean).join(" · ")}</small></span>
+              <span className="feed__body"><b>{t.title}</b><small>{[t.sub, fmtDate(t.date), t.teacher].filter(Boolean).join(" · ")}{t.pending ? <span className="soon">Notes coming soon</span> : null}</small></span>
             </Link>
           ))}
         </div>

@@ -1,9 +1,9 @@
 import type { Env, Exec } from "./env";
-import { parseLive } from "./live.mjs";
+import { parseFeed, parseLive } from "./live.mjs";
 export { parseLive };
 
-export type { LiveNow } from "./live.mjs";
-import type { LiveNow } from "./live.mjs";
+export type { LiveNow, RecentVideo } from "./live.mjs";
+import type { LiveNow, RecentVideo } from "./live.mjs";
 
 /** The classroom channel's /live page names the stream that is on, or the one scheduled next. */
 const CHANNEL = "UC8gdvMmoqFOcx2N8YdjqRxw";
@@ -39,4 +39,25 @@ async function check(channel: string): Promise<LiveNow> {
   } catch {
     return none;
   }
+}
+
+/**
+ * The channel's newest recordings, from its public RSS feed, so a class is in the app the
+ * hour it is uploaded, before its captions and notes exist. Cached ten minutes at the edge.
+ */
+export async function recentVideos(env: Env, ctx?: Exec): Promise<RecentVideo[]> {
+  const channel = env.LIVE_CHANNEL || CHANNEL;
+  const key = `https://cyberjudah-telegram.internal/recent/${channel}`;
+  const cache = caches.default;
+  const hit = await cache.match(key);
+  if (hit) return hit.json<RecentVideo[]>();
+  let out: RecentVideo[] = [];
+  try {
+    const res = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${channel}`, { headers: { "user-agent": UA } });
+    if (res.ok) out = parseFeed(await res.text());
+  } catch { /* the feed is a convenience; the notes list still loads */ }
+  const res = new Response(JSON.stringify(out), { headers: { "content-type": "application/json", "cache-control": "public, max-age=600" } });
+  const put = cache.put(key, res.clone());
+  if (ctx) ctx.waitUntil(put); else await put;
+  return out;
 }
