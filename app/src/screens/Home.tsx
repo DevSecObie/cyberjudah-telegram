@@ -58,7 +58,7 @@ export function Home() {
       </div>
       <SearchHero value={q} onChange={setQ} onSubmit={search} big />
       <div className="door">
-        <button type="button" className="door__btn" onClick={() => search(q)} disabled={!q.trim()}><Icon name="search" size={18} /> Search</button>
+        <button type="button" className="door__btn" onClick={() => { if (q.trim()) search(q); else document.getElementById("q")?.focus(); }}><Icon name="search" size={18} /> Search</button>
         <button type="button" className="door__btn door__btn--ask" onClick={() => { haptic("select"); navigate(q.trim() ? `/ask?q=${encodeURIComponent(q.trim())}` : "/ask"); }}><Icon name="note" size={18} /> Ask CyberJudah</button>
       </div>
       <p className="hint hint--center">Search finds the moment a word, a name or a Scripture was said in a class. Ask answers your question from the teachings, with its sources.</p>
