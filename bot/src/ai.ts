@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { chapter } from "./data";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
-import { ANSWER_MODEL, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
+import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 
 /**
  * The AI features, all through Workers AI and the Vectorize index of the teachings:
@@ -85,7 +85,8 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   if (question.length < 2) return { ok: false, reason: "too-short" };
   if (!(await allowed(env, userId, ctx))) return { ok: false, reason: "limit" };
   try {
-    const passages = await retrieve(env, retrievalText(question, history), 8);
+    const passages = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
+    if (!passages.length) return { ok: true, q: question, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], ms: Date.now() - t0 };
     const answer = await answerOnce(env, buildPrompt(question, passages, history));
     return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
   } catch (e) {
@@ -152,8 +153,12 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
     async start(controller) {
       const send = (o: unknown) => controller.enqueue(encoder.encode(line(o)));
       try {
-        const passages = await retrieve(env, retrievalText(question, history), 8);
+        const passages = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
         send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
+        if (!passages.length) {
+          const answer = "The search did not find enough reliable material in the library to answer that question.";
+          send({ delta: answer }); send({ done: true, sources: [] }); return;
+        }
         let answer = "";
         for await (const piece of answerPieces(env, buildPrompt(question, passages, history))) { answer += piece; send({ delta: piece }); }
         send({ done: true, sources: sourcesOf(answer, passages) });
