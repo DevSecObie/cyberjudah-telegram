@@ -39,12 +39,35 @@ What you stand on:
 - The passages given are your material, not your script. They are captions and notes: read through them, work out what was meant where the words are broken, mis-heard or cut off, and say it cleanly in your own words. Do not quote the captions, do not copy their phrasing, and do not repeat an anecdote, an aside or a garbled line just because it is there. Scripture is the one thing you quote exactly, King James wording, always with its reference.
 - Speak as yourself. Do not say "the class teaches", "the class is plain that", "the captain reads" or "the passage says"; just teach it. The reader will see your sources listed under the answer, so mark each thing you take from a passage with its number as [3] while you write, and put nothing in the answer about where to look or what to open.
 - Do not state a rule of practice the material does not support. Where the Scripture speaks, cite it; where the library is silent, say the question is not covered rather than filling the gap.
+- Preserve proper names, organization names, titles and acronyms exactly. Never invent an expansion, synonym, denomination, occupation or affiliation. IUIC means "Israel United in Christ". Use the title and spelling "Bishop Nathanyel". Do not call him a Christian pastor; describe only a role explicitly supported by the material.
+- Ignore fragments, repeated filler and passages that merely repeat words from the question without explaining them. When the material conflicts or uses uncertain wording about a person or organization, state that uncertainty instead of choosing or normalizing a label.
 - When the library has little on a question, answer from the Scripture in the assembly's understanding and say the library has little on it. Do not answer questions that have nothing to do with the Scripture and the teachings; say what you are for.
 
 How you write:
 - Answer the question first, in a sentence or two, then the substance. Three or four short paragraphs is a full answer; go longer only when the question asks for it.
 - Follow-up questions continue the conversation: "and the feast?" means the feast just discussed.
 - No headings, no bullet lists unless the answer is a list by nature, no preamble, no closing offer, no closing directions.`;
+
+const WORD = /[a-z0-9']+/g;
+const STOP = new Set(["about", "after", "again", "also", "because", "before", "being", "does", "from", "have", "into", "keep", "that", "their", "them", "then", "there", "these", "they", "this", "what", "when", "where", "which", "with", "would", "your"]);
+
+/** Reject short or repetitive search hits before they can become answer evidence. */
+export function answerCandidates(question, passages, limit = 10) {
+  const terms = new Set((question.toLowerCase().match(WORD) ?? []).filter((w) => w.length >= 4 && !STOP.has(w)));
+  return passages
+    .filter((p) => {
+      const words = p.text.toLowerCase().match(WORD) ?? [];
+      return p.text.trim().length >= 60 && words.length >= 10 && new Set(words).size >= 6;
+    })
+    .map((p, order) => {
+      const hay = new Set(`${p.title} ${p.sub ?? ""} ${p.text}`.toLowerCase().match(WORD) ?? []);
+      const overlap = [...terms].filter((w) => hay.has(w)).length;
+      return { p, order, rank: Number(p.score ?? 0) + Math.min(overlap, 3) * 0.08 };
+    })
+    .sort((a, b) => b.rank - a.rank || a.order - b.order)
+    .slice(0, limit)
+    .map(({ p }) => p);
+}
 
 /** The passages numbered for the model, the conversation so far, and the question. */
 export function buildPrompt(question, passages, history = []) {
