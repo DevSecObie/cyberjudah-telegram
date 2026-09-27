@@ -94,7 +94,7 @@ export function Home() {
           <span><small>Live now</small><b>{live.data.title || "Sabbath class"}</b></span>
           <Icon name="play" size={20} />
         </Link>
-      ) : live.data?.upcoming && live.data.video && live.data.starts && new Date(live.data.starts).getTime() - Date.now() < 6 * 3600_000 ? (
+      ) : live.data?.upcoming && live.data.video && live.data.starts && new Date(live.data.starts).getTime() - Date.now() > -15 * 60_000 && new Date(live.data.starts).getTime() - Date.now() < 6 * 3600_000 ? (
         <Link to={`/watch/${encodeURIComponent(live.data.video)}?live=1`} className="live-card live-card--soon">
           <span className="live-card__dot" aria-hidden="true" />
           <span><small>Starting {new Date(live.data.starts).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</small><b>{live.data.title || "Sabbath class"}</b></span>

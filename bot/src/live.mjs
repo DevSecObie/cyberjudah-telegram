@@ -15,9 +15,14 @@ export function parseLive(html, checked) {
   if (!video) return none;
   const title = /"title":"((?:[^"\\]|\\.)*)"/.exec(details)?.[1]?.replace(/\\u0026/g, "&").replace(/\\"/g, '"').replace(/\\\\/g, "\\") ?? null;
   const live = /"isLiveNow":true/.test(html) || (/"isLive":true/.test(details) && !/"isUpcoming":true/.test(details));
-  const upcoming = !live && /"isUpcoming":true/.test(details);
   const starts = /"scheduledStartTime":"(\d+)"/.exec(html)?.[1];
-  return { live, upcoming, video, title, starts: starts ? new Date(Number(starts) * 1000).toISOString() : null, checked };
+  const at = starts ? Number(starts) * 1000 : null;
+  // A stream scheduled for a time already an hour gone never went live (the channel page keeps
+  // such placeholders for years); it is nothing to announce.
+  const stale = at !== null && at < Date.parse(checked) - 3600_000;
+  const upcoming = !live && !stale && /"isUpcoming":true/.test(details);
+  if (!live && !upcoming) return none;
+  return { live, upcoming, video, title, starts: at !== null ? new Date(at).toISOString() : null, checked };
 }
 
 const SMALL = new Set(["a", "an", "and", "as", "at", "but", "by", "for", "in", "of", "on", "or", "the", "to", "vs", "with"]);
