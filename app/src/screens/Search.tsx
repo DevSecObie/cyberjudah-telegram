@@ -48,7 +48,7 @@ export function Search() {
   const typing = input.trim() !== q;
 
   return (
-    <Screen kicker="What was said in the classes" title="Search">
+    <Screen title="Search" kicker="What was said in the classes">
       <SearchHero value={input} onChange={setInput} onSubmit={submit} autoFocus={!q} />
       <Chips><Chip on={!feed} onClick={() => set({ feed: undefined, page: undefined })}>All collections</Chip>{Object.entries(FEED_NAME).map(([k, name]) => <Chip key={k} on={feed === k} onClick={() => set({ feed: k, page: undefined })}>{name}</Chip>)}</Chips>
       {q && !typing ? <Recordings q={q} feed={feed} page={page} onPage={(p) => set({ page: p ? String(p) : undefined })} /> : (

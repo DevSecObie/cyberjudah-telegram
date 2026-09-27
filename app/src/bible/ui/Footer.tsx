@@ -34,7 +34,7 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
           <div className="bs-audio__top">
             <button type="button" className="bs-iconbtn" aria-label="Collapse" onClick={() => setExpanded(false)}><Feather name="chevron-down" size={20} /></button>
             <b>{reference}{speech.current ? `:${speech.current}` : ""} KJV</b>
-            <span className="bs-audio__mode">TTS</span>
+            <span className="bs-audio__mode" aria-label="Read aloud"><Feather name="volume-2" size={16} color="currentColor" /></span>
           </div>
           <div className="bs-audio__controls">
             <button type="button" className="bs-audio__ctl" aria-label="Previous chapter" disabled={!hasPrev} onClick={onPrev}><Ion name="play-skip-back" size={20} color="var(--bs-tertiary)" /></button>
@@ -65,7 +65,7 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
       ) : (
         <div className="bs-playpill" style={{ bottom: 10 + bottomBar, transform: `translateY(${centerY}px)` }}>
           <button type="button" className="bs-playbtn" aria-label={speech.playing ? "Pause audio playback" : "Start audio playback"} aria-busy={false} disabled={!speech.supported} style={{ background: speech.playing ? "var(--bs-primary)" : "var(--bs-reverse)", opacity: speech.supported ? 1 : 0.6 }} onClick={() => { haptic(); if (!speech.playing) speech.play(1); setExpanded(true); }}>
-            <span style={{ font: "700 12px system-ui, sans-serif", color: speech.playing ? "var(--bs-reverse)" : "var(--bs-primary)" }}>TTS</span>
+            <Feather name="volume-2" size={22} color={speech.playing ? "var(--bs-reverse)" : "var(--bs-primary)"} />
           </button>
         </div>
       )}

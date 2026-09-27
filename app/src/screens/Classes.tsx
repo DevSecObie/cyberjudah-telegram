@@ -31,7 +31,7 @@ export function Classes() {
   const years = useMemo(() => [...new Set(inFeed.map((t) => t.date.slice(0, 4)).filter(Boolean))].sort().reverse(), [inFeed]);
   const rows = useMemo(() => inFeed.filter((t) => (!teacher || t.teacher === teacher) && (!year || t.date.startsWith(year)) && (!query || `${t.title} ${t.teacher} ${t.topics.join(" ")} ${t.books.join(" ")}`.toLowerCase().includes(query))), [inFeed, teacher, year, query]);
   return (
-    <Screen title="Classes" kicker="Watch · read · listen">
+    <Screen title="Classes">
       <Segmented label="Series" value={feed} onChange={(f) => set({ feed: f, teacher: undefined, year: undefined })} options={FEEDS} />
       <SearchField id="class-q" value={q} onChange={(v) => { setQ(v); setShown(PAGE); }} placeholder="Title, topic, book or teacher" />
       {teachers.length > 1 || years.length > 1 ? (
