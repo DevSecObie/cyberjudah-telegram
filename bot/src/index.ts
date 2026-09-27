@@ -30,7 +30,8 @@ const STARS = new Set([50, 100, 500]);
 app.use("/api/*", async (c, next) => {
   if (c.req.path === "/api/verse-of-day" || c.req.path.startsWith("/api/dictionary")) return next();
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
-  const data = m ? await validateInitData(m[1], c.env.BOT_TOKEN, 86400) : null;
+  // Three days: a Mini App stays open across a weekend of study without its launch data going stale.
+  const data = m ? await validateInitData(m[1], c.env.BOT_TOKEN, 3 * 86400) : null;
   if (!data?.user) return c.json({ error: "unauthorized" }, 401);
   c.set("tma", data);
   await next();

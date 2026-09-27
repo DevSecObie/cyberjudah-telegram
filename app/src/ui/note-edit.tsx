@@ -33,8 +33,9 @@ export function NoteEditSheet({ open, onClose, note, onSaved }: { open: boolean;
       // The Worker says why an edit was refused; the reason reaches the person, not a generic line.
       const r = await fetch("/api/notes/edit", { method: "POST", headers: { "content-type": "application/json", authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify(body) });
       const res = (await r.json().catch(() => null)) as { ok: true; commit: string; changed: string[] } | { ok: false; error: string } | null;
-      if (!res) { void alert(`The edit did not save (${r.status}). Try again in a moment.`); return; }
-      if (!res.ok) { void alert(res.error); return; }
+      if (r.status === 401) { void alert("Your Telegram session has expired. Close CyberJudah, open it again, and the edit will save."); return; }
+      if (!res) { void alert(r.status >= 500 ? "The server is being updated right now. Wait a minute and tap Save again; your changes are still here." : `The edit did not save (${r.status}). Try again in a moment.`); return; }
+      if (!res.ok) { void alert(res.error ?? "The edit was refused."); return; }
       haptic("success"); onSaved(res.changed, res.commit);
     } catch { void alert("The edit did not reach the server. Check the connection and try again."); }
     finally { setBusy(false); }
