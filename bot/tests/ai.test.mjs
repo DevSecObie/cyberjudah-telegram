@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildPrompt, chunkRecord, citations, dedupeMatches, docRecord, hash } from "../src/ai.mjs";
+import { answerCandidates, buildPrompt, chunkRecord, citations, dedupeMatches, docRecord, hash, SYSTEM } from "../src/ai.mjs";
 
 test("records have stable ids from what they are, not where they sit", () => {
   const a = docRecord({ kind: "class", title: "Passover", url: "/classes/x", sub: "In Closing", text: "t1" });
@@ -23,6 +23,21 @@ test("the prompt numbers the passages and the citations read back in order of us
   assert.ok(withHistory[3].content.endsWith("Question: and the feast?"));
   assert.deepEqual(citations("It is kept for this reason [2]. Also [1, 2] and [9].", 2), [2, 1]);
   assert.deepEqual(citations("nothing", 2), []);
+});
+
+test("the answer contract preserves CyberJudah identity terminology", () => {
+  assert.match(SYSTEM, /IUIC means "Israel United in Christ"/);
+  assert.match(SYSTEM, /Bishop Nathanyel/);
+  assert.doesNotMatch(SYSTEM, /Bishop Nathanael/);
+  assert.match(SYSTEM, /Do not call him a Christian pastor/);
+  assert.match(SYSTEM, /Never invent an expansion, synonym, denomination, occupation or affiliation/);
+});
+
+test("junk transcript fragments cannot become answer evidence", () => {
+  const good = { kind: "class", title: "Why We Keep the Passover", url: "/class", text: "The Passover is kept as a memorial of deliverance from bondage and the congregation observes it according to the law.", score: 0.72 };
+  const filler = { kind: "spoken", title: "A class", url: "", text: "do do do do do do do do do do do do", score: 0.99 };
+  const tiny = { kind: "spoken", title: "Another class", url: "", text: "keep the Passover", score: 0.98 };
+  assert.deepEqual(answerCandidates("Why do we keep the Passover?", [filler, tiny, good]), [good]);
 });
 
 test("matches collapse to one per page or per recording minute-and-a-half, best score first", () => {
