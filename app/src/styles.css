@@ -214,6 +214,13 @@ html[data-tg="yes"] .steps { display: none; }
 .stat div { padding: 12px; border-radius: 14px; background: var(--a-card); border: 1px solid var(--a-line); }
 .stat b { display: block; font: 700 22px/1.1 var(--a-ui); color: var(--a-ink-2); font-variant-numeric: tabular-nums; }
 .stat span { font: 500 11px var(--a-ui); color: var(--a-muted); }
+.live-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--a-card); border: 1px solid color-mix(in srgb, var(--a-hot) 45%, var(--a-line)); }
+.live-card__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--a-hot); box-shadow: 0 0 0 4px color-mix(in srgb, var(--a-hot) 22%, transparent); animation: live-pulse 1.6s ease-in-out infinite; }
+.live-card--soon { border-color: var(--a-line); } .live-card--soon .live-card__dot { background: var(--a-muted); box-shadow: none; animation: none; }
+.live-card small { display: block; font: 600 12px var(--a-ui); color: var(--a-hot); }
+.live-card--soon small { color: var(--a-muted); }
+.live-card b { display: block; font: 600 16px/1.3 var(--a-ui); color: var(--a-ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@keyframes live-pulse { 0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--a-hot) 22%, transparent); } 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--a-hot) 8%, transparent); } }
 .sabbath { display: flex; align-items: center; gap: 14px; }
 .sabbath__icon { flex: none; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--a-amber, #fcee0a) 18%, transparent); color: var(--a-amber, #fcee0a); }
 .sabbath b { display: block; font: 600 17px var(--a-ui); color: var(--a-ink-2); font-variant-numeric: tabular-nums; }

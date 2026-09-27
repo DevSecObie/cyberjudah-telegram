@@ -10,13 +10,13 @@ const embed = (id: string, start: number) => `https://www.youtube-nocookie.com/e
  * The recording pinned at the top of the screen, the way YouTube's player stays while the
  * page beneath scrolls: a thumbnail until it is tapped, then the video from the moment.
  */
-export function Player({ video, start, playing, onPlay, title }: { video: string; start: number; playing: boolean; onPlay: () => void; title: string }) {
+export function Player({ video, start, playing, onPlay, title, live }: { video: string; start: number; playing: boolean; onPlay: () => void; title: string; live?: boolean }) {
   return (
     <div className="player">
       <div className="player__box">
         {playing ? <iframe key={`${video}:${Math.floor(start)}`} src={embed(video, start)} title={title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen /> : (
           <button type="button" className="watch" onClick={() => { haptic("select"); onPlay(); }} aria-label={start > 0 ? `Watch from ${timestamp(start)}` : "Watch the recording"}>
-            <Img src={thumbOf(video, true)} eager /><span><Icon name="play" size={18} /> {start > 0 ? `Watch from ${timestamp(start)}` : "Watch"}</span>
+            <Img src={thumbOf(video, true)} eager /><span><Icon name="play" size={18} /> {live ? "Watch live" : start > 0 ? `Watch from ${timestamp(start)}` : "Watch"}</span>
           </button>
         )}
       </div>

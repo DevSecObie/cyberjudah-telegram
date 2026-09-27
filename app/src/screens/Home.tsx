@@ -6,11 +6,15 @@ import { data, fmtDate, type FeedRow, type HistoryRow } from "@/api/data";
 import { useLast, useLastNote } from "@/lib/marks";
 import { countdown, sabbath } from "@/lib/sun";
 import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
+import { api } from "@/tg/sdk";
 import { haptic, user } from "@/tg/sdk";
 import { Card, Icon, Img, Screen, Section, Skeleton } from "@/ui/ui";
 import { SearchHero } from "@/ui/search-hero";
 
 type Verse = { ref: string; slug: string; chapter: number; verse: number; text: string };
+export type LiveNow = { live: boolean; upcoming: boolean; video: string | null; title: string | null; starts: string | null };
+/** Whether a class is on the air, asked again every minute while Home is open. */
+export const useLive = (enabled = true) => useQuery({ queryKey: ["live"], queryFn: () => api<LiveNow>("/api/live"), enabled, refetchInterval: 60_000, staleTime: 45_000, retry: false });
 export type Teaching = { kind: "class" | "captains" | "history"; url: string; title: string; date: string; teacher: string; thumb: string; topics: string[]; books: string[]; sub?: string; collection?: string };
 export const KIND_NAME: Record<Teaching["kind"], string> = { class: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History" };
 
@@ -41,6 +45,7 @@ export function Home() {
   const [loc] = useStored<{ lat: number; lng: number } | null>("loc", null);
   const verse = useQuery({ queryKey: ["votd"], queryFn: () => fetch("/api/verse-of-day").then((r) => r.json() as Promise<Verse>), staleTime: 60 * 60_000 });
   const feed = useTeachings();
+  const live = useLive();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30_000); return () => clearInterval(t); }, []);
   const sab = loc ? sabbath(now, loc.lat, loc.lng) : null;
@@ -62,6 +67,20 @@ export function Home() {
         <button type="button" className="door__btn door__btn--ask" onClick={() => { haptic("select"); navigate(q.trim() ? `/ask?q=${encodeURIComponent(q.trim())}` : "/ask"); }}><Icon name="note" size={18} /> Ask CyberJudah</button>
       </div>
       <p className="hint hint--center">Search finds the moment a word, a name or a Scripture was said in a class. Ask answers your question from the teachings, with its sources.</p>
+
+      {live.data?.live && live.data.video ? (
+        <Link to={`/watch/${encodeURIComponent(live.data.video)}?live=1`} className="live-card">
+          <span className="live-card__dot" aria-hidden="true" />
+          <span><small>Live now</small><b>{live.data.title || "Sabbath class"}</b></span>
+          <Icon name="play" size={20} />
+        </Link>
+      ) : live.data?.upcoming && live.data.video && live.data.starts && new Date(live.data.starts).getTime() - Date.now() < 6 * 3600_000 ? (
+        <Link to={`/watch/${encodeURIComponent(live.data.video)}?live=1`} className="live-card live-card--soon">
+          <span className="live-card__dot" aria-hidden="true" />
+          <span><small>Starting {new Date(live.data.starts).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</small><b>{live.data.title || "Sabbath class"}</b></span>
+          <Icon name="play" size={20} />
+        </Link>
+      ) : null}
 
       {(lastNote || last) ? (
         <div className="resume">

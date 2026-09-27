@@ -8,7 +8,7 @@ import { api, openLink } from "@/tg/sdk";
 import { NoteBody, noteLede } from "@/ui/note-body";
 import { NotesOpener, NotesSheet, Player } from "@/ui/player";
 import { Empty, Skeleton, timestamp, youtube } from "@/ui/ui";
-import { KIND_NAME } from "./Home";
+import { KIND_NAME, useLive } from "./Home";
 
 export type TranscriptWindow = { ok: true; video: string; kind: string; title: string; url: string; date: string; duration: number | null; t: number; chunks: { t: number; text: string }[] } | { ok: false; reason: string };
 export const useTranscriptAround = (video: string | null, t: number) => useQuery({ queryKey: ["transcript", video, Math.round(t)], enabled: !!video, queryFn: () => api<TranscriptWindow>(`/api/transcript/${encodeURIComponent(video!)}?t=${Math.round(t)}`), staleTime: 60 * 60_000 });
@@ -22,16 +22,28 @@ export function Watch() {
   const { video = "" } = useParams();
   const [params] = useSearchParams();
   const t = Math.max(0, Number(params.get("t")) || 0);
+  const isLive = params.get("live") === "1";
   const [start, setStart] = useState(t);
   const [playing, setPlaying] = useState(false);
   const [notes, setNotes] = useState(false);
   useBackButton(false, () => { if (notes) { setNotes(false); return true; } });
-  const res = useTranscriptAround(video, t);
+  const res = useTranscriptAround(isLive ? null : video, t);
+  const live = useLive(isLive);
   const r = res.data;
   const note = useQuery({ queryKey: ["note", r?.ok ? r.url : ""], queryFn: () => data.note(r!.ok ? r!.url : "/"), enabled: !!(r?.ok && r.url) });
-  useBottomButtons(r?.ok ? { text: "Open in YouTube", onClick: () => openLink(youtube(video, start)) } : null, null);
+  useBottomButtons(r?.ok || isLive ? { text: "Open in YouTube", onClick: () => openLink(youtube(video, isLive ? 0 : start)) } : null, null);
   useEffect(() => { if (r?.ok) setTimeout(() => document.querySelector(".tx__chunk[data-here]")?.scrollIntoView({ block: "center" }), 60); }, [r]);
   const seek = (at: number) => { setStart(at); setPlaying(true); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  if (isLive) return (
+    <main className="screen screen--player">
+      <Player video={video} start={0} playing={playing} onPlay={() => setPlaying(true)} title={live.data?.title || "Live class"} live />
+      <header className="note-head">
+        <p className="kicker">{live.data?.live ? "Live now · Sabbath class" : live.data?.upcoming ? "Starting soon" : "Sabbath class"}</p>
+        <h1>{live.data?.title || "Live class"}</h1>
+      </header>
+      <p className="hint">The class is streaming from YouTube. Its captions, the search and the notes follow once the stream has ended.</p>
+    </main>
+  );
   if (res.isPending) return <main className="screen"><Skeleton rows={5} /></main>;
   if (!r || !r.ok) return <main className="screen"><Empty title="This recording is not in the transcripts yet">Its captions load with the next refresh.</Empty></main>;
   return (

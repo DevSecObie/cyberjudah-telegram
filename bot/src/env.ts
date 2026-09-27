@@ -3,6 +3,8 @@ export type Env = {
   /** The site's own D1 database (cyberjudah): teaching_passages and teaching_refs, filled by the cyberjudah repository. */
   TEACH: D1Database;
   SUBS: KVNamespace;
+  /** The YouTube channel whose live stream is the class on the air (a UC… id). */
+  LIVE_CHANNEL?: string;
   ASSETS: Fetcher;
   AI: Ai;
   VEC: Vectorize;
