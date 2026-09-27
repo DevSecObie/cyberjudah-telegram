@@ -28,14 +28,19 @@ export async function commitEdit(env: Env, edit: NoteEdit, by: string): Promise<
   const repo = env.TRANSCRIPTS_REPO || "DevSecObie/cyberjudah";
   const url = `/repos/${repo}/contents/${edit.file}`;
   const cur = await gh(env, url);
-  if (!cur.ok) return { ok: false, error: cur.status === 404 ? "This note is not in the repository." : `GitHub ${cur.status} reading the note.` };
+  if (!cur.ok) return { ok: false, error: cur.status === 404 ? "This note is not in the repository." : cur.status === 401 || cur.status === 403 ? `GitHub refused the token (${cur.status}): CYBERJUDAH_TOKEN needs Contents read and write on ${repo}.` : `GitHub ${cur.status} reading the note.` };
   const { sha, content } = (await cur.json()) as { sha: string; content: string };
   let applied: { text: string; summary: string[] };
   try { applied = applyEdit(b64.dec(content), edit); } catch (e) { return { ok: false, error: (e as Error).message }; }
   const title = /^title:\s*"?(.*?)"?\s*$/m.exec(applied.text)?.[1] ?? edit.file;
   const message = `notes: ${title} (edited in the app)\n\n${applied.summary.map((s) => `- ${s}`).join("\n")}\n\nEdited by ${by} from the Telegram app.`;
   const put = await gh(env, url, { method: "PUT", body: JSON.stringify({ message, content: b64.enc(applied.text), sha }) });
-  if (!put.ok) return { ok: false, error: put.status === 409 ? "The note changed meanwhile. Try again." : `GitHub ${put.status} writing the note.` };
+  if (!put.ok) {
+    const why = ((await put.json().catch(() => null)) as { message?: string } | null)?.message ?? "";
+    if (put.status === 409) return { ok: false, error: "The note changed while you were editing (another save landed). Open it again and retry." };
+    if (put.status === 401 || put.status === 403) return { ok: false, error: `GitHub refused the token (${put.status}): CYBERJUDAH_TOKEN needs Contents read and write on ${repo}.` };
+    return { ok: false, error: `GitHub ${put.status} writing the note${why ? `: ${why}` : ""}.` };
+  }
   const res = (await put.json()) as { commit: { html_url: string } };
   return { ok: true, commit: res.commit.html_url, changed: applied.summary };
 }

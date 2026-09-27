@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import type { Note } from "@/api/data";
 import { Sheet } from "@/bible/ui/Sheet";
 import { useTeachings } from "@/screens/Home";
-import { alert, api, haptic } from "@/tg/sdk";
+import { alert, app, haptic } from "@/tg/sdk";
 
 /**
  * Editing a note from the app: the teacher's name, the title, and spelling fixes (every
@@ -30,10 +30,13 @@ export function NoteEditSheet({ open, onClose, note, onSaved }: { open: boolean;
       if (changes.teacher) body.teacher = teacher.trim();
       if (changes.title) body.title = title.trim();
       if (changes.replace.length) body.replace = changes.replace;
-      const res = await api<{ ok: true; commit: string; changed: string[] } | { ok: false; error: string }>("/api/notes/edit", { method: "POST", json: body });
+      // The Worker says why an edit was refused; the reason reaches the person, not a generic line.
+      const r = await fetch("/api/notes/edit", { method: "POST", headers: { "content-type": "application/json", authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify(body) });
+      const res = (await r.json().catch(() => null)) as { ok: true; commit: string; changed: string[] } | { ok: false; error: string } | null;
+      if (!res) { void alert(`The edit did not save (${r.status}). Try again in a moment.`); return; }
       if (!res.ok) { void alert(res.error); return; }
       haptic("success"); onSaved(res.changed, res.commit);
-    } catch { void alert("The edit did not save. Check the connection and try again."); }
+    } catch { void alert("The edit did not reach the server. Check the connection and try again."); }
     finally { setBusy(false); }
   };
 
