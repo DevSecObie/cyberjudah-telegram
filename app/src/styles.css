@@ -180,6 +180,7 @@ html[data-tg="yes"] .steps { display: none; }
 .nsheet__head small { display: block; font: 400 13px var(--a-ui); color: var(--a-muted); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 .nsheet__head > div { min-width: 0; }
 .nsheet__grip { position: absolute; top: 5px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--a-line); }
+.nsheet__actions { display: flex; align-items: center; gap: 6px; flex: none; }
 .nsheet__close { width: 32px; height: 32px; border: 0; border-radius: 50%; background: var(--a-card); color: var(--a-ink-2); font: 400 20px/1 var(--a-ui); cursor: pointer; }
 .nsheet__body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 16px 16px calc(24px + var(--safe-bottom, 0px)); max-width: 640px; width: 100%; margin: 0 auto; box-sizing: border-box; }
 .note-head h1 { margin: 0; font: 600 27px/1.2 var(--a-read); color: var(--a-ink-2); text-wrap: balance; }
@@ -496,3 +497,25 @@ a.rec { color: inherit; text-decoration: none; }
 .composer__go:disabled { opacity: .35; }
 .chat__new { font: 500 14px var(--a-ui); color: var(--a-accent); background: none; border: 0; padding: 8px 0; cursor: pointer; }
 .sources__label { margin: 0 0 2px; font: 600 11px/1.2 var(--a-ui); color: var(--a-muted); }
+
+/* Editing a note in place (admins): a form in a full sheet. */
+.edit { padding: 8px 16px 24px; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+.edit__field { display: flex; flex-direction: column; gap: 4px; }
+.edit__field span, .edit__label { font: 500 13px/1.3 var(--a-ui); color: var(--a-muted); }
+.edit__label { margin: 10px 0 0; }
+.edit input { width: 100%; box-sizing: border-box; border: 1px solid var(--a-line); border-radius: 12px; background: var(--a-card-2); color: var(--a-ink-2); font: 400 16px/1.4 var(--a-ui); padding: 10px 12px; outline: none; }
+.edit input:focus { border-color: var(--a-accent); }
+.edit__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.edit__pair { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 34px; align-items: center; gap: 6px; }
+.edit__arrow { color: var(--a-muted); }
+.edit__pair small { font: 500 12px/1 var(--a-ui); color: var(--a-accent); text-align: right; }
+.edit__pair small.edit__none { color: var(--a-muted); }
+.edit__footer { display: flex; gap: 8px; justify-content: flex-end; padding: 10px 16px calc(10px + var(--safe-bottom, 0px)); border-top: 1px solid var(--a-line); background: var(--a-bg); }
+.edit__footer .btn { min-width: 96px; }
+.edit__footer .btn:disabled { opacity: .45; }
+/* The edit sheet borrows the Bible tab's sheet outside the Bible tab: give it the app's colours. */
+.edit-sheet { --bs-reverse: var(--a-bg); --bs-default: var(--a-ink-2); --bs-tertiary: var(--a-muted); --bs-border: var(--a-line); z-index: 80; }
+.edit-sheet .bs-sheet__titles b { color: var(--a-ink-2); }
+.edit-sheet .bs-sheet__footer { flex: none; }
+.edit__chips .chip { padding: 6px 12px; border-radius: 999px; background: var(--a-card); border: 1px solid var(--a-line); font: 500 14px/1.2 var(--a-ui); color: var(--a-ink-2); }
+.edit__chips .chip[aria-pressed="true"] { background: var(--a-ink-2); border-color: var(--a-ink-2); }

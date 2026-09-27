@@ -11,6 +11,8 @@ import { store } from "@/tg/store";
 import { useSheet } from "@/ui/sheet";
 import { Empty, Icon, Screen, SearchField, Skeleton } from "@/ui/ui";
 import { MergeIcon, TargetIcon } from "@/ui/relations";
+import { preceptsForVerse, slugOfUrl, useTaughtPrecepts } from "@/lib/taught";
+import { fmtDate } from "@/api/data";
 
 /** Parses `?endpoint=` (a verse endpoint as `john-3-16,john-3-17`, or an identity) into an endpoint. */
 export function endpointFromParam(p: string | null, books: { slug: string; book: string }[] | undefined): Endpoint | null {
@@ -41,6 +43,10 @@ export function Relations() {
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const endpoint = useMemo(() => endpointFromParam(params.get("endpoint"), books.data), [params, books.data]);
   const { sections, reload, count } = useEndpointRelations(endpoint);
+  // The library's own relations for a verse: the precepts the classes lined up with it.
+  const first = endpoint?.type === "verse" ? parseVerseKey(endpoint.verseKeys[0]) : null;
+  const taught = useTaughtPrecepts(first?.slug ?? "", first?.chapter ?? 0);
+  const precepts = first ? preceptsForVerse(taught.data, first.verse) : [];
   const [picking, setPicking] = useState(false);
   const navigate = useNavigate();
   const sheet = useSheet();
@@ -69,7 +75,22 @@ export function Relations() {
   if (!endpoint) return <Screen title="Relations"><Empty title="No relations" /></Screen>;
   return (
     <Screen title="Relations" kicker={endpoint.label} action={<button type="button" className="icon-btn" aria-label="Add relation" onClick={() => setPicking(true)}>+</button>}>
-      {!count ? <div className="rel-empty"><MergeIcon size={64} /><p>No relations</p></div> : sections.map((s) => (
+      {!count && !precepts.length ? <div className="rel-empty"><MergeIcon size={64} /><p>No relations</p></div> : null}
+      {precepts.length ? (
+        <div className="rel-section">
+          <p className="rel-section__title"><TargetIcon type="entry" /> Taught in class</p>
+          {precepts.map((r, i) => { const m = slugOfUrl(r.ref.url); return (
+            <div key={i} className="rel-row" data-last={i === precepts.length - 1 ? "" : undefined}>
+              <button type="button" className="rel-row__body" onClick={() => (m ? navigate(`/read/${m[1]}/${m[2]}${r.ref.verses ? `?v=${r.ref.verses}` : ""}`) : undefined)}>
+                <span className="rel-row__title"><b>{r.kind === "precept" ? "precept" : "opened at"}</b> <TargetIcon type="verse" /> <b>{r.ref.label}</b></span>
+                {r.text ? <small>{r.text}</small> : null}
+                <small>{r.note.label}{r.note.date ? ` · ${fmtDate(r.note.date)}` : ""}</small>
+              </button>
+            </div>
+          ); })}
+        </div>
+      ) : null}
+      {count ? sections.map((s) => (
         <div key={s.id} className="rel-section">
           {s.title ? <p className="rel-section__title"><TargetIcon type="verse" /> {s.title}</p> : null}
           {s.data.map(({ relation: r, active, target }, i) => (
@@ -83,7 +104,7 @@ export function Relations() {
             </div>
           ))}
         </div>
-      ))}
+      )) : null}
       {picking ? <RelationTargetPicker source={endpoint} onClose={() => setPicking(false)} onCreated={() => { setPicking(false); reload(); }} /> : null}
     </Screen>
   );

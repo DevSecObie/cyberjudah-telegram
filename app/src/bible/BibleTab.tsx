@@ -21,6 +21,7 @@ import { Footer } from "./ui/Footer";
 import { Header, PassageContextBar, VersionSheet, type MenuAction } from "./ui/Header";
 import { ParamsSheet } from "./ui/ParamsSheet";
 import { ResourcesSheet, type ResourceTab } from "./ui/ResourcesSheet";
+import { useTaughtRelations } from "@/lib/taught";
 import { SelectedVersesSheet } from "./ui/SelectedVersesSheet";
 import "./bible.css";
 
@@ -79,6 +80,9 @@ export function BibleTab() {
   const [bookmarks, setBookmarks] = useBookmarks();
   const [tags, setTags] = useTags();
   const rel = useChapterRelations(slug, ch, settings.relationsDisplay);
+  // The precepts the classes lined up with these verses, under each verse beside the reader's own relations.
+  const taught = useTaughtRelations(slug, ch, settings.relationsDisplay);
+  const relItems = useMemo(() => { const out: Record<number, VerseRelationItem[]> = { ...rel.items }; for (const [v, items] of Object.entries(taught)) out[+v] = [...(out[+v] ?? []), ...items]; return out; }, [rel.items, taught]);
   const [progress, setProgress] = useProgress();
   const [plan, setPlan] = usePlan();
   const [history, setHistory] = useHistory();
@@ -213,7 +217,7 @@ export function BibleTab() {
       ) : (
         <Chapter slug={slug} chapter={ch} verses={verses} settings={settings} palette={palette} theme={theme}
           selected={selected} focusVerses={focus} contextDisplayMode={contextMode} verseToScroll={verseToScroll} navigationRequest={navRequest}
-          highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={rel.items}
+          highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={relItems}
           headerHeight={headerHeight} fullscreen={fullscreen} canSwipe
           onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "dictionary")}
           onSwipe={(dir) => go(dir === "left" ? next : prev)} onFullscreen={setFullscreen}

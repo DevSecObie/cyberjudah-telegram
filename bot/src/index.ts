@@ -14,6 +14,7 @@ import { verseCard } from "./card";
 import { sendDaily } from "./daily";
 import { bookLabel } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
+import { canEdit, commitEdit, isAdmin, type NoteEdit } from "./edit";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
@@ -43,7 +44,18 @@ app.post("/webhook", async (c) => {
 app.get("/api/me", async (c) => {
   const { user } = c.get("tma");
   const sub = await c.env.SUBS.get(`sub:${user!.id}`);
-  return c.json({ user: { id: user!.id, first_name: user!.first_name, username: user!.username }, subscribed: Boolean(sub), premium: Boolean(user!.is_premium) });
+  return c.json({ user: { id: user!.id, first_name: user!.first_name, username: user!.username }, subscribed: Boolean(sub), premium: Boolean(user!.is_premium), admin: isAdmin(c.env, user!.id), canEdit: isAdmin(c.env, user!.id) && canEdit(c.env) });
+});
+
+// An admin's edit to a note (teacher, title, a spelling, or the text): one commit to the
+// cyberjudah repository; the site and the app pick it up on the next build.
+app.post("/api/notes/edit", async (c) => {
+  const { user } = c.get("tma");
+  if (!isAdmin(c.env, user!.id)) return c.json({ ok: false, error: "Only an admin can edit notes." }, 403);
+  const edit = (await c.req.json().catch(() => null)) as NoteEdit | null;
+  if (!edit?.file) return c.json({ ok: false, error: "No note given." }, 400);
+  const res = await commitEdit(c.env, edit, user!.username ? `@${user!.username}` : user!.first_name);
+  return c.json(res, res.ok ? 200 : 400);
 });
 
 app.get("/api/search", async (c) => {

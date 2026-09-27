@@ -186,6 +186,23 @@ test("a long press opens the verse's resources: dictionary, references, comments
   await expect(page.locator(".dict p").first()).toContainText("Delight");
 });
 
+test("the precepts a class lined up with a verse: a tag under the verse, and a Precepts tab in its resources", async ({ page }) => {
+  await page.goto(`/read/isaiah/11${LAUNCH}`);
+  await expect(page.locator("#verset-12")).toBeVisible();
+  // The library's relation, drawn like the reader's own, under the last verse of the span.
+  const tag = page.locator("#verset-12 .rel-tag").first();
+  await expect(tag).toBeVisible();
+  await longPressVerse(page, 11);
+  await expect(page.locator(".bs-sheet__titles b")).toHaveText("Isaiah 11:11");
+  await page.click('.bs-resourcetabs button >> text=Precepts');
+  await expect(page.locator(".bs-sheet__titles small")).toHaveText("Precepts taught with this verse");
+  const row = page.locator(".bs-precept").first();
+  await expect(row).toBeVisible();
+  await expect(row.locator("small")).toContainText(/\S/);
+  await row.click();
+  await expect(page).toHaveURL(/\/read\/[a-z0-9-]+\/\d+/);
+});
+
 test("relations: a verse linked to a passage shows as a tag under the verse, with edit and delete", async ({ page }) => {
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await tapVerse(page, 1);

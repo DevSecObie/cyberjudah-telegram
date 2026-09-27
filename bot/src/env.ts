@@ -23,6 +23,10 @@ export type Env = {
   ANTHROPIC_API_KEY?: string;
   /** The Claude model Ask CyberJudah answers with (claude-opus-5 when unset). */
   CLAUDE_MODEL?: string;
+  /** Telegram user ids (comma-separated) allowed to edit notes from the app. */
+  ADMIN_IDS?: string;
+  /** Set as a Worker secret from the CYBERJUDAH_TOKEN repository secret: a fine-grained GitHub token with contents write on the cyberjudah repository, for edits made in the app. */
+  CYBERJUDAH_TOKEN?: string;
 };
 
 /** A daily-verse subscription, KV key sub:<userId>. hour is local, tz the offset in minutes. */

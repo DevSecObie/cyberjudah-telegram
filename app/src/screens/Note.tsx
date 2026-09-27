@@ -8,9 +8,10 @@ import { Link, useSearchParams } from "react-router";
 import { useTeachings } from "./Home";
 import { share } from "@/lib/share";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
-import { haptic, openLink, setClosingConfirmation } from "@/tg/sdk";
+import { api, haptic, openLink, setClosingConfirmation, alert } from "@/tg/sdk";
 import { NoteBody, noteLede } from "@/ui/note-body";
 import { NotesOpener, NotesSheet, Player } from "@/ui/player";
+import { NoteEditSheet } from "@/ui/note-edit";
 import { Empty, Icon, Skeleton, timestamp, youtube } from "@/ui/ui";
 import { TranscriptExcerpt, useTranscriptAround } from "./Watch";
 
@@ -45,6 +46,10 @@ export function NoteScreen() {
   const [start, setStart] = useState(at ?? 0);
   const [playing, setPlaying] = useState(false);
   const [notes, setNotes] = useState(at === null || !!location.hash);
+  // Admins edit a note in place: the teacher, the title, a spelling. /api/me says who may.
+  const who = useQuery({ queryKey: ["me"], queryFn: () => api<{ canEdit?: boolean }>("/api/me"), staleTime: 600_000, retry: false });
+  const [editing, setEditing] = useState(false);
+  const saved = (changed: string[], commit: string) => { setEditing(false); void alert(`Saved: ${changed.join("; ")}. The app shows it once the library rebuilds, in a few minutes.`); void commit; };
   useBackButton(false, () => { if (notes && video && at !== null) { setNotes(false); return true; } });
   const seek = (t: number) => { setStart(t); setPlaying(true); setNotes(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
@@ -72,6 +77,7 @@ export function NoteScreen() {
       <p className="kicker">{[KIND[n.kind] ?? "", when(n.date, n.teacher)].filter(Boolean).join(" · ")}</p>
       <h1>{n.title}</h1>
       <div className="head__actions">
+        {who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}
         <button type="button" className="icon-btn" aria-pressed={kept} aria-label={kept ? "Remove bookmark" : "Bookmark"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: path, kind: "note", title: n.title, text: [KIND[n.kind], fmtDate(n.date)].filter(Boolean).join(" · "), href: path })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={18} /></button>
       </div>
     </header>
@@ -92,7 +98,8 @@ export function NoteScreen() {
       {taught}
       {isHistory && episode.data?.turns?.length ? <Transcript ep={episode.data} find={params.get("find") ?? ""} onSeek={seek} /> : null}
       {upnext}
-      <NotesSheet open={notes} onClose={() => setNotes(false)} sub={n.title}><NoteBody md={n.body} /></NotesSheet>
+      <NotesSheet open={notes} onClose={() => setNotes(false)} sub={n.title} action={who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}><NoteBody md={n.body} /></NotesSheet>
+      {editing ? <NoteEditSheet open onClose={() => setEditing(false)} note={n} onSaved={saved} /> : null}
     </main>
   );
   return (
@@ -101,6 +108,7 @@ export function NoteScreen() {
       {taught}
       <NoteBody md={n.body} />
       {upnext}
+      {editing ? <NoteEditSheet open onClose={() => setEditing(false)} note={n} onSaved={saved} /> : null}
     </main>
   );
 }

@@ -30,12 +30,13 @@ export function Settings() {
   const [fullscreen, setFs, fsLoaded] = useStored("fullscreen", true);
   const [portrait, setPortrait] = useStored("portrait", false);
   const [daily, setDaily] = useState<boolean | null>(null);
+  const [me, setMe] = useState<{ user: { id: number }; admin?: boolean; canEdit?: boolean } | null>(null);
   const [hour, setHour] = useStored("daily-hour", 8);
   const [lock, setLock] = useState(false);
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const [saved, setSaved] = useState<string[]>([]);
   const [saving, setSaving] = useState<{ slug: string; pct: number } | null>(null);
-  useEffect(() => { void api<{ subscribed: boolean }>("/api/me").then((m) => setDaily(m.subscribed)).catch(() => setDaily(false)); void secure.get("lock").then((v) => setLock(v === "on")); void savedBooks().then(setSaved); }, []);
+  useEffect(() => { void api<{ subscribed: boolean; user: { id: number }; admin?: boolean; canEdit?: boolean }>("/api/me").then((m) => { setDaily(m.subscribed); setMe(m); }).catch(() => setDaily(false)); void secure.get("lock").then((v) => setLock(v === "on")); void savedBooks().then(setSaved); }, []);
   useEffect(() => { if (!fsLoaded) return; setFullscreen(fullscreen); try { localStorage.setItem("cj:fullscreen", fullscreen ? "on" : "off"); } catch { /* private mode */ } }, [fullscreen, fsLoaded]);
   useEffect(() => { lockPortrait(portrait); }, [portrait]);
 
@@ -102,6 +103,7 @@ export function Settings() {
         <p className="hint">Telegram Stars go toward hosting the library. The text and the notes stay free.</p>
       </Section>
       <Section title="This app">
+        {me ? <List><Row title="Your Telegram id" sub={me.canEdit ? "You can edit notes from the app" : me.admin ? "Admin; editing needs the CYBERJUDAH_TOKEN secret on the deploy" : "Notes are read-only for this account"} trailing={<span className="pill">{me.user.id}</span>} onClick={() => { void navigator.clipboard?.writeText(String(me.user.id)).then(() => haptic("success")).catch(() => undefined); }} /></List> : null}
         <p className="hint">{app ? `Telegram ${app.version} on ${app.platform}. ` : "Running in a browser. "}{Object.entries(features).filter(([, v]) => v).length} of {Object.keys(features).length} Mini App features available here.</p>
       </Section>
     </Screen>

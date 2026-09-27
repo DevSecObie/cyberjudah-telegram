@@ -39,7 +39,7 @@ export function NotesOpener({ lede, onOpen, count }: { lede?: string; onOpen: ()
  * The notes as a sheet that slides up under the pinned player and scrolls on its own, like
  * YouTube's comments on a phone: the recording keeps playing above while you read.
  */
-export function NotesSheet({ open, onClose, title = "Class notes", sub, children }: { open: boolean; onClose: () => void; title?: string; sub?: string; children: ReactNode }) {
+export function NotesSheet({ open, onClose, title = "Class notes", sub, action, children }: { open: boolean; onClose: () => void; title?: string; sub?: string; action?: ReactNode; children: ReactNode }) {
   const [top, setTop] = useState(0);
   useLayoutEffect(() => {
     if (!open) return;
@@ -61,7 +61,7 @@ export function NotesSheet({ open, onClose, title = "Class notes", sub, children
       <header className="nsheet__head">
         <span className="nsheet__grip" aria-hidden="true" />
         <div><h2>{title}</h2>{sub ? <small>{sub}</small> : null}</div>
-        <button type="button" className="nsheet__close" aria-label="Close the notes" onClick={() => { haptic("select"); onClose(); }}>×</button>
+        <span className="nsheet__actions">{action}<button type="button" className="nsheet__close" aria-label="Close the notes" onClick={() => { haptic("select"); onClose(); }}>×</button></span>
       </header>
       <div className="nsheet__body">{open ? children : null}</div>
     </section>

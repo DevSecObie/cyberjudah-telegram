@@ -55,6 +55,22 @@ repository has an `ANTHROPIC_API_KEY` secret (the deploy stores it on the Worker
 questions a day per person.
 The same index gives the Search screen its "By meaning" mode.
 
+**Precepts lined up with the verse.** The library's engine reads the precepts a class
+taught under each scripture it opened and puts them in the chapter's concordance JSON
+(`precepts`, both ways: the verse opened learns its precepts, the precept's verse learns
+where it was opened). In the Bible tab they show as tags under the verse beside the
+reader's own relations, on the Relations screen under "Taught in class", and a long press
+opens a Precepts tab: each precept with the teacher's line and the class, a tap away, plus
+the precept topics of the reference work with all their scriptures.
+
+**Editing a note from the app.** An admin (a Telegram user id listed in the `ADMIN_IDS`
+repository secret) sees an edit button on a class note: the teacher, the title and
+spelling fixes (every occurrence of a phrase) save as one commit to the cyberjudah
+repository through GitHub's contents API, with the `CYBERJUDAH_TOKEN` repository secret
+(a fine-grained token with contents write on that repository) that the deploy stores on
+the Worker. The site and the app show the change once the library rebuilds. Settings
+shows the account's Telegram id.
+
 **Reading voices.** The Bible tab's Voice sheet lists Workers AI's Deepgram Aura voices
 beside the device's own; a verse is generated once and kept in R2 (`cyberjudah-audio`), so
 a chapter costs its first listener only.

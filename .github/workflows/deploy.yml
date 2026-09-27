@@ -106,6 +106,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CYBERJUDAH_TOKEN: ${{ secrets.CYBERJUDAH_TOKEN }}
+          ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
         run: |
           # The Worker needs the same secrets Telegram will present; wrangler stores them on the Worker.
           printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
@@ -113,6 +115,11 @@ jobs:
           printf '%s' "$WORKER_URL" | npx wrangler secret put WORKER_URL
           # Ask CyberJudah answers with Claude when the repository has an ANTHROPIC_API_KEY secret.
           if [ -n "$ANTHROPIC_API_KEY" ]; then printf '%s' "$ANTHROPIC_API_KEY" | npx wrangler secret put ANTHROPIC_API_KEY; else echo "No ANTHROPIC_API_KEY secret: Ask CyberJudah answers with Llama on Workers AI."; fi
+          # Notes can be edited from the app when the repository has a CYBERJUDAH_TOKEN secret (a
+          # fine-grained GitHub token with contents write on DevSecObie/cyberjudah) and ADMIN_IDS
+          # names the Telegram user ids allowed to edit.
+          if [ -n "$CYBERJUDAH_TOKEN" ]; then printf '%s' "$CYBERJUDAH_TOKEN" | npx wrangler secret put CYBERJUDAH_TOKEN; else echo "No CYBERJUDAH_TOKEN secret: notes are read-only in the app."; fi
+          if [ -n "$ADMIN_IDS" ]; then printf '%s' "$ADMIN_IDS" | npx wrangler secret put ADMIN_IDS; fi
           node scripts/setup.mjs
 
   refresh-search:
