@@ -57,8 +57,13 @@ app.post("/api/notes/edit", async (c) => {
   if (!isAdmin(c.env, user!.id)) return c.json({ ok: false, error: "Only an admin can edit notes." }, 403);
   const edit = (await c.req.json().catch(() => null)) as NoteEdit | null;
   if (!edit?.file) return c.json({ ok: false, error: "No note given." }, 400);
-  const res = await commitEdit(c.env, edit, user!.username ? `@${user!.username}` : user!.first_name);
-  return c.json(res, res.ok ? 200 : 400);
+  try {
+    const res = await commitEdit(c.env, edit, user!.username ? `@${user!.username}` : user!.first_name);
+    return c.json(res, res.ok ? 200 : 400);
+  } catch (e) {
+    // Whatever goes wrong, the sheet gets the reason as JSON, never a bare error page.
+    return c.json({ ok: false, error: `The save failed on the server: ${(e as Error).message}` }, 400);
+  }
 });
 
 app.get("/api/search", async (c) => {

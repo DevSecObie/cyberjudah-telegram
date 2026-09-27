@@ -41,3 +41,17 @@ export function applyEdit(text, edit) {
   if (!summary.length) throw new Error("Nothing to change");
   return { text: out, summary };
 }
+
+/** Base64 of UTF-8 text and back, in chunks: a long note must not blow the call stack. */
+export function encodeBase64(text) {
+  const bytes = new TextEncoder().encode(text);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+  return btoa(bin);
+}
+export function decodeBase64(b64) {
+  const bin = atob(String(b64).replace(/\s/g, ""));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
