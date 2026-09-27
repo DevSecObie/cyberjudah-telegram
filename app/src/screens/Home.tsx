@@ -17,7 +17,8 @@ export type LiveNow = { live: boolean; upcoming: boolean; video: string | null; 
 export const useLive = (enabled = true) => useQuery({ queryKey: ["live"], queryFn: () => api<LiveNow>("/api/live"), enabled, refetchInterval: 60_000, staleTime: 45_000, retry: false });
 export type Teaching = { kind: "class" | "captains" | "history"; url: string; title: string; date: string; teacher: string; thumb: string; topics: string[]; books: string[]; sub?: string; collection?: string; video?: string; pending?: boolean };
 export type RecentVideo = { video: string; title: string; published: string; views: number | null };
-const videoOfThumb = (thumb: string) => /\/vi\/([A-Za-z0-9_-]{6,})\//.exec(thumb ?? "")?.[1] ?? null;
+/** The video behind a teaching's thumbnail: YouTube's own (/vi/<id>/) or the site's local copy (/img/<feed>/<id>.jpg). */
+const videoOfThumb = (thumb: string) => /(?:\/vi\/|\/img\/[a-z]+\/)([A-Za-z0-9_-]{11})(?=[/.])/.exec(thumb ?? "")?.[1] ?? null;
 /** Where a teaching opens: its notes, or the recording itself while the notes are still coming. */
 export const teachingTo = (t: Teaching) => (t.pending && t.video ? `/watch/${encodeURIComponent(t.video)}` : `/note${t.url}`);
 /** The channel's newest uploads, so a class is in the app before its notes are written. */

@@ -36,3 +36,11 @@ test("the video id comes out of a thumbnail URL", () => {
   assert.equal(videoOfThumb(""), null);
 });
 
+
+test("the video behind a thumbnail, YouTube's or the site's local copy", async () => {
+  const { videoOfThumb } = await import("../src/transcripts.mjs");
+  assert.equal(videoOfThumb("https://i.ytimg.com/vi/CiL1d9RUSfE/mqdefault.jpg"), "CiL1d9RUSfE");
+  assert.equal(videoOfThumb("https://data.cyberjudah.io/img/classes/CiL1d9RUSfE.jpg"), "CiL1d9RUSfE");
+  assert.equal(videoOfThumb("/img/captains/kw1RCi6Wuzk.jpg"), "kw1RCi6Wuzk");
+  assert.equal(videoOfThumb(""), null);
+});

@@ -40,4 +40,4 @@ export function chunkSegments(segments) {
 }
 
 /** The video id in a YouTube thumbnail URL, which the feeds carry instead of the id. */
-export const videoOfThumb = (thumb) => /\/vi\/([A-Za-z0-9_-]{6,})\//.exec(thumb ?? "")?.[1] ?? null;
+export const videoOfThumb = (thumb) => /(?:\/vi\/|\/img\/[a-z]+\/)([A-Za-z0-9_-]{11})(?=[/.])/.exec(thumb ?? "")?.[1] ?? null;
