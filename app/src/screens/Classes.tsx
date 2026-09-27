@@ -46,7 +46,7 @@ export function Classes() {
           <div className="feed">
             {rows.slice(0, shown).map((t) => (
               <Link key={t.url} to={teachingTo(t)} className="feed__card">
-                <span className="feed__img"><Img src={t.thumb} /><span className="feed__kind">{KIND_NAME[t.kind]}</span><span className="feed__play"><Icon name="play" size={16} /></span></span>
+                <span className="feed__img"><Img src={t.thumb} /><span className="feed__kind">{KIND_NAME[t.kind]}</span></span>
                 <span className="feed__body"><b>{t.title}</b><small>{[t.sub, fmtDate(t.date), t.teacher].filter(Boolean).join(" · ")}{t.pending ? <span className="soon">Notes coming soon</span> : null}</small>{t.books.length ? <span className="feed__books">{t.books.slice(0, 3).map((b) => <em key={b}>{b}</em>)}</span> : null}</span>
               </Link>
             ))}

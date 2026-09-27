@@ -114,7 +114,7 @@ export function Home() {
       {feed.isPending ? <Skeleton rows={3} thumb /> : latestClass ? (
         <Section title="This week's class">
           <Link to={teachingTo(latestClass)} className="feature">
-            <span className="feature__img"><Img src={latestClass.thumb} eager /><span className="feature__play"><Icon name="play" size={22} /></span></span>
+            <span className="feature__img"><Img src={latestClass.thumb} eager /></span>
             <span className="feature__body"><small>{[fmtDate(latestClass.date), latestClass.teacher].filter(Boolean).join(" · ")}{latestClass.pending ? <span className="soon">Notes coming soon</span> : null}</small><b>{latestClass.title}</b>{latestClass.books.length ? <span className="feed__books">{latestClass.books.slice(0, 4).map((b) => <em key={b}>{b}</em>)}</span> : null}</span>
           </Link>
         </Section>

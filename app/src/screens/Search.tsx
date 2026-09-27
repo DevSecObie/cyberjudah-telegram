@@ -86,7 +86,7 @@ function Recording({ h, eager }: { h: TeachingHit; eager: boolean }) {
   const at = Math.max(0, Math.floor(h.start));
   return (
     <Link to={teachingPath(h)} className="rec">
-      <span className="rec__thumb"><Img src={thumbOf(h.video)} eager={eager} /><span className="rec__play"><Icon name="play" size={16} /></span><span className="rec__time">{timestamp(at)}</span></span>
+      <span className="rec__thumb"><Img src={thumbOf(h.video)} eager={eager} /><span className="rec__time">{timestamp(at)}</span></span>
       <span className="rec__body">
         <span className="rec__meta">{FEED_NAME[h.feed] ?? h.feed} · {h.date ? fmtDate(h.date) : "Date unavailable"} · <b>{timestamp(at)}</b></span>
         <span className="rec__title"><Marked text={h.matchedTitle || h.title} /></span>
