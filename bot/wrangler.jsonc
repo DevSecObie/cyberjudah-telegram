@@ -12,7 +12,7 @@
     "directory": "../app/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/webhook", "/card/*"]
+    "run_worker_first": ["/api/*", "/webhook", "/card/*", "/frames/*"]
   },
   // search_docs (FTS5) loaded from the engine's search.sql.gz by scripts/load-search.mjs. The
   // id is filled in by the deploy workflow (scripts/d1-id.sh); nothing account-specific is committed.

@@ -6,6 +6,7 @@ import { data, fmtDate } from "@/api/data";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { api, openLink } from "@/tg/sdk";
 import { NoteBody, noteLede } from "@/ui/note-body";
+import { Frame } from "@/lib/frames";
 import { NotesOpener, NotesSheet, Player } from "@/ui/player";
 import { Empty, Skeleton, timestamp, youtube } from "@/ui/ui";
 import { KIND_NAME, useLive, useRecent } from "./Home";
@@ -66,7 +67,7 @@ export function Watch() {
       </header>
       {r.url ? <NotesOpener lede={note.data ? noteLede(note.data.body) : undefined} onOpen={() => setNotes(true)} /> : null}
       <TranscriptExcerpt video={video} t={t} chunks={r.chunks} onSeek={seek} />
-      {r.url ? <NotesSheet open={notes} onClose={() => setNotes(false)} sub={note.data?.title ?? r.title}>{note.data ? <NoteBody md={note.data.body} /> : note.isError ? <Empty title="The notes did not load">Try again in a moment.</Empty> : <Skeleton rows={6} />}</NotesSheet> : null}
+      {r.url ? <NotesSheet open={notes} onClose={() => setNotes(false)} sub={note.data?.title ?? r.title}>{note.data ? <NoteBody md={note.data.body} video={video} onSeek={seek} /> : note.isError ? <Empty title="The notes did not load">Try again in a moment.</Empty> : <Skeleton rows={6} />}</NotesSheet> : null}
     </main>
   );
 }
@@ -79,6 +80,7 @@ export function TranscriptExcerpt({ video, t, chunks, onSeek }: { video: string;
     <section className="section">
       <div className="section__head"><h2>Spoken at {timestamp(t)}</h2></div>
       <div className="tx">
+        <Frame video={video} t={t} width={160} className="tx__frame" onClick={() => play(t)} />
         {chunks.map((c, i) => (
           <p key={c.t} className="tx__chunk" data-here={i === here ? "" : undefined}>
             <button type="button" onClick={() => play(c.t)}>{timestamp(c.t)}</button>{c.text}

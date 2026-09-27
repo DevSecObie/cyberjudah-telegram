@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 
 import { haptic } from "@/tg/sdk";
 import { Icon, Img, thumbOf, timestamp } from "@/ui/ui";
+import { Frame } from "@/lib/frames";
 
 /** The embedded recording from a moment; a new start reloads the player there. */
 const embed = (id: string, start: number) => `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0&start=${Math.max(0, Math.floor(start))}`;
@@ -16,7 +17,7 @@ export function Player({ video, start, playing, onPlay, title, live }: { video: 
       <div className="player__box">
         {playing ? <iframe key={`${video}:${Math.floor(start)}`} src={embed(video, start)} title={title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen /> : (
           <button type="button" className="watch" onClick={() => { haptic("select"); onPlay(); }} aria-label={start > 0 ? `Watch from ${timestamp(start)}` : "Watch the recording"}>
-            <Img src={thumbOf(video, true)} eager /><span><Icon name="play" size={18} /> {live ? "Watch live" : start > 0 ? `Watch from ${timestamp(start)}` : "Watch"}</span>
+            <Img src={thumbOf(video, true)} eager />{start > 0 && !live ? <Frame video={video} t={start} className="player__frame" /> : null}<span><Icon name="play" size={18} /> {live ? "Watch live" : start > 0 ? `Watch from ${timestamp(start)}` : "Watch"}</span>
           </button>
         )}
       </div>

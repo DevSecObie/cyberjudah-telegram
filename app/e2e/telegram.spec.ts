@@ -308,6 +308,27 @@ liveDataTest("a class opens like YouTube: the player pinned, the notes in a shee
   await expect(page.locator(".player")).toBeVisible();
 });
 
+test("what was on the screen: a frame lands in the notes where the teacher pointed at it, a tap from playing there", async ({ page }) => {
+  // A storyboard the Worker would serve (one level, 5x5 cells, a frame every 10 s) and two moments the captions flagged.
+  const board = { ok: true, duration: 9557, levels: [{ level: 2, w: 160, h: 90, frames: 956, rows: 5, cols: 5, sheets: 39, interval: 10 }] };
+  await page.route("**/api/frames/*", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(board) }));
+  await page.route("**/api/visuals/*", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, visuals: [{ t: 700, said: 695, text: "Look at this map right here." }, { t: 5, said: 0, text: "Pull that up." }] }) }));
+  await page.route("**/frames/**/*.jpg", (r) => r.fulfill({ contentType: "image/gif", body: Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64") }));
+  await page.goto(`/note/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement${LAUNCH}`);
+  const shown = page.locator(".nsheet figure.shown");
+  await expect(shown.first()).toBeVisible();
+  // 700 s is frame 70: sheet 2, row 4, column 0. It follows the Deuteronomy 30 block (10:37) and precedes Isaiah 11 (24:08).
+  const fig = page.locator(".nsheet figure.shown[data-t=\"695\"]");
+  await expect(fig.locator(".shown__frame")).toHaveAttribute("style", /frames\/eNMvid6j-qk\/2\/2\.jpg/);
+  await expect(fig.locator("figcaption")).toContainText("11:35 Look at this map");
+  const order = await page.locator(".nsheet .note").evaluate((el) => { const h = el.innerHTML; return [h.indexOf("Deuteronomy 30:11-13"), h.indexOf('data-t="695"'), h.indexOf("Isaiah 11:10-12")]; });
+  expect(order[0]).toBeLessThan(order[1]); expect(order[1]).toBeLessThan(order[2]);
+  // A moment before any scripture goes to "Shown in class" at the end.
+  await expect(page.locator(".nsheet .shown-all figure.shown[data-t=\"0\"]")).toBeAttached();
+  await fig.click();
+  await expect(page.locator(".nsheet")).not.toHaveAttribute("data-open", "");
+});
+
 liveDataTest("the recordings search works as the site's: matches lit, a moment to watch, notes alongside", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
   await page.fill("#q", "Most High");

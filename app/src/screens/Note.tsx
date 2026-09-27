@@ -98,7 +98,7 @@ export function NoteScreen() {
       {taught}
       {isHistory && episode.data?.turns?.length ? <Transcript ep={episode.data} find={params.get("find") ?? ""} onSeek={seek} /> : null}
       {upnext}
-      <NotesSheet open={notes} onClose={() => setNotes(false)} sub={n.title} action={who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}><NoteBody md={n.body} /></NotesSheet>
+      <NotesSheet open={notes} onClose={() => setNotes(false)} sub={n.title} action={who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}><NoteBody md={n.body} video={video} onSeek={seek} /></NotesSheet>
       {editing ? <NoteEditSheet open onClose={() => setEditing(false)} note={n} onSaved={saved} /> : null}
     </main>
   );

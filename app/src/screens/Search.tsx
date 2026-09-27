@@ -7,6 +7,7 @@ import { Button, Chip, Chips, Empty, Icon, Img, List, Row, Screen, Section, Skel
 import { fmtDate } from "@/api/data";
 import { FEED_NAME, Marked, SearchHero, teachingPath, useTeachingsSearch, type TeachingHit } from "@/ui/search-hero";
 import { thumbOf } from "@/ui/ui";
+import { frameStyle, useBoard } from "@/lib/frames";
 import { Link } from "react-router";
 
 const EXAMPLES = ["Passover", "Seattle", "Matthew 15:24", "\"most high\"", "usury", "the lost sheep"];
@@ -84,9 +85,12 @@ function Recordings({ q, feed, page, onPage }: { q: string; feed: string; page: 
 /** One matching moment: the class at that second, with the words that matched lit. */
 function Recording({ h, eager }: { h: TeachingHit; eager: boolean }) {
   const at = Math.max(0, Math.floor(h.start));
+  // The picture of the moment itself when the recording's frames are in; the cover otherwise.
+  const board = useBoard(h.video);
+  const frame = frameStyle(h.video, board.data, at);
   return (
     <Link to={teachingPath(h)} className="rec">
-      <span className="rec__thumb"><Img src={thumbOf(h.video)} eager={eager} /><span className="rec__time">{timestamp(at)}</span></span>
+      <span className="rec__thumb">{frame ? <span className="rec__frame" style={frame} /> : <Img src={thumbOf(h.video)} eager={eager} />}<span className="rec__time">{timestamp(at)}</span></span>
       <span className="rec__body">
         <span className="rec__meta">{FEED_NAME[h.feed] ?? h.feed} · {h.date ? fmtDate(h.date) : "Date unavailable"} · <b>{timestamp(at)}</b></span>
         <span className="rec__title"><Marked text={h.matchedTitle || h.title} /></span>

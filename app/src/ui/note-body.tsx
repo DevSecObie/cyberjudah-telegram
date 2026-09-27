@@ -3,15 +3,48 @@ import { useMemo, type MouseEvent } from "react";
 
 import { openLink } from "@/tg/sdk";
 import { useGo } from "@/ui/ui";
+import { frameStyleText, useBoard, useVisuals, type Board, type Visual } from "@/lib/frames";
 
 marked.setOptions({ gfm: true, breaks: false });
 
-/** The note's markdown as HTML, with the video mount dropped (the app has its own player). */
-export function renderNote(md: string): string {
+/** The moments a note marks: `*[[9:57](https://www.youtube.com/watch?v=ID&t=597s)]*` beside a scripture, a news clip, the closing. */
+const MOMENT = /<em>\[<a href="https:\/\/www\.youtube\.com\/watch\?v=([A-Za-z0-9_-]{11})(?:&amp;|&)t=(\d+)s">([^<]+)<\/a>\]<\/em>/g;
+const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+const clock = (t: number) => { const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = Math.floor(t % 60); return h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`; };
+
+/**
+ * The note's markdown as HTML, with the video mount dropped (the app has its own player).
+ * With the recording's frames and the moments the teacher pointed at the screen, the note
+ * shows what was on the screen where it happened: each picture goes after the scripture
+ * (or news clip) the class was on at that time, with the words that called for it, a tap
+ * from playing there. The timestamps themselves play the recording from that moment.
+ */
+export function renderNote(md: string, frames?: { video: string; board: Board | undefined; visuals?: Visual[] }): string {
   const src = md.replace(/<!--\s*truncate\s*-->/g, "").replace(/[ \t]+taught in \[[^\]]+\]\(\/study\/[^)]+\)/g, "").replace(/<div class="class-video-mount"[^>]*><\/div>/g, "");
   const slug = (t: string) => t.toLowerCase().replace(/<[^>]+>/g, "").replace(/&[a-z]+;/g, " ").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   // Headings carry an id from their text, so a search hit opens the class at its section.
-  return (marked.parse(src) as string).replace(/<(li|p)>\s*<strong>([A-Z][^<:]{1,40}):<\/strong>\s*/g, '<$1><span class="who">$2</span>').replace(/<h([2-4])>(.*?)<\/h\1>/g, (_m, l: string, t: string) => `<h${l} id="${slug(t)}">${t}</h${l}>`);
+  let html = (marked.parse(src) as string).replace(/<(li|p)>\s*<strong>([A-Z][^<:]{1,40}):<\/strong>\s*/g, '<$1><span class="who">$2</span>').replace(/<h([2-4])>(.*?)<\/h\1>/g, (_m, l: string, t: string) => `<h${l} id="${slug(t)}">${t}</h${l}>`);
+  html = html.replace(MOMENT, (_m, video: string, t: string, label: string) => `<em>[<a class="moment__at" href="https://www.youtube.com/watch?v=${video}&t=${t}s" data-t="${t}">${label}</a>]</em>`);
+  if (!frames?.visuals?.length) return html;
+  // The blocks in reading order, each with the moment it starts; a picture lands at the end of the block it was shown in.
+  const marks = [...html.matchAll(/<p><strong>.*?<a class="moment__at"[^>]*data-t="(\d+)"/g)].map((m) => ({ t: Number(m[1]), at: m.index! }));
+  const figure = (v: Visual) => {
+    const style = frameStyleText(frames.video, frames.board, v.t, 320);
+    if (!style) return "";
+    return `<figure class="shown" data-t="${v.said}"><span class="frame shown__frame" style="${style}"></span><figcaption><span class="shown__at">${clock(v.said)}</span> ${esc(v.text)}</figcaption></figure>`;
+  };
+  const inserts = new Map<number, string>(); const orphans: string[] = [];
+  for (const v of [...frames.visuals].sort((a, b) => a.t - b.t)) {
+    const i = marks.findIndex((m, k) => m.t <= v.said && (k === marks.length - 1 || marks[k + 1].t > v.said));
+    const fig = figure(v); if (!fig) continue;
+    if (i < 0) { orphans.push(fig); continue; }
+    const pos = i + 1 < marks.length ? marks[i + 1].at : html.length;
+    inserts.set(pos, (inserts.get(pos) ?? "") + fig);
+  }
+  const out: string[] = []; let last = 0;
+  for (const pos of [...inserts.keys()].sort((a, b) => a - b)) { out.push(html.slice(last, pos), inserts.get(pos)!); last = pos; }
+  out.push(html.slice(last));
+  return out.join("") + (orphans.length ? `<section class="shown-all"><h2>Shown in class</h2>${orphans.join("")}</section>` : "");
 }
 
 /** The first words of a note, for a preview line. */
@@ -23,11 +56,17 @@ export function noteLede(md: string, max = 120): string {
 }
 
 /** The rendered note; its links open in the app when they are the site's, else outside. */
-export function NoteBody({ md }: { md: string }) {
+export function NoteBody({ md, video, onSeek }: { md: string; video?: string | null; onSeek?: (t: number) => void }) {
   const go = useGo();
-  const html = useMemo(() => renderNote(md), [md]);
+  const board = useBoard(video);
+  const visuals = useVisuals(video);
+  const html = useMemo(() => renderNote(md, video ? { video, board: board.data, visuals: visuals.data } : undefined), [md, video, board.data, visuals.data]);
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
-    const a = (e.target as HTMLElement).closest("a"); const href = a?.getAttribute("href") ?? "";
+    const el = e.target as HTMLElement;
+    // A moment (its frame or its time) plays the recording from there when a player is on the screen.
+    const at = el.closest<HTMLElement>("[data-t]");
+    if (at && onSeek) { e.preventDefault(); onSeek(Number(at.dataset.t)); return; }
+    const a = el.closest("a"); const href = a?.getAttribute("href") ?? "";
     if (!a) return;
     e.preventDefault();
     if (/^https?:/.test(href)) openLink(href); else if (href.startsWith("/")) go(href);

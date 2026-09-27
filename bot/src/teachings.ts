@@ -51,8 +51,10 @@ export async function taughtIn(env: Env, slug: string, chapter: number, verses: 
 export type TranscriptWindow = { ok: true; video: string; kind: string; title: string; url: string; date: string; duration: number | null; t: number; chunks: { t: number; text: string }[] } | { ok: false; reason: string };
 const DIRS: [string, string][] = [["blog/transcripts", "class"], ["captains/transcripts", "captains"], ["history/transcripts", "history"]];
 
-/** The captions around a moment, from the recording's transcript file in the repository (cached a day). */
-export async function transcriptAround(env: Env, video: string, t: number, ctx?: Exec, span = 120): Promise<TranscriptWindow> {
+type TranscriptFile = { title?: string; cleanTitle?: string; date?: string | null; duration?: number | null; slug?: string; segments?: [number, string][] };
+
+/** The recording's transcript file from the repository (cached a day), with the feed it came from. */
+export async function loadTranscript(env: Env, video: string, ctx?: Exec): Promise<{ kind: string; file: TranscriptFile } | { error: "unavailable" | "not-found" }> {
   const repo = env.TRANSCRIPTS_REPO ?? "DevSecObie/cyberjudah";
   for (const [dir, kind] of DIRS) {
     const url = `https://raw.githubusercontent.com/${repo}/main/${dir}/${encodeURIComponent(video)}.json`;
@@ -61,18 +63,25 @@ export async function transcriptAround(env: Env, video: string, t: number, ctx?:
     if (!res) {
       const live = await fetch(url);
       if (live.status === 404) continue;
-      if (!live.ok) return { ok: false, reason: "unavailable" };
+      if (!live.ok) return { error: "unavailable" };
       res = new Response(live.body, live);
       res.headers.set("cache-control", "public, max-age=86400");
       const put = cache.put(url, res.clone());
       if (ctx) ctx.waitUntil(put); else await put;
     }
-    const file = await res.json<{ title?: string; cleanTitle?: string; date?: string | null; duration?: number | null; slug?: string; segments?: [number, string][] }>();
-    const chunks = chunkSegments(file.segments ?? []).filter((c) => c.t >= t - span && c.t <= t + span);
-    const note = await noteFor(env, video, ctx);
-    return { ok: true, video, kind, title: note?.title || file.cleanTitle || file.title || video, url: note?.url ?? "", date: file.date ?? note?.date ?? "", duration: file.duration ?? null, t, chunks };
+    return { kind, file: await res.json<TranscriptFile>() };
   }
-  return { ok: false, reason: "not-found" };
+  return { error: "not-found" };
+}
+
+/** The captions around a moment, from the recording's transcript file in the repository (cached a day). */
+export async function transcriptAround(env: Env, video: string, t: number, ctx?: Exec, span = 120): Promise<TranscriptWindow> {
+  const got = await loadTranscript(env, video, ctx);
+  if ("error" in got) return { ok: false, reason: got.error };
+  const { kind, file } = got;
+  const chunks = chunkSegments(file.segments ?? []).filter((c) => c.t >= t - span && c.t <= t + span);
+  const note = await noteFor(env, video, ctx);
+  return { ok: true, video, kind, title: note?.title || file.cleanTitle || file.title || video, url: note?.url ?? "", date: file.date ?? note?.date ?? "", duration: file.duration ?? null, t, chunks };
 }
 
 /** The page a recording has, when it is written up: from teaching_refs/teaching_passages' note column. */

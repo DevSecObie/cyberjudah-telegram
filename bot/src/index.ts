@@ -6,7 +6,8 @@ import { validateInitData, type InitData } from "./initdata.mjs";
 import { createBot, todaysVerse } from "./bot";
 import { chapter, escapeHtml, openLink } from "./data";
 import { runSearch } from "./search";
-import { searchTeachings, taughtIn, transcriptAround } from "./teachings";
+import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./teachings";
+import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
 import { ask, askStream, similar, speakVerse } from "./ai";
 import { VOICES } from "./ai.mjs";
@@ -15,6 +16,7 @@ import { sendDaily } from "./daily";
 import { bookLabel } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
 import { canEdit, commitEdit, isAdmin, type NoteEdit } from "./edit";
+import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
@@ -83,6 +85,27 @@ app.get("/api/taught/:slug/:chapter", async (c) => {
   const res = await taughtIn(c.env, slug, chapter, verses);
   return c.json(res, res.ok ? 200 : 503);
 });
+// The frames of a recording (YouTube's storyboard): the levels, then the sheets by level and index.
+app.get("/api/frames/:video", async (c) => {
+  const b = await board(c.env, c.req.param("video"));
+  if (!b || !b.levels.length) return c.json({ ok: false, levels: [], duration: 0 }, 404);
+  return c.json({ ok: true, ...publicBoard(b) }, 200, { "cache-control": "public, max-age=3600" });
+});
+app.post("/api/frames/:video/warm", async (c) => {
+  const { user } = c.get("tma");
+  if (!isAdmin(c.env, user!.id)) return c.json({ ok: false }, 403);
+  return c.json({ ok: await warmVideo(c.env, c.req.param("video")) });
+});
+
+// The moments the teacher pointed at something on the screen, from the captions.
+app.get("/api/visuals/:video", async (c) => {
+  const video = c.req.param("video");
+  if (!/^[A-Za-z0-9_-]{6,20}$/.test(video)) return c.json({ ok: false, visuals: [] }, 400);
+  const got = await loadTranscript(c.env, video, c.executionCtx);
+  if ("error" in got) return c.json({ ok: false, visuals: [] }, got.error === "not-found" ? 404 : 503);
+  return c.json({ ok: true, visuals: findVisuals(got.file.segments ?? []) }, 200, { "cache-control": "public, max-age=86400" });
+});
+
 app.get("/api/transcript/:video", async (c) => {
   const video = c.req.param("video");
   if (!/^[A-Za-z0-9_-]{6,20}$/.test(video)) return c.json({ ok: false, reason: "bad-video" }, 400);
@@ -181,6 +204,18 @@ app.get("/api/verse-of-day", async (c) => {
   return c.json({ ref: v.ref, slug: v.slug, chapter: v.chapter, verse: v.verse, text: v.text, startapp: v.param });
 });
 
+// A storyboard sheet, public like the thumbnails it stands in for; a year at the edge.
+app.get("/frames/:video/:level/:file", async (c) => {
+  const n = Number(c.req.param("file").match(/^(\d+)\.jpg$/)?.[1]);
+  const cache = caches.default;
+  const cached = await cache.match(c.req.raw);
+  if (cached) return cached;
+  const res = await sheet(c.env, c.req.param("video"), Number(c.req.param("level")), n, c.executionCtx);
+  if (!res) return c.notFound();
+  c.executionCtx.waitUntil(cache.put(c.req.raw, res.clone()));
+  return res;
+});
+
 app.get("/card/:slug/:chapter/:file", async (c) => {
   const slug = c.req.param("slug"), ch = Number(c.req.param("chapter"));
   const verse = Number(c.req.param("file").match(/^(\d+)\.svg$/)?.[1]);
@@ -205,5 +240,7 @@ export default {
   fetch: app.fetch,
   scheduled(event, env, ctx) {
     ctx.waitUntil(sendDaily(env, new Date(event.scheduledTime)));
+    // A few recordings' frames an hour, until the whole archive is in the bucket.
+    ctx.waitUntil(warmFrames(env).then((r) => console.log(`frames: warmed ${r.warmed.length}, failed ${r.failed.length}`)));
   },
 } satisfies ExportedHandler<Env>;
