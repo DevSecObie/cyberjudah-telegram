@@ -320,13 +320,22 @@ test("what was on the screen: a frame lands in the notes where the teacher point
   // 700 s is frame 70: sheet 2, row 4, column 0. It follows the Deuteronomy 30 block (10:37) and precedes Isaiah 11 (24:08).
   const fig = page.locator(".nsheet figure.shown[data-t=\"695\"]");
   await expect(fig.locator(".shown__frame")).toHaveAttribute("style", /frames\/eNMvid6j-qk\/2\/2\.jpg/);
-  await expect(fig.locator("figcaption")).toContainText("11:35 Look at this map");
+  await expect(fig.locator("figcaption")).toHaveText("11:35");
   const order = await page.locator(".nsheet .note").evaluate((el) => { const h = el.innerHTML; return [h.indexOf("Deuteronomy 30:11-13"), h.indexOf('data-t="695"'), h.indexOf("Isaiah 11:10-12")]; });
   expect(order[0]).toBeLessThan(order[1]); expect(order[1]).toBeLessThan(order[2]);
   // A moment before any scripture goes to "Shown in class" at the end.
   await expect(page.locator(".nsheet .shown-all figure.shown[data-t=\"0\"]")).toBeAttached();
   await fig.click();
   await expect(page.locator(".nsheet")).not.toHaveAttribute("data-open", "");
+  // A timestamp in the notes plays the recording from there, inside the app: the sheet closes, nothing opens outside.
+  await page.click(".notes-open");
+  await expect(page.locator(".nsheet")).toHaveAttribute("data-open", "");
+  const url = page.url();
+  await page.locator(".nsheet .moment__at").first().click();
+  await expect(page.locator(".nsheet")).not.toHaveAttribute("data-open", "");
+  expect(page.url()).toBe(url);
+  const opened = await page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.filter((l) => l[0] === "openLink"));
+  expect(opened).toEqual([]);
 });
 
 liveDataTest("the recordings search works as the site's: matches lit, a moment to watch, notes alongside", async ({ page }) => {

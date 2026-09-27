@@ -523,12 +523,14 @@ a.rec { color: inherit; text-decoration: none; }
 /* Frames of a recording: one cell of a storyboard sheet, scaled to its box. */
 .frame { display: inline-block; flex: none; border-radius: 8px; background-color: var(--a-card-2); overflow: hidden; }
 .frame[role="button"] { cursor: pointer; }
-.note .moment__at { font-weight: 600; color: var(--a-accent); text-decoration: none; }
+/* A moment in the notes: a chip that plays the recording from there, inside the app. */
+.note .moment__at { display: inline-block; padding: 2px 9px; border-radius: 999px; background: color-mix(in srgb, var(--a-accent) 14%, transparent); font: 600 12.5px/1.5 var(--a-ui); color: var(--a-accent); text-decoration: none; font-style: normal; font-variant-numeric: tabular-nums; }
+.note em:has(> .moment__at) { font-style: normal; }
 /* What was on the screen: the frame at that moment, with the words that called for it. */
 .note .shown { margin: 14px 0 18px; padding: 0; cursor: pointer; }
 .note .shown__frame { display: block; width: 100% !important; height: auto !important; aspect-ratio: 16 / 9; border-radius: 14px; box-shadow: 0 0 0 1px var(--a-line); }
-.note .shown figcaption { margin: 8px 2px 0; font: 400 13.5px/1.45 var(--a-ui); color: var(--a-muted); }
-.note .shown__at { font-weight: 600; color: var(--a-accent); margin-right: 6px; font-variant-numeric: tabular-nums; }
+.note .shown figcaption { margin: 8px 2px 0; }
+.note .shown__at { display: inline-block; padding: 2px 9px; border-radius: 999px; background: color-mix(in srgb, var(--a-accent) 14%, transparent); font: 600 12.5px/1.5 var(--a-ui); color: var(--a-accent); font-variant-numeric: tabular-nums; }
 .note .shown-all h2 { margin-top: 28px; }
 .tx__frame { display: block; margin: 0 0 10px; border-radius: 12px; }
 .rec__frame { position: absolute; inset: 0; }

@@ -31,7 +31,7 @@ export function renderNote(md: string, frames?: { video: string; board: Board | 
   const figure = (v: Visual) => {
     const style = frameStyleText(frames.video, frames.board, v.t, 320);
     if (!style) return "";
-    return `<figure class="shown" data-t="${v.said}"><span class="frame shown__frame" style="${style}"></span><figcaption><span class="shown__at">${clock(v.said)}</span> ${esc(v.text)}</figcaption></figure>`;
+    return `<figure class="shown" data-t="${v.said}" title="${esc(v.text)}"><span class="frame shown__frame" style="${style}"></span><figcaption><span class="shown__at">${clock(v.said)}</span></figcaption></figure>`;
   };
   const inserts = new Map<number, string>(); const orphans: string[] = [];
   for (const v of [...frames.visuals].sort((a, b) => a.t - b.t)) {
