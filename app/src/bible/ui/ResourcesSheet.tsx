@@ -70,7 +70,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
         {tab === "commentary" ? (cites.isPending || said.isPending ? <p className="bs-loading">Loading...</p> : !comments.length && !breakdowns.length ? <p className="bs-loading">No class or study note teaches from this verse yet.</p> : <>
           {breakdowns.map((c, i) => (
             <div key={`${c.note.url}${c.ts}${i}`} className="bs-comment">
-              <button type="button" className="bs-comment__class" onClick={() => { onClose(); navigate(toApp(c.note.url)); }}>
+              <button type="button" className="bs-comment__class" onClick={() => { if (/^https?:/.test(c.note.url)) { openLink(`${c.note.url}${c.t ? `&t=${c.t}s` : ""}`); return; } onClose(); navigate(toApp(c.note.url)); }}>
                 <b>{c.note.label}</b>
                 <small>{[c.note.date ? fmtDate(c.note.date) : "", c.note.teacher, c.passage].filter(Boolean).join(" · ")}</small>
               </button>
