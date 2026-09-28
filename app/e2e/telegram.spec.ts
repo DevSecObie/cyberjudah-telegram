@@ -460,3 +460,13 @@ test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a re
   await page.locator(".bs-search__hit").first().click();
   await expect(page).toHaveURL(/\/read\/john\/1\?v=4/);
 });
+
+test("a verse links to each class that read it, on YouTube at that moment", async ({ page }) => {
+  await page.goto(`/read/genesis/4${LAUNCH}`);
+  const tag = page.locator("#verset-3 .rel-tag", { hasText: "Raising Cain" });
+  await expect(tag).toBeVisible();
+  if (process.env.SHOTS) { await tag.scrollIntoViewIfNeeded(); await page.screenshot({ path: `${process.env.SHOTS}/watch-links.png` }); }
+  await tag.click();
+  const opened = await page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.filter((l) => l[0] === "openLink"));
+  expect(opened.at(-1)?.[1]).toBe("https://www.youtube.com/watch?v=36emQd9wjts&t=3633s");
+});

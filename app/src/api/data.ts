@@ -50,7 +50,9 @@ export type Citation = { kind: string; label: string; url: string; verses?: stri
 export type TaughtPrecept = { verses: string; kind: "precept" | "opened"; ref: { book: string; chapter: number; verses: string; label: string; url: string }; text: string; point: string; /** A short breakdown of why this precept goes with the verse, written from the class. */ why?: string; note: { label: string; url: string; date: string; teacher: string }; ts: string };
 /** A short note the classes made on a verse itself (what was said about it), with where it was said. */
 export type VerseNote = { verses: string; text: string; note: { label: string; url: string; date: string; teacher: string }; ts: string };
-export type Concordance = { book: string; chapter: number; cited_by: Citation[]; precepts?: TaughtPrecept[]; notes?: VerseNote[] };
+/** A moment a class read a scripture: the verses, the class, and its recording at that second. */
+export type ClassMoment = { verses: string; label: string; url: string; date: string; video: string; t: number; ts: string };
+export type Concordance = { book: string; chapter: number; cited_by: Citation[]; precepts?: TaughtPrecept[]; notes?: VerseNote[]; moments?: ClassMoment[] };
 export type NoteRow = { kind: "study" | "class" | "captains" | "history" | "encyclopedia"; title: string; url: string; book?: string | null; chapters?: [number, number] | null; range?: string; date?: string | null; year?: string; series?: string; teacher?: string; topics?: string[]; summary?: string; videoId?: string | null };
 export type Note = NoteRow & { body: string; file?: string | null };
 export type FeedRow = { title: string; url: string; date: string; year: string; teacher: string; collection?: string; thumb: string; books: string[]; topics?: string[] };
