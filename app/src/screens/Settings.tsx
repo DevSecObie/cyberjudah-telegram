@@ -3,12 +3,17 @@ import { useEffect, useState } from "react";
 
 import { data } from "@/api/data";
 import { offlineSupported, removeBook, saveBook, savedBooks } from "@/lib/offline";
-import { useBackButton, useStored } from "@/tg/hooks";
+import { useBackButton, useStored, useTheme } from "@/tg/hooks";
 import { alert, api, app, features, haptic, openInvoice, platform, requestWriteAccess, setFullscreen, lockPortrait } from "@/tg/sdk";
 import { secure } from "@/tg/store";
 import { useSheet } from "@/ui/sheet";
-import { List, Row, Screen, Section, Segmented } from "@/ui/ui";
+import { Icon, List, Row, Screen, Section, Segmented } from "@/ui/ui";
 import { useRelationsDisplay } from "@/lib/relations";
+
+/** A setting's current value, iOS style: quiet text before the chevron. */
+function Value({ children }: { children: string }) {
+  return <span className="row__value">{children}<Icon name="chevron" size={16} /></span>;
+}
 
 function Toggle({ on, onChange, title, sub }: { on: boolean; onChange: (v: boolean) => void; title: string; sub?: string }) {
   return <button type="button" className="toggle" role="switch" aria-checked={on} onClick={() => { haptic("select"); onChange(!on); }}><span><b>{title}</b>{sub ? <small>{sub}</small> : null}</span><span className="switch" /></button>;
@@ -22,7 +27,7 @@ export function Settings() {
   useBackButton(false);
   const sheet = useSheet();
   const [size, setSize] = useStored<"compact" | "regular" | "large">("size", "regular");
-  const [theme, setTheme] = useStored<Theme>("theme", "dark");
+  const [theme, setTheme] = useStored<Theme>("theme", "system");
   const [font, setFont] = useStored<Font>("font", "serif");
   const [spacing, setSpacing] = useStored<Spacing>("spacing", "regular");
   const [justify, setJustify] = useStored("justify", false);
@@ -72,13 +77,13 @@ export function Settings() {
   return (
     <Screen title="Settings">
       <Section title="Reading">
-        <Segmented label="Theme" value={theme} onChange={setTheme} options={[["dark", "Dark"], ["sepia", "Sepia"], ["light", "Light"], ["system", "Telegram's"]]} />
+        <Segmented label="Theme" value={theme} onChange={setTheme} options={[["system", "Automatic"], ["light", "Light"], ["dark", "Dark"], ["sepia", "Sepia"]]} />
         <List>
-          <Row onClick={() => setSize(size === "compact" ? "regular" : size === "regular" ? "large" : "compact")} title="Text size" sub={size} trailing={<span className="pill">Aa</span>} />
-          <Row onClick={() => setFont(font === "serif" ? "sans" : "serif")} title="Typeface" sub={font === "serif" ? "Newsreader, a book face" : "The system face"} trailing={<span className="pill">{font === "serif" ? "Serif" : "Sans"}</span>} />
-          <Row onClick={() => setSpacing(spacing === "tight" ? "regular" : spacing === "regular" ? "airy" : "tight")} title="Line spacing" sub={spacing} trailing={<span className="pill">≡</span>} />
+          <Row onClick={() => setSize(size === "compact" ? "regular" : size === "regular" ? "large" : "compact")} title="Text size" trailing={<Value>{{ compact: "Small", regular: "Regular", large: "Large" }[size]}</Value>} />
+          <Row onClick={() => setFont(font === "serif" ? "sans" : "serif")} title="Typeface" trailing={<Value>{font === "serif" ? "Newsreader" : "System"}</Value>} />
+          <Row onClick={() => setSpacing(spacing === "tight" ? "regular" : spacing === "regular" ? "airy" : "tight")} title="Line spacing" trailing={<Value>{{ tight: "Tight", regular: "Regular", airy: "Airy" }[spacing]}</Value>} />
           <Toggle on={justify} onChange={setJustify} title="Justify the text" />
-          <Row onClick={() => setRelDisplay(relDisplay === "inline" ? "block" : "inline")} title="Relations display" sub={relDisplay === "inline" ? "Line break: the related passages, notes and entries as tags under the verse" : "With icon: a count beside the verse number"} trailing={<span className="pill">{relDisplay === "inline" ? "Line break" : "With icon"}</span>} />
+          <Row onClick={() => setRelDisplay(relDisplay === "inline" ? "block" : "inline")} title="Related passages" sub={relDisplay === "inline" ? "Shown as tags under each verse" : "Shown as a count beside the verse number"} trailing={<Value>{relDisplay === "inline" ? "Tags" : "Count"}</Value>} />
           {features.fullscreen ? <Toggle on={fullscreen} onChange={setFs} title="Full screen" sub="The app fills the screen, without Telegram's header" /> : null}
           {features.fullscreen && (platform === "ios" || platform === "android") ? <Toggle on={portrait} onChange={setPortrait} title="Lock portrait" sub="Keep the reader upright" /> : null}
         </List>
@@ -92,7 +97,7 @@ export function Settings() {
       <Section title="Daily verse">
         <List>
           <Toggle on={!!daily} onChange={(v) => void subscribe(v)} title="A verse every morning" sub={daily === null ? "Checking…" : daily ? `The bot sends it at ${hour}:00` : "Sent by the CyberJudah bot, with a button to read the chapter"} />
-          <Row onClick={() => void pickHour()} title="Time" sub={`${hour}:00 in your time zone`} />
+          <Row onClick={() => void pickHour()} title="Time" sub="In your time zone" trailing={<Value>{`${hour}:00`}</Value>} />
         </List>
       </Section>
       {features.biometrics && features.secureStorage ? (
@@ -112,18 +117,19 @@ export function Settings() {
 
 /** Applies the reader's theme, face and spacing to the document (mounted once in App). */
 export function ThemeApplier() {
-  const [theme] = useStored<Theme>("theme", "dark");
+  const [theme] = useStored<Theme>("theme", "system");
+  const { scheme } = useTheme();
   const [font] = useStored<Font>("font", "serif");
   const [spacing] = useStored<Spacing>("spacing", "regular");
   const [justify] = useStored("justify", false);
   useEffect(() => {
     const root = document.documentElement;
-    const resolved = theme === "system" ? (app?.colorScheme === "light" ? "light" : "dark") : theme;
+    const resolved = theme === "system" ? scheme : theme;
     root.dataset.theme = resolved; root.dataset.font = font; root.dataset.spacing = spacing; root.dataset.justify = justify ? "yes" : "no";
     root.style.colorScheme = resolved === "dark" ? "dark" : "light";
     const bg = getComputedStyle(root).getPropertyValue("--color-void").trim() || "#05070f";
     if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(bg); app.setBackgroundColor(bg); }
     if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(bg);
-  }, [theme, font, spacing, justify]);
+  }, [theme, scheme, font, spacing, justify]);
   return null;
 }

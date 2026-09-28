@@ -4,7 +4,7 @@ import { Route, Routes, useLocation, useNavigate } from "react-router";
 import { launchPath } from "@shared/links.mjs";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
-import { useSettingsButton, useStored } from "@/tg/hooks";
+import { useSettingsButton, useStored, useTheme } from "@/tg/hooks";
 import { AppRoot } from "@telegram-apps/telegram-ui";
 import { Button, TabBar } from "@/ui/ui";
 import { Home } from "@/screens/Home";
@@ -43,8 +43,10 @@ export function App() {
   }, []);
 
   const root = isRoot(location.pathname);
-  const [theme] = useStored<string>("theme", "dark");
-  const appearance = theme === "light" || theme === "sepia" ? "light" : theme === "system" ? (app?.colorScheme ?? "dark") : "dark";
+  // Like an iOS app, the look follows the phone (through Telegram) until the reader picks one.
+  const [theme] = useStored<string>("theme", "system");
+  const { scheme } = useTheme();
+  const appearance = theme === "light" || theme === "sepia" ? "light" : theme === "system" ? scheme : "dark";
   return (
     <AppRoot className="cj" appearance={appearance} platform={app?.platform === "ios" || app?.platform === "macos" ? "ios" : "base"} id="shell" data-tabs={root ? "" : undefined}>
       <ThemeApplier />

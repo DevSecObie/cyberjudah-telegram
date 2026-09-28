@@ -536,3 +536,64 @@ a.rec { color: inherit; text-decoration: none; }
 .rec__frame { position: absolute; inset: 0; }
 .player__frame { position: absolute; inset: 0; border-radius: 0; }
 .note .shown a { display: block; color: inherit; text-decoration: none; }
+
+/* ── Polish: iOS-grade surfaces, feedback and motion ─────────────────────────────────────── */
+/* A Row rendered as a <button> must not show the browser's button chrome. */
+#root button.row { appearance: none; -webkit-appearance: none; margin: 0; border: 0; border-radius: 0; background: transparent; font: inherit; }
+.row__value { display: inline-flex; align-items: center; gap: 4px; font: 400 16px var(--a-ui); color: var(--a-muted); white-space: nowrap; }
+.row__value svg { color: color-mix(in srgb, var(--a-muted) 60%, transparent); }
+
+/* Type: large titles and section heads with the tight tracking of Apple's system face. */
+#root { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+.title { font: 700 32px/1.12 var(--a-ui); letter-spacing: -0.022em; }
+.hello h1 { letter-spacing: -0.02em; }
+.section__head h2 { font: 700 19px/1.25 var(--a-ui); letter-spacing: -0.012em; }
+.section__head { padding: 0 2px; }
+
+/* Surfaces: filled, not outlined. Hairlines stay only where they divide rows. */
+.card, .card--btn, .grid a, .stat div, .notes-open, .door__btn, .hero__field, .live-card--soon { border-color: transparent; }
+html[data-theme="light"] .card, html[data-theme="light"] .grid a, html[data-theme="light"] .stat div, html[data-theme="light"] .notes-open, html[data-theme="light"] .door__btn, html[data-theme="light"] .hero__field,
+html[data-theme="sepia"] .card, html[data-theme="sepia"] .grid a, html[data-theme="sepia"] .stat div, html[data-theme="sepia"] .notes-open, html[data-theme="sepia"] .door__btn, html[data-theme="sepia"] .hero__field { box-shadow: 0 1px 2px rgba(20, 16, 8, .06), 0 0 0 .5px rgba(20, 16, 8, .05); }
+.hero[data-focus] .hero__field { border-color: transparent; box-shadow: 0 0 0 3px color-mix(in srgb, var(--a-accent) 28%, transparent); }
+.card { border-radius: 20px; }
+/* The primary door is Ask: tinted in the accent, the way iOS marks the suggested action. */
+.door__btn--ask { background: color-mix(in srgb, var(--a-accent) 16%, var(--a-card)); color: var(--a-accent); }
+.tabs { border-top: .5px solid color-mix(in srgb, var(--a-line) 80%, transparent); }
+
+/* Press feedback: things you tap give way under the finger, rows light up like iOS cells. */
+.card, .tile, .door__btn, .grid a, .notes-open, .chapters a, .steps a, .hero__go, .icon-btn, .chip, .watch { transition: transform .16s cubic-bezier(.2,.8,.2,1), opacity .16s, background-color .2s; }
+.card:active, .tile:active, .door__btn:active, .grid a:active, .notes-open:active, .chapters a:active, .steps a:active, .hero__go:active, .icon-btn:active, .chip:active, .watch:active { transform: scale(.97); }
+.tile:active .tile__img, .row:active { opacity: .92; }
+#root .row:active { background: color-mix(in srgb, var(--a-ink) 7%, transparent); }
+
+/* Screens arrive with a short, soft rise instead of a hard cut. */
+@keyframes screen-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.screen, .reader { animation: screen-in .32s cubic-bezier(.2,.8,.2,1) both; }
+
+/* The reader's floating controls sit on a translucent material, so they read as floating
+   above the text instead of colliding with it. */
+.bs-chapterbtn, .bs-playpill { background: color-mix(in srgb, var(--bs-reverse) 90%, transparent); border-color: transparent; backdrop-filter: blur(18px) saturate(1.8); -webkit-backdrop-filter: blur(18px) saturate(1.8); box-shadow: 0 4px 18px rgba(0, 0, 0, .18), 0 0 0 .5px color-mix(in srgb, var(--bs-default, #888) 18%, transparent); }
+.bs-playbtn { border-color: transparent; }
+.bs-chapterbtn:active, .bs-playbtn:active { transform: scale(.94); }
+
+@media (prefers-reduced-motion: reduce) {
+  .screen, .reader { animation: none; }
+  .card, .tile, .door__btn, .grid a, .notes-open, .chapters a, .steps a, .hero__go, .icon-btn, .chip, .watch { transition: none; }
+  .card:active, .tile:active, .door__btn:active, .grid a:active, .notes-open:active, .chapters a:active, .steps a:active, .hero__go:active, .icon-btn:active, .chip:active, .watch:active { transform: none; }
+}
+
+/* The class note's head: the collection and date, then the chapters opened as chips. */
+.note .note-meta { margin: 0 0 14px; font: 500 14px/1.4 var(--a-ui); color: var(--a-muted); letter-spacing: .01em; }
+.note .note-opens { display: flex; flex-direction: column; gap: 8px; margin: 0 0 8px; padding: 14px; border-radius: 16px; background: var(--a-card); }
+.note .note-opens__label { font: 600 12px var(--a-ui); color: var(--a-muted); text-transform: uppercase; letter-spacing: .06em; }
+.note .note-opens__refs { display: flex; flex-wrap: wrap; gap: 6px; }
+.note a.note-opens__ref { padding: 5px 11px; border-radius: 999px; background: var(--a-card-2); font: 500 13.5px/1.3 var(--a-ui); color: var(--a-ink-2); text-decoration: none; }
+.note a.note-opens__ref:active { opacity: .7; }
+.note .note-opens__more { align-self: center; padding: 0 4px; font: 400 13px var(--a-ui); color: var(--a-muted); }
+.note .moment__at { margin-right: 4px; vertical-align: 1px; }
+.feature { border-color: transparent; transition: transform .16s cubic-bezier(.2,.8,.2,1); }
+.feature:active { transform: scale(.98); }
+html[data-theme="light"] .feature, html[data-theme="sepia"] .feature { box-shadow: 0 1px 2px rgba(20, 16, 8, .06), 0 0 0 .5px rgba(20, 16, 8, .05); }
+/* Over a video frame the pill stays dark with white text in every theme. */
+.watch span { color: #fff; }
+@media (prefers-reduced-motion: reduce) { .feature { transition: none; } .feature:active { transform: none; } }

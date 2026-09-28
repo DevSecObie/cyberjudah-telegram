@@ -24,7 +24,9 @@ export function renderNote(md: string, frames?: { video: string; board: Board | 
   const slug = (t: string) => t.toLowerCase().replace(/<[^>]+>/g, "").replace(/&[a-z]+;/g, " ").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   // Headings carry an id from their text, so a search hit opens the class at its section.
   let html = (marked.parse(src) as string).replace(/<(li|p)>\s*<strong>([A-Z][^<:]{1,40}):<\/strong>\s*/g, '<$1><span class="who">$2</span>').replace(/<h([2-4])>(.*?)<\/h\1>/g, (_m, l: string, t: string) => `<h${l} id="${slug(t)}">${t}</h${l}>`);
-  html = html.replace(MOMENT, (_m, video: string, t: string, label: string) => `<em>[<a class="moment__at" href="https://www.youtube.com/watch?v=${video}&t=${t}s" data-t="${t}">${label}</a>]</em>`);
+  // A moment is a time chip, without the brackets the markdown wraps it in.
+  html = html.replace(MOMENT, (_m, video: string, t: string, label: string) => `<a class="moment__at" href="https://www.youtube.com/watch?v=${video}&t=${t}s" data-t="${t}">${label}</a>`);
+  html = tidyHead(html);
   // The library's build places the frames itself when it can; then nothing is added here.
   if (!frames?.visuals?.length || /class="shown"/.test(html)) return html;
   // The blocks in reading order, each with the moment it starts; a picture lands at the end of the block it was shown in.
@@ -46,6 +48,24 @@ export function renderNote(md: string, frames?: { video: string; board: Board | 
   for (const pos of [...inserts.keys()].sort((a, b) => a - b)) { out.push(html.slice(last, pos), inserts.get(pos)!); last = pos; }
   out.push(html.slice(last));
   return out.join("") + (orphans.length ? `<section class="shown-all"><h2>Shown in class</h2>${orphans.join("")}</section>` : "");
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** 2025-12-28 as "Dec 28, 2025". */
+export const prettyDate = (iso: string) => iso.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (m, y: string, mo: string, d: string) => (+mo >= 1 && +mo <= 12 ? `${MONTHS[+mo - 1]} ${+d}, ${y}` : m));
+
+/**
+ * The note's head as an app shows it: the collection and a readable date in the interface
+ * face, and the chapters the class opened as a row of chips instead of a dotted run of text.
+ */
+function tidyHead(html: string): string {
+  return html
+    .replace(/<p class="taught">([^<]*)<\/p>/, (_m, t: string) => `<p class="note-meta">${prettyDate(t)}</p>`)
+    .replace(/<p>\s*<span class="opens">([\s\S]*?)<\/span>\s*<\/p>/, (_m, inner: string) => {
+      const refs = [...inner.matchAll(/<a href="([^"]+)">([^<]+)<\/a>/g)].map((m) => `<a class="note-opens__ref" href="${m[1]}">${m[2]}</a>`).join("");
+      const more = /<i>([^<]+)<\/i>/.exec(inner)?.[1];
+      return `<div class="note-opens"><span class="note-opens__label">Scriptures opened</span><div class="note-opens__refs">${refs}${more ? `<span class="note-opens__more">${more}</span>` : ""}</div></div>`;
+    });
 }
 
 /** The first words of a note, for a preview line. */

@@ -32,19 +32,28 @@ export function useBackButton(root: boolean, onBack?: () => boolean | void) {
 }
 
 export type Action = { text: string; onClick: () => void; quiet?: boolean; progress?: boolean; disabled?: boolean; shine?: boolean };
-const COLORS = { main: { color: "#00e5ff", text_color: "#05070f" }, quiet: { color: "#101833", text_color: "#dbe5f0" } };
+/** Telegram's bottom buttons in the app's current palette, so they match light and dark alike. */
+function colors() {
+  const css = getComputedStyle(document.documentElement);
+  const v = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+  return {
+    main: { color: v("--color-cyan", "#00e5ff"), text_color: v("--color-void", "#05070f") },
+    quiet: { color: v("--color-panel-2", "#101833"), text_color: v("--color-ink-2", "#dbe5f0") },
+  };
+}
 
 /** The screen's actions on Telegram's bottom bar: `main` full width, `secondary` beside it. */
 export function useBottomButtons(main: Action | null, secondary: Action | null = null) {
   const h = useRef({ main, secondary });
   h.current = { main, secondary };
-  const key = JSON.stringify([main?.text, main?.quiet, main?.progress, main?.disabled, main?.shine, secondary?.text, secondary?.progress, secondary?.disabled]);
+  const key = JSON.stringify([document.documentElement.dataset.theme, main?.text, main?.quiet, main?.progress, main?.disabled, main?.shine, secondary?.text, secondary?.progress, secondary?.disabled]);
   useEffect(() => {
     if (!app) return;
     const M = app.MainButton, S = features.secondaryButton ? app.SecondaryButton : null;
     const cm = () => { haptic(); h.current.main?.onClick(); };
     const cs = () => { haptic(); h.current.secondary?.onClick(); };
     const { main: m, secondary: s } = h.current;
+    const COLORS = colors();
     if (m) {
       M.setParams({ text: m.text, ...(m.quiet ? COLORS.quiet : COLORS.main), is_active: !m.disabled, is_visible: true, has_shine_effect: !!m.shine });
       if (m.progress) M.showProgress(true); else M.hideProgress();
@@ -97,13 +106,15 @@ export function useActivated(fn: () => void) {
 
 /** Telegram's colour scheme and theme params, live. */
 export function useTheme() {
-  const [scheme, setScheme] = useState(app?.colorScheme ?? "dark");
+  const media = typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: dark)") : null;
+  const now = (): "light" | "dark" => app?.colorScheme ?? (media && !media.matches ? "light" : "dark");
+  const [scheme, setScheme] = useState<"light" | "dark">(now);
   useEffect(() => {
-    if (!app) return;
-    const a = app;
-    const cb = () => setScheme(a.colorScheme);
-    a.onEvent("themeChanged", cb);
-    return () => a.offEvent("themeChanged", cb);
+    const cb = () => setScheme(now());
+    if (app) { const a = app; a.onEvent("themeChanged", cb); return () => a.offEvent("themeChanged", cb); }
+    media?.addEventListener("change", cb);
+    return () => media?.removeEventListener("change", cb);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return { scheme, params: app?.themeParams ?? {} };
 }

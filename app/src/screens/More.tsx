@@ -6,18 +6,18 @@ import { share } from "@/lib/share";
 import { useBackButton } from "@/tg/hooks";
 import { addToHomeScreen, app, downloadFile, features, homeScreenStatus, openLink } from "@/tg/sdk";
 import { DATA_ORIGIN, SITE_URL } from "@/api/data";
-import { List, Row, Screen, Section } from "@/ui/ui";
+import { List, Row, Screen, Section, type IconName } from "@/ui/ui";
 
-const STUDY: [string, string, string][] = [
-  ["/study", "4 Chapters a Day", "The daily reading, a note for every chapter"],
-  ["/dictionary", "Dictionary", "Easton's: names, places and words"],
-  ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book"],
-  ["/topics", "Topics", "Classes and episodes by what they cover"],
+const STUDY: [string, string, string, IconName][] = [
+  ["/study", "4 Chapters a Day", "The daily reading, a note for every chapter", "book"],
+  ["/dictionary", "Dictionary", "Easton's: names, places and words", "type"],
+  ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book", "layers"],
+  ["/topics", "Topics", "Classes and episodes by what they cover", "tag"],
 ];
-const LAW: [string, string, string][] = [
-  ["/law", "The Law", "The handbook, every law with its scripture"],
-  ["/precepts", "Precepts", "Every subject scripture speaks to, A to Z"],
-  ["/cases", "Case studies", "Judgments, and those who kept the law and were blessed"],
+const LAW: [string, string, string, IconName][] = [
+  ["/law", "The Law", "The handbook, every law with its scripture", "law"],
+  ["/precepts", "Precepts", "Every subject scripture speaks to, A to Z", "quote"],
+  ["/cases", "Case studies", "Judgments, and those who kept the law and were blessed", "folder"],
 ];
 
 export function More() {
@@ -34,12 +34,12 @@ export function More() {
           <Row href="/bookmarks" icon="bookmark" title="Bookmarks, highlights & notes" sub={marks.length ? `${marks.length} bookmarks` : "Verses and classes you keep"} />
           <Row href="/history" icon="clock" title="History" sub="The chapters you opened" />
           <Row href="/sabbath" icon="sun" title="Sabbath" sub="Sunset where you are, and the countdown" />
-          <Row href="/settings" icon="bell" title="Settings" sub={`Daily verse, lock, text size${chaptersRead(progress) ? ` · ${chaptersRead(progress)} chapters read` : ""}`} />
+          <Row href="/settings" icon="gear" title="Settings" sub={`Daily verse, lock, text size${chaptersRead(progress) ? ` · ${chaptersRead(progress)} chapters read` : ""}`} />
         </List>
       </Section>
       <Section title="Ask"><List><Row href="/ask" icon="note" title="Ask CyberJudah" sub="Ask anything about what was taught; answers with their sources" /></List></Section>
-      <Section title="Study"><List>{STUDY.map(([to, t, s]) => <Row key={to} href={to} title={t} sub={s} />)}</List></Section>
-      <Section title="Law"><List>{LAW.map(([to, t, s]) => <Row key={to} href={to} title={t} sub={s} />)}</List></Section>
+      <Section title="Study"><List>{STUDY.map(([to, t, s, i]) => <Row key={to} href={to} icon={i} title={t} sub={s} />)}</List></Section>
+      <Section title="Law"><List>{LAW.map(([to, t, s, i]) => <Row key={to} href={to} icon={i} title={t} sub={s} />)}</List></Section>
       <Section title="CyberJudah">
         <List>
           <Row onClick={() => void share({ kind: "app", title: "CyberJudah", text: "The KJV with the Apocrypha, and everything taught from it, in Telegram.", sitePath: "/" })} icon="share" title="Share the app" sub="Send it to a chat" />
