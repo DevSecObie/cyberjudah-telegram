@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { api } from "@/tg/sdk";
 
@@ -12,8 +12,8 @@ import { api } from "@/tg/sdk";
 export type Level = { level: number; w: number; h: number; frames: number; rows: number; cols: number; sheets: number; interval: number };
 export type Board = { ok: boolean; duration: number; levels: Level[] };
 
-export function useBoard(video: string | null | undefined) {
-  return useQuery({ queryKey: ["frames", video], enabled: !!video, staleTime: 3_600_000, retry: false, queryFn: () => api<Board>(`/api/frames/${encodeURIComponent(video!)}`).catch(() => ({ ok: false, duration: 0, levels: [] }) as Board) });
+export function useBoard(video: string | null | undefined, enabled = true) {
+  return useQuery({ queryKey: ["frames", video], enabled: !!video && enabled, staleTime: 3_600_000, retry: false, queryFn: () => api<Board>(`/api/frames/${encodeURIComponent(video!)}`).catch(() => ({ ok: false, duration: 0, levels: [] }) as Board) });
 }
 
 /** The level closest to (at least) `width` pixels wide; the largest when none is. */
@@ -58,8 +58,15 @@ export function useVisuals(video: string | null | undefined) {
 
 /** One frame of a recording at a moment; nothing when the recording has no frames. */
 export function Frame({ video, t, width, className, onClick }: { video: string; t: number; width?: number; className?: string; onClick?: () => void }) {
-  const board = useBoard(video);
+  const ref = useRef<HTMLSpanElement>(null);
+  const [near, setNear] = useState(typeof IntersectionObserver === "undefined");
+  useEffect(() => {
+    if (near || !ref.current || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => { if (entry?.isIntersecting) { setNear(true); observer.disconnect(); } }, { rootMargin: "300px" });
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [near]);
+  const board = useBoard(video, near);
   const style = frameStyle(video, board.data, t, width);
-  if (!style) return null;
-  return <span className={`frame${className ? ` ${className}` : ""}`} style={style} role={onClick ? "button" : undefined} onClick={onClick} aria-label={onClick ? "Watch from here" : undefined} />;
+  return <span ref={ref} className={`frame${className ? ` ${className}` : ""}`} style={style ?? (width ? { width, aspectRatio: "16 / 9" } : undefined)} role={style && onClick ? "button" : undefined} onClick={style ? onClick : undefined} aria-label={style && onClick ? "Watch from here" : undefined} />;
 }

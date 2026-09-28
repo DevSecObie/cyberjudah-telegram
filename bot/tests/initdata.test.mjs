@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { validateInitData, signInitData } from "../src/initdata.mjs";
 
-const TOKEN = "123456789:AAHfiqksKZ8WmR2zSjiQ7_v4TMAKdiHm9T0";
+// Build a structurally useful value without committing anything secret scanners can mistake
+// for a live Telegram credential.
+const TOKEN = ["test-bot", "token", "not-a-credential"].join("-");
 const user = { id: 42, first_name: "Judah", username: "judah", language_code: "en", is_premium: true };
 
 /** Signed the way Telegram documents it, with node's crypto, independent of the module under test. */
