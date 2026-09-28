@@ -34,3 +34,28 @@ export function advance(plan: NonNullable<Plan>, today = dayKey()): NonNullable<
 }
 
 export const startPlan = (perDay = 4): NonNullable<Plan> => ({ startedAt: dayKey(), day: 0, streak: 0, perDay });
+
+/** Days between two YYYY-MM-DD keys, in local time. */
+export function daysBetween(a: string, b: string) {
+  const d = (k: string) => { const [y, m, dd] = k.split("-").map(Number); return new Date(y, m - 1, dd).getTime(); };
+  return Math.round((d(b) - d(a)) / 86_400_000);
+}
+/** The calendar day a plan day falls on, from the start date. */
+export function dateOfDay(plan: NonNullable<Plan>, day: number) {
+  const [y, m, d] = plan.startedAt.split("-").map(Number);
+  return new Date(y, m - 1, d + day);
+}
+/** How the reader stands against the calendar: days behind (>0) or ahead (<0), and the chapters owed. */
+export function schedule(plan: NonNullable<Plan>, books: Book[], progress: Progress, today = dayKey()) {
+  const due = daysBetween(plan.startedAt, today);
+  const offset = due - plan.day;
+  const all = flatChapters(books);
+  let owed = 0;
+  for (let i = plan.day * plan.perDay; i < Math.min(all.length, (due + 1) * plan.perDay); i++) if (!expand(progress[all[i].slug]).has(all[i].chapter)) owed++;
+  return { due, offset, owed: offset > 0 ? owed : 0 };
+}
+/** Move the start date so today is the day the reader is on. */
+export const realign = (plan: NonNullable<Plan>, today = new Date()): NonNullable<Plan> => {
+  const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - plan.day);
+  return { ...plan, startedAt: dayKey(d) };
+};

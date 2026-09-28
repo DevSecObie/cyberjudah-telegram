@@ -85,9 +85,10 @@ export function useStored<T>(key: string, fallback: T): [T, (v: T) => void, bool
   const [value, setValue] = useState<T>(fallback);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    let live = true;
-    void json.get(key, fallback).then((v) => { if (live) { setValue(v); setLoaded(true); } });
-    const off = store.subscribe(key, (raw) => { if (!live) return; try { setValue(raw === null ? fallback : (JSON.parse(raw) as T)); } catch { /* ignore */ } });
+    let live = true, fresher = false;
+    // The cloud copy can land before the first read returns; the first read must not undo it.
+    void json.get(key, fallback).then((v) => { if (live) { if (!fresher) setValue(v); setLoaded(true); } });
+    const off = store.subscribe(key, (raw) => { if (!live) return; fresher = true; try { setValue(raw === null ? fallback : (JSON.parse(raw) as T)); } catch { /* ignore */ } });
     return () => { live = false; off(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);

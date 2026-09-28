@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 
 import { compressVerses, data, verseNumbers } from "@/api/data";
-import { markRead, pushHistory, useHistory, useLast, usePlan, useProgress } from "@/lib/marks";
+import { isRead, markRead, pushHistory, unmarkRead, useHistory, useLast, usePlan, useProgress } from "@/lib/marks";
 import { advance, planDay } from "@/lib/plan";
 import { createRelation, deleteRelation, endpointHref, useChapterRelations, verseKey, type Endpoint, type Relation, type VerseEndpoint, type VerseRelationItem } from "@/lib/relations";
 import { share } from "@/lib/share";
@@ -17,6 +17,7 @@ import { cssVars, isDarkTheme } from "./theme";
 import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
 import { BookSelectorSheet, VersePopup } from "./ui/BookSelectorSheet";
 import { BookmarkSheet, LinkSheet, NoteSheet, TagsPanel } from "./ui/Editors";
+import { ChapterEnd } from "./ui/ChapterEnd";
 import { Footer } from "./ui/Footer";
 import { Header, PassageContextBar, VersionSheet, type MenuAction } from "./ui/Header";
 import { ParamsSheet } from "./ui/ParamsSheet";
@@ -95,7 +96,12 @@ export function BibleTab() {
   useEffect(() => { if (chapterLabel) { setLast({ slug, chapter: ch, name: chapterLabel, at: Date.now() }); setHistory(pushHistory(history, { slug, chapter: ch, name: chapterLabel })); } }, [slug, ch, chapterLabel]); // eslint-disable-line react-hooks/exhaustive-deps
   const progressRef = useRef(progress); progressRef.current = progress;
   useEffect(() => { const t = setTimeout(() => setProgress(markRead(progressRef.current, slug, ch)), 20_000); return () => clearTimeout(t); }, [slug, ch]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (plan && list.length && planDay(plan, list, progress).done) { setPlan(advance(plan)); haptic("success"); } }, [plan, list, progress]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!plan || !list.length || !planDay(plan, list, progress).done) return;
+    const next = advance(plan); setPlan(next); haptic("success");
+    const tomorrow = planDay(next, list, progress);
+    say(`Day ${plan.day + 1} done${next.streak > 1 ? ` · ${next.streak} day streak` : ""}${tomorrow.chapters.length ? ` · next: ${tomorrow.label}` : ""}`);
+  }, [plan, list, progress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sheets.
   const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why">(null);
@@ -223,6 +229,8 @@ export function BibleTab() {
           selected={selected} focusVerses={focus} contextDisplayMode={contextMode} verseToScroll={verseToScroll} navigationRequest={navRequest}
           highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={relItems}
           headerHeight={headerHeight} fullscreen={fullscreen} canSwipe
+          footer={<ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
+            onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} />}
           onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "dictionary")}
           onSwipe={(dir) => go(dir === "left" ? next : prev)} onFullscreen={setFullscreen}
           onOpenBookmark={(b) => { setBookmarkTarget({ verse: b.verse, existing: b }); setSheet("bookmark"); }}
@@ -242,7 +250,7 @@ export function BibleTab() {
         onDictionary={() => openResources(first, "dictionary")} onThemes={() => openResources(first, "themes")} onReferences={() => openResources(first, "references")} onCommentary={() => openResources(first, "commentary")}
         onCopy={() => void copy()} onShare={shareSel} onExport={() => void exportSel("selection")} onSelectAll={() => setSelected(verses.map((v) => v.verse))} />
 
-      <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v)} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} />
+      <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v)} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />
       <VersionSheet open={sheet === "version"} onClose={() => setSheet(null)} />
       <VersePopup open={sheet === "verses"} onClose={() => setSheet(null)} count={verses.length} selected={verseToScroll} onSelect={(v) => { setVerseToScroll(v); setNavRequest((n) => n + 1); }} />
       <ParamsSheet open={sheet === "params"} onClose={() => setSheet(null)} settings={settings} set={setSettings} palette={palette} />

@@ -399,3 +399,37 @@ liveDataTest("a quoted phrase in the recordings search is exact", async ({ page 
   await expect(page.locator(".rec").first()).toBeVisible();
   await expect(page.locator(".rec__excerpt").first()).toContainText(/most high/i);
 });
+
+test("reading progress: read chapters in the book picker, the day strip and catching up, marking a chapter read", async ({ page }) => {
+  const day = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  const seed = { read: JSON.stringify({ genesis: "1-4,6" }), plan: JSON.stringify({ startedAt: day(3), day: 1, streak: 1, perDay: 4, lastDone: day(3) }) };
+  await page.addInitScript((s) => { (window as unknown as { __cloud: unknown }).__cloud = s; }, seed);
+  const shot = (n: string) => (process.env.SHOTS ? page.screenshot({ path: `${process.env.SHOTS}/${n}.png` }) : Promise.resolve());
+
+  // The plan: two days behind, a strip of days, a chip to catch up.
+  await page.goto(`/plan${LAUNCH}`);
+  await expect(page.locator(".daystrip__day[aria-current]")).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".daystrip__day[data-done]")).toHaveCount(1);
+  await expect(page.locator(".catchup")).toHaveText("Catch up · 11 chapters");
+  await shot("tracker-plan");
+  await page.locator(".daystrip__day").nth(2).click();
+  await expect(page.locator(".section__head h2").first()).toContainText("Day 3 · ");
+  await page.click(".catchup");
+  await page.click(".sheet__item >> text=Start the schedule from today");
+  await expect(page.locator(".catchup")).toHaveCount(0);
+
+  // The book picker: Genesis 5 of 50, chapters read filled.
+  await goInApp(page, "/read/genesis/5");
+  await page.locator(".bs-chapterend").scrollIntoViewIfNeeded();
+  await expect(page.locator(".bs-markread")).toHaveText("Mark as read");
+  await expect(page.locator(".bs-chapterend__plan")).toContainText("Day 2 · 1 of 4 read");
+  await shot("tracker-end");
+  await page.click(".bs-markread");
+  await expect(page.locator(".bs-markread")).toHaveAttribute("aria-pressed", "true");
+  expect(JSON.parse((await cloud(page)).read).genesis).toBe("1-6");
+  await page.click(".bs-pill--book");
+  await page.click('.bs-bookrow:has-text("Genesis")');
+  await expect(page.locator(".bs-bookprog").first()).toHaveAttribute("aria-label", "6 of 50 chapters read");
+  await expect(page.locator(".bs-chaptertile[data-read]")).toHaveCount(6);
+  await shot("tracker-books");
+});

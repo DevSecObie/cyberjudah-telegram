@@ -227,3 +227,24 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .why__words { margin: 0; font-family: var(--bs-font, Georgia, serif); font-size: 15px; line-height: 1.5; color: var(--bs-tertiary); font-style: italic; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .why__reason { margin: 0; font-size: 15px; line-height: 1.5; color: var(--bs-default); }
 .why-sheet .why .why__src { align-self: flex-start; padding: 0; border: 0; background: none; font-size: 12.5px !important; line-height: 1.4; color: var(--bs-tertiary); text-align: left; cursor: pointer; }
+
+/* Reading progress: chapters read in the book picker, the end of a chapter. */
+.bs-bookrow > span:first-child { flex: 1; }
+.bs-bookrow > svg, .bs-bookprog svg { flex: none; }
+.bs-bookprog { display: inline-flex; align-items: center; gap: 6px; margin-right: 10px; color: var(--bs-tertiary); }
+.bs-bookprog small { font-size: 12px; font-variant-numeric: tabular-nums; }
+.bs-bookprog__track { fill: none; stroke: var(--bs-border); stroke-width: 2.5; }
+.bs-bookprog__fill { fill: none; stroke: var(--bs-primary); stroke-width: 2.5; stroke-linecap: round; transition: stroke-dashoffset .4s ease; }
+.bs-bookprog[data-done] small { color: var(--bs-primary); font-weight: 600; }
+.bs-chaptertile[data-read] { background: var(--bs-light-primary); color: var(--bs-primary); font-weight: 600; }
+.bs-bookshort { position: relative; }
+.bs-bookbar { position: absolute; left: 22%; right: 22%; bottom: 7px; height: 3px; border-radius: 2px; background: var(--bs-border); overflow: hidden; }
+.bs-bookbar i { display: block; height: 100%; background: var(--bs-primary); }
+.bs-chapterend { display: grid; justify-items: center; gap: 10px; margin: 36px 0 0; padding-top: 24px; border-top: 1px solid var(--bs-border); text-align: center; }
+.bs-markread { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 18px; border: 1px solid var(--bs-border); border-radius: 22px; background: transparent; color: var(--bs-default); font: 500 15px var(--bs-font, inherit); cursor: pointer; transition: background .2s, border-color .2s; }
+.bs-markread__dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--bs-grey); display: grid; place-items: center; transition: background .2s, border-color .2s; }
+.bs-markread[aria-pressed="true"] { border-color: transparent; background: var(--bs-light-primary); color: var(--bs-primary); }
+.bs-markread[aria-pressed="true"] .bs-markread__dot { border-color: var(--bs-primary); background: var(--bs-primary); }
+.bs-markread:active { opacity: .7; }
+.bs-chapterend__plan { margin: 0; font-size: 13px; color: var(--bs-tertiary); }
+.bs-chapterend__plan a { color: var(--bs-primary); text-decoration: none; font-weight: 600; }

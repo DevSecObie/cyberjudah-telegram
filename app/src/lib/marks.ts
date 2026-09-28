@@ -56,6 +56,13 @@ export function markRead(p: Progress, slug: string, ch: number): Progress {
   const set = expand(p[slug]); if (set.has(ch)) return p; set.add(ch);
   return { ...p, [slug]: compress(set) };
 }
+export function unmarkRead(p: Progress, slug: string, ch: number): Progress {
+  const set = expand(p[slug]); if (!set.delete(ch)) return p;
+  const next = { ...p }; const s = compress(set);
+  if (s) next[slug] = s; else delete next[slug];
+  return next;
+}
+export const isRead = (p: Progress, slug: string, ch: number) => expand(p[slug]).has(ch);
 export const chaptersRead = (p: Progress) => Object.values(p).reduce((n, s) => n + expand(s).size, 0);
 
 /** Highlights: verse -> colour id for one chapter. */

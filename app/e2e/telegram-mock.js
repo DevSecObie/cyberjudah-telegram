@@ -7,7 +7,7 @@
   const version = params.get("tgWebAppVersion") || "9.1";
   const atLeast = (v) => { const a = version.split(".").map(Number), b = v.split(".").map(Number); for (let i = 0; i < Math.max(a.length, b.length); i++) { const x = a[i] || 0, y = b[i] || 0; if (x !== y) return x > y; } return true; };
   const events = {};
-  const cloud = {}, device = {}, secureStore = {};
+  const cloud = { ...(window.__cloud || {}) }, device = {}, secureStore = {};
   const log = [];
   let popupCb = null;
   const mkStorage = (store) => ({
