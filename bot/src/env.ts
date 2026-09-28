@@ -21,6 +21,7 @@ export type Env = {
   WEBHOOK_SECRET: string;
   /** Set as a Worker secret from the ANTHROPIC_API_KEY repository secret: Ask CyberJudah answers with Claude; without it, with Llama on Workers AI. */
   ANTHROPIC_API_KEY?: string;
+  ANTHROPIC_BASE_URL?: string;
   /** The Claude model Ask CyberJudah answers with (claude-opus-5 when unset). */
   CLAUDE_MODEL?: string;
   /** Telegram user ids (comma-separated) allowed to edit notes from the app. */

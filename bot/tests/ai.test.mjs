@@ -50,3 +50,11 @@ test("matches collapse to one per page or per recording minute-and-a-half, best 
   ]);
   assert.deepEqual(m.map((x) => x.id), ["2", "5", "3"]);
 });
+
+test("the answer's last line of follow-up questions is taken off the answer", async () => {
+  const { splitFollowups } = await import("../src/ai.mjs");
+  const r = splitFollowups("The feast is kept for ever [2].\n\n> A memorial. **Exodus 12:14**\n\nFollow-ups: Why the lamb? | What of leaven? | When is Abib?");
+  assert.equal(r.answer, "The feast is kept for ever [2].\n\n> A memorial. **Exodus 12:14**");
+  assert.deepEqual(r.followups, ["Why the lamb?", "What of leaven?", "When is Abib?"]);
+  assert.deepEqual(splitFollowups("No suggestions here.").followups, []);
+});

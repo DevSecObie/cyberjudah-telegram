@@ -11,7 +11,7 @@ import { KIND_NAME } from "./Home";
 
 export type Passage = { kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string; text: string };
 export type Source = Passage & { n: number };
-type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; thinking?: boolean };
+type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; thinking?: boolean; status?: string; steps?: string[]; followups?: string[] };
 /** The welcome screen's starters: a question and the line under it. */
 const EXAMPLES: [string, string][] = [
   ["Why do we keep the Passover?", "The feast, from the law to Christ"],
@@ -78,11 +78,14 @@ export function Ask() {
         const lines = buffer.split("\n"); buffer = lines.pop() ?? "";
         for (const l of lines) {
           if (!l.trim()) continue;
-          let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string };
+          let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[] };
           try { msg = JSON.parse(l); } catch { continue; }
           if (msg.passages) patch((t) => ({ ...t, passages: msg.passages }));
+          // The research as it happens: each search and reading is a step under the answer's head.
+          if (msg.status) patch((t) => ({ ...t, status: msg.status, steps: /^(Searching|Reading)/.test(msg.status!) ? [...(t.steps ?? []), msg.status!] : t.steps }));
+          if (msg.reset) patch((t) => ({ ...t, content: "", thinking: true }));
           if (msg.delta) patch((t) => ({ ...t, thinking: false, content: t.content + msg.delta }));
-          if (msg.done) patch((t) => ({ ...t, thinking: false, sources: msg.sources ?? [] }));
+          if (msg.done) patch((t) => ({ ...t, thinking: false, content: msg.answer ?? t.content, sources: msg.sources ?? [], followups: msg.followups ?? [] }));
           if (msg.error) patch((t) => ({ ...t, thinking: false, error: msg.error }));
         }
       }
@@ -117,7 +120,7 @@ export function Ask() {
         <div className="chat2__turns">
           {turns.map((t, i) => t.role === "user"
             ? <div key={i} className="msg msg--me"><div className="msg__bubble">{t.content}</div></div>
-            : <AssistantTurn key={i} t={t} last={i === turns.length - 1} onRetry={() => void send(lastUser, true)} />)}
+            : <AssistantTurn key={i} t={t} last={i === turns.length - 1} busy={busy} onRetry={() => void send(lastUser, true)} onFollow={(q) => void send(q)} />)}
           <div ref={endRef} className="chat2__end" />
         </div>
       )}
@@ -135,7 +138,7 @@ export function Ask() {
   );
 }
 
-function AssistantTurn({ t, last, onRetry }: { t: Turn; last: boolean; onRetry: () => void }) {
+function AssistantTurn({ t, last, busy, onRetry, onFollow }: { t: Turn; last: boolean; busy: boolean; onRetry: () => void; onFollow: (q: string) => void }) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const sources = t.sources ?? [];
@@ -152,8 +155,9 @@ function AssistantTurn({ t, last, onRetry }: { t: Turn; last: boolean; onRetry: 
   return (
     <div className="msg msg--ai">
       <div className="msg__who"><img className="msg__avatar" src="/brand/cyber-lion.webp" alt="" width={24} height={24} />CyberJudah</div>
+      {t.steps?.length ? <Research steps={t.steps} live={!!t.thinking || (busy && last)} count={t.passages?.length ?? 0} /> : null}
       {t.thinking ? (
-        <div className="msg__thinking"><span className="answer__dots" aria-hidden="true"><i /><i /><i /></span>{t.passages?.length ? `Reading ${t.passages.length} passages from the teachings…` : "Searching the teachings…"}</div>
+        <div className="msg__thinking"><span className="answer__dots" aria-hidden="true"><i /><i /><i /></span>{t.status && !/^(Searching|Reading)/.test(t.status) ? `${t.status}…` : t.passages?.length ? `Reading ${t.passages.length} passages from the teachings…` : "Searching the teachings…"}</div>
       ) : t.error && !t.content ? (
         <div className="msg__error">
           <p>{t.error === "limit" ? "That is a hundred questions today. The count starts again tomorrow." : t.error === "too-short" ? "Ask a fuller question." : t.error === "stopped" ? "Stopped." : "CyberJudah did not answer just now."}</p>
@@ -175,6 +179,11 @@ function AssistantTurn({ t, last, onRetry }: { t: Turn; last: boolean; onRetry: 
               </div>
             </div>
           ) : null}
+          {last && !busy && t.followups?.length ? (
+            <div className="followups">
+              {t.followups.map((q) => <button key={q} type="button" className="followup" onClick={() => onFollow(q)}><Icon name="arrowUp" size={14} /><span>{q}</span></button>)}
+            </div>
+          ) : null}
           {sources.length || !last ? (
             <div className="msg__actions">
               <button type="button" className="msg__action" onClick={copy} aria-label="Copy the answer"><Icon name={copied ? "check" : "copy"} size={16} />{copied ? "Copied" : "Copy"}</button>
@@ -187,9 +196,28 @@ function AssistantTurn({ t, last, onRetry }: { t: Turn; last: boolean; onRetry: 
   );
 }
 
-const escapeHtml = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+/**
+ * What CyberJudah looked at before answering, the way a research assistant shows its work:
+ * one line while it works, the list of searches and readings when tapped.
+ */
+function Research({ steps, live, count }: { steps: string[]; live: boolean; count: number }) {
+  const [open, setOpen] = useState(false);
+  const searches = steps.filter((s) => s.startsWith("Searching")).length, readings = steps.length - searches;
+  const summary = live ? steps[steps.length - 1] : [searches ? `${searches} search${searches > 1 ? "es" : ""}` : "", readings ? `${readings} reading${readings > 1 ? "s" : ""}` : "", count ? `${count} sources` : ""].filter(Boolean).join(" · ");
+  return (
+    <div className="research" data-open={open ? "" : undefined}>
+      <button type="button" className="research__head" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <Icon name="search" size={14} /><span>{live ? `${summary}…` : `Researched: ${summary}`}</span><span className="research__chev"><Icon name="chevron" size={14} /></span>
+      </button>
+      {open ? <ul className="research__steps">{steps.map((s, i) => <li key={i}>{s}</li>)}</ul> : null}
+    </div>
+  );
+}
+
+/** Any HTML the model writes shows as text; ">" stays, since it only starts a quote in markdown. */
+const escapeHtml = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 /** The answer as text for the clipboard: the citation markers dropped. */
-const plain = (text: string) => text.replace(/\s*\[\d{1,2}(?:\s*,\s*\d{1,2})*\]/g, "").replace(/ +([.,;:!?])/g, "$1").trim();
+const plain = (text: string) => text.replace(/\n?[ \t]*\**Follow-ups:[\s\S]*$/i, "").replace(/\s*\[\d{1,2}(?:\s*,\s*\d{1,2})*\]/g, "").replace(/ +([.,;:!?])/g, "$1").trim();
 
 /**
  * The answer as formatted prose: the model's markdown (bold, lists, headings) rendered with
@@ -198,7 +226,7 @@ const plain = (text: string) => text.replace(/\s*\[\d{1,2}(?:\s*,\s*\d{1,2})*\]/
  */
 export function answerHtml(text: string, sources: Source[]): string {
   const known = new Set(sources.map((s) => s.n));
-  const marked_ = escapeHtml(text.replace(/\s*\[\d{0,2}$/, ""))
+  const marked_ = escapeHtml(text.replace(/\n?[ \t]*\**Follow-ups:[\s\S]*$/i, "").replace(/\s*\[\d{0,2}$/, ""))
     .replace(/\s*\[(\d{1,2}(?:\s*,\s*\d{1,2})*)\]/g, (_m, list: string) => list.split(/\s*,\s*/).map((n) => (known.has(Number(n)) ? ` CJCITE${n}CJ` : "")).join(""));
   const html = marked.parse(marked_, { gfm: true, breaks: false, async: false }) as string;
   return html.replace(/ ?CJCITE(\d{1,2})CJ/g, (_m, n: string) => `<button type="button" class="cite" data-n="${n}" aria-label="Source ${n}">${n}</button>`);

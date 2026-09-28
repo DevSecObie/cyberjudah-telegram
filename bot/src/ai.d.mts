@@ -15,3 +15,6 @@ export type Turn = { role: "user" | "assistant"; content: string };
 export function buildPrompt(question: string, passages: Passage[], history?: Turn[]): { role: "system" | "user" | "assistant"; content: string }[];
 export function citations(answer: string, count: number): number[];
 export function dedupeMatches<T extends Match>(matches: T[]): T[];
+
+export const RESEARCH: string;
+export function splitFollowups(text: string): { answer: string; followups: string[] };
