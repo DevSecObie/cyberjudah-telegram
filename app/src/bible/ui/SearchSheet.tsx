@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
-import type { Book } from "@/api/data";
+import { data, type Book } from "@/api/data";
+import { useNavigate } from "react-router";
 import { api, haptic } from "@/tg/sdk";
 import { findBook, parseReference } from "../../../../bot/src/refs.mjs";
 import { Feather } from "../icons";
@@ -27,6 +28,9 @@ export function SearchSheet({ open, onClose, books, onGo }: { open: boolean; onC
     queryKey: ["verse-search", words], enabled: open && words.length >= 3, staleTime: 5 * 60_000,
     queryFn: () => api<{ ok: boolean; hits: Hit[] }>(`/api/search?q=${encodeURIComponent(words)}&only=verse&limit=50`),
   });
+  const navigate = useNavigate();
+  const everyone = useQuery({ queryKey: ["people-index"], enabled: open && text.length >= 2, staleTime: Infinity, queryFn: () => data.people() });
+  const who = !ref && text.length >= 2 ? (everyone.data ?? []).filter((p) => p.names.some((n) => n.toLowerCase().startsWith(text.toLowerCase()))).sort((a, b) => b.verses - a.verses).slice(0, 5) : [];
   const name = (slug: string) => books.find((b) => b.slug === slug)?.book ?? slug;
   const hits = (found.data?.ok ? found.data.hits : []).flatMap((h) => {
     const m = /^\/bible\/([a-z0-9-]+)\/(\d+)(?:#v(\d+))?/.exec(h.url);
@@ -39,12 +43,13 @@ export function SearchSheet({ open, onClose, books, onGo }: { open: boolean; onC
     <Sheet open={open} onClose={onClose} height="full" title="Search the Scriptures" className="bs-versesearch">
       <form className="bs-search__field" onSubmit={(e) => { e.preventDefault(); if (ref) go(ref.slug, ref.chapter, ref.verse); else if (bookOnly) go(bookOnly.slug, 1); else if (hits[0]) go(hits[0].slug, hits[0].chapter, hits[0].verse); }}>
         <Feather name="search" size={18} color="var(--bs-tertiary)" />
-        <input ref={input} type="search" enterKeyHint="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="John 3:16, or words in a verse" aria-label="Search the Scriptures" autoComplete="off" />
+        <input ref={input} type="search" enterKeyHint="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="John 3:16, a name, or words in a verse" aria-label="Search the Scriptures" autoComplete="off" />
         {q ? <button type="button" className="bs-iconbtn" aria-label="Clear" onClick={() => { setQ(""); input.current?.focus({ preventScroll: true }); }}><Feather name="x" size={16} /></button> : null}
       </form>
       <div className="bs-search__list">
         {ref ? <Row icon="arrow-right-circle" title={`Go to ${ref.label.replace(ref.book, name(ref.slug))}`} sub="Open the chapter at this verse" onClick={() => go(ref.slug, ref.chapter, ref.verse)} /> : null}
         {bookOnly ? <Row icon="book-open" title={`Go to ${name(bookOnly.slug)}`} sub={`${bookOnly.chapters} chapters`} onClick={() => go(bookOnly.slug, 1)} /> : null}
+        {who.map((p) => <Row key={p.id} icon="users" title={p.name} sub={`${p.description} · named in ${p.verses} ${p.verses === 1 ? "verse" : "verses"}`} onClick={() => { haptic("select"); onClose(); navigate(`/person/${p.id}`); }} />)}
         {!text ? <p className="bs-search__hint">Type a reference to go there, or a few words to find the verses. Put words in quotes to keep them together.</p> : null}
         {words.length >= 3 && found.isPending ? <p className="bs-search__hint">Searching…</p> : null}
         {words.length >= 3 && found.isError ? <p className="bs-search__hint">Search is unavailable right now. Try again in a moment.</p> : null}
@@ -61,7 +66,7 @@ export function SearchSheet({ open, onClose, books, onGo }: { open: boolean; onC
   );
 }
 
-function Row({ icon, title, sub, onClick }: { icon: "arrow-right-circle" | "book-open"; title: string; sub: string; onClick: () => void }) {
+function Row({ icon, title, sub, onClick }: { icon: "arrow-right-circle" | "book-open" | "users"; title: string; sub: string; onClick: () => void }) {
   return (
     <button type="button" className="bs-search__go" onClick={onClick}>
       <Feather name={icon} size={20} color="var(--bs-primary)" />

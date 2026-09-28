@@ -19,6 +19,7 @@ import { Settings, ThemeApplier } from "@/screens/Settings";
 import { Plan } from "@/screens/Plan";
 import { History } from "@/screens/History";
 import { Dictionary, DictionaryEntry } from "@/screens/Dictionary";
+import { Person } from "./screens/Person";
 import { Relations } from "@/screens/Relations";
 import { Bookmarks } from "@/screens/Bookmarks";
 import { Sabbath } from "@/screens/Sabbath";
@@ -67,6 +68,7 @@ export function App() {
         <Route path="/history" element={<History />} />
         <Route path="/dictionary" element={<Dictionary />} />
         <Route path="/dictionary/:slug" element={<DictionaryEntry />} />
+        <Route path="/person/:id" element={<Person />} />
         <Route path="/bookmarks" element={<Bookmarks />} />
         <Route path="/sabbath" element={<Sabbath />} />
         <Route path="/study" element={<Study />} />

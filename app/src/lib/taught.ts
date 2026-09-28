@@ -24,6 +24,10 @@ export function useTaughtPrecepts(slug: string, ch: number) {
 export function useClassMoments(slug: string, ch: number) {
   return useQuery({ ...concordance(slug, ch), select: (c: Concordance | null) => c?.moments ?? ([] as ClassMoment[]) });
 }
+/** Who is named in each verse of this chapter (person ids). */
+export function usePeopleNamed(slug: string, ch: number) {
+  return useQuery({ ...concordance(slug, ch), select: (c: Concordance | null) => c?.people ?? ({} as Record<string, string[]>) });
+}
 /** YouTube at the second the class read it. */
 export const watchUrl = (m: ClassMoment) => `https://www.youtube.com/watch?v=${m.video}${m.t ? `&t=${m.t}s` : ""}`;
 

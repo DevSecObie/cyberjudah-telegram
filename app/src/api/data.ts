@@ -54,7 +54,11 @@ export type VerseNote = { verses: string; text: string; note: { label: string; u
 export type ClassMoment = { verses: string; label: string; url: string; date: string; video: string; t: number; ts: string; teacher?: string };
 /** A class's own breakdown of a verse it opened: its points on that verse, and the moment it was read. */
 export type VerseComment = { verses: string; passage: string; points: string[]; note: { label: string; url: string; date: string; teacher: string }; ts: string; video: string | null; t: number };
-export type Concordance = { book: string; chapter: number; cited_by: Citation[]; precepts?: TaughtPrecept[]; notes?: VerseNote[]; moments?: ClassMoment[]; commentary?: VerseComment[] };
+/** A person named in the Bible (STEPBible TIPNR, CC BY 4.0), with what the classes taught where they come up. */
+export type PersonRef = { id: string; name: string };
+export type Person = { id: string; name: string; names: string[]; description: string; type: string; tribe: string; father: PersonRef[]; mother: PersonRef[]; siblings: PersonRef[]; partners: PersonRef[]; children: PersonRef[]; verses: string[]; taught: { verse: string; url: string; points: string[]; note: { label: string; url: string; date: string; teacher: string }; ts: string; video: string | null; t: number }[]; source: { name: string; license: string; url: string } };
+export type PersonIndexRow = { id: string; name: string; names: string[]; description: string; verses: number; first: string };
+export type Concordance = { book: string; chapter: number; cited_by: Citation[]; precepts?: TaughtPrecept[]; notes?: VerseNote[]; moments?: ClassMoment[]; commentary?: VerseComment[]; people?: Record<string, string[]> };
 export type NoteRow = { kind: "study" | "class" | "captains" | "history" | "encyclopedia"; title: string; url: string; book?: string | null; chapters?: [number, number] | null; range?: string; date?: string | null; year?: string; series?: string; teacher?: string; topics?: string[]; summary?: string; videoId?: string | null };
 export type Note = NoteRow & { body: string; file?: string | null };
 export type FeedRow = { title: string; url: string; date: string; year: string; teacher: string; collection?: string; thumb: string; books: string[]; topics?: string[] };
@@ -78,6 +82,8 @@ const abs = <T extends { thumb: string }>(rows: T[]) => rows.map((r) => (r.thumb
 
 export const data = {
   books: () => get<Book[]>("/api/kjv/books.json").then(orderApocrypha),
+  person: (id: string) => get<Person>(`/api/people/${id}.json`),
+  people: () => get<PersonIndexRow[]>("/api/people/index.json"),
   chapter: (slug: string, ch: number) => get<Chapter>(`/api/kjv/${slug}/${ch}.json`),
   xref: (slug: string, ch: number) => get<Xref>(`/api/xref/${slug}/${ch}.json`),
   concordance: (slug: string, ch: number) => get<Concordance>(`/api/concordance/${slug}/${ch}.json`),

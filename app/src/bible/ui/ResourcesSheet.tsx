@@ -8,7 +8,7 @@ import { verseNumbers } from "@/api/data";
 import { Feather } from "../icons";
 import { Sheet } from "./Sheet";
 import { Xrefs } from "@/ui/xrefs";
-import { preceptsForVerse, slugOfUrl, teacherRank, useTaughtPrecepts } from "@/lib/taught";
+import { preceptsForVerse, slugOfUrl, teacherRank, usePeopleNamed, useTaughtPrecepts } from "@/lib/taught";
 import { fmtDate } from "@/api/data";
 
 /**
@@ -17,9 +17,9 @@ import { fmtDate } from "@/api/data";
  * Lexicon and Compare tabs need Strong's numbers and a second version, which this library
  * does not carry).
  */
-export type ResourceTab = "precepts" | "dictionary" | "themes" | "references" | "commentary";
+export type ResourceTab = "precepts" | "people" | "dictionary" | "themes" | "references" | "commentary";
 const TABS: { id: ResourceTab; label: string; subtitle: string }[] = [
-  { id: "precepts", label: "Precepts", subtitle: "Precepts taught with this verse" }, { id: "dictionary", label: "Dictionary", subtitle: "Dictionary" }, { id: "themes", label: "Themes", subtitle: "By themes" }, { id: "references", label: "References", subtitle: "Cross References" }, { id: "commentary", label: "Comments", subtitle: "Comments" },
+  { id: "precepts", label: "Precepts", subtitle: "Precepts taught with this verse" }, { id: "people", label: "People", subtitle: "People named in this verse" }, { id: "dictionary", label: "Dictionary", subtitle: "Dictionary" }, { id: "themes", label: "Themes", subtitle: "By themes" }, { id: "references", label: "References", subtitle: "Cross References" }, { id: "commentary", label: "Comments", subtitle: "Comments" },
 ];
 const STOP = new Set("the and for that with unto them they thou thee thy his him her she you your our this these those from into upon shall will hath have had not but which whom who whose what when where there their were was are said saith came come went also then than all any every because before after more most such very over under out off yet let did doth till until against among".split(" "));
 type Entry = { slug: string; term: string; definitions: string[] };
@@ -37,6 +37,9 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   const precepts = preceptsForVerse(taught.data, verse).sort((a, b) => teacherRank(a.note.teacher) - teacherRank(b.note.teacher));
   const topicHits = useQuery({ queryKey: ["cites", slug, chapter], enabled: open && tab === "precepts", queryFn: () => data.concordance(slug, chapter).then((c) => c.cited_by).catch(() => [] as Citation[]) });
   const topics = (topicHits.data ?? []).filter((c) => c.kind === "precept" && (!c.verses || verseNumbers(c.verses).includes(verse)));
+  const named = usePeopleNamed(open && tab === "people" ? slug : "", chapter);
+  const everyone = useQuery({ queryKey: ["people-index"], enabled: open && tab === "people", staleTime: Infinity, queryFn: () => data.people() });
+  const here = (named.data?.[String(verse)] ?? []).map((id) => everyone.data?.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p);
   const readRef = (url: string, verses: string) => { const m = slugOfUrl(url); onClose(); navigate(m ? `/read/${m[1]}/${m[2]}${verses ? `?v=${verses}` : ""}` : toApp(url)); };
   const forVerse = (rows: Citation[] | undefined) => (rows ?? []).filter((c) => !c.verses || verseNumbers(c.verses).includes(verse));
   const refs = (xref.data as Record<string, [string, number, number][]> | undefined)?.[String(verse)] ?? [];
@@ -52,7 +55,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   return (
     <Sheet open={open} onClose={onClose} height="full" title={reference} subTitle={TABS.find((t) => t.id === tab)?.subtitle} footer={
       <div className="bs-resourcetabs" role="tablist">
-        {TABS.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} style={{ opacity: tab === t.id ? 1 : 0.3 }} onClick={() => setTab(t.id)}><Feather name={{ precepts: "git-merge", dictionary: "book", themes: "layers", references: "external-link", commentary: "edit-3" }[t.id] as "book"} size={18} color="var(--bs-primary)" /><span>{t.label}</span></button>)}
+        {TABS.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} style={{ opacity: tab === t.id ? 1 : 0.3 }} onClick={() => setTab(t.id)}><Feather name={{ precepts: "git-merge", people: "users", dictionary: "book", themes: "layers", references: "external-link", commentary: "edit-3" }[t.id] as "book"} size={18} color="var(--bs-primary)" /><span>{t.label}</span></button>)}
       </div>
     }>
       <div className="bs-resources">
@@ -68,6 +71,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
           {topics.length ? <p className="bs-resources__sub">Precept topics</p> : null}
           {topics.map((c) => <TopicPrecepts key={c.url} cite={c} onRead={readRef} onOpen={() => { onClose(); navigate(toApp(c.url)); }} />)}
         </>) : null}
+        {tab === "people" ? (named.isPending || everyone.isPending ? <p className="bs-loading">Loading...</p> : !here.length ? <p className="bs-loading">No one is named in this verse.</p> : here.map((p) => <button key={p.id} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(`/person/${p.id}`); }}><b>{p.name}</b><small>{p.description}{p.verses ? ` · named in ${p.verses} ${p.verses === 1 ? "verse" : "verses"}` : ""}</small></button>)) : null}
         {tab === "dictionary" ? (dict.isPending && words.length ? <p className="bs-loading">Loading...</p> : !dict.data?.length ? <p className="bs-loading">No dictionary entry for the words in this verse.</p> : dict.data.map((e) => <button key={e.slug} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(`/dictionary/${e.slug}`); }}><b>{e.term}</b><small>{e.definitions[0]}</small></button>)) : null}
         {tab === "themes" ? (cites.isPending ? <p className="bs-loading">Loading...</p> : !themes.length ? <p className="bs-loading">No law, precept, case or topic cites this verse.</p> : themes.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(toApp(c.url)); }}><b>{c.label}</b><small>{shelf(c.url, c.kind)}</small></button>)) : null}
         {tab === "references" ? (xref.isPending ? <p className="bs-loading">Loading...</p> : !refs.length ? <p className="bs-loading">No cross references for this verse.</p> : <div className="bs-resources__xrefs"><Xrefs refs={refs} books={books} /></div>) : null}

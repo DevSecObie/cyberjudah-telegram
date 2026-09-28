@@ -535,3 +535,24 @@ test("a verse's comment opens the note right where that passage is broken down",
   await expect(head).toBeInViewport();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/comment-g17-note.png` });
 });
+
+test("People: who is named in a verse, a page per person with family, the classes' teaching and every verse", async ({ page }) => {
+  await page.goto(`/read/genesis/12${LAUNCH}`);
+  await expect(page.locator("#verset-5")).toBeVisible();
+  await longPressVerse(page, 5);
+  await page.click('.bs-resourcetabs button >> text=People');
+  await expect(page.locator(".bs-resrow b")).toHaveText(["Abraham", "Lot", "Sarah"]);
+  await page.locator(".bs-resrow", { hasText: "Abraham" }).click();
+  await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
+  await expect(page.locator("h1.title")).toHaveText("Abraham");
+  await expect(page.locator(".person__aka")).toContainText("Abram");
+  await expect(page.locator(".person__teach").first()).toBeVisible();
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/person.png` });
+  await page.locator(".person__rel", { hasText: "Father" }).locator("button", { hasText: "Terah" }).click();
+  await expect(page.locator("h1.title")).toHaveText("Terah");
+  // Search the Scriptures finds a person by name.
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await page.click('[aria-label="Search the Scriptures"]');
+  await page.fill(".bs-search__field input", "abra");
+  await expect(page.locator(".bs-search__go", { hasText: "Abraham" })).toBeVisible();
+});
