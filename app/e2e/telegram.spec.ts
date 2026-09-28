@@ -470,3 +470,16 @@ test("a verse links to each class that read it, on YouTube at that moment", asyn
   const opened = await page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.filter((l) => l[0] === "openLink"));
   expect(opened.at(-1)?.[1]).toBe("https://www.youtube.com/watch?v=36emQd9wjts&t=3633s");
 });
+
+test("a verse's Comments hold each class's own breakdown of it, and watch from that moment", async ({ page }) => {
+  await page.goto(`/read/genesis/4${LAUNCH}`);
+  await expect(page.locator("#verset-5")).toBeVisible();
+  await longPressVerse(page, 5);
+  await page.click('.bs-resourcetabs button >> text=Comments');
+  const card = page.locator(".bs-comment", { hasText: "Bitterness" }).first();
+  await expect(card.locator(".bs-comment__points li").first()).toContainText("Cain was very wroth, and his countenance fell");
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/comments.png` });
+  await card.locator(".bs-comment__watch").click();
+  const opened = await page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.filter((l) => l[0] === "openLink"));
+  expect(opened.at(-1)?.[1]).toBe("https://www.youtube.com/watch?v=rBRp1JXmK6U&t=2035s");
+});

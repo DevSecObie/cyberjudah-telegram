@@ -267,3 +267,14 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-search__hit mark, .bs-search__hit span mark { background: var(--bs-light-primary); color: inherit; border-radius: 3px; padding: 0 1px; }
 .bs-search__hit:active, .bs-search__go:active { opacity: .7; }
 #root .bs-search__field input:focus, #root .bs-search__field input:focus-visible { outline: none; box-shadow: none; border-radius: 0; }
+
+/* Comments: a class's own breakdown of the verse. */
+.bs-comment { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; padding: 14px; border-radius: 14px; background: var(--bs-light-grey); }
+.bs-comment__class { display: flex; flex-direction: column; gap: 2px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
+.bs-comment__class b { font-size: 15px; color: var(--bs-primary); }
+.bs-comment__class small { font-size: 12.5px; color: var(--bs-tertiary); }
+.bs-comment__points { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
+.bs-comment__points li { font-size: 15px; line-height: 1.55; color: var(--bs-default); }
+.bs-comment__watch { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; font-size: 13px; font-weight: 600; color: var(--bs-primary); cursor: pointer; }
+#root .bs-resourcetabs button { min-width: 0; }
+#root .bs-resourcetabs button span { max-width: 100%; font-size: 10.5px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

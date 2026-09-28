@@ -52,7 +52,9 @@ export type TaughtPrecept = { verses: string; kind: "precept" | "opened"; ref: {
 export type VerseNote = { verses: string; text: string; note: { label: string; url: string; date: string; teacher: string }; ts: string };
 /** A moment a class read a scripture: the verses, the class, and its recording at that second. */
 export type ClassMoment = { verses: string; label: string; url: string; date: string; video: string; t: number; ts: string };
-export type Concordance = { book: string; chapter: number; cited_by: Citation[]; precepts?: TaughtPrecept[]; notes?: VerseNote[]; moments?: ClassMoment[] };
+/** A class's own breakdown of a verse it opened: its points on that verse, and the moment it was read. */
+export type VerseComment = { verses: string; passage: string; points: string[]; note: { label: string; url: string; date: string; teacher: string }; ts: string; video: string | null; t: number };
+export type Concordance = { book: string; chapter: number; cited_by: Citation[]; precepts?: TaughtPrecept[]; notes?: VerseNote[]; moments?: ClassMoment[]; commentary?: VerseComment[] };
 export type NoteRow = { kind: "study" | "class" | "captains" | "history" | "encyclopedia"; title: string; url: string; book?: string | null; chapters?: [number, number] | null; range?: string; date?: string | null; year?: string; series?: string; teacher?: string; topics?: string[]; summary?: string; videoId?: string | null };
 export type Note = NoteRow & { body: string; file?: string | null };
 export type FeedRow = { title: string; url: string; date: string; year: string; teacher: string; collection?: string; thumb: string; books: string[]; topics?: string[] };

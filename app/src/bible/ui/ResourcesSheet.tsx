@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 
-import { data, shelf, type Book, type Citation } from "@/api/data";
+import { data, shelf, type Book, type Citation, type VerseComment } from "@/api/data";
+import { openLink } from "@/tg/sdk";
 import { verseNumbers } from "@/api/data";
 import { Feather } from "../icons";
 import { Sheet } from "./Sheet";
@@ -41,6 +42,9 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   const refs = (xref.data as Record<string, [string, number, number][]> | undefined)?.[String(verse)] ?? [];
   const themes = forVerse(cites.data).filter((c) => /^\/(law|precepts|cases|topics)\//.test(c.url));
   const comments = forVerse(cites.data).filter((c) => !/^\/(law|precepts|cases|topics)\//.test(c.url));
+  // The classes' own breakdowns of this verse, newest class first.
+  const said = useQuery({ queryKey: ["commentary", slug, chapter], enabled: open && tab === "commentary", queryFn: () => data.concordance(slug, chapter).then((c) => c.commentary ?? []).catch(() => [] as VerseComment[]) });
+  const breakdowns = (said.data ?? []).filter((c) => verseNumbers(c.verses).includes(verse)).sort((a, b) => b.note.date.localeCompare(a.note.date));
   return (
     <Sheet open={open} onClose={onClose} height="full" title={reference} subTitle={TABS.find((t) => t.id === tab)?.subtitle} footer={
       <div className="bs-resourcetabs" role="tablist">
@@ -63,7 +67,20 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
         {tab === "dictionary" ? (dict.isPending && words.length ? <p className="bs-loading">Loading...</p> : !dict.data?.length ? <p className="bs-loading">No dictionary entry for the words in this verse.</p> : dict.data.map((e) => <button key={e.slug} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(`/dictionary/${e.slug}`); }}><b>{e.term}</b><small>{e.definitions[0]}</small></button>)) : null}
         {tab === "themes" ? (cites.isPending ? <p className="bs-loading">Loading...</p> : !themes.length ? <p className="bs-loading">No law, precept, case or topic cites this verse.</p> : themes.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(toApp(c.url)); }}><b>{c.label}</b><small>{shelf(c.url, c.kind)}</small></button>)) : null}
         {tab === "references" ? (xref.isPending ? <p className="bs-loading">Loading...</p> : !refs.length ? <p className="bs-loading">No cross references for this verse.</p> : <div className="bs-resources__xrefs"><Xrefs refs={refs} books={books} /></div>) : null}
-        {tab === "commentary" ? (cites.isPending ? <p className="bs-loading">Loading...</p> : !comments.length ? <p className="bs-loading">No class or study note teaches from this verse yet.</p> : comments.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(toApp(c.url)); }}><b>{c.label}</b><small>{shelf(c.url, c.kind)}{c.verses ? ` · v. ${c.verses}` : ""}</small></button>)) : null}
+        {tab === "commentary" ? (cites.isPending || said.isPending ? <p className="bs-loading">Loading...</p> : !comments.length && !breakdowns.length ? <p className="bs-loading">No class or study note teaches from this verse yet.</p> : <>
+          {breakdowns.map((c, i) => (
+            <div key={`${c.note.url}${c.ts}${i}`} className="bs-comment">
+              <button type="button" className="bs-comment__class" onClick={() => { onClose(); navigate(toApp(c.note.url)); }}>
+                <b>{c.note.label}</b>
+                <small>{[c.note.date ? fmtDate(c.note.date) : "", c.note.teacher, c.passage].filter(Boolean).join(" · ")}</small>
+              </button>
+              <ul className="bs-comment__points">{c.points.map((pt, j) => <li key={j}>{pt}</li>)}</ul>
+              {c.video ? <button type="button" className="bs-comment__watch" onClick={() => openLink(`https://www.youtube.com/watch?v=${c.video}${c.t ? `&t=${c.t}s` : ""}`)}><Feather name="play" size={14} color="var(--bs-primary)" /> Watch from {c.ts || "the start"}</button> : null}
+            </div>
+          ))}
+          {comments.length ? <p className="bs-resources__sub">{breakdowns.length ? "Also taught in" : "Taught in"}</p> : null}
+          {comments.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(toApp(c.url)); }}><b>{c.label}</b><small>{shelf(c.url, c.kind)}{c.verses ? ` · v. ${c.verses}` : ""}</small></button>)}
+        </>) : null}
       </div>
     </Sheet>
   );
