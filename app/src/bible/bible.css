@@ -266,5 +266,4 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-search__hit span { font-family: var(--bs-font, Georgia, serif); font-size: 16px; line-height: 1.5; color: var(--bs-default); }
 .bs-search__hit mark, .bs-search__hit span mark { background: var(--bs-light-primary); color: inherit; border-radius: 3px; padding: 0 1px; }
 .bs-search__hit:active, .bs-search__go:active { opacity: .7; }
-.bs-search__field input:focus, .bs-search__field input:focus-visible { outline: none; box-shadow: none; }
-.bs-search__field:focus-within { box-shadow: inset 0 0 0 2px var(--bs-primary); }
+#root .bs-search__field input:focus, #root .bs-search__field input:focus-visible { outline: none; box-shadow: none; border-radius: 0; }
