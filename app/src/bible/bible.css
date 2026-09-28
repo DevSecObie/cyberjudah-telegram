@@ -13,17 +13,6 @@
 .bs[data-dark] .rel-inline { box-shadow: 0 0 10px 0 rgba(255, 255, 255, 0.1); }
 .bs .rel-tag, .bs .rel-more { background: var(--bs-light-grey); color: var(--bs-default); }
 
-/* Reading progress stays secondary to Scripture, using the reader's own palette and icons. */
-.bs-reading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; margin-top: 28px; padding: 12px 0; border-top: 1px solid var(--bs-border); }
-.bs .bs-reading__action { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 0; border: 0; border-radius: 4px; background: transparent; color: var(--bs-tertiary); font-size: 13px; font-weight: 400; cursor: pointer; }
-.bs .bs-reading__action[aria-pressed="true"] { color: var(--bs-primary); }
-.bs-reading__action svg { flex-shrink: 0; }
-.bs-reading__action small { color: var(--bs-tertiary); font-size: 12px; }
-.bs-reading__action:disabled { opacity: .5; cursor: default; }
-.bs .bs-reading__action:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 4px; }
-.bs .bs-reading__action:not(:disabled):hover { color: var(--bs-primary); }
-.bs-reading__error { flex-basis: 100%; margin: 4px 0; color: var(--bs-default); font-size: 13px; }
-
 /* Header */
 .bs-header { position: absolute; top: 0; left: 0; width: 100%; z-index: 30; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; padding: 0 15px; background: var(--bs-reverse); border-bottom: 1px solid var(--bs-border); transition: height .3s, min-height .3s; overflow: visible; }
 .bs-header__row { display: flex; align-items: center; width: 100%; max-width: 830px; margin: 0 auto; min-width: 0; }

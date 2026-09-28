@@ -722,19 +722,6 @@ html[data-typing] .tabs { display: none; }
 html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc(6px + var(--safe-bottom, 0px)); }
 /* Five tabs fit a small phone. */
 .tabs .tab { padding: 8px 4px; min-width: 0; }
-.reading-chapters { display: grid; gap: 8px; }
-.reading-chapter { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid var(--a-line); border-radius: 12px; }
-.reading-chapter a { flex: 1; }
-.reading-chapter button { min-height: 44px; }
-.reading-calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
-.reading-calendar > div { display: grid; text-align: center; gap: 6px; padding: 8px 2px; border-radius: 8px; background: var(--color-panel-2); }
-.reading-calendar small { font-size: 10px; }
-.reading-calendar [data-done] { background: #155a49; color: #fff; }
-.reading-settings { display: grid; gap: 16px; }
-.reading-settings label { display: block; }
-.reading-settings input:not([type=checkbox]), .reading-settings textarea, .reading-settings select { display: block; width: 100%; box-sizing: border-box; padding: 12px; margin-top: 6px; border: 1px solid var(--a-line); border-radius: 10px; background: var(--color-panel-2); color: inherit; font: inherit; }
-.reading-settings textarea { min-height: 100px; }
-.reading-settings input[type=checkbox] { width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; }
 
 /* Ask's allowance: the meter under the title, the plans, and the note when it runs out. */
 .chat2__heading { border: 0; background: none; padding: 0; cursor: pointer; font: inherit; }
