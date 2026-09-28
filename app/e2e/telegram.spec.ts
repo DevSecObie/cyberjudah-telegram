@@ -433,3 +433,30 @@ test("reading progress: read chapters in the book picker, the day strip and catc
   await expect(page.locator(".bs-chaptertile[data-read]")).toHaveCount(6);
   await shot("tracker-books");
 });
+
+test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a reference or finds the words", async ({ page }) => {
+  await page.route("**/api/search?**", (r) => r.fulfill({ json: { ok: true, q: "", mode: "strict", counts: {}, ms: 1, hits: [
+    { kind: "verse", title: "John 1:4", url: "/bible/john/1#v4", sub: "", snippet: "In him was life; and the life was the light of men." },
+    { kind: "verse", title: "Sirach 43:9", url: "/bible/sirach/43#v9", sub: "", snippet: "The beauty of heaven, the glory of the stars, an ornament giving light in the highest places of the Lord." },
+  ] } }));
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await page.click(".bs-pill--book");
+  const apoc = await page.locator(".bs-bookrow > span:first-child").allTextContents();
+  if (process.env.SHOTS) { await page.locator('.bs-bookrow:has-text("Tobit")').scrollIntoViewIfNeeded(); await page.screenshot({ path: `${process.env.SHOTS}/apocrypha.png` }); }
+  const from = apoc.indexOf("1 Esdras");
+  expect(apoc.slice(from, from + 15)).toEqual(["1 Esdras", "2 Esdras", "Tobit", "Judith", "Rest of Esther", "Wisdom of Solomon", "Ecclesiasticus", "Baruch", "Epistle of Jeremiah", "Song of the Three Holy Children", "History of Susanna", "Bel and the Dragon", "Prayer of Manasses", "1 Maccabees", "2 Maccabees"]);
+  await press(page, "back");
+  await page.keyboard.press("Escape");
+
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await page.click('[aria-label="Search the Scriptures"]');
+  await page.fill(".bs-search__field input", "jn 3:16");
+  await expect(page.locator(".bs-search__go b")).toHaveText("Go to John 3:16");
+  await page.fill(".bs-search__field input", "light of men");
+  await expect(page.locator(".bs-search__hit")).toHaveCount(2);
+  await expect(page.locator(".bs-search__hit b").nth(1)).toHaveText("Ecclesiasticus 43:9");
+  await expect(page.locator(".bs-search__hit mark").first()).toHaveText("light");
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/bible-search.png` });
+  await page.locator(".bs-search__hit").first().click();
+  await expect(page).toHaveURL(/\/read\/john\/1\?v=4/);
+});

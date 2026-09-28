@@ -23,6 +23,27 @@ async function get<T>(path: string): Promise<T> {
 
 export type Book = { book: string; slug: string; chapters: number; verses: number; testament: "Old Testament" | "New Testament" | "Apocrypha"; url: string; chapterIds: number[] };
 export type Verse = { verse: number; text: string };
+
+/**
+ * The Apocrypha in the order and under the names of the 1611 King James Bible: 1 and 2 Esdras,
+ * Tobit, Judith, the Rest of Esther, the Wisdom of Solomon, Ecclesiasticus, Baruch with the
+ * Epistle of Jeremiah, the Song of the Three Holy Children, Susanna, Bel and the Dragon, the
+ * Prayer of Manasses, 1 and 2 Maccabees. Slugs and links stay as the data set has them.
+ */
+export const APOCRYPHA: [slug: string, name: string][] = [
+  ["1-esdras", "1 Esdras"], ["2-esdras", "2 Esdras"], ["tobit", "Tobit"], ["judith", "Judith"],
+  ["esther-greek", "Rest of Esther"], ["wisdom-of-solomon", "Wisdom of Solomon"], ["sirach", "Ecclesiasticus"],
+  ["baruch", "Baruch"], ["epistle-of-jeremiah", "Epistle of Jeremiah"], ["song-of-the-three-children", "Song of the Three Holy Children"],
+  ["susanna", "History of Susanna"], ["bel-and-the-dragon", "Bel and the Dragon"], ["prayer-of-manasseh", "Prayer of Manasses"],
+  ["1-maccabees", "1 Maccabees"], ["2-maccabees", "2 Maccabees"],
+];
+export function orderApocrypha(books: Book[]): Book[] {
+  const rest = books.filter((b) => b.testament !== "Apocrypha");
+  const by = new Map(books.map((b) => [b.slug, b]));
+  const apoc = APOCRYPHA.flatMap(([slug, name]) => { const b = by.get(slug); return b ? [{ ...b, book: name }] : []; });
+  const known = new Set(APOCRYPHA.map(([s]) => s));
+  return [...rest, ...apoc, ...books.filter((b) => b.testament === "Apocrypha" && !known.has(b.slug))];
+}
 export type Chapter = { book: string; chapter: number; translation: string; url: string; verses: Verse[] };
 export type Citation = { kind: string; label: string; url: string; verses?: string };
 /** A precept lined up with a scripture in class: `precept` = taught under this chapter's verses, `opened` = this chapter's verses were the precept under `ref`. */
@@ -52,7 +73,7 @@ export type Xref = Record<string, [string, number, number][]>;
 const abs = <T extends { thumb: string }>(rows: T[]) => rows.map((r) => (r.thumb?.startsWith("/") ? { ...r, thumb: `${DATA_ORIGIN}${r.thumb}` } : r));
 
 export const data = {
-  books: () => get<Book[]>("/api/kjv/books.json"),
+  books: () => get<Book[]>("/api/kjv/books.json").then(orderApocrypha),
   chapter: (slug: string, ch: number) => get<Chapter>(`/api/kjv/${slug}/${ch}.json`),
   xref: (slug: string, ch: number) => get<Xref>(`/api/xref/${slug}/${ch}.json`),
   concordance: (slug: string, ch: number) => get<Concordance>(`/api/concordance/${slug}/${ch}.json`),

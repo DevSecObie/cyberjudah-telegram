@@ -12,10 +12,10 @@ import { Sheet } from "./Sheet";
  * fast scroll down collapses it to 20 px (its controls fade, its texts lift 4 px).
  */
 export type MenuAction = "params" | "history" | "bookmark" | "export";
-export function Header({ bookLabel, version, onBook, onVersion, onVerses, selectedReference, focusedReference, onClearFocus, collapsed, onMenu, chapterBookmarkColor, onChapterBookmark, hasChapterBookmark, menuOpen, setMenuOpen }: {
+export function Header({ bookLabel, version, onBook, onVersion, onVerses, selectedReference, focusedReference, onClearFocus, collapsed, onMenu, onSearch, chapterBookmarkColor, onChapterBookmark, hasChapterBookmark, menuOpen, setMenuOpen }: {
   bookLabel: string; version: string; onBook: () => void; onVersion: () => void; onVerses: () => void;
   selectedReference: string | null; focusedReference: string | null; onClearFocus: () => void; collapsed: boolean;
-  onMenu: (a: MenuAction) => void; chapterBookmarkColor?: string; onChapterBookmark: () => void; hasChapterBookmark: boolean; menuOpen: boolean; setMenuOpen: (v: boolean) => void;
+  onMenu: (a: MenuAction) => void; onSearch: () => void; chapterBookmarkColor?: string; onChapterBookmark: () => void; hasChapterBookmark: boolean; menuOpen: boolean; setMenuOpen: (v: boolean) => void;
 }) {
   const fade = { opacity: collapsed ? 0 : 1, transition: "opacity .3s" } as const;
   const lift = { transform: `translateY(${collapsed ? -4 : 0}px)`, transition: "transform .3s" } as const;
@@ -39,6 +39,7 @@ export function Header({ bookLabel, version, onBook, onVersion, onVerses, select
             </div>
             <button type="button" className="bs-header__verses" aria-label="Choose a verse" style={fade} onClick={() => { haptic("select"); onVerses(); }}><Feather name="chevrons-down" size={20} style={{ opacity: 0.3 }} /></button>
             <div className="bs-header__right">
+              <button type="button" className="bs-iconbtn" aria-label="Search the Scriptures" style={fade} onClick={() => { haptic("select"); onSearch(); }}><Feather name="search" size={20} /></button>
               <MenuButton style={fade} onClick={() => setMenuOpen(true)} />
               {focusedReference ? <button type="button" className="bs-iconbtn" aria-label="Exit focus mode" onClick={onClearFocus}><Feather name="x" size={20} /></button> : null}
             </div>
