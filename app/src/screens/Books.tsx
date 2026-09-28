@@ -2,22 +2,26 @@ import { useQuery } from "@tanstack/react-query";
 import { Fragment, useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
-import { data, DATA_ORIGIN, fmtDate, type BookMap, type ClassReading, type LibraryBook } from "@/api/data";
+import { data, DATA_ORIGIN, fmtDate, type BookChapterRow, type BookFigure, type ClassReading, type LibraryBook } from "@/api/data";
 import { useBackButton } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { Empty, Icon, List, Row, Screen, Section, Skeleton } from "@/ui/ui";
 
 /**
  * The library: public-domain books the classes read from, page by page as printed, with the
- * original page scans and fold-out maps, and every moment a class read from them.
+ * original page scans, their fold-out maps, plates and figures, and every moment a class read
+ * from them.
  */
 
 const src = (u: string) => (u.startsWith("/") ? `${DATA_ORIGIN}${u}` : u);
-const scanUrl = (book: LibraryBook, leaf: number) => book.scan.replace("{leaf}", String(leaf));
 const useBook = (slug: string) => useQuery({ queryKey: ["library", slug], queryFn: () => data.libraryBook(slug), staleTime: Infinity });
+const KIND: Record<BookFigure["kind"], string> = { foldout: "Fold-out map", plate: "Plate", figure: "Figure" };
 
 /** Where a class reading leads: its note at that moment when there is one, else the recording. */
 const readingHref = (r: Pick<ClassReading, "video" | "t" | "url">) => (r.url ? `/note${r.url}?t=${r.t}` : `/watch/${r.video}?t=${r.t}`);
+/** A page's address: "p. 246", or "vol. 2, p. 246" in a work of several volumes. */
+const pageLabel = (b: { volumes: number }, vol: number, page: number, volumeLabel?: string) => (b.volumes > 1 ? `${volumeLabel && !/^Volume \d+$/.test(volumeLabel) ? volumeLabel : `vol. ${vol}`}, p. ${page}` : `p. ${page}`);
+const pageHref = (slug: string, vol: number, page: number) => `/books/${slug}/p/${vol}-${page}`;
 
 export function Books() {
   useBackButton(false);
@@ -27,7 +31,7 @@ export function Books() {
       {lib.isPending ? <Skeleton rows={3} thumb /> : !lib.data?.length ? <Empty title="No books yet" /> : (
         <List>{lib.data.map((b) => (
           <Row key={b.slug} href={`/books/${b.slug}`} thumb={b.cover ? src(b.cover) : undefined} title={b.title}
-            sub={`${b.author}, ${b.year} · ${b.classes ? `read in ${b.classes} classes` : `${b.pages} pages`}`} />
+            sub={`${b.author}, ${b.year}${b.volumes > 1 ? ` · ${b.volumes} volumes` : ""} · ${b.classes ? `read in ${b.classes} ${b.classes === 1 ? "class" : "classes"}` : `${b.pages} pages`}${b.figures ? ` · ${b.figures} pictures` : ""}`} />
         ))}</List>
       )}
       <p className="hint">Every book here is in the public domain, from the original printing.</p>
@@ -38,26 +42,32 @@ export function Books() {
 export function BookScreen() {
   const { slug = "" } = useParams();
   const book = useBook(slug);
-  const [map, setMap] = useState<BookMap | null>(null);
+  const [figure, setFigure] = useState<BookFigure | null>(null);
   const [allReads, setAllReads] = useState(false);
-  useBackButton(false, () => { if (map) { setMap(null); return true; } });
+  const [allFigures, setAllFigures] = useState(false);
+  useBackButton(false, () => { if (figure) { setFigure(null); return true; } });
   if (book.isPending) return <Screen title="…"><Skeleton rows={6} /></Screen>;
   if (!book.data) return <Screen title="Library"><Empty title="This book did not load" /></Screen>;
   const b = book.data;
+  const volumeOf = (vol: number) => b.chapters.find((c) => c.vol === vol)?.volume;
   // One row per class, its pages together, newest class first.
   const byClass: { r: ClassReading; pages: ClassReading[] }[] = [];
   for (const r of b.reads) { const g = byClass.find((x) => x.r.video === r.video); if (g) g.pages.push(r); else byClass.push({ r, pages: [r] }); }
-  const shown = allReads ? byClass : byClass.slice(0, 6);
+  const shownReads = allReads ? byClass : byClass.slice(0, 6);
+  const figures = allFigures ? b.figures : b.figures.slice(0, 8);
+  // Chapters grouped by volume or part when the work has them.
+  const groups: { label: string; chapters: BookChapterRow[] }[] = [];
+  for (const c of b.chapters) { const label = c.volume || ""; const g = groups[groups.length - 1]; if (g && g.label === label) g.chapters.push(c); else groups.push({ label, chapters: [c] }); }
   return (
     <Screen title={b.title} kicker={`${b.author} · ${b.year}`}>
-      <p className="book__sub">{b.subtitle}. {b.publisher}.</p>
+      <p className="book__sub">{[b.subtitle, b.publisher].filter(Boolean).join(". ")}.</p>
 
-      {b.maps.length ? (
-        <Section title="Maps">
-          <div className="book__maps">{b.maps.map((m) => (
-            <button key={m.file} type="button" className="book__map" onClick={() => { haptic("select"); setMap(m); }}>
-              <img src={src(m.url)} alt={m.title} loading="lazy" />
-              <b>{m.title}</b><small>Facing page {m.facing}{m.reads ? ` · shown in ${m.reads} ${m.reads === 1 ? "class" : "classes"}` : ""}</small>
+      {b.figures.length ? (
+        <Section title={b.figures.some((f) => f.kind === "foldout") ? "Maps and pictures" : "Pictures"} action={b.figures.length > 8 ? <button type="button" className="section__more" onClick={() => setAllFigures((v) => !v)}>{allFigures ? "Fewer" : `All ${b.figures.length}`}</button> : undefined}>
+          <div className={`book__figures${allFigures ? " book__figures--grid" : ""}`}>{figures.map((f) => (
+            <button key={f.file} type="button" className="book__figure" onClick={() => { haptic("select"); setFigure(f); }}>
+              <img src={src(f.url)} alt={f.title || KIND[f.kind]} loading="lazy" />
+              <b>{f.title || KIND[f.kind]}</b><small>{KIND[f.kind]}{f.page != null ? ` · ${f.kind === "foldout" ? "facing " : ""}${pageLabel(b, f.vol, f.page, volumeOf(f.vol))}` : ""}{f.reads ? ` · in ${f.reads} ${f.reads === 1 ? "class" : "classes"}` : ""}</small>
             </button>
           ))}</div>
         </Section>
@@ -65,12 +75,12 @@ export function BookScreen() {
 
       {byClass.length ? (
         <Section title={`Read in the classes (${byClass.length})`}>
-          <div className="book__reads">{shown.map(({ r, pages }) => (
+          <div className="book__reads">{shownReads.map(({ r, pages }) => (
             <div key={r.video} className="book__read">
               <Link to={readingHref(r)} className="book__readtitle"><b>{r.title || "Class"}</b><small>{[fmtDate(r.date ?? ""), r.teacher].filter(Boolean).join(" · ")}</small></Link>
               <div className="book__readpages">{pages.map((p) => (
-                <span key={`${p.page}-${p.t}`} className="book__readpage">
-                  <Link to={`/books/${slug}/p/${p.page}`}>p. {p.page}</Link>
+                <span key={`${p.vol}-${p.page}-${p.t}`} className="book__readpage">
+                  <Link to={pageHref(slug, p.vol, p.page)}>{pageLabel(b, p.vol, p.page, volumeOf(p.vol))}</Link>
                   <Link to={readingHref(p)} aria-label={`Watch from ${p.ts}`}><Icon name="play" size={12} /> {p.ts}</Link>
                 </span>
               ))}</div>
@@ -80,29 +90,32 @@ export function BookScreen() {
         </Section>
       ) : null}
 
-      <Section title="Chapters">
-        <List>{b.chapters.map((c) => (
-          <Row key={c.k} href={`/books/${slug}/${c.k}`} meta={c.n || undefined} title={c.title}
-            sub={c.topics ? c.topics.replace(/,\s*\d+(-\d+)?\./g, ".").slice(0, 120) + (c.topics.length > 120 ? "…" : "") : `Pages ${c.page}–${c.end}`}
-            trailing={c.reads ? <span className="row__count" title="Readings in the classes">{c.reads}</span> : undefined} />
-        ))}</List>
-      </Section>
+      {groups.map((g, i) => (
+        <Section key={i} title={g.label || (groups.length > 1 ? `Part ${i + 1}` : "Chapters")}>
+          <List>{g.chapters.map((c) => (
+            <Row key={c.k} href={`/books/${slug}/${c.k}`} meta={c.n ? (c.n.length > 5 ? c.n : `Chapter ${c.n}`) : undefined} title={c.title}
+              sub={c.topics ? c.topics.replace(/,\s*\d+(-\d+)?\./g, ".").slice(0, 140) + (c.topics.length > 140 ? "…" : "") : `Pages ${c.page}–${c.end}`}
+              trailing={c.reads ? <span className="row__count" title="Readings in the classes">{c.reads}</span> : undefined} />
+          ))}</List>
+        </Section>
+      ))}
 
       <p className="hint">{b.license} Text and page scans from the copy at the Internet Archive.</p>
-      {map ? <MapViewer map={map} onClose={() => setMap(null)} /> : null}
+      {figure ? <FigureViewer figure={figure} book={b} onClose={() => setFigure(null)} /> : null}
     </Screen>
   );
 }
 
-/** /books/:slug/p/:page, from a class: the chapter that holds the page, scrolled to it. */
+/** /books/:slug/p/:page, from a class: "2-246" (volume 2, page 246) or "246"; the chapter that holds the page, scrolled to it. */
 export function BookPageLink() {
   const { slug = "", page = "" } = useParams();
   const navigate = useNavigate();
   const book = useBook(slug);
   useEffect(() => {
     if (!book.data) return;
-    const n = Number(page);
-    const c = book.data.chapters.find((x) => n >= x.page && n <= x.end) ?? book.data.chapters[0];
+    const m = /^(?:(\d+)-)?(\d+)$/.exec(page);
+    const vol = Number(m?.[1] ?? 1), n = Number(m?.[2] ?? 0);
+    const c = book.data.chapters.find((x) => x.vol === vol && n >= x.page && n <= x.end) ?? book.data.chapters.find((x) => x.vol === vol) ?? book.data.chapters[0];
     navigate(`/books/${slug}/${c.k}?p=${n}`, { replace: true });
   }, [book.data, page, slug, navigate]);
   return <Screen title="…"><Skeleton rows={6} /></Screen>;
@@ -116,8 +129,8 @@ export function BookChapterScreen() {
   const ch = useQuery({ queryKey: ["library", slug, k], queryFn: () => data.libraryChapter(slug, Number(k)), staleTime: Infinity });
   const [scans, setScans] = useState<Set<number>>(new Set());
   const [open, setOpen] = useState<Set<number>>(new Set());
-  const [map, setMap] = useState<BookMap | null>(null);
-  useBackButton(false, () => { if (map) { setMap(null); return true; } });
+  const [figure, setFigure] = useState<BookFigure | null>(null);
+  useBackButton(false, () => { if (figure) { setFigure(null); return true; } });
   useEffect(() => {
     if (!ch.data) return;
     const el = at ? document.getElementById(`pg-${at}`) : null;
@@ -126,68 +139,78 @@ export function BookChapterScreen() {
   if (ch.isPending || book.isPending) return <Screen title="…"><Skeleton rows={10} /></Screen>;
   if (!ch.data || !book.data) return <Screen title="Library"><Empty title="This chapter did not load" /></Screen>;
   const b = book.data, c = ch.data;
+  const item = c.item ?? b.items[c.vol - 1]?.id ?? b.items[0]?.id ?? "";
+  const scanUrl = (img: number) => b.scan.replace("{id}", item).replace("{img}", String(img));
   const prev = b.chapters[c.k - 1], next = b.chapters[c.k + 1];
-  const toggle = (p: number) => { haptic("select"); setScans((s) => { const n = new Set(s); if (n.has(p)) n.delete(p); else n.add(p); return n; }); };
+  const toggle = (img: number) => { haptic("select"); setScans((s) => { const n = new Set(s); if (n.has(img)) n.delete(img); else n.add(img); return n; }); };
+  const figureAt = (p: { vol: number; img: number }) => b.figures.find((f) => f.vol === p.vol && f.img === p.img) ?? null;
+  const where = [b.title, c.volume, c.n ? (c.n.length > 5 ? c.n : `Chapter ${c.n}`) : ""].filter(Boolean).join(" · ");
+  const label = (x: BookChapterRow) => [x.volume, x.n ? (x.n.length > 5 ? x.n : `Chapter ${x.n}`) : "", `p. ${x.page}`].filter(Boolean).join(" · ");
   return (
-    <Screen title={c.title} kicker={`${b.title}${c.n ? ` · Chapter ${c.n}` : ""} · pp. ${c.page}–${c.end}`} className="bookread">
+    <Screen title={c.title} kicker={`${where} · pp. ${c.page}–${c.end}`} className="bookread">
       {c.pages.map((p) => {
-        const mapHere = b.maps.find((m) => m.facing === p.page);
+        const fig = p.figure ? figureAt(p) : null;
         return (
-          <Fragment key={p.page}>
+          <Fragment key={`${p.vol}-${p.img}`}>
             <article id={`pg-${p.page}`} className={`bookpage${p.page === at ? " bookpage--at" : ""}`}>
               <header className="bookpage__head">
                 <span>Page {p.page}</span>
-                <button type="button" className="bookpage__scan" aria-pressed={scans.has(p.page)} onClick={() => toggle(p.page)}>{scans.has(p.page) ? "Text" : "Original page"}</button>
+                <button type="button" className="bookpage__scan" aria-pressed={scans.has(p.img)} onClick={() => toggle(p.img)}>{scans.has(p.img) ? "Text" : "Original page"}</button>
               </header>
               {p.reads.length ? (
                 <div className="bookpage__reads">
-                  {(open.has(p.page) ? p.reads : p.reads.slice(0, 2)).map((r) => (
+                  {(open.has(p.img) ? p.reads : p.reads.slice(0, 2)).map((r) => (
                     <Link key={`${r.video}-${r.t}`} to={readingHref(r)} className="bookpage__read">
                       <Icon name="play" size={12} /> <span>Read in <b>{r.title || "a class"}</b>{r.date ? ` · ${fmtDate(r.date)}` : ""} · {r.ts}</span>
                     </Link>
                   ))}
-                  {p.reads.length > 2 && !open.has(p.page) ? <button type="button" className="bookpage__more" onClick={() => setOpen((s) => new Set(s).add(p.page))}>Read in {p.reads.length - 2} more {p.reads.length - 2 === 1 ? "class" : "classes"}</button> : null}
+                  {p.reads.length > 2 && !open.has(p.img) ? <button type="button" className="bookpage__more" onClick={() => setOpen((s) => new Set(s).add(p.img))}>Read in {p.reads.length - 2} more {p.reads.length - 2 === 1 ? "class" : "classes"}</button> : null}
                 </div>
               ) : null}
-              {scans.has(p.page)
-                ? <img className="bookpage__img" src={scanUrl(b, p.leaf)} alt={`Page ${p.page} as printed`} loading="lazy" />
-                : <div className="bookpage__text">{p.text.split(/\n\s*\n/).map((para, i) => <p key={i}>{para}</p>)}</div>}
+              {scans.has(p.img)
+                ? <img className="bookpage__img" src={scanUrl(p.img)} alt={`Page ${p.page} as printed`} loading="lazy" />
+                : <>
+                    {p.figure ? <button type="button" className="bookpage__fig" onClick={() => { haptic("select"); if (fig) setFigure(fig); }}><img src={src(p.figure)} alt={fig?.title || "Illustration"} loading="lazy" /><small>{fig?.title ? `${fig.title} · ` : ""}tap to open</small></button> : null}
+                    <div className="bookpage__text">{p.text.split(/\n\s*\n/).map((para, i) => <p key={i}>{para}</p>)}</div>
+                  </>}
             </article>
-            {mapHere ? (
-              <button type="button" className="book__map book__map--wide" onClick={() => { haptic("select"); setMap(mapHere); }}>
-                <img src={src(mapHere.url)} alt={mapHere.title} loading="lazy" />
-                <b>{mapHere.title}</b><small>Fold-out map · tap to open</small>
+            {p.foldout ? (
+              <button type="button" className="book__figure book__figure--wide" onClick={() => { haptic("select"); setFigure(p.foldout); }}>
+                <img src={src(p.foldout.url)} alt={p.foldout.title} loading="lazy" />
+                <b>{p.foldout.title}</b><small>Fold-out map · tap to open</small>
               </button>
             ) : null}
           </Fragment>
         );
       })}
       <nav className="upnext">
-        {next ? <Link to={`/books/${slug}/${next.k}`} className="upnext__card"><small>Next chapter</small><b>{next.title}</b><span>{next.n ? `Chapter ${next.n} · ` : ""}p. {next.page}</span></Link> : null}
-        {prev ? <Link to={`/books/${slug}/${prev.k}`} className="upnext__card"><small>Before this</small><b>{prev.title}</b><span>{prev.n ? `Chapter ${prev.n} · ` : ""}p. {prev.page}</span></Link> : null}
-        <Link to={`/books/${slug}`} className="upnext__card"><small>The book</small><b>{b.title}</b><span>Contents, maps and classes</span></Link>
+        {next ? <Link to={`/books/${slug}/${next.k}`} className="upnext__card"><small>Next</small><b>{next.title}</b><span>{label(next)}</span></Link> : null}
+        {prev ? <Link to={`/books/${slug}/${prev.k}`} className="upnext__card"><small>Before this</small><b>{prev.title}</b><span>{label(prev)}</span></Link> : null}
+        <Link to={`/books/${slug}`} className="upnext__card"><small>The book</small><b>{b.title}</b><span>Contents, pictures and classes</span></Link>
       </nav>
-      {map ? <MapViewer map={map} onClose={() => setMap(null)} /> : null}
+      {figure ? <FigureViewer figure={figure} book={b} onClose={() => setFigure(null)} /> : null}
     </Screen>
   );
 }
 
-/** A fold-out map full screen: scroll around it, zoom in to read the small print. */
-function MapViewer({ map, onClose }: { map: BookMap; onClose: () => void }) {
+/** A picture full screen: scroll around it, zoom in to read the small print. */
+function FigureViewer({ figure, book, onClose }: { figure: BookFigure; book: LibraryBook; onClose: () => void }) {
   const [zoom, setZoom] = useState(1);
   const steps = [1, 2, 3.5];
+  const volumeLabel = book.chapters.find((c) => c.vol === figure.vol)?.volume;
+  const name = figure.title || KIND[figure.kind];
   return (
-    <div className="mapview" role="dialog" aria-label={map.title}>
+    <div className="mapview" role="dialog" aria-label={name}>
       <div className="mapview__bar">
-        <b>{map.title}</b>
+        <b>{name}</b>
         <button type="button" aria-label="Zoom out" disabled={zoom === steps[0]} onClick={() => setZoom(steps[Math.max(0, steps.indexOf(zoom) - 1)])}>−</button>
         <button type="button" aria-label="Zoom in" disabled={zoom === steps[steps.length - 1]} onClick={() => setZoom(steps[Math.min(steps.length - 1, steps.indexOf(zoom) + 1)])}>+</button>
         <button type="button" aria-label="Close" onClick={onClose}>✕</button>
       </div>
       <div className="mapview__scroll">
-        <img src={src(map.url)} alt={map.title} style={{ width: `${zoom * 100}%` }} onDoubleClick={() => setZoom(zoom === 1 ? 2 : 1)} />
+        <img src={src(figure.url)} alt={name} style={{ width: `${zoom * 100}%` }} onDoubleClick={() => setZoom(zoom === 1 ? 2 : 1)} />
       </div>
-      <p className="mapview__cap">{map.caption}. Facing page {map.facing}.</p>
+      <p className="mapview__cap">{[figure.caption && figure.caption !== figure.title ? figure.caption : "", `${KIND[figure.kind]}${figure.page != null ? `, ${figure.kind === "foldout" ? "facing " : ""}${pageLabel(book, figure.vol, figure.page, volumeLabel)}` : ""}`, book.title].filter(Boolean).join(". ")}.</p>
     </div>
   );
 }

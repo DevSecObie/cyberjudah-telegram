@@ -784,12 +784,12 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 
 /* Library: books the classes read from */
 .book__sub { margin: -4px 0 14px; font: 400 14px/1.45 var(--a-ui); color: var(--a-muted); }
-.book__maps { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 78%); gap: 12px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x mandatory; }
-.book__map { display: grid; gap: 4px; padding: 0 0 10px; border: 0; border-radius: 14px; background: var(--a-card-2); text-align: left; overflow: hidden; cursor: pointer; scroll-snap-align: start; color: var(--a-ink); }
-.book__map img { width: 100%; aspect-ratio: 5 / 3; object-fit: cover; display: block; background: #e9e1cf; }
-.book__map b { font: 600 14px/1.3 var(--a-ui); padding: 4px 12px 0; }
-.book__map small { font: 400 12px var(--a-ui); color: var(--a-muted); padding: 0 12px; }
-.book__map--wide { width: 100%; margin: 4px 0 18px; }
+.book__figures { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 78%); gap: 12px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x mandatory; }
+.book__figure { display: grid; gap: 4px; padding: 0 0 10px; border: 0; border-radius: 14px; background: var(--a-card-2); text-align: left; overflow: hidden; cursor: pointer; scroll-snap-align: start; color: var(--a-ink); }
+.book__figure img { width: 100%; aspect-ratio: 5 / 3; object-fit: cover; display: block; background: #e9e1cf; }
+.book__figure b { font: 600 14px/1.3 var(--a-ui); padding: 4px 12px 0; }
+.book__figure small { font: 400 12px var(--a-ui); color: var(--a-muted); padding: 0 12px; }
+.book__figure--wide { width: 100%; margin: 4px 0 18px; }
 .book__reads { display: grid; gap: 10px; }
 .book__read { padding: 12px 14px; border-radius: 14px; background: var(--a-card-2); display: grid; gap: 8px; }
 .book__readtitle { display: grid; gap: 2px; color: var(--a-ink); text-decoration: none; }
@@ -820,3 +820,9 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 .mapview__scroll img { display: block; max-width: none; height: auto; }
 .mapview__cap { margin: 0; padding: 8px 14px calc(10px + var(--tg-safe-area-inset-bottom, 0px)); color: #bbb; font: 400 12px var(--a-ui); }
 #root .bookpage__more { justify-self: start; border: 0; background: none; padding: 2px 2px; font: 600 13px var(--a-ui); color: var(--a-accent); cursor: pointer; }
+.book__figures--grid { grid-auto-flow: row; grid-template-columns: 1fr 1fr; grid-auto-columns: auto; overflow: visible; }
+.book__figures--grid .book__figure img { aspect-ratio: 4 / 3; }
+#root .section__more { border: 0; background: none; padding: 0; font: 600 13px var(--a-ui); color: var(--a-accent); cursor: pointer; }
+#root .bookpage__fig { display: block; width: 100%; margin: 0 0 12px; padding: 0; border: 0; border-radius: 12px; overflow: hidden; background: var(--a-card-2); cursor: pointer; text-align: left; }
+.bookpage__fig img { display: block; width: 100%; height: auto; }
+.bookpage__fig small { display: block; padding: 6px 10px; font: 400 12px var(--a-ui); color: var(--a-muted); }

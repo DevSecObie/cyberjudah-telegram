@@ -563,11 +563,11 @@ test("Library: The Lost Tribes a Myth, page by page with its scans and maps, and
   await expect(page).toHaveURL(/\/books$/);
   await page.locator("a", { hasText: "The Lost Tribes a Myth" }).click();
   await expect(page.locator("h1.title")).toHaveText("The Lost Tribes a Myth");
-  await expect(page.locator(".book__maps .book__map")).toHaveCount(3);
+  await expect(page.locator(".book__figures .book__figure")).toHaveCount(3);
   await expect(page.locator(".book__read").first()).toBeVisible();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book.png` });
   // A map opens full screen and closes.
-  await page.locator(".book__maps .book__map").first().click();
+  await page.locator(".book__figures .book__figure").first().click();
   await expect(page.locator(".mapview")).toBeVisible();
   await page.click('.mapview [aria-label="Zoom in"]');
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-map.png` });
@@ -578,13 +578,24 @@ test("Library: The Lost Tribes a Myth, page by page with its scans and maps, and
   await expect(page.locator("#pg-246 .bookpage__read").first()).toBeVisible();
   await page.locator("#pg-246 .bookpage__scan").click();
   await expect(page.locator("#pg-246 img.bookpage__img")).toHaveAttribute("src", /archive\.org\/download\/losttribesmythsu00godb\/page\/n\d+_w1200\.jpg/);
-  await expect(page.locator(".book__map--wide")).toBeVisible();
+  await expect(page.locator(".book__figure--wide")).toBeVisible();
   // A page link from a class lands on that page.
-  await page.goto(`/books/lost-tribes-a-myth/p/246${LAUNCH}`);
+  await page.goto(`/books/lost-tribes-a-myth/p/1-246${LAUNCH}`);
   await expect(page).toHaveURL(/\/books\/lost-tribes-a-myth\/\d+\?p=246/);
   await expect(page.locator("#pg-246")).toHaveClass(/bookpage--at/);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-page.png` });
   // The class note names the book and its pages.
   await page.goto(`/note/classes/2026/2026-07-12-raising-up-the-tabernacle-of-david-that-fell${LAUNCH}`);
   await expect(page.locator(".readfrom").first()).toContainText("The Lost Tribes a Myth");
+  // A book of several volumes: its chapters grouped by volume, and a picture opens from a page.
+  await page.goto(`/books${LAUNCH}`);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/library.png` });
+  await page.locator("a", { hasText: "The Two Babylons" }).click();
+  await expect(page.locator(".book__figures .book__figure").first()).toBeVisible();
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-babylons.png` });
+  await page.locator(".list a", { hasText: "Objects of Worship" }).click();
+  await expect(page.locator(".bookpage__fig").first()).toBeVisible();
+  if (process.env.SHOTS) { await page.locator(".bookpage__fig").first().scrollIntoViewIfNeeded(); await page.screenshot({ path: `${process.env.SHOTS}/book-figure-page.png` }); }
+  await page.locator(".bookpage__fig").first().click();
+  await expect(page.locator(".mapview")).toBeVisible();
 });
