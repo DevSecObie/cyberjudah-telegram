@@ -12,6 +12,7 @@
  */
 
 const SECTIONS = new Set([
+  "plan", "settings",
   "about", "api", "bible", "captains", "cases", "classes", "concordance", "dictionary", "downloads",
   "encyclopedia", "history", "law", "precepts", "search", "study", "teachings", "topics", "truth-shall-make-you-free",
 ]);

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from 'react';
 import { Link } from "react-router";
 
 import { data } from "@/api/data";
@@ -8,6 +9,7 @@ import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { confirm, haptic } from "@/tg/sdk";
 import { useSheet } from "@/ui/sheet";
 import { Card, Empty, Screen, Section, Skeleton } from "@/ui/ui";
+import { ReadingTracker } from './ReadingTracker';
 
 /**
  * The reading plan: the whole library in order, a few chapters a day, with today's chapters
@@ -15,6 +17,10 @@ import { Card, Empty, Screen, Section, Skeleton } from "@/ui/ui";
  * ticks it; a tap here does too, for chapters read elsewhere.
  */
 export function Plan() {
+  const [legacy, setLegacy] = useState(false);
+  return <><ReadingTracker /><details style={{ padding: '20px 20px calc(90px + var(--safe-bottom, 0px))' }} onToggle={e => setLegacy(e.currentTarget.open)}><summary>Previous reading plan</summary>{legacy && <LegacyPlan />}</details></>;
+}
+function LegacyPlan() {
   useBackButton(false);
   const sheet = useSheet();
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });

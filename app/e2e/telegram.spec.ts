@@ -263,16 +263,18 @@ test("tabs are roots, detail screens push, and the back button walks them", asyn
 
 test("the reading plan ticks today's chapters and keeps a streak", async ({ page }) => {
   await page.goto(`/plan${LAUNCH}`);
+  await page.getByText('Previous reading plan', { exact: true }).click();
+  await expect.poll(async () => (await state(page)).main).toBe('Start the plan');
   await press(page, "main");
   await page.click(".sheet__item >> text=4 chapters a day");
-  await expect(page.locator(".card__label")).toHaveText("Today");
+  await expect(page.locator("details .card__label")).toHaveText("Today");
   await expect(page.locator(".plan-row")).toHaveCount(4);
   for (let i = 0; i < 4; i++) await page.locator(".plan-row i").nth(i).click();
   await expect(page.locator(".plan-row[data-read]")).toHaveCount(4);
   expect((await state(page)).main).toBe("Tomorrow's reading");
   await press(page, "main");
-  await expect(page.locator(".kicker")).toContainText("Day 2");
-  await expect(page.locator(".card__ref")).toContainText("1 day streak");
+  await expect(page.locator("details .kicker")).toContainText("Day 2");
+  await expect(page.locator("details .card__ref")).toContainText("1 day streak");
 });
 
 liveDataTest("settings: theme, spacing and offline books", async ({ page }) => {

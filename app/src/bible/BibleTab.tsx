@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 
 import { compressVerses, data, verseNumbers } from "@/api/data";
@@ -7,6 +7,7 @@ import { markRead, pushHistory, useHistory, useLast, usePlan, useProgress } from
 import { advance, planDay } from "@/lib/plan";
 import { createRelation, deleteRelation, endpointHref, useChapterRelations, verseKey, type Endpoint, type Relation, type VerseEndpoint, type VerseRelationItem } from "@/lib/relations";
 import { share } from "@/lib/share";
+import { useReading, useReadingChange } from '@/lib/reading';
 import { useSpeech } from "@/lib/tts";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { alert, app, haptic, openLink } from "@/tg/sdk";
@@ -85,6 +86,8 @@ export function BibleTab() {
   const relItems = useMemo(() => { const out: Record<number, VerseRelationItem[]> = { ...rel.items }; for (const [v, items] of Object.entries(taught)) out[+v] = [...(out[+v] ?? []), ...items]; return out; }, [rel.items, taught]);
   const [progress, setProgress] = useProgress();
   const [plan, setPlan] = usePlan();
+  const reading = useReading(), readingChange = useReadingChange();
+  const readToday = !!reading.data?.chapters.some(c => c.slug === slug && c.chapter === ch && c.read);
   const [history, setHistory] = useHistory();
   const reference = (vs: number[]) => verseToReference(vs.map((v) => verseKey(slug, ch, v)), bookName);
   const chapterLabel = book ? `${book.book} ${ch}` : "";
@@ -92,8 +95,6 @@ export function BibleTab() {
 
   // Where they left off, the history, the chapter counted as read after a while, the plan moving on.
   useEffect(() => { if (chapterLabel) { setLast({ slug, chapter: ch, name: chapterLabel, at: Date.now() }); setHistory(pushHistory(history, { slug, chapter: ch, name: chapterLabel })); } }, [slug, ch, chapterLabel]); // eslint-disable-line react-hooks/exhaustive-deps
-  const progressRef = useRef(progress); progressRef.current = progress;
-  useEffect(() => { const t = setTimeout(() => setProgress(markRead(progressRef.current, slug, ch)), 20_000); return () => clearTimeout(t); }, [slug, ch]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (plan && list.length && planDay(plan, list, progress).done) { setPlan(advance(plan)); haptic("success"); } }, [plan, list, progress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sheets.
@@ -216,6 +217,7 @@ export function BibleTab() {
         <div className="bs-error" style={{ paddingTop: headerHeight + 100 }}><span className="bs-error__icon"><Feather2 /></span><p>This chapter did not load. Check your connection, or save this book for offline reading in Settings.</p><button type="button" className="bs-btn" onClick={() => void text.refetch()}>Retry</button></div>
       ) : (
         <Chapter slug={slug} chapter={ch} verses={verses} settings={settings} palette={palette} theme={theme}
+          footer={contextMode === 'fullChapter' && verses.length ? <div style={{ padding: '24px 0' }}><button className="bs-btn" disabled={readingChange.isPending || !reading.data} onClick={() => readingChange.mutate({ path: 'chapter', value: { slug, chapter: ch, read: !readToday } })}>{readToday ? '✓ Read today · Undo' : 'Mark chapter read · 4 a day'}</button><button className="bs-btn" onClick={() => navigate('/plan')}>My Bible tracker</button>{readingChange.isError && <p role="alert">Could not save. Please try again.</p>}</div> : undefined}
           selected={selected} focusVerses={focus} contextDisplayMode={contextMode} verseToScroll={verseToScroll} navigationRequest={navRequest}
           highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={relItems}
           headerHeight={headerHeight} fullscreen={fullscreen} canSwipe
