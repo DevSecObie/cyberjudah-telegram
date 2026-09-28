@@ -42,9 +42,13 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   const refs = (xref.data as Record<string, [string, number, number][]> | undefined)?.[String(verse)] ?? [];
   const themes = forVerse(cites.data).filter((c) => /^\/(law|precepts|cases|topics)\//.test(c.url));
   const comments = forVerse(cites.data).filter((c) => !/^\/(law|precepts|cases|topics)\//.test(c.url));
+  // "Also taught in": one row per note that cites this verse itself (not only its chapter),
+  // leaving out the notes whose breakdown is already shown above.
   // The classes' own breakdowns of this verse, newest class first.
   const said = useQuery({ queryKey: ["commentary", slug, chapter], enabled: open && tab === "commentary", queryFn: () => data.concordance(slug, chapter).then((c) => c.commentary ?? []).catch(() => [] as VerseComment[]) });
   const breakdowns = (said.data ?? []).filter((c) => verseNumbers(c.verses).includes(verse)).sort((a, b) => teacherRank(a.note.teacher) - teacherRank(b.note.teacher) || b.note.date.localeCompare(a.note.date));
+  const shown = new Set(breakdowns.map((c) => c.note.url));
+  const also = [...new Map(comments.filter((c) => c.verses && !shown.has(c.url)).map((c) => [c.url, c] as const)).values()];
   return (
     <Sheet open={open} onClose={onClose} height="full" title={reference} subTitle={TABS.find((t) => t.id === tab)?.subtitle} footer={
       <div className="bs-resourcetabs" role="tablist">
@@ -67,7 +71,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
         {tab === "dictionary" ? (dict.isPending && words.length ? <p className="bs-loading">Loading...</p> : !dict.data?.length ? <p className="bs-loading">No dictionary entry for the words in this verse.</p> : dict.data.map((e) => <button key={e.slug} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(`/dictionary/${e.slug}`); }}><b>{e.term}</b><small>{e.definitions[0]}</small></button>)) : null}
         {tab === "themes" ? (cites.isPending ? <p className="bs-loading">Loading...</p> : !themes.length ? <p className="bs-loading">No law, precept, case or topic cites this verse.</p> : themes.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(toApp(c.url)); }}><b>{c.label}</b><small>{shelf(c.url, c.kind)}</small></button>)) : null}
         {tab === "references" ? (xref.isPending ? <p className="bs-loading">Loading...</p> : !refs.length ? <p className="bs-loading">No cross references for this verse.</p> : <div className="bs-resources__xrefs"><Xrefs refs={refs} books={books} /></div>) : null}
-        {tab === "commentary" ? (cites.isPending || said.isPending ? <p className="bs-loading">Loading...</p> : !comments.length && !breakdowns.length ? <p className="bs-loading">No class or study note teaches from this verse yet.</p> : <>
+        {tab === "commentary" ? (cites.isPending || said.isPending ? <p className="bs-loading">Loading...</p> : !also.length && !breakdowns.length ? <p className="bs-loading">No class or study note teaches from this verse yet.</p> : <>
           {breakdowns.map((c, i) => (
             <div key={`${c.note.url}${c.ts}${i}`} className="bs-comment">
               <button type="button" className="bs-comment__class" onClick={() => { if (/^https?:/.test(c.note.url)) { openLink(`${c.note.url}${c.t ? `&t=${c.t}s` : ""}`); return; } onClose(); navigate(passageLink(c)); }}>
@@ -78,8 +82,8 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
               {c.video ? <button type="button" className="bs-comment__watch" onClick={() => openLink(`https://www.youtube.com/watch?v=${c.video}${c.t ? `&t=${c.t}s` : ""}`)}><Feather name="play" size={14} color="var(--bs-primary)" /> Watch from {c.ts || "the start"}</button> : null}
             </div>
           ))}
-          {comments.length ? <p className="bs-resources__sub">{breakdowns.length ? "Also taught in" : "Taught in"}</p> : null}
-          {comments.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(toApp(c.url)); }}><b>{c.label}</b><small>{shelf(c.url, c.kind)}{c.verses ? ` · v. ${c.verses}` : ""}</small></button>)}
+          {also.length ? <p className="bs-resources__sub">{breakdowns.length ? "Also taught in" : "Taught in"}</p> : null}
+          {also.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(`${toApp(c.url)}#p-${`${reference.replace(/:.*$/, "")}:${c.verses}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`); }}><b>{c.label.replace(/^[^·]+·\s*/, "")}</b><small>{shelf(c.url, c.kind)} · {reference.replace(/:.*$/, "")}:{c.verses}</small></button>)}
         </>) : null}
       </div>
     </Sheet>
