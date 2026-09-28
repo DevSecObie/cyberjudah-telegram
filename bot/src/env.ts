@@ -24,6 +24,8 @@ export type Env = {
   ANTHROPIC_BASE_URL?: string;
   /** The Claude model Ask CyberJudah answers with (claude-opus-5 when unset). */
   CLAUDE_MODEL?: string;
+  /** Ask's pricing (wrangler.jsonc vars): see billing.mjs. */
+  ASK_USD_PER_MTOK?: string; ASK_USD_PER_STAR?: string; ASK_MARGIN?: string; ASK_FREE_DAILY?: string; ASK_PLAN_STARS?: string; ASK_PACKS?: string; ASK_BILLING?: string;
   /** Telegram user ids (comma-separated) allowed to edit notes from the app. */
   ADMIN_IDS?: string;
   /** Set as a Worker secret from the CYBERJUDAH_TOKEN repository secret: a fine-grained GitHub token with contents write on the cyberjudah repository, for edits made in the app. */

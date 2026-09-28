@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router";
 
 import { fmtDate } from "@/api/data";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
-import { api, app, confirm, haptic, hideKeyboard } from "@/tg/sdk";
+import { api, app, confirm, haptic, hideKeyboard, openInvoice } from "@/tg/sdk";
 import { Sheet } from "@/bible/ui/Sheet";
 import { Icon, timestamp } from "@/ui/ui";
 import { KIND_LABEL, hitPath, teachingPath } from "@/ui/search-hero";
@@ -41,6 +41,10 @@ export function Ask() {
   // The conversation's id on the server, where every finished answer is saved to the person.
   const [chatId, setChatId] = useState<string | null>(() => { try { return sessionStorage.getItem(`${STORE}:id`); } catch { return null; } });
   const [history, setHistory] = useState(false);
+  const [plans, setPlans] = useState(false);
+  const [acct, setAcct] = useState<AskAccount | null>(null);
+  const loadAccount = () => api<AskAccount>("/api/ask/account").then(setAcct).catch(() => undefined);
+  useEffect(() => { void loadAccount(); }, []);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
@@ -78,7 +82,7 @@ export function Ask() {
     const ctl = new AbortController(); abortRef.current = ctl;
     try {
       const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, stream: true, chat: id }) });
-      if (!res.ok || !res.body) { patch((t) => ({ ...t, thinking: false, error: res.status === 429 ? "limit" : "unavailable" })); return; }
+      if (!res.ok || !res.body) { patch((t) => ({ ...t, thinking: false, error: res.status === 402 ? "allowance" : res.status === 429 ? "limit" : "unavailable" })); if (res.status === 402) void loadAccount(); return; }
       const reader = res.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
       for (;;) {
         const { value, done } = await reader.read();
@@ -87,13 +91,14 @@ export function Ask() {
         const lines = buffer.split("\n"); buffer = lines.pop() ?? "";
         for (const l of lines) {
           if (!l.trim()) continue;
-          let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[] };
+          let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[]; usage?: { units: number; balance: Balance } };
           try { msg = JSON.parse(l); } catch { continue; }
           if (msg.passages) patch((t) => ({ ...t, passages: msg.passages }));
           // The research as it happens: each search and reading is a step under the answer's head.
           if (msg.status) patch((t) => ({ ...t, status: msg.status, steps: /^(Searching|Reading)/.test(msg.status!) ? [...(t.steps ?? []), msg.status!] : t.steps }));
           if (msg.reset) patch((t) => ({ ...t, content: "", thinking: true }));
           if (msg.delta) patch((t) => ({ ...t, thinking: false, content: t.content + msg.delta }));
+          if (msg.usage) setAcct((a) => (a ? { ...a, balance: msg.usage!.balance } : a));
           if (msg.done) patch((t) => ({ ...t, thinking: false, content: msg.answer ?? t.content, sources: msg.sources ?? [], followups: msg.followups ?? [] }));
           if (msg.error) patch((t) => ({ ...t, thinking: false, error: msg.error }));
         }
@@ -113,7 +118,7 @@ export function Ask() {
     <main className="chat2">
       <header className="chat2__bar">
         <button type="button" className="chat2__new" aria-label="Your chats" onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
-        <div className="chat2__heading"><b>Ask CyberJudah</b><small>Answers from the teachings</small></div>
+        <button type="button" className="chat2__heading" onClick={() => { if (acct?.metered) { haptic("select"); setPlans(true); } }}><b>Ask CyberJudah</b><small>{meterLine(acct)}</small></button>
         <button type="button" className="chat2__new" aria-label="New chat" disabled={!turns.length} onClick={newChat}><Icon name="compose" size={21} /></button>
       </header>
 
@@ -130,11 +135,12 @@ export function Ask() {
         <div className="chat2__turns">
           {turns.map((t, i) => t.role === "user"
             ? <div key={`${chatId}-${i}`} className="msg msg--me"><div className="msg__bubble">{t.content}</div></div>
-            : <AssistantTurn key={`${chatId}-${i}`} t={t} last={i === turns.length - 1} busy={busy} onRetry={() => void send(lastUser, true)} onFollow={(q) => void send(q)} />)}
+            : <AssistantTurn key={`${chatId}-${i}`} t={t} last={i === turns.length - 1} busy={busy} onRetry={() => void send(lastUser, true)} onFollow={(q) => void send(q)} onPlans={() => setPlans(true)} />)}
           <div ref={endRef} className="chat2__end" />
         </div>
       )}
 
+      {plans && acct ? <PlansSheet acct={acct} onClose={() => setPlans(false)} onPaid={() => { setPlans(false); void pollAccount(acct, setAcct); }} /> : null}
       {history ? <ChatsSheet current={chatId} onClose={() => setHistory(false)} onOpen={openChat} onDeleted={(id) => { if (id === chatId) { setTurns([]); setChatId(null); } }} /> : null}
       <form className="composer2" onSubmit={(e) => { e.preventDefault(); void send(input); }}>
         <div className="composer2__box">
@@ -149,7 +155,7 @@ export function Ask() {
   );
 }
 
-function AssistantTurn({ t, last, busy, onRetry, onFollow }: { t: Turn; last: boolean; busy: boolean; onRetry: () => void; onFollow: (q: string) => void }) {
+function AssistantTurn({ t, last, busy, onRetry, onFollow, onPlans }: { t: Turn; last: boolean; busy: boolean; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void }) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const sources = t.sources ?? [];
@@ -169,6 +175,12 @@ function AssistantTurn({ t, last, busy, onRetry, onFollow }: { t: Turn; last: bo
       {t.steps?.length ? <Research steps={t.steps} live={!!t.thinking || (busy && last)} count={t.passages?.length ?? 0} /> : null}
       {t.thinking ? (
         <div className="msg__thinking"><span className="answer__dots" aria-hidden="true"><i /><i /><i /></span>{t.status && !/^(Searching|Reading)/.test(t.status) ? `${t.status}…` : t.passages?.length ? `Reading ${t.passages.length} passages from the teachings…` : "Searching the teachings…"}</div>
+      ) : t.error === "allowance" && !t.content ? (
+        <div className="paywall">
+          <b>You have used today's free answers</b>
+          <p>Subscribe for a month of in-depth answers, or top up with Stars. Your free answers come back tomorrow.</p>
+          <button type="button" className="paywall__go" onClick={onPlans}>See the plans</button>
+        </div>
       ) : t.error && !t.content ? (
         <div className="msg__error">
           <p>{t.error === "limit" ? "That is a hundred questions today. The count starts again tomorrow." : t.error === "too-short" ? "Ask a fuller question." : t.error === "stopped" ? "Stopped." : "CyberJudah did not answer just now."}</p>
@@ -204,6 +216,65 @@ function AssistantTurn({ t, last, busy, onRetry, onFollow }: { t: Turn; last: bo
         </>
       )}
     </div>
+  );
+}
+
+type Balance = { free: number; plan: number; planOn: boolean; planUntil: number | null; planAllowance: number; credits: number; total: number };
+type AskAccount = { metered: boolean; unlimited: boolean; balance: Balance; perQuestion: number; freeDaily: number; plan: { stars: number; units: number }; packs: { stars: number; units: number }[] };
+const answers = (units: number, per: number) => Math.max(0, Math.floor(units / Math.max(per, 1)));
+/** The line under Ask's title: how much is left, in answers, the way an AI app shows it. */
+function meterLine(a: AskAccount | null): string {
+  if (!a || !a.metered) return "Answers from the teachings";
+  if (a.unlimited) return "Unlimited · admin";
+  const n = answers(a.balance.total, a.perQuestion);
+  if (a.balance.planOn) return `Monthly plan · about ${n} answers left`;
+  if (!n) return "No answers left today · see plans";
+  return `About ${n} ${n === 1 ? "answer" : "answers"} left${a.balance.credits ? "" : " today"} · plans`;
+}
+/** After paying, the credit lands when Telegram tells the bot; look again for a little while. */
+async function pollAccount(before: AskAccount, set: (a: AskAccount) => void) {
+  for (let i = 0; i < 8; i++) {
+    await new Promise((r) => setTimeout(r, 1500));
+    const a = await api<AskAccount>("/api/ask/account").catch(() => null);
+    if (a) { set(a); if (a.balance.total > before.balance.total || a.balance.planOn !== before.balance.planOn) return; }
+  }
+}
+
+/** The plans: what is left now, the monthly subscription, and top-up packs, paid in Stars. */
+function PlansSheet({ acct, onClose, onPaid }: { acct: AskAccount; onClose: () => void; onPaid: () => void }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const per = acct.perQuestion, b = acct.balance;
+  const buy = async (item: string) => {
+    haptic("select"); setBusy(item);
+    try {
+      const r = await api<{ ok: boolean; link?: string }>("/api/ask/buy", { method: "POST", json: { item } });
+      if (r.link) { const status = await openInvoice(r.link); if (status === "paid") { haptic("success"); onPaid(); } }
+    } catch { /* the invoice could not be made; the sheet stays open */ }
+    finally { setBusy(null); }
+  };
+  const until = b.planUntil ? new Date(b.planUntil).toLocaleDateString([], { month: "long", day: "numeric" }) : "";
+  return (
+    <Sheet open onClose={onClose} height="full" title="Ask CyberJudah" subTitle="Paid with Telegram Stars" className="chats-sheet">
+      <div className="plans">
+        <div className="plans__now">
+          <b>About {answers(b.total, per)} answers left</b>
+          <small>{[b.free ? `${answers(b.free, per)} free today` : "", b.planOn ? `${answers(b.plan, per)} this month, until ${until}` : "", b.credits ? `${answers(b.credits, per)} in credit` : ""].filter(Boolean).join(" · ") || "Your free answers come back tomorrow"}</small>
+          <div className="plans__bar"><i style={{ width: `${Math.min(100, Math.round((b.total / Math.max(b.total + 1, (b.planOn ? b.planAllowance : acct.freeDaily) + b.credits)) * 100))}%` }} /></div>
+        </div>
+        <div className="plan plan--main">
+          <div><b>Monthly</b><small>About {answers(acct.plan.units, per)} in-depth answers every month. Renews until you cancel in Telegram.</small></div>
+          {b.planOn ? <span className="plan__on">Active</span> : <button type="button" className="plan__buy" disabled={!!busy} onClick={() => void buy("plan")}>{busy === "plan" ? "…" : `⭐ ${acct.plan.stars}`}<small>/month</small></button>}
+        </div>
+        <p className="plans__label">Top up</p>
+        {acct.packs.map((p) => (
+          <div key={p.stars} className="plan">
+            <div><b>About {answers(p.units, per)} answers</b><small>Credit that does not expire</small></div>
+            <button type="button" className="plan__buy plan__buy--quiet" disabled={!!busy} onClick={() => void buy(`pack:${p.stars}`)}>{busy === `pack:${p.stars}` ? "…" : `⭐ ${p.stars}`}</button>
+          </div>
+        ))}
+        <p className="hint">A deep question, with several searches of the library, uses more than a quick follow-up. Everyone gets {answers(acct.freeDaily, per)} free answers a day. Your chats, search, reading and PDFs stay free.</p>
+      </div>
+    </Sheet>
   );
 }
 

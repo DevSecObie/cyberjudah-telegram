@@ -47,12 +47,25 @@ library teaches it, marks what is its own explanation, and never brings in other
 doctrines or contradicts the classes. The
 passages are embedded with Workers AI (bge-m3) into a Vectorize index by
 `bot/scripts/embed.mjs`, nightly and on demand from the deploy workflow ("Also embed");
-`/api/ask` retrieves the closest ones, reranks them (bge-reranker-base) and has the model
-answer from the best eight, streamed as newline-delimited JSON. The model is Claude when the
-repository has an `ANTHROPIC_API_KEY` secret (the deploy stores it on the Worker;
-`CLAUDE_MODEL` in wrangler.jsonc picks the model, `claude-opus-5` by default,
-`claude-sonnet-5` for the cheaper one), else Llama 3.3 70B on Workers AI. A hundred
-questions a day per person.
+`/api/ask` retrieves the closest ones and reranks them (bge-reranker-base). With Claude (an
+`ANTHROPIC_API_KEY` secret; `CLAUDE_MODEL` in wrangler.jsonc, `claude-opus-5` by default,
+`claude-sonnet-5` the cheaper one), the model then researches on its own before it writes
+(`bot/src/agent.ts`): it searches the library again in its own words and reads the verses it
+will quote (tools `search_library` and `read_scripture`, up to five rounds), and the app shows
+each step as it happens. Without the key, Llama 3.3 70B on Workers AI answers from the best
+eight in one pass, a hundred questions a day per person. Every finished exchange is saved to
+the person (`bot/src/chats.ts`) and listed under Your chats.
+
+**Paying for Ask.** Like AI features in other apps: a free allowance each day, a monthly
+Telegram Stars subscription with a monthly allowance, and Stars top-up packs whose credit does
+not expire (`bot/src/billing.mjs`, `billing.ts`). Every answer is charged what it used, in
+units of Claude's tokens weighted as Anthropic bills them, so a deep question uses more than a
+follow-up; the app shows what is left as "about N answers". The prices are the `ASK_*` vars in
+wrangler.jsonc: set `ASK_USD_PER_MTOK` to the model's input price and `ASK_USD_PER_STAR` to
+what a Star brings in, and every plan and pack pays for itself at `ASK_MARGIN`. Admins
+(`ADMIN_IDS`) ask without limit; `/api/admin/usage` (and Settings, for admins) shows questions,
+units and cost per day. Charging starts when `ASK_BILLING` is `"on"`; until then every answer is
+measured and nobody is charged.
 The same index gives the Search screen its "By meaning" mode.
 
 **Precepts lined up with the verse.** The library's engine reads the precepts a class

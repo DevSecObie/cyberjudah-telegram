@@ -41,6 +41,17 @@
     "APP_URL": "https://t.me/CyberJudah_bot/cybr",
     // Ask CyberJudah's model when the ANTHROPIC_API_KEY secret is set (claude-sonnet-5 is the
     // cheaper choice; claude-opus-5 the strongest). Without the key, Llama 3.3 70B on Workers AI.
-    "CLAUDE_MODEL": "claude-opus-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw"
+    "CLAUDE_MODEL": "claude-opus-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",
+    // Ask CyberJudah's allowance. Each answer is measured in units (Claude's tokens, output
+    // weighted five times input), and a Star buys ASK_USD_PER_STAR / ASK_USD_PER_MTOK * 1e6 /
+    // ASK_MARGIN units, so every plan and pack pays for what it allows. Check ASK_USD_PER_MTOK
+    // against Anthropic's price for the model's input tokens, and ASK_USD_PER_STAR against what
+    // a Star brings in after Telegram's cut. ASK_FREE_DAILY is units free per person per day
+    // (an average answer is about 60,000); /api/admin/usage shows the real averages.
+    "ASK_USD_PER_MTOK": "5", "ASK_USD_PER_STAR": "0.013", "ASK_MARGIN": "1.3",
+    "ASK_FREE_DAILY": "120000", "ASK_PLAN_STARS": "750", "ASK_PACKS": "150,500,1500",
+    // "on" starts charging (free allowance, plans, packs, the meter in the app). Off, every
+    // answer is still measured for /api/admin/usage and the old cap of 100 a day applies.
+    "ASK_BILLING": "off"
   }
 }

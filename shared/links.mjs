@@ -12,9 +12,9 @@
  */
 
 const SECTIONS = new Set([
-  "plan", "settings",
-  "about", "api", "bible", "captains", "cases", "classes", "concordance", "dictionary", "downloads",
-  "encyclopedia", "history", "law", "precepts", "search", "study", "teachings", "topics", "truth-shall-make-you-free",
+  "plan",
+  "about", "api", "ask", "bible", "captains", "cases", "classes", "concordance", "dictionary", "downloads",
+  "encyclopedia", "history", "law", "precepts", "search", "settings", "study", "teachings", "topics", "truth-shall-make-you-free",
 ]);
 
 const SAFE = /^[A-Za-z0-9_-]{1,512}$/;

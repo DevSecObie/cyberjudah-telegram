@@ -4,6 +4,7 @@ import { books, chapter } from "./data";
 import type { Env, Exec } from "./env";
 import { answerCandidates, RESEARCH, SYSTEM, type Passage, type Turn } from "./ai.mjs";
 import { parseReference } from "./refs.mjs";
+import { unitsOf } from "./billing.mjs";
 
 /**
  * Ask CyberJudah with Claude doing its own research: it starts from the passages retrieval
@@ -44,7 +45,7 @@ export async function runAgent(
   retrieve: (text: string, k: number) => Promise<Passage[]>,
   emit: (e: AgentEvent) => void,
   ctx?: Exec,
-): Promise<{ text: string; passages: Numbered[] }> {
+): Promise<{ text: string; passages: Numbered[]; units: number; calls: number }> {
   // ANTHROPIC_BASE_URL is for tests against a stand-in server; production leaves it unset.
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, ...(env.ANTHROPIC_BASE_URL ? { baseURL: env.ANTHROPIC_BASE_URL } : {}) });
   const passages: Numbered[] = [];
@@ -97,6 +98,8 @@ export async function runAgent(
   ];
 
   let text = "";
+  // What the answer cost, measured from every call's usage, so the person is charged what it used.
+  let units = 0, calls = 0;
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const last = round === MAX_ROUNDS - 1;
     if (round === 0) emit({ status: "Studying the question" });
@@ -113,6 +116,7 @@ export async function runAgent(
     });
     stream.on("text", (d) => { said += d; emit({ delta: d }); });
     const message = await stream.finalMessage();
+    units += unitsOf(message.usage); calls++;
     const uses = message.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
     // Anything but a request for a tool ends the turn: the answer, a refusal, or the token cap.
     if (message.stop_reason !== "tool_use" || !uses.length) { text = said; break; }
@@ -128,5 +132,5 @@ export async function runAgent(
     messages.push({ role: "user", content: results });
     emit({ status: "Writing the answer" });
   }
-  return { text, passages };
+  return { text, passages, units, calls };
 }

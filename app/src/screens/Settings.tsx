@@ -107,6 +107,7 @@ export function Settings() {
         <div className="btn--row">{[50, 100, 500].map((n) => <button key={n} type="button" className="btn btn--quiet" onClick={() => void support(n)}>⭐ {n}</button>)}</div>
         <p className="hint">Telegram Stars go toward hosting the library. The text and the notes stay free.</p>
       </Section>
+      {me?.admin ? <AskUsage /> : null}
       <Section title="This app">
         {me ? <List><Row title="Your Telegram id" sub={me.canEdit ? "You can edit notes from the app" : me.admin ? "Admin; editing needs the CYBERJUDAH_TOKEN secret on the deploy" : "Notes are read-only for this account"} trailing={<span className="pill">{me.user.id}</span>} onClick={() => { void navigator.clipboard?.writeText(String(me.user.id)).then(() => haptic("success")).catch(() => undefined); }} /></List> : null}
         <p className="hint">{app ? `Telegram ${app.version} on ${app.platform}. ` : "Running in a browser. "}{Object.entries(features).filter(([, v]) => v).length} of {Object.keys(features).length} Mini App features available here.</p>
@@ -132,4 +133,24 @@ export function ThemeApplier() {
     if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(bg);
   }, [theme, scheme, font, spacing, justify]);
   return null;
+}
+
+
+/** For admins: what Ask CyberJudah answers cost, day by day, to price the plans by. */
+function AskUsage() {
+  const [u, setU] = useState<{ usdPerMtok: number; days: { day: string; questions: number; people: number; units: number; usd: number }[] } | null>(null);
+  useEffect(() => { void api<typeof u>("/api/admin/usage").then(setU).catch(() => undefined); }, []);
+  if (!u) return null;
+  const week = u.days.slice(0, 7), q = week.reduce((a, d) => a + d.questions, 0), usd = week.reduce((a, d) => a + d.usd, 0);
+  return (
+    <Section title="Ask usage">
+      <div className="stat">
+        <div><b>{q}</b><span>answers, 7 days</span></div>
+        <div><b>${q ? (usd / q).toFixed(2) : "0.00"}</b><span>per answer</span></div>
+        <div><b>${usd.toFixed(2)}</b><span>cost, 7 days</span></div>
+      </div>
+      <List>{u.days.filter((d) => d.questions).slice(0, 7).map((d) => <Row key={d.day} title={d.day} sub={`${d.questions} answers · ${d.people} people`} trailing={<span className="row__value">${d.usd.toFixed(2)}</span>} />)}</List>
+      <p className="hint">At ${u.usdPerMtok} per million input tokens (ASK_USD_PER_MTOK); output counts five times. Check it against Anthropic's price for the model.</p>
+    </Section>
+  );
 }

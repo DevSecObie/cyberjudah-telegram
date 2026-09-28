@@ -6,6 +6,7 @@ import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { saveExchange } from "./chats";
+import { billingOn, charge, standing } from "./billing";
 
 /**
  * The AI features, all through Workers AI and the Vectorize index of the teachings:
@@ -85,11 +86,12 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   const t0 = Date.now();
   const question = q.trim().slice(0, 400);
   if (question.length < 2) return { ok: false, reason: "too-short" };
-  if (!(await allowed(env, userId, ctx))) return { ok: false, reason: "limit" };
+  if (billingOn(env) ? !(await standing(env, userId)).ok : !(await allowed(env, userId, ctx))) return { ok: false, reason: billingOn(env) ? "allowance" : "limit" };
   try {
     const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
     if (env.ANTHROPIC_API_KEY) {
-      const { text, passages } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), () => undefined, ctx);
+      const { text, passages, units } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), () => undefined, ctx);
+      await charge(env, userId, units);
       const { answer } = splitFollowups(text);
       return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
     }
@@ -155,7 +157,11 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const question = q.trim().slice(0, 400);
   const line = (o: unknown) => `${JSON.stringify(o)}\n`;
   if (question.length < 2) return new Response(line({ error: "too-short" }), { status: 400, headers: { "content-type": "application/x-ndjson" } });
-  if (!(await allowed(env, userId, ctx))) return new Response(line({ error: "limit" }), { status: 429, headers: { "content-type": "application/x-ndjson" } });
+  // With Claude, each answer is charged to the person's allowance; without it, the old daily cap.
+  if (billingOn(env)) {
+    const st = await standing(env, userId);
+    if (!st.ok) return new Response(line({ error: "allowance", balance: st.balance }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
+  } else if (!(await allowed(env, userId, ctx))) return new Response(line({ error: "limit" }), { status: 429, headers: { "content-type": "application/x-ndjson" } });
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -171,10 +177,14 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
         if (env.ANTHROPIC_API_KEY) {
           // Claude researches first (searches and verses, reported as it goes), then writes.
           const steps: string[] = [];
-          const { text, passages } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading)/.test(e.status)) steps.push(e.status); send(e); }, ctx);
+          const { text, passages, units, calls } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading)/.test(e.status)) steps.push(e.status); send(e); }, ctx);
           const { answer, followups } = splitFollowups(text);
           const sources = sourcesOf(answer, passages);
           send({ done: true, answer, followups, sources });
+          // The answer is charged what it used, and the person sees what is left.
+          const left = await charge(env, userId, units).catch(() => null);
+          console.log(JSON.stringify({ event: "ask_usage", units, calls, searches: steps.length }));
+          if (left && billingOn(env)) send({ usage: { units, balance: left } });
           keep(answer, sources, followups, steps);
           return;
         }

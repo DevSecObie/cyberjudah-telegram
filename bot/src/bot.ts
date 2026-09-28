@@ -6,6 +6,7 @@ import { runSearch } from "./search";
 import { parseReference } from "./refs.mjs";
 import { verseOfDay } from "./verse-of-day.mjs";
 import { pathToStartParam, startParamToPath } from "../../shared/links.mjs";
+import { applyPayment, checkout } from "./billing";
 
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 const MAX_INLINE = 50;
@@ -99,9 +100,18 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
   bot.command("support", (ctx) =>
     ctx.replyWithInvoice("Support CyberJudah", "Keep the library free and the classes online. Thank you.", `support:${ctx.from?.id ?? 0}:100`, "XTR", [{ label: "Support CyberJudah", amount: 100 }]));
 
-  bot.on("pre_checkout_query", (ctx) => ctx.answerPreCheckoutQuery(true));
-  bot.on("message:successful_payment", (ctx) =>
-    ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}: ${ctx.message.successful_payment.total_amount} Stars received. Study to shew thyself approved.`, { parse_mode: "HTML" }));
+  // Stars are taken only for a real item at its real price, bought by the person paying.
+  bot.on("pre_checkout_query", (ctx) => {
+    const q = ctx.preCheckoutQuery;
+    return checkout(env, q.invoice_payload, q.currency, q.total_amount, q.from.id) ? ctx.answerPreCheckoutQuery(true) : ctx.answerPreCheckoutQuery(false, { error_message: "This item or price has changed. Open Ask CyberJudah and try again." });
+  });
+  bot.on("message:successful_payment", async (ctx) => {
+    const pay = ctx.message.successful_payment;
+    const got = await applyPayment(env, ctx.from.id, pay);
+    if (got === "plan") return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. Your month of Ask CyberJudah is on; it renews itself each month until you cancel it in Telegram's settings.`, { parse_mode: "HTML", reply_markup: open(ctx, "ask", "Ask CyberJudah") });
+    if (got === "pack") return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. ${pay.total_amount} Stars of Ask CyberJudah added; the credit does not expire.`, { parse_mode: "HTML", reply_markup: open(ctx, "ask", "Ask CyberJudah") });
+    return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}: ${pay.total_amount} Stars received. Study to shew thyself approved.`, { parse_mode: "HTML" });
+  });
 
   // A keyboard-button launch (sendData) lands here: say what arrived so the person sees it worked.
   bot.on("message:web_app_data", (ctx) => ctx.reply(`Received from the app: ${escapeHtml(ctx.message.web_app_data.data).slice(0, 1000)}`));

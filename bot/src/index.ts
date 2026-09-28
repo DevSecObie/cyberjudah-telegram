@@ -19,6 +19,7 @@ import { dictionary } from "./dictionary";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
 import { CHAT_ID, deleteChat, getChat, listChats } from "./chats";
 import { notePdf, pdfName } from "./pdf.mjs";
+import { billingOn, invoiceFor, prices, standing } from "./billing";
 import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 
@@ -177,6 +178,31 @@ app.get("/api/pdf/*", async (c) => {
   if (!note?.body) return c.text("Not found", 404);
   const bytes = await notePdf(note, { site: c.env.SITE_URL });
   return new Response(bytes, { headers: { "content-type": "application/pdf", "content-disposition": `attachment; filename="${pdfName(note)}"`, "cache-control": "private, max-age=600" } });
+});
+
+// Ask CyberJudah's allowance: what is left, what the plan and the packs give, and buying them with Stars.
+app.get("/api/ask/account", async (c) => {
+  const uid = c.get("tma").user!.id;
+  const p = prices(c.env);
+  const st = await standing(c.env, uid);
+  return c.json({ ok: true, metered: billingOn(c.env), unlimited: st.unlimited, balance: st.balance, perQuestion: st.perQuestion, freeDaily: p.freeDaily, plan: p.plan, packs: p.packs });
+});
+app.post("/api/ask/buy", async (c) => {
+  const item = String(((await c.req.json<{ item?: string }>().catch(() => null)) ?? {}).item ?? "");
+  if (!/^(plan|pack:\d{1,6})$/.test(item)) return c.json({ ok: false, error: "Not an item." }, 400);
+  if (!billingOn(c.env)) return c.json({ ok: false, error: "Plans are not on sale yet." }, 409);
+  try { return c.json({ ok: true, link: await invoiceFor(c.env, c.get("tma").user!.id, item) }); }
+  catch (e) { console.error(JSON.stringify({ event: "ask_invoice_failed", message: (e as Error).message?.slice(0, 160) })); return c.json({ ok: false, error: "The invoice could not be made." }, 502); }
+});
+// The admins' view of what Ask costs: questions and units a day, and what that comes to.
+app.get("/api/admin/usage", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false }, 403);
+  const p = prices(c.env);
+  const days = await Promise.all(Array.from({ length: 14 }, (_, i) => new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)).map(async (day) => {
+    const d = (await c.env.SUBS.get(`usage:${day}`, "json")) as { questions: number; units: number; people: number[] } | null;
+    return { day, questions: d?.questions ?? 0, people: d?.people?.length ?? 0, units: d?.units ?? 0, usd: Math.round(((d?.units ?? 0) / 1e6) * p.usdPerMtok * 100) / 100 };
+  }));
+  return c.json({ ok: true, usdPerMtok: p.usdPerMtok, usdPerStar: p.usdPerStar, margin: p.margin, days });
 });
 
 // The person's saved conversations with Ask CyberJudah: the list, one to reopen, one to delete.

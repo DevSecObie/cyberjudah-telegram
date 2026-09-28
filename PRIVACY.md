@@ -14,7 +14,11 @@ Search and transcript queries are processed to return results. Application logs 
 
 Optional location access is used to calculate local Sabbath times. The application should not persist precise coordinates on the server.
 
-Telegram Stars payments are processed by Telegram. The bot receives Telegram's successful-payment event to acknowledge the payment.
+Ask CyberJudah conversations are saved to the user's account in Cloudflare KV, keyed by their Telegram user id: each question, the answer, the sources cited, the suggested follow-ups and the research steps. A user sees only their own conversations and can delete any of them from the Your chats list; at most 300 are kept, the oldest dropped first. Questions are sent to Anthropic (Claude) to be answered, under Anthropic's commercial terms, which do not use API data to train its models by default.
+
+Ask CyberJudah's allowance is kept in Cloudflare KV per Telegram user id: the day's free use, the monthly plan's renewal date and use, and any top-up credit. The day's totals of questions and usage (with the ids of the people who asked, for counting) are kept for 120 days so the operator can price the service.
+
+Telegram Stars payments are processed by Telegram. The bot checks each purchase before accepting it, records the Telegram charge id so a payment is applied once, and grants the plan or credit bought.
 
 ## Service providers
 
@@ -22,7 +26,7 @@ The application depends on Telegram, Cloudflare Workers/D1/KV, GitHub Actions fo
 
 ## Retention and deletion
 
-Daily-verse subscription data remains until the user disables the feature or the operator removes it. Device and Telegram CloudStorage data can be removed through the applicable client or future in-app reset controls.
+Daily-verse subscription data remains until the user disables the feature or the operator removes it. Saved conversations remain until the user deletes them; allowance records remain while the account is in use. Device and Telegram CloudStorage data can be removed through the applicable client or future in-app reset controls.
 
 ## Security and contact
 

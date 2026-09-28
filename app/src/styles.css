@@ -735,3 +735,28 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 .reading-settings input:not([type=checkbox]), .reading-settings textarea, .reading-settings select { display: block; width: 100%; box-sizing: border-box; padding: 12px; margin-top: 6px; border: 1px solid var(--a-line); border-radius: 10px; background: var(--color-panel-2); color: inherit; font: inherit; }
 .reading-settings textarea { min-height: 100px; }
 .reading-settings input[type=checkbox] { width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; }
+
+/* Ask's allowance: the meter under the title, the plans, and the note when it runs out. */
+.chat2__heading { border: 0; background: none; padding: 0; cursor: pointer; font: inherit; }
+.chat2__heading small { max-width: 60vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.plans { display: flex; flex-direction: column; gap: 10px; padding: 6px 16px 28px; }
+.plans__now { display: flex; flex-direction: column; gap: 6px; padding: 16px; border-radius: 18px; background: var(--a-card); }
+.plans__now b { font: 700 20px/1.2 var(--a-ui); color: var(--a-ink-2); letter-spacing: -0.01em; }
+.plans__now small { font: 400 13.5px/1.4 var(--a-ui); color: var(--a-muted); }
+.plans__bar { height: 6px; margin-top: 6px; border-radius: 3px; background: color-mix(in srgb, var(--a-muted) 22%, transparent); overflow: hidden; }
+.plans__bar i { display: block; height: 100%; border-radius: 3px; background: var(--a-accent); }
+.plans__label { margin: 10px 4px 0; font: 600 12px var(--a-ui); color: var(--a-muted); text-transform: uppercase; letter-spacing: .06em; }
+.plan { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: 18px; background: var(--a-card); }
+.plan > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.plan b { font: 600 16px/1.3 var(--a-ui); color: var(--a-ink-2); }
+.plan small { font: 400 13px/1.35 var(--a-ui); color: var(--a-muted); }
+.plan--main { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--a-accent) 55%, transparent); }
+.plan__buy { flex: none; display: inline-flex; align-items: baseline; gap: 2px; padding: 9px 14px; border: 0; border-radius: 999px; background: var(--a-accent); color: var(--a-bg) !important; font: 700 15px var(--a-ui) !important; cursor: pointer; white-space: nowrap; }
+.plan__buy small { font: 500 11.5px var(--a-ui); color: inherit; opacity: .8; }
+.plan__buy--quiet { background: var(--a-card-2); color: var(--a-ink-2) !important; }
+.plan__buy:disabled { opacity: .6; }
+.plan__on { flex: none; padding: 6px 12px; border-radius: 999px; background: color-mix(in srgb, #3ddc84 22%, transparent); font: 600 13px var(--a-ui); color: var(--a-ink-2); }
+.paywall { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px; border-radius: 18px; background: var(--a-card); }
+.paywall b { font: 600 16px var(--a-ui); color: var(--a-ink-2); }
+.paywall p { margin: 0; font: 400 14.5px/1.45 var(--a-ui); color: var(--a-muted); }
+.paywall__go { margin-top: 4px; padding: 10px 16px; border: 0; border-radius: 999px; background: var(--a-accent); color: var(--a-bg) !important; font: 600 15px var(--a-ui) !important; cursor: pointer; }
