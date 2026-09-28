@@ -9,26 +9,41 @@ import { json, store } from "./store";
  * when it unmounts, so Telegram's chrome always shows the current screen's controls.
  */
 
+/** How many sheets are open: while any is, Telegram's back button shows and closes the top one. */
+let sheetsOpen = 0;
+const sheetListeners = new Set<(n: number) => void>();
+export function sheetOpened(): () => void {
+  sheetsOpen++; sheetListeners.forEach((l) => l(sheetsOpen));
+  return () => { sheetsOpen = Math.max(0, sheetsOpen - 1); sheetListeners.forEach((l) => l(sheetsOpen)); };
+}
+function useSheetsOpen() {
+  const [n, setN] = useState(sheetsOpen);
+  useEffect(() => { sheetListeners.add(setN); return () => { sheetListeners.delete(setN); }; }, []);
+  return n;
+}
+
 /** Telegram's back button walks the app's own history; on a root tab it becomes Close. */
 export function useBackButton(root: boolean, onBack?: () => boolean | void) {
   const navigate = useNavigate();
   const handler = useRef(onBack);
   handler.current = onBack;
   const canGoBack = (window.history.state?.idx ?? 0) > 0;
+  const sheets = useSheetsOpen();
   useEffect(() => {
     if (!has("6.1")) return;
     const cb = () => {
       haptic("select");
       // An open sheet closes first, like a phone app.
-      const sheet = document.querySelector<HTMLElement>("[data-sheet-open]");
+      const all = document.querySelectorAll<HTMLElement>("[data-sheet-open]");
+      const sheet = all[all.length - 1];
       if (sheet) { sheet.closest(".sheet__scrim")?.dispatchEvent(new MouseEvent("click", { bubbles: true })); return; }
       if (handler.current?.() === true) return;
       if (canGoBack) navigate(-1); else navigate("/", { replace: true });
     };
-    const show = !root || canGoBack;
+    const show = !root || canGoBack || sheets > 0;
     if (show) { app!.BackButton.onClick(cb); app!.BackButton.show(); } else app!.BackButton.hide();
     return () => { app!.BackButton.offClick(cb); };
-  }, [root, canGoBack, navigate]);
+  }, [root, canGoBack, navigate, sheets]);
 }
 
 export type Action = { text: string; onClick: () => void; quiet?: boolean; progress?: boolean; disabled?: boolean; shine?: boolean };

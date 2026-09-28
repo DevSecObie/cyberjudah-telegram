@@ -1,4 +1,6 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from "react";
+
+import { sheetOpened } from "@/tg/hooks";
 
 import { Feather } from "../icons";
 
@@ -6,11 +8,22 @@ import { Feather } from "../icons";
  * Bible Strong's bottom sheet (common/sheet): a handle, an optional header with a centred
  * title, a back arrow or a right control, scrolling content and a footer. `backdrop` false
  * leaves the page tappable behind it, as the selected-verses sheet does. Telegram's back
- * button closes it first (tg/hooks marks `[data-sheet-open]`).
+ * button shows while it is open and closes it first (tg/hooks), and it can always be closed
+ * with its ✕ or by swiping it down by the handle or the title.
  */
 export function Sheet({ open, onClose, backdrop = true, height = "auto", title, subTitle, hasBack, onBack, right, left, children, footer, className, label }: {
   open: boolean; onClose: () => void; backdrop?: boolean; height?: "auto" | "half" | "full" | "40"; title?: ReactNode; subTitle?: ReactNode; hasBack?: boolean; onBack?: () => void; right?: ReactNode; left?: ReactNode; children?: ReactNode; footer?: ReactNode; className?: string; label?: string;
 }) {
+  const [drag, setDrag] = useState(0);
+  const [tall, setTall] = useState(false);
+  const start = useRef<number | null>(null);
+  useEffect(() => { if (open) return sheetOpened(); }, [open]);
+  useEffect(() => { if (!open) { setDrag(0); setTall(false); } }, [open]);
+  // Swipe by the handle or the title bar: down follows the finger and closes past 90 px; up
+  // opens a shorter sheet to full height.
+  const down = (e: RPointerEvent) => { if ((e.target as HTMLElement).closest("button")) return; start.current = e.clientY; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); };
+  const move = (e: RPointerEvent) => { if (start.current !== null) setDrag(e.clientY - start.current); };
+  const up = () => { if (start.current === null) return; start.current = null; if (drag > 90) onClose(); else if (drag < -60 && height !== "full") setTall(true); setDrag(0); };
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -20,15 +33,18 @@ export function Sheet({ open, onClose, backdrop = true, height = "auto", title, 
   if (!open) return null;
   return (
     <div className={`sheet__scrim bs-scrim${backdrop ? "" : " bs-scrim--clear"}`} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className={`bs-sheet bs-sheet--${height}${className ? ` ${className}` : ""}`} role="dialog" aria-modal={backdrop} aria-label={label ?? (typeof title === "string" ? title : "Sheet")} data-sheet-open="">
-        <div className="bs-sheet__handle" aria-hidden="true" />
-        {title !== undefined ? (
-          <div className="bs-sheet__header">
-            <div className="bs-sheet__side">{hasBack ? <button type="button" className="bs-iconbtn" aria-label="Back" onClick={onBack ?? onClose}><Feather name="arrow-left" size={20} /></button> : left}</div>
-            <div className="bs-sheet__titles"><b>{title}</b>{subTitle ? <small>{subTitle}</small> : null}</div>
-            <div className="bs-sheet__side bs-sheet__side--right">{right}</div>
-          </div>
-        ) : null}
+      <div className={`bs-sheet bs-sheet--${tall ? "full" : height}${className ? ` ${className}` : ""}`} role="dialog" aria-modal={backdrop} aria-label={label ?? (typeof title === "string" ? title : "Sheet")} data-sheet-open=""
+        style={drag > 0 ? { transform: `translateY(${drag}px)`, transition: "none" } : undefined}>
+        <div className="bs-sheet__grab" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
+          <div className="bs-sheet__handle" aria-hidden="true" />
+          {title !== undefined ? (
+            <div className="bs-sheet__header">
+              <div className="bs-sheet__side">{hasBack ? <button type="button" className="bs-iconbtn" aria-label="Back" onClick={onBack ?? onClose}><Feather name="arrow-left" size={20} /></button> : left}</div>
+              <div className="bs-sheet__titles"><b>{title}</b>{subTitle ? <small>{subTitle}</small> : null}</div>
+              <div className="bs-sheet__side bs-sheet__side--right">{right}<button type="button" className="bs-iconbtn bs-sheet__close" aria-label="Close" onClick={onClose}><Feather name="x" size={18} /></button></div>
+            </div>
+          ) : <button type="button" className="bs-iconbtn bs-sheet__close bs-sheet__close--float" aria-label="Close" onClick={onClose}><Feather name="x" size={18} /></button>}
+        </div>
         <div className="bs-sheet__body">{children}</div>
         {footer ? <div className="bs-sheet__footer">{footer}</div> : null}
       </div>

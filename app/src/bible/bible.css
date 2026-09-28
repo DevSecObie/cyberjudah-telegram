@@ -68,7 +68,7 @@
 .bs-sheet--40 { min-height: 40dvh; }
 .bs-sheet__handle { width: 36px; height: 4px; border-radius: 2px; background: var(--bs-border); margin: 8px auto 4px; flex: none; }
 .bs-sheet__header { display: flex; align-items: center; min-height: 48px; padding: 4px 8px; flex: none; }
-.bs-sheet__side { width: 60px; display: flex; align-items: center; }
+.bs-sheet__side { min-width: 60px; display: flex; align-items: center; gap: 4px; }
 .bs-sheet__side--right { justify-content: flex-end; }
 .bs-sheet__titles { flex: 1; text-align: center; min-width: 0; }
 .bs-sheet__titles b { display: block; font-size: 16px; }
@@ -282,3 +282,9 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .why__reason p { margin: 0 0 10px; }
 .why__reason p:last-of-type { margin-bottom: 0; }
 .why-sheet .why .why__more { margin-top: 8px; padding: 0; border: 0; background: none; font-size: 14px; font-weight: 600; color: var(--bs-primary); cursor: pointer; }
+
+/* Closing a sheet: the ✕, and a swipe down by the handle or title that springs back if short. */
+.bs-sheet { transition: transform .22s cubic-bezier(.2, .8, .2, 1); }
+.bs-sheet__grab { flex: none; position: relative; touch-action: none; cursor: grab; }
+.bs-sheet__close { width: 32px; height: 32px; border-radius: 50%; background: var(--bs-light-grey); display: grid; place-items: center; color: var(--bs-tertiary); }
+.bs-sheet__close--float { position: absolute; right: 12px; top: 8px; }

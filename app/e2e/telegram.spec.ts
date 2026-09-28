@@ -226,7 +226,7 @@ test("a verse's precepts lead with one note, Precepts: why each is there, from t
   const first = page.locator(".why__item").first();
   await expect(first.locator(".why__ref b")).toHaveText("2 Esdras 6:38");
   await expect(first.locator(".why__words")).toContainText("thou spakest from the beginning");
-  await expect(first.locator(".why__reason")).toContainText("brought a light out of his treasures");
+  await expect(first.locator(".why__reason")).toContainText("from the beginning of the creation");
   await expect(first.locator(".why__src")).toContainText("The Kingdom Of Adam");
   await first.locator(".why__ref").click();
   await expect(page).toHaveURL(/\/read\/2-esdras\/6\?v=38/);
@@ -482,4 +482,41 @@ test("a verse's Comments hold each class's own breakdown of it, and watch from t
   await card.locator(".bs-comment__watch").click();
   const opened = await page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.filter((l) => l[0] === "openLink"));
   expect(opened.at(-1)?.[1]).toBe("https://www.youtube.com/watch?v=rBRp1JXmK6U&t=2035s");
+});
+
+test("in the Bible, an open sheet shows Telegram's back button and closes with it, its ✕ or a swipe down", async ({ page }) => {
+  await page.goto(`/read/genesis/4${LAUNCH}`);
+  await expect(page.locator("#verset-5")).toBeVisible();
+  expect((await state(page)).back).toBe(false);
+  // Back button closes the open sheet, and hides again.
+  await longPressVerse(page, 5);
+  await page.click('.bs-resourcetabs button >> text=Comments');
+  await expect(page.locator("[data-sheet-open]")).toHaveCount(1);
+  await expect.poll(async () => (await state(page)).back).toBe(true);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/sheet-close.png` });
+  await press(page, "back");
+  await expect(page.locator("[data-sheet-open]")).toHaveCount(0);
+  await expect.poll(async () => (await state(page)).back).toBe(false);
+  await expect(page).toHaveURL(/\/read\/genesis\/4/);
+  // The ✕ closes it.
+  await page.click(".bs-pill--book");
+  await page.click('.bs-sheet [aria-label="Close"]');
+  await expect(page.locator("[data-sheet-open]")).toHaveCount(0);
+  // A swipe down by the title closes it; a short one springs back.
+  await page.click(".bs-pill--book");
+  const title = page.locator(".bs-sheet__titles");
+  const swipe = async (dy: number) => { await page.waitForTimeout(350); const b = (await title.boundingBox())!; await page.mouse.move(b.x + b.width / 2, b.y + 10); await page.mouse.down(); await page.mouse.move(b.x + b.width / 2, b.y + 10 + dy, { steps: 8 }); await page.mouse.up(); };
+  await swipe(30);
+  await expect(page.locator("[data-sheet-open]")).toHaveCount(1);
+  await swipe(200);
+  await expect(page.locator("[data-sheet-open]")).toHaveCount(0);
+  // A swipe up opens a half sheet to full height: the verse's tags.
+  await tapVerse(page, 1);
+  await page.locator(".bs-selected .bs-action", { hasText: /^Tags?$/ }).first().click();
+  const note = page.locator(".bs-sheet").filter({ has: page.locator(".bs-sheet__titles") }).last();
+  const before = (await note.boundingBox())!.height;
+  await page.waitForTimeout(350);
+  const t = (await note.locator(".bs-sheet__titles").boundingBox())!;
+  await page.mouse.move(t.x + t.width / 2, t.y + 10); await page.mouse.down(); await page.mouse.move(t.x + t.width / 2, t.y - 120, { steps: 8 }); await page.mouse.up();
+  await expect.poll(async () => (await note.boundingBox())!.height).toBeGreaterThan(before + 40);
 });
