@@ -4,7 +4,7 @@ import type { InlineQueryResultArticle } from "grammy/types";
 import type { Env, Sub } from "./env";
 import { validateInitData, type InitData } from "./initdata.mjs";
 import { createBot, todaysVerse } from "./bot";
-import { chapter, escapeHtml, openLink } from "./data";
+import { chapter, dataJson, escapeHtml, openLink } from "./data";
 import { runSearch } from "./search";
 import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./teachings";
 import { findVisuals } from "./visuals.mjs";
@@ -17,6 +17,8 @@ import { bookLabel } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
 import { CHAT_ID, deleteChat, getChat, listChats } from "./chats";
+import { notePdf, pdfName } from "./pdf.mjs";
+import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
@@ -30,6 +32,8 @@ const STARS = new Set([50, 100, 500]);
  */
 app.use("/api/*", async (c, next) => {
   // The frames' geometry is public like the sheets themselves: the library's build reads it to place frames in the notes.
+  // A note's PDF is fetched by Telegram's downloader, which carries no launch data: its link is signed instead.
+  if (c.req.method === "GET" && c.req.path.startsWith("/api/pdf/")) return next();
   if (c.req.path === "/api/verse-of-day" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
   // Three days: a Mini App stays open across a weekend of study without its launch data going stale.
@@ -138,6 +142,42 @@ app.post("/api/ask", async (c) => {
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history);
   return c.json(res, res.ok ? 200 : res.reason === "limit" ? 429 : res.reason === "too-short" ? 400 : 503);
 });
+// A note as a PDF: a signed link the app hands to Telegram's downloader, or the file sent to the
+// person's chat with the bot. The link names the note and an expiry, signed with the bot token.
+const NOTE_PATH = /^\/(classes|captains|history|study|encyclopedia)\/[A-Za-z0-9_-][A-Za-z0-9._/-]{0,160}$/;
+const okNotePath = (p: string) => NOTE_PATH.test(p) && !p.includes("..");
+async function pdfSig(env: Env, path: string, exp: number): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(`pdf:${env.BOT_TOKEN}`), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${path}|${exp}`));
+  return [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 40);
+}
+type NoteJson = { kind?: string; title?: string; date?: string; teacher?: string; url?: string; body?: string };
+app.post("/api/notes/pdf", async (c) => {
+  const body = await c.req.json<{ path?: string; send?: boolean }>().catch(() => null);
+  const path = String(body?.path ?? "");
+  if (!okNotePath(path)) return c.json({ ok: false, error: "Not a note." }, 400);
+  const note = await dataJson<NoteJson>(c.env, `/api/notes${path}.json`, c.executionCtx);
+  if (!note?.body) return c.json({ ok: false, error: "This note could not be found." }, 404);
+  if (body?.send) {
+    const bytes = await notePdf(note, { site: c.env.SITE_URL });
+    try { await new Api(c.env.BOT_TOKEN).sendDocument(c.get("tma").user!.id, new InputFile(bytes, pdfName(note)), { caption: note.title }); }
+    catch { return c.json({ ok: false, error: "The bot could not send you the file. Open a chat with the bot, press Start, and try again." }, 400); }
+    return c.json({ ok: true, sent: true });
+  }
+  const exp = Math.floor(Date.now() / 1000) + 900;
+  const url = `${new URL(c.req.url).origin}/api/pdf${path}?exp=${exp}&sig=${await pdfSig(c.env, path, exp)}`;
+  return c.json({ ok: true, url, file: pdfName(note) });
+});
+app.get("/api/pdf/*", async (c) => {
+  const path = c.req.path.slice("/api/pdf".length);
+  const exp = Number(c.req.query("exp")), sig = c.req.query("sig") ?? "";
+  if (!okNotePath(path) || !(exp > Date.now() / 1000) || sig !== (await pdfSig(c.env, path, exp))) return c.text("This link has expired. Ask for the PDF again from the app.", 403);
+  const note = await dataJson<NoteJson>(c.env, `/api/notes${path}.json`, c.executionCtx);
+  if (!note?.body) return c.text("Not found", 404);
+  const bytes = await notePdf(note, { site: c.env.SITE_URL });
+  return new Response(bytes, { headers: { "content-type": "application/pdf", "content-disposition": `attachment; filename="${pdfName(note)}"`, "cache-control": "private, max-age=600" } });
+});
+
 // The person's saved conversations with Ask CyberJudah: the list, one to reopen, one to delete.
 app.get("/api/chats", async (c) => c.json({ ok: true, chats: await listChats(c.env, c.get("tma").user!.id) }));
 app.get("/api/chats/:id", async (c) => {

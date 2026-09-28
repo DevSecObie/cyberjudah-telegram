@@ -8,7 +8,8 @@ import { Link, useSearchParams } from "react-router";
 import { useTeachings } from "./Home";
 import { share } from "@/lib/share";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
-import { api, haptic, openLink, setClosingConfirmation, alert } from "@/tg/sdk";
+import { api, haptic, openLink, setClosingConfirmation, alert, downloadFile, features } from "@/tg/sdk";
+import { useSheet } from "@/ui/sheet";
 import { NoteBody, noteLede } from "@/ui/note-body";
 import { NotesOpener, NotesSheet, Player } from "@/ui/player";
 import { NoteEditSheet } from "@/ui/note-edit";
@@ -24,6 +25,7 @@ const KIND: Record<string, string> = { class: "Sabbath class", captains: "15 Min
  */
 export function NoteScreen() {
   const location = useLocation();
+  const sheet = useSheet();
   const path = location.pathname.replace(/^\/note/, "") || "/";
   const note = useQuery({ queryKey: ["note", path], queryFn: () => data.note(path) });
   const isHistory = path.startsWith("/history/");
@@ -72,11 +74,29 @@ export function NoteScreen() {
     return <main className="screen"><Empty title="This note did not load">It may have moved. Search for it instead.</Empty></main>;
   }
   const n = note.data;
+  // The note as a PDF: downloaded through Telegram where it can, or sent to the chat with the bot.
+  const exportPdf = async () => {
+    haptic("select");
+    const a = await sheet.open({ title: "Export as PDF", items: [
+      ...(features.download ? [{ id: "download", text: "Download the PDF", hint: "Saved to this device" }] : []),
+      { id: "send", text: "Send it to my Telegram chat", hint: "The CyberJudah bot sends you the file" },
+    ] });
+    if (!a) return;
+    try {
+      const r = await api<{ ok: boolean; url?: string; file?: string }>("/api/notes/pdf", { method: "POST", json: { path, send: a.id === "send" } });
+      if (a.id === "send") { haptic("success"); void alert("Sent. The PDF is in your chat with the CyberJudah bot."); }
+      else if (r.url) downloadFile(r.url, r.file ?? "note.pdf");
+    } catch {
+      void alert(a.id === "send" ? "The bot could not send the file. Open a chat with the CyberJudah bot, press Start, and try again." : "The PDF could not be made just now. Try again in a moment.");
+    }
+  };
+  const pdfButton = <button type="button" className="icon-btn" aria-label="Export as PDF" onClick={() => void exportPdf()}><Icon name="download" size={18} /></button>;
   const head = (
     <header className="note-head">
       <p className="kicker">{[KIND[n.kind] ?? "", when(n.date, n.teacher)].filter(Boolean).join(" · ")}</p>
       <h1>{n.title}</h1>
       <div className="head__actions">
+        {pdfButton}
         {who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}
         <button type="button" className="icon-btn" aria-pressed={kept} aria-label={kept ? "Remove bookmark" : "Bookmark"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: path, kind: "note", title: n.title, text: [KIND[n.kind], fmtDate(n.date)].filter(Boolean).join(" · "), href: path })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={18} /></button>
       </div>
@@ -98,7 +118,7 @@ export function NoteScreen() {
       {taught}
       {isHistory && episode.data?.turns?.length ? <Transcript ep={episode.data} find={params.get("find") ?? ""} onSeek={seek} /> : null}
       {upnext}
-      <NotesSheet open={notes} onClose={() => setNotes(false)} sub={n.title} action={who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}><NoteBody md={n.body} video={video} onSeek={seek} /></NotesSheet>
+      <NotesSheet open={notes} onClose={() => setNotes(false)} sub={n.title} action={<>{pdfButton}{who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}</>}><NoteBody md={n.body} video={video} onSeek={seek} /></NotesSheet>
       {editing ? <NoteEditSheet open onClose={() => setEditing(false)} note={n} onSaved={saved} /> : null}
     </main>
   );
