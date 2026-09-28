@@ -586,16 +586,20 @@ test("Library: The Lost Tribes a Myth, page by page with its scans and maps, and
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-page.png` });
   // The class note names the book and its pages.
   await page.goto(`/note/classes/2026/2026-07-12-raising-up-the-tabernacle-of-david-that-fell${LAUNCH}`);
-  await expect(page.locator(".readfrom").first()).toContainText("The Lost Tribes a Myth");
+  await expect(page.locator(".readfrom", { hasText: "The Lost Tribes a Myth" })).toBeVisible();
   // A book of several volumes: its chapters grouped by volume, and a picture opens from a page.
   await page.goto(`/books${LAUNCH}`);
+  // Covers load from the data set.
+  await expect.poll(() => page.locator(".row__thumb img").first().evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/library.png` });
   await page.locator("a", { hasText: "The Two Babylons" }).click();
   await expect(page.locator(".book__figures .book__figure").first()).toBeVisible();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-babylons.png` });
   await page.locator(".list a", { hasText: "Objects of Worship" }).click();
   await expect(page.locator(".bookpage__fig").first()).toBeVisible();
-  if (process.env.SHOTS) { await page.locator(".bookpage__fig").first().scrollIntoViewIfNeeded(); await page.screenshot({ path: `${process.env.SHOTS}/book-figure-page.png` }); }
+  await page.locator(".bookpage__fig").first().scrollIntoViewIfNeeded();
+  await expect.poll(() => page.locator(".bookpage__fig img").first().evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-figure-page.png` });
   await page.locator(".bookpage__fig").first().click();
   await expect(page.locator(".mapview")).toBeVisible();
 });

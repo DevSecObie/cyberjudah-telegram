@@ -29,7 +29,7 @@ export function Books() {
   return (
     <Screen title="Library" kicker="Books the classes read from">
       {lib.isPending ? <Skeleton rows={3} thumb /> : !lib.data?.length ? <Empty title="No books yet" /> : (
-        <List>{lib.data.map((b) => (
+        <List>{[...lib.data].sort((a, b) => b.classes - a.classes || a.title.localeCompare(b.title)).map((b) => (
           <Row key={b.slug} href={`/books/${b.slug}`} thumb={b.cover ? src(b.cover) : undefined} title={b.title}
             sub={`${b.author}, ${b.year}${b.volumes > 1 ? ` · ${b.volumes} volumes` : ""} · ${b.classes ? `read in ${b.classes} ${b.classes === 1 ? "class" : "classes"}` : `${b.pages} pages`}${b.figures ? ` · ${b.figures} pictures` : ""}`} />
         ))}</List>
@@ -94,7 +94,7 @@ export function BookScreen() {
         <Section key={i} title={g.label || (groups.length > 1 ? `Part ${i + 1}` : "Chapters")}>
           <List>{g.chapters.map((c) => (
             <Row key={c.k} href={`/books/${slug}/${c.k}`} meta={c.n ? (c.n.length > 5 ? c.n : `Chapter ${c.n}`) : undefined} title={c.title}
-              sub={c.topics ? c.topics.replace(/,\s*\d+(-\d+)?\./g, ".").slice(0, 140) + (c.topics.length > 140 ? "…" : "") : `Pages ${c.page}–${c.end}`}
+              sub={c.topics.length >= 24 ? c.topics.replace(/,\s*\d+(-\d+)?\./g, ".").slice(0, 140) + (c.topics.length > 140 ? "…" : "") : `Pages ${c.page}–${c.end}`}
               trailing={c.reads ? <span className="row__count" title="Readings in the classes">{c.reads}</span> : undefined} />
           ))}</List>
         </Section>
