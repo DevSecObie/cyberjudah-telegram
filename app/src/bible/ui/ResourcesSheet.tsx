@@ -70,7 +70,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
         {tab === "commentary" ? (cites.isPending || said.isPending ? <p className="bs-loading">Loading...</p> : !comments.length && !breakdowns.length ? <p className="bs-loading">No class or study note teaches from this verse yet.</p> : <>
           {breakdowns.map((c, i) => (
             <div key={`${c.note.url}${c.ts}${i}`} className="bs-comment">
-              <button type="button" className="bs-comment__class" onClick={() => { if (/^https?:/.test(c.note.url)) { openLink(`${c.note.url}${c.t ? `&t=${c.t}s` : ""}`); return; } onClose(); navigate(toApp(c.note.url)); }}>
+              <button type="button" className="bs-comment__class" onClick={() => { if (/^https?:/.test(c.note.url)) { openLink(`${c.note.url}${c.t ? `&t=${c.t}s` : ""}`); return; } onClose(); navigate(passageLink(c)); }}>
                 <b>{c.note.label}</b>
                 <small>{[c.note.date ? fmtDate(c.note.date) : "", c.note.teacher, c.passage].filter(Boolean).join(" · ")}</small>
               </button>
@@ -88,6 +88,8 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
 
 import { toAppPath } from "@shared/links.mjs";
 const toApp = (sitePath: string) => toAppPath(sitePath) ?? sitePath;
+/** A note opened right where it breaks down this passage, and a class's recording at that second. */
+const passageLink = (c: VerseComment) => `${toApp(c.note.url)}${c.t ? `?t=${c.t}` : ""}#p-${c.passage.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 
 /** A precept topic from the reference work that lists this verse, with its other scriptures a tap away. */
 function TopicPrecepts({ cite, onRead, onOpen }: { cite: Citation; onRead: (url: string, verses: string) => void; onOpen: () => void }) {

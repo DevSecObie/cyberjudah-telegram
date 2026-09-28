@@ -520,3 +520,18 @@ test("in the Bible, an open sheet shows Telegram's back button and closes with i
   await page.mouse.move(t.x + t.width / 2, t.y + 10); await page.mouse.down(); await page.mouse.move(t.x + t.width / 2, t.y - 120, { steps: 8 }); await page.mouse.up();
   await expect.poll(async () => (await note.boundingBox())!.height).toBeGreaterThan(before + 40);
 });
+
+test("a verse's comment opens the note right where that passage is broken down", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#verset-7")).toBeVisible();
+  await longPressVerse(page, 7);
+  await page.click('.bs-resourcetabs button >> text=Comments');
+  const card = page.locator(".bs-comment", { hasText: "The firmament is the sky" });
+  await expect(card).toBeVisible();
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/comment-g17.png` });
+  await card.locator(".bs-comment__class").click();
+  await expect(page).toHaveURL(/#p-genesis-1-6-8$/);
+  const head = page.locator("#p-genesis-1-6-8");
+  await expect(head).toBeInViewport();
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/comment-g17-note.png` });
+});

@@ -25,6 +25,9 @@ export function renderNote(md: string, frames?: { video: string; board: Board | 
   const slug = (t: string) => DOMPurify.sanitize(t, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }).toLowerCase().replace(/&[a-z]+;/g, " ").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   // Headings carry an id from their text, so a search hit opens the class at its section.
   let html = (marked.parse(src) as string).replace(/<(li|p)>\s*<strong>([A-Z][^<:]{1,40}):<\/strong>\s*/g, '<$1><span class="who">$2</span>').replace(/<h([2-4])>(.*?)<\/h\1>/g, (_m, l: string, t: string) => `<h${l} id="${slug(t)}">${t}</h${l}>`);
+  // Each scripture a note opens carries an id from its reference ("p-genesis-1-6-8"), so a verse's
+  // comment opens the note right where that passage is broken down.
+  html = html.replace(/<p><strong><a href="\/bible\/[^"]+">([^<]+)<\/a><\/strong>/g, (m, label: string) => m.replace("<p>", `<p id="p-${slug(label)}">`));
   // A moment is a time chip, without the brackets the markdown wraps it in.
   html = html.replace(MOMENT, (_m, video: string, t: string, label: string) => `<a class="moment__at" href="https://www.youtube.com/watch?v=${video}&t=${t}s" data-t="${t}">${label}</a>`);
   html = tidyHead(html);
