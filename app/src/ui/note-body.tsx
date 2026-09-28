@@ -1,4 +1,5 @@
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import { useMemo, type MouseEvent } from "react";
 
 import { openLink } from "@/tg/sdk";
@@ -27,8 +28,22 @@ export function renderNote(md: string, frames?: { video: string; board: Board | 
   // A moment is a time chip, without the brackets the markdown wraps it in.
   html = html.replace(MOMENT, (_m, video: string, t: string, label: string) => `<a class="moment__at" href="https://www.youtube.com/watch?v=${video}&t=${t}s" data-t="${t}">${label}</a>`);
   html = tidyHead(html);
-  // The library's build places the frames itself when it can; then nothing is added here.
-  if (!frames?.visuals?.length || /class="shown"/.test(html)) return html;
+  if (!frames?.visuals?.length) return sanitizeNote(html);
+  // Newer library builds place the figure at the editorially chosen position, but leave
+  // its picture for the app to supply from the private storyboard bucket. Hydrate those
+  // placeholders instead of adding a second copy of the same moment.
+  if (/class="[^"]*\bshown\b/.test(html)) {
+    html = html.replace(/(<figure\b([^>]*)>)([\s\S]*?<\/figure>)/g, (whole, open: string, attrs: string, rest: string) => {
+      if (!/class="[^"]*\bshown\b/.test(attrs)) return whole;
+      if (/class="[^"]*\bshown__frame\b|<img\b/.test(rest)) return whole;
+      const said = /data-t="(\d+)"/.exec(attrs)?.[1];
+      if (!said) return whole;
+      const visual = frames.visuals!.find((v) => v.said === Number(said));
+      const style = visual && frameStyleText(frames.video, frames.board, visual.t, 320);
+      return style ? `${open}<span class="frame shown__frame" style="${style}"></span>${rest}` : whole;
+    });
+    return sanitizeNote(html);
+  }
   // The blocks in reading order, each with the moment it starts; a picture lands at the end of the block it was shown in.
   const marks = [...html.matchAll(/<p><strong>.*?<a class="moment__at"[^>]*data-t="(\d+)"/g)].map((m) => ({ t: Number(m[1]), at: m.index! }));
   const figure = (v: Visual) => {
@@ -47,7 +62,21 @@ export function renderNote(md: string, frames?: { video: string; board: Board | 
   const out: string[] = []; let last = 0;
   for (const pos of [...inserts.keys()].sort((a, b) => a - b)) { out.push(html.slice(last, pos), inserts.get(pos)!); last = pos; }
   out.push(html.slice(last));
-  return out.join("") + (orphans.length ? `<section class="shown-all"><h2>Shown in class</h2>${orphans.join("")}</section>` : "");
+  return sanitizeNote(out.join("") + (orphans.length ? `<section class="shown-all"><h2>Shown in class</h2>${orphans.join("")}</section>` : ""));
+}
+
+/**
+ * Notes are repository content, but they are still untrusted at the browser boundary: an
+ * accidental or compromised edit must not become script, an event handler or a javascript:
+ * link when React mounts it. DOMPurify keeps the semantic markup and the frame styles while
+ * removing executable HTML. Links opened by the app are limited again in onClick below.
+ */
+export function sanitizeNote(html: string): string {
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true },
+    ALLOW_DATA_ATTR: true,
+    ADD_ATTR: ["class", "id", "style", "title", "target", "rel"],
+  });
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

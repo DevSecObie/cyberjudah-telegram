@@ -11,9 +11,9 @@ import path from "node:path";
  */
 const MOCK = fs.readFileSync(new URL("./telegram-mock.js", import.meta.url), "utf8");
 const DATA = process.env.DATA_DIR ?? "";
-// Search coverage currently depends on production-seeded D1 and transcript data. Keep it
-// available for local/live runs, but do not make deterministic CI depend on production data.
-const liveDataTest = process.env.CI ? test.skip : test;
+// Search and full-library coverage runs separately against production every night. Pull
+// requests remain deterministic and never depend on the current contents of the library.
+const liveDataTest = process.env.RUN_LIVE_E2E ? test : test.skip;
 /** Launch data signed with the local bot token (bot/.dev.vars), so the Worker's API accepts it. */
 const BOT_TOKEN = process.env.BOT_TOKEN ?? "123456:ABC-DEF";
 const signed = () => {
@@ -46,6 +46,19 @@ const longPressVerse = async (page: Page, n: number) => { await page.locator(`#v
 const goInApp = (page: Page, to: string) => page.evaluate((t) => { history.pushState({ idx: (history.state?.idx ?? 0) + 1 }, "", t); dispatchEvent(new PopStateEvent("popstate")); }, to);
 
 test.beforeEach(async ({ page }) => setup(page));
+
+test("note HTML is sanitized before it reaches the page", async ({ page }) => {
+  await page.route("https://data.cyberjudah.io/api/notes/classes/security-test.json", (r) => r.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({ kind: "class", title: "Security test", url: "/classes/security-test", body: "## Safe heading\n\n<script>window.__noteXss = true</script><img src=x onerror=\"window.__noteXss=true\"><a href=\"javascript:window.__noteXss=true\">bad link</a>" }),
+  }));
+  await page.goto(`/note/classes/security-test${LAUNCH}`);
+  await expect(page.locator(".note h2")).toHaveText("Safe heading");
+  await expect(page.locator(".note script")).toHaveCount(0);
+  await expect(page.locator(".note [onerror]")).toHaveCount(0);
+  await expect(page.locator(".note a")).not.toHaveAttribute("href", /^javascript:/);
+  expect(await page.evaluate(() => (window as unknown as { __noteXss?: boolean }).__noteXss)).not.toBe(true);
+});
 
 test("a deep link opens the Scripture in focus, 'Read whole chapter' expands it, the ✕ leaves focus", async ({ page }) => {
   await page.goto(`/?tgWebAppStartParam=john_3_16${LAUNCH}&tgWebAppStartParam=john_3_16`);
@@ -311,6 +324,10 @@ liveDataTest("a class opens like YouTube: the player pinned, the notes in a shee
 test("what was on the screen: a frame lands in the notes where the teacher pointed at it, a tap from playing there", async ({ page }) => {
   // A storyboard the Worker would serve (one level, 5x5 cells, a frame every 10 s) and two moments the captions flagged.
   const board = { ok: true, duration: 9557, levels: [{ level: 2, w: 160, h: 90, frames: 956, rows: 5, cols: 5, sheets: 39, interval: 10 }] };
+  await page.route("https://data.cyberjudah.io/api/notes/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement.json", (r) => r.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({ kind: "class", title: "The Art of War - Rules of Engagement", url: "/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement", date: "2026-09-26", teacher: "Captain Joel", videoId: "eNMvid6j-qk", body: "## Scriptures Opened\n\n**[Deuteronomy 30:11-13](/bible/deuteronomy/30#v11):** *[[10:37](https://www.youtube.com/watch?v=eNMvid6j-qk&t=637s)]*\n\nThe commandment is not beyond the sea.\n\n**[Isaiah 11:10-12](/bible/isaiah/11#v10):** *[[24:08](https://www.youtube.com/watch?v=eNMvid6j-qk&t=1448s)]*\n\nThe remnant is gathered." }),
+  }));
   await page.route("**/api/frames/*", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(board) }));
   await page.route("**/api/visuals/*", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, visuals: [{ t: 700, said: 695, text: "Look at this map right here." }, { t: 5, said: 0, text: "Pull that up." }] }) }));
   await page.route("**/frames/**/*.jpg", (r) => r.fulfill({ contentType: "image/gif", body: Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64") }));
@@ -319,7 +336,12 @@ test("what was on the screen: a frame lands in the notes where the teacher point
   await expect(shown.first()).toBeVisible();
   // 700 s is frame 70: sheet 2, row 4, column 0. It follows the Deuteronomy 30 block (10:37) and precedes Isaiah 11 (24:08).
   const fig = page.locator(".nsheet figure.shown[data-t=\"695\"]");
-  await expect(fig.locator(".shown__frame")).toHaveAttribute("style", /frames\/eNMvid6j-qk\/2\/2\.jpg/);
+  // A library rebuild may already have placed an <img>; otherwise the app composes the
+  // matching storyboard cell. Both are the same user-visible frame and must remain present.
+  const frame = fig.locator(".shown__frame, img").first();
+  await expect(frame).toBeVisible();
+  const frameSource = `${await frame.getAttribute("style") ?? ""} ${await frame.getAttribute("src") ?? ""}`;
+  expect(frameSource).toMatch(/frames\/eNMvid6j-qk\/(?:2\/2\.jpg|[^\s"']+\.jpg)/);
   await expect(fig.locator("figcaption")).toHaveText("11:35");
   const order = await page.locator(".nsheet .note").evaluate((el) => { const h = el.innerHTML; return [h.indexOf("Deuteronomy 30:11-13"), h.indexOf('data-t="695"'), h.indexOf("Isaiah 11:10-12")]; });
   expect(order[0]).toBeLessThan(order[1]); expect(order[1]).toBeLessThan(order[2]);
