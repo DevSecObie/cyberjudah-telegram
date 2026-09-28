@@ -89,7 +89,6 @@ jobs:
               || { echo "::error::Could not create the R2 bucket. If the message says to enable R2: Cloudflare dashboard → R2 Object Storage → Get started (the free allowance is enough; it asks to confirm a plan). Otherwise give the CLOUDFLARE_API_TOKEN the 'Workers R2 Storage Edit' permission."; exit 1; }
           fi
           set -o pipefail
-          npx wrangler d1 execute cyberjudah-telegram --remote --file reading.sql
           npx wrangler deploy 2>&1 | tee deploy.log
           # The Worker's public URL, from wrangler's own output, unless the repo names one.
           URL="${{ vars.WORKER_URL }}"

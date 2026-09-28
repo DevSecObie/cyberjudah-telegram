@@ -31,7 +31,7 @@
   "vectorize": [{ "binding": "VEC", "index_name": "cyberjudah-teachings" }],
   "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "cyberjudah-audio" }],
   // Hourly: the daily verse goes to every subscriber whose local hour is now.
-  "triggers": { "crons": ["*/15 * * * *"] },
+  "triggers": { "crons": ["0 * * * *"] },
   // Secrets, set by the deploy workflow with `wrangler secret put`: BOT_TOKEN, WEBHOOK_SECRET,
   // APP_URL (the t.me link, once /newapp is done) and WORKER_URL (this Worker's public URL).
   "vars": {

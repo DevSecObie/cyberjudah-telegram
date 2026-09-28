@@ -1,0 +1,36 @@
+name: Remove retired tracker data
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Type remove-retired-tracker to delete only the retired tracker tables and quote key'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  remove:
+    if: github.ref == 'refs/heads/main' && inputs.confirmation == 'remove-retired-tracker'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Remove the retired tracker data only
+        working-directory: bot
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          # Resolve existing resources exactly. Do not create or delete a database/namespace.
+          D1=$(npx wrangler d1 list --json | jq -er '[.[] | select(.name == "cyberjudah-telegram") | .uuid] | if length == 1 then .[0] else error("Expected one database") end')
+          KV=$(npx wrangler kv namespace list | jq -er '[.[] | select(.title == "cyberjudah-telegram-SUBS" or .title == "SUBS") | .id] | if length == 1 then .[0] else error("Expected one namespace") end')
+          sed -i "s/00000000-0000-0000-0000-000000000000/$D1/" wrangler.jsonc
+          npx wrangler d1 execute cyberjudah-telegram --remote --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('reading_settings','reading_log','reading_deliveries');"
+          npx wrangler d1 execute cyberjudah-telegram --remote --command "DROP TABLE IF EXISTS reading_deliveries; DROP TABLE IF EXISTS reading_log; DROP TABLE IF EXISTS reading_settings;"
+          npx wrangler kv key delete 'reading:quotes' --namespace-id "$KV" --remote
+          npx wrangler d1 execute cyberjudah-telegram --remote --command "SELECT count(*) AS remaining_tracker_tables FROM sqlite_master WHERE type='table' AND name IN ('reading_settings','reading_log','reading_deliveries');"

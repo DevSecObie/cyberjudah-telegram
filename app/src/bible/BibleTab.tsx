@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 
 import { compressVerses, data, verseNumbers } from "@/api/data";
@@ -92,6 +92,8 @@ export function BibleTab() {
 
   // Where they left off, the history, the chapter counted as read after a while, the plan moving on.
   useEffect(() => { if (chapterLabel) { setLast({ slug, chapter: ch, name: chapterLabel, at: Date.now() }); setHistory(pushHistory(history, { slug, chapter: ch, name: chapterLabel })); } }, [slug, ch, chapterLabel]); // eslint-disable-line react-hooks/exhaustive-deps
+  const progressRef = useRef(progress); progressRef.current = progress;
+  useEffect(() => { const t = setTimeout(() => setProgress(markRead(progressRef.current, slug, ch)), 20_000); return () => clearTimeout(t); }, [slug, ch]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (plan && list.length && planDay(plan, list, progress).done) { setPlan(advance(plan)); haptic("success"); } }, [plan, list, progress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sheets.
