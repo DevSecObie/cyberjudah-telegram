@@ -5,6 +5,7 @@
 // and in the tests alike.
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { marked } from "marked";
+import { prepare, stripTags, unescape } from './pdf-text.mjs';
 
 const PAGE = [612, 792];
 const M = { left: 68, right: 68, top: 70, bottom: 70 };
@@ -16,18 +17,6 @@ const COLLECTION = { class: "Sabbath class", captains: "15 Minutes with the Capt
 /** 2025-12-28 as "December 28, 2025". */
 export const longDate = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso ?? ""); return m ? `${MONTHS[+m[2] - 1]} ${+m[3]}, ${m[1]}` : ""; };
 const MOMENT = /^\d{1,2}:\d{2}(?::\d{2})?$/;
-
-/** The note's markdown with what only the site shows taken out. */
-function prepare(md) {
-  return String(md ?? "")
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<div class="class-video-mount"[^>]*><\/div>/g, "")
-    .replace(/<figure[\s\S]*?<\/figure>/g, "")
-    .replace(/<section class="shown-all">[\s\S]*?<\/section>/g, "")
-    .replace(/[ \t]+taught in \[[^\]]+\]\(\/study\/[^)]+\)/g, "");
-}
-const stripTags = (h) => String(h).replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, " ").trim();
-const unescape = (t) => String(t).replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 
 export async function notePdf(note, { site = "https://cyberjudah.io" } = {}) {
   const doc = await PDFDocument.create();
