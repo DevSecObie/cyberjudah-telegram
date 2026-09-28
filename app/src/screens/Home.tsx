@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router";
 
 import { data, fmtDate, type FeedRow, type HistoryRow } from "@/api/data";
 import { useLast, useLastNote } from "@/lib/marks";
-import { useReading } from '@/lib/reading';
 import { countdown, sabbath } from "@/lib/sun";
 import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
 import { api } from "@/tg/sdk";
@@ -58,7 +57,6 @@ export function useTeachings() {
  * where you left off, this week's class and the latest teachings.
  */
 export function Home() {
-  const reading = useReading();
   const navigate = useNavigate();
   useBackButton(true);
   const [q, setQ] = useState("");
@@ -84,7 +82,6 @@ export function Home() {
         <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>What do you want to learn?</h1></div>
       </div>
       <SearchHero value={q} onChange={setQ} onSubmit={search} big />
-      <Link to="/plan" className="reading-chapter" style={{ margin: '16px 0' }}><span><b>4 chapters a day</b><br />Study, Pray, Apply!</span><span>{reading.data ? `${Math.min(4, reading.data.count)}/4 today →` : 'Set my reminder →'}</span></Link>
       <div className="door">
         <button type="button" className="door__btn" onClick={() => { if (q.trim()) search(q); else document.getElementById("q")?.focus(); }}><Icon name="search" size={18} /> Search</button>
         <button type="button" className="door__btn door__btn--ask" onClick={() => { haptic("select"); navigate(q.trim() ? `/ask?q=${encodeURIComponent(q.trim())}` : "/ask"); }}><Icon name="note" size={18} /> Ask CyberJudah</button>

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 import { readingSummary } from '../../shared/reading.mjs';
-for (const scheme of ['light', 'dark']) test(`reader tracking controls match the ${scheme} reader and preserve mark/undo`, async ({ page }) => {
+for (const scheme of ['light', 'dark']) test(`original ${scheme} reader layout has no added tracker controls`, async ({ page }) => {
   const mock = fs.readFileSync(new URL('./telegram-mock.js', import.meta.url), 'utf8').replace('colorScheme: "dark"', `colorScheme: "${scheme}"`);
   await page.route('https://telegram.org/**', r => r.fulfill({ contentType: 'application/javascript', body: mock }));
   await page.route('https://data.cyberjudah.io/**', r => r.fulfill({ json: {} }));
@@ -14,20 +14,11 @@ for (const scheme of ['light', 'dark']) test(`reader tracking controls match the
   });
   await page.setViewportSize({ width: scheme === 'light' ? 320 : 390, height: 780 });
   await page.goto('/read/genesis/1#tgWebAppData=test&tgWebAppVersion=9.1&tgWebAppPlatform=ios');
-  const action = page.getByRole('button', { name: 'Mark chapter read', exact: true });
-  await expect(action).toBeEnabled();
-  await expect(action).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-  await expect(action.locator('svg')).toHaveAttribute('stroke-width', '2');
+  await expect(page.locator('#verset-1')).toBeVisible();
+  await expect(page.locator('.bs-reading')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Mark chapter read', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Reading tracker', exact: true })).toHaveCount(0);
   await page.screenshot({ path: test.info().outputPath(`reader-${scheme}.png`), animations: 'disabled' });
-  await action.click();
-  const undo = page.getByRole('button', { name: 'Undo chapter read today' });
-  await expect(undo).toHaveAttribute('aria-pressed', 'true');
-  expect(read).toBe(true);
-  await undo.click();
-  await expect(action).toHaveAttribute('aria-pressed', 'false');
-  expect(read).toBe(false);
-  await page.getByRole('button', { name: 'Reading tracker', exact: true }).click();
-  await expect(page).toHaveURL(/\/plan/);
 });
 
 test('four chapters, undo, reminder opt-in and pause persist after reload', async ({ page }) => {

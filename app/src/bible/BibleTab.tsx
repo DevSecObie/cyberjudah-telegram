@@ -7,7 +7,6 @@ import { markRead, pushHistory, useHistory, useLast, usePlan, useProgress } from
 import { advance, planDay } from "@/lib/plan";
 import { createRelation, deleteRelation, endpointHref, useChapterRelations, verseKey, type Endpoint, type Relation, type VerseEndpoint, type VerseRelationItem } from "@/lib/relations";
 import { share } from "@/lib/share";
-import { useReading, useReadingChange } from '@/lib/reading';
 import { useSpeech } from "@/lib/tts";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { alert, app, haptic, openLink } from "@/tg/sdk";
@@ -19,7 +18,6 @@ import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLi
 import { BookSelectorSheet, VersePopup } from "./ui/BookSelectorSheet";
 import { BookmarkSheet, LinkSheet, NoteSheet, TagsPanel } from "./ui/Editors";
 import { Footer } from "./ui/Footer";
-import { Feather } from "./icons";
 import { Header, PassageContextBar, VersionSheet, type MenuAction } from "./ui/Header";
 import { ParamsSheet } from "./ui/ParamsSheet";
 import { ResourcesSheet, type ResourceTab } from "./ui/ResourcesSheet";
@@ -87,8 +85,6 @@ export function BibleTab() {
   const relItems = useMemo(() => { const out: Record<number, VerseRelationItem[]> = { ...rel.items }; for (const [v, items] of Object.entries(taught)) out[+v] = [...(out[+v] ?? []), ...items]; return out; }, [rel.items, taught]);
   const [progress, setProgress] = useProgress();
   const [plan, setPlan] = usePlan();
-  const reading = useReading(), readingChange = useReadingChange();
-  const readToday = !!reading.data?.chapters.some(c => c.slug === slug && c.chapter === ch && c.read);
   const [history, setHistory] = useHistory();
   const reference = (vs: number[]) => verseToReference(vs.map((v) => verseKey(slug, ch, v)), bookName);
   const chapterLabel = book ? `${book.book} ${ch}` : "";
@@ -218,15 +214,6 @@ export function BibleTab() {
         <div className="bs-error" style={{ paddingTop: headerHeight + 100 }}><span className="bs-error__icon"><Feather2 /></span><p>This chapter did not load. Check your connection, or save this book for offline reading in Settings.</p><button type="button" className="bs-btn" onClick={() => void text.refetch()}>Retry</button></div>
       ) : (
         <Chapter slug={slug} chapter={ch} verses={verses} settings={settings} palette={palette} theme={theme}
-          footer={contextMode === 'fullChapter' && verses.length ? <div className="bs-reading">
-            <button type="button" className="bs-reading__action" aria-pressed={readToday} aria-label={readToday ? 'Undo chapter read today' : 'Mark chapter read'} disabled={readingChange.isPending || !reading.data} onClick={() => readingChange.mutate({ path: 'chapter', value: { slug, chapter: ch, read: !readToday } })}>
-              <Feather name={readToday ? 'check' : 'check-square'} size={18} />
-              <span>{readingChange.isPending ? 'Saving…' : readToday ? 'Read today' : 'Mark as read'}</span>
-              {readToday && <small>Undo</small>}
-            </button>
-            <button type="button" className="bs-reading__action bs-reading__tracker" onClick={() => navigate('/plan')}><span>Reading tracker</span><Feather name="chevron-right" size={16} /></button>
-            {readingChange.isError && <p className="bs-reading__error" role="alert">Could not save. Please try again.</p>}
-          </div> : undefined}
           selected={selected} focusVerses={focus} contextDisplayMode={contextMode} verseToScroll={verseToScroll} navigationRequest={navRequest}
           highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={relItems}
           headerHeight={headerHeight} fullscreen={fullscreen} canSwipe
