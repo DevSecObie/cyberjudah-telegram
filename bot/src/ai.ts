@@ -5,6 +5,7 @@ import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
+import { saveExchange } from "./chats";
 
 /**
  * The AI features, all through Workers AI and the Vectorize index of the teachings:
@@ -150,7 +151,7 @@ const sourcesOf = (answer: string, passages: Passage[]) => {
  * The same, streamed: one JSON line with the passages first, then a line per piece of the
  * answer as the model writes it, then a line with the sources it cited.
  */
-export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[]): Promise<Response> {
+export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string): Promise<Response> {
   const question = q.trim().slice(0, 400);
   const line = (o: unknown) => `${JSON.stringify(o)}\n`;
   if (question.length < 2) return new Response(line({ error: "too-short" }), { status: 400, headers: { "content-type": "application/x-ndjson" } });
@@ -159,13 +160,22 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (o: unknown) => controller.enqueue(encoder.encode(line(o)));
+      // The finished exchange is saved to the person's conversations, even if they left mid-answer.
+      const keep = (content: string, sources: unknown[], followups: string[], steps: string[] = []) => {
+        if (!chatId) return;
+        const save = saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps }).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
+        if (ctx) ctx.waitUntil(save);
+      };
       try {
         const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
         if (env.ANTHROPIC_API_KEY) {
           // Claude researches first (searches and verses, reported as it goes), then writes.
-          const { text, passages } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), (e: AgentEvent) => send(e), ctx);
+          const steps: string[] = [];
+          const { text, passages } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading)/.test(e.status)) steps.push(e.status); send(e); }, ctx);
           const { answer, followups } = splitFollowups(text);
-          send({ done: true, answer, followups, sources: sourcesOf(answer, passages) });
+          const sources = sourcesOf(answer, passages);
+          send({ done: true, answer, followups, sources });
+          keep(answer, sources, followups, steps);
           return;
         }
         const passages = first;
@@ -177,7 +187,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
         let answer = "";
         for await (const piece of answerPieces(env, buildPrompt(question, passages, history))) { answer += piece; send({ delta: piece }); }
         const { answer: clean, followups } = splitFollowups(answer);
-        send({ done: true, answer: clean, followups, sources: sourcesOf(clean, passages) });
+        const sources = sourcesOf(clean, passages);
+        send({ done: true, answer: clean, followups, sources });
+        keep(clean, sources, followups);
       } catch (e) {
         console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
         send({ error: "unavailable" });

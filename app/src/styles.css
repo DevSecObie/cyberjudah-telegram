@@ -700,3 +700,17 @@ img.msg__avatar { width: 24px; height: 24px; border-radius: 0; object-fit: conta
 .followup:active { transform: scale(.98); }
 html[data-theme="light"] .followup, html[data-theme="sepia"] .followup, html[data-theme="light"] .research, html[data-theme="sepia"] .research { box-shadow: 0 0 0 .5px rgba(20, 16, 8, .08); }
 @media (prefers-reduced-motion: reduce) { .followup { transition: none; } .followup:active { transform: none; } }
+
+/* Your chats: every conversation with CyberJudah, newest first. */
+.chats-sheet { --bs-reverse: var(--a-bg); --bs-default: var(--a-ink-2); --bs-tertiary: var(--a-muted); --bs-border: var(--a-line); }
+.chats-sheet .bs-sheet__titles b { color: var(--a-ink-2); }
+.chats { display: flex; flex-direction: column; gap: 2px; padding: 4px 12px 24px; }
+.chats .hint { padding: 16px 8px; }
+.chats__row { display: flex; align-items: center; gap: 4px; border-radius: 14px; }
+.chats__row[data-current] { background: var(--a-card); }
+.chats__open { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 11px 10px; border: 0; background: none; text-align: left; cursor: pointer; border-radius: 14px; }
+.chats__open:active { background: var(--a-card); }
+.chats__open b { font: 500 15.5px/1.3 var(--a-ui); color: var(--a-ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chats__open small { font: 400 12.5px var(--a-ui); color: var(--a-muted); }
+.chats__del { flex: none; width: 40px; height: 40px; border: 0; border-radius: 12px; background: none; color: var(--a-muted) !important; display: grid; place-items: center; cursor: pointer; }
+.chats__del:active { background: var(--a-card); color: var(--a-hot) !important; }

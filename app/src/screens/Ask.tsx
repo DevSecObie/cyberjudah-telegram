@@ -4,7 +4,8 @@ import { useNavigate, useSearchParams } from "react-router";
 
 import { fmtDate } from "@/api/data";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
-import { app, haptic, hideKeyboard } from "@/tg/sdk";
+import { api, app, confirm, haptic, hideKeyboard } from "@/tg/sdk";
+import { Sheet } from "@/bible/ui/Sheet";
 import { Icon, timestamp } from "@/ui/ui";
 import { KIND_LABEL, hitPath, teachingPath } from "@/ui/search-hero";
 import { KIND_NAME } from "./Home";
@@ -37,6 +38,9 @@ export function Ask() {
   const [params, setParams] = useSearchParams();
   const first = params.get("q") ?? "";
   const [turns, setTurns] = useState<Turn[]>(() => { try { return (JSON.parse(sessionStorage.getItem(STORE) ?? "[]") as Turn[]).filter((t) => !t.thinking); } catch { return []; } });
+  // The conversation's id on the server, where every finished answer is saved to the person.
+  const [chatId, setChatId] = useState<string | null>(() => { try { return sessionStorage.getItem(`${STORE}:id`); } catch { return null; } });
+  const [history, setHistory] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
@@ -46,7 +50,7 @@ export function Ask() {
   useBackButton(false);
   useBottomButtons(null, null);
 
-  useEffect(() => { try { sessionStorage.setItem(STORE, JSON.stringify(turns.filter((t) => !t.thinking))); } catch { /* private mode */ } }, [turns]);
+  useEffect(() => { try { sessionStorage.setItem(STORE, JSON.stringify(turns.filter((t) => !t.thinking))); if (chatId) sessionStorage.setItem(`${STORE}:id`, chatId); else sessionStorage.removeItem(`${STORE}:id`); } catch { /* private mode */ } }, [turns, chatId]);
   // Follow the answer as it streams, unless the reader scrolled up to read.
   useEffect(() => {
     const onScroll = () => { stick.current = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 140; };
@@ -65,10 +69,11 @@ export function Ask() {
     const history = base.filter((t) => !t.error).slice(-6).map((t) => ({ role: t.role, content: t.content }));
     setTurns([...base, { role: "user", content: q }, { role: "assistant", content: "", thinking: true }]);
     setInput(""); setBusy(true); stick.current = true;
+    const id = chatId ?? newId(); if (!chatId) setChatId(id);
     const patch = (fn: (t: Turn) => Turn) => setTurns((ts) => ts.map((t, i) => (i === ts.length - 1 ? fn(t) : t)));
     const ctl = new AbortController(); abortRef.current = ctl;
     try {
-      const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, stream: true }) });
+      const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, stream: true, chat: id }) });
       if (!res.ok || !res.body) { patch((t) => ({ ...t, thinking: false, error: res.status === 429 ? "limit" : "unavailable" })); return; }
       const reader = res.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
       for (;;) {
@@ -95,14 +100,15 @@ export function Ask() {
     } finally { setBusy(false); abortRef.current = null; }
   };
   const stop = () => { haptic("select"); abortRef.current?.abort(); };
-  const newChat = () => { haptic("select"); abortRef.current?.abort(); setTurns([]); setInput(""); boxRef.current?.focus(); };
+  const newChat = () => { haptic("select"); abortRef.current?.abort(); setTurns([]); setChatId(null); setInput(""); boxRef.current?.focus(); };
+  const openChat = (c: SavedChat) => { abortRef.current?.abort(); setChatId(c.id); setTurns(c.turns.map((t) => ({ ...t, sources: t.sources?.map((x) => ({ ...x, text: "" })) }))); setHistory(false); stick.current = true; };
   useEffect(() => { if (first) { setParams({}, { replace: true }); void send(first); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lastUser = [...turns].reverse().find((t) => t.role === "user")?.content ?? "";
   return (
     <main className="chat2">
       <header className="chat2__bar">
-        <span className="chat2__spacer" />
+        <button type="button" className="chat2__new" aria-label="Your chats" onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
         <div className="chat2__heading"><b>Ask CyberJudah</b><small>Answers from the teachings</small></div>
         <button type="button" className="chat2__new" aria-label="New chat" disabled={!turns.length} onClick={newChat}><Icon name="compose" size={21} /></button>
       </header>
@@ -119,12 +125,13 @@ export function Ask() {
       ) : (
         <div className="chat2__turns">
           {turns.map((t, i) => t.role === "user"
-            ? <div key={i} className="msg msg--me"><div className="msg__bubble">{t.content}</div></div>
-            : <AssistantTurn key={i} t={t} last={i === turns.length - 1} busy={busy} onRetry={() => void send(lastUser, true)} onFollow={(q) => void send(q)} />)}
+            ? <div key={`${chatId}-${i}`} className="msg msg--me"><div className="msg__bubble">{t.content}</div></div>
+            : <AssistantTurn key={`${chatId}-${i}`} t={t} last={i === turns.length - 1} busy={busy} onRetry={() => void send(lastUser, true)} onFollow={(q) => void send(q)} />)}
           <div ref={endRef} className="chat2__end" />
         </div>
       )}
 
+      {history ? <ChatsSheet current={chatId} onClose={() => setHistory(false)} onOpen={openChat} onDeleted={(id) => { if (id === chatId) { setTurns([]); setChatId(null); } }} /> : null}
       <form className="composer2" onSubmit={(e) => { e.preventDefault(); void send(input); }}>
         <div className="composer2__box">
           <textarea ref={boxRef} value={input} rows={1} placeholder={turns.length ? "Ask a follow-up" : "Ask CyberJudah"} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(input); } }} />
@@ -193,6 +200,44 @@ function AssistantTurn({ t, last, busy, onRetry, onFollow }: { t: Turn; last: bo
         </>
       )}
     </div>
+  );
+}
+
+type SavedChat = { id: string; title: string; updated: string; turns: Turn[] };
+type ChatSummary = { id: string; title: string; updated: string; count: number };
+const newId = () => (crypto.randomUUID?.() ?? `${Date.now()}${Math.random()}`).replace(/[^a-z0-9]/gi, "").toLowerCase().slice(0, 24);
+const when = (iso: string) => {
+  const d = new Date(iso), days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (days < 1 && d.getDate() === new Date().getDate()) return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (days < 7) return d.toLocaleDateString([], { weekday: "long" });
+  return d.toLocaleDateString([], { month: "short", day: "numeric", year: d.getFullYear() === new Date().getFullYear() ? undefined : "numeric" });
+};
+
+/** Every conversation the person had with CyberJudah, kept on the server: tap to reopen, delete to forget. */
+function ChatsSheet({ current, onClose, onOpen, onDeleted }: { current: string | null; onClose: () => void; onOpen: (c: SavedChat) => void; onDeleted: (id: string) => void }) {
+  const [chats, setChats] = useState<ChatSummary[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { void api<{ chats: ChatSummary[] }>("/api/chats").then((r) => setChats(r.chats)).catch(() => setFailed(true)); }, []);
+  const open = async (id: string) => { haptic("select"); try { const r = await api<{ chat: SavedChat }>(`/api/chats/${id}`); onOpen(r.chat); } catch { setFailed(true); } };
+  const remove = async (c: ChatSummary) => {
+    if (!(await confirm(`Delete "${c.title}"?`))) return;
+    await api(`/api/chats/${c.id}`, { method: "DELETE" }).catch(() => undefined);
+    haptic("success"); setChats((cs) => (cs ?? []).filter((x) => x.id !== c.id)); onDeleted(c.id);
+  };
+  return (
+    <Sheet open onClose={onClose} height="full" title="Your chats" subTitle="Saved to your account" className="chats-sheet">
+      <div className="chats">
+        {failed ? <p className="hint">Your chats could not be loaded. Check the connection and try again.</p>
+          : !chats ? <p className="hint">Loading…</p>
+          : !chats.length ? <p className="hint">No chats yet. Every question you ask is saved here with its answer.</p>
+          : chats.map((c) => (
+            <div key={c.id} className="chats__row" data-current={c.id === current ? "" : undefined}>
+              <button type="button" className="chats__open" onClick={() => void open(c.id)}><b>{c.title}</b><small>{when(c.updated)} · {c.count} {c.count === 1 ? "question" : "questions"}</small></button>
+              <button type="button" className="chats__del" aria-label={`Delete ${c.title}`} onClick={() => void remove(c)}><Icon name="trash" size={18} /></button>
+            </div>
+          ))}
+      </div>
+    </Sheet>
   );
 }
 

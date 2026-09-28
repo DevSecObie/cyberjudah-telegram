@@ -16,6 +16,7 @@ import { sendDaily } from "./daily";
 import { bookLabel } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
+import { CHAT_ID, deleteChat, getChat, listChats } from "./chats";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
@@ -131,12 +132,19 @@ app.get("/api/transcript/:video", async (c) => {
 // The AI: a question answered from the teachings with citations, search by meaning, and
 // the reading voices (a verse at a time, cached).
 app.post("/api/ask", async (c) => {
-  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean }>().catch(() => null);
+  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string }>().catch(() => null);
   const history = (Array.isArray(body?.history) ? body!.history! : []).filter((t) => t && (t.role === "user" || t.role === "assistant") && typeof t.content === "string").slice(-8).map((t) => ({ role: t.role as "user" | "assistant", content: t.content! }));
-  if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history);
+  if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined);
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history);
   return c.json(res, res.ok ? 200 : res.reason === "limit" ? 429 : res.reason === "too-short" ? 400 : 503);
 });
+// The person's saved conversations with Ask CyberJudah: the list, one to reopen, one to delete.
+app.get("/api/chats", async (c) => c.json({ ok: true, chats: await listChats(c.env, c.get("tma").user!.id) }));
+app.get("/api/chats/:id", async (c) => {
+  const chat = await getChat(c.env, c.get("tma").user!.id, c.req.param("id"));
+  return chat ? c.json({ ok: true, chat }) : c.json({ ok: false, error: "not-found" }, 404);
+});
+app.delete("/api/chats/:id", async (c) => c.json({ ok: await deleteChat(c.env, c.get("tma").user!.id, c.req.param("id")) }));
 app.get("/api/similar", async (c) => {
   const res = await similar(c.env, c.req.query("q") ?? "", Math.min(Math.max(Number(c.req.query("limit")) || 20, 1), 40));
   return c.json(res, res.ok ? 200 : 503);
