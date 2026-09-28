@@ -106,7 +106,7 @@ export function Ask() {
 
       {!turns.length ? (
         <section className="chat2__welcome">
-          <span className="chat2__mark" aria-hidden="true"><Icon name="spark" size={28} /></span>
+          <img className="chat2__mark" src="/brand/cyber-lion.webp" alt="" width={72} height={72} />
           <h1>What would you like to learn?</h1>
           <p>Ask about anything that was taught. Every answer comes from the classes, the notes, the law and the Scripture, and shows where it came from.</p>
           <div className="chat2__starters">
@@ -151,7 +151,7 @@ function AssistantTurn({ t, last, onRetry }: { t: Turn; last: boolean; onRetry: 
 
   return (
     <div className="msg msg--ai">
-      <div className="msg__who"><span className="msg__avatar" aria-hidden="true"><Icon name="spark" size={14} /></span>CyberJudah</div>
+      <div className="msg__who"><img className="msg__avatar" src="/brand/cyber-lion.webp" alt="" width={24} height={24} />CyberJudah</div>
       {t.thinking ? (
         <div className="msg__thinking"><span className="answer__dots" aria-hidden="true"><i /><i /><i /></span>{t.passages?.length ? `Reading ${t.passages.length} passages from the teachings…` : "Searching the teachings…"}</div>
       ) : t.error && !t.content ? (

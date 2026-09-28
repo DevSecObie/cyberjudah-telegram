@@ -78,7 +78,7 @@ export function Home() {
   return (
     <Screen className="home">
       <div className="hello">
-        <img src="https://cyberjudah.io/assets/brand/cyber-lion.png" alt="" width={44} height={44} onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+        <img src="/brand/cyber-lion.webp" alt="" width={44} height={44} onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
         <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>What do you want to learn?</h1></div>
       </div>
       <SearchHero value={q} onChange={setQ} onSubmit={search} big />

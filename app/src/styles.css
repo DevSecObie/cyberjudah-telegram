@@ -679,3 +679,6 @@ html[data-theme="light"] .srccard, html[data-theme="sepia"] .srccard { box-shado
 .composer2__box:focus-within { box-shadow: 0 6px 24px rgba(0, 0, 0, .18), 0 0 0 1.5px color-mix(in srgb, var(--a-accent) 55%, transparent); }
 .msg__bubble { background: var(--a-card-2); color: var(--a-ink-2); }
 html[data-theme="light"] .msg__bubble, html[data-theme="sepia"] .msg__bubble { background: var(--a-accent); color: #fff; }
+/* The CyberJudah lion as the assistant's face: on the welcome, and beside each answer. */
+img.chat2__mark { width: 72px; height: 72px; padding: 0; border-radius: 22px; object-fit: contain; background: none; box-shadow: none; filter: drop-shadow(0 8px 22px color-mix(in srgb, var(--a-accent) 35%, transparent)); }
+img.msg__avatar { width: 24px; height: 24px; border-radius: 0; object-fit: contain; background: none; }
