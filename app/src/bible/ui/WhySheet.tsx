@@ -20,6 +20,10 @@ export function WhySheet({ open, onClose, slug, chapter, verse, reference, onRea
   const seen = new Map<string, { r: TaughtPrecept; more: number }>();
   for (const r of rows) { const k = `${r.kind}|${r.ref.url}|${r.ref.verses}`; const e = seen.get(k); if (e) e.more++; else seen.set(k, { r, more: 0 }); }
   const items = [...seen.values()];
+  // Until a precept has its own line, the class's point for the passage says it, once, above
+  // the precepts it covers, not repeated under each.
+  const leads = new Map<string, TaughtPrecept>();
+  for (const { r } of items) if (!r.why && r.point && !leads.has(r.point)) leads.set(r.point, r);
   const chapters = [...new Set(items.map(({ r }) => slugOfUrl(r.ref.url)).filter(Boolean).map((m) => `${m![1]}/${m![2]}`))];
   const texts = useQueries({ queries: chapters.map((c) => { const [s, ch] = c.split("/"); return { queryKey: ["chapter", s, Number(ch)], queryFn: () => data.chapter(s, Number(ch)), staleTime: Infinity, enabled: open }; }) });
   const words = (r: TaughtPrecept) => {
@@ -30,6 +34,12 @@ export function WhySheet({ open, onClose, slug, chapter, verse, reference, onRea
   return (
     <Sheet open={open} onClose={onClose} height="full" title={reference} subTitle={items.length > 1 ? "Precepts" : "Precept"} className="why-sheet">
       <div className="why">
+        {[...leads.values()].map((r) => (
+          <div key={`lead|${r.point}`} className="why__lead">
+            <p className="why__reason">{r.point}</p>
+            <button type="button" className="why__src" onClick={() => onOpenClass(r.note.url, r.ts)}>{r.note.label}{r.note.date ? ` · ${fmtDate(r.note.date)}` : ""}{r.ts ? ` · ${r.ts}` : ""}</button>
+          </div>
+        ))}
         {taught.isPending ? <p className="bs-loading">Loading...</p> : !items.length ? <p className="bs-loading">No precept is lined up with this verse.</p> : items.map(({ r, more }) => (
           <div key={`${r.kind}|${r.ref.url}|${r.ref.verses}`} className="why__item">
             <button type="button" className="why__ref" onClick={() => onRead(r.ref.url, r.ref.verses)}>
@@ -38,8 +48,8 @@ export function WhySheet({ open, onClose, slug, chapter, verse, reference, onRea
               <Feather name="chevron-right" size={15} color="var(--bs-tertiary)" />
             </button>
             {words(r) ? <p className="why__words">{words(r)}</p> : null}
-            <p className="why__reason">{r.why || r.point}</p>
-            <button type="button" className="why__src" onClick={() => onOpenClass(r.note.url, r.ts)}>{r.note.label}{r.note.date ? ` · ${fmtDate(r.note.date)}` : ""}{r.ts ? ` · ${r.ts}` : ""}{more ? ` · and ${more} more class${more > 1 ? "es" : ""}` : ""}</button>
+            {r.why ? <p className="why__reason">{r.why}</p> : null}
+            {r.why || more ? <button type="button" className="why__src" onClick={() => onOpenClass(r.note.url, r.ts)}>{r.note.label}{r.note.date ? ` · ${fmtDate(r.note.date)}` : ""}{r.ts ? ` · ${r.ts}` : ""}{more ? ` · and ${more} more class${more > 1 ? "es" : ""}` : ""}</button> : null}
           </div>
         ))}
       </div>
