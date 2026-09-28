@@ -39,6 +39,8 @@ const HELP = [
   "",
   "/verse — today's verse",
   "/daily — the daily verse, on or off",
+  "/reading — your four-chapter reading tracker",
+  "/stopreading — pause reading reminders and recaps",
   "/support — support the work with Telegram Stars",
   "/help — this",
   "",
@@ -63,6 +65,16 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
   });
 
   bot.command("help", (ctx) => ctx.reply(HELP.replace(/@BOT/g, `@${bot.botInfo.username}`), { parse_mode: "HTML", reply_markup: open(ctx, "", "Open CyberJudah") }));
+  bot.command('reading', ctx => ctx.reply('Four chapters a day. Set your reminder time and track your reading in the app.', { reply_markup: open(ctx, 'plan', 'Open Bible tracker') }));
+  bot.command('stopreading', async ctx => {
+    if (!ctx.from || ctx.chat.type !== 'private') return;
+    await env.DB.prepare('UPDATE reading_settings SET enabled=0,weekly=0 WHERE user_id=?').bind(ctx.from.id).run();
+    await ctx.reply('Reading reminders and weekly recaps are paused. Your progress is saved.', { reply_markup: open(ctx, 'plan', 'Manage reading') });
+  });
+  bot.callbackQuery('reading:pause', async ctx => {
+    await env.DB.prepare('UPDATE reading_settings SET enabled=0,weekly=0 WHERE user_id=?').bind(ctx.from.id).run();
+    await ctx.answerCallbackQuery({ text: 'Reading messages paused. Your progress is saved.' });
+  });
 
   bot.command("verse", async (ctx) => {
     const v = await todaysVerse(env, exec);

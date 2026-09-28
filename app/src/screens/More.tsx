@@ -30,7 +30,7 @@ export function More() {
     <Screen title="More">
       <Section title="Yours">
         <List>
-          <Row href="/plan" icon="check" title="Reading plan" sub="The whole library, a few chapters a day" />
+          <Row href="/plan" icon="check" title="4 chapters a day" sub="Bible tracker, reminders and weekly progress" />
           <Row href="/bookmarks" icon="bookmark" title="Bookmarks, highlights & notes" sub={marks.length ? `${marks.length} bookmarks` : "Verses and classes you keep"} />
           <Row href="/history" icon="clock" title="History" sub="The chapters you opened" />
           <Row href="/sabbath" icon="sun" title="Sabbath" sub="Sunset where you are, and the countdown" />
