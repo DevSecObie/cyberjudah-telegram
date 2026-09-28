@@ -287,7 +287,7 @@ test("Home is the front door: one field, search the classes or ask CyberJudah", 
   await page.fill("#q", "Why do we keep the Passover?");
   await page.click(".door__btn--ask");
   await expect(page).toHaveURL(/\/ask/);
-  await expect(page.locator(".bubble--me")).toHaveText("Why do we keep the Passover?");
+  await expect(page.locator(".msg--me .msg__bubble")).toHaveText("Why do we keep the Passover?");
   await page.goBack();
   await page.fill("#q", "Seattle");
   await page.press("#q", "Enter");

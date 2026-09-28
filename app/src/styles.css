@@ -607,3 +607,75 @@ html[data-theme="light"] .feature, html[data-theme="sepia"] .feature { box-shado
 .edit__text { flex: 1; width: 100%; min-height: 55dvh; box-sizing: border-box; resize: none; border: 0; border-radius: 14px; background: var(--a-card); color: var(--a-ink-2); font: 400 15px/1.55 var(--a-ui); padding: 14px; outline: none; -webkit-overflow-scrolling: touch; }
 .edit__text:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--a-accent) 45%, transparent); }
 .edit .hint code { font: 500 12.5px var(--a-mono); }
+
+/* ── Ask CyberJudah: an AI chat ───────────────────────────────────────────────────────── */
+.chat2 { max-width: 720px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; padding-bottom: calc(120px + var(--safe-bottom, 0px)); animation: screen-in .22s ease-out; }
+.chat2__bar { position: sticky; top: 0; z-index: 30; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; padding: calc(8px + var(--safe-top, 0px)) 10px 8px; background: color-mix(in srgb, var(--a-bg) 82%, transparent); backdrop-filter: blur(18px) saturate(1.6); -webkit-backdrop-filter: blur(18px) saturate(1.6); border-bottom: .5px solid color-mix(in srgb, var(--a-line) 70%, transparent); }
+.chat2__heading { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.chat2__heading b { font: 600 17px/1.2 var(--a-ui); color: var(--a-ink-2); letter-spacing: -0.01em; }
+.chat2__heading small { font: 400 12px/1.3 var(--a-ui); color: var(--a-muted); }
+.chat2__new { width: 40px; height: 40px; border: 0; border-radius: 50%; background: none; color: var(--a-ink-2) !important; display: grid; place-items: center; cursor: pointer; }
+.chat2__new:disabled { opacity: .3; }
+.chat2__new:not(:disabled):active { background: var(--a-card); }
+
+/* The welcome: a mark, a question, a line, and four starters. */
+.chat2__welcome { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 28px 18px 12px; text-align: center; }
+.chat2__mark { width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--a-accent), color-mix(in srgb, var(--a-accent) 45%, var(--a-hot))); box-shadow: 0 10px 30px color-mix(in srgb, var(--a-accent) 30%, transparent); }
+.chat2__welcome h1 { margin: 6px 0 0; font: 700 26px/1.2 var(--a-ui); letter-spacing: -0.02em; color: var(--a-ink-2); text-wrap: balance; }
+.chat2__welcome p { margin: 0; max-width: 34ch; font: 400 15px/1.5 var(--a-ui); color: var(--a-muted); text-wrap: pretty; }
+.chat2__starters { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.starter { display: flex; flex-direction: column; gap: 4px; min-height: 84px; padding: 13px 14px; border: 0; border-radius: 18px; background: var(--a-card); text-align: left; cursor: pointer; transition: transform .16s cubic-bezier(.2,.8,.2,1); }
+.starter:active { transform: scale(.97); }
+.starter b { font: 600 14.5px/1.3 var(--a-ui); color: var(--a-ink-2); }
+.starter small { font: 400 12.5px/1.35 var(--a-ui); color: var(--a-muted); }
+html[data-theme="light"] .starter, html[data-theme="sepia"] .starter { box-shadow: 0 1px 2px rgba(20, 16, 8, .06), 0 0 0 .5px rgba(20, 16, 8, .05); }
+
+/* The conversation. */
+.chat2__turns { display: flex; flex-direction: column; gap: 22px; padding: 18px 16px 8px; }
+.chat2__end { height: 1px; scroll-margin-bottom: calc(130px + var(--safe-bottom, 0px)); }
+.msg { display: flex; flex-direction: column; gap: 8px; animation: screen-in .2s ease-out; }
+.msg--me { align-items: flex-end; }
+.msg__bubble { max-width: 84%; padding: 10px 15px; border-radius: 20px 20px 6px 20px; background: var(--a-accent); color: var(--a-bg); font: 400 16px/1.45 var(--a-ui); white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg__who { display: flex; align-items: center; gap: 8px; font: 600 13px var(--a-ui); color: var(--a-ink-2); }
+.msg__avatar { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--a-accent), color-mix(in srgb, var(--a-accent) 45%, var(--a-hot))); }
+.msg__thinking { display: flex; align-items: center; gap: 12px; font: 400 15px var(--a-ui); color: var(--a-muted); }
+.msg__text { font: 400 16.5px/1.6 var(--a-ui); color: var(--a-ink-2); overflow-wrap: anywhere; }
+.msg__text p { margin: 0 0 12px; } .msg__text > :last-child { margin-bottom: 0; }
+.msg__text ul, .msg__text ol { margin: 0 0 12px; padding-left: 1.3em; } .msg__text li { margin: 4px 0; }
+.msg__text h1, .msg__text h2, .msg__text h3 { margin: 16px 0 8px; font: 700 17px/1.3 var(--a-ui); color: var(--a-ink-2); }
+.msg__text strong { font-weight: 650; color: var(--a-ink-2); }
+.msg__text blockquote { margin: 0 0 12px; padding: 8px 14px; border-left: 3px solid var(--a-accent); background: var(--a-card); border-radius: 0 12px 12px 0; }
+.msg__text code { font: 500 .9em var(--a-mono); }
+#root .msg__text .cite, #root .srccard .cite { display: inline-grid; place-items: center; min-width: 19px; height: 19px; padding: 0 5px; margin: 0 1px 0 3px; border: 0; border-radius: 999px; vertical-align: 2px; background: color-mix(in srgb, var(--a-accent) 18%, transparent); color: var(--a-accent) !important; font: 700 11px/1 var(--a-ui) !important; cursor: pointer; }
+.msg__error { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.msg__error p { margin: 0; font: 400 15px var(--a-ui); color: var(--a-muted); }
+.msg__label { margin: 4px 0 8px; font: 600 12px var(--a-ui); color: var(--a-muted); text-transform: uppercase; letter-spacing: .06em; }
+.srcrail { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -16px; padding: 0 16px 4px; scrollbar-width: none; }
+.srcrail::-webkit-scrollbar { display: none; }
+.srccard { flex: none; width: 210px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 6px; padding: 11px 12px; border: 0; border-radius: 16px; background: var(--a-card); text-align: left; cursor: pointer; transition: transform .16s cubic-bezier(.2,.8,.2,1); }
+.srccard:active { transform: scale(.97); }
+.srccard__top { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.srccard__top small { font: 500 11.5px var(--a-ui); color: var(--a-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.srccard__title { font: 500 14px/1.3 var(--a-ui); color: var(--a-ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html[data-theme="light"] .srccard, html[data-theme="sepia"] .srccard { box-shadow: 0 1px 2px rgba(20, 16, 8, .06), 0 0 0 .5px rgba(20, 16, 8, .05); }
+.msg__actions { display: flex; gap: 4px; margin-left: -8px; }
+.msg__action { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 0; border-radius: 10px; background: none; color: var(--a-muted) !important; font: 500 13.5px var(--a-ui) !important; cursor: pointer; }
+.msg__action:active { background: var(--a-card); }
+
+/* The composer: pinned at the bottom on a material, growing with the question. */
+.composer2 { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 8px 12px calc(6px + var(--safe-bottom, 0px)); background: linear-gradient(to top, var(--a-bg) 70%, color-mix(in srgb, var(--a-bg) 0%, transparent)); }
+.composer2__box { display: flex; align-items: flex-end; gap: 6px; max-width: 720px; margin: 0 auto; padding: 5px 5px 5px 8px; border-radius: 26px; background: var(--a-card); box-shadow: 0 6px 24px rgba(0, 0, 0, .18), 0 0 0 .5px color-mix(in srgb, var(--a-line) 90%, transparent); }
+.composer2 textarea { flex: 1; min-height: 40px; max-height: 160px; padding: 9px 8px; border: 0; background: none; outline: 0; resize: none; color: var(--a-ink-2); font: 400 17px/1.35 var(--a-ui); }
+.composer2 textarea::placeholder { color: var(--a-muted); }
+.composer2__go { flex: none; width: 38px; height: 38px; margin-bottom: 1px; border: 0; border-radius: 50%; background: var(--a-accent); color: var(--a-bg) !important; display: grid; place-items: center; cursor: pointer; transition: transform .16s, opacity .16s; }
+.composer2__go:disabled { background: color-mix(in srgb, var(--a-muted) 35%, transparent); color: var(--a-bg) !important; }
+.composer2__go:not(:disabled):active { transform: scale(.92); }
+.composer2__go--stop { background: var(--a-ink-2); }
+.composer2__go--stop span { width: 12px; height: 12px; border-radius: 3px; background: var(--a-bg); }
+.composer2__note { margin: 6px 0 0; text-align: center; font: 400 11.5px var(--a-ui); color: var(--a-muted); }
+@media (prefers-reduced-motion: reduce) { .chat2, .msg { animation: none; } .starter, .srccard, .composer2__go { transition: none; } }
+.composer2 textarea { box-sizing: border-box; height: 40px; }
+#root .composer2 textarea:focus-visible { outline: none; }
+.composer2__box:focus-within { box-shadow: 0 6px 24px rgba(0, 0, 0, .18), 0 0 0 1.5px color-mix(in srgb, var(--a-accent) 55%, transparent); }
+.msg__bubble { background: var(--a-card-2); color: var(--a-ink-2); }
+html[data-theme="light"] .msg__bubble, html[data-theme="sepia"] .msg__bubble { background: var(--a-accent); color: #fff; }
