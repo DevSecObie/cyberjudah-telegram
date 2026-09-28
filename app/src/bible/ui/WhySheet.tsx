@@ -1,7 +1,7 @@
 import { useQueries } from "@tanstack/react-query";
 
 import { data, fmtDate, verseNumbers, type TaughtPrecept, type VerseNote } from "@/api/data";
-import { preceptsForVerse, slugOfUrl, useTaughtPrecepts } from "@/lib/taught";
+import { preceptsForVerse, slugOfUrl, teacherRank, useTaughtPrecepts } from "@/lib/taught";
 import { Feather } from "../icons";
 import { Sheet } from "./Sheet";
 
@@ -15,7 +15,7 @@ export function WhySheet({ open, onClose, slug, chapter, verse, reference, onRea
   onRead: (url: string, verses: string) => void; onOpenClass: (url: string, ts: string) => void;
 }) {
   const taught = useTaughtPrecepts(open ? slug : "", chapter);
-  const rows = preceptsForVerse(taught.data, verse).sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "precept" ? -1 : 1));
+  const rows = preceptsForVerse(taught.data, verse).sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "precept" ? -1 : 1) || teacherRank(a.note.teacher) - teacherRank(b.note.teacher));
   // One line per precept: the first class's reason, the others counted.
   const seen = new Map<string, { r: TaughtPrecept; more: number }>();
   for (const r of rows) { const k = `${r.kind}|${r.ref.url}|${r.ref.verses}`; const e = seen.get(k); if (e) e.more++; else seen.set(k, { r, more: 0 }); }

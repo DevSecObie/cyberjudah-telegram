@@ -11,6 +11,9 @@ import { verseKey, type LinkEndpoint, type Relation, type VerseEndpoint, type Ve
  * everyone. A "precept" row is one taught under this verse; an "opened" row says this verse
  * was the precept when another scripture was opened.
  */
+/** Whose teaching comes first: the Bishops', then the Deacons', then everyone else's. */
+export const teacherRank = (teacher?: string | null) => (/^bishop\b/i.test(teacher ?? "") ? 0 : /^deacon\b/i.test(teacher ?? "") ? 1 : 2);
+
 export const slugOfUrl = (url: string) => /^\/bible\/([a-z0-9-]+)\/(\d+)/.exec(url);
 
 const concordance = (slug: string, ch: number) => ({ queryKey: ["taught", slug, ch], enabled: !!slug && ch > 0, staleTime: 3_600_000, queryFn: () => data.concordance(slug, ch).catch(() => null as Concordance | null) });
@@ -42,7 +45,7 @@ export function useTaughtRelations(slug: string, ch: number, display: "inline" |
   return useMemo(() => {
     const out: Record<number, VerseRelationItem[]> = {};
     const seen = new Set<string>();
-    for (const r of q.data ?? []) {
+    for (const r of [...(q.data ?? [])].sort((a, b) => teacherRank(a.note.teacher) - teacherRank(b.note.teacher))) {
       const m = slugOfUrl(r.ref.url); if (!m) continue;
       const vs = r.verses ? verseNumbers(r.verses) : [];
       if (!vs.length) continue;
@@ -65,7 +68,7 @@ export function useTaughtRelations(slug: string, ch: number, display: "inline" |
     }
     // Then a link for each class that read the verse, to its recording at that moment, newest first.
     const heard = new Set<string>();
-    for (const m of [...(moments.data ?? [])].sort((a, b) => b.date.localeCompare(a.date))) {
+    for (const m of [...(moments.data ?? [])].sort((a, b) => teacherRank(a.teacher) - teacherRank(b.teacher) || b.date.localeCompare(a.date))) {
       const vs = m.verses ? verseNumbers(m.verses) : [1];
       if (!vs.length) continue;
       const anchor = display === "inline" ? vs[vs.length - 1] : vs[0];

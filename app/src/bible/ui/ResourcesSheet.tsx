@@ -8,7 +8,7 @@ import { verseNumbers } from "@/api/data";
 import { Feather } from "../icons";
 import { Sheet } from "./Sheet";
 import { Xrefs } from "@/ui/xrefs";
-import { preceptsForVerse, slugOfUrl, useTaughtPrecepts } from "@/lib/taught";
+import { preceptsForVerse, slugOfUrl, teacherRank, useTaughtPrecepts } from "@/lib/taught";
 import { fmtDate } from "@/api/data";
 
 /**
@@ -34,7 +34,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   const xref = useQuery({ queryKey: ["xref", slug, chapter], enabled: open && tab === "references", queryFn: () => data.xref(slug, chapter).catch(() => ({})) });
   const cites = useQuery({ queryKey: ["cites", slug, chapter], enabled: open && (tab === "commentary" || tab === "themes"), queryFn: () => data.concordance(slug, chapter).then((c) => c.cited_by).catch(() => [] as Citation[]) });
   const taught = useTaughtPrecepts(open && tab === "precepts" ? slug : "", chapter);
-  const precepts = preceptsForVerse(taught.data, verse);
+  const precepts = preceptsForVerse(taught.data, verse).sort((a, b) => teacherRank(a.note.teacher) - teacherRank(b.note.teacher));
   const topicHits = useQuery({ queryKey: ["cites", slug, chapter], enabled: open && tab === "precepts", queryFn: () => data.concordance(slug, chapter).then((c) => c.cited_by).catch(() => [] as Citation[]) });
   const topics = (topicHits.data ?? []).filter((c) => c.kind === "precept" && (!c.verses || verseNumbers(c.verses).includes(verse)));
   const readRef = (url: string, verses: string) => { const m = slugOfUrl(url); onClose(); navigate(m ? `/read/${m[1]}/${m[2]}${verses ? `?v=${verses}` : ""}` : toApp(url)); };
@@ -44,7 +44,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   const comments = forVerse(cites.data).filter((c) => !/^\/(law|precepts|cases|topics)\//.test(c.url));
   // The classes' own breakdowns of this verse, newest class first.
   const said = useQuery({ queryKey: ["commentary", slug, chapter], enabled: open && tab === "commentary", queryFn: () => data.concordance(slug, chapter).then((c) => c.commentary ?? []).catch(() => [] as VerseComment[]) });
-  const breakdowns = (said.data ?? []).filter((c) => verseNumbers(c.verses).includes(verse)).sort((a, b) => b.note.date.localeCompare(a.note.date));
+  const breakdowns = (said.data ?? []).filter((c) => verseNumbers(c.verses).includes(verse)).sort((a, b) => teacherRank(a.note.teacher) - teacherRank(b.note.teacher) || b.note.date.localeCompare(a.note.date));
   return (
     <Sheet open={open} onClose={onClose} height="full" title={reference} subTitle={TABS.find((t) => t.id === tab)?.subtitle} footer={
       <div className="bs-resourcetabs" role="tablist">
