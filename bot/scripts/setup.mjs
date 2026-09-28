@@ -36,8 +36,6 @@ await call("setMyCommands", {
     { command: "start", description: "Open CyberJudah" },
     { command: "verse", description: "Today's verse" },
     { command: "daily", description: "The daily verse, on or off" },
-    { command: "reading", description: "Your four-chapter Bible tracker" },
-    { command: "stopreading", description: "Pause reading reminders and recaps" },
     { command: "support", description: "Support the work with Stars" },
     { command: "help", description: "What this bot does" },
   ],

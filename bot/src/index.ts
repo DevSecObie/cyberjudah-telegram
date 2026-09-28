@@ -13,7 +13,6 @@ import { ask, askStream, similar, speakVerse } from "./ai";
 import { VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
-import { reading, sendReading } from "./reading";
 import { bookLabel } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
@@ -286,7 +285,6 @@ app.post("/api/invoice", async (c) => {
 
 // The dictionary is public: nothing personal in a lookup, and the cache can serve everyone.
 app.route("/api/dictionary", dictionary);
-app.route("/api/reading", reading);
 
 app.get("/api/verse-of-day", async (c) => {
   const v = await todaysVerse(c.env, c.executionCtx);
@@ -330,8 +328,6 @@ app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 export default {
   fetch: app.fetch,
   scheduled(event, env, ctx) {
-    ctx.waitUntil(sendReading(env, new Date(event.scheduledTime)));
-    if (new Date(event.scheduledTime).getUTCMinutes() !== 0) return;
     ctx.waitUntil(sendDaily(env, new Date(event.scheduledTime)));
     // A few recordings' frames an hour, until the whole archive is in the bucket.
     ctx.waitUntil(warmFrames(env).then((r) => console.log(`frames: warmed ${r.warmed.length}, failed ${r.failed.length}`)));
