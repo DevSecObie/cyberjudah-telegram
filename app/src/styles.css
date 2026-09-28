@@ -602,3 +602,8 @@ html[data-theme="light"] .feature, html[data-theme="sepia"] .feature { box-shado
 /* The editor's sheet scrolls on its own, with room to reach the last field above the keyboard. */
 .edit-sheet .bs-sheet__body { overscroll-behavior: contain; }
 .edit-sheet .edit { padding-bottom: 40vh; }
+/* The note's whole text: a tall, comfortable writing field that grows with the sheet. */
+.edit[data-mode="text"] { padding-bottom: 24px; min-height: 100%; box-sizing: border-box; }
+.edit__text { flex: 1; width: 100%; min-height: 55dvh; box-sizing: border-box; resize: none; border: 0; border-radius: 14px; background: var(--a-card); color: var(--a-ink-2); font: 400 15px/1.55 var(--a-ui); padding: 14px; outline: none; -webkit-overflow-scrolling: touch; }
+.edit__text:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--a-accent) 45%, transparent); }
+.edit .hint code { font: 500 12.5px var(--a-mono); }

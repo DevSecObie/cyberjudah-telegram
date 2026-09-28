@@ -15,7 +15,7 @@ import { verseCard } from "./card";
 import { sendDaily } from "./daily";
 import { bookLabel } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
-import { canEdit, commitEdit, isAdmin, type NoteEdit } from "./edit";
+import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
@@ -53,6 +53,14 @@ app.get("/api/me", async (c) => {
 
 // An admin's edit to a note (teacher, title, a spelling, or the text): one commit to the
 // cyberjudah repository; the site and the app pick it up on the next build.
+// The note's markdown as it is in the repository, for editing the text itself.
+app.get("/api/notes/source", async (c) => {
+  const { user } = c.get("tma");
+  if (!isAdmin(c.env, user!.id)) return c.json({ ok: false, error: "Only an admin can edit notes." }, 403);
+  const res = await readSource(c.env, c.req.query("file") ?? "").catch((e: Error) => ({ ok: false as const, error: e.message }));
+  return c.json(res, res.ok ? 200 : 400);
+});
+
 app.post("/api/notes/edit", async (c) => {
   const { user } = c.get("tma");
   if (!isAdmin(c.env, user!.id)) return c.json({ ok: false, error: "Only an admin can edit notes." }, 403);

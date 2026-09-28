@@ -20,6 +20,17 @@ const gh = (env: Env, path: string, init?: RequestInit) => fetch(`${API}${path}`
 });
 
 
+/** The note's file as it is in the repository now, with the version a save must build on. */
+export async function readSource(env: Env, file: string): Promise<{ ok: true; text: string; sha: string } | { ok: false; error: string }> {
+  if (!canEdit(env)) return { ok: false, error: "Editing is not set up: the Worker has no CYBERJUDAH_TOKEN." };
+  if (!NOTE_FILE.test(file)) return { ok: false, error: "Not a note file." };
+  const repo = env.TRANSCRIPTS_REPO || "DevSecObie/cyberjudah";
+  const r = await gh(env, `/repos/${repo}/contents/${file}`);
+  if (!r.ok) return { ok: false, error: r.status === 404 ? "This note is not in the repository." : `GitHub ${r.status} reading the note.` };
+  const { sha, content } = (await r.json()) as { sha: string; content: string };
+  return { ok: true, text: decodeBase64(content), sha };
+}
+
 /** Reads the note, applies the edit and commits it. Returns the commit URL and what changed. */
 export async function commitEdit(env: Env, edit: NoteEdit, by: string): Promise<{ ok: true; commit: string; changed: string[] } | { ok: false; error: string }> {
   if (!canEdit(env)) return { ok: false, error: "Editing is not set up: the Worker has no CYBERJUDAH_TOKEN." };
@@ -29,6 +40,8 @@ export async function commitEdit(env: Env, edit: NoteEdit, by: string): Promise<
   const cur = await gh(env, url);
   if (!cur.ok) return { ok: false, error: cur.status === 404 ? "This note is not in the repository." : cur.status === 401 || cur.status === 403 ? `GitHub refused the token (${cur.status}): CYBERJUDAH_TOKEN needs Contents read and write on ${repo}.` : `GitHub ${cur.status} reading the note.` };
   const { sha, content } = (await cur.json()) as { sha: string; content: string };
+  // A whole-text edit builds on the version it was opened from; a save in between must not be overwritten.
+  if (edit.sha && edit.sha !== sha) return { ok: false, error: "The note changed since you opened it (another save landed). Close the editor, open it again, and redo the change." };
   let applied: { text: string; summary: string[] };
   try { applied = applyEdit(decodeBase64(content), edit); } catch (e) { return { ok: false, error: (e as Error).message }; }
   const title = /^title:\s*"?(.*?)"?\s*$/m.exec(applied.text)?.[1] ?? edit.file;

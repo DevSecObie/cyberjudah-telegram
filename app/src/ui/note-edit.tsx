@@ -1,15 +1,18 @@
-import { useMemo, useState, type FocusEvent } from "react";
+import { useEffect, useMemo, useState, type FocusEvent } from "react";
 import { createPortal } from "react-dom";
 
 import type { Note } from "@/api/data";
 import { Sheet } from "@/bible/ui/Sheet";
 import { useTeachings } from "@/screens/Home";
-import { alert, app, haptic } from "@/tg/sdk";
+import { alert, api, app, haptic } from "@/tg/sdk";
+import { Segmented } from "@/ui/ui";
 
 /**
- * Editing a note from the app: the teacher's name, the title, and spelling fixes (every
- * occurrence of a word or phrase becomes another). Saving is one commit to the library;
- * the site and the app pick it up when it rebuilds, a few minutes later.
+ * Editing a note from the app. "Text" is the note's whole markdown, as it is in the
+ * repository, to change anything; "Quick fixes" sets the teacher and title and swaps a
+ * spelling everywhere. Saving is one commit to the library; the site and the app pick it up
+ * when it rebuilds, a few minutes later. A text save names the version it was opened from,
+ * so it never overwrites a save that landed in between.
  */
 type Pair = { from: string; to: string };
 export function NoteEditSheet({ open, onClose, note, onSaved }: { open: boolean; onClose: () => void; note: Note; onSaved: (changed: string[], commit: string) => void }) {
@@ -17,20 +20,34 @@ export function NoteEditSheet({ open, onClose, note, onSaved }: { open: boolean;
   const [title, setTitle] = useState(note.title);
   const [pairs, setPairs] = useState<Pair[]>([{ from: "", to: "" }]);
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<"text" | "quick">("text");
+  const [source, setSource] = useState<{ text: string; sha: string } | null>(null);
+  const [draft, setDraft] = useState("");
+  const [loadError, setLoadError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open || !note.file || source) return;
+    void api<{ ok: true; text: string; sha: string } | { ok: false; error: string }>(`/api/notes/source?file=${encodeURIComponent(note.file)}`)
+      .then((r) => { if (r.ok) { setSource({ text: r.text, sha: r.sha }); setDraft(r.text); } else setLoadError(r.error); })
+      .catch((e: Error) => setLoadError(/401/.test(e.message) ? "Your Telegram session has expired. Close CyberJudah and open it again." : "The note's text could not be loaded. Check the connection and try again."));
+  }, [open, note.file, source]);
   const teachings = useTeachings();
   const teachers = useMemo(() => { const n = new Map<string, number>(); for (const t of teachings.data ?? []) if (t.teacher) n.set(t.teacher, (n.get(t.teacher) ?? 0) + 1); return [...n.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t).slice(0, 12); }, [teachings.data]);
   const count = (from: string) => (from ? note.body.split(from).length - 1 : 0);
   const changes = { teacher: teacher.trim() !== (note.teacher ?? "").trim(), title: title.trim() && title.trim() !== note.title, replace: pairs.filter((p) => p.from.trim() && p.from !== p.to) };
-  const dirty = changes.teacher || changes.title || changes.replace.length > 0;
+  const textDirty = !!source && draft !== source.text;
+  const dirty = mode === "text" ? textDirty : changes.teacher || changes.title || changes.replace.length > 0;
 
   const save = async () => {
     if (!dirty || !note.file) return;
     setBusy(true);
     try {
       const body: Record<string, unknown> = { file: note.file };
-      if (changes.teacher) body.teacher = teacher.trim();
-      if (changes.title) body.title = title.trim();
-      if (changes.replace.length) body.replace = changes.replace;
+      if (mode === "text" && source) { body.body = draft; body.sha = source.sha; }
+      else {
+        if (changes.teacher) body.teacher = teacher.trim();
+        if (changes.title) body.title = title.trim();
+        if (changes.replace.length) body.replace = changes.replace;
+      }
       // The Worker says why an edit was refused; the reason reaches the person, not a generic line.
       const r = await fetch("/api/notes/edit", { method: "POST", headers: { "content-type": "application/json", authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify(body) });
       const res = (await r.json().catch(() => null)) as { ok: true; commit: string; changed: string[] } | { ok: false; error: string } | null;
@@ -53,7 +70,16 @@ export function NoteEditSheet({ open, onClose, note, onSaved }: { open: boolean;
     <Sheet open={open} onClose={onClose} height="full" title="Edit this note" subTitle="Saved as a commit to the library" className="edit-sheet" footer={
       <div className="edit__footer"><button type="button" className="btn btn--quiet" onClick={onClose}>Cancel</button><button type="button" className="btn" disabled={!dirty || busy} onClick={() => void save()}>{busy ? "Saving…" : "Save"}</button></div>
     }>
-      <div className="edit" onFocus={onFocus}>
+      <div className="edit" onFocus={onFocus} data-mode={mode}>
+        <Segmented label="What to edit" value={mode} onChange={setMode} options={[["text", "Text"], ["quick", "Quick fixes"]]} />
+        {mode === "text" ? (
+          loadError ? <p className="hint">{loadError}</p>
+          : !source ? <p className="hint">Loading the note's text…</p>
+          : <>
+            <p className="hint">The whole note as it is written. Keep the lines between the <code>---</code> marks at the top; they hold the title, date and teacher.</p>
+            <textarea className="edit__text" value={draft} onChange={(e) => setDraft(e.target.value)} spellCheck autoCapitalize="sentences" aria-label="The note's text" />
+          </>
+        ) : <>
         <label className="edit__field"><span>Teacher</span><input type="text" value={teacher} placeholder="Who taught this class" onChange={(e) => setTeacher(e.target.value)} /></label>
         {teachers.length ? <div className="edit__chips">{teachers.map((t) => <button key={t} type="button" className="chip" aria-pressed={t === teacher} onClick={() => setTeacher(t)}><span>{t}</span></button>)}</div> : null}
         <label className="edit__field"><span>Title</span><input type="text" value={title} onChange={(e) => setTitle(e.target.value)} /></label>
@@ -68,6 +94,7 @@ export function NoteEditSheet({ open, onClose, note, onSaved }: { open: boolean;
           </div>
         ))}
         <button type="button" className="link" onClick={() => setPairs([...pairs, { from: "", to: "" }])}>+ Another fix</button>
+        </>}
         {!note.file ? <p className="hint">This note has no source file in the library, so it cannot be edited here.</p> : null}
       </div>
     </Sheet>,
