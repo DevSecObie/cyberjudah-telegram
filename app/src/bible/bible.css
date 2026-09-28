@@ -279,3 +279,6 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 #root .bs-resourcetabs button { min-width: 0; }
 #root .bs-resourcetabs button span { max-width: 100%; font-size: 10.5px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .why__reason { white-space: pre-line; }
+.why__reason p { margin: 0 0 10px; }
+.why__reason p:last-of-type { margin-bottom: 0; }
+.why-sheet .why .why__more { margin-top: 8px; padding: 0; border: 0; background: none; font-size: 14px; font-weight: 600; color: var(--bs-primary); cursor: pointer; }

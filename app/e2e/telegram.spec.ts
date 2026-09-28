@@ -476,7 +476,7 @@ test("a verse's Comments hold each class's own breakdown of it, and watch from t
   await expect(page.locator("#verset-5")).toBeVisible();
   await longPressVerse(page, 5);
   await page.click('.bs-resourcetabs button >> text=Comments');
-  const card = page.locator(".bs-comment", { hasText: "Bitterness" }).first();
+  const card = page.locator(".bs-comment", { hasText: "Bitterness: The Hidden Leaven" }).first();
   await expect(card.locator(".bs-comment__points li").first()).toContainText("Cain was very wroth, and his countenance fell");
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/comments.png` });
   await card.locator(".bs-comment__watch").click();

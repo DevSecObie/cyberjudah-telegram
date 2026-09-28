@@ -1,4 +1,5 @@
 import { useQueries } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { data, fmtDate, verseNumbers, type TaughtPrecept, type VerseNote } from "@/api/data";
 import { preceptsForVerse, slugOfUrl, teacherRank, useTaughtPrecepts } from "@/lib/taught";
@@ -15,6 +16,7 @@ export function WhySheet({ open, onClose, slug, chapter, verse, reference, onRea
   onRead: (url: string, verses: string) => void; onOpenClass: (url: string, ts: string) => void;
 }) {
   const taught = useTaughtPrecepts(open ? slug : "", chapter);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const rows = preceptsForVerse(taught.data, verse).sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "precept" ? -1 : 1) || teacherRank(a.note.teacher) - teacherRank(b.note.teacher));
   // One line per precept: the first class's reason, the others counted.
   const seen = new Map<string, { r: TaughtPrecept; more: number }>();
@@ -48,12 +50,23 @@ export function WhySheet({ open, onClose, slug, chapter, verse, reference, onRea
               <Feather name="chevron-right" size={15} color="var(--bs-tertiary)" />
             </button>
             {words(r) ? <p className="why__words">{words(r)}</p> : null}
-            {r.why ? <p className="why__reason">{r.why}</p> : null}
+            {r.why ? <Breakdown text={r.why} open={expanded.has(`${r.kind}|${r.ref.url}`)} onMore={() => setExpanded(new Set(expanded).add(`${r.kind}|${r.ref.url}`))} /> : null}
             {r.why || more ? <button type="button" className="why__src" onClick={() => onOpenClass(r.note.url, r.ts)}>{r.note.label}{r.note.date ? ` · ${fmtDate(r.note.date)}` : ""}{r.ts ? ` · ${r.ts}` : ""}{more ? ` · and ${more} more class${more > 1 ? "es" : ""}` : ""}</button> : null}
           </div>
         ))}
       </div>
     </Sheet>
+  );
+}
+/** A breakdown opens on its first paragraph; "Read more" shows the rest. */
+function Breakdown({ text, open, onMore }: { text: string; open: boolean; onMore: () => void }) {
+  const paras = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const shown = open ? paras : paras.slice(0, 1);
+  return (
+    <div className="why__reason">
+      {shown.map((p, i) => <p key={i}>{p}</p>)}
+      {!open && paras.length > 1 ? <button type="button" className="why__more" onClick={onMore}>Read more</button> : null}
+    </div>
   );
 }
 export type { VerseNote };
