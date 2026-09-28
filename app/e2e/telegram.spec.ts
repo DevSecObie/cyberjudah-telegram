@@ -100,7 +100,7 @@ test("tapping verses selects them, the sheet highlights, notes, tags and bookmar
   await page.fill(".bs-noteeditor__title", "The shepherd psalm.");
   await page.fill(".bs-noteeditor__desc", "He restoreth my soul.");
   await page.click(".bs-btn >> text=Save");
-  await expect(page.locator("#verset-2 .rel-inline .rel-tag")).toContainText("The shepherd psalm.");
+  await expect(page.locator("#verset-2 .rel-inline .rel-tag", { hasText: "The shepherd psalm." })).toBeVisible();
   c = await cloud(page);
   expect(JSON.parse(c.bs_n_psalms_23)["1/2"].title).toBe("The shepherd psalm.");
   expect(JSON.parse(c.rel_psalms_23)[0].endpoints[1].type).toBe("note");
@@ -248,7 +248,7 @@ test("relations: a verse linked to a passage shows as a tag under the verse, wit
   expect(JSON.parse(c.rel_john_10)[0].id).toBe(JSON.parse(c.rel_psalms_23)[0].id);
   await tag.click();
   await expect(page).toHaveURL(/\/read\/john\/10\?v=11/);
-  await expect(page.locator("#verset-11 .rel-inline .rel-tag")).toContainText("Psalms 23:1");
+  await expect(page.locator("#verset-11 .rel-inline .rel-tag", { hasText: "Psalms 23:1" })).toBeVisible();
   // The relations screen reads "is linked to"; edit and delete there.
   await goInApp(page, "/relations?endpoint=psalms-23-1");
   await expect(page.locator(".rel-row__title")).toContainText("is linked to");
