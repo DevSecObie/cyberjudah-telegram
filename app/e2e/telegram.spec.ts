@@ -556,3 +556,35 @@ test("People: who is named in a verse, a page per person with family, the classe
   await page.fill(".bs-search__field input", "abra");
   await expect(page.locator(".bs-search__go", { hasText: "Abraham" })).toBeVisible();
 });
+
+test("Library: The Lost Tribes a Myth, page by page with its scans and maps, and the classes that read it", async ({ page }) => {
+  await page.goto(`/more${LAUNCH}`);
+  await page.locator('a[href$="/books"]').first().click();
+  await expect(page).toHaveURL(/\/books$/);
+  await page.locator("a", { hasText: "The Lost Tribes a Myth" }).click();
+  await expect(page.locator("h1.title")).toHaveText("The Lost Tribes a Myth");
+  await expect(page.locator(".book__maps .book__map")).toHaveCount(3);
+  await expect(page.locator(".book__read").first()).toBeVisible();
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book.png` });
+  // A map opens full screen and closes.
+  await page.locator(".book__maps .book__map").first().click();
+  await expect(page.locator(".mapview")).toBeVisible();
+  await page.click('.mapview [aria-label="Zoom in"]');
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-map.png` });
+  await page.click('.mapview [aria-label="Close"]');
+  await expect(page.locator(".mapview")).toHaveCount(0);
+  // Chapter X, page by page, with the classes that read each page.
+  await page.locator("a", { hasText: "Berber, Moorish, and Negro Jews" }).click();
+  await expect(page.locator("#pg-246 .bookpage__read").first()).toBeVisible();
+  await page.locator("#pg-246 .bookpage__scan").click();
+  await expect(page.locator("#pg-246 img.bookpage__img")).toHaveAttribute("src", /archive\.org\/download\/losttribesmythsu00godb\/page\/n\d+_w1200\.jpg/);
+  await expect(page.locator(".book__map--wide")).toBeVisible();
+  // A page link from a class lands on that page.
+  await page.goto(`/books/lost-tribes-a-myth/p/246${LAUNCH}`);
+  await expect(page).toHaveURL(/\/books\/lost-tribes-a-myth\/\d+\?p=246/);
+  await expect(page.locator("#pg-246")).toHaveClass(/bookpage--at/);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-page.png` });
+  // The class note names the book and its pages.
+  await page.goto(`/note/classes/2026/2026-07-12-raising-up-the-tabernacle-of-david-that-fell${LAUNCH}`);
+  await expect(page.locator(".readfrom").first()).toContainText("The Lost Tribes a Myth");
+});

@@ -10,6 +10,7 @@ import { List, Row, Screen, Section, type IconName } from "@/ui/ui";
 
 const STUDY: [string, string, string, IconName][] = [
   ["/study", "4 Chapters a Day", "The daily reading, a note for every chapter", "book"],
+  ["/books", "Library", "Books the classes read from, with their maps", "layers"],
   ["/dictionary", "Dictionary", "Easton's: names, places and words", "type"],
   ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book", "layers"],
   ["/topics", "Topics", "Classes and episodes by what they cover", "tag"],

@@ -23,6 +23,7 @@ import { Person } from "./screens/Person";
 import { Relations } from "@/screens/Relations";
 import { Bookmarks } from "@/screens/Bookmarks";
 import { Sabbath } from "@/screens/Sabbath";
+import { BookChapterScreen, BookPageLink, Books, BookScreen } from "@/screens/Books";
 import { LawIndex, LawSectionScreen, Precepts, PreceptScreen, Cases, CaseScreen, Topics, TopicScreen, Study, Encyclopedia } from "@/screens/Library";
 
 
@@ -69,6 +70,10 @@ export function App() {
         <Route path="/dictionary" element={<Dictionary />} />
         <Route path="/dictionary/:slug" element={<DictionaryEntry />} />
         <Route path="/person/:id" element={<Person />} />
+        <Route path="/books" element={<Books />} />
+        <Route path="/books/:slug" element={<BookScreen />} />
+        <Route path="/books/:slug/p/:page" element={<BookPageLink />} />
+        <Route path="/books/:slug/:k" element={<BookChapterScreen />} />
         <Route path="/bookmarks" element={<Bookmarks />} />
         <Route path="/sabbath" element={<Sabbath />} />
         <Route path="/study" element={<Study />} />

@@ -103,6 +103,20 @@ export function NoteScreen() {
     </header>
   );
   const taught = me?.books.length ? <div className="taught"><span className="taught__label">Taught from</span>{me.books.slice(0, 6).map((b) => <Link key={b} to={`/read/${b.toLowerCase().replace(/\s+/g, "-")}/1`} className="taught__book">{b}</Link>)}</div> : null;
+  // Books read aloud in this class (the library), each page to the book and the moment it was read.
+  const readFrom = n.books?.length ? (
+    <div className="taught">
+      <span className="taught__label">Read from</span>
+      {Object.values(n.books.reduce<Record<string, typeof n.books>>((a, b) => ((a[b.slug] ??= []).push(b), a), {})).map((bs) => (
+        <span key={bs[0].slug} className="readfrom">
+          <Link to={`/books/${bs[0].slug}/p/${bs[0].page}`} className="taught__book">{bs[0].title}</Link>
+          {[...new Map(bs.map((b) => [b.page, b])).values()].map((b) => video
+            ? <button key={b.page} type="button" className="readfrom__page" onClick={() => seek(b.t)}>p. {b.page} · {b.ts}</button>
+            : <Link key={b.page} to={`/books/${b.slug}/p/${b.page}`} className="readfrom__page">p. {b.page}</Link>)}
+        </span>
+      ))}
+    </div>
+  ) : null;
   const upnext = next || prev ? (
     <div className="upnext">
       {next ? <Link to={`/note${next.url}`} className="upnext__card"><small>Up next</small><b>{next.title}</b><span>{when(next.date, next.teacher)}</span></Link> : null}
@@ -116,6 +130,7 @@ export function NoteScreen() {
       <NotesOpener lede={noteLede(n.body)} onOpen={() => setNotes(true)} />
       {at !== null && spoken.data?.ok ? <TranscriptExcerpt video={video} t={at} chunks={spoken.data.chunks} onSeek={seek} /> : null}
       {taught}
+      {readFrom}
       {isHistory && episode.data?.turns?.length ? <Transcript ep={episode.data} find={params.get("find") ?? ""} onSeek={seek} /> : null}
       {upnext}
       <NotesSheet open={notes} onClose={() => setNotes(false)} sub={n.title} action={<>{pdfButton}{who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}</>}><NoteBody md={n.body} video={video} onSeek={seek} /></NotesSheet>
@@ -126,6 +141,7 @@ export function NoteScreen() {
     <main className="screen">
       {head}
       {taught}
+      {readFrom}
       <NoteBody md={n.body} />
       {upnext}
       {editing ? <NoteEditSheet open onClose={() => setEditing(false)} note={n} onSaved={saved} /> : null}
