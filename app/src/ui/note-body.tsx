@@ -22,7 +22,7 @@ const clock = (t: number) => { const h = Math.floor(t / 3600), m = Math.floor((t
  */
 export function renderNote(md: string, frames?: { video: string; board: Board | undefined; visuals?: Visual[] }): string {
   const src = md.replace(/<!--\s*truncate\s*-->/g, "").replace(/[ \t]+taught in \[[^\]]+\]\(\/study\/[^)]+\)/g, "").replace(/<div class="class-video-mount"[^>]*><\/div>/g, "");
-  const slug = (t: string) => t.toLowerCase().replace(/<[^>]+>/g, "").replace(/&[a-z]+;/g, " ").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const slug = (t: string) => DOMPurify.sanitize(t, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] }).toLowerCase().replace(/&[a-z]+;/g, " ").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   // Headings carry an id from their text, so a search hit opens the class at its section.
   let html = (marked.parse(src) as string).replace(/<(li|p)>\s*<strong>([A-Z][^<:]{1,40}):<\/strong>\s*/g, '<$1><span class="who">$2</span>').replace(/<h([2-4])>(.*?)<\/h\1>/g, (_m, l: string, t: string) => `<h${l} id="${slug(t)}">${t}</h${l}>`);
   // A moment is a time chip, without the brackets the markdown wraps it in.
@@ -101,7 +101,8 @@ function tidyHead(html: string): string {
 export function noteLede(md: string, max = 120): string {
   // The front matter line and the "Opens" list come first; the preview starts at the teaching.
   const body = /^##\s/m.test(md) ? md.slice(md.search(/^##\s/m)) : md;
-  const text = body.replace(/<!--[\s\S]*?-->/g, "").replace(/<[^>]+>/g, " ").replace(/^#.*$/gm, " ").replace(/[*_`>#[\]]/g, " ").replace(/\(\/[^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  const withoutHtml = DOMPurify.sanitize(body, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+  const text = withoutHtml.replace(/^#.*$/gm, " ").replace(/[*_`>#[\]]/g, " ").replace(/\(\/[^)]*\)/g, " ").replace(/\s+/g, " ").trim();
   return text.length > max ? `${text.slice(0, max).replace(/\s+\S*$/, "")}…` : text;
 }
 
