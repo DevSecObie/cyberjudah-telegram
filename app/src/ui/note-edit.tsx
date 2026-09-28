@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FocusEvent } from "react";
+import { createPortal } from "react-dom";
 
 import type { Note } from "@/api/data";
 import { Sheet } from "@/bible/ui/Sheet";
@@ -41,11 +42,18 @@ export function NoteEditSheet({ open, onClose, note, onSaved }: { open: boolean;
     finally { setBusy(false); }
   };
 
-  return (
+  // Keep the field being typed in above the keyboard, which Telegram lays over the page.
+  const onFocus = (e: FocusEvent<HTMLDivElement>) => {
+    const el = e.target as HTMLElement;
+    if (el.matches("input, textarea")) setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 250);
+  };
+  // Mounted at the app's root, so no screen or sheet around it can decide its size.
+  const host = document.getElementById("root") ?? document.body;
+  return createPortal(
     <Sheet open={open} onClose={onClose} height="full" title="Edit this note" subTitle="Saved as a commit to the library" className="edit-sheet" footer={
       <div className="edit__footer"><button type="button" className="btn btn--quiet" onClick={onClose}>Cancel</button><button type="button" className="btn" disabled={!dirty || busy} onClick={() => void save()}>{busy ? "Saving…" : "Save"}</button></div>
     }>
-      <div className="edit">
+      <div className="edit" onFocus={onFocus}>
         <label className="edit__field"><span>Teacher</span><input type="text" value={teacher} placeholder="Who taught this class" onChange={(e) => setTeacher(e.target.value)} /></label>
         {teachers.length ? <div className="edit__chips">{teachers.map((t) => <button key={t} type="button" className="chip" aria-pressed={t === teacher} onClick={() => setTeacher(t)}><span>{t}</span></button>)}</div> : null}
         <label className="edit__field"><span>Title</span><input type="text" value={title} onChange={(e) => setTitle(e.target.value)} /></label>
@@ -62,6 +70,7 @@ export function NoteEditSheet({ open, onClose, note, onSaved }: { open: boolean;
         <button type="button" className="link" onClick={() => setPairs([...pairs, { from: "", to: "" }])}>+ Another fix</button>
         {!note.file ? <p className="hint">This note has no source file in the library, so it cannot be edited here.</p> : null}
       </div>
-    </Sheet>
+    </Sheet>,
+    host,
   );
 }
