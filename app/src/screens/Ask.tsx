@@ -47,8 +47,12 @@ export function Ask() {
   const boxRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const stick = useRef(true);
-  useBackButton(false);
+  // Ask is a tab: Telegram's back button closes the app from here, as on the other tabs.
+  useBackButton(true);
   useBottomButtons(null, null);
+  // While the question is being typed the tab bar steps aside for the keyboard, as in Messages.
+  const typing = (on: boolean) => { if (on) document.documentElement.dataset.typing = ""; else delete document.documentElement.dataset.typing; };
+  useEffect(() => () => typing(false), []);
 
   useEffect(() => { try { sessionStorage.setItem(STORE, JSON.stringify(turns.filter((t) => !t.thinking))); if (chatId) sessionStorage.setItem(`${STORE}:id`, chatId); else sessionStorage.removeItem(`${STORE}:id`); } catch { /* private mode */ } }, [turns, chatId]);
   // Follow the answer as it streams, unless the reader scrolled up to read.
@@ -134,7 +138,7 @@ export function Ask() {
       {history ? <ChatsSheet current={chatId} onClose={() => setHistory(false)} onOpen={openChat} onDeleted={(id) => { if (id === chatId) { setTurns([]); setChatId(null); } }} /> : null}
       <form className="composer2" onSubmit={(e) => { e.preventDefault(); void send(input); }}>
         <div className="composer2__box">
-          <textarea ref={boxRef} value={input} rows={1} placeholder={turns.length ? "Ask a follow-up" : "Ask CyberJudah"} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(input); } }} />
+          <textarea ref={boxRef} value={input} rows={1} placeholder={turns.length ? "Ask a follow-up" : "Ask CyberJudah"} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onFocus={() => typing(true)} onBlur={() => typing(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(input); } }} />
           {busy
             ? <button type="button" className="composer2__go composer2__go--stop" aria-label="Stop" onClick={stop}><span /></button>
             : <button type="submit" className="composer2__go" aria-label="Send" disabled={!input.trim()}><Icon name="arrowUp" size={20} /></button>}

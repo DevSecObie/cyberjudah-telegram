@@ -1,4 +1,4 @@
-import { Children, type ReactNode } from "react";
+import { Children, useEffect, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton, Tabbar } from "@telegram-apps/telegram-ui";
 
@@ -50,22 +50,45 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
 const TABS: { to: string; label: string; icon: IconName }[] = [
   { to: "/", label: "Home", icon: "home" },
   { to: "/classes", label: "Classes", icon: "play" },
+  { to: "/ask", label: "Ask", icon: "chat" },
   { to: "/bible", label: "Bible", icon: "book" },
   { to: "/more", label: "More", icon: "more" },
 ];
 
+/** Which tab a screen belongs to, so the tab stays lit on everything opened from it. */
+export function tabOf(path: string): string {
+  if (path === "/" || path.startsWith("/search")) return "/";
+  if (/^\/(classes|note|watch|topics)(\/|$)/.test(path)) return "/classes";
+  if (path.startsWith("/ask")) return "/ask";
+  if (/^\/(bible|read)(\/|$)/.test(path)) return "/bible";
+  return "/more";
+}
+const LAST = "cj:tab:";
+
 /**
- * Telegram's own tab bar (TelegramUI's Tabbar). Tabs replace instead of push, so Telegram's
- * back button never walks through tab taps.
+ * Telegram's own tab bar (TelegramUI's Tabbar), kept on every screen but the player, the
+ * way an iOS app keeps it. Each tab remembers the screen it was left on and returns there;
+ * tapping the tab you are on goes back to its first screen, or to the top when already there.
+ * Tabs replace instead of push, so Telegram's back button never walks through tab taps.
  */
 export function TabBar() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
-  const active = (to: string) => (to === "/" ? pathname === "/" : to === "/bible" ? pathname.startsWith("/bible") || pathname.startsWith("/read/") : pathname.startsWith(to));
+  const current = tabOf(pathname);
+  useEffect(() => { try { sessionStorage.setItem(LAST + current, pathname + search); } catch { /* private mode */ } }, [current, pathname, search]);
+  const go = (to: string) => {
+    haptic("select");
+    if (to !== current) {
+      let last: string | null = null;
+      try { last = sessionStorage.getItem(LAST + to); } catch { /* private mode */ }
+      navigate(last ?? to, { replace: true });
+    } else if (pathname !== to) navigate(to, { replace: true });
+    else window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   return (
     <Tabbar className="tabs" aria-label="Sections">
       {TABS.map((t) => (
-        <Tabbar.Item key={t.to} className="tab" text={t.label} selected={active(t.to)} aria-current={active(t.to) ? "page" : undefined} onClick={() => { haptic("select"); if (!active(t.to)) navigate(t.to, { replace: true }); }}>
+        <Tabbar.Item key={t.to} className="tab" text={t.label} selected={current === t.to} aria-current={current === t.to ? "page" : undefined} onClick={() => go(t.to)}>
           <Icon name={t.icon} size={24} />
         </Tabbar.Item>
       ))}

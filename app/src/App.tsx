@@ -24,9 +24,6 @@ import { Bookmarks } from "@/screens/Bookmarks";
 import { Sabbath } from "@/screens/Sabbath";
 import { LawIndex, LawSectionScreen, Precepts, PreceptScreen, Cases, CaseScreen, Topics, TopicScreen, Study, Encyclopedia } from "@/screens/Library";
 
-/** Tab roots keep the tab bar; everything else is pushed on top and Telegram's back returns. */
-const ROOTS = new Set(["/", "/classes", "/bible", "/more"]);
-const isRoot = (path: string) => ROOTS.has(path) || path.startsWith("/read/") || path.startsWith("/bible/");
 
 export function App() {
   const location = useLocation();
@@ -42,13 +39,14 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const root = isRoot(location.pathname);
+  // The tab bar stays on every screen, as in an iOS app, except the player, which takes the screen.
+  const tabs = !/^\/(note|watch)\//.test(location.pathname);
   // Like an iOS app, the look follows the phone (through Telegram) until the reader picks one.
   const [theme] = useStored<string>("theme", "system");
   const { scheme } = useTheme();
   const appearance = theme === "light" || theme === "sepia" ? "light" : theme === "system" ? scheme : "dark";
   return (
-    <AppRoot className="cj" appearance={appearance} platform={app?.platform === "ios" || app?.platform === "macos" ? "ios" : "base"} id="shell" data-tabs={root ? "" : undefined}>
+    <AppRoot className="cj" appearance={appearance} platform={app?.platform === "ios" || app?.platform === "macos" ? "ios" : "base"} id="shell" data-tabs={tabs ? "" : undefined}>
       <ThemeApplier />
       <Lock />
       <Routes>
@@ -84,7 +82,7 @@ export function App() {
         <Route path="/topics/:slug" element={<TopicScreen />} />
         <Route path="*" element={<Home />} />
       </Routes>
-      {root ? <TabBar /> : null}
+      {tabs ? <TabBar /> : null}
     </AppRoot>
   );
 }
