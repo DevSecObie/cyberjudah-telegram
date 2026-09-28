@@ -15,7 +15,7 @@ export function ReadingTracker() {
   const [prefs, setPrefs] = useState<ReadingSettings>({ timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, time: '08:00', enabled: false, weekly: false });
   const [notice, setNotice] = useState(''), [book, setBook] = useState('genesis');
   const [quote, setQuote] = useState(''), [source, setSource] = useState(''), [verified, setVerified] = useState(false);
-  useEffect(() => { if (reading.data) setPrefs({ ...reading.data.settings, timezone: reading.data.settings.timezone === 'UTC' && !reading.data.settings.enabled ? Intl.DateTimeFormat().resolvedOptions().timeZone : reading.data.settings.timezone }); }, [reading.data?.settings]);
+  useEffect(() => { if (reading.data) setPrefs(reading.data.settings); }, [reading.data?.settings.timezone, reading.data?.settings.time, reading.data?.settings.enabled, reading.data?.settings.weekly]);
   if (!inTelegram) return <Screen title="4 chapters a day"><Card><p>Open CyberJudah inside Telegram to save your reading and choose a daily reminder.</p></Card></Screen>;
   if (reading.isPending) return <Screen title="4 chapters a day"><Skeleton rows={4} /></Screen>;
   if (reading.isError || !reading.data) return <Screen title="4 chapters a day"><Card><p>Your tracker could not load. Your saved progress is safe.</p><button className="link" onClick={() => void reading.refetch()}>Try again</button></Card></Screen>;
@@ -43,6 +43,7 @@ export function ReadingTracker() {
       <label><input type="checkbox" checked={prefs.enabled} onChange={e => setPrefs({ ...prefs, enabled: e.target.checked })} /> Remind me to read four chapters daily</label>
       <label>Reminder time <input type="time" step="900" value={prefs.time} onChange={e => setPrefs({ ...prefs, time: e.target.value })} /></label>
       <label>Timezone <input aria-label="Timezone" value={prefs.timezone} onChange={e => setPrefs({ ...prefs, timezone: e.target.value })} placeholder="America/New_York" /></label>
+      <button className="link" onClick={() => setPrefs({ ...prefs, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone })}>Use my device timezone</button>
       <label><input type="checkbox" checked={prefs.weekly} onChange={e => setPrefs({ ...prefs, weekly: e.target.checked })} /> Monday recap of the previous seven days</label>
       <p className="hint">Reminders use your chosen timezone, including daylight-saving changes. Daily reminders stop once you mark four chapters read. Weekly recaps use the same time. Uncheck both options to pause all reading messages.</p>
       <button className="link" disabled={change.isPending} onClick={() => void save()}>Save reminder settings</button>
