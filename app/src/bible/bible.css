@@ -228,3 +228,13 @@
 .bs-error p { margin: 0; font-size: 16px; line-height: 1.35; max-width: 360px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
+
+/* Why these precepts: a quick breakdown, one line each. */
+.why { display: flex; flex-direction: column; gap: 12px; padding: 4px 16px 20px; }
+.why__item { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; background: var(--bs-light-grey); }
+.why__ref { display: flex; align-items: center; gap: 8px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; color: var(--bs-default); }
+.why__ref b { flex: 1; font-size: 16px; color: var(--bs-primary); }
+.why__kind { padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--bs-reverse); color: var(--bs-tertiary); }
+.why__words { margin: 0; font-family: var(--bs-font, Georgia, serif); font-size: 15px; line-height: 1.5; color: var(--bs-tertiary); font-style: italic; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.why__reason { margin: 0; font-size: 15px; line-height: 1.5; color: var(--bs-default); }
+.why-sheet .why .why__src { align-self: flex-start; padding: 0; border: 0; background: none; font-size: 12.5px !important; line-height: 1.4; color: var(--bs-tertiary); text-align: left; cursor: pointer; }

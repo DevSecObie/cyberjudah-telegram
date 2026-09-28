@@ -46,9 +46,24 @@ export function useTaughtRelations(slug: string, ch: number, display: "inline" |
       const relation: Relation = { id: `taught:${slug}-${ch}-${anchor}:${r.ref.url}`, type: "references", direction: r.kind === "precept" ? "forward" : "backward", endpoints: [active, target], label: r.note.label, createdAt: 0, updatedAt: 0 };
       (out[anchor] ??= []).push({ key: relation.id, relation, active, target, label: r.ref.label, updatedAt: 0 });
     }
+    // Each verse with precepts leads with one note, "Precept(s)": why each is there, in a line or two.
+    for (const [v, items] of Object.entries(out)) {
+      const anchor = +v;
+      const label = items.length > 1 ? "Precepts" : "Precept";
+      const active: VerseEndpoint = { type: "verse", verseKeys: [verseKey(slug, ch, anchor)], label: `${ch}:${anchor}` };
+      const target = { type: "note" as const, verseKey: verseKey(slug, ch, anchor), label };
+      const relation: Relation = { id: `${WHY}${slug}-${ch}-${anchor}`, type: "explains", direction: "forward", endpoints: [active, target], label, createdAt: 0, updatedAt: 0 };
+      items.unshift({ key: relation.id, relation, active, target, label, updatedAt: 0 });
+    }
     return out;
   }, [q.data, slug, ch, display]);
 }
 
+/** The note that leads a verse's precepts: why each is there. */
+export const WHY = "taught-why:";
+export const isWhy = (r: Relation) => r.id.startsWith(WHY);
+/** The verse a "why" note is about. */
+export const whyVerse = (r: Relation) => Number(r.id.split("-").pop());
+
 /** A relation the library made, as opposed to one the reader made. */
-export const isTaught = (r: Relation) => r.id.startsWith("taught:");
+export const isTaught = (r: Relation) => r.id.startsWith("taught:") || r.id.startsWith(WHY);

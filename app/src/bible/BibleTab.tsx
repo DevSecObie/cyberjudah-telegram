@@ -23,7 +23,8 @@ import { Feather } from "./icons";
 import { Header, PassageContextBar, VersionSheet, type MenuAction } from "./ui/Header";
 import { ParamsSheet } from "./ui/ParamsSheet";
 import { ResourcesSheet, type ResourceTab } from "./ui/ResourcesSheet";
-import { useTaughtRelations } from "@/lib/taught";
+import { isWhy, slugOfUrl, useTaughtRelations, whyVerse } from "@/lib/taught";
+import { WhySheet } from "./ui/WhySheet";
 import { SelectedVersesSheet } from "./ui/SelectedVersesSheet";
 import "./bible.css";
 
@@ -99,7 +100,8 @@ export function BibleTab() {
   useEffect(() => { if (plan && list.length && planDay(plan, list, progress).done) { setPlan(advance(plan)); haptic("success"); } }, [plan, list, progress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sheets.
-  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export">(null);
+  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why">(null);
+  const [whyAt, setWhyAt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [resourceTab, setResourceTab] = useState<ResourceTab>("dictionary");
   const [resourceVerse, setResourceVerse] = useState<number>(1);
@@ -173,6 +175,8 @@ export function BibleTab() {
   };
   const openRelationItem = async (it: VerseRelationItem) => {
     const t = it.target;
+    // The library's note on a verse's precepts: why they are there.
+    if (isWhy(it.relation)) { setWhyAt(whyVerse(it.relation)); setSheet("why"); return; }
     if (t.type === "note") { const found = await readNote(t.verseKey); if (found) { setNoteEdit({ key: found.key, note: found.note, relation: it.relation }); setSheet("note"); } else void alert("This note no longer exists"); return; }
     if (t.type === "link") { openLink(endpointHref(t)); return; }
     navigate(endpointHref(t));
@@ -238,6 +242,9 @@ export function BibleTab() {
       )}
       <Footer hasPrev={!!prev} hasNext={!!next} onPrev={() => go(prev)} onNext={() => go(next)} speech={speech} fullscreen={fullscreen} hidden={contextMode === "focused" && !!focus} bottomBar={bottomBar} reference={chapterLabel} verseCount={verses.length} repeat={repeat} setRepeat={setRepeat} expanded={audioOpen} setExpanded={setAudioOpen} />
 
+      <WhySheet open={sheet === "why"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={whyAt} reference={`${chapterLabel}:${whyAt}`}
+        onRead={(url, v) => { setSheet(null); const m = slugOfUrl(url); navigate(m ? `/read/${m[1]}/${m[2]}${v ? `?v=${v}` : ""}` : url); }}
+        onOpenClass={(url, ts) => { setSheet(null); const t = ts ? ts.split(":").reduce((n, p) => n * 60 + Number(p || 0), 0) : 0; navigate(`/note${url}${t ? `?t=${t}` : ""}`); }} />
       <SelectedVersesSheet open={selected.length > 0 && !sheet} onDismiss={() => setSelected([])}
         colors={items} selectedColor={selectedColor} onAddHighlight={addHighlight} onRemoveHighlight={removeHighlight} onAddColor={() => setSheet("params")} onEditColor={() => setSheet("params")}
         moreThanOne={selected.length > 1} hasBookmark={hasBookmark} hasFocus={hasFocus}

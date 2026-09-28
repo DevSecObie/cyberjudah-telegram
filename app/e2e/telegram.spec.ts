@@ -216,6 +216,22 @@ test("the precepts a class lined up with a verse: a tag under the verse, and a P
   await expect(page).toHaveURL(/\/read\/[a-z0-9-]+\/\d+/);
 });
 
+test("a verse's precepts lead with one note, Precepts: why each is there, from the class", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  const note = page.locator("#verset-1 .rel-tag").first();
+  await expect(note).toHaveText("Precepts");
+  await note.click();
+  await expect(page.locator(".bs-sheet__titles b")).toHaveText("Genesis 1:1");
+  await expect(page.locator(".bs-sheet__titles small")).toHaveText("Precepts");
+  const first = page.locator(".why__item").first();
+  await expect(first.locator(".why__ref b")).toHaveText("2 Esdras 6:38");
+  await expect(first.locator(".why__words")).toContainText("thou spakest from the beginning");
+  await expect(first.locator(".why__reason")).toContainText("brought a light out of his treasures");
+  await expect(first.locator(".why__src")).toContainText("The Kingdom Of Adam");
+  await first.locator(".why__ref").click();
+  await expect(page).toHaveURL(/\/read\/2-esdras\/6\?v=38/);
+});
+
 test("relations: a verse linked to a passage shows as a tag under the verse, with edit and delete", async ({ page }) => {
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await tapVerse(page, 1);
