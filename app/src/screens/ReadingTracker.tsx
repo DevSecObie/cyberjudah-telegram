@@ -38,7 +38,7 @@ export function ReadingTracker() {
     </div>)}</div><p className="hint">Mark chapters you finish here or in your own Bible. Opening a chapter does not complete your reminder goal.</p></Section>
     {change.isError && <p role="alert">That change did not save. Please try again.</p>}
     <div className="stat"><div><b>{r.streak}</b><span>day streak</span></div><div><b>{r.totalRead}</b><span>chapters read</span></div><div><b>{Math.round(r.totalRead / r.total * 100)}%</b><span>of the library</span></div></div>
-    <Section title="Your reading calendar"><div className="reading-calendar">{r.calendar.map(d => <div key={d.day} data-done={d.count >= 4 ? '' : undefined} title={`${d.day}: ${d.count} chapters`}><small>{d.day.slice(5)}</small><b>{d.count}</b></div>)}</div><p>Last 7 days: {thisWeek.reduce((n, d) => n + d.count, 0)} chapters across {thisWeek.filter(d => d.count > 0).length} days.</p></Section>
+    <Section title="Your reading calendar"><div className="reading-calendar">{r.calendar.map(d => <div key={d.day} data-done={d.count >= 4 ? '' : undefined} title={`${d.day}: ${d.count} chapters`}><small>{d.day.slice(5)}</small><b>{d.count}</b></div>)}</div><p>Last 7 days: {thisWeek.reduce((n, d) => n + d.count, 0)} chapters · {thisWeek.filter(d => d.count > 0).length} reading days.</p></Section>
     <Section title="Telegram reminders"><div className="reading-settings">
       <label><input type="checkbox" checked={prefs.enabled} onChange={e => setPrefs({ ...prefs, enabled: e.target.checked })} /> Remind me to read four chapters daily</label>
       <label>Reminder time <input type="time" step="900" value={prefs.time} onChange={e => setPrefs({ ...prefs, time: e.target.value })} /></label>

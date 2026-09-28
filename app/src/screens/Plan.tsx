@@ -18,7 +18,7 @@ import { ReadingTracker } from './ReadingTracker';
  */
 export function Plan() {
   const [legacy, setLegacy] = useState(false);
-  return <><ReadingTracker /><details style={{ padding: 20 }} onToggle={e => setLegacy(e.currentTarget.open)}><summary>Previous reading plan</summary>{legacy && <LegacyPlan />}</details></>;
+  return <><ReadingTracker /><details style={{ padding: '20px 20px calc(90px + var(--safe-bottom, 0px))' }} onToggle={e => setLegacy(e.currentTarget.open)}><summary>Previous reading plan</summary>{legacy && <LegacyPlan />}</details></>;
 }
 function LegacyPlan() {
   useBackButton(false);
