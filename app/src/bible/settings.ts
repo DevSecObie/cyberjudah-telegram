@@ -2,7 +2,7 @@ import { useEffect } from "react";
 
 import { useStored } from "@/tg/hooks";
 import { app } from "@/tg/sdk";
-import { DARK_THEMES, LIGHT_THEMES, PALETTES, type DarkTheme, type LightTheme, type Palette, type ThemeName } from "./theme";
+import { DARK_THEMES, LIGHT_THEMES, ACCENT, PALETTES, type DarkTheme, type LightTheme, type Palette, type ThemeName } from "./theme";
 
 /**
  * The reader's settings, the same set Bible Strong keeps in `user.bible.settings` (and
@@ -58,7 +58,7 @@ export const telegramScheme = (): "light" | "dark" => app?.colorScheme ?? (match
 
 /** The palette with the reader's own highlight colours in place of color1–5. */
 export function paletteOf(theme: ThemeName, s: BibleSettings): Palette {
-  return { ...PALETTES[theme], ...s.colors };
+  return { ...PALETTES[theme], ...ACCENT[theme], ...s.colors };
 }
 
 export const THEME_LABEL: Record<ThemeName, string> = Object.fromEntries([...LIGHT_THEMES, ...DARK_THEMES].map((t) => [t.id, t.label])) as Record<ThemeName, string>;

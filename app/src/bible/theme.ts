@@ -56,3 +56,10 @@ export function contrastText(hex: string, dark: boolean): string | undefined {
 export function cssVars(p: Palette): Record<string, string> {
   return Object.fromEntries(Object.entries(p).map(([k, v]) => [`--bs-${k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`, v]));
 }
+/** The app's accent on the reader's dark pages, a deep teal on its light ones: one accent through the whole app. */
+export const ACCENT: Record<ThemeName, { primary: string; lightPrimary: string }> = {
+  default: { primary: "#0b7f8f", lightPrimary: "rgba(11,127,143,0.12)" }, sepia: { primary: "#0b7f8f", lightPrimary: "rgba(11,127,143,0.12)" },
+  nature: { primary: "#0b7f8f", lightPrimary: "rgba(11,127,143,0.12)" }, sunset: { primary: "#0b7f8f", lightPrimary: "rgba(11,127,143,0.12)" },
+  dark: { primary: "#00e5ff", lightPrimary: "rgba(0,229,255,0.14)" }, black: { primary: "#00e5ff", lightPrimary: "rgba(0,229,255,0.14)" },
+  mauve: { primary: "#00e5ff", lightPrimary: "rgba(0,229,255,0.14)" }, night: { primary: "#00e5ff", lightPrimary: "rgba(0,229,255,0.14)" },
+};
