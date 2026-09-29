@@ -625,7 +625,7 @@ test("Strong's: a verse's words open the Hebrew or Greek behind them, with every
   await expect(page.locator(".bs-word__lemma")).toHaveText("אֱלֹהִים");
   await expect(page.locator(".bs-word__meta b")).toHaveText("ʼĕlôhîym");
   await expect(page.locator(".bs-word__book").first()).toBeVisible();
-  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/strongs-word.png` });
+  if (process.env.SHOTS) { await page.waitForTimeout(500); await page.screenshot({ path: `${process.env.SHOTS}/strongs-word.png` }); }
   // A verse in the concordance opens in the reader.
   await page.locator(".bs-word__book").first().locator(".bs-word__bookhead").click();
   await page.locator(".bs-word__book li button").nth(1).click();
