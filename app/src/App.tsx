@@ -52,6 +52,7 @@ export function App() {
     <AppRoot className="cj" appearance={appearance} platform={app?.platform === "ios" || app?.platform === "macos" ? "ios" : "base"} id="shell" data-tabs={tabs ? "" : undefined}>
       <ThemeApplier />
       <Lock />
+      <div className="route" key={location.pathname.split("/").slice(0, 2).join("/")}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
@@ -90,6 +91,7 @@ export function App() {
         <Route path="/topics/:slug" element={<TopicScreen />} />
         <Route path="*" element={<Home />} />
       </Routes>
+      </div>
       {tabs ? <TabBar /> : null}
     </AppRoot>
   );

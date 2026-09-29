@@ -320,3 +320,8 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 #root .bs-word__more { border: 0; background: none; padding: 8px 0 0; color: var(--bs-primary); font: 600 14px var(--bs-font, inherit); cursor: pointer; }
 .bs-word__src { margin: 0; font-size: 11px; color: var(--bs-tertiary); }
 
+
+/* A verse settles when it is picked */
+@keyframes bs-pick { 0% { transform: scale(1); } 45% { transform: scale(1.012); } 100% { transform: scale(1); } }
+.bs-verse[data-selected] { animation: bs-pick .28s var(--ease, cubic-bezier(.2,.8,.2,1)); transform-origin: left center; }
+.bs-verse { transition: background-color .22s var(--ease, ease); }

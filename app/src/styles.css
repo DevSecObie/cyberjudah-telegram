@@ -900,3 +900,17 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 
 /* One look for every "show more" link */
 #root .person__more, #root .bookpage__more, #root .section__more, #root .bs-word__more { border: 0; background: none; padding: 8px 0 0; color: var(--a-accent); font: 600 14px var(--a-ui); cursor: pointer; }
+
+/* Motion: screens settle in, lists arrive a row at a time, nothing longer than 300 ms */
+@keyframes screen-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes row-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.route { animation: screen-in .24s var(--ease) both; }
+.feed > *, .list > *, .book__reads > *, .person__taught > * { animation: row-in .3s var(--ease) both; }
+.feed > :nth-child(1), .list > :nth-child(1) { animation-delay: 0ms; } .feed > :nth-child(2), .list > :nth-child(2) { animation-delay: 40ms; }
+.feed > :nth-child(3), .list > :nth-child(3) { animation-delay: 80ms; } .feed > :nth-child(4), .list > :nth-child(4) { animation-delay: 120ms; }
+.feed > :nth-child(5), .list > :nth-child(5) { animation-delay: 160ms; } .feed > :nth-child(6), .list > :nth-child(6) { animation-delay: 200ms; }
+.feed > :nth-child(7), .list > :nth-child(7) { animation-delay: 240ms; } .feed > :nth-child(8), .list > :nth-child(8) { animation-delay: 280ms; }
+.feed > :nth-child(n+9), .list > :nth-child(n+9) { animation-delay: 300ms; }
+#root button, #root a.row, .chip, .feed__card { transition: transform .15s var(--ease), background-color .2s, opacity .2s; }
+#root button:active, .feed__card:active, .chip:active { transform: scale(.97); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; } }

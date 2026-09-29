@@ -100,7 +100,7 @@ export function Ask() {
           if (msg.reset) patch((t) => ({ ...t, content: "", thinking: true }));
           if (msg.delta) patch((t) => ({ ...t, thinking: false, content: t.content + msg.delta }));
           if (msg.usage) setAcct((a) => (a ? { ...a, balance: msg.usage!.balance } : a));
-          if (msg.done) patch((t) => ({ ...t, thinking: false, content: msg.answer ?? t.content, sources: msg.sources ?? [], followups: msg.followups ?? [] }));
+          if (msg.done) { haptic("success"); patch((t) => ({ ...t, thinking: false, content: msg.answer ?? t.content, sources: msg.sources ?? [], followups: msg.followups ?? [] })); }
           if (msg.error) patch((t) => ({ ...t, thinking: false, error: msg.error }));
         }
       }

@@ -53,7 +53,7 @@ export function Verse(p: VerseProps) {
     ...(p.isTouched ? { opacity: 0.7 } : {}),
   };
   return (
-    <span id={`verset-${p.number}`} data-vk={p.verseKey} style={wrapper}>
+    <span id={`verset-${p.number}`} className="bs-verse" data-vk={p.verseKey} data-selected={p.isSelected ? "" : undefined} style={wrapper}>
       <span style={container}>
         <span className="bs-num" style={{ fontSize: scaleFontSize(14, s.fontSizeScale) }}>{p.number} </span>
         {p.bookmark ? <BookmarkIcon color={p.bookmark.color} onClick={() => p.onOpenBookmark(p.bookmark!)} /> : null}
