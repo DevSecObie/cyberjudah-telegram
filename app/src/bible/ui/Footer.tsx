@@ -27,7 +27,6 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
   const cur = speech.current ?? 1;
   return (
     <div className="bs-footer" style={{ pointerEvents: "none" }}>
-      {!fullscreen ? <div className="bs-controlstrip" style={{ bottom: bottomBar }} /> : null}
       <button type="button" className="bs-chapterbtn" style={{ left: 10, bottom: 10 + bottomBar, opacity: hasPrev ? 1 : 0.6, transform: `translateY(${arrowsY}px)` }} disabled={!hasPrev} aria-label="Previous chapter" onClick={() => { haptic(); onPrev(); }}><Feather name="arrow-left" size={20} color="var(--bs-tertiary)" /></button>
       <button type="button" className="bs-chapterbtn" style={{ right: 10, bottom: 10 + bottomBar, opacity: hasNext ? 1 : 0.6, transform: `translateY(${arrowsY}px)` }} disabled={!hasNext} aria-label="Next chapter" onClick={() => { haptic(); onNext(); }}><Feather name="arrow-right" size={20} color="var(--bs-tertiary)" /></button>
       {expanded && speech.supported ? (

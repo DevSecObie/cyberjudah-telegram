@@ -320,5 +320,3 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 #root .bs-word__more { border: 0; background: none; padding: 8px 0 0; color: var(--bs-primary); font: 600 14px var(--bs-font, inherit); cursor: pointer; }
 .bs-word__src { margin: 0; font-size: 11px; color: var(--bs-tertiary); }
 
-/* The controls' own strip above the tab bar: the text ends above it, nothing sits on the words */
-.bs-controlstrip { position: absolute; left: 0; right: 0; height: 64px; background: var(--bs-reverse); border-top: 1px solid var(--bs-border); pointer-events: auto; }
