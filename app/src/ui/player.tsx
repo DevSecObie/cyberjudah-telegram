@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from "react";
 
 import { haptic } from "@/tg/sdk";
 import { Icon, Img, thumbOf, timestamp } from "@/ui/ui";
@@ -10,10 +10,13 @@ const embed = (id: string, start: number) => `https://www.youtube-nocookie.com/e
 /**
  * The recording pinned at the top of the screen, the way YouTube's player stays while the
  * page beneath scrolls: a thumbnail until it is tapped, then the video from the moment.
+ * With `pip` it shrinks to a floating corner picture, still playing, while the notes take
+ * the whole screen; a tap on its corner button brings it back to the top.
  */
-export function Player({ video, start, playing, onPlay, title, live }: { video: string; start: number; playing: boolean; onPlay: () => void; title: string; live?: boolean }) {
+export function Player({ video, start, playing, onPlay, title, live, pip, onExpand }: { video: string; start: number; playing: boolean; onPlay: () => void; title: string; live?: boolean; pip?: boolean; onExpand?: () => void }) {
   return (
-    <div className="player">
+    <div className="player" data-pip={pip ? "" : undefined}>
+      {pip ? <button type="button" className="player__expand" aria-label="Back to the full player" onClick={() => { haptic("select"); onExpand?.(); }}><Icon name="chevron" size={16} /></button> : null}
       <div className="player__box">
         {playing ? <iframe key={`${video}:${Math.floor(start)}`} src={embed(video, start)} title={title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen /> : (
           <button type="button" className="watch" onClick={() => { haptic("select"); onPlay(); }} aria-label={start > 0 ? `Watch from ${timestamp(start)}` : "Watch the recording"}>
@@ -41,28 +44,61 @@ export function NotesOpener({ lede, at, onSeek, onOpen, count }: { lede?: string
 
 /**
  * The notes as a sheet that slides up under the pinned player and scrolls on its own, like
- * YouTube's comments on a phone: the recording keeps playing above while you read.
+ * YouTube's comments on a phone: the recording keeps playing above while you read. The grip
+ * drags: up, and the notes take the whole screen (the player, if it is playing, shrinks to
+ * a corner picture); down, and they dock under the player again, or close from there.
  */
-export function NotesSheet({ open, onClose, title = "Class notes", sub, action, children }: { open: boolean; onClose: () => void; title?: string; sub?: string; action?: ReactNode; children: ReactNode }) {
+export function NotesSheet({ open, onClose, full = false, onFull, title = "Class notes", sub, action, children }: { open: boolean; onClose: () => void; full?: boolean; onFull?: (full: boolean) => void; title?: string; sub?: string; action?: ReactNode; children: ReactNode }) {
   const [top, setTop] = useState(0);
+  const [safeTop, setSafeTop] = useState(0);
+  const [drag, setDrag] = useState<number | null>(null);
+  const from = useRef<{ y: number; id: number } | null>(null);
   useLayoutEffect(() => {
     if (!open) return;
     window.scrollTo({ top: 0 });
-    const measure = () => { const el = document.querySelector<HTMLElement>(".player"); setTop(el ? Math.round(el.getBoundingClientRect().bottom) : 0); };
+    const measure = () => {
+      const el = document.querySelector<HTMLElement>(".player:not([data-pip])");
+      setTop(el ? Math.round(el.getBoundingClientRect().bottom) : 0);
+      setSafeTop(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-top")) || 0);
+    };
     measure();
     const raf = requestAnimationFrame(measure);
     window.addEventListener("resize", measure);
     return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", measure); };
-  }, [open]);
+  }, [open, full]);
   useEffect(() => {
     if (!open) return;
     const prev = document.documentElement.style.overflow;
     document.documentElement.style.overflow = "hidden";
     return () => { document.documentElement.style.overflow = prev; };
   }, [open]);
+  useEffect(() => { if (!open && full) onFull?.(false); }, [open, full, onFull]);
+  const down = (e: RPointerEvent) => {
+    if ((e.target as HTMLElement).closest("button")) return;
+    from.current = { y: e.clientY, id: e.pointerId };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const move = (e: RPointerEvent) => {
+    if (!from.current || from.current.id !== e.pointerId) return;
+    const dy = e.clientY - from.current.y;
+    // Pulling past the end (up when full, down when the sheet is docked) gives with resistance.
+    setDrag(full ? (dy < 0 ? dy * 0.25 : dy) : dy > 0 ? dy * 0.6 : dy);
+  };
+  const up = (e: RPointerEvent) => {
+    if (!from.current || from.current.id !== e.pointerId) return;
+    const dy = e.clientY - from.current.y;
+    from.current = null;
+    setDrag(null);
+    if (Math.abs(dy) < 8) { haptic("select"); onFull?.(!full); return; }
+    if (dy < -50 && !full) { haptic("select"); onFull?.(true); }
+    else if (dy > 50 && full) { haptic("select"); onFull?.(false); }
+    else if (dy > 90 && !full) { haptic("select"); onClose(); }
+  };
+  const docked = full ? safeTop : top;
+  const style = drag !== null ? { top: Math.max(safeTop, docked + drag), transition: "none" } : { top: docked };
   return (
-    <section className="nsheet" data-open={open ? "" : undefined} aria-hidden={!open} style={{ top }} role="dialog" aria-label={title}>
-      <header className="nsheet__head">
+    <section className="nsheet" data-open={open ? "" : undefined} data-full={full ? "" : undefined} aria-hidden={!open} style={style} role="dialog" aria-label={title}>
+      <header className="nsheet__head" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{ touchAction: "none" }}>
         <span className="nsheet__grip" aria-hidden="true" />
         <div><h2>{title}</h2>{sub ? <small>{sub}</small> : null}</div>
         <span className="nsheet__actions">{action}<button type="button" className="nsheet__close" aria-label="Close the notes" onClick={() => { haptic("select"); onClose(); }}>×</button></span>

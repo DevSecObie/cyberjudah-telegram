@@ -26,6 +26,7 @@ export function Watch() {
   const isLive = params.get("live") === "1";
   const [start, setStart] = useState(t);
   const [playing, setPlaying] = useState(false);
+  const [full, setFull] = useState(false);
   const [notes, setNotes] = useState(false);
   useBackButton(false, () => { if (notes) { setNotes(false); return true; } });
   const res = useTranscriptAround(isLive ? null : video, t);
@@ -60,14 +61,14 @@ export function Watch() {
   );
   return (
     <main className="screen screen--player">
-      <Player video={video} start={start} playing={playing} onPlay={() => setPlaying(true)} title={r.title} />
+      <Player video={video} start={start} playing={playing} onPlay={() => setPlaying(true)} title={r.title} pip={full && notes && playing} onExpand={() => setFull(false)} />
       <header className="note-head">
         <p className="kicker">{[KIND_NAME[r.kind as keyof typeof KIND_NAME] ?? "Recording", fmtDate(r.date)].filter(Boolean).join(" · ")}</p>
         <h1>{r.title}</h1>
       </header>
       {r.url ? <NotesOpener lede={note.data ? noteLede(note.data.body) : undefined} onOpen={() => setNotes(true)} /> : null}
       <TranscriptExcerpt video={video} t={t} chunks={r.chunks} onSeek={seek} />
-      {r.url ? <NotesSheet open={notes} onClose={() => setNotes(false)} sub={note.data?.title ?? r.title}>{note.data ? <NoteBody md={note.data.body} video={video} onSeek={seek} /> : note.isError ? <Empty title="The notes did not load">Try again in a moment.</Empty> : <Skeleton rows={6} />}</NotesSheet> : null}
+      {r.url ? <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={note.data?.title ?? r.title}>{note.data ? <NoteBody md={note.data.body} video={video} onSeek={seek} /> : note.isError ? <Empty title="The notes did not load">Try again in a moment.</Empty> : <Skeleton rows={6} />}</NotesSheet> : null}
     </main>
   );
 }

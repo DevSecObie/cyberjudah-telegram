@@ -48,6 +48,7 @@ export function NoteScreen() {
   // Coming to read (no moment given), the notes open at once; coming from a spoken moment, the words around it come first.
   const [start, setStart] = useState(at ?? 0);
   const [playing, setPlaying] = useState(false);
+  const [full, setFull] = useState(false);
   const [notes, setNotes] = useState(at === null || !!location.hash);
   // Admins edit a note in place: the teacher, the title, a spelling. /api/me says who may.
   const who = useQuery({ queryKey: ["me"], queryFn: () => api<{ canEdit?: boolean }>("/api/me"), staleTime: 600_000, retry: false });
@@ -131,7 +132,7 @@ export function NoteScreen() {
   ) : null;
   if (video) return (
     <main className="screen screen--player">
-      <Player video={video} start={start} playing={playing} onPlay={() => setPlaying(true)} title={n.title} />
+      <Player video={video} start={start} playing={playing} onPlay={() => setPlaying(true)} title={n.title} pip={full && notes && playing} onExpand={() => setFull(false)} />
       {head}
       <NotesOpener lede={noteLede(n.body)} at={noteFirstMoment(n.body)} onSeek={seek} onOpen={() => setNotes(true)} />
       {at !== null && spoken.data?.ok ? <TranscriptExcerpt video={video} t={at} chunks={spoken.data.chunks} onSeek={seek} /> : null}
@@ -139,7 +140,7 @@ export function NoteScreen() {
       {readFrom}
       {isHistory && episode.data?.turns?.length ? <Transcript ep={episode.data} find={params.get("find") ?? ""} onSeek={seek} /> : null}
       {upnext}
-      <NotesSheet open={notes} onClose={() => setNotes(false)} sub={n.title} action={<>{pdfButton}{who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}</>}><NoteBody md={n.body} video={video} onSeek={seek} /></NotesSheet>
+      <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={n.title} action={<>{pdfButton}{who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}</>}><NoteBody md={n.body} video={video} onSeek={seek} /></NotesSheet>
       {editing ? <NoteEditSheet open onClose={() => setEditing(false)} note={n} onSaved={saved} /> : null}
     </main>
   );

@@ -339,6 +339,41 @@ liveDataTest("a class opens like YouTube: the player pinned, the notes in a shee
   await expect(page.locator(".player")).toBeVisible();
 });
 
+liveDataTest("the notes' grip drags them full screen; a playing recording shrinks to a corner picture; down docks them again", async ({ page }) => {
+  await page.goto(`/note/classes/2026/2026-03-28-religion-the-false-prophet${LAUNCH}`);
+  await expect(page.locator(".nsheet[data-open]")).toBeVisible();
+  const docked = (await page.locator(".nsheet").boundingBox())!.y;
+  expect(docked).toBeGreaterThan(150);
+  const drag = async (dy: number) => {
+    const g = (await page.locator(".nsheet__grip").boundingBox())!;
+    const x = g.x + g.width / 2, y = g.y + g.height / 2;
+    await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x, y + dy / 2); await page.mouse.move(x, y + dy); await page.mouse.up();
+  };
+  await drag(-120);
+  await expect(page.locator(".nsheet[data-full]")).toBeVisible();
+  await expect.poll(async () => (await page.locator(".nsheet").boundingBox())!.y).toBeLessThan(10);
+  await expect(page.locator(".player[data-pip]")).toHaveCount(0); // not playing: the notes simply cover the thumbnail
+  await drag(120);
+  await expect(page.locator(".nsheet[data-full]")).toHaveCount(0);
+  await expect.poll(async () => (await page.locator(".nsheet").boundingBox())!.y).toBeGreaterThan(150);
+  // Playing, the recording goes to the corner when the notes go full, and comes back with its button.
+  // (The drag is done by a tap here: the harness cannot drag a captured pointer across the recording's frame.)
+  await page.click(".nsheet__close");
+  await page.click(".player .watch");
+  await expect(page.locator(".player iframe")).toBeAttached();
+  await page.click(".notes-open");
+  await expect(page.locator(".nsheet[data-open]")).toBeVisible();
+  await page.waitForTimeout(400);
+  await page.click(".nsheet__grip"); // a tap on the grip toggles too
+  await expect(page.locator(".player[data-pip]")).toBeVisible();
+  const pip = (await page.locator(".player[data-pip]").boundingBox())!;
+  expect(pip.width).toBeLessThan(300); expect(pip.y).toBeGreaterThan(300);
+  await page.click(".player__expand");
+  await expect(page.locator(".player[data-pip]")).toHaveCount(0);
+  await expect(page.locator(".nsheet[data-full]")).toHaveCount(0);
+  await expect(page.locator(".player iframe")).toBeAttached();
+});
+
 test("what was on the screen: a frame lands in the notes where the teacher pointed at it, a tap from playing there", async ({ page }) => {
   // A storyboard the Worker would serve (one level, 5x5 cells, a frame every 10 s) and two moments the captions flagged.
   const board = { ok: true, duration: 9557, levels: [{ level: 2, w: 160, h: 90, frames: 956, rows: 5, cols: 5, sheets: 39, interval: 10 }] };
