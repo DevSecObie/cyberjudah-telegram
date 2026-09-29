@@ -38,7 +38,7 @@ export const DEFAULT_SETTINGS: BibleSettings = {
   alignContent: "left", lineHeight: "normal", fontSizeScale: 0, textDisplay: "inline",
   preferredColorScheme: "auto", preferredLightTheme: "default", preferredDarkTheme: "dark",
   // "Long press" (Bible Strong's default): a tap selects the verse, a long press opens its resources.
-  press: "longPress", relationsDisplay: "block", tagsDisplay: "inline", fontFamily: "Avenir",
+  press: "longPress", relationsDisplay: "inline", tagsDisplay: "inline", fontFamily: "Avenir",
   shareVerses: { hasVerseNumbers: true, hasInlineVerses: true, hasQuotes: true, hasAppName: true },
   colors: {}, defaultColorNames: {}, defaultColorTypes: {}, customHighlightColors: [],
 };
