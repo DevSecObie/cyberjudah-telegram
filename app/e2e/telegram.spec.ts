@@ -613,3 +613,21 @@ test("Library: The Lost Tribes a Myth, page by page with its scans and maps, and
   await expect(page.locator(".pv")).toBeVisible();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-figure-words.png` });
 });
+
+test("Strong's: a verse's words open the Hebrew or Greek behind them, with every verse that uses it", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await longPressVerse(page, 1);
+  await page.click('.bs-resourcetabs button >> text=Words');
+  await expect(page.locator(".bs-words__w", { hasText: "God" }).first()).toContainText("H430");
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/strongs-words.png` });
+  await page.locator(".bs-words__w", { hasText: "God" }).first().click();
+  await expect(page.locator(".bs-word__lemma")).toHaveText("אֱלֹהִים");
+  await expect(page.locator(".bs-word__meta b")).toHaveText("ʼĕlôhîym");
+  await expect(page.locator(".bs-word__book").first()).toBeVisible();
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/strongs-word.png` });
+  // A verse in the concordance opens in the reader.
+  await page.locator(".bs-word__book").first().locator(".bs-word__bookhead").click();
+  await page.locator(".bs-word__book li button").nth(1).click();
+  await expect(page).toHaveURL(/\/read\/genesis\/1\?v=2/);
+});

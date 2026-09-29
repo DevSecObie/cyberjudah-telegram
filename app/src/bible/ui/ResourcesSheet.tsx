@@ -7,6 +7,7 @@ import { openLink } from "@/tg/sdk";
 import { verseNumbers } from "@/api/data";
 import { Feather } from "../icons";
 import { Sheet } from "./Sheet";
+import { WordSheet } from "./WordSheet";
 import { Xrefs } from "@/ui/xrefs";
 import { preceptsForVerse, slugOfUrl, teacherRank, usePeopleNamed, useTaughtPrecepts } from "@/lib/taught";
 import { fmtDate } from "@/api/data";
@@ -17,15 +18,18 @@ import { fmtDate } from "@/api/data";
  * Lexicon and Compare tabs need Strong's numbers and a second version, which this library
  * does not carry).
  */
-export type ResourceTab = "precepts" | "people" | "dictionary" | "themes" | "references" | "commentary";
+export type ResourceTab = "words" | "precepts" | "people" | "dictionary" | "themes" | "references" | "commentary";
 const TABS: { id: ResourceTab; label: string; subtitle: string }[] = [
-  { id: "precepts", label: "Precepts", subtitle: "Precepts taught with this verse" }, { id: "people", label: "People", subtitle: "People named in this verse" }, { id: "dictionary", label: "Dictionary", subtitle: "Dictionary" }, { id: "themes", label: "Themes", subtitle: "By themes" }, { id: "references", label: "References", subtitle: "Cross References" }, { id: "commentary", label: "Comments", subtitle: "Comments" },
+  { id: "words", label: "Words", subtitle: "Strong's: the Hebrew and Greek behind each word" }, { id: "precepts", label: "Precepts", subtitle: "Precepts taught with this verse" }, { id: "people", label: "People", subtitle: "People named in this verse" }, { id: "dictionary", label: "Dictionary", subtitle: "Dictionary" }, { id: "themes", label: "Themes", subtitle: "By themes" }, { id: "references", label: "References", subtitle: "Cross References" }, { id: "commentary", label: "Comments", subtitle: "Comments" },
 ];
 const STOP = new Set("the and for that with unto them they thou thee thy his him her she you your our this these those from into upon shall will hath have had not but which whom who whose what when where there their were was are said saith came come went also then than all any every because before after more most such very over under out off yet let did doth till until against among".split(" "));
 type Entry = { slug: string; term: string; definitions: string[] };
 
 export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, verse, text, reference, books }: { open: boolean; onClose: () => void; tab: ResourceTab; setTab: (t: ResourceTab) => void; slug: string; chapter: number; verse: number; text: string; reference: string; books: Book[] }) {
   const navigate = useNavigate();
+  const [word, setWord] = useState<string | null>(null);
+  const spans = useQuery({ queryKey: ["chapter", slug, chapter], enabled: open && tab === "words", staleTime: Infinity, queryFn: () => data.chapter(slug, chapter) });
+  const verseWords = spans.data?.verses.find((v) => v.verse === verse)?.words;
   const words = [...new Set(text.replace(/[^A-Za-z' ]/g, " ").split(/\s+/).filter((w) => w.length > 3 && !STOP.has(w.toLowerCase())))].slice(0, 40);
   const dict = useQuery({ queryKey: ["dict-from", words.join(",")], enabled: open && tab === "dictionary" && words.length > 0, queryFn: async () => {
     const hits = await Promise.all(words.map((w) => fetch(`/api/dictionary/lookup?word=${encodeURIComponent(w)}`).then((r) => (r.ok ? (r.json() as Promise<Entry>) : null)).catch(() => null)));
@@ -55,11 +59,18 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   return (
     <Sheet open={open} onClose={onClose} height="full" title={reference} subTitle={TABS.find((t) => t.id === tab)?.subtitle} footer={
       <div className="bs-resourcetabs" role="tablist">
-        {TABS.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} style={{ opacity: tab === t.id ? 1 : 0.3 }} onClick={() => setTab(t.id)}><Feather name={{ precepts: "git-merge", people: "users", dictionary: "book", themes: "layers", references: "external-link", commentary: "edit-3" }[t.id] as "book"} size={18} color="var(--bs-primary)" /><span>{t.label}</span></button>)}
+        {TABS.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} style={{ opacity: tab === t.id ? 1 : 0.3 }} onClick={() => setTab(t.id)}><Feather name={{ words: "hash", precepts: "git-merge", people: "users", dictionary: "book", themes: "layers", references: "external-link", commentary: "edit-3" }[t.id] as "book"} size={18} color="var(--bs-primary)" /><span>{t.label}</span></button>)}
       </div>
     }>
       <div className="bs-resources">
         <p className="bs-resources__verse"><b>{verse}</b> {text}</p>
+        {tab === "words" ? (spans.isPending ? <p className="bs-loading">Loading...</p> : !verseWords ? <p className="bs-loading">Strong's numbers cover the 66 books; this verse has none.</p> : <>
+          <p className="bs-words__hint">Tap a word for the Hebrew or Greek behind it, what it means, and every verse that uses it.</p>
+          <div className="bs-words">{verseWords.map(([t, nums], i) => nums.length
+            ? <button key={i} type="button" className="bs-words__w" onClick={() => setWord(nums[0])}>{t}<small>{nums.join(" ")}</small></button>
+            : <span key={i} className="bs-words__plain">{t}</span>)}</div>
+          {word ? <WordSheet number={word} open onClose={() => { setWord(null); onClose(); }} onBack={() => setWord(null)} books={books} here={{ slug, chapter, verse }} /> : null}
+        </>) : null}
         {tab === "precepts" ? (taught.isPending ? <p className="bs-loading">Loading...</p> : !precepts.length && !topics.length ? <p className="bs-loading">No class has lined a precept up with this verse yet.</p> : <>
           {precepts.map((r, i) => (
             <button key={i} type="button" className="bs-resrow bs-precept" data-kind={r.kind} onClick={() => readRef(r.ref.url, r.ref.verses)}>

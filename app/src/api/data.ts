@@ -22,7 +22,11 @@ async function get<T>(path: string): Promise<T> {
 }
 
 export type Book = { book: string; slug: string; chapters: number; verses: number; testament: "Old Testament" | "New Testament" | "Apocrypha"; url: string; chapterIds: number[] };
-export type Verse = { verse: number; text: string };
+/** A verse, and (for the 66 books) its words in spans, each span ending in a word Strong keyed to its Hebrew or Greek. */
+export type Verse = { verse: number; text: string; words?: [string, string[]][] };
+/** A Strong's number: the Hebrew or Greek word, its meaning, how the King James renders it, and every verse it stands behind. */
+export type StrongsEntry = { number: string; language: "Hebrew" | "Greek"; lemma: string; xlit: string; pron: string; derivation: string; def: string; kjv: string; count: number; verses: number; words: { word: string; count: number }[]; occurrences: { slug: string; book: string; chapter: number; verse: number; text: string; words: string[] }[]; source: string };
+export type StrongsRow = { n: string; lemma: string; xlit: string; def: string; count: number };
 
 /**
  * The Apocrypha in the order and under the names of the 1611 King James Bible: 1 and 2 Esdras,
@@ -96,6 +100,8 @@ export const data = {
   person: (id: string) => get<Person>(`/api/people/${id}.json`),
   people: () => get<PersonIndexRow[]>("/api/people/index.json"),
   library: () => get<LibraryRow[]>("/api/library/index.json"),
+  strongs: (n: string) => get<StrongsEntry>(`/api/strongs/${n}.json`),
+  strongsIndex: () => get<StrongsRow[]>("/api/strongs/index.json"),
   libraryBook: (slug: string) => get<LibraryBook>(`/api/library/${slug}/book.json`),
   libraryChapter: (slug: string, k: number) => get<LibraryChapter>(`/api/library/${slug}/chapter/${k}.json`),
   chapter: (slug: string, ch: number) => get<Chapter>(`/api/kjv/${slug}/${ch}.json`),
