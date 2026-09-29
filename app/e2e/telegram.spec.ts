@@ -609,6 +609,27 @@ test("Library: The Lost Tribes a Myth, page by page with its scans and maps, and
   await expect(page.locator(".pv .said__line").first()).toBeVisible();
   await page.click('.pv [aria-label="Zoom in"]');
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-map.png` });
+  // The handle under the picture drags: up, the words take the whole screen and the picture shrinks to a corner; down, the picture comes back; down again, the words tuck away.
+  const dragGrab = async (dy: number) => {
+    await page.waitForTimeout(450); // let the panel settle where it is going
+    const g = (await page.locator(".pv__grabbar").boundingBox())!;
+    const x = g.x + g.width / 2, y = g.y + g.height / 2;
+    await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x, y + dy / 2); await page.mouse.move(x, y + dy); await page.mouse.up();
+  };
+  await expect(page.locator(".pv--words")).toBeVisible();
+  await dragGrab(-100);
+  await expect(page.locator(".pv--full")).toBeVisible();
+  await expect(page.locator(".pv__mini")).toBeVisible();
+  await expect(page.locator(".pv__grab svg")).toHaveCount(0);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-map-words-full.png` });
+  await dragGrab(100);
+  await expect(page.locator(".pv--words")).toBeVisible();
+  await expect(page.locator(".pv__mini")).toHaveCount(0);
+  await dragGrab(100);
+  await expect(page.locator(".pv--words")).toHaveCount(0);
+  await expect(page.locator(".pv__stage img")).toBeVisible();
+  await page.click(".pv__grabbar"); // a tap brings the words back
+  await expect(page.locator(".pv--words")).toBeVisible();
   await page.click('.pv [aria-label="Next picture"]');
   await expect(page.locator(".pv__title b")).toContainText("From Asia Minor");
   await page.click('.pv [aria-label="Close"]');

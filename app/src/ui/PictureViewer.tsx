@@ -26,14 +26,26 @@ export function PictureViewer({ figure, figures, book, onClose, onChange }: { fi
   const index = Math.max(0, list.findIndex((f) => f.file === figure.file));
   const [scale, setScale] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 });
-  const [words, setWords] = useState(figure.readings.length > 0);
+  const [words, setWords] = useState<0 | 1 | 2>(figure.readings.length > 0 ? 1 : 0); // the panel: tucked away, half, or the whole screen
+  const grab = useRef<{ y: number; id: number } | null>(null);
   const [entered, setEntered] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const gesture = useRef<{ scale: number; dist: number; pos: { x: number; y: number }; mid: { x: number; y: number }; moved: boolean; start: number } | null>(null);
   const lastTap = useRef(0);
   useEffect(() => { const off = sheetOpened(); const id = requestAnimationFrame(() => setEntered(true)); return () => { off(); cancelAnimationFrame(id); }; }, []);
-  useEffect(() => { setScale(1); setPos({ x: 0, y: 0 }); setWords(figure.readings.length > 0); }, [figure.file, figure.readings.length]);
+  useEffect(() => { setScale(1); setPos({ x: 0, y: 0 }); setWords((w) => (figure.readings.length > 0 ? (w === 0 ? 1 : w) : 0)); }, [figure.file, figure.readings.length]);
+  // The handle: drag up for more of the words (half, then the whole screen), down for more of the picture; a tap steps between the picture and the words.
+  const grabDown = (e: RPointerEvent) => { grab.current = { y: e.clientY, id: e.pointerId }; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); };
+  const grabUp = (e: RPointerEvent) => {
+    if (!grab.current || grab.current.id !== e.pointerId) return;
+    const dy = e.clientY - grab.current.y;
+    grab.current = null;
+    haptic("select");
+    if (Math.abs(dy) < 8) setWords((w) => (w === 1 ? 0 : 1));
+    else if (dy < -40) setWords((w) => (w < 2 ? ((w + 1) as 1 | 2) : w));
+    else if (dy > 40) setWords((w) => (w > 0 ? ((w - 1) as 0 | 1) : w));
+  };
 
   const go = (d: 1 | -1) => { const f = list[index + d]; if (f && onChange) { haptic("select"); onChange(f); } };
   const zoomTo = (s: number, at?: { x: number; y: number }) => {
@@ -93,7 +105,7 @@ export function PictureViewer({ figure, figures, book, onClose, onChange }: { fi
   const where = figure.page != null ? `${figure.kind === "foldout" ? "facing " : ""}${book.volumes > 1 ? `${volumeLabel && !/^Volume \d+$/.test(volumeLabel) ? volumeLabel : `vol. ${figure.vol}`}, ` : ""}p. ${figure.page}` : "";
   const name = figure.title || KIND[figure.kind];
   return (
-    <div className={`pv${entered ? " pv--in" : ""}${words ? " pv--words" : ""}`} role="dialog" aria-label={name} data-sheet-open>
+    <div className={`pv${entered ? " pv--in" : ""}${words === 1 ? " pv--words" : words === 2 ? " pv--full" : ""}`} role="dialog" aria-label={name} data-sheet-open>
       <div className="pv__bar">
         <button type="button" className="pv__btn" aria-label="Close" onClick={onClose}><Icon name="back" size={20} /></button>
         <div className="pv__title"><b>{name}</b><small>{[KIND[figure.kind], where, list.length > 1 ? `${index + 1} of ${list.length}` : ""].filter(Boolean).join(" · ")}</small></div>
@@ -110,13 +122,13 @@ export function PictureViewer({ figure, figures, book, onClose, onChange }: { fi
         {scale > 1 ? <span className="pv__zoom">{Math.round(scale * 100)}%</span> : null}
       </div>
       <section className={`pv__panel${words ? " pv__panel--open" : ""}`} aria-label="What the classes said">
-        <button type="button" className="pv__grab" onClick={() => { haptic("select"); setWords((v) => !v); }} aria-expanded={words}>
+        <div className="pv__grab" role="button" tabIndex={0} aria-expanded={words > 0} aria-label={words === 1 ? "Drag up for the words full screen, down for the picture" : words === 2 ? "Drag down for the picture" : "Drag up for what was said"} onPointerDown={grabDown} onPointerUp={grabUp} onPointerCancel={grabUp} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setWords((w) => (w === 1 ? 0 : 1)); } }} style={{ touchAction: "none" }}>
           <span className="pv__grabbar" />
+          {words === 2 ? <button type="button" className="pv__mini" aria-label="Back to the picture" onClick={(e) => { e.stopPropagation(); haptic("select"); setWords(1); }} onPointerDown={(e) => e.stopPropagation()}><img src={src(figure.url)} alt="" /></button> : null}
           <span className="pv__grabtext">
-            {figure.readings.length ? <><b>{figure.readings.length === 1 ? "What was said" : `What was said · ${figure.readings.length} classes`}</b><small>{words ? "Swipe down to see more of the picture" : "Tap to read the classes' words"}</small></> : <><b>{figure.caption || KIND[figure.kind]}</b><small>No class has shown this picture yet</small></>}
+            {figure.readings.length ? <><b>{figure.readings.length === 1 ? "What was said" : `What was said · ${figure.readings.length} classes`}</b><small>{words === 2 ? "Drag down for the picture" : words === 1 ? "Drag up for the words full screen, down for the picture" : "Drag up to read the classes' words"}</small></> : <><b>{figure.caption || KIND[figure.kind]}</b><small>No class has shown this picture yet</small></>}
           </span>
-          <Icon name="chevron" size={18} />
-        </button>
+        </div>
         <div className="pv__scroll">
           {figure.caption && figure.caption !== figure.title ? <p className="pv__caption">{figure.caption}</p> : null}
           {figure.readings.map((r) => (
