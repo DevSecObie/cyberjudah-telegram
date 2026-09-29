@@ -161,19 +161,30 @@ export function SearchField({ value, onChange, onSubmit, placeholder, autoFocus,
 }
 
 export function Skeleton({ rows = 6, thumb = false }: { rows?: number; thumb?: boolean }) {
+  // Shaped like what arrives: a thumbnail card for feeds, a two-line row for lists.
+  if (thumb) return (
+    <div className="feed" aria-busy="true" aria-label="Loading">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="feed__card feed__card--skel"><span className="feed__thumb skel" /><span className="feed__body"><span className="skel" style={{ width: `${62 + ((i * 17) % 30)}%`, height: 16 }} /><span className="skel" style={{ width: "44%", height: 12 }} /><span className="skel" style={{ width: "28%", height: 12 }} /></span></div>
+      ))}
+    </div>
+  );
   return (
     <TgSection className="list" aria-busy="true" aria-label="Loading">
       {Array.from({ length: rows }, (_, i) => (
         <TgSkeleton key={i} visible>
-          <Cell className="row row--skel" multiline before={thumb ? <span className="row__thumb" /> : undefined} subtitle={<span className="skel" style={{ width: `${70 + ((i * 13) % 25)}%` }} />}><span className="skel" style={{ width: "40%" }} /></Cell>
+          <Cell className="row row--skel" multiline subtitle={<span className="skel" style={{ width: `${70 + ((i * 13) % 25)}%` }} />}><span className="skel" style={{ width: `${40 + ((i * 29) % 40)}%` }} /></Cell>
         </TgSkeleton>
       ))}
     </TgSection>
   );
 }
 
-export function Empty({ title, children }: { title: string; children?: ReactNode }) {
-  return <Placeholder className="empty" header={title} description={children} />;
+/** Nothing here yet, and the next thing to do about it. */
+export function Empty({ title, children, action }: { title: string; children?: ReactNode; action?: { label: string; href?: string; onClick?: () => void } }) {
+  return (
+    <Placeholder className="empty" header={title} description={children} action={action ? (action.href ? <Link to={toAppPath(action.href) ?? action.href} className="empty__act" onClick={() => haptic("select")}>{action.label}</Link> : <button type="button" className="empty__act" onClick={() => { haptic("select"); action.onClick?.(); }}>{action.label}</button>) : undefined} />
+  );
 }
 
 export { Button };

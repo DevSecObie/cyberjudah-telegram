@@ -3,7 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { data, fmtDate, type FeedRow, type HistoryRow } from "@/api/data";
-import { useLast, useLastNote } from "@/lib/marks";
+import { pullStyle, usePullToRefresh } from "@/lib/pull";
+import { planDay, schedule } from "@/lib/plan";
+import { useLast, useLastNote, usePlan, useProgress } from "@/lib/marks";
 import { countdown, sabbath } from "@/lib/sun";
 import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
 import { api } from "@/tg/sdk";
@@ -62,6 +64,16 @@ export function Home() {
   const [q, setQ] = useState("");
   const [last] = useLast();
   const [lastNote] = useLastNote();
+  const [plan] = usePlan();
+  const [progress] = useProgress();
+  const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
+  const { pull, busy } = usePullToRefresh();
+  const ps = pullStyle(pull, busy);
+  const sched = plan && books.data ? schedule(plan, books.data, progress) : null;
+  const today = plan && books.data ? planDay(plan, books.data, progress) : null;
+  const todayRead = today ? today.chapters.filter((c) => c.read).length : 0;
+  const lastBook = last && books.data ? books.data.find((b) => b.slug === last.slug) : null;
+  const lastRead = last ? (progress[last.slug] ? String(progress[last.slug]).split(",").reduce((n, r) => { const [a, b] = r.split("-").map(Number); return n + (b ? b - a + 1 : 1); }, 0) : 0) : 0;
   const [loc] = useStored<{ lat: number; lng: number } | null>("loc", null);
   const verse = useQuery({ queryKey: ["votd"], queryFn: () => fetch("/api/verse-of-day").then((r) => r.json() as Promise<Verse>), staleTime: 60 * 60_000 });
   const feed = useTeachings();
@@ -77,10 +89,15 @@ export function Home() {
 
   return (
     <Screen className="home">
+      <div className="pull" style={{ height: ps.height, opacity: ps.opacity }} aria-hidden="true">{ps.label}</div>
       <div className="hello">
         <img src="/brand/cyber-lion.webp" alt="" width={44} height={44} onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
         <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>What do you want to learn?</h1></div>
       </div>
+      <Link to={verse.data ? `/read/${verse.data.slug}/${verse.data.chapter}?v=${verse.data.verse}` : "/bible"} className="hero" onClick={() => haptic("select")}>
+        <small>Today's Scripture</small>
+        {verse.data ? <><p className="hero__verse">{verse.data.text}</p><span className="hero__ref">{verse.data.ref}</span></> : <p className="hero__verse" style={{ opacity: 0.5 }}>Loading the day's verse…</p>}
+      </Link>
       <SearchHero value={q} onChange={setQ} onSubmit={search} big />
       <div className="door">
         <button type="button" className="door__btn" onClick={() => { if (q.trim()) search(q); else document.getElementById("q")?.focus(); }}><Icon name="search" size={18} /> Search</button>
@@ -102,10 +119,18 @@ export function Home() {
         </Link>
       ) : null}
 
+      {sched && today && plan ? (
+        <Link to="/plan" className="streak" onClick={() => haptic("select")}>
+          <span className="streak__day"><b>Day {plan.day}</b><small>{sched.owed ? `${sched.owed} to catch up` : `${today.pct}% of the library`}</small></span>
+          <span className="streak__bar"><i style={{ width: `${Math.round((todayRead / Math.max(1, today.chapters.length)) * 100)}%` }} /></span>
+          <span className="streak__due">{todayRead}/{today.chapters.length} today</span>
+          {plan.streak ? <span className="streak__fire">🔥 {plan.streak}</span> : null}
+        </Link>
+      ) : null}
       {(lastNote || last) ? (
         <div className="resume">
           {lastNote ? <Link to={lastNote.href} className="resume__item"><span className="resume__icon"><Icon name="play" size={18} /></span><span><small>Continue watching</small><b>{lastNote.title}</b></span></Link> : null}
-          {last ? <Link to={`/read/${last.slug}/${last.chapter}`} className="resume__item"><span className="resume__icon"><Icon name="book" size={18} /></span><span><small>Continue reading</small><b>{last.name}</b></span></Link> : null}
+          {last ? <Link to={`/read/${last.slug}/${last.chapter}`} className="resume__item"><span className="resume__icon"><Icon name="book" size={18} /></span><span><small>Continue reading{lastBook ? ` · ${lastRead} of ${lastBook.chapters} chapters` : ""}</small><b>{last.name}</b>{lastBook ? <span className="resume__bar"><i style={{ width: `${Math.round((lastRead / Math.max(1, lastBook.chapters)) * 100)}%` }} /></span> : null}</span></Link> : null}
         </div>
       ) : null}
 
@@ -131,10 +156,6 @@ export function Home() {
         </div>
       </Section>
 
-      <Card glow href={verse.data ? `/read/${verse.data.slug}/${verse.data.chapter}?v=${verse.data.verse}` : "/bible"}>
-        <p className="card__label">Today's Scripture</p>
-        {verse.data ? <><p className="verse">{verse.data.text}</p><p className="card__ref">{verse.data.ref}</p></> : <p className="verse" style={{ opacity: 0.5 }}>Loading the day's verse…</p>}
-      </Card>
     </Screen>
   );
 }

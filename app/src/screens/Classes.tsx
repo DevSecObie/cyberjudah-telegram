@@ -46,7 +46,7 @@ export function Classes() {
           ) : null}
         </div>
       ) : null}
-      {res.isPending ? <Skeleton rows={8} thumb /> : res.isError ? <Empty title="The classes did not load">Check your connection and try again.</Empty> : !rows.length ? <Empty title="No class matches that">Try a topic like “Passover”, or a book like “Isaiah”.</Empty> : (
+      {res.isPending ? <Skeleton rows={8} thumb /> : res.isError ? <Empty title="The classes did not load">Check your connection and try again.</Empty> : !rows.length ? <Empty title="No class matches that" action={{ label: "Clear filters", onClick: () => { setQ(""); set({ feed: "all", teacher: undefined, year: undefined }); } }}>Try a topic like “Passover”, or a book like “Isaiah”.</Empty> : (
         <>
           <p className="hint">{rows.length} {rows.length === 1 ? "teaching" : "teachings"}</p>
           <div className="feed">

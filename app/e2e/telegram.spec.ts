@@ -168,11 +168,11 @@ test("Font and settings: night theme, verse mode, text size, fonts, all kept in 
   await page.click(".bs-menu__item >> text=Font and settings");
   await expect(page.locator(".bs-params__row").first()).toContainText("Theme");
   await page.click('.bs-touchicon[aria-label="Day"]');
-  await expect(page.locator(".bs")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.locator(".bs")).toHaveCSS("background-color", "rgb(252, 251, 247)");
   await page.click('.bs-touchicon[aria-label="Night"]');
   await expect(page.locator(".bs")).toHaveCSS("background-color", "rgb(18, 45, 66)");
   await page.click('[role=radio][aria-label="Black"]');
-  await expect(page.locator(".bs")).toHaveCSS("background-color", "rgb(0, 0, 0)");
+  await expect(page.locator(".bs")).toHaveCSS("background-color", "rgb(9, 9, 11)");
   await page.click('.bs-touchicon[aria-label="Increase text size"]');
   await expect(page.locator(".bs-params__value >> text=110%")).toBeVisible();
   await page.click('.bs-touchicon[aria-label^="Verse mode"]');
