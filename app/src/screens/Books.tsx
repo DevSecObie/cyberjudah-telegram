@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { data, DATA_ORIGIN, fmtDate, type BookChapterRow, type BookFigure, type ClassReading, type LibraryBook } from "@/api/data";
 import { useBackButton } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
+import { PictureViewer, Said } from "@/ui/PictureViewer";
 import { Empty, Icon, List, Row, Screen, Section, Skeleton } from "@/ui/ui";
 
 /**
@@ -101,7 +102,7 @@ export function BookScreen() {
       ))}
 
       <p className="hint">{b.license} Text and page scans from the copy at the Internet Archive.</p>
-      {figure ? <FigureViewer figure={figure} book={b} onClose={() => setFigure(null)} /> : null}
+      {figure ? <PictureViewer figure={figure} figures={b.figures} book={b} onClose={() => setFigure(null)} onChange={setFigure} /> : null}
     </Screen>
   );
 }
@@ -159,11 +160,7 @@ export function BookChapterScreen() {
               </header>
               {p.reads.length ? (
                 <div className="bookpage__reads">
-                  {(open.has(p.img) ? p.reads : p.reads.slice(0, 2)).map((r) => (
-                    <Link key={`${r.video}-${r.t}`} to={readingHref(r)} className="bookpage__read">
-                      <Icon name="play" size={12} /> <span>Read in <b>{r.title || "a class"}</b>{r.date ? ` · ${fmtDate(r.date)}` : ""} · {r.ts}</span>
-                    </Link>
-                  ))}
+                  {(open.has(p.img) ? p.reads : p.reads.slice(0, 2)).map((r) => <PageReading key={`${r.video}-${r.t}`} r={r} />)}
                   {p.reads.length > 2 && !open.has(p.img) ? <button type="button" className="bookpage__more" onClick={() => setOpen((s) => new Set(s).add(p.img))}>Read in {p.reads.length - 2} more {p.reads.length - 2 === 1 ? "class" : "classes"}</button> : null}
                 </div>
               ) : null}
@@ -188,29 +185,27 @@ export function BookChapterScreen() {
         {prev ? <Link to={`/books/${slug}/${prev.k}`} className="upnext__card"><small>Before this</small><b>{prev.title}</b><span>{label(prev)}</span></Link> : null}
         <Link to={`/books/${slug}`} className="upnext__card"><small>The book</small><b>{b.title}</b><span>Contents, pictures and classes</span></Link>
       </nav>
-      {figure ? <FigureViewer figure={figure} book={b} onClose={() => setFigure(null)} /> : null}
+      {figure ? <PictureViewer figure={figure} figures={b.figures} book={b} onClose={() => setFigure(null)} onChange={setFigure} /> : null}
     </Screen>
   );
 }
 
-/** A picture full screen: scroll around it, zoom in to read the small print. */
-function FigureViewer({ figure, book, onClose }: { figure: BookFigure; book: LibraryBook; onClose: () => void }) {
-  const [zoom, setZoom] = useState(1);
-  const steps = [1, 2, 3.5];
-  const volumeLabel = book.chapters.find((c) => c.vol === figure.vol)?.volume;
-  const name = figure.title || KIND[figure.kind];
+/** One class's reading of a page: who and when, and, opened, the words spoken as it was read. */
+function PageReading({ r }: { r: Omit<ClassReading, "page" | "vol"> }) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const watch = (t: number) => { haptic("select"); navigate(`/watch/${r.video}?t=${t}`); };
   return (
-    <div className="mapview" role="dialog" aria-label={name}>
-      <div className="mapview__bar">
-        <b>{name}</b>
-        <button type="button" aria-label="Zoom out" disabled={zoom === steps[0]} onClick={() => setZoom(steps[Math.max(0, steps.indexOf(zoom) - 1)])}>−</button>
-        <button type="button" aria-label="Zoom in" disabled={zoom === steps[steps.length - 1]} onClick={() => setZoom(steps[Math.min(steps.length - 1, steps.indexOf(zoom) + 1)])}>+</button>
-        <button type="button" aria-label="Close" onClick={onClose}>✕</button>
-      </div>
-      <div className="mapview__scroll">
-        <img src={src(figure.url)} alt={name} style={{ width: `${zoom * 100}%` }} onDoubleClick={() => setZoom(zoom === 1 ? 2 : 1)} />
-      </div>
-      <p className="mapview__cap">{[figure.caption && figure.caption !== figure.title ? figure.caption : "", `${KIND[figure.kind]}${figure.page != null ? `, ${figure.kind === "foldout" ? "facing " : ""}${pageLabel(book, figure.vol, figure.page, volumeLabel)}` : ""}`, book.title].filter(Boolean).join(". ")}.</p>
+    <div className={`bookpage__read${open ? " bookpage__read--open" : ""}`}>
+      <button type="button" className="bookpage__readhead" onClick={() => { haptic("select"); setOpen((v) => !v); }} aria-expanded={open}>
+        <Icon name="chat" size={14} /> <span>Read in <b>{r.title || "a class"}</b>{r.date ? ` · ${fmtDate(r.date)}` : ""} · {r.ts}</span><Icon name="chevron" size={16} />
+      </button>
+      {open ? (
+        <div className="bookpage__said">
+          <Said lines={r.said ?? []} at={r.t} onSeek={watch} compact />
+          <Link to={readingHref(r)} className="bookpage__watch"><Icon name="play" size={14} /> {r.url ? "Open the class notes here" : "Watch from this moment"}</Link>
+        </div>
+      ) : null}
     </div>
   );
 }

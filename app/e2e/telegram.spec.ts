@@ -568,11 +568,16 @@ test("Library: The Lost Tribes a Myth, page by page with its scans and maps, and
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book.png` });
   // A map opens full screen and closes.
   await page.locator(".book__figures .book__figure").first().click();
-  await expect(page.locator(".mapview")).toBeVisible();
-  await page.click('.mapview [aria-label="Zoom in"]');
+  await expect(page.locator(".pv")).toBeVisible();
+  // The classes that showed the map, with their words, under the picture.
+  await expect(page.locator(".pv__class").first()).toBeVisible();
+  await expect(page.locator(".pv .said__line").first()).toBeVisible();
+  await page.click('.pv [aria-label="Zoom in"]');
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-map.png` });
-  await page.click('.mapview [aria-label="Close"]');
-  await expect(page.locator(".mapview")).toHaveCount(0);
+  await page.click('.pv [aria-label="Next picture"]');
+  await expect(page.locator(".pv__title b")).toContainText("From Asia Minor");
+  await page.click('.pv [aria-label="Close"]');
+  await expect(page.locator(".pv")).toHaveCount(0);
   // Chapter X, page by page, with the classes that read each page.
   await page.locator("a", { hasText: "Berber, Moorish, and Negro Jews" }).click();
   await expect(page.locator("#pg-246 .bookpage__read").first()).toBeVisible();
@@ -600,6 +605,11 @@ test("Library: The Lost Tribes a Myth, page by page with its scans and maps, and
   await page.locator(".bookpage__fig").first().scrollIntoViewIfNeeded();
   await expect.poll(() => page.locator(".bookpage__fig img").first().evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-figure-page.png` });
+  // A page's reading opens to the words spoken as it was read.
+  await page.locator(".bookpage__readhead").first().click();
+  await expect(page.locator(".bookpage__said .said__line").first()).toBeVisible();
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-said.png` });
   await page.locator(".bookpage__fig").first().click();
-  await expect(page.locator(".mapview")).toBeVisible();
+  await expect(page.locator(".pv")).toBeVisible();
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/book-figure-words.png` });
 });

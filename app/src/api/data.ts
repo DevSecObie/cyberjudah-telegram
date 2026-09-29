@@ -64,9 +64,11 @@ export type Note = NoteRow & { body: string; file?: string | null; books?: BookR
 /** A public-domain book the classes read from (data/library), and the moments they read it. */
 export type BookRead = { slug: string; title: string; vol: number; page: number; t: number; ts: string; video?: string };
 export type LibraryRow = { slug: string; title: string; subtitle: string; author: string; year: number; pages: number; volumes: number; chapters: number; figures: number; cover: string | null; reads: number; classes: number };
-export type ClassReading = { video: string; vol: number; page: number; t: number; ts: string; title: string; date: string | null; teacher: string; url: string | null };
+/** A line of what the class said, from the recording's captions, at that second. */
+export type SaidLine = { t: number; text: string };
+export type ClassReading = { video: string; vol: number; page: number; t: number; ts: string; title: string; date: string | null; teacher: string; url: string | null; said?: SaidLine[] };
 export type BookChapterRow = { k: number; n: string; title: string; vol: number; volume: string; page: number; end: number; topics: string; reads: number };
-export type BookFigure = { kind: "foldout" | "plate" | "figure"; title: string; caption: string; vol: number; page: number | null; img: number; file: string; url: string; width: number; height: number; chapter: number; reads: number };
+export type BookFigure = { kind: "foldout" | "plate" | "figure"; title: string; caption: string; vol: number; page: number | null; img: number; file: string; url: string; width: number; height: number; chapter: number; reads: number; readings: Omit<ClassReading, "page" | "vol">[] };
 export type LibraryBook = LibraryRow & { publisher: string; license: string; source: string; items: { id: string; label: string }[]; scan: string; chapters: BookChapterRow[]; figures: BookFigure[]; reads: ClassReading[] };
 export type BookPage = { vol: number; page: number; img: number; words: number; text: string; reads: Omit<ClassReading, "page" | "vol">[]; figure: string | null; foldout: BookFigure | null };
 export type LibraryChapter = BookChapterRow & { item: string | null; pages: BookPage[] };
