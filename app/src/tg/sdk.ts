@@ -129,6 +129,10 @@ export function lockPortrait(on: boolean) {
 }
 export const hideKeyboard = () => { if (features.hideKeyboard) app!.hideKeyboard(); else (document.activeElement as HTMLElement | null)?.blur(); };
 
+/** A refusal from the bot backend: its status, and the reason it gave when it gave one ("stale" launch data, "unavailable"…). */
+export class ApiError extends Error {
+  constructor(public status: number, public path: string, public reason?: string) { super(`${status} ${path}${reason ? ` (${reason})` : ""}`); }
+}
 /** The bot backend, authenticated with the launch data. */
 export async function api<T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
   const headers = new Headers(init?.headers);
@@ -136,7 +140,11 @@ export async function api<T>(path: string, init?: RequestInit & { json?: unknown
   let body = init?.body;
   if (init?.json !== undefined) { headers.set("content-type", "application/json"); body = JSON.stringify(init.json); }
   const res = await fetch(path, { ...init, headers, body });
-  if (!res.ok) throw new Error(`${res.status} ${path}`);
+  if (!res.ok) {
+    let reason: string | undefined;
+    try { reason = ((await res.json()) as { reason?: string; error?: string }).reason; } catch { /* no body */ }
+    throw new ApiError(res.status, path, reason);
+  }
   return (await res.json()) as T;
 }
 

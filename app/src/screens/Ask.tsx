@@ -4,7 +4,8 @@ import { useNavigate, useSearchParams } from "react-router";
 
 import { fmtDate } from "@/api/data";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
-import { api, app, confirm, haptic, hideKeyboard, openInvoice } from "@/tg/sdk";
+import { api, ApiError, app, confirm, haptic, hideKeyboard, openInvoice } from "@/tg/sdk";
+import { Trouble } from "@/ui/trouble";
 import { Sheet } from "@/bible/ui/Sheet";
 import { Icon, timestamp } from "@/ui/ui";
 import { KIND_LABEL, hitPath, teachingPath } from "@/ui/search-hero";
@@ -82,7 +83,7 @@ export function Ask() {
     const ctl = new AbortController(); abortRef.current = ctl;
     try {
       const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, stream: true, chat: id }) });
-      if (!res.ok || !res.body) { patch((t) => ({ ...t, thinking: false, error: res.status === 402 ? "allowance" : res.status === 429 ? "limit" : "unavailable" })); if (res.status === 402) void loadAccount(); return; }
+      if (!res.ok || !res.body) { patch((t) => ({ ...t, thinking: false, error: res.status === 402 ? "allowance" : res.status === 429 ? "limit" : res.status === 401 ? "session" : `unavailable:${res.status}` })); if (res.status === 402) void loadAccount(); return; }
       const reader = res.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
       for (;;) {
         const { value, done } = await reader.read();
@@ -135,7 +136,7 @@ export function Ask() {
         <div className="chat2__turns">
           {turns.map((t, i) => t.role === "user"
             ? <div key={`${chatId}-${i}`} className="msg msg--me"><div className="msg__bubble">{t.content}</div></div>
-            : <AssistantTurn key={`${chatId}-${i}`} t={t} last={i === turns.length - 1} busy={busy} onRetry={() => void send(lastUser, true)} onFollow={(q) => void send(q)} onPlans={() => setPlans(true)} />)}
+            : <AssistantTurn key={`${chatId}-${i}`} t={t} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} onRetry={() => void send(lastUser, true)} onFollow={(q) => void send(q)} onPlans={() => setPlans(true)} />)}
           <div ref={endRef} className="chat2__end" />
         </div>
       )}
@@ -155,7 +156,7 @@ export function Ask() {
   );
 }
 
-function AssistantTurn({ t, last, busy, onRetry, onFollow, onPlans }: { t: Turn; last: boolean; busy: boolean; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void }) {
+function AssistantTurn({ t, question, last, busy, onRetry, onFollow, onPlans }: { t: Turn; question: string; last: boolean; busy: boolean; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void }) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const sources = t.sources ?? [];
@@ -182,10 +183,12 @@ function AssistantTurn({ t, last, busy, onRetry, onFollow, onPlans }: { t: Turn;
           <button type="button" className="paywall__go" onClick={onPlans}>See the plans</button>
         </div>
       ) : t.error && !t.content ? (
-        <div className="msg__error">
-          <p>{t.error === "limit" ? "That is a hundred questions today. The count starts again tomorrow." : t.error === "too-short" ? "Ask a fuller question." : t.error === "stopped" ? "Stopped." : "CyberJudah did not answer just now."}</p>
-          {last && t.error !== "limit" ? <button type="button" className="msg__action" onClick={onRetry}><Icon name="retry" size={16} />Try again</button> : null}
-        </div>
+        t.error === "limit" || t.error === "too-short" || t.error === "stopped" ? (
+          <div className="msg__error">
+            <p>{t.error === "limit" ? "That is a hundred questions today. The count starts again tomorrow." : t.error === "too-short" ? "Ask a fuller question." : "Stopped."}</p>
+            {last && t.error !== "limit" ? <button type="button" className="msg__action" onClick={onRetry}><Icon name="retry" size={16} />Try again</button> : null}
+          </div>
+        ) : <Trouble error={new ApiError(t.error === "session" ? 401 : Number(t.error?.split(":")[1]) || 503, "/api/ask", t.error === "session" ? "stale" : t.error)} what="ask" q={question} onRetry={last ? onRetry : undefined} />
       ) : (
         <>
           <div className="msg__text" onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />

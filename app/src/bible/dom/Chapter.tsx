@@ -25,6 +25,8 @@ export type ChapterProps = {
   highlights: Record<string, Highlight>; tags: Record<string, Tag>; bookmarks: Bookmark[];
   relationItems: Record<number, VerseRelationItem[]>;
   headerHeight: number; fullscreen: boolean; canSwipe: boolean;
+  /** Space kept clear at the bottom for the chapter and audio controls, so they never sit on the text. */
+  bottomInset?: number;
   onToggleVerse: (v: number) => void; onVerseDetail: (v: number) => void; onDoubleTap?: (v: number) => void;
   onSwipe: (dir: "left" | "right") => void; onFullscreen: (on: boolean) => void;
   onOpenBookmark: (b: Bookmark) => void; onOpenRelations: (v: number) => void; onOpenRelationItem: (it: VerseRelationItem) => void; onOpenTags: (v: number) => void; onOpenTag: (id: string) => void;
@@ -126,7 +128,7 @@ export function Chapter(p: ChapterProps) {
   }, [lastSelected, p.headerHeight]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div ref={scrollRef} className="bs-scroll" style={{ background: c.reverse, color: c.default }}>
+    <div ref={scrollRef} className="bs-scroll" style={{ background: c.reverse, color: c.default, bottom: p.bottomInset ?? 0 }}>
       <div className="bs-container" style={{ maxWidth: READING_TEXT_MAX_WIDTH + HORIZONTAL_PADDING * 2, padding: `${p.headerHeight + 10}px ${HORIZONTAL_PADDING}px 300px`, textAlign: s.alignContent, background: c.reverse, color: c.default }}>
         {p.verses.map((row) => {
           const n = row.verse;

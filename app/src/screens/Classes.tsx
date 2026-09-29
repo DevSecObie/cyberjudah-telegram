@@ -35,10 +35,16 @@ export function Classes() {
       <Segmented label="Series" value={feed} onChange={(f) => set({ feed: f, teacher: undefined, year: undefined })} options={FEEDS} />
       <SearchField id="class-q" value={q} onChange={(v) => { setQ(v); setShown(PAGE); }} placeholder="Title, topic, book or teacher" />
       {teachers.length > 1 || years.length > 1 ? (
-        <Chips>
-          {years.length > 1 ? years.slice(0, 8).map((y) => <Chip key={y} on={year === y} onClick={() => set({ year: year === y ? undefined : y })}>{y}</Chip>) : null}
-          {teachers.length > 1 ? teachers.map((t) => <Chip key={t} on={teacher === t} onClick={() => set({ teacher: teacher === t ? undefined : t })}>{t}</Chip>) : null}
-        </Chips>
+        <div className="filters">
+          {years.length > 1 ? <div className="filters__row"><small>Year</small><Chips>{years.slice(0, 10).map((y) => <Chip key={y} on={year === y} onClick={() => set({ year: year === y ? undefined : y })}>{y}</Chip>)}</Chips></div> : null}
+          {teachers.length > 1 ? <div className="filters__row"><small>Teacher</small><Chips>{teachers.map((t) => <Chip key={t} on={teacher === t} onClick={() => set({ teacher: teacher === t ? undefined : t })}>{t}</Chip>)}</Chips></div> : null}
+          {teacher || year || feed !== "all" ? (
+            <div className="filters__active">
+              <span>Showing{feed !== "all" ? ` ${FEEDS.find(([f]) => f === feed)?.[1] ?? feed}` : ""}{teacher ? ` · ${teacher}` : ""}{year ? ` · ${year}` : ""}</span>
+              <button type="button" onClick={() => { setQ(""); set({ feed: "all", teacher: undefined, year: undefined }); }}>Clear filters</button>
+            </div>
+          ) : null}
+        </div>
       ) : null}
       {res.isPending ? <Skeleton rows={8} thumb /> : res.isError ? <Empty title="The classes did not load">Check your connection and try again.</Empty> : !rows.length ? <Empty title="No class matches that">Try a topic like “Passover”, or a book like “Isaiah”.</Empty> : (
         <>

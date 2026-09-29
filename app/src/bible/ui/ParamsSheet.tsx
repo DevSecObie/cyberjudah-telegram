@@ -19,7 +19,7 @@ export function ParamsSheet({ open, onClose, settings: s, set, palette }: { open
   const lh = { normal: "Normal", small: "Small", large: "Large" }[s.lineHeight];
   const td = { inline: "Inline", block: "Line break" }[s.textDisplay];
   const scheme = { light: "Day", dark: "Night", auto: "Auto" }[s.preferredColorScheme];
-  const rd = { inline: "Line break", block: "With icon" }[s.relationsDisplay];
+  const rd = { inline: "Chips under the verse", block: "One badge per verse" }[s.relationsDisplay];
   const tg = { inline: "Line break", block: "With icon" }[s.tagsDisplay];
   const press = { shortPress: "Short press", longPress: "Long press" }[s.press];
   return (

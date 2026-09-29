@@ -11,6 +11,7 @@ import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { api, haptic, openLink, setClosingConfirmation, alert, downloadFile, features } from "@/tg/sdk";
 import { useSheet } from "@/ui/sheet";
 import { NoteBody, noteLede } from "@/ui/note-body";
+import { noteFirstMoment } from "@/ui/note-body";
 import { NotesOpener, NotesSheet, Player } from "@/ui/player";
 import { NoteEditSheet } from "@/ui/note-edit";
 import { Empty, Icon, Skeleton, timestamp, youtube } from "@/ui/ui";
@@ -91,8 +92,13 @@ export function NoteScreen() {
     }
   };
   const pdfButton = <button type="button" className="icon-btn" aria-label="Export as PDF" onClick={() => void exportPdf()}><Icon name="download" size={18} /></button>;
+  // The verse the reader came from (a precept, a comment or a theme opened this note): a way straight back to it.
+  const from = params.get("from");
+  const fromLabel = (() => { const m = from && /^\/read\/([a-z0-9-]+)\/(\d+)(?:\?v=(\d+))?/.exec(from); if (!m) return null; const book = m[1].split("-").map((w) => (/^\d/.test(w) ? w : w[0].toUpperCase() + w.slice(1))).join(" "); return `${book} ${m[2]}${m[3] ? `:${m[3]}` : ""}`; })();
+  const backTo = from && fromLabel ? <Link to={from} className="backto"><Icon name="back" size={14} /> Back to {fromLabel}</Link> : null;
   const head = (
     <header className="note-head">
+      {backTo}
       <p className="kicker">{[KIND[n.kind] ?? "", when(n.date, n.teacher)].filter(Boolean).join(" · ")}</p>
       <h1>{n.title}</h1>
       <div className="head__actions">
@@ -127,7 +133,7 @@ export function NoteScreen() {
     <main className="screen screen--player">
       <Player video={video} start={start} playing={playing} onPlay={() => setPlaying(true)} title={n.title} />
       {head}
-      <NotesOpener lede={noteLede(n.body)} onOpen={() => setNotes(true)} />
+      <NotesOpener lede={noteLede(n.body)} at={noteFirstMoment(n.body)} onSeek={seek} onOpen={() => setNotes(true)} />
       {at !== null && spoken.data?.ok ? <TranscriptExcerpt video={video} t={at} chunks={spoken.data.chunks} onSeek={seek} /> : null}
       {taught}
       {readFrom}

@@ -16,7 +16,7 @@ html[data-fullscreen="yes"] .reader__bar { padding-top: 4px; }
   --a-line: var(--color-hair, #1b2740);
   --a-ink: var(--color-ink, #dbe5f0);
   --a-ink-2: var(--color-ink-2, #f2f6fb);
-  --a-muted: var(--color-muted, #8298b4);
+  --a-muted: var(--color-muted, #93a6bf);
   --a-accent: var(--color-cyan, #00e5ff);
   --a-hot: var(--color-magenta, #ff2d78);
   --a-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
@@ -167,7 +167,10 @@ html[data-tg="yes"] .steps { display: none; }
 .player__box { position: relative; aspect-ratio: 16 / 9; background: #000; overflow: hidden; }
 .player__box iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .player .watch { border-radius: 0; height: 100%; }
-.notes-open { display: grid; grid-template-columns: 1fr auto; column-gap: 10px; align-items: center; width: 100%; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--a-line); background: var(--a-card); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.notes-open { display: grid; gap: 1px; width: 100%; border-radius: 16px; border: 1px solid var(--a-line); background: var(--a-card); overflow: hidden; }
+#root .notes-open__main { display: grid; grid-template-columns: 1fr auto; column-gap: 10px; align-items: center; width: 100%; padding: 12px 14px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+#root .notes-open__at { display: flex; align-items: center; gap: 6px; width: 100%; padding: 9px 14px; border: 0; border-top: 1px solid var(--a-line); background: color-mix(in srgb, var(--a-accent) 7%, transparent); color: var(--a-accent); font: 600 13px var(--a-ui); text-align: left; cursor: pointer; }
+.backto { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 10px; padding: 6px 12px 6px 9px; border-radius: 12px; background: color-mix(in srgb, var(--a-accent) 12%, transparent); color: var(--a-accent); font: 600 13px var(--a-ui); text-decoration: none; }
 .notes-open__head { display: flex; align-items: center; gap: 8px; color: var(--a-accent); }
 .notes-open__head b { font: 600 14px var(--a-ui); color: var(--a-ink-2); }
 .notes-open__head small { font: 500 12px var(--a-ui); color: var(--a-muted); }
@@ -871,3 +874,24 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 .pv__classhead small { font: 400 12px var(--a-ui); color: #b8bcc8; }
 .pv__frame { border-radius: 10px; overflow: hidden; }
 #root .pv__play { justify-self: start; display: inline-flex; align-items: center; gap: 6px; margin-top: 2px; padding: 6px 11px; border: 0; border-radius: 11px; background: #ffd27a; color: #1a1400; font: 600 12px var(--a-ui); cursor: pointer; }
+
+/* When Search or Ask cannot answer: what it is, and the ways on */
+.trouble { display: grid; gap: 10px; padding: 14px 14px 12px; border-radius: 16px; background: var(--a-card-2); border: 1px solid var(--a-line); }
+.trouble__head { display: flex; align-items: center; gap: 10px; }
+.trouble__head b { font: 600 15px/1.3 var(--a-ui); color: var(--a-ink); }
+.trouble__badge { width: 30px; height: 30px; flex: none; border-radius: 15px; display: grid; place-items: center; background: color-mix(in srgb, var(--a-hot, #ff8c42) 18%, transparent); color: var(--a-hot, #ff8c42); }
+.trouble__why { margin: 0; font: 400 14px/1.5 var(--a-ui); color: var(--a-ink-2); }
+.trouble__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+#root .trouble__act { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid var(--a-line); border-radius: 12px; background: var(--a-card); color: var(--a-ink); font: 600 13px var(--a-ui); cursor: pointer; }
+#root .trouble__act--primary { background: var(--a-accent); border-color: var(--a-accent); color: var(--color-void, #05070f); }
+
+/* Classes: one row per filter, and what is on */
+.filters { display: grid; gap: 8px; margin: 4px 0 10px; }
+.filters__row { display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 8px; }
+.filters__row small { font: 600 11px var(--a-ui); letter-spacing: .04em; text-transform: uppercase; color: var(--a-muted); }
+.filters__row .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.filters__active { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--a-accent) 10%, transparent); font: 500 13px var(--a-ui); color: var(--a-ink-2); }
+#root .filters__active button { border: 0; background: none; padding: 0; color: var(--a-accent); font: 600 13px var(--a-ui); cursor: pointer; }
+
+/* One look for every "show more" link */
+#root .person__more, #root .bookpage__more, #root .section__more, #root .bs-word__more { border: 0; background: none; padding: 8px 0 0; color: var(--a-accent); font: 600 14px var(--a-ui); cursor: pointer; }

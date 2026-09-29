@@ -42,7 +42,8 @@ export function App() {
   }, []);
 
   // The tab bar stays on every screen, as in an iOS app, except the player, which takes the screen.
-  const tabs = !/^\/(note|watch)\//.test(location.pathname);
+  // The tab bar stays through a class note or a recording: a reader who came from a verse is still in the app.
+  const tabs = true;
   // Like an iOS app, the look follows the phone (through Telegram) until the reader picks one.
   const [theme] = useStored<string>("theme", "system");
   const { scheme } = useTheme();

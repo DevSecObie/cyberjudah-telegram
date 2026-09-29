@@ -35,11 +35,17 @@ app.use("/api/*", async (c, next) => {
   // The frames' geometry is public like the sheets themselves: the library's build reads it to place frames in the notes.
   // A note's PDF is fetched by Telegram's downloader, which carries no launch data: its link is signed instead.
   if (c.req.method === "GET" && c.req.path.startsWith("/api/pdf/")) return next();
-  if (c.req.path === "/api/verse-of-day" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
+  if (c.req.path === "/api/verse-of-day" || c.req.path === "/api/health" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
-  // Three days: a Mini App stays open across a weekend of study without its launch data going stale.
-  const data = m ? await validateInitData(m[1], c.env.BOT_TOKEN, 3 * 86400) : null;
-  if (!data?.user) return c.json({ error: "unauthorized" }, 401);
+  // Thirty days: Telegram keeps a Mini App open in the background for weeks, and its launch
+  // data is only made afresh when it is opened again, so a short window turned every Search
+  // and Ask into "not answering" for a reader who never closed the app. The signature still
+  // proves who is asking; the age check only bounds a replay.
+  const data = m ? await validateInitData(m[1], c.env.BOT_TOKEN, 30 * 86400) : null;
+  if (!data?.user) {
+    const stale = m ? !!(await validateInitData(m[1], c.env.BOT_TOKEN, 10 * 365 * 86400))?.user : false;
+    return c.json({ error: "unauthorized", reason: stale ? "stale" : m ? "invalid" : "missing" }, 401);
+  }
   c.set("tma", data);
   await next();
 });
@@ -51,6 +57,16 @@ app.post("/webhook", async (c) => {
   return webhookCallback(bot, "hono", { secretToken: c.env.WEBHOOK_SECRET })(c);
 });
 
+// What is answering right now: the search index, the teachings index, the answering model.
+// Public, so the app can say which part is resting instead of "not answering".
+app.get("/api/health", async (c) => {
+  const probe = async (f: () => Promise<unknown>) => { const t0 = Date.now(); try { await f(); return { ok: true, ms: Date.now() - t0 }; } catch (e) { return { ok: false, ms: Date.now() - t0, error: (e as Error).message?.slice(0, 80) }; } };
+  const [search, teachings] = await Promise.all([
+    probe(() => c.env.DB.prepare("SELECT count(*) AS n FROM search_docs LIMIT 1").first()),
+    probe(() => c.env.TEACH.prepare("SELECT count(*) AS n FROM teaching_passages LIMIT 1").first()),
+  ]);
+  return c.json({ ok: search.ok && teachings.ok, search, teachings, ask: { model: c.env.ANTHROPIC_API_KEY ? c.env.CLAUDE_MODEL : "workers-ai" }, at: new Date().toISOString() }, { headers: { "cache-control": "no-store" } });
+});
 app.get("/api/me", async (c) => {
   const { user } = c.get("tma");
   const sub = await c.env.SUBS.get(`sub:${user!.id}`);

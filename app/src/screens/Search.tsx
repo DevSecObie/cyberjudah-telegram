@@ -3,12 +3,14 @@ import { useSearchParams } from "react-router";
 
 import { useRecentSearches } from "@/lib/marks";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
+import { ApiError } from "@/tg/sdk";
 import { Button, Chip, Chips, Empty, Icon, Img, List, Row, Screen, Section, Skeleton, timestamp } from "@/ui/ui";
 import { fmtDate } from "@/api/data";
 import { FEED_NAME, Marked, SearchHero, teachingPath, useTeachingsSearch, type TeachingHit } from "@/ui/search-hero";
 import { thumbOf } from "@/ui/ui";
 import { frameStyle, useBoard } from "@/lib/frames";
 import { Link } from "react-router";
+import { Trouble } from "@/ui/trouble";
 
 const EXAMPLES = ["Passover", "Seattle", "Matthew 15:24", "\"most high\"", "usury", "the lost sheep"];
 
@@ -68,7 +70,8 @@ function Recordings({ q, feed, page, onPage }: { q: string; feed: string; page: 
   const res = useTeachingsSearch(q, feed, page);
   if (res.isPending) return <Skeleton rows={6} thumb />;
   const r = res.data;
-  if (!r || !r.ok) return <Empty title="Search is not answering right now">Try again in a moment.</Empty>;
+  if (res.isError || !r) return <Trouble error={res.error} what="search" q={q} onRetry={() => void res.refetch()} />;
+  if (!r.ok) return <Trouble error={new ApiError(503, "/api/teachings", r.reason)} what="search" q={q} onRetry={() => void res.refetch()} />;
   if (!r.hits.length) return <Empty title={page ? "No more results" : `Nothing said for “${q}”`}>Try fewer words, another spelling, or another collection.</Empty>;
   return (
     <>

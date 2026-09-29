@@ -28,6 +28,9 @@ type Entry = { slug: string; term: string; definitions: string[] };
 export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, verse, text, reference, books }: { open: boolean; onClose: () => void; tab: ResourceTab; setTab: (t: ResourceTab) => void; slug: string; chapter: number; verse: number; text: string; reference: string; books: Book[] }) {
   const navigate = useNavigate();
   const [word, setWord] = useState<string | null>(null);
+  // Where the reader came from, so a note or teaching can offer the way back to this verse.
+  const from = `from=${encodeURIComponent(`/read/${slug}/${chapter}?v=${verse}`)}`;
+  const withFrom = (path: string) => `${path}${path.includes("?") ? "&" : "?"}${from}`;
   const spans = useQuery({ queryKey: ["chapter", slug, chapter], enabled: open && tab === "words", staleTime: Infinity, queryFn: () => data.chapter(slug, chapter) });
   const verseWords = spans.data?.verses.find((v) => v.verse === verse)?.words;
   const words = [...new Set(text.replace(/[^A-Za-z' ]/g, " ").split(/\s+/).filter((w) => w.length > 3 && !STOP.has(w.toLowerCase())))].slice(0, 40);
@@ -80,16 +83,16 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
             </button>
           ))}
           {topics.length ? <p className="bs-resources__sub">Precept topics</p> : null}
-          {topics.map((c) => <TopicPrecepts key={c.url} cite={c} onRead={readRef} onOpen={() => { onClose(); navigate(toApp(c.url)); }} />)}
+          {topics.map((c) => <TopicPrecepts key={c.url} cite={c} onRead={readRef} onOpen={() => { onClose(); navigate(withFrom(toApp(c.url))); }} />)}
         </>) : null}
         {tab === "people" ? (named.isPending || everyone.isPending ? <p className="bs-loading">Loading...</p> : !here.length ? <p className="bs-loading">No one is named in this verse.</p> : here.map((p) => <button key={p.id} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(`/person/${p.id}`); }}><b>{p.name}</b><small>{p.description}{p.verses ? ` · named in ${p.verses} ${p.verses === 1 ? "verse" : "verses"}` : ""}</small></button>)) : null}
         {tab === "dictionary" ? (dict.isPending && words.length ? <p className="bs-loading">Loading...</p> : !dict.data?.length ? <p className="bs-loading">No dictionary entry for the words in this verse.</p> : dict.data.map((e) => <button key={e.slug} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(`/dictionary/${e.slug}`); }}><b>{e.term}</b><small>{e.definitions[0]}</small></button>)) : null}
-        {tab === "themes" ? (cites.isPending ? <p className="bs-loading">Loading...</p> : !themes.length ? <p className="bs-loading">No law, precept, case or topic cites this verse.</p> : themes.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(toApp(c.url)); }}><b>{c.label}</b><small>{shelf(c.url, c.kind)}</small></button>)) : null}
+        {tab === "themes" ? (cites.isPending ? <p className="bs-loading">Loading...</p> : !themes.length ? <p className="bs-loading">No law, precept, case or topic cites this verse.</p> : themes.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(withFrom(toApp(c.url))); }}><b>{c.label}</b><small>{shelf(c.url, c.kind)}</small></button>)) : null}
         {tab === "references" ? (xref.isPending ? <p className="bs-loading">Loading...</p> : !refs.length ? <p className="bs-loading">No cross references for this verse.</p> : <div className="bs-resources__xrefs"><Xrefs refs={refs} books={books} /></div>) : null}
         {tab === "commentary" ? (cites.isPending || said.isPending ? <p className="bs-loading">Loading...</p> : !also.length && !breakdowns.length ? <p className="bs-loading">No class or study note teaches from this verse yet.</p> : <>
           {breakdowns.map((c, i) => (
             <div key={`${c.note.url}${c.ts}${i}`} className="bs-comment">
-              <button type="button" className="bs-comment__class" onClick={() => { if (/^https?:/.test(c.note.url)) { openLink(`${c.note.url}${c.t ? `&t=${c.t}s` : ""}`); return; } onClose(); navigate(passageLink(c)); }}>
+              <button type="button" className="bs-comment__class" onClick={() => { if (/^https?:/.test(c.note.url)) { openLink(`${c.note.url}${c.t ? `&t=${c.t}s` : ""}`); return; } onClose(); navigate(passageLink(c).replace("#", `?${from}#`).replace(/\?t=(\d+)\?/, "?t=$1&")); }}>
                 <b>{c.note.label}</b>
                 <small>{[c.note.date ? fmtDate(c.note.date) : "", c.note.teacher, c.passage].filter(Boolean).join(" · ")}</small>
               </button>

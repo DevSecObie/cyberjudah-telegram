@@ -34,6 +34,9 @@ import "./bible.css";
  * focus verses, context mode, fullscreen) lives here; the study data and the settings live
  * in Telegram's cloud storage.
  */
+/** The strip under the reading area that holds the chapter arrows and the play pill. */
+const CONTROLS_HEIGHT = 64;
+
 export function BibleTab() {
   const { book: slugParam, chapter: chapterParam } = useParams();
   const [params, setParams] = useSearchParams();
@@ -229,7 +232,7 @@ export function BibleTab() {
         <Chapter slug={slug} chapter={ch} verses={verses} settings={settings} palette={palette} theme={theme}
           selected={selected} focusVerses={focus} contextDisplayMode={contextMode} verseToScroll={verseToScroll} navigationRequest={navRequest}
           highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={relItems}
-          headerHeight={headerHeight} fullscreen={fullscreen} canSwipe
+          headerHeight={headerHeight} fullscreen={fullscreen} bottomInset={fullscreen ? 0 : bottomBar + CONTROLS_HEIGHT} canSwipe
           footer={<ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
             onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} />}
           onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "dictionary")}

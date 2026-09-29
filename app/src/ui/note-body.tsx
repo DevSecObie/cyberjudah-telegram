@@ -104,9 +104,20 @@ function tidyHead(html: string): string {
 export function noteLede(md: string, max = 120): string {
   // The front matter line and the "Opens" list come first; the preview starts at the teaching.
   const body = /^##\s/m.test(md) ? md.slice(md.search(/^##\s/m)) : md;
-  const withoutHtml = DOMPurify.sanitize(body, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
-  const text = withoutHtml.replace(/^#.*$/gm, " ").replace(/[*_`>#[\]]/g, " ").replace(/\(\/[^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  const plain = body
+    .replace(/\*?\[\[(\d{1,2}:\d{2}(?::\d{2})?)\]\([^)]*\)\]\*?/g, " ")  // the "[[1:04:41](youtube…)]" moment markers
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")                              // links keep their words
+    .replace(/https?:\/\/\S+/g, " ");
+  const withoutHtml = DOMPurify.sanitize(plain, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+  const text = withoutHtml.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'").replace(/^#.*$/gm, " ").replace(/[*_`>#[\]]/g, " ").replace(/\(\/[^)]*\)/g, " ").replace(/\s+/g, " ").trim();
   return text.length > max ? `${text.slice(0, max).replace(/\s+\S*$/, "")}…` : text;
+}
+/** The first moment the note marks in the recording, in seconds, so a preview can offer it apart from the words. */
+export function noteFirstMoment(md: string): { t: number; ts: string } | null {
+  const body = /^##\s/m.test(md) ? md.slice(md.search(/^##\s/m)) : md;
+  const m = /\[\[(\d{1,2}):(\d{2})(?::(\d{2}))?\]\(https?:\/\/[^)]*[?&]t=(\d+)s?\)\]/.exec(body);
+  if (!m) return null;
+  return { t: Number(m[4]), ts: m[3] ? `${m[1]}:${m[2]}:${m[3]}` : `${m[1]}:${m[2]}` };
 }
 
 /** The rendered note; its links open in the app when they are the site's, else outside. */

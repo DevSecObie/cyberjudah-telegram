@@ -26,13 +26,16 @@ export function Player({ video, start, playing, onPlay, title, live }: { video: 
 }
 
 /** The card that opens the notes, the way YouTube previews its comments under the video. */
-export function NotesOpener({ lede, onOpen, count }: { lede?: string; onOpen: () => void; count?: string }) {
+export function NotesOpener({ lede, at, onSeek, onOpen, count }: { lede?: string; at?: { t: number; ts: string } | null; onSeek?: (t: number) => void; onOpen: () => void; count?: string }) {
   return (
-    <button type="button" className="notes-open" onClick={() => { haptic("select"); onOpen(); }}>
-      <span className="notes-open__head"><Icon name="note" size={16} /><b>Class notes</b>{count ? <small>{count}</small> : null}</span>
-      <span className="notes-open__lede">{lede || "The write-up of this class, with the Scripture it opens."}</span>
-      <Icon name="chevron" size={16} />
-    </button>
+    <div className="notes-open">
+      <button type="button" className="notes-open__main" onClick={() => { haptic("select"); onOpen(); }}>
+        <span className="notes-open__head"><Icon name="note" size={16} /><b>Class notes</b>{count ? <small>{count}</small> : null}</span>
+        <span className="notes-open__lede">{lede || "The write-up of this class, with the Scripture it opens."}</span>
+        <Icon name="chevron" size={16} />
+      </button>
+      {at && onSeek ? <button type="button" className="notes-open__at" onClick={() => { haptic("select"); onSeek(at.t); }}><Icon name="play" size={14} /> The teaching starts at {at.ts}</button> : null}
+    </div>
   );
 }
 

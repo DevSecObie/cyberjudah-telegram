@@ -24,6 +24,8 @@ const signed = () => {
   return `#tgWebAppData=${encodeURIComponent(new URLSearchParams({ ...params, hash }).toString())}&tgWebAppVersion=9.1&tgWebAppPlatform=ios`;
 };
 const LAUNCH = signed();
+/** The reader with relation chips under the verses (the default is one badge per verse). */
+const withChips = (page: Page) => page.addInitScript((s) => { (window as unknown as { __cloud: unknown }).__cloud = s; }, { bs: JSON.stringify({ relationsDisplay: "inline" }) });
 
 async function setup(page: Page) {
   await page.route("https://telegram.org/**", (r) => r.fulfill({ contentType: "application/javascript", body: MOCK }));
@@ -80,6 +82,7 @@ test("a deep link opens the Scripture in focus, 'Read whole chapter' expands it,
 });
 
 test("tapping verses selects them, the sheet highlights, notes, tags and bookmarks them", async ({ page }) => {
+  await withChips(page);
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   await tapVerse(page, 1);
@@ -200,6 +203,7 @@ test("a long press opens the verse's resources: dictionary, references, comments
 });
 
 test("the precepts a class lined up with a verse: a tag under the verse, and a Precepts tab in its resources", async ({ page }) => {
+  await withChips(page);
   await page.goto(`/read/isaiah/11${LAUNCH}`);
   await expect(page.locator("#verset-12")).toBeVisible();
   // The library's relation, drawn like the reader's own, under the last verse of the span.
@@ -217,6 +221,7 @@ test("the precepts a class lined up with a verse: a tag under the verse, and a P
 });
 
 test("a verse's precepts lead with one note, Precepts: why each is there, from the class", async ({ page }) => {
+  await withChips(page);
   await page.goto(`/read/genesis/1${LAUNCH}`);
   const note = page.locator("#verset-1 .rel-tag").first();
   await expect(note).toHaveText("Precepts");
@@ -233,6 +238,7 @@ test("a verse's precepts lead with one note, Precepts: why each is there, from t
 });
 
 test("relations: a verse linked to a passage shows as a tag under the verse, with edit and delete", async ({ page }) => {
+  await withChips(page);
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await tapVerse(page, 1);
   await page.click(".bs-action >> text=Relation");
@@ -462,6 +468,7 @@ test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a re
 });
 
 test("a verse links to each class that read it, on YouTube at that moment", async ({ page }) => {
+  await withChips(page);
   await page.goto(`/read/genesis/4${LAUNCH}`);
   const tag = page.locator("#verset-3 .rel-tag", { hasText: "Raising Cain" });
   await expect(tag).toBeVisible();
