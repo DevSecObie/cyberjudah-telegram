@@ -18,14 +18,13 @@ import { dictionary } from "./dictionary";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
 import { CHAT_ID, deleteChat, getChat, listChats } from "./chats";
 import { notePdf, pdfName } from "./pdf.mjs";
-import { billingOn, invoiceFor, prices, standing } from "./billing";
+import { billingOn, invoiceFor, prices, standing, SUPPORT_STARS } from "./billing";
 import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
-const STARS = new Set([50, 100, 500]);
 
 /**
  * Every API call but the verse of the day carries the Mini App's initData; the bot token
@@ -289,7 +288,7 @@ app.post("/api/invoice", async (c) => {
   const { user } = c.get("tma");
   const body = await c.req.json<{ stars?: number }>().catch(() => null);
   const stars = Number(body?.stars);
-  if (!STARS.has(stars)) return c.json({ error: "bad-amount" }, 400);
+  if (!SUPPORT_STARS.includes(stars)) return c.json({ error: "bad-amount" }, 400);
   try {
     const link = await new Api(c.env.BOT_TOKEN).createInvoiceLink("Support CyberJudah", "Keep the library free and the classes online. Thank you.", `support:${user!.id}:${stars}`, "", "XTR", [{ label: "Support CyberJudah", amount: stars }]);
     return c.json({ link });

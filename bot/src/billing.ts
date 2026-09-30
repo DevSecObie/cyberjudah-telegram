@@ -1,8 +1,8 @@
 import { Api } from "grammy";
 
 import type { Env } from "./env";
-import { balance, emptyAccount, grantPack, grantPlan, payloadOf, pricing, reserve, RESERVE_UNITS, spend, today, validPayment, type Account, type Balance, type Pricing } from "./billing.mjs";
-export { RESERVE_UNITS };
+import { balance, emptyAccount, grantPack, grantPlan, payloadOf, pricing, readSupport, reserve, RESERVE_UNITS, spend, SUPPORT_STARS, today, validPayment, type Account, type Balance, type Pricing } from "./billing.mjs";
+export { RESERVE_UNITS, SUPPORT_STARS };
 import { isAdmin } from "./edit";
 
 /**
@@ -99,7 +99,10 @@ export async function invoiceFor(env: Env, uid: number, item: string): Promise<s
 
 /** Before Telegram takes the Stars: is this a real item at its real price, for this person? */
 export function checkout(env: Env, payload: string, currency: string, amount: number, from: number): boolean {
-  if (payload.startsWith("support:")) return true;
+  // Support is a fixed tier at its face value, for the giver: the invoice was made by the
+  // bot, but the shape, the amount and the buyer are checked anyway.
+  const s = readSupport(payload);
+  if (s) return currency === "XTR" && s.uid === from && s.stars === amount && SUPPORT_STARS.includes(s.stars);
   const b = validPayment(payload, currency, amount, prices(env));
   return !!b && b.uid === from;
 }

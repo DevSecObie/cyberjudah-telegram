@@ -107,3 +107,11 @@ export function validPayment(payload, currency, amount, p) {
   if (b.kind === "pack" && !p.packs.some((x) => x.stars === b.stars)) return null;
   return b;
 }
+
+/** The Stars amounts a support invoice may be made for. */
+export const SUPPORT_STARS = [50, 100, 500];
+/** A support payload names the giver and the Stars: support:<uid>:<stars>. */
+export function readSupport(s) {
+  const m = /^support:(\d{1,20}):(\d{1,6})$/.exec(String(s ?? ""));
+  return m ? { uid: Number(m[1]), stars: Number(m[2]) } : null;
+}

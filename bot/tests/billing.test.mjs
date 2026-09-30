@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { balance, grantPack, grantPlan, payloadOf, pricing, reserve, RESERVE_UNITS, spend, unitsOf, validPayment } from "../src/billing.mjs";
+import { balance, grantPack, grantPlan, payloadOf, pricing, readSupport, reserve, RESERVE_UNITS, spend, unitsOf, validPayment } from "../src/billing.mjs";
 
 const p = pricing({ ASK_USD_PER_MTOK: "5", ASK_USD_PER_STAR: "0.013", ASK_MARGIN: "1.3", ASK_FREE_DAILY: "100000", ASK_PLAN_STARS: "750", ASK_PACKS: "150,500" });
 const NOW = Date.parse("2026-09-28T12:00:00Z");
@@ -78,4 +78,14 @@ test("a reservation never takes more than the balance holds", () => {
   assert.equal(r.reserved.freeUsed, 100000);
   const empty = reserve(spend(null, 100000, p, NOW), p, NOW);
   assert.equal(balance(empty.reserved, p, NOW).total, 0);
+});
+
+test("a support payload names its giver and its Stars, nothing else", () => {
+  assert.deepEqual(readSupport("support:7:100"), { uid: 7, stars: 100 });
+  // The shape is valid for any amount; the tier itself is checkout's job.
+  assert.deepEqual(readSupport("support:7:999"), { uid: 7, stars: 999 });
+  assert.equal(readSupport("support:7"), null);
+  assert.equal(readSupport("support:7:100:extra"), null);
+  assert.equal(readSupport("ask:plan:7:750"), null);
+  assert.equal(readSupport(""), null);
 });
