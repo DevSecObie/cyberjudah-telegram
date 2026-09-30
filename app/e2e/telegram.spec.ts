@@ -732,7 +732,10 @@ test("Home shows what landed lately: passes, books and classes", async ({ page }
   await page.goto(`/${LAUNCH}`);
   await expect(page.locator(".whatsnew__card").first()).toBeVisible();
   await expect(page.locator(".whatsnew__card[data-kind='book']").first()).toBeVisible();
-  await expect(page.locator(".whatsnew__card[data-kind='pass']").first()).toContainText("The Gospel Is Black Liberation");
+  // The newest pass leads; which class it is changes with every pass merged, so the card's shape is what is checked.
+  const pass = page.locator(".whatsnew__card[data-kind='pass']").first();
+  await expect(pass).toContainText("New precept pass");
+  await expect(pass).toContainText(/\d+ precepts? under \d+ scriptures?/);
 });
 
 test("an Apocrypha verse shows its Greek from Swete's Septuagint where the 66 books show Strong's", async ({ page }) => {
