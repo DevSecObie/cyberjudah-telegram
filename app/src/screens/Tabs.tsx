@@ -60,12 +60,6 @@ export function NewTab() {
   );
 }
 
-/** Readable text on a group colour (Bible Strong's getContrastTextColor). */
-const onColor = (hex: string) => {
-  const n = parseInt(hex.replace("#", ""), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? "#111" : "#fff";
-};
-
 /** The groups: switch, create, rename or delete (Bible Strong's GroupActionsPopover and ViewGroupsModal). */
 function useGroupActions() {
   const sheet = useSheet();
@@ -123,7 +117,7 @@ export function SwitcherBar() {
     <div className="switcherbar" role="toolbar" aria-label="Tabs">
       <button type="button" className="switcherbar__add" aria-label="Add a tab" onClick={() => go(newTab())}><Icon name="plus" size={24} /></button>
       <button type="button" className="switcherbar__group" aria-label={`${groupLabel(group)}. Groups`} onClick={() => void openGroups()}
-        style={named ? { background: group.color, color: onColor(group.color) } : undefined}>
+        style={named ? { ["--group" as string]: group.color } : undefined}>
         <span>{groupLabel(group)}</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
       </button>
@@ -140,7 +134,7 @@ export function SwitcherBar() {
 export function Tabs() {
   useBackButton(true);
   const navigate = useNavigate();
-  const { tabs } = useTabs();
+  const { tabs, current } = useTabs();
   const go = (path: string) => { haptic("select"); navigate(path, { replace: true }); };
   // Card size: two per row with 20 px margins and gap; height from the screen's proportions x 0.7.
   const [size, setSize] = useState(() => cardSize());
@@ -164,7 +158,7 @@ export function Tabs() {
           const place = tabPlace(t.path);
           const title = place ? `${kind} · ${place}` : kind;
           return (
-            <div key={t.id} className="tabcard" style={{ width: size.w, height: size.h }}>
+            <div key={t.id} className="tabcard" data-current={t.id === current ? "" : undefined} style={{ width: size.w, height: size.h }}>
               <button type="button" className="tabcard__open" onClick={() => go(selectTab(t.id))} aria-label={`Open ${title}`}>
                 <span className="tabcard__icon"><Icon name={icon as IconName} size={30} /></span>
               </button>
