@@ -1,7 +1,5 @@
 name: live-probe
-# A one-off look at what the live Mini App serves and how it renders: status, headers and body
-# for each entry path as a Telegram WebView would fetch it, then the same paths loaded in
-# headless Chromium with every console error and failed request printed. Read-only.
+# A one-off look at what staging serves for the Bible Strong fork's feed. Read-only.
 on:
   push:
     branches: [claude/live-probe]
@@ -14,31 +12,13 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch the entry paths
+      - name: Staging feed and class media
         run: |
-          UA="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Telegram-iOS"
-          for u in "https://cyberjudah.io/app" "https://cyberjudah.io/app/" "https://cyberjudah.io/app/bible/genesis/1"; do
-            echo "=================== $u"
-            curl -sS -D headers.txt -o body.html -w "status=%{http_code} redirect=%{redirect_url} type=%{content_type} size=%{size_download}\n" -A "$UA" "$u" || true
-            grep -iE "^(HTTP|cache-control|cf-cache-status|age|etag|content-type|location|content-security-policy|x-frame-options|cross-origin):" headers.txt || true
-            grep -o '<script[^>]*>' body.html || true
+          S=https://cyberjudah-telegram-staging.oisrae1.workers.dev
+          for p in /bs/health /bs/v1/bibles/KJV/coverage /bs/v1/bibles/KJV/books/1/chapters/1 /app/strong/_media/1/1 /api/health; do
+            echo "=================== $p"
+            curl -sS -o body.txt -w "status=%{http_code} type=%{content_type}\n" "$S$p" || true
+            head -c 400 body.txt; echo
           done
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium
-      - name: Render the live app
-        working-directory: app
-        env:
-          PLAYWRIGHT_BASE_URL: https://cyberjudah.io
-        run: npx playwright test e2e/tmp/live.spec.ts --reporter=list 2>&1 | grep -vE "^\s*$"
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: live-probe-screens-${{ github.run_id }}
-          path: app/test-results
-          if-no-files-found: ignore
-          retention-days: 3
+          echo "=================== data origin from the runner"
+          curl -sS -o /dev/null -w "status=%{http_code}\n" https://data.cyberjudah.io/api/kjv/genesis/1.json
