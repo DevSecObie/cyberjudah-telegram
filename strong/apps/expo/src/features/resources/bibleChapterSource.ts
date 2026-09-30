@@ -313,7 +313,10 @@ const normalizeBaseUrl = (value: string) => value.replace(/\/+$/, '')
 export const getConfiguredResourceApiBaseUrl = (value: string | undefined): string | undefined => {
   if (!value) return undefined
   try {
-    const url = new URL(value)
+    // CyberJudah: a relative address ("/bs") is the feed on the Worker that served the app, so
+    // production and staging each read their own.
+    const origin = typeof location !== 'undefined' ? location.origin : undefined
+    const url = origin ? new URL(value, origin) : new URL(value)
     return url.protocol === 'http:' || url.protocol === 'https:'
       ? normalizeBaseUrl(url.toString())
       : undefined
