@@ -1,0 +1,30 @@
+[
+  {
+    "n": "H1",
+    "lemma": "אָב",
+    "xlit": "ʼâb",
+    "def": "father, in a literal and immediate, or figurative and remote application",
+    "count": 1017
+  },
+  {
+    "n": "H2",
+    "lemma": "אַב",
+    "xlit": "ʼab",
+    "def": "{father}",
+    "count": 9
+  },
+  {
+    "n": "H3",
+    "lemma": "אֵב",
+    "xlit": "ʼêb",
+    "def": "a green plant",
+    "count": 2
+  },
+  {
+    "n": "G3056",
+    "lemma": "λόγος",
+    "xlit": "",
+    "def": " something said (including the thought); by implication, a topic (subject of discourse), a",
+    "count": 307
+  }
+]

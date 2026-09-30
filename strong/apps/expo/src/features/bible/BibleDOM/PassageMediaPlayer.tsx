@@ -77,7 +77,7 @@ const PassageMediaPlayer = ({
         }}
       >
         <m.iframe
-          src={getPassageMediaEmbedUrl(item.providerId)}
+          src={getPassageMediaEmbedUrl(item.providerId, item.startSeconds)}
           title={item.title}
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           allowFullScreen

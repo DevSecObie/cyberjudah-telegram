@@ -1,0 +1,63 @@
+{
+  "repository": "smontlouis/bible-strong",
+  "commit": "61cf39c8c4a65220212dbac9536794e43ae8207e",
+  "license": "GPL-3.0",
+  "files": [
+    {
+      "file": "contracts/bibleChapterContract.ts",
+      "sourceSha256": "e18cbef3e550af818aeaf43f46ef448a4e7899a3b9062b441adfc4c0249e3c5c"
+    },
+    {
+      "file": "contracts/commentaryReadingContract.ts",
+      "sourceSha256": "dab2c62b51c9d6310548fa920323d3597141c0bf2ae67041583487766552f781"
+    },
+    {
+      "file": "contracts/commentarySections.ts",
+      "sourceSha256": "25c49cba9cfb07ef54f6acb5dd0774b1196c6168b002e79c49d5c5166ecc2e48"
+    },
+    {
+      "file": "contracts/dictionaryContract.ts",
+      "sourceSha256": "42bda00f81bc2fca432156b07307d4d1b70fd0b20e9dc198e8f6229809a784db"
+    },
+    {
+      "file": "contracts/interlinearBibleContract.ts",
+      "sourceSha256": "dca3c0edbdf70d337f19480a4dda1f04505662b8e0b4b1a37c661cbdbc145dff"
+    },
+    {
+      "file": "contracts/naveContract.ts",
+      "sourceSha256": "878b8b6cd138d12fbe3ae28407f93f81a881a59befd078758579512a1f3d267e"
+    },
+    {
+      "file": "contracts/searchAnalyticsContract.ts",
+      "sourceSha256": "c35e1fa76f84111704c684c4497c07d2fa8dd9d8558bd73a79649eff440b7872"
+    },
+    {
+      "file": "contracts/strongBibleContract.ts",
+      "sourceSha256": "3fa2ba07cfbcd570e57a40c85e5cc3d7bc7cc84b2355aefbb7349e65380fa614"
+    },
+    {
+      "file": "contracts/strongLexiconContract.ts",
+      "sourceSha256": "b7d2acea797680de7e56038ac6fdfb9cae52ad572ed502ae8f75fe1d89e957c8"
+    },
+    {
+      "file": "contracts/supplementaryContract.ts",
+      "sourceSha256": "80883877e340d129042281349e93cd6ae6809ac4e280377a42377ad192b24f79"
+    },
+    {
+      "file": "contracts/timelineContract.ts",
+      "sourceSha256": "c2c06f556cfa262cc1f61f7dd666bed720a9d9e2ce8a8bc088956cb90666644d"
+    },
+    {
+      "file": "problems.ts",
+      "sourceSha256": "223ec2893de66204a72bb785144f164a2972aa121d7834b475d0b2e9d8a3da93"
+    },
+    {
+      "file": "resourcePageCursor.ts",
+      "sourceSha256": "d64b048557a8930c6c0c1d85e4d12e7269922a8b02ba72583fa4a739c1b518e3"
+    },
+    {
+      "file": "strongBibleConcordance.ts",
+      "sourceSha256": "5f78eb86550c552eda2501b7c83f49367ab062c56756841b25622a2d789a6843"
+    }
+  ]
+}

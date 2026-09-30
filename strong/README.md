@@ -26,3 +26,12 @@ Build the web app:
 `bot/scripts/prepare-assets.sh` copies it to `.deploy/app/strong`, and the stage and deploy
 workflows run both. The Worker answers any page under `/app/strong` with the fork's own
 `index.html`. The current app at `/app` is unchanged until the switch is approved.
+
+## Class videos in the reader
+
+Bible Strong's inline videos are CyberJudah classes. When a chapter opens, the reader fetches
+`/app/strong/_media/<book>/<chapter>` from the Worker (`bot/src/passage-media.mjs`). The Worker
+reads that chapter's class moments from the data set. Each moment sits after the last verse it
+taught and opens the recording at that second, Bishops and Deacons first. Bible Strong's
+bundled BibleProject catalog is removed. The feed address is relative (`/bs`), so production
+and staging each read their own Worker.
