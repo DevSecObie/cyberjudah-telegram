@@ -6,7 +6,8 @@ import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { saveExchange } from "./chats";
-import { billingOn, charge, standing } from "./billing";
+import { billingOn, charge, reserveAsk, settleAsk, standing, RESERVE_UNITS } from "./billing";
+import type { Account } from "./billing.mjs";
 
 /**
  * The AI features, all through Workers AI and the Vectorize index of the teachings:
@@ -86,12 +87,23 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   const t0 = Date.now();
   const question = q.trim().slice(0, 400);
   if (question.length < 2) return { ok: false, reason: "too-short" };
-  if (billingOn(env) ? !(await standing(env, userId)).ok : !(await allowed(env, userId, ctx))) return { ok: false, reason: billingOn(env) ? "allowance" : "limit" };
+  // A metered answer reserves its minimum up front and settles the exact units at the end,
+  // so an abandoned or failed request cannot spend the model's work for free.
+  const metered = billingOn(env) && !!env.ANTHROPIC_API_KEY;
+  let snap: Account | null = null;
+  if (metered) {
+    const r = await reserveAsk(env, userId);
+    if (!r.ok) return { ok: false, reason: "allowance" };
+    snap = r.before;
+  } else if (billingOn(env) ? !(await standing(env, userId)).ok : !(await allowed(env, userId, ctx))) {
+    return { ok: false, reason: billingOn(env) ? "allowance" : "limit" };
+  }
   try {
     const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
     if (env.ANTHROPIC_API_KEY) {
       const { text, passages, units } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), () => undefined, ctx);
-      await charge(env, userId, units);
+      if (metered && snap) await settleAsk(env, userId, snap, units);
+      else await charge(env, userId, units);
       const { answer } = splitFollowups(text);
       return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
     }
@@ -100,6 +112,8 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
     const { answer } = splitFollowups(await answerOnce(env, buildPrompt(question, passages, history)));
     return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
   } catch (e) {
+    // The reservation stands: the model was paid for whether the answer arrived or not.
+    if (metered && snap) await settleAsk(env, userId, snap, RESERVE_UNITS).catch(() => null);
     console.error(JSON.stringify({ event: "ask_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 200) }));
     return { ok: false, reason: "unavailable" };
   }
@@ -157,11 +171,20 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const question = q.trim().slice(0, 400);
   const line = (o: unknown) => `${JSON.stringify(o)}\n`;
   if (question.length < 2) return new Response(line({ error: "too-short" }), { status: 400, headers: { "content-type": "application/x-ndjson" } });
-  // With Claude, each answer is charged to the person's allowance; without it, the old daily cap.
-  if (billingOn(env)) {
+  // A metered answer reserves its minimum up front (see ask): an abandoned or failed
+  // stream cannot spend the model's work for free.
+  const metered = billingOn(env) && !!env.ANTHROPIC_API_KEY;
+  let snap: Account | null = null;
+  if (metered) {
+    const r = await reserveAsk(env, userId);
+    if (!r.ok) return new Response(line({ error: "allowance", balance: r.balance }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
+    snap = r.before;
+  } else if (billingOn(env)) {
     const st = await standing(env, userId);
     if (!st.ok) return new Response(line({ error: "allowance", balance: st.balance }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
-  } else if (!(await allowed(env, userId, ctx))) return new Response(line({ error: "limit" }), { status: 429, headers: { "content-type": "application/x-ndjson" } });
+  } else if (!(await allowed(env, userId, ctx))) {
+    return new Response(line({ error: "limit" }), { status: 429, headers: { "content-type": "application/x-ndjson" } });
+  }
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -182,7 +205,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           const sources = sourcesOf(answer, passages);
           send({ done: true, answer, followups, sources });
           // The answer is charged what it used, and the person sees what is left.
-          const left = await charge(env, userId, units).catch(() => null);
+          const left = metered && snap
+            ? await settleAsk(env, userId, snap, units).catch(() => null)
+            : await charge(env, userId, units).catch(() => null);
           console.log(JSON.stringify({ event: "ask_usage", units, calls, searches: steps.length }));
           if (left && billingOn(env)) send({ usage: { units, balance: left } });
           keep(answer, sources, followups, steps);
@@ -201,6 +226,8 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
         send({ done: true, answer: clean, followups, sources });
         keep(clean, sources, followups);
       } catch (e) {
+        // The reservation stands: the model was paid for whether the answer arrived or not.
+        if (metered && snap) await settleAsk(env, userId, snap, RESERVE_UNITS).catch(() => null);
         console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
         send({ error: "unavailable" });
       } finally { controller.close(); }

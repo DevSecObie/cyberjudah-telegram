@@ -36,6 +36,26 @@ export const today = (now = Date.now()) => new Date(now).toISOString().slice(0, 
 /** A fresh account: nothing used today, no plan, no credit. */
 export const emptyAccount = () => ({ day: "", freeUsed: 0, plan: null, credits: 0 });
 
+/**
+ * The minimum charged for a metered answer, in units (about a third of an average answer).
+ * It is reserved up front so an abandoned or failed request still pays its share of the
+ * model's work; the request then settles against the exact units the answer used.
+ */
+export const RESERVE_UNITS = 20000;
+
+/**
+ * Reserve-then-settle metering. Reserve deducts the minimum up front and snapshots the
+ * account; settle the caller charges the actual units against the snapshot with spend(),
+ * so metering stays exact with no refund bookkeeping. A failed request settles for the
+ * reservation: the model was still paid for.
+ */
+export function reserve(acct, p, now = Date.now()) {
+  const a = structuredClone(acct ?? emptyAccount());
+  const before = structuredClone(a);
+  const take = Math.min(RESERVE_UNITS, balance(a, p, now).total);
+  return { before, reserved: spend(a, take, p, now) };
+}
+
 /** What is left in each pot now; the day's free allowance starts again each UTC day. */
 export function balance(acct, p, now = Date.now()) {
   const a = acct ?? emptyAccount();

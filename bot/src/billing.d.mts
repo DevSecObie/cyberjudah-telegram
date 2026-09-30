@@ -7,6 +7,8 @@ export function unitsOf(u: Usage | null | undefined): number;
 export function pricing(env?: Record<string, unknown>): Pricing;
 export function today(now?: number): string;
 export function emptyAccount(): Account;
+export const RESERVE_UNITS: number;
+export function reserve(acct: Account | null, p: Pricing, now?: number): { before: Account; reserved: Account };
 export function balance(acct: Account | null, p: Pricing, now?: number): Balance;
 export function spend(acct: Account | null, units: number, p: Pricing, now?: number): Account;
 export function grantPlan(acct: Account | null, p: Pricing, until: number, now?: number): Account;

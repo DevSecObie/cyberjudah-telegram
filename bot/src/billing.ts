@@ -1,7 +1,8 @@
 import { Api } from "grammy";
 
 import type { Env } from "./env";
-import { balance, emptyAccount, grantPack, grantPlan, payloadOf, pricing, spend, today, validPayment, type Account, type Balance, type Pricing } from "./billing.mjs";
+import { balance, emptyAccount, grantPack, grantPlan, payloadOf, pricing, reserve, RESERVE_UNITS, spend, today, validPayment, type Account, type Balance, type Pricing } from "./billing.mjs";
+export { RESERVE_UNITS };
 import { isAdmin } from "./edit";
 
 /**
@@ -44,11 +45,43 @@ export async function charge(env: Env, uid: number, units: number): Promise<Bala
   const deduct = billingOn(env) && !isAdmin(env, uid);
   const next = deduct ? spend(await account(env, uid), units, p) : await account(env, uid);
   if (deduct) await env.SUBS.put(key(uid), JSON.stringify(next));
+  await recordUsage(env, uid, units);
+  return balance(next, p);
+}
+
+/**
+ * Reserve the minimum up front for a metered answer (Claude with billing on). The gate is
+ * the reservation itself: no balance, no request. The snapshot is settled at the end of the
+ * request against the actual units, so an abandoned or failed stream cannot spend for free.
+ */
+export async function reserveAsk(env: Env, uid: number): Promise<{ ok: false; balance: Balance } | { ok: true; before: Account; balance: Balance }> {
+  const p = prices(env);
+  const { before, reserved } = reserve(await account(env, uid), p);
+  const b = balance(reserved, p);
+  if (balance(before, p).total <= 0) return { ok: false, balance: b };
+  await env.SUBS.put(key(uid), JSON.stringify(reserved));
+  return { ok: true, before, balance: b };
+}
+
+/**
+ * Settle a reservation: the actual units are charged against the pre-request snapshot, so
+ * metering stays exact, and the day's totals record what the answer used. Settle a failed
+ * request for RESERVE_UNITS: the model was still paid for.
+ */
+export async function settleAsk(env: Env, uid: number, before: Account, actualUnits: number): Promise<Balance> {
+  const p = prices(env);
+  const next = spend(before, actualUnits, p);
+  await env.SUBS.put(key(uid), JSON.stringify(next));
+  await recordUsage(env, uid, actualUnits);
+  return balance(next, p);
+}
+
+/** The day's totals of questions and units, kept 120 days for the admins' pricing. */
+async function recordUsage(env: Env, uid: number, units: number): Promise<void> {
   const dayKey = `usage:${today()}`;
   const d = ((await env.SUBS.get(dayKey, "json")) as { questions: number; units: number; people: number[] } | null) ?? { questions: 0, units: 0, people: [] };
   d.questions += 1; d.units += Math.round(units); if (!d.people.includes(uid) && d.people.length < 5000) d.people.push(uid);
   await env.SUBS.put(dayKey, JSON.stringify(d), { expirationTtl: 120 * 86400 });
-  return balance(next, p);
 }
 
 /** An invoice link for the monthly plan (a Stars subscription that renews itself) or a pack. */

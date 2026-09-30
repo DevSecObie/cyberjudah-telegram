@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { balance, grantPack, grantPlan, payloadOf, pricing, spend, unitsOf, validPayment } from "../src/billing.mjs";
+import { balance, grantPack, grantPlan, payloadOf, pricing, reserve, RESERVE_UNITS, spend, unitsOf, validPayment } from "../src/billing.mjs";
 
 const p = pricing({ ASK_USD_PER_MTOK: "5", ASK_USD_PER_STAR: "0.013", ASK_MARGIN: "1.3", ASK_FREE_DAILY: "100000", ASK_PLAN_STARS: "750", ASK_PACKS: "150,500" });
 const NOW = Date.parse("2026-09-28T12:00:00Z");
@@ -53,4 +53,29 @@ test("only Stars, at the catalog price, for a real item, count as payment", () =
   assert.equal(validPayment(payloadOf("pack", 7, 999), "XTR", 999, p), null);
   assert.equal(validPayment(payloadOf("pack", 7, 150), "XTR", 100, p), null);
   assert.equal(validPayment("support:7:100", "XTR", 100, p), null);
+});
+
+test("reserve-then-settle meters exactly: the minimum up front, the actual at the end", () => {
+  assert.equal(RESERVE_UNITS, 20000);
+  const before = grantPack(null, 150, p); // 100000 free a day, 300000 credit
+  const r = reserve(before, p, NOW);
+  // The reservation takes the minimum from the free allowance first, like any spend.
+  assert.equal(balance(r.reserved, p, NOW).total, 400000 - RESERVE_UNITS);
+  assert.equal(r.reserved.freeUsed, RESERVE_UNITS);
+  // Settling charges the actual units against the snapshot: exact metering, no refund math.
+  const settled = spend(r.before, 60000, p, NOW);
+  assert.deepEqual([settled.freeUsed, settled.credits], [60000, 300000]);
+  // A failed request keeps the reservation: the model was still paid for.
+  const failed = spend(r.before, RESERVE_UNITS, p, NOW);
+  assert.equal(failed.freeUsed, RESERVE_UNITS);
+  assert.deepEqual(failed, r.reserved);
+});
+
+test("a reservation never takes more than the balance holds", () => {
+  const poor = spend(null, 95000, p, NOW); // 5000 of the free allowance left
+  const r = reserve(poor, p, NOW);
+  assert.equal(balance(r.reserved, p, NOW).total, 0);
+  assert.equal(r.reserved.freeUsed, 100000);
+  const empty = reserve(spend(null, 100000, p, NOW), p, NOW);
+  assert.equal(balance(empty.reserved, p, NOW).total, 0);
 });
