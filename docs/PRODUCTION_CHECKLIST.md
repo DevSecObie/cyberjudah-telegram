@@ -67,8 +67,9 @@ it on with a large audience:
   plans stop paying for themselves.
 - Run a paid end-to-end on staging: buy the smallest Star pack, confirm the balance,
   ask until it deducts, confirm the meter in the app matches.
-- The billing balances still live in KV (see the review notes); concurrent requests can
-  race. Do not enable billing until that moves to D1 or you accept the risk window.
+- The billing balances live in D1 as of Sep 30 (atomic, version-checked updates;
+  payments idempotent per Telegram charge id; usage totals in D1 too). The KV race is
+  closed; leftover `acct:` keys are adopted on first sight.
 
 ## 5. Launch gates (from PRODUCT_READINESS.md)
 
