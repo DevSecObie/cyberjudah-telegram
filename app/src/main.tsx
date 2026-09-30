@@ -13,7 +13,14 @@ import "./styles.css";
 // React Router's basename must NOT: with basename "/app/", a visit to "/app"
 // (no trailing slash, which is the natural URL) matches no route and the app
 // renders blank. Stripping it makes both "/app" and "/app/..." work.
-const basename = import.meta.env.BASE_URL.replace(/\/+$/, "") || "/";
+//
+// The same build is served at the Worker's root too (workers.dev, which the bot's menu button
+// and "Open CyberJudah" buttons point at). There the path does not start with "/app", and a
+// router with basename "/app" matches nothing and renders blank; so the base applies only when
+// the page was opened under it.
+const built = import.meta.env.BASE_URL.replace(/\/+$/, "");
+const here = location.pathname;
+const basename = built && (here === built || here.startsWith(`${built}/`)) ? built : "/";
 
 boot({ bg: "#05070f", header: "#05070f", bottomBar: "#05070f" });
 
