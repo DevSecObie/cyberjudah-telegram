@@ -1268,8 +1268,10 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 #root .today-card footer button { display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 0; border: 0; background: none; color: var(--a-muted); font: 500 13px var(--a-ui); cursor: pointer; }
 .today-card footer button:disabled { opacity: .4; }
 .stats--six { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.stats--six .stats__cell { gap: 6px; padding: 14px 4px; color: var(--a-accent); }
+.stats--six .stats__cell { gap: 4px; padding: 10px 4px; color: var(--a-accent); }
 .today-image { max-height: 90dvh; overflow: auto; }
 .today-image img { width: 100%; display: block; margin-bottom: 16px; }
 .today-image .btn { display: block; text-align: center; }
 .mcard__icon { flex: none; width: 32px; height: 32px; border-radius: 8px; }
+
+.stats__value { display: flex; align-items: center; gap: 8px; }

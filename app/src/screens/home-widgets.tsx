@@ -139,7 +139,7 @@ export function StudyStats({ expanded = false }: { expanded?: boolean }) {
   ];
   return (
     <div className={`stats${expanded ? " stats--six" : ""}`} aria-label="What you have kept">
-      {cells.map(([label, n, to, icon]) => <Link key={label} to={to} className="stats__cell" onClick={() => haptic("select")}>{expanded ? <Icon name={icon} size={20} /> : null}<b>{n.toLocaleString()}</b><small>{label}</small></Link>)}
+      {cells.map(([label, n, to, icon]) => <Link key={label} to={to} className="stats__cell" onClick={() => haptic("select")}><span className="stats__value">{expanded ? <Icon name={icon} size={20} /> : null}<b>{n.toLocaleString()}</b></span><small>{label}</small></Link>)}
     </div>
   );
 }
