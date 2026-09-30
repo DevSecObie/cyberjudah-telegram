@@ -1,7 +1,8 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
 
 import { launchPath } from "@shared/links.mjs";
+import { isTabPath, recordPath } from "@/lib/tabs";
 import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
@@ -45,12 +46,22 @@ const Encyclopedia = lazy(() => import("@/screens/Library").then((m) => ({ defau
 const Lexicon = lazy(() => import("@/screens/Lexicon").then((m) => ({ default: m.Lexicon })));
 const LexiconEntry = lazy(() => import("@/screens/Lexicon").then((m) => ({ default: m.LexiconEntry })));
 const People = lazy(() => import("@/screens/People").then((m) => ({ default: m.People })));
+const TabsScreen = lazy(() => import("@/screens/Tabs").then((m) => ({ default: m.Tabs })));
+const NewTab = lazy(() => import("@/screens/Tabs").then((m) => ({ default: m.NewTab })));
 const Tags = lazy(() => import("@/screens/Tags").then((m) => ({ default: m.Tags })));
 const TagScreen = lazy(() => import("@/screens/Tags").then((m) => ({ default: m.TagScreen })));
 
 
 export function App() {
   const location = useLocation();
+  // Bible Strong's tabs: where the app is becomes the current tab's place (lib/tabs.ts).
+  const prevPath = useRef<string | null>(null);
+  useEffect(() => {
+    const path = location.pathname + location.search;
+    const prev = prevPath.current;
+    recordPath(path, prev !== null && !isTabPath(prev));
+    prevPath.current = path;
+  }, [location.pathname, location.search]);
   const navigate = useNavigate();
   useSettingsButton();
 
@@ -94,6 +105,8 @@ export function App() {
         <Route path="/history" element={<History />} />
         <Route path="/dictionary" element={<Dictionary />} />
         <Route path="/dictionary/:slug" element={<DictionaryEntry />} />
+        <Route path="/tabs" element={<TabsScreen />} />
+        <Route path="/new" element={<NewTab />} />
         <Route path="/lexicon" element={<Lexicon />} />
         <Route path="/lexicon/:number" element={<LexiconEntry />} />
         <Route path="/people" element={<People />} />
