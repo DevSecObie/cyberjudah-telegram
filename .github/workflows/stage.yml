@@ -82,6 +82,8 @@ jobs:
           open(p, "w").write(head + '"env": {' + env)
           EOF
           set -o pipefail
+          # Stage the built app for Workers Static Assets (see the script header).
+          bash scripts/prepare-assets.sh
           npx wrangler deploy --env staging 2>&1 | tee deploy.log
           URL=$(grep -o 'https://[a-z0-9.-]*workers\.dev' deploy.log | head -1)
           echo "url=$URL" >> "$GITHUB_OUTPUT"
