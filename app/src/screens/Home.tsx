@@ -110,6 +110,8 @@ export function Home() {
   useBottomButtons(null, null);
 
   const random = useRandomVerse();
+  // Precept passes are working data behind the verse notes, not something to read on their own.
+  const whatsNew = useMemo(() => (stats.data?.whatsNew ?? []).filter((w) => w.kind !== "pass"), [stats.data]);
   const latestClass = feed.data?.find((t) => t.kind === "class");
   const rows = useMemo(() => (feed.data ?? []).filter((t) => t.url !== latestClass?.url).slice(0, 8), [feed.data, latestClass]);
 
@@ -131,9 +133,9 @@ export function Home() {
       </div>
       <p className="hint hint--center">Search finds the moment a word, a name or a Scripture was said in a class. Ask answers your question from the teachings, with its sources.</p>
       <StudyStats />
-      {stats.data?.whatsNew?.length ? (
+      {whatsNew.length ? (
         <div className="whatsnew" aria-label="New in CyberJudah">
-          {stats.data.whatsNew.slice(0, 8).map((w) => (
+          {whatsNew.slice(0, 8).map((w) => (
             <Link key={`${w.kind}:${w.url}`} to={toApp(w.url)} className="whatsnew__card" data-kind={w.kind} onClick={() => haptic("select")}>
               <small>{w.kind === "pass" ? "New precept pass" : w.kind === "book" ? "New in the library" : w.kind === "captains" ? "New from the Captains" : "New class"}</small>
               <b>{w.title}</b>

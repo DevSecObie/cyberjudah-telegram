@@ -326,6 +326,29 @@ test("backup: everything kept goes to your chat as a file, and a file restores i
   await expect(page.locator("[role=status]")).toContainText("This file is not a CyberJudah backup.");
 });
 
+test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resource, the switcher shows and closes them", async ({ page }) => {
+  await page.goto(`/${LAUNCH}`);
+  await page.evaluate(() => localStorage.removeItem("cj:tabs"));
+  await page.goto(`/${LAUNCH}`);
+  await page.click(".tab >> text=Bible");
+  await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
+  await page.click(".tab >> text=Tabs");
+  await expect(page).toHaveURL(/\/tabs/);
+  await expect(page.locator(".tabcard:not(.tabcard--new)")).toHaveCount(1);
+  await expect(page.locator(".tabcard b").first()).toHaveText("Bible");
+  await page.click(".tabcard--new");
+  await expect(page.locator(".nt-heading")).toHaveText("What would you like to explore?");
+  await page.click(".nt-item >> text=Strong");
+  await expect(page).toHaveURL(/\/lexicon/);
+  await page.click(".tab >> text=Tabs");
+  await expect(page.locator(".tabcard:not(.tabcard--new)")).toHaveCount(2);
+  await expect(page.locator(".tab__count")).toHaveText("2");
+  await page.click('.tabcard__close[aria-label="Close Strong"]');
+  await expect(page.locator(".tabcard:not(.tabcard--new)")).toHaveCount(1);
+  await page.click(".tabcard__open");
+  await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
+});
+
 test("the settings button opens settings", async ({ page }) => {
   await page.goto(`/search${LAUNCH}`);
   await press(page, "settings");
@@ -777,10 +800,8 @@ test("Home shows what landed lately: passes, books and classes", async ({ page }
   await page.goto(`/${LAUNCH}`);
   await expect(page.locator(".whatsnew__card").first()).toBeVisible();
   await expect(page.locator(".whatsnew__card[data-kind='book']").first()).toBeVisible();
-  // The newest pass leads; which class it is changes with every pass merged, so the card's shape is what is checked.
-  const pass = page.locator(".whatsnew__card[data-kind='pass']").first();
-  await expect(pass).toContainText("New precept pass");
-  await expect(pass).toContainText(/\d+ precepts? under \d+ scriptures?/);
+  // Precept passes are working data behind the verse notes; Home does not list them.
+  await expect(page.locator(".whatsnew__card[data-kind='pass']")).toHaveCount(0);
 });
 
 test("an Apocrypha verse shows its Greek from Swete's Septuagint where the 66 books show Strong's", async ({ page }) => {
