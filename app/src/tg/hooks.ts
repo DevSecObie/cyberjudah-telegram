@@ -36,7 +36,12 @@ export function useBackButton(root: boolean, onBack?: () => boolean | void) {
       // An open sheet closes first, like a phone app.
       const all = document.querySelectorAll<HTMLElement>("[data-sheet-open]");
       const sheet = all[all.length - 1];
-      if (sheet) { sheet.closest(".sheet__scrim")?.dispatchEvent(new MouseEvent("click", { bubbles: true })); return; }
+      if (sheet) {
+        const scrim = sheet.closest(".sheet__scrim");
+        // A sheet closes from its scrim; an overlay without one (the class gallery) listens for cj:close.
+        if (scrim) scrim.dispatchEvent(new MouseEvent("click", { bubbles: true })); else sheet.dispatchEvent(new CustomEvent("cj:close"));
+        return;
+      }
       if (handler.current?.() === true) return;
       if (canGoBack) navigate(-1); else navigate("/", { replace: true });
     };

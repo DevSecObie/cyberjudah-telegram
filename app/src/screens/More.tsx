@@ -39,6 +39,7 @@ export function More() {
           <Row href="/tags" icon="tag" title="Tags" sub="Sort what you keep" />
           <Row href="/history" icon="clock" title="History" sub="The chapters you opened" />
           <Row href="/sabbath" icon="sun" title="Sabbath" sub="Sunset where you are, and the countdown" />
+          <Row href="/settings/bar" icon="list" title="Bottom bar" sub="Choose the buttons on the bar and their order" />
           <Row href="/settings" icon="gear" title="Settings" sub={`Daily verse, lock, text size${chaptersRead(progress) ? ` · ${chaptersRead(progress)} chapters read` : ""}`} />
         </List>
       </Section>

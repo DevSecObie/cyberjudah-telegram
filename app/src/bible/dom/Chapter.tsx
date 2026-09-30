@@ -26,7 +26,7 @@ export type ChapterProps = {
   highlights: Record<string, Highlight>; tags: Record<string, Tag>; bookmarks: Bookmark[];
   relationItems: Record<number, VerseRelationItem[]>;
   /** The classes that taught each verse, by the last verse they taught. */
-  moments?: Record<number, ClassMoment[]>; onOpenMoments?: (v: number) => void;
+  moments?: Record<number, ClassMoment[]>; deck?: { reference: string; from: string };
   headerHeight: number; fullscreen: boolean; canSwipe: boolean;
   onToggleVerse: (v: number) => void; onVerseDetail: (v: number) => void; onDoubleTap?: (v: number) => void;
   onSwipe: (dir: "left" | "right") => void; onFullscreen: (on: boolean) => void;
@@ -144,7 +144,7 @@ export function Chapter(p: ChapterProps) {
               highlightedColor={p.highlights[String(n)]?.color} bookmark={bookmarkOf.get(n)}
               isVerseToScroll={!isContextFocused && p.verseToScroll === n && n !== 1} isFocused={isFocused} fadePosition={fadePosition}
               relationItems={items} relationCount={items?.length || undefined}
-              moments={p.moments?.[n]} onOpenMoments={p.onOpenMoments ? () => p.onOpenMoments!(n) : undefined}
+              moments={p.moments?.[n]} deck={p.deck}
               tagGroup={tagGroups.get(n)} taggedItemsCount={p.highlights[String(n)]?.tags ? Object.keys(p.highlights[String(n)].tags!).length : 0}
               onOpenBookmark={p.onOpenBookmark} onOpenRelations={() => p.onOpenRelations(n)} onOpenRelationItem={p.onOpenRelationItem} onOpenTags={() => p.onOpenTags(n)} onOpenTag={p.onOpenTag} />
           );
