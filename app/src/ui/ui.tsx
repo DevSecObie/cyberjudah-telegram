@@ -4,9 +4,10 @@ import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection,
 
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
-import { bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
+import { askTabPath, bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
+import { SwitcherBar } from "@/screens/Tabs";
 
-export type IconName = "home" | "search" | "play" | "book" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download";
+export type IconName = "home" | "search" | "play" | "book" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus";
 export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
   const p: Record<IconName, ReactNode> = {
     home: <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />,
@@ -42,6 +43,7 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
     download: <><path d="M12 4v11" /><path d="m7 10 5 5 5-5" /><path d="M5 20h14" /></>,
     history: <><path d="M4 6h16M4 12h10M4 18h7" /><circle cx="18" cy="17" r="3" /><path d="M18 15.6V17l1 .8" /></>,
     trash: <><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></>,
+    plus: <path d="M12 5v14M5 12h14" />,
     chat: <path d="M4 5h16v11H9l-5 4z" />,
     retry: <><path d="M4 12a8 8 0 1 0 2.3-5.6" /><path d="M4 4v4h4" /></>,
     folder: <path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />,
@@ -51,13 +53,14 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
 
 /**
  * Bible Strong's bottom bar (app-switcher/BottomTabBar): Home, Search, Bible, the open tabs,
- * and the menu. Home and the menu are not tabs; Search and the Bible go to their tab (or open
+ * and the menu. Home and the menu are not tabs; Search, the Bible and Ask go to their tab (or open
  * one); the tabs button shows how many are open and opens the switcher.
  */
 export function tabOf(path: string): string {
   if (path === "/") return "home";
   if (path.startsWith("/search")) return "search";
   if (/^\/(bible|read)(\/|$)/.test(path)) return "bible";
+  if (/^\/ask(\/|\?|$)/.test(path)) return "ask";
   if (path.startsWith("/more")) return "more";
   return "tabs";
 }
@@ -72,9 +75,12 @@ export function TabBar() {
     { id: "home", label: "Home", icon: <Icon name="home" size={24} />, onClick: () => go("/") },
     { id: "search", label: "Search", icon: <Icon name="search" size={24} />, onClick: () => go(searchTabPath()) },
     { id: "bible", label: "Bible", icon: <Icon name="book" size={24} />, onClick: () => go(bibleTabPath()) },
+    { id: "ask", label: "Ask", icon: <Icon name="chat" size={24} />, onClick: () => go(askTabPath()) },
     { id: "tabs", label: "Tabs", icon: <span className="tab__count" aria-hidden="true">{tabs.length}</span>, onClick: () => go("/tabs") },
     { id: "more", label: "More", icon: <Icon name="more" size={24} />, onClick: () => go("/more") },
   ];
+  // While the switcher is open the bar becomes its controls, as in Bible Strong.
+  if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /></nav>;
   return (
     <Tabbar className="tabs" aria-label="Sections">
       {items.map((t) => (

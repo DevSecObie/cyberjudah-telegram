@@ -326,26 +326,42 @@ test("backup: everything kept goes to your chat as a file, and a file restores i
   await expect(page.locator("[role=status]")).toContainText("This file is not a CyberJudah backup.");
 });
 
-test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resource, the switcher shows and closes them", async ({ page }) => {
+test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resource, the switcher shows and closes them, and groups keep their own tabs", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
-  await page.evaluate(() => localStorage.removeItem("cj:tabs"));
+  await page.evaluate(() => { localStorage.removeItem("cj:tabs"); localStorage.removeItem("cj:tabgroups"); });
   await page.goto(`/${LAUNCH}`);
   await page.click(".tab >> text=Bible");
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
   await page.click(".tab >> text=Tabs");
   await expect(page).toHaveURL(/\/tabs/);
-  await expect(page.locator(".tabcard:not(.tabcard--new)")).toHaveCount(1);
-  await expect(page.locator(".tabcard b").first()).toHaveText("Bible");
-  await page.click(".tabcard--new");
+  await expect(page.locator(".tabcard")).toHaveCount(1);
+  await expect(page.locator(".tabcard__title b").first()).toHaveText("Bible · Genesis 1");
+  // In the switcher the bottom bar is its controls: +, the group (the default group shows its count), OK.
+  await expect(page.locator(".switcherbar__group")).toHaveText("1 tab");
+  await page.click('[aria-label="Add a tab"]');
   await expect(page.locator(".nt-heading")).toHaveText("What would you like to explore?");
   await page.click(".nt-item >> text=Strong");
   await expect(page).toHaveURL(/\/lexicon/);
   await page.click(".tab >> text=Tabs");
-  await expect(page.locator(".tabcard:not(.tabcard--new)")).toHaveCount(2);
-  await expect(page.locator(".tab__count")).toHaveText("2");
+  await expect(page.locator(".tabcard")).toHaveCount(2);
+  await expect(page.locator(".switcherbar__group")).toHaveText("2 tabs");
   await page.click('.tabcard__close[aria-label="Close Strong"]');
-  await expect(page.locator(".tabcard:not(.tabcard--new)")).toHaveCount(1);
-  await page.click(".tabcard__open");
+  await expect(page.locator(".tabcard")).toHaveCount(1);
+  // A new group starts with its own New Tab page; the first group keeps its Bible tab.
+  await page.click(".switcherbar__group");
+  await page.click(".sheet__item >> text=New group");
+  await page.locator(".sheet textarea").fill("Revelation");
+  await page.click(".sheet button[type=submit]");
+  await page.locator(".sheet .swatch").nth(2).click();
+  await expect(page.locator(".switcherbar__group")).toHaveText("Revelation");
+  await expect(page.locator(".tabcard__title b").first()).toHaveText("New tab");
+  if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/tabs-groups.png` }); }
+  await page.click(".switcherbar__group");
+  await page.click(".sheet__item >> text=1 tab");
+  await expect(page.locator(".switcherbar__group")).toHaveText("1 tab");
+  await expect(page.locator(".tabcard__title b").first()).toHaveText("Bible · Genesis 1");
+  if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/tabs.png` }); }
+  await page.click(".switcherbar__ok");
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
 });
 
@@ -364,7 +380,7 @@ test("Home is the front door: one field, search the classes or ask CyberJudah", 
   await expect(page.locator(".shelf")).toHaveText(["Learn", "Study", "Meditate", "Go further"]);
   await expect(page.locator(".widget")).toHaveCount(6);
   await expect(page.locator('.tools a[href="/lexicon"]')).toBeVisible();
-  await expect(page.locator(".tab")).toHaveCount(5);
+  await expect(page.locator(".tab")).toHaveCount(6); // Home, Search, Bible, Ask, Tabs, More
   await page.fill("#q", "Why do we keep the Passover?");
   await page.click(".door__btn--ask");
   await expect(page).toHaveURL(/\/ask/);
@@ -824,4 +840,17 @@ test("the Library searches inside every book, page by page", async ({ page }) =>
   await expect(page.locator(".section__head h2", { hasText: "2 pages" })).toBeVisible();
   await page.locator('a[href="/books/lost-tribes-a-myth/p/1-256"]').click();
   await expect(page).toHaveURL(/\/books\/lost-tribes-a-myth\//); // the page link lands in its chapter, at the page
+});
+
+test("Ask is on the bottom bar: it opens Ask CyberJudah in its own tab", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  const ask = page.locator(".tab", { hasText: "Ask" });
+  await expect(ask).toBeVisible();
+  await ask.click();
+  await expect(page).toHaveURL(/\/ask/);
+  await expect(ask).toHaveAttribute("aria-current", "page");
+  if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/ask-tab.png` }); }
+  // The Bible is still its own tab to go back to.
+  await page.click(".tab >> text=Bible");
+  await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
 });
