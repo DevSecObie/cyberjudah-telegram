@@ -8,7 +8,7 @@ import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
 import { useSettingsButton, useStored, useTheme } from "@/tg/hooks";
 import { AppRoot } from "@telegram-apps/telegram-ui";
-import { Button, Screen, Skeleton, TabBar } from "@/ui/ui";
+import { Button, PageActions, Screen, Skeleton, TabBar } from "@/ui/ui";
 import { ThemeApplier } from "@/ui/theme";
 import { Home } from "@/screens/Home";
 // Every other screen loads on first visit, so the first paint stays small: one chunk per
@@ -134,6 +134,7 @@ export function App() {
       </Routes>
       </Suspense>
       </div>
+      <PageActions />
       {tabs ? <TabBar /> : null}
     </AppRoot>
   );
