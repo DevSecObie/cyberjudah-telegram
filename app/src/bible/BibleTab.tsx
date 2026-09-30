@@ -23,6 +23,7 @@ import { Footer } from "./ui/Footer";
 import { Header, PassageContextBar, VersionSheet, type MenuAction } from "./ui/Header";
 import { ParamsSheet } from "./ui/ParamsSheet";
 import { ResourcesSheet, type ResourceTab } from "./ui/ResourcesSheet";
+import { CompareSheet } from "./ui/CompareSheet";
 import { isWhy, slugOfUrl, useTaughtRelations, whyVerse } from "@/lib/taught";
 import { WhySheet } from "./ui/WhySheet";
 import { SelectedVersesSheet } from "./ui/SelectedVersesSheet";
@@ -105,7 +106,7 @@ export function BibleTab() {
   }, [plan, list, progress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sheets.
-  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search">(null);
+  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare">(null);
   const [whyAt, setWhyAt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [resourceTab, setResourceTab] = useState<ResourceTab>("dictionary");
@@ -248,7 +249,7 @@ export function BibleTab() {
         moreThanOne={selected.length > 1} hasBookmark={hasBookmark} hasFocus={hasFocus}
         onNote={() => { setNoteEdit(null); setSheet("note"); }} onTag={() => { setTagsTarget(selectedSorted); setSheet("tags"); }} onLink={() => setSheet("link")} onRelation={() => setSheet("relation")}
         onBookmark={() => { setBookmarkTarget({ verse: first, existing: bookmarks.find((b) => b.book === slug && b.chapter === ch && b.verse === first) }); setSheet("bookmark"); }} onFocus={setFocus}
-        onDictionary={() => openResources(first, "dictionary")} onThemes={() => openResources(first, "themes")} onReferences={() => openResources(first, "references")} onCommentary={() => openResources(first, "commentary")}
+        onDictionary={() => openResources(first, "dictionary")} onThemes={() => openResources(first, "themes")} onReferences={() => openResources(first, "references")} onCommentary={() => openResources(first, "commentary")} onCompare={() => { setResourceVerse(first); setSheet("compare"); }}
         onCopy={() => void copy()} onShare={shareSel} onExport={() => void exportSel("selection")} onSelectAll={() => setSelected(verses.map((v) => v.verse))} />
 
       <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v)} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />
@@ -261,6 +262,7 @@ export function BibleTab() {
       <NoteSheet open={sheet === "note"} onClose={() => { setSheet(null); setNoteEdit(null); }} reference={noteEdit ? `${bookName(slug)} ${ch}:${noteEdit.key.replace("/", ",")}` : selectedReference ?? ""} initial={noteEdit?.note} onSave={(v) => void saveNote(v)} onRemove={noteEdit ? () => void removeNote() : undefined} />
       <LinkSheet open={sheet === "link"} onClose={() => setSheet(null)} reference={selectedReference ?? ""} onSave={(v) => void saveLink(v)} />
       {sheet === "relation" ? <RelationTargetPicker source={verseEndpoint() as Endpoint} onClose={() => setSheet(null)} onCreated={() => { setSheet(null); setSelected([]); }} /> : null}
+      {resource ? <CompareSheet open={sheet === "compare"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={resource.verse} text={resource.text} reference={reference([resource.verse])} books={list} onRead={(s, c, v) => go({ slug: s, ch: c }, v)} /> : null}
       {resource ? <ResourcesSheet open={sheet === "resources"} onClose={() => setSheet(null)} tab={resourceTab} setTab={setResourceTab} slug={slug} chapter={ch} verse={resource.verse} text={resource.text} reference={reference([resource.verse])} books={list} /> : null}
       {toast ? <div className="bs-toast" role="status">{toast}</div> : null}
     </div>

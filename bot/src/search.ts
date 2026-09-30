@@ -9,7 +9,7 @@ export type SearchResult =
   | { ok: true; q: string; mode: "strict" | "loose" | "mixed"; counts: Record<string, number>; hits: SearchHit[]; ms: number }
   | { ok: false; reason: string };
 
-export const KINDS = ["verse", "law", "precept", "case", "study", "class", "captains", "history", "encyclopedia"] as const;
+export const KINDS = ["verse", "law", "precept", "case", "study", "class", "captains", "history", "encyclopedia", "book"] as const;
 
 /** Quoted phrases retain all words; only unquoted terms drop common stop words. */
 const STOP = new Set(["and", "or", "not", "the", "a", "of"]);

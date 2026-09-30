@@ -4,9 +4,9 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { data, DATA_ORIGIN, fmtDate, type BookChapterRow, type BookFigure, type ClassReading, type LibraryBook } from "@/api/data";
 import { useBackButton } from "@/tg/hooks";
-import { haptic } from "@/tg/sdk";
+import { api, haptic } from "@/tg/sdk";
 import { PictureViewer, Said } from "@/ui/PictureViewer";
-import { Empty, Icon, List, Row, Screen, Section, Skeleton } from "@/ui/ui";
+import { Empty, Icon, List, Row, Screen, SearchField, Section, Skeleton } from "@/ui/ui";
 
 /**
  * The library: public-domain books the classes read from, page by page as printed, with the
@@ -24,11 +24,27 @@ const readingHref = (r: Pick<ClassReading, "video" | "t" | "url">) => (r.url ? `
 const pageLabel = (b: { volumes: number }, vol: number, page: number, volumeLabel?: string) => (b.volumes > 1 ? `${volumeLabel && !/^Volume \d+$/.test(volumeLabel) ? volumeLabel : `vol. ${vol}`}, p. ${page}` : `p. ${page}`);
 const pageHref = (slug: string, vol: number, page: number) => `/books/${slug}/p/${vol}-${page}`;
 
+type BookHit = { kind: string; title: string; url: string; sub: string; snippet: string };
+type BookSearch = { ok: true; hits: BookHit[]; counts: Record<string, number> } | { ok: false; reason: string };
+
 export function Books() {
   useBackButton(false);
   const lib = useQuery({ queryKey: ["library"], queryFn: data.library, staleTime: Infinity });
+  // Search inside every book: the pages as printed, from the library's own index.
+  const [q, setQ] = useState("");
+  const [asked, setAsked] = useState("");
+  const found = useQuery({ queryKey: ["book-search", asked], enabled: asked.length > 1, staleTime: 5 * 60_000, retry: false, queryFn: () => api<BookSearch>(`/api/search?q=${encodeURIComponent(asked)}&only=book&limit=30`) });
+  const hits = found.data && found.data.ok ? found.data.hits : [];
   return (
     <Screen title="Library" kicker="Books the classes read from">
+      <div className="books__search">
+        <SearchField id="book-q" value={q} onChange={setQ} onSubmit={() => { haptic("select"); setAsked(q.trim()); }} placeholder="Search inside the books" />
+      </div>
+      {asked ? (found.isPending ? <Skeleton rows={4} /> : found.isError || (found.data && !found.data.ok) ? <Empty title="The book search did not answer">Try again in a moment.</Empty> : !hits.length ? <Empty title={`Nothing in the books for “${asked}”`}>Try another word or spelling.</Empty> : (
+        <Section title={`${hits.length} ${hits.length === 1 ? "page" : "pages"} for “${asked}”`}>
+          <List>{hits.map((h) => <Row key={h.url} href={h.url} title={h.title} meta={h.sub} sub={h.snippet.replace(/<\/?b>/g, "")} />)}</List>
+        </Section>
+      )) : null}
       {lib.isPending ? <Skeleton rows={3} thumb /> : !lib.data?.length ? <Empty title="No books yet" /> : (
         <List>{[...lib.data].sort((a, b) => b.classes - a.classes || a.title.localeCompare(b.title)).map((b) => (
           <Row key={b.slug} href={`/books/${b.slug}`} thumb={b.cover ? src(b.cover) : undefined} title={b.title}

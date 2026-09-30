@@ -9,7 +9,7 @@ import { Feather } from "../icons";
 import { Sheet } from "./Sheet";
 import { WordSheet } from "./WordSheet";
 import { Xrefs } from "@/ui/xrefs";
-import { preceptsForVerse, slugOfUrl, teacherRank, usePeopleNamed, useTaughtPrecepts } from "@/lib/taught";
+import { preceptsForVerse, slugOfUrl, teacherRank, usePeopleNamed, useReadings, useTaughtPrecepts } from "@/lib/taught";
 import { fmtDate } from "@/api/data";
 
 /**
@@ -33,6 +33,9 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   const withFrom = (path: string) => `${path}${path.includes("?") ? "&" : "?"}${from}`;
   const spans = useQuery({ queryKey: ["chapter", slug, chapter], enabled: open && tab === "words", staleTime: Infinity, queryFn: () => data.chapter(slug, chapter) });
   const verseWords = spans.data?.verses.find((v) => v.verse === verse)?.words;
+  // The Apocrypha have no Strong's numbers; the Greek of the verse from Swete's Septuagint stands in.
+  const lxx = useQuery({ queryKey: ["lxx", slug, chapter], enabled: open && tab === "words" && !!spans.data && !verseWords, staleTime: Infinity, retry: false, queryFn: () => data.lxx(slug, chapter).catch(() => null) });
+  const greek = lxx.data?.verses?.[String(verse)];
   const words = [...new Set(text.replace(/[^A-Za-z' ]/g, " ").split(/\s+/).filter((w) => w.length > 3 && !STOP.has(w.toLowerCase())))].slice(0, 40);
   const dict = useQuery({ queryKey: ["dict-from", words.join(",")], enabled: open && tab === "dictionary" && words.length > 0, queryFn: async () => {
     const hits = await Promise.all(words.map((w) => fetch(`/api/dictionary/lookup?word=${encodeURIComponent(w)}`).then((r) => (r.ok ? (r.json() as Promise<Entry>) : null)).catch(() => null)));
@@ -57,6 +60,10 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   // The classes' own breakdowns of this verse, newest class first.
   const said = useQuery({ queryKey: ["commentary", slug, chapter], enabled: open && tab === "commentary", queryFn: () => data.concordance(slug, chapter).then((c) => c.commentary ?? []).catch(() => [] as VerseComment[]) });
   const breakdowns = (said.data ?? []).filter((c) => verseNumbers(c.verses).includes(verse)).sort((a, b) => teacherRank(a.note.teacher) - teacherRank(b.note.teacher) || b.note.date.localeCompare(a.note.date));
+  // Every class that read this verse aloud, from the transcripts: Bishops first, then newest first.
+  const readings = useReadings(open && tab === "commentary" ? slug : "", chapter);
+  const readHere = readings.data?.[String(verse)] ?? [];
+  const [allRead, setAllRead] = useState(false);
   const shown = new Set(breakdowns.map((c) => c.note.url));
   const also = [...new Map(comments.filter((c) => c.verses && !shown.has(c.url)).map((c) => [c.url, c] as const)).values()];
   return (
@@ -67,7 +74,13 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
     }>
       <div className="bs-resources">
         <p className="bs-resources__verse"><b>{verse}</b> {text}</p>
-        {tab === "words" ? (spans.isPending ? <p className="bs-loading">Loading...</p> : !verseWords ? <p className="bs-loading">Strong's numbers cover the 66 books; this verse has none.</p> : <>
+        {tab === "words" ? (spans.isPending ? <p className="bs-loading">Loading...</p> : !verseWords ? (lxx.isPending ? <p className="bs-loading">Loading...</p> : greek ? (
+          <div className="bs-greek">
+            <p className="bs-resources__sub">The Greek of this verse</p>
+            <p className="bs-greek__text" lang="grc">{greek}</p>
+            <p className="bs-greek__src">Swete's Septuagint (1909), verse {verse} as Swete numbers it; the King James Apocrypha were translated from this Greek. Strong's numbers cover the 66 books only.</p>
+          </div>
+        ) : <p className="bs-loading">Strong's numbers cover the 66 books; this verse has none.</p>) : <>
           <p className="bs-words__hint">Tap a word for the Hebrew or Greek behind it, what it means, and every verse that uses it.</p>
           <div className="bs-words">{verseWords.map(([t, nums], i) => nums.length
             ? <button key={i} type="button" className="bs-words__w" onClick={() => setWord(nums[0])}>{t}<small>{nums.join(" ")}</small></button>
@@ -89,7 +102,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
         {tab === "dictionary" ? (dict.isPending && words.length ? <p className="bs-loading">Loading...</p> : !dict.data?.length ? <p className="bs-loading">No dictionary entry for the words in this verse.</p> : dict.data.map((e) => <button key={e.slug} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(`/dictionary/${e.slug}`); }}><b>{e.term}</b><small>{e.definitions[0]}</small></button>)) : null}
         {tab === "themes" ? (cites.isPending ? <p className="bs-loading">Loading...</p> : !themes.length ? <p className="bs-loading">No law, precept, case or topic cites this verse.</p> : themes.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(withFrom(toApp(c.url))); }}><b>{c.label}</b><small>{shelf(c.url, c.kind)}</small></button>)) : null}
         {tab === "references" ? (xref.isPending ? <p className="bs-loading">Loading...</p> : !refs.length ? <p className="bs-loading">No cross references for this verse.</p> : <div className="bs-resources__xrefs"><Xrefs refs={refs} books={books} /></div>) : null}
-        {tab === "commentary" ? (cites.isPending || said.isPending ? <p className="bs-loading">Loading...</p> : !also.length && !breakdowns.length ? <p className="bs-loading">No class or study note teaches from this verse yet.</p> : <>
+        {tab === "commentary" ? (cites.isPending || said.isPending ? <p className="bs-loading">Loading...</p> : !also.length && !breakdowns.length && !readHere.length ? <p className="bs-loading">No class or study note teaches from this verse yet.</p> : <>
           {breakdowns.map((c, i) => (
             <div key={`${c.note.url}${c.ts}${i}`} className="bs-comment">
               <button type="button" className="bs-comment__class" onClick={() => { if (/^https?:/.test(c.note.url)) { openLink(`${c.note.url}${c.t ? `&t=${c.t}s` : ""}`); return; } onClose(); navigate(passageLink(c).replace("#", `?${from}#`).replace(/\?t=(\d+)\?/, "?t=$1&")); }}>
@@ -100,6 +113,18 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
               {c.video ? <button type="button" className="bs-comment__watch" onClick={() => openLink(`https://www.youtube.com/watch?v=${c.video}${c.t ? `&t=${c.t}s` : ""}`)}><Feather name="play" size={14} color="var(--bs-primary)" /> Watch from {c.ts || "the start"}</button> : null}
             </div>
           ))}
+          {readHere.length ? <>
+            <p className="bs-resources__sub">Read in {readHere.length === 1 ? "one class" : `${readHere.length} classes`}</p>
+            <div className="bs-readin">
+              {(allRead ? readHere : readHere.slice(0, 6)).map((r) => (
+                <button key={`${r.video}-${r.t}`} type="button" className="bs-readin__row" onClick={() => { onClose(); navigate(withFrom(r.url ? `${toApp(r.url)}?t=${r.t}` : `/watch/${r.video}?t=${r.t}`)); }}>
+                  <span className="bs-readin__ts"><Feather name="play" size={12} color="var(--bs-primary)" />{r.ts}</span>
+                  <span className="bs-readin__what"><b>{r.title}</b><small>{[r.date ? fmtDate(r.date) : "", r.teacher].filter(Boolean).join(" · ")}</small></span>
+                </button>
+              ))}
+              {!allRead && readHere.length > 6 ? <button type="button" className="bs-readin__more" onClick={() => setAllRead(true)}>All {readHere.length} classes</button> : null}
+            </div>
+          </> : null}
           {also.length ? <p className="bs-resources__sub">{breakdowns.length ? "Also taught in" : "Taught in"}</p> : null}
           {also.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(`${toApp(c.url)}#p-${`${reference.replace(/:.*$/, "")}:${c.verses}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`); }}><b>{c.label.replace(/^[^·]+·\s*/, "")}</b><small>{shelf(c.url, c.kind)} · {reference.replace(/:.*$/, "")}:{c.verses}</small></button>)}
         </>) : null}

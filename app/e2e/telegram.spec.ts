@@ -687,3 +687,72 @@ test("Strong's: a verse's words open the Hebrew or Greek behind them, with every
   await page.locator(".bs-word__book li button").nth(1).click();
   await expect(page).toHaveURL(/\/read\/genesis\/1\?v=2/);
 });
+
+test("a verse's Comments list every class that read it aloud, from the transcripts, each opening the class at that second", async ({ page }) => {
+  await page.goto(`/read/isaiah/61${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await longPressVerse(page, 1);
+  await page.click('.bs-resourcetabs button >> text=Comments');
+  await expect(page.locator(".bs-resources__sub", { hasText: /^Read in / })).toBeVisible();
+  const rows = page.locator(".bs-readin__row");
+  await expect(rows.first()).toBeVisible();
+  await expect(rows.first().locator(".bs-readin__ts")).toContainText(/\d+:\d\d/);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/read-in-class.png` });
+  await rows.first().click();
+  await expect(page).toHaveURL(/\/(watch|note)\/.*[?&]t=\d+/);
+});
+
+test("Compare puts a verse beside its precepts and its cross references, each written out", async ({ page }) => {
+  await page.goto(`/read/psalms/23${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await tapVerse(page, 1);
+  await page.click(".bs-tabsfooter__tab >> text=Study");
+  await page.click(".bs-action >> text=Compare");
+  await expect(page.locator(".bs-compare__verse")).toContainText("The Lord is my shepherd");
+  await page.click('.bs-compare__lanes button >> text=Cross references');
+  await expect(page.locator(".bs-compare__item").first()).toBeVisible();
+  await expect(page.locator(".bs-compare__item .bs-compare__text").first()).not.toBeEmpty();
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/compare.png` });
+  await page.locator(".bs-compare__ref").first().click();
+  await expect(page).toHaveURL(/\/read\//);
+});
+
+test("a topic's thread strings the scriptures its classes opened, in Bible order, with the classes and precepts under each", async ({ page }) => {
+  await page.goto(`/topics/captivity${LAUNCH}`);
+  await expect(page.locator(".thread__stop").first()).toBeVisible();
+  const refs = await page.locator(".thread__ref b").allTextContents();
+  expect(refs.length).toBeGreaterThan(3);
+  await page.locator(".thread__head").first().click();
+  await expect(page.locator(".thread__stop--open .thread__class").first()).toBeVisible();
+  await expect(page.locator(".thread__stop--open .thread__read")).toBeVisible();
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/thread.png` });
+});
+
+test("Home shows what landed lately: passes, books and classes", async ({ page }) => {
+  await page.goto(`/${LAUNCH}`);
+  await expect(page.locator(".whatsnew__card").first()).toBeVisible();
+  await expect(page.locator(".whatsnew__card[data-kind='book']").first()).toBeVisible();
+  await expect(page.locator(".whatsnew__card[data-kind='pass']").first()).toContainText("The Gospel Is Black Liberation");
+});
+
+test("an Apocrypha verse shows its Greek from Swete's Septuagint where the 66 books show Strong's", async ({ page }) => {
+  await page.goto(`/read/tobit/1${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await longPressVerse(page, 1);
+  await page.click('.bs-resourcetabs button >> text=Words');
+  await expect(page.locator(".bs-greek__text")).toContainText("ΒΙΒΛΟΣ");
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/greek.png` });
+});
+
+test("the Library searches inside every book, page by page", async ({ page }) => {
+  await page.route("**/api/search?**", (r) => r.fulfill({ json: { ok: true, q: "Falasha", mode: "strict", counts: { book: 2 }, ms: 3, hits: [
+    { kind: "book", title: "The Lost Tribes a Myth", url: "/books/lost-tribes-a-myth/p/1-256", sub: "p. 256 · Yemen Jews and Falashas", snippet: "…the Falashas of Abyssinia keep the Sabbath…" },
+    { kind: "book", title: "The Jewish Encyclopedia", url: "/books/jewish-encyclopedia/p/5-12", sub: "vol. 5, p. 12 · FALASHAS", snippet: "…FALASHAS: Ethiopian Jews…" },
+  ] } }));
+  await page.goto(`/books${LAUNCH}`);
+  await page.fill("#book-q", "Falasha");
+  await page.press("#book-q", "Enter");
+  await expect(page.locator(".section__head h2", { hasText: "2 pages" })).toBeVisible();
+  await page.locator('a[href="/books/lost-tribes-a-myth/p/1-256"]').click();
+  await expect(page).toHaveURL(/\/books\/lost-tribes-a-myth\//); // the page link lands in its chapter, at the page
+});
