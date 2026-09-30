@@ -1068,7 +1068,7 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
  */
 .switcher { min-height: 100dvh; padding: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 20px) 20px calc(var(--a-tabs, 64px) + 40px + env(safe-area-inset-bottom, 0px)); touch-action: pan-y; }
 .switcher__grid { display: grid; gap: 20px; justify-content: start; }
-.tabcard { position: relative; border-radius: 22px; overflow: hidden;
+.tabcard { position: relative; border-radius: 20px; overflow: hidden;
   background: color-mix(in srgb, var(--a-card) 70%, transparent);
   backdrop-filter: blur(22px) saturate(1.7); -webkit-backdrop-filter: blur(22px) saturate(1.7);
   border: 1px solid color-mix(in srgb, var(--a-ink-2) 12%, transparent);
@@ -1181,3 +1181,17 @@ html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[dat
 /* Home fits its drawer. */
 .drawer__scroll { overflow-x: hidden; }
 .hero { grid-template-columns: minmax(0, 1fr); }
+
+/* Bible Strong's search screen: a strip on top (field, then the facets), and a centred empty state
+   with an 80px search mark and examples as small pills. */
+.bsearch { padding-top: 0 !important; }
+.bsearch__bar { position: sticky; top: 0; z-index: 20; margin: 0 -16px 12px; padding: calc(6px + var(--safe-top, 0px)) 16px 4px; background: var(--a-bg); border-bottom: 1px solid var(--a-line); }
+.bsearch__bar .hero { padding: 0; border: 0; background: none; box-shadow: none; }
+.bsearch__facets { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0 6px; scrollbar-width: none; }
+.bsearch__facets::-webkit-scrollbar { display: none; }
+.bsearch__facets .chip { flex: none; }
+.bsearch__empty { min-height: 45vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px 12px; text-align: center; color: var(--a-muted); }
+.bsearch__empty svg { opacity: .6; }
+.bsearch__empty p { margin: 0; max-width: 320px; font: 400 16px/1.4 var(--a-ui); }
+.bsearch__examples { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+#root .bsearch__examples button, .bsearch__examples button { padding: 4px 12px; border-radius: 20px; background: var(--a-card); border: 1px solid var(--a-line); color: var(--a-ink-2); font: 400 14px var(--a-ui); cursor: pointer; }
