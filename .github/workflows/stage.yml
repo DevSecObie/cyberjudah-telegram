@@ -89,6 +89,7 @@ jobs:
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Staging worker: $URL"
       - name: Load the search index into the staging database
+        working-directory: bot
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -97,6 +98,8 @@ jobs:
       - name: Register the staging webhook, commands and menu button
         working-directory: bot
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
           WEBHOOK_SECRET: ${{ secrets.STAGING_WEBHOOK_SECRET }}
           WORKER_URL: ${{ steps.deploy.outputs.url }}
