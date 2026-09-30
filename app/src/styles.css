@@ -1104,3 +1104,24 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
   transition: background-color 300ms ease, border-color 300ms ease; }
 #root .switcherbar__group span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tab__count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 4px; border: 1.8px solid currentColor; border-radius: 6px; font: 700 11px var(--a-ui); font-variant-numeric: tabular-nums; }
+
+/* A screen's actions (Open in YouTube, Share...), in the app instead of Telegram's own bottom bar,
+   which covered the tab bar: glass buttons just above the tab bar, as the dock is glass. */
+.pageactions { position: fixed; z-index: 39; left: 12px; right: 12px; max-width: 616px; margin: 0 auto;
+  bottom: calc(var(--a-tabs) + 30px); display: flex; gap: 10px; justify-content: center; pointer-events: none; }
+#root .pageaction { pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex: 1 1 0; max-width: 320px; height: 46px; padding: 0 18px; border-radius: 23px; cursor: pointer;
+  font: 600 15px var(--a-ui); color: var(--a-on-accent, #001014); background: var(--a-accent);
+  border: 1px solid color-mix(in srgb, #ffffff 22%, transparent);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .22), inset 0 1px 0 color-mix(in srgb, #ffffff 30%, transparent);
+  transition: transform 160ms ease, opacity 160ms ease; }
+#root .pageaction:active { transform: scale(0.97); }
+#root .pageaction:disabled { opacity: 0.55; cursor: default; }
+#root .pageaction--quiet { color: var(--a-ink-2);
+  background: color-mix(in srgb, var(--a-bg) 58%, transparent);
+  backdrop-filter: blur(24px) saturate(1.8); -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  border-color: color-mix(in srgb, var(--a-ink-2) 14%, transparent); }
+.pageaction__spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(1turn); } }
+/* Room for the actions at the end of the page. */
+html[data-actions] #root [data-tabs] { padding-bottom: calc(var(--a-tabs) + 90px); }
+html[data-typing] .pageactions { display: none; }
