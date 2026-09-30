@@ -172,6 +172,8 @@ test("header cards search, keep chapter navigation in place, and close with Tele
   await page.click(".bs-pill--book");
   const card = page.getByRole("dialog", { name: "Books", exact: true });
   await expect(card).toBeVisible();
+  // Measure the full border box after the opening scale animation has finished.
+  await expect(card).toHaveCSS("transform", "none");
   const bounds = (await card.boundingBox())!;
   expect(bounds.y).toBeLessThan(130);
   expect(bounds.height).toBeLessThanOrEqual(530);
