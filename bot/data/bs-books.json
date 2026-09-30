@@ -1,0 +1,488 @@
+[
+  {
+    "id": 1,
+    "slug": "genesis",
+    "name": "Genesis",
+    "sourceName": "Genesis"
+  },
+  {
+    "id": 2,
+    "slug": "exodus",
+    "name": "Exodus",
+    "sourceName": "Exodus"
+  },
+  {
+    "id": 3,
+    "slug": "leviticus",
+    "name": "Leviticus",
+    "sourceName": "Leviticus"
+  },
+  {
+    "id": 4,
+    "slug": "numbers",
+    "name": "Numbers",
+    "sourceName": "Numbers"
+  },
+  {
+    "id": 5,
+    "slug": "deuteronomy",
+    "name": "Deuteronomy",
+    "sourceName": "Deuteronomy"
+  },
+  {
+    "id": 6,
+    "slug": "joshua",
+    "name": "Joshua",
+    "sourceName": "Joshua"
+  },
+  {
+    "id": 7,
+    "slug": "judges",
+    "name": "Judges",
+    "sourceName": "Judges"
+  },
+  {
+    "id": 8,
+    "slug": "ruth",
+    "name": "Ruth",
+    "sourceName": "Ruth"
+  },
+  {
+    "id": 9,
+    "slug": "1-samuel",
+    "name": "1 Samuel",
+    "sourceName": "1 Samuel"
+  },
+  {
+    "id": 10,
+    "slug": "2-samuel",
+    "name": "2 Samuel",
+    "sourceName": "2 Samuel"
+  },
+  {
+    "id": 11,
+    "slug": "1-kings",
+    "name": "1 Kings",
+    "sourceName": "1 Kings"
+  },
+  {
+    "id": 12,
+    "slug": "2-kings",
+    "name": "2 Kings",
+    "sourceName": "2 Kings"
+  },
+  {
+    "id": 13,
+    "slug": "1-chronicles",
+    "name": "1 Chronicles",
+    "sourceName": "1 Chronicles"
+  },
+  {
+    "id": 14,
+    "slug": "2-chronicles",
+    "name": "2 Chronicles",
+    "sourceName": "2 Chronicles"
+  },
+  {
+    "id": 15,
+    "slug": "ezra",
+    "name": "Ezra",
+    "sourceName": "Ezra"
+  },
+  {
+    "id": 16,
+    "slug": "nehemiah",
+    "name": "Nehemiah",
+    "sourceName": "Nehemiah"
+  },
+  {
+    "id": 17,
+    "slug": "esther",
+    "name": "Esther",
+    "sourceName": "Esther"
+  },
+  {
+    "id": 18,
+    "slug": "job",
+    "name": "Job",
+    "sourceName": "Job"
+  },
+  {
+    "id": 19,
+    "slug": "psalms",
+    "name": "Psalms",
+    "sourceName": "Psalms"
+  },
+  {
+    "id": 20,
+    "slug": "proverbs",
+    "name": "Proverbs",
+    "sourceName": "Proverbs"
+  },
+  {
+    "id": 21,
+    "slug": "ecclesiastes",
+    "name": "Ecclesiastes",
+    "sourceName": "Ecclesiastes"
+  },
+  {
+    "id": 22,
+    "slug": "song-of-solomon",
+    "name": "Song of Solomon",
+    "sourceName": "Song of Solomon"
+  },
+  {
+    "id": 23,
+    "slug": "isaiah",
+    "name": "Isaiah",
+    "sourceName": "Isaiah"
+  },
+  {
+    "id": 24,
+    "slug": "jeremiah",
+    "name": "Jeremiah",
+    "sourceName": "Jeremiah"
+  },
+  {
+    "id": 25,
+    "slug": "lamentations",
+    "name": "Lamentations",
+    "sourceName": "Lamentations"
+  },
+  {
+    "id": 26,
+    "slug": "ezekiel",
+    "name": "Ezekiel",
+    "sourceName": "Ezekiel"
+  },
+  {
+    "id": 27,
+    "slug": "daniel",
+    "name": "Daniel",
+    "sourceName": "Daniel"
+  },
+  {
+    "id": 28,
+    "slug": "hosea",
+    "name": "Hosea",
+    "sourceName": "Hosea"
+  },
+  {
+    "id": 29,
+    "slug": "joel",
+    "name": "Joel",
+    "sourceName": "Joel"
+  },
+  {
+    "id": 30,
+    "slug": "amos",
+    "name": "Amos",
+    "sourceName": "Amos"
+  },
+  {
+    "id": 31,
+    "slug": "obadiah",
+    "name": "Obadiah",
+    "sourceName": "Obadiah"
+  },
+  {
+    "id": 32,
+    "slug": "jonah",
+    "name": "Jonah",
+    "sourceName": "Jonah"
+  },
+  {
+    "id": 33,
+    "slug": "micah",
+    "name": "Micah",
+    "sourceName": "Micah"
+  },
+  {
+    "id": 34,
+    "slug": "nahum",
+    "name": "Nahum",
+    "sourceName": "Nahum"
+  },
+  {
+    "id": 35,
+    "slug": "habakkuk",
+    "name": "Habakkuk",
+    "sourceName": "Habakkuk"
+  },
+  {
+    "id": 36,
+    "slug": "zephaniah",
+    "name": "Zephaniah",
+    "sourceName": "Zephaniah"
+  },
+  {
+    "id": 37,
+    "slug": "haggai",
+    "name": "Haggai",
+    "sourceName": "Haggai"
+  },
+  {
+    "id": 38,
+    "slug": "zechariah",
+    "name": "Zechariah",
+    "sourceName": "Zechariah"
+  },
+  {
+    "id": 39,
+    "slug": "malachi",
+    "name": "Malachi",
+    "sourceName": "Malachi"
+  },
+  {
+    "id": 40,
+    "slug": "matthew",
+    "name": "Matthew",
+    "sourceName": "Matthew"
+  },
+  {
+    "id": 41,
+    "slug": "mark",
+    "name": "Mark",
+    "sourceName": "Mark"
+  },
+  {
+    "id": 42,
+    "slug": "luke",
+    "name": "Luke",
+    "sourceName": "Luke"
+  },
+  {
+    "id": 43,
+    "slug": "john",
+    "name": "John",
+    "sourceName": "John"
+  },
+  {
+    "id": 44,
+    "slug": "acts",
+    "name": "Acts",
+    "sourceName": "Acts"
+  },
+  {
+    "id": 45,
+    "slug": "romans",
+    "name": "Romans",
+    "sourceName": "Romans"
+  },
+  {
+    "id": 46,
+    "slug": "1-corinthians",
+    "name": "1 Corinthians",
+    "sourceName": "1 Corinthians"
+  },
+  {
+    "id": 47,
+    "slug": "2-corinthians",
+    "name": "2 Corinthians",
+    "sourceName": "2 Corinthians"
+  },
+  {
+    "id": 48,
+    "slug": "galatians",
+    "name": "Galatians",
+    "sourceName": "Galatians"
+  },
+  {
+    "id": 49,
+    "slug": "ephesians",
+    "name": "Ephesians",
+    "sourceName": "Ephesians"
+  },
+  {
+    "id": 50,
+    "slug": "philippians",
+    "name": "Philippians",
+    "sourceName": "Philippians"
+  },
+  {
+    "id": 51,
+    "slug": "colossians",
+    "name": "Colossians",
+    "sourceName": "Colossians"
+  },
+  {
+    "id": 52,
+    "slug": "1-thessalonians",
+    "name": "1 Thessalonians",
+    "sourceName": "1 Thessalonians"
+  },
+  {
+    "id": 53,
+    "slug": "2-thessalonians",
+    "name": "2 Thessalonians",
+    "sourceName": "2 Thessalonians"
+  },
+  {
+    "id": 54,
+    "slug": "1-timothy",
+    "name": "1 Timothy",
+    "sourceName": "1 Timothy"
+  },
+  {
+    "id": 55,
+    "slug": "2-timothy",
+    "name": "2 Timothy",
+    "sourceName": "2 Timothy"
+  },
+  {
+    "id": 56,
+    "slug": "titus",
+    "name": "Titus",
+    "sourceName": "Titus"
+  },
+  {
+    "id": 57,
+    "slug": "philemon",
+    "name": "Philemon",
+    "sourceName": "Philemon"
+  },
+  {
+    "id": 58,
+    "slug": "hebrews",
+    "name": "Hebrews",
+    "sourceName": "Hebrews"
+  },
+  {
+    "id": 59,
+    "slug": "james",
+    "name": "James",
+    "sourceName": "James"
+  },
+  {
+    "id": 60,
+    "slug": "1-peter",
+    "name": "1 Peter",
+    "sourceName": "1 Peter"
+  },
+  {
+    "id": 61,
+    "slug": "2-peter",
+    "name": "2 Peter",
+    "sourceName": "2 Peter"
+  },
+  {
+    "id": 62,
+    "slug": "1-john",
+    "name": "1 John",
+    "sourceName": "1 John"
+  },
+  {
+    "id": 63,
+    "slug": "2-john",
+    "name": "2 John",
+    "sourceName": "2 John"
+  },
+  {
+    "id": 64,
+    "slug": "3-john",
+    "name": "3 John",
+    "sourceName": "3 John"
+  },
+  {
+    "id": 65,
+    "slug": "jude",
+    "name": "Jude",
+    "sourceName": "Jude"
+  },
+  {
+    "id": 66,
+    "slug": "revelation",
+    "name": "Revelation",
+    "sourceName": "Revelation"
+  },
+  {
+    "id": 67,
+    "slug": "1-esdras",
+    "name": "1 Esdras",
+    "sourceName": "1 Esdras"
+  },
+  {
+    "id": 68,
+    "slug": "2-esdras",
+    "name": "2 Esdras",
+    "sourceName": "2 Esdras"
+  },
+  {
+    "id": 69,
+    "slug": "tobit",
+    "name": "Tobit",
+    "sourceName": "Tobit"
+  },
+  {
+    "id": 70,
+    "slug": "judith",
+    "name": "Judith",
+    "sourceName": "Judith"
+  },
+  {
+    "id": 71,
+    "slug": "esther-greek",
+    "name": "Rest of Esther",
+    "sourceName": "Esther (Greek)"
+  },
+  {
+    "id": 72,
+    "slug": "wisdom-of-solomon",
+    "name": "Wisdom of Solomon",
+    "sourceName": "Wisdom of Solomon"
+  },
+  {
+    "id": 73,
+    "slug": "sirach",
+    "name": "Ecclesiasticus",
+    "sourceName": "Sirach"
+  },
+  {
+    "id": 74,
+    "slug": "baruch",
+    "name": "Baruch",
+    "sourceName": "Baruch"
+  },
+  {
+    "id": 75,
+    "slug": "epistle-of-jeremiah",
+    "name": "Epistle of Jeremiah",
+    "sourceName": "Epistle of Jeremiah"
+  },
+  {
+    "id": 76,
+    "slug": "song-of-the-three-children",
+    "name": "Song of the Three Holy Children",
+    "sourceName": "Song of the Three Children"
+  },
+  {
+    "id": 77,
+    "slug": "susanna",
+    "name": "History of Susanna",
+    "sourceName": "Susanna"
+  },
+  {
+    "id": 78,
+    "slug": "bel-and-the-dragon",
+    "name": "Bel and the Dragon",
+    "sourceName": "Bel and the Dragon"
+  },
+  {
+    "id": 79,
+    "slug": "prayer-of-manasseh",
+    "name": "Prayer of Manasses",
+    "sourceName": "Prayer of Manasseh"
+  },
+  {
+    "id": 80,
+    "slug": "1-maccabees",
+    "name": "1 Maccabees",
+    "sourceName": "1 Maccabees"
+  },
+  {
+    "id": 81,
+    "slug": "2-maccabees",
+    "name": "2 Maccabees",
+    "sourceName": "2 Maccabees"
+  }
+]

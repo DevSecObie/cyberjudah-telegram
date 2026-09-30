@@ -1,0 +1,85 @@
+{
+  "number": "G3056",
+  "language": "Greek",
+  "lemma": "λόγος",
+  "xlit": "",
+  "pron": "",
+  "derivation": "from G3004 (λέγω);",
+  "def": " something said (including the thought); by implication, a topic (subject of discourse), also reasoning (the mental faculty) or motive; by extension, a computation; specially, (with the article in John) the Divine Expression (i.e. Christ)",
+  "kjv": "account, cause, communication, X concerning, doctrine, fame, X have to do, intent, matter, mouth, preaching, question, reason, + reckon, remove, say(-ing), shew, X speaker, speech, talk, thing, + none of these things move me, tidings, treatise, utterance, word, work",
+  "count": 307,
+  "verses": 292,
+  "words": [
+    {
+      "word": "the word",
+      "count": 108
+    },
+    {
+      "word": "words",
+      "count": 32
+    },
+    {
+      "word": "word",
+      "count": 30
+    },
+    {
+      "word": "saying",
+      "count": 19
+    },
+    {
+      "word": "sayings",
+      "count": 12
+    },
+    {
+      "word": "the words",
+      "count": 7
+    },
+    {
+      "word": "the saying",
+      "count": 6
+    },
+    {
+      "word": "a word",
+      "count": 5
+    },
+    {
+      "word": "account",
+      "count": 5
+    },
+    {
+      "word": "that saying",
+      "count": 5
+    },
+    {
+      "word": "of the word",
+      "count": 4
+    },
+    {
+      "word": "utterance",
+      "count": 3
+    }
+  ],
+  "occurrences": [
+    {
+      "slug": "matthew",
+      "book": "Matthew",
+      "chapter": 5,
+      "verse": 32,
+      "text": "But I say unto you, That whosoever shall put away his wife, saving for the cause of fornication, causeth her to commit adultery: and whosoever shall marry her that is divorced committeth adultery.",
+      "words": [
+        "for the cause"
+      ]
+    },
+    {
+      "slug": "matthew",
+      "book": "Matthew",
+      "chapter": 5,
+      "verse": 37,
+      "text": "But let your communication be, Yea, yea; Nay, nay: for whatsoever is more than these cometh of evil.",
+      "words": [
+        "communication"
+      ]
+    }
+  ],
+  "source": "Strong's Exhaustive Concordance (1890) and Concise Dictionaries (1894), public domain; JSON by Open Scriptures (CC BY-SA)."
+}
