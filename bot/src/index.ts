@@ -31,6 +31,8 @@ const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
  * proves it came from Telegram and names the person. Nothing else is trusted.
  */
 app.use("/api/*", async (c, next) => {
+  // JSON only: no MIME sniffing on anything the API serves.
+  c.header("x-content-type-options", "nosniff");
   // The frames' geometry is public like the sheets themselves: the library's build reads it to place frames in the notes.
   // A note's PDF is fetched by Telegram's downloader, which carries no launch data: its link is signed instead.
   if (c.req.method === "GET" && c.req.path.startsWith("/api/pdf/")) return next();
@@ -91,8 +93,10 @@ app.post("/api/notes/edit", async (c) => {
     const res = await commitEdit(c.env, edit, user!.username ? `@${user!.username}` : user!.first_name);
     return c.json(res, res.ok ? 200 : 400);
   } catch (e) {
-    // Whatever goes wrong, the sheet gets the reason as JSON, never a bare error page.
-    return c.json({ ok: false, error: `The save failed on the server: ${(e as Error).message}` }, 400);
+    // Whatever goes wrong, the sheet gets a plain reason as JSON, never a bare error page —
+    // and never the server's own error text.
+    console.error(JSON.stringify({ event: "note_edit_failed", message: (e as Error).message?.slice(0, 200) }));
+    return c.json({ ok: false, error: "The save failed on the server." }, 400);
   }
 });
 
@@ -234,7 +238,7 @@ app.get("/api/voices", (c) => c.json({ voices: VOICES }));
 app.get("/api/tts/:slug/:ch/:verse", (c) => {
   const slug = c.req.param("slug"), ch = Number(c.req.param("ch")), verse = Number(c.req.param("verse"));
   if (!/^[a-z0-9-]{2,40}$/.test(slug) || !(ch >= 1 && ch <= 200) || !(verse >= 1 && verse <= 200)) return c.json({ ok: false, reason: "bad-reference" }, 400);
-  return speakVerse(c.env, slug, ch, verse, c.req.query("voice") ?? "asteria", c.executionCtx);
+  return speakVerse(c.env, slug, ch, verse, c.req.query("voice") ?? "asteria", c.get("tma").user!.id, c.executionCtx);
 });
 
 app.post("/api/share", async (c) => {

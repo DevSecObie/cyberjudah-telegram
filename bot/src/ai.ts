@@ -73,13 +73,30 @@ const retrievalText = (question: string, history: Turn[]) => {
   return question.split(/\s+/).length < 6 && prev ? `${prev} ${question}` : question;
 };
 
-async function allowed(env: Env, userId: number, ctx?: Exec): Promise<boolean> {
-  const key = `ask:${userId}:${new Date().toISOString().slice(0, 10)}`;
-  const used = Number((await env.SUBS.get(key)) ?? 0);
-  if (used >= ASK_LIMIT) return false;
-  const put = env.SUBS.put(key, String(used + 1), { expirationTtl: 2 * 86400 });
-  if (ctx) ctx.waitUntil(put); else await put;
-  return true;
+/** A verse's reading voice: fifty new generations a day per person; the cache is free. */
+const TTS_LIMIT = 50;
+
+/**
+ * A per-person daily quota, counted atomically inside D1: the increment is one UPSERT, so
+ * concurrent requests cannot each read the same count and all slip under the cap the way a
+ * KV read-modify-write can. One table for every capped thing; rows from earlier days are
+ * swept on the way through.
+ */
+export async function takeQuota(env: Env, name: string, userId: number, limit: number): Promise<boolean> {
+  const day = new Date().toISOString().slice(0, 10);
+  const key = `${name}:${userId}:${day}`;
+  const res = await env.DB.batch([
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS rate_counts (key TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)"),
+    env.DB.prepare("INSERT INTO rate_counts (key, n) VALUES (?, 1) ON CONFLICT (key) DO UPDATE SET n = n + 1 RETURNING n").bind(key),
+    env.DB.prepare("DELETE FROM rate_counts WHERE key NOT LIKE ?").bind(`%:${day}`),
+  ]);
+  const n = Number((res[1].results?.[0] as { n?: unknown } | undefined)?.n ?? limit + 1);
+  return n <= limit;
+}
+
+/** A hundred answers a day per person. */
+async function allowed(env: Env, userId: number): Promise<boolean> {
+  return takeQuota(env, "ask", userId, ASK_LIMIT);
 }
 
 /** A question answered in one piece (the bot and older clients); a hundred a day per person. */
@@ -95,7 +112,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
     const r = await reserveAsk(env, userId);
     if (!r.ok) return { ok: false, reason: "allowance" };
     snap = r.before;
-  } else if (billingOn(env) ? !(await standing(env, userId)).ok : !(await allowed(env, userId, ctx))) {
+  } else if (billingOn(env) ? !(await standing(env, userId)).ok : !(await allowed(env, userId))) {
     return { ok: false, reason: billingOn(env) ? "allowance" : "limit" };
   }
   try {
@@ -182,7 +199,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   } else if (billingOn(env)) {
     const st = await standing(env, userId);
     if (!st.ok) return new Response(line({ error: "allowance", balance: st.balance }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
-  } else if (!(await allowed(env, userId, ctx))) {
+  } else if (!(await allowed(env, userId))) {
     return new Response(line({ error: "limit" }), { status: 429, headers: { "content-type": "application/x-ndjson" } });
   }
   const encoder = new TextEncoder();
@@ -259,12 +276,15 @@ const toBytes = async (out: unknown): Promise<Uint8Array | null> => {
 };
 
 /** One verse read by one voice, as MP3: from R2 when it was read before, else generated and kept. */
-export async function speakVerse(env: Env, slug: string, ch: number, verse: number, voice: string, ctx?: Exec): Promise<Response> {
+export async function speakVerse(env: Env, slug: string, ch: number, verse: number, voice: string, userId: number, ctx?: Exec): Promise<Response> {
   if (!isVoice(voice)) return Response.json({ ok: false, reason: "bad-voice" }, { status: 400 });
   const key = `tts/aura-1/${voice}/${slug}/${ch}/${verse}.mp3`;
   const headers = { "content-type": "audio/mpeg", "cache-control": "private, max-age=31536000, immutable" };
   const kept = await env.AUDIO.get(key);
   if (kept) return new Response(kept.body, { headers });
+  // A generation is a model call; a cache hit is not. Each person gets fifty new ones a day,
+  // so one client cannot enumerate the library's voices on the project's budget.
+  if (!(await takeQuota(env, "ttsg", userId, TTS_LIMIT))) return Response.json({ ok: false, reason: "limit" }, { status: 429 });
   const c = await chapter(env, slug, ch, ctx);
   const v = c?.verses.find((x) => x.verse === verse);
   if (!v) return Response.json({ ok: false, reason: "not-found" }, { status: 404 });
