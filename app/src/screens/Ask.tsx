@@ -1,5 +1,5 @@
 import { marked } from "marked";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
 import { fmtDate } from "@/api/data";
@@ -14,7 +14,7 @@ import { KIND_NAME } from "./Home";
 
 export type Passage = { kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string; text: string };
 export type Source = Passage & { n: number };
-type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; thinking?: boolean; status?: string; steps?: string[]; followups?: string[] };
+type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[] };
 /** The welcome screen's starters: a question and the line under it. */
 const EXAMPLES: [string, string][] = [
   ["Why do we keep the Passover?", "The feast, from the law to Christ"],
@@ -23,6 +23,112 @@ const EXAMPLES: [string, string][] = [
   ["How is the Sabbath kept?", "The day, the rest and the assembly"],
 ];
 const STORE = "cj:ask";
+
+/**
+ * The conversation lives outside the screen, for as long as the app is open: an answer keeps
+ * streaming in while the reader visits a source and is there when they come back. It is kept in
+ * the device's storage too, so a refresh or a new session opens it again; the answers themselves
+ * are saved to the person's account on the server (see ChatsSheet).
+ */
+type Conv = { turns: Turn[]; chatId: string | null; busy: boolean };
+const readStore = (): Conv => {
+  try {
+    const raw = localStorage.getItem(STORE) ?? sessionStorage.getItem(STORE);
+    const saved = raw ? JSON.parse(raw) as { turns?: Turn[]; chatId?: string | null } | Turn[] : null;
+    const turns = (Array.isArray(saved) ? saved : saved?.turns ?? []).filter((t) => t && !t.thinking);
+    const chatId = Array.isArray(saved) ? sessionStorage.getItem(`${STORE}:id`) : saved?.chatId ?? null;
+    return { turns, chatId, busy: false };
+  } catch { return { turns: [], chatId: null, busy: false }; }
+};
+let conv: Conv = readStore();
+const convListeners = new Set<() => void>();
+const setConv = (next: Partial<Conv> | ((c: Conv) => Partial<Conv>)) => {
+  conv = { ...conv, ...(typeof next === "function" ? next(conv) : next) };
+  try { localStorage.setItem(STORE, JSON.stringify({ turns: conv.turns.filter((t) => !t.thinking), chatId: conv.chatId })); } catch { /* private mode */ }
+  convListeners.forEach((l) => l());
+};
+const useConv = () => useSyncExternalStore((l) => { convListeners.add(l); return () => { convListeners.delete(l); }; }, () => conv);
+let convAbort: AbortController | null = null;
+/** Patch the conversation's last turn (the answer being written). */
+const patchLast = (fn: (t: Turn) => Turn) => setConv((c) => ({ turns: c.turns.map((t, i) => (i === c.turns.length - 1 ? fn(t) : t)) }));
+
+type AskFail = { error?: string; reason?: string };
+/** What went wrong, from the status and the server's own words. */
+const failure = (status: number, body: AskFail | null): string =>
+  status === 402 ? "allowance" : status === 429 ? "limit" : status === 400 && body?.error === "too-short" ? "too-short"
+    : status === 401 ? (body?.reason === "missing" ? "signin" : "session") : `unavailable:${status}`;
+
+/** Ask a question: streamed in, saved to the account by the server as it completes. */
+async function askQuestion(text: string, opts: { retry?: boolean; onAccount?: () => void; setBalance?: (b: Balance) => void } = {}) {
+  const q = text.trim();
+  if (!q || conv.busy) return;
+  haptic("select"); hideKeyboard();
+  const base = opts.retry ? conv.turns.slice(0, -2) : conv.turns;
+  // The server shapes the history for the model (normalizeHistory); only settled turns are sent.
+  const history = base.filter((t) => !t.error && !t.thinking && t.content.trim()).slice(-8).map((t) => ({ role: t.role, content: t.content }));
+  const id = conv.chatId ?? newId();
+  setConv({ turns: [...base, { role: "user", content: q }, { role: "assistant", content: "", thinking: true }], chatId: id, busy: true });
+  const ctl = new AbortController(); convAbort = ctl;
+  let finished = false;
+  try {
+    const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, stream: true, chat: id, retry: !!opts.retry }) });
+    if (!res.ok || !res.body) {
+      const body = await res.text().then((t) => { try { return JSON.parse(t.split("\n")[0]) as AskFail; } catch { return null; } }).catch(() => null);
+      patchLast((t) => ({ ...t, thinking: false, error: failure(res.status, body) }));
+      if (res.status === 402) opts.onAccount?.();
+      return;
+    }
+    const reader = res.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
+    const handle = (l: string) => {
+      if (!l.trim()) return;
+      let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[]; usage?: { units: number; balance: Balance } };
+      try { msg = JSON.parse(l); } catch { return; }
+      if (msg.passages) patchLast((t) => ({ ...t, passages: msg.passages }));
+      // The research as it happens: each search and reading is a step under the answer's head.
+      if (msg.status) patchLast((t) => ({ ...t, status: msg.status, steps: /^(Searching|Reading)/.test(msg.status!) ? [...(t.steps ?? []), msg.status!] : t.steps }));
+      if (msg.reset) patchLast((t) => ({ ...t, content: "", thinking: true }));
+      if (msg.delta) patchLast((t) => ({ ...t, thinking: false, content: t.content + msg.delta }));
+      if (msg.usage) opts.setBalance?.(msg.usage.balance);
+      if (msg.done) { finished = true; haptic("success"); patchLast((t) => ({ ...t, thinking: false, cut: false, error: undefined, content: msg.answer || t.content, sources: msg.sources ?? [], followups: msg.followups ?? [] })); }
+      // A failure after part of the answer keeps the part and says it was cut off.
+      if (msg.error) { finished = true; patchLast((t) => (t.content ? { ...t, thinking: false, cut: true } : { ...t, thinking: false, error: msg.error })); }
+    };
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n"); buffer = lines.pop() ?? "";
+      lines.forEach(handle);
+    }
+    handle(buffer + decoder.decode());
+    // The stream ended without its last line: what came is kept, marked as cut off.
+    if (!finished) patchLast((t) => (t.content ? { ...t, thinking: false, cut: true } : { ...t, thinking: false, error: "unavailable" }));
+  } catch {
+    if (ctl.signal.aborted) patchLast((t) => (t.role !== "assistant" ? t : { ...t, thinking: false, error: t.content ? undefined : "stopped", cut: t.content ? true : undefined }));
+    else patchLast((t) => (t.content ? { ...t, thinking: false, cut: true } : { ...t, thinking: false, error: typeof navigator !== "undefined" && navigator.onLine === false ? "offline" : "network" }));
+  } finally {
+    if (convAbort === ctl) { convAbort = null; setConv({ busy: false }); }
+  }
+}
+const stopAsking = () => { convAbort?.abort(); };
+const startNewChat = () => { convAbort?.abort(); convAbort = null; setConv({ turns: [], chatId: null, busy: false }); };
+
+/**
+ * A conversation left mid-answer (the app closed, the network lost): the server finished and
+ * saved it, so it is fetched back. Without a saved answer the question stays with a Try again.
+ */
+async function recoverChat() {
+  const last = conv.turns[conv.turns.length - 1];
+  if (conv.busy || !conv.chatId || !last || last.role !== "user") return;
+  const id = conv.chatId;
+  try {
+    const r = await api<{ ok: boolean; chat?: SavedChat }>(`/api/chats/${id}`);
+    if (conv.chatId !== id || conv.busy) return;
+    const saved = r.chat?.turns ?? [];
+    if (saved.length >= conv.turns.length && saved[saved.length - 1]?.role === "assistant") { setConv({ turns: saved.map((t) => ({ ...t, sources: t.sources?.map((x) => ({ ...x, text: "" })) })) }); return; }
+  } catch { /* not saved yet, or offline */ }
+  if (conv.chatId === id && !conv.busy) setConv((c) => ({ turns: [...c.turns, { role: "assistant", content: "", error: "interrupted" }] }));
+}
 
 /** Where a cited passage opens: the class at its moment, the note at its section, the verse. */
 export const passagePath = (p: Passage) => p.video ? teachingPath({ video: p.video, start: p.t ?? 0, note: p.url }) : hitPath({ kind: p.kind, title: p.title, url: p.url, sub: p.sub ?? "", snippet: "" });
@@ -39,19 +145,15 @@ export const passageLabel = (p: Passage) => p.video ? `${KIND_NAME[p.sub as keyo
 export function Ask() {
   const [params, setParams] = useSearchParams();
   const first = params.get("q") ?? "";
-  const [turns, setTurns] = useState<Turn[]>(() => { try { return (JSON.parse(sessionStorage.getItem(STORE) ?? "[]") as Turn[]).filter((t) => !t.thinking); } catch { return []; } });
-  // The conversation's id on the server, where every finished answer is saved to the person.
-  const [chatId, setChatId] = useState<string | null>(() => { try { return sessionStorage.getItem(`${STORE}:id`); } catch { return null; } });
+  const { turns, chatId, busy } = useConv();
   const [history, setHistory] = useState(false);
   const [plans, setPlans] = useState(false);
   const [acct, setAcct] = useState<AskAccount | null>(null);
   const loadAccount = () => api<AskAccount>("/api/ask/account").then(setAcct).catch(() => undefined);
   useEffect(() => { void loadAccount(); }, []);
   const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
   const stick = useRef(true);
   // Ask is a tab: Telegram's back button closes the app from here, as on the other tabs.
   useBackButton(true);
@@ -60,7 +162,6 @@ export function Ask() {
   const typing = (on: boolean) => { if (on) document.documentElement.dataset.typing = ""; else delete document.documentElement.dataset.typing; };
   useEffect(() => () => typing(false), []);
 
-  useEffect(() => { try { sessionStorage.setItem(STORE, JSON.stringify(turns.filter((t) => !t.thinking))); if (chatId) sessionStorage.setItem(`${STORE}:id`, chatId); else sessionStorage.removeItem(`${STORE}:id`); } catch { /* private mode */ } }, [turns, chatId]);
   // Follow the answer as it streams, unless the reader scrolled up to read.
   useEffect(() => {
     const onScroll = () => { stick.current = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 140; };
@@ -71,49 +172,17 @@ export function Ask() {
   // The composer grows with the question, up to a few lines.
   useLayoutEffect(() => { const b = boxRef.current; if (!b) return; b.style.height = "auto"; b.style.height = `${Math.min(b.scrollHeight, 160)}px`; }, [input]);
 
-  const send = async (text: string, retry = false) => {
-    const q = text.trim();
-    if (!q || busy) return;
-    haptic("select"); hideKeyboard();
-    const base = retry ? turns.slice(0, -2) : turns;
-    const history = base.filter((t) => !t.error).slice(-6).map((t) => ({ role: t.role, content: t.content }));
-    setTurns([...base, { role: "user", content: q }, { role: "assistant", content: "", thinking: true }]);
-    setInput(""); setBusy(true); stick.current = true;
-    const id = chatId ?? newId(); if (!chatId) setChatId(id);
-    const patch = (fn: (t: Turn) => Turn) => setTurns((ts) => ts.map((t, i) => (i === ts.length - 1 ? fn(t) : t)));
-    const ctl = new AbortController(); abortRef.current = ctl;
-    try {
-      const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, stream: true, chat: id }) });
-      if (!res.ok || !res.body) { patch((t) => ({ ...t, thinking: false, error: res.status === 402 ? "allowance" : res.status === 429 ? "limit" : res.status === 401 ? "session" : `unavailable:${res.status}` })); if (res.status === 402) void loadAccount(); return; }
-      const reader = res.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n"); buffer = lines.pop() ?? "";
-        for (const l of lines) {
-          if (!l.trim()) continue;
-          let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[]; usage?: { units: number; balance: Balance } };
-          try { msg = JSON.parse(l); } catch { continue; }
-          if (msg.passages) patch((t) => ({ ...t, passages: msg.passages }));
-          // The research as it happens: each search and reading is a step under the answer's head.
-          if (msg.status) patch((t) => ({ ...t, status: msg.status, steps: /^(Searching|Reading)/.test(msg.status!) ? [...(t.steps ?? []), msg.status!] : t.steps }));
-          if (msg.reset) patch((t) => ({ ...t, content: "", thinking: true }));
-          if (msg.delta) patch((t) => ({ ...t, thinking: false, content: t.content + msg.delta }));
-          if (msg.usage) setAcct((a) => (a ? { ...a, balance: msg.usage!.balance } : a));
-          if (msg.done) { haptic("success"); patch((t) => ({ ...t, thinking: false, content: msg.answer ?? t.content, sources: msg.sources ?? [], followups: msg.followups ?? [] })); }
-          if (msg.error) patch((t) => ({ ...t, thinking: false, error: msg.error }));
-        }
-      }
-      patch((t) => (t.thinking ? { ...t, thinking: false, error: t.content ? undefined : "unavailable" } : t));
-    } catch {
-      patch((t) => (ctl.signal.aborted ? { ...t, thinking: false, error: t.content ? undefined : "stopped" } : { ...t, thinking: false, error: "unavailable" }));
-    } finally { setBusy(false); abortRef.current = null; }
-  };
-  const stop = () => { haptic("select"); abortRef.current?.abort(); };
-  const newChat = () => { haptic("select"); abortRef.current?.abort(); setTurns([]); setChatId(null); setInput(""); boxRef.current?.focus(); };
-  const openChat = (c: SavedChat) => { abortRef.current?.abort(); setChatId(c.id); setTurns(c.turns.map((t) => ({ ...t, sources: t.sources?.map((x) => ({ ...x, text: "" })) }))); setHistory(false); stick.current = true; };
-  useEffect(() => { if (first) { setParams({}, { replace: true }); void send(first); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const setBalance = (b: Balance) => setAcct((a) => (a ? { ...a, balance: b } : a));
+  const send = (text: string, retry = false) => { stick.current = true; setInput(""); void askQuestion(text, { retry, onAccount: () => void loadAccount(), setBalance }); };
+  const stop = () => { haptic("select"); stopAsking(); };
+  const newChat = () => { haptic("select"); startNewChat(); setInput(""); boxRef.current?.focus(); };
+  const openChat = (c: SavedChat) => { convAbort?.abort(); convAbort = null; setConv({ chatId: c.id, busy: false, turns: c.turns.map((t) => ({ ...t, sources: t.sources?.map((x) => ({ ...x, text: "" })) })) }); setHistory(false); stick.current = true; };
+  // A question from elsewhere (Home, a verse) starts its own conversation, once (StrictMode runs effects twice).
+  const asked = useRef(false);
+  useEffect(() => {
+    if (first && !asked.current) { asked.current = true; setParams({}, { replace: true }); if (!conv.busy) { startNewChat(); send(first); } }
+    else void recoverChat();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lastUser = [...turns].reverse().find((t) => t.role === "user")?.content ?? "";
   return (
@@ -130,23 +199,23 @@ export function Ask() {
           <h1>What would you like to learn?</h1>
           <p>Ask about anything that was taught. Every answer comes from the classes, the notes, the law and the Scripture, and shows where it came from.</p>
           <div className="chat2__starters">
-            {EXAMPLES.map(([q, sub]) => <button key={q} type="button" className="starter" onClick={() => void send(q)}><b>{q}</b><small>{sub}</small></button>)}
+            {EXAMPLES.map(([q, sub]) => <button key={q} type="button" className="starter" onClick={() => send(q)}><b>{q}</b><small>{sub}</small></button>)}
           </div>
         </section>
       ) : (
         <div className="chat2__turns">
           {turns.map((t, i) => t.role === "user"
             ? <div key={`${chatId}-${i}`} className="msg msg--me"><div className="msg__bubble">{t.content}</div></div>
-            : <AssistantTurn key={`${chatId}-${i}`} t={t} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} onRetry={() => void send(lastUser, true)} onFollow={(q) => void send(q)} onPlans={() => setPlans(true)} />)}
+            : <AssistantTurn key={`${chatId}-${i}`} t={t} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} onRetry={() => send(lastUser, true)} onFollow={(q) => send(q)} onPlans={() => setPlans(true)} />)}
           <div ref={endRef} className="chat2__end" />
         </div>
       )}
 
       {plans && acct ? <PlansSheet acct={acct} onClose={() => setPlans(false)} onPaid={() => { setPlans(false); void pollAccount(acct, setAcct); }} /> : null}
-      {history ? <ChatsSheet current={chatId} onClose={() => setHistory(false)} onOpen={openChat} onDeleted={(id) => { if (id === chatId) { setTurns([]); setChatId(null); } }} /> : null}
-      <form className="composer2" onSubmit={(e) => { e.preventDefault(); void send(input); }}>
+      {history ? <ChatsSheet current={chatId} onClose={() => setHistory(false)} onOpen={openChat} onDeleted={(id) => { if (id === conv.chatId) startNewChat(); }} /> : null}
+      <form className="composer2" onSubmit={(e) => { e.preventDefault(); send(input); }}>
         <div className="composer2__box">
-          <textarea ref={boxRef} value={input} rows={1} placeholder={turns.length ? "Ask a follow-up" : "Ask CyberJudah"} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onFocus={() => typing(true)} onBlur={() => typing(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(input); } }} />
+          <textarea ref={boxRef} value={input} rows={1} placeholder={turns.length ? "Ask a follow-up" : "Ask CyberJudah"} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onFocus={() => typing(true)} onBlur={() => typing(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} />
           {busy
             ? <button type="button" className="composer2__go composer2__go--stop" aria-label="Stop" onClick={stop}><span /></button>
             : <button type="submit" className="composer2__go" aria-label="Send" disabled={!input.trim()}><Icon name="arrowUp" size={20} /></button>}
@@ -156,6 +225,18 @@ export function Ask() {
     </main>
   );
 }
+
+/** Failures that need a sentence, not the troubleshooter. */
+const PLAIN_ERRORS: Record<string, string> = {
+  limit: "That is a hundred questions today. The count starts again tomorrow.",
+  "too-short": "Ask a fuller question: a few words at least.",
+  stopped: "Stopped.",
+  empty: "No answer came back for that. Try asking it another way.",
+  offline: "You are offline. Your question is kept; try again when you are connected.",
+  network: "The connection dropped before the answer came. Try again.",
+  interrupted: "This answer was interrupted before it was saved. Try again.",
+  signin: "Open CyberJudah from Telegram to ask questions: your answers are saved to your Telegram account.",
+};
 
 function AssistantTurn({ t, question, last, busy, onRetry, onFollow, onPlans }: { t: Turn; question: string; last: boolean; busy: boolean; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void }) {
   const navigate = useNavigate();
@@ -184,10 +265,10 @@ function AssistantTurn({ t, question, last, busy, onRetry, onFollow, onPlans }: 
           <button type="button" className="paywall__go" onClick={onPlans}>See the plans</button>
         </div>
       ) : t.error && !t.content ? (
-        t.error === "limit" || t.error === "too-short" || t.error === "stopped" ? (
-          <div className="msg__error">
-            <p>{t.error === "limit" ? "That is a hundred questions today. The count starts again tomorrow." : t.error === "too-short" ? "Ask a fuller question." : "Stopped."}</p>
-            {last && t.error !== "limit" ? <button type="button" className="msg__action" onClick={onRetry}><Icon name="retry" size={16} />Try again</button> : null}
+        t.error in PLAIN_ERRORS ? (
+          <div className="msg__error" role="alert">
+            <p>{PLAIN_ERRORS[t.error]}</p>
+            {last && t.error !== "limit" && t.error !== "signin" ? <button type="button" className="msg__action" onClick={onRetry}><Icon name="retry" size={16} />Try again</button> : null}
           </div>
         ) : <Trouble error={new ApiError(t.error === "session" ? 401 : Number(t.error?.split(":")[1]) || 503, "/api/ask", t.error === "session" ? "stale" : t.error)} what="ask" q={question} onRetry={last ? onRetry : undefined} />
       ) : (
@@ -211,7 +292,8 @@ function AssistantTurn({ t, question, last, busy, onRetry, onFollow, onPlans }: 
               {t.followups.map((q) => <button key={q} type="button" className="followup" onClick={() => onFollow(q)}><Icon name="arrowUp" size={14} /><span>{q}</span></button>)}
             </div>
           ) : null}
-          {sources.length || !last ? (
+          {t.cut ? <p className="msg__cut" role="status"><Icon name="retry" size={14} />The answer was cut off before it finished.</p> : null}
+          {!last || !busy ? (
             <div className="msg__actions">
               <button type="button" className="msg__action" onClick={copy} aria-label="Copy the answer"><Icon name={copied ? "check" : "copy"} size={16} />{copied ? "Copied" : "Copy"}</button>
               {last ? <button type="button" className="msg__action" onClick={onRetry} aria-label="Ask again"><Icon name="retry" size={16} />Retry</button> : null}
@@ -296,23 +378,43 @@ const when = (iso: string) => {
 function ChatsSheet({ current, onClose, onOpen, onDeleted }: { current: string | null; onClose: () => void; onOpen: (c: SavedChat) => void; onDeleted: (id: string) => void }) {
   const [chats, setChats] = useState<ChatSummary[] | null>(null);
   const [failed, setFailed] = useState(false);
-  useEffect(() => { void api<{ chats: ChatSummary[] }>("/api/chats").then((r) => setChats(r.chats)).catch(() => setFailed(true)); }, []);
-  const open = async (id: string) => { haptic("select"); try { const r = await api<{ chat: SavedChat }>(`/api/chats/${id}`); onOpen(r.chat); } catch { setFailed(true); } };
+  // What is happening to one row: opening it, deleting it, or why that failed.
+  const [row, setRow] = useState<{ id: string; state: "opening" | "deleting" | "failed"; why?: string } | null>(null);
+  const load = () => { setFailed(false); void api<{ chats: ChatSummary[] }>("/api/chats").then((r) => setChats(r.chats ?? [])).catch(() => setFailed(true)); };
+  useEffect(load, []);
+  const open = async (c: ChatSummary) => {
+    if (row?.state === "opening" || row?.state === "deleting") return;
+    haptic("select"); setRow({ id: c.id, state: "opening" });
+    try { const r = await api<{ chat: SavedChat }>(`/api/chats/${c.id}`); setRow(null); onOpen(r.chat); }
+    catch (e) {
+      // Gone from the server (deleted on another device): it leaves the list too.
+      if (e instanceof ApiError && e.status === 404) { setChats((cs) => (cs ?? []).filter((x) => x.id !== c.id)); setRow(null); return; }
+      setRow({ id: c.id, state: "failed", why: "This chat could not be opened. Check the connection and try again." });
+    }
+  };
   const remove = async (c: ChatSummary) => {
     if (!(await confirm(`Delete "${c.title}"?`))) return;
-    await api(`/api/chats/${c.id}`, { method: "DELETE" }).catch(() => undefined);
-    haptic("success"); setChats((cs) => (cs ?? []).filter((x) => x.id !== c.id)); onDeleted(c.id);
+    setRow({ id: c.id, state: "deleting" });
+    try {
+      const r = await api<{ ok: boolean }>(`/api/chats/${c.id}`, { method: "DELETE" });
+      if (!r.ok) throw new Error("not deleted");
+      haptic("success"); setRow(null); setChats((cs) => (cs ?? []).filter((x) => x.id !== c.id)); onDeleted(c.id);
+    } catch { haptic("error"); setRow({ id: c.id, state: "failed", why: "This chat was not deleted. Check the connection and try again." }); }
   };
   return (
     <Sheet open onClose={onClose} height="full" title="Your chats" subTitle="Saved to your account" className="chats-sheet">
-      <div className="chats">
-        {failed ? <p className="hint">Your chats could not be loaded. Check the connection and try again.</p>
-          : !chats ? <p className="hint">Loading…</p>
+      <div className="chats" aria-busy={!chats && !failed}>
+        {failed ? (
+          <div className="chats__state" role="alert"><p className="hint">Your chats could not be loaded. Check the connection and try again.</p><button type="button" className="msg__action" onClick={load}><Icon name="retry" size={16} />Try again</button></div>
+        ) : !chats ? <p className="hint">Loading your chats…</p>
           : !chats.length ? <p className="hint">No chats yet. Every question you ask is saved here with its answer.</p>
           : chats.map((c) => (
-            <div key={c.id} className="chats__row" data-current={c.id === current ? "" : undefined}>
-              <button type="button" className="chats__open" onClick={() => void open(c.id)}><b>{c.title}</b><small>{when(c.updated)} · {c.count} {c.count === 1 ? "question" : "questions"}</small></button>
-              <button type="button" className="chats__del" aria-label={`Delete ${c.title}`} onClick={() => void remove(c)}><Icon name="trash" size={18} /></button>
+            <div key={c.id} className="chats__item">
+              <div className="chats__row" data-current={c.id === current ? "" : undefined} aria-busy={row?.id === c.id && row.state !== "failed"}>
+                <button type="button" className="chats__open" onClick={() => void open(c)}><b>{c.title}</b><small>{row?.id === c.id && row.state === "opening" ? "Opening…" : row?.id === c.id && row.state === "deleting" ? "Deleting…" : `${when(c.updated)} · ${c.count} ${c.count === 1 ? "question" : "questions"}`}</small></button>
+                <button type="button" className="chats__del" aria-label={`Delete ${c.title}`} disabled={row?.id === c.id && row.state === "deleting"} onClick={() => void remove(c)}><Icon name="trash" size={18} /></button>
+              </div>
+              {row?.id === c.id && row.state === "failed" ? <p className="chats__why" role="alert">{row.why}</p> : null}
             </div>
           ))}
       </div>
