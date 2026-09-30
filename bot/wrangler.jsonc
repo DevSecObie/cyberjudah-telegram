@@ -9,7 +9,7 @@
   // The Mini App lives at cyberjudah.io/app: the SPA under /app, the API it calls under
   // /api, and the verse-card images and frames under /card and /frames. The rest of the
   // apex (whatever the tunnel serves) is untouched; the webhook stays on workers.dev.
-  "routes": ["cyberjudah.io/app*", "cyberjudah.io/api/*", "cyberjudah.io/card/*", "cyberjudah.io/frames/*"],
+  "routes": ["cyberjudah.io/app*", "cyberjudah.io/api/*", "cyberjudah.io/card/*", "cyberjudah.io/frames/*", "cyberjudah.io/bs/*"],
   // The Mini App is a SPA staged by bot/scripts/prepare-assets.sh into .deploy/
   // (the build output at both / and /app/, so it loads on workers.dev and on
   // cyberjudah.io/app); every unknown path serves its index.html. The
@@ -18,7 +18,7 @@
     "directory": "../.deploy",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/webhook", "/card/*", "/frames/*"]
+    "run_worker_first": ["/api/*", "/webhook", "/card/*", "/frames/*", "/bs/*"]
   },
   // search_docs (FTS5) loaded from the engine's search.sql.gz by scripts/load-search.mjs. The
   // id is filled in by the deploy workflow (scripts/d1-id.sh); nothing account-specific is committed.

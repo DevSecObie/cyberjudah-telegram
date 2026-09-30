@@ -1,0 +1,7 @@
+{
+  "name": "cyberjudah-resource-contract-tests",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --import tsx --test bs/*.test.ts" },
+  "devDependencies": { "effect": "3.21.4", "tsx": "4.20.5" }
+}
