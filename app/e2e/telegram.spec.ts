@@ -518,6 +518,13 @@ test("a verse links to each class that read it, on YouTube at that moment", asyn
   await tag.click();
   const opened = await page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.filter((l) => l[0] === "openLink"));
   expect(opened.at(-1)?.[1]).toBe("https://www.youtube.com/watch?v=36emQd9wjts&t=3633s");
+  // In this chapter (Bible Strong's ChapterEntities): the people named, at the end of the text, each opening the person.
+  const cain = page.locator(".bs-entity", { hasText: "Cain" }).first();
+  await cain.scrollIntoViewIfNeeded();
+  await expect(page.locator(".bs-entities__title")).toHaveText("In this chapter");
+  await expect(page.locator(".bs-entity").first()).toContainText("Cain");
+  await cain.click();
+  await expect(page).toHaveURL(/\/person\/cain-gen-4-1/);
 });
 
 test("a verse's Comments hold each class's own breakdown of it, and watch from that moment", async ({ page }) => {
