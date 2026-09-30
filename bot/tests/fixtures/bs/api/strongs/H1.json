@@ -1,0 +1,85 @@
+{
+  "number": "H1",
+  "language": "Hebrew",
+  "lemma": "אָב",
+  "xlit": "ʼâb",
+  "pron": "awb",
+  "derivation": "a primitive word;",
+  "def": "father, in a literal and immediate, or figurative and remote application",
+  "kjv": "chief, (fore-) father(-less), [idiom] patrimony, principal. Compare names in 'Abi-'.",
+  "count": 1017,
+  "verses": 903,
+  "words": [
+    {
+      "word": "his father",
+      "count": 86
+    },
+    {
+      "word": "of their fathers",
+      "count": 78
+    },
+    {
+      "word": "my father",
+      "count": 56
+    },
+    {
+      "word": "with his fathers",
+      "count": 46
+    },
+    {
+      "word": "the father",
+      "count": 45
+    },
+    {
+      "word": "of the fathers",
+      "count": 44
+    },
+    {
+      "word": "thy father",
+      "count": 37
+    },
+    {
+      "word": "of his father",
+      "count": 22
+    },
+    {
+      "word": "of thy father",
+      "count": 19
+    },
+    {
+      "word": "of your fathers",
+      "count": 18
+    },
+    {
+      "word": "unto his father",
+      "count": 16
+    },
+    {
+      "word": "their father",
+      "count": 14
+    }
+  ],
+  "occurrences": [
+    {
+      "slug": "genesis",
+      "book": "Genesis",
+      "chapter": 2,
+      "verse": 24,
+      "text": "Therefore shall a man leave his father and his mother, and shall cleave unto his wife: and they shall be one flesh.",
+      "words": [
+        "his father"
+      ]
+    },
+    {
+      "slug": "genesis",
+      "book": "Genesis",
+      "chapter": 4,
+      "verse": 20,
+      "text": "And Adah bare Jabal: he was the father of such as dwell in tents, and of such as have cattle.",
+      "words": [
+        "he was the father"
+      ]
+    }
+  ],
+  "source": "Strong's Exhaustive Concordance (1890) and Concise Dictionaries (1894), public domain; JSON by Open Scriptures (CC BY-SA)."
+}

@@ -8,7 +8,7 @@ import {
 import type { InlineCommentaryRequest } from '~features/commentaries/InlineCommentaryReader'
 import { useConfirmDialog } from '~common/ConfirmDialog/useConfirmDialog'
 import * as Sentry from '@sentry/react-native'
-import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Platform, type LayoutChangeEvent } from 'react-native'
 import { useDispatch, useSelector } from 'react-redux'
 import Box, { TouchableBox } from '~common/ui/Box'
@@ -148,7 +148,7 @@ import {
   getStrongSelectionRenderedContentKey,
   shouldDismissStrongSelectionForViewerState,
 } from './strongSelectionLifecycle'
-import { getPassageMediaForChapter } from './passageMedia'
+import { fetchPassageMediaChapter, resolvePassageMediaChapter } from './passageMedia'
 import {
   getSelectionAnnotationDeletionImpact,
   requiresSelectionAnnotationDeletionConfirmation,
@@ -159,7 +159,7 @@ const EMPTY_PASSAGE_MEDIA = {
   isIntroductionStartChapter: false,
   afterVerses: {},
   chapterResources: [],
-} satisfies ReturnType<typeof getPassageMediaForChapter>
+} satisfies ReturnType<typeof resolvePassageMediaChapter>
 
 const getPericopeChapter = (pericope: Pericope | null, book: number, chapter: number) => {
   if (pericope && pericope[book] && pericope[book][chapter]) {
@@ -623,13 +623,24 @@ const BibleViewer = ({
   const [displayedBook, setDisplayedBook] = useState(book.Numero)
   const [displayedChapter, setDisplayedChapter] = useState(chapter)
   const [displayedVersion, setDisplayedVersion] = useState(version)
-  const passageMedia = contextualInformationDisplay
-    ? getPassageMediaForChapter({
-        book: displayedBook,
-        chapter: displayedChapter,
-        language: lang,
-      })
-    : EMPTY_PASSAGE_MEDIA
+  // CyberJudah: the classes that taught this chapter, loaded when it opens.
+  const { data: passageMediaCatalog } = useQuery({
+    queryKey: ['cyberjudah-class-media', displayedBook, displayedChapter],
+    queryFn: () => fetchPassageMediaChapter(displayedBook, displayedChapter),
+    enabled: contextualInformationDisplay,
+    staleTime: 60 * 60 * 1000,
+  })
+  const passageMedia = useMemo(
+    () =>
+      contextualInformationDisplay && passageMediaCatalog
+        ? resolvePassageMediaChapter(passageMediaCatalog, {
+            book: displayedBook,
+            chapter: displayedChapter,
+            language: lang,
+          })
+        : EMPTY_PASSAGE_MEDIA,
+    [contextualInformationDisplay, passageMediaCatalog, displayedBook, displayedChapter, lang]
+  )
 
   // Handler for entering annotation mode (from SelectedVersesModal)
   const handleEnterAnnotationMode = useCallback(() => {

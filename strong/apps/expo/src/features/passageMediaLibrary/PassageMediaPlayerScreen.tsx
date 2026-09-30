@@ -68,7 +68,7 @@ const PassageMediaPlayerScreen = () => {
                   play
                   onError={error => setPlayerError(error || 'unknown')}
                   onReady={() => setPlayerError(undefined)}
-                  initialPlayerParams={{ rel: false }}
+                  initialPlayerParams={{ rel: false, start: item.startSeconds }}
                   webViewProps={{
                     onShouldStartLoadWithRequest: (request: ShouldStartLoadRequest) => {
                       const url = request.mainDocumentURL || request.url
