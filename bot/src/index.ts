@@ -17,6 +17,7 @@ import { reportHealth, selfCheck } from "./health";
 import { bookLabel } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
 import { buildCatalog, emptyCatalog, SLUGS, type PassageMediaMoment } from "./passage-media.mjs";
+import { bs } from "./bs";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
 import { CHAT_ID, deleteChat, getChat, listChats } from "./chats";
 import { notePdf, pdfName } from "./pdf.mjs";
@@ -26,6 +27,8 @@ import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
+// Public Bible Strong resource feed; independent of Telegram authentication.
+app.route("/bs", bs);
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 
 /**

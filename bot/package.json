@@ -7,12 +7,14 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "node scripts/fetch-dictionary.mjs && bash scripts/prepare-assets.sh && wrangler deploy",
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --test tests/*.test.mjs && npm run test:bs",
     "typecheck": "tsc --noEmit",
     "setup": "node scripts/setup.mjs",
     "load-search": "node scripts/load-search.mjs",
     "embed": "node scripts/embed.mjs",
-    "fetch-dictionary": "node scripts/fetch-dictionary.mjs"
+    "fetch-dictionary": "node scripts/fetch-dictionary.mjs",
+    "test:bs": "npm --prefix tests ci --ignore-scripts --no-audit --no-fund --workspaces=false && npm --prefix tests test",
+    "build:bs-index": "node scripts/build-bs-index.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

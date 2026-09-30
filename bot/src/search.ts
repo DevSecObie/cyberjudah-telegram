@@ -83,3 +83,27 @@ function dedupe(rows: Row[]): SearchHit[] {
   for (const r of rows) { const k = `${r.kind}|${r.url}`; if (seen.has(k)) continue; seen.add(k); out.push(r); }
   return out;
 }
+
+/** Verse-only paging for the public resource feed. Filters and ordering are applied in
+ * SQL before LIMIT/OFFSET, so later pages and book-restricted searches remain complete.
+ * Uses the same query parser and strict/loose matching policy as the library search.
+ */
+export async function runBibleSearch(db: D1Database, q: string, bookNames: string[], limit: number, offset: number, bookOrder: boolean): Promise<{ ok: true; hits: SearchHit[]; count: number } | { ok: false }> {
+  const parsed = parseQuery(q);
+  if ((!parsed.terms.length && !parsed.phrases.length) || !bookNames.length) return { ok: true, hits: [], count: 0 };
+  const strict = ftsExpr(parsed, 'AND');
+  const loose = parsed.terms.length + parsed.phrases.length > 1 ? ftsExpr(parsed, 'OR') : strict;
+  const placeholders = bookNames.map((_, i) => `?${i + 2}`).join(',');
+  const where = `search_docs MATCH ?1 AND kind = 'verse' AND book IN (${placeholders})`;
+  const countSql = `SELECT count(*) AS n FROM search_docs WHERE ${where}`;
+  const count = async (expr: string) => Number((await db.prepare(countSql).bind(expr, ...bookNames).first<{ n: number }>())?.n ?? 0);
+  try {
+    let expr = strict, total = await count(strict);
+    if (loose !== strict && total < 8) { expr = loose; total = await count(loose); }
+    const bibleOrder = `CASE book ${bookNames.map((_, i) => `WHEN ?${i + 2} THEN ${i}`).join(' ')} END, CAST(chapter AS INTEGER), CAST(substr(url, instr(url, '#v') + 2) AS INTEGER)`;
+    const order = bookOrder ? bibleOrder : `bm25(search_docs, 0, 4.0, 0, 0, 1.0, 0, 0), ${bibleOrder}`;
+    const sql = `SELECT kind, title, url, sub, text, text AS snippet FROM search_docs WHERE ${where} ORDER BY ${order} LIMIT ?${bookNames.length + 2} OFFSET ?${bookNames.length + 3}`;
+    const result = await db.prepare(sql).bind(expr, ...bookNames, limit, offset).all<SearchHit>();
+    return { ok: true, hits: result.results, count: total };
+  } catch { return { ok: false }; }
+}
