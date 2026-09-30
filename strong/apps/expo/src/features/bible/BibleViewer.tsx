@@ -1,0 +1,1740 @@
+import { previewHistoryAtom } from '~features/bibleReferencePreview/state'
+import { getCommentaryByPublicationId } from '@bible-strong/resource-catalog/commentaries'
+import { getInlineCommentaryResources } from '~features/commentaries/inlineCommentarySelection'
+import {
+  placeInlineCommentaries,
+  summarizeInlineCommentaryChip,
+} from '~features/commentaries/inlineCommentaryPlacement'
+import type { InlineCommentaryRequest } from '~features/commentaries/InlineCommentaryReader'
+import { useConfirmDialog } from '~common/ConfirmDialog/useConfirmDialog'
+import * as Sentry from '@sentry/react-native'
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
+import { Platform, type LayoutChangeEvent } from 'react-native'
+import { useDispatch, useSelector } from 'react-redux'
+import Box, { TouchableBox } from '~common/ui/Box'
+import Text from '~common/ui/Text'
+import BibleViewport from './BibleViewport'
+import { useUnifiedTagsModal } from '~common/UnifiedTagsModalProvider'
+import { BibleError, BibleLoadingError } from '~helpers/bibleErrors'
+import { usePrevious } from '~helpers/usePrevious'
+import BibleHeader from './BibleHeader'
+import PassageContextButton from './PassageContextButton'
+import { useAtomValue, useSetAtom } from 'jotai/react'
+import { PrimitiveAtom } from 'jotai/vanilla'
+import { useTranslation } from 'react-i18next'
+import { type SheetRef } from '~common/sheet'
+import type { Bookmark } from '~common/types'
+import { BibleResource, Pericope, SelectedCode, Verse, VerseIds } from '~common/types'
+import { useOpenInNewTab } from '~features/app-switcher/utils/useOpenInNewTab'
+import BookmarkModal from '~features/bookmarks/BookmarkModal'
+import { useOpenNote } from '~features/notes/useOpenNote'
+import AddToStudyModal from '~features/studies/AddToStudyModal'
+import { useAddVerseToStudy } from '~features/studies/hooks/useAddVerseToStudy'
+import VerseFormatSheet from '~features/studies/VerseFormatSheet'
+import CreateEntityRelationModal from '~features/studyRelations/CreateEntityRelationModal'
+import { useOpenEntityRelations } from '~features/studyRelations/useOpenEntityRelations'
+import { useRelationCount } from '~features/studyRelations/useRelationCount'
+import { createAnnotationEndpoint } from '~features/studyRelations/endpoints'
+import { useResourceAccess } from '~features/resources/resourceAccess'
+import {
+  getOfflineResourceQuerySignal,
+  useOfflineResourceRegistry,
+} from '~features/resources/useOfflineResourceRegistry'
+import ResourceUnavailableView from '~features/resources/ResourceUnavailableView'
+import {
+  resourceFailureFromAccessError,
+  resourceFailureFromAvailability,
+} from '~features/resources/resourceFailure'
+import type { BibleReadingAvailability } from '~features/resources/bibleReadingResourceAccess'
+import { bibleChapterQueryOptions, loadBibleVerseTexts } from '~features/resources/resourceQueries'
+import { resourceQueryKeys } from '~helpers/resourceQueryKeys'
+import { createOfflineCopyId } from '~helpers/offlineCopyId'
+import { createOfflineCopyDownloadItem } from '~helpers/downloadItemFactory'
+import { osisToBibleReferenceTarget } from '~helpers/bcvParser'
+import { getBook } from '~helpers/bibleBookCatalog'
+import type { CanonicalBibleNote } from '~helpers/canonicalBibleNotes'
+import generateUUID from '~helpers/generateUUID'
+import getVersesContent from '~helpers/getVersesContent'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { localQueryOptions, staticResourceQueryOptions } from '~helpers/queryOptions'
+import type { StrongSelection } from '~helpers/strongSelection'
+import useLanguage from '~helpers/useLanguage'
+import { useSheet } from '~helpers/useSheet'
+import { toast } from '~helpers/toast'
+import { useDownloadItemStatus } from '~helpers/useDownloadQueue'
+import verseToReference from '~helpers/verseToReference'
+import { usePushRouteOnce } from '~navigation/usePushRouteOnce'
+import { RootState } from '~redux/modules/reducer'
+import {
+  addHighlight,
+  createVerseEndpoint,
+  isContextualInformationDisplayEnabled,
+  removeHighlight,
+  setSettingsContextualInformationDisplay,
+  type RelationEndpoint,
+} from '~redux/modules/user'
+import {
+  CrossVersionAnnotation,
+  makeHighlightsByChapterSelector,
+  makeLinksByChapterSelector,
+  makeNotesByChapterSelector,
+  makeSelectedVerseHighlightColorSelector,
+  makeStudyRelationsByChapterSelector,
+  makeTaggedVersesInChapterSelector,
+  makeWordAnnotationsByChapterSelector,
+  makeWordAnnotationsInOtherVersionsSelector,
+  selectLinks,
+  selectNotes,
+  selectRelationCountsByEndpointIdentity,
+} from '~redux/selectors/bible'
+import { makeSelectBookmarksInChapter } from '~redux/selectors/bookmarks'
+import { selectIsLogged } from '~redux/selectors/user'
+import type { AppDispatch } from '~redux/store'
+import { historyAtom } from '../../state/app'
+import {
+  activeBibleTabIdAtom,
+  bibleDOMHostLayoutsAtom,
+  BibleTab,
+  getBibleContextDisplayMode,
+  parallelColumnWidthAtom,
+  parallelDisplayModeAtom,
+  sharedBibleDOMPropsAtom,
+  useBibleTabActions,
+  VersionCode,
+} from '../../state/tabs'
+import AnnotationToolbar from './AnnotationToolbar'
+import { selectBibleTabVersion } from '~helpers/bibleTabVersionSelection'
+import {
+  BibleDOMWrapper,
+  type BibleDOMDownloadState,
+  type StudyRelationsModalTarget,
+} from './BibleDOM/BibleDOMWrapper'
+import BibleParamsModal from './BibleParamsModal'
+import { loadBibleReadingParallelVerses, loadBibleReadingRedWords } from './bibleReadingChapter'
+import { getCanonicalChapterPericope } from '~helpers/canonicalBibleHeadings'
+import CrossVersionAnnotationsModal from './CrossVersionAnnotationsModal'
+import BibleFooter from './footer/BibleFooter'
+import {
+  getChapterEntityQueryPlan,
+  getDisplayedChapterEntityStrongCodes,
+} from './chapterEntityQueryPlan'
+import { useAnnotationMode, type AnnotationType } from './hooks'
+import ResourcesModal from '~features/bible/resources/ResourceModal'
+import {
+  getSelectedVerseKeys,
+  getSelectedVersesBookmarkLocation,
+  getSelectedVersesFocusAction,
+  getSelectedVersesLinkParams,
+  getSelectedVersesRelationEndpoint,
+  getSelectedVersesStudyPayload,
+  hasSelectedVerses,
+  selectAllChapterVerses,
+} from './selectedVersesActions'
+import SelectedVersesModal from './SelectedVersesModal'
+import { getBibleDOMDestination } from './SharedBibleDOM'
+import BibleDOMPortalHost from './BibleDOMPortalHost'
+import { shouldUseSharedBibleDOM } from './sharedBibleDOMPlatform'
+import SnapshotPlaceholder from './SnapshotPlaceholder'
+import VerseTagsModal from './VerseTagsModal'
+import CanonicalBibleNoteSheet from './CanonicalBibleNoteSheet'
+import StrongSelectionSheet from './StrongSelectionSheet'
+import {
+  getBibleViewerPersonalData,
+  shouldHideBibleViewerPersonalData,
+} from './bibleViewerPersonalData'
+import {
+  getStrongSelectionDOMContextKey,
+  getStrongSelectionRelationItemsKey,
+  getStrongSelectionRenderedContentKey,
+  shouldDismissStrongSelectionForViewerState,
+} from './strongSelectionLifecycle'
+import { getPassageMediaForChapter } from './passageMedia'
+import {
+  getSelectionAnnotationDeletionImpact,
+  requiresSelectionAnnotationDeletionConfirmation,
+} from './annotationDeletionImpact'
+import { useChapterAccessibilityAnnouncement } from './useChapterAccessibilityAnnouncement'
+const EMPTY_PASSAGE_MEDIA = {
+  introduction: [],
+  isIntroductionStartChapter: false,
+  afterVerses: {},
+  chapterResources: [],
+} satisfies ReturnType<typeof getPassageMediaForChapter>
+
+const getPericopeChapter = (pericope: Pericope | null, book: number, chapter: number) => {
+  if (pericope && pericope[book] && pericope[book][chapter]) {
+    return pericope[book][chapter]
+  }
+
+  return {}
+}
+
+const EMPTY_VERSES: Verse[] = []
+
+// Module-scope selectors - created once, memoization cache persists across renders
+const selectHighlightsByChapter = makeHighlightsByChapterSelector()
+const selectNotesByChapter = makeNotesByChapterSelector()
+const selectLinksByChapter = makeLinksByChapterSelector()
+const selectStudyRelationsByChapter = makeStudyRelationsByChapterSelector()
+const selectWordAnnotationsByChapter = makeWordAnnotationsByChapterSelector()
+const selectSelectedVerseHighlightColor = makeSelectedVerseHighlightColorSelector()
+const selectBookmarksInChapter = makeSelectBookmarksInChapter()
+const selectWordAnnotationsInOtherVersions = makeWordAnnotationsInOtherVersionsSelector()
+const selectTaggedVersesInChapter = makeTaggedVersesInChapterSelector()
+
+interface BibleViewerProps {
+  bibleAtom: PrimitiveAtom<BibleTab>
+  settings: RootState['user']['bible']['settings']
+  isFormSheet?: boolean
+  isInTab?: boolean
+  initialAnnotationId?: string
+}
+
+const BibleViewer = ({
+  bibleAtom,
+  settings,
+  isFormSheet,
+  isInTab,
+  initialAnnotationId,
+}: BibleViewerProps) => {
+  const { t } = useTranslation()
+  const confirmDeletion = useConfirmDialog()
+  const pushRouteOnce = usePushRouteOnce()
+  const openEntityRelations = useOpenEntityRelations()
+  const openNote = useOpenNote()
+  const resources = useResourceAccess()
+  const resourceRegistry = useOfflineResourceRegistry()
+
+  const setUnifiedTagsModal = useUnifiedTagsModal()
+  const [selectedCode, setSelectedCodeState] = useState<SelectedCode | null>(null)
+  const bookmarkModalRef = useRef<SheetRef>(null)
+  const [selectedVerseForBookmark, setSelectedVerseForBookmark] = useState<{
+    book: number
+    chapter: number
+    verse: number
+  } | null>(null)
+  const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null)
+  const bibleParamsModal = useSheet()
+  const resourceModal = useSheet()
+  const versesModal = useSheet()
+  const createRelationModal = useSheet()
+
+  // Annotation mode
+  const annotationMode = useAnnotationMode()
+  const annotationToolbar = useSheet()
+  const didOpenInitialAnnotationRef = useRef(false)
+  const initialAnnotation = useSelector((state: RootState) =>
+    initialAnnotationId ? state.user.bible.wordAnnotations[initialAnnotationId] : undefined
+  )
+  const selectedAnnotationEndpoint = annotationMode.selectedAnnotation
+    ? createAnnotationEndpoint(
+        annotationMode.selectedAnnotation.id,
+        annotationMode.selectedAnnotation.text
+      )
+    : null
+  const annotationRelationCount = useRelationCount(selectedAnnotationEndpoint)
+
+  // Cross-version annotations modal
+  const crossVersionModal = useSheet()
+  const [crossVersionModalData, setCrossVersionModalData] = useState<{
+    verseKey: string
+    versions: CrossVersionAnnotation[]
+  } | null>(null)
+  const openInNewTab = useOpenInNewTab()
+
+  // Verse tags modal
+  const verseTagsModal = useSheet()
+  const [verseTagsModalKey, setVerseTagsModalKey] = useState<string | null>(null)
+  const canonicalBibleNoteModal = useSheet()
+  const [canonicalBibleNote, setCanonicalBibleNote] = useState<CanonicalBibleNote | null>(null)
+  const strongSelectionModal = useSheet()
+  const strongSelectionModalRef = strongSelectionModal.getRef()
+  const [strongSelectionData, setStrongSelectionData] = useState<StrongSelection | null>(null)
+
+  const [createRelationSourceEndpoint, setCreateRelationSourceEndpoint] =
+    useState<RelationEndpoint | null>(null)
+
+  // Add to study modal states
+  const addToStudyModal = useSheet()
+  const verseFormatModal = useSheet()
+  const [pendingVerseData, setPendingVerseData] = useState<{
+    studyId: string
+    verseData: {
+      title: string
+      content: string
+      version: string
+      verses: string[]
+    }
+  } | null>(null)
+  const addVerseToStudy = useAddVerseToStudy()
+
+  const lang = useLanguage()
+  const dispatch = useDispatch<AppDispatch>()
+  const isLogged = useSelector(selectIsLogged)
+  const [resourceType, onChangeResourceType] = useState<BibleResource>('strong')
+  const [resourceModalSelection, setResourceModalSelection] = useState<{
+    selectedVersion: VersionCode
+    selectedVerses: VerseIds
+  } | null>(null)
+  const addHistory = useSetAtom(historyAtom)
+  const bible = useAtomValue(bibleAtom)
+  const parallelColumnWidth = useAtomValue(parallelColumnWidthAtom)
+  const parallelDisplayMode = useAtomValue(parallelDisplayModeAtom)
+  const actions = useBibleTabActions(bibleAtom)
+  const [verseNavigationRequest, setVerseNavigationRequest] = useState(0)
+
+  const {
+    data: {
+      selectedVersion: version,
+      strongMode,
+      interlinearMode,
+      interlinearLocale,
+      selectedBook: book,
+      selectedChapter: chapter,
+      selectedVerse: verse,
+      isSelectionMode,
+      focusVerses,
+      parallelVersions,
+      selectedVerses,
+    },
+  } = bible
+  const hidePersonalBibleData = shouldHideBibleViewerPersonalData({
+    version,
+    strongMode,
+    interlinearMode,
+  })
+  const contextDisplayMode = getBibleContextDisplayMode(bible.data)
+  const isContextFocused = contextDisplayMode === 'focused'
+  const selectedVersesReference = verseToReference(selectedVerses)
+  const { data: coverageData } = useQuery({
+    queryKey: resourceQueryKeys.bibleCoverage(version),
+    queryFn: () => resources.bibleContent.loadCoverage(version),
+    enabled: !!version,
+    ...staticResourceQueryOptions,
+    ...localQueryOptions,
+  })
+  const goToPrevAvailableChapter = () => actions.goToPrevChapter(coverageData)
+  const goToNextAvailableChapter = () => actions.goToNextChapter(coverageData)
+
+  const mainChapterRequest = {
+    book: book.Numero,
+    chapter,
+    version,
+    strongMode,
+    interlinearMode,
+    interlinearLocale: interlinearLocale ?? lang,
+    interlinearLocaleAutomatic: !interlinearLocale,
+  }
+  const mainReadingQuery = useQuery({
+    ...bibleChapterQueryOptions(mainChapterRequest, resources),
+    placeholderData: keepPreviousData,
+  })
+  const mainResult = mainReadingQuery.data
+  const mainChapterData = mainResult?.success ? mainResult.data : undefined
+  const chapterAccessibilityKey = `${book.Numero}:${chapter}:${version}`
+  useChapterAccessibilityAnnouncement({
+    announcement: t('accessibility.chapterLoaded', {
+      book: t(book.Nom),
+      chapter,
+      version,
+    }),
+    locationKey: chapterAccessibilityKey,
+    ready: !mainReadingQuery.isPlaceholderData && Boolean(mainChapterData),
+  })
+
+  const verses = mainChapterData?.verses ?? EMPTY_VERSES
+  const usesCanonicalPresentation = mainChapterData?.presentation === 'canonical'
+  const legacyPericopeQuery = useQuery({
+    queryKey: resourceQueryKeys.biblePericope(version),
+    queryFn: () => resources.bibleReading.loadPericope(version),
+    enabled: Boolean(mainResult?.success && mainResult.data && !usesCanonicalPresentation),
+    staleTime: Infinity,
+    ...localQueryOptions,
+  })
+  const pericope =
+    mainResult?.success && mainResult.data && usesCanonicalPresentation
+      ? getCanonicalChapterPericope(mainResult.data.verses)
+      : (legacyPericopeQuery.data ?? null)
+  const isLoading = mainReadingQuery.isFetching
+  const resultError = mainResult?.success === false ? mainResult.error : undefined
+  const error: BibleError | null = resultError
+    ? resultError
+    : mainReadingQuery.error
+      ? mainReadingQuery.error instanceof BibleLoadingError
+        ? {
+            type: mainReadingQuery.error.type,
+            version: mainReadingQuery.error.version,
+            book: mainReadingQuery.error.book,
+            chapter: mainReadingQuery.error.chapter,
+            message: mainReadingQuery.error.message,
+          }
+        : {
+            type: 'UNKNOWN_ERROR',
+            version,
+            book: book.Numero,
+            chapter,
+            message:
+              mainReadingQuery.error instanceof Error
+                ? mainReadingQuery.error.message
+                : 'Unknown error',
+          }
+      : null
+
+  const extrasRequest = {
+    book: book.Numero,
+    chapter,
+    version,
+    strongMode,
+    interlinearMode,
+    interlinearLocale: interlinearLocale ?? lang,
+    interlinearLocaleAutomatic: !interlinearLocale,
+    parallelVersions,
+    presentation: mainChapterData?.presentation,
+  }
+  const extrasEnabled =
+    Boolean(mainResult?.success && mainResult.data) && !mainReadingQuery.isPlaceholderData
+  const contextualInformationDisplay = isContextualInformationDisplayEnabled(
+    settings.contextualInformationDisplay
+  )
+  const { data: parallelVerses = [] } = useQuery({
+    queryKey: resourceQueryKeys.bibleParallel({
+      book: book.Numero,
+      chapter,
+      versions: parallelVersions,
+      strongMode,
+      interlinearMode,
+      interlinearLocale: interlinearLocale ?? lang,
+      interlinearLocaleAutomatic: !interlinearLocale,
+    }),
+    queryFn: () => loadBibleReadingParallelVerses(extrasRequest, resources),
+    enabled: extrasEnabled,
+    staleTime: Infinity,
+    ...localQueryOptions,
+  })
+  const redWordsAvailabilityQuery = useQuery({
+    queryKey: [
+      ...resourceQueryKeys.bibleRedWords(version),
+      'availability',
+      getOfflineResourceQuerySignal(resourceRegistry, {
+        kind: 'bible-red-words',
+        versionId: version,
+      }),
+    ],
+    queryFn: () =>
+      resources.bibleReading.getRedWordsAvailability?.(version) ??
+      Promise.resolve({ status: 'available' as const }),
+    enabled: extrasEnabled && settings.redWordsDisplay && !usesCanonicalPresentation,
+    networkMode: 'always',
+  })
+  const redWordsQuery = useQuery({
+    queryKey: resourceQueryKeys.bibleRedWords(version),
+    queryFn: () => loadBibleReadingRedWords(extrasRequest, resources),
+    enabled:
+      extrasEnabled &&
+      settings.redWordsDisplay &&
+      !usesCanonicalPresentation &&
+      redWordsAvailabilityQuery.data?.status === 'available',
+    staleTime: Infinity,
+    ...localQueryOptions,
+  })
+  const redWords = redWordsQuery.data ?? null
+  const setCommentaryPreview = useSetAtom(previewHistoryAtom)
+  const readingCommentaries = getInlineCommentaryResources(
+    settings.inlineCommentaries,
+    settings.commentarySelection,
+    settings.inlineCommentariesEnabled
+  )
+  const inlineCommentaryQuery = useQuery({
+    queryKey: [
+      'inline-commentary-index',
+      book.Numero,
+      chapter,
+      readingCommentaries,
+      readingCommentaries.map(resource =>
+        getOfflineResourceQuerySignal(resourceRegistry, {
+          kind: 'commentary',
+          ...resource,
+        })
+      ),
+    ],
+    queryFn: () =>
+      resources.commentaryReading.loadIndex({
+        book: book.Numero,
+        chapter,
+        resources: readingCommentaries,
+      }),
+    enabled: extrasEnabled && readingCommentaries.length > 0,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    networkMode: 'always',
+  })
+  const inlinePlacement = placeInlineCommentaries(
+    inlineCommentaryQuery.data?.indexes ?? [],
+    isContextFocused && focusVerses?.length
+      ? focusVerses.map(Number)
+      : verses.map(verse => Number(verse.Verset)),
+    isContextFocused
+  )
+  const labelInlineChip = (
+    chip: import('~features/commentaries/inlineCommentaryPlacement').InlineCommentaryChip
+  ) => {
+    const entry = getCommentaryByPublicationId(chip.resourceId, chip.language)
+    const name = entry?.shortName ?? chip.resourceId
+    const mixedLanguages = readingCommentaries.some(
+      resource =>
+        resource.language !== chip.language &&
+        getCommentaryByPublicationId(resource.resourceId, resource.language)?.shortName === name
+    )
+    return {
+      ...summarizeInlineCommentaryChip(chip),
+      author: entry?.author ?? name,
+      label: mixedLanguages ? `${name} · ${chip.language.toUpperCase()}` : name,
+    }
+  }
+  const inlineCommentaries = {
+    introduction: inlinePlacement.introduction.map(labelInlineChip),
+    afterVerses: Object.fromEntries(
+      Object.entries(inlinePlacement.afterVerses).map(([verse, chips]) => [
+        verse,
+        chips.map(labelInlineChip),
+      ])
+    ),
+  }
+
+  const redWordsUnavailable =
+    redWordsAvailabilityQuery.data?.status === 'unavailable'
+      ? (redWordsAvailabilityQuery.data as Extract<
+          BibleReadingAvailability,
+          { status: 'unavailable' }
+        >)
+      : undefined
+  const redWordsFailureIsTemporary = redWordsAvailabilityQuery.isError || redWordsQuery.isError
+  const displayedChapterEntityStrongCodes = getDisplayedChapterEntityStrongCodes(verses)
+  const chapterStrongCodeSourcePlan = getChapterEntityQueryPlan({
+    chapterReady: extrasEnabled,
+    chapterKind: mainChapterData?.kind,
+    contextualInformationDisplay,
+    displayedStrongCodes: displayedChapterEntityStrongCodes,
+    isContextFocused,
+    strongCodesQueryFetched: false,
+  })
+  const chapterStrongCodesQuery = useQuery({
+    queryKey: resourceQueryKeys.strongBibleChapterCodes({
+      currentVersionId: version,
+      defaultVersionId: settings.defaultStrongBibleVersionId ?? 'LSG',
+      book: book.Numero,
+      chapter,
+      expectedTextRevision: mainChapterData?.textRevision,
+      expectedTextSha256: mainChapterData?.textSha256,
+    }),
+    queryFn: () =>
+      resources.strongBible.loadChapterCodes({
+        currentVersionId: version,
+        defaultVersionId: settings.defaultStrongBibleVersionId ?? 'LSG',
+        book: book.Numero,
+        chapter,
+        expectedTextRevision: mainChapterData?.textRevision,
+        expectedTextSha256: mainChapterData?.textSha256,
+      }),
+    enabled: chapterStrongCodeSourcePlan.shouldLoadStrongCodes,
+    staleTime: Infinity,
+    ...localQueryOptions,
+  })
+  const chapterEntityQueryPlan = getChapterEntityQueryPlan({
+    chapterReady: extrasEnabled,
+    chapterKind: mainChapterData?.kind,
+    contextualInformationDisplay,
+    displayedStrongCodes: displayedChapterEntityStrongCodes,
+    isContextFocused,
+    loadedStrongCodes:
+      chapterStrongCodesQuery.data?.status === 'available'
+        ? chapterStrongCodesQuery.data.codes
+        : undefined,
+    strongCodesQueryFetched: chapterStrongCodesQuery.isFetched,
+  })
+  const chapterEntityStrongCodes = chapterEntityQueryPlan.codes
+  const chapterEntityAvailabilityQuery = useQuery({
+    queryKey: resourceQueryKeys.strongLexiconAvailability('entities'),
+    queryFn: () => resources.strongLexicon.getModuleAvailability('entities'),
+    enabled: chapterEntityQueryPlan.shouldCheckAvailability,
+    networkMode: 'always',
+    staleTime: Infinity,
+  })
+  const chapterEntityDownload = useDownloadItemStatus(
+    createOfflineCopyId({ kind: 'strong-lexicon-module', moduleId: 'entities' })
+  )
+  const chapterEntityDownloadState: BibleDOMDownloadState = {
+    status: chapterEntityDownload?.status,
+    progress: chapterEntityDownload
+      ? chapterEntityDownload.status === 'inserting'
+        ? 0.8 + chapterEntityDownload.insertProgress * 0.2
+        : chapterEntityDownload.downloadProgress * 0.8
+      : 0,
+    error: chapterEntityDownload?.error,
+  }
+  const refetchChapterEntityAvailability = useEffectEvent(() => {
+    void chapterEntityAvailabilityQuery.refetch()
+  })
+  useEffect(() => {
+    if (chapterEntityDownload?.status === 'completed') refetchChapterEntityAvailability()
+  }, [chapterEntityDownload?.status])
+  const chapterEntityModuleStatus =
+    contextualInformationDisplay && !isContextFocused
+      ? (chapterEntityAvailabilityQuery.data?.status ?? null)
+      : null
+  const chapterEntitiesAvailable =
+    contextualInformationDisplay &&
+    !isContextFocused &&
+    chapterEntityAvailabilityQuery.data?.status === 'available'
+  const chapterEntitiesQuery = useQuery({
+    queryKey: resourceQueryKeys.strongLexiconChapterEntities({
+      language: lang,
+      book: book.Numero,
+      chapter,
+      strongCodes: chapterEntityStrongCodes,
+    }),
+    queryFn: () =>
+      resources.strongLexicon.loadChapterEntities(
+        book.Numero,
+        chapter,
+        lang,
+        chapterEntityStrongCodes
+      ),
+    enabled: chapterEntitiesAvailable && chapterEntityQueryPlan.shouldLoadEntities,
+    staleTime: Infinity,
+    ...localQueryOptions,
+  })
+  const chapterEntities = chapterEntitiesQuery.data ?? []
+  const chapterEntitiesLoaded = chapterEntitiesQuery.isSuccess
+
+  // Shared Bible DOM: detect if this tab is the active Bible tab
+  const activeBibleTabId = useAtomValue(activeBibleTabIdAtom)
+  const setSharedProps = useSetAtom(sharedBibleDOMPropsAtom)
+  const setBibleDOMHostLayouts = useSetAtom(bibleDOMHostLayoutsAtom)
+  const isActiveBibleTab = !isFormSheet && activeBibleTabId === bible.id
+  const useSharedDOM = shouldUseSharedBibleDOM(Platform.OS, isInTab)
+  const domLayerZIndex = Platform.OS === 'web' ? 0 : -1
+  const strongSelectionRenderedContentKey = getStrongSelectionRenderedContentKey(
+    verses,
+    parallelVerses
+  )
+
+  // Displayed values - updated only when verses are loaded to keep annotations in sync
+  const [displayedBook, setDisplayedBook] = useState(book.Numero)
+  const [displayedChapter, setDisplayedChapter] = useState(chapter)
+  const [displayedVersion, setDisplayedVersion] = useState(version)
+  const passageMedia = contextualInformationDisplay
+    ? getPassageMediaForChapter({
+        book: displayedBook,
+        chapter: displayedChapter,
+        language: lang,
+      })
+    : EMPTY_PASSAGE_MEDIA
+
+  // Handler for entering annotation mode (from SelectedVersesModal)
+  const handleEnterAnnotationMode = useCallback(() => {
+    if (hidePersonalBibleData) return
+    // Clear selected verses and close the modal
+    actions.clearSelectedVerses()
+    versesModal.close()
+
+    annotationMode.enterMode(version)
+    annotationToolbar.open()
+  }, [actions, versesModal, annotationMode, annotationToolbar, version, hidePersonalBibleData])
+
+  // Handler for entering annotation mode (from double-tap on verse)
+  const handleEnterAnnotationModeFromDoubleTap = () => {
+    if (hidePersonalBibleData) return
+    annotationMode.enterMode(version)
+    annotationToolbar.open()
+  }
+
+  // Handler for exiting annotation mode
+  const handleExitAnnotationMode = useCallback(() => {
+    // exitMode will auto-save pending annotations
+    annotationMode.exitMode()
+    annotationToolbar.close()
+  }, [annotationMode, annotationToolbar])
+
+  useEffect(() => {
+    if (
+      didOpenInitialAnnotationRef.current ||
+      !initialAnnotationId ||
+      !initialAnnotation ||
+      initialAnnotation.version !== version ||
+      hidePersonalBibleData
+    ) {
+      return
+    }
+
+    didOpenInitialAnnotationRef.current = true
+    annotationMode.enterMode(version)
+    annotationMode.handleAnnotationSelected(initialAnnotationId)
+    annotationToolbar.open()
+  }, [
+    annotationMode,
+    annotationToolbar,
+    hidePersonalBibleData,
+    initialAnnotation,
+    initialAnnotationId,
+    version,
+  ])
+
+  const clearHiddenPersonalBibleState = useEffectEvent(() => {
+    if (hasSelectedVerses(selectedVerses)) {
+      actions.clearSelectedVerses()
+    }
+    versesModal.close()
+    if (annotationMode.enabled) {
+      annotationMode.exitMode()
+      annotationToolbar.close()
+    }
+  })
+
+  useEffect(() => {
+    if (hidePersonalBibleData) clearHiddenPersonalBibleState()
+  }, [hidePersonalBibleData])
+
+  // Handler for opening annotation note modal
+  const handleAnnotationNotePress = useCallback(() => {
+    if (!annotationMode.selectedAnnotation) return
+    const noteId = `annotation:${annotationMode.selectedAnnotation.id}`
+    openNote({ noteId })
+  }, [annotationMode.selectedAnnotation, openNote])
+
+  // Handler for opening annotation tags modal
+  const handleAnnotationTagsPress = useCallback(() => {
+    if (!annotationMode.selectedAnnotation) return
+    setUnifiedTagsModal({
+      mode: 'select',
+      title: annotationMode.selectedAnnotation.text,
+      id: annotationMode.selectedAnnotation.id,
+      entity: 'wordAnnotations',
+    })
+  }, [annotationMode.selectedAnnotation, setUnifiedTagsModal])
+
+  const handleAnnotationRelationsPress = () => {
+    if (!selectedAnnotationEndpoint) return
+    openEntityRelations(selectedAnnotationEndpoint)
+  }
+
+  // Handler for deleting annotation with confirmation if it has a note or tags
+  const handleDeleteAnnotation = useCallback(() => {
+    if (!annotationMode.selectedAnnotation) return
+
+    const hasNote = !!annotationMode.selectedAnnotation.noteId
+    const hasTags = Object.keys(annotationMode.selectedAnnotation.tags || {}).length > 0
+    const hasRelations = annotationRelationCount > 0
+
+    if (hasNote || hasTags || hasRelations) {
+      const warnings = []
+      if (hasNote) warnings.push(t('une note'))
+      if (hasTags) warnings.push(t('des tags'))
+      if (hasRelations) warnings.push(t('des relations'))
+
+      void confirmDeletion({
+        title: t('Attention'),
+        message: t('Cette annotation a {{items}} associé(s). Voulez-vous vraiment la supprimer ?', {
+          items: warnings.join(' ' + t('et') + ' '),
+        }),
+        cancelLabel: t('Non'),
+        confirmLabel: t('Oui'),
+        destructive: true,
+      }).then(confirmed => {
+        if (!confirmed) return
+        annotationMode.deleteSelectedAnnotation()
+      })
+    } else {
+      annotationMode.deleteSelectedAnnotation()
+    }
+  }, [annotationMode, annotationRelationCount, t, confirmDeletion])
+
+  // Keep annotation mode's verses reference updated
+  const { enabled: annotationModeEnabled, setVerses: setAnnotationVerses } = annotationMode
+  useEffect(() => {
+    if (annotationModeEnabled && verses.length > 0) {
+      setAnnotationVerses(verses)
+    }
+  }, [verses, annotationModeEnabled, setAnnotationVerses])
+
+  const selectAllVerses = () => {
+    actions.selectAllVerses(selectAllChapterVerses(verses))
+  }
+
+  // Open/close verses modal based on selected verses
+  useEffect(() => {
+    if (hasSelectedVerses(selectedVerses)) {
+      versesModal.open()
+    } else {
+      versesModal.close()
+    }
+  }, [selectedVerses, versesModal])
+
+  // Use displayed values for selectors to keep annotations in sync with verses
+  const highlightedVersesByChapter = useSelector((state: RootState) =>
+    selectHighlightsByChapter(state, displayedBook, displayedChapter)
+  )
+
+  const notesByChapter = useSelector((state: RootState) =>
+    selectNotesByChapter(state, displayedBook, displayedChapter)
+  )
+  const allNotes = useSelector(selectNotes)
+
+  const linksByChapter = useSelector((state: RootState) =>
+    selectLinksByChapter(state, displayedBook, displayedChapter)
+  )
+  const allLinks = useSelector(selectLinks)
+
+  const studyRelationsByChapter = useSelector((state: RootState) =>
+    selectStudyRelationsByChapter(state, displayedBook, displayedChapter, displayedVersion)
+  )
+  const strongSelectionDOMContextKey = getStrongSelectionDOMContextKey({
+    version,
+    book: book.Numero,
+    chapter,
+    strongMode,
+    interlinearMode,
+    interlinearLocale: interlinearLocale ?? lang,
+    parallelVersions,
+    focusVerses,
+    contextDisplayMode,
+    renderedContentKey: strongSelectionRenderedContentKey,
+    relationItemsKey: getStrongSelectionRelationItemsKey(studyRelationsByChapter),
+    annotationModeEnabled: annotationMode.enabled,
+    strongRelationItemsVisible:
+      (settings.relationsDisplay || 'inline') === 'inline' && !isSelectionMode,
+  })
+  const previousStrongSelectionDOMContextKey = usePrevious(strongSelectionDOMContextKey)
+
+  const wordAnnotationsByChapter = useSelector((state: RootState) =>
+    selectWordAnnotationsByChapter(state, displayedBook, displayedChapter, displayedVersion)
+  )
+  const relationCountsByEndpointIdentity = useSelector(selectRelationCountsByEndpointIdentity)
+
+  const confirmSelectionAnnotationDeletion = (onConfirm: () => void) => {
+    if (!annotationMode.selection || !annotationMode.version) return
+
+    const impact = getSelectionAnnotationDeletionImpact({
+      wordAnnotations: wordAnnotationsByChapter,
+      version: annotationMode.version,
+      start: annotationMode.selection.start,
+      end: annotationMode.selection.end,
+      relationCountsByEndpointIdentity,
+    })
+
+    if (!requiresSelectionAnnotationDeletionConfirmation(impact)) {
+      onConfirm()
+      return
+    }
+
+    const warnings = []
+    if (impact.hasNote) warnings.push(t('une note'))
+    if (impact.hasTags) warnings.push(t('des tags'))
+    if (impact.hasRelations) warnings.push(t('des relations'))
+
+    const annotationWarning =
+      impact.annotationCount === 1
+        ? t('annotation.selectionDeletion.single')
+        : t('annotation.selectionDeletion.multiple', {
+            count: impact.annotationCount,
+          })
+
+    const associatedItemsWarning =
+      warnings.length > 0
+        ? t('annotation.selectionDeletion.associatedItems', {
+            items: warnings.join(' ' + t('et') + ' '),
+          })
+        : null
+
+    const message = [
+      annotationWarning,
+      associatedItemsWarning,
+      t('annotation.selectionDeletion.confirm'),
+    ]
+      .filter(Boolean)
+      .join('\n\n')
+
+    void confirmDeletion({
+      title: t('Attention'),
+      message: message,
+      cancelLabel: t('Non'),
+      confirmLabel: t('Oui'),
+      destructive: true,
+    }).then(confirmed => {
+      if (confirmed) return onConfirm()
+    })
+  }
+
+  const handleEraseAnnotations = () => {
+    confirmSelectionAnnotationDeletion(annotationMode.eraseSelection)
+  }
+
+  const handleApplyAnnotation = (color: string, type: AnnotationType) => {
+    confirmSelectionAnnotationDeletion(() => annotationMode.applyAnnotation(color, type))
+  }
+
+  const selectedVerseHighlightColor = useSelector((state: RootState) =>
+    selectSelectedVerseHighlightColor(state, selectedVerses)
+  )
+
+  const bookmarkedVerses = useSelector((state: RootState) =>
+    selectBookmarksInChapter(state, displayedBook, displayedChapter)
+  )
+
+  const wordAnnotationsInOtherVersions = useSelector((state: RootState) =>
+    selectWordAnnotationsInOtherVersions(state, displayedBook, displayedChapter, displayedVersion)
+  )
+
+  const taggedVersesData = useSelector((state: RootState) =>
+    selectTaggedVersesInChapter(state, displayedBook, displayedChapter, displayedVersion)
+  )
+  const taggedVersesInChapter = taggedVersesData.counts
+  const versesWithNonHighlightTags = taggedVersesData.hasNonHighlightTags
+  const recordedHistoryKeyRef = useRef<string | undefined>(undefined)
+
+  useEffect(() => {
+    if (mainReadingQuery.isPlaceholderData || !mainResult?.success || !mainResult.data) {
+      return
+    }
+    const historyKey = `${version}:${book.Numero}:${chapter}:${verse}`
+    if (recordedHistoryKeyRef.current === historyKey) return
+    recordedHistoryKeyRef.current = historyKey
+
+    setDisplayedBook(book.Numero)
+    setDisplayedChapter(chapter)
+    setDisplayedVersion(version)
+    addHistory({
+      book: book.Numero,
+      chapter,
+      verse,
+      version,
+      type: 'verse',
+      date: Date.now(),
+    })
+    Sentry.addBreadcrumb({
+      category: 'bible viewer',
+      message: 'Load verses',
+      data: { book: book.Numero, chapter, verse, version },
+    })
+  }, [
+    addHistory,
+    book.Numero,
+    chapter,
+    mainReadingQuery.isPlaceholderData,
+    mainResult,
+    verse,
+    version,
+  ])
+
+  const prevBook = usePrevious(book.Numero)
+  const prevChapter = usePrevious(chapter)
+
+  useEffect(() => {
+    // Only clear selected verses when book or chapter changes
+    if (prevBook !== undefined && (prevBook !== book.Numero || prevChapter !== chapter)) {
+      actions.clearSelectedVerses()
+    }
+  }, [actions, book.Numero, chapter, prevBook, prevChapter])
+
+  const addHiglightAndOpenQuickTags = (color: string) => {
+    dispatch(addHighlight({ color, selectedVerses, version }))
+  }
+
+  const addTag = () => {
+    setUnifiedTagsModal({
+      mode: 'select',
+      entity: 'highlights',
+      ids: selectedVerses,
+    })
+  }
+
+  const toggleCreateNote = () => {
+    const verseKeys = getSelectedVerseKeys(selectedVerses)
+    openNote({ verseKeys, version })
+  }
+
+  const toggleCreateLink = () => {
+    const params = getSelectedVersesLinkParams(selectedVerses, version)
+    pushRouteOnce({
+      pathname: '/link',
+      params,
+    })
+  }
+
+  const toggleCreateStudyRelation = () => {
+    const endpoint = getSelectedVersesRelationEndpoint(selectedVerses, version)
+    if (!endpoint) return
+    setCreateRelationSourceEndpoint(endpoint)
+    createRelationModal.open()
+  }
+
+  const handleRelationCreatedFromSelection = () => {
+    createRelationModal.close()
+    actions.clearSelectedVerses()
+  }
+
+  const openVerseStudyRelationsModal = (target: StudyRelationsModalTarget) => {
+    if (typeof target !== 'string' && target.endpoint) {
+      openEntityRelations(target.endpoint)
+      return
+    }
+    const verseIds =
+      typeof target === 'string'
+        ? [target]
+        : target.verseIds?.length
+          ? target.verseIds
+          : target.verseKey
+            ? [target.verseKey]
+            : []
+
+    if (!verseIds.length) return
+
+    openEntityRelations(createVerseEndpoint(verseIds, undefined, version))
+  }
+
+  const openLink = (linkId: string) => {
+    pushRouteOnce({ pathname: '/link', params: { linkId } })
+  }
+
+  const openBibleNote = (noteId: string, verseIds?: string[]) => {
+    openNote({ noteId, verseKeys: verseIds, version })
+  }
+
+  const openResourceForVerse = (res: BibleResource, ver: string) => {
+    setResourceModalSelection({
+      selectedVersion: version,
+      selectedVerses: { [ver]: true },
+    })
+    onChangeResourceType(res)
+    resourceModal.open()
+  }
+
+  const changeResourceModalVerse = (ver: string) => {
+    if (resourceModalSelection) {
+      setResourceModalSelection(current =>
+        current ? { ...current, selectedVerses: { [ver]: true } } : current
+      )
+      return
+    }
+
+    actions.selectSelectedVerse(ver)
+  }
+
+  // Add to study handlers
+  const handleOpenAddToStudy = () => {
+    if (!isLogged) {
+      toast.info(t('study.loginRequired'))
+      return
+    }
+
+    addToStudyModal.open()
+  }
+
+  const handleSelectStudy = useCallback(
+    async (studyId: string, format?: 'inline' | 'block') => {
+      // Capture verse data immediately when study is selected
+      const { title, content } = await getVersesContent({
+        verses: selectedVerses,
+        version,
+        loadVerseTexts: (versionId, verseKeys) =>
+          loadBibleVerseTexts(resources, versionId, verseKeys),
+      })
+
+      const verseData = {
+        title,
+        content,
+        version,
+        verses: getSelectedVersesStudyPayload(selectedVerses),
+      }
+
+      if (format) {
+        addVerseToStudy(studyId, verseData, format)
+        actions.clearSelectedVerses()
+        return
+      }
+      setPendingVerseData({ studyId, verseData })
+      verseFormatModal.open()
+    },
+    [resources, selectedVerses, version, verseFormatModal, addVerseToStudy, actions]
+  )
+
+  const handleSelectFormat = useCallback(
+    (format: 'inline' | 'block') => {
+      if (!pendingVerseData) return
+
+      addVerseToStudy(pendingVerseData.studyId, pendingVerseData.verseData, format)
+
+      // Close both modals and reset state
+      verseFormatModal.close()
+      addToStudyModal.close()
+      setPendingVerseData(null)
+      actions.clearSelectedVerses()
+    },
+    [pendingVerseData, addVerseToStudy, verseFormatModal, addToStudyModal, actions]
+  )
+
+  // Pin verses handler - toggles focus on/off
+  const handlePinVerses = () => {
+    if (getSelectedVersesFocusAction(selectedVerses, focusVerses) === 'clear-focus') {
+      actions.clearFocusVerses()
+    } else {
+      actions.pinSelectedVerses()
+    }
+  }
+
+  // Bookmark handler
+  const handleAddBookmark = useCallback(() => {
+    const location = getSelectedVersesBookmarkLocation(selectedVerses)
+    if (location) {
+      setSelectedVerseForBookmark({
+        book: location.book,
+        chapter: location.chapter,
+        verse: location.verse,
+      })
+      setEditingBookmark(null)
+      // Use setTimeout to ensure state is updated before presenting
+      setTimeout(() => bookmarkModalRef.current?.present(), 0)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedVerses, actions])
+
+  // Handler for opening bookmark modal from DOM (existing bookmark)
+  const handleOpenBookmarkModal = useCallback((bookmark: Bookmark) => {
+    setEditingBookmark(bookmark)
+    setSelectedVerseForBookmark(null)
+    // Use setTimeout to ensure state is updated before presenting
+    setTimeout(() => bookmarkModalRef.current?.present(), 0)
+  }, [])
+
+  const setSelectedCode = (selection: StrongSelection) => {
+    if (
+      strongSelectionData?.occurrenceId &&
+      strongSelectionData.occurrenceId === selection.occurrenceId
+    ) {
+      setSelectedCodeState(null)
+      strongSelectionModal.close()
+      return
+    }
+
+    setSelectedCodeState(selection)
+    setStrongSelectionData(selection)
+    strongSelectionModal.open()
+  }
+
+  const closeStrongSelection = () => {
+    setSelectedCodeState(null)
+    setStrongSelectionData(null)
+  }
+
+  const startClosingStrongSelection = () => {
+    setSelectedCodeState(null)
+  }
+
+  const dismissStrongSelection = useEffectEvent(() => {
+    if (!strongSelectionData) return
+
+    setSelectedCodeState(null)
+    strongSelectionModal.close()
+  })
+
+  useEffect(() => {
+    if (
+      previousStrongSelectionDOMContextKey !== undefined &&
+      previousStrongSelectionDOMContextKey !== strongSelectionDOMContextKey
+    ) {
+      dismissStrongSelection()
+    }
+  }, [previousStrongSelectionDOMContextKey, strongSelectionDOMContextKey])
+
+  useEffect(() => {
+    if (shouldDismissStrongSelectionForViewerState({ isActiveBibleTab, isFormSheet, isInTab })) {
+      dismissStrongSelection()
+    }
+  }, [isActiveBibleTab, isFormSheet, isInTab])
+
+  useLayoutEffect(
+    () => () => {
+      strongSelectionModalRef.current?.dismiss()
+    },
+    [strongSelectionModalRef]
+  )
+
+  // Cross-version annotations modal handlers
+  const handleOpenCrossVersionModal = useCallback(
+    (verseKey: string, versions: CrossVersionAnnotation[]) => {
+      setCrossVersionModalData({ verseKey, versions })
+      crossVersionModal.open()
+    },
+    [crossVersionModal]
+  )
+
+  // Verse tags modal handler
+  const handleOpenVerseTagsModal = useCallback(
+    (verseKey: string) => {
+      setVerseTagsModalKey(verseKey)
+      verseTagsModal.open()
+    },
+    [verseTagsModal]
+  )
+
+  const handleCrossVersionSwitchVersion = useCallback(
+    (newVersion: VersionCode, verse: number) => {
+      actions.setSelectedVersion(newVersion)
+      actions.setSelectedVerse(verse)
+      crossVersionModal.close()
+      setCrossVersionModalData(null)
+    },
+    [actions, crossVersionModal]
+  )
+
+  const handleOpenCanonicalBibleNote = (note: CanonicalBibleNote) => {
+    setCanonicalBibleNote(note)
+    canonicalBibleNoteModal.open()
+  }
+
+  const handleCanonicalBibleReferencePress = (osis: string) => {
+    const target = osisToBibleReferenceTarget(osis)
+    if (!target) return
+
+    pushRouteOnce({
+      pathname: '/bible-view',
+      params: {
+        contextDisplayMode: 'focused',
+        book: JSON.stringify(getBook(target.book)),
+        chapter: String(target.chapter),
+        verse: String(target.verse),
+        version,
+        ...(target.focusVerses ? { focusVerses: JSON.stringify(target.focusVerses) } : {}),
+      },
+    })
+  }
+
+  const handleCrossVersionOpenInNewTab = useCallback(
+    (newVersion: VersionCode) => {
+      openInNewTab(
+        {
+          ...bible,
+          id: `bible-${generateUUID()}`,
+          data: selectBibleTabVersion(
+            {
+              ...bible.data,
+              contextDisplayMode: 'fullChapter',
+            },
+            newVersion
+          ),
+        },
+        {
+          autoRedirect: true,
+        }
+      )
+      crossVersionModal.close()
+      setCrossVersionModalData(null)
+    },
+    [bible, openInNewTab, crossVersionModal]
+  )
+
+  // console.log('[Bible] BibleViewer', version, book.Numero, chapter, verse)
+
+  // Apply the mode policy before personal Bible data crosses the DOM bridge.
+  const viewerPersonalData = getBibleViewerPersonalData(hidePersonalBibleData, {
+    isSelectionMode,
+    selectedVerses,
+    highlightedVerses: highlightedVersesByChapter,
+    notedVerses: notesByChapter,
+    allNotes,
+    bookmarkedVerses,
+    linkedVerses: linksByChapter,
+    allLinks,
+    studyRelations: studyRelationsByChapter,
+    wordAnnotations: wordAnnotationsByChapter,
+    annotationMode: annotationMode.enabled,
+    wordAnnotationsInOtherVersions,
+    taggedVersesInChapter,
+    versesWithNonHighlightTags,
+  })
+
+  const domProps = {
+    tabId: bible.id,
+    bibleAtom,
+    book,
+    chapter,
+    isLoading,
+    personalBibleDataEnabled: !hidePersonalBibleData,
+    addSelectedVerse: hidePersonalBibleData ? () => undefined : actions.addSelectedVerse,
+    removeSelectedVerse: hidePersonalBibleData ? () => undefined : actions.removeSelectedVerse,
+    setSelectedVerse: actions.setSelectedVerse,
+    version,
+    interlinearMode,
+    contextDisplayMode,
+    isSelectionMode: viewerPersonalData.isSelectionMode,
+    verses,
+    parallelVerses,
+    parallelColumnWidth,
+    parallelDisplayMode,
+    focusVerses,
+    selectedVerses: viewerPersonalData.selectedVerses,
+    highlightedVerses: viewerPersonalData.highlightedVerses,
+    notedVerses: viewerPersonalData.notedVerses,
+    allNotes: viewerPersonalData.allNotes,
+    bookmarkedVerses: viewerPersonalData.bookmarkedVerses,
+    linkedVerses: viewerPersonalData.linkedVerses,
+    allLinks: viewerPersonalData.allLinks,
+    studyRelations: viewerPersonalData.studyRelations,
+    wordAnnotations: viewerPersonalData.wordAnnotations,
+    settings,
+    verseToScroll: verse,
+    verseNavigationRequest,
+    pericopeChapter: getPericopeChapter(pericope, displayedBook, displayedChapter),
+    passageMedia,
+    openNote: hidePersonalBibleData ? undefined : openBibleNote,
+    openLink: hidePersonalBibleData ? undefined : openLink,
+    setSelectedCode,
+    selectedCode,
+    removeParallelVersion: actions.removeParallelVersion,
+    addParallelVersion: actions.addParallelVersion,
+    goToPrevChapter: goToPrevAvailableChapter,
+    goToNextChapter: goToNextAvailableChapter,
+    setUnifiedTagsModal: hidePersonalBibleData ? undefined : setUnifiedTagsModal,
+    onOpenResourceForVerse: openResourceForVerse,
+    onOpenBookmarkModal: hidePersonalBibleData ? undefined : handleOpenBookmarkModal,
+    onOpenCanonicalBibleReference: handleCanonicalBibleReferencePress,
+    expandContext: actions.expandContext,
+    collapseContext: actions.collapseContext,
+    clearFocusVerses: actions.clearFocusVerses,
+    // Annotation mode props
+    annotationMode: viewerPersonalData.annotationMode,
+    clearSelectionTrigger: annotationMode.clearSelectionTrigger,
+    applyAnnotationTrigger: annotationMode.applyAnnotationTrigger,
+    eraseSelectionTrigger: annotationMode.eraseSelectionTrigger,
+    onSelectionChanged: hidePersonalBibleData ? undefined : annotationMode.handleSelectionChanged,
+    onCreateAnnotation: hidePersonalBibleData ? undefined : annotationMode.handleCreateAnnotation,
+    onEraseSelection: hidePersonalBibleData ? undefined : annotationMode.handleEraseSelection,
+    onAnnotationSelected: hidePersonalBibleData
+      ? undefined
+      : annotationMode.handleAnnotationSelected,
+    clearAnnotationSelectionTrigger: annotationMode.clearAnnotationSelectionTrigger,
+    selectedAnnotationId: annotationMode.selectedAnnotation?.id ?? null,
+    // Cross-version annotations
+    wordAnnotationsInOtherVersions: viewerPersonalData.wordAnnotationsInOtherVersions,
+    onOpenCrossVersionModal: hidePersonalBibleData ? undefined : handleOpenCrossVersionModal,
+    // Verse tags
+    taggedVersesInChapter: viewerPersonalData.taggedVersesInChapter,
+    versesWithNonHighlightTags: viewerPersonalData.versesWithNonHighlightTags,
+    onOpenVerseTagsModal: hidePersonalBibleData ? undefined : handleOpenVerseTagsModal,
+    onOpenCanonicalBibleNote: handleOpenCanonicalBibleNote,
+    onOpenStudyRelationsModal: hidePersonalBibleData ? undefined : openVerseStudyRelationsModal,
+    // Double-tap to enter annotation mode
+    onEnterAnnotationMode: hidePersonalBibleData
+      ? undefined
+      : handleEnterAnnotationModeFromDoubleTap,
+    // Red words
+    redWords: settings.redWordsDisplay ? redWords : null,
+    inlineCommentaries,
+    onOpenInlineCommentary: summary => {
+      const chip = [
+        ...inlinePlacement.introduction,
+        ...Object.values(inlinePlacement.afterVerses).flat(),
+      ].find(
+        candidate =>
+          candidate.sectionId === summary.sectionId &&
+          candidate.resourceId === summary.resourceId &&
+          candidate.language === summary.language &&
+          candidate.revision === summary.revision
+      )
+      if (!chip) return
+      const entry = getCommentaryByPublicationId(chip.resourceId, chip.language)
+      if (!entry) return
+      const openCommentary = (sectionId = chip.sectionId) =>
+        pushRouteOnce({
+          pathname: '/commentary-entry',
+          params: {
+            projectionId: `${entry.id}:${chip.language}`,
+            book: String(book.Numero),
+            chapter: String(chapter),
+            sectionId,
+          },
+        })
+      if (Platform.OS !== 'web') {
+        openCommentary()
+        return
+      }
+      const index = inlineCommentaryQuery.data?.indexes.find(
+        item =>
+          item.resource.resourceId === chip.resourceId &&
+          item.resource.language === chip.language &&
+          item.resource.revision === chip.revision
+      )
+      const request: InlineCommentaryRequest = {
+        resourceId: chip.resourceId,
+        language: chip.language,
+        revision: chip.revision,
+        book: book.Numero,
+        chapter,
+        sectionId: chip.sectionId,
+        sections:
+          index?.sections.map(section => ({
+            sectionId: section.id,
+            rangeStartVerse: section.rangeStartVerse,
+            rangeEndVerse: section.rangeEndVerse,
+            excerpt: section.excerpt,
+          })) ?? chip.sections,
+        excerpt: chip.excerpt,
+      }
+      setCommentaryPreview([
+        { kind: 'commentary', title: entry.shortName, request, open: openCommentary },
+      ])
+    },
+    chapterEntities,
+    chapterEntitiesLoaded,
+    chapterEntityModuleStatus,
+    chapterEntityDownloadState,
+    onDisableContextualInformation: () => dispatch(setSettingsContextualInformationDisplay(false)),
+    isFormSheet,
+    error,
+  } satisfies Parameters<typeof BibleDOMWrapper>[0]
+
+  // Push props to shared atom when this is the active Bible tab.
+  useLayoutEffect(() => {
+    if (!useSharedDOM) return
+    if (isActiveBibleTab) {
+      setSharedProps(domProps)
+    }
+  })
+
+  // Exit annotation mode when this tab becomes inactive
+  useEffect(() => {
+    if (useSharedDOM && !isActiveBibleTab && annotationMode.enabled) {
+      handleExitAnnotationMode()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActiveBibleTab])
+
+  // Track PortalHost lifecycle for Sentry (context for native Android crashes)
+  useEffect(() => {
+    if (!useSharedDOM) return
+    Sentry.addBreadcrumb({
+      category: 'bible-host',
+      message: 'PortalHost mount',
+      data: { tabId: bible.id },
+      level: 'info',
+    })
+    return () => {
+      Sentry.addBreadcrumb({
+        category: 'bible-host',
+        message: 'PortalHost unmount',
+        data: { tabId: bible.id },
+        level: 'info',
+      })
+      setBibleDOMHostLayouts(current => {
+        if (!current[bible.id]) return current
+        const next = { ...current }
+        delete next[bible.id]
+        return next
+      })
+    }
+  }, [useSharedDOM, bible.id, setBibleDOMHostLayouts])
+
+  // Track tab activation changes for Sentry
+  useEffect(() => {
+    if (!useSharedDOM) return
+    Sentry.addBreadcrumb({
+      category: 'bible-host',
+      message: `Tab ${isActiveBibleTab ? 'activated' : 'deactivated'}`,
+      data: { tabId: bible.id },
+      level: 'info',
+    })
+  }, [useSharedDOM, isActiveBibleTab, bible.id])
+
+  const handleBibleDOMHostLayout = ({ nativeEvent: { layout } }: LayoutChangeEvent) => {
+    if (!useSharedDOM) return
+
+    const width = Math.round(layout.width)
+    const height = Math.round(layout.height)
+    if (width <= 0 || height <= 0) return
+
+    setBibleDOMHostLayouts(current => {
+      const previous = current[bible.id]
+      if (previous?.width === width && previous?.height === height) return current
+
+      Sentry.addBreadcrumb({
+        category: 'bible-host',
+        message: 'PortalHost layout changed',
+        data: { tabId: bible.id, width, height },
+        level: 'info',
+      })
+
+      return { ...current, [bible.id]: { width, height } }
+    })
+  }
+
+  return (
+    <BibleViewport className="overflow-hidden border-continuous flex-[1] bg-reverse">
+      <BibleHeader
+        onNavigateToVerse={destination => {
+          if (isContextFocused) actions.clearFocusVerses()
+          actions.setSelectedVerse(destination)
+          setVerseNavigationRequest(request => request + 1)
+        }}
+        bibleAtom={bibleAtom}
+        onBibleParamsClick={bibleParamsModal.open}
+        isFormSheet={isFormSheet}
+        isInTab={isInTab}
+        onExitAnnotationMode={handleExitAnnotationMode}
+        annotationModeEnabled={annotationMode.enabled && !hidePersonalBibleData}
+        hidePersonalBibleData={hidePersonalBibleData}
+        coverage={coverageData}
+      />
+      {!!focusVerses?.length && !annotationMode.enabled && (
+        <PassageContextButton
+          focused={isContextFocused}
+          isFormSheet={isFormSheet}
+          onExpand={actions.expandContext}
+          onCollapse={actions.collapseContext}
+          onExit={actions.clearFocusVerses}
+        />
+      )}
+      {settings.redWordsDisplay && redWordsFailureIsTemporary && (
+        <Box className="border-continuous overflow-hidden bg-reverse border-b-[1px] border-border">
+          <ResourceUnavailableView
+            identity={{ kind: 'bible', versionId: version }}
+            title={t('resource.redWords.temporarilyUnavailable')}
+            fileSize={Math.max(
+              1,
+              Math.round(
+                createOfflineCopyDownloadItem({ kind: 'bible', versionId: version }).estimatedSize /
+                  1_000_000
+              )
+            )}
+            failure={resourceFailureFromAccessError(
+              redWordsQuery.error ?? redWordsAvailabilityQuery.error
+            )}
+            size="small"
+            onRetry={() => {
+              void redWordsAvailabilityQuery.refetch()
+              void redWordsQuery.refetch()
+            }}
+          />
+        </Box>
+      )}
+      {settings.redWordsDisplay && redWordsUnavailable && (
+        <Box className="border-continuous overflow-hidden bg-reverse border-b-[1px] border-border">
+          <ResourceUnavailableView
+            identity={redWordsUnavailable.recoveryIdentity}
+            title={t('resource.redWords.offlineCopyNeeded')}
+            offlineTitle={t('resource.redWords.temporarilyUnavailable')}
+            fileSize={Math.max(
+              1,
+              Math.round(
+                createOfflineCopyDownloadItem(redWordsUnavailable.recoveryIdentity).estimatedSize /
+                  1_000_000
+              )
+            )}
+            failure={resourceFailureFromAvailability({
+              reason: redWordsUnavailable.reason,
+              recoveries:
+                redWordsUnavailable.reason === 'invalid-offline-copy'
+                  ? ['acquire-offline-copy', 'manage-offline-copies']
+                  : ['acquire-offline-copy'],
+            })}
+            size="small"
+            onRetry={() => {
+              void redWordsAvailabilityQuery.refetch()
+              void redWordsQuery.refetch()
+            }}
+          />
+        </Box>
+      )}
+      {readingCommentaries.length > 0 &&
+        (inlineCommentaryQuery.isError || !!inlineCommentaryQuery.data?.unavailable.length) && (
+          <Box className="flex-row items-center gap-[12px] px-[16px] py-[8px] bg-reverse">
+            <Text className="flex-1 text-[12px] text-tertiary">
+              {t('inlineCommentary.unavailable')}
+            </Text>
+            <TouchableBox
+              className="min-h-[44px] justify-center"
+              accessibilityRole="button"
+              onPress={() => void inlineCommentaryQuery.refetch()}
+            >
+              <Text className="text-[12px] font-semibold text-primary">
+                {t('bible.error.retry')}
+              </Text>
+            </TouchableBox>
+            <TouchableBox
+              className="min-h-[44px] justify-center"
+              accessibilityRole="button"
+              onPress={bibleParamsModal.open}
+            >
+              <Text className="text-[12px] font-semibold text-primary">
+                {t('inlineCommentary.options')}
+              </Text>
+            </TouchableBox>
+          </Box>
+        )}
+      <Box
+        className="overflow-hidden border-continuous flex-[1]"
+        style={{ zIndex: domLayerZIndex }}
+      >
+        {useSharedDOM ? (
+          // Keep every host mounted so Android only retargets between
+          // stable native parents instead of unmounting/remounting hosts.
+          <Box
+            className="overflow-hidden border-continuous flex-[1]"
+            onLayout={handleBibleDOMHostLayout}
+          >
+            <BibleDOMPortalHost
+              name={getBibleDOMDestination(bible.id)}
+              style={{ flex: 1, zIndex: domLayerZIndex }}
+            />
+            {!isActiveBibleTab && (
+              <Box className="overflow-hidden border-continuous absolute top-[0px] left-[0px] right-[0px] bottom-[0px]">
+                <SnapshotPlaceholder base64={bible.base64Preview} />
+              </Box>
+            )}
+          </Box>
+        ) : (
+          // Stack navigation mode: render own BibleDOMWrapper inline
+          <BibleDOMWrapper {...domProps} />
+        )}
+      </Box>
+      {!isFormSheet && !isContextFocused && (
+        <BibleFooter
+          bibleAtom={bibleAtom}
+          disabled={isLoading}
+          book={book}
+          chapter={chapter}
+          chapterVerses={
+            mainReadingQuery.isPlaceholderData || !mainChapterData ? undefined : verses
+          }
+          coverage={coverageData}
+          goToPrevChapter={goToPrevAvailableChapter}
+          goToNextChapter={goToNextAvailableChapter}
+          goToChapter={actions.goToChapter}
+          version={version}
+          isInTab={isInTab}
+        />
+      )}
+      {!hidePersonalBibleData && (
+        <SelectedVersesModal
+          ref={versesModal.getRef()}
+          isSelectionMode={isSelectionMode}
+          selectedVerseHighlightColor={selectedVerseHighlightColor}
+          onChangeResourceType={val => {
+            setResourceModalSelection(null)
+            onChangeResourceType(val)
+            resourceModal.open()
+          }}
+          onCreateNoteClick={toggleCreateNote}
+          onCreateLinkClick={toggleCreateLink}
+          onCreateStudyRelationClick={toggleCreateStudyRelation}
+          addHighlight={addHiglightAndOpenQuickTags}
+          addTag={addTag}
+          removeHighlight={() => {
+            dispatch(removeHighlight({ selectedVerses }))
+          }}
+          clearSelectedVerses={actions.clearSelectedVerses}
+          selectedVerses={selectedVerses}
+          selectAllVerses={selectAllVerses}
+          version={version}
+          onAddToStudy={handleOpenAddToStudy}
+          onSelectStudy={handleSelectStudy}
+          onAddBookmark={handleAddBookmark}
+          onPinVerses={handlePinVerses}
+          onEnterAnnotationMode={
+            parallelVersions.length > 0 ? undefined : handleEnterAnnotationMode
+          }
+          focusVerses={focusVerses}
+        />
+      )}
+      <CreateEntityRelationModal
+        ref={createRelationModal.getRef()}
+        sourceEndpoint={createRelationSourceEndpoint}
+        onCreated={handleRelationCreatedFromSelection}
+      />
+      <ResourcesModal
+        resourceModalRef={resourceModal.getRef()}
+        bibleAtom={bibleAtom}
+        resourceType={resourceType}
+        onChangeResourceType={onChangeResourceType}
+        isSelectionMode={isSelectionMode}
+        selectedVersion={resourceModalSelection?.selectedVersion}
+        selectedVerses={resourceModalSelection?.selectedVerses}
+        onChangeVerse={changeResourceModalVerse}
+      />
+      <BibleParamsModal modalRef={bibleParamsModal.getRef()} />
+      <AddToStudyModal
+        sheetRef={addToStudyModal.getRef()}
+        onSelectStudy={handleSelectStudy}
+        reference={selectedVersesReference}
+      />
+      <VerseFormatSheet
+        sheetRef={verseFormatModal.getRef()}
+        onSelectFormat={handleSelectFormat}
+        reference={pendingVerseData?.verseData.title || selectedVersesReference}
+      />
+      <BookmarkModal
+        sheetRef={bookmarkModalRef}
+        onClose={() => {
+          setSelectedVerseForBookmark(null)
+          setEditingBookmark(null)
+        }}
+        book={selectedVerseForBookmark?.book ?? editingBookmark?.book}
+        chapter={selectedVerseForBookmark?.chapter ?? editingBookmark?.chapter}
+        verse={selectedVerseForBookmark?.verse ?? editingBookmark?.verse}
+        version={version}
+        existingBookmark={editingBookmark || undefined}
+      />
+      <AnnotationToolbar
+        ref={annotationToolbar.getRef()}
+        hasSelection={annotationMode.hasSelection}
+        selection={annotationMode.selection}
+        onApplyAnnotation={handleApplyAnnotation}
+        onClearSelection={annotationMode.clearSelection}
+        onEraseAnnotations={handleEraseAnnotations}
+        onClose={handleExitAnnotationMode}
+        selectedAnnotation={annotationMode.selectedAnnotation}
+        onChangeAnnotationColor={annotationMode.changeAnnotationColor}
+        onChangeAnnotationType={annotationMode.changeAnnotationType}
+        onDeleteAnnotation={handleDeleteAnnotation}
+        onClearAnnotationSelection={annotationMode.clearAnnotationSelection}
+        onNotePress={handleAnnotationNotePress}
+        onTagsPress={handleAnnotationTagsPress}
+        onRelationsPress={handleAnnotationRelationsPress}
+        tagsCount={Object.keys(annotationMode.selectedAnnotation?.tags || {}).length}
+        relationsCount={annotationRelationCount}
+        isEnabled={annotationMode.enabled && !hidePersonalBibleData}
+      />
+      <CrossVersionAnnotationsModal
+        sheetRef={crossVersionModal.getRef()}
+        verseKey={crossVersionModalData?.verseKey ?? null}
+        versions={crossVersionModalData?.versions ?? []}
+        onSwitchVersion={handleCrossVersionSwitchVersion}
+        onOpenInNewTab={handleCrossVersionOpenInNewTab}
+        onClose={() => setCrossVersionModalData(null)}
+      />
+      <VerseTagsModal
+        ref={verseTagsModal.getRef()}
+        verseKey={verseTagsModalKey}
+        version={displayedVersion}
+      />
+      <CanonicalBibleNoteSheet
+        sheetRef={canonicalBibleNoteModal.getRef()}
+        note={canonicalBibleNote}
+        onReferencePress={handleCanonicalBibleReferencePress}
+      />
+      <StrongSelectionSheet
+        sheetRef={strongSelectionModalRef}
+        version={strongSelectionData?.version}
+        book={strongSelectionData?.book}
+        chapter={strongSelectionData?.chapter}
+        verse={strongSelectionData?.verse}
+        word={strongSelectionData?.word}
+        identities={strongSelectionData?.identities ?? []}
+        morphologies={strongSelectionData?.morphologies ?? []}
+        onDismissStart={startClosingStrongSelection}
+        onClose={closeStrongSelection}
+      />
+    </BibleViewport>
+  )
+}
+
+export default BibleViewer

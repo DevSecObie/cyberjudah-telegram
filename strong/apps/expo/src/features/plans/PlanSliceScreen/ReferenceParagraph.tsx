@@ -1,0 +1,89 @@
+import type { ComponentPropsWithRef as UIComponentProps } from 'react'
+import React from 'react'
+import * as NativeUI from 'react-native'
+import { twMerge } from '~common/ui/classNames'
+
+import type { Theme as AppTheme } from '~themes'
+
+import Paragraph from '~common/ui/Paragraph'
+import { BcvLanguage, BibleReferenceTarget, parseInlineBibleReferences } from '~helpers/bcvParser'
+import { getBook } from '~helpers/bibleBookCatalog'
+import { usePushRouteOnce } from '~navigation/usePushRouteOnce'
+
+type ParagraphProps = React.ComponentProps<typeof Paragraph>
+
+interface ReferenceParagraphProps extends Omit<ParagraphProps, 'children'> {
+  children: string
+  planLanguage?: BcvLanguage
+}
+
+const getBibleViewParams = (target: BibleReferenceTarget) => ({
+  contextDisplayMode: 'focused',
+  book: JSON.stringify(getBook(target.book)),
+  chapter: String(target.chapter),
+  verse: String(target.verse),
+  ...(target.focusVerses ? { focusVerses: JSON.stringify(target.focusVerses) } : {}),
+})
+
+const ReferenceText = (
+  componentProps: Omit<UIComponentProps<typeof NativeUI.Text>, 'theme'> & {
+    theme?: AppTheme
+    className?: string
+  }
+) => {
+  const { theme: _themeOverride, className, ...props } = componentProps
+
+  const resolvedClassName = twMerge('text-primary', className)
+  return (
+    <NativeUI.Text
+      {...props}
+      className={resolvedClassName}
+      style={
+        [{ textDecorationLine: 'underline' }, props.style] as UIComponentProps<
+          typeof NativeUI.Text
+        >['style']
+      }
+    />
+  )
+}
+
+const ReferenceParagraph = ({ children, planLanguage, ...props }: ReferenceParagraphProps) => {
+  const pushRouteOnce = usePushRouteOnce()
+  const references = parseInlineBibleReferences(children, planLanguage)
+
+  if (!references.length) {
+    return <Paragraph {...props}>{children}</Paragraph>
+  }
+
+  const lastReferenceEnd = references[references.length - 1].end
+
+  return (
+    <Paragraph {...props} selectable={false}>
+      {references.map((reference, index) => {
+        const previousEnd = index === 0 ? 0 : references[index - 1].end
+        const before = children.slice(previousEnd, reference.start)
+
+        return (
+          <React.Fragment key={`${reference.start}-${reference.end}-${reference.target.osis}`}>
+            {before}
+            <ReferenceText
+              accessibilityLabel={reference.text}
+              accessibilityRole="link"
+              onPress={() =>
+                pushRouteOnce({
+                  pathname: '/bible-view',
+                  params: getBibleViewParams(reference.target),
+                })
+              }
+            >
+              {reference.text}
+            </ReferenceText>
+          </React.Fragment>
+        )
+      })}
+      {children.slice(lastReferenceEnd)}
+    </Paragraph>
+  )
+}
+
+export default ReferenceParagraph

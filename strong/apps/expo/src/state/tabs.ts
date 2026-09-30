@@ -1,0 +1,1313 @@
+import type { SearchFilters } from './searchFilters'
+import { produce } from 'immer'
+import { useAtomValue, useSetAtom } from 'jotai/react'
+import { atom, getDefaultStore, PrimitiveAtom } from 'jotai/vanilla'
+import { splitAtom } from 'jotai/vanilla/utils'
+import { shallowEqual } from 'react-redux'
+
+import books, { Book } from '~assets/bible_versions/books-desc'
+import generateUUID from '~helpers/generateUUID'
+import { StrongReference, StudyNavigateBibleType, VerseIds } from '~common/types'
+import type { StrongIdentityKind } from '~helpers/strongIdentities'
+import atomWithAsyncStorage from '~helpers/atomWithAsyncStorage'
+import { storage } from '~helpers/storage'
+import { getBibleVersionCanonId, versions } from '~helpers/bibleVersions'
+import { getDefaultBibleVersion } from '~helpers/languageUtils'
+import i18n, { getLanguage } from '~i18n'
+import { clampTabIndex, updateTabGroupActiveIndex, updateTabGroupTabs } from './tabWorkspace'
+import type { BibleVersionCoverage } from '~helpers/biblesDb'
+import {
+  getNextAvailableChapterLocation,
+  getPreviousAvailableChapterLocation,
+  resolveBibleCoverageCanonId,
+} from '~helpers/bibleCoverage'
+import { selectBibleTabVersion } from '~helpers/bibleTabVersionSelection'
+import { type StrongBibleVersionId, type StrongMode } from '~helpers/strongBiblePublications'
+import type { InterlinearMode } from '~helpers/interlinearBiblePublications'
+import type { ResourceLanguage } from '~helpers/databaseTypes'
+import type { PendingBibleModeAcquisition } from '~helpers/bibleModeAcquisition'
+import { migrateLegacyBibleTabData } from '../migrations/legacyBibleVersionMigration'
+import { appLogger } from '~helpers/agentObservability'
+import { useBibleRouteNavigation } from './bibleRouteNavigation'
+
+// ============================================================================
+// SHARED BIBLE DOM (single WebView instance for all Bible tabs)
+// ============================================================================
+
+import type { WebViewProps } from '~features/bible/BibleDOM/BibleDOMWrapper'
+
+// ============================================================================
+// TAB TYPES
+// ============================================================================
+
+export type TabBase = {
+  id: string
+  title: string
+  isRemovable: boolean
+  hasBackButton?: boolean
+  base64Preview?: string
+}
+
+export type VersionCode = keyof typeof versions
+export type BookName = (typeof books)[number]['Nom']
+export type SelectedVerses = VerseIds
+export type BibleContextDisplayMode = 'focused' | 'fullChapter'
+
+export const getBibleContextDisplayMode = (data: {
+  contextDisplayMode?: BibleContextDisplayMode
+  isReadOnly?: boolean
+}): BibleContextDisplayMode =>
+  data.contextDisplayMode ?? (data.isReadOnly ? 'focused' : 'fullChapter')
+
+export interface BibleTab extends TabBase {
+  type: 'bible'
+  data: {
+    selectedVersion: VersionCode
+    strongMode?: StrongMode
+    strongBibleSourceVersionId?: StrongBibleVersionId
+    interlinearMode?: InterlinearMode
+    interlinearLocale?: ResourceLanguage
+    pendingModeAcquisition?: PendingBibleModeAcquisition
+    selectedBook: Book
+    selectedChapter: number
+    selectedVerse: number
+    parallelVersions: VersionCode[]
+    temp: {
+      selectedBook: Book
+      selectedChapter: number
+      selectedVerse: number
+    }
+    selectedVerses: SelectedVerses
+    selectionMode: 'grid' | 'list'
+    focusVerses?: (string | number)[]
+    isSelectionMode: StudyNavigateBibleType | undefined
+    contextDisplayMode?: BibleContextDisplayMode
+    isReadOnly?: boolean
+    entityReference?: {
+      verseKeys: string[]
+      preferredVersion?: VersionCode
+    }
+  }
+}
+
+export interface SearchTab extends TabBase {
+  type: 'search'
+  data: {
+    searchValue: string
+    draftSearchValue?: string
+    filters?: SearchFilters
+  }
+}
+
+export interface CompareTab extends TabBase {
+  type: 'compare'
+  data: {
+    selectedVerses: SelectedVerses
+    strongMode?: boolean
+  }
+}
+
+export interface StrongTab extends TabBase {
+  type: 'strong'
+  data: {
+    book?: number
+    reference?: string
+    strongReference?: StrongReference
+    strongBibleVersionId?: StrongBibleVersionId
+    identityKind?: StrongIdentityKind
+    identityCode?: string
+    bibleVersion?: string
+    clickedWord?: string
+    bibleChapter?: number
+    bibleVerse?: number
+    morphologyCodes?: string[]
+  }
+}
+
+export interface NaveTab extends TabBase {
+  type: 'nave'
+  data: {
+    language?: 'fr' | 'en'
+    name_lower?: string
+    name?: string
+  }
+}
+
+export interface DictionaryTab extends TabBase {
+  type: 'dictionary'
+  data: {
+    word?: string
+    entryId?: number
+    correspondenceId?: string
+    work?: string
+    resourceId?: string
+    dictionaryTitle?: string
+    language?: ResourceLanguage
+    directory?: boolean
+  }
+}
+
+export interface StudyTab extends TabBase {
+  type: 'study'
+  data: {
+    studyId?: string
+  }
+}
+
+export interface NotesTab extends TabBase {
+  type: 'notes'
+  data: {
+    noteId?: string // undefined = list, defined = detail
+  }
+}
+
+export interface PlanTab extends TabBase {
+  type: 'plan'
+  data: {
+    planId: string
+    readingSliceId?: string
+    meditationDate?: string
+  }
+}
+
+export interface TimelineTab extends TabBase {
+  type: 'timeline'
+  data: {
+    language?: 'fr' | 'en'
+    sectionIndex?: number
+    eventSlug?: string
+    event?: {
+      dateLabel?: string
+      slug: string
+      title: string
+      titleEn: string
+      image?: string
+      start: number
+      end: number
+      sectionIndex?: number
+    }
+  }
+}
+
+export interface NewTab extends TabBase {
+  type: 'new'
+  data: Record<string, never>
+}
+
+export interface CommentaryTab extends TabBase {
+  type: 'commentary'
+  data: {
+    verse: string
+  }
+}
+
+export interface CommentaryResourceTab extends TabBase {
+  type: 'commentary-resource'
+  data: {
+    projectionId: string
+    book: number
+    chapter: number
+    sectionId?: string
+  }
+}
+
+export type TabItem =
+  | BibleTab
+  | SearchTab
+  | CompareTab
+  | StrongTab
+  | NaveTab
+  | DictionaryTab
+  | StudyTab
+  | NotesTab
+  | PlanTab
+  | TimelineTab
+  | CommentaryTab
+  | CommentaryResourceTab
+  | NewTab
+
+export const tabTypes = [
+  'bible',
+  'search',
+  'compare',
+  'plan',
+  'timeline',
+  'study',
+  'notes',
+  'strong',
+  'nave',
+  'dictionary',
+  'commentary',
+] as const
+
+// ============================================================================
+// TAB GROUP TYPES
+// ============================================================================
+
+export const GROUP_COLORS = [
+  '#636e72', // Grey
+  '#81ecec', // Cyan
+  '#74b9ff', // Bleu
+  '#a29bfe', // Violet
+  '#fd79a8', // Rose
+  '#ff7675', // Rouge
+  '#fdcb6e', // Jaune
+  '#55efc4', // Vert menthe
+  '#ffeaa7', // Jaune pâle
+] as const
+
+export type GroupColor = (typeof GROUP_COLORS)[number]
+
+export interface TabGroup {
+  /** Shared display position; legacy groups fall back to creation order. */
+  sortOrder?: number
+  id: string
+  name: string
+  color?: string
+  isDefault: boolean
+  isCollapsed?: boolean
+  tabs: TabItem[]
+  activeTabIndex: number
+  createdAt: number
+  updatedAt: number
+}
+
+export const MAX_TAB_GROUPS = 8
+export const DEFAULT_GROUP_ID = 'default-group'
+
+// ============================================================================
+// DEFAULT FACTORIES
+// ============================================================================
+
+export const getDefaultBibleTab = (version?: VersionCode): BibleTab => ({
+  id: `bible-${generateUUID()}`,
+  isRemovable: true,
+  title: 'Genèse 1:1',
+  type: 'bible',
+  data: {
+    selectedVersion: version || getDefaultBibleVersion(getLanguage()),
+    strongMode: 'hidden',
+    interlinearMode: 'hidden',
+    selectedBook: { Numero: 1, Nom: 'Genèse', Chapitres: 50 },
+    selectedChapter: 1,
+    selectedVerse: 1,
+    parallelVersions: [],
+    temp: {
+      selectedBook: { Numero: 1, Nom: 'Genèse', Chapitres: 50 },
+      selectedChapter: 1,
+      selectedVerse: 1,
+    },
+    selectedVerses: {}, // highlighted verses,
+    selectionMode: 'grid',
+    focusVerses: undefined,
+    isSelectionMode: undefined,
+    contextDisplayMode: 'fullChapter',
+    isReadOnly: false,
+  },
+})
+
+export const createDefaultGroup = (version?: VersionCode): TabGroup => ({
+  id: DEFAULT_GROUP_ID,
+  name: i18n.t('Principal'),
+  isDefault: true,
+  tabs: [getDefaultBibleTab(version)],
+  activeTabIndex: 0,
+  createdAt: 0,
+  updatedAt: 0,
+})
+
+export const getDefaultData = <T extends TabItem>(
+  type: TabItem['type']
+): { title?: TabItem['title']; data: T['data'] } => {
+  switch (type) {
+    case 'bible': {
+      return { data: getDefaultBibleTab().data }
+    }
+    case 'search': {
+      return {
+        data: {
+          searchValue: '',
+        },
+      }
+    }
+    case 'compare': {
+      return {
+        data: {
+          selectedVerses: {
+            '1-1-1': true,
+          },
+        },
+      }
+    }
+    case 'strong': {
+      return {
+        title: i18n.t('Lexique'),
+        data: {},
+      }
+    }
+    case 'nave': {
+      return {
+        title: i18n.t('Thèmes Nave'),
+        data: {},
+      }
+    }
+    case 'dictionary': {
+      return {
+        title: i18n.t('Dictionnaire'),
+        data: {},
+      }
+    }
+    case 'study': {
+      return {
+        title: i18n.t('Études'),
+        data: {},
+      }
+    }
+    case 'notes': {
+      return {
+        title: i18n.t('Notes'),
+        data: {},
+      }
+    }
+    case 'plan': {
+      return {
+        title: i18n.t('Plans'),
+        data: {
+          planId: '',
+        },
+      }
+    }
+    case 'timeline': {
+      return {
+        title: i18n.t('Chronologie de la Bible'),
+        data: {},
+      }
+    }
+    case 'commentary': {
+      return {
+        data: {
+          verse: '1-1-1',
+        },
+      }
+    }
+    default: {
+      return { data: {} }
+    }
+  }
+}
+
+// ============================================================================
+// MIGRATIONS
+// ============================================================================
+
+// Migration function to convert old tab types to unified types
+const migrateTabTypes = (tab: TabItem): TabItem => {
+  // Migrate old plural types to unified singular types with empty data
+  const tabType = tab.type as string
+  if (tabType === 'strongs') {
+    return {
+      ...tab,
+      type: 'strong',
+      data: {},
+    } as StrongTab
+  }
+  if (tabType === 'naves') {
+    return {
+      ...tab,
+      type: 'nave',
+      data: {},
+    } as NaveTab
+  }
+  if (tabType === 'dictionaries') {
+    return {
+      ...tab,
+      type: 'dictionary',
+      data: {},
+    } as DictionaryTab
+  }
+  return tab
+}
+
+// Migration function to make all existing tabs removable
+const migrateTabsToRemovable = (tabs: TabItem[]): TabItem[] => {
+  return tabs.map(tab => {
+    // First migrate old tab types
+    tab = migrateTabTypes(tab)
+    if (tab.type === 'bible') {
+      tab = {
+        ...tab,
+        data: migrateLegacyBibleTabData(
+          tab.data as BibleTab['data'] & {
+            selectedVersion: string
+          }
+        ),
+      }
+    }
+
+    const needsIdMigration = tab.id === 'bible'
+    const needsRemovableMigration = tab.isRemovable === false
+
+    if (needsIdMigration || needsRemovableMigration) {
+      return {
+        ...tab,
+        id: needsIdMigration ? `bible-${generateUUID()}` : tab.id,
+        isRemovable: true,
+      }
+    }
+    return tab
+  })
+}
+
+// Migration function for tab groups
+const migrateTabGroups = (groups: TabGroup[]): TabGroup[] => {
+  // If valid tab groups structure exists, apply tab migrations and return
+  if (groups.length > 0 && groups[0].tabs !== undefined) {
+    let collapsedIds: unknown = []
+    try {
+      collapsedIds = JSON.parse(storage.getString('collapsedWorkspaceGroups') || '[]')
+    } catch {
+      /* Ignore malformed legacy display preferences. */
+    }
+    return groups.map(group => ({
+      ...group,
+      isCollapsed: group.isDefault
+        ? false
+        : (group.isCollapsed ?? (Array.isArray(collapsedIds) && collapsedIds.includes(group.id))),
+      tabs: migrateTabsToRemovable(group.tabs),
+    }))
+  }
+
+  // Try to migrate from old tabsAtom storage key
+  try {
+    const oldTabsJson = storage.getString('tabsAtom')
+    const oldActiveIndexJson = storage.getString('activeTabIndexAtomOriginal')
+
+    if (oldTabsJson) {
+      const oldTabs = JSON.parse(oldTabsJson) as TabItem[]
+      if (oldTabs.length > 0) {
+        const activeIndex = oldActiveIndexJson ? JSON.parse(oldActiveIndexJson) : 0
+        const migratedTabs = migrateTabsToRemovable(oldTabs)
+
+        console.log('[TabGroups] Migrating', oldTabs.length, 'tabs from old storage')
+
+        return [
+          {
+            id: DEFAULT_GROUP_ID,
+            name: i18n.t('Principal'),
+            isDefault: true,
+            tabs: migratedTabs,
+            activeTabIndex: Math.min(activeIndex, oldTabs.length - 1),
+            createdAt: 0,
+            updatedAt: 0,
+          },
+        ]
+      }
+    }
+  } catch (e) {
+    appLogger.captureError('startup', 'tab_groups.legacy_storage_migration_failed', e)
+    console.error('[TabGroups] Migration from old storage failed:', e)
+  }
+
+  // Fallback: create default group
+  return [createDefaultGroup()]
+}
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const maxCachedTabs = 5
+
+// ============================================================================
+// CORE GROUP ATOMS
+// ============================================================================
+
+// Main groups atom with persistence
+export const tabGroupsAtom = atomWithAsyncStorage<TabGroup[]>(
+  'tabGroupsAtom',
+  [createDefaultGroup()],
+  { migrate: migrateTabGroups }
+)
+
+// Active group ID (persisted)
+export const activeGroupIdAtom = atomWithAsyncStorage<string>('activeGroupIdAtom', DEFAULT_GROUP_ID)
+
+// Persisted atom for global parallel versions preference
+export const savedParallelVersionsAtom = atomWithAsyncStorage<VersionCode[]>(
+  'savedParallelVersions',
+  []
+)
+
+// Persisted atom for parallel column width preference (75 or 50 percent)
+export type ParallelColumnWidth = 100 | 75 | 50
+export const parallelColumnWidthAtom = atomWithAsyncStorage<ParallelColumnWidth>(
+  'parallelColumnWidth',
+  50
+)
+
+// Persisted atom for parallel display mode preference (horizontal or vertical)
+export type ParallelDisplayMode = 'horizontal' | 'vertical'
+export const parallelDisplayModeAtom = atomWithAsyncStorage<ParallelDisplayMode>(
+  'parallelDisplayMode',
+  'horizontal'
+)
+
+// Get current active group (derived)
+export const activeGroupAtom = atom(get => {
+  const groups = get(tabGroupsAtom)
+  const activeId = get(activeGroupIdAtom)
+  return groups.find(g => g.id === activeId) || groups[0] || createDefaultGroup()
+})
+
+// Number of groups
+export const groupsCountAtom = atom(get => get(tabGroupsAtom).length)
+
+// ============================================================================
+// BACKWARD COMPATIBLE ATOMS (for existing consumers)
+// ============================================================================
+
+// Get/set tabs for current group - this replaces the old tabsAtom
+// Supports both direct values and updater functions for backward compatibility
+export const tabsAtom = atom(
+  get => {
+    const activeGroup = get(activeGroupAtom)
+    return activeGroup.tabs
+  },
+  (get, set, newTabsOrUpdater: TabItem[] | ((prev: TabItem[]) => TabItem[])) => {
+    const groups = get(tabGroupsAtom)
+    const activeId = get(activeGroupIdAtom)
+    const currentTabs = get(activeGroupAtom).tabs
+
+    // Support updater function pattern: setTabs(prev => [...prev, newTab])
+    const newTabs =
+      typeof newTabsOrUpdater === 'function' ? newTabsOrUpdater(currentTabs) : newTabsOrUpdater
+
+    set(tabGroupsAtom, updateTabGroupTabs(groups, activeId, newTabs))
+  }
+)
+
+// Split atom for fine-grained tab updates
+export const tabsAtomsAtom = splitAtom(tabsAtom, tab => tab.id)
+
+// ============================================================================
+// PER-GROUP ATOMS (for buffered groups optimization)
+// ============================================================================
+
+// Create a tabs atom for a specific group by ID
+const createGroupTabsAtom = (groupId: string) =>
+  atom(
+    get => {
+      const groups = get(tabGroupsAtom)
+      const group = groups.find(g => g.id === groupId)
+      return group?.tabs ?? []
+    },
+    (get, set, newTabsOrUpdater: TabItem[] | ((prev: TabItem[]) => TabItem[])) => {
+      const groups = get(tabGroupsAtom)
+      const group = groups.find(g => g.id === groupId)
+      if (!group) return
+
+      const currentTabs = group.tabs
+      const newTabs =
+        typeof newTabsOrUpdater === 'function' ? newTabsOrUpdater(currentTabs) : newTabsOrUpdater
+
+      set(tabGroupsAtom, updateTabGroupTabs(groups, groupId, newTabs))
+    }
+  )
+
+// Cache for per-group split atoms to avoid recreation
+// Use the same type as tabsAtomsAtom for consistency
+const groupTabsAtomCache = new Map<string, typeof tabsAtomsAtom>()
+
+// Get split atoms for a specific group (cached)
+export const getGroupTabsAtomsAtom = (groupId: string) => {
+  if (!groupTabsAtomCache.has(groupId)) {
+    const groupTabsAtom = createGroupTabsAtom(groupId)
+    groupTabsAtomCache.set(
+      groupId,
+      splitAtom(groupTabsAtom, tab => tab.id)
+    )
+  }
+  return groupTabsAtomCache.get(groupId)!
+}
+
+// Cleanup function for when groups are deleted
+export const cleanupGroupTabsAtomCache = (groupId: string) => {
+  groupTabsAtomCache.delete(groupId)
+}
+
+// Derived atom for buffered group IDs (active + adjacent groups)
+export const bufferedGroupIdsAtom = atom(get => {
+  const groups = get(tabGroupsAtom)
+  const activeId = get(activeGroupIdAtom)
+  const activeIndex = groups.findIndex(g => g.id === activeId)
+
+  if (activeIndex === -1) return [activeId]
+
+  const buffered: string[] = [activeId]
+
+  // Add left neighbor
+  if (activeIndex > 0) {
+    buffered.push(groups[activeIndex - 1].id)
+  }
+
+  // Add right neighbor
+  if (activeIndex < groups.length - 1) {
+    buffered.push(groups[activeIndex + 1].id)
+  }
+
+  return buffered
+})
+
+// Number of tabs in current group
+export const tabsCountAtom = atom(get => get(tabsAtom).length)
+
+// Legacy atom - kept for compatibility but no longer used directly
+export const activeTabIndexAtomOriginal = atomWithAsyncStorage<number>(
+  'activeTabIndexAtomOriginal',
+  0
+)
+
+// Active tab index - now stored in the group
+export const activeTabIndexAtom = atom(
+  get => {
+    const activeGroup = get(activeGroupAtom)
+    const tabsAtoms = get(tabsAtomsAtom)
+
+    // Bounds checking
+    return clampTabIndex(activeGroup.activeTabIndex, tabsAtoms.length)
+  },
+  (get, set, value: number) => {
+    const groups = get(tabGroupsAtom)
+    const activeId = get(activeGroupIdAtom)
+
+    // Update the active tab index in the group
+    set(tabGroupsAtom, updateTabGroupActiveIndex(groups, activeId, value))
+
+    // Update cache - always persist to storage (LRU behavior: move to front)
+    if (value !== -1) {
+      const tabsAtoms = get(tabsAtomsAtom)
+      if (value >= 0 && value < tabsAtoms.length) {
+        const tab = get(tabsAtoms[value])
+        const tabId = tab.id
+
+        const cachedTabIds = get(cachedTabIdsAtom)
+        // Always persist: move tab to front, remove duplicates, limit size
+        const newCache = [tabId, ...cachedTabIds.filter(id => id !== tabId)].slice(0, maxCachedTabs)
+        set(cachedTabIdsAtom, newCache)
+      }
+    }
+  }
+)
+
+// Active tab ID (derived) - uses stable tab.id instead of atom.toString()
+export const activeTabIdAtom = atom(get => {
+  const tabsAtoms = get(tabsAtomsAtom)
+  const activeTabIndex = get(activeTabIndexAtom)
+
+  if (activeTabIndex < 0 || activeTabIndex >= tabsAtoms.length) {
+    return ''
+  }
+
+  const tab = get(tabsAtoms[activeTabIndex])
+  return tab.id
+})
+
+// @deprecated Use activeTabIdAtom instead
+export const activeAtomIdAtom = activeTabIdAtom
+
+// Cached tab IDs (global cache shared across all groups)
+// Uses stable tab.id instead of atom.toString()
+// Storage atom - holds the actual cached tab IDs in memory
+const cachedTabIdsStorageAtom = atom<string[]>([])
+
+// Public atom - ensures active tab is always in cache
+export const cachedTabIdsAtom = atom(
+  get => {
+    const storedCache = get(cachedTabIdsStorageAtom)
+    const activeTabIndex = get(activeTabIndexAtom)
+    const tabsAtoms = get(tabsAtomsAtom)
+
+    // Return stored cache if no tabs or invalid index
+    if (tabsAtoms.length === 0 || activeTabIndex < 0) {
+      return storedCache
+    }
+
+    // Get active tab ID (with bounds check)
+    const safeIndex = Math.min(activeTabIndex, tabsAtoms.length - 1)
+    const activeTab = get(tabsAtoms[safeIndex])
+    const activeTabId = activeTab.id
+
+    // If active tab is already in cache, return as-is
+    if (storedCache.includes(activeTabId)) {
+      return storedCache
+    }
+
+    // Add active tab to front of cache (limit to maxCachedTabs)
+    return [activeTabId, ...storedCache].slice(0, maxCachedTabs)
+  },
+  (get, set, value: string[]) => {
+    set(cachedTabIdsStorageAtom, value)
+  }
+)
+
+// ============================================================================
+// UTILITY FUNCTIONS AND HOOKS
+// ============================================================================
+
+export const useIsCurrentTab = () => {
+  const activeTabId = useAtomValue(activeTabIdAtom)
+
+  return <T extends TabItem>(tabAtom: PrimitiveAtom<T>) => {
+    const tab = getDefaultStore().get(tabAtom)
+    return activeTabId === tab.id
+  }
+}
+
+export const useFindTabIndex = (tabId: string) => {
+  const tabsAtoms = useAtomValue(tabsAtomsAtom)
+
+  return tabsAtoms.findIndex(tabAtom => {
+    const tab = getDefaultStore().get(tabAtom)
+    return tab.id === tabId
+  })
+}
+
+export const checkTabType = <Type extends TabItem>(
+  tab: TabItem | undefined,
+  type: TabItem['type']
+): tab is Type => {
+  return tab?.type === type
+}
+
+// ============================================================================
+// BIBLE TAB ACTIONS
+// ============================================================================
+
+export type BibleTabActions = ReturnType<typeof useBibleTabActions>
+
+export const useBibleTabActions = (tabAtom: PrimitiveAtom<BibleTab>) => {
+  const setBibleTab = useSetAtom(tabAtom)
+  const routeNavigation = useBibleRouteNavigation()
+
+  const setSelectedVersion = (selectedVersion: VersionCode) => {
+    if (routeNavigation) return routeNavigation.changeVersion(selectedVersion)
+    setBibleTab(
+      produce(draft => {
+        draft.data = selectBibleTabVersion(draft.data, selectedVersion)
+      })
+    )
+  }
+
+  const setStrongMode = (strongMode: StrongMode) => {
+    if (routeNavigation) return routeNavigation.changeStrongMode(strongMode)
+    setBibleTab(
+      produce(draft => {
+        draft.data.strongMode = strongMode
+        draft.data.pendingModeAcquisition = undefined
+      })
+    )
+  }
+
+  const setInterlinearMode = (
+    interlinearMode: InterlinearMode,
+    interlinearLocale?: ResourceLanguage
+  ) =>
+    setBibleTab(
+      produce(draft => {
+        draft.data.interlinearMode = interlinearMode
+        draft.data.interlinearLocale = interlinearLocale
+        draft.data.pendingModeAcquisition = undefined
+      })
+    )
+
+  const startBibleModeAcquisition = (acquisition: PendingBibleModeAcquisition) =>
+    setBibleTab(
+      produce(draft => {
+        draft.data.pendingModeAcquisition = acquisition
+      })
+    )
+
+  const finishBibleModeAcquisition = (succeeded: boolean) => {
+    const current = getDefaultStore().get(tabAtom).data
+    const acquisition = current.pendingModeAcquisition
+    if (
+      routeNavigation &&
+      succeeded &&
+      acquisition?.kind === 'strong' &&
+      current.selectedVersion === acquisition.versionId
+    ) {
+      setBibleTab(
+        produce(draft => {
+          draft.data.pendingModeAcquisition = undefined
+        })
+      )
+      routeNavigation.changeStrongMode(acquisition.mode)
+      return
+    }
+    setBibleTab(
+      produce(draft => {
+        const acquisition = draft.data.pendingModeAcquisition
+        draft.data.pendingModeAcquisition = undefined
+        if (!succeeded || !acquisition) return
+
+        if (acquisition.kind === 'strong' && draft.data.selectedVersion === acquisition.versionId) {
+          draft.data.strongMode = acquisition.mode
+        }
+        if (acquisition.kind === 'interlinear' && draft.data.selectedVersion === 'BHG') {
+          draft.data.interlinearMode = acquisition.mode
+          draft.data.interlinearLocale = acquisition.locale
+        }
+      })
+    )
+  }
+
+  const setSelectedBook = (selectedBook: Book) =>
+    setBibleTab(
+      produce(draft => {
+        draft.data.selectedBook = selectedBook
+      })
+    )
+
+  const setSelectedChapter = (selectedChapter: number) =>
+    setBibleTab(
+      produce(draft => {
+        draft.data.selectedChapter = selectedChapter
+      })
+    )
+
+  const setSelectedVerse = (selectedVerse: number) =>
+    setBibleTab(
+      produce(draft => {
+        draft.data.selectedVerse = selectedVerse
+      })
+    )
+
+  const addParallelVersion = () => {
+    const store = getDefaultStore()
+    const currentTab = store.get(tabAtom)
+    const currentParallelVersions = currentTab.data.parallelVersions
+
+    setBibleTab(
+      produce(draft => {
+        if (currentParallelVersions.length === 0) {
+          // Entering parallel mode - restore saved versions
+          const savedVersions = store.get(savedParallelVersionsAtom)
+          if (savedVersions.length > 0) {
+            draft.data.parallelVersions = [...savedVersions]
+          } else {
+            draft.data.parallelVersions.push(getDefaultBibleVersion(getLanguage()))
+          }
+        } else {
+          // Already in parallel mode - add a version
+          draft.data.parallelVersions.push(getDefaultBibleVersion(getLanguage()))
+        }
+      })
+    )
+
+    // Save updated versions
+    const updatedTab = store.get(tabAtom)
+    if (updatedTab.data.parallelVersions.length > 0) {
+      store.set(savedParallelVersionsAtom, updatedTab.data.parallelVersions)
+    }
+  }
+
+  const setParallelVersion = (version: VersionCode, index: number) => {
+    setBibleTab(
+      produce(draft => {
+        draft.data.parallelVersions[index] = version
+      })
+    )
+
+    // Save updated versions
+    const store = getDefaultStore()
+    store.set(savedParallelVersionsAtom, store.get(tabAtom).data.parallelVersions)
+  }
+
+  const removeParallelVersion = (index: number) => {
+    setBibleTab(
+      produce(draft => {
+        draft.data.parallelVersions = draft.data.parallelVersions.filter((_, i) => i !== index)
+      })
+    )
+
+    // Save updated versions
+    const store = getDefaultStore()
+    store.set(savedParallelVersionsAtom, store.get(tabAtom).data.parallelVersions)
+  }
+
+  const removeAllParallelVersions = () =>
+    setBibleTab(
+      produce(draft => {
+        draft.data.parallelVersions = []
+      })
+    )
+
+  const setTempSelectedBook = (selectedBook: Book) =>
+    setBibleTab(
+      produce(draft => {
+        draft.data.temp.selectedBook = selectedBook
+      })
+    )
+
+  const setTempSelectedChapter = (selectedChapter: number) =>
+    setBibleTab(
+      produce(draft => {
+        draft.data.temp.selectedChapter = selectedChapter
+      })
+    )
+
+  const setTempSelectedVerse = (selectedVerse: number) =>
+    setBibleTab(
+      produce(draft => {
+        draft.data.temp.selectedVerse = selectedVerse
+      })
+    )
+
+  const resetTempSelected = () =>
+    setBibleTab(
+      produce(draft => {
+        draft.data.temp.selectedBook = draft.data.selectedBook
+        draft.data.temp.selectedChapter = draft.data.selectedChapter
+        draft.data.temp.selectedVerse = draft.data.selectedVerse
+      })
+    )
+
+  const validateTempSelected = () => {
+    if (routeNavigation) {
+      const current = getDefaultStore().get(tabAtom).data.temp
+      return routeNavigation.openChapter(current.selectedBook, current.selectedChapter)
+    }
+    setBibleTab(
+      produce(draft => {
+        draft.data.selectedBook = draft.data.temp.selectedBook
+        draft.data.selectedChapter = draft.data.temp.selectedChapter
+        draft.data.selectedVerse = draft.data.temp.selectedVerse
+      })
+    )
+  }
+
+  const toggleSelectionMode = () =>
+    setBibleTab(
+      produce(draft => {
+        draft.data.selectionMode = draft.data.selectionMode === 'grid' ? 'list' : 'grid'
+      })
+    )
+
+  const selectAllVerses = (ids: VerseIds) => {
+    setBibleTab(
+      produce(draft => {
+        draft.data.selectedVerses = ids
+      })
+    )
+  }
+
+  const addSelectedVerse = (id: string) => {
+    setBibleTab(
+      produce(draft => {
+        draft.data.selectedVerses[id] = true
+      })
+    )
+  }
+
+  const removeSelectedVerse = (id: string) => {
+    setBibleTab(
+      produce(draft => {
+        delete draft.data.selectedVerses[id]
+      })
+    )
+  }
+
+  const selectSelectedVerse = (id: string) => {
+    setBibleTab(
+      produce(draft => {
+        draft.data.selectedVerses = {
+          [id]: true,
+        }
+      })
+    )
+  }
+
+  const setTitle = (title: string) => {
+    setBibleTab(
+      produce(draft => {
+        draft.title = title
+      })
+    )
+  }
+
+  const clearSelectedVerses = () => {
+    setBibleTab(
+      produce(draft => {
+        draft.data.selectedVerses = {}
+      })
+    )
+  }
+
+  const expandContext = () => {
+    setBibleTab(
+      produce(draft => {
+        draft.data.contextDisplayMode = 'fullChapter'
+      })
+    )
+  }
+
+  const collapseContext = () => {
+    setBibleTab(
+      produce(draft => {
+        draft.data.contextDisplayMode = 'focused'
+      })
+    )
+  }
+
+  const pinSelectedVerses = () => {
+    setBibleTab(
+      produce(draft => {
+        const selectedKeys = Object.keys(draft.data.selectedVerses)
+        if (selectedKeys.length === 0) return
+
+        // Extract verse numbers from keys (format: "book-chapter-verse")
+        const verseNumbers = selectedKeys.map(key => key.split('-')[2]).map(Number)
+        draft.data.focusVerses = verseNumbers
+        draft.data.contextDisplayMode = 'focused'
+        draft.data.selectedVerses = {}
+      })
+    )
+  }
+
+  const clearFocusVerses = () => {
+    if (routeNavigation) {
+      const current = getDefaultStore().get(tabAtom).data
+      return routeNavigation.replaceWithChapter(current.selectedBook, current.selectedChapter)
+    }
+    setBibleTab(
+      produce(draft => {
+        draft.data.focusVerses = undefined
+        draft.data.contextDisplayMode = 'fullChapter'
+        draft.data.selectedVerses = {}
+      })
+    )
+  }
+
+  const goToPrevChapter = (coverage?: BibleVersionCoverage) => {
+    if (routeNavigation) {
+      const current = getDefaultStore().get(tabAtom).data
+      const target = getPreviousAvailableChapterLocation(
+        current.selectedBook,
+        current.selectedChapter,
+        coverage,
+        resolveBibleCoverageCanonId(coverage, getBibleVersionCanonId(current.selectedVersion))
+      )
+      if (target) routeNavigation.openChapter(target.book, target.chapter)
+      return
+    }
+    setBibleTab(
+      produce(draft => {
+        const currentBook = draft.data.selectedBook
+        const target = getPreviousAvailableChapterLocation(
+          currentBook,
+          draft.data.selectedChapter,
+          coverage,
+          resolveBibleCoverageCanonId(coverage, getBibleVersionCanonId(draft.data.selectedVersion))
+        )
+        if (!target) return
+
+        draft.data.selectedBook = target.book
+        draft.data.selectedChapter = target.chapter
+        draft.data.selectedVerse = 1
+        draft.data.focusVerses = undefined
+        draft.data.temp = {
+          selectedBook: target.book,
+          selectedChapter: target.chapter,
+          selectedVerse: 1,
+        }
+
+        return
+      })
+    )
+  }
+
+  const goToNextChapter = (coverage?: BibleVersionCoverage) => {
+    if (routeNavigation) {
+      const current = getDefaultStore().get(tabAtom).data
+      const target = getNextAvailableChapterLocation(
+        current.selectedBook,
+        current.selectedChapter,
+        coverage,
+        resolveBibleCoverageCanonId(coverage, getBibleVersionCanonId(current.selectedVersion))
+      )
+      if (target) routeNavigation.openChapter(target.book, target.chapter)
+      return
+    }
+    setBibleTab(
+      produce(draft => {
+        const currentBook = draft.data.selectedBook
+        const target = getNextAvailableChapterLocation(
+          currentBook,
+          draft.data.selectedChapter,
+          coverage,
+          resolveBibleCoverageCanonId(coverage, getBibleVersionCanonId(draft.data.selectedVersion))
+        )
+        if (!target) return
+
+        draft.data.selectedBook = target.book
+        draft.data.selectedChapter = target.chapter
+        draft.data.selectedVerse = 1
+        draft.data.focusVerses = undefined
+        draft.data.temp = {
+          selectedBook: target.book,
+          selectedChapter: target.chapter,
+          selectedVerse: 1,
+        }
+
+        return
+      })
+    )
+  }
+
+  const goToChapter = ({ book, chapter }: { book: Book; chapter: number }) => {
+    if (routeNavigation) return routeNavigation.openChapter(book, chapter)
+    setBibleTab(
+      produce(draft => {
+        draft.data.selectedBook = book
+        draft.data.selectedChapter = chapter
+        draft.data.selectedVerse = 1
+        draft.data.temp = {
+          selectedBook: book,
+          selectedChapter: 1,
+          selectedVerse: 1,
+        }
+      })
+    )
+  }
+
+  const setAllAndValidateSelected = (selected: {
+    book: Book
+    chapter: number
+    verse: number
+    version: VersionCode
+  }) => {
+    setBibleTab(
+      produce(draft => {
+        draft.data.temp = {
+          selectedBook: selected.book,
+          selectedChapter: selected.chapter,
+          selectedVerse: selected.verse,
+        }
+        draft.data = selectBibleTabVersion(draft.data, selected.version)
+        draft.data.selectedBook = selected.book
+        draft.data.selectedChapter = selected.chapter
+        draft.data.selectedVerse = selected.verse
+      })
+    )
+  }
+
+  return {
+    setSelectedVersion,
+    setStrongMode,
+    setInterlinearMode,
+    startBibleModeAcquisition,
+    finishBibleModeAcquisition,
+    setSelectedBook,
+    setSelectedChapter,
+    setSelectedVerse,
+
+    addParallelVersion,
+    removeParallelVersion,
+    removeAllParallelVersions,
+    setParallelVersion,
+
+    setTempSelectedBook,
+    setTempSelectedChapter,
+    setTempSelectedVerse,
+    resetTempSelected,
+    validateTempSelected,
+
+    toggleSelectionMode,
+
+    selectAllVerses,
+    addSelectedVerse,
+    removeSelectedVerse,
+    clearSelectedVerses,
+    selectSelectedVerse,
+    expandContext,
+    collapseContext,
+    pinSelectedVerses,
+    clearFocusVerses,
+
+    goToNextChapter,
+    goToPrevChapter,
+    goToChapter,
+
+    setAllAndValidateSelected,
+    setTitle,
+  }
+}
+
+// ============================================================================
+// TAB GROUP ACTIONS
+// ============================================================================
+
+/**
+ * Close all tabs in the specified group, defaulting to the current group
+ */
+export const closeAllTabsAtom = atom(null, (get, set, groupId?: string) => {
+  const groups = get(tabGroupsAtom)
+  const activeId = get(activeGroupIdAtom)
+  const targetId = groupId ?? activeId
+
+  set(
+    tabGroupsAtom,
+    groups.map(g =>
+      g.id === targetId ? { ...g, tabs: [], activeTabIndex: 0, updatedAt: Date.now() } : g
+    )
+  )
+  if (targetId === activeId) set(cachedTabIdsAtom, [])
+})
+
+// ============================================================================
+// APP SWITCHER MODE
+// ============================================================================
+
+export type AppSwitcherMode = 'list' | 'view'
+export const appSwitcherModeAtom = atom<AppSwitcherMode>('view')
+
+/**
+ * Active Bible tab ID - returns the active tab's ID only if it's a Bible tab,
+ * null otherwise. Used by SharedBibleDOM to know where to teleport.
+ */
+export const activeBibleTabIdAtom = atom<string | null>(get => {
+  const activeId = get(activeTabIdAtom)
+  const tabsAtoms = get(tabsAtomsAtom)
+  const activeTabIndex = get(activeTabIndexAtom)
+
+  if (activeTabIndex < 0 || activeTabIndex >= tabsAtoms.length) {
+    return null
+  }
+
+  const activeTab = get(tabsAtoms[activeTabIndex])
+  return activeTab.type === 'bible' ? activeId : null
+})
+
+export type BibleDOMHostLayout = {
+  width: number
+  height: number
+}
+
+export const bibleDOMHostLayoutsAtom = atom<Record<string, BibleDOMHostLayout>>({})
+
+/**
+ * Props for the shared BibleDOMWrapper instance.
+ * Updated by the active BibleViewer via useLayoutEffect.
+ * Uses shallowEqual to skip redundant updates that would cause render loops.
+ */
+const _sharedBibleDOMPropsBase = atom<WebViewProps | null>(null)
+
+export const sharedBibleDOMPropsAtom = atom(
+  get => get(_sharedBibleDOMPropsBase),
+  (get, set, newProps: WebViewProps | null) => {
+    const current = get(_sharedBibleDOMPropsBase)
+    if (!shallowEqual(current, newProps)) {
+      set(_sharedBibleDOMPropsBase, newProps)
+    }
+  }
+)

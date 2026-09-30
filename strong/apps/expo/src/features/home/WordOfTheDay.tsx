@@ -1,0 +1,206 @@
+import ResourceDiscoveryEntry from './ResourceDiscoveryEntry'
+import { LinearGradient } from 'expo-linear-gradient'
+import { useQuery } from '@tanstack/react-query'
+import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import DictionnaireIcon from '~common/DictionnaryIcon'
+import Link from '~common/Link'
+import Box from '~common/ui/Box'
+import Paragraph from '~common/ui/Paragraph'
+import Text from '~common/ui/Text'
+import { useResourceAccess } from '~features/resources/resourceAccess'
+import useLanguage from '~helpers/useLanguage'
+import RandomButton from './RandomButton'
+import { WidgetContainer, WidgetLoading, itemHeight } from './widget'
+import { localQueryOptions } from '~helpers/queryOptions'
+import { resourceQueryKeys } from '~helpers/resourceQueryKeys'
+import useConnection from '~helpers/useConnection'
+import ResourceUnavailableView from '~features/resources/ResourceUnavailableView'
+import {
+  resourceFailureFromAccessError,
+  resourceFailureFromAvailability,
+} from '~features/resources/resourceFailure'
+import ResourceDownloadWidget from './ResourceDownloadWidget'
+import { loadDictionaryWidgetEntry, selectDictionaryWidgetWork } from './dictionaryWidgetEntry'
+import { KNOWN_DICTIONARY_WORKS } from '~features/resources/dictionaryAccess'
+import {
+  useOfflineResourceRegistry,
+  getOfflineResourceQuerySignal,
+} from '~features/resources/useOfflineResourceRegistry'
+const DictionnaireOfTheDay = ({
+  discovery = false,
+  color1 = 'rgba(86,204,242,1)',
+  color2 = 'rgba(47,128,237,1)',
+}) => {
+  const { t } = useTranslation()
+  const resources = useResourceAccess()
+  const lang = useLanguage()
+  const isConnected = useConnection()
+  const registry = useOfflineResourceRegistry()
+  const dictionary = selectDictionaryWidgetWork(lang, KNOWN_DICTIONARY_WORKS, registry)
+  const work = dictionary.resource.work
+  const resourceTitle = dictionary.title
+  const resourceIdentity = {
+    kind: 'dictionary' as const,
+    work,
+    resourceId: dictionary.resourceId,
+    language: lang,
+  }
+  const resourceSignal = getOfflineResourceQuerySignal(registry, resourceIdentity)
+  const [randomSeed, setRandomSeed] = useState(0)
+  const availabilityQuery = useQuery({
+    queryKey: [
+      ...resourceQueryKeys.offlineDatabaseAvailability('DICTIONNAIRE', lang),
+      work,
+      resourceSignal,
+      isConnected,
+    ],
+    queryFn: () =>
+      resources.dictionary.getAvailability?.(lang, work) ??
+      Promise.resolve({ status: 'available' as const }),
+    networkMode: 'always',
+    staleTime: Infinity,
+  })
+  const strongQuery = useQuery({
+    queryKey: ['home-dictionary-random', lang, work, resourceSignal, randomSeed, isConnected],
+    queryFn: () => loadDictionaryWidgetEntry(resources.dictionary, lang, work),
+    ...localQueryOptions,
+  })
+  const strongReference = strongQuery.data
+
+  if (
+    availabilityQuery.data?.status === 'unavailable' &&
+    availabilityQuery.data.reason === 'offline-copy-required'
+  ) {
+    return (
+      <ResourceDownloadWidget
+        identity={resourceIdentity}
+        title={resourceTitle}
+        fileSize={22}
+        onRetry={() => {
+          void availabilityQuery.refetch()
+          void strongQuery.refetch()
+        }}
+      />
+    )
+  }
+
+  if (availabilityQuery.data?.status === 'unavailable') {
+    return (
+      <WidgetContainer>
+        <ResourceUnavailableView
+          identity={resourceIdentity}
+          title={resourceTitle}
+          fileSize={22}
+          failure={resourceFailureFromAvailability(availabilityQuery.data)}
+          size="small"
+          onRetry={() => {
+            void availabilityQuery.refetch()
+            void strongQuery.refetch()
+          }}
+        />
+      </WidgetContainer>
+    )
+  }
+
+  if (
+    availabilityQuery.isError ||
+    strongQuery.isError ||
+    (strongQuery.isSuccess && !strongReference)
+  ) {
+    return (
+      <WidgetContainer>
+        <ResourceUnavailableView
+          identity={resourceIdentity}
+          title={resourceTitle}
+          fileSize={22}
+          failure={
+            availabilityQuery.isError || strongQuery.isError
+              ? resourceFailureFromAccessError(strongQuery.error ?? availabilityQuery.error)
+              : { cause: 'not-found', recoveries: [] }
+          }
+          size="small"
+          onRetry={() => {
+            void availabilityQuery.refetch()
+            void strongQuery.refetch()
+          }}
+        />
+      </WidgetContainer>
+    )
+  }
+
+  if (strongQuery.isPending || !strongReference) {
+    return <WidgetLoading />
+  }
+
+  const { word } = strongReference
+
+  if (discovery)
+    return (
+      <ResourceDiscoveryEntry
+        category={t('tabs.dictionary')}
+        title={word}
+        detail={{
+          route: 'DictionnaryDetail',
+          params: {
+            word,
+            entryId: String(strongReference.id),
+            work,
+            resourceId: dictionary.resourceId,
+            dictionaryTitle: dictionary.title,
+            language: lang,
+          },
+        }}
+        isRefreshing={strongQuery.isFetching}
+        onShuffle={() => void strongQuery.refetch()}
+      />
+    )
+
+  return (
+    <Link
+      route="DictionnaryDetail"
+      params={{
+        word,
+        entryId: String(strongReference.id),
+        work,
+        resourceId: dictionary.resourceId,
+        dictionaryTitle: dictionary.title,
+        language: lang,
+      }}
+    >
+      <WidgetContainer>
+        <Box
+          className="overflow-hidden border-continuous"
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            height: itemHeight,
+            borderRadius: 3,
+          }}
+        >
+          <LinearGradient
+            start={[0.1, 0.2]}
+            style={{ height: itemHeight }}
+            colors={[color1, color2]}
+          />
+        </Box>
+        <RandomButton onPress={() => setRandomSeed(seed => seed + 1)} />
+        <Box className="overflow-hidden border-continuous flex-[1] items-center justify-center">
+          <Paragraph className="mt-[20px] text-[white]" scale={-2} scaleLineHeight={-2}>
+            {word}
+          </Paragraph>
+        </Box>
+        <Link route="Dictionnaire" style={{ width: '100%' }}>
+          <Box className="overflow-hidden border-continuous flex-row items-center justify-center bg-[rgba(0,0,0,0.04)] py-[10px]">
+            <DictionnaireIcon style={{ marginRight: 10 }} size={20} color="white" />
+            <Text className="text-[white] font-bold text-[12px]">{t('Dictionnaires')}</Text>
+          </Box>
+        </Link>
+      </WidgetContainer>
+    </Link>
+  )
+}
+
+export default DictionnaireOfTheDay

@@ -1,0 +1,137 @@
+import React, { useEffect } from 'react'
+import ContextualMenu from '~common/ContextualPanel/ContextualMenu'
+import verseToReference from '~helpers/verseToReference'
+import Header from '~common/Header'
+import Box from '~common/ui/Box'
+import Container from '~common/ui/Container'
+import ScrollView from '~common/ui/ScrollView'
+import { produce } from 'immer'
+import { useAtom } from 'jotai/react'
+import { PrimitiveAtom } from 'jotai/vanilla'
+import { useTranslation } from 'react-i18next'
+import { FeatherIcon } from '~common/ui/Icon'
+import { useOpenInNewTab } from '~features/app-switcher/utils/useOpenInNewTab'
+import generateUUID from '~helpers/generateUUID'
+import { CompareTab, SelectedVerses } from '../../state/tabs'
+import CompareVersionSelectorSheet from './CompareVersionSelectorSheet'
+import type { SheetRef } from '~common/sheet'
+import CompareCard from './resources/CompareCard'
+import CompareStrongModeButton from './CompareStrongModeButton'
+interface CompareVersesTabScreenProps {
+  compareAtom: PrimitiveAtom<CompareTab>
+}
+
+const CompareVersesTabScreen = ({ compareAtom }: CompareVersesTabScreenProps) => {
+  const compareVersionSelectorRef = React.useRef<SheetRef>(null)
+  const [compareTab, setCompareTab] = useAtom(compareAtom)
+  const { t } = useTranslation()
+  const setSelectedVerses = (v: SelectedVerses) =>
+    setCompareTab(
+      produce(draft => {
+        draft.data.selectedVerses = v
+      })
+    )
+
+  const setTitle = (title: string) =>
+    setCompareTab(
+      produce(draft => {
+        draft.title = title
+      })
+    )
+  const toggleStrongMode = () =>
+    setCompareTab(
+      produce(draft => {
+        draft.data.strongMode = !draft.data.strongMode
+      })
+    )
+
+  const {
+    hasBackButton,
+    data: { selectedVerses, strongMode = false },
+  } = compareTab
+
+  const title = verseToReference(selectedVerses)
+  const openInNewTab = useOpenInNewTab()
+  useEffect(() => {
+    setTitle(`${t('Comparer')} ${title}`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title])
+
+  return (
+    <Container>
+      <Header
+        hasBackButton={hasBackButton}
+        title={title}
+        rightComponent={
+          <Box className="overflow-hidden border-continuous flex-row items-center">
+            <CompareStrongModeButton
+              enabled={strongMode}
+              onPress={toggleStrongMode}
+              height={40}
+              width={40}
+            />
+            <ContextualMenu
+              tabActions
+              panelTitle={t('Comparer')}
+              icons={{ 'choose-versions': 'check-square', 'open-tab': 'external-link' }}
+              screens={{
+                'choose-versions': {
+                  title: t('Sélectionner les versions'),
+                  width: 500,
+                  content: () => (
+                    <CompareVersionSelectorSheet inline sheetRef={compareVersionSelectorRef} />
+                  ),
+                },
+              }}
+              actions={[
+                {
+                  id: 'choose-versions',
+                  title: t('common.chooseCompareVersions'),
+                  image: 'checkmark.square',
+                },
+                {
+                  id: 'open-tab',
+                  title: t('tab.openInNewTab'),
+                  image: 'arrow.up.forward.square',
+                },
+              ]}
+              onPressAction={({ nativeEvent }) => {
+                switch (nativeEvent.event) {
+                  case 'choose-versions':
+                    compareVersionSelectorRef.current?.present()
+                    break
+                  case 'open-tab':
+                    openInNewTab({
+                      id: `compare-${generateUUID()}`,
+                      title: t('tabs.new'),
+                      isRemovable: true,
+                      type: 'compare',
+                      data: {
+                        selectedVerses,
+                        strongMode,
+                      },
+                    })
+                    break
+                }
+              }}
+            >
+              <Box className="overflow-hidden border-continuous flex-row items-center justify-center h-[40px] w-[40px]">
+                <FeatherIcon name="more-vertical" size={18} />
+              </Box>
+            </ContextualMenu>
+          </Box>
+        }
+      />
+      <ScrollView contentContainerStyle={{ maxWidth: 600, paddingBottom: 20, flexGrow: 1 }}>
+        <CompareCard
+          selectedVerses={selectedVerses}
+          strongMode={strongMode}
+          onChangeVerse={verse => setSelectedVerses({ [verse]: true })}
+          onChooseVersions={() => compareVersionSelectorRef.current?.present()}
+        />
+      </ScrollView>
+      <CompareVersionSelectorSheet sheetRef={compareVersionSelectorRef} />
+    </Container>
+  )
+}
+export default CompareVersesTabScreen

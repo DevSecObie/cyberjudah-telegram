@@ -1,0 +1,639 @@
+import { useConfirmDialog } from '~common/ConfirmDialog/useConfirmDialog'
+import { useAllColors } from '~helpers/useColorName'
+import { pageContentStyle } from '~common/ui/PageContent'
+import { useEffect, useRef, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { useAtom, useSetAtom } from 'jotai/react'
+import { useTranslation } from 'react-i18next'
+import { FlatList } from 'react-native'
+import { ActionSheetItem } from '~common/ActionMenu'
+import Empty from '~common/Empty'
+import FiltersHeader from '~common/FiltersHeader'
+import ColorFilterModal from '~common/ColorFilterModal'
+import TypeFilterModal from '~common/TypeFilterModal'
+import Box from '~common/ui/Box'
+import FormSheetScreen from '~common/ui/FormSheetScreen'
+import { type SheetRef } from '~common/sheet'
+import Sheet from '~common/ContextualPanel/ContextualSheet'
+import { useHighlightFilters } from '~helpers/useHighlightFilters'
+import { useSheet } from '~helpers/useSheet'
+import type { RootState } from '~redux/modules/reducer'
+import { selectHighlightsObj } from '~redux/selectors/user'
+import {
+  makeAllWordAnnotationsSelector,
+  selectAvailableAnnotationVersions,
+  type GroupedWordAnnotation,
+} from '~redux/selectors/bible'
+import { changeHighlightColor, removeHighlight } from '~redux/modules/user'
+import {
+  removeWordAnnotationAction,
+  changeWordAnnotationColor,
+} from '~redux/modules/user/wordAnnotations'
+import { unifiedTagsModalAtom, colorChangeModalAtom } from '../../state/app'
+import VerseComponent from './Verse'
+import AnnotationItem from './AnnotationItem'
+import type { VerseIds } from '~common/types'
+import { useCanGoBackInStack } from '~navigation/useCanGoBackInStack'
+import ChoiceFilterModal from '~common/ChoiceFilterModal'
+import {
+  highlightsListQueryAtom,
+  shouldClearPersistedReferenceFilter,
+} from '~state/entityListFilters'
+import { sections } from '~assets/bible_versions/books-desc'
+import { isBookInTestament } from '~helpers/bibleBookCatalog'
+import {
+  buildGroupedHighlights,
+  type GroupedHighlightData,
+} from '~features/entityListQuery/highlightsQuery'
+type UnifiedHighlightItem =
+  | { type: 'highlight'; data: GroupedHighlightData }
+  | { type: 'annotation'; data: GroupedWordAnnotation }
+
+const selectAllWordAnnotations = makeAllWordAnnotationsSelector()
+
+type HighlightsScreenProps = {
+  isFormSheet?: boolean
+}
+
+const HighlightsScreen = ({ isFormSheet = false }: HighlightsScreenProps) => {
+  const { t } = useTranslation()
+  const confirmDeletion = useConfirmDialog()
+  const dispatch = useDispatch()
+  const canGoBackInStack = useCanGoBackInStack()
+  const hasBackButton = isFormSheet ? canGoBackInStack : true
+  const highlightsObj = useSelector(selectHighlightsObj)
+  const setUnifiedTagsModal = useSetAtom(unifiedTagsModalAtom)
+  const setColorChangeModal = useSetAtom(colorChangeModalAtom)
+  const [persistedFilters, setPersistedFilters] = useAtom(highlightsListQueryAtom)
+  const allColors = useAllColors()
+  const allTags = useSelector((state: RootState) => state.user.bible.tags)
+  const testamentModalRef = useRef<SheetRef>(null)
+  const bookModalRef = useRef<SheetRef>(null)
+  const sortModalRef = useRef<SheetRef>(null)
+  const books = sections.flatMap(section => section.data)
+
+  // Word annotations selector
+  const wordAnnotations = useSelector((state: RootState) => selectAllWordAnnotations(state))
+
+  // Available annotation versions for type filter
+  const availableAnnotationVersions = useSelector(selectAvailableAnnotationVersions)
+  const annotationVersionsReady = useSelector(
+    (state: RootState) =>
+      !state.user.id ||
+      (state.user.sync.loaded.highlights && state.user.sync.loaded.wordAnnotations)
+  )
+
+  useEffect(() => {
+    const typeFilter = persistedFilters.typeFilter
+    if (
+      shouldClearPersistedReferenceFilter({
+        hasReference: Boolean(
+          typeFilter && !['all', 'highlights', 'annotations'].includes(typeFilter)
+        ),
+        referenceExists: Boolean(typeFilter && availableAnnotationVersions.includes(typeFilter)),
+        referenceDataReady: annotationVersionsReady,
+      })
+    ) {
+      setPersistedFilters(state => ({ ...state, typeFilter: undefined }))
+    }
+  }, [
+    annotationVersionsReady,
+    availableAnnotationVersions,
+    persistedFilters.typeFilter,
+    setPersistedFilters,
+  ])
+
+  // Filters hook - encapsulates all filter logic
+  const {
+    filters,
+    setColorFilter,
+    setTypeFilter,
+    setTagFilter,
+    resetFilters,
+    colorInfo,
+    selectedTag,
+    typeFilterLabel,
+    colorModalRef,
+    typeModalRef,
+    openColorFromMain,
+    openTagsFromMain,
+    openTypeFromMain,
+  } = useHighlightFilters()
+
+  // Settings modal (for highlight actions)
+  const [settingsData, setSettingsData] = useState<{ stringIds: VerseIds } | null>(null)
+  const { ref: settingsRef, open: openSettings, close: closeSettings } = useSheet()
+
+  // Annotation settings modal
+  const [annotationSettingsData, setAnnotationSettingsData] =
+    useState<GroupedWordAnnotation | null>(null)
+  const {
+    ref: annotationSettingsRef,
+    open: openAnnotationSettings,
+    close: closeAnnotationSettings,
+  } = useSheet()
+
+  useEffect(() => {
+    if (settingsData) openSettings()
+  }, [settingsData, openSettings])
+
+  useEffect(() => {
+    if (annotationSettingsData) openAnnotationSettings()
+  }, [annotationSettingsData, openAnnotationSettings])
+
+  // Filter highlights
+  const groupedHighlights = buildGroupedHighlights(highlightsObj, filters)
+
+  // Create unified list of highlights and annotations sorted by date
+  const unifiedItems = (() => {
+    // Filter and transform annotations to unified format
+    let filteredAnnotations = wordAnnotations
+    if (filters.colorId) {
+      filteredAnnotations = filteredAnnotations.filter(a => a.color === filters.colorId)
+    }
+    const tagIdFilter = filters.tagId
+    if (tagIdFilter) {
+      filteredAnnotations = filteredAnnotations.filter(a => a.tags?.[tagIdFilter])
+    }
+    if (filters.book) {
+      filteredAnnotations = filteredAnnotations.filter(a =>
+        a.verseKeys.some(verseKey => Number(verseKey.split('-')[0]) === filters.book)
+      )
+    } else if (filters.testament === 'old') {
+      filteredAnnotations = filteredAnnotations.filter(a =>
+        a.verseKeys.some(verseKey => isBookInTestament(Number(verseKey.split('-')[0]), 'old'))
+      )
+    } else if (filters.testament === 'new') {
+      filteredAnnotations = filteredAnnotations.filter(a =>
+        a.verseKeys.some(verseKey => isBookInTestament(Number(verseKey.split('-')[0]), 'new'))
+      )
+    }
+
+    // Type filter logic
+    const typeFilter = filters.typeFilter
+
+    const highlightItems: UnifiedHighlightItem[] = groupedHighlights.map(h => ({
+      type: 'highlight' as const,
+      data: h,
+    }))
+    const annotationItems: UnifiedHighlightItem[] = filteredAnnotations.map(a => ({
+      type: 'annotation' as const,
+      data: a,
+    }))
+    const items =
+      typeFilter === 'highlights'
+        ? highlightItems
+        : typeFilter === 'annotations'
+          ? annotationItems
+          : typeFilter && typeFilter !== 'all'
+            ? annotationItems.filter(
+                item => item.type === 'annotation' && item.data.version === typeFilter
+              )
+            : [...highlightItems, ...annotationItems]
+    const identity = (item: UnifiedHighlightItem) =>
+      item.type === 'annotation'
+        ? `annotation-${item.data.id}`
+        : `highlight-${Object.keys(item.data.stringIds).sort().join('/')}`
+
+    // Combine and sort by date descending
+    return items.sort((a, b) => {
+      if (filters.sort === 'oldest') {
+        return Number(a.data.date) - Number(b.data.date) || identity(a).localeCompare(identity(b))
+      }
+      if (filters.sort === 'bible') {
+        const key = (item: UnifiedHighlightItem) => {
+          const verseKeys =
+            item.type === 'highlight' ? Object.keys(item.data.stringIds) : item.data.verseKeys
+          return verseKeys
+            .map(value => value.split('-').map(Number))
+            .sort(
+              (left, right) => left[0] - right[0] || left[1] - right[1] || left[2] - right[2]
+            )[0]
+        }
+        const left = key(a)
+        const right = key(b)
+        return (
+          (left?.[0] || 0) - (right?.[0] || 0) ||
+          (left?.[1] || 0) - (right?.[1] || 0) ||
+          (left?.[2] || 0) - (right?.[2] || 0) ||
+          identity(a).localeCompare(identity(b))
+        )
+      }
+      return Number(b.data.date) - Number(a.data.date) || identity(a).localeCompare(identity(b))
+    })
+  })()
+
+  const handleDelete = () => {
+    void confirmDeletion({
+      title: t('Attention'),
+      message: t('Êtes-vous vraiment sur de supprimer cette surbrillance ?'),
+      cancelLabel: t('Non'),
+      confirmLabel: t('Oui'),
+      destructive: true,
+    }).then(confirmed => {
+      if (!confirmed) return
+      if (settingsData?.stringIds) {
+        dispatch(removeHighlight({ selectedVerses: settingsData.stringIds }))
+      }
+      setSettingsData(null)
+      closeSettings()
+    })
+  }
+
+  const handleDeleteAnnotation = () => {
+    void confirmDeletion({
+      title: t('Attention'),
+      message: t('Êtes-vous vraiment sur de supprimer cette annotation ?'),
+      cancelLabel: t('Non'),
+      confirmLabel: t('Oui'),
+      destructive: true,
+    }).then(confirmed => {
+      if (!confirmed) return
+      if (annotationSettingsData?.id) {
+        dispatch(removeWordAnnotationAction(annotationSettingsData.id))
+      }
+      setAnnotationSettingsData(null)
+      closeAnnotationSettings()
+    })
+  }
+
+  return (
+    <FormSheetScreen isFormSheet={isFormSheet}>
+      <Box className="overflow-hidden border-continuous flex-[1] bg-reverse">
+        {/* Header with filter button */}
+        <FiltersHeader
+          title={t('Surbrillances')}
+          hasBackButton={hasBackButton}
+          onReset={resetFilters}
+          filters={[
+            {
+              key: 'type',
+              options: [
+                {
+                  key: 'all',
+                  label: t('Tout'),
+                  selected: !filters.typeFilter || filters.typeFilter === 'all',
+                  onSelect: () => setTypeFilter(undefined),
+                },
+                ...[
+                  { key: 'highlights', label: t('Surbrillances') },
+                  { key: 'annotations', label: t('Annotations') },
+                  ...availableAnnotationVersions.map(version => ({ key: version, label: version })),
+                ].map(option => ({
+                  ...option,
+                  selected: filters.typeFilter === option.key,
+                  onSelect: () => setTypeFilter(option.key),
+                })),
+              ],
+              icon: 'layers',
+              label: t('Type'),
+              value: typeFilterLabel || t('Tout'),
+              active: Boolean(filters.typeFilter && filters.typeFilter !== 'all'),
+              onPress: openTypeFromMain,
+            },
+            {
+              key: 'color',
+              options: [
+                {
+                  key: 'all',
+                  label: t('Toutes'),
+                  selected: !filters.colorId,
+                  onSelect: () => setColorFilter(undefined),
+                },
+                ...allColors.map(color => ({
+                  key: color.id,
+                  label: color.name,
+                  color: color.hex,
+                  selected: filters.colorId === color.id,
+                  onSelect: () => setColorFilter(color.id),
+                })),
+              ],
+              icon: 'droplet',
+              label: t('Couleur'),
+              value: colorInfo?.name || t('Toutes'),
+              color: filters.colorId ? colorInfo?.hex : undefined,
+              active: Boolean(filters.colorId),
+              onPress: openColorFromMain,
+            },
+            {
+              key: 'tags',
+              searchable: true,
+              showCheckbox: true,
+              options: [
+                {
+                  key: 'all',
+                  label: t('Tous'),
+                  selected: !filters.tagId,
+                  onSelect: () => setTagFilter(undefined),
+                },
+                ...Object.values(allTags ?? {})
+                  .filter(tag => tag && typeof tag.name === 'string' && typeof tag.id === 'string')
+                  .map(tag => ({
+                    key: tag.id,
+                    label: tag.name,
+                    selected: filters.tagId === tag.id,
+                    onSelect: () => setTagFilter(tag),
+                  })),
+              ],
+              icon: 'tag',
+              label: t('Tags'),
+              value: selectedTag?.name || t('Tous'),
+              active: Boolean(filters.tagId),
+              onPress: openTagsFromMain,
+            },
+            {
+              key: 'testament',
+              options: (
+                [
+                  { key: 'all', label: t('Toute la Bible') },
+                  { key: 'old', label: t('Ancien Testament') },
+                  { key: 'new', label: t('Nouveau Testament') },
+                ] as const
+              ).map(option => ({
+                ...option,
+                selected: (filters.testament || 'all') === option.key,
+                onSelect: () =>
+                  setPersistedFilters(state => ({
+                    ...state,
+                    testament: option.key,
+                    book:
+                      state.book &&
+                      option.key !== 'all' &&
+                      !isBookInTestament(state.book, option.key)
+                        ? undefined
+                        : state.book,
+                  })),
+              })),
+              icon: 'book',
+              label: t('Testament'),
+              value:
+                filters.testament === 'old'
+                  ? t('Ancien Testament')
+                  : filters.testament === 'new'
+                    ? t('Nouveau Testament')
+                    : t('Toute la Bible'),
+              active: Boolean(filters.testament && filters.testament !== 'all'),
+              onPress: () => testamentModalRef.current?.present(),
+            },
+            {
+              key: 'book',
+              options: [
+                {
+                  key: 'all',
+                  label: t('Tous'),
+                  selected: !filters.book,
+                  onSelect: () => setPersistedFilters(state => ({ ...state, book: undefined })),
+                },
+                ...books
+                  .filter(
+                    book =>
+                      !filters.testament ||
+                      filters.testament === 'all' ||
+                      isBookInTestament(book.Numero, filters.testament)
+                  )
+                  .map(book => ({
+                    key: String(book.Numero),
+                    label: book.Nom,
+                    selected: filters.book === book.Numero,
+                    onSelect: () => setPersistedFilters(state => ({ ...state, book: book.Numero })),
+                  })),
+              ],
+              icon: 'bookmark',
+              label: t('Livre'),
+              value: books.find(book => book.Numero === filters.book)?.Nom || t('Tous'),
+              active: Boolean(filters.book),
+              onPress: () => bookModalRef.current?.present(),
+            },
+            {
+              key: 'sort',
+              options: (
+                [
+                  { key: 'newest', label: t('entityList.sort.newest') },
+                  { key: 'oldest', label: t('entityList.sort.oldest') },
+                  { key: 'bible', label: t('Ordre biblique') },
+                ] as const
+              ).map(option => ({
+                ...option,
+                selected: (filters.sort || 'newest') === option.key,
+                onSelect: () => setPersistedFilters(state => ({ ...state, sort: option.key })),
+              })),
+              icon: 'list',
+              label: t('Ordre'),
+              value:
+                filters.sort === 'oldest'
+                  ? t('entityList.sort.oldest')
+                  : filters.sort === 'bible'
+                    ? t('Ordre biblique')
+                    : t('entityList.sort.newest'),
+              active: Boolean(filters.sort && filters.sort !== 'newest'),
+              onPress: () => sortModalRef.current?.present(),
+            },
+          ]}
+        />
+
+        <ChoiceFilterModal
+          ref={testamentModalRef}
+          title={t('Testament')}
+          selectedValue={filters.testament || 'all'}
+          options={[
+            { value: 'all', label: t('Toute la Bible') },
+            { value: 'old', label: t('Ancien Testament') },
+            { value: 'new', label: t('Nouveau Testament') },
+          ]}
+          onSelect={testament => {
+            setPersistedFilters(state => ({
+              ...state,
+              testament,
+              book:
+                state.book &&
+                ((testament === 'old' && !isBookInTestament(state.book, 'old')) ||
+                  (testament === 'new' && !isBookInTestament(state.book, 'new')))
+                  ? undefined
+                  : state.book,
+            }))
+            testamentModalRef.current?.dismiss()
+          }}
+        />
+        <ChoiceFilterModal
+          ref={bookModalRef}
+          title={t('Livre')}
+          selectedValue={String(filters.book || 0)}
+          options={[
+            { value: '0', label: t('Tous') },
+            ...books
+              .filter(
+                book =>
+                  !filters.testament ||
+                  filters.testament === 'all' ||
+                  isBookInTestament(book.Numero, filters.testament)
+              )
+              .map(book => ({ value: String(book.Numero), label: book.Nom })),
+          ]}
+          onSelect={book => {
+            const number = Number(book) || undefined
+            setPersistedFilters(state => ({
+              ...state,
+              book: number,
+              testament: number
+                ? isBookInTestament(number, 'new')
+                  ? 'new'
+                  : 'old'
+                : state.testament,
+            }))
+            bookModalRef.current?.dismiss()
+          }}
+        />
+        <ChoiceFilterModal
+          ref={sortModalRef}
+          title={t('Ordre')}
+          selectedValue={filters.sort || 'newest'}
+          options={[
+            { value: 'newest', label: t('entityList.sort.newest') },
+            { value: 'oldest', label: t('entityList.sort.oldest') },
+            { value: 'bible', label: t('Ordre biblique') },
+          ]}
+          onSelect={sort => {
+            setPersistedFilters(state => ({ ...state, sort }))
+            sortModalRef.current?.dismiss()
+          }}
+        />
+
+        <ColorFilterModal
+          ref={colorModalRef}
+          selectedColorId={filters.colorId}
+          onSelect={colorId => {
+            setColorFilter(colorId)
+            colorModalRef.current?.dismiss()
+          }}
+        />
+
+        <TypeFilterModal
+          ref={typeModalRef}
+          selectedType={filters.typeFilter}
+          availableVersions={availableAnnotationVersions}
+          onSelect={type => {
+            setTypeFilter(type)
+            typeModalRef.current?.dismiss()
+          }}
+        />
+
+        {/* Content */}
+        {unifiedItems.length ? (
+          <FlatList
+            contentContainerStyle={pageContentStyle}
+            data={unifiedItems}
+            keyExtractor={item =>
+              item.type === 'highlight'
+                ? `highlight-${Object.keys(item.data.stringIds).sort().join('/')}`
+                : `annotation-${item.data.id}`
+            }
+            renderItem={({ item }) => {
+              if (item.type === 'highlight') {
+                return (
+                  <VerseComponent
+                    color={item.data.color}
+                    date={item.data.date}
+                    verseIds={item.data.highlightsObj}
+                    stringIds={item.data.stringIds}
+                    tags={item.data.tags}
+                    version={item.data.version}
+                    setSettings={setSettingsData}
+                  />
+                )
+              }
+
+              return <AnnotationItem item={item.data} onSettingsPress={setAnnotationSettingsData} />
+            }}
+          />
+        ) : (
+          <Empty
+            icon={require('~assets/images/empty-state-icons/highlight.svg')}
+            message={
+              Object.keys(highlightsObj).length || wordAnnotations.length
+                ? t('entityList.noFilterMatch')
+                : t("Vous n'avez pas encore rien surligné...")
+            }
+          />
+        )}
+
+        {/* Settings modal */}
+        <Sheet ref={settingsRef}>
+          <ActionSheetItem
+            icon="droplet"
+            label={t('Changer la couleur')}
+            onPress={() => {
+              if (settingsData?.stringIds) {
+                const verseIds = settingsData.stringIds
+                setColorChangeModal({
+                  onSelectColor: (colorId: string) => {
+                    dispatch(changeHighlightColor(verseIds, colorId))
+                  },
+                })
+              }
+            }}
+          />
+          <ActionSheetItem
+            icon="tag"
+            label={t('Éditer les tags')}
+            onPress={() => {
+              if (settingsData?.stringIds) {
+                setUnifiedTagsModal({
+                  mode: 'select',
+                  entity: 'highlights',
+                  ids: settingsData.stringIds,
+                })
+              }
+            }}
+          />
+          <ActionSheetItem
+            icon="trash-2"
+            label={t('Supprimer')}
+            color="quart"
+            onPress={handleDelete}
+          />
+        </Sheet>
+
+        {/* Annotation settings modal */}
+        <Sheet ref={annotationSettingsRef} onDismiss={() => setAnnotationSettingsData(null)}>
+          <ActionSheetItem
+            icon="droplet"
+            label={t('Changer la couleur')}
+            onPress={() => {
+              if (annotationSettingsData) {
+                const annotationId = annotationSettingsData.id
+                const annotationColor = annotationSettingsData.color
+                setColorChangeModal({
+                  selectedColor: annotationColor,
+                  onSelectColor: (colorId: string) => {
+                    dispatch(changeWordAnnotationColor(annotationId, colorId))
+                  },
+                })
+              }
+            }}
+          />
+          <ActionSheetItem
+            icon="tag"
+            label={t('Éditer les tags')}
+            onPress={() => {
+              if (annotationSettingsData) {
+                setUnifiedTagsModal({
+                  mode: 'select',
+                  entity: 'wordAnnotations',
+                  id: annotationSettingsData.id,
+                })
+              }
+            }}
+          />
+          <ActionSheetItem
+            icon="trash-2"
+            label={t('Supprimer')}
+            color="quart"
+            onPress={handleDeleteAnnotation}
+          />
+        </Sheet>
+      </Box>
+    </FormSheetScreen>
+  )
+}
+
+export default HighlightsScreen

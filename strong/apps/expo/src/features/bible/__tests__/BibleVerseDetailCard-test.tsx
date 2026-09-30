@@ -1,0 +1,829 @@
+import React from 'react'
+import { Platform } from 'react-native'
+import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import BibleVerseDetailCard from '../BibleVerseDetailCard'
+// Behavioral tests do not run Metro's generated Uniwind stylesheet.
+jest.mock('uniwind', () => ({ withUniwind: (component: unknown) => component }))
+
+const mockLoadVerse = jest.fn()
+const mockEnrichVerse = jest.fn(async (_request: unknown, result: unknown) => result)
+const mockLoadEntries = jest.fn()
+const mockLoadCoverage = jest.fn()
+const mockGetModuleAvailability = jest.fn()
+const mockGetModuleRecoveryActions = jest.fn()
+const mockScrollTo = jest.fn()
+const mockScrollToOffset = jest.fn()
+const mockScrollToIndex = jest.fn()
+const mockResourceAccess = {
+  bibleContent: { loadCoverage: mockLoadCoverage },
+  lexiconBible: {
+    loadVerse: mockLoadVerse,
+    loadVerseBase: mockLoadVerse,
+    enrichVerse: mockEnrichVerse,
+  },
+  strongLexicon: {
+    loadEntryCards: mockLoadEntries,
+    getModuleAvailability: mockGetModuleAvailability,
+    getModuleRecoveryActions: mockGetModuleRecoveryActions,
+  },
+}
+let queryClient: QueryClient
+
+jest.mock('~themes/ThemeProvider', () => ({
+  useTheme: () => ({ colors: { default: '#000' } }),
+}))
+
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: jest.fn() }),
+}))
+
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, values?: { version?: string }) =>
+      values?.version ? key.replace('{{version}}', values.version) : key,
+  }),
+}))
+
+jest.mock('react-redux', () => ({
+  useSelector: (selector: (state: unknown) => unknown) =>
+    selector({
+      user: {
+        bible: {
+          settings: {
+            defaultStrongBibleVersionId: 'LSG',
+            fontSizeScale: 1,
+            lineHeight: 'large',
+          },
+        },
+      },
+    }),
+}))
+
+jest.mock('react-native', () => {
+  const ReactModule = jest.requireActual<typeof React>('react')
+  const ScrollView = ReactModule.forwardRef(
+    (
+      { children, ...props }: React.PropsWithChildren<Record<string, unknown>>,
+      ref: React.ForwardedRef<{ scrollTo: typeof mockScrollTo }>
+    ) => {
+      ReactModule.useImperativeHandle(ref, () => ({ scrollTo: mockScrollTo }))
+      return ReactModule.createElement('ScrollView', props, children)
+    }
+  )
+  const FlatList = ReactModule.forwardRef(
+    (
+      {
+        data = [],
+        renderItem,
+        ...props
+      }: {
+        data?: unknown[]
+        renderItem?: (input: { item: unknown; index: number }) => React.ReactNode
+      } & Record<string, unknown>,
+      ref: React.ForwardedRef<{
+        scrollToOffset: typeof mockScrollToOffset
+        scrollToIndex: typeof mockScrollToIndex
+      }>
+    ) => {
+      ReactModule.useImperativeHandle(ref, () => ({
+        scrollToOffset: mockScrollToOffset,
+        scrollToIndex: mockScrollToIndex,
+      }))
+      return ReactModule.createElement(
+        'FlatList',
+        props,
+        data.map((item, index) => renderItem?.({ item, index }))
+      )
+    }
+  )
+  return {
+    Platform: { OS: 'ios' },
+    Text: 'Text',
+    View: 'View',
+    FlatList,
+    ScrollView,
+  }
+})
+
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
+}))
+
+jest.mock('../StrongResourceScrollContext', () => {
+  const ReactModule = jest.requireActual<typeof React>('react')
+  return {
+    StrongResourceScrollProvider: ({
+      children,
+      value,
+    }: React.PropsWithChildren<{ value: unknown }>) =>
+      ReactModule.createElement('StrongResourceScrollProvider', { value }, children),
+  }
+})
+
+jest.mock('~features/resources/resourceAccess', () => ({
+  useResourceAccess: () => mockResourceAccess,
+}))
+
+jest.mock('~features/resources/OfflineResourceRecovery', () => {
+  const ReactModule = jest.requireActual<typeof React>('react')
+  return () => ReactModule.createElement('OfflineResourceRecovery')
+})
+jest.mock('~features/resources/ResourceUnavailableView', () => {
+  const ReactModule = jest.requireActual<typeof React>('react')
+  return (props: Record<string, unknown>) =>
+    ReactModule.createElement('ResourceUnavailableView', props)
+})
+
+jest.mock('~state/resourcesLanguage', () => ({
+  useResourcesLanguageValue: () => ({ STRONG: 'fr' }),
+}))
+
+jest.mock('../CanonicalStrongVerseText', () => {
+  const ReactModule = jest.requireActual<typeof React>('react')
+  return ({ verse, textStyle }: { verse: { Texte: string }; textStyle?: unknown }) =>
+    ReactModule.createElement('CanonicalStrongVerseText', { textStyle }, verse.Texte)
+})
+
+jest.mock('~helpers/bibleCoverage', () => ({
+  getChapterVerseCountFromCoverage: (
+    coverage: { verseCountByBookChapter?: Record<string, number> } | undefined,
+    book: number,
+    chapter: number
+  ) => coverage?.verseCountByBookChapter?.[`${book}-${chapter}`],
+}))
+
+jest.mock('~helpers/useLayoutSize', () => ({
+  useLayoutSize: () => ({
+    ref: { current: null },
+    size: { width: 320, height: 400 },
+    onLayout: jest.fn(),
+  }),
+}))
+
+jest.mock('~helpers/utils', () => ({
+  wp: (value: number) => value,
+}))
+
+jest.mock('~helpers/strongBiblePublications', () => ({
+  STRONG_BIBLE_FALLBACK_PRIORITY: ['LSG', 'DBY', 'DBR'],
+  FRENCH_STRONG_BIBLE_PRIORITY: ['LSG', 'DBY', 'DBR'],
+  ENGLISH_STRONG_BIBLE_PRIORITY: ['KJV'],
+  getStrongBibleFallbackPriority: () => ['LSG', 'DBY', 'DBR'],
+}))
+
+jest.mock('~common/Empty', () => {
+  const ReactModule = jest.requireActual<typeof React>('react')
+  return ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) =>
+    ReactModule.createElement('Empty', props, children)
+})
+jest.mock('~common/Loading', () => {
+  const ReactModule = jest.requireActual<typeof React>('react')
+  return () => ReactModule.createElement('Loading')
+})
+jest.mock('~common/ui/Button', () => {
+  const ReactModule = jest.requireActual<typeof React>('react')
+  return {
+    __esModule: true,
+    default: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) =>
+      ReactModule.createElement('Button', props, children),
+  }
+})
+jest.mock('~common/ui/Box', () => {
+  const ReactModule = jest.requireActual<typeof React>('react')
+  return {
+    __esModule: true,
+    default: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) =>
+      ReactModule.createElement('Box', props, children),
+  }
+})
+jest.mock('~common/ui/Container', () => ({
+  __esModule: true,
+  default: ({ children }: React.PropsWithChildren) => <>{children}</>,
+}))
+jest.mock('~common/ui/Icon', () => {
+  const ReactModule = jest.requireActual<typeof React>('react')
+  return {
+    FeatherIcon: (props: Record<string, unknown>) =>
+      ReactModule.createElement('FeatherIcon', props),
+  }
+})
+jest.mock('~common/ui/Paragraph', () => ({
+  __esModule: true,
+  default: ({ children }: React.PropsWithChildren) => <>{children}</>,
+}))
+jest.mock('~common/ui/RoundedCorner', () => () => null)
+jest.mock('~common/ui/Text', () => ({
+  __esModule: true,
+  default: ({ children }: React.PropsWithChildren) => <>{children}</>,
+}))
+jest.mock('../BibleVerseDetailFooter', () => {
+  const ReactModule = jest.requireActual<typeof React>('react')
+  return () => ReactModule.createElement('VerseFooter')
+})
+jest.mock('../StrongCard', () => {
+  const ReactModule = jest.requireActual<typeof React>('react')
+  return (props: Record<string, unknown>) => ReactModule.createElement('StrongCard', props)
+})
+
+const makeAvailableVerse = (
+  text: string,
+  strongSpans?: {
+    ordinal: number
+    startOffset: number
+    length: number
+    identities: { kind: 'strong'; code: string }[]
+    morphologies?: {
+      identity: { kind: 'strong'; code: string }
+      codes: string[]
+    }[]
+  }[]
+) => ({
+  status: 'available' as const,
+  verse: { Texte: text, StrongSpans: strongSpans },
+  provenance: {
+    versionId: 'DBY' as const,
+    datasetId: 'DBY' as const,
+    textRevision: 'test',
+    textSha256: 'test',
+  },
+})
+
+const flushQueryUpdates = async () => {
+  await new Promise(resolve => setTimeout(resolve, 0))
+  await new Promise(resolve => setTimeout(resolve, 0))
+  await new Promise(resolve => setTimeout(resolve, 0))
+}
+
+const renderCard = (
+  verseNumber: number,
+  onOpenStrongBibleSourceSheet = jest.fn(),
+  onStrongBibleProvenanceChange = jest.fn(),
+  selectedVersion: 'BFC' | 'BHG' = 'BFC'
+) => (
+  <QueryClientProvider client={queryClient}>
+    <BibleVerseDetailCard
+      verse={{ Livre: 1, Chapitre: 1, Verset: verseNumber }}
+      selectedVersion={selectedVersion}
+      preferredInterlinearLocale="fr"
+      updateVerse={jest.fn()}
+      onOpenStrongBibleSourceSheet={onOpenStrongBibleSourceSheet}
+      onStrongBibleProvenanceChange={onStrongBibleProvenanceChange}
+    />
+  </QueryClientProvider>
+)
+
+describe('BibleVerseDetailCard', () => {
+  let renderer: ReactTestRenderer
+  let consoleError: jest.SpyInstance
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, networkMode: 'always' },
+      },
+    })
+    mockLoadEntries.mockResolvedValue([
+      {
+        baseCode: 430,
+        stepCode: 'H0430',
+        selectedIdentity: { kind: 'strong', code: 'H0430' },
+        language: 'hebrew',
+        original: 'אֱלֹהִים',
+        transliteration: 'Elohim',
+        gloss: 'Dieu',
+      },
+    ])
+    mockLoadCoverage.mockResolvedValue({
+      books: [1],
+      chaptersByBook: { 1: [1] },
+      verseCountByBookChapter: { '1-1': 31 },
+    })
+    mockGetModuleAvailability.mockResolvedValue({ status: 'available' })
+    mockGetModuleRecoveryActions.mockResolvedValue([])
+    ;(
+      globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
+    ).IS_REACT_ACT_ENVIRONMENT = true
+    consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined)
+  })
+
+  afterEach(() => {
+    act(() => renderer?.unmount())
+    queryClient.clear()
+    consoleError.mockRestore()
+  })
+
+  it('keeps the displayed Strong verse while the next verse is loading', async () => {
+    let resolveNextVerse: (value: ReturnType<typeof makeAvailableVerse>) => void = () => undefined
+    const nextVerse = new Promise<ReturnType<typeof makeAvailableVerse>>(resolve => {
+      resolveNextVerse = resolve
+    })
+    mockLoadVerse
+      .mockResolvedValueOnce(makeAvailableVerse('Ancien verset'))
+      .mockReturnValueOnce(nextVerse)
+
+    await act(async () => {
+      renderer = create(renderCard(1))
+      await flushQueryUpdates()
+    })
+    await act(async () => {
+      renderer.update(renderCard(1))
+      await flushQueryUpdates()
+    })
+    expect(JSON.stringify(renderer.toJSON())).toContain('Ancien verset')
+
+    await act(async () => {
+      renderer.update(renderCard(2))
+      await flushQueryUpdates()
+    })
+
+    const pendingTree = JSON.stringify(renderer.toJSON())
+    expect(pendingTree).toContain('Ancien verset')
+    expect(pendingTree).not.toContain('"type":"Loading"')
+
+    await act(async () => {
+      resolveNextVerse(makeAvailableVerse('Nouveau verset'))
+      await nextVerse
+      await flushQueryUpdates()
+    })
+    const loadedTree = JSON.stringify(renderer.toJSON())
+    expect(loadedTree).toContain('Nouveau verset')
+    expect(loadedTree).not.toContain('Ancien verset')
+  })
+
+  it('shows the Strong verse before its lexical cards finish loading', async () => {
+    let resolveEntries: (value: Awaited<ReturnType<typeof mockLoadEntries>>) => void = () =>
+      undefined
+    const pendingEntries = new Promise<Awaited<ReturnType<typeof mockLoadEntries>>>(resolve => {
+      resolveEntries = resolve
+    })
+    mockLoadVerse.mockResolvedValueOnce(
+      makeAvailableVerse('Verset disponible', [
+        {
+          ordinal: 0,
+          startOffset: 0,
+          length: 6,
+          identities: [{ kind: 'strong', code: 'H0430' }],
+        },
+      ])
+    )
+    mockLoadEntries.mockReturnValueOnce(pendingEntries)
+
+    await act(async () => {
+      renderer = create(renderCard(1))
+      await flushQueryUpdates()
+    })
+    await act(async () => {
+      renderer.update(renderCard(1))
+      await flushQueryUpdates()
+    })
+
+    const pendingTree = JSON.stringify(renderer.toJSON())
+    expect(pendingTree).toContain('Verset disponible')
+    expect(pendingTree).not.toContain('"type":"StrongCard"')
+
+    await act(async () => {
+      resolveEntries([
+        {
+          baseCode: 430,
+          stepCode: 'H0430',
+          selectedIdentity: { kind: 'strong', code: 'H0430' },
+          language: 'hebrew',
+          original: 'אֱלֹהִים',
+          transliteration: 'Elohim',
+          gloss: 'Dieu',
+        },
+      ])
+      await pendingEntries
+      await flushQueryUpdates()
+    })
+
+    expect(renderer.root.find(node => String(node.type) === 'StrongCard')).toBeDefined()
+  })
+
+  it('shows the Strong verse while its optional BHG enrichment is still loading', async () => {
+    let resolveEnrichment: (value: ReturnType<typeof makeAvailableVerse>) => void = () => undefined
+    const pendingEnrichment = new Promise<ReturnType<typeof makeAvailableVerse>>(resolve => {
+      resolveEnrichment = resolve
+    })
+    const baseVerse = makeAvailableVerse('Verset Strong immédiat')
+    mockLoadVerse.mockResolvedValueOnce(baseVerse)
+    mockEnrichVerse.mockReturnValueOnce(pendingEnrichment)
+
+    await act(async () => {
+      renderer = create(renderCard(1))
+      await flushQueryUpdates()
+    })
+    await act(async () => {
+      renderer.update(renderCard(1))
+      await flushQueryUpdates()
+    })
+
+    expect(JSON.stringify(renderer.toJSON())).toContain('Verset Strong immédiat')
+
+    await act(async () => {
+      resolveEnrichment(baseVerse)
+      await pendingEnrichment
+      await flushQueryUpdates()
+    })
+  })
+
+  it('does not duplicate the selected Strong Bible below the header', async () => {
+    mockLoadVerse.mockResolvedValueOnce(makeAvailableVerse('Verset'))
+
+    await act(async () => {
+      renderer = create(renderCard(1))
+      await flushQueryUpdates()
+    })
+
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('Strong fourni par DBY')
+  })
+
+  it('wraps the verse at the Bible font size and caps its vertical scroll area', async () => {
+    mockLoadVerse.mockResolvedValueOnce(makeAvailableVerse('Un verset très long'))
+
+    await act(async () => {
+      renderer = create(renderCard(1))
+      await flushQueryUpdates()
+    })
+    await act(async () => {
+      renderer.update(renderCard(1))
+      await flushQueryUpdates()
+    })
+
+    const content = renderer.root.findByProps({ testID: 'resource-modal-content' })
+    act(() => content.props.onLayout({ nativeEvent: { layout: { height: 800 } } }))
+
+    const verseScroll = renderer.root.findByProps({ testID: 'resource-verse-scroll' })
+    expect(verseScroll.props.horizontal).toBeUndefined()
+    expect(verseScroll.props.showsVerticalScrollIndicator).toBe(false)
+    expect(verseScroll.props.style).toEqual({ maxHeight: 320 })
+    expect(renderer.root.findByProps({ testID: 'resource-verse-text' }).props).toEqual(
+      expect.objectContaining({ className: expect.stringContaining('flex-[1] flex-row flex-wrap') })
+    )
+    const renderedVerse = renderer.root.find(
+      node => String(node.type) === 'CanonicalStrongVerseText'
+    )
+    expect(renderedVerse.props.textStyle).toEqual({
+      fontSize: 20.9,
+      lineHeight: 37,
+    })
+  })
+
+  it('sizes and snaps web cards using the reader width, including after resizing', async () => {
+    const platform = jest.replaceProperty(Platform, 'OS', 'web')
+    const previousRequest = globalThis.requestAnimationFrame
+    const previousCancel = globalThis.cancelAnimationFrame
+    Object.assign(globalThis, {
+      requestAnimationFrame: jest.fn(() => 1),
+      cancelAnimationFrame: jest.fn(),
+    })
+    try {
+      mockLoadVerse.mockResolvedValueOnce(makeAvailableVerse('Verset'))
+      await act(async () => {
+        renderer = create(renderCard(1))
+        await flushQueryUpdates()
+      })
+      await act(async () => {
+        renderer.update(renderCard(1))
+        await flushQueryUpdates()
+      })
+      const content = renderer.root.findByProps({ testID: 'resource-modal-content' })
+      const carousel = () => renderer.root.find(node => String(node.type) === 'FlatList')
+      act(() => content.props.onLayout({ nativeEvent: { layout: { width: 500, height: 800 } } }))
+      expect(carousel().props.getItemLayout(undefined, 2)).toEqual({
+        length: 260,
+        offset: 520,
+        index: 2,
+      })
+      expect(carousel().props.contentContainerStyle.paddingBottom).toBe(20)
+      act(() => content.props.onLayout({ nativeEvent: { layout: { width: 220, height: 800 } } }))
+      expect(carousel().props.getItemLayout(undefined, 2)).toEqual({
+        length: 190,
+        offset: 380,
+        index: 2,
+      })
+      act(() => renderer.unmount())
+    } finally {
+      platform.restore()
+      Object.assign(globalThis, {
+        requestAnimationFrame: previousRequest,
+        cancelAnimationFrame: previousCancel,
+      })
+    }
+  })
+
+  it('passes the contextual word and morphology to the ResourceModal Strong card', async () => {
+    mockLoadVerse.mockResolvedValueOnce(
+      makeAvailableVerse('Dieu créa', [
+        {
+          ordinal: 0,
+          startOffset: 0,
+          length: 4,
+          identities: [{ kind: 'strong', code: 'H0430' }],
+          morphologies: [
+            {
+              identity: { kind: 'strong', code: 'H0430' },
+              codes: ['HNcmpa'],
+            },
+          ],
+        },
+      ])
+    )
+
+    await act(async () => {
+      renderer = create(renderCard(1))
+      await flushQueryUpdates()
+    })
+    await act(async () => {
+      renderer.update(renderCard(1))
+      await flushQueryUpdates()
+    })
+
+    const strongCard = renderer.root.find(node => String(node.type) === 'StrongCard')
+    expect(strongCard.props).toEqual(
+      expect.objectContaining({
+        strongVerseContext: {
+          bibleVersion: 'DBY',
+          strongBibleVersionId: 'DBY',
+          book: 1,
+          bibleChapter: 1,
+          bibleVerse: 1,
+          clickedWord: 'Dieu',
+          morphologyCodes: ['HNcmpa'],
+        },
+      })
+    )
+  })
+
+  it('renders Strong cards in the horizontally snapping resource area', async () => {
+    mockLoadVerse.mockResolvedValueOnce(
+      makeAvailableVerse('Dieu', [
+        {
+          ordinal: 0,
+          startOffset: 0,
+          length: 4,
+          identities: [{ kind: 'strong', code: 'H0430' }],
+        },
+      ])
+    )
+
+    await act(async () => {
+      renderer = create(renderCard(1, jest.fn(), jest.fn(), 'BFC'))
+      await flushQueryUpdates()
+    })
+    await act(async () => {
+      renderer.update(renderCard(1, jest.fn(), jest.fn(), 'BFC'))
+      await flushQueryUpdates()
+    })
+
+    const cardsList = renderer.root.find(
+      node => String(node.type) === 'FlatList' && node.props.snapToInterval === 74
+    )
+    expect(cardsList.props).toEqual(
+      expect.objectContaining({ initialNumToRender: 20, maxToRenderPerBatch: 20, windowSize: 3 })
+    )
+    expect(renderer.root.find(node => String(node.type) === 'StrongCard')).toBeDefined()
+  })
+
+  it('renders repeated Strong words as distinct cards with occurrence morphology', async () => {
+    mockLoadVerse.mockResolvedValueOnce(
+      makeAvailableVerse('Dieu Dieu', [
+        {
+          ordinal: 0,
+          startOffset: 0,
+          length: 4,
+          identities: [{ kind: 'strong', code: 'H0430' }],
+          morphologies: [{ identity: { kind: 'strong', code: 'H0430' }, codes: ['HNcmpa'] }],
+        },
+        {
+          ordinal: 1,
+          startOffset: 5,
+          length: 4,
+          identities: [{ kind: 'strong', code: 'H0430' }],
+          morphologies: [{ identity: { kind: 'strong', code: 'H0430' }, codes: ['HVqp3ms'] }],
+        },
+      ])
+    )
+
+    await act(async () => {
+      renderer = create(renderCard(1))
+      await flushQueryUpdates()
+    })
+    await act(async () => {
+      renderer.update(renderCard(1))
+      await flushQueryUpdates()
+    })
+
+    const strongCards = renderer.root.findAll(node => String(node.type) === 'StrongCard')
+    expect(strongCards).toHaveLength(2)
+    expect(strongCards.map(card => card.props.strongVerseContext.morphologyCodes)).toEqual([
+      ['HNcmpa'],
+      ['HVqp3ms'],
+    ])
+  })
+
+  it('scrolls the horizontal cards list to the tapped verse occurrence', async () => {
+    mockLoadVerse.mockResolvedValueOnce(
+      makeAvailableVerse('Dieu Dieu', [
+        {
+          ordinal: 0,
+          startOffset: 0,
+          length: 4,
+          identities: [{ kind: 'strong', code: 'H0430' }],
+        },
+        {
+          ordinal: 1,
+          startOffset: 5,
+          length: 4,
+          identities: [{ kind: 'strong', code: 'H0430' }],
+        },
+      ])
+    )
+
+    await act(async () => {
+      renderer = create(renderCard(1))
+      await flushQueryUpdates()
+    })
+    await act(async () => {
+      renderer.update(renderCard(1))
+      await flushQueryUpdates()
+    })
+    mockScrollToIndex.mockClear()
+
+    const provider = renderer.root.find(
+      node => String(node.type) === 'StrongResourceScrollProvider'
+    )
+    act(() => provider.props.value.scrollToStrongCard('430', 1))
+
+    expect(mockScrollToIndex).toHaveBeenCalledWith({ index: 1, animated: true })
+  })
+
+  it('provides fixed card geometry and scrolls directly to a distant tapped occurrence', async () => {
+    mockLoadVerse.mockResolvedValueOnce(
+      makeAvailableVerse(
+        'Dieu '.repeat(10).trim(),
+        Array.from({ length: 10 }, (_, ordinal) => ({
+          ordinal,
+          startOffset: ordinal * 5,
+          length: 4,
+          identities: [{ kind: 'strong' as const, code: 'H0430' }],
+        }))
+      )
+    )
+
+    await act(async () => {
+      renderer = create(renderCard(1))
+      await flushQueryUpdates()
+    })
+    await act(async () => {
+      renderer.update(renderCard(1))
+      await flushQueryUpdates()
+    })
+
+    const cardsList = renderer.root.find(node => String(node.type) === 'FlatList')
+    const provider = renderer.root.find(
+      node => String(node.type) === 'StrongResourceScrollProvider'
+    )
+    mockScrollToIndex.mockClear()
+    act(() => provider.props.value.scrollToStrongCard('430', 9))
+
+    expect(cardsList.props.getItemLayout?.(undefined, 9)).toEqual({
+      index: 9,
+      length: 74,
+      offset: 666,
+    })
+    expect(mockScrollToIndex).toHaveBeenCalledWith({ index: 9, animated: true })
+  })
+
+  it('scrolls the wrapped verse vertically to the occurrence selected from the Strong cards', async () => {
+    mockLoadVerse.mockResolvedValueOnce(
+      makeAvailableVerse('Dieu Dieu', [
+        {
+          ordinal: 0,
+          startOffset: 0,
+          length: 4,
+          identities: [{ kind: 'strong', code: 'H0430' }],
+        },
+        {
+          ordinal: 1,
+          startOffset: 5,
+          length: 4,
+          identities: [{ kind: 'strong', code: 'H0430' }],
+        },
+      ])
+    )
+
+    await act(async () => {
+      renderer = create(renderCard(1))
+      await flushQueryUpdates()
+    })
+    await act(async () => {
+      renderer.update(renderCard(1))
+      await flushQueryUpdates()
+    })
+
+    const provider = renderer.root.find(
+      node => String(node.type) === 'StrongResourceScrollProvider'
+    )
+    const cardsScrollView = renderer.root.find(
+      node => String(node.type) === 'FlatList' && node.props.snapToInterval === 74
+    )
+    act(() => provider.props.value.registerStrongWordLayout(1, 180))
+    mockScrollTo.mockClear()
+    act(() => cardsScrollView.props.onScroll({ nativeEvent: { contentOffset: { x: 74 } } }))
+
+    expect(mockScrollTo).toHaveBeenCalledWith({ y: 180, animated: true })
+  })
+
+  it('requests the contextual BHG lexicon source with the tab interlinear locale', async () => {
+    mockLoadVerse.mockResolvedValueOnce(makeAvailableVerse('Verset'))
+
+    await act(async () => {
+      renderer = create(renderCard(1, jest.fn(), jest.fn(), 'BHG'))
+      await flushQueryUpdates()
+    })
+
+    expect(mockLoadVerse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentVersionId: 'BHG',
+        preferredInterlinearLocale: 'fr',
+      })
+    )
+  })
+
+  it('offers the Strong Bible selector when no Strong Bible is available', async () => {
+    const openStrongBibleSourceSheet = jest.fn()
+    mockLoadVerse.mockResolvedValueOnce({ status: 'unavailable', attempts: [] })
+
+    await act(async () => {
+      renderer = create(renderCard(1, openStrongBibleSourceSheet))
+      await flushQueryUpdates()
+    })
+    await act(async () => {
+      renderer.update(renderCard(1, openStrongBibleSourceSheet))
+      await flushQueryUpdates()
+    })
+
+    expect(renderer.root.findByProps({ message: 'strongSource.unavailableMessage' })).toBeDefined()
+    expect(renderer.root.findByProps({ onPress: openStrongBibleSourceSheet }).props.children).toBe(
+      'strongSource.chooseAction'
+    )
+
+    act(() => {
+      renderer.root.findByProps({ onPress: openStrongBibleSourceSheet }).props.onPress()
+    })
+    expect(openStrongBibleSourceSheet).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows an empty lexicon state when the verse is outside the Strong index', async () => {
+    const openStrongBibleSourceSheet = jest.fn()
+    mockLoadVerse.mockResolvedValueOnce({
+      status: 'missing-location',
+      provenance: { versionId: 'LSG', datasetId: 'strong-lsg', isFallback: false },
+    })
+
+    await act(async () => {
+      renderer = create(renderCard(6, openStrongBibleSourceSheet))
+      await flushQueryUpdates()
+    })
+    await act(async () => {
+      renderer.update(renderCard(6, openStrongBibleSourceSheet))
+      await flushQueryUpdates()
+    })
+
+    expect(
+      renderer.root.findByProps({ message: 'resource.strong.noLexiconForVerse' })
+    ).toBeDefined()
+    expect(openStrongBibleSourceSheet).not.toHaveBeenCalled()
+  })
+
+  it('keeps the displayed Strong verse when the next verse cannot be loaded', async () => {
+    const onStrongBibleProvenanceChange = jest.fn()
+    mockLoadVerse
+      .mockResolvedValueOnce(makeAvailableVerse('Verset conservé'))
+      .mockResolvedValueOnce({ status: 'unavailable', attempts: [] })
+
+    await act(async () => {
+      renderer = create(renderCard(1, jest.fn(), onStrongBibleProvenanceChange))
+      await flushQueryUpdates()
+    })
+    await act(async () => {
+      renderer.update(renderCard(1, jest.fn(), onStrongBibleProvenanceChange))
+      await flushQueryUpdates()
+    })
+    await act(async () => {
+      renderer.update(renderCard(2, jest.fn(), onStrongBibleProvenanceChange))
+      await flushQueryUpdates()
+    })
+
+    const failedTree = JSON.stringify(renderer.toJSON())
+    expect(failedTree).toContain('Verset conservé')
+    expect(failedTree).not.toContain('"type":"Empty"')
+    expect(onStrongBibleProvenanceChange).toHaveBeenCalledWith(
+      expect.objectContaining({ versionId: 'DBY' })
+    )
+    expect(onStrongBibleProvenanceChange).not.toHaveBeenCalledWith(null)
+  })
+})

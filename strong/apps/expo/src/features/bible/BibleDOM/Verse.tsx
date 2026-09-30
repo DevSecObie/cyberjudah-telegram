@@ -1,0 +1,912 @@
+import React, { useEffect } from 'react'
+import { styled } from 'goober'
+
+import {
+  NAVIGATE_TO_BIBLE_VERSE_DETAIL,
+  NAVIGATE_TO_VERSE_STUDY_RELATIONS,
+  OPEN_BOOKMARK_MODAL,
+  OPEN_CANONICAL_BIBLE_NOTE,
+  OPEN_CROSS_VERSION_MODAL,
+  OPEN_VERSE_TAGS_MODAL,
+} from './dispatch'
+import VersionAnnotationIndicator, { CrossVersionAnnotation } from './VersionAnnotationIndicator'
+
+import { scaleFontSize } from './scaleFontSize'
+import { scaleLineHeight } from './scaleLineHeight'
+import BookmarkIcon from './BookmarkIcon'
+import RelationsCount from './RelationsCount'
+import RelationsText from './RelationsText'
+import TagsIndicator from './TagsIndicator'
+import { RootState } from '~redux/modules/reducer'
+import { useDispatch } from './DispatchProvider'
+import { Bookmark, SelectedCode, StudyNavigateBibleType, Verse as TVerse } from '~common/types'
+import { RootStyles, TaggedVerse, VerseRelationItem } from './BibleDOMWrapper'
+import { ParallelDisplayMode } from 'src/state/tabs'
+import { BibleStrongRef } from './BibleStrongReference'
+import { verseToRedWords } from './verseToRedWords'
+import { ContainerText, resolveHighlightInfo } from './ContainerText'
+import { convertHex } from './convertHex'
+import { HIGHLIGHT_BACKGROUND_OPACITY, getContrastTextColor } from '~helpers/highlightUtils'
+import { isDarkTheme } from './utils'
+// Keep optional verse renderers in the main DOM bundle: EAS Update stores DOM assets under
+// hashed flat paths, so React.lazy chunks cannot be resolved by the production WebView.
+import StructuredInterlinearVerse from './StructuredInterlinearVerse'
+import ReverseInterlinearVerse from './ReverseInterlinearVerse'
+import VerseTags from './VerseTags'
+import { BibleError } from '~helpers/bibleErrors'
+import { useTranslations } from './TranslationsContext'
+import {
+  getRelationItemNavigationActions,
+  getVerseStudyRelationsPayload,
+} from './relationDisplayActions'
+import {
+  buildCanonicalVersePresentation,
+  shouldInsertCanonicalParagraphBreak,
+  shouldInsertCanonicalBlockBreakBeforeVerse,
+  type CanonicalVersePresentationNode,
+} from './canonicalVersePresentation'
+import { getCanonicalBibleNoteLabel, type CanonicalBibleNote } from '~helpers/canonicalBibleNotes'
+import { isInterlinearModeEnabled, type InterlinearMode } from '~helpers/interlinearDisplayMode'
+import { shouldHighlightOnlyVerseNumber } from './verseRenderingModel'
+import { getBibleTextFontSize } from './verseTypography'
+import type { ResolvedPassageMedia } from '../passageMedia'
+import PassageMediaThumbnails from './PassageMediaThumbnails'
+import type { PassageMediaGallerySection } from './passageMediaGallery'
+
+const VerseText = styled('span')<RootStyles & { isParallel?: boolean }>(
+  ({ isParallel, settings: { fontSizeScale, lineHeight } }) => ({
+    fontSize: getBibleTextFontSize(Boolean(isParallel), fontSizeScale),
+    lineHeight: scaleLineHeight(isParallel ? 26 : 32, lineHeight, fontSizeScale),
+    '@media (min-width: 768px)': {
+      fontSize: getBibleTextFontSize(false, fontSizeScale),
+      lineHeight: scaleLineHeight(32, lineHeight, fontSizeScale),
+    },
+    whiteSpace: 'pre-line',
+  })
+)
+
+const NumberText = styled<
+  RootStyles & { isFocused?: boolean; highlightBg?: string; highlightColor?: string }
+>('span')(({ isFocused, highlightBg, highlightColor, settings: { fontSizeScale } }) => ({
+  fontSize: scaleFontSize(14, fontSizeScale),
+  display: 'inline-flex',
+  marginRight: '4px',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '2px 2px',
+  minWidth: '18px',
+  ...(highlightBg && {
+    backgroundColor: highlightBg,
+    borderRadius: '3px',
+    ...(highlightColor && { color: highlightColor }),
+  }),
+}))
+
+// harness-allow-styled: this renders an HTML button inside the Bible DOM WebView,
+// where React Native UI primitives cannot be used.
+const CanonicalNoteButton = styled('button')<RootStyles & { isDisabled?: boolean }>(
+  ({ isDisabled, settings: { theme, colors, fontSizeScale } }) => ({
+    appearance: 'none',
+    WebkitAppearance: 'none',
+    position: 'relative',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: scaleFontSize(8, fontSizeScale),
+    padding: 0,
+    marginInline: '2px',
+    border: 0,
+    background: 'transparent',
+    color: colors[theme].primary,
+    fontFamily: 'Georgia, serif',
+    fontSize: scaleFontSize(11, fontSizeScale),
+    fontStyle: 'italic',
+    fontWeight: 700,
+    lineHeight: 1,
+    verticalAlign: 'super',
+    cursor: 'pointer',
+    pointerEvents: isDisabled ? 'none' : 'auto',
+    opacity: isDisabled ? 0.65 : 1,
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      inset: '-6px',
+    },
+    '&::after': {
+      content: 'attr(data-note-label)',
+    },
+    '&:active': {
+      opacity: 0.55,
+    },
+  })
+)
+
+const Wrapper = styled('span')<
+  RootStyles & {
+    isSelectedMode?: boolean
+    isSelected?: boolean
+    fadePosition?: 'top' | 'bottom'
+  }
+>(({ settings: { textDisplay, theme, colors }, isSelectedMode, isSelected, fadePosition }) => ({
+  display: textDisplay,
+  transition: 'opacity 0.3s ease',
+  position: 'relative',
+  zIndex: 1,
+  ...(textDisplay === 'block'
+    ? {
+        marginBottom: '5px',
+        contentVisibility: 'auto',
+        containIntrinsicSize: 'auto 80px',
+      }
+    : {}),
+  ...(isSelectedMode && !isSelected
+    ? {
+        opacity: 0.3,
+      }
+    : {}),
+  ...(fadePosition
+    ? {
+        pointerEvents: 'none',
+        filter: 'blur(4px)',
+      }
+    : {}),
+}))
+
+const ParallelError = styled('div')<RootStyles>(
+  ({ settings: { theme, colors, fontFamily, fontSizeScale } }) => ({
+    fontFamily,
+    fontSize: scaleFontSize(13, fontSizeScale),
+    color: colors[theme].darkGrey,
+    padding: '8px',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    lineHeight: 1.4,
+  })
+)
+
+// Version title for vertical display mode (matches header VersionTitle style)
+const VerticalVersionTitle = styled('div')<RootStyles>(
+  ({ settings: { fontSizeScale, fontFamily, colors, theme } }) => ({
+    fontFamily,
+    fontWeight: 'bold',
+    fontSize: scaleFontSize(14, fontSizeScale),
+    display: 'inline-block',
+    color: colors[theme].default,
+    backgroundColor: colors[theme].reverse,
+    boxShadow: isDarkTheme(theme)
+      ? `0 0 10px 0 rgba(255, 255, 255, 0.1)`
+      : `0 0 10px 0 rgba(0, 0, 0, 0.2)`,
+    borderRadius: '8px',
+    paddingInlineEnd: '8px',
+    paddingInlineStart: '8px',
+    paddingBlock: '4px',
+    marginTop: '8px',
+    marginBottom: '4px',
+    cursor: 'pointer',
+    '&:active': {
+      opacity: 0.6,
+    },
+  })
+)
+
+// Separator between verse groups in vertical mode
+const VerseGroupSeparator = styled('div')<RootStyles>(({ settings: { theme, colors } }) => ({
+  height: '1px',
+  backgroundColor: colors[theme].border,
+  marginTop: '40px',
+  marginBottom: '40px',
+}))
+
+const DARK_THEMES = new Set(['dark', 'black', 'mauve', 'night'])
+
+const getRedColor = (settings: RootState['user']['bible']['settings']): string => {
+  return DARK_THEMES.has(settings.theme) ? '#FF6B6B' : '#CC0000'
+}
+
+/**
+ * Resolves a BibleError to its user-facing translation string.
+ */
+function getParallelErrorMessage(
+  error: BibleError,
+  translations: ReturnType<typeof useTranslations>
+): string {
+  switch (error.type) {
+    case 'BIBLE_NOT_FOUND':
+      return translations.parallelVersionNotFound
+    case 'CHAPTER_NOT_FOUND':
+      return translations.parallelChapterNotFound
+    default:
+      return translations.parallelLoadError
+  }
+}
+
+const getVerseText = ({
+  verse,
+  version,
+  annotationMode,
+  isParallel,
+  selectedCode,
+  settings,
+  redWords,
+  openCanonicalBibleNoteLabel,
+  onOpenCanonicalNote,
+}: {
+  verse: TVerse
+  version: string
+  annotationMode: boolean
+  isParallel?: boolean
+  selectedCode: SelectedCode | null
+  settings: RootState['user']['bible']['settings']
+  redWords?: Record<string, { start: number; end: number }[]> | null
+  openCanonicalBibleNoteLabel: string
+  onOpenCanonicalNote: (note: CanonicalBibleNote) => void
+}): (string | JSX.Element)[] => {
+  const verseKey = `${verse.Livre}-${verse.Chapitre}-${verse.Verset}`
+
+  if (verse.TextRevision) {
+    const hasVisibleStrong = !annotationMode && Boolean(verse.StrongSpans)
+    const redColor = getRedColor(settings)
+    const presentation = buildCanonicalVersePresentation({
+      text: verse.Texte,
+      startTags: verse.StartTags,
+      layout: verse.Layout,
+      notes: verse.Notes,
+      strongSpans: hasVisibleStrong ? verse.StrongSpans : [],
+      redWordRanges: !annotationMode && !hasVisibleStrong ? (redWords?.[verseKey] ?? []) : [],
+    })
+    return renderCanonicalPresentation(presentation, {
+      book: verse.Livre,
+      version,
+      chapter: verse.Chapitre,
+      verse: verse.Verset,
+      isParallel,
+      isDisabled: annotationMode,
+      selectedCode,
+      settings,
+      redColor,
+      openCanonicalBibleNoteLabel,
+      onOpenCanonicalNote,
+    })
+  }
+
+  // Red words - only in non-annotation mode, when data exists
+  if (!annotationMode && redWords && redWords[verseKey]) {
+    const redColor = getRedColor(settings)
+    return verseToRedWords(verse.Texte, redWords[verseKey], redColor)
+  }
+
+  return [verse.Texte]
+}
+
+const renderCanonicalPresentation = (
+  nodes: CanonicalVersePresentationNode[],
+  options: {
+    book: string | number
+    version: string
+    chapter: string | number
+    verse: string | number
+    isParallel?: boolean
+    isDisabled: boolean
+    selectedCode: SelectedCode | null
+    settings: RootState['user']['bible']['settings']
+    redColor: string
+    openCanonicalBibleNoteLabel: string
+    onOpenCanonicalNote: (note: CanonicalBibleNote) => void
+  },
+  keyPrefix = 'canonical'
+): (string | JSX.Element)[] =>
+  nodes.map((node, index) => {
+    const key = `${keyPrefix}-${index}`
+    if (node.kind === 'text') return node.text
+    if (node.kind === 'strong-reference') {
+      return (
+        <BibleStrongRef
+          key={key}
+          book={options.book}
+          version={options.version}
+          identities={node.identities}
+          morphologies={node.morphologies}
+          occurrenceId={`${options.book}:${options.chapter}:${options.verse}:${options.version}:${key}`}
+          word={node.word}
+          chapter={options.chapter}
+          verse={options.verse}
+          isParallel={options.isParallel}
+          isDisabled={options.isDisabled}
+          selectedCode={options.selectedCode}
+          settings={options.settings}
+        />
+      )
+    }
+    if (node.kind === 'paragraph-start') {
+      if (
+        node.offset === 0 ||
+        !shouldInsertCanonicalParagraphBreak({
+          offset: node.offset,
+          verse: options.verse,
+          textDisplay: options.settings.textDisplay,
+        })
+      ) {
+        return <React.Fragment key={key} />
+      }
+      return <br key={key} />
+    }
+    if (node.kind === 'line-start') {
+      return (
+        <React.Fragment key={key}>
+          {node.offset > 0 && <br />}
+          <span aria-hidden style={{ display: 'inline-block', width: '0.75em' }} />
+        </React.Fragment>
+      )
+    }
+    if (node.kind === 'note-reference') {
+      const noteLabel = getCanonicalBibleNoteLabel(node.note.markup) ?? 'i'
+      return (
+        <CanonicalNoteButton
+          key={key}
+          settings={options.settings}
+          type="button"
+          isDisabled={options.isDisabled}
+          disabled={options.isDisabled}
+          aria-hidden={options.isDisabled}
+          aria-label={options.isDisabled ? undefined : options.openCanonicalBibleNoteLabel}
+          data-ignore-verse-touch
+          data-note-label={noteLabel}
+          onClick={
+            options.isDisabled
+              ? undefined
+              : event => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  options.onOpenCanonicalNote(node.note)
+                }
+          }
+        />
+      )
+    }
+
+    const children = renderCanonicalPresentation(node.children, options, key)
+    switch (node.tag.toLocaleLowerCase()) {
+      case 'p':
+        return <React.Fragment key={key}>{children}</React.Fragment>
+      case 'lg':
+      case 'list':
+        return (
+          <span key={key} data-canonical-poetry-group style={{ display: 'contents' }}>
+            {children}
+          </span>
+        )
+      case 'l':
+      case 'item':
+        return (
+          <span key={key} data-canonical-poetry-line style={{ display: 'contents' }}>
+            {children}
+          </span>
+        )
+      case 'i':
+        return node.attributes?.type === 'bold' ? (
+          <strong key={key}>{children}</strong>
+        ) : (
+          <em key={key}>{children}</em>
+        )
+      case 'sup':
+        return <sup key={key}>{children}</sup>
+      case 'divinename':
+      case 'small-caps':
+        return (
+          <span key={key} style={{ fontVariantCaps: 'small-caps' }}>
+            {children}
+          </span>
+        )
+      case 'red':
+      case 'red-word':
+        return (
+          <span key={key} style={{ color: options.redColor }}>
+            {children}
+          </span>
+        )
+      case 'span':
+        return node.attributes?.type === 'x-p' || node.attributes?.['data-osis-tag'] === 'lb' ? (
+          <br key={key} />
+        ) : (
+          <span key={key}>{children}</span>
+        )
+      default:
+        return <span key={key}>{children}</span>
+    }
+  })
+
+// Keep background highlights off the verse text when word annotations or
+// the translated Strong presentation add their own inline decorations.
+const getNumberHighlight = ({
+  highlightedColor,
+  hasWordAnnotations,
+  isStrongModeVerse,
+  settings,
+}: {
+  highlightedColor?: keyof RootStyles['settings']['colors'][keyof RootStyles['settings']['colors']]
+  hasWordAnnotations?: boolean
+  isStrongModeVerse?: boolean
+  settings: RootState['user']['bible']['settings']
+}): { show: boolean; bg?: string; color?: string } => {
+  if (
+    !highlightedColor ||
+    !shouldHighlightOnlyVerseNumber({ hasWordAnnotations, isStrongModeVerse })
+  ) {
+    return { show: false }
+  }
+
+  const { theme, colors, customHighlightColors, defaultColorTypes } = settings
+  const highlightInfo = resolveHighlightInfo(
+    highlightedColor,
+    colors[theme],
+    customHighlightColors,
+    defaultColorTypes || {}
+  )
+
+  if (highlightInfo.type !== 'background' || highlightInfo.hex === 'transparent') {
+    return { show: false }
+  }
+
+  return {
+    show: true,
+    bg: convertHex(highlightInfo.hex, HIGHLIGHT_BACKGROUND_OPACITY),
+    color: getContrastTextColor(highlightInfo.hex, isDarkTheme(theme)),
+  }
+}
+
+interface Props {
+  verse: TVerse
+  isSelectedMode: boolean
+  isSelectionMode: StudyNavigateBibleType | undefined
+  settings: RootState['user']['bible']['settings']
+  parallelVerse?: {
+    version: string
+    verse: TVerse
+    error?: BibleError
+    interlinearMode?: InterlinearMode
+  }[]
+  isSelected: boolean
+  highlightedColor?: keyof RootStyles['settings']['colors'][keyof RootStyles['settings']['colors']]
+  annotationNotesCount?: number
+  isVerseToScroll: boolean
+  relationCount?: number
+  relationItems?: VerseRelationItem[]
+  version: string
+  interlinearMode?: InterlinearMode
+  isHebreu: boolean
+  selectedCode: SelectedCode | null
+  isFocused?: boolean
+  isParallel?: boolean
+  isParallelVerse?: boolean
+  tag: TaggedVerse | undefined
+  bookmark?: Bookmark
+  fadePosition?: 'top' | 'bottom'
+  hasWordAnnotations?: boolean
+  hasAnnotationNotes?: boolean
+  otherVersionAnnotations?: CrossVersionAnnotation[]
+  // Prop for touch visual feedback (managed by parent via useTouchSelection)
+  isTouched?: boolean
+  // Prop to dim decorations in annotation mode
+  annotationMode?: boolean
+  // Prop to show tags indicator with count
+  taggedItemsCount?: number
+  // Prop indicating if this verse has non-highlight tags (for conditional display)
+  hasNonHighlightTags?: boolean
+  // Number of columns for parallel verse display (1 = single version, 2+ = parallel)
+  columnCount?: number
+  // Width of each column in parallel mode (percentage: 75 or 50)
+  columnWidth?: number
+  // Display mode for parallel verses (horizontal = side by side, vertical = stacked)
+  parallelDisplayMode?: ParallelDisplayMode
+  // Red words data
+  redWords?: Record<string, { start: number; end: number }[]> | null
+  passageMedia?: ResolvedPassageMedia[]
+  passageMediaGallerySections: PassageMediaGallerySection[]
+}
+
+const Verse = ({
+  verse,
+  parallelVerse,
+  isSelected,
+  highlightedColor,
+  annotationNotesCount,
+  settings,
+  isVerseToScroll,
+  relationCount,
+  relationItems,
+  isSelectionMode,
+  version,
+  interlinearMode,
+  isHebreu,
+  selectedCode,
+  isSelectedMode,
+  isFocused,
+  isParallel,
+  isParallelVerse,
+  tag,
+  bookmark,
+  fadePosition,
+  hasWordAnnotations,
+  otherVersionAnnotations,
+  isTouched = false,
+  annotationMode = false,
+  taggedItemsCount = 0,
+  columnCount = 1,
+  columnWidth = 75,
+  parallelDisplayMode = 'horizontal',
+  redWords,
+  passageMedia,
+  passageMediaGallerySections,
+}: Props) => {
+  const dispatch = useDispatch()
+  const translations = useTranslations()
+
+  const navigateToVerseTags = () => {
+    const { Livre, Chapitre, Verset } = verse
+    dispatch({
+      type: OPEN_VERSE_TAGS_MODAL,
+      payload: `${Livre}-${Chapitre}-${Verset}`,
+    })
+  }
+
+  const navigateToBibleVerseDetail = (additionnalParams = {}) => {
+    dispatch({
+      type: NAVIGATE_TO_BIBLE_VERSE_DETAIL,
+      params: {
+        ...additionnalParams,
+        verse,
+      },
+    })
+  }
+
+  const openBookmarkModal = () => {
+    if (bookmark) {
+      dispatch({
+        type: OPEN_BOOKMARK_MODAL,
+        payload: bookmark,
+      })
+    }
+  }
+
+  const navigateToVerseStudyRelations = (relationItem?: VerseRelationItem) => {
+    const { Livre, Chapitre, Verset } = verse
+    const verseKey = `${Livre}-${Chapitre}-${Verset}`
+    dispatch({
+      type: NAVIGATE_TO_VERSE_STUDY_RELATIONS,
+      payload: getVerseStudyRelationsPayload(verseKey, relationItem),
+    })
+  }
+
+  const navigateToRelationItem = (item: VerseRelationItem) => {
+    const { Livre, Chapitre, Verset } = verse
+    const verseKey = `${Livre}-${Chapitre}-${Verset}`
+    getRelationItemNavigationActions(verseKey, item).forEach(action => {
+      dispatch(action)
+    })
+  }
+
+  const openCrossVersionModal = () => {
+    if (otherVersionAnnotations && otherVersionAnnotations.length > 0) {
+      const { Livre, Chapitre, Verset } = verse
+      dispatch({
+        type: OPEN_CROSS_VERSION_MODAL,
+        payload: {
+          verseKey: `${Livre}-${Chapitre}-${Verset}`,
+          versions: otherVersionAnnotations,
+        },
+      })
+    }
+  }
+
+  const isStrongModeVerse = Boolean(verse.StrongSpans)
+  const isStrongVersion = isStrongModeVerse || Boolean(verse.ReverseInterlinearSpans)
+
+  const text = getVerseText({
+    verse,
+    version,
+    annotationMode,
+    isParallel,
+    selectedCode,
+    settings,
+    redWords,
+    openCanonicalBibleNoteLabel: translations.openCanonicalBibleNote,
+    onOpenCanonicalNote: note => {
+      dispatch({
+        type: OPEN_CANONICAL_BIBLE_NOTE,
+        payload: note,
+      })
+    },
+  })
+
+  const paragraphBreakBeforeVerse =
+    Boolean(verse.TextRevision) &&
+    shouldInsertCanonicalBlockBreakBeforeVerse({
+      layout: verse.Layout,
+      verse: verse.Verset,
+      textDisplay: settings.textDisplay,
+    })
+
+  const verseKey = `${verse.Livre}-${verse.Chapitre}-${verse.Verset}`
+
+  const numberHighlight = getNumberHighlight({
+    highlightedColor,
+    hasWordAnnotations,
+    isStrongModeVerse,
+    settings,
+  })
+
+  // Notify the annotation highlight system that DOM layout may have changed.
+  // This fires per-verse rather than once at the parent level because each verse
+  // independently determines when its Strong's content renders (based on its own
+  // Texte/Livre/annotationMode). A single parent-level effect would need to track
+  // all verse texts, adding complexity without a clear performance win since the
+  // event is debounced by requestAnimationFrame.
+  useEffect(() => {
+    if (!isStrongVersion) return
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new CustomEvent('layoutChanged'))
+    })
+  }, [isStrongVersion, verse.Livre, verse.Texte, annotationMode])
+
+  if (isParallelVerse && parallelVerse) {
+    // Vertical display mode: stack versions with inline titles, grouped by verse
+    if (parallelDisplayMode === 'vertical') {
+      const navigateToVersion = (versionId: string, index: number) => {
+        dispatch({
+          type: 'NAVIGATE_TO_VERSION',
+          payload: { version: versionId, index },
+        })
+      }
+
+      return (
+        <div>
+          {parallelVerse.map((p, i) => {
+            const isMainVersion = i === 0
+            return (
+              <div key={i}>
+                <VerticalVersionTitle
+                  settings={settings}
+                  onClick={() => navigateToVersion(p.version, i)}
+                >
+                  {p.version}
+                </VerticalVersionTitle>
+                {p.error ? (
+                  <ParallelError settings={settings}>
+                    {getParallelErrorMessage(p.error, translations)}
+                  </ParallelError>
+                ) : p.verse ? (
+                  <Verse
+                    isHebreu={isHebreu}
+                    verse={p.verse}
+                    version={p.version}
+                    interlinearMode={p.interlinearMode}
+                    settings={settings}
+                    isSelected={isSelected}
+                    isSelectedMode={isSelectedMode}
+                    isSelectionMode={isSelectionMode}
+                    highlightedColor={isMainVersion ? highlightedColor : undefined}
+                    annotationNotesCount={isMainVersion ? annotationNotesCount : undefined}
+                    relationCount={isMainVersion ? relationCount : undefined}
+                    relationItems={isMainVersion ? relationItems : undefined}
+                    isVerseToScroll={isMainVersion ? isVerseToScroll : false}
+                    selectedCode={selectedCode}
+                    isFocused={isFocused}
+                    tag={isMainVersion ? tag : undefined}
+                    isTouched={isTouched}
+                    passageMedia={isMainVersion ? passageMedia : undefined}
+                    passageMediaGallerySections={passageMediaGallerySections}
+                  />
+                ) : null}
+              </div>
+            )
+          })}
+          <VerseGroupSeparator settings={settings} />
+        </div>
+      )
+    }
+
+    // Horizontal display mode: side by side columns
+    const divWidth = `calc(${columnWidth}vw - 10px)`
+    const columnStyle = (index: number): React.CSSProperties => ({
+      width: divWidth,
+      transition: 'width 0.4s ease-in-out',
+      flexShrink: 0,
+      scrollSnapAlign: 'start',
+      padding: '5px 5px',
+      paddingLeft: index === 0 ? '0px' : '10px',
+      boxSizing: 'border-box',
+    })
+
+    return (
+      <div
+        style={{
+          display: 'flex',
+          width: divWidth,
+          transition: 'width 0.4s ease-in-out',
+        }}
+      >
+        {parallelVerse.map((p, i) => {
+          const isMainVersion = i === 0
+
+          // Error state: show translated error message
+          if (p.error) {
+            return (
+              <div key={i} style={columnStyle(i)}>
+                <ParallelError settings={settings}>
+                  {getParallelErrorMessage(p.error, translations)}
+                </ParallelError>
+              </div>
+            )
+          }
+
+          // Missing verse: render empty column to preserve layout
+          if (!p.verse) {
+            return <div key={i} style={columnStyle(i)} />
+          }
+
+          return (
+            <div key={i} style={columnStyle(i)}>
+              <Verse
+                isParallel
+                isHebreu={isHebreu}
+                verse={p.verse}
+                version={p.version}
+                interlinearMode={p.interlinearMode}
+                settings={settings}
+                isSelected={isSelected}
+                isSelectedMode={isSelectedMode}
+                isSelectionMode={isSelectionMode}
+                highlightedColor={isMainVersion ? highlightedColor : undefined}
+                annotationNotesCount={isMainVersion ? annotationNotesCount : undefined}
+                relationCount={isMainVersion ? relationCount : undefined}
+                relationItems={isMainVersion ? relationItems : undefined}
+                isVerseToScroll={isMainVersion ? isVerseToScroll : false}
+                selectedCode={selectedCode}
+                isFocused={isFocused}
+                tag={isMainVersion ? tag : undefined}
+                isTouched={isTouched}
+                passageMedia={isMainVersion ? passageMedia : undefined}
+                passageMediaGallerySections={passageMediaGallerySections}
+              />
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {paragraphBreakBeforeVerse && <br />}
+      <Wrapper
+        settings={settings}
+        id={`verset-${verse.Verset}`}
+        isSelectedMode={isSelectedMode}
+        isSelected={isSelected}
+        fadePosition={fadePosition}
+      >
+        <ContainerText
+          isFocused={isFocused}
+          settings={settings}
+          isTouched={isTouched}
+          isSelected={isSelected}
+          isVerseToScroll={isVerseToScroll && Number(verse.Verset) !== 1}
+          highlightedColor={numberHighlight.show ? undefined : highlightedColor}
+        >
+          {(version !== 'BHG' || Number(verse.Verset) !== 0) && (
+            <NumberText
+              isFocused={isFocused}
+              settings={settings}
+              highlightBg={numberHighlight.bg}
+              highlightColor={numberHighlight.color}
+            >
+              {verse.Verset}{' '}
+            </NumberText>
+          )}
+          {bookmark && !isSelectionMode && (
+            <BookmarkIcon
+              settings={settings}
+              color={bookmark.color}
+              onClick={openBookmarkModal}
+              isDisabled={annotationMode}
+            />
+          )}
+          {relationCount &&
+            (settings.relationsDisplay || 'inline') !== 'inline' &&
+            !isSelectionMode && (
+              <RelationsCount
+                settings={settings}
+                onClick={navigateToVerseStudyRelations}
+                count={relationCount}
+                isDisabled={annotationMode}
+              />
+            )}
+          {taggedItemsCount > 0 && settings.tagsDisplay !== 'inline' && !isSelectionMode && (
+            <TagsIndicator
+              count={taggedItemsCount}
+              settings={settings}
+              onClick={navigateToVerseTags}
+              isDisabled={annotationMode}
+            />
+          )}
+
+          <VerseText
+            key={[
+              version,
+              verseKey,
+              annotationMode ? 'annotation' : 'reading',
+              interlinearMode || '',
+              settings.textDisplay,
+              verse.TextRevision || verse.Texte,
+              verse.StrongSpans?.length || 0,
+              verse.ReverseInterlinearSpans?.length || 0,
+              verse.InterlinearTokens?.length || 0,
+              JSON.stringify(redWords?.[verseKey] || []),
+            ].join(':')}
+            isParallel={isParallel}
+            settings={settings}
+            id={`verse-text-${verseKey}`}
+            data-verse-key={verseKey}
+          >
+            {verse.ReverseInterlinearSpans?.length ? (
+              <ReverseInterlinearVerse
+                isParallel={Boolean(isParallel)}
+                settings={settings}
+                verse={verse}
+                version={version}
+                selectedCode={selectedCode}
+              />
+            ) : version === 'BHG' &&
+              isInterlinearModeEnabled(interlinearMode) &&
+              verse.InterlinearTokens?.length ? (
+              <StructuredInterlinearVerse
+                isHebreu={isHebreu}
+                settings={settings}
+                verse={verse}
+                version={version}
+                selectedCode={selectedCode}
+                mode={interlinearMode}
+              />
+            ) : (
+              text
+            )}
+          </VerseText>
+          {passageMedia && (
+            <PassageMediaThumbnails
+              items={passageMedia}
+              gallerySections={passageMediaGallerySections}
+              placement="inline"
+              settings={settings}
+              isParallel={isParallel}
+              isDisabled={annotationMode}
+            />
+          )}
+        </ContainerText>
+        {otherVersionAnnotations && otherVersionAnnotations.length > 0 && !isSelectionMode && (
+          <VersionAnnotationIndicator
+            versions={otherVersionAnnotations}
+            settings={settings}
+            onClick={openCrossVersionModal}
+            isDisabled={annotationMode}
+          />
+        )}
+        {tag && settings.tagsDisplay === 'inline' && (
+          <VerseTags settings={settings} tag={tag} isDisabled={annotationMode} />
+        )}
+        {relationItems &&
+          (settings.relationsDisplay || 'inline') === 'inline' &&
+          !isSelectionMode && (
+            <RelationsText
+              isParallel={isParallel}
+              settings={settings}
+              onClick={navigateToRelationItem}
+              relationItems={relationItems}
+              isDisabled={annotationMode}
+            />
+          )}
+      </Wrapper>
+    </>
+  )
+}
+
+export default Verse

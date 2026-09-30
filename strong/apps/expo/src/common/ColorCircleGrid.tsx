@@ -1,0 +1,141 @@
+import { Platform, TouchableOpacity } from 'react-native'
+import HorizontalControlScrollView from '~common/HorizontalControlScrollView'
+import { useTranslation } from 'react-i18next'
+import Box, { HStack } from '~common/ui/Box'
+import { FeatherIcon } from '~common/ui/Icon'
+import HighlightTypeIndicator from '~common/HighlightTypeIndicator'
+import type { HighlightType } from '~redux/modules/user'
+import { wp } from '~helpers/utils'
+import { COLOR_CIRCLE_MIN_WIDTH } from '~helpers/constants'
+export interface ColorItem {
+  key: string
+  hex: string
+  name?: string
+  type?: HighlightType
+}
+
+interface ColorCircleGridProps {
+  colors: ColorItem[]
+  selectedColor?: string
+  onSelect: (colorKey: string) => void
+  onLongPress?: (colorKey: string) => void
+  circleSize?: number
+  showAddButton?: boolean
+  onAddPress?: () => void
+  /**
+   * Layout mode:
+   * - 'scroll': Horizontal ScrollView with dynamic width (like ColorCirclesBar)
+   * - 'grid': Flex wrap grid
+   */
+  layout?: 'scroll' | 'grid'
+  /**
+   * For scroll layout: padding applied to container
+   */
+  scrollPadding?: { vertical?: number; horizontal?: number }
+  /**
+   * For scroll layout: height of items container
+   */
+  itemHeight?: number
+}
+
+const ColorCircleGrid = ({
+  colors,
+  selectedColor,
+  onSelect,
+  onLongPress,
+  circleSize = 20,
+  showAddButton = false,
+  onAddPress,
+  layout = 'scroll',
+  scrollPadding,
+  itemHeight = 60,
+}: ColorCircleGridProps) => {
+  const { t } = useTranslation()
+
+  if (layout === 'grid') {
+    return (
+      <HStack className="border-continuous overflow-visible gap-[8px] flex-wrap justify-end">
+        {colors.map((color, index) => (
+          <HighlightTypeIndicator
+            key={color.key}
+            accessibilityLabel={color.name || t('accessibility.colorOption', { index: index + 1 })}
+            color={color.hex}
+            type={color.type || 'background'}
+            onPress={() => onSelect(color.key)}
+            onLongPress={onLongPress ? () => onLongPress(color.key) : undefined}
+            size={circleSize}
+            isSelected={selectedColor === color.key}
+          />
+        ))}
+        {showAddButton && onAddPress && (
+          <TouchableOpacity
+            accessibilityLabel={t('Ajouter une couleur')}
+            accessibilityRole="button"
+            onPress={onAddPress}
+          >
+            <FeatherIcon name="arrow-right-circle" size={circleSize} color="tertiary" />
+          </TouchableOpacity>
+        )}
+      </HStack>
+    )
+  }
+
+  // Calculate dynamic item width for scroll layout
+  const screenWidth = wp(100, 500)
+  const itemCount = colors.length + (showAddButton ? 1 : 0)
+  const minItemWidth =
+    Platform.OS === 'web' ? Math.max(52, circleSize + 32) : COLOR_CIRCLE_MIN_WIDTH
+  const itemWidth = Math.max(screenWidth / itemCount, minItemWidth)
+
+  return (
+    <Box style={Platform.OS === 'web' ? { marginHorizontal: 16 } : undefined}>
+      <HorizontalControlScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          ...(Platform.OS === 'web' && { flexGrow: 1, justifyContent: 'center' as const }),
+          paddingVertical: scrollPadding?.vertical,
+          paddingHorizontal: scrollPadding?.horizontal,
+        }}
+      >
+        {colors.map((color, index) => (
+          <Box
+            className="overflow-hidden border-continuous items-center justify-center"
+            key={color.key}
+            style={{ width: itemWidth, height: itemHeight }}
+          >
+            <HighlightTypeIndicator
+              accessibilityLabel={
+                color.name || t('accessibility.colorOption', { index: index + 1 })
+              }
+              color={color.hex}
+              type={color.type || 'background'}
+              onPress={() => onSelect(color.key)}
+              onLongPress={onLongPress ? () => onLongPress(color.key) : undefined}
+              size={circleSize}
+              isSelected={selectedColor === color.key}
+            />
+          </Box>
+        ))}
+        {showAddButton && onAddPress && (
+          <Box
+            className="overflow-hidden border-continuous items-center justify-center"
+            style={{ width: itemWidth, height: itemHeight }}
+          >
+            <TouchableOpacity
+              accessibilityLabel={t('Ajouter une couleur')}
+              accessibilityRole="button"
+              onPress={onAddPress}
+            >
+              <FeatherIcon name="arrow-right-circle" size={circleSize} color="tertiary" />
+            </TouchableOpacity>
+          </Box>
+        )}
+      </HorizontalControlScrollView>
+    </Box>
+  )
+}
+
+export default ColorCircleGrid

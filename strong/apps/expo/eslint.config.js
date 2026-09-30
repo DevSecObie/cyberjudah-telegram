@@ -1,0 +1,59 @@
+const expoConfig = require('eslint-config-expo/flat')
+const prettierPlugin = require('eslint-plugin-prettier')
+const prettierConfig = require('eslint-config-prettier')
+const reactCompiler = require('eslint-plugin-react-compiler')
+const globals = require('globals')
+module.exports = [
+  ...expoConfig,
+  prettierConfig,
+  reactCompiler.configs.recommended,
+  {
+    files: ['**/__tests__/**/*.ts', '**/*-test.ts'],
+    languageOptions: {
+      globals: globals.jest,
+    },
+  },
+  {
+    plugins: {
+      prettier: prettierPlugin,
+    },
+    rules: {
+      'prettier/prettier': 'error',
+      'react/display-name': 'off',
+      'react/no-unescaped-entities': 'off',
+      'react-compiler/react-compiler': 'off',
+      'react-hooks/immutability': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/refs': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/use-memo': 'off',
+    },
+  },
+  {
+    ignores: [
+      'node_modules/**',
+      '**/*.css',
+      'src/uniwind-types.d.ts',
+      '.expo/**',
+      'android/**',
+      'ios/**',
+      'builds/**',
+      'dist/**',
+      'docs/assets/app-flows/dist/**',
+      'docs/research/data/bible-project/presentation-data.js',
+      '.agents/**',
+      '*.config.js',
+      'babel.config.js',
+      'metro.config.js',
+      'eslint.config.js',
+      'src/helpers/react-native-htmlview/vendor/**',
+      'vendor/**',
+      'src/helpers/lunr.*.min.js',
+      '_bmad/**',
+      '_bmad-output/**',
+      'src/features/studies/StudiesDOM/**',
+      'src/features/bible/BibleDOM/**',
+    ],
+  },
+]

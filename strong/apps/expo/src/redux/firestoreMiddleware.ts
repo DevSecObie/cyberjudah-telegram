@@ -1,0 +1,1067 @@
+import { isAnyOf, Middleware } from '@reduxjs/toolkit'
+import { Platform } from 'react-native'
+import { appLogger } from '~helpers/agentObservability'
+import { getCurrentAuthUser } from '~helpers/firebaseAuthRuntime'
+import { tokenManager } from '~helpers/TokenManager'
+import {
+  firestoreSyncOutbox,
+  runFirestoreSyncIntentsSerialized,
+  type FirestoreSyncIntent,
+} from '~helpers/firestoreSyncOutbox'
+
+// Import action creators from user.ts
+import {
+  importData,
+  setDailyMeditation,
+  onUserLogout,
+  resetCompareVersion,
+  saveAllLogsAsSeen,
+  toggleCompareVersion,
+  type ImportDataPayload,
+} from './modules/user'
+
+// Import action creators from sub-modules
+import {
+  addBookmarkAction,
+  moveBookmark,
+  removeBookmark,
+  updateBookmark,
+} from './modules/user/bookmarks'
+import { addCustomColor, deleteCustomColor, updateCustomColor } from './modules/user/customColors'
+import {
+  addHighlightAction,
+  changeHighlightColor,
+  removeHighlight,
+} from './modules/user/highlights'
+import { addLinkAction, deleteLink, updateLink } from './modules/user/links'
+import { addNoteAction, deleteNote } from './modules/user/notes'
+import {
+  addStudyRelationAction,
+  attachNoteToVerseAction,
+  deleteStudyRelation,
+  updateStudyRelation,
+} from './modules/user/studyRelations'
+import {
+  addWordAnnotationAction,
+  changeWordAnnotationColorAction,
+  changeWordAnnotationTypeAction,
+  realignWordAnnotationsAction,
+  removeWordAnnotationAction,
+  removeWordAnnotationsInRangeAction,
+  updateWordAnnotationAction,
+} from './modules/user/wordAnnotations'
+import {
+  changeColor,
+  decreaseSettingsFontSizeScale,
+  increaseSettingsFontSizeScale,
+  setDefaultColorName,
+  setDefaultColorType,
+  setDefaultStrongBibleVersion,
+  setSettingsAlignContent,
+  setSettingsCommentaires,
+  setSettingsInlineCommentaries,
+  setSettingsInlineCommentariesEnabled,
+  setSettingsCommentarySelection,
+  reorderSettingsCommentarySelection,
+  setSettingsContextualInformationDisplay,
+  setSettingsLineHeight,
+  setSettingsLinksDisplay,
+  setSettingsNotesDisplay,
+  setSettingsPreferredColorScheme,
+  setSettingsPreferredDarkTheme,
+  setSettingsPreferredLightTheme,
+  setSettingsPress,
+  setSettingsRelationsDisplay,
+  setSettingsTagsDisplay,
+  setSettingsTextDisplay,
+  toggleSettingsShareAppName,
+  toggleSettingsShareLineBreaks,
+  toggleSettingsShareQuotes,
+  toggleSettingsShareVerseNumbers,
+} from './modules/user/settings'
+import { deleteStudy, publishStudyAction, updateStudy } from './modules/user/studies'
+import { addTag, removeTag, toggleTagEntity, updateTag } from './modules/user/tags'
+
+import { diff } from '~helpers/deep-obj'
+import { toast } from '~helpers/toast'
+import { migrateImportedDataToSubcollections } from '~helpers/firestoreMigration'
+import {
+  isAccountMigrationOutgoingOnlyFor,
+  isAccountMigrationWriteAllowedFor,
+  setAccountMigrationWriteScope,
+} from '~state/migration'
+import {
+  recordAccountMigrationDeletedDocuments,
+  recordAccountMigrationPreferredDocuments,
+} from '../migrations/accountMigrationMutationJournal'
+import {
+  batchWriteSubcollection,
+  SUBCOLLECTION_NAMES,
+  type BatchChanges,
+  type SubcollectionData,
+  type SubcollectionDocument,
+  type SubcollectionName,
+} from '~helpers/firestoreSubcollections'
+import i18n from '~i18n'
+import { RootState } from '~redux/modules/reducer'
+import { deleteDoc, deleteField, doc, firebaseDb, setDoc } from '../helpers/firebase'
+import {
+  fetchPlan,
+  markAsRead,
+  removePlan,
+  resetPlan,
+  startPlan,
+  setPlanReminder,
+} from './modules/plan'
+import { canonicalizeImportedDataForFirestore } from './firestoreImportDataCanonicalization'
+import { buildCompareSettingsWrite } from './compareSelectionSync'
+import {
+  groupUserBibleSyncOperations,
+  planBookmarkSync,
+  planHighlightSync,
+  planLinkSync,
+  planNoteSync,
+  planStudyRelationSync,
+  planTagSync,
+  planToggleTagEntitySync,
+  planWordAnnotationSync,
+  type UserBibleSyncOperation,
+} from './userBibleSyncPlan'
+
+type SyncRecord = Record<string, unknown>
+type BibleSyncCollection = Exclude<SubcollectionName, 'tabGroups'>
+type BibleSyncData = Partial<Record<BibleSyncCollection, SubcollectionData>>
+type SyncDiffState = {
+  user: {
+    bible: BibleSyncData & {
+      studies?: SyncRecord
+      settings?: unknown
+    }
+  }
+}
+
+const enqueueSyncIntents = (userId: string, intents: FirestoreSyncIntent[]) => {
+  intents.forEach(intent => firestoreSyncOutbox.enqueue(userId, intent))
+}
+
+const executeUserBibleSyncOperation = async ({
+  operation,
+  userId,
+  diffBible,
+  bible,
+  deleteMarker,
+}: {
+  operation: UserBibleSyncOperation
+  userId: string
+  diffBible: BibleSyncData
+  bible: RootState['user']['bible']
+  deleteMarker: unknown
+}) => {
+  if (operation.type === 'relations') {
+    await syncRelationCollections(userId, diffBible, bible, deleteMarker)
+    return
+  }
+
+  await syncSubcollectionChanges(
+    userId,
+    operation.collection,
+    diffBible[operation.collection],
+    bible[operation.collection] as SubcollectionData | undefined,
+    deleteMarker
+  )
+}
+
+const executeUserBibleSyncOperationGroups = async ({
+  operations,
+  userId,
+  diffBible,
+  bible,
+  deleteMarker,
+  state,
+}: {
+  operations: UserBibleSyncOperation[]
+  userId: string
+  diffBible: BibleSyncData
+  bible: RootState['user']['bible']
+  deleteMarker: unknown
+  state: RootState
+}) => {
+  for (const group of groupUserBibleSyncOperations(operations)) {
+    const fallbackIntents = group.operations.flatMap(operation =>
+      createOutboxIntentsForUserBibleOperation({
+        operation,
+        diffBible,
+        bible,
+        deleteMarker,
+      })
+    )
+    await handleSyncWithRetry(
+      async () => {
+        for (const operation of group.operations) {
+          await executeUserBibleSyncOperation({
+            operation,
+            userId,
+            diffBible,
+            bible,
+            deleteMarker,
+          })
+        }
+      },
+      userId,
+      group.actionName,
+      state,
+      () => enqueueSyncIntents(userId, fallbackIntents),
+      fallbackIntents
+    )
+  }
+}
+
+const isRecord = (value: unknown): value is SyncRecord =>
+  !!value && typeof value === 'object' && !Array.isArray(value)
+
+const isFirestoreSentinel = (value: unknown): boolean =>
+  isRecord(value) && ('_methodName' in value || typeof value.isEqual === 'function')
+
+const getErrorCode = (error: unknown): string | undefined => {
+  if (isRecord(error) && 'code' in error) {
+    return String(error.code)
+  }
+  return undefined
+}
+
+const getRecordTitle = (value: unknown): string =>
+  isRecord(value) && typeof value.title === 'string' ? value.title : 'unknown'
+
+export const removeUndefinedVariables = <T>(obj: T): T => JSON.parse(JSON.stringify(obj)) as T // Remove undefined variables
+
+/**
+ * Nettoie un objet pour Firestore en supprimant les valeurs undefined/null
+ * tout en préservant les sentinels Firestore (comme deleteField())
+ * Retourne null (jamais undefined) pour éviter les erreurs Firestore
+ */
+export const cleanForFirestore = (obj: unknown): unknown => {
+  if (obj === undefined) return null
+  if (obj === null) return null
+  if (typeof obj !== 'object') return obj
+
+  // Préserver les sentinels Firestore (comme deleteField())
+  // Les sentinels ont une propriété _methodName ou isEqual
+  if (isFirestoreSentinel(obj)) return obj
+
+  if (Array.isArray(obj)) {
+    return obj.map(cleanForFirestore).filter(v => v !== undefined && v !== null)
+  }
+
+  const result: SyncRecord = {}
+  for (const key of Object.keys(obj)) {
+    const value = cleanForFirestore((obj as SyncRecord)[key])
+    if (value !== undefined && value !== null) {
+      result[key] = value
+    }
+  }
+  return Object.keys(result).length > 0 ? result : null
+}
+
+/**
+ * Détecte les changements dans une sous-collection à partir du diff
+ * Retourne les éléments ajoutés/modifiés et supprimés
+ */
+function extractSubcollectionChanges(diffData: unknown, deleteMarker: unknown): BatchChanges {
+  const changes: BatchChanges = {
+    set: {},
+    delete: [],
+  }
+
+  if (!diffData) return changes
+
+  if (!isRecord(diffData)) return changes
+
+  for (const [id, value] of Object.entries(diffData)) {
+    if (value === deleteMarker) {
+      // Élément supprimé
+      changes.delete.push(id)
+    } else if (value && typeof value === 'object') {
+      // Élément ajouté ou modifié
+      changes.set[id] = value as SubcollectionDocument
+    }
+  }
+
+  return changes
+}
+
+const createSubcollectionOutboxIntent = (
+  collection: BibleSyncCollection,
+  diffData: unknown,
+  fullData: SubcollectionData | undefined,
+  deleteMarker: unknown
+): FirestoreSyncIntent[] => {
+  const changes = extractSubcollectionChanges(diffData, deleteMarker)
+  const set = Object.keys(changes.set).reduce<Record<string, SyncRecord>>((result, id) => {
+    const document = fullData?.[id]
+    if (document) result[id] = removeUndefinedVariables(document)
+    return result
+  }, {})
+  if (Object.keys(set).length === 0 && changes.delete.length === 0) return []
+  return [{ kind: 'subcollection', collection, set, delete: changes.delete }]
+}
+
+const createOutboxIntentsForUserBibleOperation = ({
+  operation,
+  diffBible,
+  bible,
+  deleteMarker,
+}: {
+  operation: UserBibleSyncOperation
+  diffBible: BibleSyncData
+  bible: RootState['user']['bible']
+  deleteMarker: unknown
+}): FirestoreSyncIntent[] => {
+  const collections: BibleSyncCollection[] =
+    operation.type === 'relations'
+      ? ['relations', 'relationIndex', 'relationPairs']
+      : [operation.collection]
+
+  return collections.flatMap(collection =>
+    createSubcollectionOutboxIntent(
+      collection,
+      diffBible[collection],
+      bible[collection] as SubcollectionData | undefined,
+      deleteMarker
+    )
+  )
+}
+
+/**
+ * Synchronise les changements d'une sous-collection vers Firestore
+ */
+async function syncSubcollectionChanges(
+  userId: string,
+  collection: SubcollectionName,
+  diffData: unknown,
+  fullData: SubcollectionData | undefined,
+  deleteMarker: unknown
+): Promise<void> {
+  const changes = extractSubcollectionChanges(diffData, deleteMarker)
+
+  // Pour les modifications, on a besoin des données complètes car le diff ne contient que les champs modifiés
+  for (const id of Object.keys(changes.set)) {
+    if (fullData && fullData[id]) {
+      changes.set[id] = removeUndefinedVariables(fullData[id])
+
+      // For bookmarks: explicitly delete verse field if not present (chapter-level bookmark)
+      // This prevents old verse values from persisting due to merge: true
+      if (collection === 'bookmarks' && fullData[id].verse === undefined) {
+        changes.set[id].verse = deleteMarker
+      }
+    }
+  }
+
+  const totalOps = Object.keys(changes.set).length + changes.delete.length
+
+  if (totalOps === 0) return
+
+  console.log(
+    `[Sync] Syncing ${collection}: ${Object.keys(changes.set).length} set, ${changes.delete.length} delete`
+  )
+
+  // Utiliser batch pour efficacité
+  await batchWriteSubcollection(userId, collection, changes)
+}
+
+async function syncRelationCollections(
+  userId: string,
+  diffBible: BibleSyncData,
+  bible: RootState['user']['bible'],
+  deleteMarker: unknown
+): Promise<void> {
+  await syncSubcollectionChanges(
+    userId,
+    'relations',
+    diffBible.relations,
+    bible.relations,
+    deleteMarker
+  )
+  await syncSubcollectionChanges(
+    userId,
+    'relationIndex',
+    diffBible.relationIndex,
+    bible.relationIndex,
+    deleteMarker
+  )
+  await syncSubcollectionChanges(
+    userId,
+    'relationPairs',
+    diffBible.relationPairs,
+    bible.relationPairs,
+    deleteMarker
+  )
+}
+
+/**
+ * Gère les erreurs de sync avec retry sur permission-denied
+ */
+async function handleSyncWithRetry(
+  operation: () => Promise<void>,
+  userId: string,
+  actionName: string,
+  state: RootState,
+  onFinalFailure?: () => void,
+  serializationIntents: FirestoreSyncIntent[] = []
+): Promise<boolean> {
+  return runFirestoreSyncIntentsSerialized(userId, serializationIntents, async () => {
+    const supersedePending = () => {
+      serializationIntents.forEach(intent => firestoreSyncOutbox.supersedePending(userId, intent))
+    }
+    try {
+      await operation()
+      supersedePending()
+      return true
+    } catch (error) {
+      console.error(`[Sync] ${actionName} failed:`, error)
+      const errorCode = getErrorCode(error)
+
+      // SAFETY NET: Si permission-denied, tente un refresh manuel du token
+      if (errorCode === 'permission-denied') {
+        console.warn('[Sync] Permission denied detected, attempting manual token refresh...')
+
+        const refreshed = await tokenManager.tryRefresh()
+
+        if (refreshed) {
+          try {
+            await operation()
+            supersedePending()
+            console.log('[Sync] Retry succeeded after token refresh')
+            return true
+          } catch (retryError) {
+            console.error('[Sync] Retry failed after token refresh:', retryError)
+            appLogger.captureError(
+              'sync',
+              'firestore.retry_after_token_refresh_failed',
+              retryError,
+              {
+                action: actionName,
+                originalErrorCode: errorCode,
+              }
+            )
+          }
+        }
+      }
+
+      appLogger.captureError('sync', 'firestore.operation_failed', error, {
+        action: actionName,
+        errorCode,
+      })
+
+      // SAFETY: Créer un backup immédiat en cas d'erreur de sync
+      if (Platform.OS !== 'web') {
+        void import('~helpers/AutoBackupManager').then(({ autoBackupManager }) =>
+          autoBackupManager.createBackupNow(state, 'sync_error').catch(backupError => {
+            console.error('[AutoBackup] Failed to create error backup:', backupError)
+            appLogger.captureError('sync', 'sync_error.backup_failed', backupError, {
+              action: actionName,
+            })
+          })
+        )
+      }
+
+      onFinalFailure?.()
+      toast.error(i18n.t('app.syncError'))
+      return false
+    }
+  })
+}
+
+// RTK Matchers for action grouping
+const isPlanAction = isAnyOf(
+  removePlan,
+  fetchPlan.fulfilled,
+  resetPlan,
+  markAsRead,
+  startPlan,
+  setPlanReminder
+)
+
+const isSettingsAction = isAnyOf(
+  setDailyMeditation,
+  setSettingsAlignContent,
+  setSettingsLineHeight,
+  increaseSettingsFontSizeScale,
+  decreaseSettingsFontSizeScale,
+  setSettingsTextDisplay,
+  setSettingsPreferredDarkTheme,
+  setSettingsPreferredLightTheme,
+  setSettingsPreferredColorScheme,
+  setSettingsPress,
+  setSettingsNotesDisplay,
+  setSettingsLinksDisplay,
+  setSettingsRelationsDisplay,
+  setSettingsTagsDisplay,
+  setSettingsCommentaires,
+  setSettingsInlineCommentaries,
+  setSettingsInlineCommentariesEnabled,
+  setSettingsCommentarySelection,
+  reorderSettingsCommentarySelection,
+  setSettingsContextualInformationDisplay,
+  changeColor,
+  toggleCompareVersion,
+  resetCompareVersion,
+  toggleSettingsShareAppName,
+  toggleSettingsShareLineBreaks,
+  toggleSettingsShareQuotes,
+  toggleSettingsShareVerseNumbers,
+  saveAllLogsAsSeen,
+  setDefaultColorName,
+  setDefaultColorType,
+  setDefaultStrongBibleVersion
+)
+
+const isCustomColorAction = isAnyOf(addCustomColor, updateCustomColor, deleteCustomColor)
+
+const isBookmarkAction = isAnyOf(addBookmarkAction, removeBookmark, updateBookmark, moveBookmark)
+
+const isNoteAction = isAnyOf(addNoteAction, deleteNote)
+
+const isLinkAction = isAnyOf(addLinkAction, updateLink, deleteLink)
+
+const isStudyRelationAction = isAnyOf(
+  addStudyRelationAction,
+  attachNoteToVerseAction,
+  updateStudyRelation,
+  deleteStudyRelation
+)
+
+const isHighlightAction = isAnyOf(addHighlightAction, removeHighlight, changeHighlightColor)
+
+const isWordAnnotationAction = isAnyOf(
+  addWordAnnotationAction,
+  updateWordAnnotationAction,
+  removeWordAnnotationAction,
+  removeWordAnnotationsInRangeAction,
+  changeWordAnnotationColorAction,
+  changeWordAnnotationTypeAction,
+  realignWordAnnotationsAction
+)
+
+const isTagAction = isAnyOf(addTag, removeTag, updateTag)
+
+const isStudyUpdateAction = isAnyOf(updateStudy, publishStudyAction)
+
+const firestoreMiddleware: Middleware = store => next => async action => {
+  // Early return for logout - prevent race conditions with app lifecycle
+  if (onUserLogout.match(action)) {
+    setAccountMigrationWriteScope()
+    return next(action)
+  }
+
+  const oldState = store.getState()
+  const result = next(action)
+  const state = store.getState() as RootState
+
+  // Check auth early before expensive diff computation
+  if (!state.user.id) {
+    return result
+  }
+
+  const currentUser = getCurrentAuthUser()
+  if (!currentUser) {
+    return result
+  }
+  if (!isAccountMigrationWriteAllowedFor(currentUser.uid)) {
+    return result
+  }
+
+  const deleteMarker = deleteField()
+  const diffState = diff(oldState, state, deleteMarker) as SyncDiffState
+
+  const userId = currentUser.uid
+  const { user, plan } = state
+  const userDocRef = doc(firebaseDb, 'users', userId)
+
+  if (isAccountMigrationOutgoingOnlyFor(userId)) {
+    const previousBible = oldState.user.bible as unknown as Record<
+      string,
+      Record<string, unknown> | undefined
+    >
+    const currentBible = state.user.bible as unknown as Record<
+      string,
+      Record<string, unknown> | undefined
+    >
+    SUBCOLLECTION_NAMES.forEach(collection => {
+      if (collection === 'tabGroups') return
+      const currentIds = new Set(Object.keys(currentBible[collection] ?? {}))
+      const preferredIds = Object.keys(currentBible[collection] ?? {}).filter(
+        documentId =>
+          previousBible[collection]?.[documentId] !== currentBible[collection]?.[documentId]
+      )
+      const deletedIds = Object.keys(previousBible[collection] ?? {}).filter(
+        documentId => !currentIds.has(documentId)
+      )
+      recordAccountMigrationPreferredDocuments(userId, collection, preferredIds)
+      recordAccountMigrationDeletedDocuments(userId, collection, deletedIds)
+    })
+  }
+
+  // Schedule un backup automatique après chaque changement (debounced 30s)
+  if (Platform.OS !== 'web') {
+    void import('~helpers/AutoBackupManager').then(({ autoBackupManager }) =>
+      autoBackupManager.scheduleBackup(state)
+    )
+  }
+
+  // ========== PLAN SYNC ==========
+  if (isPlanAction(action)) {
+    if (oldState.plan.ongoingPlans === plan.ongoingPlans) return result
+    const data = { plan: removeUndefinedVariables(plan.ongoingPlans) }
+    const intent: FirestoreSyncIntent = {
+      kind: 'document-set',
+      path: ['users', userId],
+      data,
+      merge: true,
+    }
+    await handleSyncWithRetry(
+      () => setDoc(userDocRef, data, { merge: true }),
+      userId,
+      'plan_sync',
+      state,
+      () => firestoreSyncOutbox.enqueue(userId, intent),
+      [intent]
+    )
+    return result
+  }
+
+  // ========== SETTINGS SYNC (reste dans le document user) ==========
+  if (isSettingsAction(action)) {
+    const comparisonWrite =
+      toggleCompareVersion.match(action) || resetCompareVersion.match(action)
+        ? buildCompareSettingsWrite(state.user.bible.settings)
+        : undefined
+    if (!comparisonWrite && !diffState?.user?.bible?.settings) return result
+
+    // The generic deep diff represents arrays as numeric-keyed objects. Send the
+    // complete ordered selection so Firestore persists an actual array.
+    const isCommentarySelectionAction =
+      setSettingsInlineCommentaries.match(action) ||
+      setSettingsInlineCommentariesEnabled.match(action) ||
+      setSettingsCommentarySelection.match(action) ||
+      reorderSettingsCommentarySelection.match(action)
+    const settingsUpdate = isCommentarySelectionAction
+      ? {
+          commentarySelection: state.user.bible.settings.commentarySelection,
+          inlineCommentaries: state.user.bible.settings.inlineCommentaries ?? [],
+          inlineCommentariesEnabled: state.user.bible.settings.inlineCommentariesEnabled,
+        }
+      : diffState?.user?.bible?.settings
+    // Empty compare maps are intentional clears, not missing values to strip.
+    // Null is an intentional return to the standalone verse, not an empty value to discard.
+    const cleanedSettings = setDailyMeditation.match(action)
+      ? { dailyMeditationId: state.user.bible.settings.dailyMeditationId ?? null }
+      : (comparisonWrite?.settings ?? cleanForFirestore(settingsUpdate))
+    const mergeFields = comparisonWrite?.mergeFields
+
+    // Ne pas sync si le résultat est vide/null (évite les erreurs Firestore)
+    if (!cleanedSettings) return result
+
+    const data = { bible: { settings: cleanedSettings as SyncRecord } }
+    const intent: FirestoreSyncIntent = {
+      kind: 'document-set',
+      path: ['users', userId],
+      data,
+      merge: true,
+      ...(mergeFields ? { mergeFields } : {}),
+    }
+    await handleSyncWithRetry(
+      async () => {
+        await setDoc(userDocRef, data, mergeFields ? { mergeFields } : { merge: true })
+      },
+      userId,
+      'settings_sync',
+      state,
+      () => firestoreSyncOutbox.enqueue(userId, intent),
+      [intent]
+    )
+    return result
+  }
+
+  // ========== CUSTOM HIGHLIGHT COLORS SYNC ==========
+  if (isCustomColorAction(action)) {
+    const customHighlightColors = state.user.bible.settings.customHighlightColors ?? []
+    const data = {
+      bible: {
+        settings: {
+          customHighlightColors: removeUndefinedVariables(customHighlightColors),
+        },
+      },
+    }
+    const intent: FirestoreSyncIntent = {
+      kind: 'document-set',
+      path: ['users', userId],
+      data,
+      merge: true,
+    }
+
+    await handleSyncWithRetry(
+      async () => {
+        await setDoc(userDocRef, data, { merge: true })
+      },
+      userId,
+      'custom_colors_sync',
+      state,
+      () => firestoreSyncOutbox.enqueue(userId, intent),
+      [intent]
+    )
+    return result
+  }
+
+  // ========== BOOKMARKS SYNC (sous-collection) ==========
+  if (isBookmarkAction(action)) {
+    const operations = planBookmarkSync(diffState?.user?.bible ?? {})
+    if (!operations.length) return result
+
+    await executeUserBibleSyncOperationGroups({
+      operations,
+      userId,
+      diffBible: diffState.user.bible,
+      bible: user.bible,
+      deleteMarker,
+      state,
+    })
+    return result
+  }
+
+  // ========== NOTES SYNC (sous-collection) ==========
+  if (isNoteAction(action)) {
+    const operations = planNoteSync(diffState?.user?.bible ?? {})
+    if (!operations.length) return result
+
+    await executeUserBibleSyncOperationGroups({
+      operations,
+      userId,
+      diffBible: diffState.user.bible,
+      bible: user.bible,
+      deleteMarker,
+      state,
+    })
+    return result
+  }
+
+  // ========== LINKS SYNC (sous-collection) ==========
+  if (isLinkAction(action)) {
+    const operations = planLinkSync(diffState?.user?.bible ?? {})
+    if (!operations.length) return result
+
+    await executeUserBibleSyncOperationGroups({
+      operations,
+      userId,
+      diffBible: diffState.user.bible,
+      bible: user.bible,
+      deleteMarker,
+      state,
+    })
+    return result
+  }
+
+  // ========== RELATIONS SYNC (sous-collections) ==========
+  if (isStudyRelationAction(action)) {
+    const operations = planStudyRelationSync(diffState?.user?.bible ?? {})
+    if (!operations.length) return result
+
+    await executeUserBibleSyncOperationGroups({
+      operations,
+      userId,
+      diffBible: diffState.user.bible,
+      bible: user.bible,
+      deleteMarker,
+      state,
+    })
+    return result
+  }
+
+  // ========== HIGHLIGHTS SYNC (sous-collection) ==========
+  if (isHighlightAction(action)) {
+    const operations = planHighlightSync(diffState?.user?.bible ?? {})
+    if (!operations.length) return result
+
+    await executeUserBibleSyncOperationGroups({
+      operations,
+      userId,
+      diffBible: diffState.user.bible,
+      bible: user.bible,
+      deleteMarker,
+      state,
+    })
+    return result
+  }
+
+  // ========== WORD ANNOTATIONS SYNC (sous-collection) ==========
+  if (isWordAnnotationAction(action)) {
+    const operations = planWordAnnotationSync(diffState?.user?.bible ?? {})
+    if (!operations.length) return result
+
+    await executeUserBibleSyncOperationGroups({
+      operations,
+      userId,
+      diffBible: diffState.user.bible,
+      bible: user.bible,
+      deleteMarker,
+      state,
+    })
+    return result
+  }
+
+  // ========== TAGS SYNC (sous-collection) ==========
+  if (isTagAction(action)) {
+    const operations = planTagSync(diffState?.user?.bible ?? {})
+    if (!operations.length) return result
+
+    await executeUserBibleSyncOperationGroups({
+      operations,
+      userId,
+      diffBible: diffState.user.bible,
+      bible: user.bible,
+      deleteMarker,
+      state,
+    })
+    return result
+  }
+
+  // ========== TOGGLE TAG ENTITY (modifie tag ET entity) ==========
+  if (toggleTagEntity.match(action)) {
+    if (!diffState?.user?.bible) return result
+
+    for (const operation of planToggleTagEntitySync(diffState.user.bible, SUBCOLLECTION_NAMES)) {
+      const fallbackIntents = createOutboxIntentsForUserBibleOperation({
+        operation,
+        diffBible: diffState.user.bible,
+        bible: user.bible,
+        deleteMarker,
+      })
+      await handleSyncWithRetry(
+        async () => {
+          await executeUserBibleSyncOperation({
+            operation,
+            userId,
+            diffBible: diffState.user.bible,
+            bible: user.bible,
+            deleteMarker,
+          })
+        },
+        userId,
+        operation.actionName,
+        state,
+        () => enqueueSyncIntents(userId, fallbackIntents),
+        fallbackIntents
+      )
+    }
+    return result
+  }
+
+  // ========== STUDIES SYNC (collection séparée) ==========
+  if (isStudyUpdateAction(action)) {
+    if (!diffState?.user?.bible?.studies) return result
+
+    const { studies } = diffState.user.bible
+
+    try {
+      await Promise.all(
+        Object.entries(studies).map(async ([studyId, obj]) => {
+          const studyDocRef = doc(firebaseDb, 'studies', studyId)
+          const studyContent = state.user.bible.studies[studyId]?.content?.ops
+          const intent: FirestoreSyncIntent = {
+            kind: 'document-set',
+            path: ['studies', studyId],
+            data: {
+              ...(removeUndefinedVariables(obj) as SyncRecord),
+              content: { ops: studyContent || [] },
+            },
+            merge: true,
+          }
+
+          try {
+            await runFirestoreSyncIntentsSerialized(userId, [intent], async () => {
+              try {
+                await setDoc(studyDocRef, intent.data, { merge: true })
+                firestoreSyncOutbox.supersedePending(userId, intent)
+              } catch (error) {
+                firestoreSyncOutbox.enqueue(userId, intent)
+                throw error
+              }
+            })
+            console.log(`[Firestore] Study ${studyId} synced successfully`)
+          } catch (studyError) {
+            console.error(`Failed to sync study ${studyId}:`, studyError)
+            appLogger.captureError('sync', 'study.sync_failed', studyError, {
+              operation: 'write',
+            })
+            throw studyError
+          }
+        })
+      )
+    } catch (studiesError) {
+      console.error('Studies sync failed:', studiesError)
+      toast.error(i18n.t('app.syncError'))
+    }
+    return result
+  }
+
+  if (deleteStudy.match(action)) {
+    if (!diffState?.user?.bible?.studies) return result
+    const { studies } = diffState.user.bible
+
+    try {
+      await Promise.all(
+        Object.entries(studies).map(async ([studyId]) => {
+          const studyDocRef = doc(firebaseDb, 'studies', studyId)
+          const intent: FirestoreSyncIntent = {
+            kind: 'document-delete',
+            path: ['studies', studyId],
+          }
+
+          try {
+            await runFirestoreSyncIntentsSerialized(userId, [intent], async () => {
+              try {
+                await deleteDoc(studyDocRef)
+                firestoreSyncOutbox.supersedePending(userId, intent)
+              } catch (error) {
+                firestoreSyncOutbox.enqueue(userId, intent)
+                throw error
+              }
+            })
+            console.log(`[Firestore] Study ${studyId} deleted successfully`)
+          } catch (deleteError) {
+            console.error(`Failed to delete study ${studyId}:`, deleteError)
+            appLogger.captureError('sync', 'study.sync_failed', deleteError, {
+              operation: 'delete',
+            })
+            throw deleteError
+          }
+        })
+      )
+    } catch (deletionError) {
+      console.error('Studies deletion failed:', deletionError)
+      toast.error(i18n.t('app.syncError'))
+    }
+    return result
+  }
+
+  // ========== IMPORT DATA (migration vers sous-collections) ==========
+  if (importData.match(action)) {
+    const {
+      bible,
+      studies,
+      plan: importedPlan,
+    } = canonicalizeImportedDataForFirestore(action.payload) as ImportDataPayload & {
+      plan?: RootState['plan']['ongoingPlans']
+    }
+    const importedBible = bible as unknown as Record<string, unknown>
+    const importFallbackIntents: FirestoreSyncIntent[] = SUBCOLLECTION_NAMES.flatMap(collection => {
+      if (collection === 'tabGroups') return []
+      const collectionData = importedBible?.[collection]
+      if (!isRecord(collectionData) || Object.keys(collectionData).length === 0) return []
+      return [
+        {
+          kind: 'subcollection' as const,
+          collection,
+          set: removeUndefinedVariables(collectionData) as Record<string, SyncRecord>,
+          delete: [],
+        },
+      ]
+    })
+    if (bible?.settings) {
+      importFallbackIntents.push({
+        kind: 'document-set',
+        path: ['users', userId],
+        data: { bible: { settings: removeUndefinedVariables(bible.settings) } },
+        merge: true,
+      })
+    }
+    if (importedPlan) {
+      importFallbackIntents.push({
+        kind: 'document-set',
+        path: ['users', userId],
+        data: { plan: removeUndefinedVariables(importedPlan) },
+        merge: true,
+      })
+    }
+
+    await handleSyncWithRetry(
+      async () => {
+        // 1. Migrer les données vers les sous-collections
+        await migrateImportedDataToSubcollections(userId, {
+          bookmarks: bible?.bookmarks,
+          highlights: bible?.highlights,
+          notes: bible?.notes,
+          links: bible?.links,
+          tags: bible?.tags,
+          strongsHebreu: bible?.strongsHebreu,
+          strongsGrec: bible?.strongsGrec,
+          words: bible?.words,
+          naves: bible?.naves,
+          wordAnnotations: bible?.wordAnnotations,
+          relations: bible?.relations,
+          relationIndex: bible?.relationIndex,
+          relationPairs: bible?.relationPairs,
+        })
+
+        // 2. Sync settings dans le document user
+        if (bible?.settings) {
+          await setDoc(
+            userDocRef,
+            { bible: { settings: removeUndefinedVariables(bible.settings) } },
+            { merge: true }
+          )
+        }
+
+        // 3. Sync plan
+        if (importedPlan) {
+          await setDoc(
+            userDocRef,
+            { plan: removeUndefinedVariables(importedPlan) },
+            { merge: true }
+          )
+        }
+      },
+      userId,
+      'import_data',
+      state,
+      () => enqueueSyncIntents(userId, importFallbackIntents),
+      importFallbackIntents
+    )
+
+    // 4. Sync studies (collection séparée)
+    if (studies && Object.keys(studies).length > 0) {
+      try {
+        await Promise.all(
+          Object.entries(studies).map(async ([studyId, study]) => {
+            const intent: FirestoreSyncIntent = {
+              kind: 'document-set',
+              path: ['studies', studyId],
+              data: removeUndefinedVariables(study) as unknown as SyncRecord,
+              merge: true,
+            }
+            await runFirestoreSyncIntentsSerialized(userId, [intent], async () => {
+              try {
+                await setDoc(doc(firebaseDb, 'studies', studyId), intent.data, { merge: true })
+                firestoreSyncOutbox.supersedePending(userId, intent)
+              } catch (error) {
+                firestoreSyncOutbox.enqueue(userId, intent)
+                throw error
+              }
+            })
+          })
+        )
+        console.log('[Sync] Studies imported successfully')
+      } catch (studiesError) {
+        console.error('[Sync] Failed to import studies:', studiesError)
+        appLogger.captureError('sync', 'studies.import_failed', studiesError, {
+          studyCount: Object.keys(studies).length,
+        })
+        toast.error(i18n.t('app.syncError'))
+      }
+    }
+    return result
+  }
+
+  return result
+}
+
+export default firestoreMiddleware
