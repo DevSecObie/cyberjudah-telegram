@@ -355,12 +355,12 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await page.locator(".sheet .swatch").nth(2).click();
   await expect(page.locator(".switcherbar__group")).toHaveText("Revelation");
   await expect(page.locator(".tabcard__title b").first()).toHaveText("New tab");
-  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/tabs-groups.png` });
+  if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/tabs-groups.png` }); }
   await page.click(".switcherbar__group");
   await page.click(".sheet__item >> text=1 tab");
   await expect(page.locator(".switcherbar__group")).toHaveText("1 tab");
   await expect(page.locator(".tabcard__title b").first()).toHaveText("Bible · Genesis 1");
-  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/tabs.png` });
+  if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/tabs.png` }); }
   await page.click(".switcherbar__ok");
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
 });
