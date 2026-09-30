@@ -495,6 +495,16 @@ test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a re
   await expect(page.locator(".bs-search__hit")).toHaveCount(2);
   await expect(page.locator(".bs-search__hit b").nth(1)).toHaveText("Ecclesiasticus 43:9");
   await expect(page.locator(".bs-search__hit mark").first()).toHaveText("light");
+  // Bible Strong's filters: the canon, then one book.
+  await page.click('.bs-search__filters .bs-chip:has-text("Apocrypha")');
+  await expect(page.locator(".bs-search__hit")).toHaveCount(1);
+  await expect(page.locator(".bs-search__count")).toHaveText("1 verse in the Apocrypha");
+  await page.selectOption(".bs-chip--select", "tobit");
+  await expect(page.locator(".bs-search__hit")).toHaveCount(0);
+  await expect(page.locator(".bs-search__hint")).toContainText("No verse has those words in Tobit. 2 elsewhere.");
+  await page.click('.bs-search__filters .bs-chip:has-text("All")');
+  await page.selectOption(".bs-chip--select", "");
+  await expect(page.locator(".bs-search__hit")).toHaveCount(2);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/bible-search.png` });
   await page.locator(".bs-search__hit").first().click();
   await expect(page).toHaveURL(/\/read\/john\/1\?v=4/);
