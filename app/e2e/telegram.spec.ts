@@ -1063,3 +1063,62 @@ test("a back step from the first screen stays in the app instead of going to a b
   await expect(page.locator("#verset-1")).toBeVisible();
   await expect(page.locator(".tabs")).toBeVisible();
 });
+
+
+test("audio chips set device pitch and speed; Stop stays stopped with Repeat enabled", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "SpeechSynthesisUtterance", { value: class { text: string; rate = 1; pitch = 1; constructor(text: string) { this.text = text; } } });
+    const calls: { rate: number; pitch: number }[] = [];
+    let current: SpeechSynthesisUtterance | null = null;
+    const voice = { name: "Test English", lang: "en-GB", localService: true };
+    Object.defineProperty(window, "speechSynthesis", { value: {
+      getVoices: () => [voice], addEventListener() {}, removeEventListener() {},
+      speak(u: SpeechSynthesisUtterance) { current = u; calls.push({ rate: u.rate, pitch: u.pitch }); u.onstart?.({} as SpeechSynthesisEvent); },
+      cancel() { current = null; }, pause() {}, resume() {}, paused: false,
+    } });
+    (window as unknown as { __speech: unknown }).__speech = { calls, finish: () => current?.onend?.({} as SpeechSynthesisEvent) };
+  });
+  await page.goto(`/read/psalms/23${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await page.getByRole("button", { name: "Start audio playback" }).click();
+  await expect(page.locator(".bs-audio__top b")).toHaveText("Psalms 23:1 KJV");
+  await expect(page.locator(".bs-audio__chips button")).toHaveText(["Voice", "Speed 1x", "Pitch 1x", "Repeat"]);
+  await page.getByRole("button", { name: "Pitch 1x", exact: true }).click();
+  await page.getByRole("dialog", { name: "Pitch", exact: true }).getByRole("radio", { name: "1.5x", exact: true }).click();
+  await page.getByRole("button", { name: "Speed 1x", exact: true }).click();
+  await page.getByRole("dialog", { name: "Speed", exact: true }).getByRole("radio", { name: "1.25x", exact: true }).click();
+  const spoken = () => page.evaluate(() => (window as unknown as { __speech: { calls: {rate:number;pitch:number}[] } }).__speech.calls);
+  await expect.poll(async () => (await spoken()).at(-1)).toEqual({ rate: 1.25, pitch: 1.5 });
+  await page.getByRole("button", { name: "Repeat", exact: true }).click();
+  await page.getByRole("button", { name: "Stop audio playback" }).click();
+  const count = (await spoken()).length;
+  await expect(page.locator(".bs-audio").getByRole("button", { name: "Start audio playback" })).toBeVisible();
+  await page.waitForTimeout(250);
+  expect((await spoken()).length).toBe(count);
+  await expect(page.getByRole("button", { name: "Repeat", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.locator(".bs-audio").getByRole("button", { name: "Start audio playback" }).click();
+  // Intro plus six verses: a natural completion still repeats the chapter.
+  await page.evaluate(() => { const speech = (window as unknown as { __speech: { finish(): void } }).__speech; for (let i = 0; i < 7; i++) speech.finish(); });
+  await expect(page.getByRole("button", { name: "Stop audio playback" })).toBeVisible();
+  await expect.poll(async () => (await spoken()).length).toBeGreaterThan(count + 7);
+});
+
+test("Stop cancels a pending device voice lookup", async ({ page }) => {
+  await page.addInitScript(() => {
+    const callbacks: (() => void)[] = [];
+    const state = { calls: 0, ready: false, load: () => { state.ready = true; callbacks.forEach((f) => f()); } };
+    Object.defineProperty(window, "speechSynthesis", { value: {
+      getVoices: () => state.ready ? [{ name: "Test English", lang: "en-GB", localService: true }] : [],
+      addEventListener(_: string, cb: () => void) { callbacks.push(cb); }, removeEventListener() {},
+      speak() { state.calls++; }, cancel() {}, pause() {}, resume() {}, paused: false,
+    } });
+    (window as unknown as { __pendingSpeech: unknown }).__pendingSpeech = state;
+  });
+  await page.goto(`/read/psalms/23${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await page.getByRole("button", { name: "Start audio playback" }).click();
+  await page.getByRole("button", { name: "Stop audio playback" }).click();
+  await page.evaluate(() => (window as unknown as { __pendingSpeech: { load(): void } }).__pendingSpeech.load());
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(() => (window as unknown as { __pendingSpeech: { calls: number } }).__pendingSpeech.calls)).toBe(0);
+});

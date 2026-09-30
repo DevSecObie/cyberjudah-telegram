@@ -32,6 +32,10 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState<number | null>(null);
   const [rate, setRate] = useState(1);
+  const [pitch, setPitch] = useState(1);
+  const [completed, setCompleted] = useState(false);
+  const run = useRef(0);
+  const pitchRef = useRef(pitch); pitchRef.current = pitch;
   const queue = useRef<{ verse: number; text: string }[]>([]);
   const rateRef = useRef(rate); rateRef.current = rate;
   // One voice for the whole chapter, chosen once when playback starts: the voice list loads
@@ -50,7 +54,7 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
     load(); speechSynthesis.addEventListener("voiceschanged", load);
     return () => speechSynthesis.removeEventListener("voiceschanged", load);
   }, []);
-  const setVoice = (name: string | null) => { setVoiceName(name); try { if (name) localStorage.setItem("ttsVoice", name); else localStorage.removeItem("ttsVoice"); } catch { /* ignore */ } };
+  const setVoice = (name: string | null) => { voiceNameRef.current = name; setVoiceName(name); try { if (name) localStorage.setItem("ttsVoice", name); else localStorage.removeItem("ttsVoice"); } catch { /* ignore */ } };
   const voices = () => new Promise<SpeechSynthesisVoice[]>((resolve) => {
     const vs = speechSynthesis.getVoices();
     if (vs.length) { resolve(vs); return; }
@@ -62,54 +66,58 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
   const ahead = useRef<{ verse: number; url: Promise<string> } | null>(null);
   const [aiState, setAiState] = useState<{ playing: boolean; paused: boolean }>({ playing: false, paused: false });
   const stopAi = () => { const a = audio.current; if (a) { a.onended = null; a.pause(); a.src = ""; } audio.current = null; ahead.current = null; queue.current = []; setAiState({ playing: false, paused: false }); setPlaying(false); setCurrent(null); };
-  const playAiNext = () => {
+  const playAiNext = (generation: number) => {
+    if (generation !== run.current) return;
     const item = queue.current.shift();
     const voice = (voiceNameRef.current ?? "").slice(3);
-    if (!item || !where) { stopAi(); return; }
+    if (!item || !where) { stopAi(); if (!item) setCompleted(true); return; }
     const url = ahead.current?.verse === item.verse ? ahead.current.url : item.verse > 0 ? verseAudio(where.slug, where.chapter, item.verse, voice) : Promise.resolve("");
     const next = queue.current[0];
     ahead.current = next && next.verse > 0 ? { verse: next.verse, url: verseAudio(where.slug, where.chapter, next.verse, voice) } : null;
     void url.then((src) => {
-      if (!aiRun.current) return;
-      if (!src) { playAiNext(); return; }
+      if (!aiRun.current || generation !== run.current) { if (src) URL.revokeObjectURL(src); return; }
+      if (!src) { playAiNext(generation); return; }
       const a = new Audio(src); audio.current = a;
       a.playbackRate = rateRef.current;
-      a.onended = () => { URL.revokeObjectURL(src); playAiNext(); };
-      a.onerror = () => stopAi();
+      a.onended = () => { URL.revokeObjectURL(src); playAiNext(generation); };
+      a.onerror = () => { if (generation === run.current) stopAi(); };
       setCurrent(item.verse);
-      void a.play().catch(() => stopAi());
-    }).catch(() => stopAi());
+      void a.play().catch(() => { if (generation === run.current) stopAi(); });
+    }).catch(() => { if (generation === run.current) stopAi(); });
   };
   const aiRun = useRef(false);
-  const speakNext = () => {
+  const speakNext = (generation: number) => {
+    if (generation !== run.current) return;
     const item = queue.current.shift();
-    if (!item) { setPlaying(false); setCurrent(null); return; }
+    if (!item) { setPlaying(false); setCurrent(null); setCompleted(true); return; }
     const u = new SpeechSynthesisUtterance(item.text);
-    u.rate = rateRef.current; const v = voiceRef.current; if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "en-GB";
-    u.onstart = () => setCurrent(item.verse > 0 ? item.verse : null);
-    u.onend = speakNext;
-    u.onerror = () => { setPlaying(false); setCurrent(null); };
+    u.rate = rateRef.current; u.pitch = pitchRef.current; const v = voiceRef.current; if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "en-GB";
+    u.onstart = () => { if (generation === run.current) setCurrent(item.verse > 0 ? item.verse : null); };
+    u.onend = () => speakNext(generation);
+    u.onerror = () => { if (generation === run.current) { setPlaying(false); setCurrent(null); } };
     speechSynthesis.speak(u);
   };
   const ai = isAiVoice(voiceName) && !!where;
   const play = (from = 1) => {
+    const generation = ++run.current; setCompleted(false);
     if (ttsSupported) speechSynthesis.cancel();
     stopAi();
     queue.current = [...(from === 1 && !ai ? [{ verse: 0, text: intro }] : []), ...verses.filter((v) => v.verse >= from)];
     setPlaying(true);
-    if (ai) { aiRun.current = true; setAiState({ playing: true, paused: false }); playAiNext(); return; }
+    if (ai) { aiRun.current = true; setAiState({ playing: true, paused: false }); playAiNext(generation); return; }
     if (!ttsSupported) { setPlaying(false); return; }
-    void voices().then((vs) => { voiceRef.current = pick(vs); speakNext(); });
+    void voices().then((vs) => { if (generation !== run.current) return; voiceRef.current = pick(vs); speakNext(generation); });
   };
-  const stop = () => { aiRun.current = false; stopAi(); if (ttsSupported) { queue.current = []; speechSynthesis.cancel(); } setPlaying(false); setCurrent(null); };
+  const stop = () => { run.current++; setCompleted(false); aiRun.current = false; stopAi(); if (ttsSupported) { queue.current = []; speechSynthesis.cancel(); } setPlaying(false); setCurrent(null); };
   const toggle = () => {
     if (!playing) { play(current ?? 1); return; }
     if (aiState.playing) { const a = audio.current; if (!a) return; if (a.paused) { void a.play(); setAiState({ playing: true, paused: false }); } else { a.pause(); setAiState({ playing: true, paused: true }); } return; }
     if (!ttsSupported) return;
     if (speechSynthesis.paused) { speechSynthesis.resume(); } else { speechSynthesis.pause(); }
   };
-  useEffect(() => { if (audio.current) audio.current.playbackRate = rate; }, [rate]);
-  useEffect(() => () => { aiRun.current = false; if (ttsSupported) speechSynthesis.cancel(); const a = audio.current; if (a) { a.pause(); a.src = ""; } }, []);
+  useEffect(() => { if (audio.current) audio.current.playbackRate = rate; if (playing && ttsSupported && !ai) play(current ?? 1); }, [rate, pitch]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (playing) play(current ?? 1); }, [voiceName]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { run.current++; aiRun.current = false; if (ttsSupported) speechSynthesis.cancel(); const a = audio.current; if (a) { a.pause(); a.src = ""; } }, []);
   useEffect(() => { stop(); /* a new chapter */ }, [verses]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { supported: ttsSupported || ai, playing, paused: aiState.playing ? aiState.paused : playing && ttsSupported && speechSynthesis.paused, current, rate, setRate, play, stop, toggle, voices: available, voice: voiceName, setVoice, currentVoice: ai ? voiceName : voiceRef.current?.name ?? null };
+  return { supported: ttsSupported || ai, playing, paused: aiState.playing ? aiState.paused : playing && ttsSupported && speechSynthesis.paused, current, rate, setRate, pitch, setPitch, pitchSupported: ttsSupported && !ai, completed, play, stop, toggle, voices: available, voice: voiceName, setVoice, currentVoice: ai ? voiceName : voiceRef.current?.name ?? null };
 }

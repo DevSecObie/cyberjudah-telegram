@@ -456,3 +456,11 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-dropdown__item > span { flex: 1; }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .bs-picker { background: var(--bs-reverse); } }
 @media (prefers-reduced-transparency: reduce) { .bs-picker { background: var(--bs-reverse); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+
+/* Four compact audio chips fit on a phone without wrapping. */
+.bs-audio__chips { flex-wrap: nowrap; gap: 5px; }
+#root .bs-audio__chips .bs-chip { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 7px; font: 600 10px system-ui, sans-serif; white-space: nowrap; min-width: 0; }
+.bs-audio__chips .bs-chip:disabled { opacity: .45; cursor: default; }
+.bs-audio__play { background: var(--bs-reverse); }
+
+.bs-audio__chips svg { flex: none; }
