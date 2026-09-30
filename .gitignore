@@ -12,3 +12,4 @@ app/e2e/.shots/
 strong/.yarn/cache/
 strong/.yarn/install-state.gz
 strong/.yarn/unplugged/
+strong/dist/

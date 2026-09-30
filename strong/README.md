@@ -19,3 +19,10 @@ Build the web app:
 
     yarn install
     EXPO_BASE_URL=/app/strong yarn web:build
+
+## Building and staging
+
+`bash strong/build-web.sh` builds the web app rooted at `/app/strong` into `strong/dist`.
+`bot/scripts/prepare-assets.sh` copies it to `.deploy/app/strong`, and the stage and deploy
+workflows run both. The Worker answers any page under `/app/strong` with the fork's own
+`index.html`. The current app at `/app` is unchanged until the switch is approved.
