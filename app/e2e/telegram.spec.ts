@@ -594,8 +594,8 @@ test("reading progress: read chapters in the book picker, the day strip and catc
   await expect(page.locator(".bs-markread")).toHaveAttribute("aria-pressed", "true");
   expect(JSON.parse((await cloud(page)).read).genesis).toBe("1-6");
   await page.click(".bs-pill--book");
-  await page.click('.bs-bookrow:has-text("Genesis")');
   await expect(page.locator(".bs-bookprog").first()).toHaveAttribute("aria-label", "6 of 50 chapters read");
+  await page.click('.bs-bookrow:has-text("Genesis")');
   await expect(page.locator(".bs-chaptertile[data-read]")).toHaveCount(6);
   await shot("tracker-books");
 });
