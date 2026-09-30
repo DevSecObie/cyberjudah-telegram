@@ -302,7 +302,8 @@ test("Home is Bible Strong's drawer: it slides the app aside and closes with a s
   await expect(home.locator(".hello h1")).toHaveText("What do you want to learn?");
   // The app moved aside with it.
   await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector("#shell .route")!).transform)).not.toBe("none");
-  // A swipe back toward its edge closes it.
+  // A swipe back toward its edge closes it (once it has finished sliding in).
+  await expect.poll(async () => Math.round((await home.boundingBox())!.x)).toBe(0);
   const box = (await home.boundingBox())!;
   await page.mouse.move(box.x + box.width - 40, box.y + 300); await page.mouse.down();
   await page.mouse.move(box.x + 60, box.y + 305, { steps: 6 }); await page.mouse.up();
