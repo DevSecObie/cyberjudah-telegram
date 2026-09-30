@@ -18,6 +18,8 @@ const MAX_TURNS = 120;
 
 const indexKey = (uid: number) => `chats:${uid}`;
 const chatKey = (uid: number, id: string) => `chat:${uid}:${id}`;
+/** A deleted conversation, remembered for a day: an answer still being written when it was deleted must not bring it back. */
+const goneKey = (uid: number, id: string) => `chatgone:${uid}:${id}`;
 const titleOf = (q: string) => { const t = q.replace(/\s+/g, " ").trim(); return t.length > 80 ? `${t.slice(0, 78).replace(/\s+\S*$/, "")}…` : t; };
 /** The sources without the passage text: the app needs where they lead, not what they said. */
 const slim = (s: SavedSource & { text?: string }): SavedSource => ({ n: s.n, kind: s.kind, title: s.title, url: s.url, ...(s.sub ? { sub: s.sub } : {}), ...(s.video ? { video: s.video, t: s.t ?? 0 } : {}), ...(s.date ? { date: s.date } : {}) });
@@ -31,11 +33,18 @@ export async function getChat(env: Env, uid: number, id: string): Promise<Chat |
   return (await env.SUBS.get(chatKey(uid, id), "json")) as Chat | null;
 }
 
-/** One question and its answer, added to the conversation (created on its first question). */
-export async function saveExchange(env: Env, uid: number, id: string, question: string, answer: { content: string; sources?: (SavedSource & { text?: string })[]; followups?: string[]; steps?: string[] }): Promise<void> {
+/**
+ * One question and its answer, added to the conversation (created on its first question).
+ * `replaceLast` is a retry: the same question asked again replaces its earlier exchange instead
+ * of repeating it.
+ */
+export async function saveExchange(env: Env, uid: number, id: string, question: string, answer: { content: string; sources?: (SavedSource & { text?: string })[]; followups?: string[]; steps?: string[] }, replaceLast = false): Promise<void> {
   if (!CHAT_ID.test(id) || !answer.content.trim()) return;
+  if (await env.SUBS.get(goneKey(uid, id))) return;
   const now = new Date().toISOString();
   const chat: Chat = (await getChat(env, uid, id)) ?? { id, title: titleOf(question), created: now, updated: now, turns: [] };
+  const n = chat.turns.length;
+  if (replaceLast && n >= 2 && chat.turns[n - 2].role === "user" && chat.turns[n - 2].content.trim() === question.trim()) chat.turns.splice(n - 2, 2);
   chat.turns.push({ role: "user", content: question }, { role: "assistant", content: answer.content, sources: (answer.sources ?? []).map(slim), followups: answer.followups ?? [], steps: answer.steps ?? [] });
   chat.turns = chat.turns.slice(-MAX_TURNS);
   chat.updated = now;
@@ -49,6 +58,7 @@ export async function saveExchange(env: Env, uid: number, id: string, question: 
 
 export async function deleteChat(env: Env, uid: number, id: string): Promise<boolean> {
   if (!CHAT_ID.test(id)) return false;
+  await env.SUBS.put(goneKey(uid, id), "1", { expirationTtl: 86400 });
   await env.SUBS.delete(chatKey(uid, id));
   await env.SUBS.put(indexKey(uid), JSON.stringify((await listChats(env, uid)).filter((c) => c.id !== id)));
   return true;

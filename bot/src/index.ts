@@ -10,7 +10,7 @@ import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./t
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
 import { ask, askStream, similar, speakVerse } from "./ai";
-import { VOICES } from "./ai.mjs";
+import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
 import { reportHealth, selfCheck } from "./health";
@@ -109,7 +109,7 @@ app.get("/api/search", async (c) => {
   const q = (c.req.query("q") ?? "").slice(0, 200);
   const only = c.req.query("only") || undefined;
   const limit = Math.min(Math.max(Number(c.req.query("limit")) || 8, 1), 100);
-  const res = await runSearch(c.env.DB, q, only, limit);
+  const res = await runSearch(c.env.DB, q, only, limit, false, c.req.query("live") === "1");
   return c.json(res, res.ok ? 200 : 503);
 });
 
@@ -161,9 +161,10 @@ app.get("/api/transcript/:video", async (c) => {
 // The AI: a question answered from the teachings with citations, search by meaning, and
 // the reading voices (a verse at a time, cached).
 app.post("/api/ask", async (c) => {
-  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string }>().catch(() => null);
-  const history = (Array.isArray(body?.history) ? body!.history! : []).filter((t) => t && (t.role === "user" || t.role === "assistant") && typeof t.content === "string").slice(-8).map((t) => ({ role: t.role as "user" | "assistant", content: t.content! }));
-  if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined);
+  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean }>().catch(() => null);
+  // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
+  const history = normalizeHistory(body?.history, 8);
+  if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true);
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history);
   return c.json(res, res.ok ? 200 : res.reason === "limit" ? 429 : res.reason === "too-short" ? 400 : 503);
 });
@@ -250,7 +251,10 @@ app.get("/api/chats/:id", async (c) => {
   const chat = await getChat(c.env, c.get("tma").user!.id, c.req.param("id"));
   return chat ? c.json({ ok: true, chat }) : c.json({ ok: false, error: "not-found" }, 404);
 });
-app.delete("/api/chats/:id", async (c) => c.json({ ok: await deleteChat(c.env, c.get("tma").user!.id, c.req.param("id")) }));
+app.delete("/api/chats/:id", async (c) => {
+  const ok = await deleteChat(c.env, c.get("tma").user!.id, c.req.param("id"));
+  return c.json({ ok }, ok ? 200 : 400);
+});
 app.get("/api/similar", async (c) => {
   const res = await similar(c.env, c.req.query("q") ?? "", Math.min(Math.max(Number(c.req.query("limit")) || 20, 1), 40));
   return c.json(res, res.ok ? 200 : 503);

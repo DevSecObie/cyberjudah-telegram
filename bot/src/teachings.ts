@@ -9,7 +9,7 @@ import { chunkSegments } from "./transcripts.mjs";
  * the app and the site answer alike and nothing is loaded twice.
  */
 export type TeachingHit = { title: string; matchedTitle: string; excerpt: string; feed: string; date: string; video: string; start: number; note: string; timing: "caption" | "passage" };
-export type TeachingsResult = { ok: true; q: string; feed: string; page: number; hits: TeachingHit[]; more: boolean; ms: number } | { ok: false; reason: string };
+export type TeachingsResult = { ok: true; q: string; feed: string; page: number; mode?: "strict" | "loose"; hits: TeachingHit[]; more: boolean; ms: number } | { ok: false; reason: string };
 type Row = { title: string; matchedTitle: string; matchedText: string; feed: string; date: string; video: string; start: number; note: string | null; cues: string | null };
 
 export async function searchTeachings(env: Env, q: string, feed: string, page: number): Promise<TeachingsResult> {
@@ -20,9 +20,18 @@ export async function searchTeachings(env: Env, q: string, feed: string, page: n
   if (!parsed.terms.length && !parsed.phrases.length) return { ok: true, q: text, feed: f, page, hits: [], more: false, ms: 0 };
   const sql = `SELECT title, highlight(teaching_passages,0,char(57344),char(57345)) AS matchedTitle, highlight(teaching_passages,1,char(57344),char(57345)) AS matchedText, feed, date, video, start, note, cues FROM teaching_passages WHERE teaching_passages MATCH ?1 AND (?2 = '' OR feed = ?2) ORDER BY bm25(teaching_passages,4,1), rowid LIMIT 21 OFFSET ?3`;
   try {
-    const res = await env.TEACH.prepare(sql).bind(ftsExpr(parsed, "AND"), f, page * 20).all<Row>();
-    const hits = res.results.slice(0, 20).map(({ matchedText, cues, note, ...hit }) => ({ ...hit, note: noteUrl(note), ...passageExcerpt(matchedText, cues, hit.start) }));
-    return { ok: true, q: text, feed: f, page, hits, more: res.results.length > 20, ms: Date.now() - t0 };
+    // All the words (and what means the same); then, if that finds nothing, any of them; then the
+    // words as beginnings, since the captions hear a name a little differently than it is spelled.
+    const passes = [ftsExpr(parsed, "AND")];
+    if (parsed.terms.length + parsed.phrases.length > 1) passes.push(ftsExpr(parsed, "OR"));
+    if (parsed.terms.some((t) => t.length >= 3)) passes.push(ftsExpr(parsed, "AND", "all"));
+    let results: Row[] = [], mode: "strict" | "loose" = "strict";
+    for (const [i, expr] of passes.entries()) {
+      results = (await env.TEACH.prepare(sql).bind(expr, f, page * 20).all<Row>()).results;
+      if (results.length || page > 0) { mode = i ? "loose" : "strict"; break; }
+    }
+    const hits = results.slice(0, 20).map(({ matchedText, cues, note, ...hit }) => ({ ...hit, note: noteUrl(note), ...passageExcerpt(matchedText, cues, hit.start) }));
+    return { ok: true, q: text, feed: f, page, mode, hits, more: results.length > 20, ms: Date.now() - t0 };
   } catch (e) {
     console.error(JSON.stringify({ event: "teachings_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 120) }));
     return { ok: false, reason: "unavailable" };
