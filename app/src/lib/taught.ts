@@ -98,3 +98,31 @@ export const whyVerse = (r: Relation) => Number(r.id.split("-").pop());
 
 /** A relation the library made, as opposed to one the reader made. */
 export const isTaught = (r: Relation) => r.id.startsWith("taught:") || r.id.startsWith(WHY);
+
+/**
+ * The classes that taught each verse, for the pictures after it (Bible Strong's inline videos):
+ * keyed by the last verse the moment taught, the Bishops' and Deacons' first, newest first, one
+ * picture per class and verse, at most MOMENTS_PER_VERSE.
+ */
+export const MOMENTS_PER_VERSE = 6;
+const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
+export function momentsByVerse(list: ClassMoment[]): Record<number, ClassMoment[]> {
+  const out: Record<number, ClassMoment[]> = {};
+  const seen = new Set<string>();
+  const sorted = list
+    .filter((m) => VIDEO_ID.test(m.video ?? "") && Number.isFinite(m.t) && verseNumbers(m.verses).length > 0)
+    .sort((a, b) => teacherRank(a.teacher) - teacherRank(b.teacher) || (b.date ?? "").localeCompare(a.date ?? "") || a.t - b.t);
+  for (const m of sorted) {
+    const end = Math.max(...verseNumbers(m.verses));
+    if (seen.has(`${end}:${m.video}`)) continue;
+    seen.add(`${end}:${m.video}`);
+    const row = (out[end] ??= []);
+    if (row.length < MOMENTS_PER_VERSE) row.push(m);
+  }
+  return out;
+}
+export function useMomentsByVerse(slug: string, ch: number) {
+  return useQuery({ ...concordance(slug, ch), select: (c: Concordance | null) => momentsByVerse(c?.moments ?? []) });
+}
+/** YouTube's medium thumbnail of a recording (320 x 180). */
+export const thumbUrl = (video: string) => `https://i.ytimg.com/vi/${encodeURIComponent(video)}/mqdefault.jpg`;
