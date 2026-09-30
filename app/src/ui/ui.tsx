@@ -4,6 +4,7 @@ import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection,
 
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
+import { usePageActions } from "@/tg/hooks";
 import { askTabPath, bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
 import { SwitcherBar } from "@/screens/Tabs";
 
@@ -90,6 +91,25 @@ export function TabBar() {
       ))}
     </Tabbar>
   );
+}
+
+/**
+ * The screen's actions, as glass buttons floating just above the tab bar (see useBottomButtons):
+ * the main one in the accent colour, a second one quiet beside it.
+ */
+export function PageActions() {
+  const { main, secondary } = usePageActions();
+  useEffect(() => {
+    if (main || secondary) document.documentElement.dataset.actions = ""; else delete document.documentElement.dataset.actions;
+    return () => { delete document.documentElement.dataset.actions; };
+  }, [main, secondary]);
+  if (!main && !secondary) return null;
+  const button = (a: NonNullable<typeof main>, quiet: boolean) => (
+    <button type="button" className={`pageaction${quiet || a.quiet ? " pageaction--quiet" : ""}`} disabled={a.disabled || a.progress} aria-busy={a.progress || undefined} onClick={a.onClick}>
+      {a.progress ? <span className="pageaction__spin" aria-hidden="true" /> : null}{a.text}
+    </button>
+  );
+  return <div className="pageactions" role="toolbar" aria-label="Actions">{secondary ? button(secondary, true) : null}{main ? button(main, false) : null}</div>;
 }
 
 export function Screen({ title, kicker, action, children, className }: { title?: ReactNode; kicker?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
