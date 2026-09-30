@@ -130,8 +130,9 @@ test("tapping verses selects them, the sheet highlights, notes, tags and bookmar
   await expect(page.locator(".bs-selected")).toHaveCount(0);
   await expect(page.locator(".bs-pill--book")).toHaveText("Psalms 23");
   // The lists: bookmarks, highlights with the tag, notes.
-  await page.click(".tab >> text=More");
-  await page.click(".row >> text=Bookmarks, highlights");
+  await page.click('.tab[aria-label="Menu"]');
+  await expect(page.locator(".drawer--more[data-open]")).toBeVisible();
+  await page.click(".mcard__row >> text=Bookmarks, highlights");
   await expect(page.locator(".row__title").first()).toHaveText("Comfort");
   await page.click('[role=tab] >> text=Highlights');
   await expect(page.locator(".row__title").first()).toHaveText("Psalms 23");
@@ -169,7 +170,7 @@ test("the book pill opens Books; a chapter tile opens the chapter; the chevrons 
 test("Font and settings: night theme, verse mode, text size, fonts, all kept in the cloud", async ({ page }) => {
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await page.click('.bs-iconbtn[aria-label="Scripture options"]');
-  await page.click(".bs-menu__item >> text=Font and settings");
+  await page.click(".bs-dropdown__item >> text=Font and settings");
   await expect(page.locator(".bs-params__row").first()).toContainText("Theme");
   await page.click('.bs-touchicon[aria-label="Day"]');
   await expect(page.locator(".bs")).toHaveCSS("background-color", "rgb(252, 251, 247)");
@@ -272,13 +273,42 @@ test("tabs are roots, detail screens push, and the back button walks them", asyn
   await page.goto(`/${LAUNCH}`);
   await expect(page.locator(".hello h1")).toHaveText("What do you want to learn?");
   expect((await state(page)).back).toBe(false);
-  await page.click(".tab >> text=Bible");
+  await page.click('.tab[aria-label="Bible"]');
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
-  await page.click(".tab >> text=More");
-  await page.click(".row >> text=Settings");
+  // The menu is a drawer over the Bible, as in Bible Strong: the back button closes it first.
+  await page.click('.tab[aria-label="Menu"]');
+  await expect(page.locator(".drawer--more[data-open]")).toBeVisible();
   await expect.poll(async () => (await state(page)).back).toBe(true);
   await press(page, "back");
-  await expect(page).toHaveURL(/\/more/);
+  await expect(page.locator(".drawer--more[data-open]")).toHaveCount(0);
+  // A screen opened from it pushes, and the back button returns to the Bible.
+  await page.click('.tab[aria-label="Menu"]');
+  await page.click(".mcard__row >> text=Settings");
+  await expect(page).toHaveURL(/\/settings/);
+  await expect(page.locator("h1.title")).toHaveText("Settings");
+  await expect(page.locator(".drawer[data-open]")).toHaveCount(0);
+  await page.waitForTimeout(500);
+  await expect.poll(async () => (await state(page)).back).toBe(true);
+  await press(page, "back");
+  await expect(page).toHaveURL(/\/(bible|read)/);
+});
+
+test("Home is Bible Strong's drawer: it slides the app aside and closes with a swipe", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await page.click('.tab[aria-label="Home"]');
+  const home = page.locator(".drawer--home[data-open]");
+  await expect(home).toBeVisible();
+  await expect(home.locator(".hello h1")).toHaveText("What do you want to learn?");
+  // The app moved aside with it.
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector("#shell .route")!).transform)).not.toBe("none");
+  // A swipe back toward its edge closes it (once it has finished sliding in).
+  await expect.poll(async () => Math.round((await home.boundingBox())!.x)).toBe(0);
+  const box = (await home.boundingBox())!;
+  await page.mouse.move(box.x + box.width - 40, box.y + 300); await page.mouse.down();
+  await page.mouse.move(box.x + 60, box.y + 305, { steps: 6 }); await page.mouse.up();
+  await expect(page.locator(".drawer--home[data-open]")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/read\/genesis\/1/);
 });
 
 test("the reading plan ticks today's chapters and keeps a streak", async ({ page }) => {
@@ -334,9 +364,9 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await page.goto(`/${LAUNCH}`);
   await page.evaluate(() => { localStorage.removeItem("cj:tabs"); localStorage.removeItem("cj:tabgroups"); });
   await page.goto(`/${LAUNCH}`);
-  await page.click(".tab >> text=Bible");
+  await page.click('.tab[aria-label="Bible"]');
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
-  await page.click(".tab >> text=Tabs");
+  await page.click('.tab[aria-label^="Tabs"]');
   await expect(page).toHaveURL(/\/tabs/);
   await expect(page.locator(".tabcard")).toHaveCount(1);
   await expect(page.locator(".tabcard__title b").first()).toHaveText("Bible · Genesis 1");
@@ -346,7 +376,7 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await expect(page.locator(".nt-heading")).toHaveText("What would you like to explore?");
   await page.click(".nt-item >> text=Strong");
   await expect(page).toHaveURL(/\/lexicon/);
-  await page.click(".tab >> text=Tabs");
+  await page.click('.tab[aria-label^="Tabs"]');
   await expect(page.locator(".tabcard")).toHaveCount(2);
   await expect(page.locator(".switcherbar__group")).toHaveText("2 tabs");
   await page.click('.tabcard__close[aria-label="Close Strong"]');
@@ -384,7 +414,7 @@ test("Home is the front door: one field, search the classes or ask CyberJudah", 
   await expect(page.locator(".shelf")).toHaveText(["Learn", "Study", "Meditate", "Go further"]);
   await expect(page.locator(".widget")).toHaveCount(6);
   await expect(page.locator('.tools a[href="/lexicon"]')).toBeVisible();
-  await expect(page.locator(".tab")).toHaveCount(6); // Home, Search, Bible, Ask, Tabs, More
+  await expect(page.locator(".tab")).toHaveCount(7); // Home, Search, Bible, Classes, Ask, Tabs, and the menu
   await page.fill("#q", "Why do we keep the Passover?");
   await page.click(".door__btn--ask");
   await expect(page).toHaveURL(/\/ask/);
@@ -555,7 +585,8 @@ test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a re
   await page.keyboard.press("Escape");
 
   await page.goto(`/read/genesis/1${LAUNCH}`);
-  await page.click('[aria-label="Search the Scriptures"]');
+  await page.click('.bs-iconbtn[aria-label="Scripture options"]');
+  await page.click(".bs-dropdown__item >> text=Search the Scriptures");
   await page.fill(".bs-search__field input", "jn 3:16");
   await expect(page.locator(".bs-search__go b")).toHaveText("Go to John 3:16");
   await page.fill(".bs-search__field input", "light of men");
@@ -675,7 +706,8 @@ test("People: who is named in a verse, a page per person with family, the classe
   await expect(page.locator("h1.title")).toHaveText("Terah");
   // Search the Scriptures finds a person by name.
   await page.goto(`/read/genesis/1${LAUNCH}`);
-  await page.click('[aria-label="Search the Scriptures"]');
+  await page.click('.bs-iconbtn[aria-label="Scripture options"]');
+  await page.click(".bs-dropdown__item >> text=Search the Scriptures");
   await page.fill(".bs-search__field input", "abra");
   await expect(page.locator(".bs-search__go", { hasText: "Abraham" })).toBeVisible();
 });
@@ -846,35 +878,60 @@ test("the Library searches inside every book, page by page", async ({ page }) =>
   await expect(page).toHaveURL(/\/books\/lost-tribes-a-myth\//); // the page link lands in its chapter, at the page
 });
 
-test("Reader: the classes that taught a verse show as pictures after it, and open at that moment", async ({ page }) => {
+test("Reader: the classes that taught a verse are a deck after it; it spreads into a gallery and plays the class in place", async ({ page }) => {
   await page.goto(`/read/genesis/1${LAUNCH}`);
-  const pics = page.locator(".bs-classpics");
-  await expect(pics.first()).toBeVisible();
-  // Verse 28 was taught by several classes; the stack after it opens their list.
-  const after28 = page.locator("#verset-28 .bs-classpics");
-  await expect(after28).toHaveAttribute("aria-label", /classes? taught this/);
-  await after28.click();
-  await expect(page.locator(".bs-sheet", { hasText: "Taught in" })).toBeVisible();
-  const rows = page.locator(".bs-moment");
-  await expect(rows.first()).toBeVisible();
+  await expect(page.locator(".bs-deck").first()).toBeVisible();
+  // Verse 28 was taught by several classes: a fanned deck of up to three, inside the verse, after its text.
+  const deck = page.locator("#verset-28 .bs-deck");
+  await expect(deck).toHaveAttribute("aria-label", /classes? taught this/);
+  const cards = deck.locator(".bs-deck__card");
+  expect(await cards.count()).toBeGreaterThan(1);
+  expect(await cards.count()).toBeLessThanOrEqual(3);
+  expect(await cards.first().evaluate((el) => el.style.transform)).toContain("rotate(-5deg)");
+  await deck.click();
+  const gallery = page.locator(".bs-gallery");
+  await expect(gallery).toBeVisible();
+  const items = gallery.locator(".bs-gallery__item");
+  await expect(items.first()).toBeVisible();
   // The Bishops' teaching comes first, each with the moment's time on its picture.
-  await expect(rows.first().locator("small").first()).toContainText(/Bishop|Deacon/);
-  await expect(rows.first().locator(".bs-moment__ts")).toHaveText(/^\d+:\d{2}(:\d{2})?$/);
-  if (process.env.SHOTS) { await page.waitForTimeout(500); await page.screenshot({ path: `${process.env.SHOTS}/class-pictures.png` }); }
-  await rows.first().click();
+  await expect(items.first().locator("small")).toContainText(/Bishop|Deacon/);
+  await expect(items.first().locator(".bs-gallery__badge")).toHaveText(/^\d+:\d{2}(:\d{2})?$/);
+  await page.waitForTimeout(700);
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/class-gallery.png` });
+  // A card plays the class right there, at that moment, without leaving the chapter.
+  await items.first().locator(".bs-gallery__btn").click();
+  const frame = gallery.locator(".bs-player__box iframe");
+  await expect(frame).toHaveAttribute("src", /youtube-nocookie\.com\/embed\/[A-Za-z0-9_-]{11}\?.*start=\d+/);
+  await expect(page).toHaveURL(/\/read\/genesis\/1/);
+  if (process.env.SHOTS) { await page.waitForTimeout(600); await page.screenshot({ path: `${process.env.SHOTS}/class-playing.png` }); }
+  // Its notes are one tap away.
+  await gallery.locator(".bs-player__actions button", { hasText: "Class notes" }).click();
   await expect(page).toHaveURL(/[?&]t=\d+/);
+});
+
+test("Reader: the chapter ends with a deck of every class that taught it", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await page.locator("#verset-31").scrollIntoViewIfNeeded();
+  const deck = page.locator('.bs-deck:not(#verset-31 *)').last();
+  await deck.scrollIntoViewIfNeeded();
+  await expect(deck).toBeVisible();
+  await deck.click();
+  await expect(page.locator(".bs-gallery__sections h2")).toHaveText("Taught from Genesis 1");
+  // Escape (or Telegram's back button) closes the gallery.
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".bs-gallery")).toHaveCount(0);
 });
 
 test("Ask is on the bottom bar: it opens Ask CyberJudah in its own tab", async ({ page }) => {
   await page.goto(`/read/genesis/1${LAUNCH}`);
-  const ask = page.locator(".tab", { hasText: "Ask" });
+  const ask = page.locator('.tab[aria-label="Ask"]');
   await expect(ask).toBeVisible();
   await ask.click();
   await expect(page).toHaveURL(/\/ask/);
   await expect(ask).toHaveAttribute("aria-current", "page");
   if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/ask-tab.png` }); }
   // The Bible is still its own tab to go back to.
-  await page.click(".tab >> text=Bible");
+  await page.click('.tab[aria-label="Bible"]');
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
 });
 
@@ -886,9 +943,35 @@ test("an opened class keeps the tab bar, with its actions floating above it", as
   await page.goto(`/note/classes/2026/2026-09-26-keep-the-bar${LAUNCH}`);
   await expect(page.locator(".pageactions")).toBeVisible();
   await expect(page.locator(".tabs").first()).toBeVisible();
-  await expect(page.locator(".tabs >> text=Ask")).toBeVisible();
+  await expect(page.locator('.tabs .tab[aria-label="Ask"]')).toBeVisible();
   expect(await state(page)).toMatchObject({ main: null, second: null });
   const actions = await page.locator(".pageactions").boundingBox();
   const bar = await page.locator(".tabs").first().boundingBox();
   expect(actions!.y + actions!.height).toBeLessThanOrEqual(bar!.y + 1);
+});
+
+test("the bottom bar sits above the Bible, and each reader chooses its buttons", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  // Nothing covers the bar: the topmost element at its top edge and at its middle is the bar.
+  const bar = (await page.locator(".tabs").boundingBox())!;
+  for (const y of [bar.y + 2, bar.y + bar.height / 2]) {
+    expect(await page.evaluate(([x, yy]) => !!document.elementFromPoint(x, yy)?.closest(".tabs"), [bar.x + bar.width / 2, y])).toBe(true);
+  }
+  await expect(page.locator('.tab[aria-label="Classes"]')).toBeVisible();
+  // A long press opens the editor.
+  const home = (await page.locator('.tab[aria-label="Home"]').boundingBox())!;
+  await page.mouse.move(home.x + home.width / 2, home.y + home.height / 2);
+  await page.mouse.down(); await page.waitForTimeout(750); await page.mouse.up();
+  await expect(page).toHaveURL(/\/settings\/bar/);
+  await page.click('[aria-label="Remove Search"]');
+  await page.click('[aria-label="Add Library"]');
+  await page.click('[aria-label="Move Library up"]');
+  await expect(page.locator(".tabs .tab")).toHaveCount(7);
+  const labels = await page.locator(".tabs .tab").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+  expect(labels).toEqual(["Home", "Bible", "Classes", "Ask", "Library", expect.stringMatching(/^Tabs/), "Menu"]);
+  await page.click('.tab[aria-label="Library"]');
+  await expect(page).toHaveURL(/\/books/);
+  // The choice is kept with the reader's other settings, in Telegram's cloud.
+  expect(JSON.parse((await cloud(page)).nav)).toEqual(["home", "bible", "classes", "ask", "library", "tabs"]);
 });

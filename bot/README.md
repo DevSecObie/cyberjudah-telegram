@@ -68,3 +68,9 @@ npm run typecheck --workspace bot
 ```
 
 `node scripts/load-search.mjs /path/to/search.sql.gz --local` fills the local D1 for search.
+
+## Bible Strong resource feed
+
+Public `/bs/v1/*` routes serve CyberJudah content in the Bible Strong resource
+contracts. See [BS-FEED.md](BS-FEED.md) for all routes, sources, compatibility gaps,
+contract tests, and the KJV/Strong index refresh procedure.

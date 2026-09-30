@@ -27,7 +27,7 @@ html[data-fullscreen="yes"] .reader__bar { padding-top: 4px; }
   --a-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
   --a-read: "Newsreader", Georgia, "Times New Roman", serif;
   --a-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
-  --a-tabs: calc(60px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  --a-tabs: calc(48px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
   min-height: 100dvh;
   background: var(--a-bg);
   color: var(--a-ink);
@@ -75,21 +75,23 @@ html[data-fullscreen="yes"] .reader__bar { padding-top: 4px; }
 .section__head h2 { margin: 0; font: 600 15px/1.3 var(--a-ui); color: var(--a-ink-2); }
 .section__head a, .link { font: 500 14px var(--a-ui); color: var(--a-accent); background: none; border: 0; padding: 0; cursor: pointer; }
 
-/* Tab bar: a floating Liquid Glass dock. It hovers over the page with a frosted,
-   saturated blur, a hairline edge and a top specular highlight, in every theme. */
+/* Bottom bar: Bible Strong's (BottomTabBar): full width, 48 high plus the home indicator, a hairline
+   on top, icons only in the muted ink, spread evenly across a 20px inset. Its height is --a-tabs,
+   of the page; the Bible stops at its top edge, so only a sheet or the gallery ever covers it. */
 .tabs {
-  position: fixed; z-index: 40;
-  left: 12px; right: 12px; max-width: 616px; margin: 0 auto;
-  bottom: calc(10px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
-  border-radius: 26px;
-  padding: 6px 10px !important;
-  background: color-mix(in srgb, var(--a-bg) 58%, transparent);
-  backdrop-filter: blur(24px) saturate(1.8);
-  -webkit-backdrop-filter: blur(24px) saturate(1.8);
-  border: 1px solid color-mix(in srgb, var(--a-ink-2) 14%, transparent);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, .20), inset 0 1px 0 color-mix(in srgb, #ffffff 38%, transparent);
+  position: fixed; z-index: 40; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: space-around;
+  height: var(--a-tabs); box-sizing: border-box;
+  padding: 0 20px var(--safe-bottom, env(safe-area-inset-bottom, 0px));
+  background: var(--a-bar, var(--a-bg));
+  border-top: 1px solid var(--a-bar-line, var(--a-line));
+  touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
-.tabs .tab { padding: 8px 12px; gap: 4px; }
+.tabs .tab { flex: none; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; background: none; color: var(--a-muted); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: color 160ms ease, transform 160ms ease; }
+.tabs .tab[data-on] { color: var(--a-ink); }
+.tabs .tab:active { transform: scale(.9); }
+.tabs .tab__count { display: grid; place-items: center; box-sizing: border-box; min-width: 20px; height: 20px; padding: 0 3px; border: 2px solid currentColor; border-radius: 5px; font: 700 12px/15px var(--a-ui); font-variant-numeric: tabular-nums; animation: count-pulse 1s ease 300ms; }
+@keyframes count-pulse { 50% { transform: scale(1.2); } }
 
 /* Search field: TelegramUI's Input. */
 .field { display: block; }
@@ -302,7 +304,6 @@ html[data-tg="yes"] .steps { display: none; }
 /* Themes: the reader's choice, over Telegram's own dark or light. Everything reads tokens. */
 html[data-theme="light"] { --color-void: #f6f4ee; --color-panel: #ffffff; --color-panel-2: #ece9e0; --color-hair: #ddd8cc; --color-ink: #2a2620; --color-ink-2: #14120e; --color-muted: #6f6a60; --color-cyan: #0077a8; --color-magenta: #c8155a; color-scheme: light; }
 html[data-theme="sepia"] { --color-void: #f4ecd8; --color-panel: #fbf5e6; --color-panel-2: #ecdfc2; --color-hair: #d9caa6; --color-ink: #3b2f1e; --color-ink-2: #1f170c; --color-muted: #7a6a4f; --color-cyan: #8a5a12; --color-magenta: #a8262f; color-scheme: light; }
-html[data-theme="light"] .tabs, html[data-theme="sepia"] .tabs { box-shadow: 0 12px 32px rgba(80, 60, 20, .16), inset 0 1px 0 color-mix(in srgb, #ffffff 65%, transparent); }
 html[data-font="sans"] .verses, html[data-font="sans"] .note, html[data-font="sans"] .verse { font-family: var(--a-ui); }
 html[data-spacing="airy"] .verses { line-height: 1.95; }
 html[data-spacing="tight"] .verses { line-height: 1.45; }
@@ -588,7 +589,6 @@ html[data-theme="sepia"] .card, html[data-theme="sepia"] .grid a, html[data-them
 .card { border-radius: var(--r-xl); }
 /* The primary door is Ask: tinted in the accent, the way iOS marks the suggested action. */
 .door__btn--ask { background: color-mix(in srgb, var(--a-accent) 16%, var(--a-card)); color: var(--a-accent); }
-.tabs { border-top: .5px solid color-mix(in srgb, var(--a-line) 80%, transparent); }
 
 /* Press feedback: things you tap give way under the finger, rows light up like iOS cells. */
 .card, .tile, .door__btn, .grid a, .notes-open, .chapters a, .steps a, .hero__go, .icon-btn, .chip, .watch { transition: transform .16s cubic-bezier(.2,.8,.2,1), opacity .16s, background-color .2s; }
@@ -750,8 +750,6 @@ html[data-theme="light"] .followup, html[data-theme="sepia"] .followup, html[dat
 #root [data-tabs] .chat2 { padding-bottom: calc(120px + var(--a-tabs)); }
 html[data-typing] .tabs { display: none; }
 html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc(6px + var(--safe-bottom, 0px)); }
-/* Five tabs fit a small phone. */
-.tabs .tab { padding: 8px 4px; min-width: 0; }
 
 /* Ask's allowance: the meter under the title, the plans, and the note when it runs out. */
 .chat2__heading { border: 0; background: none; padding: 0; cursor: pointer; font: inherit; }
@@ -1108,7 +1106,7 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 /* A screen's actions (Open in YouTube, Share...), in the app instead of Telegram's own bottom bar,
    which covered the tab bar: glass buttons just above the tab bar, as the dock is glass. */
 .pageactions { position: fixed; z-index: 39; left: 12px; right: 12px; max-width: 616px; margin: 0 auto;
-  bottom: calc(var(--a-tabs) + 30px); display: flex; gap: 10px; justify-content: center; pointer-events: none; }
+  bottom: calc(var(--a-tabs) + 12px); display: flex; gap: 10px; justify-content: center; pointer-events: none; }
 #root .pageaction { pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex: 1 1 0; max-width: 320px; height: 46px; padding: 0 18px; border-radius: 23px; cursor: pointer;
   font: 600 15px var(--a-ui); color: var(--a-on-accent, #001014); background: var(--a-accent);
   border: 1px solid color-mix(in srgb, #ffffff 22%, transparent);
@@ -1125,3 +1123,61 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 /* Room for the actions at the end of the page. */
 html[data-actions] #root [data-tabs] { padding-bottom: calc(var(--a-tabs) + 90px); }
 html[data-typing] .pageactions { display: none; }
+
+/* The bottom bar's editor. */
+.naved__preview { display: flex; justify-content: space-around; align-items: center; height: 48px; margin: 4px 0 18px; padding: 0 12px; border: 1px solid var(--a-line); border-radius: var(--r-lg); color: var(--a-muted); background: var(--a-card); }
+.naved__preview > span { display: grid; place-items: center; width: 40px; }
+.naved { list-style: none; margin: 0; padding: 0; border-radius: var(--r-lg); background: var(--a-card); overflow: hidden; }
+.naved__row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 8px 0 16px; border-top: 1px solid var(--a-line); }
+.naved__row:first-child { border-top: 0; }
+.naved__icon { display: grid; place-items: center; min-width: 26px; color: var(--a-ink-2); }
+.naved__label { flex: 1; font: 500 15px var(--a-ui); color: var(--a-ink); }
+.naved__btn { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: none; color: var(--a-ink-2); cursor: pointer; }
+.naved__btn--down svg { transform: rotate(180deg); }
+.naved__btn--add { color: var(--a-accent); }
+.naved__btn:disabled { opacity: .3; cursor: default; }
+.naved__btn:not(:disabled):active { background: var(--a-card-2, var(--a-line)); }
+.naved__reset { display: block; margin: 18px auto 0; border: 0; background: none; font: 500 15px var(--a-ui); color: var(--a-accent); cursor: pointer; }
+
+/* Bible Strong's Home and menu drawers: min(95%, 450px) wide, pushing the app aside as one row. */
+:root { --drawer-w: min(95vw, 450px); --drawer-ease: cubic-bezier(.2, .9, .25, 1); }
+#shell .route, .tabs, .pageactions { transition: transform .38s var(--drawer-ease); }
+html[data-drawer-pin] #shell .route { position: fixed; top: var(--drawer-y, 0); left: 0; right: 0; min-height: 100dvh; }
+html[data-drawer="home"] #shell .route, html[data-drawer="home"] .tabs, html[data-drawer="home"] .pageactions { transform: translateX(var(--drawer-w)); }
+html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[data-drawer="more"] .pageactions { transform: translateX(calc(-1 * var(--drawer-w))); }
+.drawer { position: fixed; top: 0; bottom: 0; z-index: 70; width: var(--drawer-w); display: flex; flex-direction: column; background: var(--a-card-2); color: var(--a-ink); transition: transform .38s var(--drawer-ease); overscroll-behavior: contain; }
+.drawer--home { left: 0; transform: translateX(-100%); }
+.drawer--more { right: 0; transform: translateX(100%); border-left: 1px solid var(--a-line); }
+.drawer[data-open] { transform: none; }
+.drawer__scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.drawer--home .drawer__scroll { padding-bottom: calc(100px + var(--safe-bottom, 0px)); }
+.drawer__scroll > .screen { min-height: 0; padding-bottom: 24px; }
+.drawer__fade { position: absolute; left: 0; right: 0; bottom: 0; height: 100px; pointer-events: none; background: linear-gradient(to bottom, transparent, var(--a-card-2)); }
+#root .drawer__x, .drawer__x { position: absolute; left: 50%; bottom: calc(24px + var(--safe-bottom, 0px)); display: grid; place-items: center; width: 50px; height: 50px; margin-left: -25px; padding: 0; border: 0; border-radius: 30px; background: var(--a-bg); color: var(--a-muted); box-shadow: 0 6px 20px rgba(0, 0, 0, .25); cursor: pointer; }
+.drawer__head { display: flex; align-items: center; gap: 4px; min-height: 54px; padding: var(--safe-top, 0px) 10px 0; border-bottom: 1px solid var(--a-line); }
+.drawer__head h2 { margin: 0; font: 700 17px var(--a-ui); }
+#root .drawer__back, .drawer__back { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; background: none; color: var(--a-ink); cursor: pointer; }
+.drawer-scrim { position: fixed; inset: 0; z-index: 65; pointer-events: none; background: rgba(0, 0, 0, 0); transition: background-color .38s ease; }
+.drawer-scrim[data-open] { pointer-events: auto; background: rgba(0, 0, 0, .25); }
+.drawer-scrim[data-side="home"] { left: var(--drawer-w); }
+.drawer-scrim[data-side="more"] { right: var(--drawer-w); }
+/* The tabs count in its group's colour, as Bible Strong's; the default group stays plain. */
+.tabs .tab__count[style*="--group"] { background: var(--group); border-color: var(--group); color: #fff; }
+@media (prefers-reduced-motion: reduce) { #shell .route, .tabs, .pageactions, .drawer, .drawer-scrim { transition: none; } }
+
+/* Bible Strong's MoreScreen cards: radius 16, a 12px grey heading row with its icon, then links with
+   a 20px coloured icon, a 15px label and a chevron. */
+.more { padding: 16px 0 24px; }
+.drawer .more { padding-top: 16px; }
+.mcard { margin: 0 20px 16px; border-radius: 16px; background: var(--a-bg); overflow: hidden; }
+.screen .mcard { margin-inline: 0; }
+.mcard__head { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 16px; background: color-mix(in srgb, var(--a-ink) 5%, transparent); color: var(--a-muted); font: 700 12px var(--a-ui); letter-spacing: .02em; }
+#root .mcard__row, .mcard__row { display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 12px; border: 0; background: none; color: var(--a-ink); font: 400 15px var(--a-ui); text-align: left; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.mcard__row:active { background: color-mix(in srgb, var(--a-ink) 6%, transparent); }
+.mcard__icon { display: grid; place-items: center; width: 24px; }
+.mcard__label { flex: 1; min-width: 0; }
+.mcard__chev { display: grid; color: var(--a-muted); }
+.more__foot { margin: 8px 20px 0; color: var(--a-muted); font: 400 14px/1.4 var(--a-ui); text-align: center; }
+/* Home fits its drawer. */
+.drawer__scroll { overflow-x: hidden; }
+.hero { grid-template-columns: minmax(0, 1fr); }

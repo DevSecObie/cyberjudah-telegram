@@ -83,8 +83,14 @@ const TOOLS: [string, string, IconName][] = [
  * where you left off, this week's class and the latest teachings.
  */
 export function Home() {
-  const navigate = useNavigate();
   useBackButton(true);
+  useBottomButtons(null, null);
+  return <HomeBody />;
+}
+
+/** Home's content, on its own page or in Bible Strong's Home drawer over the current tab. */
+export function HomeBody() {
+  const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [last] = useLast();
   const [lastNote] = useLastNote();
@@ -107,7 +113,6 @@ export function Home() {
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30_000); return () => clearInterval(t); }, []);
   const sab = loc ? sabbath(now, loc.lat, loc.lng) : null;
   const search = (text: string) => { const t = text.trim(); if (t) navigate(`/search?q=${encodeURIComponent(t)}`); };
-  useBottomButtons(null, null);
 
   const random = useRandomVerse();
   // Precept passes are working data behind the verse notes, not something to read on their own.

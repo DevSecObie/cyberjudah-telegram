@@ -26,7 +26,8 @@ import { ParamsSheet } from "./ui/ParamsSheet";
 import { ResourcesSheet, type ResourceTab } from "./ui/ResourcesSheet";
 import { CompareSheet } from "./ui/CompareSheet";
 import { isWhy, slugOfUrl, useMomentsByVerse, useTaughtRelations, whyVerse } from "@/lib/taught";
-import { ClassMomentsSheet } from "./ui/ClassMomentsSheet";
+import { MediaDeck, deckKey } from "./dom/MediaDeck";
+import { newTab, selectTab } from "@/lib/tabs";
 import { WhySheet } from "./ui/WhySheet";
 import { SelectedVersesSheet } from "./ui/SelectedVersesSheet";
 import "./bible.css";
@@ -55,7 +56,10 @@ export function BibleTab() {
     // Telegram's chrome takes the page colour while the tab is open, and gives it back after.
     if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(palette.reverse); app.setBackgroundColor(palette.reverse); }
     if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(palette.reverse);
-    return () => { const bg = getComputedStyle(document.documentElement).getPropertyValue("--color-void").trim() || "#05070f"; if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(bg); app.setBackgroundColor(bg); } if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(bg); };
+    // So does the bottom bar, with the Bible's hairline.
+    const root = document.documentElement.style;
+    root.setProperty("--a-bar", palette.reverse); root.setProperty("--a-bar-line", palette.border);
+    return () => { root.removeProperty("--a-bar"); root.removeProperty("--a-bar-line"); const bg = getComputedStyle(document.documentElement).getPropertyValue("--color-void").trim() || "#05070f"; if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(bg); app.setBackgroundColor(bg); } if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(bg); };
   }, [palette.reverse]);
 
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
@@ -108,10 +112,12 @@ export function BibleTab() {
   }, [plan, list, progress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sheets.
-  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare" | "moments">(null);
-  const [momentsVerse, setMomentsVerse] = useState(1);
+  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare">(null);
   // The classes that taught each verse: pictures after the verses, as Bible Strong shows its videos.
   const classMoments = useMomentsByVerse(slug, ch);
+  // The chapter's own deck, at its end: every class moment in it, in the order of the verses.
+  const chapterDeck = useMemo(() => Object.entries(classMoments.data ?? {}).sort(([a], [b]) => +a - +b).flatMap(([, ms]) => ms)
+    .filter((m, i, all) => all.findIndex((x) => deckKey(x) === deckKey(m)) === i), [classMoments.data]);
   const [whyAt, setWhyAt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [resourceTab, setResourceTab] = useState<ResourceTab>("dictionary");
@@ -213,19 +219,21 @@ export function BibleTab() {
     if (a === "history") navigate("/history");
     if (a === "bookmark") { setBookmarkTarget({ existing: bookmarks.find((b) => b.book === slug && b.chapter === ch && !b.verse) }); setSheet("bookmark"); }
     if (a === "export") void exportSel("chapter");
+    if (a === "search") setSheet("search");
+    if (a === "newtab") navigate(selectTab(newTab(`/read/${slug}/${ch}`)), { replace: true });
   };
   const chapterBookmark = bookmarks.find((b) => b.book === slug && b.chapter === ch && !b.verse);
   const formatBookmark = (b: Bookmark) => `${bookName(b.book)} ${b.chapter}${b.verse ? `:${b.verse}` : ""}`;
 
   const headerHeight = (fullscreen ? HEADER_HEIGHT_MIN : HEADER_HEIGHT) + (focus && contextMode ? PASSAGE_CONTEXT_HEADER_HEIGHT : 0);
   const focusedReference = focus ? reference(focus) : null;
-  const bottomBar = 60 + (Number(getComputedStyle(document.documentElement).getPropertyValue("--safe-bottom").replace("px", "")) || 0);
+  const bottomBar = 48 + (Number(getComputedStyle(document.documentElement).getPropertyValue("--safe-bottom").replace("px", "")) || 0);
   const items = colorItems(settings, palette);
   const resource = verses.find((v) => v.verse === resourceVerse);
 
   return (
     <div className="bs" data-dark={isDarkTheme(theme) ? "" : undefined} style={{ ...cssVars(palette), background: palette.reverse, color: palette.default }}>
-      <Header bookLabel={chapterLabel} version="KJV" onBook={() => setSheet("books")} onSearch={() => setSheet("search")} onVersion={() => setSheet("version")} onVerses={() => setSheet("verses")}
+      <Header bookLabel={chapterLabel} version="KJV" onBook={() => setSheet("books")} onVersion={() => setSheet("version")} onVerses={() => setSheet("verses")}
         selectedReference={selectedReference} focusedReference={focusedReference} onClearFocus={clearFocus} collapsed={fullscreen}
         onMenu={onMenu} hasChapterBookmark={!!chapterBookmark} chapterBookmarkColor={chapterBookmark?.color} onChapterBookmark={() => { setBookmarkTarget({ existing: chapterBookmark }); setSheet("bookmark"); }} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
       {focus ? <PassageContextBar focused={contextMode === "focused"} collapsed={fullscreen} onExpand={() => setContextMode("fullChapter")} onCollapse={() => { setContextMode("focused"); setNavRequest((n) => n + 1); }} onExit={clearFocus} /> : null}
@@ -235,9 +243,10 @@ export function BibleTab() {
         <Chapter slug={slug} chapter={ch} verses={verses} settings={settings} palette={palette} theme={theme}
           selected={selected} focusVerses={focus} contextDisplayMode={contextMode} verseToScroll={verseToScroll} navigationRequest={navRequest}
           highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={relItems}
-          moments={classMoments.data} onOpenMoments={(v) => { haptic("select"); setMomentsVerse(v); setSheet("moments"); }}
+          moments={classMoments.data} deck={{ reference: chapterLabel, from: `/read/${slug}/${ch}` }}
           headerHeight={headerHeight} fullscreen={fullscreen} canSwipe
-          footer={<><ChapterPeople slug={slug} chapter={ch} /><ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
+          footer={<>{chapterDeck.length ? <MediaDeck items={chapterDeck} placement="chapter" palette={palette} fontScale={settings.fontSizeScale} reference={chapterLabel} from={`/read/${slug}/${ch}`}
+            sections={[{ title: `Taught from ${chapterLabel}`, items: chapterDeck }]} /> : null}<ChapterPeople slug={slug} chapter={ch} /><ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
             onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} /></>}
           onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "dictionary")}
           onSwipe={(dir) => go(dir === "left" ? next : prev)} onFullscreen={setFullscreen}
@@ -247,7 +256,6 @@ export function BibleTab() {
       )}
       <Footer hasPrev={!!prev} hasNext={!!next} onPrev={() => go(prev)} onNext={() => go(next)} speech={speech} fullscreen={fullscreen} hidden={contextMode === "focused" && !!focus} bottomBar={bottomBar} reference={chapterLabel} verseCount={verses.length} repeat={repeat} setRepeat={setRepeat} expanded={audioOpen} setExpanded={setAudioOpen} />
 
-      <ClassMomentsSheet open={sheet === "moments"} onClose={() => setSheet(null)} moments={classMoments.data?.[momentsVerse] ?? []} reference={`${chapterLabel}:${momentsVerse}`} from={`/read/${slug}/${ch}?v=${momentsVerse}`} />
       <WhySheet open={sheet === "why"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={whyAt} reference={`${chapterLabel}:${whyAt}`}
         onRead={(url, v) => { setSheet(null); const m = slugOfUrl(url); navigate(m ? `/read/${m[1]}/${m[2]}${v ? `?v=${v}` : ""}` : url); }}
         onOpenClass={(url, ts) => { setSheet(null); const t = ts ? ts.split(":").reduce((n, p) => n * 60 + Number(p || 0), 0) : 0; if (/^https?:/.test(url)) openLink(`${url}${t ? `&t=${t}s` : ""}`); else navigate(`/note${url}${t ? `?t=${t}` : ""}`); }} />
@@ -256,7 +264,7 @@ export function BibleTab() {
         moreThanOne={selected.length > 1} hasBookmark={hasBookmark} hasFocus={hasFocus}
         onNote={() => { setNoteEdit(null); setSheet("note"); }} onTag={() => { setTagsTarget(selectedSorted); setSheet("tags"); }} onLink={() => setSheet("link")} onRelation={() => setSheet("relation")}
         onBookmark={() => { setBookmarkTarget({ verse: first, existing: bookmarks.find((b) => b.book === slug && b.chapter === ch && b.verse === first) }); setSheet("bookmark"); }} onFocus={setFocus}
-        onDictionary={() => openResources(first, "dictionary")} onThemes={() => openResources(first, "themes")} onReferences={() => openResources(first, "references")} onCommentary={() => openResources(first, "commentary")} onCompare={() => { setResourceVerse(first); setSheet("compare"); }}
+        onLexicon={() => openResources(first, "words")} onDictionary={() => openResources(first, "dictionary")} onThemes={() => openResources(first, "themes")} onReferences={() => openResources(first, "references")} onCommentary={() => openResources(first, "commentary")} onCompare={() => { setResourceVerse(first); setSheet("compare"); }}
         onCopy={() => void copy()} onShare={shareSel} onExport={() => void exportSel("selection")} onSelectAll={() => setSelected(verses.map((v) => v.verse))} />
 
       <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v)} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />

@@ -9,7 +9,7 @@
   // The Mini App lives at cyberjudah.io/app: the SPA under /app, the API it calls under
   // /api, and the verse-card images and frames under /card and /frames. The rest of the
   // apex (whatever the tunnel serves) is untouched; the webhook stays on workers.dev.
-  "routes": ["cyberjudah.io/app*", "cyberjudah.io/api/*", "cyberjudah.io/card/*", "cyberjudah.io/frames/*"],
+  "routes": ["cyberjudah.io/app*", "cyberjudah.io/api/*", "cyberjudah.io/card/*", "cyberjudah.io/frames/*", "cyberjudah.io/bs/*"],
   // The Mini App is a SPA staged by bot/scripts/prepare-assets.sh into .deploy/
   // (the build output at both / and /app/, so it loads on workers.dev and on
   // cyberjudah.io/app); every unknown path serves its index.html. The
@@ -20,7 +20,7 @@
     "not_found_handling": "single-page-application",
     // The fork's pages (not its files) go through the Worker, so a deep link under /app/strong
     // gets the fork's own index.html instead of the current app's.
-    "run_worker_first": ["/api/*", "/webhook", "/card/*", "/frames/*", "/app/strong", "/app/strong/*", "!/app/strong/_expo/*", "!/app/strong/assets/*"]
+    "run_worker_first": ["/api/*", "/webhook", "/card/*", "/frames/*", "/bs/*", "/app/strong", "/app/strong/*", "!/app/strong/_expo/*", "!/app/strong/assets/*"]
   },
   // search_docs (FTS5) loaded from the engine's search.sql.gz by scripts/load-search.mjs. The
   // id is filled in by the deploy workflow (scripts/d1-id.sh); nothing account-specific is committed.
@@ -56,7 +56,17 @@
         { "binding": "TEACH", "database_name": "cyberjudah", "database_id": "11111111-1111-1111-1111-111111111111" }
       ],
       "kv_namespaces": [{ "binding": "SUBS", "id": "00000000000000000000000000000000" }],
-      "vars": { "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr" }
+      // Environments do not inherit "vars": every production setting is repeated here (only
+      // APP_URL differs). tests/wrangler.test.mjs fails if one goes missing.
+      "vars": {
+        "DATA_ORIGIN": "https://data.cyberjudah.io",
+        "SITE_URL": "https://cyberjudah.io",
+        "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr",
+        "CLAUDE_MODEL": "claude-opus-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",
+        "ASK_USD_PER_MTOK": "5", "ASK_USD_PER_STAR": "0.013", "ASK_MARGIN": "1.3",
+        "ASK_FREE_DAILY": "120000", "ASK_PLAN_STARS": "750", "ASK_PACKS": "150,500,1500",
+        "ASK_BILLING": "off"
+      }
     }
   },
   // Secrets, set by the deploy workflow with `wrangler secret put`: BOT_TOKEN, WEBHOOK_SECRET,

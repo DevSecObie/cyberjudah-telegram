@@ -2,8 +2,8 @@ import { useState, type CSSProperties } from "react";
 
 import type { ClassMoment } from "@/api/data";
 import type { VerseRelationItem } from "@/lib/relations";
-import { thumbUrl } from "@/lib/taught";
 import { RelationsText } from "@/ui/relations";
+import { MediaDeck } from "./MediaDeck";
 import { Feather, Ion } from "../icons";
 import { contrastText, convertHex, HIGHLIGHT_BACKGROUND_OPACITY, isDarkTheme, type Palette, type ThemeName } from "../theme";
 import { highlightInfo, webFontFamily, type BibleSettings } from "../settings";
@@ -25,7 +25,8 @@ export type VerseProps = {
   relationItems?: VerseRelationItem[]; relationCount?: number;
   tagGroup?: VerseTagGroup; taggedItemsCount?: number;
   /** The classes that taught this verse, shown as pictures after it. */
-  moments?: ClassMoment[]; onOpenMoments?: () => void;
+  /** The classes that taught this verse, and where the deck's gallery says they are and comes back to. */
+  moments?: ClassMoment[]; deck?: { reference: string; from: string };
   onOpenBookmark: (b: Bookmark) => void; onOpenRelations: () => void; onOpenRelationItem: (it: VerseRelationItem) => void; onOpenTags: () => void; onOpenTag: (tagId: string) => void;
 };
 
@@ -64,32 +65,10 @@ export function Verse(p: VerseProps) {
         {p.relationCount && s.relationsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.relationCount} onClick={p.onOpenRelations} label={`${p.relationCount} relations`}><Feather name="git-merge" size={16} color={c.primary} /></CountBadge> : null}
         {p.taggedItemsCount && s.tagsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.taggedItemsCount} onClick={p.onOpenTags} label={`${p.taggedItemsCount} tags`}><Feather name="tag" size={14} color={c.primary} /></CountBadge> : null}
         <span className="bs-text" data-verse-key={p.verseKey} style={{ fontSize: getBibleTextFontSize(false, s.fontSizeScale), lineHeight: scaleLineHeight(32, s.lineHeight, s.fontSizeScale), whiteSpace: "pre-line" }}>{p.text}</span>
+        {p.moments?.length && p.deck ? <MediaDeck items={p.moments} placement="inline" palette={c} fontScale={s.fontSizeScale} reference={p.deck.reference} from={`${p.deck.from}?v=${p.number}`} disabled={p.isSelectedMode} /> : null}
       </span>
-      {p.moments?.length && p.onOpenMoments ? <ClassPictures moments={p.moments} palette={c} theme={theme} onOpen={p.onOpenMoments} /> : null}
       {p.tagGroup && s.tagsDisplay === "inline" ? <VerseTags tags={p.tagGroup.tags} settings={s} palette={c} theme={theme} onOpenTags={p.onOpenTags} onOpenTag={p.onOpenTag} /> : null}
       {p.relationItems?.length && s.relationsDisplay === "inline" ? <span data-ignore-verse-touch=""><RelationsText items={p.relationItems} onClick={p.onOpenRelationItem} /></span> : null}
-    </span>
-  );
-}
-
-/**
- * ClassPictures: the classes that taught this verse, as a small stack of their recordings'
- * thumbnails after the text (Bible Strong's PassageMediaThumbnails). Tapping opens the list.
- */
-function ClassPictures({ moments, palette: c, theme, onOpen }: { moments: ClassMoment[]; palette: Palette; theme: ThemeName; onOpen: () => void }) {
-  const shown = moments.slice(0, 3);
-  const w = 40, h = 23, step = 5;
-  const label = `${moments.length} ${moments.length === 1 ? "class" : "classes"} taught this: ${moments.map((m) => m.label).join(", ")}`;
-  return (
-    <span data-ignore-verse-touch="" role="button" tabIndex={0} aria-label={label} className="bs-classpics"
-      onClick={(e) => { e.stopPropagation(); onOpen(); }}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
-      style={{ position: "relative", display: "inline-block", width: w + (shown.length - 1) * step, height: h, marginInline: 6, verticalAlign: "-5px", cursor: "pointer" }}>
-      {shown.map((m, i) => (
-        <img key={`${m.video}-${m.t}`} src={thumbUrl(m.video)} alt="" loading="lazy" decoding="async"
-          style={{ position: "absolute", left: i * step, top: 0, width: w, height: h, objectFit: "cover", borderRadius: 5, zIndex: shown.length - i, background: c.lightGrey, border: `1.5px solid ${c.reverse}`, boxShadow: isDarkTheme(theme) ? "0 1px 4px rgba(0, 0, 0, 0.6)" : "0 1px 4px rgba(0, 0, 0, 0.25)", opacity: i === 0 ? 1 : 0.85 }} />
-      ))}
-      {moments.length > 1 ? <span style={{ background: c.grey, position: "absolute", minWidth: 13, height: 13, padding: "0 2px", boxSizing: "border-box", borderRadius: 13, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "arial", fontSize: 9, color: c.reverse, bottom: -4, right: -5, zIndex: 9 }}>{moments.length}</span> : null}
     </span>
   );
 }

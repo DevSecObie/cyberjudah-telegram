@@ -89,6 +89,12 @@ export function closeTab(id: string) {
 export function closeAll() { const g = group(), t = { id: uid(), path: "/new" }; setGroup({ ...g, tabs: [t], current: t.id }); }
 
 /** A new group (Bible Strong's CreateGroupPage), made current, starting on the New Tab page. */
+/** The open tab before or after the current one in its group, selected: its path, or null at either end. */
+export function adjacentTab(step: 1 | -1): string | null {
+  const g = group(), i = g.tabs.findIndex((t) => t.id === g.current), t = g.tabs[i + step];
+  return t ? selectTab(t.id) : null;
+}
+
 export function newGroup(name: string, color: string): string | null {
   if (state.groups.length >= MAX_GROUPS) return null;
   const g = freshGroup(name.trim() || `Group ${state.groups.length + 1}`, color);
