@@ -40,16 +40,24 @@ const PassageMediaImage = ({
       layoutDependency={layoutDependency}
       transition={transition}
       animate={animate}
-      style={{ position: 'relative', overflow: 'hidden', ...style }}
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        // CyberJudah's thumbnails have no blur placeholder: a quiet tone while the picture loads.
+        ...(item.blurHash ? {} : { backgroundColor: 'rgba(128, 128, 128, 0.22)' }),
+        ...style,
+      }}
     >
-      <Blurhash
-        hash={item.blurHash}
-        width="100%"
-        height="100%"
-        resolutionX={32}
-        resolutionY={18}
-        style={{ position: 'absolute', inset: 0, display: 'block' }}
-      />
+      {item.blurHash ? (
+        <Blurhash
+          hash={item.blurHash}
+          width="100%"
+          height="100%"
+          resolutionX={32}
+          resolutionY={18}
+          style={{ position: 'absolute', inset: 0, display: 'block' }}
+        />
+      ) : null}
       <img
         src={item.thumbnailUrl}
         alt=""

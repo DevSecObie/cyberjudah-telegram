@@ -1,4 +1,3 @@
-import passageMediaJson from '~assets/passage-media.json'
 import { getBook } from '~helpers/bibleBookCatalog'
 import type { ActiveLanguage } from '~helpers/languageUtils'
 import englishBookNames from '../../../i18n/locales/en/translation_book.json'
@@ -30,6 +29,12 @@ export type PassageMediaEdition = {
   thumbnailUrl: string
   blurHash: string
   durationSeconds: number
+  /** CyberJudah: the second the class reached this passage; the player starts there. */
+  startSeconds?: number
+  /** CyberJudah: shown on the thumbnail in place of a duration (the moment's time). */
+  badge?: string
+  /** CyberJudah: the teacher and the date of the class. */
+  subtitle?: string
 }
 
 type PassageMediaAnchor = {
@@ -74,6 +79,9 @@ export type ResolvedPassageMedia = Pick<
   | 'blurHash'
   | 'title'
   | 'durationSeconds'
+  | 'startSeconds'
+  | 'badge'
+  | 'subtitle'
 > & {
   workId: string
   editionId: string
@@ -106,12 +114,11 @@ export const formatPassageMediaDuration = (durationSeconds: number): string => {
   return `${minutes}:${String(seconds).padStart(2, '0')}`
 }
 
-const PASSAGE_MEDIA_PLAYER_URL = 'https://bible-strong.app/embed/youtube.html'
-const PASSAGE_MEDIA_APP_ID = 'com.smontlouis.biblestrong'
-
-export const getPassageMediaEmbedUrl = (providerId: string): string =>
-  `${PASSAGE_MEDIA_PLAYER_URL}?v=${encodeURIComponent(providerId)}` +
-  `&appId=${encodeURIComponent(PASSAGE_MEDIA_APP_ID)}`
+// YouTube's privacy-enhanced player, opened at the moment the class reached the passage.
+export const getPassageMediaEmbedUrl = (providerId: string, startSeconds?: number): string =>
+  `https://www.youtube-nocookie.com/embed/${encodeURIComponent(providerId)}` +
+  `?autoplay=1&playsinline=1&rel=0` +
+  (startSeconds && startSeconds > 0 ? `&start=${Math.floor(startSeconds)}` : '')
 
 type ResolvePassageMediaChapterInput = {
   book: number
@@ -240,6 +247,9 @@ const resolveEdition = (
     blurHash: edition.blurHash,
     title: edition.title,
     durationSeconds: edition.durationSeconds,
+    startSeconds: edition.startSeconds,
+    badge: edition.badge,
+    subtitle: edition.subtitle,
   }
 }
 
@@ -391,7 +401,31 @@ export const resolvePassageMediaLibrary = (
   return result
 }
 
-const passageMediaCatalog = passageMediaJson as PassageMediaCatalog
+/**
+ * CyberJudah: no bundled catalog. Each chapter's classes come from the Worker
+ * (bot/src/passage-media.mjs) when the chapter opens; the works seen so far are kept here so the
+ * player screen can find one by id.
+ */
+const passageMediaCatalog: PassageMediaCatalog = {
+  attribution: { label: 'CyberJudah', url: 'https://cyberjudah.io', termsUrl: 'https://cyberjudah.io' },
+  works: [],
+  indexes: { chapters: {}, strongs: {}, library: [] },
+}
+const loadedWorks = new Map<string, { work: PassageMediaWork; label: string }>()
+
+// Served by the Worker beside the app itself (bot/src/index.ts), so the request is same-origin.
+const CLASS_MEDIA_URL = '/app/strong/_media'
+
+export const fetchPassageMediaChapter = async (
+  book: number,
+  chapter: number
+): Promise<PassageMediaCatalog> => {
+  const response = await fetch(`${CLASS_MEDIA_URL}/${book}/${chapter}`)
+  if (!response.ok) throw new Error(`Class media ${book}:${chapter}: ${response.status}`)
+  const catalog = (await response.json()) as PassageMediaCatalog
+  catalog.works.forEach(work => loadedWorks.set(work.id, { work, label: catalog.attribution.label }))
+  return catalog
+}
 
 export const getPassageMediaForChapter = (input: ResolvePassageMediaChapterInput) =>
   resolvePassageMediaChapter(passageMediaCatalog, input)
@@ -407,6 +441,8 @@ export const getPassageMediaById = (
   workId: string,
   language: ActiveLanguage
 ): ResolvedPassageMedia | null => {
+  const loaded = loadedWorks.get(workId)
+  if (loaded) return resolveEdition(loaded.work, language, loaded.label)
   const work = getWorksById(passageMediaCatalog).get(workId)
   return work ? resolveEdition(work, language, passageMediaCatalog.attribution.label) : null
 }

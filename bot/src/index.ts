@@ -17,6 +17,7 @@ import { reportHealth, selfCheck } from "./health";
 import { bookLabel } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
 import { bs } from "./bs";
+import { buildCatalog, emptyCatalog, SLUGS, type PassageMediaMoment } from "./passage-media.mjs";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
 import { CHAT_ID, deleteChat, getChat, listChats } from "./chats";
 import { notePdf, pdfName } from "./pdf.mjs";
@@ -364,6 +365,16 @@ app.get("/card/:slug/:chapter/:file", async (c) => {
 // The Bible Strong fork, staged at /app/strong: a real file is served as is; any other path
 // under it is one of its screens, so it gets the fork's index.html (the asset fallback would
 // give the current app's).
+// The reader's inline class videos for one chapter, public and same-origin with the fork.
+app.get("/app/strong/_media/:book/:chapter", async (c) => {
+  const book = Number(c.req.param("book")), chapter = Number(c.req.param("chapter"));
+  if (!Number.isInteger(book) || !Number.isInteger(chapter)) return c.notFound();
+  const slug = SLUGS[book - 1];
+  const ok = slug && chapter >= 1 && chapter <= 200;
+  const data = ok ? await dataJson<{ moments?: PassageMediaMoment[] }>(c.env, `/api/concordance/${slug}/${chapter}.json`, c.executionCtx) : null;
+  const catalog = ok ? buildCatalog(book, chapter, data?.moments ?? []) : emptyCatalog();
+  return c.json(catalog, 200, { "cache-control": "public, max-age=3600" });
+});
 app.get("/app/strong/*", async (c) => {
   const url = new URL(c.req.url);
   if (/\.[a-z0-9]+$/i.test(url.pathname)) return c.env.ASSETS.fetch(c.req.raw);

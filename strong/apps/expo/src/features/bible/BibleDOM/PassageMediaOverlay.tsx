@@ -138,7 +138,7 @@ const PassageMediaGalleryCard = ({
               lineHeight: 1.1,
             }}
           >
-            {formatPassageMediaDuration(item.durationSeconds)}
+            {item.badge || formatPassageMediaDuration(item.durationSeconds)}
           </m.span>
         </PassageMediaImage>
       </m.button>
@@ -166,6 +166,9 @@ const PassageMediaGalleryCard = ({
           >
             {item.title}
           </div>
+          {!!item.subtitle && (
+            <div style={{ fontSize: 12, lineHeight: 1.25, opacity: 0.7 }}>{item.subtitle}</div>
+          )}
           {item.strongCodes.length > 0 && (
             <div style={{ display: 'flex', flexShrink: 0, flexWrap: 'wrap', gap: 4 }}>
               {item.strongCodes.map(strongCode => (
