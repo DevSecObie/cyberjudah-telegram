@@ -108,7 +108,7 @@ problem responses use `resource-service/src/http/problems.ts`.
 | `/v1/dictionaries/verses/:verseKey/entries` | Same matches plus work metadata | `DictionaryPassageDiscoveryResponseDto` |
 | `/v1/naves/:language/topics` | `/api/topics/index.json` | `NaveTopicListResponseDto` |
 | `/v1/naves/:language/topics/:normalizedName` | `/api/topics/<slug>.json`, topic items and complete teaching thread | `NaveTopicResponseDto` |
-| `/v1/naves/:language/verses/:verseKey/topics` | Exact verse and chapter-wide associations in topic threads | `NaveVerseTopicsResponseDto` |
+| `/v1/naves/:language/verses/:verseKey/topics` | Bundled verse → Topics index built from exact verse and chapter-wide associations in `/api/topics/<slug>.json` threads; no origin requests | `NaveVerseTopicsResponseDto` |
 | `/v1/naves/:language/random` | One topic from our index | `NaveTopicResponseDto` |
 | `/v1/commentaries/:collection/:language/coverage` | `/api/concordance/index.json`, cited chapters | `CommentaryCoverageResponseDto` |
 | `/v1/commentaries/:collection/:language/chapters/:book/:chapter` | Concordance `precepts` and `commentary`, serialized verse → HTML array | `CommentaryChapterResponseDto` |
@@ -136,6 +136,12 @@ numeric locations/offsets only, not a second copy of scripture or definitions.
 `bs-strong-index.json` stores base64 unsigned LEB128 tuples per identity:
 `[delta(book*1000000+chapter*1000+verse), ordinal, startOffset, length]`.
 
+`bs-topics-index.json` stores the 52 topic identities/labels plus 8,954 verse keys
+and any chapter-wide associations from the same publication. Verse discovery reads
+this index directly, without downloading or hashing the topic bodies. Its revision
+hash covers labels and associations; generation rejects missing topic files and
+malformed references rather than publishing a partial index.
+
 The initial snapshot was read from CyberJudah data commit
 `ac2faca11db79a8bdbd36472d83e15e2ff690bf1`, source commit
 `20fb34b7556d48d35c7d7d9bda6a2f0dcc9dd263`, built 2026-09-30. The data domain
@@ -148,6 +154,7 @@ Refresh after a KJV text/tag change from a consistent CyberJudah data checkout:
 ```sh
 cd bot
 npm run build:bs-index -- /absolute/path/to/cyberjudah-data-checkout
+npm run build:bs-topics-index -- /absolute/path/to/cyberjudah-data-checkout
 npm run typecheck
 npm test
 ```
@@ -157,9 +164,14 @@ our fixed book order and source chapter order. Chapter reads verify text/tag has
 before publishing the corresponding Bible/Strong revision. Changed scripture/tags
 fail with a typed 503 requiring an index refresh, rather than serving stale offsets
 as if they matched. Counts/coverage describe the bundled snapshot. Changes to class
-notes, Topics and lexicon definitions are read live through the origin cache and
-receive content-derived revisions; they do not require a KJV index rebuild.
+notes, topic lists/details and lexicon definitions are read live through the origin
+cache and receive content-derived revisions; they do not require a KJV index rebuild.
+After topic membership, labels or thread references change, rerun
+`build:bs-topics-index` and redeploy to refresh verse discovery. That route continues
+to describe the bundled snapshot until it is refreshed.
 
 Responses use the dictionary cache policy: public GETs for one hour, detail/chapters
 for a day; upstream JSON is edge-cached for one hour. POSTs and errors use `no-store`.
 All `/bs` responses include CORS and `nosniff`; failed source responses are not cached.
+Origin HTTP, network and JSON decoding failures log `bs_load_failed` with the source
+URL and original error for Worker diagnostics; clients receive the typed 503 problem.

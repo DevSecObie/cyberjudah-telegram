@@ -14,7 +14,8 @@
     "embed": "node scripts/embed.mjs",
     "fetch-dictionary": "node scripts/fetch-dictionary.mjs",
     "test:bs": "npm --prefix tests ci --ignore-scripts --no-audit --no-fund --workspaces=false && npm --prefix tests test",
-    "build:bs-index": "node scripts/build-bs-index.mjs"
+    "build:bs-index": "node scripts/build-bs-index.mjs",
+    "build:bs-topics-index": "node scripts/build-bs-topics-index.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

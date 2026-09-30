@@ -1,5 +1,9 @@
 import { Hono } from 'hono';
-import { type App, type Ctx, type Topic, type TopicRow, cmp, cursor, encodeCursor, html, invalid, language, limit, load, location, mapLimit, missing, numbers, paragraphs, sha, siteLink, teacherRank, verseKey, youtube } from './core';
+import { type App, type Ctx, type Topic, type TopicRow, cmp, cursor, encodeCursor, html, invalid, language, limit, load, missing, paragraphs, sha, siteLink, teacherRank, verseKey, youtube } from './core';
+import associations from '../../data/bs-topics-index.json';
+
+const verseIndex: Record<string, number[]> = associations.verses;
+const chapterIndex: Record<string, number[]> = associations.chapters;
 
 export const naves = new Hono<App>();
 async function topic(c: Ctx, slug: string) {
@@ -36,14 +40,9 @@ naves.get('/:language/verses/:verseKey/topics', async c => {
   language(c, 'NAVE_UNSUPPORTED');
   const ref = verseKey(c.req.param('verseKey'));
   if (!ref.verse) return invalid('Nave verse keys require a positive verse number');
-  const index = await load<TopicRow[]>(c, '/api/topics/index.json');
-  // Topic threads are the authoritative verse associations (class topics alone are not).
-  const matches = await mapLimit(index, async item => {
-    const row = await topic(c, item.slug);
-    const stops = (row.thread ?? []).filter(s => { const p = location(s.url); return p?.book === ref.book.id && p.chapter === ref.chapter; });
-    return { normalizedName: row.slug, name: row.label, revision: await sha(row), verse: stops.some(s => numbers(s.verses).includes(ref.verse)), chapter: stops.some(s => !s.verses.trim()) };
-  }, 3);
-  const project = (row: typeof matches[number]) => ({ normalizedName: row.normalizedName, name: row.name });
-  const verseTopics = matches.filter(r => r.verse).map(project), chapterTopics = matches.filter(r => r.chapter).map(project);
-  return c.json({ resource: { kind: 'nave', language: 'en', revision: `cj-topics-${await sha(matches.map(r => r.revision))}` }, verseKey: c.req.param('verseKey'), verseTopics, chapterTopics });
+  // Built from topic threads; this hot path performs no origin reads or full-topic hashing.
+  const project = (id: number) => associations.topics[id];
+  const verseTopics = (verseIndex[`${ref.book.id}-${ref.chapter}-${ref.verse}`] ?? []).map(project);
+  const chapterTopics = (chapterIndex[`${ref.book.id}-${ref.chapter}`] ?? []).map(project);
+  return c.json({ resource: { kind: 'nave', language: 'en', revision: associations.revision }, verseKey: c.req.param('verseKey'), verseTopics, chapterTopics });
 });

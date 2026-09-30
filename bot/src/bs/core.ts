@@ -93,14 +93,18 @@ export async function load<T>(c: Ctx, path: string, optional = false): Promise<T
     if (hit) return await hit.json() as T;
     const response = await fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
     if (response.status === 404 && optional) return null as T;
-    if (!response.ok) return unavailable();
+    if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
     const data = await response.json() as T;
     if (cache) {
       const put = cache.put(url, new Response(JSON.stringify(data), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=3600' } }));
       try { c.executionCtx.waitUntil(put); } catch { await put; }
     }
     return data;
-  } catch (e) { if (e instanceof FeedError) throw e; return unavailable(); }
+  } catch (e) {
+    console.error({ event: 'bs_load_failed', url, error: String(e) });
+    if (e instanceof FeedError) throw e;
+    return unavailable();
+  }
 }
 export async function readChapter(c: Ctx, book: number, chapter: number, strong = false): Promise<Chapter> {
   const row = bookById(book), key = `${book}-${chapter}`;

@@ -195,9 +195,21 @@ test('Nave routes map our topic threads, including exact verse associations', as
   assert.match(topic.topic.description, /Genesis 2:7/); assert.match(topic.topic.description, /youtube.com/);
   await request('/v1/naves/en/random', Nave.NaveTopicResponseDto);
   const { json: matching } = await request('/v1/naves/en/verses/1-2-7/topics', Nave.NaveVerseTopicsResponseDto);
-  assert.equal(matching.verseTopics[0].normalizedName, 'faith');
+  assert.ok(matching.verseTopics.some((t: any) => t.normalizedName === 'faith'));
   const { json: absent } = await request('/v1/naves/en/verses/1-2-6/topics', Nave.NaveVerseTopicsResponseDto);
-  assert.equal(absent.verseTopics.length, 0);
+  assert.ok(!absent.verseTopics.some((t: any) => t.normalizedName === 'faith'));
+});
+
+test('verse topic discovery stays available without any origin requests, including Apocrypha and empty results', async () => {
+  failure = 500;
+  for (const key of ['1-2-7', '81-1-1', '1-1-199']) {
+    const { json: first } = await request(`/v1/naves/en/verses/${key}/topics`, Nave.NaveVerseTopicsResponseDto);
+    const { json: second } = await request(`/v1/naves/en/verses/${key}/topics`, Nave.NaveVerseTopicsResponseDto);
+    assert.deepEqual(first, second);
+    if (key === '1-2-7') assert.ok(first.verseTopics.length > 0);
+    if (key === '1-1-199') assert.deepEqual(first.verseTopics, []);
+  }
+  assert.deepEqual(fetched, []);
 });
 
 test('commentary sections agree with the upstream section builder, maintain ranking, provenance and revision locking', async () => {
@@ -276,6 +288,28 @@ test('origin cache is reused, failures are retried, and Nave cursors preserve or
   assert.ok(Nave.decodeNavePageCursor(first.nextCursor));
   const { json: second } = await request(`/v1/naves/en/topics?limit=1&cursor=${encodeURIComponent(first.nextCursor)}`, Nave.NaveTopicListResponseDto);
   assert.equal(second.topics[0].normalizedName, 'repentance'); assert.equal(second.nextCursor, undefined);
+});
+
+test('origin HTTP, network and JSON failures log their URL and cause while returning a generic typed problem', async t => {
+  const log = t.mock.method(console, 'error', () => {});
+  failure = 502;
+  await request('/v1/bibles/KJV/books/1/chapters/1', Problems.ResourceUnavailableProblem, { status: 503 });
+  assert.match(log.mock.calls[0].arguments[0].error, /HTTP 502/);
+  const network = t.mock.method(globalThis, 'fetch', async () => { throw new Error('connection reset diagnostic'); });
+  const { json: networkProblem } = await request('/v1/bibles/KJV/books/1/chapters/1', Problems.ResourceUnavailableProblem, { status: 503 });
+  assert.match(log.mock.calls[1].arguments[0].error, /connection reset diagnostic/);
+  assert.ok(!JSON.stringify(networkProblem).includes('connection reset diagnostic'));
+  network.mock.restore();
+  t.mock.method(globalThis, 'fetch', async () => new Response('invalid JSON diagnostic'));
+  const { json: jsonProblem } = await request('/v1/bibles/KJV/books/1/chapters/1', Problems.ResourceUnavailableProblem, { status: 503 });
+  assert.match(log.mock.calls[2].arguments[0].error, /SyntaxError/);
+  assert.ok(!JSON.stringify(jsonProblem).includes('invalid JSON diagnostic'));
+  assert.equal(log.mock.callCount(), 3);
+  for (const call of log.mock.calls) {
+    assert.equal(call.arguments[0].event, 'bs_load_failed');
+    assert.equal(call.arguments[0].url, 'https://data.cyberjudah.io/api/kjv/genesis/1.json');
+  }
+  assert.equal(cache.size, 0);
 });
 
 test('all upstream HTTP routes were exercised against Effect schemas', () => {
