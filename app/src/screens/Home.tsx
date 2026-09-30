@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { data, fmtDate, type FeedRow, type HistoryRow } from "@/api/data";
+import { toAppPath } from "@shared/links.mjs";
+const toApp = (sitePath: string) => toAppPath(sitePath) ?? sitePath;
 import { pullStyle, usePullToRefresh } from "@/lib/pull";
 import { planDay, schedule } from "@/lib/plan";
 import { useLast, useLastNote, usePlan, useProgress } from "@/lib/marks";
@@ -77,6 +79,7 @@ export function Home() {
   const [loc] = useStored<{ lat: number; lng: number } | null>("loc", null);
   const verse = useQuery({ queryKey: ["votd"], queryFn: () => fetch("/api/verse-of-day").then((r) => r.json() as Promise<Verse>), staleTime: 60 * 60_000 });
   const feed = useTeachings();
+  const stats = useQuery({ queryKey: ["stats"], queryFn: data.stats, staleTime: 60 * 60_000 });
   const live = useLive();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30_000); return () => clearInterval(t); }, []);
@@ -104,6 +107,17 @@ export function Home() {
         <button type="button" className="door__btn door__btn--ask" onClick={() => { haptic("select"); navigate(q.trim() ? `/ask?q=${encodeURIComponent(q.trim())}` : "/ask"); }}><Icon name="note" size={18} /> Ask CyberJudah</button>
       </div>
       <p className="hint hint--center">Search finds the moment a word, a name or a Scripture was said in a class. Ask answers your question from the teachings, with its sources.</p>
+      {stats.data?.whatsNew?.length ? (
+        <div className="whatsnew" aria-label="New in CyberJudah">
+          {stats.data.whatsNew.slice(0, 8).map((w) => (
+            <Link key={`${w.kind}:${w.url}`} to={toApp(w.url)} className="whatsnew__card" data-kind={w.kind} onClick={() => haptic("select")}>
+              <small>{w.kind === "pass" ? "New precept pass" : w.kind === "book" ? "New in the library" : w.kind === "captains" ? "New from the Captains" : "New class"}</small>
+              <b>{w.title}</b>
+              <span>{[w.sub, fmtDate(w.date)].filter(Boolean).join(" · ")}</span>
+            </Link>
+          ))}
+        </div>
+      ) : null}
 
       {live.data?.live && live.data.video ? (
         <Link to={`/watch/${encodeURIComponent(live.data.video)}?live=1`} className="live-card">

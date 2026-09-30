@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import { data, verseNumbers, type ClassMoment, type Concordance, type TaughtPrecept } from "@/api/data";
+import { data, verseNumbers, type ClassMoment, type Concordance, type Reading, type TaughtPrecept } from "@/api/data";
 import { verseKey, type LinkEndpoint, type Relation, type VerseEndpoint, type VerseRelationItem } from "./relations";
 
 /**
@@ -23,6 +23,10 @@ export function useTaughtPrecepts(slug: string, ch: number) {
 /** The moments classes read this chapter's verses, each with its recording at that second. */
 export function useClassMoments(slug: string, ch: number) {
   return useQuery({ ...concordance(slug, ch), select: (c: Concordance | null) => c?.moments ?? ([] as ClassMoment[]) });
+}
+/** Every moment a class read each verse of this chapter aloud, from the transcripts: verse -> readings, Bishops first, then newest first. */
+export function useReadings(slug: string, ch: number) {
+  return useQuery({ ...concordance(slug, ch), select: (c: Concordance | null) => c?.read ?? ({} as Record<string, Reading[]>) });
 }
 /** Who is named in each verse of this chapter (person ids). */
 export function usePeopleNamed(slug: string, ch: number) {

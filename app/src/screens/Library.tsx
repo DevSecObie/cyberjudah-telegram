@@ -2,10 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 
-import { data, fmtDate, type ResolvedRef } from "@/api/data";
+import { data, fmtDate, type ResolvedRef, type ThreadStop } from "@/api/data";
+import { haptic } from "@/tg/sdk";
+import { toAppPath } from "@shared/links.mjs";
 import { share } from "@/lib/share";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
-import { Chip, Chips, Empty, List, Row, Screen, SearchField, Section, Segmented, Skeleton } from "@/ui/ui";
+import { Chip, Chips, Empty, Icon, List, Row, Screen, SearchField, Section, Segmented, Skeleton } from "@/ui/ui";
+const toApp = (sitePath: string) => toAppPath(sitePath) ?? sitePath;
 
 /** The law, the precepts, the cases, the topics, the study notes and the encyclopedia: the reference shelf. */
 
@@ -141,11 +144,44 @@ export function TopicScreen() {
   if (t.isPending) return <Screen title="…"><Skeleton /></Screen>;
   if (!t.data) return <Screen title="Topic"><Empty title="This topic did not load" /></Screen>;
   const notes = t.data.items.filter((i) => i.kind !== "case"), cases = t.data.items.filter((i) => i.kind === "case");
+  const thread = t.data.thread ?? [];
   return (
     <Screen title={t.data.label} kicker="Topic">
+      {thread.length ? <Section title="The thread"><p className="hint">{thread.length} scriptures the classes opened on this, in Bible order. Tap one for the classes and the precepts read with it.</p><Thread stops={thread} /></Section> : null}
       {notes.length ? <Section title="Classes and episodes"><List>{notes.map((i) => <Row key={i.url} href={i.url} meta={[i.kind === "captains" ? "Captains" : "Class", fmtDate(i.date), i.teacher].filter(Boolean).join(" · ")} title={i.title} />)}</List></Section> : null}
       {cases.length ? <Section title="Cases"><List>{cases.map((i) => <Row key={i.url} href={i.url} meta={i.verdict} title={i.title} sub={i.charge} />)}</List></Section> : null}
     </Screen>
+  );
+}
+
+/** A topic's scriptures in Bible order: each with the verse, the classes that opened it (the recording at that second) and the precepts read with it. */
+function Thread({ stops }: { stops: ThreadStop[] }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const [all, setAll] = useState(false);
+  const shown = all ? stops : stops.slice(0, 12);
+  return (
+    <ol className="thread">
+      {shown.map((s) => {
+        const k = `${s.book}|${s.chapter}|${s.verses}`, isOpen = open === k;
+        const m = /^\/bible\/([a-z0-9-]+)\/(\d+)/.exec(s.url);
+        const read = m ? `/read/${m[1]}/${m[2]}${s.verses ? `?v=${s.verses.split(/[-,]/)[0]}` : ""}` : s.url;
+        return (
+          <li key={k} className={`thread__stop${isOpen ? " thread__stop--open" : ""}`}>
+            <button type="button" className="thread__head" onClick={() => { haptic("select"); setOpen(isOpen ? null : k); }} aria-expanded={isOpen}>
+              <span className="thread__dot" />
+              <span className="thread__ref"><b>{s.label}</b><small>{s.classes.length === 1 ? "1 class" : `${s.classes.length} classes`}{s.precepts.length ? ` · ${s.precepts.length} ${s.precepts.length === 1 ? "precept" : "precepts"}` : ""}</small></span>
+            </button>
+            <p className="thread__text">{s.text}</p>
+            {isOpen ? <div className="thread__body">
+              <Link to={read} className="thread__read"><Icon name="book" size={14} /> Read {s.label}</Link>
+              {s.classes.map((c) => <Link key={`${c.url}${c.ts}`} to={`${toApp(c.url)}${c.t ? `?t=${c.t}` : ""}`} className="thread__class"><span className="thread__ts">{c.ts || "notes"}</span><span><b>{c.title}</b><small>{[fmtDate(c.date), c.teacher].filter(Boolean).join(" · ")}</small></span></Link>)}
+              {s.precepts.length ? <div className="thread__precepts">{s.precepts.map((p) => { const pm = /^\/bible\/([a-z0-9-]+)\/(\d+)(?:#v(\d+))?/.exec(p.url); return <Link key={p.label} to={pm ? `/read/${pm[1]}/${pm[2]}${pm[3] ? `?v=${pm[3]}` : ""}` : "/bible"} className="chip">{p.label}</Link>; })}</div> : null}
+            </div> : null}
+          </li>
+        );
+      })}
+      {!all && stops.length > 12 ? <li className="thread__more"><button type="button" onClick={() => setAll(true)}>All {stops.length} scriptures</button></li> : null}
+    </ol>
   );
 }
 

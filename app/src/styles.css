@@ -949,3 +949,39 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 /* Small luxuries: numbers that line up, a blurred edge under sticky headers */
 #root { font-variant-numeric: tabular-nums; }
 .screen > .head { position: sticky; top: 0; z-index: 5; margin: 0 -16px; padding: calc(8px + var(--safe-top, 0px)) 16px 8px; background: color-mix(in srgb, var(--a-bg) 82%, transparent); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3); }
+
+/* Topic thread: the scriptures a topic's classes opened, in Bible order, a line down the left. */
+.thread { list-style: none; margin: 0; padding: 0 0 0 4px; position: relative; }
+.thread::before { content: ""; position: absolute; left: 9px; top: 12px; bottom: 12px; width: 2px; background: color-mix(in srgb, var(--a-accent) 35%, transparent); }
+.thread__stop { position: relative; padding: 6px 0 14px 26px; }
+#root .thread__head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
+.thread__dot { position: absolute; left: -22px; top: 10px; width: 12px; height: 12px; border-radius: 50%; background: var(--a-bg); border: 2px solid var(--a-accent); box-sizing: border-box; }
+.thread__stop--open .thread__dot { background: var(--a-accent); }
+.thread__ref { display: grid; }
+.thread__ref b { font: 600 15px/1.3 var(--a-ui); color: var(--a-ink-2); }
+.thread__ref small { font: 400 12px var(--a-ui); color: var(--a-muted); }
+.thread__text { margin: 4px 0 0; font: 400 14px/1.5 var(--a-serif, Georgia, serif); color: var(--a-ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.thread__stop--open .thread__text { -webkit-line-clamp: unset; }
+.thread__body { display: grid; gap: 8px; margin-top: 10px; }
+.thread__read { display: inline-flex; align-items: center; gap: 6px; justify-self: start; font: 600 13px var(--a-ui); color: var(--a-accent); text-decoration: none; }
+.thread__class { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: center; padding: 8px 10px; border-radius: var(--r-md); background: var(--a-card); color: inherit; text-decoration: none; }
+.thread__class > span:last-child { display: grid; min-width: 0; }
+.thread__class b { font: 600 14px/1.3 var(--a-ui); color: var(--a-ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thread__class small { font: 400 12px var(--a-ui); color: var(--a-muted); }
+.thread__ts { padding: 3px 8px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--a-accent) 12%, transparent); color: var(--a-accent); font: 600 12px var(--a-ui); font-variant-numeric: tabular-nums; }
+.thread__precepts { display: flex; flex-wrap: wrap; gap: 6px; }
+.thread__more { list-style: none; padding-left: 26px; }
+#root .thread__more button { border: 0; background: none; padding: 6px 0; font: 600 14px var(--a-ui); color: var(--a-accent); cursor: pointer; }
+
+/* What's new: the library growing, a row of cards under the doors. */
+.whatsnew { display: flex; gap: 10px; margin: 4px -16px 0; padding: 4px 16px 6px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.whatsnew::-webkit-scrollbar { display: none; }
+.whatsnew__card { flex: 0 0 min(72vw, 260px); scroll-snap-align: start; display: grid; gap: 3px; padding: 12px 14px; border-radius: var(--r-lg); background: var(--a-card); border: 1px solid var(--a-line); color: inherit; text-decoration: none; transition: transform .16s cubic-bezier(.2,.8,.2,1); }
+.whatsnew__card:active { transform: scale(.97); }
+.whatsnew__card small { font: 700 11px var(--a-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--a-accent); }
+.whatsnew__card[data-kind="book"] small { color: #c9a24a; }
+.whatsnew__card[data-kind="class"] small, .whatsnew__card[data-kind="captains"] small { color: var(--a-muted); }
+.whatsnew__card b { font: 600 14px/1.3 var(--a-ui); color: var(--a-ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.whatsnew__card span { font: 400 12px var(--a-ui); color: var(--a-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.books__search { margin: 0 0 12px; }

@@ -62,7 +62,7 @@ const P: Record<FeatherName, string> = {
 };
 
 export function Feather({ name, size = 20, color = "currentColor", style, fill }: { name: FeatherName; size?: number; color?: string; style?: CSSProperties; fill?: string }) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill={fill ?? "none"} stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style} aria-hidden="true" dangerouslySetInnerHTML={{ __html: P[name] }} />;
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill={fill ?? "none"} stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={style} aria-hidden="true" dangerouslySetInnerHTML={{ __html: P[name] }} />;
 }
 
 /** Ionicons: the filled bookmark, the document (notes) and the skip buttons. */
@@ -79,7 +79,7 @@ export function Ion({ name, size = 20, color = "currentColor", style }: { name: 
 /** Bible Strong's LineHeightIcon: three lines whose gap grows with the setting. */
 export function LineHeightIcon({ gap, color = "currentColor" }: { gap: 1 | 2 | 4; color?: string }) {
   const g = 4 + gap * 2;
-  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" aria-hidden="true"><line x1="4" y1={12 - g} x2="20" y2={12 - g} /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1={12 + g} x2="20" y2={12 + g} /></svg>;
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><line x1="4" y1={12 - g} x2="20" y2={12 - g} /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1={12 + g} x2="20" y2={12 + g} /></svg>;
 }
 /** Bible Strong's IconShortPress / IconLongPress: a fingertip, with a ring for the long press. */
 export function PressIcon({ long, color = "currentColor" }: { long: boolean; color?: string }) {

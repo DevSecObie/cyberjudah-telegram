@@ -275,6 +275,13 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-comment__class small { font-size: 12.5px; color: var(--bs-tertiary); }
 .bs-comment__points { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
 .bs-comment__points li { font-size: 15px; line-height: 1.55; color: var(--bs-default); }
+.bs-readin { display: flex; flex-direction: column; }
+.bs-readin__row { display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center; width: 100%; padding: 10px 0; border: 0; border-bottom: 1px solid var(--bs-border); background: none; text-align: left; cursor: pointer; }
+.bs-readin__ts { display: inline-flex; align-items: center; gap: 4px; min-width: 64px; padding: 4px 8px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--bs-primary) 10%, transparent); color: var(--bs-primary); font: 600 12px var(--a-ui, system-ui); font-variant-numeric: tabular-nums; }
+.bs-readin__what { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.bs-readin__what b { font-size: 14px; color: var(--bs-default); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bs-readin__what small { font-size: 12px; color: var(--bs-tertiary); }
+.bs-readin__more { align-self: flex-start; margin-top: 8px; padding: 6px 0; border: 0; background: none; font-size: 13px; font-weight: 600; color: var(--bs-primary); cursor: pointer; }
 .bs-comment__watch { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; font-size: 13px; font-weight: 600; color: var(--bs-primary); cursor: pointer; }
 #root .bs-resourcetabs button { min-width: 0; }
 #root .bs-resourcetabs button span { max-width: 100%; font-size: 10.5px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -325,3 +332,27 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 @keyframes bs-pick { 0% { transform: scale(1); } 45% { transform: scale(1.012); } 100% { transform: scale(1); } }
 .bs-verse[data-selected] { animation: bs-pick .28s var(--ease, cubic-bezier(.2,.8,.2,1)); transform-origin: left center; }
 .bs-verse { transition: background-color .22s var(--ease, ease); }
+
+/* Compare: the verse on top, its precepts or cross references written out beneath. */
+.bs-compare { display: flex; flex-direction: column; gap: 14px; padding: 4px 0 24px; }
+.bs-compare__verse { margin: 0; padding: 14px 16px; border-radius: var(--r-md); background: var(--bs-light-grey); border-left: 3px solid var(--bs-primary); }
+.bs-compare__verse b { display: block; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--bs-primary); margin-bottom: 6px; }
+.bs-compare__verse p { margin: 0; font-size: 17px; line-height: 1.55; color: var(--bs-default); }
+.bs-compare__lanes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border-radius: var(--r-md); background: var(--bs-light-grey); }
+.bs-compare__lanes button { border: 0; border-radius: calc(var(--r-md) - 3px); padding: 9px 8px; background: none; color: var(--bs-tertiary); font-size: 13px; font-weight: 600; cursor: pointer; }
+.bs-compare__lanes button[aria-selected="true"] { background: var(--bs-reverse); color: var(--bs-primary); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.bs-compare__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.bs-compare__item { padding: 12px 14px; border-radius: var(--r-md); border: 1px solid var(--bs-border); background: var(--bs-reverse); }
+.bs-compare__item[data-kind="opened"] { border-style: dashed; }
+.bs-compare__ref { display: flex; flex-direction: column; gap: 1px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
+.bs-compare__ref b { font-size: 14px; color: var(--bs-primary); }
+.bs-compare__ref small { font-size: 12px; color: var(--bs-tertiary); }
+.bs-compare__text { margin: 6px 0 0; font-size: 15.5px; line-height: 1.55; color: var(--bs-default); }
+.bs-compare__text sup { font-size: 10px; color: var(--bs-tertiary); margin-right: 3px; }
+.bs-compare__why { margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed var(--bs-border); font-size: 14px; line-height: 1.5; color: var(--bs-secondary-text, var(--bs-default)); }
+.bs-compare__copy { border: 0; background: none; padding: 6px 4px; font-size: 14px; font-weight: 600; color: var(--bs-primary); cursor: pointer; }
+
+/* The Greek of an Apocrypha verse, in place of Strong's. */
+.bs-greek { display: flex; flex-direction: column; gap: 6px; }
+.bs-greek__text { margin: 0; padding: 14px 16px; border-radius: var(--r-md); background: var(--bs-light-grey); font: 400 19px/1.6 "Gentium Plus", "Noto Serif", Georgia, serif; color: var(--bs-default); }
+.bs-greek__src { margin: 0; font-size: 12px; line-height: 1.5; color: var(--bs-tertiary); }

@@ -17,7 +17,7 @@ export type SelectedVersesSheetProps = {
   onAddHighlight: (key: string) => void; onRemoveHighlight: () => void; onAddColor: () => void; onEditColor: (key: string) => void;
   moreThanOne: boolean; hasBookmark: boolean; hasFocus: boolean;
   onNote: () => void; onTag: () => void; onLink: () => void; onRelation: () => void; onBookmark: () => void; onFocus: () => void;
-  onDictionary: () => void; onThemes: () => void; onReferences: () => void; onCommentary: () => void;
+  onDictionary: () => void; onThemes: () => void; onReferences: () => void; onCommentary: () => void; onCompare: () => void;
   onCopy: () => void; onShare: () => void; onExport: () => void; onSelectAll: () => void;
 };
 const TABS = ["Annotate", "Study", "Share"];
@@ -56,6 +56,7 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
                 <ActionItem icon={<NaveIcon />} tint="var(--bs-quint)" label="Themes" onPress={p.onThemes} disabled={p.moreThanOne} />
                 <ActionItem icon={<ReferencesIcon />} tint="var(--bs-quart)" label="References" onPress={p.onReferences} disabled={p.moreThanOne} />
                 <ActionItem icon={<CommentIcon />} tint="#26A69A" label="Commentary" onPress={p.onCommentary} disabled={p.moreThanOne} />
+                <ActionItem name="book-open" tint="var(--bs-primary)" label="Compare" onPress={p.onCompare} disabled={p.moreThanOne} />
               </ActionsLayout>
             </div>
             <div className="bs-page" style={{ width }}>

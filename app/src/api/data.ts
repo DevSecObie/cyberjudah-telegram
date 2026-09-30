@@ -62,7 +62,9 @@ export type VerseComment = { verses: string; passage: string; points: string[]; 
 export type PersonRef = { id: string; name: string };
 export type Person = { id: string; name: string; names: string[]; description: string; type: string; tribe: string; father: PersonRef[]; mother: PersonRef[]; siblings: PersonRef[]; partners: PersonRef[]; children: PersonRef[]; verses: string[]; taught: { verse: string; url: string; points: string[]; note: { label: string; url: string; date: string; teacher: string }; ts: string; video: string | null; t: number }[]; source: { name: string; license: string; url: string } };
 export type PersonIndexRow = { id: string; name: string; names: string[]; description: string; verses: number; first: string };
-export type Concordance = { book: string; chapter: number; cited_by: Citation[]; precepts?: TaughtPrecept[]; notes?: VerseNote[]; moments?: ClassMoment[]; commentary?: VerseComment[]; people?: Record<string, string[]> };
+/** A moment a class read this verse aloud, found in its transcript: the recording at that second, and the note if the class has one. */
+export type Reading = { video: string; t: number; ts: string; title: string; date: string; teacher: string; url?: string };
+export type Concordance = { book: string; chapter: number; cited_by: Citation[]; precepts?: TaughtPrecept[]; notes?: VerseNote[]; moments?: ClassMoment[]; commentary?: VerseComment[]; people?: Record<string, string[]>; read?: Record<string, Reading[]> };
 export type NoteRow = { kind: "study" | "class" | "captains" | "history" | "encyclopedia"; title: string; url: string; book?: string | null; chapters?: [number, number] | null; range?: string; date?: string | null; year?: string; series?: string; teacher?: string; topics?: string[]; summary?: string; videoId?: string | null };
 export type Note = NoteRow & { body: string; file?: string | null; books?: BookRead[] };
 /** A public-domain book the classes read from (data/library), and the moments they read it. */
@@ -79,7 +81,8 @@ export type LibraryChapter = BookChapterRow & { item: string | null; pages: Book
 export type FeedRow = { title: string; url: string; date: string; year: string; teacher: string; collection?: string; thumb: string; books: string[]; topics?: string[] };
 export type HistoryRow = { slug: string; title: string; url: string; episode: number | null; date: string | null; year: string; duration: number | null; videoId: string; thumb: string; teacher: string; topics: string[]; summary: string; noted?: boolean };
 export type HistoryEpisode = HistoryRow & { start: number; body: string | null; turns: { t: number; text: string }[] };
-export type Stats = { chapters: number; books: number; verses: number; studies: number; classes: number; captains: number; laws: number; precepts: number; cases: number; recent: { kind: string; title: string; url: string; date: string; teacher: string; thumb: string; books: string[] }[] };
+export type WhatsNew = { kind: "pass" | "book" | "class" | "captains"; title: string; url: string; date: string; teacher: string; sub: string };
+export type Stats = { chapters: number; books: number; verses: number; studies: number; classes: number; captains: number; laws: number; precepts: number; cases: number; recent: { kind: string; title: string; url: string; date: string; teacher: string; thumb: string; books: string[] }[]; whatsNew?: WhatsNew[] };
 export type ResolvedRef = { book: string; chapter: number; verses?: string; key?: boolean; slug: string | null; url: string | null; label: string; study: { range: string; url: string } | null; text: Verse[]; more: number };
 export type LawPart = { n: number; title: string; url: string; sections: { id: string; title: string; laws: number; url: string }[] };
 export type LawSection = { id: string; title: string; part: { n: number; title: string; url: string }; url: string; seeAlso: { id: string; title: string; url: string | null }[]; entries: { id: string; text: string; refs: ResolvedRef[]; citation: string }[]; caseRefs?: { slug: string; name: string; charge: string; verdict: string; url: string }[] };
@@ -89,7 +92,9 @@ export type CaseRow = { slug: string; name: string; era: string; kind: "judgment
 export type CaseIndex = { eras: string[]; verdicts: Record<string, string>; cases: CaseRow[] };
 export type Case = CaseRow & { summary: string; offense: string; judgment: string; verdictLabel?: string; refsResolved?: ResolvedRef[]; lawsResolved?: { id: string; text: string; url: string | null }[]; preceptsResolved?: { slug: string; title: string; url: string | null }[]; relatedCases?: { slug: string; name: string; desc: string }[]; taught?: { title: string; range: string; url: string }[]; see?: { title: string; url: string }[] };
 export type TopicRow = { slug: string; label: string; notes: number; cases: number; url: string };
-export type Topic = { slug: string; label: string; url: string; items: { kind: "class" | "captains" | "case"; title: string; url: string; date?: string | null; teacher?: string; charge?: string; verdict?: string }[] };
+/** One stop on a topic's thread: a scripture the classes on the topic opened, with the classes that opened it and the precepts read with it. */
+export type ThreadStop = { book: string; chapter: number; verses: string; label: string; url: string; text: string; classes: { title: string; url: string; date: string; teacher: string; ts: string; video: string | null; t: number; points: number }[]; precepts: { label: string; url: string; why?: string }[] };
+export type Topic = { slug: string; label: string; url: string; items: { kind: "class" | "captains" | "case"; title: string; url: string; date?: string | null; teacher?: string; charge?: string; verdict?: string }[]; thread?: ThreadStop[] };
 export type EncyclopediaRow = { slug: string; title: string; url: string; summary: string };
 export type Xref = Record<string, [string, number, number][]>;
 
@@ -106,6 +111,8 @@ export const data = {
   libraryChapter: (slug: string, k: number) => get<LibraryChapter>(`/api/library/${slug}/chapter/${k}.json`),
   chapter: (slug: string, ch: number) => get<Chapter>(`/api/kjv/${slug}/${ch}.json`),
   xref: (slug: string, ch: number) => get<Xref>(`/api/xref/${slug}/${ch}.json`),
+  /** The Greek of an Apocrypha chapter, verse by verse, from Swete's Septuagint (1909); 404 for the 66 books. */
+  lxx: (slug: string, ch: number) => get<{ slug: string; chapter: number; source: string; verses: Record<string, string> }>(`/api/lxx/${slug}/${ch}.json`),
   concordance: (slug: string, ch: number) => get<Concordance>(`/api/concordance/${slug}/${ch}.json`),
   notes: () => get<NoteRow[]>("/api/notes/index.json"),
   note: (sitePath: string) => get<Note>(`/api/notes${sitePath}.json`),
