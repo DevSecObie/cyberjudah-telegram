@@ -1,7 +1,6 @@
 import type { PassageMediaCatalog } from '../passageMedia'
 import {
   formatPassageMediaDuration,
-  getPassageMediaForChapter,
   getPassageMediaEmbedUrl,
   resolvePassageMediaChapter,
   resolvePassageMediaLibrary,
@@ -251,32 +250,6 @@ const catalog: PassageMediaCatalog = {
 }
 
 describe('resolvePassageMediaChapter', () => {
-  it.each([
-    ['Job', 18, 1],
-    ['Job', 18, 42],
-    ['Proverbs', 20, 1],
-    ['Proverbs', 20, 31],
-    ['Ecclesiastes', 21, 1],
-    ['Ecclesiastes', 21, 12],
-  ])('adds the wisdom introduction to %s %i:%i', (_bookName, book, chapter) => {
-    const result = getPassageMediaForChapter({ book, chapter, language: 'en' })
-
-    expect(result.chapterResources).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ workId: 'associated-resource-86V8VTUVBmo' }),
-      ])
-    )
-  })
-
-  it('keeps a media work biblical scope instead of replacing it with the current chapter', () => {
-    const result = getPassageMediaForChapter({ book: 3, chapter: 25, language: 'en' })
-    const biblicalLaw = result.introduction.find(
-      item => item.workId === 'associated-resource-Sew1kBIe-W0'
-    )
-
-    expect(biblicalLaw?.reference).toBe('Exodus–Deuteronomy')
-  })
-
   it('places localized primary and related media at their Bible Viewer positions', () => {
     expect(resolvePassageMediaChapter(catalog, { book: 1, chapter: 1, language: 'fr' })).toEqual({
       introduction: [
@@ -361,15 +334,15 @@ describe('resolvePassageMediaLibrary', () => {
 })
 
 describe('getPassageMediaEmbedUrl', () => {
-  it('creates an inline HTTPS wrapper URL', () => {
-    expect(getPassageMediaEmbedUrl('abcDEF_1234')).toBe(
-      'https://bible-strong.app/embed/youtube.html?v=abcDEF_1234&appId=com.smontlouis.biblestrong'
+  it('embeds YouTube privacy-enhanced, at the moment the class reached the passage', () => {
+    expect(getPassageMediaEmbedUrl('abcDEF_1234', 738)).toBe(
+      'https://www.youtube-nocookie.com/embed/abcDEF_1234?autoplay=1&playsinline=1&rel=0&start=738'
     )
   })
 
-  it('URL-encodes the provider ID', () => {
+  it('starts at the beginning without a moment, and URL-encodes the provider ID', () => {
     expect(getPassageMediaEmbedUrl('video/id')).toBe(
-      'https://bible-strong.app/embed/youtube.html?v=video%2Fid&appId=com.smontlouis.biblestrong'
+      'https://www.youtube-nocookie.com/embed/video%2Fid?autoplay=1&playsinline=1&rel=0'
     )
   })
 })
