@@ -41,7 +41,7 @@ jobs:
           set -- --count "$COUNT" --out drafts
           for v in $VIDEOS; do set -- "$@" --video "$v"; done
           node scripts/draft-note.mjs "$@"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: class-note-drafts
