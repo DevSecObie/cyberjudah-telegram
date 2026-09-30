@@ -1,0 +1,207 @@
+import {
+  getBibleLocationVerseKeys,
+  getBibleVerseResolutionRequestKey,
+  resolveBibleVerses,
+  shouldShowBibleReferenceUnavailable,
+} from '../bibleVerseResolver'
+import { BibleLoadingError } from '../bibleErrors'
+
+jest.mock('../biblesDb', () => ({
+  getMultipleVerses: jest.fn(),
+}))
+
+describe('resolveBibleVerses', () => {
+  const createDependencies = (textsByVersion: Record<string, Record<string, string>>) => ({
+    loadVerseTexts: jest.fn(async (version: string, verseKeys: string[]) =>
+      Object.fromEntries(
+        verseKeys
+          .filter(key => textsByVersion[version]?.[key])
+          .map(key => [key, textsByVersion[version][key]])
+      )
+    ),
+  })
+
+  it('uses the preferred source version before the default version', async () => {
+    const dependencies = createDependencies({
+      LSG: { '1-1-1': 'LSG text' },
+      VUL: { '1-1-1': 'VUL text' },
+    })
+
+    await expect(
+      resolveBibleVerses(
+        {
+          verseKeys: ['1-1-1'],
+          preferredVersion: 'VUL',
+          defaultVersion: 'LSG',
+        },
+        dependencies
+      )
+    ).resolves.toMatchObject({
+      version: 'VUL',
+      texts: { '1-1-1': 'VUL text' },
+      missingVerseKeys: [],
+    })
+  })
+
+  it('keeps an explicitly selected compatible Bible for a deuterocanonical verse', async () => {
+    const dependencies = createDependencies({
+      LSG: {},
+      VUL: { '67-1-1': 'Tobiae text' },
+    })
+
+    await expect(
+      resolveBibleVerses(
+        {
+          verseKeys: ['67-1-1'],
+          preferredVersion: 'VUL',
+          defaultVersion: 'LSG',
+        },
+        dependencies
+      )
+    ).resolves.toMatchObject({
+      status: 'resolved',
+      version: 'VUL',
+      texts: { '67-1-1': 'Tobiae text' },
+      missingVerseKeys: [],
+    })
+  })
+
+  it('returns a reference-only result when no installed Bible contains the verse', async () => {
+    const dependencies = createDependencies({ LSG: {}, KJV: {} })
+
+    await expect(
+      resolveBibleVerses(
+        {
+          verseKeys: ['67-1-1'],
+          defaultVersion: 'LSG',
+        },
+        dependencies
+      )
+    ).resolves.toEqual({
+      status: 'reference-only',
+      version: 'LSG',
+      texts: {},
+      missingVerseKeys: ['67-1-1'],
+    })
+  })
+
+  it('keeps the best partial result without hiding the entity', async () => {
+    const dependencies = createDependencies({
+      LSG: {},
+      VUL: { '67-1-1': 'One verse' },
+    })
+
+    await expect(
+      resolveBibleVerses(
+        {
+          verseKeys: ['67-1-1', '67-1-2'],
+          preferredVersion: 'VUL',
+          defaultVersion: 'LSG',
+        },
+        dependencies
+      )
+    ).resolves.toEqual({
+      status: 'partial',
+      version: 'VUL',
+      texts: { '67-1-1': 'One verse' },
+      missingVerseKeys: ['67-1-2'],
+    })
+  })
+
+  it('does not turn a genuine missing verse into an Offline-copy acquisition', async () => {
+    await expect(
+      resolveBibleVerses(
+        { verseKeys: ['1-200-1'], defaultVersion: 'LSG' },
+        {
+          loadVerseTexts: async () => {
+            throw new BibleLoadingError('CHAPTER_NOT_FOUND', 'LSG', 1, 200)
+          },
+          getAvailability: async () => ({
+            status: 'unavailable',
+            recoveries: ['acquire-offline-copy'],
+          }),
+        }
+      )
+    ).resolves.toEqual({
+      status: 'reference-only',
+      version: 'LSG',
+      texts: {},
+      missingVerseKeys: ['1-200-1'],
+    })
+  })
+
+  it('preserves the recovery attached to a structured source failure', async () => {
+    await expect(
+      resolveBibleVerses(
+        { verseKeys: ['1-1-1'], defaultVersion: 'LSG' },
+        {
+          loadVerseTexts: async () => {
+            throw new BibleLoadingError('RESOURCE_OFFLINE', 'LSG', 1, 1)
+          },
+        }
+      )
+    ).resolves.toMatchObject({
+      status: 'reference-only',
+      recoveries: ['acquire-offline-copy'],
+    })
+  })
+
+  it('keeps a temporary remote failure as retryable instead of suggesting a download', async () => {
+    await expect(
+      resolveBibleVerses(
+        { verseKeys: ['1-1-1'], defaultVersion: 'LSG' },
+        {
+          loadVerseTexts: async () => {
+            throw new BibleLoadingError('RESOURCE_TEMPORARY_UNAVAILABLE', 'LSG', 1, 1)
+          },
+        }
+      )
+    ).resolves.toMatchObject({
+      status: 'reference-only',
+      recoveries: ['retry'],
+    })
+  })
+})
+
+describe('getBibleLocationVerseKeys', () => {
+  it('checks every focused verse before opening a multi-verse entity', () => {
+    expect(
+      getBibleLocationVerseKeys({
+        book: 67,
+        chapter: 1,
+        verse: 1,
+        focusVerses: [1, 2, 4],
+      })
+    ).toEqual(['67-1-1', '67-1-2', '67-1-4'])
+  })
+})
+
+describe('shouldShowBibleReferenceUnavailable', () => {
+  it('opens the best installed version when only part of a verse range is available', () => {
+    expect(shouldShowBibleReferenceUnavailable('partial')).toBe(false)
+  })
+
+  it('shows the download fallback only when no installed Bible contains the reference', () => {
+    expect(shouldShowBibleReferenceUnavailable('reference-only')).toBe(true)
+  })
+})
+
+describe('getBibleVerseResolutionRequestKey', () => {
+  it('changes when the selected version changes without storage lifecycle signals', () => {
+    const baseRequest = {
+      verseKeys: ['67-1-1'],
+      defaultVersion: 'LSG',
+    }
+    const initialKey = getBibleVerseResolutionRequestKey({
+      ...baseRequest,
+      preferredVersion: 'VUL',
+    })
+
+    expect(
+      getBibleVerseResolutionRequestKey({
+        ...baseRequest,
+        preferredVersion: 'KJV',
+      })
+    ).not.toBe(initialKey)
+  })
+})

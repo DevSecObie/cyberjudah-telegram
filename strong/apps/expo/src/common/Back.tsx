@@ -1,0 +1,60 @@
+import { goBackOrHome } from '~navigation/goBackOrHome'
+import { useNavigation, useRouter } from 'expo-router'
+import React, { FC, PropsWithChildren } from 'react'
+import { useTranslation } from 'react-i18next'
+import { StyleProp, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native'
+
+type BackProps = {
+  padding?: boolean
+  style?: StyleProp<ViewStyle>
+  onCustomPress?: () => void
+  onGoBack?: () => void
+}
+
+const Back: FC<PropsWithChildren<BackProps>> = ({
+  padding,
+  style,
+  onCustomPress,
+  onGoBack,
+  ...props
+}: BackProps) => {
+  const { t } = useTranslation()
+  const router = useRouter()
+  const navigation = useNavigation()
+
+  const handlePress = () => {
+    let currentNavigation: typeof navigation | undefined = navigation
+    let previousPath = ''
+    while (currentNavigation) {
+      const state = currentNavigation.getState()
+      const previous = state?.routes[(state.index ?? 0) - 1]
+      if (previous) {
+        previousPath = '/' + previous.name
+        break
+      }
+      currentNavigation = currentNavigation.getParent()
+    }
+    goBackOrHome(router, previousPath)
+    onGoBack?.()
+  }
+
+  return (
+    <TouchableOpacity
+      {...props}
+      onPress={onCustomPress || handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={t('accessibility.back')}
+      style={{
+        ...StyleSheet.flatten(style),
+        ...(padding && {
+          width: 54,
+          height: 54,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }),
+      }}
+    />
+  )
+}
+
+export default Back

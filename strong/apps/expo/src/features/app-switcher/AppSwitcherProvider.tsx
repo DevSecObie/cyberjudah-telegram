@@ -1,0 +1,181 @@
+import { FlashListRef } from '@shopify/flash-list'
+import { PrimitiveAtom, getDefaultStore } from 'jotai'
+import { useAtomValue } from 'jotai/react'
+import React, { useCallback, useRef } from 'react'
+import { ScrollView, View, useWindowDimensions } from 'react-native'
+import { AnimatedRef, SharedValue, useSharedValue, withSpring } from 'react-native-reanimated'
+import { TabItem, activeGroupIdAtom, tabGroupsAtom, tabsCountAtom } from '~state/tabs'
+import { AppSwitcherContext, type AppSwitcherContextValue } from './AppSwitcherContext'
+import { useOnceAtoms } from './utils/useOnceAtoms'
+import { useProviderEffects } from './utils/useProviderEffects'
+import useTabConstants from './utils/useTabConstants'
+
+interface AppSwitcherProviderProps {
+  children: React.ReactNode
+}
+
+export const AppSwitcherProvider = ({ children }: AppSwitcherProviderProps) => {
+  const groupPagerRef = useRef<ScrollView>(null)
+  const { initialTabId, initialTabIndex } = useOnceAtoms()
+  const { HEIGHT } = useTabConstants()
+  const { width } = useWindowDimensions()
+  const store = getDefaultStore()
+  const groups = store.get(tabGroupsAtom)
+  const activeGroupId = store.get(activeGroupIdAtom)
+  const initialGroupIndex = Math.max(
+    0,
+    groups.findIndex(group => group.id === activeGroupId)
+  )
+
+  const tabPreviewRefs = useRef(new Array(100))
+  const visibleIndicesRef = useRef(new Set<number>())
+
+  const scrollView = {
+    y: useSharedValue(0),
+    padding: useSharedValue(0),
+  }
+
+  const registerTabPreviewRef = useCallback(
+    (index: number, ref: AnimatedRef<View>) => {
+      tabPreviewRefs.current[index] = ref
+    },
+    [tabPreviewRefs]
+  )
+
+  const setVisibleIndices = useCallback((indices: number[]) => {
+    visibleIndicesRef.current = new Set(indices)
+  }, [])
+
+  const tabPreviews = {
+    refs: tabPreviewRefs,
+    registerRef: registerTabPreviewRef,
+    visibleIndices: visibleIndicesRef,
+    setVisibleIndices,
+  }
+
+  // FlashList refs per group - allows scrolling in the active group's list
+  const flashListRefsMap = useRef(
+    new Map<string, React.RefObject<FlashListRef<PrimitiveAtom<TabItem>> | null>>()
+  )
+
+  const registerFlashListRef = useCallback(
+    (groupId: string, ref: React.RefObject<FlashListRef<PrimitiveAtom<TabItem>> | null>) => {
+      flashListRefsMap.current.set(groupId, ref)
+    },
+    []
+  )
+
+  const getFlashListRef = useCallback(() => {
+    const activeGroupId = getDefaultStore().get(activeGroupIdAtom)
+    return flashListRefsMap.current.get(activeGroupId)!
+  }, [])
+
+  const flashListRefs = {
+    registerRef: registerFlashListRef,
+    getActiveRef: getFlashListRef,
+  }
+
+  const activeTabPreview = {
+    index: useSharedValue(initialTabIndex),
+    top: useSharedValue(0),
+    left: useSharedValue(0),
+    opacity: useSharedValue(0),
+    animationProgress: useSharedValue(1),
+    zIndex: useSharedValue(3),
+  }
+
+  // Uses stable tab.id instead of atom.toString()
+  const activeTabScreen = {
+    opacity: useSharedValue(initialTabId ? 1 : 0),
+    tabId: useSharedValue(initialTabId ?? null) as SharedValue<string | null>,
+  }
+
+  const tabPreviewCarousel = {
+    // No need to mount/unmount the carousel, just visually hide it
+    translateY: useSharedValue(HEIGHT),
+    opacity: useSharedValue(0),
+  }
+
+  // Tab groups pagination
+  const activeGroupIndex = useSharedValue(initialGroupIndex)
+  const pagerTranslateX = useSharedValue(-initialGroupIndex * width)
+  const pagerScrollX = useSharedValue(initialGroupIndex * width)
+  const createGroupPageIsFullyVisible = useSharedValue(false)
+
+  // Tabs count shared value for UI thread access
+  const tabsCount = useAtomValue(tabsCountAtom)
+  const tabsCountShared = useSharedValue(tabsCount)
+
+  // Side-effects: sync tabsCount, handle login/logout reset
+  useProviderEffects({
+    activeTabPreview,
+    activeTabScreen,
+    activeGroupIndex,
+    pagerTranslateX,
+    pagerScrollX,
+    tabsCountShared,
+    tabPreviewCarousel,
+    createGroupPageIsFullyVisible,
+  })
+
+  const navigateToPage = (pageIndex: number, groupsLength: number) => {
+    const store = getDefaultStore()
+    const groups = store.get(tabGroupsAtom)
+
+    // Capturer le groupId précédent AVANT les changements
+    const prevGroupId = store.get(activeGroupIdAtom)
+    const prevFlashListRef = flashListRefsMap.current.get(prevGroupId)
+
+    // Animation du pager
+    const targetX = -pageIndex * width
+    pagerTranslateX.set(withSpring(targetX))
+    pagerScrollX.set(withSpring(-targetX))
+    activeGroupIndex.set(pageIndex)
+
+    // Update createGroupPage.isFullyVisible
+    const createPagePosition = groupsLength * width
+    createGroupPageIsFullyVisible.set(-targetX >= createPagePosition - 10)
+
+    // Set activeGroupId (si c'est une page de groupe, pas la page de création)
+    if (pageIndex < groups.length) {
+      const newGroup = groups[pageIndex]
+      const newGroupId = newGroup.id
+      if (newGroupId !== prevGroupId) {
+        store.set(activeGroupIdAtom, newGroupId)
+
+        // Keep the device-local active tab for the newly active group.
+        activeTabPreview.index.set(newGroup.activeTabIndex)
+
+        // Scroll la FlashList précédente vers le top
+        prevFlashListRef?.current?.scrollToOffset({ offset: 0, animated: true })
+      }
+    }
+  }
+
+  const groupPager = {
+    ref: groupPagerRef,
+    translateX: pagerTranslateX,
+    scrollX: pagerScrollX,
+    navigateToPage,
+  }
+
+  // Create group page
+  const createGroupPage = {
+    isFullyVisible: createGroupPageIsFullyVisible,
+  }
+
+  const contextValue: AppSwitcherContextValue = {
+    activeTabPreview,
+    activeTabScreen,
+    flashListRefs,
+    scrollView,
+    tabPreviews,
+    tabPreviewCarousel,
+    activeGroupIndex,
+    groupPager,
+    createGroupPage,
+    tabsCountShared,
+  }
+
+  return <AppSwitcherContext.Provider value={contextValue}>{children}</AppSwitcherContext.Provider>
+}

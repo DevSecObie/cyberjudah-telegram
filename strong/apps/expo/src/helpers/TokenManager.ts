@@ -1,0 +1,134 @@
+import { getAuth } from '@react-native-firebase/auth'
+import { appLogger } from './agentObservability'
+
+/**
+ * TokenManager - Safety net pour les edge cases où le SDK Firestore
+ * ne refresh pas assez vite le token (background prolongé, race conditions, etc.)
+ *
+ * IMPORTANT: Ce n'est PAS un remplacement du SDK Firestore qui gère
+ * automatiquement le token refresh. C'est juste un fallback pour les cas edge.
+ */
+class TokenManager {
+  private lastRefreshTime: number = 0
+  private refreshPromise: Promise<boolean> | null = null
+
+  // Cooldown de 5 minutes entre refreshes manuels
+  // Empêche les refreshes trop fréquents si erreurs répétées
+  private readonly REFRESH_COOLDOWN = 5 * 60 * 1000 // 5 minutes
+
+  /**
+   * Vérifie si on peut refresh (pas de refresh récent)
+   */
+  canRefresh(): boolean {
+    const now = Date.now()
+    const timeSinceLastRefresh = now - this.lastRefreshTime
+    return timeSinceLastRefresh > this.REFRESH_COOLDOWN
+  }
+
+  /**
+   * Refresh manuel du token - SEULEMENT pour les edge cases
+   * Utilisé en cas d'erreur permission-denied détectée
+   *
+   * @returns true si refresh réussi, false sinon
+   */
+  async tryRefresh(): Promise<boolean> {
+    const currentUser = getAuth().currentUser
+
+    if (!currentUser) {
+      console.warn('[TokenManager] No current user, cannot refresh')
+      return false
+    }
+
+    if (!this.canRefresh()) {
+      console.log('[TokenManager] Refresh cooldown active, skipping')
+      return false
+    }
+
+    // Deduplicate concurrent refresh calls
+    if (this.refreshPromise) {
+      return this.refreshPromise
+    }
+
+    this.refreshPromise = this._doRefresh(currentUser)
+    try {
+      return await this.refreshPromise
+    } finally {
+      this.refreshPromise = null
+    }
+  }
+
+  /**
+   * Like tryRefresh, but if cooldown is active (meaning a recent refresh
+   * succeeded), returns true instead of false — the token is already fresh.
+   * Returns false only on real failures (no user, refresh error).
+   * Used by subscription error handlers that need to resubscribe regardless.
+   */
+  async tryRefreshOrWait(): Promise<boolean> {
+    const currentUser = getAuth().currentUser
+    if (!currentUser) return false
+
+    // If a refresh is already in flight, wait for it
+    if (this.refreshPromise) {
+      return this.refreshPromise
+    }
+
+    // Cooldown active means a recent refresh succeeded — token is fresh
+    if (!this.canRefresh()) {
+      console.log('[TokenManager] Cooldown active, token already fresh')
+      return true
+    }
+
+    return this.tryRefresh()
+  }
+
+  private async _doRefresh(currentUser: {
+    uid: string
+    getIdToken: (force: boolean) => Promise<string>
+  }): Promise<boolean> {
+    try {
+      console.log('[TokenManager] Attempting manual token refresh (edge case fallback)...')
+
+      await currentUser.getIdToken(true) // Force refresh
+
+      this.lastRefreshTime = Date.now()
+
+      console.log('[TokenManager] Manual refresh succeeded')
+
+      return true
+    } catch (error) {
+      console.error('[TokenManager] Manual refresh failed:', error)
+
+      appLogger.captureError('sync', 'auth_token.manual_refresh_failed', error, {
+        hasPreviousRefresh: this.lastRefreshTime > 0,
+      })
+
+      return false
+    }
+  }
+
+  /**
+   * Vérifie si l'utilisateur est authentifié
+   * Wrapper utile pour vérifier auth state
+   */
+  isAuthenticated(): boolean {
+    return !!getAuth().currentUser
+  }
+
+  /**
+   * Reset lors du logout
+   */
+  reset() {
+    this.lastRefreshTime = 0
+    this.refreshPromise = null
+    console.log('[TokenManager] Reset')
+  }
+
+  /**
+   * Get le timestamp du dernier refresh (pour debugging)
+   */
+  getLastRefreshTime(): number {
+    return this.lastRefreshTime
+  }
+}
+
+export const tokenManager = new TokenManager()
