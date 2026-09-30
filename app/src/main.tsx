@@ -16,7 +16,7 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 5 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <SheetProvider>
           <App />
         </SheetProvider>

@@ -31,6 +31,7 @@ jobs:
       - run: npm run build
         env:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
+          CYBERJUDAH_APP_BASE: /app/
 
   deploy:
     needs: check
@@ -66,6 +67,7 @@ jobs:
       - run: npm run build
         env:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
+          CYBERJUDAH_APP_BASE: /app/
       - name: Deploy the worker
         id: deploy
         working-directory: bot

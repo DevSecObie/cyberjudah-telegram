@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
 
 import { launchPath } from "@shared/links.mjs";
+import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
 import { useSettingsButton, useStored, useTheme } from "@/tg/hooks";
@@ -136,7 +137,7 @@ function Lock() {
   return (
     <div className="lock" role="dialog" aria-label="Locked">
       <div>
-        <img src="/brand/cyber-lion.webp" alt="" />
+        <img src={assetUrl("brand/cyber-lion.webp")} alt="" />
         <h1>CyberJudah</h1>
         <p>Unlock with your fingerprint or face.</p>
         <Button size="l" onClick={() => app!.BiometricManager.authenticate({ reason: "Unlock CyberJudah" }, (ok) => { if (ok) setLocked(false); })}>Unlock</Button>
