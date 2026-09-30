@@ -18,6 +18,7 @@ import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLi
 import { BookSelectorSheet, VersePopup } from "./ui/BookSelectorSheet";
 import { BookmarkSheet, LinkSheet, NoteSheet, TagsPanel } from "./ui/Editors";
 import { ChapterEnd } from "./ui/ChapterEnd";
+import { ChapterPeople } from "./ui/ChapterPeople";
 import { SearchSheet } from "./ui/SearchSheet";
 import { Footer } from "./ui/Footer";
 import { Header, PassageContextBar, VersionSheet, type MenuAction } from "./ui/Header";
@@ -231,8 +232,8 @@ export function BibleTab() {
           selected={selected} focusVerses={focus} contextDisplayMode={contextMode} verseToScroll={verseToScroll} navigationRequest={navRequest}
           highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={relItems}
           headerHeight={headerHeight} fullscreen={fullscreen} canSwipe
-          footer={<ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
-            onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} />}
+          footer={<><ChapterPeople slug={slug} chapter={ch} /><ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
+            onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} /></>}
           onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "dictionary")}
           onSwipe={(dir) => go(dir === "left" ? next : prev)} onFullscreen={setFullscreen}
           onOpenBookmark={(b) => { setBookmarkTarget({ verse: b.verse, existing: b }); setSheet("bookmark"); }}

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Loads the search index into D1: downloads ${DATA_ORIGIN}/search.sql.gz (or reads a local
- * .sql/.sql.gz given as an argument), gunzips it and runs it with wrangler. The SQL drops and
+ * Loads the search index into D1: downloads ${DATA_ORIGIN}/search-index/parts.json and its parts
+ * (or ${DATA_ORIGIN}/search.sql.gz where there are no parts, or reads a local .sql/.sql.gz
+ * given as an argument), gunzips it and runs it with wrangler. The SQL drops and
  * recreates search_docs, so the load is a full replace; the deploy workflow runs it on every
  * deploy and the site's data workflow republishes the file a few times a week.
  *
@@ -19,17 +20,27 @@ const source = args.find((a) => !a.startsWith("--")) ?? `${process.env.DATA_ORIG
 // Staging loads the same file into its own database: SEARCH_DB=cyberjudah-telegram-staging.
 const DB = process.env.SEARCH_DB ?? "cyberjudah-telegram";
 
-let bytes;
-if (/^https?:\/\//.test(source)) {
-  console.error(`fetching ${source}`);
-  const res = await fetch(source);
-  if (!res.ok) throw new Error(`${source}: ${res.status}`);
-  bytes = Buffer.from(await res.arrayBuffer());
-} else {
-  bytes = readFileSync(source);
-}
 // gzip magic bytes; the CDN may already have decoded it.
-const sql = bytes[0] === 0x1f && bytes[1] === 0x8b ? gunzipSync(bytes) : bytes;
+const plain = (bytes) => (bytes[0] === 0x1f && bytes[1] === 0x8b ? gunzipSync(bytes) : bytes);
+const download = async (url) => { const res = await fetch(url); if (!res.ok) throw new Error(`${url}: ${res.status}`); return Buffer.from(await res.arrayBuffer()); };
+let sql;
+if (/^https?:\/\//.test(source)) {
+  // The data origin serves the index in parts under search-index/ (the whole file is over the size a
+  // Workers asset may be); an older origin, or another URL, still gives the whole file.
+  const partsUrl = source.endsWith("/search.sql.gz") ? source.replace(/search\.sql\.gz$/, "search-index/parts.json") : null;
+  const list = partsUrl ? await fetch(partsUrl).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null;
+  if (list?.parts?.length) {
+    console.error(`fetching ${list.parts.length} parts from ${partsUrl.replace(/parts\.json$/, "")} (built ${list.built}, ${list.rows} rows)`);
+    const chunks = [];
+    for (const part of list.parts) chunks.push(plain(await download(partsUrl.replace(/parts\.json$/, part.file))));
+    sql = Buffer.concat(chunks);
+  } else {
+    console.error(`fetching ${source}`);
+    sql = plain(await download(source));
+  }
+} else {
+  sql = plain(readFileSync(source));
+}
 console.error(`${(sql.length / 1e6).toFixed(1)} MB of SQL`);
 
 const dir = mkdtempSync(join(tmpdir(), "cj-search-"));

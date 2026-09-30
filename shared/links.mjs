@@ -14,7 +14,7 @@
 const SECTIONS = new Set([
   "plan",
   "about", "api", "ask", "bible", "captains", "cases", "classes", "concordance", "dictionary", "downloads",
-  "encyclopedia", "history", "law", "precepts", "search", "settings", "study", "teachings", "topics", "truth-shall-make-you-free",
+  "encyclopedia", "history", "law", "lexicon", "people", "person", "precepts", "search", "settings", "study", "tags", "teachings", "topics", "truth-shall-make-you-free",
 ]);
 
 const SAFE = /^[A-Za-z0-9_-]{1,512}$/;

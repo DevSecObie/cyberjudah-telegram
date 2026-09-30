@@ -257,6 +257,10 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-search__field { display: flex; align-items: center; gap: 10px; margin: 4px 16px 8px; padding: 0 8px 0 14px; min-height: 46px; border-radius: var(--r-md); background: var(--bs-light-grey); }
 .bs-search__field input { flex: 1; min-width: 0; height: 44px; border: 0; background: none; color: var(--bs-default); font-size: 16px; outline: none; -webkit-appearance: none; }
 .bs-search__field input::-webkit-search-cancel-button { display: none; }
+.bs-search__filters { display: flex; gap: 6px; margin: 0 16px 6px; overflow-x: auto; scrollbar-width: none; }
+.bs-search__filters::-webkit-scrollbar { display: none; }
+.bs-search__filters .bs-chip { flex: none; }
+#root .bs-chip--select { -webkit-appearance: none; appearance: none; max-width: 150px; text-overflow: ellipsis; padding-right: 22px; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 13px) 12px, calc(100% - 9px) 12px; background-size: 4px 4px; background-repeat: no-repeat; }
 .bs-search__list { display: flex; flex-direction: column; padding: 0 0 24px; }
 .bs-search__hint { margin: 16px 20px; font-size: 14px; line-height: 1.5; color: var(--bs-tertiary); }
 .bs-search__count { margin: 10px 20px 4px; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--bs-tertiary); }
@@ -359,3 +363,16 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-greek { display: flex; flex-direction: column; gap: 6px; }
 .bs-greek__text { margin: 0; padding: 14px 16px; border-radius: var(--r-md); background: var(--bs-light-grey); font: 400 19px/1.6 "Gentium Plus", "Noto Serif", Georgia, serif; color: var(--bs-default); }
 .bs-greek__src { margin: 0; font-size: 12px; line-height: 1.5; color: var(--bs-tertiary); }
+
+/* In this chapter (Bible Strong's ChapterEntities): the people named, at the end of the text. */
+.bs-entities { margin: 36px 0 8px; text-align: left; }
+.bs-entities__title { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; font: 600 15px var(--bs-font, inherit); color: var(--bs-default); }
+.bs-entities__title::before, .bs-entities__title::after { content: ""; flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--bs-border)); }
+.bs-entities__title::after { background: linear-gradient(to left, transparent, var(--bs-border)); }
+.bs-entities__kind { margin: 0 0 10px; text-align: center; font: 600 11px system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--bs-tertiary); }
+.bs-entities__row { display: flex; gap: 14px; overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: none; }
+.bs-entities__row::-webkit-scrollbar { display: none; }
+#root .bs-entity { flex: 0 0 82px; display: grid; justify-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--bs-default); font: 500 12.5px/1.2 system-ui, sans-serif; text-align: center; cursor: pointer; }
+.bs-entity__avatar { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--bs-light-primary); color: var(--bs-primary); font: 700 20px system-ui, sans-serif; }
+.bs-entity b { font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.bs-entity small { font-size: 10.5px; color: var(--bs-tertiary); }

@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { data } from "@/api/data";
 import { offlineSupported, removeBook, saveBook, savedBooks } from "@/lib/offline";
 import { useBackButton, useStored, useTheme } from "@/tg/hooks";
-import { alert, api, app, features, haptic, openInvoice, platform, requestWriteAccess, setFullscreen, lockPortrait } from "@/tg/sdk";
+import { alert, api, app, confirm, features, haptic, openInvoice, platform, requestWriteAccess, setFullscreen, lockPortrait } from "@/tg/sdk";
 import { secure } from "@/tg/store";
+import { parseBackup, restore, sendBackup } from "@/lib/backup";
 import { useSheet } from "@/ui/sheet";
 import { Icon, List, Row, Screen, Section, Segmented } from "@/ui/ui";
 import { useRelationsDisplay } from "@/lib/relations";
@@ -100,6 +101,7 @@ export function Settings() {
       {features.biometrics && features.secureStorage ? (
         <Section title="Privacy"><List><Toggle on={lock} onChange={(v) => void toggleLock(v)} title="Lock with biometrics" sub="Ask for your fingerprint or face when the app opens" /></List></Section>
       ) : null}
+      <BackupSection />
       <Section title="Support CyberJudah">
         <div className="btn--row">{[50, 100, 500].map((n) => <button key={n} type="button" className="btn btn--quiet" onClick={() => void support(n)}>⭐ {n}</button>)}</div>
         <p className="hint">Telegram Stars go toward hosting the library. The text and the notes stay free.</p>
@@ -129,6 +131,38 @@ function AskUsage() {
       </div>
       <List>{u.days.filter((d) => d.questions).slice(0, 7).map((d) => <Row key={d.day} title={d.day} sub={`${d.questions} answers · ${d.people} people`} trailing={<span className="row__value">${d.usd.toFixed(2)}</span>} />)}</List>
       <p className="hint">At ${u.usdPerMtok} per million input tokens (ASK_USD_PER_MTOK); output counts five times. Check it against Anthropic's price for the model.</p>
+    </Section>
+  );
+}
+
+/** Bible Strong's Backup screen: everything kept, as a file in your chat; a file, read back in. */
+function BackupSection() {
+  const file = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState<"send" | "restore" | null>(null);
+  const [status, setStatus] = useState("");
+  const send = async () => {
+    setBusy("send"); setStatus("");
+    const r = await sendBackup();
+    setBusy(null);
+    if (r.ok) { haptic("success"); setStatus(`Sent to your chat with the bot: ${r.entries} entries.`); } else { haptic("error"); setStatus(r.error); }
+  };
+  const onFile = async (f: File | undefined) => {
+    if (!f) return;
+    setBusy("restore"); setStatus("");
+    const b = parseBackup(await f.text());
+    if (typeof b === "string") { setBusy(null); haptic("error"); setStatus(b); return; }
+    const n = Object.keys(b.keys).length;
+    if (!(await confirm(`Restore ${n} entries from ${b.date || "this backup"}? Anything kept under the same keys is replaced.`))) { setBusy(null); return; }
+    restore(b); setBusy(null); haptic("success"); setStatus(`Restored ${n} ${n === 1 ? "entry" : "entries"}.`);
+  };
+  return (
+    <Section title="Backup">
+      <List>
+        <Row onClick={() => void send()} icon="download" title={busy === "send" ? "Sending…" : "Send a backup to your chat"} sub="Highlights, notes, tags, bookmarks, links, plan and settings, as one file" />
+        <Row onClick={() => file.current?.click()} icon="retry" title={busy === "restore" ? "Restoring…" : "Restore from a file"} sub="A backup file from your chat" />
+      </List>
+      <input ref={file} type="file" accept="application/json,.json" hidden onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ""; }} aria-label="Backup file" />
+      {status ? <p className="hint" role="status">{status}</p> : null}
     </Section>
   );
 }

@@ -42,6 +42,11 @@ const Topics = lazy(() => import("@/screens/Library").then((m) => ({ default: m.
 const TopicScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.TopicScreen })));
 const Study = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Study })));
 const Encyclopedia = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Encyclopedia })));
+const Lexicon = lazy(() => import("@/screens/Lexicon").then((m) => ({ default: m.Lexicon })));
+const LexiconEntry = lazy(() => import("@/screens/Lexicon").then((m) => ({ default: m.LexiconEntry })));
+const People = lazy(() => import("@/screens/People").then((m) => ({ default: m.People })));
+const Tags = lazy(() => import("@/screens/Tags").then((m) => ({ default: m.Tags })));
+const TagScreen = lazy(() => import("@/screens/Tags").then((m) => ({ default: m.TagScreen })));
 
 
 export function App() {
@@ -89,7 +94,12 @@ export function App() {
         <Route path="/history" element={<History />} />
         <Route path="/dictionary" element={<Dictionary />} />
         <Route path="/dictionary/:slug" element={<DictionaryEntry />} />
+        <Route path="/lexicon" element={<Lexicon />} />
+        <Route path="/lexicon/:number" element={<LexiconEntry />} />
+        <Route path="/people" element={<People />} />
         <Route path="/person/:id" element={<Person />} />
+        <Route path="/tags" element={<Tags />} />
+        <Route path="/tags/:id" element={<TagScreen />} />
         <Route path="/books" element={<Books />} />
         <Route path="/books/:slug" element={<BookScreen />} />
         <Route path="/books/:slug/p/:page" element={<BookPageLink />} />
