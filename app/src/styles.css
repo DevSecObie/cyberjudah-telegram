@@ -1201,3 +1201,51 @@ html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[dat
 .crash__actions { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
 #root .crash__btn, .crash__btn { padding: 11px 20px; border-radius: 22px; border: 1px solid var(--a-line); background: var(--a-card); color: var(--a-ink); font: 600 15px var(--a-ui); cursor: pointer; }
 #root .crash__btn--main, .crash__btn--main { background: var(--a-accent); border-color: transparent; color: var(--a-on-accent, #001014); }
+
+/* ── iPhone glass (iOS "Liquid Glass" materials) ─────────────────────────────────────────────
+   One material everywhere chrome floats over content: the page colour at partial strength,
+   a strong blur with extra saturation so what passes beneath keeps its colour, a hairline edge
+   and a thin specular highlight on top. Content scrolls under it. */
+:root {
+  --glass-tint: var(--a-bg);
+  --glass-thin: color-mix(in srgb, var(--glass-tint) 55%, transparent);
+  --glass-regular: color-mix(in srgb, var(--glass-tint) 72%, transparent);
+  --glass-thick: color-mix(in srgb, var(--glass-tint) 84%, transparent);
+  --glass-blur: blur(24px) saturate(1.9);
+  --glass-edge: color-mix(in srgb, var(--a-ink) 12%, transparent);
+  --glass-shine: inset 0 .5px 0 color-mix(in srgb, #ffffff 22%, transparent);
+  --glass-shadow: 0 10px 30px rgba(0, 0, 0, .22);
+}
+html[data-theme="light"], html[data-theme="sepia"] { --glass-shine: inset 0 .5px 0 color-mix(in srgb, #ffffff 80%, transparent); --glass-shadow: 0 10px 30px rgba(40, 30, 10, .12); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --glass-thin: var(--glass-tint); --glass-regular: var(--glass-tint); --glass-thick: var(--glass-tint); }
+}
+
+/* The bottom bar: glass, the page scrolling beneath it, the current button on a lighter pill. */
+.tabs {
+  z-index: 60;
+  background: color-mix(in srgb, var(--a-bar, var(--a-bg)) 62%, transparent);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  border-top: .5px solid var(--glass-edge);
+  box-shadow: var(--glass-shine);
+}
+.tabs .tab { position: relative; border-radius: 16px; }
+.tabs .tab::before { content: ""; position: absolute; inset: 5px 2px; border-radius: 14px; background: color-mix(in srgb, var(--a-ink) 11%, transparent); opacity: 0; transform: scale(.85); transition: opacity 200ms ease, transform 260ms cubic-bezier(.2, 1.3, .3, 1); }
+.tabs .tab[data-on]::before { opacity: 1; transform: none; }
+.tabs .tab > * { position: relative; }
+/* A sheet, the gallery or a drawer always sits over the bar. */
+html:has([data-sheet-open]) .tabs { z-index: 40; }
+/* The Bible runs under the bar now, so the glass shows the page passing beneath. */
+#root .bs { bottom: 0; }
+
+/* Floating actions and sheets: the regular material. */
+.sheet { background: var(--glass-thick); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); box-shadow: var(--glass-shine); }
+.sheet__scrim { background: rgba(0, 0, 0, .38); }
+.drawer { background: color-mix(in srgb, var(--a-card-2) 86%, transparent); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+.drawer__head { background: var(--glass-regular); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); position: sticky; top: 0; z-index: 2; }
+#root .drawer__x, .drawer__x { background: var(--glass-regular); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: .5px solid var(--glass-edge); box-shadow: var(--glass-shadow), var(--glass-shine); color: var(--a-ink); }
+.bsearch__bar { background: var(--glass-regular); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border-bottom: .5px solid var(--glass-edge); }
+.switcherbar, .tabs--switcher { background: color-mix(in srgb, var(--a-bg) 62%, transparent); }
+@media (prefers-reduced-transparency: reduce) {
+  .tabs, .sheet, .drawer, .drawer__head, .bsearch__bar { background: var(--a-bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
