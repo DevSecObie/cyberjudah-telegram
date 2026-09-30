@@ -12,6 +12,13 @@ on:
 permissions:
   contents: read
 
+# One staging Worker and one staging database serve every pull request, so runs take turns:
+# two at once collide in the search-index import ("Cannot start another import") and race to
+# decide which build staging shows. A queued run waits; none is cancelled.
+concurrency:
+  group: staging
+  cancel-in-progress: false
+
 jobs:
   check:
     runs-on: ubuntu-latest
