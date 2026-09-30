@@ -1,0 +1,120 @@
+import { resolveThemeColor } from '~themes/colorValues'
+import { useTheme as useStylingTheme } from '~themes/ThemeProvider'
+import React, { useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import { type SheetRef } from '~common/sheet'
+import Box, { AnimatedBox, FadingText } from '~common/ui/Box'
+import { FeatherIcon } from '~common/ui/Icon'
+import { useActiveGroup, useUpdateGroup, getTabGroups } from '../../../state/tabGroups'
+import { tabsCountAtom } from '../../../state/tabs'
+import { useAtomValue } from 'jotai/react'
+import GroupActionsPopover from '~features/app-switcher/BottomTabBar/GroupActionsPopover'
+import EditGroupModal from './EditGroupModal'
+import ViewGroupsModal from './ViewGroupsModal'
+import { useAppSwitcherContext } from '../AppSwitcherContext'
+import { LinearTransition } from 'react-native-reanimated'
+import useCurrentThemeSelector from '~helpers/useCurrentThemeSelector'
+import { getContrastTextColor } from '~helpers/highlightUtils'
+import { wp } from '~helpers/utils'
+const GroupTitleButton = () => {
+  const stylingTheme = useStylingTheme()
+
+  const { t } = useTranslation()
+  const activeGroup = useActiveGroup()
+  const tabsCount = useAtomValue(tabsCountAtom)
+  const updateGroup = useUpdateGroup()
+  const editSheetRef = useRef<SheetRef>(null)
+  const viewGroupsSheetRef = useRef<SheetRef>(null)
+  const { groupPager } = useAppSwitcherContext()
+  const { colorScheme } = useCurrentThemeSelector()
+
+  const textColor = activeGroup.color
+    ? getContrastTextColor(activeGroup.color, colorScheme === 'dark')
+    : undefined
+
+  const displayName = activeGroup.isDefault
+    ? `${tabsCount} ${t('tabs.tab', { count: tabsCount })}`
+    : activeGroup.name
+
+  const handleOpenCreateGroup = () => {
+    // Navigate to the create group page (last page in carousel)
+    // Read groups.length only when needed (no subscription)
+    const groupsLength = getTabGroups().length
+    groupPager.navigateToPage(groupsLength, groupsLength)
+  }
+
+  const handleOpenEdit = () => {
+    editSheetRef.current?.present()
+  }
+
+  const handleOpenViewGroups = () => {
+    viewGroupsSheetRef.current?.present()
+  }
+
+  const handleEdit = ({ name, color }: { name: string; color: string }) => {
+    updateGroup({ groupId: activeGroup.id, name, color })
+  }
+
+  return (
+    <Box className="overflow-hidden border-continuous flex-[1]">
+      <GroupActionsPopover
+        accessibilityLabel={displayName}
+        group={activeGroup}
+        onCreateGroup={handleOpenCreateGroup}
+        onEditGroup={handleOpenEdit}
+        onViewGroups={handleOpenViewGroups}
+      >
+        <Box className="overflow-hidden border-continuous flex-row items-center justify-center">
+          <AnimatedBox
+            className="overflow-hidden border-continuous flex-row py-[6px] px-[12px] rounded-[20px] items-center justify-center"
+            layout={LinearTransition}
+            style={{
+              backgroundColor: activeGroup.color || 'transparent',
+              transitionProperty: 'backgroundColor',
+              transitionDuration: 300,
+            }}
+          >
+            <FadingText
+              className="overflow-hidden border-continuous text-[14px]"
+              numberOfLines={1}
+              style={[
+                {
+                  color:
+                    resolveThemeColor(stylingTheme, textColor || 'default') ||
+                    stylingTheme.colors.default,
+                },
+                {
+                  maxWidth: wp(50),
+                },
+              ]}
+            >
+              {displayName}
+            </FadingText>
+            <AnimatedBox
+              className="overflow-hidden border-continuous items-center justify-center"
+              layout={LinearTransition}
+            >
+              <FeatherIcon
+                name="chevron-down"
+                size={16}
+                color={textColor || 'default'}
+                style={{ marginLeft: 4 }}
+              />
+            </AnimatedBox>
+          </AnimatedBox>
+        </Box>
+      </GroupActionsPopover>
+      {!activeGroup.isDefault && (
+        <EditGroupModal
+          sheetRef={editSheetRef}
+          initialName={activeGroup.name}
+          initialColor={activeGroup.color}
+          onSave={handleEdit}
+        />
+      )}
+      <ViewGroupsModal sheetRef={viewGroupsSheetRef} />
+    </Box>
+  )
+}
+
+export default GroupTitleButton

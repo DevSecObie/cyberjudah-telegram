@@ -1,0 +1,236 @@
+@import "tw-shimmer";
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+}
+
+/* One theme-colored focus ring, including React Native Web and portaled controls.
+   !important intentionally replaces browser/third-party outlines and focus rings. */
+:focus,
+[data-focus-visible='true'] {
+  outline: none !important;
+}
+:where(
+  :focus-visible:not([role='dialog']):not([role='menu']):not(:has(:focus-visible)),
+  [data-focus-visible='true']:not(:has(:focus-visible))
+) {
+  box-shadow: 0 0 0 2px var(--bs-focus-color, #5983f0) !important;
+}
+
+/* Compound fields own the ring only while their text input is focused.
+   Their clear/submit buttons still get an individual keyboard focus ring. */
+[data-focus-group='true']:has(input:focus, textarea:focus) {
+  box-shadow: 0 0 0 2px var(--bs-focus-color, #5983f0) !important;
+}
+[data-focus-group='true'] :is(input, textarea):focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* High-contrast modes may suppress shadows; retain a single visible indicator. */
+@media (forced-colors: active) {
+  :focus-visible:where(:not([role='dialog']):not([role='menu']):not(:has(:focus-visible))),
+  [data-focus-visible='true']:where(:not(:has(:focus-visible))),
+  [data-focus-group='true']:has(input:focus, textarea:focus) {
+    outline: 2px solid Highlight !important;
+    outline-offset: 2px;
+  }
+  [data-focus-group='true'] :is(input, textarea):focus {
+    outline: none !important;
+  }
+}
+
+/* Offscreen tab previews must not scroll the whole workspace when focused. */
+#compact-workspace {
+  overflow: clip !important;
+}
+
+/* Bottom sheets use a body portal; center them inside the main workspace. */
+[data-vaul-drawer][data-vaul-drawer-direction='bottom'] {
+  left: var(--bible-selection-left, var(--workspace-content-left, 0px)) !important;
+}
+
+/* Reserve only header space for the floating navigation control. */
+[data-testid='workspace-page-header'] {
+  padding-left: var(--workspace-restore-inset, 0px);
+}
+[data-testid='workspace-route-panel'] {
+  --workspace-restore-inset: 0px;
+}
+
+/* Keep the sidebar mounted while it slides fully out of the workspace. */
+[data-testid='workspace-sidebar-motion'] {
+  transition:
+    width 240ms cubic-bezier(0.2, 0, 0, 1),
+    transform 240ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-testid='workspace-sidebar-inner'] {
+  transition: transform 240ms cubic-bezier(0.2, 0, 0, 1);
+}
+[data-testid='workspace-sidebar-motion'][aria-hidden='true'] {
+  visibility: hidden;
+  transition:
+    width 240ms cubic-bezier(0.2, 0, 0, 1),
+    transform 240ms cubic-bezier(0.2, 0, 0, 1),
+    visibility 0s 240ms;
+}
+[data-testid='workspace-sidebar-backdrop'] {
+  transition: opacity 200ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-testid='workspace-sidebar-motion'],
+  [data-testid='workspace-sidebar-inner'],
+  [data-testid='workspace-sidebar-backdrop'] {
+    transition: none;
+  }
+}
+[data-testid='workspace-sidebar-backdrop'][aria-hidden='true'] {
+  pointer-events: none !important;
+  visibility: hidden;
+  transition:
+    opacity 200ms ease,
+    visibility 0s 200ms;
+}
+
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  [data-testid='workspace-reader-motion'] {
+    transition: right 240ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  [data-testid='workspace-route-panel'],
+  [data-testid='workspace-panel-slot'] {
+    transition: width 240ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  @starting-style {
+    [data-testid='workspace-route-panel'],
+    [data-testid='workspace-panel-slot'] {
+      width: 0 !important;
+    }
+  }
+}
+
+/* Transparent route screens must not intercept the visible page beside them. */
+@media (min-width: 768px) {
+  div:has(> [data-testid='workspace-route-frame']),
+  div:has(> div > [data-testid='workspace-route-frame']),
+  div:has(> div > div > [data-testid='workspace-route-frame']) {
+    pointer-events: none !important;
+  }
+  [data-testid='workspace-route-panel'] {
+    pointer-events: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  div[style*='transition-property: margin-right'] {
+    transition: none !important;
+  }
+}
+
+/* Page navigation snapshots exclude the workspace sidebar. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-group(workspace-page) {
+  animation-duration: 220ms;
+}
+
+::view-transition-image-pair(workspace-page) {
+  overflow: clip;
+}
+::view-transition-old(workspace-page) {
+  animation: workspace-page-out 220ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+::view-transition-new(workspace-page) {
+  animation: workspace-page-in 220ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+html[data-page-transition-direction='back']::view-transition-old(workspace-page) {
+  animation-name: workspace-page-back-out;
+}
+html[data-page-transition-direction='back']::view-transition-new(workspace-page) {
+  animation-name: workspace-page-back-in;
+}
+@keyframes workspace-page-out {
+  to {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+@keyframes workspace-page-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+@keyframes workspace-page-back-out {
+  to {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+@keyframes workspace-page-back-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-testid='workspace-panel-close'] {
+    transition: right 240ms cubic-bezier(0.2, 0, 0, 1);
+  }
+}
+
+[data-testid='workspace-panel-close'] {
+  position: fixed;
+}
+
+/* Only the focused panel participates, including when its route group changes. */
+html[data-panel-view-transition='true'] [data-testid='workspace-route-panel'] {
+  view-transition-name: workspace-page;
+}
+html[data-panel-view-transition='true'] [aria-hidden='true'] [data-testid='workspace-route-panel'] {
+  view-transition-name: none;
+}
+
+/* Text links do not need a border; keyboard focus remains visible. */
+a {
+  border: none !important;
+}
+
+/* Compact Bible settings inside the contextual popover only. */
+[data-testid='bible-params-inline'] [data-testid='bible-params-row'] {
+  min-height: 44px !important;
+  height: 44px;
+  border-bottom-width: 0 !important;
+  padding: 2px 10px 2px 12px !important;
+}
+[data-testid='bible-params-inline'] [data-testid='bible-params-link'] {
+  min-height: 44px !important;
+  height: 44px;
+  padding: 12px !important;
+  border-radius: 8px;
+}
+[data-testid='bible-params-inline'] [data-testid='bible-params-separator'] {
+  display: none;
+}
+[data-testid='bible-params-inline'] [data-testid='bible-params-link']:hover {
+  background-color: #80808015;
+}
+[data-testid='bible-params-inline'] [role='radio']:hover {
+  background-color: transparent !important;
+}
+
+/* Share the available width evenly; incomplete final rows stay aligned. */
+[data-testid='bible-selector-number-grid'] {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 10px;
+  padding: 10px;
+}
+[data-testid='bible-selector-number-grid'] > * {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1;
+  min-width: 0;
+}

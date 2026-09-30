@@ -1,0 +1,84 @@
+import { getAuth, signOut } from '@react-native-firebase/auth'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import * as FileSystem from 'expo-file-system/legacy'
+import * as Updates from 'expo-updates'
+
+import { closeBiblesDb } from '~helpers/biblesDb'
+import { storage } from '~helpers/storage'
+import { persistor } from '~redux/store'
+
+/**
+ * DEV-ONLY: Completely resets the app to a pristine state.
+ * - Signs out the user from Firebase
+ * - Closes all SQLite connections
+ * - Clears MMKV storage
+ * - Clears legacy AsyncStorage data
+ * - Purges redux-persist
+ * - Deletes app files in the document directory (databases, JSON, backups…)
+ * - Reloads the app
+ */
+export const nukeApp = async (): Promise<void> => {
+  if (!__DEV__) {
+    console.warn('[Nuke] Refused to nuke: not in dev mode')
+    return
+  }
+
+  console.log('[Nuke] Starting full app reset…')
+
+  // 1. Sign out from Firebase (ignore errors if not logged in)
+  try {
+    await signOut(getAuth())
+  } catch (e) {
+    console.log('[Nuke] signOut failed (probably not logged in):', e)
+  }
+
+  // 2. Close open SQLite connections so file deletion doesn't corrupt handles
+  try {
+    await closeBiblesDb()
+  } catch (e) {
+    console.log('[Nuke] closeBiblesDb failed:', e)
+  }
+
+  // 3. Purge redux-persist first so it doesn't rewrite MMKV on unmount
+  try {
+    await persistor.purge()
+  } catch (e) {
+    console.log('[Nuke] persistor.purge failed:', e)
+  }
+
+  // 4. Clear all MMKV keys through the live instance.
+  // MMKV stores its files under Documents/mmkv by default, so deleting that
+  // folder while this instance is open can make later writes fail.
+  try {
+    storage.clearAll()
+  } catch (e) {
+    console.log('[Nuke] storage.clearAll failed:', e)
+  }
+
+  // 5. Clear legacy AsyncStorage so stale values cannot be migrated back into MMKV on reload.
+  try {
+    await AsyncStorage.clear()
+  } catch (e) {
+    console.log('[Nuke] AsyncStorage.clear failed:', e)
+  }
+
+  // 6. Wipe app files under the document directory, but keep MMKV's backing folder.
+  try {
+    const docDir = FileSystem.documentDirectory
+    if (docDir) {
+      const entries = await FileSystem.readDirectoryAsync(docDir)
+      for (const entry of entries) {
+        if (entry === 'mmkv') {
+          continue
+        }
+        await FileSystem.deleteAsync(`${docDir}${entry}`, { idempotent: true })
+      }
+    }
+  } catch (e) {
+    console.log('[Nuke] FileSystem wipe failed:', e)
+  }
+
+  // 7. Reload the app
+  console.log('[Nuke] Done. Reloading…')
+  await Updates.reloadAsync()
+}

@@ -1,0 +1,3064 @@
+{
+  "version": "2.17",
+  "children": [
+    {
+      "type": "frame",
+      "id": "vMW1h",
+      "x": 0,
+      "y": 0,
+      "name": "Présentation — Bible Strong Desktop",
+      "layout": "vertical",
+      "gap": 18,
+      "children": [
+        {
+          "type": "text",
+          "id": "w0D7a",
+          "name": "Titre présentation",
+          "fill": "$ink-4",
+          "content": "Bible Strong Desktop — Le Livre ouvert + onglets latéraux",
+          "fontFamily": "$font-ui",
+          "fontSize": 22,
+          "fontWeight": "600",
+          "letterSpacing": -0.2
+        },
+        {
+          "type": "frame",
+          "id": "n5zhq",
+          "name": "Desktop — Le Livre ouvert",
+          "clip": true,
+          "width": 1440,
+          "height": 900,
+          "fill": "$page",
+          "children": [
+            {
+              "id": "h00018",
+              "type": "ref",
+              "ref": "I9Vay",
+              "name": "Navigation — Bible active",
+              "width": 260,
+              "height": "fill_container"
+            },
+            {
+              "type": "frame",
+              "id": "D8EYKc",
+              "name": "Vue Bible",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "$page",
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "b8w2sM",
+                  "name": "Barre supérieure",
+                  "width": "fill_container",
+                  "height": 60,
+                  "padding": [
+                    0,
+                    21
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "VsT6p",
+                      "name": "Navigation chapitre",
+                      "width": 180,
+                      "height": "fit_content(30)",
+                      "gap": 2,
+                      "alignItems": "center"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "YMXnS",
+                      "name": "Sélecteurs",
+                      "width": "fill_container",
+                      "gap": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "TbdPU",
+                          "name": "Sélecteur livre",
+                          "cornerRadius": 8,
+                          "gap": 6,
+                          "padding": [
+                            6,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "FvUjB",
+                              "name": "Référence",
+                              "fill": "$ink-4",
+                              "content": "Jean 1",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 14.5,
+                              "fontWeight": "600",
+                              "letterSpacing": -0.1
+                            },
+                            {
+                              "type": "icon",
+                              "id": "nLkt4",
+                              "name": "Chevron",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "chevron-down",
+                              "library": "lucide",
+                              "fill": "$faint"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "r7kv3u",
+                          "name": "Séparateur",
+                          "fill": "$divider",
+                          "width": 1,
+                          "height": 14
+                        },
+                        {
+                          "type": "frame",
+                          "id": "JocBs",
+                          "name": "Sélecteur version",
+                          "cornerRadius": 8,
+                          "gap": 6,
+                          "padding": [
+                            6,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "qRHny",
+                              "name": "Version",
+                              "fill": "$muted",
+                              "content": "LSG",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 13,
+                              "fontWeight": "600",
+                              "letterSpacing": 0.2
+                            },
+                            {
+                              "type": "icon",
+                              "id": "U0KqWp",
+                              "name": "Chevron",
+                              "width": 13,
+                              "height": 13,
+                              "icon": "chevron-down",
+                              "library": "lucide",
+                              "fill": "$faint"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ALIBQ",
+                      "name": "Utilitaires",
+                      "width": 180,
+                      "gap": 2,
+                      "padding": [
+                        0,
+                        2,
+                        0,
+                        0
+                      ],
+                      "justifyContent": "end",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "hbqjB",
+                          "name": "Recherche",
+                          "width": 30,
+                          "height": 30,
+                          "cornerRadius": 8,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "pq4uq",
+                              "name": "Icône",
+                              "width": 16,
+                              "height": 16,
+                              "icon": "search",
+                              "library": "lucide",
+                              "fill": "$muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "uuptm",
+                          "name": "Audio",
+                          "width": 30,
+                          "height": 30,
+                          "cornerRadius": 8,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "Yo8im",
+                              "name": "Icône",
+                              "width": 16,
+                              "height": 16,
+                              "icon": "headphones",
+                              "library": "lucide",
+                              "fill": "$muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "hZ83O",
+                          "name": "Taille du texte et thème",
+                          "width": 30,
+                          "height": 30,
+                          "cornerRadius": 8,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "Xd8KZ",
+                              "name": "Icône",
+                              "width": 17,
+                              "height": 17,
+                              "icon": "a-large-small",
+                              "library": "lucide",
+                              "fill": "$muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "b3U2z",
+                          "name": "Compte",
+                          "width": 28,
+                          "height": 28,
+                          "fill": "#E7ECFA",
+                          "cornerRadius": 14,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "p2i80p",
+                              "name": "Initiales",
+                              "fill": "$blue",
+                              "content": "SM",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 10.5,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MlVJ8",
+                  "name": "Page de lecture",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "iWR1S",
+                      "layoutPosition": "absolute",
+                      "x": 100,
+                      "y": 392,
+                      "name": "Chapitre précédent",
+                      "width": 40,
+                      "height": 40,
+                      "cornerRadius": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "MP2sU",
+                          "name": "Chevron gauche",
+                          "width": 22,
+                          "height": 22,
+                          "icon": "chevron-left",
+                          "library": "lucide",
+                          "fill": "#C3C8D4"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "n3shqv",
+                      "layoutPosition": "absolute",
+                      "x": 1040,
+                      "y": 392,
+                      "name": "Chapitre suivant",
+                      "width": 40,
+                      "height": 40,
+                      "cornerRadius": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "MkhEX",
+                          "name": "Chevron droit",
+                          "width": 22,
+                          "height": 22,
+                          "icon": "chevron-right",
+                          "library": "lucide",
+                          "fill": "#C3C8D4"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "w4JPv",
+                      "name": "Colonne de lecture",
+                      "width": 740,
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "padding": [
+                        56,
+                        0,
+                        0,
+                        0
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "dlO7i",
+                          "name": "Titre du livre",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 6,
+                          "padding": [
+                            0,
+                            0,
+                            34,
+                            0
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "FpaV7",
+                              "name": "Livre",
+                              "fill": "$muted",
+                              "content": "ÉVANGILE SELON JEAN",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 11,
+                              "fontWeight": "600",
+                              "letterSpacing": 2.6
+                            },
+                            {
+                              "type": "text",
+                              "id": "f54bTq",
+                              "name": "Chapitre",
+                              "fill": "$ink-4",
+                              "content": "1",
+                              "lineHeight": 1.15,
+                              "fontFamily": "$font-serif",
+                              "fontSize": 58,
+                              "fontWeight": "300"
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "M31db",
+                              "name": "Filet",
+                              "fill": "$rule",
+                              "width": 34,
+                              "height": 1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "D4meN",
+                          "name": "Versets",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 16,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "LtOry",
+                              "name": "Verset 1",
+                              "width": "fill_container",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "N3Gm4n",
+                                  "name": "Numéro",
+                                  "width": 36,
+                                  "padding": [
+                                    9,
+                                    12,
+                                    0,
+                                    0
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "ONGHE",
+                                      "name": "N°",
+                                      "fill": "$faint",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "1",
+                                      "textAlign": "right",
+                                      "fontFamily": "$font-ui",
+                                      "fontSize": 11,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "R6Uow4",
+                                  "name": "Texte du verset",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "J8Q4q",
+                                      "name": "Ligne",
+                                      "width": "fill_container",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "Sgq7O",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": "Au commencement était la ",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "ybNTe",
+                                          "name": "Mot Strong",
+                                          "fill": "#3F5FC4",
+                                          "content": "Parole",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "ZxRWP",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": ", et la Parole était avec ",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "klPqs",
+                                          "name": "Mot Strong",
+                                          "fill": "#3F5FC4",
+                                          "content": "Dieu",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "y6LDBo",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": ", et la",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "XpoU5",
+                                      "name": "Ligne",
+                                      "width": "fill_container",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "SWmDi",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": "Parole était Dieu.",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "K8Aj51",
+                              "name": "Verset 2",
+                              "width": "fill_container",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "VPzVy",
+                                  "name": "Numéro",
+                                  "width": 36,
+                                  "padding": [
+                                    9,
+                                    12,
+                                    0,
+                                    0
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "Q6lTvC",
+                                      "name": "N°",
+                                      "fill": "$faint",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "2",
+                                      "textAlign": "right",
+                                      "fontFamily": "$font-ui",
+                                      "fontSize": 11,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "wECpY",
+                                  "name": "Texte du verset",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "Qaw3Q",
+                                      "name": "Ligne",
+                                      "width": "fill_container",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "x8yZS",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": "Elle était au commencement avec Dieu.",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "WXTJ6",
+                              "name": "Verset 3",
+                              "width": "fill_container",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "g3ayFy",
+                                  "name": "Numéro",
+                                  "width": 36,
+                                  "padding": [
+                                    9,
+                                    12,
+                                    0,
+                                    0
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "gx1fY",
+                                      "name": "N°",
+                                      "fill": "$faint",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "3",
+                                      "textAlign": "right",
+                                      "fontFamily": "$font-ui",
+                                      "fontSize": 11,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "i4tnfw",
+                                  "name": "Texte du verset",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "zT3E4",
+                                      "name": "Ligne",
+                                      "width": "fill_container",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "QaDdC",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": "Toutes choses ont été faites par elle, et rien de ce qui a été fait n'a",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "BfQ0y",
+                                      "name": "Ligne",
+                                      "width": "fill_container",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "UJ6lz",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": "été fait sans elle.",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "WBUOH",
+                              "name": "Verset 4",
+                              "width": "fill_container",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "ifqBM",
+                                  "name": "Numéro",
+                                  "width": 36,
+                                  "padding": [
+                                    9,
+                                    12,
+                                    0,
+                                    0
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "AMZPQ",
+                                      "name": "N°",
+                                      "fill": "$faint",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "4",
+                                      "textAlign": "right",
+                                      "fontFamily": "$font-ui",
+                                      "fontSize": 11,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "Bgppg",
+                                  "name": "Texte du verset",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "xVAcO",
+                                      "name": "Ligne",
+                                      "width": "fill_container",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "U4vYw",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": "En elle était la ",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "cxiFS",
+                                          "name": "Mot Strong",
+                                          "fill": "#3F5FC4",
+                                          "content": "vie",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "WomtQ",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": ", et la vie était la ",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "m52Iq",
+                                          "name": "Mot Strong",
+                                          "fill": "#3F5FC4",
+                                          "content": "lumière",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "XwBdp",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": " des hommes.",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "QrJTK",
+                              "name": "Verset 5",
+                              "width": "fill_container",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "U3MtN",
+                                  "name": "Numéro",
+                                  "width": 36,
+                                  "padding": [
+                                    9,
+                                    12,
+                                    0,
+                                    0
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "R6D9e",
+                                      "name": "N°",
+                                      "fill": "$faint",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "5",
+                                      "textAlign": "right",
+                                      "fontFamily": "$font-ui",
+                                      "fontSize": 11,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "k5GyL",
+                                  "name": "Texte du verset",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "hDwrt",
+                                      "name": "Ligne",
+                                      "width": "fill_container",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "N0Q4qt",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": "La lumière luit dans les ",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "cCx1D",
+                                          "name": "Mot Strong",
+                                          "fill": "#3F5FC4",
+                                          "content": "ténèbres",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "JM7tc",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": ", et les ténèbres ne l'ont point reçue.",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "hfdBO",
+                              "name": "Verset 6",
+                              "width": "fill_container",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "DV005",
+                                  "name": "Numéro",
+                                  "width": 36,
+                                  "padding": [
+                                    9,
+                                    12,
+                                    0,
+                                    0
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "tcpdm",
+                                      "name": "N°",
+                                      "fill": "$faint",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "6",
+                                      "textAlign": "right",
+                                      "fontFamily": "$font-ui",
+                                      "fontSize": 11,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "bK9NA",
+                                  "name": "Texte du verset",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "Nhrb7",
+                                      "name": "Ligne",
+                                      "width": "fill_container",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "teajS",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": "Il y eut un homme envoyé de Dieu: son nom était Jean.",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Qyf9y",
+                              "name": "Verset 7",
+                              "width": "fill_container",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "lXAqm",
+                                  "name": "Numéro",
+                                  "width": 36,
+                                  "padding": [
+                                    9,
+                                    12,
+                                    0,
+                                    0
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "oToVO",
+                                      "name": "N°",
+                                      "fill": "$faint",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "7",
+                                      "textAlign": "right",
+                                      "fontFamily": "$font-ui",
+                                      "fontSize": 11,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "V4vKlS",
+                                  "name": "Texte du verset",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "Byf1I",
+                                      "name": "Ligne",
+                                      "width": "fill_container",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "viOg9",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": "Il vint pour servir de témoin, pour rendre ",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "nleWZ",
+                                          "name": "Mot Strong",
+                                          "fill": "#3F5FC4",
+                                          "content": "témoignage",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "hvhuu",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": " à la lumière, afin",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "WJVxT",
+                                      "name": "Ligne",
+                                      "width": "fill_container",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "lFzij",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": "que tous crussent par lui.",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "z3HL07",
+                              "name": "Verset 8",
+                              "width": "fill_container",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "f5yjCd",
+                                  "name": "Numéro",
+                                  "width": 36,
+                                  "padding": [
+                                    9,
+                                    12,
+                                    0,
+                                    0
+                                  ],
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "TAUpf",
+                                      "name": "N°",
+                                      "fill": "$faint",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "8",
+                                      "textAlign": "right",
+                                      "fontFamily": "$font-ui",
+                                      "fontSize": 11,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "kav0W",
+                                  "name": "Texte du verset",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "CRQJN",
+                                      "name": "Ligne",
+                                      "width": "fill_container",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "oTBV4",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": "Il n'était pas la lumière, mais il parut pour rendre témoignage à la",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "Cmv3U",
+                                      "name": "Ligne",
+                                      "width": "fill_container",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "hNU1n",
+                                          "name": "Texte",
+                                          "fill": "$body",
+                                          "content": "lumière.",
+                                          "lineHeight": 1.75,
+                                          "fontFamily": "$font-serif",
+                                          "fontSize": 20,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "w8Odd",
+      "x": 0,
+      "y": -1150,
+      "name": "Bibliothèque — Groupes d’onglets",
+      "clip": true,
+      "width": 1400,
+      "height": 1080,
+      "fill": "#F7F8FB",
+      "cornerRadius": 16,
+      "stroke": "#E4E8F0",
+      "strokeWidth": 1,
+      "layout": "vertical",
+      "gap": 24,
+      "padding": 28,
+      "children": [
+        {
+          "type": "text",
+          "id": "xC65a",
+          "name": "Titre bibliothèque",
+          "fill": "$ink-4",
+          "content": "Groupes d’onglets · composants et états",
+          "fontFamily": "$font-ui",
+          "fontSize": 22,
+          "fontWeight": "600"
+        },
+        {
+          "type": "frame",
+          "id": "siYKO",
+          "name": "Section — Items de groupe",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "children": [
+            {
+              "type": "text",
+              "id": "ATzRF",
+              "name": "Titre section items groupe",
+              "fill": "$muted",
+              "content": "Item de groupe",
+              "fontFamily": "$font-ui",
+              "fontSize": 12,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "QkPye",
+              "name": "Variantes item de groupe",
+              "width": "fill_container",
+              "gap": 28,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "rahO8",
+                  "name": "Présentation variante ouverte",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "OQfIo",
+                      "name": "Label variante ouverte",
+                      "fill": "$muted",
+                      "content": "Ouvert",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Nlnn5",
+                      "name": "Groupe/Item/Ouvert",
+                      "reusable": true,
+                      "width": 236,
+                      "fill": "$group-mint",
+                      "cornerRadius": 8,
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        9
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "o1jbM2",
+                          "name": "Libellé groupe",
+                          "fill": "#ffffffff",
+                          "content": "Étude de Jean",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "vamjN",
+                          "name": "Espace flexible",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "icon",
+                          "id": "L67xx",
+                          "name": "Chevron",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "chevron-down",
+                          "library": "lucide",
+                          "fill": "#ffffffff"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "llvxI",
+                  "name": "Présentation variante fermée",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Cm6dx",
+                      "name": "Label variante fermée",
+                      "fill": "$muted",
+                      "content": "Fermé",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "I92Xt",
+                      "name": "Groupe/Item/Fermé",
+                      "reusable": true,
+                      "width": 236,
+                      "fill": "$group-mint",
+                      "cornerRadius": 8,
+                      "gap": 6,
+                      "padding": [
+                        6,
+                        9
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "wMo6C",
+                          "name": "Libellé groupe",
+                          "fill": "#ffffffff",
+                          "content": "Étude de Jean",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "XSLme",
+                          "name": "Espace flexible",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "type": "icon",
+                          "id": "ORWi3",
+                          "name": "Chevron",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "chevron-right",
+                          "library": "lucide",
+                          "fill": "#ffffffff"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "jHPfZ",
+          "name": "Section — Items d’onglet",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "children": [
+            {
+              "type": "text",
+              "id": "kSG4M",
+              "name": "Titre section items onglet",
+              "fill": "$muted",
+              "content": "Item d’onglet",
+              "fontFamily": "$font-ui",
+              "fontSize": 12,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "pkIao",
+              "name": "Variantes item d’onglet",
+              "width": "fill_container",
+              "gap": 28,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "hI7rf",
+                  "name": "Présentation Selected",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "I12dN",
+                      "name": "Label Selected",
+                      "fill": "$muted",
+                      "content": "Selected",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "vDRMp",
+                      "name": "Onglet/Item/Selected",
+                      "reusable": true,
+                      "width": 240,
+                      "padding": [
+                        1,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Z1yyjo",
+                          "name": "Ligne",
+                          "width": "fill_container",
+                          "fill": "$blue-tint",
+                          "cornerRadius": 8,
+                          "gap": 9,
+                          "padding": [
+                            8,
+                            9,
+                            8,
+                            11
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 2,
+                              "id": "Bs72h",
+                              "layoutPosition": "absolute",
+                              "x": 3,
+                              "y": 5.5,
+                              "name": "Barre active",
+                              "fill": "$blue",
+                              "width": 3,
+                              "height": 20
+                            },
+                            {
+                              "type": "icon",
+                              "id": "NFrkj",
+                              "name": "Type",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "book-open",
+                              "library": "lucide",
+                              "fill": "$blue"
+                            },
+                            {
+                              "type": "text",
+                              "id": "h5RDY",
+                              "name": "Titre",
+                              "fill": "$body",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Jean 1 · LSG",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 12,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "EYuDG",
+                              "name": "Fermer",
+                              "width": 12,
+                              "height": 12,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$muted"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "KpJdt",
+                  "name": "Présentation Hover",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "IBPRL",
+                      "name": "Label Hover",
+                      "fill": "$muted",
+                      "content": "Hover",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "kLulU",
+                      "name": "Onglet/Item/Hover",
+                      "reusable": true,
+                      "width": 240,
+                      "padding": [
+                        1,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "nTvr2",
+                          "name": "Ligne",
+                          "width": "fill_container",
+                          "fill": "$panel-hover",
+                          "cornerRadius": 8,
+                          "gap": 9,
+                          "padding": [
+                            8,
+                            9,
+                            8,
+                            11
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "re01v",
+                              "name": "Type",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "book-open",
+                              "library": "lucide",
+                              "fill": "$ink-3"
+                            },
+                            {
+                              "type": "text",
+                              "id": "mnz5p",
+                              "name": "Titre",
+                              "fill": "$body",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Jean 1 · LSG",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "Nxs5I",
+                              "name": "Fermer",
+                              "width": 12,
+                              "height": 12,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$muted"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "OC9wx",
+                  "name": "Présentation Default",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "IIreD",
+                      "name": "Label Default",
+                      "fill": "$muted",
+                      "content": "Default",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ofHG3",
+                      "name": "Onglet/Item/Default",
+                      "reusable": true,
+                      "width": 240,
+                      "padding": [
+                        1,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "hJXtz",
+                          "name": "Ligne",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF00",
+                          "cornerRadius": 8,
+                          "gap": 9,
+                          "padding": [
+                            8,
+                            9,
+                            8,
+                            11
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "s1VKb",
+                              "name": "Type",
+                              "width": 15,
+                              "height": 15,
+                              "icon": "book-open",
+                              "library": "lucide",
+                              "fill": "$ink-3"
+                            },
+                            {
+                              "type": "text",
+                              "id": "T56jXp",
+                              "name": "Titre",
+                              "fill": "$body",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Jean 1 · LSG",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "w5Y6aJ",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Fermer",
+                              "enabled": false,
+                              "width": 12,
+                              "height": 12,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$muted"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "NN0ur",
+          "name": "Section — Groupes composés",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 10,
+          "children": [
+            {
+              "type": "text",
+              "id": "s1wBVq",
+              "name": "Titre section groupes composés",
+              "fill": "$muted",
+              "content": "Groupe d’onglets",
+              "fontFamily": "$font-ui",
+              "fontSize": 12,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "NKNQT",
+              "name": "Variantes groupe d’onglets",
+              "width": "fill_container",
+              "gap": 40,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Sxr6U",
+                  "name": "Présentation groupe ouvert",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ZTc5H",
+                      "name": "Label groupe ouvert",
+                      "fill": "$muted",
+                      "content": "Ouvert",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "CVise",
+                      "name": "Onglets/Groupe/Ouvert",
+                      "reusable": true,
+                      "width": 260,
+                      "layout": "vertical",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "zl2fa",
+                          "type": "ref",
+                          "ref": "Nlnn5",
+                          "name": "Item de groupe ouvert",
+                          "width": 236,
+                          "descendants": {
+                            "o1jbM2": {
+                              "content": "Étude de Jean"
+                            }
+                          }
+                        },
+                        {
+                          "type": "frame",
+                          "id": "qYiIe",
+                          "name": "Items",
+                          "slot": [
+                            "vDRMp",
+                            "kLulU",
+                            "ofHG3"
+                          ],
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "padding": [
+                            0,
+                            10
+                          ],
+                          "children": [
+                            {
+                              "id": "Wjv3o",
+                              "type": "ref",
+                              "ref": "ofHG3",
+                              "name": "Item de base",
+                              "width": "fill_container"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "kF38I",
+                  "name": "Présentation groupe fermé",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "BjUNo",
+                      "name": "Label groupe fermé",
+                      "fill": "$muted",
+                      "content": "Fermé",
+                      "fontFamily": "$font-ui",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "zKRWk",
+                      "name": "Onglets/Groupe/Fermé",
+                      "reusable": true,
+                      "width": 260,
+                      "layout": "vertical",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "BwA6x",
+                          "type": "ref",
+                          "ref": "I92Xt",
+                          "name": "Item de groupe fermé",
+                          "width": 236,
+                          "descendants": {
+                            "wMo6C": {
+                              "content": "Étude de Jean"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "h0001b",
+          "name": "Section — Navigation latérale",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "children": [
+            {
+              "type": "text",
+              "id": "h00019",
+              "name": "Titre section",
+              "fill": "$ink-4",
+              "content": "Navigation latérale",
+              "fontFamily": "$font-ui",
+              "fontSize": 16,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "h0001a",
+              "name": "Variantes de navigation",
+              "width": "fill_container",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "I9Vay",
+                  "name": "Navigation latérale / Bible active",
+                  "reusable": true,
+                  "width": 260,
+                  "height": 900,
+                  "fill": "$side-bg",
+                  "stroke": "$divider",
+                  "strokeWidth": {
+                    "right": 1
+                  },
+                  "strokeAlignment": "inner",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "KhUlp",
+                      "name": "En-tête panneau",
+                      "width": "fill_container",
+                      "height": 60,
+                      "padding": [
+                        0,
+                        14,
+                        0,
+                        16
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "nzokk",
+                          "name": "Wordmark",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "bPxDQ",
+                              "name": "Marque",
+                              "width": 17,
+                              "height": 17,
+                              "icon": "book-open-text",
+                              "library": "lucide",
+                              "fill": "$blue"
+                            },
+                            {
+                              "type": "text",
+                              "id": "G0Fe3B",
+                              "name": "Nom app",
+                              "fill": "$ink-4",
+                              "content": "Bible Strong",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 14.5,
+                              "fontWeight": "600",
+                              "letterSpacing": -0.1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "e7gJb7",
+                          "name": "Réduire panneau",
+                          "width": 28,
+                          "height": 28,
+                          "cornerRadius": 7,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "XfXRB",
+                              "name": "Icône réduire",
+                              "width": 16,
+                              "height": 16,
+                              "icon": "panel-left-close",
+                              "library": "lucide",
+                              "fill": "$muted"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "EWtyq",
+                      "name": "Zone recherche",
+                      "width": "fill_container",
+                      "padding": [
+                        2,
+                        12,
+                        12,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "daVhI",
+                          "name": "Champ recherche",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 8,
+                          "stroke": "$divider",
+                          "strokeWidth": 1,
+                          "gap": 8,
+                          "padding": [
+                            8,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "BAaK0",
+                              "name": "Icône recherche",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "search",
+                              "library": "lucide",
+                              "fill": "$faint"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Svqw0",
+                              "name": "Placeholder",
+                              "fill": "$faint",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Rechercher ou ouvrir…",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 12.5,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Ydnrj",
+                              "name": "Raccourci",
+                              "fill": "$faint",
+                              "content": "⌘K",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "R7THe6",
+                      "name": "Liste des onglets",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "j1dpW",
+                          "name": "Accueil — entrée fixe",
+                          "width": 234,
+                          "height": 30,
+                          "cornerRadius": 8,
+                          "gap": 10,
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "J4YYzD",
+                              "name": "Icône accueil",
+                              "width": 16,
+                              "height": 16,
+                              "icon": "house",
+                              "library": "lucide",
+                              "fill": "$ink-3"
+                            },
+                            {
+                              "type": "text",
+                              "id": "uZ8sB",
+                              "name": "Libellé",
+                              "fill": "$ink-3",
+                              "content": "Accueil",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Iw4MK",
+                              "name": "Espace flexible",
+                              "width": "fill_container",
+                              "height": 1
+                            }
+                          ]
+                        },
+                        {
+                          "id": "MLd6D",
+                          "type": "ref",
+                          "ref": "CVise",
+                          "name": "Groupe d’onglets — Étude de Jean",
+                          "width": 260,
+                          "descendants": {
+                            "zl2fa/o1jbM2": {
+                              "content": "Étude de Jean"
+                            },
+                            "qYiIe": {
+                              "type": "frame",
+                              "id": "h1gwW",
+                              "name": "Items",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "padding": [
+                                0,
+                                10
+                              ],
+                              "children": [
+                                {
+                                  "id": "qKPwC",
+                                  "type": "ref",
+                                  "ref": "vDRMp",
+                                  "name": "Jean 1 · LSG — Selected",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "NFrkj": {
+                                      "icon": "book-open"
+                                    },
+                                    "h5RDY": {
+                                      "content": "Jean 1 · LSG"
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "odqV2",
+                                  "type": "ref",
+                                  "ref": "ofHG3",
+                                  "name": "Jean 1 · S21 — Default",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "s1VKb": {
+                                      "icon": "book-open"
+                                    },
+                                    "T56jXp": {
+                                      "content": "Jean 1 · S21"
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "JI1F1",
+                                  "type": "ref",
+                                  "ref": "ofHG3",
+                                  "name": "Strong G3056 · Logos — Default",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "s1VKb": {
+                                      "icon": "languages"
+                                    },
+                                    "T56jXp": {
+                                      "content": "Strong G3056 · Logos"
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "teju6",
+                                  "type": "ref",
+                                  "ref": "ofHG3",
+                                  "name": "Recherche · lumière — Default",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "s1VKb": {
+                                      "icon": "search"
+                                    },
+                                    "T56jXp": {
+                                      "content": "Recherche · lumière"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "az1RA",
+                          "type": "ref",
+                          "ref": "CVise",
+                          "name": "Groupe d’onglets — Lecture",
+                          "width": 260,
+                          "descendants": {
+                            "zl2fa": {
+                              "fill": "$group-pink"
+                            },
+                            "zl2fa/o1jbM2": {
+                              "content": "Lecture",
+                              "fill": "#ffffffff"
+                            },
+                            "zl2fa/L67xx": {
+                              "fill": "#ffffffff"
+                            },
+                            "qYiIe": {
+                              "type": "frame",
+                              "id": "qovNJ",
+                              "name": "Items",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "padding": [
+                                0,
+                                10
+                              ],
+                              "children": [
+                                {
+                                  "id": "K50cnc",
+                                  "type": "ref",
+                                  "ref": "ofHG3",
+                                  "name": "Plan annuel · Jour 42 — Default",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "s1VKb": {
+                                      "icon": "calendar-check"
+                                    },
+                                    "T56jXp": {
+                                      "content": "Plan annuel · Jour 42"
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "N3jzs",
+                                  "type": "ref",
+                                  "ref": "ofHG3",
+                                  "name": "Psaume 23 · BDS — Default",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "s1VKb": {
+                                      "icon": "book-open"
+                                    },
+                                    "T56jXp": {
+                                      "content": "Psaume 23 · BDS"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "wfszp",
+                      "name": "Bas du panneau",
+                      "width": "fill_container",
+                      "stroke": "$divider",
+                      "strokeWidth": {
+                        "top": 1
+                      },
+                      "strokeAlignment": "inner",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": [
+                        12,
+                        12,
+                        14,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Sb8y5",
+                          "name": "Nouvel onglet",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 8,
+                          "stroke": "$divider",
+                          "strokeWidth": 1,
+                          "gap": 7,
+                          "padding": [
+                            9,
+                            10
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "flsNL",
+                              "name": "Plus",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "plus",
+                              "library": "lucide",
+                              "fill": "$blue"
+                            },
+                            {
+                              "type": "text",
+                              "id": "s3oS9",
+                              "name": "Libellé",
+                              "fill": "$body",
+                              "content": "Nouvel onglet",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 12.5,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "CWZC0",
+                          "name": "Ligne nav",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Nj0sl",
+                              "name": "Nav — Historique",
+                              "width": "fill_container",
+                              "cornerRadius": 6,
+                              "gap": 6,
+                              "padding": [
+                                5,
+                                6
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "L7SgKB",
+                                  "name": "Icône",
+                                  "width": 13,
+                                  "height": 13,
+                                  "icon": "history",
+                                  "library": "lucide",
+                                  "fill": "#9AA1B1"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "FQL31",
+                                  "name": "Libellé",
+                                  "fill": "$muted",
+                                  "content": "Historique",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "wKeE1",
+                              "name": "Nav — Onglets récents",
+                              "width": "fill_container",
+                              "cornerRadius": 6,
+                              "gap": 6,
+                              "padding": [
+                                5,
+                                6
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "viQG9",
+                                  "name": "Icône",
+                                  "width": 13,
+                                  "height": 13,
+                                  "icon": "clock-arrow-up",
+                                  "library": "lucide",
+                                  "fill": "#9AA1B1"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "f1MXCJ",
+                                  "name": "Libellé",
+                                  "fill": "$muted",
+                                  "content": "Onglets récents",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "C0e1Ix",
+                          "name": "Ligne nav",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "LKQF7",
+                              "name": "Nav — Paramètres",
+                              "width": "fill_container",
+                              "cornerRadius": 6,
+                              "gap": 6,
+                              "padding": [
+                                5,
+                                6
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "qSeRJ",
+                                  "name": "Icône",
+                                  "width": 13,
+                                  "height": 13,
+                                  "icon": "settings",
+                                  "library": "lucide",
+                                  "fill": "#9AA1B1"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "cU1Za",
+                                  "name": "Libellé",
+                                  "fill": "$muted",
+                                  "content": "Paramètres",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "d1qC9v",
+                              "name": "Nav — Compte",
+                              "width": "fill_container",
+                              "cornerRadius": 6,
+                              "gap": 6,
+                              "padding": [
+                                5,
+                                6
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "HU5qu",
+                                  "name": "Icône",
+                                  "width": 13,
+                                  "height": 13,
+                                  "icon": "circle-user",
+                                  "library": "lucide",
+                                  "fill": "#9AA1B1"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "AHr4J",
+                                  "name": "Libellé",
+                                  "fill": "$muted",
+                                  "content": "Compte",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "h00006",
+                  "name": "Navigation latérale / Accueil actif",
+                  "reusable": true,
+                  "width": 260,
+                  "height": 900,
+                  "fill": "$side-bg",
+                  "stroke": "$divider",
+                  "strokeWidth": {
+                    "right": 1
+                  },
+                  "strokeAlignment": "inner",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "h00007",
+                      "name": "En-tête panneau",
+                      "width": "fill_container",
+                      "height": 60,
+                      "padding": [
+                        0,
+                        14,
+                        0,
+                        16
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "h00008",
+                          "name": "Wordmark",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "h00009",
+                              "name": "Marque",
+                              "width": 17,
+                              "height": 17,
+                              "icon": "book-open-text",
+                              "library": "lucide",
+                              "fill": "$blue"
+                            },
+                            {
+                              "type": "text",
+                              "id": "h0000a",
+                              "name": "Nom app",
+                              "fill": "$ink-4",
+                              "content": "Bible Strong",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 14.5,
+                              "fontWeight": "600",
+                              "letterSpacing": -0.1
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "h0000b",
+                          "name": "Réduire panneau",
+                          "width": 28,
+                          "height": 28,
+                          "cornerRadius": 7,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "h0000c",
+                              "name": "Icône réduire",
+                              "width": 16,
+                              "height": 16,
+                              "icon": "panel-left-close",
+                              "library": "lucide",
+                              "fill": "$muted"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "h0000d",
+                      "name": "Zone recherche",
+                      "width": "fill_container",
+                      "padding": [
+                        2,
+                        12,
+                        12,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "h0000e",
+                          "name": "Champ recherche",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 8,
+                          "stroke": "$divider",
+                          "strokeWidth": 1,
+                          "gap": 8,
+                          "padding": [
+                            8,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "h0000f",
+                              "name": "Icône recherche",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "search",
+                              "library": "lucide",
+                              "fill": "$faint"
+                            },
+                            {
+                              "type": "text",
+                              "id": "h0000g",
+                              "name": "Placeholder",
+                              "fill": "$faint",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Rechercher ou ouvrir…",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 12.5,
+                              "fontWeight": "normal"
+                            },
+                            {
+                              "type": "text",
+                              "id": "h0000h",
+                              "name": "Raccourci",
+                              "fill": "$faint",
+                              "content": "⌘K",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "h0000n",
+                      "name": "Liste des onglets",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "h0000i",
+                          "name": "Accueil — entrée fixe",
+                          "width": 234,
+                          "height": 30,
+                          "fill": "$blue-soft",
+                          "cornerRadius": 8,
+                          "gap": 10,
+                          "padding": [
+                            0,
+                            12
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "h0000j",
+                              "name": "Icône accueil",
+                              "width": 16,
+                              "height": 16,
+                              "icon": "house",
+                              "library": "lucide",
+                              "fill": "$blue"
+                            },
+                            {
+                              "type": "text",
+                              "id": "h0000k",
+                              "name": "Libellé",
+                              "fill": "$blue",
+                              "content": "Accueil",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 12,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "h0000l",
+                              "name": "Espace flexible",
+                              "width": "fill_container",
+                              "height": 1
+                            }
+                          ]
+                        },
+                        {
+                          "id": "h0000o",
+                          "type": "ref",
+                          "ref": "CVise",
+                          "name": "Groupe d’onglets — Étude de Jean",
+                          "width": 260,
+                          "descendants": {
+                            "zl2fa/o1jbM2": {
+                              "content": "Étude de Jean"
+                            },
+                            "qYiIe": {
+                              "type": "frame",
+                              "id": "DzllP",
+                              "name": "Items",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "padding": [
+                                0,
+                                10
+                              ],
+                              "children": [
+                                {
+                                  "id": "FH2SC",
+                                  "type": "ref",
+                                  "ref": "vDRMp",
+                                  "name": "Jean 1 · LSG — Selected",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "NFrkj": {
+                                      "icon": "book-open"
+                                    },
+                                    "h5RDY": {
+                                      "content": "Jean 1 · LSG"
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "h9418",
+                                  "type": "ref",
+                                  "ref": "ofHG3",
+                                  "name": "Jean 1 · S21 — Default",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "s1VKb": {
+                                      "icon": "book-open"
+                                    },
+                                    "T56jXp": {
+                                      "content": "Jean 1 · S21"
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "o0qg0m",
+                                  "type": "ref",
+                                  "ref": "ofHG3",
+                                  "name": "Strong G3056 · Logos — Default",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "s1VKb": {
+                                      "icon": "languages"
+                                    },
+                                    "T56jXp": {
+                                      "content": "Strong G3056 · Logos"
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "s7TQZI",
+                                  "type": "ref",
+                                  "ref": "ofHG3",
+                                  "name": "Recherche · lumière — Default",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "s1VKb": {
+                                      "icon": "search"
+                                    },
+                                    "T56jXp": {
+                                      "content": "Recherche · lumière"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "id": "h0000p",
+                          "type": "ref",
+                          "ref": "CVise",
+                          "name": "Groupe d’onglets — Lecture",
+                          "width": 260,
+                          "descendants": {
+                            "zl2fa": {
+                              "fill": "$group-pink"
+                            },
+                            "zl2fa/o1jbM2": {
+                              "content": "Lecture",
+                              "fill": "#ffffffff"
+                            },
+                            "zl2fa/L67xx": {
+                              "fill": "#ffffffff"
+                            },
+                            "qYiIe": {
+                              "type": "frame",
+                              "id": "M8tzZ",
+                              "name": "Items",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "padding": [
+                                0,
+                                10
+                              ],
+                              "children": [
+                                {
+                                  "id": "m4det",
+                                  "type": "ref",
+                                  "ref": "ofHG3",
+                                  "name": "Plan annuel · Jour 42 — Default",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "s1VKb": {
+                                      "icon": "calendar-check"
+                                    },
+                                    "T56jXp": {
+                                      "content": "Plan annuel · Jour 42"
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "jE7wm",
+                                  "type": "ref",
+                                  "ref": "ofHG3",
+                                  "name": "Psaume 23 · BDS — Default",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "s1VKb": {
+                                      "icon": "book-open"
+                                    },
+                                    "T56jXp": {
+                                      "content": "Psaume 23 · BDS"
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "h0000q",
+                      "name": "Bas du panneau",
+                      "width": "fill_container",
+                      "stroke": "$divider",
+                      "strokeWidth": {
+                        "top": 1
+                      },
+                      "strokeAlignment": "inner",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "padding": [
+                        12,
+                        12,
+                        14,
+                        12
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "h0000r",
+                          "name": "Nouvel onglet",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 8,
+                          "stroke": "$divider",
+                          "strokeWidth": 1,
+                          "gap": 7,
+                          "padding": [
+                            9,
+                            10
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "h0000s",
+                              "name": "Plus",
+                              "width": 14,
+                              "height": 14,
+                              "icon": "plus",
+                              "library": "lucide",
+                              "fill": "$blue"
+                            },
+                            {
+                              "type": "text",
+                              "id": "h0000t",
+                              "name": "Libellé",
+                              "fill": "$body",
+                              "content": "Nouvel onglet",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 12.5,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "h0000u",
+                          "name": "Ligne nav",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "h0000v",
+                              "name": "Nav — Historique",
+                              "width": "fill_container",
+                              "cornerRadius": 6,
+                              "gap": 6,
+                              "padding": [
+                                5,
+                                6
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "h0000w",
+                                  "name": "Icône",
+                                  "width": 13,
+                                  "height": 13,
+                                  "icon": "history",
+                                  "library": "lucide",
+                                  "fill": "#9AA1B1"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "h0000x",
+                                  "name": "Libellé",
+                                  "fill": "$muted",
+                                  "content": "Historique",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "h0000y",
+                              "name": "Nav — Onglets récents",
+                              "width": "fill_container",
+                              "cornerRadius": 6,
+                              "gap": 6,
+                              "padding": [
+                                5,
+                                6
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "h0000z",
+                                  "name": "Icône",
+                                  "width": 13,
+                                  "height": 13,
+                                  "icon": "clock-arrow-up",
+                                  "library": "lucide",
+                                  "fill": "#9AA1B1"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "h00010",
+                                  "name": "Libellé",
+                                  "fill": "$muted",
+                                  "content": "Onglets récents",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "h00011",
+                          "name": "Ligne nav",
+                          "width": "fill_container",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "h00012",
+                              "name": "Nav — Paramètres",
+                              "width": "fill_container",
+                              "cornerRadius": 6,
+                              "gap": 6,
+                              "padding": [
+                                5,
+                                6
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "h00013",
+                                  "name": "Icône",
+                                  "width": 13,
+                                  "height": 13,
+                                  "icon": "settings",
+                                  "library": "lucide",
+                                  "fill": "#9AA1B1"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "h00014",
+                                  "name": "Libellé",
+                                  "fill": "$muted",
+                                  "content": "Paramètres",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "h00015",
+                              "name": "Nav — Compte",
+                              "width": "fill_container",
+                              "cornerRadius": 6,
+                              "gap": 6,
+                              "padding": [
+                                5,
+                                6
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "h00016",
+                                  "name": "Icône",
+                                  "width": 13,
+                                  "height": 13,
+                                  "icon": "circle-user",
+                                  "library": "lucide",
+                                  "fill": "#9AA1B1"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "h00017",
+                                  "name": "Libellé",
+                                  "fill": "$muted",
+                                  "content": "Compte",
+                                  "fontFamily": "$font-ui",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "rectangle",
+      "id": "XR4Ll",
+      "x": 1736,
+      "y": -1210,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "image.png",
+        "mode": "fill"
+      },
+      "width": 1593,
+      "height": 987
+    },
+    {
+      "type": "rectangle",
+      "id": "A3mGSj",
+      "x": 1710,
+      "y": 0,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "image-1.png",
+        "mode": "fill"
+      },
+      "width": 1594,
+      "height": 987
+    },
+    {
+      "type": "rectangle",
+      "id": "sz5aU",
+      "x": 1710,
+      "y": 1144,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "image-2.png",
+        "mode": "fill"
+      },
+      "width": 1597,
+      "height": 985
+    }
+  ],
+  "variables": {
+    "blue": {
+      "type": "color",
+      "value": "#5983F0"
+    },
+    "blue-soft": {
+      "type": "color",
+      "value": "#EEF3FE"
+    },
+    "paper": {
+      "type": "color",
+      "value": "#FBFAF8"
+    },
+    "surface": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "ink": {
+      "type": "color",
+      "value": "#16181F"
+    },
+    "ink-2": {
+      "type": "color",
+      "value": "#4C5364"
+    },
+    "ink-3": {
+      "type": "color",
+      "value": "#8B92A3"
+    },
+    "line": {
+      "type": "color",
+      "value": "#E7E7EA"
+    },
+    "serif": {
+      "type": "string",
+      "value": "Spectral"
+    },
+    "ui": {
+      "type": "string",
+      "value": "Inter"
+    },
+    "panel": {
+      "type": "color",
+      "value": "#F1F0EB"
+    },
+    "panel-hover": {
+      "type": "color",
+      "value": "#E7E6E0"
+    },
+    "accent-2": {
+      "type": "color",
+      "value": "#96682F"
+    },
+    "accent-2-soft": {
+      "type": "color",
+      "value": "#F6F1E8"
+    },
+    "ink-4": {
+      "type": "color",
+      "value": "#171A21"
+    },
+    "font-ui": {
+      "type": "string",
+      "value": "Inter"
+    },
+    "page": {
+      "type": "color",
+      "value": "#FFFEFB"
+    },
+    "side-bg": {
+      "type": "color",
+      "value": "#F2F5FA"
+    },
+    "divider": {
+      "type": "color",
+      "value": "#E4E8F0"
+    },
+    "muted": {
+      "type": "color",
+      "value": "#767C8C"
+    },
+    "faint": {
+      "type": "color",
+      "value": "#A6ACBA"
+    },
+    "blue-tint": {
+      "type": "color",
+      "value": "#5983F014"
+    },
+    "body": {
+      "type": "color",
+      "value": "#23262D"
+    },
+    "font-serif": {
+      "type": "string",
+      "value": "Spectral"
+    },
+    "rule": {
+      "type": "color",
+      "value": "#EBEEF4"
+    },
+    "group-mint": {
+      "type": "color",
+      "value": "#86CFA4"
+    },
+    "group-mint-ink": {
+      "type": "color",
+      "value": "#123E32"
+    },
+    "group-pink": {
+      "type": "color",
+      "value": "#F47DBB"
+    },
+    "group-pink-ink": {
+      "type": "color",
+      "value": "#571634"
+    }
+  },
+  "fileToken": "da209ebe-a54b-450c-9c46-ec3c14ff20aa"
+}

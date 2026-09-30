@@ -1,0 +1,66 @@
+import { InteractionManager, type View } from 'react-native'
+import produceDraft from 'immer'
+import { useSetAtom } from 'jotai/react'
+import { captureRef } from 'react-native-view-shot'
+import useDynamicRefs from '~helpers/useDynamicRefs'
+import { tabsAtom } from '../../../state/tabs'
+
+const useTakeActiveTabSnapshot = () => {
+  const setTabs = useSetAtom(tabsAtom)
+  const [getRef] = useDynamicRefs<View>()
+
+  const captureSnapshot = async (activeTabIndex: number, activeAtomId: string) => {
+    if (typeof activeTabIndex === 'undefined') {
+      console.log('[useTakeActiveTabSnapshot] No active tab')
+      return
+    }
+
+    if (!activeAtomId) {
+      console.log('[useTakeActiveTabSnapshot] No active tab id')
+      return
+    }
+
+    const cachedTabScreen = getRef(activeAtomId)
+
+    if (!cachedTabScreen) {
+      console.log('[useTakeActiveTabSnapshot] No active tab')
+      return
+    }
+
+    const data = await captureRef(cachedTabScreen, {
+      result: 'base64',
+      format: 'jpg',
+      quality: 0.8,
+    }).catch(error => console.error('Oops, snapshot failed', error))
+
+    if (!data) {
+      return
+    }
+
+    const resolution = /^(\d+):(\d+)\|/g.exec(data)
+    const base64 = data.substring((resolution || [''])[0].length || 0)
+
+    setTabs(
+      produceDraft(draft => {
+        if (draft[activeTabIndex]) {
+          draft[activeTabIndex].base64Preview = base64
+        }
+      })
+    )
+  }
+
+  /**
+   * Deferred variant: captures snapshot after all interactions settle.
+   * Use this when called from Reanimated animation callbacks (via runOnJS)
+   * to avoid competing with post-animation settling.
+   */
+  const captureDeferredSnapshot = (activeTabIndex: number, activeAtomId: string) => {
+    InteractionManager.runAfterInteractions(() => {
+      captureSnapshot(activeTabIndex, activeAtomId)
+    })
+  }
+
+  return { captureSnapshot, captureDeferredSnapshot }
+}
+
+export default useTakeActiveTabSnapshot

@@ -1,0 +1,355 @@
+'use dom'
+
+import EntityChipsDOM from '~common/EntityChipsDOM'
+import type { EntityChip } from '~common/entityChips'
+import debounce from 'debounce'
+import { DOMImperativeFactory, useDOMImperativeHandle } from 'expo/dom'
+import type { JSONValue } from 'expo/build/dom/dom.types'
+import { useFonts } from 'expo-font'
+import { Ref, useEffect, useRef } from 'react'
+import { dispatch } from './dispatch'
+import Quill from './quill'
+import type {
+  DeltaStatic,
+  InlineStrongPayload,
+  InlineVersePayload,
+  QuillInstance,
+  QuillJSONValue,
+  StrongBlockPayload,
+  VerseBlockPayload,
+} from './quill-types'
+import type { StudyEntityEmbedPayload } from '../studyEntityEmbeds'
+import './quill.snow.css'
+
+import './InlineStrong'
+import './InlineVerse'
+import './StrongBlock'
+import './VerseBlock'
+import './InlineEntity'
+import './EntityBlock'
+
+import './DividerBlock'
+import './ModuleBlockVerse'
+import './ModuleFormat'
+import './ModuleInlineVerse'
+import './ModuleEntity'
+import { installStudyBlockSelection } from './studyBlockSelection'
+
+interface Props {
+  metadataItems?: EntityChip[]
+  metadataColor?: string
+  metadataBackgroundColor?: string
+  onMetadataPress?: (type: EntityChip['type'], id: string) => Promise<void>
+
+  onEditorMessage: (message: string) => Promise<void>
+  dom: import('expo/dom').DOMProps
+  fontFamily: string
+  language: string
+  contentToDisplay?: DeltaStatic
+  encodedContentToDisplay?: string
+  isReadOnly: boolean
+  colorScheme: 'light' | 'dark'
+  ref?: Ref<StudyDOMRef>
+}
+
+export interface StudyDOMRef extends DOMImperativeFactory {
+  dispatch: (event: JSONValue) => void
+  reloadEditor: (content: JSONValue) => void
+}
+
+type StudyDOMAction =
+  | { type: 'FOCUS_EDITOR' }
+  | { type: 'BLUR_EDITOR' }
+  | { type: 'GET_BIBLE_VERSES'; payload: InlineVersePayload }
+  | { type: 'GET_BIBLE_STRONG'; payload: InlineStrongPayload }
+  | { type: 'GET_BIBLE_VERSES_BLOCK'; payload: VerseBlockPayload }
+  | { type: 'GET_BIBLE_STRONG_BLOCK'; payload: StrongBlockPayload }
+  | { type: 'INSERT_ENTITY_LINK'; payload: StudyEntityEmbedPayload }
+  | { type: 'INSERT_ENTITY_BLOCK'; payload: StudyEntityEmbedPayload }
+  | { type: 'BLOCK_DIVIDER' }
+  | { type: 'TOGGLE_FORMAT'; payload: { type: string; value?: unknown } }
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const isDeltaStatic = (value: unknown): value is DeltaStatic =>
+  isRecord(value) && Array.isArray(value.ops)
+
+const isStudyDOMAction = (value: unknown): value is StudyDOMAction => {
+  if (!isRecord(value) || typeof value.type !== 'string') return false
+
+  switch (value.type) {
+    case 'FOCUS_EDITOR':
+    case 'BLUR_EDITOR':
+    case 'BLOCK_DIVIDER':
+      return true
+    case 'GET_BIBLE_VERSES':
+    case 'GET_BIBLE_STRONG':
+    case 'GET_BIBLE_VERSES_BLOCK':
+    case 'GET_BIBLE_STRONG_BLOCK':
+    case 'INSERT_ENTITY_LINK':
+    case 'INSERT_ENTITY_BLOCK':
+      return isRecord(value.payload)
+    case 'TOGGLE_FORMAT':
+      return isRecord(value.payload) && typeof value.payload.type === 'string'
+    default:
+      return false
+  }
+}
+
+function focusEditor(quill: QuillInstance): void {
+  quill.focus()
+  setTimeout(() => {
+    const editor = document.querySelector<HTMLElement>('.ql-editor')
+    editor?.focus()
+  }, 0)
+}
+
+function decodeDeltaContent(encodedContent?: string, fallback?: DeltaStatic): DeltaStatic {
+  if (!encodedContent) return fallback ?? { ops: [] }
+
+  try {
+    const decoded = JSON.parse(decodeURIComponent(encodedContent))
+    return isDeltaStatic(decoded) ? decoded : (fallback ?? { ops: [] })
+  } catch (err) {
+    console.log(`[Studies] Failed to decode editor content: ${err}`)
+    return fallback ?? { ops: [] }
+  }
+}
+
+function normalizeReloadContent(content: JSONValue): DeltaStatic | null {
+  if (typeof content === 'string') {
+    return decodeDeltaContent(content)
+  }
+
+  return isDeltaStatic(content) ? content : null
+}
+
+export default function StudiesDOMComponent({
+  metadataItems = [],
+  metadataColor = 'inherit',
+  metadataBackgroundColor = 'transparent',
+  onMetadataPress,
+  onEditorMessage,
+  fontFamily,
+  language,
+  contentToDisplay,
+  encodedContentToDisplay,
+  isReadOnly,
+  colorScheme,
+  ref,
+}: Props) {
+  const [_loaded] = useFonts({
+    'Literata Book': require('~assets/fonts/LiterataBook-Regular.otf'),
+  })
+
+  const quillRef = useRef<QuillInstance | null>(null)
+  const editorRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const element = editorRef.current
+    const receive = (event: Event) => {
+      void onEditorMessage((event as CustomEvent<string>).detail)
+    }
+    element?.addEventListener('study-message', receive)
+    return () => element?.removeEventListener('study-message', receive)
+  }, [onEditorMessage])
+  const blockSelectionCleanupRef = useRef<() => void>(() => undefined)
+  const initialContent = decodeDeltaContent(encodedContentToDisplay, contentToDisplay)
+
+  function onChangeText(delta: unknown, oldDelta: unknown, source: unknown): void {
+    dispatch(
+      'TEXT_CHANGED',
+      {
+        type: 'success',
+        delta: quillRef.current!.getContents(),
+        deltaChange: isDeltaStatic(delta) ? delta : { ops: [] },
+        deltaOld: isDeltaStatic(oldDelta) ? oldDelta : { ops: [] },
+        changeSource: String(source),
+      },
+      editorRef.current
+    )
+  }
+
+  function addTextChangeEventToEditor(): void {
+    const quill = quillRef.current!
+
+    quill.on('text-change', debounce(onChangeText, 500))
+  }
+
+  function loadEditor(options: { fontFamily: string; language: string }): void {
+    document.getElementById('editor')!.style.fontFamily = options.fontFamily
+
+    if (!editorRef.current) return
+    quillRef.current = new Quill(editorRef.current, {
+      theme: 'snow',
+      modules: {
+        toolbar: false,
+        'inline-verse': true,
+        'block-verse': true,
+        entity: true,
+        format: true,
+      },
+      placeholder:
+        options.language === 'fr' ? 'Cr\u00e9er votre \u00e9tude...' : 'Create your study...',
+      readOnly: true,
+    })
+
+    const quill = quillRef.current!
+    console.log('[Studies] Editor initialized')
+
+    quill.focus()
+    quill.setContents(initialContent, Quill.sources.SILENT)
+
+    addTextChangeEventToEditor()
+    blockSelectionCleanupRef.current = installStudyBlockSelection(quill)
+  }
+
+  useEffect(() => {
+    loadEditor({ fontFamily, language })
+    return () => blockSelectionCleanupRef.current()
+  }, [])
+
+  useEffect(() => {
+    const quill = quillRef.current
+    if (!quill) return
+
+    if (!isReadOnly) {
+      quill.enable()
+      focusEditor(quill)
+    } else {
+      quill.blur()
+      quill.enable(false)
+    }
+  }, [isReadOnly])
+
+  function handleDispatch(event: StudyDOMAction): void {
+    const quill = quillRef.current
+    if (!quill) return
+
+    try {
+      switch (event.type) {
+        case 'FOCUS_EDITOR':
+          focusEditor(quill)
+          break
+
+        case 'BLUR_EDITOR':
+          quill.blur()
+          break
+
+        case 'GET_BIBLE_VERSES': {
+          const inlineModule = quill.getModule('inline-verse')
+          inlineModule.receiveVerseLink(event.payload)
+          break
+        }
+
+        case 'GET_BIBLE_STRONG': {
+          const inlineModule = quill.getModule('inline-verse')
+          inlineModule.receiveStrongLink(event.payload)
+          break
+        }
+
+        case 'GET_BIBLE_VERSES_BLOCK': {
+          const blockModule = quill.getModule('block-verse')
+          blockModule.receiveVerseBlock(event.payload)
+          break
+        }
+
+        case 'GET_BIBLE_STRONG_BLOCK': {
+          const blockModule = quill.getModule('block-verse')
+          blockModule.receiveStrongBlock(event.payload)
+          break
+        }
+
+        case 'INSERT_ENTITY_LINK': {
+          const entityModule = quill.getModule('entity')
+          entityModule.receiveEntityLink(event.payload)
+          break
+        }
+
+        case 'INSERT_ENTITY_BLOCK': {
+          const entityModule = quill.getModule('entity')
+          entityModule.receiveEntityBlock(event.payload)
+          break
+        }
+
+        case 'BLOCK_DIVIDER': {
+          const range = quill.getSelection(true)
+          if (range) {
+            quill.insertEmbed(range.index, 'divider', true, Quill.sources.USER)
+            quill.setSelection(range.index + 1, Quill.sources.SILENT)
+          }
+          break
+        }
+
+        case 'TOGGLE_FORMAT': {
+          const formatModule = quill.getModule('format')
+          const { type, value } = event.payload
+
+          console.log(`[Studies] ${type} ${value}`)
+
+          if (type === 'UNDO') {
+            quill.history.undo()
+          } else if (type === 'REDO') {
+            quill.history.redo()
+          } else {
+            const formatName = type.toLowerCase()
+            formatModule.format(formatName, value)
+          }
+          break
+        }
+
+        default:
+          console.log('[Studies] reactQuillEditor Error: Unhandled message type received')
+      }
+    } catch (err) {
+      console.log(`[Studies] reactQuillEditor error: ${err}`)
+    }
+  }
+
+  useDOMImperativeHandle(
+    ref as Ref<StudyDOMRef>,
+    () => ({
+      dispatch: (event: JSONValue) => {
+        if (isStudyDOMAction(event)) {
+          handleDispatch(event)
+        }
+      },
+      reloadEditor: (content: JSONValue) => {
+        const nextContent = normalizeReloadContent(content)
+        if (quillRef.current && nextContent) {
+          quillRef.current.setContents(nextContent, Quill.sources.SILENT)
+        }
+      },
+    }),
+    []
+  )
+
+  return (
+    <>
+      <style>{`
+        @keyframes fade {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
+      {isReadOnly && (
+        <EntityChipsDOM
+          items={metadataItems}
+          color={metadataColor}
+          backgroundColor={metadataBackgroundColor}
+          onPress={(type, id) => {
+            void onMetadataPress?.(type, id)
+          }}
+        />
+      )}
+      <div
+        id="editor"
+        ref={editorRef}
+        style={{
+          filter: colorScheme === 'dark' ? 'invert(1) hue-rotate(180deg)' : 'none',
+          animation: 'fade 300ms ease-out',
+        }}
+      />
+    </>
+  )
+}

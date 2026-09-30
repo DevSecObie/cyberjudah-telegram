@@ -1,0 +1,30 @@
+import { useEffect } from 'react'
+
+import { useSheet } from '~helpers/useSheet'
+import RatingPrompt from './RatingPrompt'
+import { useAppRating } from './useAppRating'
+
+/**
+ * Global app rating modal that triggers on engagement milestones.
+ * Mount this in the app root (e.g., _layout.tsx InnerApp).
+ * It checks after a delay whether conditions are met and shows the prompt.
+ */
+const AppRatingModal = () => {
+  const { ref, open, close } = useSheet()
+  const { shouldShowRatingPrompt } = useAppRating()
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (shouldShowRatingPrompt('engagement_milestone')) {
+        open()
+      }
+    }, 5000)
+
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return <RatingPrompt modalRef={ref} onClose={close} />
+}
+
+export default AppRatingModal
