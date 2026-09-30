@@ -16,11 +16,11 @@ import { strongOfDay, useStrongsIndex } from "./Lexicon";
  * lexicon, the topics the classes taught, Easton's dictionary, the people of the Bible.
  */
 
-/** Bible Strong's WidgetContainer: a gradient card, the entry in the middle, a shuffle button, the resource's name as its footer. */
-export function Widget({ label, title, sub, to, resource, resourceTo, icon, colors, loading, onShuffle }: { label: string; title?: string; sub?: string; to: string; resource: string; resourceTo: string; icon: IconName; colors: [string, string]; loading?: boolean; onShuffle?: () => void }) {
+/** The day's entry from a reference work, in CyberJudah's own dress: the label in accent, the entry in the reading face, the resource as its footer. */
+export function Widget({ label, title, sub, to, resource, resourceTo, icon, loading, onShuffle }: { label: string; title?: string; sub?: string; to: string; resource: string; resourceTo: string; icon: IconName; loading?: boolean; onShuffle?: () => void }) {
   const navigate = useNavigate();
   return (
-    <div className="widget" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}>
+    <div className="widget">
       {onShuffle ? <button type="button" className="widget__shuffle" aria-label="Another one" onClick={(e) => { e.stopPropagation(); haptic("select"); onShuffle(); }}><Icon name="retry" size={16} /></button> : null}
       <Link to={to} className="widget__body" onClick={() => haptic("select")} aria-busy={loading || undefined}>
         <span className="widget__label">{label}</span>
@@ -39,7 +39,7 @@ export function StrongOfTheDay({ lang }: { lang: "hebrew" | "greek" }) {
   const pool = idx.data?.filter((r) => r.n[0] === (lang === "hebrew" ? "H" : "G") && r.count >= 5 && r.def) ?? [];
   const shuffle = () => setRow(pool[pickRandom(pool.length)]);
   const gloss = (row?.def.split(";")[0].replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim() ?? "").replace(/^(.{34}[^ ]*) .*$/, "$1…");
-  return <Widget label={lang === "hebrew" ? "Hebrew" : "Greek"} title={gloss} sub={row ? `${row.lemma} · ${row.xlit || row.n}` : undefined} to={row ? `/lexicon/${row.n}` : "/lexicon"} resource="Lexicon" resourceTo={`/lexicon?lang=${lang}`} icon="spark" colors={lang === "greek" ? ["rgba(86,204,242,1)", "rgba(47,128,237,1)"] : ["rgba(248,131,121,1)", "rgba(255,77,93,1)"]} loading={idx.isPending} onShuffle={idx.data ? shuffle : undefined} />;
+  return <Widget label={lang === "hebrew" ? "Hebrew" : "Greek"} title={gloss} sub={row ? `${row.lemma} · ${row.xlit || row.n}` : undefined} to={row ? `/lexicon/${row.n}` : "/lexicon"} resource="Lexicon" resourceTo={`/lexicon?lang=${lang}`} icon="spark" loading={idx.isPending} onShuffle={idx.data ? shuffle : undefined} />;
 }
 
 /** Topic of the day: what the classes taught on a subject (Bible Strong's NaveOfTheDay, on the classes' own topics). */
@@ -49,7 +49,7 @@ export function TopicOfTheDay() {
   const [i, setI] = useState<number | null>(null);
   const at = i ?? pickOfDay(rows.length, 3);
   const t = rows[at];
-  return <Widget label="Topic" title={t?.label} sub={t ? `${t.notes} ${t.notes === 1 ? "class" : "classes"}${t.cases ? ` · ${t.cases} cases` : ""}` : undefined} to={t ? `/topics/${t.slug}` : "/topics"} resource="Topics" resourceTo="/topics" icon="tag" colors={["rgba(155,89,182,1)", "rgba(108,52,131,1)"]} loading={topics.isPending} onShuffle={rows.length ? () => setI(pickRandom(rows.length)) : undefined} />;
+  return <Widget label="Topic" title={t?.label} sub={t ? `${t.notes} ${t.notes === 1 ? "class" : "classes"}${t.cases ? ` · ${t.cases} cases` : ""}` : undefined} to={t ? `/topics/${t.slug}` : "/topics"} resource="Topics" resourceTo="/topics" icon="tag" loading={topics.isPending} onShuffle={rows.length ? () => setI(pickRandom(rows.length)) : undefined} />;
 }
 
 /** Word of the day from Easton's Bible Dictionary (Bible Strong's WordOfTheDay). */
@@ -60,7 +60,7 @@ export function WordOfTheDay() {
   const [i, setI] = useState<number | null>(null);
   const row = rows[i ?? pickOfDay(rows.length, 5)];
   const shuffle = () => { if (Math.random() < 0.5 || !rows.length) { setLetter("ABCDEGHJKLMNOPRSTZ"[pickRandom(18)]); setI(null); } else setI(pickRandom(rows.length)); };
-  return <Widget label="Word" title={row?.term} sub={row ? "Easton's Bible Dictionary" : undefined} to={row ? `/dictionary/${row.slug}` : "/dictionary"} resource="Dictionary" resourceTo="/dictionary" icon="type" colors={["#ffd255", "#ffbc00"]} loading={page.isPending} onShuffle={shuffle} />;
+  return <Widget label="Word" title={row?.term} sub={row ? "Easton's Bible Dictionary" : undefined} to={row ? `/dictionary/${row.slug}` : "/dictionary"} resource="Dictionary" resourceTo="/dictionary" icon="type" loading={page.isPending} onShuffle={shuffle} />;
 }
 
 /** A person of the day, out of every named person in the Bible. */
@@ -69,7 +69,7 @@ export function PersonOfTheDay() {
   const rows = people.data?.filter((p) => p.verses >= 3) ?? [];
   const [i, setI] = useState<number | null>(null);
   const p = rows[i ?? pickOfDay(rows.length, 6)];
-  return <Widget label="Person" title={p?.name} sub={p ? (p.description || `${p.verses} verses`).replace(/\.$/, "") : undefined} to={p ? `/person/${p.id}` : "/bible"} resource="People" resourceTo="/people" icon="star" colors={["rgba(46,204,113,1)", "rgba(39,140,90,1)"]} loading={people.isPending} onShuffle={rows.length ? () => setI(pickRandom(rows.length)) : undefined} />;
+  return <Widget label="Person" title={p?.name} sub={p ? (p.description || `${p.verses} verses`).replace(/\.$/, "") : undefined} to={p ? `/person/${p.id}` : "/bible"} resource="People" resourceTo="/people" icon="star" loading={people.isPending} onShuffle={rows.length ? () => setI(pickRandom(rows.length)) : undefined} />;
 }
 
 /** Precept of the day: a subject scripture speaks to, out of the precept index. */
@@ -78,7 +78,7 @@ export function PreceptOfTheDay() {
   const rows = q.data ?? [];
   const [i, setI] = useState<number | null>(null);
   const p = rows[i ?? pickOfDay(rows.length, 7)];
-  return <Widget label="Precept" title={p?.title} sub={p ? `${p.refs} ${p.refs === 1 ? "scripture" : "scriptures"}` : undefined} to={p ? `/precepts/${p.slug}` : "/precepts"} resource="Precepts" resourceTo="/precepts" icon="quote" colors={["rgba(0,229,255,.95)", "rgba(0,140,180,1)"]} loading={q.isPending} onShuffle={rows.length ? () => setI(pickRandom(rows.length)) : undefined} />;
+  return <Widget label="Precept" title={p?.title} sub={p ? `${p.refs} ${p.refs === 1 ? "scripture" : "scriptures"}` : undefined} to={p ? `/precepts/${p.slug}` : "/precepts"} resource="Precepts" resourceTo="/precepts" icon="quote" loading={q.isPending} onShuffle={rows.length ? () => setI(pickRandom(rows.length)) : undefined} />;
 }
 
 /** A random chapter of the Bible, at a random verse (Bible Strong's RandomButton on the reader). */
