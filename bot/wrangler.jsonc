@@ -6,6 +6,10 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
   "workers_dev": true,
+  // The Mini App lives at cyberjudah.io/app: the SPA under /app, the API it calls under
+  // /api, and the verse-card images and frames under /card and /frames. The rest of the
+  // apex (whatever the tunnel serves) is untouched; the webhook stays on workers.dev.
+  "routes": ["cyberjudah.io/app*", "cyberjudah.io/api/*", "cyberjudah.io/card/*", "cyberjudah.io/frames/*"],
   // The Mini App is a SPA built to app/dist; every unknown path serves its index.html. The
   // API, the webhook and the verse cards are handled by the Worker before the assets.
   "assets": {
@@ -32,13 +36,32 @@
   "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "cyberjudah-audio" }],
   // Hourly: the daily verse goes to every subscriber whose local hour is now.
   "triggers": { "crons": ["0 * * * *"] },
+  // Staging: the same code against separate resources, deployed by .github/workflows/stage.yml.
+  // The staging bot is a second @BotFather bot; its token and webhook secret live in the
+  // STAGING_BOT_TOKEN / STAGING_WEBHOOK_SECRET repository secrets. D1 "cyberjudah-telegram"
+  // and the Vectorize index are the shared read-only data (staging never runs the embed);
+  // the staging database and the SUBS-STAGING KV namespace are staging's own.
+  "env": {
+    "staging": {
+      "name": "cyberjudah-telegram-staging",
+      // Staging stays on workers.dev: the production cyberjudah.io routes above are not
+      // inherited here on purpose (an empty routes list clears them for this environment).
+      "routes": [],
+      "d1_databases": [
+        { "binding": "DB", "database_name": "cyberjudah-telegram-staging", "database_id": "00000000-0000-0000-0000-000000000000" },
+        { "binding": "TEACH", "database_name": "cyberjudah", "database_id": "11111111-1111-1111-1111-111111111111" }
+      ],
+      "kv_namespaces": [{ "binding": "SUBS", "id": "00000000000000000000000000000000" }],
+      "vars": { "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr" }
+    }
+  },
   // Secrets, set by the deploy workflow with `wrangler secret put`: BOT_TOKEN, WEBHOOK_SECRET,
   // APP_URL (the t.me link, once /newapp is done) and WORKER_URL (this Worker's public URL).
   "vars": {
     "DATA_ORIGIN": "https://data.cyberjudah.io",
     "SITE_URL": "https://cyberjudah.io",
     // The Mini App's direct link from @BotFather (/newapp). Shared links and buttons open the app.
-    "APP_URL": "https://t.me/CyberJudah_bot/cybr",
+    "APP_URL": "https://cyberjudah.io/app",
     // Ask CyberJudah's model when the ANTHROPIC_API_KEY secret is set (claude-sonnet-5 is the
     // cheaper choice; claude-opus-5 the strongest). Without the key, Llama 3.3 70B on Workers AI.
     "CLAUDE_MODEL": "claude-opus-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",

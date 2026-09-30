@@ -1,30 +1,47 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
 
 import { launchPath } from "@shared/links.mjs";
+import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
 import { useSettingsButton, useStored, useTheme } from "@/tg/hooks";
 import { AppRoot } from "@telegram-apps/telegram-ui";
-import { Button, TabBar } from "@/ui/ui";
+import { Button, Screen, Skeleton, TabBar } from "@/ui/ui";
+import { ThemeApplier } from "@/ui/theme";
 import { Home } from "@/screens/Home";
-import { Search } from "@/screens/Search";
-import { Classes } from "@/screens/Classes";
-import { NoteScreen } from "@/screens/Note";
-import { Watch } from "@/screens/Watch";
-import { Ask } from "@/screens/Ask";
-import { BibleTab } from "@/bible/BibleTab";
-import { More } from "@/screens/More";
-import { Settings, ThemeApplier } from "@/screens/Settings";
-import { Plan } from "@/screens/Plan";
-import { History } from "@/screens/History";
-import { Dictionary, DictionaryEntry } from "@/screens/Dictionary";
-import { Person } from "./screens/Person";
-import { Relations } from "@/screens/Relations";
-import { Bookmarks } from "@/screens/Bookmarks";
-import { Sabbath } from "@/screens/Sabbath";
-import { BookChapterScreen, BookPageLink, Books, BookScreen } from "@/screens/Books";
-import { LawIndex, LawSectionScreen, Precepts, PreceptScreen, Cases, CaseScreen, Topics, TopicScreen, Study, Encyclopedia } from "@/screens/Library";
+// Every other screen loads on first visit, so the first paint stays small: one chunk per
+// screen module, shared by the routes that use it, cached by the browser afterwards.
+const Search = lazy(() => import("@/screens/Search").then((m) => ({ default: m.Search })));
+const Classes = lazy(() => import("@/screens/Classes").then((m) => ({ default: m.Classes })));
+const NoteScreen = lazy(() => import("@/screens/Note").then((m) => ({ default: m.NoteScreen })));
+const Watch = lazy(() => import("@/screens/Watch").then((m) => ({ default: m.Watch })));
+const Ask = lazy(() => import("@/screens/Ask").then((m) => ({ default: m.Ask })));
+const BibleTab = lazy(() => import("@/bible/BibleTab").then((m) => ({ default: m.BibleTab })));
+const More = lazy(() => import("@/screens/More").then((m) => ({ default: m.More })));
+const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
+const Plan = lazy(() => import("@/screens/Plan").then((m) => ({ default: m.Plan })));
+const History = lazy(() => import("@/screens/History").then((m) => ({ default: m.History })));
+const Dictionary = lazy(() => import("@/screens/Dictionary").then((m) => ({ default: m.Dictionary })));
+const DictionaryEntry = lazy(() => import("@/screens/Dictionary").then((m) => ({ default: m.DictionaryEntry })));
+const Person = lazy(() => import("@/screens/Person").then((m) => ({ default: m.Person })));
+const Relations = lazy(() => import("@/screens/Relations").then((m) => ({ default: m.Relations })));
+const Bookmarks = lazy(() => import("@/screens/Bookmarks").then((m) => ({ default: m.Bookmarks })));
+const Sabbath = lazy(() => import("@/screens/Sabbath").then((m) => ({ default: m.Sabbath })));
+const Books = lazy(() => import("@/screens/Books").then((m) => ({ default: m.Books })));
+const BookScreen = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookScreen })));
+const BookChapterScreen = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookChapterScreen })));
+const BookPageLink = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookPageLink })));
+const LawIndex = lazy(() => import("@/screens/Library").then((m) => ({ default: m.LawIndex })));
+const LawSectionScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.LawSectionScreen })));
+const Precepts = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Precepts })));
+const PreceptScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.PreceptScreen })));
+const Cases = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Cases })));
+const CaseScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.CaseScreen })));
+const Topics = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Topics })));
+const TopicScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.TopicScreen })));
+const Study = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Study })));
+const Encyclopedia = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Encyclopedia })));
 
 
 export function App() {
@@ -53,6 +70,7 @@ export function App() {
       <ThemeApplier />
       <Lock />
       <div className="route" key={location.pathname.split("/").slice(0, 2).join("/")}>
+      <Suspense fallback={<Screen><Skeleton rows={8} /></Screen>}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
@@ -91,6 +109,7 @@ export function App() {
         <Route path="/topics/:slug" element={<TopicScreen />} />
         <Route path="*" element={<Home />} />
       </Routes>
+      </Suspense>
       </div>
       {tabs ? <TabBar /> : null}
     </AppRoot>
@@ -118,7 +137,7 @@ function Lock() {
   return (
     <div className="lock" role="dialog" aria-label="Locked">
       <div>
-        <img src="/brand/cyber-lion.webp" alt="" />
+        <img src={assetUrl("brand/cyber-lion.webp")} alt="" />
         <h1>CyberJudah</h1>
         <p>Unlock with your fingerprint or face.</p>
         <Button size="l" onClick={() => app!.BiometricManager.authenticate({ reason: "Unlock CyberJudah" }, (ok) => { if (ok) setLocked(false); })}>Unlock</Button>

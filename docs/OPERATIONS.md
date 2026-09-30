@@ -2,23 +2,47 @@
 
 ## Services
 
-- Cloudflare Worker: static app, API, bot webhook, cards, and hourly cron
-- D1: teaching and transcript search indexes
-- KV: daily-verse subscriptions
+Production:
+
+- Cloudflare Worker `cyberjudah-telegram`: static app, API, bot webhook, cards, and hourly cron
+- D1 `cyberjudah-telegram`: teaching and transcript search indexes
+- D1 `cyberjudah`: the site's database (teaching_passages, teaching_refs), shared read-only
+- KV `SUBS`: daily-verse subscriptions, billing accounts, health state
+- Vectorize `cyberjudah-teachings`: the teachings index
+- R2 `cyberjudah-audio`: spoken-verse cache
 - `data.cyberjudah.io`: Bible and library content
 - Telegram Bot API: bot commands, inline mode, sharing, payments, and delivery
 
+Staging (`.github/workflows/stage.yml`, every PR): worker
+`cyberjudah-telegram-staging` with its own D1 (`cyberjudah-telegram-staging`) and its own
+KV namespace (`SUBS-STAGING`). It shares the site's D1, the Vectorize index and the R2
+bucket read-only; the embed job never runs against staging. Staging's hourly cron runs the
+daily send and the self-check against staging resources only — never set `ADMIN_IDS` on
+the staging worker, or its self-check will page you about staging's expected differences.
+
 ## Health signals
 
-Monitor:
+The worker checks itself every hour (`src/health.ts`, inside the existing cron) and pages
+`ADMIN_IDS` over Telegram when something breaks or recovers:
+
+- D1 reachable and `search_docs` non-empty; the teachings D1 reachable and non-empty
+- Vectorize index responds and is non-empty
+- D1 size under `D1_SIZE_ALERT_BYTES` (default 8 GB — re-check against Cloudflare's
+  current per-database ceiling before launch)
+- The last finished daily-verse slot's failure share under 20%
+
+Alerts fire on the bad transition and repeat every six hours while still failing; a
+recovery sends one "recovered" message. State lives in KV (`health:state`) so deploys
+don't reset the paging.
+
+Still monitor in the Cloudflare dashboard:
 
 - Worker 5xx rate and p95 latency by route
 - Unauthorized and rate-limited requests separately from server failures
 - Telegram webhook failures and processing latency
-- Daily-verse attempted, delivered, blocked, and failed counts
+- Daily-verse attempted, delivered, blocked, and failed counts (the `daily` log lines)
 - Search and transcript-query latency and zero-result rate
 - Latest successful search and transcript ingestion timestamps
-- D1 size, row writes, query errors, and capacity thresholds
 - Upstream content availability and schema compatibility
 - Deployment status and current commit SHA
 
@@ -26,15 +50,46 @@ Logs must not include bot tokens, webhook secrets, raw Telegram `initData`, note
 
 ## Deployment
 
-Use separate staging and production Cloudflare resources and GitHub environments. Production deployment should require a successful staging smoke test and an approval. Record the deployed commit SHA.
+- Pull requests deploy to staging automatically (`stage.yml`): checks, staging worker
+  deploy, webhook/commands/menu-button registration on the staging bot, search-index
+  load, and a smoke test of `/api/health` and the app shell.
+- Pushes to `main` deploy to production (`deploy.yml`) after checks pass. The deploy job
+  targets the `production` GitHub environment: add required reviewers under Settings →
+  Environments → production to gate every production deploy (and rollback) behind a human.
+- Record the deployed commit SHA.
 
 ## Rollback
 
-1. Identify the last known-good commit and confirm whether a database migration is involved.
-2. Redeploy that exact artifact or commit; do not rebuild with newly resolved dependencies.
-3. Verify the health endpoint, Telegram webhook, authenticated search, daily subscription, and a deep link.
-4. If data compatibility prevents rollback, disable affected writes and follow the migration recovery procedure.
+No rebuilds. The `rollback` workflow (`Actions → rollback → Run workflow`) repoints the
+worker at an already-deployed version:
+
+1. Pick the environment (production or staging) and optionally a version id from
+   `wrangler deployments list`; empty means the deployment before the current one.
+2. Approve the run if the environment has required reviewers.
+3. Verify: the health endpoint, the Telegram webhook, authenticated search, a daily
+   subscription, and a deep link.
+4. If data compatibility prevents rollback, disable affected writes and follow the
+   migration recovery procedure.
 5. Record the incident and follow-up actions.
+
+Drill this against staging before launch — a rollback you have never run is a rollback
+you do not have.
+
+## Scaling notes
+
+- **Daily verse** (`src/daily.ts`): paced at ~25 sends/second with 429 backoff (the
+  server's `retry_after` is honored, then the chunk retries once). Progress checkpoints
+  per hourly slot in KV, so an interrupted run resumes; the previous hour's unfinished
+  slot is finished first. Rough math: 10k subscribers ≈ 7 minutes, 100k ≈ 70 minutes,
+  inside the hourly cron. Blocked users (403) are dropped from the list automatically.
+- **Ask CyberJudah**: the expensive path. Per-user daily quotas bound one person's cost
+  (100 asks, 50 new TTS generations); the free allowance (`ASK_FREE_DAILY`) bounds
+  everyone's. Re-tune the allowance from `/api/admin/usage` real averages after launch,
+  not from estimates. Billing balances still live in KV — do not enable `ASK_BILLING`
+  with a large audience until they move to D1.
+- **Search**: D1 FTS is cheap; `/api/search` cache headers are the lever if read volume spikes.
+- **Quotas**: `takeQuota()` in D1 is atomic per user/day; `rate_counts` rows for old days
+  are swept on use, so the table stays small.
 
 ## Incident priorities
 

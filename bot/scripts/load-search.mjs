@@ -16,7 +16,8 @@ import { gunzipSync } from "node:zlib";
 const args = process.argv.slice(2);
 const local = args.includes("--local");
 const source = args.find((a) => !a.startsWith("--")) ?? `${process.env.DATA_ORIGIN ?? "https://data.cyberjudah.io"}/search.sql.gz`;
-const DB = "cyberjudah-telegram";
+// Staging loads the same file into its own database: SEARCH_DB=cyberjudah-telegram-staging.
+const DB = process.env.SEARCH_DB ?? "cyberjudah-telegram";
 
 let bytes;
 if (/^https?:\/\//.test(source)) {

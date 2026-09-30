@@ -1,0 +1,113 @@
+name: stage
+
+# Every pull request against main gets deployed to the staging worker, so the bot, the app
+# and the hourly jobs are exercised against staging resources before anything reaches
+# production. Production (deploy.yml) still only runs on pushes to main.
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+        env:
+          VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
+
+  stage:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the staging secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          STAGING_BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
+          STAGING_WEBHOOK_SECRET: ${{ secrets.STAGING_WEBHOOK_SECRET }}
+        run: |
+          missing=""
+          for k in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID STAGING_BOT_TOKEN STAGING_WEBHOOK_SECRET; do
+            [ -n "${!k}" ] || missing="$missing $k"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing. See docs/PRODUCTION_CHECKLIST.md for the staging setup (a second @BotFather bot)."
+            exit 1
+          fi
+          echo "All four staging secrets are set."
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+        env:
+          VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
+      - name: Deploy the staging worker
+        id: deploy
+        working-directory: bot
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # Staging gets its own D1 database and KV namespace; the ids are written into the
+          # staging env the same way deploy.yml does for production.
+          D1=$(bash scripts/d1-id.sh cyberjudah-telegram-staging)
+          TEACH=$(bash scripts/d1-id.sh cyberjudah)
+          KV=$(bash scripts/kv-id.sh SUBS-STAGING)
+          python3 - "$D1" "$TEACH" "$KV" <<'EOF'
+          import json, sys
+          d1, teach, kv = sys.argv[1], sys.argv[2], sys.argv[3]
+          p = "wrangler.jsonc"
+          s = open(p).read()
+          # Replace only inside the staging env block: it is the last "env" section of the file.
+          head, env = s.split('"env": {', 1)
+          env = env.replace("00000000-0000-0000-0000-000000000000", d1)
+          env = env.replace("11111111-1111-1111-1111-111111111111", teach)
+          env = env.replace("00000000000000000000000000000000", kv)
+          open(p, "w").write(head + '"env": {' + env)
+          EOF
+          set -o pipefail
+          npx wrangler deploy --env staging 2>&1 | tee deploy.log
+          URL=$(grep -o 'https://[a-z0-9.-]*workers\.dev' deploy.log | head -1)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Staging worker: $URL"
+      - name: Load the search index into the staging database
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SEARCH_DB: cyberjudah-telegram-staging
+        run: node scripts/load-search.mjs
+      - name: Register the staging webhook, commands and menu button
+        working-directory: bot
+        env:
+          BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
+          WEBHOOK_SECRET: ${{ secrets.STAGING_WEBHOOK_SECRET }}
+          WORKER_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN --env staging
+          printf '%s' "$WEBHOOK_SECRET" | npx wrangler secret put WEBHOOK_SECRET --env staging
+          printf '%s' "$WORKER_URL" | npx wrangler secret put WORKER_URL --env staging
+          node scripts/setup.mjs
+      - name: Smoke-test staging
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          set -e
+          curl -sf "$URL/api/health" | head -c 400; echo
+          # The app shell serves at the root (SPA fallback).
+          curl -sf -o /dev/null -w "app: %{http_code}\n" "$URL/"

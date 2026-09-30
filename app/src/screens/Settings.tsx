@@ -9,6 +9,7 @@ import { secure } from "@/tg/store";
 import { useSheet } from "@/ui/sheet";
 import { Icon, List, Row, Screen, Section, Segmented } from "@/ui/ui";
 import { useRelationsDisplay } from "@/lib/relations";
+import type { Font, Spacing, Theme } from "@/ui/theme";
 
 /** A setting's current value, iOS style: quiet text before the chevron. */
 function Value({ children }: { children: string }) {
@@ -18,10 +19,6 @@ function Value({ children }: { children: string }) {
 function Toggle({ on, onChange, title, sub }: { on: boolean; onChange: (v: boolean) => void; title: string; sub?: string }) {
   return <button type="button" className="toggle" role="switch" aria-checked={on} onClick={() => { haptic("select"); onChange(!on); }}><span><b>{title}</b>{sub ? <small>{sub}</small> : null}</span><span className="switch" /></button>;
 }
-
-export type Theme = "dark" | "sepia" | "light" | "system";
-export type Font = "serif" | "sans";
-export type Spacing = "tight" | "regular" | "airy";
 
 export function Settings() {
   useBackButton(false);
@@ -114,25 +111,6 @@ export function Settings() {
       </Section>
     </Screen>
   );
-}
-
-/** Applies the reader's theme, face and spacing to the document (mounted once in App). */
-export function ThemeApplier() {
-  const [theme] = useStored<Theme>("theme", "system");
-  const { scheme } = useTheme();
-  const [font] = useStored<Font>("font", "serif");
-  const [spacing] = useStored<Spacing>("spacing", "regular");
-  const [justify] = useStored("justify", false);
-  useEffect(() => {
-    const root = document.documentElement;
-    const resolved = theme === "system" ? scheme : theme;
-    root.dataset.theme = resolved; root.dataset.font = font; root.dataset.spacing = spacing; root.dataset.justify = justify ? "yes" : "no";
-    root.style.colorScheme = resolved === "dark" ? "dark" : "light";
-    const bg = getComputedStyle(root).getPropertyValue("--color-void").trim() || "#05070f";
-    if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(bg); app.setBackgroundColor(bg); }
-    if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(bg);
-  }, [theme, scheme, font, spacing, justify]);
-  return null;
 }
 
 

@@ -36,6 +36,64 @@ export const today = (now = Date.now()) => new Date(now).toISOString().slice(0, 
 /** A fresh account: nothing used today, no plan, no credit. */
 export const emptyAccount = () => ({ day: "", freeUsed: 0, plan: null, credits: 0 });
 
+/**
+ * The minimum charged for a metered answer, in units (about a third of an average answer).
+ * It is reserved up front so an abandoned or failed request still pays its share of the
+ * model's work; the request then settles against the exact units the answer used.
+ */
+export const RESERVE_UNITS = 20000;
+
+/**
+ * Reserve-then-settle metering. Reserve deducts the minimum up front and snapshots the
+ * account; settle the caller charges the actual units against the snapshot with spend(),
+ * so metering stays exact with no refund bookkeeping. A failed request settles for the
+ * reservation: the model was still paid for.
+ */
+export function reserve(acct, p, now = Date.now()) {
+  const a = structuredClone(acct ?? emptyAccount());
+  const before = structuredClone(a);
+  const take = Math.min(RESERVE_UNITS, balance(a, p, now).total);
+  return { before, reserved: spend(a, take, p, now) };
+}
+
+/** What a reserve() took from each pot: the per-pot breakdown of the reservation. */
+export function takeOf(before, reserved) {
+  const b = before ?? emptyAccount(), r = reserved ?? emptyAccount();
+  return {
+    free: Math.max(0, (r.freeUsed ?? 0) - (b.freeUsed ?? 0)),
+    plan: Math.max(0, (r.plan?.used ?? 0) - (b.plan?.used ?? 0)),
+    credits: Math.max(0, (b.credits ?? 0) - (r.credits ?? 0)),
+  };
+}
+
+/**
+ * Settle a reservation against the CURRENT account (no snapshot needed): the reservation
+ * took `take` up front; charging actualUnits spends the extra, or refunds the unused part
+ * back through the pots in reverse — credits, plan, free — which is the exact inverse of
+ * spend(). With no concurrent change and the same UTC day, this equals spend(before,
+ * actualUnits); under concurrency it stays atomic instead of clobbering the other request.
+ * A refund that cannot go back (the day rolled over, a pot was spent meanwhile) lands in
+ * the credit, which never expires: the total is always exact, no pot ever goes negative.
+ */
+export function settleTake(acct, take, actualUnits, p, now = Date.now()) {
+  const t = { free: Math.max(0, take?.free ?? 0), plan: Math.max(0, take?.plan ?? 0), credits: Math.max(0, take?.credits ?? 0) };
+  const reserved = t.free + t.plan + t.credits;
+  const actual = Math.max(0, Math.round(actualUnits));
+  if (actual >= reserved) return spend(acct, actual - reserved, p, now);
+  const a = structuredClone(acct ?? emptyAccount());
+  if (a.day !== today(now)) { a.day = today(now); a.freeUsed = 0; }
+  // Refund the unused reservation back through the pots in reverse — credits, plan, free —
+  // capped by what the reservation took, so no pot can go negative or be created from
+  // nothing. Anything that cannot go back (the day rolled over, a pot was spent meanwhile)
+  // lands in the credit, which never expires: the total is always exact.
+  let left = reserved - actual;
+  const backCredits = Math.min(left, t.credits); a.credits = (a.credits ?? 0) + backCredits; left -= backCredits;
+  const backPlan = a.plan ? Math.min(left, t.plan, a.plan.used) : 0; if (a.plan) a.plan.used -= backPlan; left -= backPlan;
+  const backFree = Math.min(left, t.free, a.freeUsed); a.freeUsed -= backFree; left -= backFree;
+  a.credits = (a.credits ?? 0) + left;
+  return a;
+}
+
 /** What is left in each pot now; the day's free allowance starts again each UTC day. */
 export function balance(acct, p, now = Date.now()) {
   const a = acct ?? emptyAccount();
@@ -86,4 +144,12 @@ export function validPayment(payload, currency, amount, p) {
   if (b.kind === "plan" && b.stars !== p.plan.stars) return null;
   if (b.kind === "pack" && !p.packs.some((x) => x.stars === b.stars)) return null;
   return b;
+}
+
+/** The Stars amounts a support invoice may be made for. */
+export const SUPPORT_STARS = [50, 100, 500];
+/** A support payload names the giver and the Stars: support:<uid>:<stars>. */
+export function readSupport(s) {
+  const m = /^support:(\d{1,20}):(\d{1,6})$/.exec(String(s ?? ""));
+  return m ? { uid: Number(m[1]), stars: Number(m[2]) } : null;
 }

@@ -9,6 +9,7 @@ import { Trouble } from "@/ui/trouble";
 import { Sheet } from "@/bible/ui/Sheet";
 import { Icon, timestamp } from "@/ui/ui";
 import { KIND_LABEL, hitPath, teachingPath } from "@/ui/search-hero";
+import { assetUrl } from "@/lib/asset";
 import { KIND_NAME } from "./Home";
 
 export type Passage = { kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string; text: string };
@@ -125,7 +126,7 @@ export function Ask() {
 
       {!turns.length ? (
         <section className="chat2__welcome">
-          <img className="chat2__mark" src="/brand/cyber-lion.webp" alt="" width={72} height={72} />
+          <img className="chat2__mark" src={assetUrl("brand/cyber-lion.webp")} alt="" width={72} height={72} />
           <h1>What would you like to learn?</h1>
           <p>Ask about anything that was taught. Every answer comes from the classes, the notes, the law and the Scripture, and shows where it came from.</p>
           <div className="chat2__starters">
@@ -172,7 +173,7 @@ function AssistantTurn({ t, question, last, busy, onRetry, onFollow, onPlans }: 
 
   return (
     <div className="msg msg--ai">
-      <div className="msg__who"><img className="msg__avatar" src="/brand/cyber-lion.webp" alt="" width={24} height={24} />CyberJudah</div>
+      <div className="msg__who"><img className="msg__avatar" src={assetUrl("brand/cyber-lion.webp")} alt="" width={24} height={24} />CyberJudah</div>
       {t.steps?.length ? <Research steps={t.steps} live={!!t.thinking || (busy && last)} count={t.passages?.length ?? 0} /> : null}
       {t.thinking ? (
         <div className="msg__thinking"><span className="answer__dots" aria-hidden="true"><i /><i /><i /></span>{t.status && !/^(Searching|Reading)/.test(t.status) ? `${t.status}…` : t.passages?.length ? `Reading ${t.passages.length} passages from the teachings…` : "Searching the teachings…"}</div>

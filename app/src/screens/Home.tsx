@@ -13,6 +13,7 @@ import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
 import { api } from "@/tg/sdk";
 import { haptic, user } from "@/tg/sdk";
 import { Card, Icon, Img, Screen, Section, Skeleton } from "@/ui/ui";
+import { assetUrl } from "@/lib/asset";
 import { SearchHero } from "@/ui/search-hero";
 
 type Verse = { ref: string; slug: string; chapter: number; verse: number; text: string };
@@ -94,7 +95,7 @@ export function Home() {
     <Screen className="home">
       <div className="pull" style={{ height: ps.height, opacity: ps.opacity }} aria-hidden="true">{ps.label}</div>
       <div className="hello">
-        <img src="/brand/cyber-lion.webp" alt="" width={44} height={44} onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+        <img src={assetUrl("brand/cyber-lion.webp")} alt="" width={44} height={44} onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
         <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>What do you want to learn?</h1></div>
       </div>
       <Link to={verse.data ? `/read/${verse.data.slug}/${verse.data.chapter}?v=${verse.data.verse}` : "/bible"} className="hero" onClick={() => haptic("select")}>

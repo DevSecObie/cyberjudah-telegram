@@ -6,7 +6,7 @@ import { runSearch } from "./search";
 import { parseReference } from "./refs.mjs";
 import { verseOfDay } from "./verse-of-day.mjs";
 import { pathToStartParam, startParamToPath } from "../../shared/links.mjs";
-import { applyPayment, checkout } from "./billing";
+import { applyPayment, checkout, SUPPORT_STARS } from "./billing";
 
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 const MAX_INLINE = 50;
@@ -85,7 +85,17 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
   });
 
   bot.command("support", (ctx) =>
-    ctx.replyWithInvoice("Support CyberJudah", "Keep the library free and the classes online. Thank you.", `support:${ctx.from?.id ?? 0}:100`, "XTR", [{ label: "Support CyberJudah", amount: 100 }]));
+    ctx.reply("Support CyberJudah with Telegram Stars — keep the library free and the classes online. Thank you.\n\nPick an amount:", {
+      reply_markup: new InlineKeyboard().text("50 ⭐", "support:50").text("100 ⭐", "support:100").text("500 ⭐", "support:500"),
+    }));
+
+  // A support tier picked from /support: the invoice for that many Stars.
+  bot.callbackQuery(/^support:(\d+)$/, async (ctx) => {
+    const stars = Number(ctx.match[1]);
+    if (!SUPPORT_STARS.includes(stars)) return ctx.answerCallbackQuery({ text: "That amount is not on offer." });
+    await ctx.replyWithInvoice("Support CyberJudah", "Keep the library free and the classes online. Thank you.", `support:${ctx.from?.id ?? 0}:${stars}`, "XTR", [{ label: "Support CyberJudah", amount: stars }]);
+    return ctx.answerCallbackQuery();
+  });
 
   // Stars are taken only for a real item at its real price, bought by the person paying.
   bot.on("pre_checkout_query", (ctx) => {
