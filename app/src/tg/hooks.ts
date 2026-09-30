@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocation, useNavigate } from "react-router";
 
 import { app, features, haptic, has } from "./sdk";
@@ -47,38 +47,31 @@ export function useBackButton(root: boolean, onBack?: () => boolean | void) {
 }
 
 export type Action = { text: string; onClick: () => void; quiet?: boolean; progress?: boolean; disabled?: boolean; shine?: boolean };
-/** Telegram's bottom buttons in the app's current palette, so they match light and dark alike. */
-function colors() {
-  const css = getComputedStyle(document.documentElement);
-  const v = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
-  return {
-    main: { color: v("--color-cyan", "#00e5ff"), text_color: v("--color-void", "#05070f") },
-    quiet: { color: v("--color-panel-2", "#101833"), text_color: v("--color-ink-2", "#dbe5f0") },
-  };
-}
+/**
+ * A screen's actions (Open in YouTube, Share, Start the plan...). They used to be Telegram's own
+ * bottom buttons, but Telegram draws those in its own bar over the bottom of the app, which hid
+ * the tab bar on every screen that had one. Like Bible Strong, the actions now live in the app:
+ * PageActions (ui/ui.tsx) shows them as glass buttons just above the tab bar, which stays.
+ */
+type Actions = { main: Action | null; secondary: Action | null };
+let actions: Actions = { main: null, secondary: null };
+const actionListeners = new Set<() => void>();
+const setActions = (next: Actions) => { actions = next; actionListeners.forEach((l) => l()); };
+export const usePageActions = () => useSyncExternalStore((l) => { actionListeners.add(l); return () => { actionListeners.delete(l); }; }, () => actions);
 
-/** The screen's actions on Telegram's bottom bar: `main` full width, `secondary` beside it. */
 export function useBottomButtons(main: Action | null, secondary: Action | null = null) {
   const h = useRef({ main, secondary });
   h.current = { main, secondary };
-  const key = JSON.stringify([document.documentElement.dataset.theme, main?.text, main?.quiet, main?.progress, main?.disabled, main?.shine, secondary?.text, secondary?.progress, secondary?.disabled]);
+  const key = JSON.stringify([main?.text, main?.quiet, main?.progress, main?.disabled, secondary?.text, secondary?.progress, secondary?.disabled]);
   useEffect(() => {
-    if (!app) return;
-    const M = app.MainButton, S = features.secondaryButton ? app.SecondaryButton : null;
-    const cm = () => { haptic(); h.current.main?.onClick(); };
-    const cs = () => { haptic(); h.current.secondary?.onClick(); };
-    const { main: m, secondary: s } = h.current;
-    const COLORS = colors();
-    if (m) {
-      M.setParams({ text: m.text, ...(m.quiet ? COLORS.quiet : COLORS.main), is_active: !m.disabled, is_visible: true, has_shine_effect: !!m.shine });
-      if (m.progress) M.showProgress(true); else M.hideProgress();
-      M.onClick(cm);
-    } else M.hide();
-    if (S) {
-      if (s) { S.setParams({ text: s.text, ...COLORS.quiet, position: "left", is_active: !s.disabled, is_visible: true }); if (s.progress) S.showProgress(true); else S.hideProgress(); S.onClick(cs); }
-      else S.hide();
-    }
-    return () => { M.offClick(cm); M.hide(); M.hideProgress(); S?.offClick(cs); S?.hide(); };
+    // Telegram's own buttons stay hidden: the app shows the actions itself.
+    if (app) { app.MainButton.hide(); if (features.secondaryButton) app.SecondaryButton.hide(); }
+    const wrap = (which: "main" | "secondary"): Action | null => {
+      const a = h.current[which];
+      return a ? { ...a, onClick: () => { haptic(); h.current[which]?.onClick(); } } : null;
+    };
+    setActions({ main: wrap("main"), secondary: wrap("secondary") });
+    return () => setActions({ main: null, secondary: null });
   }, [key]);
 }
 
