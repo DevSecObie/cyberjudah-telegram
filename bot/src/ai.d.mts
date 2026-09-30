@@ -18,3 +18,4 @@ export function dedupeMatches<T extends Match>(matches: T[]): T[];
 
 export const RESEARCH: string;
 export function splitFollowups(text: string): { answer: string; followups: string[] };
+export function normalizeHistory(turns: unknown, max?: number): Turn[];
