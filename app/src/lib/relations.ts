@@ -173,3 +173,31 @@ export function truncate(str: string, max: number): string {
   let cut = max; while (cut > 0 && clean[cut] && clean[cut] !== " ") cut--;
   return (cut === 0 ? clean.slice(0, max) : clean.slice(0, cut)) + "...";
 }
+
+/** Relations are stored at both ends; count and list each saved link only once. */
+export function useSavedRelations() {
+  const [rows, setRows] = useState<Relation[]>([]);
+  useEffect(() => {
+    let live = true;
+    const off: (() => void)[] = [];
+    const chapters = new Map<string, Relation[]>();
+    const update = (key: string, raw: string | null) => {
+      if (!live) return;
+      try { chapters.set(key, JSON.parse(raw ?? "[]") as Relation[]); } catch { chapters.set(key, []); }
+      const unique = new Map<string, Relation>();
+      for (const list of chapters.values()) for (const row of list) unique.set(row.id, row);
+      setRows([...unique.values()].sort((a, b) => b.updatedAt - a.updatedAt));
+    };
+    void store.keys().then(async (keys) => {
+      for (const key of keys.filter((k) => k.startsWith("rel_"))) {
+        if (!live) return;
+        let fresh = false;
+        off.push(store.subscribe(key, (raw) => { fresh = true; update(key, raw); }));
+        const raw = await store.get(key);
+        if (!fresh) update(key, raw);
+      }
+    }).catch(() => { if (live) setRows([]); });
+    return () => { live = false; off.forEach((stop) => stop()); };
+  }, []);
+  return rows;
+}

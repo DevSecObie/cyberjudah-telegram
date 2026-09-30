@@ -29,14 +29,14 @@ export function More() {
   return <Screen title="More"><MoreBody /></Screen>;
 }
 
-type Item = { icon: IconName; label: string; color: string; href?: string; onClick?: () => void };
+type Item = { icon: IconName; label: string; color: string; colored?: boolean; href?: string; onClick?: () => void };
 /** Bible Strong's SectionCard: a rounded card with a small grey heading row and its links. */
 function Card({ icon, title, items }: { icon: IconName; title: string; items: (Item | null)[] }) {
   return (
     <section className="mcard">
-      <h3 className="mcard__head"><Icon name={icon} size={16} />{title}</h3>
+      <h3 className="mcard__head"><Icon name={icon} size={16} />{title.toUpperCase()}</h3>
       {items.filter((i): i is Item => !!i).map((i) => {
-        const inner = <><span className="mcard__icon" style={{ color: i.color }}><Icon name={i.icon} size={20} /></span><span className="mcard__label">{i.label}</span><span className="mcard__chev"><Icon name="chevron" size={20} /></span></>;
+        const inner = <><span className="mcard__icon" style={{ color: i.color, background: `color-mix(in srgb, ${i.color} 12%, transparent)` }}><Icon name={i.icon} size={20} /></span><span className="mcard__label" style={i.colored ? { color: i.color } : undefined}>{i.label}</span><span className="mcard__chev"><Icon name="chevron" size={20} /></span></>;
         return i.href
           ? <Link key={i.label} className="mcard__row" to={i.href} onClick={() => haptic("select")}>{inner}</Link>
           : <button key={i.label} type="button" className="mcard__row" onClick={() => { haptic("select"); i.onClick?.(); }}>{inner}</button>;
@@ -45,7 +45,7 @@ function Card({ icon, title, items }: { icon: IconName; title: string; items: (I
   );
 }
 
-const C = { blue: "#5983f0", teal: "#2dd4bf", violet: "#a78bfa", amber: "#f59e0b", rose: "#f472b6", green: "#34d399", red: "#f87171", slate: "#94a3b8" };
+const C = { blue: "var(--a-accent)", teal: "var(--a-accent)", violet: "var(--a-hot)", amber: "var(--a-resource-dictionary)", rose: "var(--a-hot)", green: "var(--a-accent)", red: "var(--a-hot)", slate: "var(--a-muted)" };
 
 /** The menu's content (Bible Strong's MoreScreen), on its own page or in the menu drawer. */
 export function MoreBody() {
@@ -63,7 +63,7 @@ export function MoreBody() {
       <Card icon="book" title="Resources" items={[
         { icon: "chat", label: "Ask CyberJudah", color: C.teal, href: "/ask" },
         { icon: "play", label: "Classes", color: C.red, href: "/classes" },
-        ...STUDY.map(([href, label, , icon], k) => ({ href, label, icon, color: [C.blue, C.violet, C.amber, C.green, C.rose, C.teal, C.violet, C.slate][k % 8] })),
+        ...STUDY.map(([href, label, , icon], k) => ({ href, label, icon, colored: ["/lexicon", "/dictionary"].includes(href), color: href === "/lexicon" ? C.blue : href === "/dictionary" ? C.amber : [C.blue, C.violet, C.amber, C.green, C.rose, C.teal, C.violet, C.slate][k % 8] })),
       ]} />
       <Card icon="law" title="The Law" items={LAW.map(([href, label, , icon], k) => ({ href, label, icon, color: [C.amber, C.teal, C.slate][k % 3] }))} />
       <Card icon="gear" title="Settings" items={[

@@ -3,10 +3,12 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { data, type StrongsRow } from "@/api/data";
-import { useAllNotes, useBookmarks, useTags, type Highlight } from "@/bible/store";
+import { useBookmarks, useTags, type Highlight } from "@/bible/store";
+import { usePlan } from "@/lib/marks";
+import { useSavedRelations } from "@/lib/relations";
 import { pickOfDay, pickRandom } from "@/lib/ofday";
 import { haptic } from "@/tg/sdk";
-import { json, store } from "@/tg/store";
+import { store } from "@/tg/store";
 import { Icon, type IconName } from "@/ui/ui";
 import { strongOfDay, useStrongsIndex } from "./Lexicon";
 
@@ -98,24 +100,46 @@ export function useRandomVerse() {
 export function useStudyCounts() {
   const [bookmarks] = useBookmarks();
   const [tags] = useTags();
-  const { rows: notes } = useAllNotes();
-  const [highlights, setHighlights] = useState<number | null>(null);
+  const [totals, setTotals] = useState<{ highlights: number; notes: number } | null>(null);
   useEffect(() => {
+    let live = true;
+    const off: (() => void)[] = [];
+    const counts = new Map<string, number>();
+    const publish = () => { if (live) setTotals({ highlights: [...counts].filter(([k]) => k.startsWith("bs_h_")).reduce((n, [, v]) => n + v, 0), notes: [...counts].filter(([k]) => k.startsWith("bs_n_")).reduce((n, [, v]) => n + v, 0) }); };
+    const update = (key: string, raw: string | null) => {
+      if (!live) return;
+      try { counts.set(key, Object.keys(JSON.parse(raw ?? "{}") as Record<string, Highlight>).length); } catch { counts.set(key, 0); }
+      publish();
+    };
     void store.keys().then(async (keys) => {
-      let n = 0;
-      for (const k of keys.filter((x) => x.startsWith("bs_h_"))) n += Object.keys(await json.get<Record<string, Highlight>>(k, {})).length;
-      setHighlights(n);
-    }).catch(() => setHighlights(0));
+      for (const key of keys.filter((k) => k.startsWith("bs_h_") || k.startsWith("bs_n_"))) {
+        if (!live) return;
+        let fresh = false;
+        off.push(store.subscribe(key, (raw) => { fresh = true; update(key, raw); }));
+        const raw = await store.get(key);
+        if (!fresh) update(key, raw);
+      }
+      if (live) publish();
+    }).catch(() => { if (live) setTotals({ highlights: 0, notes: 0 }); });
+    return () => { live = false; off.forEach((stop) => stop()); };
   }, []);
-  return { highlights: highlights ?? 0, bookmarks: bookmarks.length, notes: notes.length, tags: Object.keys(tags).length, ready: highlights !== null };
+  return { highlights: totals?.highlights ?? 0, bookmarks: bookmarks.length, notes: totals?.notes ?? 0, tags: Object.keys(tags).length, ready: totals !== null };
 }
 
-export function StudyStats() {
+export function StudyStats({ expanded = false }: { expanded?: boolean }) {
   const c = useStudyCounts();
-  const cells: [string, number, string][] = [["Highlights", c.highlights, "/bookmarks?tab=highlights"], ["Bookmarks", c.bookmarks, "/bookmarks"], ["Notes", c.notes, "/bookmarks?tab=notes"], ["Tags", c.tags, "/tags"]];
+  const [plan] = usePlan();
+  const relations = useSavedRelations();
+  const cells: [string, number, string, IconName][] = [
+    ["Highlights", c.highlights, "/bookmarks?tab=highlights", "compose"],
+    ["Bookmarks", c.bookmarks, "/bookmarks", "bookmark"],
+    ["Notes", c.notes, "/bookmarks?tab=notes", "note"],
+    ...(expanded ? [["Studies", plan ? 1 : 0, "/plan", "check"], ["Links", relations.length, "/relations", "link"]] as [string, number, string, IconName][] : []),
+    ["Tags", c.tags, "/tags", "tag"],
+  ];
   return (
-    <div className="stats" aria-label="What you have kept">
-      {cells.map(([label, n, to]) => <Link key={label} to={to} className="stats__cell" onClick={() => haptic("select")}><b>{n.toLocaleString()}</b><small>{label}</small></Link>)}
+    <div className={`stats${expanded ? " stats--six" : ""}`} aria-label="What you have kept">
+      {cells.map(([label, n, to, icon]) => <Link key={label} to={to} className="stats__cell" onClick={() => haptic("select")}>{expanded ? <Icon name={icon} size={20} /> : null}<b>{n.toLocaleString()}</b><small>{label}</small></Link>)}
     </div>
   );
 }

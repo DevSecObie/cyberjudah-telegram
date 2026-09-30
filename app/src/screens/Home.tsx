@@ -18,7 +18,7 @@ import { assetUrl } from "@/lib/asset";
 import { SearchHero } from "@/ui/search-hero";
 import { PersonOfTheDay, PreceptOfTheDay, StrongOfTheDay, StudyStats, TopicOfTheDay, WordOfTheDay, useRandomVerse } from "./home-widgets";
 
-type Verse = { ref: string; slug: string; chapter: number; verse: number; text: string };
+import { TodayCard, type DailyVerse as Verse } from "./TodayCard";
 export type LiveNow = { live: boolean; upcoming: boolean; video: string | null; title: string | null; starts: string | null };
 /** Whether a class is on the air, asked again every minute while Home is open. */
 export const useLive = (enabled = true) => useQuery({ queryKey: ["live"], queryFn: () => api<LiveNow>("/api/live"), enabled, refetchInterval: 60_000, staleTime: 45_000, retry: false });
@@ -89,7 +89,7 @@ export function Home() {
 }
 
 /** Home's content, on its own page or in Bible Strong's Home drawer over the current tab. */
-export function HomeBody() {
+export function HomeBody({ drawer = false }: { drawer?: boolean }) {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [last] = useLast();
@@ -123,6 +123,7 @@ export function HomeBody() {
   return (
     <Screen className="home">
       <div className="pull" style={{ height: ps.height, opacity: ps.opacity }} aria-hidden="true">{ps.label}</div>
+      {drawer ? <TodayCard verse={verse.data} failed={verse.isError} /> : <>
       <div className="hello">
         <img src={assetUrl("brand/cyber-lion.webp")} alt="" width={44} height={44} onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
         <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>What do you want to learn?</h1></div>
@@ -137,7 +138,9 @@ export function HomeBody() {
         <button type="button" className="door__btn door__btn--ask" onClick={() => { haptic("select"); navigate(q.trim() ? `/ask?q=${encodeURIComponent(q.trim())}` : "/ask"); }}><Icon name="note" size={18} /> Ask CyberJudah</button>
       </div>
       <p className="hint hint--center">Search finds the moment a word, a name or a Scripture was said in a class. Ask answers your question from the teachings, with its sources.</p>
-      <StudyStats />
+      </>}
+      <StudyStats expanded={drawer} />
+      {!drawer ? <>
       {whatsNew.length ? (
         <div className="whatsnew" aria-label="New in CyberJudah">
           {whatsNew.slice(0, 8).map((w) => (
@@ -171,6 +174,7 @@ export function HomeBody() {
         </div>
       ) : null}
 
+      </> : null}
       <h2 className="shelf">Learn</h2>
       {feed.isPending ? <Skeleton rows={1} thumb /> : latestClass ? (
         <Link to={teachingTo(latestClass)} className="feature">

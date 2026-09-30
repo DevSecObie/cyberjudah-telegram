@@ -328,7 +328,7 @@ test("Home is Bible Strong's drawer: it slides the app aside and closes with a s
   await page.click('.tab[aria-label="Home"]');
   const home = page.locator(".drawer--home[data-open]");
   await expect(home).toBeVisible();
-  await expect(home.locator(".hello h1")).toHaveText("What do you want to learn?");
+  await expect(home.locator(".today-card header b")).toHaveText("Today");
   // The app moved aside with it.
   await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector("#shell .route")!).transform)).not.toBe("none");
   // A swipe back toward its edge closes it (once it has finished sliding in).
@@ -442,6 +442,43 @@ test("the settings button opens settings", async ({ page }) => {
   await press(page, "settings");
   await expect(page).toHaveURL(/\/settings/);
   await expect(page.locator("text=Daily verse")).toBeVisible();
+});
+
+test("Home drawer starts with Today and six saved-content counts; Image and Links open their content", async ({ page }) => {
+  const relation = { id: "same-link", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-1"], label: "Genesis 1:1" }, { type: "verse", verseKeys: ["john-1-1"], label: "John 1:1" }], createdAt: 1, updatedAt: 1 };
+  await page.addInitScript((s) => { (window as unknown as { __cloud: unknown }).__cloud = s; }, {
+    rel_genesis_1: JSON.stringify([relation]), rel_john_1: JSON.stringify([relation]),
+    rel_psalms_23: JSON.stringify([{ ...relation, id: "note-link", endpoints: [{ type: "note", verseKey: "psalms-23-1", label: "My note" }, { type: "link", url: "https://cyberjudah.io", label: "CyberJudah" }] }]),
+    bs_h_genesis_1: JSON.stringify({ "1": { color: "color3", date: 1 } }),
+    bs_n_genesis_1: JSON.stringify({ "1": { id: "note1", title: "Beginning", description: "", date: 1 } }),
+    plan: JSON.stringify({ startedAt: "2026-09-30", day: 1, streak: 0, perDay: 4 }),
+  });
+  await page.route("**/api/verse-of-day", (r) => r.fulfill({ json: { ref: "Genesis 1:1", slug: "genesis", chapter: 1, verse: 1, text: "In the beginning God created the heaven and the earth." } }));
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  const home = page.locator(".drawer--home");
+  await expect(home.locator(".today-card")).toContainText("Genesis 1:1");
+  await expect(home.locator(".hello, .search-hero, .door__btn--ask")).toHaveCount(0);
+  await expect(home.locator(".stats__cell small")).toHaveText(["Highlights", "Bookmarks", "Notes", "Studies", "Links", "Tags"]);
+  await expect(home.locator('.stats__cell[href="/plan"] b')).toHaveText("1");
+  await expect(home.locator('.stats__cell[href="/bookmarks?tab=highlights"] b')).toHaveText("1");
+  await expect(home.locator('.stats__cell[href="/bookmarks?tab=notes"] b')).toHaveText("1");
+  await expect(home.locator('.stats__cell[href="/relations"] b')).toHaveText("2");
+  await home.getByRole("button", { name: "Image", exact: true }).click();
+  const image = page.getByRole("dialog", { name: "Verse image" });
+  await expect(image.locator("img")).toHaveJSProperty("naturalWidth", 1200);
+  await expect(image.getByRole("link", { name: "Save image" })).toHaveAttribute("href", "/card/genesis/1/1.svg");
+  await press(page, "back");
+  await expect(image).toHaveCount(0);
+  await expect(home).toHaveAttribute("data-open", "");
+  await home.locator('.stats__cell[href="/relations"]').click();
+  await expect(page).toHaveURL(/\/relations$/);
+  await expect(page.locator(".nt-item")).toHaveCount(2);
+  await page.locator(".nt-item").last().click();
+  await expect(page).toHaveURL(/endpoint=note%3Apsalms-23-1/);
+  await expect(page.locator(".rel-row")).toContainText("CyberJudah");
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await expect(page.locator(".mcard__head")).toHaveText(["YOURS", "RESOURCES", "THE LAW", "SETTINGS", "CYBERJUDAH"]);
 });
 
 test("Home is the front door: one field, search the classes or ask CyberJudah", async ({ page }) => {

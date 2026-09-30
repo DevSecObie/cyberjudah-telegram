@@ -1254,3 +1254,22 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 .tabcard__preview { position: absolute; inset: 48px 12px 0; overflow: hidden; opacity: .15; text-align: left; font: 400 12px/1.65 var(--a-read); pointer-events: none; }
 .tabcard__preview > span { display: block; margin-top: 6px; }
 .tabcard__icon { position: relative; z-index: 1; }
+
+/* Home follows the same Today → personal stats → Learn/Study/Meditate order as the fork. */
+#root { --a-resource-dictionary: color-mix(in srgb, var(--color-amber) 60%, var(--a-ink-2)); }
+.today-card { padding: 16px 20px; margin: 0 0 16px; min-height: 280px; display: flex; flex-direction: column; border: 1px solid var(--a-line); border-radius: 24px; background: var(--a-card); }
+.today-card header { display: flex; align-items: center; justify-content: space-between; color: var(--a-muted); font: 600 14px var(--a-ui); }
+.today-card header a { display: grid; place-items: center; width: 36px; height: 36px; }
+.today-card__verse { display: block; flex: 1; padding: 8px 0 16px; }
+.today-card__verse p { margin: 0 0 12px; font: 400 19px/1.5 var(--a-read); }
+.today-card__verse b { font: 600 13px var(--a-ui); }
+.today-card__verse small { color: var(--a-muted); }
+.today-card footer { display: flex; gap: 20px; }
+#root .today-card footer button { display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 0; border: 0; background: none; color: var(--a-muted); font: 500 13px var(--a-ui); cursor: pointer; }
+.today-card footer button:disabled { opacity: .4; }
+.stats--six { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.stats--six .stats__cell { gap: 6px; padding: 14px 4px; color: var(--a-accent); }
+.today-image { max-height: 90dvh; overflow: auto; }
+.today-image img { width: 100%; display: block; margin-bottom: 16px; }
+.today-image .btn { display: block; text-align: center; }
+.mcard__icon { flex: none; width: 32px; height: 32px; border-radius: 8px; }
