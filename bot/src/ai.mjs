@@ -120,3 +120,25 @@ export function dedupeMatches(matches) {
   }
   return [...seen.values()].sort((a, b) => b.score - a.score);
 }
+
+/**
+ * The conversation as the model can take it: the Messages API needs it to open with the person
+ * and to alternate. Empty and failed turns are dropped, a run of one side keeps its last, and the
+ * window starts on a question, so a history that begins on an answer (a trimmed window, an
+ * answer lost when the person left) can never make every later question fail.
+ */
+export function normalizeHistory(turns, max = 6) {
+  const clean = [];
+  for (const t of Array.isArray(turns) ? turns : []) {
+    if (!t || (t.role !== "user" && t.role !== "assistant")) continue;
+    const content = String(t.content ?? "").trim();
+    if (!content) continue;
+    if (clean.length && clean[clean.length - 1].role === t.role) clean[clean.length - 1] = { role: t.role, content };
+    else clean.push({ role: t.role, content });
+  }
+  // The history is what came before the new question, so it must end on an answer.
+  while (clean.length && clean[clean.length - 1].role !== "assistant") clean.pop();
+  let window = clean.slice(-max);
+  while (window.length && window[0].role !== "user") window = window.slice(1);
+  return window;
+}
