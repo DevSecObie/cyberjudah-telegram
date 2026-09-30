@@ -33,8 +33,10 @@ export async function selfCheck(env: Env, now = Date.now()): Promise<{ ok: boole
     checks.push({ name: "vectorize", ok: (d.vectorCount ?? 0) > 0, detail: `${d.vectorCount ?? 0} vectors` });
   } catch (e) { checks.push({ name: "vectorize", ok: false, detail: err(e) }); }
   try {
-    const s = await env.DB.prepare("SELECT page_count * page_size AS bytes FROM pragma_page_count(), pragma_page_size()").first<{ bytes: number }>();
-    const bytes = s?.bytes ?? 0;
+    // D1 does not allow the page_count/page_size pragmas (SQLITE_AUTH); every result's
+    // metadata carries the database size in bytes after the statement instead.
+    const r = await env.DB.prepare("SELECT 1").run();
+    const bytes = Number((r.meta as { size_after?: number }).size_after ?? 0);
     // D1's per-database storage has a documented ceiling; alert at 80% of it so there is
     // room to act. Override with the D1_SIZE_ALERT_BYTES var when Cloudflare moves it.
     const ceiling = Number(env.D1_SIZE_ALERT_BYTES ?? 8 * 1024 ** 3);
