@@ -13,6 +13,7 @@ import { ask, askStream, similar, speakVerse } from "./ai";
 import { VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
+import { reportHealth, selfCheck } from "./health";
 import { bookLabel } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
@@ -348,6 +349,8 @@ export default {
   fetch: app.fetch,
   scheduled(event, env, ctx) {
     ctx.waitUntil(sendDaily(env, new Date(event.scheduledTime)));
+    // The hourly self-check pages the admins over Telegram when something breaks.
+    ctx.waitUntil(selfCheck(env).then((r) => reportHealth(env, r)));
     // A few recordings' frames an hour, until the whole archive is in the bucket.
     ctx.waitUntil(warmFrames(env).then((r) => console.log(`frames: warmed ${r.warmed.length}, failed ${r.failed.length}`)));
   },

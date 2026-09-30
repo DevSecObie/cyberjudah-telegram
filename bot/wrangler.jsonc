@@ -32,6 +32,22 @@
   "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "cyberjudah-audio" }],
   // Hourly: the daily verse goes to every subscriber whose local hour is now.
   "triggers": { "crons": ["0 * * * *"] },
+  // Staging: the same code against separate resources, deployed by .github/workflows/stage.yml.
+  // The staging bot is a second @BotFather bot; its token and webhook secret live in the
+  // STAGING_BOT_TOKEN / STAGING_WEBHOOK_SECRET repository secrets. D1 "cyberjudah-telegram"
+  // and the Vectorize index are the shared read-only data (staging never runs the embed);
+  // the staging database and the SUBS-STAGING KV namespace are staging's own.
+  "env": {
+    "staging": {
+      "name": "cyberjudah-telegram-staging",
+      "d1_databases": [
+        { "binding": "DB", "database_name": "cyberjudah-telegram-staging", "database_id": "00000000-0000-0000-0000-000000000000" },
+        { "binding": "TEACH", "database_name": "cyberjudah", "database_id": "11111111-1111-1111-1111-111111111111" }
+      ],
+      "kv_namespaces": [{ "binding": "SUBS", "id": "00000000000000000000000000000000" }],
+      "vars": { "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr" }
+    }
+  },
   // Secrets, set by the deploy workflow with `wrangler secret put`: BOT_TOKEN, WEBHOOK_SECRET,
   // APP_URL (the t.me link, once /newapp is done) and WORKER_URL (this Worker's public URL).
   "vars": {

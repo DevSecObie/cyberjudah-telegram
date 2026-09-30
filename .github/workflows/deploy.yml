@@ -35,6 +35,9 @@ jobs:
   deploy:
     needs: check
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # Attach required reviewers under Settings → Environments → production to gate
+    # production deploys behind a human approval. Until then this is a label only.
+    environment: production
     runs-on: ubuntu-latest
     steps:
       - name: Check the repository secrets
