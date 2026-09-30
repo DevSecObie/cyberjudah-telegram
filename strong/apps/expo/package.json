@@ -158,7 +158,6 @@
     "immer": "^9.0.16",
     "intl": "^1.2.5",
     "jotai": "^2.16.0",
-    "jotai-devtools": "^0.13.0",
     "lottie-react-native": "~7.3.4",
     "lucide-react": "^1.47.0",
     "lunr-languages": "^1.9.0",
