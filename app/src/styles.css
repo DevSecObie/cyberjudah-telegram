@@ -1195,3 +1195,9 @@ html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[dat
 .bsearch__empty p { margin: 0; max-width: 320px; font: 400 16px/1.4 var(--a-ui); }
 .bsearch__examples { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 #root .bsearch__examples button, .bsearch__examples button { padding: 4px 12px; border-radius: 20px; background: var(--a-card); border: 1px solid var(--a-line); color: var(--a-ink-2); font: 400 14px var(--a-ui); cursor: pointer; }
+
+/* A screen that failed to draw: what happened and a way on, never a black page. */
+.crash { min-height: 60vh; justify-content: center; text-align: center; gap: 10px; }
+.crash__actions { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+#root .crash__btn, .crash__btn { padding: 11px 20px; border-radius: 22px; border: 1px solid var(--a-line); background: var(--a-card); color: var(--a-ink); font: 600 15px var(--a-ui); cursor: pointer; }
+#root .crash__btn--main, .crash__btn--main { background: var(--a-accent); border-color: transparent; color: var(--a-on-accent, #001014); }

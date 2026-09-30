@@ -977,3 +977,13 @@ test("the bottom bar sits above the Bible, and each reader chooses its buttons",
   // The choice is kept with the reader's other settings, in Telegram's cloud.
   expect(JSON.parse((await cloud(page)).nav)).toEqual(["home", "bible", "classes", "ask", "library", "tabs"]);
 });
+
+test("a back step from the first screen stays in the app instead of going to a blank page", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  // A phone's back gesture or Telegram Desktop's back walks the page's history.
+  for (let i = 0; i < 3; i++) { await page.goBack().catch(() => {}); await page.waitForTimeout(250); }
+  await expect(page).toHaveURL(/\/read\/genesis\/1/);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await expect(page.locator(".tabs")).toBeVisible();
+});

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./App";
 import { SheetProvider } from "./ui/sheet";
 import { boot } from "./tg/sdk";
+import { installBackGuard } from "./lib/backguard";
 import "@telegram-apps/telegram-ui/dist/styles.css";
 import "./styles.css";
 
@@ -23,6 +24,8 @@ const here = location.pathname;
 const basename = built && (here === built || here.startsWith(`${built}/`)) ? built : "/";
 
 boot({ bg: "#05070f", header: "#05070f", bottomBar: "#05070f" });
+// Before the router reads the history: a back step must never leave the app for a blank page.
+installBackGuard();
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 5 * 60_000, retry: 1, refetchOnWindowFocus: false } } });
 
