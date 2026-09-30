@@ -281,15 +281,17 @@ test("tabs are roots, detail screens push, and the back button walks them", asyn
 
 test("the reading plan ticks today's chapters and keeps a streak", async ({ page }) => {
   await page.goto(`/plan${LAUNCH}`);
-  await expect.poll(async () => (await state(page)).main).toBe('Start the plan');
-  await press(page, "main");
+  // The screen's actions are glass buttons above the tab bar, not Telegram's own bottom buttons.
+  await expect(page.locator(".pageaction").last()).toHaveText("Start the plan");
+  expect((await state(page)).main).toBeNull();
+  await page.locator(".pageaction").last().click();
   await page.click(".sheet__item >> text=4 chapters a day");
   await expect(page.locator(".card__label")).toHaveText("Today");
   await expect(page.locator(".plan-row")).toHaveCount(4);
   for (let i = 0; i < 4; i++) await page.locator(".plan-row i").nth(i).click();
   await expect(page.locator(".plan-row[data-read]")).toHaveCount(4);
-  expect((await state(page)).main).toBe("Tomorrow's reading");
-  await press(page, "main");
+  await expect(page.locator(".pageaction").last()).toHaveText("Tomorrow's reading");
+  await page.locator(".pageaction").last().click();
   await expect(page.locator(".kicker")).toContainText("Day 2");
   await expect(page.locator(".card__ref")).toContainText("1 day streak");
 });
@@ -853,4 +855,19 @@ test("Ask is on the bottom bar: it opens Ask CyberJudah in its own tab", async (
   // The Bible is still its own tab to go back to.
   await page.click(".tab >> text=Bible");
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
+});
+
+test("an opened class keeps the tab bar, with its actions floating above it", async ({ page }) => {
+  await page.route("https://data.cyberjudah.io/api/notes/classes/2026/2026-09-26-keep-the-bar.json", (r) => r.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({ kind: "class", title: "Keep the bar", url: "/classes/2026/2026-09-26-keep-the-bar", date: "2026-09-26", teacher: "Captain Joel", videoId: "eNMvid6j-qk", body: "## Scriptures Opened\n\nThe remnant is gathered." }),
+  }));
+  await page.goto(`/note/classes/2026/2026-09-26-keep-the-bar${LAUNCH}`);
+  await expect(page.locator(".pageactions")).toBeVisible();
+  await expect(page.locator(".tabs").first()).toBeVisible();
+  await expect(page.locator(".tabs >> text=Ask")).toBeVisible();
+  expect(await state(page)).toMatchObject({ main: null, second: null });
+  const actions = await page.locator(".pageactions").boundingBox();
+  const bar = await page.locator(".tabs").first().boundingBox();
+  expect(actions!.y + actions!.height).toBeLessThanOrEqual(bar!.y + 1);
 });
