@@ -1049,7 +1049,7 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 .tagadd input:focus { outline: none; border-color: color-mix(in srgb, var(--a-accent) 45%, transparent); }
 
 /* Bible Strong's New Tab page and tab switcher (features/app-switcher), on our resources. */
-.nt-heading { margin: 16px 0 4px; text-align: center; font: 600 28px/1.25 var(--a-read); color: var(--a-ink-2); }
+.nt-heading { margin: 16px 0 4px; text-align: center; font: 700 28px/1.25 var(--a-ui); color: var(--a-ink-2); }
 .nt-list { display: grid; gap: 10px; }
 .nt-item, .nt-hero { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; width: 100%; padding: 14px; border-radius: var(--r-lg); border: 1px solid var(--a-line); background: var(--a-card); color: var(--a-ink); text-align: left; cursor: pointer; transition: transform .16s var(--ease); }
 .nt-item:active, .nt-hero:active { transform: scale(.98); }
@@ -1093,15 +1093,10 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 .tabs--switcher { display: flex; align-items: center; }
 .switcherbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 52px; padding: 0 8px; }
 #root .switcherbar__add, #root .switcherbar__ok { display: grid; place-items: center; min-width: 44px; height: 44px; padding: 0 6px; border: 0; background: none; color: var(--a-ink-2); cursor: pointer; }
-#root button.switcherbar__ok { font: 700 15px var(--a-ui); color: var(--a-accent); }
-#root .switcherbar__group { display: inline-flex; align-items: center; gap: 4px; max-width: 50vw; padding: 7px 14px; border-radius: 20px; font: 600 14px var(--a-ui); cursor: pointer;
-  color: var(--a-ink-2);
-  background: color-mix(in srgb, var(--group, var(--a-ink-2)) 18%, transparent);
-  border: 1px solid color-mix(in srgb, var(--group, var(--a-ink-2)) 38%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent);
-  transition: background-color 300ms ease, border-color 300ms ease; }
+#root button.switcherbar__ok { font: 700 15px var(--a-ui); color: var(--a-ink-2); }
+#root .switcherbar__group { display: inline-flex; align-items: center; gap: 4px; max-width: 50vw; min-height: 44px; padding: 7px 14px; font: 400 14px var(--a-ui); cursor: pointer; color: var(--group, var(--a-ink-2)); background: none; border: 0; box-shadow: none; }
 #root .switcherbar__group span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tab__count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 4px; border: 1.8px solid currentColor; border-radius: 6px; font: 700 11px var(--a-ui); font-variant-numeric: tabular-nums; }
+.tab__count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 4px; border: 1.5px solid currentColor; border-radius: 5px; color: var(--a-muted); font: 400 11px var(--a-ui); font-variant-numeric: tabular-nums; }
 
 /* A screen's actions (Open in YouTube, Share...), in the app instead of Telegram's own bottom bar,
    which covered the tab bar: glass buttons just above the tab bar, as the dock is glass. */
@@ -1249,3 +1244,13 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 @media (prefers-reduced-transparency: reduce) {
   .tabs, .sheet, .drawer, .drawer__head, .bsearch__bar { background: var(--a-bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
+
+/* New-tab entry points and the switcher's faint content previews. */
+.newtab .shelf { font-family: var(--a-ui); font-weight: 700; }
+#root .nt-search { display: flex; align-items: center; gap: 10px; width: 100%; margin: 24px 0 8px; padding: 14px 16px; border: 0; border-radius: 12px; background: var(--a-card); color: var(--a-muted); text-align: left; font: 400 15px var(--a-ui); cursor: pointer; }
+.nt-hero { background: var(--a-card); border-color: var(--a-line); }
+.nt-hero__icon { width: 80px; height: 100px; background: none; }
+.nt-hero__body b { font-family: var(--a-ui); font-size: 28px; font-weight: 700; }
+.tabcard__preview { position: absolute; inset: 48px 12px 0; overflow: hidden; opacity: .15; text-align: left; font: 400 12px/1.65 var(--a-read); pointer-events: none; }
+.tabcard__preview > span { display: block; margin-top: 6px; }
+.tabcard__icon { position: relative; z-index: 1; }

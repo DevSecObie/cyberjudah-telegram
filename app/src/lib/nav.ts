@@ -12,7 +12,7 @@ export type NavItem = { id: NavId; label: string; icon: IconName | "count"; path
 export const NAV_ITEMS: NavItem[] = [
   { id: "home", label: "Home", icon: "home", path: "/", match: /^\/$/ },
   { id: "search", label: "Search", icon: "search", path: "/search", match: /^\/search/ },
-  { id: "bible", label: "Bible", icon: "book", path: "/bible", match: /^\/(bible|read)(\/|$)/ },
+  { id: "bible", label: "Bible", icon: "book-open", path: "/bible", match: /^\/(bible|read)(\/|$)/ },
   { id: "classes", label: "Classes", icon: "play", path: "/classes", match: /^\/(classes|note|watch)(\/|$)/ },
   { id: "ask", label: "Ask", icon: "chat", path: "/ask", match: /^\/ask(\/|\?|$)/ },
   { id: "tabs", label: "Tabs", icon: "count", path: "/tabs", match: /^\/tabs/ },

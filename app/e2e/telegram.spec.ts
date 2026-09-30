@@ -398,7 +398,8 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await page.click('.tab[aria-label^="Tabs"]');
   await expect(page).toHaveURL(/\/tabs/);
   await expect(page.locator(".tabcard")).toHaveCount(1);
-  await expect(page.locator(".tabcard__title b").first()).toHaveText("Bible · Genesis 1");
+  await expect(page.locator(".tabcard__title b").first()).toHaveText("Genesis 1 - KJV");
+  await expect(page.locator(".tabcard__preview").first()).toContainText("In the beginning");
   // In the switcher the bottom bar is its controls: +, the group (the default group shows its count), OK.
   await expect(page.locator(".switcherbar__group")).toHaveText("1 tab");
   await page.click('[aria-label="Add a tab"]');
@@ -422,10 +423,18 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await page.click(".switcherbar__group");
   await page.click(".sheet__item >> text=1 tab");
   await expect(page.locator(".switcherbar__group")).toHaveText("1 tab");
-  await expect(page.locator(".tabcard__title b").first()).toHaveText("Bible · Genesis 1");
+  await expect(page.locator(".tabcard__title b").first()).toHaveText("Genesis 1 - KJV");
+  await expect(page.locator(".tabcard__preview").first()).toContainText("In the beginning");
   if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/tabs.png` }); }
   await page.click(".switcherbar__ok");
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
+});
+
+test("the new-tab search entry opens Search in that tab", async ({ page }) => {
+  await page.goto(`/new${LAUNCH}`);
+  await page.getByRole("button", { name: "A passage, a tab, a tool…" }).click();
+  await expect(page).toHaveURL(/\/search/);
+  await expect(page.locator('.tab[aria-label="Search"]')).toHaveAttribute("aria-current", "page");
 });
 
 test("the settings button opens settings", async ({ page }) => {

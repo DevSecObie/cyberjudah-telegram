@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { APOCRYPHA } from "@/api/data";
 
 /**
  * Bible Strong's tabs (features/app-switcher), on our screens: each tab is a place in the app,
@@ -138,7 +139,7 @@ export const askTabPath = () => tabOfKind((p) => /^\/ask(\/|\?|$)/.test(p), "/as
 
 /** A tab's name and kind from its path, for the switcher's cards. */
 const KINDS: [RegExp, string, string][] = [
-  [/^\/new/, "New tab", "compose"], [/^\/(bible|read)/, "Bible", "book"], [/^\/search/, "Search", "search"], [/^\/lexicon/, "Strong", "spark"],
+  [/^\/new/, "New tab", "compose"], [/^\/(bible|read)/, "Bible", "book-open"], [/^\/search/, "Search", "search"], [/^\/lexicon/, "Strong", "spark"],
   [/^\/dictionary/, "Dictionary", "type"], [/^\/topics/, "Topics", "tag"], [/^\/(person|people)/, "People", "star"], [/^\/(classes|note|watch)/, "Classes", "play"],
   [/^\/history/, "Our Hidden History", "history"], [/^\/books/, "Library", "layers"], [/^\/encyclopedia/, "Encyclopedia", "book"], [/^\/law/, "The Law", "law"],
   [/^\/precepts/, "Precepts", "quote"], [/^\/cases/, "Case studies", "folder"], [/^\/plan/, "Reading plan", "check"], [/^\/study/, "4 Chapters a Day", "book"],
@@ -152,8 +153,16 @@ export function tabKind(path: string): { kind: string; icon: string } {
 export function tabPlace(path: string): string {
   const p = path.split(/[?#]/)[0].split("/").filter(Boolean);
   const words = (s: string) => decodeURIComponent(s).replace(/[-_]+/g, " ").replace(/^\d{4} \d{2} \d{2} /, "").replace(/\b\w/g, (c) => c.toUpperCase());
-  if ((p[0] === "bible" || p[0] === "read") && p[1]) return `${words(p[1])}${p[2] ? ` ${p[2]}` : ""}`;
+  if ((p[0] === "bible" || p[0] === "read") && p[1]) return `${APOCRYPHA.find(([slug]) => slug === p[1])?.[1] ?? words(p[1])}${p[2] ? ` ${p[2]}` : ""}`;
   if (p[0] === "lexicon" && p[1]) return p[1].toUpperCase();
   if (p.length > 1) return words(p[p.length - 1]);
   return "";
+}
+
+/** Use the resource's own title instead of prefixing it with its tab kind. */
+export function tabTitle(path: string): string {
+  const place = tabPlace(path);
+  if (/^\/(bible|read)\//.test(path)) return `${place} - KJV`;
+  if (/^\/search(?:\?|$)/.test(path)) return new URLSearchParams(path.split("?")[1] ?? "").get("q")?.trim() || "Search";
+  return place || tabKind(path).kind;
 }
