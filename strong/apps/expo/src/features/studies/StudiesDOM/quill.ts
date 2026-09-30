@@ -242,7 +242,8 @@
         )
           if (null != (e = arguments[c]))
             for (n in e)
-              ((r = u[n]),
+              if (n !== '__proto__' && n !== 'constructor' && n !== 'prototype')
+                ((r = u[n]),
                 (l = e[n]),
                 u !== l &&
                   (h && l && (i(l) || (a = o(l)))
@@ -9891,7 +9892,7 @@
                       else if (null == e[o]) l = i.querySelector('option[selected]')
                       else if (!Array.isArray(e[o])) {
                         var a = e[o]
-                        ;('string' == typeof a && (a = a.replace(/\"/g, '\\"')),
+                        ;('string' == typeof a && (a = a.replace(/\\/g, '\\\\').replace(/"/g, '\\"')),
                           (l = i.querySelector('option[value="' + a + '"]')))
                       }
                       null == l ? ((i.value = ''), (i.selectedIndex = -1)) : (l.selected = !0)

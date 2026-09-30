@@ -3210,6 +3210,23 @@ function peg$parse(input, options) {
 }
 
 // build/bcv_matcher.ts
+// Linear trims from the end of a string. The patterns they replace (\s+\d+\s*$ and
+// [\s*]*\d+$) backtrack polynomially on long runs of whitespace.
+var isDigit = (c) => c >= "0" && c <= "9";
+var isSpace = (c) => c !== "" && /\s/.test(c);
+var isSpaceOrStar = (c) => c === "*" || isSpace(c);
+var trimEndWhile = (s, keep) => {
+  let i = s.length;
+  while (i > 0 && keep(s[i - 1])) i--;
+  return s.slice(0, i);
+};
+// Removes whitespace, digits and whitespace at the end, as s.replace(/\s+\d+\s*$/, "") did.
+var trimTrailingSpacedNumber = (s) => {
+  const noTrailingSpace = trimEndWhile(s, isSpace);
+  const noDigits = trimEndWhile(noTrailingSpace, isDigit);
+  if (noDigits.length === noTrailingSpace.length || !isSpace(noDigits.slice(-1))) return s;
+  return trimEndWhile(noDigits, isSpace);
+};
 var bcv_matcher = class {
   constructor(parent, grammar_options2) {
     this.parent = parent;
@@ -3355,7 +3372,7 @@ var bcv_matcher = class {
   // Clean up the end of a match by removing unnecessary characters.
   clean_end_match(s, match, part) {
     if (/\s[2-9]\d\d\s*$|\s\d{4,}\s*$/.test(part)) {
-      part = part.replace(/\s+\d+\s*$/, "");
+      part = trimTrailingSpacedNumber(part);
     }
     if (!/[\d\x1f\x1e)]$/.test(part)) {
       const sub_parts = part.split(this.parent.regexps.match_end_split);
@@ -3367,9 +3384,16 @@ var bcv_matcher = class {
     if (this.parent.options.captive_end_digits_strategy === "delete") {
       const next_char_index = match.index + part.length;
       if (s.length > next_char_index && /^\w/.test(s.charAt(next_char_index))) {
-        part = part.replace(/[\s*]+\d+$/, "");
+        const digitsGone = trimEndWhile(part, isDigit);
+        if (digitsGone.length < part.length && isSpaceOrStar(digitsGone.slice(-1))) {
+          part = trimEndWhile(digitsGone, isSpaceOrStar);
+        }
       }
-      part = part.replace(/(\x1e[)\]]?)[\s*]*\d+$/, "$1");
+      const withoutDigits = trimEndWhile(part, isDigit);
+      if (withoutDigits.length < part.length) {
+        const withoutSpace = trimEndWhile(withoutDigits, isSpaceOrStar);
+        if (/\x1e[)\]]?$/.test(withoutSpace)) part = withoutSpace;
+      }
     }
     return part;
   }
