@@ -56,6 +56,44 @@ export function reserve(acct, p, now = Date.now()) {
   return { before, reserved: spend(a, take, p, now) };
 }
 
+/** What a reserve() took from each pot: the per-pot breakdown of the reservation. */
+export function takeOf(before, reserved) {
+  const b = before ?? emptyAccount(), r = reserved ?? emptyAccount();
+  return {
+    free: Math.max(0, (r.freeUsed ?? 0) - (b.freeUsed ?? 0)),
+    plan: Math.max(0, (r.plan?.used ?? 0) - (b.plan?.used ?? 0)),
+    credits: Math.max(0, (b.credits ?? 0) - (r.credits ?? 0)),
+  };
+}
+
+/**
+ * Settle a reservation against the CURRENT account (no snapshot needed): the reservation
+ * took `take` up front; charging actualUnits spends the extra, or refunds the unused part
+ * back through the pots in reverse — credits, plan, free — which is the exact inverse of
+ * spend(). With no concurrent change and the same UTC day, this equals spend(before,
+ * actualUnits); under concurrency it stays atomic instead of clobbering the other request.
+ * A refund that cannot go back (the day rolled over, a pot was spent meanwhile) lands in
+ * the credit, which never expires: the total is always exact, no pot ever goes negative.
+ */
+export function settleTake(acct, take, actualUnits, p, now = Date.now()) {
+  const t = { free: Math.max(0, take?.free ?? 0), plan: Math.max(0, take?.plan ?? 0), credits: Math.max(0, take?.credits ?? 0) };
+  const reserved = t.free + t.plan + t.credits;
+  const actual = Math.max(0, Math.round(actualUnits));
+  if (actual >= reserved) return spend(acct, actual - reserved, p, now);
+  const a = structuredClone(acct ?? emptyAccount());
+  if (a.day !== today(now)) { a.day = today(now); a.freeUsed = 0; }
+  // Refund the unused reservation back through the pots in reverse — credits, plan, free —
+  // capped by what the reservation took, so no pot can go negative or be created from
+  // nothing. Anything that cannot go back (the day rolled over, a pot was spent meanwhile)
+  // lands in the credit, which never expires: the total is always exact.
+  let left = reserved - actual;
+  const backCredits = Math.min(left, t.credits); a.credits = (a.credits ?? 0) + backCredits; left -= backCredits;
+  const backPlan = a.plan ? Math.min(left, t.plan, a.plan.used) : 0; if (a.plan) a.plan.used -= backPlan; left -= backPlan;
+  const backFree = Math.min(left, t.free, a.freeUsed); a.freeUsed -= backFree; left -= backFree;
+  a.credits = (a.credits ?? 0) + left;
+  return a;
+}
+
 /** What is left in each pot now; the day's free allowance starts again each UTC day. */
 export function balance(acct, p, now = Date.now()) {
   const a = acct ?? emptyAccount();

@@ -89,3 +89,49 @@ test("a support payload names its giver and its Stars, nothing else", () => {
   assert.equal(readSupport("ask:plan:7:750"), null);
   assert.equal(readSupport(""), null);
 });
+
+test("takeOf names what a reservation took from each pot", async () => {
+  const { takeOf } = await import("../src/billing.mjs");
+  let a = grantPack(grantPlan(null, p, NOW + 30 * 86400000, NOW), 150, p);
+  a = spend(a, 90000, p, NOW); // 90k of the 100k free used
+  const { before, reserved } = reserve(a, p, NOW);
+  const take = takeOf(before, reserved);
+  // 10k left free, so the 20k reservation takes 10k free + 10k plan.
+  assert.deepEqual(take, { free: 10000, plan: 10000, credits: 0 });
+  assert.equal(take.free + take.plan + take.credits, RESERVE_UNITS);
+});
+
+test("settleTake matches settling against the snapshot, for cheap and costly answers", async () => {
+  const { settleTake, takeOf } = await import("../src/billing.mjs");
+  const accounts = [
+    null, // brand-new
+    spend(null, 90000, p, NOW), // almost all free used
+    spend(null, 100000, p, NOW), // free exhausted
+    grantPack(spend(null, 100000, p, NOW), 150, p), // free exhausted, credit only
+    grantPack(grantPlan(spend(null, 100000, p, NOW), p, NOW + 30 * 86400000, NOW), 150, p), // plan + credit
+  ];
+  for (const before of accounts) {
+    const { reserved } = reserve(before, p, NOW);
+    const take = takeOf(before, reserved);
+    for (const actual of [0, 5000, RESERVE_UNITS, 60000, 200000]) {
+      const viaTake = settleTake(reserved, take, actual, p, NOW);
+      const viaSnapshot = spend(before, actual, p, NOW);
+      assert.deepEqual(viaTake, viaSnapshot, `actual=${actual} take=${JSON.stringify(take)}`);
+    }
+  }
+});
+
+test("settleTake never creates money or negative pots under concurrent spending", async () => {
+  const { settleTake, takeOf } = await import("../src/billing.mjs");
+  // Two concurrent reservations from one account; the second settles after the first spent more.
+  const before = grantPack(grantPlan(null, p, NOW + 30 * 86400000, NOW), 150, p);
+  const r1 = reserve(before, p, NOW), r2 = reserve(r1.reserved, p, NOW);
+  const take2 = takeOf(r1.reserved, r2.reserved);
+  const concurrent = spend(r2.reserved, 50000, p, NOW); // first request settled meanwhile
+  const settled = settleTake(concurrent, take2, 5000, p, NOW);
+  assert.ok(settled.freeUsed >= 0 && (settled.plan?.used ?? 0) >= 0 && settled.credits >= 0);
+  const total = (a) => (a.day === new Date(NOW).toISOString().slice(0, 10) ? p.freeDaily - a.freeUsed : p.freeDaily)
+    + (a.plan && a.plan.until > NOW ? a.plan.allowance - a.plan.used : 0) + a.credits;
+  // Charged: 20k (r1) + 50k (first settle) + 5k (second settle) = 75k of the starting total.
+  assert.equal(total(before) - total(settled), 75000);
+});

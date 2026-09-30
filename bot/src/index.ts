@@ -19,7 +19,7 @@ import { dictionary } from "./dictionary";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
 import { CHAT_ID, deleteChat, getChat, listChats } from "./chats";
 import { notePdf, pdfName } from "./pdf.mjs";
-import { billingOn, invoiceFor, prices, standing, SUPPORT_STARS } from "./billing";
+import { billingOn, invoiceFor, prices, pruneBilling, standing, usageDay, SUPPORT_STARS } from "./billing";
 import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 
@@ -218,8 +218,8 @@ app.get("/api/admin/usage", async (c) => {
   if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false }, 403);
   const p = prices(c.env);
   const days = await Promise.all(Array.from({ length: 14 }, (_, i) => new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)).map(async (day) => {
-    const d = (await c.env.SUBS.get(`usage:${day}`, "json")) as { questions: number; units: number; people: number[] } | null;
-    return { day, questions: d?.questions ?? 0, people: d?.people?.length ?? 0, units: d?.units ?? 0, usd: Math.round(((d?.units ?? 0) / 1e6) * p.usdPerMtok * 100) / 100 };
+    const d = await usageDay(c.env, day);
+    return { day, questions: d.questions, people: d.people, units: d.units, usd: Math.round((d.units / 1e6) * p.usdPerMtok * 100) / 100 };
   }));
   return c.json({ ok: true, usdPerMtok: p.usdPerMtok, usdPerStar: p.usdPerStar, margin: p.margin, days });
 });
@@ -351,6 +351,8 @@ export default {
     ctx.waitUntil(sendDaily(env, new Date(event.scheduledTime)));
     // The hourly self-check pages the admins over Telegram when something breaks.
     ctx.waitUntil(selfCheck(env).then((r) => reportHealth(env, r)));
+    // Old usage rows are pruned; the tables stay small.
+    ctx.waitUntil(pruneBilling(env).catch((e) => console.error(JSON.stringify({ event: "prune_failed", message: (e as Error).message?.slice(0, 120) }))));
     // A few recordings' frames an hour, until the whole archive is in the bucket.
     ctx.waitUntil(warmFrames(env).then((r) => console.log(`frames: warmed ${r.warmed.length}, failed ${r.failed.length}`)));
   },

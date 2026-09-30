@@ -6,7 +6,7 @@ import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { saveExchange } from "./chats";
-import { billingOn, charge, reserveAsk, settleAsk, standing, RESERVE_UNITS } from "./billing";
+import { billingOn, charge, reserveAsk, settleAsk, standing, RESERVE_UNITS, type Take } from "./billing";
 import type { Account } from "./billing.mjs";
 
 /**
@@ -107,11 +107,11 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   // A metered answer reserves its minimum up front and settles the exact units at the end,
   // so an abandoned or failed request cannot spend the model's work for free.
   const metered = billingOn(env) && !!env.ANTHROPIC_API_KEY;
-  let snap: Account | null = null;
+  let take: Take | null = null;
   if (metered) {
     const r = await reserveAsk(env, userId);
     if (!r.ok) return { ok: false, reason: "allowance" };
-    snap = r.before;
+    take = r.take;
   } else if (billingOn(env) ? !(await standing(env, userId)).ok : !(await allowed(env, userId))) {
     return { ok: false, reason: billingOn(env) ? "allowance" : "limit" };
   }
@@ -119,7 +119,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
     const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
     if (env.ANTHROPIC_API_KEY) {
       const { text, passages, units } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), () => undefined, ctx);
-      if (metered && snap) await settleAsk(env, userId, snap, units);
+      if (metered && take) await settleAsk(env, userId, take, units);
       else await charge(env, userId, units);
       const { answer } = splitFollowups(text);
       return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
@@ -130,7 +130,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
     return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
   } catch (e) {
     // The reservation stands: the model was paid for whether the answer arrived or not.
-    if (metered && snap) await settleAsk(env, userId, snap, RESERVE_UNITS).catch(() => null);
+    if (metered && take) await settleAsk(env, userId, take, RESERVE_UNITS).catch(() => null);
     console.error(JSON.stringify({ event: "ask_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 200) }));
     return { ok: false, reason: "unavailable" };
   }
@@ -191,11 +191,11 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // A metered answer reserves its minimum up front (see ask): an abandoned or failed
   // stream cannot spend the model's work for free.
   const metered = billingOn(env) && !!env.ANTHROPIC_API_KEY;
-  let snap: Account | null = null;
+  let take: Take | null = null;
   if (metered) {
     const r = await reserveAsk(env, userId);
     if (!r.ok) return new Response(line({ error: "allowance", balance: r.balance }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
-    snap = r.before;
+    take = r.take;
   } else if (billingOn(env)) {
     const st = await standing(env, userId);
     if (!st.ok) return new Response(line({ error: "allowance", balance: st.balance }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
@@ -222,8 +222,8 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           const sources = sourcesOf(answer, passages);
           send({ done: true, answer, followups, sources });
           // The answer is charged what it used, and the person sees what is left.
-          const left = metered && snap
-            ? await settleAsk(env, userId, snap, units).catch(() => null)
+          const left = metered && take
+            ? await settleAsk(env, userId, take, units).catch(() => null)
             : await charge(env, userId, units).catch(() => null);
           console.log(JSON.stringify({ event: "ask_usage", units, calls, searches: steps.length }));
           if (left && billingOn(env)) send({ usage: { units, balance: left } });
@@ -244,7 +244,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
         keep(clean, sources, followups);
       } catch (e) {
         // The reservation stands: the model was paid for whether the answer arrived or not.
-        if (metered && snap) await settleAsk(env, userId, snap, RESERVE_UNITS).catch(() => null);
+        if (metered && take) await settleAsk(env, userId, take, RESERVE_UNITS).catch(() => null);
         console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
         send({ error: "unavailable" });
       } finally { controller.close(); }

@@ -1,6 +1,8 @@
 export type Usage = { input_tokens?: number; output_tokens?: number; cache_creation_input_tokens?: number | null; cache_read_input_tokens?: number | null };
 export type Plan = { until: number; allowance: number; used: number };
 export type Account = { day: string; freeUsed: number; plan: Plan | null; credits: number };
+/** The per-pot breakdown of what a reservation took: { free, plan, credits }. */
+export type Take = { free: number; plan: number; credits: number };
 export type Pricing = { usdPerMtok: number; usdPerStar: number; margin: number; unitsPerStar: number; freeDaily: number; plan: { stars: number; units: number }; packs: { stars: number; units: number }[] };
 export type Balance = { free: number; plan: number; planOn: boolean; planUntil: number | null; planAllowance: number; credits: number; total: number };
 export function unitsOf(u: Usage | null | undefined): number;
@@ -9,6 +11,8 @@ export function today(now?: number): string;
 export function emptyAccount(): Account;
 export const RESERVE_UNITS: number;
 export function reserve(acct: Account | null, p: Pricing, now?: number): { before: Account; reserved: Account };
+export function takeOf(before: Account | null, reserved: Account | null): Take;
+export function settleTake(acct: Account | null, take: Take | null, actualUnits: number, p: Pricing, now?: number): Account;
 export function balance(acct: Account | null, p: Pricing, now?: number): Balance;
 export function spend(acct: Account | null, units: number, p: Pricing, now?: number): Account;
 export function grantPlan(acct: Account | null, p: Pricing, until: number, now?: number): Account;
