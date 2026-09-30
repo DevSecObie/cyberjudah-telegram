@@ -4,7 +4,7 @@ import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection,
 
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
-import { bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
+import { askTabPath, bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
 import { SwitcherBar } from "@/screens/Tabs";
 
 export type IconName = "home" | "search" | "play" | "book" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus";
@@ -53,13 +53,14 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
 
 /**
  * Bible Strong's bottom bar (app-switcher/BottomTabBar): Home, Search, Bible, the open tabs,
- * and the menu. Home and the menu are not tabs; Search and the Bible go to their tab (or open
+ * and the menu. Home and the menu are not tabs; Search, the Bible and Ask go to their tab (or open
  * one); the tabs button shows how many are open and opens the switcher.
  */
 export function tabOf(path: string): string {
   if (path === "/") return "home";
   if (path.startsWith("/search")) return "search";
   if (/^\/(bible|read)(\/|$)/.test(path)) return "bible";
+  if (/^\/ask(\/|\?|$)/.test(path)) return "ask";
   if (path.startsWith("/more")) return "more";
   return "tabs";
 }
@@ -74,6 +75,7 @@ export function TabBar() {
     { id: "home", label: "Home", icon: <Icon name="home" size={24} />, onClick: () => go("/") },
     { id: "search", label: "Search", icon: <Icon name="search" size={24} />, onClick: () => go(searchTabPath()) },
     { id: "bible", label: "Bible", icon: <Icon name="book" size={24} />, onClick: () => go(bibleTabPath()) },
+    { id: "ask", label: "Ask", icon: <Icon name="chat" size={24} />, onClick: () => go(askTabPath()) },
     { id: "tabs", label: "Tabs", icon: <span className="tab__count" aria-hidden="true">{tabs.length}</span>, onClick: () => go("/tabs") },
     { id: "more", label: "More", icon: <Icon name="more" size={24} />, onClick: () => go("/more") },
   ];

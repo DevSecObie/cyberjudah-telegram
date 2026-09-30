@@ -127,6 +127,8 @@ function tabOfKind(test: (p: string) => boolean, fresh: string): string {
 }
 export const bibleTabPath = () => tabOfKind((p) => /^\/(bible|read)(\/|$)/.test(p), "/bible");
 export const searchTabPath = () => tabOfKind((p) => /^\/search(\?|$)/.test(p), "/search");
+/** Ask CyberJudah, the same way: its tab if one is open, else a new one. */
+export const askTabPath = () => tabOfKind((p) => /^\/ask(\/|\?|$)/.test(p), "/ask");
 
 /** A tab's name and kind from its path, for the switcher's cards. */
 const KINDS: [RegExp, string, string][] = [

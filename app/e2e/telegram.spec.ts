@@ -380,7 +380,7 @@ test("Home is the front door: one field, search the classes or ask CyberJudah", 
   await expect(page.locator(".shelf")).toHaveText(["Learn", "Study", "Meditate", "Go further"]);
   await expect(page.locator(".widget")).toHaveCount(6);
   await expect(page.locator('.tools a[href="/lexicon"]')).toBeVisible();
-  await expect(page.locator(".tab")).toHaveCount(5);
+  await expect(page.locator(".tab")).toHaveCount(6); // Home, Search, Bible, Ask, Tabs, More
   await page.fill("#q", "Why do we keep the Passover?");
   await page.click(".door__btn--ask");
   await expect(page).toHaveURL(/\/ask/);
@@ -840,4 +840,17 @@ test("the Library searches inside every book, page by page", async ({ page }) =>
   await expect(page.locator(".section__head h2", { hasText: "2 pages" })).toBeVisible();
   await page.locator('a[href="/books/lost-tribes-a-myth/p/1-256"]').click();
   await expect(page).toHaveURL(/\/books\/lost-tribes-a-myth\//); // the page link lands in its chapter, at the page
+});
+
+test("Ask is on the bottom bar: it opens Ask CyberJudah in its own tab", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  const ask = page.locator(".tab", { hasText: "Ask" });
+  await expect(ask).toBeVisible();
+  await ask.click();
+  await expect(page).toHaveURL(/\/ask/);
+  await expect(ask).toHaveAttribute("aria-current", "page");
+  if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/ask-tab.png` }); }
+  // The Bible is still its own tab to go back to.
+  await page.click(".tab >> text=Bible");
+  await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
 });
