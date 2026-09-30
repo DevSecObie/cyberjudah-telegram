@@ -303,6 +303,27 @@ liveDataTest("settings: theme, spacing and offline books", async ({ page }) => {
   expect(cached).toBeGreaterThanOrEqual(1);
 });
 
+test("backup: everything kept goes to your chat as a file, and a file restores it", async ({ page }) => {
+  let sent: { keys: Record<string, string> } | null = null;
+  await page.route("**/api/backup", async (r) => { sent = r.request().postDataJSON(); await r.fulfill({ json: { ok: true, entries: Object.keys(sent!.keys).length } }); });
+  await page.goto(`/read/psalms/23${LAUNCH}`);
+  await tapVerse(page, 1);
+  await page.click(".bs-colors__cell:nth-child(2)");
+  await goInApp(page, "/settings");
+  await page.click(".row >> text=Send a backup to your chat");
+  await expect(page.locator("[role=status]")).toContainText(/Sent to your chat with the bot: \d+ entries\./);
+  expect(Object.keys(sent!.keys)).toContain("bs_h_psalms_23");
+  // Restore a file that holds a bookmark: it lands in the cloud storage.
+  const file = { name: "cyberjudah-backup-2026-09-30.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ app: "cyberjudah", version: 1, date: "2026-09-30", keys: { bs_bm: JSON.stringify([{ id: "b1", name: "Comfort", color: "#cc0000", book: "psalms", chapter: 23, verse: 4, date: 1 }]) } })) };
+  await page.locator('input[aria-label="Backup file"]').setInputFiles(file);
+  await expect(page.locator("[role=status]")).toContainText("Restored 1 entry.");
+  const c = await cloud(page);
+  expect(JSON.parse(c.bs_bm)[0].name).toBe("Comfort");
+  // A file that is not a backup is refused.
+  await page.locator('input[aria-label="Backup file"]').setInputFiles({ name: "x.json", mimeType: "application/json", buffer: Buffer.from("{}") });
+  await expect(page.locator("[role=status]")).toContainText("This file is not a CyberJudah backup.");
+});
+
 test("the settings button opens settings", async ({ page }) => {
   await page.goto(`/search${LAUNCH}`);
   await press(page, "settings");

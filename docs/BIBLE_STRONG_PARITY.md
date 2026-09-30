@@ -24,8 +24,8 @@ order the rest gets built in. "Ours" names the screen or component in `app/src`.
 | Strong marks and word study | `bible/ui/WordStudy.tsx`, `WordSheet.tsx` | Done, 66 books; Apocrypha through the Septuagint layer |
 | Compare / parallel versions | `CompareSheet.tsx` (verse beside cross-references and precepts) | Done as far as one text allows: only the KJV exists here |
 | Interlinear, pericope headers | none | Not built: no Hebrew or Greek text with the KJV |
-| Chapter entities (people named in the chapter) | `lib/taught.ts` `usePeopleNamed`, shown only in Resources | Strip at the top of the chapter still to build |
-| Search inside the Bible with version, canon, section and book filters | `SearchSheet.tsx` (reference, book, people, words) | Section and book filters still to build |
+| Chapter entities (people named in the chapter) | `bible/ui/ChapterPeople.tsx`, "In this chapter" at the end of the text | Done |
+| Search inside the Bible with version, canon, section and book filters | `SearchSheet.tsx` (reference, book, people, words; canon and book filters) | Done, as far as one version allows |
 | Reader settings (font, size, theme, colours, alignment, verse numbers, line height) | `ParamsSheet.tsx` | Done |
 | Audio (TTS) | Workers AI voices | Done |
 | Tabs and workspaces ("Open in new tab", groups, tab switcher) | none | To build |
@@ -50,15 +50,12 @@ order the rest gets built in. "Ours" names the screen or component in `app/src`.
 | Highlights, notes, bookmarks screens | `screens/Bookmarks.tsx` | Done |
 | Tags screen with tag detail, rename, delete | `screens/Tags.tsx` | Done |
 | Studies (rich editor) | `screens/Note.tsx` editing of class notes | The reader's own studies still to build |
-| Backup, import/export | none | To build: export and import of every `bs_*`, `rel_*` and plan key |
+| Backup, import/export | `lib/backup.ts`, Settings › Backup: a file sent to your chat by the bot, a file restored | Done |
 | Theme, Bible defaults, share options, downloads | `screens/Settings.tsx`, `ParamsSheet.tsx`, offline books | Done |
 | FAQ, onboarding tips | none | To build |
 
 ## Build order for what is left
 
 1. Reader tabs: a `bs_tabs` store, a tabs sheet with previews, close and new, "Open in new tab" in the reader menu.
-2. Search filters (section, book) in the reader's search sheet.
-3. Chapter entities strip at the top of a chapter.
-4. Backup: export and import of everything kept, from Settings.
-5. Onboarding tips and an FAQ page.
-6. A plan library built from the class series; the reader's own studies; the 5-day verse carousel.
+2. Onboarding tips and an FAQ page.
+3. A plan library built from the class series; the reader's own studies; the 5-day verse carousel.
