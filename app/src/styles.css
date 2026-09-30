@@ -34,7 +34,7 @@ html[data-fullscreen="yes"] .reader__bar { padding-top: 4px; }
   font: 400 16px/1.45 var(--a-ui);
   -webkit-tap-highlight-color: transparent;
 }
-#root [data-tabs] { padding-bottom: calc(var(--a-tabs) + 16px); }
+#root [data-tabs] { padding-bottom: calc(var(--a-tabs) + 26px); }
 #root a { color: inherit; text-decoration: none; }
 #root button:not([class*="tgui-"]) { font: inherit; color: inherit; }
 
@@ -75,8 +75,20 @@ html[data-fullscreen="yes"] .reader__bar { padding-top: 4px; }
 .section__head h2 { margin: 0; font: 600 15px/1.3 var(--a-ui); color: var(--a-ink-2); }
 .section__head a, .link { font: 500 14px var(--a-ui); color: var(--a-accent); background: none; border: 0; padding: 0; cursor: pointer; }
 
-/* Tab bar: TelegramUI's, fixed to the bottom, blurred over the page. */
-.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 0 max(8px, calc((100vw - 640px) / 2)) var(--safe-bottom, env(safe-area-inset-bottom, 0px)) !important; backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); }
+/* Tab bar: a floating Liquid Glass dock. It hovers over the page with a frosted,
+   saturated blur, a hairline edge and a top specular highlight, in every theme. */
+.tabs {
+  position: fixed; z-index: 40;
+  left: 12px; right: 12px; max-width: 616px; margin: 0 auto;
+  bottom: calc(10px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  border-radius: 26px;
+  padding: 6px 10px !important;
+  background: color-mix(in srgb, var(--a-bg) 58%, transparent);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  border: 1px solid color-mix(in srgb, var(--a-ink-2) 14%, transparent);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .20), inset 0 1px 0 color-mix(in srgb, #ffffff 38%, transparent);
+}
 .tabs .tab { padding: 8px 12px; gap: 4px; }
 
 /* Search field: TelegramUI's Input. */
@@ -290,7 +302,7 @@ html[data-tg="yes"] .steps { display: none; }
 /* Themes: the reader's choice, over Telegram's own dark or light. Everything reads tokens. */
 html[data-theme="light"] { --color-void: #f6f4ee; --color-panel: #ffffff; --color-panel-2: #ece9e0; --color-hair: #ddd8cc; --color-ink: #2a2620; --color-ink-2: #14120e; --color-muted: #6f6a60; --color-cyan: #0077a8; --color-magenta: #c8155a; color-scheme: light; }
 html[data-theme="sepia"] { --color-void: #f4ecd8; --color-panel: #fbf5e6; --color-panel-2: #ecdfc2; --color-hair: #d9caa6; --color-ink: #3b2f1e; --color-ink-2: #1f170c; --color-muted: #7a6a4f; --color-cyan: #8a5a12; --color-magenta: #a8262f; color-scheme: light; }
-html[data-theme="light"] .tabs, html[data-theme="sepia"] .tabs { background: color-mix(in srgb, var(--a-bg) 92%, transparent); }
+html[data-theme="light"] .tabs, html[data-theme="sepia"] .tabs { box-shadow: 0 12px 32px rgba(80, 60, 20, .16), inset 0 1px 0 color-mix(in srgb, #ffffff 65%, transparent); }
 html[data-font="sans"] .verses, html[data-font="sans"] .note, html[data-font="sans"] .verse { font-family: var(--a-ui); }
 html[data-spacing="airy"] .verses { line-height: 1.95; }
 html[data-spacing="tight"] .verses { line-height: 1.45; }
