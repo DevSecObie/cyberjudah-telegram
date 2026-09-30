@@ -4,6 +4,7 @@ import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection,
 
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
+import { bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
 
 export type IconName = "home" | "search" | "play" | "book" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download";
 export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
@@ -48,49 +49,37 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{p[name]}</svg>;
 }
 
-const TABS: { to: string; label: string; icon: IconName }[] = [
-  { to: "/", label: "Home", icon: "home" },
-  { to: "/classes", label: "Classes", icon: "play" },
-  { to: "/ask", label: "Ask", icon: "chat" },
-  { to: "/bible", label: "Bible", icon: "book" },
-  { to: "/more", label: "More", icon: "more" },
-];
-
-/** Which tab a screen belongs to, so the tab stays lit on everything opened from it. */
-export function tabOf(path: string): string {
-  if (path === "/" || path.startsWith("/search")) return "/";
-  if (/^\/(classes|note|watch|topics)(\/|$)/.test(path)) return "/classes";
-  if (path.startsWith("/ask")) return "/ask";
-  if (/^\/(bible|read)(\/|$)/.test(path)) return "/bible";
-  return "/more";
-}
-const LAST = "cj:tab:";
-
 /**
- * Telegram's own tab bar (TelegramUI's Tabbar), kept on every screen but the player, the
- * way an iOS app keeps it. Each tab remembers the screen it was left on and returns there;
- * tapping the tab you are on goes back to its first screen, or to the top when already there.
- * Tabs replace instead of push, so Telegram's back button never walks through tab taps.
+ * Bible Strong's bottom bar (app-switcher/BottomTabBar): Home, Search, Bible, the open tabs,
+ * and the menu. Home and the menu are not tabs; Search and the Bible go to their tab (or open
+ * one); the tabs button shows how many are open and opens the switcher.
  */
+export function tabOf(path: string): string {
+  if (path === "/") return "home";
+  if (path.startsWith("/search")) return "search";
+  if (/^\/(bible|read)(\/|$)/.test(path)) return "bible";
+  if (path.startsWith("/more")) return "more";
+  return "tabs";
+}
+
 export function TabBar() {
-  const { pathname, search } = useLocation();
+  const { pathname } = useLocation();
   const navigate = useNavigate();
+  const { tabs } = useTabs();
   const current = tabOf(pathname);
-  useEffect(() => { try { sessionStorage.setItem(LAST + current, pathname + search); } catch { /* private mode */ } }, [current, pathname, search]);
-  const go = (to: string) => {
-    haptic("select");
-    if (to !== current) {
-      let last: string | null = null;
-      try { last = sessionStorage.getItem(LAST + to); } catch { /* private mode */ }
-      navigate(last ?? to, { replace: true });
-    } else if (pathname !== to) navigate(to, { replace: true });
-    else window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  const go = (to: string) => { haptic("select"); if (to === pathname) window.scrollTo({ top: 0, behavior: "smooth" }); else navigate(to, { replace: true }); };
+  const items: { id: string; label: string; icon: ReactNode; onClick: () => void }[] = [
+    { id: "home", label: "Home", icon: <Icon name="home" size={24} />, onClick: () => go("/") },
+    { id: "search", label: "Search", icon: <Icon name="search" size={24} />, onClick: () => go(searchTabPath()) },
+    { id: "bible", label: "Bible", icon: <Icon name="book" size={24} />, onClick: () => go(bibleTabPath()) },
+    { id: "tabs", label: "Tabs", icon: <span className="tab__count" aria-hidden="true">{tabs.length}</span>, onClick: () => go("/tabs") },
+    { id: "more", label: "More", icon: <Icon name="more" size={24} />, onClick: () => go("/more") },
+  ];
   return (
     <Tabbar className="tabs" aria-label="Sections">
-      {TABS.map((t) => (
-        <Tabbar.Item key={t.to} className="tab" text={t.label} selected={current === t.to} aria-current={current === t.to ? "page" : undefined} onClick={() => go(t.to)}>
-          <Icon name={t.icon} size={24} />
+      {items.map((t) => (
+        <Tabbar.Item key={t.id} className="tab" text={t.label} selected={current === t.id} aria-current={current === t.id ? "page" : undefined} aria-label={t.id === "tabs" ? `Tabs, ${tabs.length} open` : undefined} onClick={t.onClick}>
+          {t.icon}
         </Tabbar.Item>
       ))}
     </Tabbar>
