@@ -25,7 +25,8 @@ import { Header, PassageContextBar, VersionSheet, type MenuAction } from "./ui/H
 import { ParamsSheet } from "./ui/ParamsSheet";
 import { ResourcesSheet, type ResourceTab } from "./ui/ResourcesSheet";
 import { CompareSheet } from "./ui/CompareSheet";
-import { isWhy, slugOfUrl, useTaughtRelations, whyVerse } from "@/lib/taught";
+import { isWhy, slugOfUrl, useMomentsByVerse, useTaughtRelations, whyVerse } from "@/lib/taught";
+import { ClassMomentsSheet } from "./ui/ClassMomentsSheet";
 import { WhySheet } from "./ui/WhySheet";
 import { SelectedVersesSheet } from "./ui/SelectedVersesSheet";
 import "./bible.css";
@@ -107,7 +108,10 @@ export function BibleTab() {
   }, [plan, list, progress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sheets.
-  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare">(null);
+  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare" | "moments">(null);
+  const [momentsVerse, setMomentsVerse] = useState(1);
+  // The classes that taught each verse: pictures after the verses, as Bible Strong shows its videos.
+  const classMoments = useMomentsByVerse(slug, ch);
   const [whyAt, setWhyAt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [resourceTab, setResourceTab] = useState<ResourceTab>("dictionary");
@@ -231,6 +235,7 @@ export function BibleTab() {
         <Chapter slug={slug} chapter={ch} verses={verses} settings={settings} palette={palette} theme={theme}
           selected={selected} focusVerses={focus} contextDisplayMode={contextMode} verseToScroll={verseToScroll} navigationRequest={navRequest}
           highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={relItems}
+          moments={classMoments.data} onOpenMoments={(v) => { haptic("select"); setMomentsVerse(v); setSheet("moments"); }}
           headerHeight={headerHeight} fullscreen={fullscreen} canSwipe
           footer={<><ChapterPeople slug={slug} chapter={ch} /><ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
             onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} /></>}
@@ -242,6 +247,7 @@ export function BibleTab() {
       )}
       <Footer hasPrev={!!prev} hasNext={!!next} onPrev={() => go(prev)} onNext={() => go(next)} speech={speech} fullscreen={fullscreen} hidden={contextMode === "focused" && !!focus} bottomBar={bottomBar} reference={chapterLabel} verseCount={verses.length} repeat={repeat} setRepeat={setRepeat} expanded={audioOpen} setExpanded={setAudioOpen} />
 
+      <ClassMomentsSheet open={sheet === "moments"} onClose={() => setSheet(null)} moments={classMoments.data?.[momentsVerse] ?? []} reference={`${chapterLabel}:${momentsVerse}`} from={`/read/${slug}/${ch}?v=${momentsVerse}`} />
       <WhySheet open={sheet === "why"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={whyAt} reference={`${chapterLabel}:${whyAt}`}
         onRead={(url, v) => { setSheet(null); const m = slugOfUrl(url); navigate(m ? `/read/${m[1]}/${m[2]}${v ? `?v=${v}` : ""}` : url); }}
         onOpenClass={(url, ts) => { setSheet(null); const t = ts ? ts.split(":").reduce((n, p) => n * 60 + Number(p || 0), 0) : 0; if (/^https?:/.test(url)) openLink(`${url}${t ? `&t=${t}s` : ""}`); else navigate(`/note${url}${t ? `?t=${t}` : ""}`); }} />
