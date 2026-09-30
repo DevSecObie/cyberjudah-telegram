@@ -24,6 +24,7 @@
     "vaul@npm:^1.1.2": "patch:vaul@npm%3A1.1.2#~/.yarn/patches/vaul-npm-1.1.2-7a571c1ad6.patch",
     "metro": "patch:metro@npm%3A0.84.4#~/.yarn/patches/metro-npm-0.84.4-68d21d57b4.patch",
     "metro-runtime": "patch:metro-runtime@npm%3A0.84.4#~/.yarn/patches/metro-runtime-npm-0.84.4-9533293c73.patch",
-    "image-size": "portal:./shims/image-size"
+    "image-size": "portal:./shims/image-size",
+    "@grpc/grpc-js": "1.14.5"
   }
 }
