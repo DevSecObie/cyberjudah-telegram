@@ -26,7 +26,8 @@ export function Bookmarks() {
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const bookName = (slug: string) => books.data?.find((b) => b.slug === slug)?.book ?? slug;
   const tagFilter = params.get("tag") ?? "";
-  const { rows: notes } = useAllNotes();
+  const { rows: allNotes } = useAllNotes();
+  const notes = useMemo(() => (tagFilter ? allNotes.filter((n) => n.note.tags?.[tagFilter]) : allNotes), [allNotes, tagFilter]);
   const [hl, setHl] = useState<ChapterHl[]>([]);
   useEffect(() => {
     void store.keys().then(async (keys) => {
@@ -39,7 +40,7 @@ export function Bookmarks() {
   const swatch = (h: Highlight) => (h.color.startsWith("color") ? (palette as unknown as Record<string, string>)[h.color] : settings.customHighlightColors.find((c) => c.id === h.color)?.hex) ?? "transparent";
   return (
     <Screen title={tab === "bookmarks" ? "Bookmarks" : tab === "highlights" ? "Highlights" : "Notes"} kicker="Synced with your Telegram account">
-      <Segmented label="Kind" value={tab} onChange={(t) => { setTab(t); setParams(t === "highlights" && tagFilter ? { tag: tagFilter } : {}, { replace: true }); }} options={[["bookmarks", `Bookmarks ${bookmarks.length}`], ["highlights", `Highlights ${hl.reduce((n, c) => n + Object.keys(c.verses).length, 0)}`], ["notes", `Notes ${notes.length}`]]} />
+      <Segmented label="Kind" value={tab} onChange={(t) => { setTab(t); setParams((t === "highlights" || t === "notes") && tagFilter ? { tag: tagFilter } : {}, { replace: true }); }} options={[["bookmarks", `Bookmarks ${bookmarks.length}`], ["highlights", `Highlights ${hl.reduce((n, c) => n + Object.keys(c.verses).length, 0)}`], ["notes", `Notes ${notes.length}`]]} />
       {tab === "bookmarks" ? (
         !bookmarks.length ? <Empty title="No bookmarks yet" action={{ label: "Open the Bible", href: "/bible" }}>Select a verse and tap Bookmark, or add one to a chapter from its ⋮ menu.</Empty> : (
           <List>{[...bookmarks].sort((a, b) => b.date - a.date).map((b) => <Row key={b.id} href={`/read/${b.book}/${b.chapter}${b.verse ? `?v=${b.verse}` : ""}`} title={b.name} sub={`${bookName(b.book)} ${b.chapter}${b.verse ? `:${b.verse}` : ""}`} trailing={<span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}><Ion name="bookmark" size={20} color={b.color} /><button type="button" className="icon-btn" aria-label="Remove" onClick={async (e) => { e.preventDefault(); e.stopPropagation(); if (await confirm("Are you sure you want to delete this bookmark?")) setBookmarks(bookmarks.filter((x) => x.id !== b.id)); }}>×</button></span>} />)}</List>
