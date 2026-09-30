@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Loads the search index into D1: downloads ${DATA_ORIGIN}/search/parts.json and its parts
+ * Loads the search index into D1: downloads ${DATA_ORIGIN}/search-index/parts.json and its parts
  * (or ${DATA_ORIGIN}/search.sql.gz where there are no parts, or reads a local .sql/.sql.gz
  * given as an argument), gunzips it and runs it with wrangler. The SQL drops and
  * recreates search_docs, so the load is a full replace; the deploy workflow runs it on every
@@ -25,9 +25,9 @@ const plain = (bytes) => (bytes[0] === 0x1f && bytes[1] === 0x8b ? gunzipSync(by
 const download = async (url) => { const res = await fetch(url); if (!res.ok) throw new Error(`${url}: ${res.status}`); return Buffer.from(await res.arrayBuffer()); };
 let sql;
 if (/^https?:\/\//.test(source)) {
-  // The data origin serves the index in parts under search/ (the whole file is over the size a
+  // The data origin serves the index in parts under search-index/ (the whole file is over the size a
   // Workers asset may be); an older origin, or another URL, still gives the whole file.
-  const partsUrl = source.endsWith("/search.sql.gz") ? source.replace(/search\.sql\.gz$/, "search/parts.json") : null;
+  const partsUrl = source.endsWith("/search.sql.gz") ? source.replace(/search\.sql\.gz$/, "search-index/parts.json") : null;
   const list = partsUrl ? await fetch(partsUrl).then((r) => (r.ok ? r.json() : null)).catch(() => null) : null;
   if (list?.parts?.length) {
     console.error(`fetching ${list.parts.length} parts from ${partsUrl.replace(/parts\.json$/, "")} (built ${list.built}, ${list.rows} rows)`);
