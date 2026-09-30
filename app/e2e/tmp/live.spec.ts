@@ -9,6 +9,13 @@ import fs from "node:fs"; import crypto from "node:crypto";
 const MOCK = fs.readFileSync(new URL("../telegram-mock.js", import.meta.url), "utf8");
 const signed = () => { const params: Record<string, string> = { query_id: "AAH", user: JSON.stringify({ id: 1, first_name: "Probe" }), auth_date: String(Math.floor(Date.now() / 1000)) }; const check = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join("\n"); const secret = crypto.createHmac("sha256", "WebAppData").update(process.env.BOT_TOKEN ?? "123456:ABC-DEF").digest(); const hash = crypto.createHmac("sha256", secret).update(check).digest("hex"); return `#tgWebAppData=${encodeURIComponent(new URLSearchParams({ ...params, hash }).toString())}&tgWebAppVersion=9.1&tgWebAppPlatform=ios`; };
 
+test("data origin feeds", async ({ request }) => {
+  for (const p of ["/search/classes.json", "/search/captains.json", "/search/topics.json", "/search-index/parts.json", "/api/stats.json", "/api/kjv/books.json"]) {
+    const r = await request.get(`https://data.cyberjudah.io${p}`);
+    console.log(`[feed] ${p} status=${r.status()} bytes=${(await r.body()).length}`);
+  }
+});
+
 for (const [name, to, shim] of [["app-noslash", "/app", true], ["app-slash", "/app/", true], ["app-deep", "/app/bible/genesis/1", true], ["app-start", "/app?tgWebAppStartParam=bible_psalms_23", true], ["app-real-sdk", "/app/", false]] as const) {
   test(name, async ({ page }) => {
     const errors: string[] = [];
