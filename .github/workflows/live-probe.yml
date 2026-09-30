@@ -2,6 +2,8 @@ name: live-probe
 # A one-off look at what the live Mini App serves: status, headers, redirect and the start of
 # the body for each entry path, as a Telegram WebView would fetch it. Read-only.
 on:
+  push:
+    branches: [claude/live-probe]
   workflow_dispatch:
 
 permissions:
