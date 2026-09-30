@@ -7,14 +7,17 @@ export type StrongIdentity = {
   code: string
 }
 
+// Linear in the input: `0*(\d+)` in a pattern backtracks polynomially on long runs of zeros.
+const stripLeadingZeros = (digits: string): string => digits.replace(/^0+(?=\d)/u, '')
+
 export const createStrongIdentity = (
   reference: string | number,
   lexicalLanguage: 'greek' | 'hebrew'
 ): StrongIdentity => {
   const normalized = String(reference).trim().toUpperCase()
-  const match = normalized.match(/^([HG])?0*(\d+)([A-Z]+)?$/u)
+  const match = normalized.match(/^([HG])?(\d+)([A-Z]+)?$/u)
   const code = match
-    ? `${match[1] ?? (lexicalLanguage === 'hebrew' ? 'H' : 'G')}${match[2].padStart(4, '0')}${
+    ? `${match[1] ?? (lexicalLanguage === 'hebrew' ? 'H' : 'G')}${stripLeadingZeros(match[2]).padStart(4, '0')}${
         match[3] ?? ''
       }`
     : normalized
@@ -33,7 +36,7 @@ export const areStrongIdentitiesEqual = (left: StrongIdentity, right: StrongIden
   left.kind === right.kind && left.code === right.code
 
 const getClassicalStrongFamily = (code: string) => {
-  const match = code.match(/^([HG])0*(\d+)/iu)
+  const match = code.match(/^([HG])(\d+)/iu)
   return match ? `${match[1].toUpperCase()}${Number(match[2])}` : code
 }
 

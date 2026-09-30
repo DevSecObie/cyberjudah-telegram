@@ -1,3 +1,4 @@
+import { stripTags } from '~helpers/stripTags'
 import { contentPriority, resultContentKey } from './priorities'
 import { getPassageSearchExcerpt } from '~features/search/shared/searchPassageExcerpt'
 import { Command } from 'cmdk'
@@ -98,8 +99,7 @@ export default function ContentSuggestions({
                   <span className="bs-command-item-text">{item.title}</span>
                   {item.description && (
                     <span className="bs-command-description">
-                      {getPassageSearchExcerpt(item.description, 120)
-                        .replace(/<[^>]*>/g, '')
+                      {stripTags(getPassageSearchExcerpt(item.description, 120))
                         .replace(/\{\{|\}\}/g, '')
                         .replace(/\s+/g, ' ')
                         .slice(0, 160)}

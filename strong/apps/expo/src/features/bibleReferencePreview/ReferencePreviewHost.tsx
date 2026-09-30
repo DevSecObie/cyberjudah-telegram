@@ -1,3 +1,4 @@
+import { stripTags } from '~helpers/stripTags'
 import InlineCommentaryReader from '~features/commentaries/InlineCommentaryReader'
 import LinkPreviewContent from './LinkPreviewContent'
 import StudyPreviewContent from './StudyPreviewContent'
@@ -191,7 +192,7 @@ function PreviewContent({ request }: { request: ReferencePreviewRequest }) {
           {query.data.map(verse => (
             <Fragment key={`${verse.Livre}-${verse.Chapitre}-${verse.Verset}`}>
               <Text className="text-grey text-[11px]">{verse.Verset} </Text>
-              {verse.Texte.replace(/<[^>]*>/gu, '')}{' '}
+              {stripTags(verse.Texte)}{' '}
             </Fragment>
           ))}
         </Text>

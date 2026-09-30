@@ -323,8 +323,8 @@ export const resolvePassageMediaChapter = (
 
 const getClassicalStrongCode = (strongCode: string): string => {
   const normalizedCode = normalizeStrongCode(strongCode)
-  const match = normalizedCode.match(/^([HG])0*(\d+)/u)
-  return match ? `${match[1]}${match[2].padStart(4, '0')}` : normalizedCode
+  const match = normalizedCode.match(/^([HG])(\d+)/u)
+  return match ? `${match[1]}${match[2].replace(/^0+(?=\d)/u, '').padStart(4, '0')}` : normalizedCode
 }
 
 export const resolvePassageMediaStrong = (

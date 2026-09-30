@@ -144,7 +144,7 @@ const getBaseCode = (code: string): number | undefined => {
   const match = code
     .trim()
     .toUpperCase()
-    .match(/^[HG]0*(\d+)/u)
+    .match(/^[HG](\d+)/u)
   if (!match) return undefined
   const value = Number(match[1])
   return Number.isFinite(value) ? value : undefined

@@ -71,7 +71,7 @@ export const normalizeBibleSearchText = (value: string): string =>
   collapseWhitespace(foldBibleSearchText(value.replace(APOSTROPHE_REGEX, ' ')).value)
 
 export const parseStrongReference = (value: string): StrongReference | null => {
-  const match = value.trim().match(/^([gh])\s*0*(\d+)$/iu)
+  const match = value.trim().match(/^([gh])\s*(\d+)$/iu)
   if (!match) return null
 
   const number = Number(match[2])
