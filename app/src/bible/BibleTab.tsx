@@ -27,6 +27,7 @@ import { ResourcesSheet, type ResourceTab } from "./ui/ResourcesSheet";
 import { CompareSheet } from "./ui/CompareSheet";
 import { isWhy, slugOfUrl, useMomentsByVerse, useTaughtRelations, whyVerse } from "@/lib/taught";
 import { MediaDeck, deckKey } from "./dom/MediaDeck";
+import { newTab, selectTab } from "@/lib/tabs";
 import { WhySheet } from "./ui/WhySheet";
 import { SelectedVersesSheet } from "./ui/SelectedVersesSheet";
 import "./bible.css";
@@ -218,6 +219,8 @@ export function BibleTab() {
     if (a === "history") navigate("/history");
     if (a === "bookmark") { setBookmarkTarget({ existing: bookmarks.find((b) => b.book === slug && b.chapter === ch && !b.verse) }); setSheet("bookmark"); }
     if (a === "export") void exportSel("chapter");
+    if (a === "search") setSheet("search");
+    if (a === "newtab") navigate(selectTab(newTab(`/read/${slug}/${ch}`)), { replace: true });
   };
   const chapterBookmark = bookmarks.find((b) => b.book === slug && b.chapter === ch && !b.verse);
   const formatBookmark = (b: Bookmark) => `${bookName(b.book)} ${b.chapter}${b.verse ? `:${b.verse}` : ""}`;
@@ -230,7 +233,7 @@ export function BibleTab() {
 
   return (
     <div className="bs" data-dark={isDarkTheme(theme) ? "" : undefined} style={{ ...cssVars(palette), background: palette.reverse, color: palette.default }}>
-      <Header bookLabel={chapterLabel} version="KJV" onBook={() => setSheet("books")} onSearch={() => setSheet("search")} onVersion={() => setSheet("version")} onVerses={() => setSheet("verses")}
+      <Header bookLabel={chapterLabel} version="KJV" onBook={() => setSheet("books")} onVersion={() => setSheet("version")} onVerses={() => setSheet("verses")}
         selectedReference={selectedReference} focusedReference={focusedReference} onClearFocus={clearFocus} collapsed={fullscreen}
         onMenu={onMenu} hasChapterBookmark={!!chapterBookmark} chapterBookmarkColor={chapterBookmark?.color} onChapterBookmark={() => { setBookmarkTarget({ existing: chapterBookmark }); setSheet("bookmark"); }} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
       {focus ? <PassageContextBar focused={contextMode === "focused"} collapsed={fullscreen} onExpand={() => setContextMode("fullChapter")} onCollapse={() => { setContextMode("focused"); setNavRequest((n) => n + 1); }} onExit={clearFocus} /> : null}
@@ -261,7 +264,7 @@ export function BibleTab() {
         moreThanOne={selected.length > 1} hasBookmark={hasBookmark} hasFocus={hasFocus}
         onNote={() => { setNoteEdit(null); setSheet("note"); }} onTag={() => { setTagsTarget(selectedSorted); setSheet("tags"); }} onLink={() => setSheet("link")} onRelation={() => setSheet("relation")}
         onBookmark={() => { setBookmarkTarget({ verse: first, existing: bookmarks.find((b) => b.book === slug && b.chapter === ch && b.verse === first) }); setSheet("bookmark"); }} onFocus={setFocus}
-        onDictionary={() => openResources(first, "dictionary")} onThemes={() => openResources(first, "themes")} onReferences={() => openResources(first, "references")} onCommentary={() => openResources(first, "commentary")} onCompare={() => { setResourceVerse(first); setSheet("compare"); }}
+        onLexicon={() => openResources(first, "words")} onDictionary={() => openResources(first, "dictionary")} onThemes={() => openResources(first, "themes")} onReferences={() => openResources(first, "references")} onCommentary={() => openResources(first, "commentary")} onCompare={() => { setResourceVerse(first); setSheet("compare"); }}
         onCopy={() => void copy()} onShare={shareSel} onExport={() => void exportSel("selection")} onSelectAll={() => setSelected(verses.map((v) => v.verse))} />
 
       <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v)} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />

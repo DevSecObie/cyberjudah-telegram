@@ -131,7 +131,8 @@ test("tapping verses selects them, the sheet highlights, notes, tags and bookmar
   await expect(page.locator(".bs-pill--book")).toHaveText("Psalms 23");
   // The lists: bookmarks, highlights with the tag, notes.
   await page.click('.tab[aria-label="Menu"]');
-  await page.click(".row >> text=Bookmarks, highlights");
+  await expect(page.locator(".drawer--more[data-open]")).toBeVisible();
+  await page.click(".mcard__row >> text=Bookmarks, highlights");
   await expect(page.locator(".row__title").first()).toHaveText("Comfort");
   await page.click('[role=tab] >> text=Highlights');
   await expect(page.locator(".row__title").first()).toHaveText("Psalms 23");
@@ -169,7 +170,7 @@ test("the book pill opens Books; a chapter tile opens the chapter; the chevrons 
 test("Font and settings: night theme, verse mode, text size, fonts, all kept in the cloud", async ({ page }) => {
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await page.click('.bs-iconbtn[aria-label="Scripture options"]');
-  await page.click(".bs-menu__item >> text=Font and settings");
+  await page.click(".bs-dropdown__item >> text=Font and settings");
   await expect(page.locator(".bs-params__row").first()).toContainText("Theme");
   await page.click('.bs-touchicon[aria-label="Day"]');
   await expect(page.locator(".bs")).toHaveCSS("background-color", "rgb(252, 251, 247)");
@@ -274,11 +275,39 @@ test("tabs are roots, detail screens push, and the back button walks them", asyn
   expect((await state(page)).back).toBe(false);
   await page.click('.tab[aria-label="Bible"]');
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
+  // The menu is a drawer over the Bible, as in Bible Strong: the back button closes it first.
   await page.click('.tab[aria-label="Menu"]');
-  await page.click(".row >> text=Settings");
+  await expect(page.locator(".drawer--more[data-open]")).toBeVisible();
   await expect.poll(async () => (await state(page)).back).toBe(true);
   await press(page, "back");
-  await expect(page).toHaveURL(/\/more/);
+  await expect(page.locator(".drawer--more[data-open]")).toHaveCount(0);
+  // A screen opened from it pushes, and the back button returns to the Bible.
+  await page.click('.tab[aria-label="Menu"]');
+  await page.click(".mcard__row >> text=Settings");
+  await expect(page).toHaveURL(/\/settings/);
+  await expect(page.locator("h1.title")).toHaveText("Settings");
+  await expect(page.locator(".drawer[data-open]")).toHaveCount(0);
+  await page.waitForTimeout(500);
+  await expect.poll(async () => (await state(page)).back).toBe(true);
+  await press(page, "back");
+  await expect(page).toHaveURL(/\/(bible|read)/);
+});
+
+test("Home is Bible Strong's drawer: it slides the app aside and closes with a swipe", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await page.click('.tab[aria-label="Home"]');
+  const home = page.locator(".drawer--home[data-open]");
+  await expect(home).toBeVisible();
+  await expect(home.locator(".hello h1")).toHaveText("What do you want to learn?");
+  // The app moved aside with it.
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector("#shell .route")!).transform)).not.toBe("none");
+  // A swipe back toward its edge closes it.
+  const box = (await home.boundingBox())!;
+  await page.mouse.move(box.x + box.width - 40, box.y + 300); await page.mouse.down();
+  await page.mouse.move(box.x + 60, box.y + 305, { steps: 6 }); await page.mouse.up();
+  await expect(page.locator(".drawer--home[data-open]")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/read\/genesis\/1/);
 });
 
 test("the reading plan ticks today's chapters and keeps a streak", async ({ page }) => {
@@ -555,7 +584,8 @@ test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a re
   await page.keyboard.press("Escape");
 
   await page.goto(`/read/genesis/1${LAUNCH}`);
-  await page.click('[aria-label="Search the Scriptures"]');
+  await page.click('.bs-iconbtn[aria-label="Scripture options"]');
+  await page.click(".bs-dropdown__item >> text=Search the Scriptures");
   await page.fill(".bs-search__field input", "jn 3:16");
   await expect(page.locator(".bs-search__go b")).toHaveText("Go to John 3:16");
   await page.fill(".bs-search__field input", "light of men");
@@ -675,7 +705,8 @@ test("People: who is named in a verse, a page per person with family, the classe
   await expect(page.locator("h1.title")).toHaveText("Terah");
   // Search the Scriptures finds a person by name.
   await page.goto(`/read/genesis/1${LAUNCH}`);
-  await page.click('[aria-label="Search the Scriptures"]');
+  await page.click('.bs-iconbtn[aria-label="Scripture options"]');
+  await page.click(".bs-dropdown__item >> text=Search the Scriptures");
   await page.fill(".bs-search__field input", "abra");
   await expect(page.locator(".bs-search__go", { hasText: "Abraham" })).toBeVisible();
 });

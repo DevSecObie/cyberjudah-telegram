@@ -24,11 +24,11 @@
 .bs-pill--book { padding-left: 12px; padding-right: 7px; }
 .bs-pill--version { padding-left: 7px; padding-right: 12px; }
 .bs-pill__bg { position: absolute; inset: 0; background: var(--bs-light-grey); }
-.bs-pill--book .bs-pill__bg { border-radius: var(--r-xl) 0 0 20px; }
+.bs-pill--book .bs-pill__bg { border-radius: 20px 0 0 20px; }
 .bs-pill--version .bs-pill__bg { border-radius: 0 20px 20px 0; }
 .bs-header__verses { width: 40px; height: 40px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; padding: 0; }
 .bs-header__right { margin-left: auto; display: flex; align-items: center; }
-.bs-iconbtn { width: 40px; height: 40px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; padding: 0; border-radius: var(--r-md); }
+.bs-iconbtn { width: 40px; height: 40px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; padding: 0; border-radius: 0; }
 .bs-iconbtn:active { opacity: .6; }
 .bs-header__ribbon { position: absolute; right: 24px; bottom: -18px; border: 0; background: none; padding: 0; cursor: pointer; z-index: 2; }
 .bs-menu { display: flex; flex-direction: column; padding: 4px 0; }
@@ -97,7 +97,7 @@
 .bs-page { flex: none; }
 .bs-actions { display: flex; flex-wrap: wrap; }
 .bs-action { width: 25%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px 0; border: 0; background: none; cursor: pointer; }
-.bs-action__box { width: 48px; height: 48px; border-radius: var(--r-lg); display: grid; place-items: center; transition: background-color .1s, box-shadow .1s; }
+.bs-action__box { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; transition: background-color .1s, box-shadow .1s; }
 .bs-action__label { font-size: 10px; text-align: center; color: var(--bs-default); white-space: nowrap; }
 .bs-tabsfooter { position: relative; display: flex; margin: 0 16px 5px; padding: 3px; border-radius: var(--r-lg); background: var(--bs-light-grey); }
 .bs-tabsfooter__indicator { position: absolute; top: 3px; bottom: 3px; left: 3px; background: var(--bs-reverse); border-radius: var(--r-md); transition: transform .25s ease; }
@@ -418,3 +418,10 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-player__actions { display: flex; gap: 8px; }
 #root .bs-player__actions button, .bs-player__actions button { appearance: none; border: 1px solid; border-radius: 999px; padding: 7px 12px; font: 650 12px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) { .bs-gallery, .bs-gallery__text, .bs-gallery__sections h2 { transition: none; animation: none; } }
+
+/* Bible Strong's options dropdown under the ⋮ button. */
+.bs-dropdown__catch { position: fixed; inset: 0; z-index: 60; }
+.bs-dropdown { position: absolute; top: 48px; right: 10px; z-index: 61; min-width: 230px; padding: 6px 0; border-radius: 14px; background: var(--bs-reverse); color: var(--bs-default); border: 1px solid var(--bs-border); box-shadow: 0 12px 34px rgba(0, 0, 0, .28); transform-origin: top right; animation: bs-drop .16s cubic-bezier(.2, .9, .25, 1); }
+#root .bs-dropdown__item, .bs-dropdown__item { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; min-height: 44px; padding: 0 16px; border: 0; background: none; color: inherit; font: 400 15px system-ui, -apple-system, sans-serif; text-align: left; cursor: pointer; }
+.bs-dropdown__item:active { background: var(--bs-light-grey); }
+@keyframes bs-drop { from { opacity: 0; transform: scale(.92); } }

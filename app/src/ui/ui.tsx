@@ -5,11 +5,12 @@ import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection,
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
 import { usePageActions } from "@/tg/hooks";
-import { askTabPath, bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
+import { adjacentTab, askTabPath, bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
+import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { SwitcherBar } from "@/screens/Tabs";
 import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
 
-export type IconName = "home" | "search" | "play" | "book" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus";
+export type IconName = "home" | "search" | "play" | "book" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus" | "close";
 export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
   const p: Record<IconName, ReactNode> = {
     home: <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />,
@@ -46,6 +47,7 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
     history: <><path d="M4 6h16M4 12h10M4 18h7" /><circle cx="18" cy="17" r="3" /><path d="M18 15.6V17l1 .8" /></>,
     trash: <><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></>,
     plus: <path d="M12 5v14M5 12h14" />,
+    close: <path d="M6 6l12 12M18 6 6 18" />,
     chat: <path d="M4 5h16v11H9l-5 4z" />,
     retry: <><path d="M4 12a8 8 0 1 0 2.3-5.6" /><path d="M4 4v4h4" /></>,
     folder: <path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />,
@@ -69,15 +71,31 @@ const navPath = (id: NavId) => id === "search" ? searchTabPath() : id === "bible
 export function TabBar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { tabs } = useTabs();
+  const { tabs, group, groups } = useTabs();
   const [ids] = useNav();
-  const current = tabOf(pathname);
+  // The count takes its group's colour, as Bible Strong's does; the default group stays plain.
+  const groupColor = groups.indexOf(group) > 0 ? group.color : undefined;
+  const drawer = useDrawer();
+  const current = drawer ?? tabOf(pathname);
   const press = useRef<number | undefined>(undefined);
+  const swipe = useRef<{ x: number; y: number } | null>(null);
   const long = useRef(false);
-  const go = (to: string) => { if (long.current) return; haptic("select"); if (to === pathname) window.scrollTo({ top: 0, behavior: "smooth" }); else navigate(to, { replace: true }); };
+  const go = (to: string) => { if (long.current) return; haptic("select"); setDrawer(null); if (to === pathname) window.scrollTo({ top: 0, behavior: "smooth" }); else navigate(to, { replace: true }); };
+  // Home and the menu are drawers, as in Bible Strong; the same button closes its own drawer.
+  const toggle = (side: DrawerSide) => { if (long.current) return; haptic("select"); setDrawer(drawer === side ? null : side); };
+  // A long press edits the bar; a horizontal swipe along it moves to the next or previous open tab
+  // (Bible Strong's useTabBarSwipeGesture).
   const hold = {
-    onPointerDown: () => { long.current = false; press.current = window.setTimeout(() => { long.current = true; haptic("heavy"); navigate("/settings/bar"); }, 600); },
-    onPointerUp: () => window.clearTimeout(press.current),
+    onPointerDown: (e: React.PointerEvent) => { long.current = false; swipe.current = { x: e.clientX, y: e.clientY }; press.current = window.setTimeout(() => { long.current = true; haptic("heavy"); setDrawer(null); navigate("/settings/bar"); }, 600); },
+    onPointerMove: (e: React.PointerEvent) => { const s = swipe.current; if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) window.clearTimeout(press.current); },
+    onPointerUp: (e: React.PointerEvent) => {
+      window.clearTimeout(press.current);
+      const s = swipe.current; swipe.current = null; if (!s || long.current) return;
+      const dx = e.clientX - s.x, dy = e.clientY - s.y;
+      if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      const to = adjacentTab(dx < 0 ? 1 : -1);
+      if (to) { long.current = true; window.setTimeout(() => { long.current = false; }, 50); haptic("select"); setDrawer(null); navigate(to, { replace: true }); }
+    },
     onPointerLeave: () => window.clearTimeout(press.current),
     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
   };
@@ -90,12 +108,12 @@ export function TabBar() {
         const item = navItem(id);
         return (
           <button key={id} type="button" className="tab" data-on={current === id ? "" : undefined} aria-current={current === id ? "page" : undefined}
-            aria-label={id === "tabs" ? `Tabs, ${tabs.length} open` : item.label} onClick={() => go(navPath(id))}>
-            {item.icon === "count" ? <span key={count} className="tab__count" aria-hidden="true">{count}</span> : <Icon name={item.icon} size={23} />}
+            aria-label={id === "tabs" ? `Tabs, ${tabs.length} open` : item.label} onClick={() => id === "home" ? toggle("home") : go(navPath(id))}>
+            {item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={23} />}
           </button>
         );
       })}
-      <button type="button" className="tab" data-on={current === "more" ? "" : undefined} aria-current={current === "more" ? "page" : undefined} aria-label="Menu" onClick={() => go("/more")}>
+      <button type="button" className="tab" data-on={current === "more" ? "" : undefined} aria-current={current === "more" ? "page" : undefined} aria-label="Menu" onClick={() => toggle("more")}>
         <Icon name="more" size={28} />
       </button>
     </nav>

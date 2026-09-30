@@ -1138,3 +1138,46 @@ html[data-typing] .pageactions { display: none; }
 .naved__btn:disabled { opacity: .3; cursor: default; }
 .naved__btn:not(:disabled):active { background: var(--a-card-2, var(--a-line)); }
 .naved__reset { display: block; margin: 18px auto 0; border: 0; background: none; font: 500 15px var(--a-ui); color: var(--a-accent); cursor: pointer; }
+
+/* Bible Strong's Home and menu drawers: min(95%, 450px) wide, pushing the app aside as one row. */
+:root { --drawer-w: min(95vw, 450px); --drawer-ease: cubic-bezier(.2, .9, .25, 1); }
+#shell .route, .tabs, .pageactions { transition: transform .38s var(--drawer-ease); }
+html[data-drawer-pin] #shell .route { position: fixed; top: var(--drawer-y, 0); left: 0; right: 0; min-height: 100dvh; }
+html[data-drawer="home"] #shell .route, html[data-drawer="home"] .tabs, html[data-drawer="home"] .pageactions { transform: translateX(var(--drawer-w)); }
+html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[data-drawer="more"] .pageactions { transform: translateX(calc(-1 * var(--drawer-w))); }
+.drawer { position: fixed; top: 0; bottom: 0; z-index: 70; width: var(--drawer-w); display: flex; flex-direction: column; background: var(--a-card-2); color: var(--a-ink); transition: transform .38s var(--drawer-ease); overscroll-behavior: contain; }
+.drawer--home { left: 0; transform: translateX(-100%); }
+.drawer--more { right: 0; transform: translateX(100%); border-left: 1px solid var(--a-line); }
+.drawer[data-open] { transform: none; }
+.drawer__scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.drawer--home .drawer__scroll { padding-bottom: calc(100px + var(--safe-bottom, 0px)); }
+.drawer__scroll > .screen { min-height: 0; padding-bottom: 24px; }
+.drawer__fade { position: absolute; left: 0; right: 0; bottom: 0; height: 100px; pointer-events: none; background: linear-gradient(to bottom, transparent, var(--a-card-2)); }
+#root .drawer__x, .drawer__x { position: absolute; left: 50%; bottom: calc(24px + var(--safe-bottom, 0px)); display: grid; place-items: center; width: 50px; height: 50px; margin-left: -25px; padding: 0; border: 0; border-radius: 30px; background: var(--a-bg); color: var(--a-muted); box-shadow: 0 6px 20px rgba(0, 0, 0, .25); cursor: pointer; }
+.drawer__head { display: flex; align-items: center; gap: 4px; min-height: 54px; padding: var(--safe-top, 0px) 10px 0; border-bottom: 1px solid var(--a-line); }
+.drawer__head h2 { margin: 0; font: 700 17px var(--a-ui); }
+#root .drawer__back, .drawer__back { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; background: none; color: var(--a-ink); cursor: pointer; }
+.drawer-scrim { position: fixed; inset: 0; z-index: 65; pointer-events: none; background: rgba(0, 0, 0, 0); transition: background-color .38s ease; }
+.drawer-scrim[data-open] { pointer-events: auto; background: rgba(0, 0, 0, .25); }
+.drawer-scrim[data-side="home"] { left: var(--drawer-w); }
+.drawer-scrim[data-side="more"] { right: var(--drawer-w); }
+/* The tabs count in its group's colour, as Bible Strong's; the default group stays plain. */
+.tabs .tab__count[style*="--group"] { background: var(--group); border-color: var(--group); color: #fff; }
+@media (prefers-reduced-motion: reduce) { #shell .route, .tabs, .pageactions, .drawer, .drawer-scrim { transition: none; } }
+
+/* Bible Strong's MoreScreen cards: radius 16, a 12px grey heading row with its icon, then links with
+   a 20px coloured icon, a 15px label and a chevron. */
+.more { padding: 16px 0 24px; }
+.drawer .more { padding-top: 16px; }
+.mcard { margin: 0 20px 16px; border-radius: 16px; background: var(--a-bg); overflow: hidden; }
+.screen .mcard { margin-inline: 0; }
+.mcard__head { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 16px; background: color-mix(in srgb, var(--a-ink) 5%, transparent); color: var(--a-muted); font: 700 12px var(--a-ui); letter-spacing: .02em; }
+#root .mcard__row, .mcard__row { display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 12px; border: 0; background: none; color: var(--a-ink); font: 400 15px var(--a-ui); text-align: left; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.mcard__row:active { background: color-mix(in srgb, var(--a-ink) 6%, transparent); }
+.mcard__icon { display: grid; place-items: center; width: 24px; }
+.mcard__label { flex: 1; min-width: 0; }
+.mcard__chev { display: grid; color: var(--a-muted); }
+.more__foot { margin: 8px 20px 0; color: var(--a-muted); font: 400 14px/1.4 var(--a-ui); text-align: center; }
+/* Home fits its drawer. */
+.drawer__scroll { overflow-x: hidden; }
+.hero { grid-template-columns: minmax(0, 1fr); }

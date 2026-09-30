@@ -17,7 +17,7 @@ export type SelectedVersesSheetProps = {
   onAddHighlight: (key: string) => void; onRemoveHighlight: () => void; onAddColor: () => void; onEditColor: (key: string) => void;
   moreThanOne: boolean; hasBookmark: boolean; hasFocus: boolean;
   onNote: () => void; onTag: () => void; onLink: () => void; onRelation: () => void; onBookmark: () => void; onFocus: () => void;
-  onDictionary: () => void; onThemes: () => void; onReferences: () => void; onCommentary: () => void; onCompare: () => void;
+  onLexicon: () => void; onDictionary: () => void; onThemes: () => void; onReferences: () => void; onCommentary: () => void; onCompare: () => void;
   onCopy: () => void; onShare: () => void; onExport: () => void; onSelectAll: () => void;
 };
 const TABS = ["Annotate", "Study", "Share"];
@@ -52,11 +52,12 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
             </div>
             <div className="bs-page" style={{ width }}>
               <ActionsLayout>
+                <ActionItem icon={<LexiconIcon />} tint="var(--bs-primary)" label="Lexicon" onPress={p.onLexicon} disabled={p.moreThanOne} />
                 <ActionItem icon={<DictionaryIcon />} tint="var(--bs-secondary)" label="Dictionary" onPress={p.onDictionary} disabled={p.moreThanOne} />
                 <ActionItem icon={<NaveIcon />} tint="var(--bs-quint)" label="Themes" onPress={p.onThemes} disabled={p.moreThanOne} />
                 <ActionItem icon={<ReferencesIcon />} tint="var(--bs-quart)" label="References" onPress={p.onReferences} disabled={p.moreThanOne} />
                 <ActionItem icon={<CommentIcon />} tint="#26A69A" label="Commentary" onPress={p.onCommentary} disabled={p.moreThanOne} />
-                <ActionItem name="book-open" tint="var(--bs-primary)" label="Compare" onPress={p.onCompare} disabled={p.moreThanOne} />
+                <ActionItem name="layers" tint="var(--bs-primary)" label="Compare" onPress={p.onCompare} disabled={p.moreThanOne} />
               </ActionsLayout>
             </div>
             <div className="bs-page" style={{ width }}>
@@ -121,6 +122,8 @@ export function HighlightTypeIndicator({ color, type, size = 30, isSelected }: {
   return <span style={box}><b style={{ fontSize: size * 0.85, color: "var(--bs-dark-grey)", opacity: 0.6, lineHeight: 1 }}>A</b><span style={{ position: "absolute", bottom: 0, left: size * 0.15, right: size * 0.15, height: size * 0.2, border: `${size * 0.05}px solid var(--bs-reverse)`, backgroundColor: color, borderRadius: size * 0.3 }} /></span>;
 }
 
+/** Bible Strong's lexique mark: an alpha and an aleph, the Greek and Hebrew behind the words. */
+const LexiconIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 17c-3 0-5-2.2-5-5s2-5 5-5c2 0 3 1.5 3.6 4L16 17" /><path d="M14.6 11 17 7" /></svg>;
 const DictionaryIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /><path d="M9 7h6M9 11h4" /></svg>;
 const NaveIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18M3 12h18" /></svg>;
 const ReferencesIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 3l4 4-9 9H8v-4z" /><path d="M3 21h18" /><path d="M14 6l4 4" /></svg>;

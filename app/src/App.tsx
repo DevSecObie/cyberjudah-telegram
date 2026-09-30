@@ -9,6 +9,7 @@ import { secure } from "@/tg/store";
 import { useSettingsButton, useStored, useTheme } from "@/tg/hooks";
 import { AppRoot } from "@telegram-apps/telegram-ui";
 import { Button, PageActions, Screen, Skeleton, TabBar } from "@/ui/ui";
+import { Drawers } from "@/ui/drawers";
 import { ThemeApplier } from "@/ui/theme";
 import { Home } from "@/screens/Home";
 import { NavEditor } from "@/screens/NavEditor";
@@ -137,6 +138,7 @@ export function App() {
       </Suspense>
       </div>
       <PageActions />
+      <Drawers />
       {tabs ? <TabBar /> : null}
     </AppRoot>
   );
