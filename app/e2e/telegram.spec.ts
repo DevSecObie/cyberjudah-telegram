@@ -42,6 +42,8 @@ const cloud = (page: Page) => page.evaluate(() => (window as unknown as { __tg: 
 /** A tap on a verse: Bible Strong waits 200 ms for a double tap before it counts. */
 const tapVerse = async (page: Page, n: number) => { await page.click(`#verset-${n} .bs-num`); await page.waitForTimeout(400); };
 const longPressVerse = async (page: Page, n: number) => { await page.locator(`#verset-${n} .bs-num`).scrollIntoViewIfNeeded(); await page.waitForTimeout(300); const b = (await page.locator(`#verset-${n} .bs-num`).boundingBox())!; await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await page.waitForTimeout(550); await page.mouse.up(); };
+/** A long press that must end in the resources sheet: the runner's first press can land while the text is still reflowing, so try again before giving up. */
+const openResources = async (page: Page, n: number) => { for (let i = 0; i < 3; i++) { await longPressVerse(page, n); if (await page.locator(".bs-resourcetabs").isVisible({ timeout: 4000 }).catch(() => false)) return; await page.waitForTimeout(500); } };
 /** In-app navigation (a reload would reset the mock's cloud storage). */
 const goInApp = (page: Page, to: string) => page.evaluate((t) => { history.pushState({ idx: (history.state?.idx ?? 0) + 1 }, "", t); dispatchEvent(new PopStateEvent("popstate")); }, to);
 
@@ -476,6 +478,7 @@ test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a re
   ] } }));
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await page.click(".bs-pill--book");
+  await expect(page.locator('.bs-bookrow:has-text("2 Maccabees")')).toBeVisible();
   const apoc = await page.locator(".bs-bookrow > span:first-child").allTextContents();
   if (process.env.SHOTS) { await page.locator('.bs-bookrow:has-text("Tobit")').scrollIntoViewIfNeeded(); await page.screenshot({ path: `${process.env.SHOTS}/apocrypha.png` }); }
   const from = apoc.indexOf("1 Esdras");
@@ -574,7 +577,7 @@ test("a verse's comment opens the note right where that passage is broken down",
 test("People: who is named in a verse, a page per person with family, the classes' teaching and every verse", async ({ page }) => {
   await page.goto(`/read/genesis/12${LAUNCH}`);
   await expect(page.locator("#verset-5")).toBeVisible();
-  await longPressVerse(page, 5);
+  await openResources(page, 5);
   await page.click('.bs-resourcetabs button >> text=People');
   await expect(page.locator(".bs-resrow b")).toHaveText(["Abraham", "Lot", "Sarah"]);
   await page.locator(".bs-resrow", { hasText: "Abraham" }).click();
