@@ -1088,7 +1088,9 @@ test("Ask: a question streams in its answer with sources, saved to the chat it n
   await expect.poll(() => bodies.length).toBe(2);
   expect(bodies[1]).toMatchObject({ q: "Why do we keep the Passover?", chat: bodies[0].chat, retry: true });
   await expect(page.locator(".msg--me")).toHaveCount(1);
-  // The conversation survives a reload.
+  // Wait for the retried answer to settle before checking that it survives a reload.
+  await expect(page.getByRole("button", { name: "Ask again", exact: true })).toBeVisible();
+  await expect(page.locator(".msg--ai .msg__text")).toContainText("It is commanded");
   await page.reload();
   await expect(page.locator(".msg--ai .msg__text")).toContainText("It is commanded");
 });
