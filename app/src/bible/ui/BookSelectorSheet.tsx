@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Book } from "@/api/data";
 import { expand, type Progress } from "@/lib/marks";
@@ -21,6 +21,13 @@ export function BookSelectorSheet({ open, onClose, books, current, onSelect, loa
   const [verseSheet, setVerseSheet] = useState<{ book: Book; chapter: number; count: number } | null>(null);
   const data = useMemo(() => (sort === "alphabetical" ? [...books].sort((a, b) => a.book.localeCompare(b.book)) : books).filter((b) => b.book.toLowerCase().includes(query.trim().toLowerCase())), [books, sort, query]);
   useEffect(() => { if (!open) { setQuery(""); setGridBook(null); setVerseSheet(null); setFilters(false); } }, [open]);
+  // The book being read is in view when the list opens, as Bible Strong's list does.
+  const listRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open || gridBook || verseSheet) return;
+    const t = setTimeout(() => listRef.current?.querySelector<HTMLElement>('[data-current]')?.scrollIntoView({ block: "center" }), 0);
+    return () => clearTimeout(t);
+  }, [open, gridBook, verseSheet, layout]);
 
   const pick = async (book: Book, chapter: number) => {
     haptic("select");
@@ -43,12 +50,12 @@ export function BookSelectorSheet({ open, onClose, books, current, onSelect, loa
           </div>
         ) : null}
         {grid ? <ChapterGrid book={gridBook!} read={readOf(gridBook!)} selectedChapter={gridBook!.slug === current.slug ? current.chapter : undefined} onPick={(c) => void pick(gridBook!, c)} /> : layout === "grid" ? (
-          <div className="bs-bookgrid">
-            {data.map((b) => <button key={b.slug} type="button" className="bs-bookshort" aria-label={b.book} aria-pressed={b.slug === current.slug} style={{ color: b.slug === current.slug ? "var(--bs-primary)" : b.testament === "New Testament" ? "var(--bs-quart)" : b.testament === "Apocrypha" ? "var(--bs-tertiary)" : "var(--bs-default)", fontWeight: b.slug === current.slug ? "bold" : "normal" }} onClick={() => setGridBook(b)}>{b.book.replace(/^(Rest|Wisdom|Epistle|Song|History|Prayer) of (the )?/, "").replace(/\s/g, "").slice(0, 3)}<BookBar read={readOf(b).size} total={b.chapterIds.length} /></button>)}
+          <div ref={listRef} className="bs-bookgrid">
+            {data.map((b) => <button key={b.slug} type="button" className="bs-bookshort" data-current={b.slug === current.slug ? "" : undefined} aria-label={b.book} aria-pressed={b.slug === current.slug} style={{ color: b.slug === current.slug ? "var(--bs-primary)" : b.testament === "New Testament" ? "var(--bs-quart)" : b.testament === "Apocrypha" ? "var(--bs-tertiary)" : "var(--bs-default)", fontWeight: b.slug === current.slug ? "bold" : "normal" }} onClick={() => setGridBook(b)}>{b.book.replace(/^(Rest|Wisdom|Epistle|Song|History|Prayer) of (the )?/, "").replace(/\s/g, "").slice(0, 3)}<BookBar read={readOf(b).size} total={b.chapterIds.length} /></button>)}
           </div>
         ) : (
-          <div className="bs-booklist">
-            {data.map((b) => <button key={b.slug} type="button" className="bs-bookrow" style={{ background: b.slug === current.slug ? "var(--bs-light-grey)" : "transparent" }} onClick={() => { haptic("select"); setGridBook(b); }}>
+          <div ref={listRef} className="bs-booklist">
+            {data.map((b) => <button key={b.slug} type="button" className="bs-bookrow" data-current={b.slug === current.slug ? "" : undefined} style={{ background: b.slug === current.slug ? "var(--bs-light-grey)" : "transparent" }} onClick={() => { haptic("select"); setGridBook(b); }}>
               <span style={{ color: b.slug === current.slug ? "var(--bs-primary)" : "var(--bs-default)", fontWeight: b.slug === current.slug ? "bold" : undefined }}>{b.book}</span>
               {readOf(b).size ? <BookRing read={readOf(b).size} total={b.chapterIds.length} /> : null}
               <Feather name="chevron-right" size={20} color="var(--bs-grey)" />

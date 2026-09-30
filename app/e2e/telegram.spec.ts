@@ -147,6 +147,9 @@ test("the book pill opens Books; a chapter tile opens the chapter; the chevrons 
   await page.click(".bs-pill--book");
   await expect(page.locator(".bs-picker__header b")).toHaveText("Books");
   await expect(page.locator(".bs-bookrow span", { hasText: /^John$/ })).toHaveCSS("font-weight", "700");
+  // The book being read is scrolled into view, not left below the fold.
+  await expect(page.locator(".bs-bookrow[data-current]")).toBeInViewport();
+  await page.locator(".bs-bookrow", { hasText: /^Psalms$/ }).scrollIntoViewIfNeeded();
   await page.click(".bs-bookrow >> text=Psalms");
   await page.click('.bs-chaptertile[aria-label="Chapter 23"]');
   await expect(page).toHaveURL(/\/read\/psalms\/23/);
