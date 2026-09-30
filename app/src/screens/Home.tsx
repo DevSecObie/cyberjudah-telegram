@@ -7,14 +7,16 @@ import { toAppPath } from "@shared/links.mjs";
 const toApp = (sitePath: string) => toAppPath(sitePath) ?? sitePath;
 import { pullStyle, usePullToRefresh } from "@/lib/pull";
 import { planDay, schedule } from "@/lib/plan";
+import { share } from "@/lib/share";
 import { useLast, useLastNote, usePlan, useProgress } from "@/lib/marks";
 import { countdown, sabbath } from "@/lib/sun";
 import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
 import { api } from "@/tg/sdk";
 import { haptic, user } from "@/tg/sdk";
-import { Card, Icon, Img, Screen, Section, Skeleton } from "@/ui/ui";
+import { Card, Icon, Img, Screen, Section, Skeleton, type IconName } from "@/ui/ui";
 import { assetUrl } from "@/lib/asset";
 import { SearchHero } from "@/ui/search-hero";
+import { PersonOfTheDay, PreceptOfTheDay, StrongOfTheDay, StudyStats, TopicOfTheDay, WordOfTheDay, useRandomVerse } from "./home-widgets";
 
 type Verse = { ref: string; slug: string; chapter: number; verse: number; text: string };
 export type LiveNow = { live: boolean; upcoming: boolean; video: string | null; title: string | null; starts: string | null };
@@ -57,6 +59,25 @@ export function useTeachings() {
   return { ...notes, data };
 }
 
+/** The Learn shelf: where the teaching is kept, each its own door (Bible Strong's learning cards). */
+const LEARN: [string, string, string, IconName][] = [
+  ["/classes", "Classes", "Every Sabbath class, with its notes", "play"],
+  ["/books", "Library", "The books the classes read from", "layers"],
+  ["/history", "Our Hidden History", "The episodes, with their notes", "history"],
+  ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book", "book"],
+];
+/** The Law shelf. */
+const LAW: [string, string, string, IconName][] = [
+  ["/law", "The Law", "Every law with its scripture", "law"],
+  ["/precepts", "Precepts", "Every subject scripture speaks to", "quote"],
+  ["/cases", "Case studies", "Judgments, and those who were blessed", "folder"],
+  ["/topics", "Topics", "Classes and episodes by subject", "tag"],
+];
+/** The Study shelf: the reference works, each browsable on its own. */
+const TOOLS: [string, string, IconName][] = [
+  ["/lexicon", "Lexicon", "spark"], ["/dictionary", "Dictionary", "type"], ["/people", "People", "star"], ["/relations", "Relations", "merge"], ["/bookmarks", "Kept", "bookmark"], ["/tags", "Tags", "tag"],
+];
+
 /**
  * Home is the front door: the search of what was said in the classes, Ask CyberJudah, then
  * where you left off, this week's class and the latest teachings.
@@ -88,6 +109,7 @@ export function Home() {
   const search = (text: string) => { const t = text.trim(); if (t) navigate(`/search?q=${encodeURIComponent(t)}`); };
   useBottomButtons(null, null);
 
+  const random = useRandomVerse();
   const latestClass = feed.data?.find((t) => t.kind === "class");
   const rows = useMemo(() => (feed.data ?? []).filter((t) => t.url !== latestClass?.url).slice(0, 8), [feed.data, latestClass]);
 
@@ -108,6 +130,7 @@ export function Home() {
         <button type="button" className="door__btn door__btn--ask" onClick={() => { haptic("select"); navigate(q.trim() ? `/ask?q=${encodeURIComponent(q.trim())}` : "/ask"); }}><Icon name="note" size={18} /> Ask CyberJudah</button>
       </div>
       <p className="hint hint--center">Search finds the moment a word, a name or a Scripture was said in a class. Ask answers your question from the teachings, with its sources.</p>
+      <StudyStats />
       {stats.data?.whatsNew?.length ? (
         <div className="whatsnew" aria-label="New in CyberJudah">
           {stats.data.whatsNew.slice(0, 8).map((w) => (
@@ -134,14 +157,6 @@ export function Home() {
         </Link>
       ) : null}
 
-      {sched && today && plan ? (
-        <Link to="/plan" className="streak" onClick={() => haptic("select")}>
-          <span className="streak__day"><b>Day {plan.day}</b><small>{sched.owed ? `${sched.owed} to catch up` : `${today.pct}% of the library`}</small></span>
-          <span className="streak__bar"><i style={{ width: `${Math.round((todayRead / Math.max(1, today.chapters.length)) * 100)}%` }} /></span>
-          <span className="streak__due">{todayRead}/{today.chapters.length} today</span>
-          {plan.streak ? <span className="streak__fire">🔥 {plan.streak}</span> : null}
-        </Link>
-      ) : null}
       {(lastNote || last) ? (
         <div className="resume">
           {lastNote ? <Link to={lastNote.href} className="resume__item"><span className="resume__icon"><Icon name="play" size={18} /></span><span><small>Continue watching</small><b>{lastNote.title}</b></span></Link> : null}
@@ -149,16 +164,47 @@ export function Home() {
         </div>
       ) : null}
 
-      {sab ? <Card href="/sabbath" className="sabbath"><span className="sabbath__icon"><Icon name="sun" /></span><span><b>{sab.sabbath ? "Shabbat shalom" : `Sabbath in ${countdown(sab.next, now)}`}</b><span>{sab.label} · {sab.next.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span></span></Card> : null}
-
-      {feed.isPending ? <Skeleton rows={3} thumb /> : latestClass ? (
-        <Section title="This week's class">
-          <Link to={teachingTo(latestClass)} className="feature">
-            <span className="feature__img"><Img src={latestClass.thumb} eager /></span>
-            <span className="feature__body"><small>{[fmtDate(latestClass.date), latestClass.teacher].filter(Boolean).join(" · ")}{latestClass.pending ? <span className="soon">Notes coming soon</span> : null}</small><b>{latestClass.title}</b>{latestClass.books.length ? <span className="feed__books">{latestClass.books.slice(0, 4).map((b) => <em key={b}>{b}</em>)}</span> : null}</span>
-          </Link>
-        </Section>
+      <h2 className="shelf">Learn</h2>
+      {feed.isPending ? <Skeleton rows={1} thumb /> : latestClass ? (
+        <Link to={teachingTo(latestClass)} className="feature">
+          <span className="feature__img"><Img src={latestClass.thumb} eager /></span>
+          <span className="feature__body"><small>This week's class · {[fmtDate(latestClass.date), latestClass.teacher].filter(Boolean).join(" · ")}{latestClass.pending ? <span className="soon">Notes coming soon</span> : null}</small><b>{latestClass.title}</b>{latestClass.books.length ? <span className="feed__books">{latestClass.books.slice(0, 4).map((b) => <em key={b}>{b}</em>)}</span> : null}</span>
+        </Link>
       ) : null}
+      <div className="shelf-grid">
+        {LEARN.map(([to, title, sub, icon]) => <Link key={to} to={to} className="shelf-card" onClick={() => haptic("select")}><span className="shelf-card__icon"><Icon name={icon} size={20} /></span><b>{title}</b><span>{sub}</span></Link>)}
+      </div>
+      <div className="shelf-grid">
+        {LAW.map(([to, title, sub, icon]) => <Link key={to} to={to} className="shelf-card shelf-card--law" onClick={() => haptic("select")}><span className="shelf-card__icon"><Icon name={icon} size={20} /></span><b>{title}</b><span>{sub}</span></Link>)}
+      </div>
+
+      <h2 className="shelf">Study</h2>
+      <div className="widgets" aria-label="Of the day">
+        <StrongOfTheDay lang="greek" />
+        <StrongOfTheDay lang="hebrew" />
+        <TopicOfTheDay />
+        <WordOfTheDay />
+        <PersonOfTheDay />
+        <PreceptOfTheDay />
+      </div>
+      <div className="tools">
+        {TOOLS.map(([to, title, icon]) => <Link key={to} to={to} className="tools__btn" onClick={() => haptic("select")}><Icon name={icon} size={20} /><span>{title}</span></Link>)}
+        <button type="button" className="tools__btn" onClick={() => void random()}><Icon name="retry" size={20} /><span>Random verse</span></button>
+      </div>
+
+      <h2 className="shelf">Meditate</h2>
+      {sched && today && plan ? (
+        <Link to="/plan" className="streak" onClick={() => haptic("select")}>
+          <span className="streak__day"><b>Day {plan.day}</b><small>{sched.owed ? `${sched.owed} to catch up` : `${today.pct}% of the library`}</small></span>
+          <span className="streak__bar"><i style={{ width: `${Math.round((todayRead / Math.max(1, today.chapters.length)) * 100)}%` }} /></span>
+          <span className="streak__due">{todayRead}/{today.chapters.length} today</span>
+          {plan.streak ? <span className="streak__fire">🔥 {plan.streak}</span> : null}
+        </Link>
+      ) : (
+        <Card href="/plan" className="plan-start"><span className="resume__icon"><Icon name="check" /></span><span><b>Start a reading plan</b><span>The whole library, a few chapters a day, at your pace</span></span><Icon name="chevron" size={18} /></Card>
+      )}
+      <Card href="/study" className="plan-start"><span className="resume__icon"><Icon name="book" /></span><span><b>4 Chapters a Day</b><span>The daily reading, a note for every chapter</span></span><Icon name="chevron" size={18} /></Card>
+      {sab ? <Card href="/sabbath" className="sabbath"><span className="sabbath__icon"><Icon name="sun" /></span><span><b>{sab.sabbath ? "Shabbat shalom" : `Sabbath in ${countdown(sab.next, now)}`}</b><span>{sab.label} · {sab.next.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span></span></Card> : <Card href="/sabbath" className="sabbath"><span className="sabbath__icon"><Icon name="sun" /></span><span><b>Sabbath</b><span>Sunset where you are, and the countdown</span></span></Card>}
 
       <Section title="Latest teachings" action={<Link to="/classes">All classes</Link>}>
         <div className="feed">
@@ -171,6 +217,11 @@ export function Home() {
         </div>
       </Section>
 
+      <h2 className="shelf">Go further</h2>
+      <div className="door">
+        <Link to="/more" className="door__btn" onClick={() => haptic("select")}><Icon name="more" size={18} /> Everything else</Link>
+        <button type="button" className="door__btn" onClick={() => void share({ kind: "app", title: "CyberJudah", text: "The KJV with the Apocrypha, and everything taught from it, in Telegram.", sitePath: "/" })}><Icon name="share" size={18} /> Share the app</button>
+      </div>
     </Screen>
   );
 }

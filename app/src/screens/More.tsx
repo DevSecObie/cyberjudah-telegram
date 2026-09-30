@@ -11,7 +11,10 @@ import { List, Row, Screen, Section, type IconName } from "@/ui/ui";
 const STUDY: [string, string, string, IconName][] = [
   ["/study", "4 Chapters a Day", "The daily reading, a note for every chapter", "book"],
   ["/books", "Library", "Books the classes read from, with their maps and pictures", "layers"],
+  ["/lexicon", "Lexicon", "Strong's Hebrew and Greek behind every word", "spark"],
   ["/dictionary", "Dictionary", "Easton's: names, places and words", "type"],
+  ["/people", "People", "Everyone named in the Bible, with their family and their verses", "star"],
+  ["/relations", "Relations", "The links you drew between verses, notes and entries", "merge"],
   ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book", "layers"],
   ["/topics", "Topics", "Classes and episodes by what they cover", "tag"],
 ];
@@ -33,6 +36,7 @@ export function More() {
         <List>
           <Row href="/plan" icon="check" title="Reading plan" sub="The whole library, a few chapters a day" />
           <Row href="/bookmarks" icon="bookmark" title="Bookmarks, highlights & notes" sub={marks.length ? `${marks.length} bookmarks` : "Verses and classes you keep"} />
+          <Row href="/tags" icon="tag" title="Tags" sub="Sort what you keep" />
           <Row href="/history" icon="clock" title="History" sub="The chapters you opened" />
           <Row href="/sabbath" icon="sun" title="Sabbath" sub="Sunset where you are, and the countdown" />
           <Row href="/settings" icon="gear" title="Settings" sub={`Daily verse, lock, text size${chaptersRead(progress) ? ` · ${chaptersRead(progress)} chapters read` : ""}`} />

@@ -305,6 +305,27 @@ liveDataTest("settings: theme, spacing and offline books", async ({ page }) => {
   expect(cached).toBeGreaterThanOrEqual(1);
 });
 
+test("backup: everything kept goes to your chat as a file, and a file restores it", async ({ page }) => {
+  let sent: { keys: Record<string, string> } | null = null;
+  await page.route("**/api/backup", async (r) => { sent = r.request().postDataJSON(); await r.fulfill({ json: { ok: true, entries: Object.keys(sent!.keys).length } }); });
+  await page.goto(`/read/psalms/23${LAUNCH}`);
+  await tapVerse(page, 1);
+  await page.click(".bs-colors__cell:nth-child(2)");
+  await goInApp(page, "/settings");
+  await page.click(".row >> text=Send a backup to your chat");
+  await expect(page.locator("[role=status]")).toContainText(/Sent to your chat with the bot: \d+ entries\./);
+  expect(Object.keys(sent!.keys)).toContain("bs_h_psalms_23");
+  // Restore a file that holds a bookmark: it lands in the cloud storage.
+  const file = { name: "cyberjudah-backup-2026-09-30.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ app: "cyberjudah", version: 1, date: "2026-09-30", keys: { bs_bm: JSON.stringify([{ id: "b1", name: "Comfort", color: "#cc0000", book: "psalms", chapter: 23, verse: 4, date: 1 }]) } })) };
+  await page.locator('input[aria-label="Backup file"]').setInputFiles(file);
+  await expect(page.locator("[role=status]")).toContainText("Restored 1 entry.");
+  const c = await cloud(page);
+  expect(JSON.parse(c.bs_bm)[0].name).toBe("Comfort");
+  // A file that is not a backup is refused.
+  await page.locator('input[aria-label="Backup file"]').setInputFiles({ name: "x.json", mimeType: "application/json", buffer: Buffer.from("{}") });
+  await expect(page.locator("[role=status]")).toContainText("This file is not a CyberJudah backup.");
+});
+
 test("the settings button opens settings", async ({ page }) => {
   await page.goto(`/search${LAUNCH}`);
   await press(page, "settings");
@@ -315,7 +336,11 @@ test("the settings button opens settings", async ({ page }) => {
 test("Home is the front door: one field, search the classes or ask CyberJudah", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
   await expect(page.locator(".hero__prompt[data-on]")).toBeVisible();
-  await expect(page.locator('.home a[href="/plan"]')).toHaveCount(0);
+  // No plan yet: Meditate offers to start one (Bible Strong's PlanHome), and the study shelves are all in front.
+  await expect(page.locator('.home a[href="/plan"]')).toHaveText(/Start a reading plan/);
+  await expect(page.locator(".shelf")).toHaveText(["Learn", "Study", "Meditate", "Go further"]);
+  await expect(page.locator(".widget")).toHaveCount(6);
+  await expect(page.locator('.tools a[href="/lexicon"]')).toBeVisible();
   await expect(page.locator(".tab")).toHaveCount(5);
   await page.fill("#q", "Why do we keep the Passover?");
   await page.click(".door__btn--ask");
@@ -494,6 +519,16 @@ test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a re
   await expect(page.locator(".bs-search__hit")).toHaveCount(2);
   await expect(page.locator(".bs-search__hit b").nth(1)).toHaveText("Ecclesiasticus 43:9");
   await expect(page.locator(".bs-search__hit mark").first()).toHaveText("light");
+  // Bible Strong's filters: the canon, then one book.
+  await page.click('.bs-search__filters .bs-chip:has-text("Apocrypha")');
+  await expect(page.locator(".bs-search__hit")).toHaveCount(1);
+  await expect(page.locator(".bs-search__count")).toHaveText("1 verse in the Apocrypha");
+  await page.selectOption(".bs-chip--select", "tobit");
+  await expect(page.locator(".bs-search__hit")).toHaveCount(0);
+  await expect(page.locator(".bs-search__hint")).toContainText("No verse has those words in Tobit. 2 elsewhere.");
+  await page.click('.bs-search__filters .bs-chip:has-text("All")');
+  await page.selectOption(".bs-chip--select", "");
+  await expect(page.locator(".bs-search__hit")).toHaveCount(2);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/bible-search.png` });
   await page.locator(".bs-search__hit").first().click();
   await expect(page).toHaveURL(/\/read\/john\/1\?v=4/);
@@ -507,6 +542,13 @@ test("a verse links to each class that read it, on YouTube at that moment", asyn
   await tag.click();
   const opened = await page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.filter((l) => l[0] === "openLink"));
   expect(opened.at(-1)?.[1]).toBe("https://www.youtube.com/watch?v=36emQd9wjts&t=3633s");
+  // In this chapter (Bible Strong's ChapterEntities): the people named, at the end of the text, each opening the person.
+  const cain = page.locator(".bs-entity", { hasText: "Cain" }).first();
+  await cain.scrollIntoViewIfNeeded();
+  await expect(page.locator(".bs-entities__title")).toHaveText("In this chapter");
+  await expect(page.locator(".bs-entity").first()).toContainText("Cain");
+  await cain.click();
+  await expect(page).toHaveURL(/\/person\/cain-gen-4-1/);
 });
 
 test("a verse's Comments hold each class's own breakdown of it, and watch from that moment", async ({ page }) => {

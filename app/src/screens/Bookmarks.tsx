@@ -26,7 +26,8 @@ export function Bookmarks() {
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const bookName = (slug: string) => books.data?.find((b) => b.slug === slug)?.book ?? slug;
   const tagFilter = params.get("tag") ?? "";
-  const { rows: notes } = useAllNotes();
+  const { rows: allNotes } = useAllNotes();
+  const notes = useMemo(() => (tagFilter ? allNotes.filter((n) => n.note.tags?.[tagFilter]) : allNotes), [allNotes, tagFilter]);
   const [hl, setHl] = useState<ChapterHl[]>([]);
   useEffect(() => {
     void store.keys().then(async (keys) => {

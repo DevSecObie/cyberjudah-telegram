@@ -189,6 +189,22 @@ app.post("/api/notes/pdf", async (c) => {
   const url = `${new URL(c.req.url).origin}/api/pdf${path}?exp=${exp}&sig=${await pdfSig(c.env, path, exp)}`;
   return c.json({ ok: true, url, file: pdfName(note) });
 });
+// A backup of everything the reader kept (Bible Strong's Backup screen): the app sends its
+// CloudStorage keys, the bot sends them back as a JSON file in the reader's chat. Nothing is
+// stored on the server; the file goes straight to Telegram.
+app.post("/api/backup", async (c) => {
+  const body = await c.req.json<{ keys?: Record<string, string> }>().catch(() => null);
+  const keys = body?.keys && typeof body.keys === "object" ? body.keys : null;
+  if (!keys) return c.json({ ok: false, error: "Nothing to back up." }, 400);
+  const entries = Object.entries(keys).filter(([k, v]) => /^[A-Za-z0-9_-]{1,128}$/.test(k) && typeof v === "string" && v.length <= 4096).slice(0, 1024);
+  if (!entries.length) return c.json({ ok: false, error: "Nothing to back up." }, 400);
+  const date = new Date().toISOString().slice(0, 10);
+  const file = JSON.stringify({ app: "cyberjudah", version: 1, date, keys: Object.fromEntries(entries) }, null, 1);
+  if (file.length > 2_000_000) return c.json({ ok: false, error: "The backup is too large to send." }, 413);
+  try { await new Api(c.env.BOT_TOKEN).sendDocument(c.get("tma").user!.id, new InputFile(new TextEncoder().encode(file), `cyberjudah-backup-${date}.json`), { caption: `Your CyberJudah backup, ${date}: ${entries.length} entries. Restore it from Settings.` }); }
+  catch { return c.json({ ok: false, error: "The bot could not send you the file. Open a chat with the bot, press Start, and try again." }, 400); }
+  return c.json({ ok: true, entries: entries.length });
+});
 app.get("/api/pdf/*", async (c) => {
   const path = c.req.path.slice("/api/pdf".length);
   const exp = Number(c.req.query("exp")), sig = c.req.query("sig") ?? "";
