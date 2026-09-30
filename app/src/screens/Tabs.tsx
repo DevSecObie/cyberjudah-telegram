@@ -1,6 +1,8 @@
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
-import { closeAll, closeTab, newTab, selectTab, tabKind, tabPlace, useTabs } from "@/lib/tabs";
+import { adjacentGroup, closeTab, DEFAULT_GROUP, deleteGroup, GROUP_COLORS, MAX_GROUPS, newGroup, newTab, renameGroup, selectTab, switchGroup, tabKind, tabPlace, useTabs, type Group } from "@/lib/tabs";
+import { useSheet } from "@/ui/sheet";
 import { useBackButton } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { Icon, Screen, type IconName } from "@/ui/ui";
@@ -58,31 +60,127 @@ export function NewTab() {
   );
 }
 
-/** Bible Strong's tab switcher: every open tab as a card; tap to go, ✕ to close, + for a new tab. */
+/** Readable text on a group colour (Bible Strong's getContrastTextColor). */
+const onColor = (hex: string) => {
+  const n = parseInt(hex.replace("#", ""), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? "#111" : "#fff";
+};
+
+/** The groups: switch, create, rename or delete (Bible Strong's GroupActionsPopover and ViewGroupsModal). */
+function useGroupActions() {
+  const sheet = useSheet();
+  const { group, groups } = useTabs();
+  const pickColor = async (title: string, on?: string) => {
+    const c = await sheet.open({ title, colors: GROUP_COLORS.map((css, i) => ({ id: css, label: `Colour ${i + 1}`, css, on: css === on })) });
+    return c?.id;
+  };
+  const createGroup = async () => {
+    if (groups.length >= MAX_GROUPS) { await sheet.open({ title: `You can keep ${MAX_GROUPS} groups. Delete one to make another.` }); return; }
+    const name = await sheet.open({ title: "New group", text: { label: "Name", placeholder: `Group ${groups.length + 1}`, submit: "Next" } });
+    if (!name) return;
+    const color = (await pickColor("Its colour")) ?? GROUP_COLORS[groups.length % GROUP_COLORS.length];
+    if (newGroup(name.value ?? "", color)) haptic("success");
+  };
+  const editGroup = async () => {
+    const name = await sheet.open({ title: "Rename the group", text: { label: "Name", value: group.name, submit: "Next" } });
+    if (!name) return;
+    const color = (await pickColor("Its colour", group.color)) ?? group.color;
+    renameGroup(group.id, name.value ?? group.name, color);
+  };
+  return async () => {
+    haptic("select");
+    const a = await sheet.open({
+      title: "Groups",
+      items: [
+        ...groups.map((g) => ({ id: `g:${g.id}`, text: `${g.id === group.id ? "✓ " : ""}${groupLabel(g)}`, hint: `${g.tabs.length} ${g.tabs.length === 1 ? "tab" : "tabs"}`, icon: <span className="groupdot" style={{ background: g.color }} /> })),
+        { id: "new", text: "New group", icon: <Icon name="plus" size={18} /> },
+        ...(isDefault(group) ? [] : [{ id: "edit", text: `Rename “${group.name}”`, icon: <Icon name="compose" size={18} /> }]),
+        { id: "delete", text: isDefault(group) ? "Close every tab" : `Delete “${group.name}” and its tabs`, destructive: true, icon: <Icon name="trash" size={18} /> },
+      ],
+    });
+    if (!a) return;
+    if (a.id.startsWith("g:")) { switchGroup(a.id.slice(2)); haptic("select"); return; }
+    if (a.id === "new") await createGroup();
+    else if (a.id === "edit") await editGroup();
+    else if (a.id === "delete") { const ok = await sheet.open({ title: isDefault(group) ? "Close every tab?" : `Delete “${group.name}”?`, items: [{ id: "yes", text: isDefault(group) ? "Close them all" : "Delete the group", destructive: true }] }); if (ok) { deleteGroup(group.id); haptic("success"); } }
+  };
+}
+/** The first group is Bible Strong's default group: it has no name of its own, only its count. */
+const isDefault = (g: Group) => g.name === DEFAULT_GROUP;
+const groupLabel = (g: Group) => (isDefault(g) ? `${g.tabs.length} ${g.tabs.length === 1 ? "tab" : "tabs"}` : g.name);
+
+/**
+ * The bottom bar while the switcher is open (Bible Strong's BottomTabBar in list mode): a new
+ * tab, the group's name (the default group shows its count) which opens the groups, and OK.
+ */
+export function SwitcherBar() {
+  const navigate = useNavigate();
+  const { tabs, current, group } = useTabs();
+  const openGroups = useGroupActions();
+  const go = (path: string) => { haptic("select"); navigate(path, { replace: true }); };
+  const named = !isDefault(group);
+  return (
+    <div className="switcherbar" role="toolbar" aria-label="Tabs">
+      <button type="button" className="switcherbar__add" aria-label="Add a tab" onClick={() => go(newTab())}><Icon name="plus" size={24} /></button>
+      <button type="button" className="switcherbar__group" aria-label={`${groupLabel(group)}. Groups`} onClick={() => void openGroups()}
+        style={named ? { background: group.color, color: onColor(group.color) } : undefined}>
+        <span>{groupLabel(group)}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+      </button>
+      <button type="button" className="switcherbar__ok" aria-label="Open the selected tab" onClick={() => go(tabs.find((t) => t.id === current)?.path ?? "/new")}>OK</button>
+    </div>
+  );
+}
+
+/**
+ * Bible Strong's tab switcher (AppSwitcherScreen, StaticTabPreview): the current group's tabs,
+ * two to a row, 20 px apart, each a card as tall as the screen's proportions allow with a 40 px
+ * title bar (icon, title, ✕) over a round icon. A sideways swipe moves between groups.
+ */
 export function Tabs() {
   useBackButton(true);
   const navigate = useNavigate();
-  const { tabs, current } = useTabs();
+  const { tabs } = useTabs();
   const go = (path: string) => { haptic("select"); navigate(path, { replace: true }); };
+  // Card size: two per row with 20 px margins and gap; height from the screen's proportions x 0.7.
+  const [size, setSize] = useState(() => cardSize());
+  useEffect(() => { const on = () => setSize(cardSize()); window.addEventListener("resize", on); return () => window.removeEventListener("resize", on); }, []);
+
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const onStart = (e: React.TouchEvent) => { const t = e.touches[0]; start.current = { x: t.clientX, y: t.clientY }; };
+  const onEnd = (e: React.TouchEvent) => {
+    const s0 = start.current; start.current = null; if (!s0) return;
+    const t = e.changedTouches[0], dx = t.clientX - s0.x, dy = t.clientY - s0.y;
+    if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+    const id = adjacentGroup(dx < 0 ? 1 : -1);
+    if (id) { switchGroup(id); haptic("select"); }
+  };
+
   return (
-    <Screen title="Tabs" kicker={`${tabs.length} open`} action={<button type="button" className="icon-btn" aria-label="Close all tabs" onClick={() => { closeAll(); haptic("select"); }}><Icon name="trash" size={18} /></button>}>
-      <div className="tabs-grid">
+    <main className="switcher" onTouchStart={onStart} onTouchEnd={onEnd}>
+      <div className="switcher__grid" style={{ gridTemplateColumns: `repeat(${size.perRow}, ${size.w}px)` }}>
         {tabs.map((t) => {
           const { kind, icon } = tabKind(t.path);
           const place = tabPlace(t.path);
+          const title = place ? `${kind} · ${place}` : kind;
           return (
-            <div key={t.id} className="tabcard" data-current={t.id === current ? "" : undefined}>
-              <button type="button" className="tabcard__open" onClick={() => go(selectTab(t.id))} aria-label={`Open ${kind}${place ? ` ${place}` : ""}`}>
-                <span className="tabcard__icon"><Icon name={icon as IconName} size={26} /></span>
-                <b>{kind}</b>
-                {place ? <small>{place}</small> : null}
+            <div key={t.id} className="tabcard" style={{ width: size.w, height: size.h }}>
+              <button type="button" className="tabcard__open" onClick={() => go(selectTab(t.id))} aria-label={`Open ${title}`}>
+                <span className="tabcard__icon"><Icon name={icon as IconName} size={30} /></span>
               </button>
-              <button type="button" className="tabcard__close" aria-label={`Close ${kind}`} onClick={() => { haptic("select"); closeTab(t.id); }}>✕</button>
+              <span className="tabcard__title"><Icon name={icon as IconName} size={16} /><b>{title}</b></span>
+              <button type="button" className="tabcard__close" aria-label={`Close ${title}`} onClick={() => { haptic("select"); closeTab(t.id); }}>
+                <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg></span>
+              </button>
             </div>
           );
         })}
-        <button type="button" className="tabcard tabcard--new" onClick={() => go(newTab())}><span className="tabcard__icon"><Icon name="compose" size={26} /></span><b>New tab</b></button>
       </div>
-    </Screen>
+    </main>
   );
+}
+function cardSize() {
+  const W = window.innerWidth, H = window.innerHeight, perRow = W > 600 ? 4 : 2;
+  const w = Math.floor((W - 20 * 2 - (perRow - 1) * 20) / perRow);
+  return { perRow, w, h: Math.round(((w * H) / W) * (W > 600 ? 1 : 0.7)) };
 }
