@@ -1,12 +1,13 @@
-import { Children, useEffect, type ReactNode } from "react";
+import { Children, useEffect, useRef, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton, Tabbar } from "@telegram-apps/telegram-ui";
+import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
 
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
 import { usePageActions } from "@/tg/hooks";
 import { askTabPath, bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
 import { SwitcherBar } from "@/screens/Tabs";
+import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
 
 export type IconName = "home" | "search" | "play" | "book" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus";
 export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
@@ -53,43 +54,51 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
 }
 
 /**
- * Bible Strong's bottom bar (app-switcher/BottomTabBar): Home, Search, Bible, the open tabs,
- * and the menu. Home and the menu are not tabs; Search, the Bible and Ask go to their tab (or open
- * one); the tabs button shows how many are open and opens the switcher.
+ * Bible Strong's bottom bar (app-switcher/BottomTabBar): a full-width row of icons, 48 high, no
+ * labels. Here the reader picks and orders the buttons (lib/nav); the menu always ends the row.
+ * Search, the Bible and Ask go to their tab (or open one); the tabs button shows how many are
+ * open and opens the switcher. A long press on the bar opens its editor.
  */
 export function tabOf(path: string): string {
-  if (path === "/") return "home";
-  if (path.startsWith("/search")) return "search";
-  if (/^\/(bible|read)(\/|$)/.test(path)) return "bible";
-  if (/^\/ask(\/|\?|$)/.test(path)) return "ask";
-  if (path.startsWith("/more")) return "more";
-  return "tabs";
+  if (path.startsWith("/more") || path.startsWith("/settings")) return "more";
+  return NAV_ITEMS.find((i) => i.match.test(path))?.id ?? "";
 }
+
+const navPath = (id: NavId) => id === "search" ? searchTabPath() : id === "bible" ? bibleTabPath() : id === "ask" ? askTabPath() : navItem(id).path;
 
 export function TabBar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { tabs } = useTabs();
+  const [ids] = useNav();
   const current = tabOf(pathname);
-  const go = (to: string) => { haptic("select"); if (to === pathname) window.scrollTo({ top: 0, behavior: "smooth" }); else navigate(to, { replace: true }); };
-  const items: { id: string; label: string; icon: ReactNode; onClick: () => void }[] = [
-    { id: "home", label: "Home", icon: <Icon name="home" size={24} />, onClick: () => go("/") },
-    { id: "search", label: "Search", icon: <Icon name="search" size={24} />, onClick: () => go(searchTabPath()) },
-    { id: "bible", label: "Bible", icon: <Icon name="book" size={24} />, onClick: () => go(bibleTabPath()) },
-    { id: "ask", label: "Ask", icon: <Icon name="chat" size={24} />, onClick: () => go(askTabPath()) },
-    { id: "tabs", label: "Tabs", icon: <span className="tab__count" aria-hidden="true">{tabs.length}</span>, onClick: () => go("/tabs") },
-    { id: "more", label: "More", icon: <Icon name="more" size={24} />, onClick: () => go("/more") },
-  ];
+  const press = useRef<number | undefined>(undefined);
+  const long = useRef(false);
+  const go = (to: string) => { if (long.current) return; haptic("select"); if (to === pathname) window.scrollTo({ top: 0, behavior: "smooth" }); else navigate(to, { replace: true }); };
+  const hold = {
+    onPointerDown: () => { long.current = false; press.current = window.setTimeout(() => { long.current = true; haptic("heavy"); navigate("/settings/bar"); }, 600); },
+    onPointerUp: () => window.clearTimeout(press.current),
+    onPointerLeave: () => window.clearTimeout(press.current),
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+  };
   // While the switcher is open the bar becomes its controls, as in Bible Strong.
   if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /></nav>;
+  const count = tabs.length > 100 ? ":)" : String(tabs.length);
   return (
-    <Tabbar className="tabs" aria-label="Sections">
-      {items.map((t) => (
-        <Tabbar.Item key={t.id} className="tab" text={t.label} selected={current === t.id} aria-current={current === t.id ? "page" : undefined} aria-label={t.id === "tabs" ? `Tabs, ${tabs.length} open` : undefined} onClick={t.onClick}>
-          {t.icon}
-        </Tabbar.Item>
-      ))}
-    </Tabbar>
+    <nav className="tabs" aria-label="Sections" {...hold}>
+      {ids.map((id) => {
+        const item = navItem(id);
+        return (
+          <button key={id} type="button" className="tab" data-on={current === id ? "" : undefined} aria-current={current === id ? "page" : undefined}
+            aria-label={id === "tabs" ? `Tabs, ${tabs.length} open` : item.label} onClick={() => go(navPath(id))}>
+            {item.icon === "count" ? <span key={count} className="tab__count" aria-hidden="true">{count}</span> : <Icon name={item.icon} size={23} />}
+          </button>
+        );
+      })}
+      <button type="button" className="tab" data-on={current === "more" ? "" : undefined} aria-current={current === "more" ? "page" : undefined} aria-label="Menu" onClick={() => go("/more")}>
+        <Icon name="more" size={28} />
+      </button>
+    </nav>
   );
 }
 
