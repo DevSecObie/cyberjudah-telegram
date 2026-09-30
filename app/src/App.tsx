@@ -10,6 +10,7 @@ import { useSettingsButton, useStored, useTheme } from "@/tg/hooks";
 import { AppRoot } from "@telegram-apps/telegram-ui";
 import { Button, PageActions, Screen, Skeleton, TabBar } from "@/ui/ui";
 import { Drawers } from "@/ui/drawers";
+import { ScreenBoundary } from "@/ui/boundary";
 import { ThemeApplier } from "@/ui/theme";
 import { Home } from "@/screens/Home";
 import { NavEditor } from "@/screens/NavEditor";
@@ -88,6 +89,7 @@ export function App() {
       <ThemeApplier />
       <Lock />
       <div className="route" key={location.pathname.split("/").slice(0, 2).join("/")}>
+      <ScreenBoundary resetKey={location.pathname}>
       <Suspense fallback={<Screen><Skeleton rows={8} /></Screen>}>
       <Routes>
         <Route path="/" element={<Home />} />
@@ -136,6 +138,7 @@ export function App() {
         <Route path="*" element={<Home />} />
       </Routes>
       </Suspense>
+      </ScreenBoundary>
       </div>
       <PageActions />
       <Drawers />
