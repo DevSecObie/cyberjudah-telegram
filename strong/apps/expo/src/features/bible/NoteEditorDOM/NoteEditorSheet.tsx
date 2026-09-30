@@ -1,0 +1,89 @@
+import { Platform } from 'react-native'
+import { useSheetInternal } from '~common/sheet'
+import { useTheme } from '~themes/ThemeProvider'
+import { useState } from 'react'
+import { useSelector } from 'react-redux'
+import useCurrentThemeSelector from '~helpers/useCurrentThemeSelector'
+import { RootState } from '~redux/modules/reducer'
+import NoteEditorDOMComponent from './NoteEditorDOMComponent'
+interface Props {
+  defaultTitle: string
+  defaultDescription: string
+  resetKey?: number
+  isEditing: boolean
+  placeholderTitle: string
+  placeholderDescription: string
+  onTitleChange: (value: string) => void
+  onDescriptionChange: (value: string) => void
+}
+
+/**
+ * Wrapper for NoteEditorDOMComponent that integrates with Sheet keyboard handling.
+ * Must be used inside a Sheet context.
+ */
+export default function NoteEditorSheet({
+  defaultTitle,
+  defaultDescription,
+  resetKey,
+  isEditing,
+  placeholderTitle,
+  placeholderDescription,
+  onTitleChange,
+  onDescriptionChange,
+}: Props) {
+  const theme = useTheme()
+  const { colorScheme } = useCurrentThemeSelector()
+  const fontSizeScale = useSelector((state: RootState) => state.user.bible.settings.fontSizeScale)
+  const [webViewHeight, setWebViewHeight] = useState(100)
+  const { animatedKeyboardState } = useSheetInternal()
+
+  const handleSizeChange = (_width: number, height: number) => {
+    setWebViewHeight(height)
+  }
+
+  const handleFocus = () => {
+    animatedKeyboardState.set(state => ({
+      ...state,
+      target: -1,
+    }))
+  }
+
+  const handleBlur = () => {
+    const keyboardState = animatedKeyboardState.get()
+    if (keyboardState.target === -1) {
+      animatedKeyboardState.set(state => ({
+        ...state,
+        target: undefined,
+      }))
+    }
+  }
+
+  return (
+    <NoteEditorDOMComponent
+      standaloneDocument={Platform.OS !== 'web'}
+      encodedDefaultTitle={encodeURIComponent(defaultTitle)}
+      encodedDefaultDescription={encodeURIComponent(defaultDescription)}
+      resetKey={resetKey}
+      isEditing={isEditing}
+      fontSizeScale={fontSizeScale}
+      colorScheme={colorScheme}
+      textColor={theme.colors.default}
+      editorBackgroundColor={theme.colors.opacity5}
+      placeholderColor={theme.colors.grey}
+      placeholderTitle={placeholderTitle}
+      placeholderDescription={placeholderDescription}
+      onTitleChange={onTitleChange}
+      onDescriptionChange={onDescriptionChange}
+      onSizeChange={handleSizeChange}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      dom={{
+        useExpoDOMWebView: false,
+        containerStyle: { height: webViewHeight, overflow: 'hidden' },
+        style: { overflow: 'hidden' },
+        scrollEnabled: false,
+        hideKeyboardAccessoryView: true,
+      }}
+    />
+  )
+}

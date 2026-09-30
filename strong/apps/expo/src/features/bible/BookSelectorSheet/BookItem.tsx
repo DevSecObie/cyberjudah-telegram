@@ -1,0 +1,169 @@
+import { twMerge } from '~common/ui/classNames'
+
+import { MotiView } from '@alloc/moti'
+import { memo, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { DeviceEventEmitter, TouchableOpacity, useWindowDimensions } from 'react-native'
+import { SharedValue, useDerivedValue } from 'react-native-reanimated'
+import { Book } from '~assets/bible_versions/books-desc'
+import Box, { HStack } from '~common/ui/Box'
+import { FeatherIcon } from '~common/ui/Icon'
+import Text from '~common/ui/Text'
+import AccordionItem from './AccordionItem'
+import { BOOK_SELECTION_EVENT } from './constants'
+interface BookItemProps {
+  book: Book
+  chapters?: number[]
+  isSelected: boolean
+  onBookSelect: (book: Book) => void
+  expandedBook: SharedValue<number | null>
+  shouldRenderChapters: boolean
+}
+
+export const itemHeight = 46
+
+const BookItem = memo(
+  ({
+    book,
+    chapters: availableChapters,
+    isSelected,
+    onBookSelect,
+    expandedBook,
+    shouldRenderChapters,
+  }: BookItemProps) => {
+    const { t } = useTranslation()
+    const { width: windowWidth } = useWindowDimensions()
+    const isExpanded = useDerivedValue(() => expandedBook.get() === book.Numero)
+
+    const chapters = useMemo(
+      () => availableChapters || Array.from({ length: book.Chapitres }, (_, i) => i + 1),
+      [availableChapters, book]
+    )
+
+    const ITEM_WIDTH = 60
+    const ITEM_GAP = 10
+    const MAX_WIDTH = Math.min(500, windowWidth)
+    const PADDING = 0
+
+    const availableWidth = MAX_WIDTH - PADDING * 2
+    const itemsPerRow = Math.floor(availableWidth / (ITEM_WIDTH + ITEM_GAP))
+    const totalItemsWidth = itemsPerRow * ITEM_WIDTH + (itemsPerRow - 1) * ITEM_GAP
+    const horizontalMargin = (MAX_WIDTH - totalItemsWidth) / 2
+    const chevronAnimation = useDerivedValue(() => ({
+      transform: [{ rotate: isExpanded.get() ? '180deg' : '0deg' }],
+    }))
+
+    const handleChapterSelect = (chapter: number) => {
+      DeviceEventEmitter.emit(BOOK_SELECTION_EVENT, {
+        type: 'select',
+        book,
+        chapter,
+      })
+    }
+
+    const handleLongPressChapterSelect = (chapter: number) => {
+      DeviceEventEmitter.emit(BOOK_SELECTION_EVENT, {
+        type: 'longPress',
+        book,
+        chapter,
+      })
+    }
+
+    return (
+      <Box className="overflow-hidden border-continuous">
+        <TouchableOpacity
+          accessibilityLabel={t(book.Nom)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: shouldRenderChapters }}
+          activeOpacity={0.8}
+          onPress={() => onBookSelect(book)}
+        >
+          <HStack
+            className={twMerge(
+              'overflow-hidden border-continuous',
+              twMerge(
+                isSelected ? 'bg-light-grey' : 'bg-[transparent]',
+                'overflow-hidden border-continuous px-[20px] items-center'
+              )
+            )}
+            style={{ height: itemHeight }}
+          >
+            <Text
+              className={twMerge(
+                isSelected ? 'text-primary' : 'text-default',
+                'text-[16px] flex-[1]'
+              )}
+              style={{ fontWeight: isSelected ? 'bold' : undefined }}
+            >
+              {t(book.Nom)}
+            </Text>
+            <MotiView
+              transition={{
+                type: 'timing',
+                duration: 300,
+              }}
+              animate={chevronAnimation as never}
+            >
+              <FeatherIcon color="grey" name="chevron-down" size={24} style={{ opacity: 0.5 }} />
+            </MotiView>
+          </HStack>
+        </TouchableOpacity>
+        {shouldRenderChapters && (
+          <AccordionItem isExpanded={isExpanded} viewKey={book.Nom}>
+            <HStack
+              className="overflow-hidden border-continuous"
+              style={[
+                { gap: ITEM_GAP },
+                {
+                  flexWrap: 'wrap',
+                  paddingVertical: 10,
+                  paddingHorizontal: horizontalMargin,
+                  maxWidth: MAX_WIDTH,
+                  alignSelf: 'center',
+                },
+              ]}
+            >
+              {chapters.map(chapter => (
+                <TouchableOpacity
+                  key={chapter}
+                  accessibilityLabel={`${t('Chapitre')} ${chapter}`}
+                  accessibilityRole="button"
+                  onPress={() => handleChapterSelect(chapter)}
+                  onLongPress={() => handleLongPressChapterSelect(chapter)}
+                >
+                  <Box
+                    className="overflow-hidden border-continuous bg-opacity5 rounded-[6px] h-[60px] items-center justify-center"
+                    style={{ width: ITEM_WIDTH }}
+                  >
+                    <Box
+                      className="overflow-hidden border-continuous"
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        justifyContent: 'center',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text className="text-center" style={{ width: ITEM_WIDTH }}>
+                        {chapter}
+                      </Text>
+                    </Box>
+                  </Box>
+                </TouchableOpacity>
+              ))}
+            </HStack>
+          </AccordionItem>
+        )}
+      </Box>
+    )
+  },
+  (prevProps, nextProps) => {
+    return (
+      prevProps.isSelected === nextProps.isSelected &&
+      prevProps.shouldRenderChapters === nextProps.shouldRenderChapters
+    )
+  }
+)
+
+export default BookItem

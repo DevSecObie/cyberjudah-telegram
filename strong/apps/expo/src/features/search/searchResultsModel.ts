@@ -1,0 +1,279 @@
+import type { SearchResult } from '~helpers/biblesDb'
+import type { StrongLexiconSearchResult } from '~features/resources/strongLexiconAccess'
+import type { SearchItemType, SearchItemFilters } from '~state/searchFilters'
+import type { SearchResultSection } from './shared/SearchSectionBlock'
+import {
+  getDictionarySearchItems,
+  getNaveSearchItems,
+  getPassageSearchItems,
+  getReferenceSearchItems,
+  getStrongSearchItems,
+  type DictionarySearchRow,
+  type NaveSearchItemRow,
+} from './shared/searchItems'
+import type { SearchEntityResult } from './shared/searchResultTypes'
+
+export const SEARCH_MIN_QUERY_LENGTH = 2
+
+export type SearchSectionId =
+  | 'commentary'
+  | 'plan'
+  | 'timeline'
+  | 'reference'
+  | 'notes'
+  | 'links'
+  | 'studies'
+  | 'strong'
+  | 'dictionary'
+  | 'nave'
+  | 'passages'
+
+export type SQLiteSearchResultSection = SearchResultSection<SearchSectionId> & {
+  itemFilterType: SearchItemType
+}
+
+export type SearchFacetId = 'all' | SearchItemType
+
+export type SearchFacet = {
+  id: SearchFacetId
+  count: number
+}
+
+const searchFacetOrder: SearchItemType[] = [
+  'passages',
+  'notes',
+  'links',
+  'studies',
+  'strong',
+  'dictionary',
+  'nave',
+  'commentary',
+  'plan',
+  'timeline',
+]
+
+type SearchLoadingState = {
+  catalog?: boolean
+  semanticPassages?: boolean
+  passages: boolean
+  notes: boolean
+  links: boolean
+  studies: boolean
+  strong: boolean
+  dictionary: boolean
+  nave: boolean
+}
+
+type SearchResultsModelInput = {
+  catalogResults?: SearchEntityResult[]
+  catalogError?: boolean
+  query: string
+  debouncedQuery: string
+  browseItemType?: SearchItemType
+  itemFilters: SearchItemFilters
+  noteResults: SearchEntityResult[]
+  linkResults: SearchEntityResult[]
+  studyResults: SearchEntityResult[]
+  strongResults: StrongLexiconSearchResult[]
+  dictionaryResults: DictionarySearchRow[]
+  naveResults: NaveSearchItemRow[]
+  passageResults: SearchResult[] | null
+  semanticSearchError?: string | null
+  totalPassageCount: number
+  searchError: string | null
+  loading: SearchLoadingState
+  t: (key: string) => string
+}
+
+const getSection = ({
+  id,
+  title,
+  items,
+  itemFilterType,
+  count = items.length,
+}: {
+  id: SearchSectionId
+  title: string
+  items: SearchEntityResult[]
+  itemFilterType: SearchItemType
+  count?: number
+}): SQLiteSearchResultSection => ({
+  id,
+  title,
+  count,
+  items,
+  iconType: itemFilterType,
+  itemFilterType,
+})
+
+export const shouldShowSearchResultsList = ({
+  query,
+  debouncedQuery,
+  browseItemType,
+}: {
+  query: string
+  debouncedQuery: string
+  browseItemType?: SearchItemType
+}) =>
+  Boolean(browseItemType) ||
+  (Boolean(debouncedQuery) &&
+    query.trim().length >= SEARCH_MIN_QUERY_LENGTH &&
+    debouncedQuery.trim().length >= SEARCH_MIN_QUERY_LENGTH)
+
+export const getSearchFacets = (sections: SQLiteSearchResultSection[]): SearchFacet[] => {
+  const counts = new Map<SearchItemType, number>()
+
+  sections.forEach(section => {
+    counts.set(section.itemFilterType, (counts.get(section.itemFilterType) || 0) + section.count)
+  })
+
+  const facets = searchFacetOrder.flatMap(id => {
+    const count = counts.get(id)
+    return count === undefined ? [] : [{ id, count }]
+  })
+  const totalCount = facets.reduce((total, facet) => total + facet.count, 0)
+
+  return [{ id: 'all', count: totalCount }, ...facets]
+}
+
+export const getSectionsForFacet = (sections: SQLiteSearchResultSection[], facet: SearchFacetId) =>
+  facet === 'all' ? sections : sections.filter(section => section.itemFilterType === facet)
+
+export const getSearchResultsModel = ({
+  catalogResults = [],
+  catalogError = false,
+  query,
+  debouncedQuery,
+  browseItemType,
+  itemFilters,
+  noteResults,
+  linkResults,
+  studyResults,
+  strongResults,
+  dictionaryResults,
+  naveResults,
+  passageResults,
+  totalPassageCount,
+  semanticSearchError,
+  searchError,
+  loading,
+  t,
+}: SearchResultsModelInput) => {
+  const referenceItems = itemFilters.passages ? getReferenceSearchItems(debouncedQuery) : []
+  const noteItems = itemFilters.notes ? noteResults : []
+  const linkItems = itemFilters.links ? linkResults : []
+  const studyItems = itemFilters.studies ? studyResults : []
+  const strongItems = itemFilters.strong ? getStrongSearchItems(strongResults, t) : []
+  const dictionaryItems = itemFilters.dictionary ? getDictionarySearchItems(dictionaryResults) : []
+  const naveItems = itemFilters.nave ? getNaveSearchItems(naveResults) : []
+  const passageItems = itemFilters.passages ? getPassageSearchItems(passageResults ?? []) : []
+
+  const sections: SQLiteSearchResultSection[] = [
+    ...(['commentary', 'plan', 'timeline'] as const).flatMap(type => {
+      const items = catalogResults.filter(item => item.type === type)
+      return itemFilters[type] && (items.length || loading.catalog || catalogError)
+        ? [
+            getSection({
+              id: type,
+              title: t(type === 'plan' ? 'Plans' : `tabs.${type}`),
+              items,
+              itemFilterType: type,
+            }),
+          ]
+        : []
+    }),
+    ...(referenceItems.length
+      ? [
+          getSection({
+            id: 'reference',
+            title: t('Référence biblique'),
+            items: referenceItems,
+            itemFilterType: 'passages',
+          }),
+        ]
+      : []),
+    ...(passageItems.length ||
+    (itemFilters.passages &&
+      (loading.passages || loading.semanticPassages || searchError || semanticSearchError))
+      ? [
+          getSection({
+            id: 'passages',
+            title: t('Passages'),
+            count: totalPassageCount || passageItems.length,
+            items: passageItems,
+            itemFilterType: 'passages',
+          }),
+        ]
+      : []),
+    ...(noteItems.length
+      ? [getSection({ id: 'notes', title: t('Notes'), items: noteItems, itemFilterType: 'notes' })]
+      : []),
+    ...(linkItems.length
+      ? [getSection({ id: 'links', title: t('Liens'), items: linkItems, itemFilterType: 'links' })]
+      : []),
+    ...(studyItems.length
+      ? [
+          getSection({
+            id: 'studies',
+            title: t('Études'),
+            items: studyItems,
+            itemFilterType: 'studies',
+          }),
+        ]
+      : []),
+    ...(strongItems.length
+      ? [
+          getSection({
+            id: 'strong',
+            title: t('Strong'),
+            items: strongItems,
+            itemFilterType: 'strong',
+          }),
+        ]
+      : []),
+    ...(dictionaryItems.length
+      ? [
+          getSection({
+            id: 'dictionary',
+            title: t('Dictionnaire'),
+            items: dictionaryItems,
+            itemFilterType: 'dictionary',
+          }),
+        ]
+      : []),
+    ...(naveItems.length
+      ? [getSection({ id: 'nave', title: t('Nave'), items: naveItems, itemFilterType: 'nave' })]
+      : []),
+  ]
+
+  const isBrowseLoading =
+    (['commentary', 'plan', 'timeline'].includes(browseItemType ?? '') &&
+      Boolean(loading.catalog)) ||
+    (browseItemType === 'notes' && loading.notes) ||
+    (browseItemType === 'links' && loading.links) ||
+    (browseItemType === 'studies' && loading.studies) ||
+    (browseItemType === 'strong' && loading.strong) ||
+    (browseItemType === 'dictionary' && loading.dictionary) ||
+    (browseItemType === 'nave' && loading.nave)
+  const isWaitingForDebounce =
+    !browseItemType &&
+    query.trim().length >= SEARCH_MIN_QUERY_LENGTH &&
+    query.trim() !== debouncedQuery.trim()
+  const isLoading = browseItemType
+    ? isBrowseLoading
+    : isWaitingForDebounce || Object.values(loading).some(Boolean)
+
+  const hasSearchQuery = Boolean(debouncedQuery)
+  const showResultsList = shouldShowSearchResultsList({ query, debouncedQuery, browseItemType })
+  const showNoResults = showResultsList && !isLoading && sections.length === 0 && !searchError
+
+  return {
+    hasSearchQuery,
+    showResultsList,
+    shouldRenderSearchList: showResultsList || !hasSearchQuery,
+    isBrowseLoading,
+    isLoading,
+    showNoResults,
+    sections,
+  }
+}

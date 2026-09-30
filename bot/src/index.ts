@@ -358,6 +358,16 @@ app.get("/card/:slug/:chapter/:file", async (c) => {
   return res;
 });
 
+// The Bible Strong fork, staged at /app/strong: a real file is served as is; any other path
+// under it is one of its screens, so it gets the fork's index.html (the asset fallback would
+// give the current app's).
+app.get("/app/strong/*", async (c) => {
+  const url = new URL(c.req.url);
+  if (/\.[a-z0-9]+$/i.test(url.pathname)) return c.env.ASSETS.fetch(c.req.raw);
+  return c.env.ASSETS.fetch(new Request(new URL("/app/strong/", url), c.req.raw));
+});
+app.get("/app/strong", (c) => c.redirect("/app/strong/" + new URL(c.req.url).search, 301));
+
 // Anything else is the Mini App (run_worker_first only routes the paths above here).
 app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 

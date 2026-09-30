@@ -1,0 +1,394 @@
+import {
+  createHttpBibleSearchAccess,
+  createHybridBibleSearchAccess,
+  type BibleSearchAccess,
+} from '../bibleSearchAccess'
+import { ResourceAccessError } from '../resourceAccessError'
+
+jest.mock('~helpers/biblesDb', () => ({
+  getInstalledVersions: jest.fn(),
+  searchVerses: jest.fn(),
+  searchVersesCount: jest.fn(),
+}))
+
+describe('HTTP Bible search access', () => {
+  it('returns results and their total from one public page request', async () => {
+    const fetcher = jest.fn(async () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            resource: {
+              kind: 'bible-text',
+              versionId: 'LSG',
+              revision: 'r1',
+              textRevision: 'r1',
+            },
+            results: [
+              {
+                version: 'LSG',
+                book: 43,
+                chapter: 3,
+                verse: 16,
+                text: 'Car Dieu a tant aimé le monde',
+                highlighted: 'Car Dieu a tant {{aimé}} le monde',
+              },
+            ],
+            count: 12,
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        )
+      )
+    )
+    const access = createHttpBibleSearchAccess({
+      baseUrl: 'http://resource.test/',
+      versions: ['LSG'],
+      fetcher,
+      isOnline: async () => true,
+    })
+
+    await expect(
+      access.searchPage('aimé', { version: 'LSG', limit: 5, offset: 10 })
+    ).resolves.toMatchObject({
+      count: 12,
+      results: [{ book: 43, chapter: 3, verse: 16 }],
+    })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    expect(fetcher).toHaveBeenCalledWith(
+      'http://resource.test/v1/bibles/LSG/search?q=aim%C3%A9&limit=5&offset=10',
+      expect.any(Object)
+    )
+  })
+
+  it('searches multiple Online Bible versions through one aggregate request', async () => {
+    const fetcher = jest.fn(async () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            resources: [
+              {
+                kind: 'bible-text',
+                versionId: 'LSG',
+                revision: 'lsg-r1',
+                textRevision: 'lsg-r1',
+              },
+              {
+                kind: 'bible-text',
+                versionId: 'DBY',
+                revision: 'dby-r1',
+                textRevision: 'dby-r1',
+              },
+            ],
+            results: [
+              {
+                version: 'LSG',
+                book: 43,
+                chapter: 3,
+                verse: 16,
+                text: 'Car Dieu a tant aimé le monde',
+                highlighted: 'Car {{Dieu}} a tant aimé le monde',
+              },
+              {
+                version: 'DBY',
+                book: 43,
+                chapter: 3,
+                verse: 16,
+                text: 'Car Dieu a tant aimé le monde',
+                highlighted: 'Car {{Dieu}} a tant aimé le monde',
+              },
+            ],
+            count: 2,
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        )
+      )
+    )
+    const access = createHttpBibleSearchAccess({
+      baseUrl: 'http://resource.test/',
+      versions: ['LSG', 'DBY'],
+      fetcher,
+      isOnline: async () => true,
+    })
+
+    await expect(access.searchPage('Dieu', { limit: 20 })).resolves.toMatchObject({
+      count: 2,
+      results: [{ version: 'LSG' }, { version: 'DBY' }],
+    })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    expect(fetcher).toHaveBeenCalledWith(
+      'http://resource.test/v1/bibles/search?q=Dieu&versions=LSG%2CDBY&limit=20',
+      expect.any(Object)
+    )
+  })
+
+  it('forwards the canon and its locally selected version set', async () => {
+    const fetcher = jest.fn(async () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            resources: [
+              {
+                kind: 'bible-text',
+                versionId: 'BFC',
+                revision: 'bfc-r1',
+                textRevision: 'bfc-r1',
+              },
+            ],
+            results: [],
+            count: 0,
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        )
+      )
+    )
+    const access = createHttpBibleSearchAccess({
+      baseUrl: 'http://resource.test',
+      versions: ['LSG', 'BFC'],
+      fetcher,
+      isOnline: async () => true,
+    })
+
+    await access.searchPage('Dieu', {
+      canon: 'catholic-73',
+      versionIds: ['BFC'],
+    })
+
+    expect(fetcher).toHaveBeenCalledWith(
+      'http://resource.test/v1/bibles/search?q=Dieu&versions=BFC&canon=catholic-73',
+      expect.any(Object)
+    )
+  })
+
+  it('returns an empty page while the requested version set is still empty', async () => {
+    const fetcher = jest.fn()
+    const access = createHttpBibleSearchAccess({
+      baseUrl: 'http://resource.test',
+      versions: ['LSG'],
+      fetcher,
+      isOnline: async () => true,
+    })
+
+    await expect(access.searchPage('Dieu', { versionIds: [] })).resolves.toEqual({
+      results: [],
+      count: 0,
+    })
+    expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('forwards cancellation to the active HTTP search', async () => {
+    let receivedSignal: AbortSignal | undefined
+    const fetcher = jest.fn((_url: string | URL | Request, init?: RequestInit) => {
+      receivedSignal = init?.signal ?? undefined
+      return new Promise<Response>((_resolve, reject) => {
+        receivedSignal?.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'AbortError'))
+        )
+      })
+    })
+    const access = createHttpBibleSearchAccess({
+      baseUrl: 'http://resource.test',
+      versions: ['LSG', 'DBY'],
+      fetcher,
+      isOnline: async () => true,
+    })
+    const controller = new AbortController()
+
+    const request = access.searchPage('Dieu', { signal: controller.signal })
+    controller.abort()
+
+    await expect(request).rejects.toMatchObject({ name: 'AbortError' })
+    expect(receivedSignal?.aborted).toBe(true)
+  })
+
+  it('rejects a multi-version search when any requested version fails', async () => {
+    const fetcher = jest.fn(async (url: string | URL | Request) => {
+      const value = String(url)
+      if (value.includes('/LSG/')) {
+        return new Response(
+          JSON.stringify({
+            resource: {
+              kind: 'bible-text',
+              versionId: 'LSG',
+              revision: 'r1',
+              textRevision: 'r1',
+            },
+            results: [],
+            count: 0,
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        )
+      }
+      return new Response(JSON.stringify({ code: 'RESOURCE_RATE_LIMITED' }), {
+        status: 429,
+        headers: {
+          'content-type': 'application/json',
+          'retry-after': '60',
+          'x-request-id': 'request-123',
+        },
+      })
+    })
+    const access = createHttpBibleSearchAccess({
+      baseUrl: 'http://resource.test/',
+      versions: ['LSG', 'DBY'],
+      fetcher,
+      isOnline: async () => true,
+    })
+
+    await expect(access.searchPage('grâce')).rejects.toMatchObject({
+      code: 'TEMPORARY_UNAVAILABLE',
+      httpStatus: 429,
+      requestId: 'request-123',
+      retryAfterSeconds: 60,
+      serverCode: 'RESOURCE_RATE_LIMITED',
+    })
+  })
+})
+
+describe('hybrid Bible search access', () => {
+  it('falls back to Offline after a temporary Online failure when the full scope is installed', async () => {
+    const onlineError = new ResourceAccessError('TEMPORARY_UNAVAILABLE')
+    const online = {
+      getInstalledVersions: jest.fn(),
+      searchPage: jest.fn().mockRejectedValue(onlineError),
+      searchVerses: jest.fn(),
+      searchVersesCount: jest.fn(),
+    } satisfies BibleSearchAccess
+    const offline = {
+      getInstalledVersions: jest.fn().mockResolvedValue(['LSG', 'DBY']),
+      searchPage: jest.fn().mockResolvedValue({ results: [{ version: 'LSG' }], count: 1 }),
+      searchVerses: jest.fn(),
+      searchVersesCount: jest.fn(),
+    } satisfies BibleSearchAccess
+    const access = createHybridBibleSearchAccess({
+      offline,
+      online,
+      remotelyReadableVersions: new Set(['LSG', 'DBY']),
+      isOnline: async () => true,
+    })
+
+    await expect(access.searchPage('grâce')).resolves.toEqual({
+      results: [{ version: 'LSG' }],
+      count: 1,
+    })
+    expect(offline.searchPage).toHaveBeenCalledWith('grâce', undefined)
+  })
+
+  it('keeps the Online error when the complete requested scope is not installed', async () => {
+    const onlineError = new ResourceAccessError('TEMPORARY_UNAVAILABLE')
+    const online = {
+      getInstalledVersions: jest.fn(),
+      searchPage: jest.fn().mockRejectedValue(onlineError),
+      searchVerses: jest.fn(),
+      searchVersesCount: jest.fn(),
+    } satisfies BibleSearchAccess
+    const offline = {
+      getInstalledVersions: jest.fn().mockResolvedValue(['LSG']),
+      searchPage: jest.fn(),
+      searchVerses: jest.fn(),
+      searchVersesCount: jest.fn(),
+    } satisfies BibleSearchAccess
+    const access = createHybridBibleSearchAccess({
+      offline,
+      online,
+      remotelyReadableVersions: new Set(['LSG', 'DBY']),
+      isOnline: async () => true,
+    })
+
+    await expect(access.searchPage('grâce')).rejects.toBe(onlineError)
+    expect(offline.searchPage).not.toHaveBeenCalled()
+  })
+
+  it('selects Offline before loading an explicitly installed non-Online version', async () => {
+    const online = {
+      getInstalledVersions: jest.fn(),
+      searchPage: jest.fn(),
+      searchVerses: jest.fn(),
+      searchVersesCount: jest.fn(),
+    } satisfies BibleSearchAccess
+    const offline = {
+      getInstalledVersions: jest.fn().mockResolvedValue(['LOCAL']),
+      searchPage: jest.fn().mockResolvedValue({ results: [], count: 0 }),
+      searchVerses: jest.fn(),
+      searchVersesCount: jest.fn(),
+    } satisfies BibleSearchAccess
+    const access = createHybridBibleSearchAccess({
+      offline,
+      online,
+      remotelyReadableVersions: new Set(['LSG']),
+      isOnline: async () => true,
+    })
+
+    await expect(access.searchPage('grâce', { version: 'LOCAL' })).resolves.toEqual({
+      results: [],
+      count: 0,
+    })
+    expect(offline.searchPage).toHaveBeenCalledWith('grâce', { version: 'LOCAL' })
+    expect(online.searchPage).not.toHaveBeenCalled()
+  })
+})
+
+it.each([true, false])(
+  'uses the separate semantic endpoint with all filters (single version: %s)',
+  async single => {
+    const resource = { kind: 'bible-text', versionId: 'LSG', revision: 'r1', textRevision: 'r1' }
+    const fetcher = jest.fn(
+      async (_input: RequestInfo | URL) =>
+        new Response(
+          JSON.stringify({
+            ...(single ? { resource } : { resources: [resource] }),
+            count: 0,
+            results: [],
+          }),
+          { status: 200 }
+        )
+    )
+    const access = createHttpBibleSearchAccess({
+      baseUrl: 'http://resource.test',
+      versions: ['LSG'],
+      fetcher,
+      isOnline: async () => true,
+    })
+    await access.searchPage('enfance de Jésus', {
+      mode: 'semantic',
+      ...(single ? { version: 'LSG' } : { versionIds: ['LSG'] }),
+      book: 42,
+      section: 'nt',
+      canon: 'protestant-66',
+      limit: 3,
+      offset: 6,
+      searchLanguage: 'fr',
+    })
+    const url = new URL(String(fetcher.mock.calls[0]?.[0]))
+    expect(url.pathname).toBe(
+      single ? '/v1/bibles/LSG/semantic-search' : '/v1/bibles/semantic-search'
+    )
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({
+      q: 'enfance de Jésus',
+      book: '42',
+      section: 'nt',
+      canon: 'protestant-66',
+      limit: '3',
+      offset: '6',
+      language: 'fr',
+    })
+  }
+)
+
+it('does not duplicate offline text results into the semantic group', async () => {
+  const offline: BibleSearchAccess = {
+    getInstalledVersions: async () => ['LSG'],
+    searchPage: jest.fn(async () => ({ results: [], count: 99 })),
+    searchVerses: jest.fn(async () => []),
+    searchVersesCount: jest.fn(async () => 99),
+  }
+  const access = createHybridBibleSearchAccess({
+    offline,
+    online: offline,
+    remotelyReadableVersions: new Set(['LSG']),
+    isOnline: async () => false,
+  })
+  await expect(access.searchPage('amour', { version: 'LSG', mode: 'semantic' })).resolves.toEqual({
+    results: [],
+    count: 0,
+  })
+  expect(offline.searchPage).not.toHaveBeenCalled()
+})

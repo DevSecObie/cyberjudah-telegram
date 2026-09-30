@@ -1,0 +1,164 @@
+# Feature Search
+
+## Vue d'ensemble
+
+La feature Search permet de rechercher des versets bibliques en mode hors ligne avec SQLite FTS5. Elle offre des filtres avancés, des widgets (Strong, Dictionnaire, Nave) et supporte plusieurs langues.
+
+## Fonctionnalités principales
+
+### Recherche SQLite FTS5
+
+- Recherche full-text performante avec prefix matching
+- Filtrage par section : Ancien Testament (AT) ou Nouveau Testament (NT)
+- Filtrage par livre specifique
+- Tri par pertinence ou ordre biblique
+- Support multilingue (Francais avec LSG, Anglais avec KJV)
+
+### Widgets de resultats
+
+- **Strong** : Mots hebreux/grecs correspondants
+- **Dictionnaire** : Definitions associees
+- **Nave** : Themes topiques lies
+
+### Interface utilisateur
+
+- Recherche automatique après une pause de saisie de 800 ms
+- Resultats pagines
+- Mise en evidence des termes recherches
+- Navigation directe vers les versets trouves
+
+## Architecture
+
+### Structure des composants
+
+```
+search/
+├── SearchTabScreen         # Container principal
+├── SQLiteSearchScreen      # Recherche FTS5
+└── widgets/                # Widgets Strong, Dictionnaire, Nave
+```
+
+## Utilisation
+
+```typescript
+// Navigation vers la recherche
+navigation.navigate('SearchTab')
+```
+
+## Dependances cles
+
+- `expo-sqlite` : Base de donnees SQLite avec FTS5
+- `react-i18next` : Internationalisation
+
+## Palette web et recherche persistante
+
+La recherche complète garde un brouillon dans `SearchQueryInput` : les frappes ne
+modifient ni la requête exécutée ni l'état global des onglets. Un debounce de
+800 ms lance automatiquement la recherche après la dernière frappe. La touche
+clavier Rechercher permet de lancer immédiatement la recherche ; aucun bouton
+supplémentaire ni libellé « Résultats pour » n'est affiché.
+Effacer réinitialise la recherche ; les exemples et recherches préremplies
+continuent de lancer directement leur requête. Les feuilles de sélection de catégorie et
+les aperçus de la palette conservent leur fonctionnement dynamique.
+
+Le brouillon survit au remontage du même onglet en mémoire et est enregistré à la
+perte de focus. Les anciens onglets sans `draftSearchValue` restent compatibles.
+Une nouvelle soumission conserve les objets de l'ancienne liste jusqu'aux premiers
+résultats utiles, ou jusqu'à une réponse finale vide, à filtres et version inchangés.
+Les clics sur cette liste ancienne ne sont pas attribués à la nouvelle recherche dans
+les analytics. La pagination attend les résultats courants.
+
+Sans résultat visible, le chargement affiche un spinner centré. Les sections
+n'affichent pas de spinner de liste vide quand leurs lignes sont rendues par une
+liste virtualisée extérieure. L'enrichissement sémantique ne présente plus de
+message « Recherche de résultats supplémentaires ».
+
+Les recherches distantes et les aperçus réessaient une seule fois après un HTTP
+429, en respectant `Retry-After` (60 secondes par défaut). Les autres erreurs ne
+sont pas relancées automatiquement. La recherche complète affiche un message de
+limitation distinct pendant l'attente, puis un message invitant à patienter si la
+seconde tentative est encore refusée. Les annulations de requête empêchent une
+ancienne recherche de repartir après ce délai.
+
+La palette de commandes affiche un aperçu de trois résultats par source. Elle réutilise
+les accès `bibleSearch`, `strongLexicon`, `dictionary` et `nave`, ainsi que les convertisseurs
+de résultats et la recherche Fuse des notes, études et liens de cette feature.
+`searchPreview.ts` porte les requêtes bornées et le contexte transmis à Recherche ;
+`useSearchPreview.ts` orchestre les requêtes indépendantes avec un délai de saisie de
+350 ms et masque les résultats d'une saisie précédente. Une source indisponible ne
+bloque pas les autres. Les recherches distantes utilisent les signaux d'annulation
+TanStack Query ; les contenus personnels restent recherchés depuis Redux.
+
+Les aperçus de contenus sont montés uniquement quand les suggestions sont visibles.
+« Voir tous les résultats » ouvre un onglet Recherche avec le texte, la catégorie et
+la version biblique de l'aperçu, sans reprendre d'anciens filtres de livre ou de canon.
+`SearchTab.data.filters` conserve ensuite les filtres de cet onglet. Les onglets plus
+anciens sans ce champ continuent de prendre les préférences globales au montage.
+
+Une chip d'outil limite la palette à une seule intention : Bible, Comparaison et
+Commentaire prennent une référence BCV ; Notes, Études, Lexique, Nave et Dictionnaire
+activent une seule source. Les autres requêtes ne sont pas lancées. Une saisie vide
+propose des contenus locaux récents ou le début du catalogue. Plans filtre les plans
+locaux disponibles. Retirer la chip conserve la saisie ; Retour arrière la retire
+lorsque le champ est vide. La comparaison développe toute la plage de versets, y
+compris les chapitres entiers ; les commentaires s'ouvrent au début du passage.
+
+## Langue des références bibliques
+
+`helpers/bcvParser.ts` conserve deux instances privées, française et anglaise.
+Chaque appel choisit la langue explicitement fournie ou lit la langue actuelle de
+l'application ; aucune langue par défaut n'est figée au démarrage. Les contenus
+éditoriaux peuvent continuer à imposer leur langue, indépendamment de l'interface.
+
+`parseBibleReferenceInput` renvoie les correspondances, la couverture exacte de la
+saisie et des segments structurés par chapitre. Recherche et la palette partagent
+ces segments, y compris les limites réelles des chapitres. Les anciens accès directs
+à `bcv` et la conversion intermédiaire `parseResponse` ont été supprimés. Les
+références enregistrées et les données utilisateur ne nécessitent aucune migration.
+
+### Recherche classique et recherche par sens
+
+L'onglet Recherche (mobile et web) et les aperçus Commande K lancent deux requêtes indépendantes :
+
+- `/v1/bibles/:version/search` (ou `/v1/bibles/search`) : texte, tolérance aux fautes et alias thématiques, sans appel d'embedding.
+- `/v1/bibles/:version/semantic-search` (ou `/v1/bibles/semantic-search`) : embedding et correspondances vectorielles, ajoutées au groupe unique « Passages ».
+
+Les deux opérations partagent les filtres et le contrat de réponse, mais ont leurs propres clés TanStack Query, erreurs et pages. Les résultats classiques sont affichés en premier, puis les résultats supplémentaires sont ajoutés sans doublons (version, livre, chapitre, verset de début). Les pages suivantes conservent les positions déjà affichées. Le compteur indique le nombre de résultats uniques chargés ; « Voir plus » reste disponible tant qu’une des sources a une page suivante. La recherche par sens dispose d'un délai client de 45 secondes, sans retarder la recherche classique. Elle n'est pas lancée hors ligne ; une panne IA ne déclenche pas une copie des résultats SQLite dans la liste. Un changement de texte, langue ou filtre invalide la requête affichée et annule le signal de l'ancienne requête.
+
+Le Worker doit être déployé avec les nouvelles routes avant de distribuer le client. La révision du cache change pour éviter qu'une ancienne réponse hybride soit servie par la route classique. Les anciens clients peuvent toujours lire `/search`, mais n'obtiennent plus les correspondances vectorielles par cette route.
+
+## Content discovery
+
+The existing Passages filter covers both Bible references and full-text passage search.
+Commentary, Plans and Timeline are appended to the source filters.
+All sources share the same input, result sections and counted facets. Passage results expose icon actions for a Bible tab and
+a comparison tab. Commentary search indexes catalog titles/authors, plans index
+saved and published titles, and timeline indexes period/event names. Published
+plans load through the existing plan thunk before opening a tab. Native selection
+uses the shared discovery results in a search sheet; Web uses command-palette
+rows. See ADR-0045 for the distinct Passage/Comparison command modes and the
+new-tab launch behavior. Existing library/list tabs remain valid.
+
+## Recherche de passages et insertion dans les études
+
+`usePassageSearch` est commun à la recherche globale et à `SearchSelectionSheet`.
+Il orchestre les mêmes requêtes textuelles et sémantiques, filtres, clés de cache,
+annulations, pagination et déduplication stable. Le texte reste recherchable hors
+ligne ; la recherche sémantique nécessite une connexion. Les références bibliques
+et codes Strong ne déclenchent pas ces requêtes textuelles.
+
+Un clic sur un passage dans `CreateEntityRelationModal` insère directement le
+résultat choisi, sans seconde sélection ni confirmation. Les références de chapitre
+seul (comme `Gen 3`) sont exclues ; une référence doit préciser ses versets. `resolvePassageTarget`
+convertit sa plage exacte en clés de versets, en conservant sa version. Une plage
+sur plusieurs chapitres est résolue sans ajouter les versets voisins. L'adaptateur
+conserve la distinction entre création d'une relation et insertion d'un lien ou
+bloc dans le document. La palette conserve l'ouverture directe des résultats.
+
+Le sélecteur utilise le même bouton `SearchFiltersTrigger`, les mêmes panneaux
+`SearchSourceFiltersSheet` et `PassageSearchFiltersSheet` que la recherche. La version,
+le canon, le testament, le livre et l'ordre sont accessibles depuis les filtres des
+passages, sans raccourci séparé sous la recherche ou dans les résultats.
+`usePassageFilterChoices` partage les options disponibles et
+`createSearchExperienceController` les règles de modification/réinitialisation.
+Les filtres du sélecteur restent locaux, avec ses seules sources autorisées.

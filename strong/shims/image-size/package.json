@@ -1,0 +1,8 @@
+{
+  "name": "image-size",
+  "version": "1.99.0-cyberjudah",
+  "private": true,
+  "description": "image-size 2.x (with its security fixes) behind the 1.x call Metro makes, which may pass a file path.",
+  "main": "index.js",
+  "dependencies": { "image-size-v2": "npm:image-size@2.0.4" }
+}

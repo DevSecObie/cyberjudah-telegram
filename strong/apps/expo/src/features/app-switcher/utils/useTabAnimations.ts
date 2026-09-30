@@ -1,0 +1,280 @@
+import { useSetAtom } from 'jotai/react'
+import { getDefaultStore } from 'jotai/vanilla'
+import { type AnimatedRef, Easing, measure, withDelay, withTiming } from 'react-native-reanimated'
+import { type View } from 'react-native'
+import { runOnJS } from 'react-native-worklets'
+import { activeTabIndexAtom, appSwitcherModeAtom, tabsCountAtom } from '../../../state/tabs'
+import { useAppSwitcherContext } from '../AppSwitcherContext'
+import { resolveAndSetTabId, fadeInTabScreen } from './tabHelpers'
+import useTabConstants from './useTabConstants'
+import { useResponsiveWorkspace } from './useResponsiveWorkspace'
+import useTakeActiveTabSnapshot from './useTakeActiveTabSnapshot'
+
+const tabTimingConfig = {
+  duration: 500,
+  easing: Easing.bezier(0.36, 0.77, 0.44, 1.0),
+}
+
+/**
+ * Switch app mode to 'view'. Called from expandTab worklet via runOnJS.
+ */
+const switchToViewMode = () => {
+  getDefaultStore().set(appSwitcherModeAtom, 'view')
+}
+
+export const useTabAnimations = () => {
+  const isWide = useResponsiveWorkspace()
+  const setActiveTabIndex = useSetAtom(activeTabIndexAtom)
+  const setAppSwitcherMode = useSetAtom(appSwitcherModeAtom)
+  const { HEIGHT } = useTabConstants()
+  const { captureDeferredSnapshot: takeActiveTabSnapshot } = useTakeActiveTabSnapshot()
+
+  const { activeTabPreview, activeTabScreen, tabPreviewCarousel } = useAppSwitcherContext()
+
+  /**
+   * Prepare the real tab screen before the preview reaches full screen.
+   * This gives React Native/iOS a frame budget to lay out the destination
+   * screen while it is still transparent.
+   */
+  const prepareExpandTarget = (index: number) => {
+    setActiveTabIndex(index)
+    resolveAndSetTabId(activeTabScreen.tabId, index)
+  }
+
+  const sendPreviewBehindActiveScreen = () => {
+    activeTabPreview.zIndex.set(1)
+  }
+
+  /**
+   * Expand completion: fade in the already-mounted tab screen, then move
+   * the enlarged preview behind it so stale preview pixels cannot leak.
+   */
+  const onExpandComplete = () => {
+    fadeInTabScreen(
+      activeTabScreen.opacity,
+      activeTabPreview.index,
+      activeTabScreen.tabId,
+      takeActiveTabSnapshot,
+      sendPreviewBehindActiveScreen
+    )
+  }
+
+  /**
+   * Swipe path: fade in the tab screen FIRST (behind the carousel),
+   * then hide the carousel only once the tab screen is fully opaque.
+   * This prevents the grid from flashing through two semi-transparent layers.
+   */
+  const fadeInThenHideCarousel = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        activeTabScreen.opacity.set(
+          withTiming(1, undefined, () => {
+            // Tab screen fully visible — safe to hide carousel
+            tabPreviewCarousel.opacity.set(0)
+            tabPreviewCarousel.translateY.set(HEIGHT)
+            activeTabPreview.zIndex.set(3)
+            runOnJS(takeActiveTabSnapshot)(
+              activeTabPreview.index.get(),
+              activeTabScreen.tabId.get() || ''
+            )
+          })
+        )
+      })
+    })
+  }
+
+  /**
+   * Set tabId for the slide path (called via runOnJS from worklet).
+   */
+  const slideSetTabId = (index: number) => {
+    resolveAndSetTabId(activeTabScreen.tabId, index)
+  }
+
+  /**
+   * Collapse: full-screen tab -> preview thumbnail in grid.
+   *
+   * Entry points:
+   *   - TabScreen back gesture / TabButton tap (in view mode)
+   *
+   * Sequence:
+   *   1. Fade out the active TabScreen (opacity -> 0)
+   *   2. Animate animationProgress 1 -> 0 (shrink to preview)
+   *   3. On completion: set zIndex=2 (behind future expansions)
+   *   4. Switch appSwitcherMode to 'list' -> bottom bar cross-fades
+   *   5. Clear tabId (unmount cached screen content)
+   */
+  const minimizeTab = () => {
+    'worklet'
+    activeTabPreview.zIndex.set(3)
+    activeTabScreen.opacity.set(withTiming(0))
+    activeTabPreview.animationProgress.set(
+      withTiming(0, tabTimingConfig, () => {
+        activeTabPreview.zIndex.set(2)
+      })
+    )
+    runOnJS(setAppSwitcherMode)('list')
+    activeTabScreen.tabId.set(null)
+  }
+
+  /**
+   * Expand: preview thumbnail -> full-screen tab.
+   *
+   * Entry points:
+   *   - useTabPreview.onOpen(): tap on a preview in the grid
+   *   - useBottomTabBar.onPress(): tap OK in list mode
+   *   - useExpandNewTab: after creating a new tab
+   *
+   * Sequence:
+   *   1. switchToViewMode: set app mode to 'view'
+   *   2. Position the overlay at measured coordinates (left, top)
+   *   3. Animate animationProgress 0 -> 1 (scale to full screen)
+   *   4. On completion: onExpandComplete (single JS hop): set index, tabId, fade in
+   *   5. Take a screenshot for the future preview thumbnail
+   */
+  const expandTab = ({ index, left, top }: { index: number; left: number; top: number }) => {
+    'worklet'
+
+    runOnJS(switchToViewMode)()
+    activeTabScreen.opacity.set(0)
+    activeTabPreview.zIndex.set(3)
+    activeTabPreview.left.set(left)
+    activeTabPreview.top.set(top)
+    activeTabPreview.index.set(index)
+    runOnJS(prepareExpandTarget)(index)
+
+    activeTabPreview.animationProgress.set(
+      withTiming(1, tabTimingConfig, () => {
+        runOnJS(onExpandComplete)()
+      })
+    )
+  }
+
+  /**
+   * Expand variant that measures the tab preview on the UI thread via
+   * Reanimated's measure() worklet, eliminating the async JS-side measure.
+   * Falls back silently if measure returns null (recycled FlashList view).
+   */
+  const expandTabWithMeasure = (index: number, ref: AnimatedRef<View>) => {
+    'worklet'
+    const m = measure(ref)
+    if (!m) return
+
+    runOnJS(switchToViewMode)()
+    activeTabScreen.opacity.set(0)
+    activeTabPreview.zIndex.set(3)
+    activeTabPreview.left.set(m.pageX)
+    activeTabPreview.top.set(m.pageY)
+    activeTabPreview.index.set(index)
+    runOnJS(prepareExpandTarget)(index)
+
+    activeTabPreview.animationProgress.set(
+      withTiming(1, tabTimingConfig, () => {
+        runOnJS(onExpandComplete)()
+      })
+    )
+  }
+
+  /**
+   * Common logic for completing a tab switch via the carousel.
+   * Used by both slideToIndex (programmatic slide) and finishSwipe (gesture swipe).
+   *
+   * @param options.setTabIdImmediately - If true, sets tabId before animation (swipe).
+   *   If false, sets tabId after animation completes (slide).
+   * @param options.duration - Animation duration in ms (swipe=300, slide=400).
+   * @param options.carouselFadeDelay - Delay before carousel fades out (swipe=150, slide=200).
+   */
+  const completeTabSwitch = (
+    targetIndex: number,
+    options?: { setTabIdImmediately?: boolean; duration?: number; carouselFadeDelay?: number }
+  ) => {
+    const { setTabIdImmediately = false, duration = 400, carouselFadeDelay = 200 } = options || {}
+
+    setActiveTabIndex(targetIndex)
+    if (setTabIdImmediately) {
+      resolveAndSetTabId(activeTabScreen.tabId, targetIndex)
+    }
+
+    activeTabPreview.index.set(
+      withTiming(targetIndex, { duration }, finished => {
+        if (!finished) return
+
+        if (setTabIdImmediately) {
+          // Swipe path: fade in tab screen FIRST, then hide carousel.
+          // The carousel stays at opacity=1 covering the grid while the
+          // tab screen fades in behind it.
+          runOnJS(fadeInThenHideCarousel)()
+        } else {
+          // Slide path: tab screen is already opaque, just fade carousel out.
+          runOnJS(slideSetTabId)(targetIndex)
+          tabPreviewCarousel.opacity.set(
+            withDelay(
+              carouselFadeDelay,
+              withTiming(0, undefined, finish => {
+                // Cancellation runs before Reanimated detaches this animation.
+                // Writing its opacity here would recursively cancel it again.
+                // The replacement transition owns the new opacity value.
+                if (!finish) return
+                tabPreviewCarousel.translateY.set(HEIGHT)
+                activeTabPreview.zIndex.set(3)
+                runOnJS(takeActiveTabSnapshot)(
+                  activeTabPreview.index.get(),
+                  activeTabScreen.tabId.get() || ''
+                )
+              })
+            )
+          )
+        }
+      })
+    )
+  }
+
+  /**
+   * Slide: switch to a different tab via the preview carousel (no expand/collapse).
+   *
+   * Entry points:
+   *   - useSlideNewTab: after creating a tab in an already-expanded state
+   *   - useOpenInNewTab: when opening content in a new tab
+   *
+   * Sequence:
+   *   1. Show the preview carousel overlay
+   *   2. Clear current tabId (hides active screen)
+   *   3. Animate activeTabPreview.index to the target (carousel slides)
+   *   4. On completion: resolve tabId, fade out carousel, take snapshot
+   */
+  const slideToIndex = (index: number) => {
+    if (isWide) {
+      setActiveTabIndex(index)
+      setAppSwitcherMode('view')
+      activeTabPreview.index.set(index)
+      resolveAndSetTabId(activeTabScreen.tabId, index)
+      activeTabScreen.opacity.set(1)
+      return
+    }
+    // Cas spécial: en mode 'view' avec le même index (ex: création d'onglet depuis état vide)
+    if (activeTabPreview.index.get() === index) {
+      const tabsCount = getDefaultStore().get(tabsCountAtom)
+      const currentMode = getDefaultStore().get(appSwitcherModeAtom)
+
+      // Si on est en mode 'view' et il y a des tabs, on doit quand même afficher l'écran
+      if (currentMode === 'view' && tabsCount > 0) {
+        setActiveTabIndex(index)
+        resolveAndSetTabId(activeTabScreen.tabId, index)
+        fadeInTabScreen(
+          activeTabScreen.opacity,
+          activeTabPreview.index,
+          activeTabScreen.tabId,
+          takeActiveTabSnapshot
+        )
+      }
+      return
+    }
+
+    tabPreviewCarousel.opacity.set(1)
+    tabPreviewCarousel.translateY.set(0)
+    activeTabScreen.tabId.set(null)
+
+    completeTabSwitch(index, { duration: 400, carouselFadeDelay: 200 })
+  }
+
+  return { minimizeTab, expandTab, expandTabWithMeasure, slideToIndex, completeTabSwitch }
+}

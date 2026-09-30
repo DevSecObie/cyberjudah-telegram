@@ -1,0 +1,203 @@
+import ReadingReminders from '~features/daily-reading/ReadingReminders'
+import WorkspaceLayout from '~features/app-switcher/WorkspaceLayout'
+import { SheetProvider } from '~common/sheet'
+import { trackAnalyticsScreen } from '~helpers/analytics'
+import * as Sentry from '@sentry/react-native'
+
+import { Stack, useLocalSearchParams, usePathname, useSegments } from 'expo-router'
+import { useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
+import { InteractionManager, Platform } from 'react-native'
+import { RootSiblingParent } from 'react-native-root-siblings'
+import { useKeepAwake } from 'expo-keep-awake'
+import TrackPlayer from 'react-native-track-player'
+import { PortalProvider } from 'react-native-teleport'
+
+import ChangelogModal from '~common/Changelog'
+import ColorChangeModal from '~common/ColorChangeModal'
+import ColorPickerModal from '~common/ColorPickerModal'
+import InitHooks from '~common/InitHooks'
+import ThemedToaster from '~common/ThemedToaster'
+import UnifiedTagsModal from '~common/UnifiedTagsModal'
+import { AppRatingModal } from '~features/app-rating'
+import { AppSwitcherProvider } from '~features/app-switcher/AppSwitcherProvider'
+import { BookSelectorSheetProvider } from '~features/bible/BookSelectorSheet/BookSelectorSheetProvider'
+import { StrongAudioProvider } from '~features/bible/StrongAudioProvider'
+import { FeatureOnboardingModal } from '~features/feature-onboarding'
+import OnBoardingModal from '~features/onboarding/OnBoarding'
+import LocalMigrationGate from '~features/migrations/LocalMigrationGate'
+import { appLogger } from '~helpers/agentObservability'
+import { createFormSheetOptions } from '~navigation/formSheetOptions'
+import { Theme } from '~themes/index'
+import { PlaybackService } from '../../../playbackService'
+import { downloadManager } from '~helpers/downloadManager'
+import { loadMobileResourceCatalog } from '~helpers/mobileResourceCatalog'
+import { offlineResourceRegistry } from '~features/resources/resourceAvailability'
+import DeferredVerseOfTheDayPrefetch from '~features/home/DeferredVerseOfTheDayPrefetch'
+
+const PostMigrationStartup = ({ children }: { children: ReactNode }) => {
+  const [resourcesReady, setResourcesReady] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    void loadMobileResourceCatalog().then(async catalog => {
+      try {
+        await downloadManager.restore()
+      } catch (error) {
+        appLogger.captureError('startup', 'resource_recovery.failed', error)
+      }
+      await offlineResourceRegistry.reconcileAll(catalog)
+      if (active) setResourcesReady(true)
+    })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  return (
+    <>
+      {children}
+      <ReadingReminders />
+      {resourcesReady && <DeferredVerseOfTheDayPrefetch />}
+    </>
+  )
+}
+
+const DeferredModals = () => {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    const handle = InteractionManager.runAfterInteractions(() => setMounted(true))
+    return () => handle.cancel()
+  }, [])
+
+  if (!mounted) return null
+
+  return (
+    <>
+      <ChangelogModal />
+      <OnBoardingModal />
+      <UnifiedTagsModal />
+      <ColorPickerModal />
+      <ColorChangeModal />
+      <FeatureOnboardingModal />
+      <AppRatingModal />
+    </>
+  )
+}
+
+const NavigationTracking = () => {
+  const pathname = usePathname()
+  const segments = useSegments()
+  const params = useLocalSearchParams()
+  const previousPathname = useRef<string | undefined>(undefined)
+
+  useEffect(() => {
+    if (previousPathname.current === pathname) return
+
+    const screenName = segments[segments.length - 1] || 'index'
+    appLogger.info('navigation', 'screen.changed', {
+      pathname,
+      screenName,
+      segments,
+    })
+
+    if (__DEV__) {
+      console.log('[Navigation]', {
+        pathname,
+        segments,
+        params: Object.keys(params).length > 0 ? params : undefined,
+      })
+    }
+    void trackAnalyticsScreen(segments)
+
+    Sentry.addBreadcrumb({
+      category: 'screen',
+      message: `Navigated to: ${pathname}`,
+      data: { pathname, segments },
+    })
+
+    previousPathname.current = pathname
+  }, [pathname, segments, params])
+
+  return null
+}
+
+type FullAppRuntimeProps = {
+  theme: Theme
+}
+
+const FullAppRuntime = ({ theme }: FullAppRuntimeProps) => {
+  useKeepAwake()
+
+  useEffect(() => {
+    InteractionManager.runAfterInteractions(() => {
+      TrackPlayer.registerPlaybackService(() => PlaybackService)
+    })
+  }, [])
+
+  return (
+    <LocalMigrationGate>
+      <PostMigrationStartup>
+        <AppSwitcherProvider>
+          <PortalProvider>
+            <RootSiblingParent>
+              <SheetProvider>
+                <BookSelectorSheetProvider>
+                  <StrongAudioProvider>
+                    <InitHooks />
+                    <NavigationTracking />
+                    <WorkspaceLayout>
+                      <Stack screenOptions={{ headerShown: false }}>
+                        <Stack.Screen name="index" />
+                        <Stack.Screen
+                          name="(timeline-search)"
+                          options={createFormSheetOptions(theme, {
+                            contentStyle: { bottom: 0 },
+                            sheetAllowedDetents: [1],
+                            sheetExpandsWhenScrolledToEdge: true,
+                          })}
+                        />
+                        <Stack.Screen
+                          name="(explore)"
+                          options={createFormSheetOptions(theme, {
+                            contentStyle: { bottom: 0 },
+                            sheetAllowedDetents:
+                              Platform.OS === 'ios' && Platform.isPad ? [1] : [0.45, 1],
+                            sheetLargestUndimmedDetentIndex: 0,
+                          })}
+                        />
+                        <Stack.Screen
+                          name="(commentary)"
+                          options={createFormSheetOptions(theme, {
+                            contentStyle: { bottom: 0 },
+                            sheetAllowedDetents: [1],
+                            sheetLargestUndimmedDetentIndex: 0,
+                          })}
+                        />
+                        <Stack.Screen name="(library)" options={{ contentStyle: { bottom: 0 } }} />
+                        <Stack.Screen
+                          name="strong"
+                          options={createFormSheetOptions(theme, {
+                            contentStyle: { bottom: 0 },
+                            sheetAllowedDetents: [1],
+                            sheetExpandsWhenScrolledToEdge: true,
+                          })}
+                        />
+                      </Stack>
+                    </WorkspaceLayout>
+                    <ThemedToaster />
+                    <DeferredModals />
+                  </StrongAudioProvider>
+                </BookSelectorSheetProvider>
+              </SheetProvider>
+            </RootSiblingParent>
+          </PortalProvider>
+        </AppSwitcherProvider>
+      </PostMigrationStartup>
+    </LocalMigrationGate>
+  )
+}
+
+export default FullAppRuntime

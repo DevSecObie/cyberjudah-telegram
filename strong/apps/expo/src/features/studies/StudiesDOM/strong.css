@@ -1,0 +1,20 @@
+.block-strong--content {
+  color: rgb(48,51,107);
+  z-index: 10;
+  position: relative;
+}
+
+.block-strong--title {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.block-strong--content {
+  font-size: 12px;
+}
+
+.block-strong--arrow {
+  position: absolute;
+  bottom: 5px;
+  right: 15px;
+}

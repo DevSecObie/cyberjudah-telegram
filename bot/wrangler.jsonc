@@ -18,7 +18,9 @@
     "directory": "../.deploy",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/webhook", "/card/*", "/frames/*"]
+    // The fork's pages (not its files) go through the Worker, so a deep link under /app/strong
+    // gets the fork's own index.html instead of the current app's.
+    "run_worker_first": ["/api/*", "/webhook", "/card/*", "/frames/*", "/app/strong", "/app/strong/*", "!/app/strong/_expo/*", "!/app/strong/assets/*"]
   },
   // search_docs (FTS5) loaded from the engine's search.sql.gz by scripts/load-search.mjs. The
   // id is filled in by the deploy workflow (scripts/d1-id.sh); nothing account-specific is committed.

@@ -1,0 +1,287 @@
+import { getBook } from '~helpers/bibleBookCatalog'
+import {
+  parseBibleReferenceSegments,
+  type BibleReferenceSegment,
+  type BcvLanguage,
+} from '~helpers/bcvParser'
+import type { SearchResult } from '~helpers/biblesDb'
+import { deltaToPlainText } from '~helpers/deltaToPlainText'
+import formatVerseContent from '~helpers/formatVerseContent'
+import type { DictionarySummary } from '~features/resources/dictionaryAccess'
+import type { StrongLexiconSearchResult } from '~features/resources/strongLexiconAccess'
+import type { NaveTopicSummary } from '~features/resources/naveAccess'
+import i18n from '~i18n'
+import type { Link, Note, Study } from '~redux/modules/user'
+import { getNoteTitle } from '~helpers/getNoteTitle'
+import type { RelationEndpoint } from '~features/studyRelations/domain'
+import type { SearchEntityResult, SearchReferenceMode } from './searchResultTypes'
+import {
+  createDictionaryEndpoint,
+  createExternalLinkEndpointFromLink,
+  createNaveEndpoint,
+  createNoteEndpoint,
+  createStrongEndpoint,
+  createStudyEndpoint,
+  createVerseEndpoint,
+} from '~features/studyRelations/endpoints'
+
+export type DictionarySearchRow = DictionarySummary
+export type NaveSearchItemRow = NaveTopicSummary
+type Translate = (key: string) => string
+
+const translate: Translate = key => i18n.t(key)
+
+export const createVerseKeys = (
+  book: number,
+  chapter: number,
+  startVerse: number,
+  endVerse: number
+) =>
+  Array.from(
+    { length: endVerse - startVerse + 1 },
+    (_, index) => `${book}-${chapter}-${startVerse + index}`
+  )
+
+export const getStrongDisplayCode = (strong: StrongLexiconSearchResult) => strong.stepCode
+
+export const getStrongOriginalWord = (strong: StrongLexiconSearchResult) => strong.original
+
+export const isGreekStrong = (strong: StrongLexiconSearchResult) => strong.language === 'greek'
+
+export const getStrongEndpoint = (
+  strong: StrongLexiconSearchResult
+): NonNullable<SearchEntityResult['endpoint']> => {
+  const isGreek = isGreekStrong(strong)
+  return createStrongEndpoint({
+    language: isGreek ? 'greek' : 'hebrew',
+    code: strong.stepCode,
+    labelFallback: strong.gloss,
+    originalWord: getStrongOriginalWord(strong),
+  })
+}
+
+export const getNaveEndpoint = (
+  nave: NaveSearchItemRow
+): NonNullable<SearchEntityResult['endpoint']> => ({
+  ...createNaveEndpoint({ nameLower: nave.normalizedName, labelFallback: nave.name }),
+})
+
+export const getDictionaryEndpoint = (
+  dictionary: DictionarySearchRow
+): NonNullable<SearchEntityResult['endpoint']> => ({
+  ...createDictionaryEndpoint({ word: dictionary.word, labelFallback: dictionary.word }),
+})
+
+export const getDictionaryResultKey = (dictionary: DictionarySearchRow, index?: number) =>
+  [
+    'dictionary',
+    dictionary.id ?? dictionary.normalizedWord ?? dictionary.word,
+    dictionary.word,
+    index,
+  ]
+    .filter(value => value !== undefined && value !== null && value !== '')
+    .join(':')
+
+export const getNoteSearchItems = (notes: Record<string, Note> = {}, t: Translate = translate) =>
+  Object.entries(notes).map<SearchEntityResult>(([noteId, note]) => {
+    const title = getNoteTitle(note, t('Note sans titre'))
+    return {
+      id: `note:${noteId}`,
+      type: 'notes',
+      iconType: 'notes',
+      title,
+      subtitle: t('Note'),
+      description: note.description,
+      endpoint: createNoteEndpoint(noteId, title),
+    }
+  })
+
+export const getSortedNoteSearchItems = (
+  notes: Record<string, Note> = {},
+  t: Translate = translate
+) =>
+  getNoteSearchItems(notes, t).sort((a, b) => {
+    const left = notes[(a.endpoint as Extract<RelationEndpoint, { type: 'note' }>).noteId]
+    const right = notes[(b.endpoint as Extract<RelationEndpoint, { type: 'note' }>).noteId]
+    return Number(right?.date || 0) - Number(left?.date || 0)
+  })
+
+const getLinkTitle = (link: Link, t: Translate = translate) =>
+  link.customTitle || link.ogData?.title || link.url || t('Lien sans titre')
+
+export const getLinkSearchItems = (links: Record<string, Link> = {}, t: Translate = translate) =>
+  Object.entries(links).map<SearchEntityResult>(([linkId, link]) => {
+    const title = getLinkTitle(link, t)
+    const description = link.ogData?.description || link.url
+
+    return {
+      id: `link:${linkId}`,
+      type: 'links',
+      iconType: 'links',
+      title,
+      subtitle: t('Lien'),
+      description,
+      endpoint: createExternalLinkEndpointFromLink(linkId, link),
+    }
+  })
+
+export const getSortedLinkSearchItems = (
+  links: Record<string, Link> = {},
+  t: Translate = translate
+) =>
+  getLinkSearchItems(links, t).sort((a, b) => {
+    const left = links[(a.endpoint as Extract<RelationEndpoint, { type: 'externalLink' }>).linkId]
+    const right = links[(b.endpoint as Extract<RelationEndpoint, { type: 'externalLink' }>).linkId]
+    return Number(right?.date || 0) - Number(left?.date || 0)
+  })
+
+export const getStudySearchItems = (
+  studies: Record<string, Study> = {},
+  t: Translate = translate
+) =>
+  Object.entries(studies).map<SearchEntityResult>(([studyId, study]) => {
+    const id = study.id || studyId
+    const title = study.title || t('Étude sans titre')
+    const description = study.content?.ops
+      ? deltaToPlainText(study.content.ops as Parameters<typeof deltaToPlainText>[0])
+      : undefined
+    return {
+      id: `study:${id}`,
+      type: 'studies',
+      iconType: 'studies',
+      title,
+      subtitle: t('Étude'),
+      description,
+      endpoint: createStudyEndpoint(id, title),
+    }
+  })
+
+export const getSortedStudySearchItems = (
+  studies: Record<string, Study> = {},
+  t: Translate = translate
+) =>
+  getStudySearchItems(studies, t).sort((a, b) => {
+    const left = studies[(a.endpoint as Extract<RelationEndpoint, { type: 'study' }>).studyId]
+    const right = studies[(b.endpoint as Extract<RelationEndpoint, { type: 'study' }>).studyId]
+    return Number(right?.modified_at || 0) - Number(left?.modified_at || 0)
+  })
+
+type ReferenceSearchOptions = {
+  mode: SearchReferenceMode
+  version?: string
+  language?: BcvLanguage
+}
+
+export const getReferenceSearchItems = (
+  query: string,
+  options: ReferenceSearchOptions = { mode: 'navigation' }
+): SearchEntityResult[] =>
+  getReferenceSearchItemsFromSegments(parseBibleReferenceSegments(query, options.language), options)
+
+export const getReferenceSearchItemsFromSegments = (
+  segments: BibleReferenceSegment[],
+  options: ReferenceSearchOptions = { mode: 'navigation' }
+): SearchEntityResult[] =>
+  segments.map((segment, index) => {
+    const startVerse = segment.startVerse
+    const endVerse = options.mode === 'target' && segment.isWholeChapter ? 1 : segment.endVerse
+    const isWholeChapter = options.mode === 'navigation' && segment.isWholeChapter
+    const verseKeys = createVerseKeys(segment.book, segment.chapter, startVerse, endVerse)
+    const verseCount = endVerse - startVerse + 1
+    const verseIds = Array.from({ length: verseCount }, (_, i) => ({
+      Livre: segment.book,
+      Chapitre: segment.chapter,
+      Verset: startVerse + i,
+    }))
+    const title = isWholeChapter
+      ? `${i18n.t(getBook(segment.book)?.Nom || 'Livre {{bookNumber}}', {
+          bookNumber: segment.book,
+        })} ${segment.chapter}`
+      : formatVerseContent(verseIds).title
+
+    return {
+      id: `reference:${verseKeys.join('/')}:${index}`,
+      type: 'passages',
+      iconType: 'passages',
+      title,
+      referenceSegment: {
+        ...segment,
+        startVerse,
+        endVerse,
+        isWholeChapter,
+      },
+      endpoint: createVerseEndpoint(verseKeys, undefined, options.version),
+    }
+  })
+
+export const getStrongSearchItems = (
+  results: StrongLexiconSearchResult[],
+  t: Translate = translate
+) =>
+  results.map<SearchEntityResult>(strong => {
+    const code = getStrongDisplayCode(strong)
+    const isGreek = isGreekStrong(strong)
+    const prefix = isGreek ? 'G' : 'H'
+    const lexiqueType = isGreek ? 'Grec' : 'Hébreu'
+    return {
+      id: `strong:${strong.language}:${strong.id}:${code}`,
+      type: 'strong',
+      iconType: 'strong',
+      title: strong.gloss,
+      chip: code.startsWith(prefix) ? code : `${prefix}${code}`,
+      subtitle: t(lexiqueType),
+      description: getStrongOriginalWord(strong),
+      endpoint: getStrongEndpoint(strong),
+      strongReference: {
+        language: strong.language,
+        code: strong.stepCode,
+      },
+    }
+  })
+
+export const getDictionarySearchItems = (results: DictionarySearchRow[]) =>
+  results.map<SearchEntityResult>((dictionary, index) => ({
+    id: getDictionaryResultKey(dictionary, index),
+    type: 'dictionary',
+    iconType: 'dictionary',
+    title: dictionary.word,
+    subtitle: i18n.t('Dictionnaire'),
+    endpoint: getDictionaryEndpoint(dictionary),
+  }))
+
+export const getNaveSearchItems = (results: NaveSearchItemRow[]) =>
+  results.map<SearchEntityResult>(nave => ({
+    id: `nave:${nave.normalizedName}`,
+    type: 'nave',
+    iconType: 'nave',
+    title: nave.name,
+    subtitle: i18n.t('Nave'),
+    endpoint: getNaveEndpoint(nave),
+  }))
+
+export const getPassageSearchItems = (results: SearchResult[]) =>
+  results.map<SearchEntityResult>(result => {
+    const endVerse = result.endChapter === result.chapter ? result.endVerse : undefined
+    const verseIds = Array.from(
+      { length: endVerse && endVerse >= result.verse ? endVerse - result.verse + 1 : 1 },
+      (_, index) => ({ Livre: result.book, Chapitre: result.chapter, Verset: result.verse + index })
+    )
+    const { title: startTitle } = formatVerseContent(verseIds)
+    const title =
+      result.endChapter && result.endChapter !== result.chapter && result.endVerse
+        ? `${startTitle}–${result.endChapter}:${result.endVerse}`
+        : startTitle
+    const topicLabel = result.match?.topicLabel
+    const passageReason = topicLabel || undefined
+
+    return {
+      id: `passage:${result.version}:${result.book}:${result.chapter}:${result.verse}`,
+      type: 'passages',
+      iconType: 'passages',
+      title,
+      subtitle: result.version,
+      description: result.highlighted,
+      passage: result,
+      passageReason,
+    }
+  })
