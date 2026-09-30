@@ -6,6 +6,7 @@ import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { saveExchange } from "./chats";
+import { isAdmin } from "./edit";
 import { billingOn, charge, reserveAsk, settleAsk, standing, RESERVE_UNITS, type Take } from "./billing";
 import type { Account } from "./billing.mjs";
 
@@ -108,7 +109,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   // so an abandoned or failed request cannot spend the model's work for free.
   const metered = billingOn(env) && !!env.ANTHROPIC_API_KEY;
   let take: Take | null = null;
-  if (metered) {
+  if (metered && !isAdmin(env, userId)) {
     const r = await reserveAsk(env, userId);
     if (!r.ok) return { ok: false, reason: "allowance" };
     take = r.take;
@@ -184,7 +185,7 @@ const sourcesOf = (answer: string, passages: Passage[]) => {
  * The same, streamed: one JSON line with the passages first, then a line per piece of the
  * answer as the model writes it, then a line with the sources it cited.
  */
-export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string): Promise<Response> {
+export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string, replaceLast = false): Promise<Response> {
   const question = q.trim().slice(0, 400);
   const line = (o: unknown) => `${JSON.stringify(o)}\n`;
   if (question.length < 2) return new Response(line({ error: "too-short" }), { status: 400, headers: { "content-type": "application/x-ndjson" } });
@@ -192,7 +193,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // stream cannot spend the model's work for free.
   const metered = billingOn(env) && !!env.ANTHROPIC_API_KEY;
   let take: Take | null = null;
-  if (metered) {
+  if (metered && !isAdmin(env, userId)) {
     const r = await reserveAsk(env, userId);
     if (!r.ok) return new Response(line({ error: "allowance", balance: r.balance }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
     take = r.take;
@@ -203,13 +204,22 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
     return new Response(line({ error: "limit" }), { status: 429, headers: { "content-type": "application/x-ndjson" } });
   }
   const encoder = new TextEncoder();
+  // The reader can leave at any moment (Stop, another screen, the app closed). From then on
+  // nothing more is sent, but the answer is still finished, saved and charged exactly once.
+  let open = true;
+  let settled = false;
+  const settle = async (units: number) => {
+    if (settled) return null;
+    settled = true;
+    return metered && take ? await settleAsk(env, userId, take, units).catch(() => null) : await charge(env, userId, units).catch(() => null);
+  };
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (o: unknown) => controller.enqueue(encoder.encode(line(o)));
+      const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); } catch { open = false; } };
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.
       const keep = (content: string, sources: unknown[], followups: string[], steps: string[] = []) => {
         if (!chatId) return;
-        const save = saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps }).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
+        const save = saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
         if (ctx) ctx.waitUntil(save);
       };
       try {
@@ -219,36 +229,38 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           const steps: string[] = [];
           const { text, passages, units, calls } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading)/.test(e.status)) steps.push(e.status); send(e); }, ctx);
           const { answer, followups } = splitFollowups(text);
-          const sources = sourcesOf(answer, passages);
-          send({ done: true, answer, followups, sources });
-          // The answer is charged what it used, and the person sees what is left.
-          const left = metered && take
-            ? await settleAsk(env, userId, take, units).catch(() => null)
-            : await charge(env, userId, units).catch(() => null);
+          const left = await settle(units);
           console.log(JSON.stringify({ event: "ask_usage", units, calls, searches: steps.length }));
-          if (left && billingOn(env)) send({ usage: { units, balance: left } });
+          if (!answer.trim()) { send({ error: "empty" }); return; }
+          const sources = sourcesOf(answer, passages);
+          // Saved first: whatever happens to the connection after this, the answer is kept.
           keep(answer, sources, followups, steps);
+          send({ done: true, answer, followups, sources });
+          if (left && billingOn(env)) send({ usage: { units, balance: left } });
           return;
         }
         const passages = first;
         send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
         if (!passages.length) {
           const answer = "The search did not find enough reliable material in the library to answer that question.";
-          send({ delta: answer }); send({ done: true, sources: [] }); return;
+          keep(answer, [], []);
+          send({ delta: answer }); send({ done: true, answer, followups: [], sources: [] }); return;
         }
         let answer = "";
         for await (const piece of answerPieces(env, buildPrompt(question, passages, history))) { answer += piece; send({ delta: piece }); }
         const { answer: clean, followups } = splitFollowups(answer);
+        if (!clean.trim()) { send({ error: "empty" }); return; }
         const sources = sourcesOf(clean, passages);
-        send({ done: true, answer: clean, followups, sources });
         keep(clean, sources, followups);
+        send({ done: true, answer: clean, followups, sources });
       } catch (e) {
         // The reservation stands: the model was paid for whether the answer arrived or not.
-        if (metered && take) await settleAsk(env, userId, take, RESERVE_UNITS).catch(() => null);
+        await settle(RESERVE_UNITS);
         console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
         send({ error: "unavailable" });
-      } finally { controller.close(); }
+      } finally { if (open) { open = false; try { controller.close(); } catch { /* already closed */ } } }
     },
+    cancel() { open = false; },
   });
   return new Response(stream, { headers: { "content-type": "application/x-ndjson", "cache-control": "no-store" } });
 }

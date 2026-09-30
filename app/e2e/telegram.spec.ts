@@ -499,8 +499,8 @@ test("Home is the front door: one field, search the classes or ask CyberJudah", 
   await page.press("#q", "Enter");
   await expect(page).toHaveURL(/\/search\?q=Seattle/);
   // Bible Strong's search: no title, the field and the collections in a strip on top.
-  await expect(page.locator(".bsearch__bar #q")).toHaveValue("Seattle");
-  await expect(page.locator(".bsearch__facets .chip").first()).toHaveText("All collections");
+  await expect(page.locator(".srch__bar #q")).toHaveValue("Seattle");
+  await expect(page.locator(".srch__scope").first()).toHaveText("Top");
 });
 
 liveDataTest("a class opens like YouTube: the player pinned, the notes in a sheet beneath it", async ({ page }) => {
@@ -1062,4 +1062,143 @@ test("a back step from the first screen stays in the app instead of going to a b
   await expect(page).toHaveURL(/\/read\/genesis\/1/);
   await expect(page.locator("#verset-1")).toBeVisible();
   await expect(page.locator(".tabs")).toBeVisible();
+});
+
+// ── Ask CyberJudah and saved chats ──────────────────────────────────────────────────────────
+const ndjson = (...lines: unknown[]) => lines.map((l) => JSON.stringify(l)).join("\n") + "\n";
+const SOURCE = { n: 1, kind: "class", title: "Passover class", url: "/classes/2026/passover", sub: "Why we keep it", text: "…" };
+
+test("Ask: a question streams in its answer with sources, saved to the chat it names, and a retry replaces it", async ({ page }) => {
+  const bodies: { q: string; chat: string; retry: boolean; history: unknown[] }[] = [];
+  await page.route("**/api/ask/account", (r) => r.fulfill({ json: { metered: false, unlimited: false, balance: {}, perQuestion: 1, freeDaily: 0, plan: {}, packs: [] } }));
+  await page.route("**/api/ask", async (r) => {
+    bodies.push(r.request().postDataJSON());
+    await r.fulfill({ contentType: "application/x-ndjson", body: ndjson({ status: "Searching the library" }, { delta: "It is commanded [1]." }, { done: true, answer: "It is commanded [1].", followups: ["When is it kept?"], sources: [SOURCE] }) });
+  });
+  await page.goto(`/ask${LAUNCH}`);
+  await page.fill('textarea[aria-label="Your question"]', "Why do we keep the Passover?");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".msg--ai .msg__text")).toContainText("It is commanded");
+  await expect(page.locator(".msg--ai .srccard")).toHaveCount(1);
+  await expect(page.locator(".followup")).toHaveText(["When is it kept?"]);
+  expect(bodies).toHaveLength(1);
+  expect(bodies[0].chat).toMatch(/^[a-z0-9]{8,40}$/);
+  // Retry asks again in the same chat and tells the server to replace the exchange.
+  await page.click('.msg__action[aria-label="Ask again"]');
+  await expect.poll(() => bodies.length).toBe(2);
+  expect(bodies[1]).toMatchObject({ q: "Why do we keep the Passover?", chat: bodies[0].chat, retry: true });
+  await expect(page.locator(".msg--me")).toHaveCount(1);
+  // The conversation survives a reload.
+  await page.reload();
+  await expect(page.locator(".msg--ai .msg__text")).toContainText("It is commanded");
+});
+
+test("Ask: every failure says what happened, with a way on", async ({ page }) => {
+  await page.route("**/api/ask/account", (r) => r.fulfill({ json: { metered: false } }));
+  const cases: [number, unknown, RegExp][] = [
+    [400, { error: "too-short" }, /fuller question/],
+    [401, { error: "unauthorized", reason: "missing" }, /Open CyberJudah from Telegram/],
+    [429, { error: "limit" }, /hundred questions today/],
+  ];
+  for (const [status, body, text] of cases) {
+    await page.unroute("**/api/ask");
+    await page.route("**/api/ask", (r) => r.fulfill({ status, contentType: "application/x-ndjson", body: ndjson(body) }));
+    await page.goto(`/ask${LAUNCH}`);
+    await page.evaluate(() => localStorage.removeItem("cj:ask"));
+    await page.reload();
+    await page.fill('textarea[aria-label="Your question"]', "Who was Melchizedek?");
+    await page.keyboard.press("Enter");
+    await expect(page.locator(".msg__error")).toContainText(text);
+  }
+  // A failure after part of the answer keeps the part and says it was cut off.
+  await page.unroute("**/api/ask");
+  await page.route("**/api/ask", (r) => r.fulfill({ contentType: "application/x-ndjson", body: ndjson({ delta: "Melchizedek was king of Salem" }, { error: "unavailable" }) }));
+  await page.fill('textarea[aria-label="Your question"]', "Who was Melchizedek?");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".msg__cut")).toBeVisible();
+  await expect(page.locator(".msg--ai").last()).toContainText("king of Salem");
+  await expect(page.locator('.msg__action[aria-label="Ask again"]')).toBeVisible();
+});
+
+test("Ask: an answer left mid-way is fetched back from the saved chat", async ({ page }) => {
+  await page.route("**/api/ask/account", (r) => r.fulfill({ json: { metered: false } }));
+  await page.route("**/api/chats/chatrecover01", (r) => r.fulfill({ json: { ok: true, chat: { id: "chatrecover01", title: "Q", updated: new Date().toISOString(), turns: [{ role: "user", content: "Who are the twelve tribes?" }, { role: "assistant", content: "The children of Israel [1].", sources: [SOURCE] }] } } }));
+  await page.goto(`/ask${LAUNCH}`);
+  // The app closed while the answer was being written: only the question was kept on the device.
+  await page.evaluate(() => localStorage.setItem("cj:ask", JSON.stringify({ chatId: "chatrecover01", turns: [{ role: "user", content: "Who are the twelve tribes?" }] })));
+  await page.reload();
+  await expect(page.locator(".msg--ai .msg__text")).toContainText("The children of Israel");
+});
+
+test("Saved chats: listed, reopened with their history, deleted only when the server confirms", async ({ page }) => {
+  let chats = [
+    { id: "chataaaa01", title: "Why keep the Passover?", updated: new Date().toISOString(), count: 2 },
+    { id: "chatbbbb02", title: "Who was Melchizedek?", updated: new Date().toISOString(), count: 1 },
+  ];
+  let failDelete = true;
+  await page.route("**/api/ask/account", (r) => r.fulfill({ json: { metered: false } }));
+  await page.route("**/api/chats", (r) => r.fulfill({ json: { ok: true, chats } }));
+  await page.route("**/api/chats/chataaaa01", (r) => r.fulfill({ json: { ok: true, chat: { id: "chataaaa01", title: "Why keep the Passover?", updated: chats[0].updated, turns: [
+    { role: "user", content: "Why keep the Passover?" }, { role: "assistant", content: "It is commanded.", sources: [] },
+    { role: "user", content: "When?" }, { role: "assistant", content: "The fourteenth day.", sources: [] },
+  ] } } }));
+  await page.route("**/api/chats/chatbbbb02", (r) => {
+    if (r.request().method() !== "DELETE") return r.fulfill({ status: 404, json: { ok: false } });
+    if (failDelete) return r.fulfill({ status: 500, json: { ok: false } });
+    chats = chats.filter((c) => c.id !== "chatbbbb02");
+    return r.fulfill({ json: { ok: true } });
+  });
+  await page.goto(`/ask${LAUNCH}`);
+  await page.click('[aria-label="Your chats"]');
+  await expect(page.locator(".chats__open b")).toHaveText(["Why keep the Passover?", "Who was Melchizedek?"]);
+  await page.click(".chats__open >> text=Why keep the Passover?");
+  await expect(page.locator(".msg--me .msg__bubble")).toHaveText(["Why keep the Passover?", "When?"]);
+  await expect(page.locator(".msg--ai .msg__text").last()).toContainText("The fourteenth day");
+  // A failed delete keeps the chat and says so; a confirmed one removes it.
+  await page.click('[aria-label="Your chats"]');
+  page.on("dialog", (d) => void d.accept());
+  await page.click('[aria-label="Delete Who was Melchizedek?"]');
+  await expect(page.locator(".chats__why")).toContainText("was not deleted");
+  await expect(page.locator(".chats__open b")).toHaveCount(2);
+  failDelete = false;
+  await page.click('[aria-label="Delete Who was Melchizedek?"]');
+  await expect(page.locator(".chats__open b")).toHaveText(["Why keep the Passover?"]);
+});
+
+// ── Search ──────────────────────────────────────────────────────────────────────────────────
+test("Search: results come in as you type, grouped, a reference opens the Bible, and the keyboard works it", async ({ page }) => {
+  await page.route("**/api/search?**", (r) => r.fulfill({ json: { ok: true, q: "", mode: "strict", counts: { class: 1, verse: 2 }, ms: 1, hits: [
+    { kind: "class", title: "The Superiority of the Chosen People", url: "/classes/2026/superiority", sub: "Scriptures Opened", snippet: "And Melchizedek king of Salem brought forth bread and wine" },
+    { kind: "verse", title: "Genesis 14:18", url: "/bible/genesis/14#v18", sub: "", snippet: "And Melchizedek king of Salem brought forth bread and wine" },
+    { kind: "verse", title: "Hebrews 7:1", url: "/bible/hebrews/7#v1", sub: "", snippet: "For this Melchisedec, king of Salem" },
+  ] } }));
+  await page.route("**/api/teachings?**", (r) => r.fulfill({ json: { ok: true, q: "", feed: "", page: 0, hits: [], more: false } }));
+  await page.goto(`/search${LAUNCH}`);
+  await expect(page.locator(".srch__try button").first()).toBeVisible();
+  await page.fill("#q", "Melchizedek");
+  // No Enter needed: the results follow the words.
+  await expect(page.locator(".srch__group h2").first()).toContainText("Sabbath classes");
+  await expect(page.locator(".srch__hit mark").first()).toHaveText(/Melchizedek/i);
+  await expect(page.locator('.srch__scope[aria-selected="true"]')).toHaveText("Top");
+  await expect(page.locator(".srch__scope", { hasText: "Scripture" }).locator(".srch__count")).toHaveText("2");
+  // The keyboard: down into the results, through them, Escape back to the field.
+  await page.focus("#q");
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator(".srch__hit").first()).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator(".srch__hit").nth(1)).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#q")).toBeFocused();
+  // A scope narrows the results.
+  await page.click(".srch__scope >> text=Scripture");
+  await expect(page.locator(".srch__hit .srch__title")).toHaveText(["Genesis 14:18", "Hebrews 7:1"]);
+  // A reference offers the Bible itself, first under Top.
+  await page.click(".srch__scope >> text=Top");
+  await page.fill("#q", "John 3:16");
+  await expect(page.locator(".srch__ref")).toContainText("John 3:16");
+  // Nothing found says so, with what to try.
+  await page.unroute("**/api/search?**");
+  await page.route("**/api/search?**", (r) => r.fulfill({ json: { ok: true, q: "", mode: "strict", counts: {}, ms: 1, hits: [] } }));
+  await page.fill("#q", "zzqxw");
+  await expect(page.locator(".srch__none")).toContainText("Nothing found");
 });
