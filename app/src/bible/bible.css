@@ -377,16 +377,44 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-entity b { font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .bs-entity small { font-size: 10.5px; color: var(--bs-tertiary); }
 
-/* The classes that taught a verse: Bible Strong's passage-media gallery on our classes. */
-.bs-classpics img { transition: transform 160ms ease; }
-.bs-classpics:active img:first-child { transform: scale(0.94); }
-.bs-moments { display: flex; flex-direction: column; gap: 14px; padding: 4px 16px 24px; }
-.bs-moment { display: flex; gap: 12px; align-items: flex-start; width: 100%; padding: 0; border: 0; background: none; color: inherit; text-align: left; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.bs-moment:active { opacity: 0.7; }
-.bs-moment__pic { position: relative; flex: 0 0 132px; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: var(--bs-lightGrey, rgba(128, 128, 128, 0.2)); border: 1px solid var(--bs-border, rgba(128, 128, 128, 0.25)); }
-.bs-moment__pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.bs-moment__ts { position: absolute; right: 6px; bottom: 6px; padding: 2px 6px; border-radius: 999px; background: rgba(0, 0, 0, 0.72); color: #fff; font-size: 11px; font-weight: 650; line-height: 1.2; font-variant-numeric: tabular-nums; }
-.bs-moment__text { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding-top: 2px; }
-.bs-moment__text b { font-size: 15px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.bs-moment__text small { font-size: 12.5px; opacity: 0.65; }
-.bs-moment__at { opacity: 0.5 !important; }
+/* The classes that taught a verse: Bible Strong's passage media (PassageMediaThumbnails,
+   PassageMediaOverlay, PassageMediaPlayer) on our classes. The deck: up to three pictures fanned
+   (±3px, ±5deg), the last on top, a page-coloured 2px edge and a soft shadow. */
+#root .bs-deck { -webkit-user-select: none; user-select: none; transition: opacity 120ms ease; }
+#root .bs-deck:active { opacity: .55; }
+.bs-deck__card { grid-area: 1 / 1; place-self: center; display: block; box-sizing: border-box; overflow: hidden; border: 2px solid; background: rgba(128, 128, 128, .22); box-shadow: 0 2px 7px rgba(0, 0, 0, .22); transform-origin: center; }
+.bs-deck__card img, .bs-gallery__pic img, .bs-player__box img { display: block; width: 100%; height: 100%; object-fit: cover; transition: opacity 160ms ease; }
+
+/* The gallery over the page: the page colour at half strength, blurred; two columns of 16:9 cards. */
+.bs-gallery { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; overflow: hidden; overscroll-behavior: contain; -webkit-user-select: none; user-select: none;
+  background: color-mix(in srgb, var(--deck-bg) 0%, transparent); backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0);
+  transition: background-color .48s ease, backdrop-filter .2s ease, -webkit-backdrop-filter .2s ease; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.bs-gallery[data-open] { background: color-mix(in srgb, var(--deck-bg) 50%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+#root .bs-gallery__close, .bs-gallery__close { position: fixed; top: max(24px, calc(var(--safe-top, 0px) + 10px)); right: 14px; z-index: 2; display: grid; place-items: center; width: 38px; height: 38px; margin: 0; padding: 0; border: 0; border-radius: 19px; box-shadow: 0 4px 14px rgba(0, 0, 0, .22); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.bs-gallery__scroll { width: 100%; height: 100%; min-height: 0; overflow-y: scroll; -webkit-overflow-scrolling: touch; touch-action: pan-y; overscroll-behavior: contain; box-sizing: border-box;
+  padding: max(30px, calc(var(--safe-top, 0px) + 14px)) 16px max(280px, calc(var(--safe-bottom, 0px) + 220px)); }
+.bs-gallery__grid { width: 100%; max-width: 500px; margin: 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: center; align-items: start; gap: 14px; }
+.bs-gallery__grid--one { grid-template-columns: minmax(0, calc(50% - 7px)); }
+.bs-gallery__grid--center { min-height: 100%; align-content: center; }
+.bs-gallery__sections { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; justify-content: flex-start; gap: 28px; }
+.bs-gallery__sections--center { justify-content: center; }
+.bs-gallery__sections .bs-gallery__grid { max-width: none; justify-content: start; }
+.bs-gallery__sections h2 { margin: 0 0 14px 2px; color: var(--deck-primary); font-size: 12px; line-height: 1.2; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; animation: deck-rise .22s ease backwards; }
+.bs-gallery__item { min-width: 0; align-self: start; color: var(--deck-ink); text-align: left; }
+#root .bs-gallery__btn, .bs-gallery__btn { display: block; width: 100%; margin: 0; padding: 0; border: 0; border-radius: 11px; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: opacity 120ms ease, transform 120ms ease; }
+.bs-gallery__btn:active { opacity: .55; transform: scale(.98); }
+.bs-gallery__pic { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; box-sizing: border-box; overflow: hidden; border: 2px solid; border-radius: 11px; background: rgba(128, 128, 128, .22); box-shadow: 0 7px 22px rgba(0, 0, 0, .25); transform-origin: center; will-change: transform; }
+.bs-gallery__badge { position: absolute; right: 7px; bottom: 7px; padding: 3px 7px; border-radius: 999px; background: rgba(0, 0, 0, .72); color: #fff; font-size: 10px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.bs-gallery__text { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 2px 0; animation: deck-rise .18s ease backwards; }
+.bs-gallery__text b { display: -webkit-box; min-width: 0; overflow: hidden; font-size: 14px; font-weight: 700; line-height: 1.22; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.bs-gallery__text small { font-size: 12px; line-height: 1.25; opacity: .7; }
+.bs-gallery__text span { max-width: 100%; overflow: hidden; opacity: .7; font-size: 11px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+@keyframes deck-rise { from { opacity: 0; transform: translateY(4px); } }
+
+/* A class playing where its card was, at the moment it read the verse. */
+.bs-player { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; box-sizing: border-box; padding: 58px 10px 18px; }
+.bs-player__box { position: relative; width: min(calc(100vw - 20px), calc(177.7778vh - 153px)); max-width: 800px; max-height: calc(100vh - 86px); aspect-ratio: 16 / 9; box-sizing: border-box; overflow: hidden; border: 2px solid; border-radius: 11px; box-shadow: 0 7px 22px rgba(0, 0, 0, .25); background: #000; transform-origin: center; }
+.bs-player__box iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; transition: opacity .22s ease; }
+.bs-player__actions { display: flex; gap: 8px; }
+#root .bs-player__actions button, .bs-player__actions button { appearance: none; border: 1px solid; border-radius: 999px; padding: 7px 12px; font: 650 12px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+@media (prefers-reduced-motion: reduce) { .bs-gallery, .bs-gallery__text, .bs-gallery__sections h2 { transition: none; animation: none; } }
