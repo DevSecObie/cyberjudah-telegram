@@ -1,0 +1,27 @@
+name: live-probe
+# A one-off look at what the live Mini App serves: status, headers, redirect and the start of
+# the body for each entry path, as a Telegram WebView would fetch it. Read-only.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch the entry paths
+        run: |
+          UA="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Telegram-iOS"
+          for u in "https://cyberjudah.io/app" "https://cyberjudah.io/app/" "https://cyberjudah.io/app?tgWebAppStartParam=x" "https://cyberjudah.io/app/bible/genesis/1" "https://cyberjudah.io/api/verse-of-day" "https://cyberjudah-telegram.oisrae1.workers.dev/" "https://cyberjudah-telegram.oisrae1.workers.dev/app/"; do
+            echo "=================== $u"
+            curl -sS -D headers.txt -o body.html -w "status=%{http_code} redirect=%{redirect_url} type=%{content_type} size=%{size_download}\n" -A "$UA" "$u" || true
+            grep -iE "^(HTTP|cache-control|cf-cache-status|age|etag|last-modified|content-type|location|server|x-):" headers.txt || true
+            echo "--- body (first 1200 bytes)"
+            head -c 1200 body.html; echo
+            JS=$(grep -o '/app/assets/index-[^"]*\.js' body.html | head -1)
+            if [ -n "$JS" ]; then curl -sS -o /dev/null -w "--- js $JS status=%{http_code} size=%{size_download} type=%{content_type}\n" -A "$UA" "https://cyberjudah.io$JS" || true; fi
+            JS2=$(grep -o '/assets/index-[^"]*\.js' body.html | grep -v '^/app/' | head -1)
+            if [ -n "$JS2" ]; then curl -sS -o /dev/null -w "--- js $JS2 status=%{http_code} size=%{size_download} type=%{content_type}\n" -A "$UA" "https://cyberjudah.io$JS2" || true; fi
+          done
