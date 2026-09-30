@@ -441,7 +441,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 
 /* Header selectors use the same glass material as the existing sheets. */
 .bs-picker-scrim { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-start; justify-content: center; padding: calc(var(--safe-top, 0px) + 62px) 12px 12px; background: transparent; }
-.bs-picker { width: 100%; max-width: 400px; max-height: min(530px, calc(100dvh - var(--safe-top, 0px) - 86px)); display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; color: var(--bs-default); background: color-mix(in srgb, var(--bs-reverse) 84%, transparent); backdrop-filter: blur(30px) saturate(1.9); -webkit-backdrop-filter: blur(30px) saturate(1.9); border: .5px solid color-mix(in srgb, var(--bs-default) 14%, transparent); box-shadow: 0 12px 34px rgba(0,0,0,.28); animation: bs-drop .16s ease-out; }
+.bs-picker { box-sizing: border-box; width: 100%; max-width: 400px; max-height: min(530px, calc(100dvh - var(--safe-top, 0px) - 86px)); display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; color: var(--bs-default); background: color-mix(in srgb, var(--bs-reverse) 84%, transparent); backdrop-filter: blur(30px) saturate(1.9); -webkit-backdrop-filter: blur(30px) saturate(1.9); border: .5px solid color-mix(in srgb, var(--bs-default) 14%, transparent); box-shadow: 0 12px 34px rgba(0,0,0,.28); animation: bs-drop .16s ease-out; }
 .bs-picker__header { display: flex; align-items: center; padding: 4px 10px 4px 16px; min-height: 48px; flex: none; border-bottom: .5px solid var(--bs-border); }
 .bs-picker__header b { flex: 1; font-size: 16px; }
 .bs-picker__body { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
