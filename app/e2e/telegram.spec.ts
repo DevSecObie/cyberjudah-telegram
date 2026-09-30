@@ -313,7 +313,11 @@ test("the settings button opens settings", async ({ page }) => {
 test("Home is the front door: one field, search the classes or ask CyberJudah", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
   await expect(page.locator(".hero__prompt[data-on]")).toBeVisible();
-  await expect(page.locator('.home a[href="/plan"]')).toHaveCount(0);
+  // No plan yet: Meditate offers to start one (Bible Strong's PlanHome), and the study shelves are all in front.
+  await expect(page.locator('.home a[href="/plan"]')).toHaveText(/Start a reading plan/);
+  await expect(page.locator(".shelf")).toHaveText(["Learn", "Study", "Meditate", "Go further"]);
+  await expect(page.locator(".widget")).toHaveCount(6);
+  await expect(page.locator('.tools a[href="/lexicon"]')).toBeVisible();
   await expect(page.locator(".tab")).toHaveCount(5);
   await page.fill("#q", "Why do we keep the Passover?");
   await page.click(".door__btn--ask");
