@@ -423,7 +423,9 @@ test("Home is the front door: one field, search the classes or ask CyberJudah", 
   await page.fill("#q", "Seattle");
   await page.press("#q", "Enter");
   await expect(page).toHaveURL(/\/search\?q=Seattle/);
-  await expect(page.locator(".head .title")).toHaveText("Search");
+  // Bible Strong's search: no title, the field and the collections in a strip on top.
+  await expect(page.locator(".bsearch__bar #q")).toHaveValue("Seattle");
+  await expect(page.locator(".bsearch__facets .chip").first()).toHaveText("All collections");
 });
 
 liveDataTest("a class opens like YouTube: the player pinned, the notes in a sheet beneath it", async ({ page }) => {

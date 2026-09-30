@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router";
 import { useRecentSearches } from "@/lib/marks";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { ApiError } from "@/tg/sdk";
-import { Button, Chip, Chips, Empty, Icon, Img, List, Row, Screen, Section, Skeleton, timestamp } from "@/ui/ui";
+import { Button, Chip, Empty, Icon, Img, List, Row, Section, Skeleton, timestamp } from "@/ui/ui";
 import { fmtDate } from "@/api/data";
 import { FEED_NAME, Marked, SearchHero, teachingPath, useTeachingsSearch, type TeachingHit } from "@/ui/search-hero";
 import { thumbOf } from "@/ui/ui";
@@ -50,18 +50,28 @@ export function Search() {
   };
   const typing = input.trim() !== q;
 
+  // Bible Strong's search screen: no title, a strip on top with the field and the facets under it,
+  // and, before a search, the empty state with examples to try.
   return (
-    <Screen title="Search" kicker="What was said in the classes">
-      <SearchHero value={input} onChange={setInput} onSubmit={submit} autoFocus={!q} />
-      <Chips><Chip on={!feed} onClick={() => set({ feed: undefined, page: undefined })}>All collections</Chip>{Object.entries(FEED_NAME).map(([k, name]) => <Chip key={k} on={feed === k} onClick={() => set({ feed: k, page: undefined })}>{name}</Chip>)}</Chips>
+    <main className="screen bsearch">
+      <div className="bsearch__bar">
+        <SearchHero value={input} onChange={setInput} onSubmit={submit} autoFocus={!q} />
+        <div className="bsearch__facets" role="group" aria-label="Collections">
+          <Chip on={!feed} onClick={() => set({ feed: undefined, page: undefined })}>All collections</Chip>
+          {Object.entries(FEED_NAME).map(([k, name]) => <Chip key={k} on={feed === k} onClick={() => set({ feed: k, page: undefined })}>{name}</Chip>)}
+        </div>
+      </div>
       {q && !typing ? <Recordings q={q} feed={feed} page={page} onPage={(p) => set({ page: p ? String(p) : undefined })} /> : (
         <>
-          <p className="hint">Type a word, a name, a place or a Scripture that was said in a class. Quotation marks find an exact phrase.</p>
+          <div className="bsearch__empty">
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4.2-4.2" /></svg>
+            <p>Search what was said in the classes: a word, a name, a place or a Scripture. Quotation marks find an exact phrase.</p>
+            <div className="bsearch__examples">{EXAMPLES.map((e) => <button key={e} type="button" onClick={() => { setInput(e); submit(e); }}>{e}</button>)}</div>
+          </div>
           {recent.length ? <Section title="Recent" action={<button type="button" className="link" onClick={() => setRecent([])}>Clear</button>}><List>{recent.map((r) => <Row key={r} onClick={() => { setInput(r); submit(r); }} title={r} trailing={<span className="row__chev"><Icon name="clock" size={16} /></span>} />)}</List></Section> : null}
-          <Section title="Try"><Chips>{EXAMPLES.map((e) => <Chip key={e} onClick={() => { setInput(e); submit(e); }}>{e}</Chip>)}</Chips></Section>
         </>
       )}
-    </Screen>
+    </main>
   );
 }
 

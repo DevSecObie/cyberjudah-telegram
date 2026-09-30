@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router";
+import { useLocation, useNavigationType } from "react-router";
 
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { HomeBody } from "@/screens/Home";
@@ -18,7 +18,10 @@ export function Drawers() {
   const { pathname, search } = useLocation();
   const [shown, setShown] = useState<DrawerSide | null>(side);
   const scrimSwipe = useSwipeClose(side ?? "home");
-  useEffect(() => { setDrawer(null); }, [pathname, search]);
+  // A navigation from inside a drawer (a link, a search) closes it. A screen correcting its own
+  // address (the Bible settling /bible on its chapter) is a replace, and must not.
+  const navType = useNavigationType();
+  useEffect(() => { if (navType !== "REPLACE") setDrawer(null); }, [pathname, search]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (side) { setShown(side); return sheetOpened(); }
     const t = window.setTimeout(() => setShown(null), SLIDE_MS);
