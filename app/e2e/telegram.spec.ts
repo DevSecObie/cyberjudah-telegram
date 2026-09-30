@@ -34,6 +34,8 @@ async function setup(page: Page) {
     return r.fulfill({ status: 404, body: "" });
   });
   await page.route(/ytimg|youtube\.com|fonts\.g/, (r) => r.abort());
+  // Playwright tries the last route first: a stand-in thumbnail for screenshots, when given.
+  if (process.env.THUMB) await page.route(/ytimg/, (r) => r.fulfill({ path: process.env.THUMB! }));
 }
 type S = { main: string | null; second: string | null; back: boolean; settings: boolean };
 const state = (page: Page) => page.evaluate(() => (window as unknown as { __tg: { state(): S } }).__tg.state()) as Promise<S>;
@@ -824,4 +826,23 @@ test("the Library searches inside every book, page by page", async ({ page }) =>
   await expect(page.locator(".section__head h2", { hasText: "2 pages" })).toBeVisible();
   await page.locator('a[href="/books/lost-tribes-a-myth/p/1-256"]').click();
   await expect(page).toHaveURL(/\/books\/lost-tribes-a-myth\//); // the page link lands in its chapter, at the page
+});
+
+test("Reader: the classes that taught a verse show as pictures after it, and open at that moment", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  const pics = page.locator(".bs-classpics");
+  await expect(pics.first()).toBeVisible();
+  // Verse 28 was taught by several classes; the stack after it opens their list.
+  const after28 = page.locator("#verset-28 .bs-classpics");
+  await expect(after28).toHaveAttribute("aria-label", /classes? taught this/);
+  await after28.click();
+  await expect(page.locator(".bs-sheet", { hasText: "Taught in" })).toBeVisible();
+  const rows = page.locator(".bs-moment");
+  await expect(rows.first()).toBeVisible();
+  // The Bishops' teaching comes first, each with the moment's time on its picture.
+  await expect(rows.first().locator("small").first()).toContainText(/Bishop|Deacon/);
+  await expect(rows.first().locator(".bs-moment__ts")).toHaveText(/^\d+:\d{2}(:\d{2})?$/);
+  if (process.env.SHOTS) { await page.waitForTimeout(500); await page.screenshot({ path: `${process.env.SHOTS}/class-pictures.png` }); }
+  await rows.first().click();
+  await expect(page).toHaveURL(/[?&]t=\d+/);
 });
