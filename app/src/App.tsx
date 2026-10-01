@@ -1,15 +1,20 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
 
 import { launchPath } from "@shared/links.mjs";
+import { isTabPath, recordPath } from "@/lib/tabs";
 import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
 import { useSettingsButton, useStored, useTheme } from "@/tg/hooks";
 import { AppRoot } from "@telegram-apps/telegram-ui";
-import { Button, Screen, Skeleton, TabBar } from "@/ui/ui";
+import { Button, PageActions, Screen, Skeleton, TabBar } from "@/ui/ui";
+import { Drawers } from "@/ui/drawers";
+import { ScreenBoundary } from "@/ui/boundary";
 import { ThemeApplier } from "@/ui/theme";
 import { Home } from "@/screens/Home";
+import { NavEditor } from "@/screens/NavEditor";
+const NoteRequests = lazy(() => import("@/screens/NoteRequests").then((m) => ({ default: m.NoteRequests })));
 // Every other screen loads on first visit, so the first paint stays small: one chunk per
 // screen module, shared by the routes that use it, cached by the browser afterwards.
 const Search = lazy(() => import("@/screens/Search").then((m) => ({ default: m.Search })));
@@ -20,6 +25,7 @@ const Ask = lazy(() => import("@/screens/Ask").then((m) => ({ default: m.Ask }))
 const BibleTab = lazy(() => import("@/bible/BibleTab").then((m) => ({ default: m.BibleTab })));
 const More = lazy(() => import("@/screens/More").then((m) => ({ default: m.More })));
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
+const Credits = lazy(() => import("@/screens/Credits").then((m) => ({ default: m.Credits })));
 const Plan = lazy(() => import("@/screens/Plan").then((m) => ({ default: m.Plan })));
 const History = lazy(() => import("@/screens/History").then((m) => ({ default: m.History })));
 const Dictionary = lazy(() => import("@/screens/Dictionary").then((m) => ({ default: m.Dictionary })));
@@ -45,12 +51,22 @@ const Encyclopedia = lazy(() => import("@/screens/Library").then((m) => ({ defau
 const Lexicon = lazy(() => import("@/screens/Lexicon").then((m) => ({ default: m.Lexicon })));
 const LexiconEntry = lazy(() => import("@/screens/Lexicon").then((m) => ({ default: m.LexiconEntry })));
 const People = lazy(() => import("@/screens/People").then((m) => ({ default: m.People })));
+const TabsScreen = lazy(() => import("@/screens/Tabs").then((m) => ({ default: m.Tabs })));
+const NewTab = lazy(() => import("@/screens/Tabs").then((m) => ({ default: m.NewTab })));
 const Tags = lazy(() => import("@/screens/Tags").then((m) => ({ default: m.Tags })));
 const TagScreen = lazy(() => import("@/screens/Tags").then((m) => ({ default: m.TagScreen })));
 
 
 export function App() {
   const location = useLocation();
+  // Bible Strong's tabs: where the app is becomes the current tab's place (lib/tabs.ts).
+  const prevPath = useRef<string | null>(null);
+  useEffect(() => {
+    const path = location.pathname + location.search;
+    const prev = prevPath.current;
+    recordPath(path, prev !== null && !isTabPath(prev));
+    prevPath.current = path;
+  }, [location.pathname, location.search]);
   const navigate = useNavigate();
   useSettingsButton();
 
@@ -75,9 +91,11 @@ export function App() {
       <ThemeApplier />
       <Lock />
       <div className="route" key={location.pathname.split("/").slice(0, 2).join("/")}>
+      <ScreenBoundary resetKey={location.pathname}>
       <Suspense fallback={<Screen><Skeleton rows={8} /></Screen>}>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/settings/credits" element={<Credits />} />
         <Route path="/search" element={<Search />} />
         <Route path="/classes" element={<Classes />} />
         <Route path="/bible" element={<BibleTab />} />
@@ -89,11 +107,15 @@ export function App() {
         <Route path="/watch/:video" element={<Watch />} />
         <Route path="/ask" element={<Ask />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/settings/bar" element={<NavEditor />} />
+        <Route path="/settings/requests" element={<NoteRequests />} />
         <Route path="/plan" element={<Plan />} />
         <Route path="/relations" element={<Relations />} />
         <Route path="/history" element={<History />} />
         <Route path="/dictionary" element={<Dictionary />} />
         <Route path="/dictionary/:slug" element={<DictionaryEntry />} />
+        <Route path="/tabs" element={<TabsScreen />} />
+        <Route path="/new" element={<NewTab />} />
         <Route path="/lexicon" element={<Lexicon />} />
         <Route path="/lexicon/:number" element={<LexiconEntry />} />
         <Route path="/people" element={<People />} />
@@ -120,7 +142,10 @@ export function App() {
         <Route path="*" element={<Home />} />
       </Routes>
       </Suspense>
+      </ScreenBoundary>
       </div>
+      <PageActions />
+      <Drawers />
       {tabs ? <TabBar /> : null}
     </AppRoot>
   );

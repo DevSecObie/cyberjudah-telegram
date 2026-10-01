@@ -27,14 +27,14 @@ html[data-fullscreen="yes"] .reader__bar { padding-top: 4px; }
   --a-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
   --a-read: "Newsreader", Georgia, "Times New Roman", serif;
   --a-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
-  --a-tabs: calc(60px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  --a-tabs: calc(64px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
   min-height: 100dvh;
   background: var(--a-bg);
   color: var(--a-ink);
   font: 400 16px/1.45 var(--a-ui);
   -webkit-tap-highlight-color: transparent;
 }
-#root [data-tabs] { padding-bottom: calc(var(--a-tabs) + 16px); }
+#root [data-tabs] { padding-bottom: calc(var(--a-tabs) + 26px); }
 #root a { color: inherit; text-decoration: none; }
 #root button:not([class*="tgui-"]) { font: inherit; color: inherit; }
 
@@ -75,9 +75,23 @@ html[data-fullscreen="yes"] .reader__bar { padding-top: 4px; }
 .section__head h2 { margin: 0; font: 600 15px/1.3 var(--a-ui); color: var(--a-ink-2); }
 .section__head a, .link { font: 500 14px var(--a-ui); color: var(--a-accent); background: none; border: 0; padding: 0; cursor: pointer; }
 
-/* Tab bar: TelegramUI's, fixed to the bottom, blurred over the page. */
-.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; padding: 0 max(8px, calc((100vw - 640px) / 2)) var(--safe-bottom, env(safe-area-inset-bottom, 0px)) !important; backdrop-filter: blur(16px) saturate(1.4); -webkit-backdrop-filter: blur(16px) saturate(1.4); }
-.tabs .tab { padding: 8px 12px; gap: 4px; }
+/* Bottom bar: Bible Strong's (BottomTabBar): full width, 48 high plus the home indicator, a hairline
+   on top, icons only in the muted ink, spread evenly across a 20px inset. Its height is --a-tabs,
+   of the page; the Bible stops at its top edge, so only a sheet or the gallery ever covers it. */
+.tabs {
+  position: fixed; z-index: 40; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: space-around;
+  height: var(--a-tabs); box-sizing: border-box;
+  padding: 0 20px var(--safe-bottom, env(safe-area-inset-bottom, 0px));
+  background: var(--a-bar, var(--a-bg));
+  border-top: 1px solid var(--a-bar-line, var(--a-line));
+  touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.tabs .tab { flex: none; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; background: none; color: var(--a-muted); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: color 160ms ease, transform 160ms ease; }
+.tabs .tab[data-on] { color: var(--a-ink); }
+.tabs .tab:active { transform: scale(.9); }
+.tabs .tab__count { display: grid; place-items: center; box-sizing: border-box; min-width: 20px; height: 20px; padding: 0 3px; border: 2px solid currentColor; border-radius: 5px; font: 700 12px/15px var(--a-ui); font-variant-numeric: tabular-nums; animation: count-pulse 1s ease 300ms; }
+@keyframes count-pulse { 50% { transform: scale(1.2); } }
 
 /* Search field: TelegramUI's Input. */
 .field { display: block; }
@@ -290,7 +304,6 @@ html[data-tg="yes"] .steps { display: none; }
 /* Themes: the reader's choice, over Telegram's own dark or light. Everything reads tokens. */
 html[data-theme="light"] { --color-void: #f6f4ee; --color-panel: #ffffff; --color-panel-2: #ece9e0; --color-hair: #ddd8cc; --color-ink: #2a2620; --color-ink-2: #14120e; --color-muted: #6f6a60; --color-cyan: #0077a8; --color-magenta: #c8155a; color-scheme: light; }
 html[data-theme="sepia"] { --color-void: #f4ecd8; --color-panel: #fbf5e6; --color-panel-2: #ecdfc2; --color-hair: #d9caa6; --color-ink: #3b2f1e; --color-ink-2: #1f170c; --color-muted: #7a6a4f; --color-cyan: #8a5a12; --color-magenta: #a8262f; color-scheme: light; }
-html[data-theme="light"] .tabs, html[data-theme="sepia"] .tabs { background: color-mix(in srgb, var(--a-bg) 92%, transparent); }
 html[data-font="sans"] .verses, html[data-font="sans"] .note, html[data-font="sans"] .verse { font-family: var(--a-ui); }
 html[data-spacing="airy"] .verses { line-height: 1.95; }
 html[data-spacing="tight"] .verses { line-height: 1.45; }
@@ -576,7 +589,6 @@ html[data-theme="sepia"] .card, html[data-theme="sepia"] .grid a, html[data-them
 .card { border-radius: var(--r-xl); }
 /* The primary door is Ask: tinted in the accent, the way iOS marks the suggested action. */
 .door__btn--ask { background: color-mix(in srgb, var(--a-accent) 16%, var(--a-card)); color: var(--a-accent); }
-.tabs { border-top: .5px solid color-mix(in srgb, var(--a-line) 80%, transparent); }
 
 /* Press feedback: things you tap give way under the finger, rows light up like iOS cells. */
 .card, .tile, .door__btn, .grid a, .notes-open, .chapters a, .steps a, .hero__go, .icon-btn, .chip, .watch { transition: transform .16s cubic-bezier(.2,.8,.2,1), opacity .16s, background-color .2s; }
@@ -738,8 +750,6 @@ html[data-theme="light"] .followup, html[data-theme="sepia"] .followup, html[dat
 #root [data-tabs] .chat2 { padding-bottom: calc(120px + var(--a-tabs)); }
 html[data-typing] .tabs { display: none; }
 html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc(6px + var(--safe-bottom, 0px)); }
-/* Five tabs fit a small phone. */
-.tabs .tab { padding: 8px 4px; min-width: 0; }
 
 /* Ask's allowance: the meter under the title, the plans, and the note when it runs out. */
 .chat2__heading { border: 0; background: none; padding: 0; cursor: pointer; font: inherit; }
@@ -784,21 +794,6 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 @keyframes plan-pop { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
 
 /* A person of the Bible. */
-.person__aka { margin: -6px 0 14px; font: 500 14px var(--a-ui); color: var(--a-muted); }
-.person__family { display: grid; gap: 12px; }
-.person__rel small { display: block; margin-bottom: 6px; font: 600 12px var(--a-ui); letter-spacing: .03em; text-transform: uppercase; color: var(--a-muted); }
-.person__taught { display: grid; gap: 12px; }
-.person__teach { padding: 14px; border-radius: var(--r-lg); background: var(--a-card); border: 1px solid var(--a-line); }
-.person__verse { padding: 0; border: 0; background: none; font: 700 15px var(--a-ui); color: var(--a-accent); cursor: pointer; }
-.person__teach ul { margin: 8px 0; padding-left: 18px; display: grid; gap: 6px; }
-.person__teach li { font-size: 15px; line-height: 1.55; color: var(--a-ink-2); }
-.person__src { margin: 0; font: 500 12.5px var(--a-ui); color: var(--a-muted); }
-.person__src button { padding: 0; border: 0; background: none; font: inherit; color: var(--a-accent); cursor: pointer; }
-.person__verses { display: grid; gap: 12px; }
-.person__book small { display: block; margin-bottom: 6px; font: 600 13px var(--a-ui); color: var(--a-ink-2); }
-.person__book div { display: flex; flex-wrap: wrap; gap: 6px; }
-.person__book button { min-height: 32px; padding: 0 10px; border-radius: var(--r-sm); border: 1px solid var(--a-line); background: var(--a-card); font: 500 13px var(--a-ui); color: var(--a-ink-2); cursor: pointer; font-variant-numeric: tabular-nums; }
-#root .person__more { margin-top: 10px; padding: 0; border: 0; background: none; font: 600 14px var(--a-ui); color: var(--a-accent); cursor: pointer; }
 
 /* Library: books the classes read from */
 .book__sub { margin: -4px 0 14px; font: 400 14px/1.45 var(--a-ui); color: var(--a-muted); }
@@ -914,13 +909,13 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 #root .filters__active button { border: 0; background: none; padding: 0; color: var(--a-accent); font: 600 13px var(--a-ui); cursor: pointer; }
 
 /* One look for every "show more" link */
-#root .person__more, #root .bookpage__more, #root .section__more, #root .bs-word__more { border: 0; background: none; padding: 8px 0 0; color: var(--a-accent); font: 600 14px var(--a-ui); cursor: pointer; }
+#root .bookpage__more, #root .section__more, #root .bs-word__more { border: 0; background: none; padding: 8px 0 0; color: var(--a-accent); font: 600 14px var(--a-ui); cursor: pointer; }
 
 /* Motion: screens settle in, lists arrive a row at a time, nothing longer than 300 ms */
 @keyframes screen-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes row-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .route { animation: screen-fade .2s ease backwards; }
-.feed > *, .list > *, .book__reads > *, .person__taught > * { animation: row-in .3s var(--ease) both; }
+.feed > *, .list > *, .book__reads > * { animation: row-in .3s var(--ease) both; }
 .feed > :nth-child(1), .list > :nth-child(1) { animation-delay: 0ms; } .feed > :nth-child(2), .list > :nth-child(2) { animation-delay: 40ms; }
 .feed > :nth-child(3), .list > :nth-child(3) { animation-delay: 80ms; } .feed > :nth-child(4), .list > :nth-child(4) { animation-delay: 120ms; }
 .feed > :nth-child(5), .list > :nth-child(5) { animation-delay: 160ms; } .feed > :nth-child(6), .list > :nth-child(6) { animation-delay: 200ms; }
@@ -1037,3 +1032,450 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 .tagadd { display: flex; gap: 8px; }
 .tagadd input { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border-radius: var(--r-md); border: 1px solid var(--a-line); background: var(--a-card); color: var(--a-ink); font: 400 15px var(--a-ui); }
 .tagadd input:focus { outline: none; border-color: color-mix(in srgb, var(--a-accent) 45%, transparent); }
+
+/* Bible Strong's New Tab page and tab switcher (features/app-switcher), on our resources. */
+.nt-heading { margin: 16px 0 4px; text-align: center; font: 700 28px/1.25 var(--a-ui); color: var(--a-ink-2); }
+.nt-list { display: grid; gap: 10px; }
+.nt-item, .nt-hero { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; width: 100%; padding: 14px; border-radius: var(--r-lg); border: 1px solid var(--a-line); background: var(--a-card); color: var(--a-ink); text-align: left; cursor: pointer; transition: transform .16s var(--ease); }
+.nt-item:active, .nt-hero:active { transform: scale(.98); }
+.nt-item__icon, .nt-hero__icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: color-mix(in srgb, var(--a-accent) 14%, transparent); color: var(--a-accent); }
+.nt-item__body, .nt-hero__body { display: grid; gap: 3px; min-width: 0; }
+.nt-item__body b { font: 600 16px var(--a-ui); color: var(--a-ink-2); }
+.nt-item__body small, .nt-hero__body small { font: 400 13px/1.4 var(--a-ui); color: var(--a-muted); }
+.nt-item > svg:last-child, .nt-hero > svg:last-child { color: var(--a-muted); }
+.nt-hero { min-height: 180px; padding: 22px; background: linear-gradient(135deg, color-mix(in srgb, var(--a-accent) 16%, var(--a-card)), var(--a-card) 70%); border-color: color-mix(in srgb, var(--a-accent) 28%, var(--a-line)); }
+.nt-hero__icon { width: 64px; height: 64px; border-radius: 18px; }
+.nt-hero__body b { font: 500 36px/1.1 var(--a-read); color: var(--a-ink-2); }
+/*
+ * The tab switcher: Bible Strong's layout (AppSwitcherScreen, useTabConstants: two per row,
+ * 20 px margins and gaps, a 40 px title bar over a round icon) in our own glass: frosted
+ * translucent surfaces, a hairline edge and a top highlight, as the tab dock has.
+ */
+.switcher { min-height: 100dvh; padding: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 20px) 20px calc(var(--a-tabs, 64px) + 40px + env(safe-area-inset-bottom, 0px)); touch-action: pan-y; }
+.switcher__grid { display: grid; gap: 20px; justify-content: start; }
+.tabcard { position: relative; border-radius: 20px; overflow: hidden;
+  background: color-mix(in srgb, var(--a-card) 70%, transparent);
+  backdrop-filter: blur(22px) saturate(1.7); -webkit-backdrop-filter: blur(22px) saturate(1.7);
+  border: 1px solid color-mix(in srgb, var(--a-ink-2) 12%, transparent);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .22), inset 0 1px 0 color-mix(in srgb, #ffffff 16%, transparent);
+  transition: transform 180ms cubic-bezier(.2, .8, .2, 1), border-color 180ms ease; }
+.tabcard:active { transform: scale(0.97); }
+.tabcard[data-current] { border-color: color-mix(in srgb, var(--a-accent) 70%, transparent); }
+#root .tabcard__open { position: absolute; inset: 0; display: grid; place-items: center; border: 0; padding: 0; background: none; color: var(--a-ink-2); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.tabcard__icon { display: grid; place-items: center; width: 80px; height: 80px; border-radius: 40px; color: var(--a-accent);
+  background: color-mix(in srgb, var(--a-ink-2) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--a-ink-2) 10%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent); }
+.tabcard__title { position: absolute; top: 0; left: 0; right: 40px; height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 5px 0 14px; color: var(--a-muted); pointer-events: none; }
+.tabcard__title b { min-width: 0; font: 600 12px var(--a-ui); color: var(--a-ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#root .tabcard__close { position: absolute; top: 0; right: 0; width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--a-ink-2); cursor: pointer; }
+.tabcard__close span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 12px;
+  background: color-mix(in srgb, var(--a-ink-2) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--a-ink-2) 10%, transparent); }
+.groupdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+/* The bottom bar in switcher mode (BottomTabBar, list): + on the left, the group in the middle,
+   OK on the right. It lives inside the tab bar, so it takes the bar's own glass. */
+.tabs--switcher { display: flex; align-items: center; }
+.switcherbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 52px; padding: 0 8px; }
+#root .switcherbar__add, #root .switcherbar__ok { display: grid; place-items: center; min-width: 44px; height: 44px; padding: 0 6px; border: 0; background: none; color: var(--a-ink-2); cursor: pointer; }
+#root button.switcherbar__ok { font: 700 15px var(--a-ui); color: var(--a-ink-2); }
+#root .switcherbar__group { display: inline-flex; align-items: center; gap: 4px; max-width: 50vw; min-height: 44px; padding: 7px 14px; font: 400 14px var(--a-ui); cursor: pointer; color: var(--group, var(--a-ink-2)); background: none; border: 0; box-shadow: none; }
+#root .switcherbar__group span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab__count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 4px; border: 1.5px solid currentColor; border-radius: 5px; color: var(--a-muted); font: 400 11px var(--a-ui); font-variant-numeric: tabular-nums; }
+
+/* A screen's actions (Open in YouTube, Share...), in the app instead of Telegram's own bottom bar,
+   which covered the tab bar: glass buttons just above the tab bar, as the dock is glass. */
+.pageactions { position: fixed; z-index: 39; left: 12px; right: 12px; max-width: 616px; margin: 0 auto;
+  bottom: calc(var(--a-tabs) + 12px); display: flex; gap: 10px; justify-content: center; pointer-events: none; }
+#root .pageaction { pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex: 1 1 0; max-width: 320px; height: 46px; padding: 0 18px; border-radius: 23px; cursor: pointer;
+  font: 600 15px var(--a-ui); color: var(--a-on-accent, #001014); background: var(--a-accent);
+  border: 1px solid color-mix(in srgb, #ffffff 22%, transparent);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .22), inset 0 1px 0 color-mix(in srgb, #ffffff 30%, transparent);
+  transition: transform 160ms ease, opacity 160ms ease; }
+#root .pageaction:active { transform: scale(0.97); }
+#root .pageaction:disabled { opacity: 0.55; cursor: default; }
+#root .pageaction--quiet { color: var(--a-ink-2);
+  background: color-mix(in srgb, var(--a-bg) 58%, transparent);
+  backdrop-filter: blur(24px) saturate(1.8); -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  border-color: color-mix(in srgb, var(--a-ink-2) 14%, transparent); }
+.pageaction__spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(1turn); } }
+/* Room for the actions at the end of the page. */
+html[data-actions] #root [data-tabs] { padding-bottom: calc(var(--a-tabs) + 90px); }
+html[data-typing] .pageactions { display: none; }
+
+/* The bottom bar's editor. */
+.naved__preview { display: flex; justify-content: space-around; align-items: center; height: 48px; margin: 4px 0 18px; padding: 0 12px; border: 1px solid var(--a-line); border-radius: var(--r-lg); color: var(--a-muted); background: var(--a-card); }
+.naved__preview > span { display: grid; place-items: center; width: 40px; }
+.naved { list-style: none; margin: 0; padding: 0; border-radius: var(--r-lg); background: var(--a-card); overflow: hidden; }
+.naved__row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 8px 0 16px; border-top: 1px solid var(--a-line); }
+.naved__row:first-child { border-top: 0; }
+.naved__icon { display: grid; place-items: center; min-width: 26px; color: var(--a-ink-2); }
+.naved__label { flex: 1; font: 500 15px var(--a-ui); color: var(--a-ink); }
+.naved__btn { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: none; color: var(--a-ink-2); cursor: pointer; }
+.naved__btn--down svg { transform: rotate(180deg); }
+.naved__btn--add { color: var(--a-accent); }
+.naved__btn:disabled { opacity: .3; cursor: default; }
+.naved__btn:not(:disabled):active { background: var(--a-card-2, var(--a-line)); }
+.naved__reset { display: block; margin: 18px auto 0; border: 0; background: none; font: 500 15px var(--a-ui); color: var(--a-accent); cursor: pointer; }
+
+/* Bible Strong's Home and menu drawers: min(95%, 450px) wide, pushing the app aside as one row. */
+:root { --drawer-w: min(95vw, 450px); --drawer-ease: cubic-bezier(.2, .9, .25, 1); }
+#shell .route, .tabs, .pageactions { transition: transform .38s var(--drawer-ease); }
+html[data-drawer-pin] #shell .route { position: fixed; top: var(--drawer-y, 0); left: 0; right: 0; min-height: 100dvh; }
+html[data-drawer="home"] #shell .route, html[data-drawer="home"] .tabs, html[data-drawer="home"] .pageactions { transform: translateX(var(--drawer-w)); }
+html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[data-drawer="more"] .pageactions { transform: translateX(calc(-1 * var(--drawer-w))); }
+.drawer { position: fixed; top: 0; bottom: 0; z-index: 70; width: var(--drawer-w); display: flex; flex-direction: column; background: var(--a-card-2); color: var(--a-ink); transition: transform .38s var(--drawer-ease); overscroll-behavior: contain; }
+.drawer--home { left: 0; transform: translateX(-100%); }
+.drawer--more { right: 0; transform: translateX(100%); border-left: 1px solid var(--a-line); }
+.drawer[data-open] { transform: none; }
+.drawer__scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.drawer--home .drawer__scroll { padding-bottom: calc(100px + var(--safe-bottom, 0px)); }
+.drawer__scroll > .screen { min-height: 0; padding-bottom: 24px; }
+.drawer__fade { position: absolute; left: 0; right: 0; bottom: 0; height: 100px; pointer-events: none; background: linear-gradient(to bottom, transparent, var(--a-card-2)); }
+#root button.drawer__x, .drawer__x { position: absolute; left: 50%; bottom: calc(24px + var(--safe-bottom, 0px)); display: grid; place-items: center; width: 50px; height: 50px; margin-left: -25px; padding: 0; border: 0; border-radius: 30px; background: var(--a-bg); color: var(--a-muted); box-shadow: 0 6px 20px rgba(0, 0, 0, .25); cursor: pointer; }
+.drawer__head { display: flex; align-items: center; gap: 4px; min-height: 54px; padding: var(--safe-top, 0px) 10px 0; border-bottom: 1px solid var(--a-line); }
+.drawer__head h2 { margin: 0; font: 700 17px var(--a-ui); }
+#root button.drawer__back, .drawer__back { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; background: none; color: var(--a-ink); cursor: pointer; }
+.drawer-scrim { position: fixed; inset: 0; z-index: 65; pointer-events: none; background: rgba(0, 0, 0, 0); transition: background-color .38s ease; }
+.drawer-scrim[data-open] { pointer-events: auto; background: rgba(0, 0, 0, .25); }
+.drawer-scrim[data-side="home"] { left: var(--drawer-w); }
+.drawer-scrim[data-side="more"] { right: var(--drawer-w); }
+/* The tabs count in its group's colour, as Bible Strong's; the default group stays plain. */
+.tabs .tab__count[style*="--group"] { background: var(--group); border-color: var(--group); color: #fff; }
+@media (prefers-reduced-motion: reduce) { #shell .route, .tabs, .pageactions, .drawer, .drawer-scrim { transition: none; } }
+
+/* Bible Strong's MoreScreen cards: radius 16, a 12px grey heading row with its icon, then links with
+   a 20px coloured icon, a 15px label and a chevron. */
+.more { padding: 16px 0 24px; }
+.drawer .more { padding-top: 16px; }
+.mcard { margin: 0 20px 16px; border-radius: 16px; background: var(--a-bg); overflow: hidden; }
+.screen .mcard { margin-inline: 0; }
+.mcard__head { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 16px; background: color-mix(in srgb, var(--a-ink) 5%, transparent); color: var(--a-muted); font: 700 12px var(--a-ui); letter-spacing: .02em; }
+#root .mcard__row, .mcard__row { display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 12px; border: 0; background: none; color: var(--a-ink); font: 400 15px var(--a-ui); text-align: left; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.mcard__row:active { background: color-mix(in srgb, var(--a-ink) 6%, transparent); }
+.mcard__icon { display: grid; place-items: center; width: 24px; }
+.mcard__label { flex: 1; min-width: 0; }
+.mcard__chev { display: grid; color: var(--a-muted); }
+.more__foot { margin: 8px 20px 0; color: var(--a-muted); font: 400 14px/1.4 var(--a-ui); text-align: center; }
+/* Home fits its drawer. */
+.drawer__scroll { overflow-x: hidden; }
+.hero { grid-template-columns: minmax(0, 1fr); }
+
+
+/* A screen that failed to draw: what happened and a way on, never a black page. */
+.crash { min-height: 60vh; justify-content: center; text-align: center; gap: 10px; }
+.crash__actions { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+#root .crash__btn, .crash__btn { padding: 11px 20px; border-radius: 22px; border: 1px solid var(--a-line); background: var(--a-card); color: var(--a-ink); font: 600 15px var(--a-ui); cursor: pointer; }
+#root .crash__btn--main, .crash__btn--main { background: var(--a-accent); border-color: transparent; color: var(--a-on-accent, #001014); }
+
+/* ── iPhone glass (iOS "Liquid Glass" materials) ─────────────────────────────────────────────
+   One material everywhere chrome floats over content: the page colour at partial strength,
+   a strong blur with extra saturation so what passes beneath keeps its colour, a hairline edge
+   and a thin specular highlight on top. Content scrolls under it. */
+:root {
+  --glass-tint: var(--a-bg);
+  --glass-thin: color-mix(in srgb, var(--glass-tint) 55%, transparent);
+  --glass-regular: color-mix(in srgb, var(--glass-tint) 72%, transparent);
+  --glass-thick: color-mix(in srgb, var(--glass-tint) 84%, transparent);
+  --glass-blur: blur(24px) saturate(1.9);
+  --glass-edge: color-mix(in srgb, var(--a-ink) 12%, transparent);
+  --glass-shine: inset 0 .5px 0 color-mix(in srgb, #ffffff 22%, transparent);
+  --glass-shadow: 0 10px 30px rgba(0, 0, 0, .22);
+}
+html[data-theme="light"], html[data-theme="sepia"] { --glass-shine: inset 0 .5px 0 color-mix(in srgb, #ffffff 80%, transparent); --glass-shadow: 0 10px 30px rgba(40, 30, 10, .12); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --glass-thin: var(--glass-tint); --glass-regular: var(--glass-tint); --glass-thick: var(--glass-tint); }
+}
+
+/* The bottom bar: glass, the page scrolling beneath it, the current button on a lighter pill. */
+.tabs {
+  z-index: 60;
+  background: color-mix(in srgb, var(--a-bar, var(--a-bg)) 62%, transparent);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  border-top: .5px solid var(--glass-edge);
+  box-shadow: var(--glass-shine);
+}
+.tabs .tab { position: relative; border-radius: 16px; }
+.tabs .tab::before { content: ""; position: absolute; inset: 5px 2px; border-radius: 14px; background: color-mix(in srgb, var(--a-ink) 11%, transparent); opacity: 0; transform: scale(.85); transition: opacity 200ms ease, transform 260ms cubic-bezier(.2, 1.3, .3, 1); }
+.tabs .tab[data-on]::before { opacity: 1; transform: none; }
+.tabs .tab > * { position: relative; }
+/* A sheet, the gallery or a drawer always sits over the bar. */
+html:has([data-sheet-open]) .tabs { z-index: 40; }
+/* The Bible runs under the bar now, so the glass shows the page passing beneath. */
+#root .bs { bottom: 0; }
+
+/* Floating actions and sheets: the regular material. */
+.sheet { background: var(--glass-thick); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); box-shadow: var(--glass-shine); }
+.sheet__scrim { background: rgba(0, 0, 0, .38); }
+.drawer { background: color-mix(in srgb, var(--a-card-2) 86%, transparent); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+.drawer__head { background: var(--glass-regular); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); position: sticky; top: 0; z-index: 2; }
+#root .drawer__x, .drawer__x { background: var(--glass-regular); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border: .5px solid var(--glass-edge); box-shadow: var(--glass-shadow), var(--glass-shine); color: var(--a-ink); }
+.bsearch__bar { background: var(--glass-regular); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border-bottom: .5px solid var(--glass-edge); }
+.switcherbar, .tabs--switcher { background: color-mix(in srgb, var(--a-bg) 62%, transparent); }
+@media (prefers-reduced-transparency: reduce) {
+  .tabs, .sheet, .drawer, .drawer__head, .bsearch__bar { background: var(--a-bg); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+
+/* New-tab entry points and the switcher's faint content previews. */
+.newtab .shelf { font-family: var(--a-ui); font-weight: 700; }
+#root .nt-search { display: flex; align-items: center; gap: 10px; width: 100%; margin: 24px 0 8px; padding: 14px 16px; border: 0; border-radius: 12px; background: var(--a-card); color: var(--a-muted); text-align: left; font: 400 15px var(--a-ui); cursor: pointer; }
+.nt-hero { background: var(--a-card); border-color: var(--a-line); }
+.nt-hero__icon { width: 80px; height: 100px; background: none; }
+.nt-hero__body b { font-family: var(--a-ui); font-size: 28px; font-weight: 700; }
+.tabcard__preview { position: absolute; inset: 48px 12px 0; overflow: hidden; opacity: .15; text-align: left; font: 400 12px/1.65 var(--a-read); pointer-events: none; }
+.tabcard__preview > span { display: block; margin-top: 6px; }
+.tabcard__icon { position: relative; z-index: 1; }
+
+/* Home follows the same Today → personal stats → Learn/Study/Meditate order as the fork. */
+#root { --a-resource-dictionary: color-mix(in srgb, var(--color-amber) 60%, var(--a-ink-2)); }
+.today-card { padding: 16px 20px; margin: 0 0 16px; min-height: 280px; display: flex; flex-direction: column; border: 1px solid var(--a-line); border-radius: 24px; background: var(--a-card); }
+.today-card header { display: flex; align-items: center; justify-content: space-between; color: var(--a-muted); font: 600 14px var(--a-ui); }
+.today-card header a { display: grid; place-items: center; width: 36px; height: 36px; }
+.today-card__verse { display: block; flex: 1; padding: 8px 0 16px; }
+.today-card__verse p { margin: 0 0 12px; font: 400 19px/1.5 var(--a-read); }
+.today-card__verse b { font: 600 13px var(--a-ui); }
+.today-card__verse small { color: var(--a-muted); }
+.today-card footer { display: flex; gap: 20px; }
+#root .today-card footer button { display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 0; border: 0; background: none; color: var(--a-muted); font: 500 13px var(--a-ui); cursor: pointer; }
+.today-card footer button:disabled { opacity: .4; }
+.stats--six { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.stats--six .stats__cell { gap: 4px; padding: 10px 4px; color: var(--a-accent); }
+.today-image { max-height: 90dvh; overflow: auto; }
+.today-image img { width: 100%; display: block; margin-bottom: 16px; }
+.today-image .btn { display: block; text-align: center; }
+.mcard__icon { flex: none; width: 32px; height: 32px; border-radius: 8px; }
+
+.stats__value { display: flex; align-items: center; gap: 8px; }
+
+/* ── Search ───────────────────────────────────────────────────────────────────────────────
+   A glass strip on top: the field (a soft well that lifts into the accent when focused, a spinner
+   in place of the glass while results come in, a clear button, a "/" hint on keyboards), Cancel,
+   and the scopes with their counts. Results: grouped, each with its kind's icon, a title, where it
+   is and the words that matched lit; every result is keyboard-reachable. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.srch { padding-top: 0 !important; max-width: 760px; }
+.srch__bar { position: sticky; top: 0; z-index: 20; margin: 0 -16px 8px; padding: calc(8px + var(--safe-top, 0px)) 16px 0; background: var(--glass-regular, var(--a-bg)); backdrop-filter: var(--glass-blur, none); -webkit-backdrop-filter: var(--glass-blur, none); border-bottom: .5px solid var(--glass-edge, var(--a-line)); }
+.srch__form { display: flex; align-items: center; gap: 10px; }
+.srch__field { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 8px 0 14px; border-radius: 14px; cursor: text;
+  background: color-mix(in srgb, var(--a-ink) 7%, transparent); border: 1px solid color-mix(in srgb, var(--a-ink) 9%, transparent);
+  transition: border-color .18s ease, box-shadow .18s ease, background-color .18s ease; }
+.srch__field[data-focus] { background: color-mix(in srgb, var(--a-ink) 4%, var(--a-bg)); border-color: color-mix(in srgb, var(--a-accent) 70%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--a-accent) 18%, transparent); }
+.srch__icon { display: grid; place-items: center; width: 22px; color: var(--a-muted); transition: color .18s ease; }
+.srch__field[data-focus] .srch__icon { color: var(--a-accent); }
+.srch__spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
+#root .srch__field input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: none; color: var(--a-ink); font: 400 17px/1.2 var(--a-ui); -webkit-appearance: none; appearance: none; }
+.srch__field input::placeholder { color: var(--a-muted); opacity: .9; }
+.srch__field input::-webkit-search-cancel-button { display: none; }
+#root button.srch__clear { display: grid; place-items: center; width: 26px; height: 26px; flex: none; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--a-ink) 16%, transparent); color: var(--a-bg); cursor: pointer; }
+.srch__kbd { display: none; min-width: 22px; height: 22px; place-items: center; border-radius: 6px; border: 1px solid var(--a-line); color: var(--a-muted); font: 600 12px var(--a-ui); }
+@media (hover: hover) and (pointer: fine) { .srch__kbd { display: grid; } }
+#root button.srch__cancel { flex: none; padding: 8px 2px; border: 0; background: none; color: var(--a-accent); font: 500 16px var(--a-ui); cursor: pointer; }
+.srch__scopes { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 10px 0 10px; }
+.srch__scopes::-webkit-scrollbar { display: none; }
+#root button.srch__scope { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid var(--a-line); background: none; color: var(--a-ink-2); font: 600 13.5px var(--a-ui); cursor: pointer; transition: background-color .15s ease, color .15s ease; }
+#root button.srch__scope[aria-selected="true"] { background: var(--a-ink); border-color: var(--a-ink); color: var(--a-bg); }
+.srch__count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: color-mix(in srgb, currentColor 14%, transparent); font: 700 11px var(--a-ui); font-variant-numeric: tabular-nums; }
+.srch__head .srch__count { margin-left: 8px; color: var(--a-muted); }
+.srch__results { display: flex; flex-direction: column; gap: 18px; padding-top: 6px; }
+.srch__head { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 8px; }
+.srch__head h2 { margin: 0; display: flex; align-items: center; font: 700 13px var(--a-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--a-muted); }
+.srch__list { list-style: none; margin: 0; padding: 0; border-radius: 16px; background: var(--a-card); overflow: hidden; }
+#root .srch__hit { display: flex; align-items: flex-start; gap: 12px; padding: 12px 12px 12px 14px; color: inherit; text-decoration: none; border-top: .5px solid var(--a-line); outline: none; transition: background-color .12s ease; }
+.srch__list > li:first-child .srch__hit { border-top: 0; }
+#root .srch__hit:hover, #root .srch__hit:focus-visible, [data-result]:focus-visible { background: color-mix(in srgb, var(--a-accent) 10%, transparent); }
+[data-result]:focus-visible { outline: 2px solid var(--a-accent); outline-offset: -2px; }
+.srch__kind { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: color-mix(in srgb, var(--a-accent) 14%, transparent); color: var(--a-accent); }
+.srch__kind[data-kind="verse"] { background: color-mix(in srgb, #60a5fa 16%, transparent); color: #60a5fa; }
+.srch__kind[data-kind="law"], .srch__kind[data-kind="precept"], .srch__kind[data-kind="case"] { background: color-mix(in srgb, #fbbf24 16%, transparent); color: #f59e0b; }
+.srch__kind[data-kind="study"], .srch__kind[data-kind="encyclopedia"], .srch__kind[data-kind="book"] { background: color-mix(in srgb, #a78bfa 16%, transparent); color: #a78bfa; }
+.srch__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.srch__title { font: 600 15.5px/1.3 var(--a-ui); color: var(--a-ink); }
+.srch__sub { font: 500 12.5px/1.3 var(--a-ui); color: var(--a-muted); }
+.srch__snip { font: 400 14px/1.45 var(--a-ui); color: var(--a-ink-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.srch__snip mark, .srch__results mark { background: color-mix(in srgb, var(--a-accent) 26%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+.srch__go { align-self: center; color: var(--a-muted); opacity: .6; }
+#root button.srch__ref { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; border-radius: 16px; border: 1px solid color-mix(in srgb, var(--a-accent) 40%, transparent); background: linear-gradient(135deg, color-mix(in srgb, var(--a-accent) 16%, var(--a-card)), var(--a-card)); color: var(--a-ink); text-align: left; cursor: pointer; }
+.srch__refIcon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: color-mix(in srgb, var(--a-accent) 20%, transparent); color: var(--a-accent); }
+.srch__refText { flex: 1; display: flex; flex-direction: column; }
+.srch__refText small { font: 600 11.5px var(--a-ui); letter-spacing: .05em; text-transform: uppercase; color: var(--a-accent); }
+.srch__refText b { font: 700 18px var(--a-ui); }
+.srch__none { padding: 28px 16px; text-align: center; color: var(--a-muted); }
+.srch__none b { display: block; margin-bottom: 6px; color: var(--a-ink); font: 600 16px var(--a-ui); }
+.srch__none p { margin: 0 auto; max-width: 360px; font: 400 14px/1.45 var(--a-ui); }
+.srch__start { display: flex; flex-direction: column; gap: 22px; }
+.srch__recent { list-style: none; margin: 0; padding: 0; border-radius: 16px; background: var(--a-card); overflow: hidden; }
+.srch__recent li { display: flex; align-items: center; border-top: .5px solid var(--a-line); }
+.srch__recent li:first-child { border-top: 0; }
+#root button.srch__recentbtn { flex: 1; display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 14px; border: 0; background: none; color: var(--a-ink); font: 400 15.5px var(--a-ui); text-align: left; cursor: pointer; }
+.srch__recentbtn svg { color: var(--a-muted); }
+#root button.srch__forget { display: grid; place-items: center; width: 40px; height: 40px; border: 0; background: none; color: var(--a-muted); cursor: pointer; }
+.srch__empty { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 18px 8px; text-align: center; color: var(--a-muted); }
+.srch__empty svg { opacity: .5; }
+.srch__empty p { margin: 0; max-width: 340px; font: 400 15px/1.5 var(--a-ui); }
+.srch__empty b { color: var(--a-ink-2); font-weight: 600; }
+.srch__try { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+#root .srch__try button:not([class*="tgui-"]) { padding: 6px 13px; border-radius: 18px; background: var(--a-card); border: 1px solid var(--a-line); color: var(--a-ink-2); font: 500 14px var(--a-ui); cursor: pointer; }
+.srch__feeds { margin-bottom: 4px; }
+@media (min-width: 720px) {
+  .srch__bar { margin-inline: 0; border-radius: 0 0 18px 18px; }
+  .srch__title { font-size: 16px; }
+  .srch__snip { -webkit-line-clamp: 2; }
+}
+
+/* A result list's moments, compact: the picture beside the words. */
+.recs--compact { border-radius: 16px; background: var(--a-card); overflow: hidden; gap: 0; }
+.recs--compact .rec { grid-template-columns: 132px 1fr; align-items: start; gap: 12px; padding: 12px; border-bottom: .5px solid var(--a-line); }
+.recs--compact .rec:last-child { border-bottom: 0; }
+.recs--compact .rec__thumb { border-radius: 10px; }
+.recs--compact .rec__body { gap: 3px; }
+.recs--compact .rec__title { font-size: 15px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.recs--compact .rec__excerpt { font-size: 13.5px; line-height: 1.45; color: var(--a-ink-2); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.recs--compact .rec__links { display: none; }
+#root button.srch__all { padding: 0; border: 0; background: none; color: var(--a-accent); font: 600 14px var(--a-ui); cursor: pointer; }
+@media (min-width: 720px) { .recs--compact .rec { grid-template-columns: 180px 1fr; } }
+.msg__cut { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font: 500 13px var(--a-ui); color: var(--a-warn, #f59e0b); }
+.chats__state { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.chats__why { margin: 2px 12px 8px; font: 500 13px var(--a-ui); color: var(--a-hot, #f87171); }
+.chats__row[aria-busy="true"] { opacity: .6; }
+
+/* A person's avatar: the picture when there is one, else the name's first letter on its kind's tint. */
+.avatar { --av-ink: var(--a-accent); flex: none; display: inline-grid; place-items: center; box-sizing: border-box; overflow: hidden; border-radius: 50%; background: color-mix(in srgb, var(--av-ink) 18%, var(--av-base, var(--a-card))); color: var(--av-ink); font-family: var(--a-ui, system-ui), sans-serif; font-weight: 700; line-height: 1; }
+.avatar[data-kind="female"] { --av-ink: var(--a-hot); }
+.avatar[data-kind="group"], .avatar[data-kind="other"] { --av-ink: var(--a-muted); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* A person (Bible Strong's StrongEntitySummaryCard): the avatar, what they were, the name. */
+
+/* The family graph (Bible Strong's StrongEntityRelationGraph): a card, the person in the middle, the family around. */
+.fg { border: 1px solid var(--a-line); border-radius: 20px; background: var(--a-card); overflow: hidden; }
+.fg__stage { position: relative; overflow: hidden; }
+.fg__lines { position: absolute; inset: 0; pointer-events: none; }
+.fg__lines line { stroke: var(--a-line); stroke-width: 1.4; animation: fg-fade .3s ease backwards; }
+.fg__lines .fg__line--back { stroke: color-mix(in srgb, var(--a-accent) 55%, transparent); stroke-dasharray: 4 4; }
+.fg__scene { position: absolute; inset: 0; }
+.fg__center { position: absolute; width: 82px; height: 82px; animation: fg-center .32s cubic-bezier(.2, 1.12, .32, 1) backwards; }
+.fg__sat { position: absolute; width: 58px; height: 58px; animation: fg-out .36s cubic-bezier(.2, 1.12, .32, 1) backwards; }
+#root button.fg__node { position: relative; display: block; margin: 0; padding: 0; border: 0; background: none; border-radius: 50%; cursor: pointer; transition: transform 120ms ease, opacity 120ms ease; -webkit-tap-highlight-color: transparent; }
+#root button.fg__node:active { transform: scale(.96); opacity: .8; }
+#root button.fg__node:disabled { cursor: default; }
+.fg__node .avatar { border: 1px solid var(--a-line); }
+.fg__node--center .avatar { border: 2px solid var(--a-accent); }
+.fg__node[aria-busy] .avatar { animation: fg-pulse .8s ease infinite alternate; }
+.fg__back { position: absolute; left: -4px; top: -4px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--a-card); color: var(--a-accent); box-shadow: 0 1px 4px rgba(0, 0, 0, .2); }
+.fg__label { position: absolute; top: calc(100% + 4px); display: flex; flex-direction: column; align-items: center; text-align: center; }
+.fg__label--center { width: 120px; left: -19px; }
+.fg__label b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 12px/1.25 var(--a-ui); color: var(--a-ink); }
+.fg__label--center b { font-size: 15px; }
+.fg__chip { display: inline-flex; align-items: center; gap: 3px; max-width: 100%; margin-top: 3px; padding: 3px 7px; border-radius: 12px; background: color-mix(in srgb, var(--a-ink) 8%, transparent); color: color-mix(in srgb, var(--a-ink) 55%, transparent); font: 700 9px var(--a-ui); white-space: nowrap; overflow: hidden; }
+#root button.fg__chip--profile { border: 0; color: var(--a-muted); font: 700 9px var(--a-ui); cursor: pointer; }
+.fg__foot { position: relative; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 0; border-top: 1px solid var(--a-line); color: var(--a-muted); font: 700 12px var(--a-ui); font-variant-numeric: tabular-nums; }
+#root button.fg__page, #root button.fg__hist { display: grid; place-items: center; width: 34px; height: 34px; margin: 0; padding: 0; border: 0; border-radius: 17px; background: none; color: var(--a-ink-2); cursor: pointer; }
+#root button.fg__page:disabled { opacity: .3; cursor: default; }
+#root button.fg__hist { position: absolute; background: color-mix(in srgb, var(--a-ink) 7%, transparent); animation: fg-fade .2s ease backwards; }
+.fg__hist--left { left: 10px; }
+.fg__hist--right { right: 10px; }
+@keyframes fg-out { from { opacity: 0; transform: translate(var(--fg-dx), var(--fg-dy)) scale(.4); } }
+@keyframes fg-center { from { opacity: 0; transform: scale(.7); } }
+@keyframes fg-fade { from { opacity: 0; } }
+@keyframes fg-pulse { to { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .fg__sat, .fg__center, .fg__lines line, #root button.fg__hist { animation: none; } }
+
+/* ── The bottom bar as a floating glass capsule that follows the reading (iOS, Instagram) ───────
+   Full: the sections in a capsule above the home indicator, the current one on a pill that slides
+   between them and opens to show its name. Scrolling down into a page shrinks it to a small
+   capsule with just the current section; scrolling up, the page's top or end, or a tap brings it
+   back. A chosen icon gives a short spring. */
+:root { --bar-spring: cubic-bezier(.2, 1.12, .32, 1); }
+.tabs:not(.tabs--switcher) {
+  left: max(10px, calc(50vw - 260px)); right: auto; bottom: calc(8px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  width: min(calc(100vw - 20px), 520px); height: 56px; padding: 0 6px; box-sizing: border-box;
+  justify-content: space-between; border-radius: 28px; overflow: hidden;
+  border: .5px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow), var(--glass-shine);
+  transition: width .55s var(--bar-spring), transform .38s var(--drawer-ease, ease), box-shadow .3s ease;
+}
+.tabs[data-mini] { width: 56px; justify-content: flex-start; cursor: pointer; }
+.tabs:not(.tabs--switcher) .tab { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: flex-start; width: auto; min-width: 0; max-width: 170px; height: 44px; padding: 0; border-radius: 22px; overflow: hidden;
+  transition: color .2s ease, max-width .5s var(--bar-spring), opacity .25s ease; }
+.tabs:not(.tabs--switcher) .tab::before { display: none; }
+.tabs:not(.tabs--switcher) .tab:active { transform: none; }
+.tabs:not(.tabs--switcher) .tab:active .tab__glyph { transform: scale(.88); }
+.tab__glyph { flex: none; display: grid; place-items: center; width: var(--slot, 42px); height: 44px; transition: transform .16s ease; }
+.tab__label { max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap; margin-left: -4px; font: 650 13px/1 var(--a-ui); letter-spacing: -.01em;
+  transition: max-width .5s var(--bar-spring), opacity .18s ease, padding .5s var(--bar-spring); }
+.tabs:not([data-nolabel]) .tab[data-on] .tab__label { max-width: 110px; opacity: 1; padding-right: 14px; transition-delay: 0s, .08s, 0s; }
+.tabs[data-mini] .tab:not([data-on]) { max-width: 0; opacity: 0; pointer-events: none; }
+.tabs__pill { position: absolute; z-index: 0; left: 0; top: 50%; height: 44px; margin-top: -22px; width: var(--pill-w, 44px); transform: translateX(var(--pill-x, 6px)); border-radius: 22px;
+  background: color-mix(in srgb, var(--a-ink) 12%, transparent); box-shadow: inset 0 .5px 0 color-mix(in srgb, #fff 18%, transparent);
+  transition: transform .5s var(--bar-spring), width .5s var(--bar-spring), opacity .2s ease; pointer-events: none; }
+.tabs[data-pill="none"] .tabs__pill { opacity: 0; }
+.tabs .tab[data-on] .tab__glyph > * { animation: tab-pop .5s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes tab-pop { 0% { transform: scale(.72); } 55% { transform: scale(1.14); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .tabs:not(.tabs--switcher), .tabs .tab, .tab__label, .tabs__pill { transition: none; }
+  .tabs .tab[data-on] .tab__glyph > * { animation: none; }
+}
+
+/* Asking for a class's notes: a quiet pill that turns into a check once asked. */
+#root button.request-notes, button.request-notes { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 20px; border: 1px solid var(--a-line, rgba(127,127,127,.3)); background: color-mix(in srgb, var(--a-accent, #00e5ff) 14%, transparent); color: var(--a-accent, #00e5ff); font: 600 14px var(--a-ui, system-ui), sans-serif; cursor: pointer; }
+#root button.request-notes[data-done], button.request-notes[data-done] { background: none; color: var(--a-muted, inherit); cursor: default; }
+#root button.request-notes:disabled, button.request-notes:disabled { opacity: 1; }
+.notes-wanted { display: grid; gap: 10px; justify-items: start; margin: 12px 0 18px; padding: 14px 16px; border-radius: 16px; background: var(--a-card); border: 1px solid var(--a-line); }
+.notes-wanted p { margin: 0; color: var(--a-ink-2); font: 400 14.5px/1.45 var(--a-ui); }
+.notes-wanted b { color: var(--a-ink); }
+
+/* The admins' queue of requested notes. */
+.nreq__bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
+.nreq { list-style: none; margin: 0; padding: 0; border-radius: 16px; background: var(--a-card); overflow: hidden; }
+.nreq__row { display: flex; align-items: center; gap: 6px; padding: 10px 10px 10px 14px; border-top: .5px solid var(--a-line); }
+.nreq__row:first-child { border-top: 0; }
+#root button.nreq__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 0; border: 0; background: none; color: var(--a-ink); text-align: left; cursor: pointer; }
+.nreq__main b { font: 600 15px/1.3 var(--a-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nreq__main small { color: var(--a-muted); font: 500 12px var(--a-ui); }
+#root button.nreq__btn { flex: none; padding: 8px 12px; border-radius: 16px; border: 1px solid transparent; background: var(--a-accent); color: var(--a-on-accent, #001014); font: 600 13px var(--a-ui); cursor: pointer; }
+#root button.nreq__btn--quiet { background: color-mix(in srgb, var(--a-ink) 8%, transparent); color: var(--a-ink-2); }
+
+
+/* A person, as Bible Strong's entity page: the summary card, then sections under a hairline with an eyebrow title. */
+.screen.entity { max-width: 600px; padding-left: 20px; padding-right: 20px; }
+.entity__id { display: flex; align-items: center; gap: 12px; }
+.entity__id > div { min-width: 0; }
+.entity__eyebrow { margin: 0; color: var(--a-accent); font: 700 11px/1.3 var(--a-ui); letter-spacing: .06em; text-transform: uppercase; }
+.entity__eyebrow span { color: var(--a-muted); }
+.entity__name { margin: 3px 0 0; color: var(--a-ink-2); font: 700 22px/1.2 var(--a-ui); letter-spacing: -.015em; }
+.entity__codes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+#root .entity__code { display: inline-flex; align-items: center; gap: 2px; min-height: 26px; padding: 0 8px; border-radius: 10px; background: var(--a-card-2); color: var(--a-muted); font: 700 11px var(--a-ui); text-decoration: none; }
+.entity__desc { margin: 14px 0 0; color: var(--a-ink); font: 400 17px/1.55 var(--a-ui); }
+.entity__aka { margin: 6px 0 0; color: var(--a-muted); font: 500 14px/1.4 var(--a-ui); }
+.entity__section { display: grid; gap: 12px; margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--a-line); }
+.entity__note { margin: -6px 0 0; color: var(--a-muted); font: 500 13px var(--a-ui); }
+.entity__cards { display: grid; gap: 10px; }
+.entity__empty { margin: 0; color: var(--a-muted); font: 400 15px/1.5 var(--a-ui); }
+#root button.entity__more { justify-self: start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--a-accent); font: 600 15px var(--a-ui); cursor: pointer; }
+#root button.entity__more span { color: var(--a-muted); font-weight: 500; }
+.entity__source { margin: 32px 0 8px; color: var(--a-muted); font: 400 12.5px/1.5 var(--a-ui); }
+#root .entity__source button { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+
+/* A scripture card: the reference, the King James text in the reading face, and the way to the verse. */
+.scard { padding: 14px 16px 2px; border-radius: 17px; background: var(--a-card); border: 1px solid var(--a-line); }
+.scard__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.scard__ref { margin: 0; color: var(--a-ink-2); font: 700 15px/1.3 var(--a-ui); letter-spacing: -.005em; font-variant-numeric: tabular-nums; }
+.scard__ver { flex: none; color: var(--a-muted); font: 600 11px var(--a-ui); letter-spacing: .05em; }
+.scard__text { margin: 8px 0 0; color: var(--a-ink); font: 400 17.5px/1.6 var(--a-read); text-wrap: pretty; }
+.scard__text sup { margin-right: 3px; color: var(--a-muted); font: 600 10px var(--a-ui); vertical-align: 5px; }
+.scard__text--wait { display: grid; gap: 9px; padding: 4px 0 2px; }
+.scard__text--wait .skel { height: 13px; }
+.scard__text--wait .skel:nth-child(1) { width: 94%; } .scard__text--wait .skel:nth-child(2) { width: 86%; } .scard__text--wait .skel:nth-child(3) { width: 52%; }
+.scard__fail { margin: 8px 0 0; color: var(--a-muted); font: 500 14px/1.5 var(--a-ui); }
+#root .scard__fail button { padding: 0; border: 0; background: none; color: var(--a-accent); font: inherit; font-weight: 600; cursor: pointer; }
+.scard__points { display: grid; gap: 8px; margin: 12px 0 0; padding: 12px 0 0; border-top: 1px solid var(--a-line); list-style: none; }
+.scard__points li { color: var(--a-ink-2); font: 400 15px/1.55 var(--a-ui); }
+.scard__src { display: grid; gap: 2px; margin: 10px 0 0; color: var(--a-muted); font: 500 13px/1.4 var(--a-ui); }
+#root .scard__src a { color: var(--a-ink-2); font-weight: 600; text-decoration: none; }
+.scard__foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-height: 44px; margin-top: 4px; }
+#root .scard__go { display: inline-flex; align-items: center; gap: 1px; min-height: 44px; padding-left: 10px; color: var(--a-accent); font: 600 15px var(--a-ui); text-decoration: none; -webkit-tap-highlight-color: transparent; }
+#root button.scard__act { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-right: auto; padding: 0; border: 0; background: none; color: var(--a-muted); font: 600 14px var(--a-ui); cursor: pointer; }
+#root .scard__go:active, #root button.scard__act:active, #root .entity__code:active { opacity: .6; }
+.scard a:focus-visible, .scard button:focus-visible, .entity__code:focus-visible, #root button.entity__more:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; border-radius: 6px; }
+@media (hover: hover) { .scard__go:hover, .scard__src a:hover { text-decoration: underline; text-underline-offset: 3px; } }

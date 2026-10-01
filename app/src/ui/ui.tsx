@@ -1,16 +1,24 @@
-import { Children, useEffect, type ReactNode } from "react";
+import { Children, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton, Tabbar } from "@telegram-apps/telegram-ui";
+import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
 
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
+import { usePageActions } from "@/tg/hooks";
+import { adjacentTab, askTabPath, bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
+import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
+import { expandBar, useBarMini, useBarScroll } from "@/lib/barscroll";
+import { SwitcherBar } from "@/screens/Tabs";
+import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
 
-export type IconName = "home" | "search" | "play" | "book" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download";
+export type IconName = "home" | "search" | "play" | "book" | "book-open" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus" | "close" | "image";
 export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
   const p: Record<IconName, ReactNode> = {
+    image: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8" cy="8" r="1.5" /><path d="m21 15-5-5L5 21" /></>,
     home: <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />,
     search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4.2-4.2" /></>,
     play: <><rect x="3" y="5" width="18" height="14" rx="3" /><path d="m10 9 5 3-5 3z" /></>,
+    "book-open": <><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></>,
     book: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z" /><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" /></>,
     more: <><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></>,
     chevron: <path d="m9 5 7 7-7 7" />,
@@ -41,6 +49,8 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
     download: <><path d="M12 4v11" /><path d="m7 10 5 5 5-5" /><path d="M5 20h14" /></>,
     history: <><path d="M4 6h16M4 12h10M4 18h7" /><circle cx="18" cy="17" r="3" /><path d="M18 15.6V17l1 .8" /></>,
     trash: <><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></>,
+    plus: <path d="M12 5v14M5 12h14" />,
+    close: <path d="M6 6l12 12M18 6 6 18" />,
     chat: <path d="M4 5h16v11H9l-5 4z" />,
     retry: <><path d="M4 12a8 8 0 1 0 2.3-5.6" /><path d="M4 4v4h4" /></>,
     folder: <path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />,
@@ -48,53 +58,124 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{p[name]}</svg>;
 }
 
-const TABS: { to: string; label: string; icon: IconName }[] = [
-  { to: "/", label: "Home", icon: "home" },
-  { to: "/classes", label: "Classes", icon: "play" },
-  { to: "/ask", label: "Ask", icon: "chat" },
-  { to: "/bible", label: "Bible", icon: "book" },
-  { to: "/more", label: "More", icon: "more" },
-];
-
-/** Which tab a screen belongs to, so the tab stays lit on everything opened from it. */
+/**
+ * Bible Strong's bottom bar (app-switcher/BottomTabBar): a full-width row of icons, 48 high, no
+ * labels. Here the reader picks and orders the buttons (lib/nav); the menu always ends the row.
+ * Search, the Bible and Ask go to their tab (or open one); the tabs button shows how many are
+ * open and opens the switcher. A long press on the bar opens its editor.
+ */
 export function tabOf(path: string): string {
-  if (path === "/" || path.startsWith("/search")) return "/";
-  if (/^\/(classes|note|watch|topics)(\/|$)/.test(path)) return "/classes";
-  if (path.startsWith("/ask")) return "/ask";
-  if (/^\/(bible|read)(\/|$)/.test(path)) return "/bible";
-  return "/more";
+  if (path.startsWith("/more") || path.startsWith("/settings")) return "more";
+  return NAV_ITEMS.find((i) => i.match.test(path))?.id ?? "";
 }
-const LAST = "cj:tab:";
+
+const navPath = (id: NavId) => id === "search" ? searchTabPath() : id === "bible" ? bibleTabPath() : id === "ask" ? askTabPath() : navItem(id).path;
+
+export function TabBar() {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const { tabs, group, groups } = useTabs();
+  const [ids] = useNav();
+  // The count takes its group's colour, as Bible Strong's does; the default group stays plain.
+  const groupColor = groups.indexOf(group) > 0 ? group.color : undefined;
+  const drawer = useDrawer();
+  const current = drawer ?? tabOf(pathname);
+  const press = useRef<number | undefined>(undefined);
+  const swipe = useRef<{ x: number; y: number } | null>(null);
+  const long = useRef(false);
+  const go = (to: string) => { if (long.current) return; haptic("select"); setDrawer(null); if (to === pathname) window.scrollTo({ top: 0, behavior: "smooth" }); else navigate(to, { replace: true }); };
+  // Home and the menu are drawers, as in Bible Strong; the same button closes its own drawer.
+  const toggle = (side: DrawerSide) => { if (long.current) return; haptic("select"); setDrawer(drawer === side ? null : side); };
+  // A long press edits the bar; a horizontal swipe along it moves to the next or previous open tab
+  // (Bible Strong's useTabBarSwipeGesture).
+  const hold = {
+    onPointerDown: (e: React.PointerEvent) => { long.current = false; swipe.current = { x: e.clientX, y: e.clientY }; press.current = window.setTimeout(() => { long.current = true; haptic("heavy"); setDrawer(null); navigate("/settings/bar"); }, 600); },
+    onPointerMove: (e: React.PointerEvent) => { const s = swipe.current; if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) window.clearTimeout(press.current); },
+    onPointerUp: (e: React.PointerEvent) => {
+      window.clearTimeout(press.current);
+      const s = swipe.current; swipe.current = null; if (!s || long.current) return;
+      const dx = e.clientX - s.x, dy = e.clientY - s.y;
+      if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      const to = adjacentTab(dx < 0 ? 1 : -1);
+      if (to) { long.current = true; window.setTimeout(() => { long.current = false; }, 50); haptic("select"); setDrawer(null); navigate(to, { replace: true }); }
+    },
+    onPointerLeave: () => window.clearTimeout(press.current),
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+  };
+  // The bar follows the reading: a small capsule while scrolling down, the full bar otherwise.
+  useBarScroll(pathname);
+  const mini = useBarMini() && !drawer;
+  const bar = useRef<HTMLElement>(null);
+  // The current button sits on a pill that slides to whichever is chosen; the button opens to
+  // show its name when the bar has the room.
+  useLayoutEffect(() => {
+    const nav = bar.current; if (!nav) return;
+    const place = () => {
+      // Room for the name: the icons share what the current one's name leaves, down to 38px each.
+      const buttons = nav.querySelectorAll(".tab").length;
+      const label = nav.querySelector<HTMLElement>(".tab[data-on] .tab__label");
+      const slot = label ? Math.min(42, Math.floor((nav.clientWidth - 14 - label.scrollWidth - 10) / buttons)) : 42;
+      const fits = !mini && !!label && slot >= 38;
+      nav.style.setProperty("--slot", `${fits ? slot : 42}px`);
+      if (fits) delete nav.dataset.nolabel; else nav.dataset.nolabel = "";
+      const on = nav.querySelector<HTMLElement>(".tab[data-on]");
+      nav.style.setProperty("--pill-x", `${on ? on.offsetLeft : 0}px`);
+      nav.style.setProperty("--pill-w", `${on ? on.offsetWidth : 0}px`);
+      nav.dataset.pill = on ? "" : "none";
+    };
+    place();
+    const ro = new ResizeObserver(place); ro.observe(nav);
+    for (const b of nav.querySelectorAll(".tab")) ro.observe(b);
+    nav.addEventListener("transitionend", place);
+    return () => { ro.disconnect(); nav.removeEventListener("transitionend", place); };
+  });
+  // While the switcher is open the bar becomes its controls, as in Bible Strong.
+  if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /></nav>;
+  const count = tabs.length > 100 ? ":)" : String(tabs.length);
+  const items: { id: NavId | "more"; label: string; aria: string; glyph: ReactNode; onClick: () => void }[] = [
+    ...ids.map((id) => {
+      const item = navItem(id);
+      return { id, label: id === "tabs" ? "Tabs" : item.label, aria: id === "tabs" ? `Tabs, ${tabs.length} open` : item.label,
+        glyph: item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={23} />,
+        onClick: () => id === "home" ? toggle("home") : go(navPath(id)) };
+    }),
+    { id: "more", label: "Menu", aria: "Menu", glyph: <Icon name="more" size={28} />, onClick: () => toggle("more") },
+  ];
+  return (
+    <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} {...hold}
+      onClickCapture={(e) => { if (mini) { e.stopPropagation(); e.preventDefault(); haptic("select"); expandBar(); } }}>
+      <span className="tabs__pill" aria-hidden="true" />
+      {items.map((it) => {
+        const on = current === it.id;
+        return (
+          <button key={it.id} type="button" className="tab" data-on={on ? "" : undefined} aria-current={on ? "page" : undefined}
+            aria-label={it.aria} tabIndex={mini && !on ? -1 : undefined} onClick={it.onClick}>
+            <span className="tab__glyph">{it.glyph}</span>
+            <span className="tab__label" aria-hidden="true">{it.label}</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
 
 /**
- * Telegram's own tab bar (TelegramUI's Tabbar), kept on every screen but the player, the
- * way an iOS app keeps it. Each tab remembers the screen it was left on and returns there;
- * tapping the tab you are on goes back to its first screen, or to the top when already there.
- * Tabs replace instead of push, so Telegram's back button never walks through tab taps.
+ * The screen's actions, as glass buttons floating just above the tab bar (see useBottomButtons):
+ * the main one in the accent colour, a second one quiet beside it.
  */
-export function TabBar() {
-  const { pathname, search } = useLocation();
-  const navigate = useNavigate();
-  const current = tabOf(pathname);
-  useEffect(() => { try { sessionStorage.setItem(LAST + current, pathname + search); } catch { /* private mode */ } }, [current, pathname, search]);
-  const go = (to: string) => {
-    haptic("select");
-    if (to !== current) {
-      let last: string | null = null;
-      try { last = sessionStorage.getItem(LAST + to); } catch { /* private mode */ }
-      navigate(last ?? to, { replace: true });
-    } else if (pathname !== to) navigate(to, { replace: true });
-    else window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-  return (
-    <Tabbar className="tabs" aria-label="Sections">
-      {TABS.map((t) => (
-        <Tabbar.Item key={t.to} className="tab" text={t.label} selected={current === t.to} aria-current={current === t.to ? "page" : undefined} onClick={() => go(t.to)}>
-          <Icon name={t.icon} size={24} />
-        </Tabbar.Item>
-      ))}
-    </Tabbar>
+export function PageActions() {
+  const { main, secondary } = usePageActions();
+  useEffect(() => {
+    if (main || secondary) document.documentElement.dataset.actions = ""; else delete document.documentElement.dataset.actions;
+    return () => { delete document.documentElement.dataset.actions; };
+  }, [main, secondary]);
+  if (!main && !secondary) return null;
+  const button = (a: NonNullable<typeof main>, quiet: boolean) => (
+    <button type="button" className={`pageaction${quiet || a.quiet ? " pageaction--quiet" : ""}`} disabled={a.disabled || a.progress} aria-busy={a.progress || undefined} onClick={a.onClick}>
+      {a.progress ? <span className="pageaction__spin" aria-hidden="true" /> : null}{a.text}
+    </button>
   );
+  return <div className="pageactions" role="toolbar" aria-label="Actions">{secondary ? button(secondary, true) : null}{main ? button(main, false) : null}</div>;
 }
 
 export function Screen({ title, kicker, action, children, className }: { title?: ReactNode; kicker?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
@@ -134,11 +215,11 @@ export function Img({ src, eager }: { src: string; eager?: boolean }) {
 }
 
 /** A tappable list row: TelegramUI's Cell. `href` is a site or app path. */
-export function Row({ href, onClick, title, sub, meta, thumb, trailing, icon }: { href?: string; onClick?: () => void; title: ReactNode; sub?: ReactNode; meta?: ReactNode; thumb?: string; trailing?: ReactNode; icon?: IconName }) {
+export function Row({ href, onClick, title, sub, meta, thumb, trailing, icon, leading }: { href?: string; onClick?: () => void; title: ReactNode; sub?: ReactNode; meta?: ReactNode; thumb?: string; trailing?: ReactNode; icon?: IconName; leading?: ReactNode }) {
   const slots = {
     className: "row",
     multiline: true,
-    before: thumb !== undefined ? <span className="row__thumb">{thumb ? <Img src={thumb} /> : null}</span> : icon ? <span className="row__icon"><Icon name={icon} size={20} /></span> : undefined,
+    before: leading ?? (thumb !== undefined ? <span className="row__thumb">{thumb ? <Img src={thumb} /> : null}</span> : icon ? <span className="row__icon"><Icon name={icon} size={20} /></span> : undefined),
     subhead: meta ? <span className="row__meta">{meta}</span> : undefined,
     subtitle: sub ? <span className="row__sub">{sub}</span> : undefined,
     after: trailing ?? <span className="row__chev"><Icon name="chevron" size={18} /></span>,

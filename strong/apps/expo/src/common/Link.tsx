@@ -1,0 +1,162 @@
+import { twMerge } from '~common/ui/classNames'
+import React, { PropsWithChildren } from 'react'
+import {
+  Linking,
+  Share,
+  GestureResponderEvent,
+  StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableOpacityProps,
+  ViewStyle,
+} from 'react-native'
+import { useRouter } from 'expo-router'
+import Box, { BoxProps } from '~common/ui/Box'
+import { MainStackProps } from '~navigation/type'
+import { routeMapping } from '~navigation/routeMapping'
+import { usePushRouteOnce } from '~navigation/usePushRouteOnce'
+export interface LinkProps<R extends keyof MainStackProps> extends Pick<
+  TouchableOpacityProps,
+  | 'accessibilityActions'
+  | 'accessibilityHint'
+  | 'accessibilityLabel'
+  | 'accessibilityRole'
+  | 'accessibilityState'
+  | 'disabled'
+  | 'onAccessibilityAction'
+> {
+  route?: R
+  href?: string
+  share?: string
+  params?: MainStackProps[R]
+  replace?: boolean
+  onPress?: (event?: GestureResponderEvent) => void
+  padding?: boolean
+  paddingSmall?: boolean
+  className?: string
+  style?: StyleProp<ViewStyle>
+  size?: number
+  hitSlop?: TouchableOpacityProps['hitSlop']
+}
+
+/**
+ * Serialize params for Expo Router - URL params can only be strings
+ * Complex objects/arrays are JSON.stringify'd, primitives are converted to strings
+ */
+const serializeParams = (
+  params: Record<string, unknown> | undefined
+): Record<string, string> | undefined => {
+  if (!params) return undefined
+
+  const serialized: Record<string, string> = {}
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null) continue
+    if (typeof value === 'object') {
+      serialized[key] = JSON.stringify(value)
+    } else {
+      serialized[key] = String(value)
+    }
+  }
+  return serialized
+}
+
+const Link = <R extends keyof MainStackProps>({
+  route,
+  href,
+  share,
+  params,
+  replace,
+  onPress,
+  padding,
+  paddingSmall,
+  style,
+  size,
+  accessibilityRole,
+  ...props
+}: PropsWithChildren<LinkProps<R>>) => {
+  const router = useRouter()
+  const pushRouteOnce = usePushRouteOnce()
+
+  const handlePress = (event: GestureResponderEvent) => {
+    if (route) {
+      const pathname = routeMapping[route]
+      const serializedParams = serializeParams(params as Record<string, unknown>)
+
+      if (onPress) {
+        onPress(event)
+        setTimeout(() => {
+          if (replace) {
+            router.replace({ pathname, params: serializedParams })
+          } else {
+            pushRouteOnce({ pathname, params: serializedParams })
+          }
+        }, 300)
+        return
+      }
+
+      if (replace) {
+        router.replace({ pathname, params: serializedParams })
+      } else {
+        pushRouteOnce({ pathname, params: serializedParams })
+      }
+    }
+
+    if (href) {
+      Linking.openURL(href)
+    }
+
+    if (share) {
+      Share.share({ message: share })
+    }
+
+    if (onPress) {
+      onPress(event)
+    }
+  }
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.5}
+      accessibilityRole={accessibilityRole ?? (route || href ? 'link' : 'button')}
+      {...props}
+      onPress={handlePress}
+      style={{
+        ...(padding && {
+          width: 54,
+          height: 54,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }),
+        ...(paddingSmall && {
+          width: 50,
+          height: 40,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }),
+        ...(size && {
+          width: size,
+          height: size,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }),
+        ...StyleSheet.flatten(style),
+      }}
+    />
+  )
+}
+
+type LinkBoxProps = React.FC<BoxProps & LinkProps<keyof MainStackProps>>
+export const LinkBox = ((
+  props: React.ComponentProps<typeof Box> & React.ComponentProps<typeof Link>
+) => (
+  <Box
+    as={Link}
+    {...props}
+    className={twMerge(
+      'overflow-hidden border-continuous',
+      twMerge('overflow-hidden border-continuous', props.className)
+    )}
+  />
+)) as unknown as LinkBoxProps
+
+export default Link

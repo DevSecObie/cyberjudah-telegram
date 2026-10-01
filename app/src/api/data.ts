@@ -61,7 +61,7 @@ export type VerseComment = { verses: string; passage: string; points: string[]; 
 /** A person named in the Bible (STEPBible TIPNR, CC BY 4.0), with what the classes taught where they come up. */
 export type PersonRef = { id: string; name: string };
 export type Person = { id: string; name: string; names: string[]; description: string; type: string; tribe: string; father: PersonRef[]; mother: PersonRef[]; siblings: PersonRef[]; partners: PersonRef[]; children: PersonRef[]; verses: string[]; taught: { verse: string; url: string; points: string[]; note: { label: string; url: string; date: string; teacher: string }; ts: string; video: string | null; t: number }[]; source: { name: string; license: string; url: string } };
-export type PersonIndexRow = { id: string; name: string; names: string[]; description: string; verses: number; first: string };
+export type PersonIndexRow = { id: string; name: string; names: string[]; description: string; verses: number; first: string; type?: string };
 /** A moment a class read this verse aloud, found in its transcript: the recording at that second, and the note if the class has one. */
 export type Reading = { video: string; t: number; ts: string; title: string; date: string; teacher: string; url?: string };
 export type Concordance = { book: string; chapter: number; cited_by: Citation[]; precepts?: TaughtPrecept[]; notes?: VerseNote[]; moments?: ClassMoment[]; commentary?: VerseComment[]; people?: Record<string, string[]>; read?: Record<string, Reading[]> };

@@ -20,8 +20,8 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -58,8 +58,8 @@ jobs:
             exit 1
           fi
           echo "All four secrets are set."
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -68,6 +68,13 @@ jobs:
         env:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
           CYBERJUDAH_APP_BASE: /app/
+      - name: Cache the Bible Strong fork's packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.yarn/berry/cache
+          key: strong-yarn-${{ hashFiles('strong/yarn.lock') }}
+      - name: Build the Bible Strong fork (staged at /app/strong)
+        run: bash strong/build-web.sh
       - name: Deploy the worker
         id: deploy
         working-directory: bot
@@ -135,8 +142,8 @@ jobs:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: npm ci --no-audit --no-fund
@@ -159,8 +166,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 340
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: npm ci --no-audit --no-fund

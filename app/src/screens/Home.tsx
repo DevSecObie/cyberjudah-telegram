@@ -18,7 +18,7 @@ import { assetUrl } from "@/lib/asset";
 import { SearchHero } from "@/ui/search-hero";
 import { PersonOfTheDay, PreceptOfTheDay, StrongOfTheDay, StudyStats, TopicOfTheDay, WordOfTheDay, useRandomVerse } from "./home-widgets";
 
-type Verse = { ref: string; slug: string; chapter: number; verse: number; text: string };
+import { TodayCard, type DailyVerse as Verse } from "./TodayCard";
 export type LiveNow = { live: boolean; upcoming: boolean; video: string | null; title: string | null; starts: string | null };
 /** Whether a class is on the air, asked again every minute while Home is open. */
 export const useLive = (enabled = true) => useQuery({ queryKey: ["live"], queryFn: () => api<LiveNow>("/api/live"), enabled, refetchInterval: 60_000, staleTime: 45_000, retry: false });
@@ -83,8 +83,14 @@ const TOOLS: [string, string, IconName][] = [
  * where you left off, this week's class and the latest teachings.
  */
 export function Home() {
-  const navigate = useNavigate();
   useBackButton(true);
+  useBottomButtons(null, null);
+  return <HomeBody />;
+}
+
+/** Home's content, on its own page or in Bible Strong's Home drawer over the current tab. */
+export function HomeBody({ drawer = false }: { drawer?: boolean }) {
+  const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [last] = useLast();
   const [lastNote] = useLastNote();
@@ -107,15 +113,17 @@ export function Home() {
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30_000); return () => clearInterval(t); }, []);
   const sab = loc ? sabbath(now, loc.lat, loc.lng) : null;
   const search = (text: string) => { const t = text.trim(); if (t) navigate(`/search?q=${encodeURIComponent(t)}`); };
-  useBottomButtons(null, null);
 
   const random = useRandomVerse();
+  // Precept passes are working data behind the verse notes, not something to read on their own.
+  const whatsNew = useMemo(() => (stats.data?.whatsNew ?? []).filter((w) => w.kind !== "pass"), [stats.data]);
   const latestClass = feed.data?.find((t) => t.kind === "class");
   const rows = useMemo(() => (feed.data ?? []).filter((t) => t.url !== latestClass?.url).slice(0, 8), [feed.data, latestClass]);
 
   return (
     <Screen className="home">
       <div className="pull" style={{ height: ps.height, opacity: ps.opacity }} aria-hidden="true">{ps.label}</div>
+      {drawer ? <TodayCard verse={verse.data} failed={verse.isError} /> : <>
       <div className="hello">
         <img src={assetUrl("brand/cyber-lion.webp")} alt="" width={44} height={44} onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
         <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>What do you want to learn?</h1></div>
@@ -130,10 +138,12 @@ export function Home() {
         <button type="button" className="door__btn door__btn--ask" onClick={() => { haptic("select"); navigate(q.trim() ? `/ask?q=${encodeURIComponent(q.trim())}` : "/ask"); }}><Icon name="note" size={18} /> Ask CyberJudah</button>
       </div>
       <p className="hint hint--center">Search finds the moment a word, a name or a Scripture was said in a class. Ask answers your question from the teachings, with its sources.</p>
-      <StudyStats />
-      {stats.data?.whatsNew?.length ? (
+      </>}
+      <StudyStats expanded={drawer} />
+      {!drawer ? <>
+      {whatsNew.length ? (
         <div className="whatsnew" aria-label="New in CyberJudah">
-          {stats.data.whatsNew.slice(0, 8).map((w) => (
+          {whatsNew.slice(0, 8).map((w) => (
             <Link key={`${w.kind}:${w.url}`} to={toApp(w.url)} className="whatsnew__card" data-kind={w.kind} onClick={() => haptic("select")}>
               <small>{w.kind === "pass" ? "New precept pass" : w.kind === "book" ? "New in the library" : w.kind === "captains" ? "New from the Captains" : "New class"}</small>
               <b>{w.title}</b>
@@ -164,6 +174,7 @@ export function Home() {
         </div>
       ) : null}
 
+      </> : null}
       <h2 className="shelf">Learn</h2>
       {feed.isPending ? <Skeleton rows={1} thumb /> : latestClass ? (
         <Link to={teachingTo(latestClass)} className="feature">

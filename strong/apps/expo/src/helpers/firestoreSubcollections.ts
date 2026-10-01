@@ -1,0 +1,601 @@
+import { tokenManager } from './TokenManager'
+import type { FirebaseFirestoreTypes } from '@react-native-firebase/firestore'
+import {
+  firebaseDb,
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  getDocs,
+  deleteDoc,
+  onSnapshot,
+  writeBatch,
+} from './firebase'
+import { SUBCOLLECTION_NAMES, type SubcollectionName } from './firestoreSubcollectionNames'
+import { appLogger } from './agentObservability'
+
+export { SUBCOLLECTION_NAMES }
+export type { SubcollectionName }
+
+/**
+ * Types pour les sous-collections
+ */
+export type UserDataSubcollectionName = Exclude<SubcollectionName, 'tabGroups'>
+
+export const USER_DATA_SUBCOLLECTION_NAMES: UserDataSubcollectionName[] =
+  SUBCOLLECTION_NAMES.filter((name): name is UserDataSubcollectionName => name !== 'tabGroups')
+
+/**
+ * Taille maximale d'un batch Firestore (on utilise 400 pour avoir de la marge)
+ */
+const BATCH_CHUNK_SIZE = 400
+
+export type SubcollectionDocument = FirebaseFirestoreTypes.DocumentData
+export type SubcollectionData = Record<string, SubcollectionDocument>
+type BatchOperation =
+  | { type: 'set'; docId: string; data: SubcollectionDocument }
+  | { type: 'delete'; docId: string }
+
+const removeUndefinedDeep = (value: unknown): unknown => {
+  if (value === undefined) return undefined
+  if (value === null || typeof value !== 'object') return value
+  if (Array.isArray(value)) {
+    return value.map(removeUndefinedDeep).filter(item => item !== undefined)
+  }
+
+  const cleaned: Record<string, unknown> = {}
+  for (const [key, childValue] of Object.entries(value as Record<string, unknown>)) {
+    const cleanedValue = removeUndefinedDeep(childValue)
+    if (cleanedValue !== undefined) {
+      cleaned[key] = cleanedValue
+    }
+  }
+  return cleaned
+}
+
+/**
+ * Résultat de la validation d'un ID de document
+ */
+interface ValidationResult {
+  valid: boolean
+  reason?: 'empty' | 'reserved_name' | 'too_long'
+}
+export type InvalidSubcollectionDocumentId = { docId: string; reason: string }
+
+/**
+ * Encode un ID de document pour Firestore (remplace / par __SLASH__)
+ * Nécessaire car les IDs avec / sont utilisés pour les notes multi-versets
+ */
+function encodeDocumentId(docId: string): string {
+  return docId.replace(/\//g, '__SLASH__')
+}
+
+/**
+ * Decode un ID de document depuis Firestore
+ */
+function decodeDocumentId(docId: string): string {
+  return docId.replace(/__SLASH__/g, '/')
+}
+
+/**
+ * Valide un ID de document Firestore et retourne la raison si invalide
+ * Note: Les slashs sont autorisés car ils seront encodés avant écriture
+ */
+function validateDocumentId(docId: string): ValidationResult {
+  if (!docId || docId.length === 0) return { valid: false, reason: 'empty' }
+  if (docId === '.' || docId === '..') return { valid: false, reason: 'reserved_name' }
+  // Slashs autorisés - ils seront encodés en __SLASH__ avant écriture
+  // Check encoded length because Firestore validates the stored document ID.
+  if (encodeDocumentId(docId).length > 1500) return { valid: false, reason: 'too_long' }
+  return { valid: true }
+}
+
+export function getInvalidSubcollectionDocumentIds(
+  docIds: string[]
+): InvalidSubcollectionDocumentId[] {
+  return docIds.reduce((invalidIds, docId) => {
+    const validation = validateDocumentId(docId)
+    if (!validation.valid) {
+      invalidIds.push({ docId: docId || '(empty)', reason: validation.reason! })
+    }
+    return invalidIds
+  }, [] as InvalidSubcollectionDocumentId[])
+}
+
+/**
+ * Obtient une référence à une sous-collection
+ */
+export function getSubcollectionRef(userId: string, collectionName: SubcollectionName) {
+  return collection(firebaseDb, 'users', userId, collectionName)
+}
+
+/**
+ * Écrit un document dans une sous-collection
+ */
+export async function writeToSubcollection(
+  userId: string,
+  collectionName: SubcollectionName,
+  docId: string,
+  data: SubcollectionDocument
+): Promise<void> {
+  try {
+    const docRef = doc(getSubcollectionRef(userId, collectionName), encodeDocumentId(docId))
+    await setDoc(docRef, data, { merge: true })
+  } catch (error) {
+    console.error(`[Subcollections] Failed to write to ${collectionName}/${docId}:`, error)
+    appLogger.captureError('sync', 'subcollection.write_failed', error, {
+      collection: collectionName,
+    })
+    throw error
+  }
+}
+
+/**
+ * Supprime un document d'une sous-collection
+ */
+export async function deleteFromSubcollection(
+  userId: string,
+  collectionName: SubcollectionName,
+  docId: string
+): Promise<void> {
+  try {
+    const docRef = doc(getSubcollectionRef(userId, collectionName), encodeDocumentId(docId))
+    await deleteDoc(docRef)
+  } catch (error) {
+    console.error(`[Subcollections] Failed to delete from ${collectionName}/${docId}:`, error)
+    appLogger.captureError('sync', 'subcollection.delete_failed', error, {
+      collection: collectionName,
+    })
+    throw error
+  }
+}
+
+/**
+ * Interface pour les changements à appliquer en batch
+ */
+export interface BatchChanges {
+  set: SubcollectionData
+  delete: string[]
+  merge?: boolean
+}
+
+/**
+ * Callback pour le suivi de progression des chunks
+ */
+export type ChunkProgressCallback = (chunkIndex: number, totalChunks: number) => void
+
+export type BatchWriteDiagnostics = 'default' | 'aggregate-only'
+
+export type BatchWriteOptions = {
+  diagnostics?: BatchWriteDiagnostics
+}
+
+/**
+ * Écrit plusieurs documents en batch avec chunking automatique
+ * Gère les batchs de plus de 500 opérations
+ */
+export async function batchWriteSubcollection(
+  userId: string,
+  collectionName: SubcollectionName,
+  changes: BatchChanges,
+  onChunkProgress?: ChunkProgressCallback,
+  options: BatchWriteOptions = {}
+): Promise<void> {
+  const aggregateOnly = options.diagnostics === 'aggregate-only'
+  const collectionRef = getSubcollectionRef(userId, collectionName)
+
+  // Préparer toutes les opérations
+  const operations: BatchOperation[] = []
+  const skippedItems: InvalidSubcollectionDocumentId[] = []
+
+  // Ajouter les opérations set (avec validation et encodage des IDs)
+  for (const [docId, data] of Object.entries(changes.set)) {
+    const validation = validateDocumentId(docId)
+    if (validation.valid) {
+      const cleanedData = removeUndefinedDeep(data) as SubcollectionDocument
+      operations.push({
+        type: 'set',
+        docId: encodeDocumentId(docId),
+        data: cleanedData,
+      })
+    } else {
+      skippedItems.push({ docId: docId || '(empty)', reason: validation.reason! })
+    }
+  }
+
+  // Ajouter les opérations delete (avec validation et encodage des IDs)
+  for (const docId of changes.delete) {
+    const validation = validateDocumentId(docId)
+    if (validation.valid) {
+      operations.push({ type: 'delete', docId: encodeDocumentId(docId) })
+    } else {
+      skippedItems.push({ docId: docId || '(empty)', reason: validation.reason! })
+    }
+  }
+
+  // Enhanced logging: show ALL skipped items grouped by reason
+  if (skippedItems.length > 0) {
+    console.warn(
+      `[Subcollections] ⚠️ Skipped ${skippedItems.length} invalid document(s) in ${collectionName}:`
+    )
+
+    // Group by reason for clearer output
+    const byReason: { [reason: string]: string[] } = {}
+    for (const item of skippedItems) {
+      if (!byReason[item.reason]) byReason[item.reason] = []
+      byReason[item.reason].push(item.docId)
+    }
+
+    for (const [reason, docIds] of Object.entries(byReason)) {
+      console.warn(`[Subcollections]   - ${reason}: ${docIds.length} item(s)`)
+      if (!aggregateOnly) {
+        // Show first 10 IDs for each reason (for debugging)
+        if (docIds.length <= 10) {
+          console.warn(`[Subcollections]     IDs: ${docIds.join(', ')}`)
+        } else {
+          console.warn(
+            `[Subcollections]     IDs: ${docIds.slice(0, 10).join(', ')} ... and ${docIds.length - 10} more`
+          )
+        }
+      }
+    }
+
+    const error = new Error(
+      `[Subcollections] Refusing to write ${collectionName}: ${skippedItems.length} invalid document ID(s)`
+    )
+    appLogger.captureError('sync', 'subcollection.invalid_document_ids', error, {
+      collection: collectionName,
+      skippedCount: skippedItems.length,
+      reasons: [...new Set(skippedItems.map(item => item.reason))].join(', '),
+    })
+    throw error
+  }
+
+  if (operations.length === 0) {
+    return
+  }
+
+  // Découper en chunks
+  const chunks: (typeof operations)[] = []
+  for (let i = 0; i < operations.length; i += BATCH_CHUNK_SIZE) {
+    chunks.push(operations.slice(i, i + BATCH_CHUNK_SIZE))
+  }
+
+  console.log(
+    `[Subcollections] Batch write to ${collectionName}: ${operations.length} ops in ${chunks.length} chunk(s)`
+  )
+
+  try {
+    // Exécuter chaque chunk séquentiellement
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i]
+      const batch = writeBatch(firebaseDb)
+
+      for (const op of chunk) {
+        const docRef = doc(collectionRef, op.docId)
+        if (op.type === 'set') {
+          if (changes.merge === false) {
+            batch.set(docRef, op.data)
+          } else {
+            batch.set(docRef, op.data, { merge: true })
+          }
+        } else {
+          batch.delete(docRef)
+        }
+      }
+
+      await batch.commit()
+      const setOps = chunk.filter(op => op.type === 'set').length
+      const deleteOps = chunk.filter(op => op.type === 'delete').length
+      console.log(
+        `[Subcollections] Chunk ${i + 1}/${chunks.length} committed (${setOps} SET, ${deleteOps} DELETE)`
+      )
+
+      // Report chunk progress
+      onChunkProgress?.(i + 1, chunks.length)
+    }
+
+    // Final summary
+    const totalSkipped = skippedItems.length
+    const totalProcessed = operations.length
+    console.log(
+      `[Subcollections] ✅ ${collectionName} batch complete: ${totalProcessed} processed, ${totalSkipped} skipped`
+    )
+  } catch (error) {
+    if (aggregateOnly) {
+      console.error(`[Subcollections] Batch write failed for ${collectionName}`)
+    } else {
+      console.error(`[Subcollections] Batch write failed for ${collectionName}:`, error)
+    }
+    appLogger.captureError(
+      'sync',
+      'subcollection.batch_write_failed',
+      aggregateOnly ? new Error('SUBCOLLECTION_BATCH_WRITE_FAILED') : error,
+      {
+        collection: collectionName,
+        operationsCount: operations.length,
+      }
+    )
+    throw error
+  }
+}
+
+/**
+ * Écrit tous les items d'un objet dans une sous-collection
+ * Utilisé pour la migration initiale et l'import de données
+ */
+export async function writeAllToSubcollection(
+  userId: string,
+  collection: SubcollectionName,
+  data: SubcollectionData,
+  onChunkProgress?: ChunkProgressCallback
+): Promise<void> {
+  if (!data || Object.keys(data).length === 0) {
+    console.log(`[Subcollections] No data to write to ${collection}`)
+    return
+  }
+
+  const changes: BatchChanges = {
+    set: data,
+    delete: [],
+  }
+
+  await batchWriteSubcollection(userId, collection, changes, onChunkProgress)
+}
+
+/**
+ * Supprime tous les documents d'une sous-collection
+ * Attention: opération coûteuse, à utiliser avec précaution
+ */
+export async function clearSubcollection(
+  userId: string,
+  collectionName: SubcollectionName,
+  onChunkProgress?: ChunkProgressCallback
+): Promise<void> {
+  const collectionRef = getSubcollectionRef(userId, collectionName)
+
+  try {
+    const snapshot = await getDocs(collectionRef)
+
+    if (snapshot.empty) {
+      console.log(`[Subcollections] ${collectionName} is already empty`)
+      // Call progress callback with 1/1 to indicate completion
+      onChunkProgress?.(1, 1)
+      return
+    }
+
+    const docIds = snapshot.docs.map(
+      (docSnap: FirebaseFirestoreTypes.QueryDocumentSnapshot) => docSnap.id
+    )
+
+    await batchWriteSubcollection(
+      userId,
+      collectionName,
+      {
+        set: {},
+        delete: docIds,
+      },
+      onChunkProgress
+    )
+
+    console.log(`[Subcollections] Cleared ${collectionName}: ${docIds.length} docs deleted`)
+  } catch (error) {
+    console.error(`[Subcollections] Failed to clear ${collectionName}:`, error)
+    appLogger.captureError('sync', 'subcollection.clear_failed', error, {
+      collection: collectionName,
+    })
+    throw error
+  }
+}
+
+/**
+ * Récupère tous les documents d'une sous-collection.
+ * Utilise onSnapshot() qui retourne immédiatement les données du cache local,
+ * sans attendre de réponse réseau (cache-first).
+ *
+ * C'est important pour éviter les blocages UI avec une connexion instable.
+ * getDocs() attend une réponse réseau, ce qui peut bloquer l'UI.
+ *
+ * @see https://github.com/invertase/react-native-firebase/issues/7610
+ */
+export function fetchSubcollection(
+  userId: string,
+  collectionName: SubcollectionName
+): Promise<SubcollectionData> {
+  return new Promise((resolve, reject) => {
+    const collectionRef = getSubcollectionRef(userId, collectionName)
+
+    // onSnapshot retourne immédiatement les données du cache
+    const unsubscribe = onSnapshot(
+      collectionRef,
+      snapshot => {
+        const result: SubcollectionData = {}
+        snapshot.forEach((docSnap: FirebaseFirestoreTypes.QueryDocumentSnapshot) => {
+          result[decodeDocumentId(docSnap.id)] = docSnap.data()
+        })
+
+        // Se désabonner après la première réponse (cache)
+        unsubscribe()
+
+        console.log(
+          `[Subcollections] Fetched ${collectionName}: ${Object.keys(result).length} docs`
+        )
+        resolve(result)
+      },
+      error => {
+        unsubscribe()
+        console.error(`[Subcollections] Failed to fetch ${collectionName}:`, error)
+        appLogger.captureError('sync', 'subcollection.fetch_failed', error, {
+          collection: collectionName,
+        })
+        reject(error)
+      }
+    )
+  })
+}
+
+/**
+ * Type pour le callback de changements
+ */
+export type SubcollectionChangeCallback = (
+  data: SubcollectionData,
+  changes: {
+    added: SubcollectionData
+    modified: SubcollectionData
+    removed: string[]
+    fromCache: boolean
+    isFirstSnapshot: boolean
+  }
+) => void
+export type SubcollectionErrorCallback = (error: Error) => void
+
+/**
+ * S'abonne aux changements d'une sous-collection
+ * Retourne une fonction pour se désabonner
+ */
+export function subscribeToSubcollection(
+  userId: string,
+  collectionName: SubcollectionName,
+  onChange: SubcollectionChangeCallback,
+  onError?: SubcollectionErrorCallback,
+  options?: { includeMetadataChanges?: boolean }
+): () => void {
+  let currentUnsubscribe: (() => void) | null = null
+  let isDisposed = false
+  let hasRetried = false
+
+  function setupSubscription() {
+    const collectionRef = getSubcollectionRef(userId, collectionName)
+    let isFirstSnapshot = true
+
+    const unsubscribe = onSnapshot(
+      collectionRef,
+      { includeMetadataChanges: options?.includeMetadataChanges ?? false },
+      snapshot => {
+        // Connection is healthy — allow retry on next error
+        hasRetried = false
+
+        // Ignorer les changements locaux
+        if (snapshot.metadata.hasPendingWrites) {
+          return
+        }
+
+        // Construire l'objet complet (avec décodage des IDs)
+        const data: SubcollectionData = {}
+        snapshot.forEach((docSnap: FirebaseFirestoreTypes.QueryDocumentSnapshot) => {
+          data[decodeDocumentId(docSnap.id)] = docSnap.data()
+        })
+
+        // Pour le premier snapshot, on envoie tout comme "added"
+        if (isFirstSnapshot) {
+          isFirstSnapshot = false
+          onChange(data, {
+            added: data,
+            modified: {},
+            removed: [],
+            fromCache: snapshot.metadata.fromCache,
+            isFirstSnapshot: true,
+          })
+          return
+        }
+
+        // Pour les snapshots suivants, on détecte les changements
+        const added: SubcollectionData = {}
+        const modified: SubcollectionData = {}
+        const removed: string[] = []
+
+        snapshot.docChanges().forEach((change: FirebaseFirestoreTypes.DocumentChange) => {
+          const docData = change.doc.data()
+          const docId = decodeDocumentId(change.doc.id)
+
+          switch (change.type) {
+            case 'added':
+              added[docId] = docData
+              break
+            case 'modified':
+              modified[docId] = docData
+              break
+            case 'removed':
+              removed.push(docId)
+              break
+          }
+        })
+
+        onChange(data, {
+          added,
+          modified,
+          removed,
+          fromCache: snapshot.metadata.fromCache,
+          isFirstSnapshot: false,
+        })
+      },
+      async error => {
+        const errorWithCode = error as Error & { code?: string }
+        const isPermissionDenied =
+          errorWithCode.code === 'permission-denied' ||
+          errorWithCode.code === 'firestore/permission-denied'
+
+        if (isPermissionDenied && !isDisposed && !hasRetried) {
+          hasRetried = true
+          console.warn(
+            `[Subcollections] Permission denied on ${collectionName}, attempting token refresh...`
+          )
+
+          const refreshed = await tokenManager.tryRefreshOrWait()
+
+          if (!isDisposed) {
+            console.log(
+              `[Subcollections] Token ${refreshed ? 'refreshed' : 'recently refreshed'}, resubscribing to ${collectionName}...`
+            )
+            unsubscribe()
+            setupSubscription()
+            return
+          }
+        }
+
+        console.error(`[Subcollections] Subscription error for ${collectionName}:`, error)
+        appLogger.captureError('sync', 'subcollection.subscription_failed', error, {
+          collection: collectionName,
+          retriedAfterTokenRefresh: hasRetried,
+        })
+        onError?.(error as Error)
+      }
+    )
+
+    currentUnsubscribe = unsubscribe
+  }
+
+  setupSubscription()
+
+  return () => {
+    isDisposed = true
+    if (currentUnsubscribe) {
+      currentUnsubscribe()
+      currentUnsubscribe = null
+    }
+  }
+}
+
+/**
+ * Vérifie si un document existe dans une sous-collection
+ */
+export async function existsInSubcollection(
+  userId: string,
+  collectionName: SubcollectionName,
+  docId: string
+): Promise<boolean> {
+  try {
+    const docRef = doc(getSubcollectionRef(userId, collectionName), encodeDocumentId(docId))
+    const docSnap = await getDoc(docRef)
+    return docSnap.exists()
+  } catch (error) {
+    console.error(
+      `[Subcollections] Failed to check existence in ${collectionName}/${docId}:`,
+      error
+    )
+    appLogger.captureError('sync', 'subcollection.exists_failed', error, {
+      collection: collectionName,
+    })
+    return false
+  }
+}

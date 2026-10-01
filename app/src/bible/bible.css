@@ -24,11 +24,11 @@
 .bs-pill--book { padding-left: 12px; padding-right: 7px; }
 .bs-pill--version { padding-left: 7px; padding-right: 12px; }
 .bs-pill__bg { position: absolute; inset: 0; background: var(--bs-light-grey); }
-.bs-pill--book .bs-pill__bg { border-radius: var(--r-xl) 0 0 20px; }
+.bs-pill--book .bs-pill__bg { border-radius: 20px 0 0 20px; }
 .bs-pill--version .bs-pill__bg { border-radius: 0 20px 20px 0; }
 .bs-header__verses { width: 40px; height: 40px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; padding: 0; }
 .bs-header__right { margin-left: auto; display: flex; align-items: center; }
-.bs-iconbtn { width: 40px; height: 40px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; padding: 0; border-radius: var(--r-md); }
+.bs-iconbtn { width: 40px; height: 40px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; padding: 0; border-radius: 0; }
 .bs-iconbtn:active { opacity: .6; }
 .bs-header__ribbon { position: absolute; right: 24px; bottom: -18px; border: 0; background: none; padding: 0; cursor: pointer; z-index: 2; }
 .bs-menu { display: flex; flex-direction: column; padding: 4px 0; }
@@ -97,7 +97,7 @@
 .bs-page { flex: none; }
 .bs-actions { display: flex; flex-wrap: wrap; }
 .bs-action { width: 25%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px 0; border: 0; background: none; cursor: pointer; }
-.bs-action__box { width: 48px; height: 48px; border-radius: var(--r-lg); display: grid; place-items: center; transition: background-color .1s, box-shadow .1s; }
+.bs-action__box { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; transition: background-color .1s, box-shadow .1s; }
 .bs-action__label { font-size: 10px; text-align: center; color: var(--bs-default); white-space: nowrap; }
 .bs-tabsfooter { position: relative; display: flex; margin: 0 16px 5px; padding: 3px; border-radius: var(--r-lg); background: var(--bs-light-grey); }
 .bs-tabsfooter__indicator { position: absolute; top: 3px; bottom: 3px; left: 3px; background: var(--bs-reverse); border-radius: var(--r-md); transition: transform .25s ease; }
@@ -365,14 +365,146 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-greek__src { margin: 0; font-size: 12px; line-height: 1.5; color: var(--bs-tertiary); }
 
 /* In this chapter (Bible Strong's ChapterEntities): the people named, at the end of the text. */
-.bs-entities { margin: 36px 0 8px; text-align: left; }
-.bs-entities__title { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; font: 600 15px var(--bs-font, inherit); color: var(--bs-default); }
+/* "In this chapter" (Bible Strong's ChapterEntities): the people stack beside the chapter's deck. */
+.bs-entities { margin: 64px 0 8px; direction: ltr; -webkit-user-select: none; user-select: none; }
+.bs-entities__title { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--bs-tertiary); font: 600 12px/1.2 var(--bs-font, inherit); letter-spacing: .08em; text-align: center; text-transform: uppercase; opacity: .62; }
 .bs-entities__title::before, .bs-entities__title::after { content: ""; flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--bs-border)); }
 .bs-entities__title::after { background: linear-gradient(to left, transparent, var(--bs-border)); }
-.bs-entities__kind { margin: 0 0 10px; text-align: center; font: 600 11px system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--bs-tertiary); }
-.bs-entities__row { display: flex; gap: 14px; overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: none; }
-.bs-entities__row::-webkit-scrollbar { display: none; }
-#root .bs-entity { flex: 0 0 82px; display: grid; justify-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--bs-default); font: 500 12.5px/1.2 system-ui, sans-serif; text-align: center; cursor: pointer; }
-.bs-entity__avatar { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--bs-light-primary); color: var(--bs-primary); font: 700 20px system-ui, sans-serif; }
-.bs-entity b { font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.bs-entity small { font-size: 10.5px; color: var(--bs-tertiary); }
+.bs-entities__row { display: flex; align-items: center; justify-content: center; gap: 38px; margin-top: 20px; }
+#root button.bs-entities__stack { position: relative; display: grid; width: 78px; height: 70px; margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer; isolation: isolate; -webkit-tap-highlight-color: transparent; transition: opacity 120ms ease; }
+#root button.bs-entities__stack:active { opacity: .55; }
+.bs-entities__avatar { grid-area: 1 / 1; place-self: center; border: 2px solid; box-shadow: 0 2px 7px rgba(0, 0, 0, .22); transform-origin: center; }
+/* The people spread over the page: three to a row, each a round avatar with its name. */
+.bs-people { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-content: start; align-items: start; gap: 20px 12px; }
+.bs-people--center { align-content: center; }
+#root button.bs-people__item, button.bs-people__item { min-width: 0; margin: 0; padding: 0; border: 0; background: transparent; color: var(--deck-ink); cursor: pointer; transition: opacity 120ms ease, transform 120ms ease; -webkit-tap-highlight-color: transparent; }
+#root button.bs-people__item:active, button.bs-people__item:active { opacity: .55; transform: scale(.97); }
+.bs-people__avatar { display: grid !important; margin: 0 auto 8px; border: 2px solid; box-shadow: 0 5px 16px rgba(0, 0, 0, .2); }
+.bs-people__text { display: block; animation: deck-rise .18s ease backwards; }
+.bs-people__text b { display: -webkit-box; overflow: hidden; font-size: 13px; line-height: 1.22; font-weight: 650; text-align: center; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.bs-people__text small { display: block; margin-top: 3px; font-size: 10px; line-height: 1.2; font-weight: 500; text-align: center; opacity: .55; }
+
+/* The classes that taught a verse: Bible Strong's passage media (PassageMediaThumbnails,
+   PassageMediaOverlay, PassageMediaPlayer) on our classes. The deck: up to three pictures fanned
+   (±3px, ±5deg), the last on top, a page-coloured 2px edge and a soft shadow. */
+#root .bs-deck { -webkit-user-select: none; user-select: none; transition: opacity 120ms ease; }
+#root .bs-deck:active { opacity: .55; }
+.bs-deck__card { grid-area: 1 / 1; place-self: center; display: block; box-sizing: border-box; overflow: hidden; border: 2px solid; background: rgba(128, 128, 128, .22); box-shadow: 0 2px 7px rgba(0, 0, 0, .22); transform-origin: center; }
+.bs-deck__card img, .bs-gallery__pic img, .bs-player__box img { display: block; width: 100%; height: 100%; object-fit: cover; transition: opacity 160ms ease; }
+
+/* The gallery over the page: the page colour at half strength, blurred; two columns of 16:9 cards. */
+.bs-gallery { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; overflow: hidden; overscroll-behavior: contain; -webkit-user-select: none; user-select: none;
+  background: color-mix(in srgb, var(--deck-bg) 0%, transparent); backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0);
+  transition: background-color .48s ease, backdrop-filter .2s ease, -webkit-backdrop-filter .2s ease; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.bs-gallery[data-open] { background: color-mix(in srgb, var(--deck-bg) 50%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+#root .bs-gallery__close, .bs-gallery__close { position: fixed; top: max(24px, calc(var(--safe-top, 0px) + 10px)); right: 14px; z-index: 2; display: grid; place-items: center; width: 38px; height: 38px; margin: 0; padding: 0; border: 0; border-radius: 19px; box-shadow: 0 4px 14px rgba(0, 0, 0, .22); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.bs-gallery__scroll { width: 100%; height: 100%; min-height: 0; overflow-y: scroll; -webkit-overflow-scrolling: touch; touch-action: pan-y; overscroll-behavior: contain; box-sizing: border-box;
+  padding: max(30px, calc(var(--safe-top, 0px) + 14px)) 16px max(280px, calc(var(--safe-bottom, 0px) + 220px)); }
+.bs-gallery__grid { width: 100%; max-width: 500px; margin: 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: center; align-items: start; gap: 14px; }
+.bs-gallery__grid--one { grid-template-columns: minmax(0, calc(50% - 7px)); }
+.bs-gallery__grid--center { min-height: 100%; align-content: center; }
+.bs-gallery__sections { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; justify-content: flex-start; gap: 28px; }
+.bs-gallery__sections--center { justify-content: center; }
+.bs-gallery__sections .bs-gallery__grid { max-width: none; justify-content: start; }
+.bs-gallery__sections h2 { margin: 0 0 14px 2px; color: var(--deck-primary); font-size: 12px; line-height: 1.2; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; animation: deck-rise .22s ease backwards; }
+.bs-gallery__item { min-width: 0; align-self: start; color: var(--deck-ink); text-align: left; }
+#root .bs-gallery__btn, .bs-gallery__btn { display: block; width: 100%; margin: 0; padding: 0; border: 0; border-radius: 11px; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: opacity 120ms ease, transform 120ms ease; }
+.bs-gallery__btn:active { opacity: .55; transform: scale(.98); }
+.bs-gallery__pic { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; box-sizing: border-box; overflow: hidden; border: 2px solid; border-radius: 11px; background: rgba(128, 128, 128, .22); box-shadow: 0 7px 22px rgba(0, 0, 0, .25); transform-origin: center; will-change: transform; }
+.bs-gallery__badge { position: absolute; right: 7px; bottom: 7px; padding: 3px 7px; border-radius: 999px; background: rgba(0, 0, 0, .72); color: #fff; font-size: 10px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.bs-gallery__text { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 2px 0; animation: deck-rise .18s ease backwards; }
+.bs-gallery__text b { display: -webkit-box; min-width: 0; overflow: hidden; font-size: 14px; font-weight: 700; line-height: 1.22; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.bs-gallery__text small { font-size: 12px; line-height: 1.25; opacity: .7; }
+.bs-gallery__text span { max-width: 100%; overflow: hidden; opacity: .7; font-size: 11px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+@keyframes deck-rise { from { opacity: 0; transform: translateY(4px); } }
+
+/* A class playing where its card was, at the moment it read the verse. */
+.bs-player { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; box-sizing: border-box; padding: 58px 10px 18px; }
+.bs-player__box { position: relative; width: min(calc(100vw - 20px), calc(177.7778vh - 153px)); max-width: 800px; max-height: calc(100vh - 86px); aspect-ratio: 16 / 9; box-sizing: border-box; overflow: hidden; border: 2px solid; border-radius: 11px; box-shadow: 0 7px 22px rgba(0, 0, 0, .25); background: #000; transform-origin: center; }
+.bs-player__box iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; transition: opacity .22s ease; }
+.bs-player__actions { display: flex; gap: 8px; }
+#root .bs-player__actions button, .bs-player__actions button { appearance: none; border: 1px solid; border-radius: 999px; padding: 7px 12px; font: 650 12px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+@media (prefers-reduced-motion: reduce) { .bs-gallery, .bs-gallery__text, .bs-gallery__sections h2 { transition: none; animation: none; } }
+
+/* Bible Strong's options dropdown under the ⋮ button. */
+.bs-dropdown__catch { position: fixed; inset: 0; z-index: 60; }
+.bs-dropdown { position: absolute; top: 48px; right: 10px; z-index: 61; min-width: 230px; padding: 6px 0; border-radius: 14px; background: var(--bs-reverse); color: var(--bs-default); border: 1px solid var(--bs-border); box-shadow: 0 12px 34px rgba(0, 0, 0, .28); transform-origin: top right; animation: bs-drop .16s cubic-bezier(.2, .9, .25, 1); }
+#root .bs-dropdown__item, .bs-dropdown__item { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; min-height: 44px; padding: 0 16px; border: 0; background: none; color: inherit; font: 400 15px system-ui, -apple-system, sans-serif; text-align: left; cursor: pointer; }
+.bs-dropdown__item:active { background: var(--bs-light-grey); }
+@keyframes bs-drop { from { opacity: 0; transform: scale(.92); } }
+
+/* iPhone glass in the Bible: the header and the sheets are the page colour at partial strength over
+   a saturated blur, so the text scrolling beneath shows through. The ⋮ menu sits inside the header,
+   whose own blur is its backdrop, so it takes the thick, nearly opaque material of iOS menus. */
+.bs-header { background: color-mix(in srgb, var(--bs-reverse) 72%, transparent); backdrop-filter: blur(24px) saturate(1.9); -webkit-backdrop-filter: blur(24px) saturate(1.9); border-bottom: .5px solid color-mix(in srgb, var(--bs-default) 12%, transparent); }
+.bs-sheet { background: color-mix(in srgb, var(--bs-reverse) 84%, transparent); backdrop-filter: blur(30px) saturate(1.9); -webkit-backdrop-filter: blur(30px) saturate(1.9); box-shadow: 0 -1px 0 color-mix(in srgb, var(--bs-default) 10%, transparent), 0 -12px 40px rgba(0, 0, 0, .18); }
+.bs-dropdown { background: color-mix(in srgb, var(--bs-reverse) 95%, var(--bs-default) 5%); backdrop-filter: blur(30px) saturate(1.9); -webkit-backdrop-filter: blur(30px) saturate(1.9); border: .5px solid color-mix(in srgb, var(--bs-default) 14%, transparent); border-radius: 16px; }
+.bs-dropdown__item + .bs-dropdown__item { border-top: .5px solid color-mix(in srgb, var(--bs-default) 10%, transparent); }
+#root .bs-chapterbtn, .bs-chapterbtn { background: color-mix(in srgb, var(--bs-reverse) 60%, transparent) !important; backdrop-filter: blur(18px) saturate(1.8); -webkit-backdrop-filter: blur(18px) saturate(1.8); }
+.bs-gallery__close { backdrop-filter: blur(18px) saturate(1.8); -webkit-backdrop-filter: blur(18px) saturate(1.8); }
+@media (prefers-reduced-transparency: reduce) {
+  .bs-header, .bs-sheet, .bs-dropdown { background: var(--bs-reverse); backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+
+/* Header selectors use the same glass material as the existing sheets. */
+.bs-picker-scrim { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-start; justify-content: center; padding: calc(var(--safe-top, 0px) + 62px) 12px 12px; background: transparent; }
+.bs-picker { box-sizing: border-box; width: 100%; max-width: 400px; max-height: min(530px, calc(100dvh - var(--safe-top, 0px) - 86px)); display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; color: var(--bs-default); background: color-mix(in srgb, var(--bs-reverse) 84%, transparent); backdrop-filter: blur(30px) saturate(1.9); -webkit-backdrop-filter: blur(30px) saturate(1.9); border: .5px solid color-mix(in srgb, var(--bs-default) 14%, transparent); box-shadow: 0 12px 34px rgba(0,0,0,.28); animation: bs-drop .16s ease-out; }
+.bs-picker__header { display: flex; align-items: center; padding: 4px 10px 4px 16px; min-height: 48px; flex: none; border-bottom: .5px solid var(--bs-border); }
+.bs-picker__header b { flex: 1; font-size: 16px; }
+.bs-picker__body { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+.bs-picker .bs-search { margin: 12px; }
+.bs-picker .bs-chaptergrid { padding-bottom: 16px; }
+.bs-picker .bs-versegrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.bs-picker .bs-versetile { width: 100%; height: 44px; background: none; }
+.bs-picker .bs-versetile:active { background: var(--bs-light-grey); }
+.bs-picker :focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
+.bs-versions__language { margin: 4px 16px 10px; color: var(--bs-tertiary); font-size: 13px; }
+.bs-dropdown__title { display: block; padding: 10px 16px; font-size: 13px; color: var(--bs-tertiary); }
+.bs-dropdown__item > span { flex: 1; }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .bs-picker { background: var(--bs-reverse); } }
+@media (prefers-reduced-transparency: reduce) { .bs-picker { background: var(--bs-reverse); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+
+/* Four compact audio chips fit on a phone without wrapping. */
+.bs-audio__chips { flex-wrap: nowrap; gap: 5px; }
+#root .bs-audio__chips .bs-chip { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 7px; font: 600 10px system-ui, sans-serif; white-space: nowrap; min-width: 0; }
+.bs-audio__chips .bs-chip:disabled { opacity: .45; cursor: default; }
+.bs-audio__play { background: var(--bs-reverse); }
+
+.bs-audio__chips svg { flex: none; }
+
+.bs-audio__group { margin: 16px 15px 6px; font-size: 13px; color: var(--bs-tertiary); }
+.bs-audio__notice { margin: 8px 15px; font-size: 12px; color: var(--bs-tertiary); }
+.bs-audio__detail { display: block; font-size: 12px; color: var(--bs-tertiary); }
+
+/* The verse being read: a quiet wash in the accent, easing from verse to verse. */
+.bs .bs-text, .bs .bs-num { transition: background-color .35s ease, color .3s ease; }
+.bs [data-reading] .bs-text { background: color-mix(in srgb, var(--bs-primary) 14%, transparent); border-radius: 4px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.bs [data-reading] .bs-num { color: var(--bs-primary); font-weight: 700; }
+/* "Back to verse N": the reading went on while the reader scrolled away. */
+.bs .bs-follow { position: absolute; left: 50%; z-index: 41; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px 0 12px; border-radius: 999px; border: 1px solid var(--bs-border); background: var(--bs-reverse); color: var(--bs-primary); font: 600 14px/1 system-ui, -apple-system, sans-serif; letter-spacing: -.01em; white-space: nowrap; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .14); transform: translate(-50%, -8px) scale(.96); opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .25s cubic-bezier(.2, .8, .2, 1); }
+.bs .bs-follow[data-at] { opacity: 1; pointer-events: auto; transform: translate(-50%, 0) scale(1); }
+.bs[data-dark] .bs-follow { box-shadow: 0 6px 20px rgba(0, 0, 0, .45); }
+.bs .bs-follow:active { transform: translate(-50%, 0) scale(.97); }
+.bs .bs-follow:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .bs .bs-follow, .bs .bs-text, .bs .bs-num { transition: none; } }
+
+.bs-footer > .bs-scrim { pointer-events: auto; }
+
+/* Five controls stay tappable at phone width. */
+.bs-audio__chips { flex-wrap: wrap; }
+.bs-ambient-row { display: flex; align-items: center; padding-right: 12px; }
+.bs-ambient-row .bs-fontrow { flex: 1; }
+.bs-ambient-volume { display: flex; flex-wrap: wrap; gap: 10px; margin: 15px; font-size: 14px; }
+.bs-ambient-volume span { margin-left: auto; color: var(--bs-tertiary); }
+.bs-ambient-volume input { width: 100%; accent-color: var(--bs-primary); }
+.bs-ambient-tabs { display: flex; gap: 8px; padding: 10px 15px; }
+.bs-ambient-tabs .bs-chip { flex: 1; }
+.bs-ambient-tabs [aria-selected="true"] { background: var(--bs-primary); color: var(--bs-reverse); }
+/* A person in a verse's resources: the avatar beside the name. */
+.bs-resrow--person { flex-direction: row; align-items: center; gap: 12px; }
+.bs-resrow--person > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+/* A gallery with many classes: its count, and the rest on request. */
+.bs-gallery__count { opacity: .6; font-weight: 600; }
+#root button.bs-gallery__more, button.bs-gallery__more { display: block; margin: 16px auto 0; padding: 10px 18px; border-radius: 20px; border: 1px solid; font: 600 14px system-ui, sans-serif; cursor: pointer; }

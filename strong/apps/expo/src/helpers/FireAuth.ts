@@ -1,0 +1,592 @@
+import { identifyAnalyticsUser, trackAnalyticsEvent } from './analytics'
+import { appleAuth } from '@invertase/react-native-apple-authentication'
+import {
+  FirebaseAuthTypes,
+  getAuth,
+  onAuthStateChanged,
+  signInWithCredential,
+  signInWithEmailAndPassword,
+  signInWithCustomToken,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signOut,
+  AppleAuthProvider,
+  GoogleAuthProvider,
+  updateProfile,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+} from '@react-native-firebase/auth'
+import { GoogleSignin } from '@react-native-google-signin/google-signin'
+import * as Sentry from '@sentry/react-native'
+import { toast } from '~helpers/toast'
+import { firebaseDb, doc, setDoc, getDoc } from '~helpers/firebase'
+import { tokenManager } from '~helpers/TokenManager'
+import { runAllCleanups } from '~helpers/cleanupRegistry'
+import i18n from '~i18n'
+import type { AppDispatch } from '~redux/store'
+import { appLogger } from './agentObservability'
+import {
+  AccountEntryAttemptCoordinator,
+  classifyAccountEntry,
+  createUnresolvedAccountEntryRepository,
+  preserveUnresolvedAccountEntryClassification,
+  type AccountEntryClassification,
+  type AccountEntryOperation,
+} from './accountEntry'
+import { storage } from './storage'
+
+export type FireAuthProfile = {
+  id: string
+  email: string
+  displayName: string
+  photoURL: string
+  provider: string
+  emailVerified: boolean
+  createdAt: string | null
+}
+
+type OnLoginCallback = (payload: {
+  profile: FireAuthProfile
+  accountEntryClassification: AccountEntryClassification
+}) => void
+type OnUserChangeCallback = (profile: FireAuthProfile) => void
+type VoidCallback = () => void
+type AuthErrorCallback = (error: unknown) => void
+type AccountEntryProvider = 'apple.com' | 'google.com' | 'password' | 'custom-token'
+type ClassifiedAuthAttempt = {
+  complete(result: { userId: string; credentialIsNewUser?: boolean }): void
+  fail(): void
+}
+
+const getErrorCode = (error: unknown): string | undefined => {
+  if (error && typeof error === 'object' && 'code' in error) {
+    return String((error as { code?: unknown }).code)
+  }
+  return undefined
+}
+
+const FireAuth = class {
+  authFlag = false
+
+  user: FirebaseAuthTypes.User | null = null
+
+  profile: FireAuthProfile | null = null
+
+  onUserChange: OnUserChangeCallback | null = null
+
+  onLogout: VoidCallback | null = null
+
+  onEmailVerified: VoidCallback | null = null
+
+  onLogin: OnLoginCallback | null = null
+
+  onError: AuthErrorCallback | null = null
+
+  previousEmailVerified = false
+
+  accountEntryAttempts = new AccountEntryAttemptCoordinator()
+
+  unresolvedAccountEntries = createUnresolvedAccountEntryRepository(storage)
+
+  private beginAccountEntryAttempt(
+    operation: AccountEntryOperation,
+    provider: AccountEntryProvider
+  ): ClassifiedAuthAttempt {
+    const startedAt = Date.now()
+    const attempt = this.accountEntryAttempts.begin(operation)
+    appLogger.info('sync', 'account_entry.authentication_started', {
+      lifecycleState: 'authenticating',
+      operation,
+      provider,
+    })
+
+    return {
+      complete: (result: { userId: string; credentialIsNewUser?: boolean }) => {
+        const classification = classifyAccountEntry({
+          operation,
+          credentialIsNewUser: result.credentialIsNewUser,
+        })
+        attempt.complete(result)
+        void identifyAnalyticsUser(result.userId)
+        if (classification === 'new-account' || classification === 'existing-account') {
+          void trackAnalyticsEvent(classification === 'new-account' ? 'sign_up' : 'login', {
+            method: provider,
+          })
+        }
+        appLogger.info('sync', 'account_entry.authentication_completed', {
+          lifecycleState: 'classified',
+          operation,
+          provider,
+          classification,
+          durationMs: Date.now() - startedAt,
+        })
+      },
+      fail: () => {
+        attempt.fail()
+        appLogger.warn('sync', 'account_entry.authentication_failed', {
+          lifecycleState: 'recoverable-error',
+          operation,
+          provider,
+          failureStage: 'authentication',
+          durationMs: Date.now() - startedAt,
+        })
+      },
+    }
+  }
+
+  async init(
+    onLogin: OnLoginCallback,
+    onUserChange: OnUserChangeCallback,
+    onLogout: VoidCallback,
+    onEmailVerified: VoidCallback,
+    onError: AuthErrorCallback,
+    dispatch: AppDispatch
+  ) {
+    this.onUserChange = onUserChange
+    this.onLogout = onLogout
+    this.onEmailVerified = onEmailVerified
+    this.onLogin = onLogin
+    this.onError = onError
+
+    GoogleSignin.configure({
+      scopes: ['profile', 'email', 'openid'],
+      webClientId: '204116128917-56eubi7hu2f0k3rnb6dn8q3sfv23588l.apps.googleusercontent.com',
+    })
+
+    const authInstance = getAuth()
+    onAuthStateChanged(authInstance, async user => {
+      if (!user) void identifyAnalyticsUser(null)
+      if (user && user.isAnonymous) {
+        console.log('[Auth] Deprecated, user exists and is anonymous', user.uid)
+        return
+      }
+
+      if (user) {
+        console.log('[Auth] User exists')
+
+        const accountEntryClassification = preserveUnresolvedAccountEntryClassification({
+          classification: await this.accountEntryAttempts.classifyAuthenticatedUser(user.uid),
+          userId: user.uid,
+          repository: this.unresolvedAccountEntries,
+        })
+        appLogger.info('sync', 'account_entry.classified', {
+          lifecycleState: 'classifying-account-transition',
+          classification: accountEntryClassification,
+          provider: user.providerData[0]?.providerId || 'unknown',
+        })
+
+        // Determine if user needs to verify email
+        const emailVerified =
+          !user.providerData ||
+          !user.providerData.length ||
+          user.providerData[0]?.providerId !== 'password' ||
+          user.emailVerified
+
+        /**
+         * 1.a. We retrieve the firebase Auth user profile
+         */
+        const profile: FireAuthProfile = {
+          id: user.uid,
+          email: user.email!,
+          displayName: user.providerData[0]?.displayName || '',
+          photoURL: user.providerData[0]?.photoURL || '',
+          provider: user.providerData[0]?.providerId || '',
+          emailVerified,
+          createdAt: user.metadata.creationTime || null,
+        }
+
+        /**
+         * 1.b. Fetch Firestore user document to get displayName (source of truth)
+         */
+        try {
+          const userDoc = await getDoc(doc(firebaseDb, 'users', user.uid))
+          if (userDoc.exists()) {
+            const userData = userDoc.data()
+            if (userData?.displayName) {
+              profile.displayName = userData.displayName
+            }
+            if (userData?.photoURL) {
+              profile.photoURL = userData.photoURL
+            }
+          }
+        } catch (e) {
+          console.log('[Auth] Error fetching user document from Firestore:', e)
+        }
+
+        if (!this.user) {
+          if (this.onLogin) {
+            /**
+             * 1.c. We call the onLogin callback dispatching onUserLoginSuccess
+             */
+            this.onLogin({ profile, accountEntryClassification })
+          }
+
+          this.user = user // Store user
+          this.previousEmailVerified = emailVerified
+
+          void identifyAnalyticsUser(profile.id)
+          // Keep enough identity to correlate a support report without attaching the
+          // complete Firebase profile (display name, photo URL and account metadata).
+          Sentry.getCurrentScope().setUser({ id: profile.id, email: profile.email })
+          return
+        }
+
+        // Check if emailVerified status changed (user verified email while app was open)
+        if (!this.previousEmailVerified && emailVerified) {
+          console.log('[Auth] Email verification detected!')
+          this.onEmailVerified?.()
+        }
+        this.previousEmailVerified = emailVerified
+        return
+      }
+
+      console.log('[Auth] No user, do nothing...')
+      this.user = null
+      this.previousEmailVerified = false
+    })
+  }
+
+  appleLogin = (): Promise<boolean> =>
+    new Promise(async resolve => {
+      const accountEntryAttempt = this.beginAccountEntryAttempt('provider-sign-in', 'apple.com')
+      try {
+        const appleAuthRequestResponse = await appleAuth.performRequest({
+          requestedOperation: appleAuth.Operation.LOGIN,
+          requestedScopes: [appleAuth.Scope.FULL_NAME, appleAuth.Scope.EMAIL],
+        })
+
+        const { identityToken, nonce } = appleAuthRequestResponse
+
+        // can be null in some scenarios
+        if (identityToken) {
+          // 3). create a Firebase `AppleAuthProvider` credential
+          const appleCredential = AppleAuthProvider.credential(identityToken, nonce)
+          const userCredential = await signInWithCredential(getAuth(), appleCredential)
+          accountEntryAttempt.complete({
+            userId: userCredential.user.uid,
+            credentialIsNewUser: userCredential.additionalUserInfo?.isNewUser,
+          })
+
+          console.log(`[Auth] Firebase authenticated via Apple, UID: ${userCredential.user.uid}`)
+          resolve(false)
+        } else {
+          accountEntryAttempt.fail()
+          resolve(false)
+        }
+      } catch (e) {
+        accountEntryAttempt.fail()
+        if (getErrorCode(e) === 'ERR_CANCELED') {
+          console.log('[Auth] ERR_CANCELED')
+        } else {
+          console.log('[Auth] OTHER_ERROR', e)
+        }
+        resolve(false)
+      }
+    })
+
+  // facebookLogin = () =>
+  //   new Promise(async resolve => {
+  //     try {
+  //       const result = await LoginManager.logInWithPermissions([
+  //         'public_profile',
+  //         'email',
+  //       ])
+
+  //       if (!result.isCancelled) {
+  //         const { accessToken } = await AccessToken.getCurrentAccessToken()
+  //         // Build Firebase credential with the Facebook access token.
+  //         const credential = auth.FacebookAuthProvider.credential(accessToken)
+  //         return this.onCredentialSuccess(credential, resolve)
+  //       }
+
+  //       SnackBar.show(i18n.t('Connexion annulée.'))
+  //       return resolve(false)
+  //     } catch (e) {
+  //       SnackBar.show(i18n.t('Une erreur est survenue.'))
+  //       console.log(e)
+  //       Sentry.captureException(e)
+  //       return resolve(false)
+  //     }
+  //   })
+
+  googleLogin = (): Promise<boolean> =>
+    new Promise(async resolve => {
+      const accountEntryAttempt = this.beginAccountEntryAttempt('provider-sign-in', 'google.com')
+      try {
+        await GoogleSignin.hasPlayServices()
+        const signInResult = await GoogleSignin.signIn()
+        const idToken = signInResult.data?.idToken
+
+        if (!idToken) {
+          throw new Error('No ID token found')
+        }
+
+        const googleCredential = GoogleAuthProvider.credential(idToken)
+        return this.onCredentialSuccess(googleCredential, resolve, accountEntryAttempt)
+      } catch (e) {
+        accountEntryAttempt.fail()
+        toast.error(i18n.t('Une erreur est survenue'))
+        console.log('[Auth] Google login error:', e)
+        return resolve(false)
+      }
+    })
+
+  onCredentialSuccess = async (
+    credential: FirebaseAuthTypes.AuthCredential,
+    resolve: (value: boolean) => void,
+    accountEntryAttempt: ClassifiedAuthAttempt
+  ) => {
+    try {
+      const user = await signInWithCredential(getAuth(), credential)
+      accountEntryAttempt.complete({
+        userId: user.user.uid,
+        credentialIsNewUser: user.additionalUserInfo?.isNewUser,
+      })
+
+      console.log('[Auth] User signed in', user)
+      toast.success(i18n.t('Connexion réussie'))
+      return resolve(true)
+    } catch (e) {
+      accountEntryAttempt.fail()
+      const code = getErrorCode(e)
+      console.log('[Auth] Error code:', code)
+      if (code === 'auth/account-exists-with-different-credential') {
+        toast.error(i18n.t('Cet utilisateur existe déjà avec un autre compte.'))
+      }
+      return resolve(false)
+    }
+  }
+
+  login = (email: string, password: string): Promise<boolean> =>
+    new Promise(resolve => {
+      const accountEntryAttempt = this.beginAccountEntryAttempt('email-login', 'password')
+      try {
+        signInWithEmailAndPassword(getAuth(), email.trim(), password.trim())
+          .then(userCredential => {
+            accountEntryAttempt.complete({
+              userId: userCredential.user.uid,
+              credentialIsNewUser: userCredential.additionalUserInfo?.isNewUser,
+            })
+            resolve(true)
+          })
+          .catch(err => {
+            accountEntryAttempt.fail()
+            if (this.onError) {
+              this.onError(err)
+            }
+            resolve(false)
+          })
+      } catch (e) {
+        accountEntryAttempt.fail()
+        if (this.onError) {
+          this.onError(e)
+        }
+        resolve(false)
+      }
+    })
+
+  sendEmailVerification = async () => {
+    const user = getAuth().currentUser
+    try {
+      await user?.sendEmailVerification()
+      toast.success(i18n.t('Email envoyé'))
+    } catch (e) {
+      if (getErrorCode(e) === 'auth/too-many-requests') {
+        toast.error(i18n.t('Un mail a déjà été envoyé. Réessayez plus tard'))
+      } else {
+        toast.error(i18n.t("Impossible d'envoyer l'email"))
+      }
+    }
+  }
+
+  resetPassword = (email: string): Promise<boolean> =>
+    new Promise(resolve => {
+      try {
+        sendPasswordResetEmail(getAuth(), email)
+          .then(() => {
+            toast.success(i18n.t('Email envoyé.'))
+            resolve(false)
+          })
+          .catch(err => {
+            if (this.onError) {
+              this.onError(err)
+            }
+            resolve(false)
+          })
+      } catch (e) {
+        if (this.onError) {
+          this.onError(e)
+        }
+        resolve(false)
+      }
+    })
+
+  register = (username: string, email: string, password: string): Promise<boolean> =>
+    new Promise(resolve => {
+      const accountEntryAttempt = this.beginAccountEntryAttempt('email-registration', 'password')
+      try {
+        createUserWithEmailAndPassword(getAuth(), email, password)
+          .then(userCredential => {
+            const { user } = userCredential
+            accountEntryAttempt.complete({
+              userId: user.uid,
+              credentialIsNewUser: userCredential.additionalUserInfo?.isNewUser,
+            })
+            setDoc(doc(firebaseDb, 'users', user.uid), { displayName: username }, { merge: true })
+
+            user.sendEmailVerification()
+            return resolve(true)
+          })
+          .catch(err => {
+            accountEntryAttempt.fail()
+            if (this.onError) {
+              this.onError(err)
+            }
+            return resolve(false)
+          })
+      } catch (e) {
+        accountEntryAttempt.fail()
+        if (this.onError) {
+          this.onError(e)
+        }
+        return resolve(false)
+      }
+    })
+
+  updateDisplayName = async (displayName: string) => {
+    const user = getAuth().currentUser
+    if (!user) {
+      toast.error(i18n.t('profile.notLoggedIn'))
+      return false
+    }
+
+    try {
+      await updateProfile(user, { displayName })
+      await setDoc(doc(firebaseDb, 'users', user.uid), { displayName }, { merge: true })
+      toast.success(i18n.t('profile.nameUpdated'))
+      return true
+    } catch (e) {
+      console.log('[Auth] Error updating display name:', e)
+      toast.error(i18n.t('profile.updateError'))
+      Sentry.captureException(e)
+      return false
+    }
+  }
+
+  updatePhotoURL = async (photoURL: string) => {
+    const user = getAuth().currentUser
+    if (!user) {
+      toast.error(i18n.t('profile.notLoggedIn'))
+      return false
+    }
+
+    try {
+      await updateProfile(user, { photoURL })
+      await setDoc(doc(firebaseDb, 'users', user.uid), { photoURL }, { merge: true })
+      toast.success(i18n.t('profile.photoUpdated'))
+      return true
+    } catch (e) {
+      console.log('[Auth] Error updating photo URL:', e)
+      toast.error(i18n.t('profile.updateError'))
+      Sentry.captureException(e)
+      return false
+    }
+  }
+
+  changePassword = async (currentPassword: string, newPassword: string) => {
+    const user = getAuth().currentUser
+    if (!user || !user.email) {
+      toast.error(i18n.t('profile.notLoggedIn'))
+      return false
+    }
+
+    try {
+      const credential = EmailAuthProvider.credential(user.email, currentPassword)
+      await reauthenticateWithCredential(user, credential)
+      await updatePassword(user, newPassword)
+      toast.success(i18n.t('profile.passwordUpdated'))
+      return true
+    } catch (e) {
+      const code = getErrorCode(e)
+      console.log('[Auth] Error changing password:', code)
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        toast.error(i18n.t('profile.wrongPassword'))
+      } else if (code === 'auth/weak-password') {
+        toast.error(i18n.t('profile.weakPassword'))
+      } else {
+        toast.error(i18n.t('profile.updateError'))
+      }
+      Sentry.captureException(e)
+      return false
+    }
+  }
+
+  loginWithCustomToken = (token: string): Promise<boolean> =>
+    new Promise(async resolve => {
+      if (!__DEV__) {
+        console.log('[Auth] Custom token login only available in dev')
+        resolve(false)
+        return
+      }
+      const accountEntryAttempt = this.beginAccountEntryAttempt('email-login', 'custom-token')
+      try {
+        const { user } = await signInWithCustomToken(getAuth(), token)
+        accountEntryAttempt.complete({ userId: user.uid })
+        toast.success(i18n.t('Connexion réussie'))
+        resolve(true)
+      } catch (e) {
+        accountEntryAttempt.fail()
+        console.log('[Auth] Custom token error:', e)
+        toast.error(i18n.t('Token invalide'))
+        resolve(false)
+      }
+    })
+
+  logout = async () => {
+    // Cleanup Firestore subscriptions BEFORE signOut to avoid permission-denied errors
+    runAllCleanups()
+
+    // Small delay to let async cleanup operations complete
+    await new Promise(resolve => setTimeout(resolve, 50))
+
+    signOut(getAuth())
+
+    // Sign-out successful.
+    this.user = null
+    this.onLogout?.()
+
+    // Reset token manager state
+    tokenManager.reset()
+
+    toast(i18n.t('Vous êtes déconnecté.'))
+  }
+
+  /**
+   * Manually check if email has been verified
+   * Call this after user clicks verification link and returns to app
+   */
+  checkEmailVerification = async (): Promise<boolean> => {
+    const user = getAuth().currentUser
+    if (!user) return false
+
+    try {
+      await user.reload()
+      const refreshedUser = getAuth().currentUser
+
+      if (refreshedUser?.emailVerified && !this.previousEmailVerified) {
+        console.log('[Auth] Email verified after manual check!')
+        this.previousEmailVerified = true
+        this.onEmailVerified?.()
+        return true
+      }
+
+      return refreshedUser?.emailVerified || false
+    } catch (e) {
+      console.log('[Auth] Error checking email verification:', e)
+      return false
+    }
+  }
+}
+
+export default new FireAuth()

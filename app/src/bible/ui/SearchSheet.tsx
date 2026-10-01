@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { avatarKind, EntityAvatar } from "@/ui/avatar";
 import { useEffect, useRef, useState } from "react";
 
 import { data, type Book } from "@/api/data";
@@ -66,7 +67,7 @@ export function SearchSheet({ open, onClose, books, onGo }: { open: boolean; onC
       <div className="bs-search__list">
         {ref ? <Row icon="arrow-right-circle" title={`Go to ${ref.label.replace(ref.book, name(ref.slug))}`} sub="Open the chapter at this verse" onClick={() => go(ref.slug, ref.chapter, ref.verse)} /> : null}
         {bookOnly ? <Row icon="book-open" title={`Go to ${name(bookOnly.slug)}`} sub={`${bookOnly.chapters} chapters`} onClick={() => go(bookOnly.slug, 1)} /> : null}
-        {who.map((p) => <Row key={p.id} icon="users" title={p.name} sub={`${p.description} · named in ${p.verses} ${p.verses === 1 ? "verse" : "verses"}`} onClick={() => { haptic("select"); onClose(); navigate(`/person/${p.id}`); }} />)}
+        {who.map((p) => <Row key={p.id} icon="users" leading={<EntityAvatar name={p.name} kind={avatarKind(p.type)} size={30} ink={avatarKind(p.type) === "female" ? "var(--bs-quart)" : "var(--bs-primary)"} base="var(--bs-reverse)" />} title={p.name} sub={`${p.description} · named in ${p.verses} ${p.verses === 1 ? "verse" : "verses"}`} onClick={() => { haptic("select"); onClose(); navigate(`/person/${p.id}`); }} />)}
         {!text ? <p className="bs-search__hint">Type a reference to go there, or a few words to find the verses. Put words in quotes to keep them together.</p> : null}
         {words.length >= 3 && found.isPending ? <p className="bs-search__hint">Searching…</p> : null}
         {words.length >= 3 && found.isError ? <p className="bs-search__hint">Search is unavailable right now. Try again in a moment.</p> : null}
@@ -83,10 +84,10 @@ export function SearchSheet({ open, onClose, books, onGo }: { open: boolean; onC
   );
 }
 
-function Row({ icon, title, sub, onClick }: { icon: "arrow-right-circle" | "book-open" | "users"; title: string; sub: string; onClick: () => void }) {
+function Row({ icon, title, sub, onClick, leading }: { icon: "arrow-right-circle" | "book-open" | "users"; title: string; sub: string; onClick: () => void; leading?: React.ReactNode }) {
   return (
     <button type="button" className="bs-search__go" onClick={onClick}>
-      <Feather name={icon} size={20} color="var(--bs-primary)" />
+      {leading ?? <Feather name={icon} size={20} color="var(--bs-primary)" />}
       <span><b>{title}</b><small>{sub}</small></span>
     </button>
   );

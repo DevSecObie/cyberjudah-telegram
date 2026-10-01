@@ -1,0 +1,217 @@
+import {
+  getBibleViewParamsForVerseKeys,
+  getBibleViewParamsForSearchResult,
+  getOpenableAction,
+  getOpenableActionForRelationEndpoint,
+} from '../openableStudyObjects'
+import {
+  createAnnotationEndpoint,
+  createExternalLinkEndpoint,
+  createNoteEndpoint,
+  createStrongEndpoint,
+  createVerseEndpoint,
+} from '../endpoints'
+
+jest.mock('~assets/bible_versions/books-desc', () =>
+  Array.from({ length: 51 }, (_, index) =>
+    index === 0
+      ? { Numero: 1, Nom: 'Genèse', Chapitres: 50 }
+      : index === 50
+        ? { Numero: 51, Nom: 'Colossiens', Chapitres: 4 }
+        : { Numero: index + 1, Nom: `Book ${index + 1}`, Chapitres: 1 }
+  )
+)
+
+jest.mock('~i18n', () => ({
+  __esModule: true,
+  default: {
+    t: (key: string) => key,
+  },
+  t: (key: string) => key,
+}))
+
+describe('openable study objects', () => {
+  it('builds one version-aware Bible destination for entity navigation', () => {
+    expect(getBibleViewParamsForVerseKeys(['1-1-1', '1-1-3'], 'VUL')).toEqual({
+      contextDisplayMode: 'focused',
+      book: JSON.stringify({ Numero: 1, Nom: 'Genèse', Chapitres: 50 }),
+      chapter: '1',
+      verse: '1',
+      focusVerses: JSON.stringify([1, 3]),
+      version: 'VUL',
+    })
+  })
+
+  it('preserves Bible version context for passage search results', () => {
+    expect(
+      getBibleViewParamsForSearchResult({
+        book: 51,
+        chapter: 2,
+        verse: 19,
+        version: 'DBY',
+      })
+    ).toEqual({
+      contextDisplayMode: 'focused',
+      book: JSON.stringify({ Numero: 51, Nom: 'Colossiens', Chapitres: 4 }),
+      chapter: '2',
+      verse: '19',
+      version: 'DBY',
+      focusVerses: JSON.stringify([19]),
+    })
+  })
+
+  it('opens passage search results through the shared Interface', () => {
+    expect(
+      getOpenableAction({
+        id: 'passage:DBY:51:2:19',
+        type: 'passages',
+        iconType: 'passages',
+        title: 'Colossiens 2:19',
+        passage: {
+          book: 51,
+          chapter: 2,
+          verse: 19,
+          version: 'DBY',
+          highlighted: '...',
+          text: '...',
+        },
+      })
+    ).toEqual({
+      type: 'route',
+      pathname: '/bible-view',
+      params: getBibleViewParamsForSearchResult({
+        book: 51,
+        chapter: 2,
+        verse: 19,
+        version: 'DBY',
+      }),
+    })
+  })
+
+  it('opens Verse endpoints without version-specific text identity', () => {
+    expect(getOpenableActionForRelationEndpoint(createVerseEndpoint(['1-1-1', '1-1-2']))).toEqual({
+      type: 'route',
+      pathname: '/bible-view',
+      params: {
+        contextDisplayMode: 'focused',
+        book: JSON.stringify({ Numero: 1, Nom: 'Genèse', Chapitres: 50 }),
+        chapter: '1',
+        verse: '1',
+        focusVerses: JSON.stringify([1, 2]),
+      },
+    })
+  })
+
+  it('preserves a preferred version when opening a Verse endpoint', () => {
+    const endpoint = createVerseEndpoint(['1-1-1'], undefined, 'VUL')
+
+    expect(getOpenableActionForRelationEndpoint(endpoint)).toEqual({
+      type: 'route',
+      pathname: '/bible-view',
+      params: {
+        contextDisplayMode: 'focused',
+        book: JSON.stringify({ Numero: 1, Nom: 'Genèse', Chapitres: 50 }),
+        chapter: '1',
+        verse: '1',
+        focusVerses: JSON.stringify([1]),
+        version: 'VUL',
+      },
+    })
+  })
+
+  it('opens an annotation passage without selecting the annotation', () => {
+    const endpoint = createAnnotationEndpoint('annotation-1', 'Au commencement')
+
+    expect(
+      getOpenableActionForRelationEndpoint(endpoint, {
+        wordAnnotations: {
+          'annotation-1': {
+            id: 'annotation-1',
+            version: 'LSG',
+            ranges: [
+              { verseKey: '1-1-1', startWordIndex: 0, endWordIndex: 1, text: 'Au commencement' },
+            ],
+            color: 'color1',
+            type: 'underline',
+            date: 1,
+          },
+        },
+      })
+    ).toEqual({
+      type: 'route',
+      pathname: '/bible-view',
+      params: {
+        contextDisplayMode: 'focused',
+        book: JSON.stringify({ Numero: 1, Nom: 'Genèse', Chapitres: 50 }),
+        chapter: '1',
+        verse: '1',
+        focusVerses: JSON.stringify([1]),
+        version: 'LSG',
+      },
+    })
+    expect(getOpenableActionForRelationEndpoint(endpoint)).toEqual({
+      type: 'toast',
+      messageKey: 'Annotation introuvable',
+    })
+  })
+
+  it('opens Note and Strong endpoints through descriptors', () => {
+    expect(getOpenableActionForRelationEndpoint(createNoteEndpoint('note-1'))).toEqual({
+      type: 'note',
+      noteId: 'note-1',
+    })
+    expect(
+      getOpenableActionForRelationEndpoint(createStrongEndpoint({ language: 'greek', code: 'G25' }))
+    ).toEqual({
+      type: 'route',
+      pathname: '/strong',
+      params: {
+        book: '40',
+        reference: '25',
+      },
+    })
+  })
+
+  it('preserves a STEP suffix when opening a Strong relation endpoint', () => {
+    expect(
+      getOpenableActionForRelationEndpoint(
+        createStrongEndpoint({ language: 'hebrew', code: 'H0310A' })
+      )
+    ).toEqual({
+      type: 'route',
+      pathname: '/strong',
+      params: {
+        book: '1',
+        reference: '310A',
+      },
+    })
+  })
+
+  it('opens a Strong search result with its full code without changing its stable endpoint', () => {
+    expect(
+      getOpenableAction({
+        id: 'strong:hebrew:3651:H3651C',
+        type: 'strong',
+        iconType: 'strong',
+        title: 'ainsi',
+        endpoint: createStrongEndpoint({ language: 'hebrew', code: 'H3651' }),
+        strongReference: { language: 'hebrew', code: 'H3651C' },
+      })
+    ).toEqual({
+      type: 'route',
+      pathname: '/strong',
+      params: {
+        book: '1',
+        reference: 'H3651C',
+      },
+    })
+  })
+
+  it('surfaces unavailable external Links as a toast action', () => {
+    expect(
+      getOpenableActionForRelationEndpoint(
+        createExternalLinkEndpoint({ linkId: '', url: '', labelFallback: '' })
+      )
+    ).toEqual({ type: 'toast', messageKey: 'Lien introuvable' })
+  })
+})

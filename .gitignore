@@ -8,3 +8,11 @@ test-results
 playwright-report
 .DS_Store
 app/e2e/.shots/
+.expo
+strong/.yarn/cache/
+strong/.yarn/install-state.gz
+strong/.yarn/unplugged/
+strong/dist/
+
+# Downloaded and prepared licensed audio
+.cache/

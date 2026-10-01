@@ -12,12 +12,19 @@ on:
 permissions:
   contents: read
 
+# One staging Worker and one staging database serve every pull request, so runs take turns:
+# two at once collide in the search-index import ("Cannot start another import") and race to
+# decide which build staging shows. A queued run waits; none is cancelled.
+concurrency:
+  group: staging
+  cancel-in-progress: false
+
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -48,8 +55,8 @@ jobs:
             exit 1
           fi
           echo "All four staging secrets are set."
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -57,6 +64,13 @@ jobs:
       - run: npm run build
         env:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
+      - name: Cache the Bible Strong fork's packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.yarn/berry/cache
+          key: strong-yarn-${{ hashFiles('strong/yarn.lock') }}
+      - name: Build the Bible Strong fork (staged at /app/strong)
+        run: bash strong/build-web.sh
       - name: Deploy the staging worker
         id: deploy
         working-directory: bot
@@ -116,3 +130,7 @@ jobs:
           curl -sf "$URL/api/health" | head -c 400; echo
           # The app shell serves at the root (SPA fallback).
           curl -sf -o /dev/null -w "app: %{http_code}\n" "$URL/"
+          # The Bible Strong fork at /app/strong, and a deep link inside it, get the fork's page.
+          curl -sf "$URL/app/strong/" | grep -q "/app/strong/_expo/static/js/web/entry-"
+          curl -sf "$URL/app/strong/bible" | grep -q "/app/strong/_expo/static/js/web/entry-"
+          echo "fork: ok"

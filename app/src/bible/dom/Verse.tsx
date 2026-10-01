@@ -1,7 +1,9 @@
 import { useState, type CSSProperties } from "react";
 
+import type { ClassMoment } from "@/api/data";
 import type { VerseRelationItem } from "@/lib/relations";
 import { RelationsText } from "@/ui/relations";
+import { MediaDeck } from "./MediaDeck";
 import { Feather, Ion } from "../icons";
 import { contrastText, convertHex, HIGHLIGHT_BACKGROUND_OPACITY, isDarkTheme, type Palette, type ThemeName } from "../theme";
 import { highlightInfo, webFontFamily, type BibleSettings } from "../settings";
@@ -22,6 +24,9 @@ export type VerseProps = {
   isVerseToScroll: boolean; isFocused?: boolean; fadePosition?: "top" | "bottom";
   relationItems?: VerseRelationItem[]; relationCount?: number;
   tagGroup?: VerseTagGroup; taggedItemsCount?: number;
+  /** The classes that taught this verse, shown as pictures after it. */
+  /** The classes that taught this verse, and where the deck's gallery says they are and comes back to. */
+  moments?: ClassMoment[]; deck?: { reference: string; from: string };
   onOpenBookmark: (b: Bookmark) => void; onOpenRelations: () => void; onOpenRelationItem: (it: VerseRelationItem) => void; onOpenTags: () => void; onOpenTag: (tagId: string) => void;
 };
 
@@ -60,6 +65,7 @@ export function Verse(p: VerseProps) {
         {p.relationCount && s.relationsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.relationCount} onClick={p.onOpenRelations} label={`${p.relationCount} relations`}><Feather name="git-merge" size={16} color={c.primary} /></CountBadge> : null}
         {p.taggedItemsCount && s.tagsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.taggedItemsCount} onClick={p.onOpenTags} label={`${p.taggedItemsCount} tags`}><Feather name="tag" size={14} color={c.primary} /></CountBadge> : null}
         <span className="bs-text" data-verse-key={p.verseKey} style={{ fontSize: getBibleTextFontSize(false, s.fontSizeScale), lineHeight: scaleLineHeight(32, s.lineHeight, s.fontSizeScale), whiteSpace: "pre-line" }}>{p.text}</span>
+        {p.moments?.length && p.deck ? <MediaDeck items={p.moments} placement="inline" palette={c} fontScale={s.fontSizeScale} reference={p.deck.reference} from={`${p.deck.from}?v=${p.number}`} disabled={p.isSelectedMode} /> : null}
       </span>
       {p.tagGroup && s.tagsDisplay === "inline" ? <VerseTags tags={p.tagGroup.tags} settings={s} palette={c} theme={theme} onOpenTags={p.onOpenTags} onOpenTag={p.onOpenTag} /> : null}
       {p.relationItems?.length && s.relationsDisplay === "inline" ? <span data-ignore-verse-touch=""><RelationsText items={p.relationItems} onClick={p.onOpenRelationItem} /></span> : null}

@@ -98,3 +98,63 @@ export const whyVerse = (r: Relation) => Number(r.id.split("-").pop());
 
 /** A relation the library made, as opposed to one the reader made. */
 export const isTaught = (r: Relation) => r.id.startsWith("taught:") || r.id.startsWith(WHY);
+
+/**
+ * The classes that taught each verse, for the pictures after it (Bible Strong's inline videos):
+ * keyed by the last verse the moment taught, the Bishops' and Deacons' first, newest first, one
+ * picture per class and verse, at most MOMENTS_PER_VERSE.
+ */
+export const MOMENTS_PER_VERSE = 6;
+const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
+export function momentsByVerse(list: ClassMoment[], limit = MOMENTS_PER_VERSE): Record<number, ClassMoment[]> {
+  const out: Record<number, ClassMoment[]> = {};
+  const seen = new Set<string>();
+  const sorted = list
+    .filter((m) => VIDEO_ID.test(m.video ?? "") && Number.isFinite(m.t) && verseNumbers(m.verses).length > 0)
+    .sort((a, b) => teacherRank(a.teacher) - teacherRank(b.teacher) || (b.date ?? "").localeCompare(a.date ?? "") || a.t - b.t);
+  for (const m of sorted) {
+    const end = Math.max(...verseNumbers(m.verses));
+    if (seen.has(`${end}:${m.video}`)) continue;
+    seen.add(`${end}:${m.video}`);
+    const row = (out[end] ??= []);
+    if (row.length < limit) row.push(m);
+  }
+  return out;
+}
+export function useMomentsByVerse(slug: string, ch: number) {
+  return useQuery({ ...concordance(slug, ch), select: (c: Concordance | null) => momentsByVerse(c?.moments ?? []) });
+}
+
+/**
+ * Every class that read a verse, not only those with notes: the classes whose notes break the
+ * verse down first, then every other class the transcripts find reading it aloud (the Bishops'
+ * and Deacons' first, newest first), one picture per class and verse. A class without notes has
+ * no url; its picture plays the recording at that moment, and its readers can ask for notes.
+ */
+const fromReading = (verse: number, r: Reading): ClassMoment => ({ verses: String(verse), label: r.title, url: r.url ?? "", date: r.date, video: r.video, t: r.t, ts: r.ts, teacher: r.teacher });
+export function classesByVerse(c: Concordance | null): Record<number, ClassMoment[]> {
+  const out = momentsByVerse(c?.moments ?? [], Infinity);
+  for (const [v, list] of Object.entries(c?.read ?? {})) {
+    const n = Number(v);
+    if (!Number.isInteger(n) || n < 1) continue;
+    const row = (out[n] ??= []);
+    const have = new Set(row.map((m) => m.video));
+    for (const r of list) if (VIDEO_ID.test(r.video ?? "") && Number.isFinite(r.t) && !have.has(r.video)) { have.add(r.video); row.push(fromReading(n, r)); }
+  }
+  return out;
+}
+export function useClassesByVerse(slug: string, ch: number) {
+  return useQuery({ ...concordance(slug, ch), select: classesByVerse });
+}
+/** A chapter's classes, once each: those whose notes teach it, then those that read it aloud. */
+export function chapterClasses(byVerse: Record<number, ClassMoment[]>): { taught: ClassMoment[]; read: ClassMoment[] } {
+  const all = Object.entries(byVerse).sort(([a], [b]) => +a - +b).flatMap(([, ms]) => ms);
+  const seen = new Set<string>(), taught: ClassMoment[] = [], read: ClassMoment[] = [];
+  for (const m of all) if (m.url && !seen.has(m.video)) { seen.add(m.video); taught.push(m); }
+  const rest = all.filter((m) => !seen.has(m.video))
+    .sort((a, b) => teacherRank(a.teacher) - teacherRank(b.teacher) || (b.date ?? "").localeCompare(a.date ?? ""));
+  for (const m of rest) if (!seen.has(m.video)) { seen.add(m.video); read.push(m); }
+  return { taught, read };
+}
+/** YouTube's medium thumbnail of a recording (320 x 180). */
+export const thumbUrl = (video: string) => `https://i.ytimg.com/vi/${encodeURIComponent(video)}/mqdefault.jpg`;

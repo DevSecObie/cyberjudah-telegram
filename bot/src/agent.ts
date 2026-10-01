@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 
 import { books, chapter } from "./data";
 import type { Env, Exec } from "./env";
-import { answerCandidates, RESEARCH, SYSTEM, type Passage, type Turn } from "./ai.mjs";
+import { answerCandidates, normalizeHistory, RESEARCH, SYSTEM, type Passage, type Turn } from "./ai.mjs";
 import { parseReference } from "./refs.mjs";
 import { unitsOf } from "./billing.mjs";
 
@@ -93,7 +93,7 @@ export async function runAgent(
   };
 
   const messages: Anthropic.MessageParam[] = [
-    ...history.slice(-6).map((m) => ({ role: (m.role === "assistant" ? "assistant" : "user") as "assistant" | "user", content: String(m.content ?? "").slice(0, 3000) || "…" })),
+    ...normalizeHistory(history, 6).map((m) => ({ role: m.role as "assistant" | "user", content: String(m.content).slice(0, 3000) })),
     { role: "user", content: `${passages.length ? `Passages already found for this question:\n\n${passages.map(listed).join("\n\n")}` : "The first search found nothing close; search the library yourself."}\n\nQuestion: ${question}` },
   ];
 

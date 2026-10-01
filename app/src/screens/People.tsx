@@ -2,7 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { data } from "@/api/data";
+import { useKeptScroll, useVisitState } from "@/lib/place";
 import { useBackButton } from "@/tg/hooks";
+import { avatarKind, EntityAvatar } from "@/ui/avatar";
 import { Empty, List, Row, Screen, SearchField, Section, Segmented, Skeleton } from "@/ui/ui";
 
 const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ']/g, "").toLowerCase();
@@ -14,12 +16,13 @@ const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ']/g, "").toLowerC
  */
 export function People() {
   useBackButton(true);
-  const [q, setQ] = useState("");
-  const [debounced, setDebounced] = useState("");
+  const [q, setQ] = useVisitState("q", "");
+  const [debounced, setDebounced] = useState(() => fold(q.trim()));
   useEffect(() => { const t = setTimeout(() => setDebounced(fold(q.trim())), 150); return () => clearTimeout(t); }, [q]);
-  const [order, setOrder] = useState<"most" | "az">("most");
-  const [limit, setLimit] = useState(60);
+  const [order, setOrder] = useVisitState<"most" | "az">("order", "most");
+  const [limit, setLimit] = useVisitState("limit", 60);
   const people = useQuery({ queryKey: ["people-index"], queryFn: data.people, staleTime: Infinity });
+  useKeptScroll(!!people.data);
   const rows = useMemo(() => {
     const all = people.data ?? [];
     const hits = debounced ? all.filter((p) => fold(p.name).includes(debounced) || p.names.some((n) => fold(n).includes(debounced))).sort((a, b) => Number(fold(b.name).startsWith(debounced)) - Number(fold(a.name).startsWith(debounced)) || b.verses - a.verses) : [...all];
@@ -32,7 +35,7 @@ export function People() {
       {!debounced ? <Segmented label="Order" value={order} onChange={(o) => { setOrder(o); setLimit(60); }} options={[["most", "Most spoken of"], ["az", "A to Z"]]} /> : null}
       {people.isPending ? <Skeleton rows={8} /> : people.isError ? <Empty title="The people did not load" action={{ label: "Retry", onClick: () => void people.refetch() }} /> : !rows.length ? <Empty title={`No one called “${q.trim()}”`}>Try another spelling; the King James spells some names more than one way.</Empty> : (
         <Section title={debounced ? `${rows.length.toLocaleString()} ${rows.length === 1 ? "person" : "people"}` : undefined}>
-          <List>{rows.slice(0, limit).map((p) => <Row key={p.id} href={`/person/${p.id}`} title={p.name} sub={p.description || (p.names.length > 1 ? p.names.filter((n) => n !== p.name).join(", ") : p.first)} meta={<small>{p.verses.toLocaleString()} {p.verses === 1 ? "verse" : "verses"}</small>} />)}</List>
+          <List>{rows.slice(0, limit).map((p) => <Row key={p.id} href={`/person/${p.id}`} leading={<EntityAvatar name={p.name} kind={avatarKind(p.type)} size={40} />} title={p.name} sub={p.description || (p.names.length > 1 ? p.names.filter((n) => n !== p.name).join(", ") : p.first)} meta={<small>{p.verses.toLocaleString()} {p.verses === 1 ? "verse" : "verses"}</small>} />)}</List>
           {rows.length > limit ? <button type="button" className="more-btn" onClick={() => setLimit((n) => n + 100)}>More · {(rows.length - limit).toLocaleString()} left</button> : null}
         </Section>
       )}

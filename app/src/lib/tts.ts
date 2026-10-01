@@ -1,5 +1,8 @@
+import { ambient } from "./ambient";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+
+import { useNarrators, narrationSource, type Narrator } from "./recordings";
 
 import { app } from "@/tg/sdk";
 
@@ -21,95 +24,173 @@ export function useAiVoices() {
   return useQuery({ queryKey: ["voices"], queryFn: () => authed("/api/voices").then((r) => r.json() as Promise<{ voices: AiVoice[] }>).then((r) => r.voices), staleTime: Infinity, retry: 1 });
 }
 
-/**
- * Listen to a chapter: the browser's speech synthesis, one utterance per verse so the reader
- * can follow along (the verse being read is reported) and pick up from any verse. Rate and
- * voice are the listener's; the screen keeps awake through Telegram's own webview behaviour.
- */
+/** Device / AI verse playback and one seekable human recording per chapter. */
 export const ttsSupported = typeof window !== "undefined" && "speechSynthesis" in window;
-
+const saved = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
 export function useSpeech(verses: { verse: number; text: string }[], intro: string, where?: { slug: string; chapter: number }) {
-  const [playing, setPlaying] = useState(false);
-  const [current, setCurrent] = useState<number | null>(null);
-  const [rate, setRate] = useState(1);
-  const queue = useRef<{ verse: number; text: string }[]>([]);
-  const rateRef = useRef(rate); rateRef.current = rate;
-  // One voice for the whole chapter, chosen once when playback starts: the voice list loads
-  // asynchronously, so choosing per verse would read the first verses in the default voice
-  // and switch once the list arrived.
-  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const [playing, setPlaying] = useState(false), [paused, setPaused] = useState(false);
+  const [current, setCurrent] = useState<number | null>(null), [completed, setCompleted] = useState(false);
+  const [rate, setRate] = useState(1), [pitch, setPitch] = useState(1);
+  const [voiceName, setVoiceName] = useState<string | null>(() => saved("ttsVoice"));
+  const [fallback, setFallback] = useState(() => saved("ttsAiVoice") ?? "ai:asteria");
   const [available, setAvailable] = useState<SpeechSynthesisVoice[]>([]);
-  const [voiceName, setVoiceName] = useState<string | null>(() => { try { return localStorage.getItem("ttsVoice"); } catch { return null; } });
-  const voiceNameRef = useRef(voiceName); voiceNameRef.current = voiceName;
-  // The reader's choice first; else the best English voice on the device (the "natural",
-  // "premium", "enhanced" or "neural" ones read far better than the compact defaults).
-  const pick = (vs: SpeechSynthesisVoice[]) => vs.find((v) => v.name === voiceNameRef.current) ?? vs.find((v) => /^en/i.test(v.lang) && /natural|premium|enhanced|neural|siri/i.test(v.name)) ?? vs.find((v) => /en[-_](GB|US)/i.test(v.lang)) ?? vs.find((v) => /^en/i.test(v.lang)) ?? vs[0] ?? null;
+  const [notice, setNotice] = useState("");
+  const narrators = useNarrators(where);
+  const human = voiceName?.startsWith("narrator:") ?? false;
+  const continuation = useRef(false), previousChapter = useRef("");
+  const playingRef = useRef(playing); playingRef.current = playing;
+  const run = useRef(0), audio = useRef<HTMLAudioElement | null>(null);
+  const recording = useRef<Narrator | null>(null), release = useRef<() => void>(() => undefined);
+  const activeVoice = useRef<string | null>(null), utterance = useRef<SpeechSynthesisUtterance | null>(null);
+  const pendingNext = useRef<(() => void) | null>(null);
+  const ahead = useRef<{ verse: number; voice: string; promise: Promise<string | null> } | null>(null);
+  const discardAhead = () => { const pending = ahead.current; ahead.current = null; if (pending) void pending.promise.then((url) => { if (url) URL.revokeObjectURL(url); }); };
+  const options = useRef({ rate, pitch }); options.current = { rate, pitch };
+  const currentRef = useRef(current); currentRef.current = current;
+  const pausedRef = useRef(paused); pausedRef.current = paused;
   useEffect(() => {
     if (!ttsSupported) return;
     const load = () => setAvailable(speechSynthesis.getVoices().filter((v) => /^en/i.test(v.lang)));
     load(); speechSynthesis.addEventListener("voiceschanged", load);
     return () => speechSynthesis.removeEventListener("voiceschanged", load);
   }, []);
-  const setVoice = (name: string | null) => { setVoiceName(name); try { if (name) localStorage.setItem("ttsVoice", name); else localStorage.removeItem("ttsVoice"); } catch { /* ignore */ } };
-  const voices = () => new Promise<SpeechSynthesisVoice[]>((resolve) => {
-    const vs = speechSynthesis.getVoices();
-    if (vs.length) { resolve(vs); return; }
-    const t = setTimeout(() => resolve(speechSynthesis.getVoices()), 1500);
-    speechSynthesis.addEventListener("voiceschanged", () => { clearTimeout(t); resolve(speechSynthesis.getVoices()); }, { once: true });
-  });
-  // The AI voices: one <audio> per verse, the next verse's audio fetched ahead.
-  const audio = useRef<HTMLAudioElement | null>(null);
-  const ahead = useRef<{ verse: number; url: Promise<string> } | null>(null);
-  const [aiState, setAiState] = useState<{ playing: boolean; paused: boolean }>({ playing: false, paused: false });
-  const stopAi = () => { const a = audio.current; if (a) { a.onended = null; a.pause(); a.src = ""; } audio.current = null; ahead.current = null; queue.current = []; setAiState({ playing: false, paused: false }); setPlaying(false); setCurrent(null); };
-  const playAiNext = () => {
-    const item = queue.current.shift();
-    const voice = (voiceNameRef.current ?? "").slice(3);
-    if (!item || !where) { stopAi(); return; }
-    const url = ahead.current?.verse === item.verse ? ahead.current.url : item.verse > 0 ? verseAudio(where.slug, where.chapter, item.verse, voice) : Promise.resolve("");
-    const next = queue.current[0];
-    ahead.current = next && next.verse > 0 ? { verse: next.verse, url: verseAudio(where.slug, where.chapter, next.verse, voice) } : null;
-    void url.then((src) => {
-      if (!aiRun.current) return;
-      if (!src) { playAiNext(); return; }
-      const a = new Audio(src); audio.current = a;
-      a.playbackRate = rateRef.current;
-      a.onended = () => { URL.revokeObjectURL(src); playAiNext(); };
-      a.onerror = () => stopAi();
-      setCurrent(item.verse);
-      void a.play().catch(() => stopAi());
-    }).catch(() => stopAi());
+  const clearAudio = () => {
+    discardAhead();
+    if (audio.current) { audio.current.onended = null; audio.current.ontimeupdate = null; audio.current.onerror = null; audio.current.pause(); audio.current.removeAttribute("src"); }
+    audio.current = null; recording.current = null; release.current(); release.current = () => undefined;
   };
-  const aiRun = useRef(false);
-  const speakNext = () => {
-    const item = queue.current.shift();
-    if (!item) { setPlaying(false); setCurrent(null); return; }
-    const u = new SpeechSynthesisUtterance(item.text);
-    u.rate = rateRef.current; const v = voiceRef.current; if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "en-GB";
-    u.onstart = () => setCurrent(item.verse > 0 ? item.verse : null);
-    u.onend = speakNext;
-    u.onerror = () => { setPlaying(false); setCurrent(null); };
-    speechSynthesis.speak(u);
+  const stop = (betweenChapters = false) => {
+    continuation.current = betweenChapters; if (!betweenChapters) ambient.stop();
+    discardAhead();
+    run.current++; if (ttsSupported) speechSynthesis.cancel(); utterance.current = null;
+    pendingNext.current = null;
+    if (audio.current) audio.current.pause();
+    setPlaying(false); setPaused(false); setCurrent(null); setCompleted(false);
   };
-  const ai = isAiVoice(voiceName) && !!where;
-  const play = (from = 1) => {
-    if (ttsSupported) speechSynthesis.cancel();
-    stopAi();
-    queue.current = [...(from === 1 && !ai ? [{ verse: 0, text: intro }] : []), ...verses.filter((v) => v.verse >= from)];
-    setPlaying(true);
-    if (ai) { aiRun.current = true; setAiState({ playing: true, paused: false }); playAiNext(); return; }
-    if (!ttsSupported) { setPlaying(false); return; }
-    void voices().then((vs) => { voiceRef.current = pick(vs); speakNext(); });
+  const finish = (generation: number) => {
+    if (generation !== run.current) return;
+    ambient.stop(); setPlaying(false); setPaused(false); setCurrent(null); setCompleted(true);
   };
-  const stop = () => { aiRun.current = false; stopAi(); if (ttsSupported) { queue.current = []; speechSynthesis.cancel(); } setPlaying(false); setCurrent(null); };
+  const fail = (generation: number, message: string) => {
+    if (generation !== run.current) return;
+    stop(); setNotice(message);
+  };
+  const readVerses = (from: number, generation: number, voice: string | null) => {
+    clearAudio(); activeVoice.current = voice;
+    const ai = isAiVoice(voice) && !!where;
+    const queue = [...(from === 1 && !ai ? [{ verse: 0, text: intro }] : []), ...verses.filter((v) => v.verse >= from)];
+    const next = () => {
+      if (generation !== run.current) return;
+      if (pausedRef.current) { pendingNext.current = next; return; }
+      pendingNext.current = null;
+      const item = queue.shift(); if (!item) { finish(generation); return; }
+      if (ai && where) {
+        const prefetched = ahead.current?.verse === item.verse && ahead.current.voice === voice ? ahead.current.promise : null;
+        if (prefetched) ahead.current = null;
+        void (prefetched ?? Promise.resolve(null)).then((url) => generation === run.current ? url ?? verseAudio(where.slug, where.chapter, item.verse, voice!.slice(3)) : null).then((url) => {
+          if (!url) return;
+          if (generation !== run.current) { URL.revokeObjectURL(url); return; }
+          release.current(); release.current = () => URL.revokeObjectURL(url);
+          const a = new Audio(url); audio.current = a; a.playbackRate = options.current.rate;
+          a.onended = next; a.onerror = () => fail(generation, "Reading voice is unavailable. Please try again.");
+          setCurrent(item.verse); if (!pausedRef.current) void a.play().catch(() => fail(generation, "Tap Play to try the reading voice again."));
+          const following = queue[0];
+          if (following) ahead.current = { verse: following.verse, voice: voice!, promise: verseAudio(where.slug, where.chapter, following.verse, voice!.slice(3)).then((url) => {
+            if (generation !== run.current) { URL.revokeObjectURL(url); return null; } return url;
+          }).catch(() => null) };
+        }).catch(() => fail(generation, "Reading voice is unavailable. Please try again."));
+        return;
+      }
+      if (!ttsSupported) { fail(generation, "Choose a reading voice to listen."); return; }
+      const u = new SpeechSynthesisUtterance(item.text); utterance.current = u;
+      const vs = speechSynthesis.getVoices();
+      const selected = vs.find((v) => v.name === voice) ?? vs.find((v) => /^en/i.test(v.lang) && /natural|premium|enhanced|neural|siri/i.test(v.name)) ?? vs.find((v) => /^en/i.test(v.lang));
+      if (selected) u.voice = selected;
+      u.lang = selected?.lang ?? "en-GB"; u.rate = options.current.rate; u.pitch = options.current.pitch;
+      u.onstart = () => { if (generation === run.current) setCurrent(item.verse || null); };
+      u.onend = next; u.onerror = () => fail(generation, "Device voice is unavailable.");
+      speechSynthesis.speak(u);
+    };
+    if (!ai && ttsSupported && !speechSynthesis.getVoices().length) {
+      // Voice discovery is asynchronous on iOS; Stop must cancel this deferred start.
+      const ready = () => { clearTimeout(timer); speechSynthesis.removeEventListener("voiceschanged", ready); next(); };
+      const timer = setTimeout(ready, 1500);
+      speechSynthesis.addEventListener("voiceschanged", ready, { once: true });
+    } else next();
+  };
+  const play = (from = 1, requestedVoice = voiceName, fromGesture = true) => {
+    discardAhead();
+    pendingNext.current = null;
+    continuation.current = false; ambient.begin(fromGesture);
+    const generation = ++run.current;
+    setNotice(""); setCompleted(false); setPlaying(true); setPaused(false); pausedRef.current = false;
+    if (ttsSupported) { speechSynthesis.cancel(); speechSynthesis.resume(); }
+    const start = async () => {
+      const requestedHuman = requestedVoice?.startsWith("narrator:");
+      let narrator = narrators.data?.narrators.find((n) => `narrator:${n.id}` === requestedVoice);
+      if (requestedHuman && !narrators.data && !narrators.isError) {
+        const result = await narrators.refetch(); narrator = result.data?.narrators.find((n) => `narrator:${n.id}` === requestedVoice);
+      }
+      if (generation !== run.current) return;
+      if (!narrator) {
+        if (requestedHuman) setNotice("No recording for this chapter. Using your chosen AI reading voice.");
+        readVerses(from, generation, requestedHuman ? fallback : requestedVoice); return;
+      }
+      const verse = narrator.verses.find((v) => v[0] === from);
+      if (!verse) { fail(generation, "This verse has no verified recording timing."); return; }
+      if (recording.current?.audio !== narrator.audio || !audio.current) {
+        clearAudio();
+        const source = await narrationSource(narrator.audio);
+        if (generation !== run.current) { source.release(); return; }
+        release.current = source.release; audio.current = new Audio(source.url); recording.current = narrator;
+      }
+      const a = audio.current!; activeVoice.current = `narrator:${narrator.id}`;
+      a.playbackRate = options.current.rate; a.currentTime = verse[1]; setCurrent(from);
+      a.ontimeupdate = () => {
+        if (generation !== run.current) return;
+        const match = narrator!.verses.find((v) => a.currentTime >= v[1] && a.currentTime < v[2]);
+        setCurrent(match?.[0] ?? currentRef.current);
+      };
+      a.onended = () => finish(generation);
+      a.onerror = () => {
+        if (generation !== run.current) return;
+        setNotice("Recording unavailable. Using your chosen AI reading voice.");
+        readVerses(currentRef.current ?? from, generation, fallback);
+      };
+      void a.play().catch(() => fail(generation, "Tap Play to start the recording."));
+    };
+    void start().catch(() => fail(generation, "Recording unavailable. Please try again."));
+  };
+  const setVoice = (name: string | null) => {
+    const resume = playing && !paused, from = currentRef.current ?? 1;
+    stop(); clearAudio(); setVoiceName(name);
+    try { if (name) localStorage.setItem("ttsVoice", name); else localStorage.removeItem("ttsVoice"); } catch { /* private mode */ }
+    if (isAiVoice(name)) { setFallback(name!); try { localStorage.setItem("ttsAiVoice", name!); } catch { /* private mode */ } }
+    if (resume) play(from, name);
+  };
   const toggle = () => {
     if (!playing) { play(current ?? 1); return; }
-    if (aiState.playing) { const a = audio.current; if (!a) return; if (a.paused) { void a.play(); setAiState({ playing: true, paused: false }); } else { a.pause(); setAiState({ playing: true, paused: true }); } return; }
-    if (!ttsSupported) return;
-    if (speechSynthesis.paused) { speechSynthesis.resume(); } else { speechSynthesis.pause(); }
+    const next = !paused; pausedRef.current = next; setPaused(next);
+    if (next) ambient.stop(); else ambient.begin();
+    if (!next && pendingNext.current) { pendingNext.current(); return; }
+    if (audio.current) { if (next) audio.current.pause(); else void audio.current.play().catch(() => fail(run.current, "Tap Play to resume.")); }
+    else if (ttsSupported) { if (next) speechSynthesis.pause(); else speechSynthesis.resume(); }
   };
-  useEffect(() => { if (audio.current) audio.current.playbackRate = rate; }, [rate]);
-  useEffect(() => () => { aiRun.current = false; if (ttsSupported) speechSynthesis.cancel(); const a = audio.current; if (a) { a.pause(); a.src = ""; } }, []);
-  useEffect(() => { stop(); /* a new chapter */ }, [verses]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { supported: ttsSupported || ai, playing, paused: aiState.playing ? aiState.paused : playing && ttsSupported && speechSynthesis.paused, current, rate, setRate, play, stop, toggle, voices: available, voice: voiceName, setVoice, currentVoice: ai ? voiceName : voiceRef.current?.name ?? null };
+  useEffect(() => {
+    if (audio.current) audio.current.playbackRate = rate;
+    else if (playing && ttsSupported) play(current ?? 1, voiceName, false);
+  }, [rate, pitch]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const key = `${where?.slug}/${where?.chapter}`;
+    const resume = !pausedRef.current && (continuation.current || (previousChapter.current !== key && playingRef.current));
+    previousChapter.current = key; stop(resume); clearAudio();
+    if (resume && verses.length) play(1, voiceName, false);
+  }, [verses.length, where?.slug, where?.chapter]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { ambient.voice(playing && !paused && current !== null); }, [playing, paused, current]);
+  useEffect(() => () => { ambient.stop(); run.current++; if (ttsSupported) speechSynthesis.cancel(); clearAudio(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return { supported: verses.length > 0 && (ttsSupported || !!where), playing, paused, current, rate, setRate, pitch, setPitch,
+    pitchSupported: ttsSupported && !human && !isAiVoice(voiceName), completed, play, stop, toggle,
+    voices: available, voice: voiceName, setVoice, currentVoice: activeVoice.current,
+    narrators: narrators.data?.narrators ?? [], narratorsLoading: narrators.isPending && !!where,
+    narratorsError: narrators.isError, notice };
 }

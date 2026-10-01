@@ -1,9 +1,10 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { haptic } from "@/tg/sdk";
-import { Feather, Ion } from "../icons";
+import { sheetOpened } from "@/tg/hooks";
+import { Feather, Ion, type FeatherName } from "../icons";
+import { HeaderPicker } from "./HeaderPicker";
 import { HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGHT } from "../dom/Chapter";
-import { Sheet } from "./Sheet";
 
 /**
  * BibleHeader: 54 px on the page background with a bottom border. Normally the book and
@@ -11,11 +12,11 @@ import { Sheet } from "./Sheet";
  * selected only their reference, centred; with a focus the reference and the version. A
  * fast scroll down collapses it to 20 px (its controls fade, its texts lift 4 px).
  */
-export type MenuAction = "params" | "history" | "bookmark" | "export";
-export function Header({ bookLabel, version, onBook, onVersion, onVerses, selectedReference, focusedReference, onClearFocus, collapsed, onMenu, onSearch, chapterBookmarkColor, onChapterBookmark, hasChapterBookmark, menuOpen, setMenuOpen }: {
+export type MenuAction = "params" | "history" | "bookmark" | "export" | "search" | "newtab";
+export function Header({ bookLabel, version, onBook, onVersion, onVerses, selectedReference, focusedReference, onClearFocus, collapsed, onMenu, chapterBookmarkColor, onChapterBookmark, hasChapterBookmark, menuOpen, setMenuOpen }: {
   bookLabel: string; version: string; onBook: () => void; onVersion: () => void; onVerses: () => void;
   selectedReference: string | null; focusedReference: string | null; onClearFocus: () => void; collapsed: boolean;
-  onMenu: (a: MenuAction) => void; onSearch: () => void; chapterBookmarkColor?: string; onChapterBookmark: () => void; hasChapterBookmark: boolean; menuOpen: boolean; setMenuOpen: (v: boolean) => void;
+  onMenu: (a: MenuAction) => void; chapterBookmarkColor?: string; onChapterBookmark: () => void; hasChapterBookmark: boolean; menuOpen: boolean; setMenuOpen: (v: boolean) => void;
 }) {
   const fade = { opacity: collapsed ? 0 : 1, transition: "opacity .3s" } as const;
   const lift = { transform: `translateY(${collapsed ? -4 : 0}px)`, transition: "transform .3s" } as const;
@@ -39,7 +40,6 @@ export function Header({ bookLabel, version, onBook, onVersion, onVerses, select
             </div>
             <button type="button" className="bs-header__verses" aria-label="Choose a verse" style={fade} onClick={() => { haptic("select"); onVerses(); }}><Feather name="chevrons-down" size={20} style={{ opacity: 0.3 }} /></button>
             <div className="bs-header__right">
-              <button type="button" className="bs-iconbtn" aria-label="Search the Scriptures" style={fade} onClick={() => { haptic("select"); onSearch(); }}><Feather name="search" size={20} /></button>
               <MenuButton style={fade} onClick={() => setMenuOpen(true)} />
               {focusedReference ? <button type="button" className="bs-iconbtn" aria-label="Exit focus mode" onClick={onClearFocus}><Feather name="x" size={20} /></button> : null}
             </div>
@@ -47,22 +47,47 @@ export function Header({ bookLabel, version, onBook, onVersion, onVerses, select
         )}
       </div>
       {hasChapterBookmark && !selectedReference ? <button type="button" className="bs-header__ribbon" aria-label="Edit bookmark" onClick={onChapterBookmark}><Ion name="bookmark" size={24} color={chapterBookmarkColor} /></button> : null}
-      <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title="Scripture options">
-        <div className="bs-menu">
-          <MenuItem icon="type" label="Font and settings" onClick={() => { setMenuOpen(false); onMenu("params"); }} />
-          <MenuItem icon="clock" label="Recently viewed" onClick={() => { setMenuOpen(false); onMenu("history"); }} />
-          <MenuItem icon="bookmark" label={hasChapterBookmark ? "Edit bookmark" : "Add bookmark"} onClick={() => { setMenuOpen(false); onMenu("bookmark"); }} />
-          <MenuItem icon="share-2" label="Export…" onClick={() => { setMenuOpen(false); onMenu("export"); }} />
-        </div>
-      </Sheet>
+      {menuOpen ? <OptionsMenu hasChapterBookmark={hasChapterBookmark} onClose={() => setMenuOpen(false)} onPick={(a) => { setMenuOpen(false); onMenu(a); }} /> : null}
     </header>
   );
 }
 function MenuButton({ onClick, style }: { onClick: () => void; style?: React.CSSProperties }) {
   return <button type="button" className="bs-iconbtn" aria-label="Scripture options" style={style} onClick={() => { haptic("select"); onClick(); }}><Feather name="more-vertical" size={18} /></button>;
 }
-function MenuItem({ icon, label, onClick }: { icon: "type" | "clock" | "bookmark" | "share-2"; label: string; onClick: () => void }) {
-  return <button type="button" className="bs-menu__item" onClick={onClick}><Feather name={icon} size={18} color="var(--bs-primary)" /><span>{label}</span></button>;
+/**
+ * Bible Strong's options menu (BibleOptionsMenu): a dropdown under the ⋮ button, not a sheet.
+ * Its items, in its order, and the Scripture search, which Bible Strong keeps in its search tab.
+ */
+function OptionsMenu({ hasChapterBookmark, onClose, onPick }: { hasChapterBookmark: boolean; onClose: () => void; onPick: (a: MenuAction) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => sheetOpened(), []);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    el.addEventListener("cj:close", onClose); window.addEventListener("keydown", onKey);
+    return () => { el.removeEventListener("cj:close", onClose); window.removeEventListener("keydown", onKey); };
+  }, [onClose]);
+  const items: [MenuAction, string, FeatherName][] = [
+    ["params", "Font and settings", "type"],
+    ["search", "Search the Scriptures", "search"],
+    ["history", "Recently viewed", "clock"],
+    ["bookmark", hasChapterBookmark ? "Edit bookmark" : "Add bookmark", "bookmark"],
+    ["export", "Export…", "share-2"],
+    ["newtab", "Open in new tab", "external-link"],
+  ];
+  return (
+    <>
+      <div className="bs-dropdown__catch" onClick={onClose} />
+      <div ref={ref} className="bs-dropdown" role="menu" aria-label="Passage options" data-sheet-open="">
+        <b className="bs-dropdown__title">Passage options</b>
+        {items.map(([a, label, icon]) => (
+          <button key={a} type="button" role="menuitem" className="bs-dropdown__item" onClick={() => { haptic("select"); onPick(a); }}>
+            <Feather name={icon} size={18} /><span>{label}</span>{["params", "bookmark", "export"].includes(a) ? <Feather name="chevron-right" size={16} /> : null}
+          </button>
+        ))}
+      </div>
+    </>
+  );
 }
 
 /** PassageContextButton: the 44 px bar under the header while a passage is focused. */
@@ -76,12 +101,18 @@ export function PassageContextBar({ focused, collapsed, onExpand, onCollapse, on
 }
 
 export function VersionSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState(false);
+  useEffect(() => { if (!open) { setQuery(""); setFilters(false); } }, [open]);
+  const matches = "KJV King James Version English Apocrypha".toLowerCase().includes(query.trim().toLowerCase());
   return (
-    <Sheet open={open} onClose={onClose} title="Version">
+    <HeaderPicker open={open} onClose={onClose} title="Version" right={<button type="button" className="bs-filterbtn" aria-label="Version filters" aria-expanded={filters} onClick={() => setFilters(!filters)}><Feather name="sliders" size={18} color="var(--bs-primary)" /></button>}>
+      <label className="bs-search"><Feather name="search" size={18} /><input aria-label="Search versions" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
+      {filters ? <p className="bs-tip">English · Public domain · Includes the Apocrypha</p> : null}
       <div className="bs-versions">
-        <button type="button" className="bs-versionrow" aria-current="true" onClick={onClose}><span className="bs-versionrow__id">KJV</span><span className="bs-versionrow__name">King James Version, with the Apocrypha</span><small>Public domain · the library's one text</small><Feather name="check" size={18} color="var(--bs-primary)" /></button>
+        {matches ? <><h3 className="bs-versions__language">English</h3><button type="button" className="bs-versionrow" aria-current="true" onClick={onClose}><span className="bs-versionrow__id">KJV</span><span className="bs-versionrow__name">King James Version, with the Apocrypha</span><small>Public domain · the library's one text</small><Feather name="check" size={18} color="var(--bs-primary)" /></button></> : <p className="bs-tip">No versions found.</p>}
       </div>
-    </Sheet>
+    </HeaderPicker>
   );
 }
 
