@@ -68,15 +68,24 @@ square, about 2 credits each.
 | Person id | Name | Higgsfield job | Notes |
 | --- | --- | --- | --- |
 | `abraham-gen-11-26` | Abraham | `d1367665-d3df-4eb5-8297-3cb03425665d` (alt `95e503d5`) | Style anchor; before Sinai, so no fringes |
-| `israel-gen-25-26` | Jacob (Israel) | `d8cdd3f4-532e-48e1-b378-39a173749d64` | Before Sinai |
-| `esau-gen-25-25` | Esau | `6c5de6b4-2836-4409-abf8-aa1d65dfbc7e` | Genesis 25:25 |
-| `moses-exo-2-10` | Moses | `3d1f4bdb-0b67-4e7f-aafe-00931ee834a1` | Fringes with ribband of blue |
+| `israel-gen-25-26` | Jacob (Israel) | `c936f6e7-8e2a-4439-9646-e1d4ec5824ac` (first try `d8cdd3f4`) | Before Sinai |
+| `esau-gen-25-25` | Esau | `06b67b2d-5b47-4ed0-bd52-e11dd0b1fc04` (first try `6c5de6b4`) | Genesis 25:25 |
+| `moses-exo-2-10` | Moses | `38bf3fad-5c53-4c38-ae77-56bf31b75384` (first try `3d1f4bdb`) | Fringes with ribband of blue |
 | `miriam-exo-15-20` | Miriam | `fa0d393b-b46f-46e5-8e18-ef6281142119` | Head covering |
 | `pharaoh-exo-1-11` | Pharaoh (Exodus 1) | `bdfc9d23-704d-4f94-84ef-dce8526d845a` | Hamite; nemes |
 | `david-rut-4-17` | David | `d7ac9e46-f2a7-4b7c-bacf-a3908ac5563c` | Judah; 1 Samuel 16:12 "ruddy" kept as a warm undertone |
 | `esther-est-2-7` | Esther | `3ef6af9f-75b4-4d7f-808c-fc8176baf56e` | Head covering |
 | `ebed-melech-jer-38-7` | Ebed-melech | `44356e8b-d569-49c8-bd93-22e5588e6aab` | Cushite |
-| `paul-act-7-58` | Paul | `ad4725f8-fdb4-4dda-a018-4e545f039e05` | Acts 21:38; bare-headed |
+| `paul-act-7-58` | Paul | `c456ddc2-2b27-4539-991f-f3315a5f8e81` (first try `ad4725f8`) | Acts 21:38; bare-headed |
+
+### Review of the pilot (after the image host was opened)
+
+- The set reads as one family (same light, palette and framing) and matches the brief.
+- Using Abraham's portrait as an image reference copied his face as well as the style: Moses came out as nearly the same man, and Israel and Paul were too close. Those three were regenerated **without** a face reference: Moses `38bf3fad-5c53-4c38-ae77-56bf31b75384`, Israel `c936f6e7-8e2a-4439-9646-e1d4ec5824ac`, Paul `c456ddc2-2b27-4539-991f-f3315a5f8e81`.
+- Esau's first version was a saturated, sunburnt red that read as caricature. It was regenerated with a natural ruddy complexion: `06b67b2d-5b47-4ed0-bd52-e11dd0b1fc04`. The alternate is `066e60ab-4334-4528-a2a4-e0d0010814fe`.
+- Open point: both Moses regenerations have twisted, loc-like hair rather than the tight woolly coils in the brief.
+- Most first-round images arrived painted inside a circle on a cream page. Derivatives are cropped inside that circle, so no cream ring shows in a round avatar.
+- Status: **pilot, awaiting approval.** None is in the app yet. In the Figma designs they are labelled "PILOT portrait (awaiting approval)", and people without one keep a lettered avatar labelled "TEMPORARY".
 
 The prompts are kept with each Higgsfield job and repeated in `app/public/people/manifest.json`
 once the images are brought into the repository.
