@@ -2,11 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
-import { data, fmtDate, type Person as P, type PersonRef } from "@/api/data";
+import { data, fmtDate, type Person as P } from "@/api/data";
 import { teacherRank } from "@/lib/taught";
 import { useBackButton } from "@/tg/hooks";
 import { haptic, openLink } from "@/tg/sdk";
-import { Chip, Chips, Empty, Screen, Section, Skeleton } from "@/ui/ui";
+import { avatarKind, EntityAvatar } from "@/ui/avatar";
+import { Empty, Screen, Section, Skeleton } from "@/ui/ui";
+import { FamilyGraph, relationsOf } from "./FamilyGraph";
 
 /**
  * A person of the Bible: their names, family and every verse they are named in (from
@@ -27,26 +29,29 @@ export function Person() {
   const bookName = (slug: string) => books.data?.find((b) => b.slug === slug)?.book ?? slug;
   const read = (ref: string) => { const [s, c, v] = ref.split("/"); haptic("select"); navigate(`/read/${s}/${c}?v=${v}`); };
   const taught = [...d.taught].sort((a, b) => teacherRank(a.note.teacher) - teacherRank(b.note.teacher) || b.note.date.localeCompare(a.note.date));
-  const family: [string, PersonRef[]][] = [["Father", d.father], ["Mother", d.mother], [d.type === "Male" ? (d.partners.length > 1 ? "Wives" : "Wife") : d.type === "Female" ? (d.partners.length > 1 ? "Husbands" : "Husband") : "Married to", d.partners], ["Brothers and sisters", d.siblings], ["Children", d.children]];
   // Every verse, grouped by book in order.
   const groups: [string, string[]][] = [];
   for (const ref of d.verses) { const s = ref.split("/")[0]; const g = groups[groups.length - 1]; if (g && g[0] === s) g[1].push(ref); else groups.push([s, [ref]]); }
   const shown = all ? groups : groups.slice(0, 6);
 
   return (
-    <Screen title={d.name} kicker={d.description}>
-      {d.names.length > 1 ? <p className="person__aka">Also called {d.names.filter((n) => n !== d.name).join(", ")}</p> : null}
+    <Screen>
+      <header className="person__card">
+        <EntityAvatar name={d.name} kind={avatarKind(d.type)} size={64} />
+        <div>
+          <small className="person__eyebrow">{[d.type === "Female" ? "Woman" : d.type === "Male" ? "Man" : "Person", d.tribe].filter(Boolean).join(" · ")}</small>
+          <h1>{d.name}</h1>
+          {d.description ? <p>{d.description}</p> : null}
+          {d.names.length > 1 ? <p className="person__aka">Also called {d.names.filter((n) => n !== d.name).join(", ")}</p> : null}
+          <button type="button" className="person__first" onClick={() => read(d.verses[0])} disabled={!d.verses.length}>
+            First named in {d.verses.length ? (() => { const [s0, c, v] = d.verses[0].split("/"); return `${bookName(s0)} ${c}:${v}`; })() : "—"} · {d.verses.length} {d.verses.length === 1 ? "verse" : "verses"}
+          </button>
+        </div>
+      </header>
 
-      {family.some(([, l]) => l.length) ? (
-        <Section title="Family">
-          <div className="person__family">
-            {family.filter(([, l]) => l.length).map(([label, list]) => (
-              <div key={label} className="person__rel">
-                <small>{label}</small>
-                <Chips>{list.map((r) => <Chip key={r.id} onClick={() => navigate(`/person/${r.id}`)}>{r.name}</Chip>)}</Chips>
-              </div>
-            ))}
-          </div>
+      {relationsOf(d).length ? (
+        <Section title="Relationships">
+          <FamilyGraph person={d} onOpenProfile={(pid) => navigate(`/person/${pid}`)} />
         </Section>
       ) : null}
 
