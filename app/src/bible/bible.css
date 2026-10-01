@@ -399,7 +399,8 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-gallery { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; overflow: hidden; overscroll-behavior: contain; -webkit-user-select: none; user-select: none;
   background: color-mix(in srgb, var(--deck-bg) 0%, transparent);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-#root .bs-gallery__close, .bs-gallery__close { position: fixed; top: max(24px, calc(var(--safe-top, 0px) + 10px)); right: 14px; z-index: 2; display: grid; place-items: center; width: 38px; height: 38px; margin: 0; padding: 0; border: 0; border-radius: 19px; box-shadow: 0 4px 14px rgba(0, 0, 0, .22); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+/* Bottom centre, where the Home drawer keeps its close: one place to close a full-screen view. */
+#root .bs-gallery__close, .bs-gallery__close { position: fixed; left: 50%; bottom: calc(var(--sp-6, 24px) + var(--safe-bottom, 0px)); z-index: 2; display: grid; place-items: center; width: 52px; height: 52px; margin: 0 0 0 -26px; padding: 0; border: 0; border-radius: 26px; box-shadow: 0 4px 14px rgba(0, 0, 0, .22); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .bs-gallery__scroll { width: 100%; height: 100%; min-height: 0; overflow-y: scroll; -webkit-overflow-scrolling: touch; touch-action: pan-y; overscroll-behavior: contain; box-sizing: border-box;
   padding: max(30px, calc(var(--safe-top, 0px) + 14px)) 16px max(280px, calc(var(--safe-bottom, 0px) + 220px)); }
 .bs-gallery__grid { width: 100%; max-width: 500px; margin: 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: center; align-items: start; gap: 14px; }
