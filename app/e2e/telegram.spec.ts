@@ -1039,7 +1039,19 @@ test("Reader: the chapter ends with a deck of every class that taught it", async
   await expect(page.locator(".bs-gallery")).toHaveCount(0);
 });
 
+/** The notes-request API as the worker serves it, kept in the page: CI's worker has no bot token to check the reader with. */
+async function mockNoteRequests(page: Page) {
+  const asked: { video: string; title: string }[] = [];
+  await page.route("**/api/requests/*", (r) => {
+    const video = r.request().url().split("/").pop()!.split("?")[0];
+    if (r.request().method() === "POST") { asked.push({ video, title: (r.request().postDataJSON() as { title: string }).title }); return r.fulfill({ json: { ok: true, count: 3, mine: true, added: true } }); }
+    return r.fulfill({ json: { ok: true, count: 2, mine: false } });
+  });
+  return asked;
+}
+
 test("Reader: a class read in the chapter without notes plays in place, and its notes can be requested", async ({ page }) => {
+  const asked = await mockNoteRequests(page);
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await page.locator("#verset-31").scrollIntoViewIfNeeded();
   const deck = page.locator('.bs-deck:not(#verset-31 *)').last();
@@ -1054,9 +1066,12 @@ test("Reader: a class read in the chapter without notes plays in place, and its 
   const ask = page.locator(".bs-player__actions .request-notes");
   await expect(ask).toBeVisible();
   await expect(page.locator(".bs-player__actions button", { hasText: "Class notes" })).toHaveCount(0);
-  if (await ask.isEnabled()) await ask.click();
-  await expect(ask).toHaveText(/^Notes requested/);
+  await expect(ask).toHaveText("Request notes · 2 asked");
+  await ask.click();
+  await expect(ask).toHaveText("Notes requested · you and 2 others");
   await expect(ask).toBeDisabled();
+  expect(asked).toHaveLength(1);
+  expect(asked[0].title).not.toBe("");
 });
 
 test("Ask is on the bottom bar: it opens Ask CyberJudah in its own tab", async ({ page }) => {
@@ -1362,12 +1377,14 @@ test("the bar follows the reading: a capsule while scrolling down, back on scrol
 });
 
 test("a class without notes says so on its page, and its notes can be requested", async ({ page }) => {
+  const asked = await mockNoteRequests(page);
   await page.goto(`/watch/UJ0nRIVRPls?t=339${LAUNCH}`);
   const wanted = page.locator(".notes-wanted");
   await expect(wanted).toContainText("No notes for this class yet");
   const ask = wanted.locator(".request-notes");
-  if (await ask.isEnabled()) await ask.click();
-  await expect(ask).toHaveText(/^Notes requested/);
+  await ask.click();
+  await expect(ask).toHaveText("Notes requested · you and 2 others");
+  expect(asked).toEqual([{ video: "UJ0nRIVRPls", title: expect.any(String) }]);
 });
 
 test("admins see the classes most asked for, copy their ids for the draft-notes workflow, and mark them done", async ({ page }) => {
