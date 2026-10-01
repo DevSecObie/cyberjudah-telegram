@@ -1040,8 +1040,11 @@ test("Classes: the series with their counts, months as headings, and the search 
   await series.getByRole("button", { name: /^Captains\s?[\d,]+$/ }).click();
   await expect(page).toHaveURL(/feed=captains/);
   await expect(page.locator(".classes__month").first().locator(".cases__eraname")).toHaveText(/^[A-Z][a-z]+ \d{4}\d+$/);
-  await series.getByRole("button", { name: /^All\s?[\d,]+$/ }).click();
   await page.fill("#class-q", "passover");
+  // A series changed with a search typed keeps the search.
+  await series.getByRole("button", { name: /^All\s?[\d,]+$/ }).click();
+  await expect(page).not.toHaveURL(/feed=/);
+  await expect(page.locator("#class-q")).toHaveValue("passover");
   const card = page.locator(".feed__card").first();
   await expect(card).toBeVisible();
   const title = await card.locator("b").innerText();

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useLocation } from "react-router";
+import { useLocation, useNavigationType } from "react-router";
 
 /**
  * The reader's place on a screen, kept for this visit: how far down they were and what they had
@@ -14,9 +14,19 @@ const write = (k: string, v: unknown) => { try { sessionStorage.setItem(k, JSON.
 export function useVisitState<T>(name: string, initial: T): [T, (next: T | ((prev: T) => T)) => void] {
   const { key } = useLocation();
   const k = `visit:${key}:${name}`;
+  const nav = useNavigationType();
   const [value, setValue] = useState<T>(() => read<T>(k) ?? initial);
+  const latest = useRef(value);
+  latest.current = value;
   const seen = useRef(k);
-  useEffect(() => { if (seen.current !== k) { seen.current = k; setValue(read<T>(k) ?? initial); } }, [k]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (seen.current === k) return;
+    seen.current = k;
+    const kept = read<T>(k);
+    // A filter changed in place (a replace) is the same visit: what was typed goes with it.
+    if (kept === undefined && nav === "REPLACE") write(k, latest.current);
+    else setValue(kept ?? initial);
+  }, [k]); // eslint-disable-line react-hooks/exhaustive-deps
   const set = useCallback((next: T | ((prev: T) => T)) => setValue((prev) => {
     const v = typeof next === "function" ? (next as (p: T) => T)(prev) : next;
     write(k, v); return v;
