@@ -1353,3 +1353,51 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 .chats__state { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .chats__why { margin: 2px 12px 8px; font: 500 13px var(--a-ui); color: var(--a-hot, #f87171); }
 .chats__row[aria-busy="true"] { opacity: .6; }
+
+/* A person's avatar: the picture when there is one, else the name's first letter on its kind's tint. */
+.avatar { --av-ink: var(--a-accent); flex: none; display: inline-grid; place-items: center; box-sizing: border-box; overflow: hidden; border-radius: 50%; background: color-mix(in srgb, var(--av-ink) 18%, var(--av-base, var(--a-card))); color: var(--av-ink); font-family: var(--a-ui, system-ui), sans-serif; font-weight: 700; line-height: 1; }
+.avatar[data-kind="female"] { --av-ink: var(--a-hot); }
+.avatar[data-kind="group"], .avatar[data-kind="other"] { --av-ink: var(--a-muted); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* A person (Bible Strong's StrongEntitySummaryCard): the avatar, what they were, the name. */
+.person__card { display: flex; gap: 14px; align-items: flex-start; margin: 4px 0 18px; }
+.person__card h1 { margin: 2px 0 4px; font: 700 28px/1.15 var(--a-ui); color: var(--a-ink); }
+.person__card p { margin: 0 0 4px; color: var(--a-ink-2); font: 400 14.5px/1.45 var(--a-ui); }
+.person__eyebrow { display: block; color: var(--a-muted); font: 600 11.5px var(--a-ui); letter-spacing: .06em; text-transform: uppercase; }
+#root button.person__first { display: inline-block; text-align: left; margin-top: 6px; padding: 5px 10px; border: 0; border-radius: 10px; background: color-mix(in srgb, var(--a-ink) 7%, transparent); color: var(--a-ink-2); font: 600 12px var(--a-ui); cursor: pointer; }
+
+/* The family graph (Bible Strong's StrongEntityRelationGraph): a card, the person in the middle, the family around. */
+.fg { border: 1px solid var(--a-line); border-radius: 20px; background: var(--a-card); overflow: hidden; }
+.fg__stage { position: relative; overflow: hidden; }
+.fg__lines { position: absolute; inset: 0; pointer-events: none; }
+.fg__lines line { stroke: var(--a-line); stroke-width: 1.4; animation: fg-fade .3s ease backwards; }
+.fg__lines .fg__line--back { stroke: color-mix(in srgb, var(--a-accent) 55%, transparent); stroke-dasharray: 4 4; }
+.fg__scene { position: absolute; inset: 0; }
+.fg__center { position: absolute; width: 82px; height: 82px; animation: fg-center .32s cubic-bezier(.2, 1.12, .32, 1) backwards; }
+.fg__sat { position: absolute; width: 58px; height: 58px; animation: fg-out .36s cubic-bezier(.2, 1.12, .32, 1) backwards; }
+#root button.fg__node { position: relative; display: block; margin: 0; padding: 0; border: 0; background: none; border-radius: 50%; cursor: pointer; transition: transform 120ms ease, opacity 120ms ease; -webkit-tap-highlight-color: transparent; }
+#root button.fg__node:active { transform: scale(.96); opacity: .8; }
+#root button.fg__node:disabled { cursor: default; }
+.fg__node .avatar { border: 1px solid var(--a-line); }
+.fg__node--center .avatar { border: 2px solid var(--a-accent); }
+.fg__node[aria-busy] .avatar { animation: fg-pulse .8s ease infinite alternate; }
+.fg__back { position: absolute; left: -4px; top: -4px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--a-card); color: var(--a-accent); box-shadow: 0 1px 4px rgba(0, 0, 0, .2); }
+.fg__label { position: absolute; top: calc(100% + 4px); display: flex; flex-direction: column; align-items: center; text-align: center; }
+.fg__label--center { width: 120px; left: -19px; }
+.fg__label b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 12px/1.25 var(--a-ui); color: var(--a-ink); }
+.fg__label--center b { font-size: 15px; }
+.fg__chip { display: inline-flex; align-items: center; gap: 3px; max-width: 100%; margin-top: 3px; padding: 3px 7px; border-radius: 12px; background: color-mix(in srgb, var(--a-ink) 8%, transparent); color: color-mix(in srgb, var(--a-ink) 55%, transparent); font: 700 9px var(--a-ui); white-space: nowrap; overflow: hidden; }
+#root button.fg__chip--profile { border: 0; color: var(--a-muted); font: 700 9px var(--a-ui); cursor: pointer; }
+.fg__foot { position: relative; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 0; border-top: 1px solid var(--a-line); color: var(--a-muted); font: 700 12px var(--a-ui); font-variant-numeric: tabular-nums; }
+#root button.fg__page, #root button.fg__hist { display: grid; place-items: center; width: 34px; height: 34px; margin: 0; padding: 0; border: 0; border-radius: 17px; background: none; color: var(--a-ink-2); cursor: pointer; }
+#root button.fg__page:disabled { opacity: .3; cursor: default; }
+#root button.fg__hist { position: absolute; background: color-mix(in srgb, var(--a-ink) 7%, transparent); animation: fg-fade .2s ease backwards; }
+.fg__hist--left { left: 10px; }
+.fg__hist--right { right: 10px; }
+@keyframes fg-out { from { opacity: 0; transform: translate(var(--fg-dx), var(--fg-dy)) scale(.4); } }
+@keyframes fg-center { from { opacity: 0; transform: scale(.7); } }
+@keyframes fg-fade { from { opacity: 0; } }
+@keyframes fg-pulse { to { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .fg__sat, .fg__center, .fg__lines line, #root button.fg__hist { animation: none; } }
+.person__card .person__aka { margin: 0 0 4px; }
