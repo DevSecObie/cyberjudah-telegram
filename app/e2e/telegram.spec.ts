@@ -789,10 +789,10 @@ test("People: who is named in a verse, a page per person with family, the classe
   await expect(page.locator(".bs-resrow b")).toHaveText(["Abraham", "Lot", "Sarah"]);
   await page.locator(".bs-resrow", { hasText: "Abraham" }).click();
   await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
-  await expect(page.locator(".person__card h1")).toHaveText("Abraham");
-  await expect(page.locator(".person__eyebrow")).toHaveText("Man · Early Patriarch");
-  await expect(page.locator(".person__aka")).toContainText("Abram");
-  await expect(page.locator(".person__teach").first()).toBeVisible();
+  await expect(page.locator(".entity__name")).toHaveText("Abraham");
+  await expect(page.locator(".entity__summary .entity__eyebrow")).toHaveText("Person · Early Patriarch");
+  await expect(page.locator(".entity__aka")).toContainText("Abram");
+  await expect(page.getByRole("region", { name: "What the classes taught" }).locator(".scard").first()).toBeVisible();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/person.png` });
   // The family graph (Bible Strong's relationship graph): walk it, page it, go back, start again, open a profile.
   const graph = page.locator(".fg");
@@ -817,13 +817,91 @@ test("People: who is named in a verse, a page per person with family, the classe
   await expect(graph.locator(".fg__label--center b")).toHaveText("Terah");
   await graph.getByRole("button", { name: "View Terah's profile" }).click();
   await expect(page).toHaveURL(/\/person\/terah-gen-11-24/);
-  await expect(page.locator(".person__card h1")).toHaveText("Terah");
+  await expect(page.locator(".entity__name")).toHaveText("Terah");
   // Search the Scriptures finds a person by name.
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await page.click('.bs-iconbtn[aria-label="Scripture options"]');
   await page.click(".bs-dropdown__item >> text=Search the Scriptures");
   await page.fill(".bs-search__field input", "abra");
   await expect(page.locator(".bs-search__go", { hasText: "Abraham" })).toBeVisible();
+});
+
+for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 }]) {
+  test(`People: a person as Bible Strong shows one, scripture cards that go to their verse, and back to the same place (${viewport.width}px)`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto(`/people${LAUNCH}`);
+    await page.fill("#people-q", "abraham");
+    await page.locator(".row", { hasText: "Abraham" }).first().click();
+    await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
+    // The summary card: what they are, the name, their Strong's number (to the word study), who they were.
+    await expect(page.locator(".entity__summary .entity__eyebrow")).toHaveText("Person · Early Patriarch");
+    await expect(page.getByRole("heading", { level: 1, name: "Abraham" })).toBeVisible();
+    await expect(page.locator(".entity__code").first()).toHaveText("H87");
+    await expect(page.locator(".entity__desc")).toContainText("Patriarchs");
+    await expect(page.getByRole("region", { name: "Relationships" }).locator(".fg")).toBeVisible();
+    // Scripture cards: the reference and the King James text.
+    const verses = page.getByRole("region", { name: "Verses" });
+    await expect(verses.locator(".entity__note")).toHaveText("First named in Genesis 11:26");
+    const first = verses.locator(".scard").first();
+    await expect(first.locator(".scard__ref")).toHaveText("Genesis 11:26");
+    await expect(first.locator(".scard__text")).toHaveText(/^And Terah lived seventy years, and begat Abram, Nahor, and Haran\.\s*$/);
+    const taught = page.getByRole("region", { name: "What the classes taught" });
+    await expect(taught.locator(".scard").first().locator(".scard__text")).toHaveText(/\w{3,}/);
+    await expect(taught.locator(".scard").first().locator(".scard__src a")).toHaveAttribute("href", /\/note\/classes\//);
+    // More verses, then one of them in the reader, picked out.
+    await verses.getByRole("button", { name: /^Show 10 more/ }).click();
+    await expect(verses.locator(".scard")).toHaveCount(15);
+    const card = verses.locator(".scard").nth(11);
+    await card.scrollIntoViewIfNeeded();
+    await expect(card.locator(".scard__text")).toHaveText(/\w{3,}/);
+    const ref = await card.locator(".scard__ref").innerText();
+    const [, c, v] = /(\d+):(\d+)$/.exec(ref)!;
+    const y = await page.evaluate(() => Math.round(scrollY));
+    expect(y).toBeGreaterThan(200);
+    await card.getByRole("link", { name: /^Go to verse/ }).click();
+    await expect(page).toHaveURL(new RegExp(`/read/[a-z0-9-]+/${c}\\?v=${v}$`));
+    await expect(page.locator(`#verset-${v}`)).toBeVisible();
+    await expect(page.locator(`#verset-${+v + 3}`)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Read whole chapter" })).toBeVisible();
+    // Back: the same person, the same cards open, the same place.
+    await press(page, "back");
+    await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
+    await expect(verses.locator(".scard")).toHaveCount(15);
+    await expect.poll(() => page.evaluate(() => Math.round(scrollY))).toBeGreaterThan(y - 40);
+    expect(await page.evaluate(() => Math.round(scrollY))).toBeLessThan(y + 40);
+    // A relative's profile from the graph, and back again.
+    await page.getByRole("region", { name: "Relationships" }).getByRole("button", { name: "Father, Terah" }).click();
+    await page.getByRole("button", { name: "View Terah's profile" }).click();
+    await expect(page).toHaveURL(/\/person\/terah-gen-11-24/);
+    await expect(page.getByRole("heading", { level: 1, name: "Terah" })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => Math.round(scrollY))).toBeLessThan(5);
+    await press(page, "back");
+    await expect(page.getByRole("heading", { level: 1, name: "Abraham" })).toBeVisible();
+    // Back to everyone: the search is as it was.
+    await press(page, "back");
+    await expect(page.locator("#people-q")).toHaveValue("abraham");
+    if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/people-${viewport.width}.png` });
+  });
+}
+
+test("People: a Strong's number opens its word study, a class card opens the class, a person who does not load says so", async ({ page }) => {
+  await page.goto(`/person/abraham-gen-11-26${LAUNCH}`);
+  await page.locator(".entity__code", { hasText: "H87" }).click();
+  await expect(page).toHaveURL(/\/lexicon\/H87$/);
+  await press(page, "back");
+  const taught = page.getByRole("region", { name: "What the classes taught" }).locator(".scard").first();
+  const watch = taught.getByRole("button", { name: /^Watch/ });
+  if (await watch.count()) {
+    await watch.click();
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.some((r) => r[0] === "openLink" && /youtube\.com\/watch\?v=/.test(String(r[1]))))).toBe(true);
+  }
+  await taught.locator(".scard__src a").click();
+  await expect(page).toHaveURL(/\/note\/classes\//);
+  await page.route("**/api/people/nobody-here.json", (r) => r.fulfill({ status: 500, body: "" }));
+  await page.goto(`/person/nobody-here${LAUNCH}`);
+  await expect(page.getByText("This person did not load")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "browse everyone" })).toHaveAttribute("href", "/people");
 });
 
 test("Library: The Lost Tribes a Myth, page by page with its scans and maps, and the classes that read it", async ({ page }) => {
