@@ -228,7 +228,7 @@ function DeckOverlay({ items, sections, source, palette: c, reference, from, mod
       style={{ ["--deck-bg" as string]: c.reverse, ["--deck-ink" as string]: c.default, ["--deck-primary" as string]: c.primary, color: c.default }}
       onClick={close}>
       <button type="button" className="bs-gallery__close" aria-label="Close" style={{ background: c.reverse, color: c.default }} onClick={(e) => { e.stopPropagation(); close(); }}>
-        <Feather name="x" size={21} color={c.default} />
+        <Feather name="x" size={24} color={c.default} />
       </button>
       {mode === "gallery" ? (
         <div className="bs-gallery__scroll">
