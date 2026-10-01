@@ -1,0 +1,92 @@
+# People avatars: depiction brief and asset record
+
+Illustrated avatars for the People section, the relationship diagrams, case studies, search
+results and person cards. They are artistic representations, **not historical portraits**. The
+assembly's own teaching is the authority for how people are shown. Conventional European religious
+art is not used as a reference.
+
+Generated with **Higgsfield** in the project "CyberJudah People Avatars". Every asset is keyed by the
+stable person id from `data/people/people.json` (cyberjudah repo), never by name alone: there are
+six records named Mary and 460 names shared by more than one person.
+
+## 1. What the teaching settles (source-supported)
+
+Sources are the class notes and transcripts in the cyberjudah repo. Paths are relative to that repo,
+and teachers are named as the class gives them.
+
+| Subject | The class's understanding | Where it was taught |
+| --- | --- | --- |
+| Israelites: complexion | Black; Lamentations 4:8 and 5:10 ("already black, and blacker in famine"); Job 30:30; Song of Solomon 1:5 ("Solomon was a black man according to the scripture") | Deacon Malachi, `blog/2026/2026-05-26-…superiority-of-the-chosen-people.md:651`; `…false-new-year…md:93-95` [1:21:59]; `17tibtypANE` [7:37] |
+| Israelites passed as Egyptians | Joseph (Genesis 42), Moses (Exodus 2:19) and Paul (Acts 21:38) were taken for Egyptians; Moses' hand turned "leprous as snow" (Exodus 4:6) | `…false-new-year…md:59-108` [56:28], [1:16:07], [1:37:04]; `EMJJP5C1wDk` [27:54] |
+| Range of shades | Hosea 7:8, "a cake not turned": some are very light and some very dark; "the Lord knows who they are regardless of skin tone" | Elder Nathanyel, `blog/2012/2012-12-24-…truth-of-thanksgiving.md:269`; `…2026-02-14-…iranians-the-ephesians.md:35` |
+| Israelites: hair | Woolly, kinky hair (Revelation 1:14 read of Israel's hair) | `10DhxclyWPc` [13:57] |
+| Beard | Leviticus 19:27 and 21:5: the beard is kept with its natural line. It may be trimmed but is not shaved; no bald heads. | `-YJvTD2P_7I` [34:21]; `1KThtHZBGy4` [31:42] |
+| Fringes | Numbers 15:38: fringes on the borders, held by a ribband of blue. They are a sign of identity: "The fringes, the beard, and the Sabbath are what separate you". | `-eRRg7pa8sk` [2:31:15]-[2:45:01]; Captain Osee, `…2026-03-21-mindset-of-a-leader…md:174` |
+| Women | A wrap or head covering (1 Corinthians 11); modest dress, skirts not pants (Deuteronomy 22:5); 1 Peter 3:3-4 | `-RHCA5UNOlg` [3:30:27]; `0N1tUWScwMU` [1:57:19]; Deacon Yashua, `…2026-09-12-she-reverence…md:319` |
+| Men | Uncovered head (1 Corinthians 11) | `08mCpZzZOtE` [10:03] |
+| Hamites (Egypt, Cush, Canaan, Philistia) | Black: "the Egyptians were Hamites, black folks"; Kush, "pure Hamites"; "everybody in that region was black" | Bishop Nathanyel, `…2026-03-28-religion-the-false-prophet.md:236-237`; `…2026-05-02-jude-116.md:307`; `…2026-05-30-god-purpose-and-sacrifice.md:176` |
+| Edom (Esau) | Genesis 25:25, "red all over like an hairy garment"; born without pigment, so the blood showed through; thin, stringy hair "not woolly like a sheep" | Bishop Nathanyel, `…2026-02-08-edom-s-achilles-heel.md:258` [1:15:24]; `…2026-02-14-fighting-satan…md:188`; `…2026-04-03-edom…md:150` |
+
+## 2. Artistic choices (not settled by the teaching)
+
+- **Style:** a matte gouache and oil painting. Head and shoulders in three-quarter view, with soft
+  warm light from the upper left and a plain gradient of muted deep slate blue. The face is centred
+  with headroom so a circle crop keeps it whole. The style keeps detail low enough to read at 28px.
+- **Dress:** plain undyed wool and linen in earth tones, as fits each period. Royal figures get a
+  simple circlet or the regalia of their own nation (for example Pharaoh's nemes).
+- **Fringes before Sinai:** the commandment came at Sinai (Numbers 15), so the patriarchs before it
+  (Abraham, Jacob) are shown without fringes. This is our choice, not a ruling.
+- **Character:** expressions are calm and dignified for everyone, Esau and the Pharaohs included.
+  No one's righteousness or wickedness is shown through skin tone, features or looks.
+- **Never in the artwork:** text or names (labels are rendered by the interface), halos, crosses,
+  light rays, horns, wings, weapons or armour, or modern clothing.
+
+## 3. Waiting for direction (not generated)
+
+These people are left out until the assembly's understanding is confirmed:
+
+- **Christ** needs a separate, reference-backed brief first. The classes teach woolly hair and a very
+  dark complexion (Revelation 1:14-15; Bishop Nathanyel, `data/precepts/classes/Dvja0vhkJ6o.json`
+  1:44:41; Deacon Malachiyah, `…2026-08-22-lucifer-the-antichrist.md:227-229`). Nothing yet says
+  whether an app avatar is fitting.
+- **The Most High** is never depicted.
+- **Roman, Greek and Herodian officials** (Pilate, Tiberius, the Herods) are taught as Edom by
+  lineage. Nothing yet says whether to show them with Esau's complexion.
+- **Nations without a description:** Moab, Midian, Arabia and Sheba (Ruth, Zipporah, the Queen of
+  Sheba), Babylon (Nebuchadnezzar) and Persia.
+- **Unidentified or group records** (76 groups, and 1,637 records with no nation) get no generated
+  face. They keep the lettered avatar.
+
+## 4. Pilot
+
+Ten portraits, one per person. Each was generated from the style anchor (Abraham, job `d1367665`) as
+an image reference so the set stays consistent.
+
+Model: requested `nano_banana_pro`; Higgsfield reported the jobs as `nano_banana_2`. Resolution 1k,
+square, about 2 credits each.
+
+| Person id | Name | Higgsfield job | Notes |
+| --- | --- | --- | --- |
+| `abraham-gen-11-26` | Abraham | `d1367665-d3df-4eb5-8297-3cb03425665d` (alt `95e503d5`) | Style anchor; before Sinai, so no fringes |
+| `israel-gen-25-26` | Jacob (Israel) | `d8cdd3f4-532e-48e1-b378-39a173749d64` | Before Sinai |
+| `esau-gen-25-25` | Esau | `6c5de6b4-2836-4409-abf8-aa1d65dfbc7e` | Genesis 25:25 |
+| `moses-exo-2-10` | Moses | `3d1f4bdb-0b67-4e7f-aafe-00931ee834a1` | Fringes with ribband of blue |
+| `miriam-exo-15-20` | Miriam | `fa0d393b-b46f-46e5-8e18-ef6281142119` | Head covering |
+| `pharaoh-exo-1-11` | Pharaoh (Exodus 1) | `bdfc9d23-704d-4f94-84ef-dce8526d845a` | Hamite; nemes |
+| `david-rut-4-17` | David | `d7ac9e46-f2a7-4b7c-bacf-a3908ac5563c` | Judah; 1 Samuel 16:12 "ruddy" kept as a warm undertone |
+| `esther-est-2-7` | Esther | `3ef6af9f-75b4-4d7f-808c-fc8176baf56e` | Head covering |
+| `ebed-melech-jer-38-7` | Ebed-melech | `44356e8b-d569-49c8-bd93-22e5588e6aab` | Cushite |
+| `paul-act-7-58` | Paul | `ad4725f8-fdb4-4dda-a018-4e545f039e05` | Acts 21:38; bare-headed |
+
+The prompts are kept with each Higgsfield job and repeated in `app/public/people/manifest.json`
+once the images are brought into the repository.
+
+## 5. Asset handling
+
+- **Originals:** the 1k PNGs, kept outside the app bundle.
+- **App copies:** WebP files at 256px (profile header), 128px (cards and lists) and 64px (graph
+  nodes and small chips) in `app/public/people/<id>-<size>.webp`.
+- **Display:** width and height are reserved on every `<img>`, and images below the fold load lazily.
+- **Accessibility:** the image is decorative (`alt=""`). The person's name from the record is the
+  accessible name, so screen readers don't hear it twice.
+- **Fallback:** a person without an approved avatar keeps the lettered avatar.
