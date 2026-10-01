@@ -45,7 +45,6 @@ export const PORTRAITS: ReadonlySet<string> = new Set([
   "elimelech-rut-1-2",
   "eliphaz-gen-36-4",
   "elishama-num-1-10",
-  "enoch-gen-4-17",
   "enoch-gen-5-18",
   "enosh-gen-4-26",
   "ephraim-gen-41-52",
