@@ -39,9 +39,11 @@ export function usePassage(r: VerseRef | null) {
  * in the reader with its verses picked out. Whatever else belongs with the verse (what a class
  * taught on it, a link to the class) goes in between.
  */
-export function ScriptureCard({ at, label, children, extra }: { at: VerseRef; label: string; children?: ReactNode; extra?: ReactNode }) {
-  const p = usePassage(at);
-  const many = at.to > at.from;
+export function ScriptureCard({ at, label, children, extra, verses, href }: { at: VerseRef; label: string; children?: ReactNode; extra?: ReactNode; verses?: { verse: number; text: string }[]; href?: string }) {
+  // The text where the page already has it (a case's scripture), else from its chapter.
+  const fetched = usePassage(verses?.length ? null : at);
+  const p = verses?.length ? { ...fetched, isPending: false, isError: false, verses } : fetched;
+  const many = p.verses.length > 1;
   return (
     <article className="scard" aria-label={label}>
       <header className="scard__head"><h3 className="scard__ref">{label}</h3><span className="scard__ver">KJV</span></header>
@@ -55,7 +57,7 @@ export function ScriptureCard({ at, label, children, extra }: { at: VerseRef; la
       {children}
       <footer className="scard__foot">
         {extra}
-        <Link to={refHref(at)} className="scard__go" aria-label={`Go to verse: ${label}`} onClick={() => haptic("select")}>Go to verse<Feather name="chevron-right" size={16} color="currentColor" /></Link>
+        <Link to={href ?? refHref(at)} className="scard__go" aria-label={`Go to verse: ${label}`} onClick={() => haptic("select")}>Go to verse<Feather name="chevron-right" size={16} color="currentColor" /></Link>
       </footer>
     </article>
   );
