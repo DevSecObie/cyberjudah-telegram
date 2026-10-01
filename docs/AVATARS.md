@@ -232,9 +232,9 @@ KJV. These are corrected before generating:
 - Esau's Hittite wives, Judith and Adah (Bashemath), and their fathers Beeri and Elon are tagged
   "Edom". Heth is a son of Canaan (Genesis 10:15), so they are shown as Hamites of Canaan.
 
-### Status (154 portraits in the app)
+### Status (178 portraits in the app)
 
-154 portraits pass review and are in the app. These are waiting to be redone under the rules above
+178 portraits pass review and are in the app. These are waiting to be redone under the rules above
 and keep the lettered avatar until they are:
 
 - Kings that came out with plain gold bands, and the Pharaohs.
