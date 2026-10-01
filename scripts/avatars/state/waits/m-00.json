@@ -1,0 +1,120 @@
+{
+ "jobs": [
+  {
+   "index": 0,
+   "job_id": "23288231-fb2b-42d2-8d0c-9a8b5c1ff819",
+   "status": "completed",
+   "type": "image",
+   "model": "nano_banana_2",
+   "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_132937_23288231-fb2b-42d2-8d0c-9a8b5c1ff819.png"
+  },
+  {
+   "index": 1,
+   "job_id": "09491119-ce82-4cc8-97bc-27b2482daea5",
+   "status": "completed",
+   "type": "image",
+   "model": "nano_banana_2",
+   "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_132937_09491119-ce82-4cc8-97bc-27b2482daea5.png"
+  },
+  {
+   "index": 2,
+   "job_id": "8a89ba73-973d-4a9d-8805-8d8172a1c476",
+   "status": "completed",
+   "type": "image",
+   "model": "nano_banana_2",
+   "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_132936_8a89ba73-973d-4a9d-8805-8d8172a1c476.png"
+  },
+  {
+   "index": 3,
+   "job_id": "c0c69024-cfc9-4cbe-b2d7-b4302e827bc0",
+   "status": "completed",
+   "type": "image",
+   "model": "nano_banana_2",
+   "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_132937_c0c69024-cfc9-4cbe-b2d7-b4302e827bc0.png"
+  },
+  {
+   "index": 4,
+   "job_id": "c8bb35ad-fa30-4f55-bbc8-7162700cb9eb",
+   "status": "completed",
+   "type": "image",
+   "model": "nano_banana_2",
+   "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_132936_c8bb35ad-fa30-4f55-bbc8-7162700cb9eb.png"
+  },
+  {
+   "index": 5,
+   "job_id": "5d947028-6dab-4fef-9125-2f2d00fd5f71",
+   "status": "completed",
+   "type": "image",
+   "model": "nano_banana_2",
+   "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_132936_5d947028-6dab-4fef-9125-2f2d00fd5f71.png"
+  },
+  {
+   "index": 6,
+   "job_id": "6421a2b5-fb11-4783-8309-a27a6a783cf7",
+   "status": "completed",
+   "type": "image",
+   "model": "nano_banana_2",
+   "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_132936_6421a2b5-fb11-4783-8309-a27a6a783cf7.png"
+  },
+  {
+   "index": 7,
+   "job_id": "a6203619-62d6-4f15-ab4d-af42b5d11c7e",
+   "status": "completed",
+   "type": "image",
+   "model": "nano_banana_2",
+   "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_132937_a6203619-62d6-4f15-ab4d-af42b5d11c7e.png"
+  },
+  {
+   "index": 8,
+   "job_id": "792f1d0c-8baf-4b45-8dbe-5951595a8e6e",
+   "status": "completed",
+   "type": "image",
+   "model": "nano_banana_2",
+   "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_132938_792f1d0c-8baf-4b45-8dbe-5951595a8e6e.png"
+  },
+  {
+   "index": 9,
+   "job_id": "5943d0d9-be57-4a54-98c9-d53b010a02c6",
+   "status": "completed",
+   "type": "image",
+   "model": "nano_banana_2",
+   "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_132936_5943d0d9-be57-4a54-98c9-d53b010a02c6.png"
+  },
+  {
+   "index": 10,
+   "job_id": "0a6a6182-e23c-460d-a24c-07ddfb401726",
+   "status": "completed",
+   "type": "image",
+   "model": "nano_banana_2",
+   "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_132937_0a6a6182-e23c-460d-a24c-07ddfb401726.png"
+  },
+  {
+   "index": 11,
+   "job_id": "af02fd53-5513-4f46-8576-36ca172f7134",
+   "status": "completed",
+   "type": "image",
+   "model": "nano_banana_2",
+   "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_132937_af02fd53-5513-4f46-8576-36ca172f7134.png"
+  }
+ ],
+ "summary": {
+  "total": 12,
+  "completed": 12,
+  "failed": 0,
+  "active": 0,
+  "errors": 0
+ },
+ "all_terminal": true,
+ "regen": [
+  {
+   "id": "elijah-1ki-17-1",
+   "job": "d8ca9e3d-45dc-4855-84ea-3b6d30ab8d17",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_133232_d8ca9e3d-45dc-4855-84ea-3b6d30ab8d17.png"
+  },
+  {
+   "id": "daniel-ezk-14-14",
+   "job": "f77a5309-622a-4f54-9d37-2122bcc934a5",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_133235_f77a5309-622a-4f54-9d37-2122bcc934a5.png"
+  }
+ ]
+}

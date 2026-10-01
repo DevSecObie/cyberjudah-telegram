@@ -1,0 +1,94 @@
+{
+"jobs": [
+{
+"index": 0,
+"job_id": "c59ffb6d-320c-4a72-b4ae-94db3561deda",
+"status": "completed",
+"result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122037_c59ffb6d-320c-4a72-b4ae-94db3561deda.png"
+},
+{
+"index": 1,
+"job_id": "407ed684-0260-49c3-b2b4-737ad4340f69",
+"status": "completed",
+"result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122037_407ed684-0260-49c3-b2b4-737ad4340f69.png"
+},
+{
+"index": 2,
+"job_id": "af8ed687-4b20-47ca-8230-aa45f3d78e66",
+"status": "completed",
+"result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122037_af8ed687-4b20-47ca-8230-aa45f3d78e66.png"
+},
+{
+"index": 3,
+"job_id": "78ffd2b9-6e11-450b-856b-6bb982f6b051",
+"status": "completed",
+"result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122037_78ffd2b9-6e11-450b-856b-6bb982f6b051.png"
+},
+{
+"index": 4,
+"job_id": "889200ab-8832-40c6-acb8-c8055e973049",
+"status": "completed",
+"result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122037_889200ab-8832-40c6-acb8-c8055e973049.png"
+},
+{
+"index": 5,
+"job_id": "a2e2e676-cbc4-4c69-a5ca-7a8acb3bbff0",
+"status": "completed",
+"result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122037_a2e2e676-cbc4-4c69-a5ca-7a8acb3bbff0.png"
+},
+{
+"index": 6,
+"job_id": "fe258373-34a0-4f3b-9d5f-611df7d97196",
+"status": "completed",
+"result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122038_fe258373-34a0-4f3b-9d5f-611df7d97196.png"
+},
+{
+"index": 7,
+"job_id": "eb7222c6-825c-453d-bb16-577c503a4b7b",
+"status": "completed",
+"result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122037_eb7222c6-825c-453d-bb16-577c503a4b7b.png"
+},
+{
+"index": 8,
+"job_id": "f37a80ce-e90d-4f39-b7a9-79c58e0d7bf5",
+"status": "completed",
+"result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122039_f37a80ce-e90d-4f39-b7a9-79c58e0d7bf5.png"
+},
+{
+"index": 9,
+"job_id": "efbf66f2-172a-4060-9af3-81c4499293f8",
+"status": "completed",
+"result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122037_efbf66f2-172a-4060-9af3-81c4499293f8.png"
+},
+{
+"index": 10,
+"job_id": "372dbbc4-222b-4914-a311-e135e4419636",
+"status": "completed",
+"result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122037_372dbbc4-222b-4914-a311-e135e4419636.png"
+},
+{
+"index": 11,
+"job_id": "e785ffd2-4067-4c35-ae20-55d8513bbfcd",
+"status": "completed",
+"result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122037_e785ffd2-4067-4c35-ae20-55d8513bbfcd.png"
+}
+],
+"all_terminal": true,
+"regen": [
+{
+"id": "jesse-rut-4-17",
+"job": "42b5ce32-6346-4a2e-9526-4f9367be02d1",
+"url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122208_42b5ce32-6346-4a2e-9526-4f9367be02d1.png"
+},
+{
+"id": "abiathar-1sa-22-20",
+"job": "afb65b8b-c5e7-4957-a691-8776d25b21a8",
+"url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122208_afb65b8b-c5e7-4957-a691-8776d25b21a8.png"
+},
+{
+"id": "baasha-1ki-15-16",
+"job": "09ca6523-f7c0-4273-9552-280c6eeba80e",
+"url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_122250_09ca6523-f7c0-4273-9552-280c6eeba80e.png"
+}
+]
+}

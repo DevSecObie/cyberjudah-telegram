@@ -1,0 +1,83 @@
+{
+ "batch": "s-00",
+ "items": [
+  {
+   "id": "esther-est-2-7",
+   "job": "dc7381a6-8071-4f5d-82eb-9d666974b95c",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_125659_dc7381a6-8071-4f5d-82eb-9d666974b95c.png",
+   "keep": true
+  },
+  {
+   "id": "aaron-exo-4-14",
+   "job": "6b0a76fb-a8a0-4422-8436-d386eead669c",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_125658_6b0a76fb-a8a0-4422-8436-d386eead669c.png",
+   "keep": true
+  },
+  {
+   "id": "pharaoh-exo-1-11",
+   "job": "f015cf90-e088-49cd-853d-055a70fe3e91",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_125658_f015cf90-e088-49cd-853d-055a70fe3e91.png",
+   "keep": false,
+   "reason": "redo: fails KJV/teaching review"
+  },
+  {
+   "id": "balak-num-22-2",
+   "job": "c98a6f30-6897-4bb6-97ba-4290ddc7e30a",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_125700_c98a6f30-6897-4bb6-97ba-4290ddc7e30a.png",
+   "keep": false,
+   "reason": "redo: fails KJV/teaching review"
+  },
+  {
+   "id": "ben-hadad-1ki-15-18",
+   "job": "ed7b4d72-57ce-42fc-b5fa-6465dec7fb34",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_125658_ed7b4d72-57ce-42fc-b5fa-6465dec7fb34.png",
+   "keep": true
+  },
+  {
+   "id": "hazael-1ki-19-15",
+   "job": "9c337276-86f0-48f8-bb5f-cee8a8782e55",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_125658_9c337276-86f0-48f8-bb5f-cee8a8782e55.png",
+   "keep": true
+  },
+  {
+   "id": "ishmael-gen-16-11",
+   "job": "bfa6bfb7-9f1e-418f-8ea3-f221524dac90",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_125658_bfa6bfb7-9f1e-418f-8ea3-f221524dac90.png",
+   "keep": false,
+   "reason": "redo: fails KJV/teaching review"
+  },
+  {
+   "id": "javan-gen-10-2",
+   "job": "f77d0559-8b19-433b-8660-a4af438c73fa",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_125658_f77d0559-8b19-433b-8660-a4af438c73fa.png",
+   "keep": false,
+   "reason": "redo: fails KJV/teaching review"
+  },
+  {
+   "id": "ruth-rut-1-4",
+   "job": "d245af42-fd32-4616-a6e8-6d1c738f084a",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_125658_d245af42-fd32-4616-a6e8-6d1c738f084a.png",
+   "keep": false,
+   "reason": "redo: fails KJV/teaching review"
+  },
+  {
+   "id": "abiathar-1sa-22-20",
+   "job": "0c608b49-556d-4a63-b660-07a9f9f32bb1",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_125659_0c608b49-556d-4a63-b660-07a9f9f32bb1.png",
+   "keep": false,
+   "reason": "redo: fails KJV/teaching review"
+  },
+  {
+   "id": "abihu-exo-6-23",
+   "job": "743a46df-4ebd-465b-9d26-d0e78ab55ea8",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_125658_743a46df-4ebd-465b-9d26-d0e78ab55ea8.png",
+   "keep": true
+  },
+  {
+   "id": "abijah-1ki-14-31",
+   "job": "d246beb1-cda0-4717-8d20-ab7ecde93bd7",
+   "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GuVvHJnr8yTEVBhs6wOBEQ6CdD/hf_20261001_125658_d246beb1-cda0-4717-8d20-ab7ecde93bd7.png",
+   "keep": true
+  }
+ ]
+}

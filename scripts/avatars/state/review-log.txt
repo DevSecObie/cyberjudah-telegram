@@ -1,0 +1,17 @@
+a-00 kept 12/12; regenerated: ahaziah-2ki-8-24 (skin too light); rejected: none
+a-01 kept 12/12; regenerated: omri-1ki-16-16 (skin too light, non-Black look), uzziel-exo-6-18 (skin too light, loose curls); rejected: none
+a-02 kept 12/12; regenerated: none; rejected: none
+b-00 kept 12/12 (coordinator: jesse-rut-4-17 still fails new grey-hair rule, coordinator will redo); regenerated: jesse-rut-4-17 (wavy hair), abiathar-1sa-22-20 (loose wavy hair), baasha-1ki-15-16 (light rays; 2nd try too light skin); rejected: none
+b-01 kept 12/12; regenerated: none; rejected: none
+b-02 kept 12/12; regenerated: achan-jos-7-1 (light skin, wavy hair); rejected: none
+c-00 kept 12/12; regenerated: none; rejected: none
+c-01 kept 12/12; regenerated: michal-1sa-14-49, tamar-2sa-13-1, hebron-exo-6-18 (2 tries), mark-act-12-12; rejected: none (hair twists/braids; Hebron retry 1 read European)
+c-02 kept 12/12; regenerated: ahaziah-1ki-22-40 (3 tries; loose curls), jonadab-2sa-13-3 (loose curls/light), ahoah-2sa-23-9 (white page frame); rejected: none
+d-00 kept 12/12; regenerated: none; rejected: none
+d-01 kept 12/12; regenerated: izhar-exo-6-18 (halo glow); rejected: none
+d-02 kept 12/12; regenerated: none; rejected: none
+d-03 kept 12/12; regenerated: shishak-1ki-11-40 (loose ringlets), ezer-gen-36-21 (smooth straight grey hair); rejected: none
+e-00 kept 12/12; regenerated: none; rejected: none
+g-00 kept 12/12; regenerated: adam-gen-2-19 (new royal-garments prompt; first had coats of skins), eve-gen-3-20 (royal-garments prompt; 1st retry kimono-like robe + patterned modern wrap, 2nd retry headband not a covering + loose curls, 3rd passed), seth-gen-4-25 (loose ringlet hair), kenan-gen-5-9 (loose ringlet hair), enoch-gen-5-18 (balding, straight-looking hair; 1st retry loose swept curls, 2nd passed), lamech-gen-5-25 (loose ringlet hair); rejected: none
+g-01 kept 12/12; regenerated: cain-gen-4-1 (new rule: fully leprous, white skin, blue eyes, straight blond hair; batch image had loose white curls), Cain's line enoch-gen-4-17 irad-gen-4-18 mehujael-gen-4-18 methushael-gen-4-18 lamech-gen-4-18 adah-gen-4-19 zillah-gen-4-19 jabal-gen-4-20 jubal-gen-4-21 naamah-gen-4-22 (new cainline prompts: fair skin lacking melanin, thin straight light hair; all passed first try); rejected: none
+m-00: 12/12 kept; regen elijah-1ki-17-1 (light skin, receding loose grey hair), daniel-ezk-14-14 (twist-like coils, high hairline); 0 rejected; credits 1161.25
