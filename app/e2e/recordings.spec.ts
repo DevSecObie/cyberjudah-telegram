@@ -32,7 +32,7 @@ async function openPanel(page: Page) {
   await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
   await page.getByRole("button", { name: "Voice", exact: true }).click();
 }
-test("human narrator seeks in one chapter audio element and follows verse timings", async ({ page }) => {
+test("human narrator seeks in one chapter audio element and follows verse timings", async ({ page }, testInfo) => {
   await setup(page); await openPanel(page);
   const sheet = page.getByRole("dialog", { name: "Voice", exact: true });
   await expect(sheet.getByRole("heading", { name: "Narrators", exact: true })).toBeVisible();
@@ -58,9 +58,9 @@ test("human narrator seeks in one chapter audio element and follows verse timing
   await page.getByRole("button", { name: "Stop audio playback", exact: true }).click();
   expect((await audios(page))[0].paused).toBe(true);
   await expect(page.locator("[data-reading]")).toHaveCount(0);
-  await page.screenshot({ animations: "disabled", path: "/private/tmp/cj-human-audio/narrator-panel-390x780.png" });
+  await page.screenshot({ animations: "disabled", path: testInfo.outputPath("narrator-panel-390x780.png") });
   await page.getByRole("button", { name: "Voice", exact: true }).click();
-  await page.screenshot({ animations: "disabled", path: "/private/tmp/cj-human-audio/narrator-sheet-390x780.png" });
+  await page.screenshot({ animations: "disabled", path: testInfo.outputPath("narrator-sheet-390x780.png") });
 });
 
 test("AI prefetches the next verse and switching voices keeps the current verse", async ({ page }) => {
