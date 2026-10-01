@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { RequestNotes } from "@/ui/request-notes";
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 
@@ -56,7 +57,8 @@ export function Watch() {
         <p className="kicker">{["Sabbath class", meta ? fmtDate(meta.published.slice(0, 10)) : ""].filter(Boolean).join(" · ")}</p>
         <h1>{meta?.title || "Class recording"}</h1>
       </header>
-      <p className="hint">The notes and the captions for this class are on their way. Watch the recording meanwhile; the search and Ask CyberJudah pick it up once the captions land.</p>
+      <p className="hint">The captions for this class are on their way. Watch the recording meanwhile; the search and Ask CyberJudah pick it up once the captions land.</p>
+      <NotesWanted video={video} title={meta?.title || ""} />
     </main>
   );
   return (
@@ -66,10 +68,20 @@ export function Watch() {
         <p className="kicker">{[KIND_NAME[r.kind as keyof typeof KIND_NAME] ?? "Recording", fmtDate(r.date)].filter(Boolean).join(" · ")}</p>
         <h1>{r.title}</h1>
       </header>
-      {r.url ? <NotesOpener lede={note.data ? noteLede(note.data.body) : undefined} onOpen={() => setNotes(true)} /> : null}
+      {r.url ? <NotesOpener lede={note.data ? noteLede(note.data.body) : undefined} onOpen={() => setNotes(true)} /> : <NotesWanted video={video} title={r.title} />}
       <TranscriptExcerpt video={video} t={t} chunks={r.chunks} onSeek={seek} />
       {r.url ? <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={note.data?.title ?? r.title}>{note.data ? <NoteBody md={note.data.body} video={video} onSeek={seek} /> : note.isError ? <Empty title="The notes did not load">Try again in a moment.</Empty> : <Skeleton rows={6} />}</NotesSheet> : null}
     </main>
+  );
+}
+
+/** A class without notes: notes are written when readers ask for them, so ask here. */
+function NotesWanted({ video, title }: { video: string; title: string }) {
+  return (
+    <section className="notes-wanted">
+      <p><b>No notes for this class yet.</b> Notes are written from a class when readers ask for it. Ask, and the most requested are written first.</p>
+      <RequestNotes video={video} title={title} />
+    </section>
   );
 }
 

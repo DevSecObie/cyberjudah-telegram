@@ -1030,10 +1030,33 @@ test("Reader: the chapter ends with a deck of every class that taught it", async
   await deck.scrollIntoViewIfNeeded();
   await expect(deck).toBeVisible();
   await deck.click();
-  await expect(page.locator(".bs-gallery__sections h2")).toHaveText("Taught from Genesis 1");
+  // The classes whose notes teach it first, then every other class the transcripts find reading it.
+  const heads = page.locator(".bs-gallery__sections h2");
+  await expect(heads.first()).toContainText("Taught from Genesis 1");
+  await expect(heads.nth(1)).toContainText("Read in class");
   // Escape (or Telegram's back button) closes the gallery.
   await page.keyboard.press("Escape");
   await expect(page.locator(".bs-gallery")).toHaveCount(0);
+});
+
+test("Reader: a class read in the chapter without notes plays in place, and its notes can be requested", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await page.locator("#verset-31").scrollIntoViewIfNeeded();
+  const deck = page.locator('.bs-deck:not(#verset-31 *)').last();
+  await deck.scrollIntoViewIfNeeded();
+  await deck.click();
+  const read = page.locator(".bs-gallery__sections section").nth(1);
+  await expect(read.locator("h2")).toContainText("Read in class");
+  // Many classes read Genesis 1: the gallery shows the first of them, the rest on request.
+  const more = read.locator(".bs-gallery__more");
+  if (await more.count()) { const before = await read.locator(".bs-gallery__item").count(); await more.click(); expect(await read.locator(".bs-gallery__item").count()).toBeGreaterThan(before); }
+  await read.locator(".bs-gallery__btn").first().click();
+  const ask = page.locator(".bs-player__actions .request-notes");
+  await expect(ask).toBeVisible();
+  await expect(page.locator(".bs-player__actions button", { hasText: "Class notes" })).toHaveCount(0);
+  if (await ask.isEnabled()) await ask.click();
+  await expect(ask).toHaveText(/^Notes requested/);
+  await expect(ask).toBeDisabled();
 });
 
 test("Ask is on the bottom bar: it opens Ask CyberJudah in its own tab", async ({ page }) => {
@@ -1337,3 +1360,27 @@ test("the bar follows the reading: a capsule while scrolling down, back on scrol
   await expect(page).toHaveURL(/\/search/);
   await expect(bar.locator(".tab[data-on] .tab__label")).toHaveText("Search");
 });
+
+test("a class without notes says so on its page, and its notes can be requested", async ({ page }) => {
+  await page.goto(`/watch/UJ0nRIVRPls?t=339${LAUNCH}`);
+  const wanted = page.locator(".notes-wanted");
+  await expect(wanted).toContainText("No notes for this class yet");
+  const ask = wanted.locator(".request-notes");
+  if (await ask.isEnabled()) await ask.click();
+  await expect(ask).toHaveText(/^Notes requested/);
+});
+
+test("admins see the classes most asked for, copy their ids for the draft-notes workflow, and mark them done", async ({ page }) => {
+  await page.route("**/api/me", (r) => r.fulfill({ json: { user: { id: 1, first_name: "Test" }, subscribed: false, premium: false, admin: true, canEdit: false } }));
+  let rows = [{ video: "UJ0nRIVRPls", title: "The Concept Of Time", count: 3, last: "2026-10-01T00:00:00.000Z" }, { video: "QxWHRujbdpg", title: "Transforming From Immorality", count: 1, last: "2026-09-30T00:00:00.000Z" }];
+  await page.route("**/api/requests", (r) => r.fulfill({ json: { ok: true, requests: rows } }));
+  await page.route("**/api/requests/*", (r) => { if (r.request().method() === "DELETE") { rows = rows.filter((x) => !r.request().url().endsWith(x.video)); return r.fulfill({ json: { ok: true } }); } return r.continue(); });
+  await page.goto(`/settings${LAUNCH}`);
+  await page.getByText("Requested notes").click();
+  await expect(page).toHaveURL(/\/settings\/requests/);
+  await expect(page.locator(".nreq__main b")).toHaveText(["The Concept Of Time", "Transforming From Immorality"]);
+  await expect(page.locator(".nreq__main small").first()).toContainText("3 requests");
+  await page.getByRole("button", { name: "Mark The Concept Of Time done" }).click();
+  await expect(page.locator(".nreq__main b")).toHaveText(["Transforming From Immorality"]);
+});
+

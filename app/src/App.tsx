@@ -14,6 +14,7 @@ import { ScreenBoundary } from "@/ui/boundary";
 import { ThemeApplier } from "@/ui/theme";
 import { Home } from "@/screens/Home";
 import { NavEditor } from "@/screens/NavEditor";
+const NoteRequests = lazy(() => import("@/screens/NoteRequests").then((m) => ({ default: m.NoteRequests })));
 // Every other screen loads on first visit, so the first paint stays small: one chunk per
 // screen module, shared by the routes that use it, cached by the browser afterwards.
 const Search = lazy(() => import("@/screens/Search").then((m) => ({ default: m.Search })));
@@ -107,6 +108,7 @@ export function App() {
         <Route path="/ask" element={<Ask />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/bar" element={<NavEditor />} />
+        <Route path="/settings/requests" element={<NoteRequests />} />
         <Route path="/plan" element={<Plan />} />
         <Route path="/relations" element={<Relations />} />
         <Route path="/history" element={<History />} />
