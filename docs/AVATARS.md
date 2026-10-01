@@ -112,7 +112,30 @@ painted portrait (no circle, no border)". All twelve were reviewed and kept.
 | `isaac-gen-17-19` | Isaac | `c2ba5066-b4d2-4300-aa9e-977dc6ddd4d1` | Before Sinai |
 | `solomon-2sa-5-14` | Solomon | `36a2e248-3ef1-4fcb-b322-4ebde9e3afd1` | Song of Solomon 1:5; fringes |
 
-## 6. Scope and credits
+## 6. Batches 2 and onward
+
+From batch 2 the prompts are written per person by one template, using the record's nation, role
+and period, so the set follows the brief without hand-editing each prompt:
+
+- Israel: a black complexion within the range Hosea 7:8 allows, tight woolly coils (not locs) and
+  a beard with its natural line. Men carry fringes with a ribband of blue from the Wilderness on, and
+  women wear a head covering. Kings wear a simple circlet, high priests a white linen mitre, and
+  prophets a rough mantle.
+- Edom, with Rome: fair skin with a natural ruddy flush, as approved for Esau and the Herods.
+- Ham: a black complexion, with their nation's dress (Pharaoh's nemes, clean-shaven).
+- Age, face shape and shade are varied from the person id so that faces differ. A few
+  details come from the verse where scripture gives one (Saul's height, Absalom's hair, John's
+  camel's hair, Eli's age).
+
+Each image is reviewed on a contact sheet before it goes in. A light painted frame is trimmed
+automatically. Every prompt is stored with its job in `app/public/people/manifest.json`.
+
+| Batch | People |
+| --- | --- |
+| 2 | Levi, Saul, Joshua, Benjamin, Ephraim, Samuel, Joab, Hezekiah, Manasseh, Pharaoh (Exodus 3), Absalom, John the Baptist |
+| 3 | Reuben, Jonathan, Jeroboam, Ahab, Pharaoh (Genesis 37), Jehoshaphat, Eleazar, Gad, Zedekiah, Abner, Asa, Mordecai |
+
+## 7. Scope and credits
 
 Who can get a portrait under this brief: men and women whose nation is one the teaching describes,
 namely the tribes of Israel, Edom (with Rome, `Italy`), and the Hamite nations (Egypt, Cush,
@@ -124,11 +147,13 @@ Batches run in order of how often a person is named.
 | --- | --- | --- | --- |
 | Pilot, with regenerations | 16 | about 32 | |
 | Batch 1 | 12 | about 24 | 1,877 |
+| Batch 2 | 12 | about 24 | |
+| Batch 3 | 12 | about 24 | |
 
 At about 2 credits an image, the ~1,300 who qualify would need about 2,600 credits, more than the
 balance. The most-named come first, so the people readers meet most get theirs first.
 
-## 7. Asset handling
+## 8. Asset handling
 
 - **Originals:** the 1k PNGs, kept outside the app bundle.
 - **App copies:** WebP files at 256px (profile header), 128px (cards and lists) and 64px (graph
