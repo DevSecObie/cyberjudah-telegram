@@ -591,6 +591,17 @@ test("what was on the screen: a frame lands in the notes where the teacher point
   await page.locator(".nsheet .moment__at").first().click();
   await expect(page.locator(".nsheet")).not.toHaveAttribute("data-open", "");
   expect(page.url()).toBe(url);
+  // A passage of the notes, not only its time, goes to its place in the recording: one that
+  // follows a timestamp (the breakdown of that scripture) plays from that timestamp.
+  await page.click(".notes-open");
+  const follows = page.locator(".nsheet .note [data-at]:not(:has(.moment__at))").first();
+  const t = await follows.getAttribute("data-at");
+  const owner = page.locator(`.nsheet .note .moment__at[data-t="${t}"]`).first();
+  await expect(owner).toBeAttached();
+  await follows.dispatchEvent("click");
+  await expect(page.locator(".nsheet")).not.toHaveAttribute("data-open", "");
+  await expect(page.locator(".player iframe")).toHaveAttribute("src", new RegExp(`[?&]start=${t}(&|$)`));
+  expect(page.url()).toBe(url);
   const opened = await page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.filter((l) => l[0] === "openLink"));
   expect(opened).toEqual([]);
 });

@@ -120,21 +120,50 @@ export function noteFirstMoment(md: string): { t: number; ts: string } | null {
   return { t: Number(m[4]), ts: m[3] ? `${m[1]}:${m[2]}:${m[3]}` : `${m[1]}:${m[2]}` };
 }
 
+/**
+ * Each block of the note (a paragraph, a list item, a quotation) given the moment of the
+ * recording it belongs to: its own timestamp, or else the last one above it in its section,
+ * so a scripture's breakdown goes to where that scripture was read. A heading starts afresh;
+ * blocks before any moment in their section get none.
+ */
+export function markMoments(html: string): string {
+  if (typeof DOMParser === "undefined") return html;
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+  const root = doc.body.firstElementChild!;
+  let current: string | null = null;
+  const own = (el: Element) => el.querySelector<HTMLElement>(".moment__at")?.dataset.t ?? null;
+  const mark = (el: Element) => { const t = own(el); if (t) current = t; if (current) el.setAttribute("data-at", current); };
+  for (const el of Array.from(root.children)) {
+    if (/^H[1-6]$/.test(el.tagName)) { current = null; continue; }
+    if (el.tagName === "UL" || el.tagName === "OL") { for (const li of Array.from(el.children)) if (li.tagName === "LI") mark(li); continue; }
+    if (el.tagName === "P" || el.tagName === "BLOCKQUOTE") mark(el);
+  }
+  return root.innerHTML;
+}
+
 /** The rendered note; its links open in the app when they are the site's, else outside. */
 export function NoteBody({ md, video, onSeek }: { md: string; video?: string | null; onSeek?: (t: number) => void }) {
   const go = useGo();
   const board = useBoard(video);
   const visuals = useVisuals(video);
-  const html = useMemo(() => renderNote(md, video ? { video, board: board.data, visuals: visuals.data } : undefined), [md, video, board.data, visuals.data]);
+  const html = useMemo(() => {
+    const out = renderNote(md, video ? { video, board: board.data, visuals: visuals.data } : undefined);
+    return onSeek ? markMoments(out) : out;
+  }, [md, video, board.data, visuals.data, !!onSeek]); // eslint-disable-line react-hooks/exhaustive-deps
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
     const el = e.target as HTMLElement;
     // A moment (its frame or its time) plays the recording from there when a player is on the screen.
     const at = el.closest<HTMLElement>("[data-t]");
     if (at && onSeek) { e.preventDefault(); onSeek(Number(at.dataset.t)); return; }
     const a = el.closest("a"); const href = a?.getAttribute("href") ?? "";
-    if (!a) return;
-    e.preventDefault();
-    if (/^https?:/.test(href)) openLink(href); else if (href.startsWith("/")) go(href);
+    if (a) {
+      e.preventDefault();
+      if (/^https?:/.test(href)) openLink(href); else if (href.startsWith("/")) go(href);
+      return;
+    }
+    // Anywhere else in a passage of the notes goes to its place in the recording, unless words are being selected.
+    const block = el.closest<HTMLElement>("[data-at]");
+    if (block && onSeek && !el.closest("button") && !window.getSelection()?.toString()) onSeek(Number(block.dataset.at));
   };
-  return <div className="note" onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div className={onSeek ? "note note--seek" : "note"} onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />;
 }
