@@ -98,6 +98,8 @@
 .bs-page { flex: none; }
 .bs-actions { display: flex; flex-wrap: wrap; }
 .bs-action { width: 25%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px 0; border: 0; background: none; cursor: pointer; }
+/* A page of exactly five actions (Note, Tag, Precept, Bookmark, Focus) keeps them on one row. */
+.bs-actions:has(> .bs-action:nth-child(5):last-child) > .bs-action { width: 20%; }
 .bs-action__box { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; transition: background-color .1s, box-shadow .1s; }
 .bs-action__label { font-size: 10px; text-align: center; color: var(--bs-default); white-space: nowrap; }
 .bs-tabsfooter { position: relative; display: flex; margin: 0 16px 5px; padding: 3px; border-radius: var(--r-lg); background: var(--bs-light-grey); }
@@ -536,8 +538,10 @@ html[data-transparency="reduced"] .bs { --mat-nav: var(--bs-reverse); --mat-elev
 /* Desktop: the reader stands beside the rail, never under it. */
 @media (min-width: 1100px) { #root .bs { left: var(--rail-space); } }
 
-/* Under the verse: the classes that taught it, its tags and its relations, on a line of their own
-   so the verse text and the next verse are never broken up by them. */
-.bs .bs-under { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 2px 0 12px; padding-inline-start: 2px; }
-.bs .bs-under .rel-inline { margin: 0; }
-.bs .bs-under .bs-inline-item { margin-inline: 0 !important; }
+/* Bible Strong's inline layout, cleaner: the class deck, tags and precepts sit on the text's line,
+   centred on it, with even spacing, a flat chip and no heavy shadow, so they read as one quiet row. */
+.bs .bs-verse .bs-deck { vertical-align: middle; margin-inline: 6px 2px; }
+.bs .rel-inline { margin: 0 2px 0 6px; padding: 2px 6px 2px 2px; gap: 4px; vertical-align: middle; box-shadow: none; border: .5px solid color-mix(in srgb, var(--bs-default) 14%, transparent); border-radius: 8px; }
+.bs[data-dark] .rel-inline { box-shadow: none; }
+.bs .rel-inline .rel-tag { padding: 1px 6px; border-radius: 6px; line-height: 1.5; }
+.bs .bs-inline-item { vertical-align: middle; box-shadow: none !important; border: .5px solid color-mix(in srgb, var(--bs-default) 14%, transparent); }

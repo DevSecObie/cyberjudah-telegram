@@ -274,7 +274,7 @@ test("a verse's precepts lead with one note, Precepts: why each is there, from t
 test("relations: a verse linked to a passage shows as a tag under the verse, with edit and delete", async ({ page }) => {
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await tapVerse(page, 1);
-  await page.click(".bs-action >> text=Relation");
+  await page.click(".bs-action >> text=Precept");
   await page.fill("#rel-q", "John 10:11");
   await expect(page.locator(".rel-result__title", { hasText: "John 10:11" })).toBeVisible();
   await expect(page.locator(".rel-result__desc").first()).toContainText("good shepherd");
@@ -300,7 +300,7 @@ test("relations: a verse linked to a passage shows as a tag under the verse, wit
   await expect(page.locator(".rel-row__title")).toContainText("refers to");
   await page.click('.rel-row .icon-btn[aria-label="Options"]');
   await page.click(".sheet__item >> text=Remove");
-  await expect(page.locator(".rel-empty p")).toHaveText("No relations yet");
+  await expect(page.locator(".rel-empty p")).toHaveText("No precepts yet");
 });
 
 test("tabs are roots, detail screens push, and the back button walks them", async ({ page }) => {
@@ -465,7 +465,7 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   const home = page.locator(".drawer--home");
   await expect(home.locator(".today-card")).toContainText("Genesis 1:1");
   await expect(home.locator(".hello, .search-hero, .door__btn--ask")).toHaveCount(0);
-  await expect(home.locator(".stats__cell small")).toHaveText(["Highlights", "Bookmarks", "Notes", "Studies", "Links", "Tags"]);
+  await expect(home.locator(".stats__cell small")).toHaveText(["Highlights", "Bookmarks", "Notes", "Studies", "Precepts", "Tags"]);
   await expect(home.locator('.stats__cell[href="/plan"] b')).toHaveText("1");
   await expect(home.locator('.stats__cell[href="/bookmarks?tab=highlights"] b')).toHaveText("1");
   await expect(home.locator('.stats__cell[href="/bookmarks?tab=notes"] b')).toHaveText("1");

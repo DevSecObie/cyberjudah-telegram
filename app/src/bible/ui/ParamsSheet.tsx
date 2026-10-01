@@ -50,8 +50,8 @@ export function ParamsSheet({ open, onClose, settings: s, set, palette }: { open
           <Row label="Verse mode" value={td}>
             <IconBtn name={s.textDisplay === "inline" ? "arrow-right" : "corner-down-right"} label={`Verse mode: ${td}`} selected onPress={() => set({ textDisplay: s.textDisplay === "inline" ? "block" : "inline" })} />
           </Row>
-          <Row label="Relations display" value={rd}>
-            <IconBtn name={s.relationsDisplay === "inline" ? "align-left" : "git-merge"} label={`Relations display: ${rd}`} selected onPress={() => set({ relationsDisplay: s.relationsDisplay === "inline" ? "block" : "inline" })} />
+          <Row label="Precepts display" value={rd}>
+            <IconBtn name={s.relationsDisplay === "inline" ? "align-left" : "precepts"} label={`Precepts display: ${rd}`} selected onPress={() => set({ relationsDisplay: s.relationsDisplay === "inline" ? "block" : "inline" })} />
           </Row>
           <Row label="Tags display" value={tg}>
             <IconBtn name={s.tagsDisplay === "inline" ? "align-left" : "tag"} label={`Tags display: ${tg}`} selected onPress={() => set({ tagsDisplay: s.tagsDisplay === "inline" ? "block" : "inline" })} />
