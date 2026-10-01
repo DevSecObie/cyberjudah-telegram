@@ -36,12 +36,13 @@ export function RelationsText({ items, onClick }: { items: VerseRelationItem[]; 
 /** The badge mode ("With icon"): a git-merge icon with the count, beside the verse number. */
 export function RelationsCount({ count, onClick }: { count: number; onClick: () => void }) {
   return (
-    <button type="button" className="rel-count" aria-label={`${count} relations`} onClick={(e) => { e.stopPropagation(); haptic("select"); onClick(); }}>
-      <MergeIcon /><i>{count}</i>
+    <button type="button" className="rel-count" aria-label={`${count} ${count === 1 ? "precept" : "precepts"}`} onClick={(e) => { e.stopPropagation(); haptic("select"); onClick(); }}>
+      <PreceptsIcon /><i>{count}</i>
     </button>
   );
 }
 
-export function MergeIcon({ size = 16 }: { size?: number }): ReactNode {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="18" cy="18" r="3" /><circle cx="6" cy="6" r="3" /><path d="M6 21V9a9 9 0 0 0 9 9" /></svg>;
+/** Precept upon precept; line upon line (Isaiah 28:10): the precepts mark. */
+export function PreceptsIcon({ size = 16 }: { size?: number }): ReactNode {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="15" width="18" height="5" rx="1.5" /><rect x="6" y="9" width="12" height="5" rx="1.5" /><rect x="9" y="3" width="6" height="5" rx="1.5" /></svg>;
 }

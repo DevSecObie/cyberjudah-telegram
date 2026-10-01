@@ -14,7 +14,7 @@ const STUDY: [string, string, string, IconName][] = [
   ["/lexicon", "Lexicon", "Strong's Hebrew and Greek behind every word", "spark"],
   ["/dictionary", "Dictionary", "Easton's: names, places and words", "type"],
   ["/people", "People", "Everyone named in the Bible, with their family and their verses", "star"],
-  ["/relations", "Relations", "The links you drew between verses, notes and entries", "merge"],
+  ["/relations", "Your precepts", "The verses, notes and entries you joined, precept upon precept", "precepts"],
   ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book", "layers"],
   ["/topics", "Topics", "Classes and episodes by what they cover", "tag"],
 ];

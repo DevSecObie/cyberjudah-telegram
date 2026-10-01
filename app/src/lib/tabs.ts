@@ -143,7 +143,7 @@ const KINDS: [RegExp, string, string][] = [
   [/^\/dictionary/, "Dictionary", "type"], [/^\/topics/, "Topics", "tag"], [/^\/(person|people)/, "People", "star"], [/^\/(classes|note|watch)/, "Classes", "play"],
   [/^\/history/, "Recently viewed", "history"], [/^\/books/, "Library", "layers"], [/^\/encyclopedia/, "Encyclopedia", "book"], [/^\/law/, "The Law", "law"],
   [/^\/precepts/, "Precepts", "quote"], [/^\/cases/, "Case studies", "folder"], [/^\/plan/, "Reading plan", "check"], [/^\/study/, "4 Chapters a Day", "book"],
-  [/^\/(bookmarks|tags)/, "Kept", "bookmark"], [/^\/ask/, "Ask CyberJudah", "chat"], [/^\/relations/, "Relations", "merge"], [/^\/sabbath/, "Sabbath", "sun"], [/^\/settings/, "Settings", "gear"],
+  [/^\/(bookmarks|tags)/, "Kept", "bookmark"], [/^\/ask/, "Ask CyberJudah", "chat"], [/^\/relations/, "Your precepts", "precepts"], [/^\/sabbath/, "Sabbath", "sun"], [/^\/settings/, "Settings", "gear"],
 ];
 export function tabKind(path: string): { kind: string; icon: string } {
   const k = KINDS.find(([re]) => re.test(path));

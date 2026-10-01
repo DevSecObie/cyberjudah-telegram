@@ -16,7 +16,7 @@ export type SelectedVersesSheetProps = {
   colors: ColorItem[]; selectedColor: string | null;
   onAddHighlight: (key: string) => void; onRemoveHighlight: () => void; onAddColor: () => void; onEditColor: (key: string) => void;
   moreThanOne: boolean; hasBookmark: boolean; hasFocus: boolean;
-  onNote: () => void; onTag: () => void; onLink: () => void; onRelation: () => void; onBookmark: () => void; onFocus: () => void;
+  onNote: () => void; onTag: () => void; onRelation: () => void; onBookmark: () => void; onFocus: () => void;
   onLexicon: () => void; onDictionary: () => void; onThemes: () => void; onReferences: () => void; onCommentary: () => void; onCompare: () => void;
   onCopy: () => void; onShare: () => void; onExport: () => void; onSelectAll: () => void;
 };
@@ -44,8 +44,7 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
               <ActionsLayout>
                 <ActionItem name="file-plus" label="Note" onPress={p.onNote} />
                 <ActionItem name="tag" label="Tag" onPress={p.onTag} />
-                <ActionItem name="link" label="Link" onPress={p.onLink} />
-                <ActionItem name="git-merge" label="Relation" onPress={p.onRelation} />
+                <ActionItem name="precepts" label="Precept" onPress={p.onRelation} />
                 <ActionItem name="bookmark" label="Bookmark" onPress={p.onBookmark} disabled={p.moreThanOne} isActive={p.hasBookmark} />
                 <ActionItem name="crosshair" label="Focus" onPress={p.onFocus} isActive={p.hasFocus} />
               </ActionsLayout>

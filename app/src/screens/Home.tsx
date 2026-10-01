@@ -85,7 +85,7 @@ const LAW: [string, string, string, IconName][] = [
 ];
 /** The Study shelf: the reference works, each browsable on its own. */
 const TOOLS: [string, string, IconName][] = [
-  ["/lexicon", "Lexicon", "spark"], ["/dictionary", "Dictionary", "type"], ["/people", "People", "star"], ["/relations", "Relations", "merge"], ["/bookmarks", "Kept", "bookmark"], ["/tags", "Tags", "tag"],
+  ["/lexicon", "Lexicon", "spark"], ["/dictionary", "Dictionary", "type"], ["/people", "People", "star"], ["/relations", "Your precepts", "precepts"], ["/bookmarks", "Kept", "bookmark"], ["/tags", "Tags", "tag"],
 ];
 
 /**

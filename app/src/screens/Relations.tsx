@@ -11,7 +11,7 @@ import { store } from "@/tg/store";
 import { useModal } from "@/ui/modal";
 import { useSheet } from "@/ui/sheet";
 import { Empty, Icon, Screen, SearchField, Skeleton } from "@/ui/ui";
-import { MergeIcon, TargetIcon } from "@/ui/relations";
+import { PreceptsIcon, TargetIcon } from "@/ui/relations";
 import { preceptsForVerse, slugOfUrl, useTaughtPrecepts } from "@/lib/taught";
 import { fmtDate } from "@/api/data";
 
@@ -57,7 +57,7 @@ export function Relations() {
 
   const open = (e: Endpoint) => { const href = endpointHref(e); if (e.type === "link") openLink(href); else navigate(href); };
   const edit = async (r: Relation, active: Endpoint) => {
-    const a = await sheet.open({ title: "Relations", items: [{ id: "edit", text: "Edit", icon: <Icon name="note" size={16} /> }, { id: "delete", text: "Remove", destructive: true }] });
+    const a = await sheet.open({ title: "Precept", items: [{ id: "edit", text: "Edit", icon: <Icon name="note" size={16} /> }, { id: "delete", text: "Remove", destructive: true }] });
     if (a?.id === "delete") { if (await confirm("Do you want to delete this relation?")) { await deleteRelation(r); haptic("warning"); reload(); } }
     if (a?.id === "edit") {
       // Type cycles through the five kinds; a directional kind can be swapped; a short label.
@@ -75,14 +75,14 @@ export function Relations() {
     }
   };
 
-  if (!endpoint) return <Screen title="Relations">{saved.length ? <div className="nt-list">{saved.map((r) => <button type="button" className="nt-item" key={r.id} onClick={() => {
+  if (!endpoint) return <Screen title="Your precepts">{saved.length ? <div className="nt-list">{saved.map((r) => <button type="button" className="nt-item" key={r.id} onClick={() => {
     const e = r.endpoints.find((x) => x.type === "verse" || x.type === "note");
     const key = e?.type === "verse" ? e.verseKeys.join(",") : e?.type === "note" ? `note:${e.verseKey}` : "";
     if (key) navigate(`/relations?endpoint=${encodeURIComponent(key)}`);
-  }}><Icon name="link" /><span className="nt-item__body"><b>{r.endpoints[0].label}</b><small>{relationText(r, r.endpoints[0])} {r.endpoints[1].label}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="No relations yet" action={{ label: "Open the Bible", href: "/bible" }}>A relation is a link you make between a verse and another passage, a class, a note or a dictionary entry, so they show together when you read. Select a verse and tap Relation to make one. In Telegram they follow your account to every device; in a browser they stay on this device.</Empty>}</Screen>;
+  }}><Icon name="precepts" /><span className="nt-item__body"><b>{r.endpoints[0].label}</b><small>{relationText(r, r.endpoints[0])} {r.endpoints[1].label}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="No precepts yet" action={{ label: "Open the Bible", href: "/bible" }}>Precept upon precept, line upon line (Isaiah 28:10): join a verse to another passage, a class, a note or a dictionary entry, so they show together when you read. Select a verse and tap Precept to make one. In Telegram they follow your account to every device; in a browser they stay on this device.</Empty>}</Screen>;
   return (
-    <Screen title="Relations" kicker={endpoint.label} action={<button type="button" className="icon-btn" aria-label="Add relation" onClick={() => setPicking(true)}>+</button>}>
-      {!count && !precepts.length ? <div className="rel-empty"><MergeIcon size={64} /><p>No relations yet</p><small>Tap + to link this passage to another passage, a class, a note or a dictionary entry.</small></div> : null}
+    <Screen title="Precepts" kicker={endpoint.label} action={<button type="button" className="icon-btn" aria-label="Add a precept" onClick={() => setPicking(true)}>+</button>}>
+      {!count && !precepts.length ? <div className="rel-empty"><PreceptsIcon size={64} /><p>No precepts yet</p><small>Tap + to join this passage to another passage, a class, a note or a dictionary entry.</small></div> : null}
       {precepts.length ? (
         <div className="rel-section">
           <p className="rel-section__title"><TargetIcon type="entry" /> Taught in class</p>
@@ -159,7 +159,6 @@ export function RelationTargetPicker({ source, onClose, onCreated }: { source: E
     if (lib.length) out.push({ id: "library", title: "Library", items: lib });
     const d = (dict.data?.rows ?? []).map<Target>((r) => ({ id: `dictionary:${r.slug}`, type: "dictionary", title: r.term, subtitle: "Dictionary", endpoint: { type: "dictionary", slug: r.slug, label: r.term } }));
     if (d.length) out.push({ id: "dictionary", title: "Dictionary", items: d });
-    if (/^https?:\/\/\S+$/i.test(debounced)) { let host = debounced; try { host = new URL(debounced).hostname.replace(/^www\./, ""); } catch { /* keep */ } out.push({ id: "links", title: "Links", items: [{ id: `link:${debounced}`, type: "link", title: host, subtitle: "Link", description: debounced, endpoint: { type: "link", url: debounced, label: host } }] }); }
     return out;
   }, [refKeys, refText.data, books.data, debounced, notes, library.data, dict.data]);
 

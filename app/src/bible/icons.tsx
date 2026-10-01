@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 /** Feather icons (the set Bible Strong draws from) as inline SVG; `ion` adds the few Ionicons it uses. */
 export type FeatherName =
   | "music" | "alert-circle"
-  | "file-plus" | "tag" | "link" | "git-merge" | "bookmark" | "crosshair" | "edit-2" | "copy" | "share-2" | "download" | "check-square" | "layers"
+  | "file-plus" | "tag" | "link" | "git-merge" | "precepts" | "bookmark" | "crosshair" | "edit-2" | "copy" | "share-2" | "download" | "check-square" | "layers"
   | "sun" | "moon" | "sunrise" | "type" | "align-left" | "align-justify" | "arrow-right" | "corner-down-right" | "chevron-right" | "chevron-down" | "chevron-up" | "chevron-left" | "chevrons-down"
   | "more-vertical" | "arrow-left" | "x" | "list" | "hash" | "grid" | "arrow-right-circle" | "book" | "book-open" | "search" | "plus" | "check" | "clock" | "settings" | "trash-2" | "film" | "external-link" | "play" | "pause" | "skip-back" | "skip-forward" | "volume-2" | "edit-3" | "square" | "mic" | "sliders" | "users" | "repeat" | "arrow-up" | "arrow-down" | "heart" | "rotate-ccw" | "user";
 
@@ -19,6 +19,8 @@ const P: Record<FeatherName, string> = {
   "file-plus": '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>',
   tag: '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
   link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  // Precept upon precept; line upon line (Isaiah 28:10).
+  "precepts": '<rect x="3" y="15" width="18" height="5" rx="1.5"/><rect x="6" y="9" width="12" height="5" rx="1.5"/><rect x="9" y="3" width="6" height="5" rx="1.5"/>',
   "git-merge": '<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/>',
   bookmark: '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
   crosshair: '<circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/>',

@@ -16,9 +16,9 @@ import { Chapter, HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGH
 import { colorItems, paletteOf, resolveTheme, telegramScheme, useBibleSettings, useSchemeChange } from "./settings";
 import { cssVars, isDarkTheme } from "./theme";
 import { useToast } from "@/ui/toast";
-import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
+import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
 import { BookSelectorSheet, VersePopup } from "./ui/BookSelectorSheet";
-import { BookmarkSheet, LinkSheet, NoteSheet, TagsPanel } from "./ui/Editors";
+import { BookmarkSheet, NoteSheet, TagsPanel } from "./ui/Editors";
 import { ChapterEnd } from "./ui/ChapterEnd";
 import { ChapterPeople } from "./ui/ChapterPeople";
 import { SearchSheet } from "./ui/SearchSheet";
@@ -96,7 +96,6 @@ export function BibleTab() {
   // Study data.
   const [highlights, setHighlights] = useChapterHighlights(slug, ch);
   const [notes, setNotes] = useChapterNotes(slug, ch);
-  const [links, setLinks] = useChapterLinks(slug, ch);
   const [bookmarks, setBookmarks] = useBookmarks();
   const [tags, setTags] = useTags();
   const rel = useChapterRelations(slug, ch, settings.relationsDisplay);
@@ -122,7 +121,7 @@ export function BibleTab() {
   }, [plan, list, progress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sheets.
-  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare">(null);
+  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "relation" | "resources" | "export" | "why" | "search" | "compare">(null);
   // The classes that taught each verse: pictures after the verses, as Bible Strong shows its videos.
   // Every class that read each verse: those with notes first, then every other the transcripts find.
   const classMoments = useClassesByVerse(slug, ch);
@@ -194,12 +193,6 @@ export function BibleTab() {
     await writeNote(slug, ch, noteEdit.key, null); const n = { ...notes }; delete n[noteEdit.key]; setNotes(n);
     if (noteEdit.relation) await deleteRelation(noteEdit.relation);
     setNoteEdit(null); setSheet(null); say("Deleted note");
-  };
-  const saveLink = async (v: { url: string; title: string; linkType: string }) => {
-    const key = keyOfVerses(selectedSorted);
-    setLinks({ ...links, [key]: { id: uuid(), url: v.url, title: v.title, linkType: v.linkType, date: Date.now() } });
-    await createRelation([verseEndpoint(), { type: "link", url: v.url, label: v.title }]);
-    setSheet(null); setSelected([]); haptic("success");
   };
   const openRelationItem = async (it: VerseRelationItem) => {
     const t = it.target;
@@ -281,7 +274,7 @@ export function BibleTab() {
       <SelectedVersesSheet open={selected.length > 0 && !sheet} onDismiss={() => setSelected([])}
         colors={items} selectedColor={selectedColor} onAddHighlight={addHighlight} onRemoveHighlight={removeHighlight} onAddColor={() => setSheet("params")} onEditColor={() => setSheet("params")}
         moreThanOne={selected.length > 1} hasBookmark={hasBookmark} hasFocus={hasFocus}
-        onNote={() => { setNoteEdit(null); setSheet("note"); }} onTag={() => { setTagsTarget(selectedSorted); setSheet("tags"); }} onLink={() => setSheet("link")} onRelation={() => setSheet("relation")}
+        onNote={() => { setNoteEdit(null); setSheet("note"); }} onTag={() => { setTagsTarget(selectedSorted); setSheet("tags"); }} onRelation={() => setSheet("relation")}
         onBookmark={() => { setBookmarkTarget({ verse: first, existing: bookmarks.find((b) => b.book === slug && b.chapter === ch && b.verse === first) }); setSheet("bookmark"); }} onFocus={setFocus}
         onLexicon={() => openResources(first, "words")} onDictionary={() => openResources(first, "dictionary")} onThemes={() => openResources(first, "themes")} onReferences={() => openResources(first, "references")} onCommentary={() => openResources(first, "commentary")} onCompare={() => { setResourceVerse(first); setSheet("compare"); }}
         onCopy={() => void copy()} onShare={shareSel} onExport={() => void exportSel("selection")} onSelectAll={() => setSelected(verses.map((v) => v.verse))} />
@@ -294,7 +287,6 @@ export function BibleTab() {
       <BookmarkSheet open={sheet === "bookmark"} onClose={() => setSheet(null)} reference={bookmarkTarget.verse ? reference([bookmarkTarget.verse]) : chapterLabel} location={{ book: slug, chapter: ch, verse: bookmarkTarget.verse }} existing={bookmarkTarget.existing} bookmarks={bookmarks} setBookmarks={setBookmarks} formatReference={formatBookmark} />
       <TagsPanel open={sheet === "tags"} onClose={() => setSheet(null)} reference={reference(tagsTarget)} tags={tags} setTags={setTags} selected={tagsSelected} onToggle={toggleTag} />
       <NoteSheet open={sheet === "note"} onClose={() => { setSheet(null); setNoteEdit(null); }} reference={noteEdit ? `${bookName(slug)} ${ch}:${noteEdit.key.replace("/", ",")}` : selectedReference ?? ""} initial={noteEdit?.note} onSave={(v) => void saveNote(v)} onRemove={noteEdit ? () => void removeNote() : undefined} />
-      <LinkSheet open={sheet === "link"} onClose={() => setSheet(null)} reference={selectedReference ?? ""} onSave={(v) => void saveLink(v)} />
       {sheet === "relation" ? <RelationTargetPicker source={verseEndpoint() as Endpoint} onClose={() => setSheet(null)} onCreated={() => { setSheet(null); setSelected([]); }} /> : null}
       {resource ? <CompareSheet open={sheet === "compare"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={resource.verse} text={resource.text} reference={reference([resource.verse])} books={list} onRead={(s, c, v) => go({ slug: s, ch: c }, v)} /> : null}
       {resource ? <ResourcesSheet open={sheet === "resources"} onClose={() => setSheet(null)} tab={resourceTab} setTab={setResourceTab} slug={slug} chapter={ch} verse={resource.verse} text={resource.text} reference={reference([resource.verse])} books={list} /> : null}
