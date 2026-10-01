@@ -1,83 +1,210 @@
-import { useDeferredValue, useMemo } from "react";
+import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
 import { fmtDate } from "@/api/data";
+import { toggleBookmark, useBookmarks } from "@/lib/marks";
 import { useKeptScroll, useVisitState } from "@/lib/place";
+import { share } from "@/lib/share";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
-import { Button, Chip, Chips, Empty, Img, Screen, SearchField, Skeleton } from "@/ui/ui";
-import { KIND_NAME, teachingTo, useTeachings } from "./Home";
+import { haptic } from "@/tg/sdk";
+import { useSheet } from "@/ui/sheet";
+import { Chip, Chips, Empty, Icon, Screen, SearchField } from "@/ui/ui";
+import { KIND_NAME, teachingTo, useTeachings, type Teaching } from "./Home";
 
 type Feed = "all" | "classes" | "captains" | "history" | "truth";
 const FEEDS: [Feed, string][] = [["all", "All"], ["classes", "Sabbath"], ["captains", "Captains"], ["history", "History"], ["truth", "Truth"]];
 const TRUTH = "The Truth Shall Make You Free";
-const PAGE = 30;
+const PAGE = 12;
+const inFeedOf = (f: Feed, t: Teaching) => f === "all" || (f === "history" ? t.kind === "history" : f === "captains" ? t.kind === "captains" : f === "truth" ? t.kind === "class" && t.collection === TRUTH : t.kind === "class" && t.collection !== TRUTH);
+const embed = (id: string) => `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0`;
 
 /**
- * The teachings as a feed of cards, filtered by series, teacher and year, or by anything
- * typed: title, topic, book, teacher.
+ * The teachings as a feed of posts, the way Instagram lays one out: who taught it and when, the
+ * recording, what you can do with it, then the title and the opening of the notes. A recording
+ * plays in its post when asked, one at a time; the notes open on their own page.
  */
-/** Teachings by the month they were given, newest first; undated ones last. */
-function months<T extends { date: string }>(rows: T[]): [string, T[]][] {
-  const out = new Map<string, T[]>();
-  for (const t of rows) {
-    const k = t.date ? new Date(`${t.date.slice(0, 7)}-01T12:00:00`).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "Undated";
-    (out.get(k) ?? out.set(k, []).get(k)!).push(t);
-  }
-  return [...out.entries()];
-}
-
 export function Classes() {
   const [params, setParams] = useSearchParams();
   const feed = (FEEDS.some(([f]) => f === params.get("feed")) ? params.get("feed") : "all") as Feed;
   const teacher = params.get("teacher") ?? "", year = params.get("year") ?? "";
   useBackButton(true);
   useBottomButtons(null, null);
+  const sheet = useSheet();
   const [q, setQ] = useVisitState("q", "");
   const [shown, setShown] = useVisitState("shown", PAGE);
+  const [playing, setPlaying] = useState<string | null>(null);
   const query = useDeferredValue(q.trim().toLowerCase());
   const res = useTeachings();
   useKeptScroll(!!res.data);
-  const set = (next: Record<string, string | undefined>) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries({ feed, teacher, year, ...next })) if (v && v !== "all") p.set(k, v); setParams(p, { replace: true }); setShown(PAGE); };
-  const inFeed = useMemo(() => (res.data ?? []).filter((t) => feed === "all" || (feed === "history" ? t.kind === "history" : feed === "captains" ? t.kind === "captains" : feed === "truth" ? t.kind === "class" && t.collection === TRUTH : t.kind === "class" && t.collection !== TRUTH)), [res.data, feed]);
+  const set = (next: Record<string, string | undefined>) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries({ feed, teacher, year, ...next })) if (v && v !== "all") p.set(k, v); setParams(p, { replace: true }); setShown(PAGE); setPlaying(null); };
+  const all = useMemo(() => {
+    // One post per class: the notes and the channel's newest uploads can name the same recording.
+    const seen = new Set<string>();
+    return (res.data ?? []).filter((t) => { const k = t.video ?? t.url; if (seen.has(k)) return false; seen.add(k); return true; });
+  }, [res.data]);
+  const inFeed = useMemo(() => all.filter((t) => inFeedOf(feed, t)), [all, feed]);
+  const counts = useMemo(() => Object.fromEntries(FEEDS.map(([f]) => [f, all.filter((t) => inFeedOf(f, t)).length])), [all]);
   const teachers = useMemo(() => [...new Set(inFeed.map((t) => t.teacher).filter(Boolean))].sort(), [inFeed]);
   const years = useMemo(() => [...new Set(inFeed.map((t) => t.date.slice(0, 4)).filter(Boolean))].sort().reverse(), [inFeed]);
-  const counts = useMemo(() => Object.fromEntries(FEEDS.map(([f]) => [f, (res.data ?? []).filter((t) => f === "all" || (f === "history" ? t.kind === "history" : f === "captains" ? t.kind === "captains" : f === "truth" ? t.kind === "class" && t.collection === TRUTH : t.kind === "class" && t.collection !== TRUTH)).length])), [res.data]);
-  const rows = useMemo(() => inFeed.filter((t) => (!teacher || t.teacher === teacher) && (!year || t.date.startsWith(year)) && (!query || `${t.title} ${t.teacher} ${t.topics.join(" ")} ${t.books.join(" ")}`.toLowerCase().includes(query))), [inFeed, teacher, year, query]);
+  const rows = useMemo(() => inFeed.filter((t) => (!teacher || t.teacher === teacher) && (!year || t.date.startsWith(year)) && (!query || `${t.title} ${t.teacher} ${t.topics.join(" ")} ${t.books.join(" ")} ${(t.opens ?? []).map((o) => o.label).join(" ")}`.toLowerCase().includes(query))), [inFeed, teacher, year, query]);
+  const filtered = !!(q.trim() || teacher || year || feed !== "all");
+  const reset = () => { setQ(""); set({ feed: "all", teacher: undefined, year: undefined }); };
+  const choose = async (title: string, current: string, options: string[], key: "teacher" | "year") => {
+    haptic("select");
+    const a = await sheet.open({ title, items: [{ id: "", text: key === "year" ? "Every year" : "Every teacher", hint: current ? undefined : "Selected" }, ...options.map((o) => ({ id: o, text: o, hint: o === current ? "Selected" : undefined }))] });
+    if (a) set({ [key]: a.id || undefined });
+  };
+
+  // More posts as the reader nears the end, so the feed never stops short; the button stays for keyboards.
+  const more = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = more.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) setShown((s) => (s < rows.length ? s + PAGE : s)); }, { rootMargin: "800px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [rows.length, setShown, res.data]);
+
   return (
-    <Screen title="Classes">
-      <div className="cases__eras" role="group" aria-label="Series"><Chips>{FEEDS.map(([f, label]) => <Chip key={f} on={feed === f} onClick={() => set({ feed: f, teacher: undefined, year: undefined })}>{label}{res.data ? <span className="chip__n">{counts[f]}</span> : null}</Chip>)}</Chips></div>
-      <SearchField id="class-q" value={q} onChange={(v) => { setQ(v); setShown(PAGE); }} placeholder="Title, topic, book or teacher" />
-      {teachers.length > 1 || years.length > 1 ? (
-        <div className="filters">
-          {years.length > 1 ? <div className="filters__row"><small>Year</small><div className="filters__scroll"><Chips>{years.slice(0, 10).map((y) => <Chip key={y} on={year === y} onClick={() => set({ year: year === y ? undefined : y })}>{y}</Chip>)}</Chips></div></div> : null}
-          {teachers.length > 1 ? <div className="filters__row"><small>Teacher</small><div className="filters__scroll"><Chips>{teachers.map((t) => <Chip key={t} on={teacher === t} onClick={() => set({ teacher: teacher === t ? undefined : t })}>{t}</Chip>)}</Chips></div></div> : null}
-          {teacher || year || feed !== "all" ? (
-            <div className="filters__active">
-              <span>Showing{feed !== "all" ? ` ${FEEDS.find(([f]) => f === feed)?.[1] ?? feed}` : ""}{teacher ? ` · ${teacher}` : ""}{year ? ` · ${year}` : ""}</span>
-              <button type="button" onClick={() => { setQ(""); set({ feed: "all", teacher: undefined, year: undefined }); }}>Clear filters</button>
-            </div>
-          ) : null}
+    <Screen title="Classes" className="classes">
+      <div className="cfeed__tools">
+        <SearchField id="class-q" value={q} onChange={(v) => { setQ(v); setShown(PAGE); }} placeholder="Search classes, teachers, books" />
+        <div className="cfeed__series" role="group" aria-label="Series">
+          <Chips>{FEEDS.map(([f, label]) => <Chip key={f} on={feed === f} onClick={() => set({ feed: f, teacher: undefined, year: undefined })}>{label}{res.data ? <span className="chip__n"> {counts[f]}</span> : null}</Chip>)}</Chips>
         </div>
-      ) : null}
-      {res.isPending ? <Skeleton rows={8} thumb /> : res.isError ? <Empty title="The classes did not load">Check your connection and try again.</Empty> : !rows.length ? <Empty title="No class matches that" action={{ label: "Clear filters", onClick: () => { setQ(""); set({ feed: "all", teacher: undefined, year: undefined }); } }}>Try a topic like “Passover”, or a book like “Isaiah”.</Empty> : (
+        <div className="cfeed__filters">
+          <button type="button" className="cfeed__pick" data-on={year ? "" : undefined} disabled={years.length < 2} aria-label={`Year: ${year || "any"}`} onClick={() => void choose("Year", year, years, "year")}><span>{year || "Any year"}</span><Icon name="chevron" size={14} /></button>
+          <button type="button" className="cfeed__pick" data-on={teacher ? "" : undefined} disabled={teachers.length < 2} aria-label={`Teacher: ${teacher || "any"}`} onClick={() => void choose("Teacher", teacher, teachers, "teacher")}><span>{teacher || "Any teacher"}</span><Icon name="chevron" size={14} /></button>
+          {filtered ? <button type="button" className="cfeed__reset" onClick={() => { haptic("select"); reset(); }}>Reset</button> : null}
+        </div>
+      </div>
+      {res.isPending ? <FeedSkeleton /> : res.isError ? (
+        <Empty title="The classes did not load" action={{ label: "Try again", onClick: () => void res.refetch() }}>Check your connection.</Empty>
+      ) : !rows.length ? (
+        <Empty title="No class matches that" action={{ label: "Reset the search", onClick: reset }}>Try a topic like “Passover”, or a book like “Isaiah”.</Empty>
+      ) : (
         <>
-          <p className="hint">{rows.length.toLocaleString()} {rows.length === 1 ? "teaching" : "teachings"}</p>
-          {months(rows.slice(0, shown)).map(([month, items]) => (
-            <section key={month} className="classes__month" aria-label={month}>
-              <h2 className="cases__eraname">{month}<span>{items.length}</span></h2>
-              <div className="feed">
-                {items.map((t) => (
-                  <Link key={t.url} to={teachingTo(t)} className="feed__card">
-                    <span className="feed__img"><Img src={t.thumb} /><span className="feed__kind">{KIND_NAME[t.kind]}</span></span>
-                    <span className="feed__body"><b>{t.title}</b><small>{[t.sub, fmtDate(t.date), t.teacher].filter(Boolean).join(" · ")}{t.pending ? <span className="soon">Notes coming soon</span> : null}</small>{t.books.length ? <span className="feed__books">{t.books.slice(0, 3).map((b) => <em key={b}>{b}</em>)}</span> : null}</span>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          ))}
-          {rows.length > shown ? <Button mode="bezeled" size="m" stretched onClick={() => setShown(shown + PAGE)}>Show more ({rows.length - shown} left)</Button> : null}
+          <p className="cfeed__count" aria-live="polite">{rows.length.toLocaleString()} {rows.length === 1 ? "class" : "classes"}</p>
+          <div className="cfeed" role="feed" aria-label="Classes">
+            {rows.slice(0, shown).map((t, i) => <ClassPost key={t.url} t={t} index={i} total={rows.length} playing={playing === t.url} onPlay={(on) => setPlaying(on ? t.url : null)} />)}
+          </div>
+          <div ref={more} className="cfeed__more">
+            {rows.length > shown ? <button type="button" className="cfeed__morebtn" onClick={() => setShown(shown + PAGE)}>Show more classes</button> : <p className="cfeed__end">You’re all caught up</p>}
+          </div>
         </>
       )}
     </Screen>
+  );
+}
+
+/** The teacher's mark beside a post: their initial (titles left off), or the series' when no teacher is named. */
+function TeacherMark({ t }: { t: Teaching }) {
+  const name = t.teacher.replace(/^(Bishop|Deacon|Captain|Elder|Brother|Sister|Officer|Priest|Chief|Minister|Lieutenant|Sergeant)\s+/i, "");
+  const letter = (name.match(/[A-Za-z]/)?.[0] ?? "").toUpperCase();
+  let h = 0; for (const c of t.teacher || t.kind) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return <span className="post__mark" aria-hidden="true" style={{ ["--mark-h" as string]: String(h) }}>{letter || <Icon name="play" size={14} />}</span>;
+}
+
+function ClassPost({ t, index, total, playing, onPlay }: { t: Teaching; index: number; total: number; playing: boolean; onPlay: (on: boolean) => void }) {
+  const [marks, setMarks] = useBookmarks();
+  const [open, setOpen] = useState(false);
+  const [scripture, setScripture] = useState(false);
+  const [clamped, setClamped] = useState(false);
+  const intro = useRef<HTMLParagraphElement>(null);
+  const to = teachingTo(t);
+  const kept = marks.some((m) => m.id === t.url);
+  const id = `post-${index}`;
+  const opens = t.opens ?? [];
+  const series = [KIND_NAME[t.kind], t.sub].filter(Boolean).join(" · ");
+  // "Read more" only where the preview is actually cut.
+  useLayoutEffect(() => {
+    const el = intro.current; if (!el || open) return;
+    const measure = () => setClamped(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    ro?.observe(el);
+    return () => ro?.disconnect();
+  }, [t.intro, open]);
+
+  return (
+    <article className="post" aria-labelledby={id} aria-posinset={index + 1} aria-setsize={total}>
+      <header className="post__head">
+        <TeacherMark t={t} />
+        <div className="post__who">
+          <b>{t.teacher || KIND_NAME[t.kind]}</b>
+          <span>{t.teacher ? `${series} · ` : t.sub ? `${t.sub} · ` : ""}{t.date ? <time dateTime={t.date}>{fmtDate(t.date)}</time> : "Date to come"}</span>
+        </div>
+        {!t.pending ? (
+          <div className="post__tools">
+            <button type="button" className="post__icon" aria-label={`Share ${t.title}`} onClick={() => { haptic("select"); void share({ kind: "note", title: t.title, text: KIND_NAME[t.kind], sitePath: t.url }); }}><Icon name="share" size={20} /></button>
+            <button type="button" className="post__icon" aria-pressed={kept} aria-label={kept ? "Remove from saved" : "Save"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: t.url, kind: "note", title: t.title, text: [KIND_NAME[t.kind], fmtDate(t.date)].filter(Boolean).join(" · "), href: t.url })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={20} /></button>
+          </div>
+        ) : null}
+      </header>
+
+      <div className="post__media">
+        {playing && t.video ? (
+          <iframe src={embed(t.video)} title={t.title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen />
+        ) : t.video ? (
+          <button type="button" className="post__poster" aria-label={`Play ${t.title}`} onClick={() => { haptic("select"); onPlay(true); }}>
+            <Poster src={t.thumb} />
+            <span className="post__playicon" aria-hidden="true"><Icon name="play" size={22} /></span>
+          </button>
+        ) : (
+          <Link to={to} className="post__poster" aria-label={`Open ${t.title}`}><Poster src={t.thumb} /></Link>
+        )}
+      </div>
+
+      <div className="post__actions">
+        {t.video ? (
+          <button type="button" className="post__act" aria-pressed={playing} onClick={() => { haptic("select"); onPlay(!playing); }}>
+            <Icon name={playing ? "close" : "play"} size={18} /><span>{playing ? "Stop" : "Watch"}</span>
+          </button>
+        ) : null}
+        {!t.pending ? <Link to={to} className="post__act" onClick={() => haptic("select")}><Icon name="note" size={18} /><span>Notes</span></Link> : null}
+        {opens.length ? (
+          <button type="button" className="post__act" aria-expanded={scripture} aria-controls={`${id}-s`} onClick={() => { haptic("select"); setScripture(!scripture); }}>
+            <Icon name="book-open" size={18} /><span>Scripture <small>{opens.length}</small></span>
+          </button>
+        ) : null}
+      </div>
+
+      {scripture && opens.length ? (
+        <div className="post__scripture" id={`${id}-s`}>
+          <small>Opened in this class, in order</small>
+          <div>{opens.map((o, i) => <Link key={`${o.slug}-${o.chapter}-${i}`} to={`/read/${o.slug}/${o.chapter}`} className="post__ref" onClick={() => haptic("select")}>{o.label}</Link>)}</div>
+        </div>
+      ) : null}
+
+      <div className="post__body">
+        <h2 id={id} className="post__title"><Link to={to}>{t.title}</Link></h2>
+        {t.intro ? (
+          <>
+            <p ref={intro} className="post__intro" data-open={open ? "" : undefined}>{t.intro}</p>
+            {open ? <Link to={to} className="post__more">Read the full notes</Link> : clamped ? <button type="button" className="post__more" onClick={() => { haptic("select"); setOpen(true); }}>Read more</button> : null}
+          </>
+        ) : t.pending ? <p className="post__soon">Notes for this class are coming soon. You can watch it now.</p> : null}
+      </div>
+    </article>
+  );
+}
+
+/** The recording's picture at 16:9, its space held before it loads; a quiet tile when there is none. */
+function Poster({ src }: { src: string }) {
+  const [failed, setFailed] = useState(!src);
+  return failed ? <span className="post__noimg"><Icon name="play" size={28} /></span> : <img src={src} alt="" width={320} height={180} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
+}
+
+function FeedSkeleton() {
+  return (
+    <div className="cfeed" aria-busy="true" aria-label="Loading">
+      {[0, 1].map((i) => (
+        <div key={i} className="post">
+          <div className="post__head"><span className="skel" style={{ width: 36, height: 36, borderRadius: 18 }} /><span className="post__who"><span className="skel" style={{ width: 120, height: 12 }} /><span className="skel" style={{ width: 160, height: 10, marginTop: 6 }} /></span></div>
+          <div className="post__media"><span className="skel" style={{ position: "absolute", inset: 0, borderRadius: 0 }} /></div>
+          <div className="post__body"><span className="skel" style={{ width: "80%", height: 16 }} /><span className="skel" style={{ width: "95%", height: 12, marginTop: 8 }} /><span className="skel" style={{ width: "70%", height: 12, marginTop: 6 }} /></div>
+        </div>
+      ))}
+    </div>
   );
 }
