@@ -22,12 +22,19 @@ export function BookSelectorSheet({ open, onClose, books, current, onSelect, loa
   const data = useMemo(() => (sort === "alphabetical" ? [...books].sort((a, b) => a.book.localeCompare(b.book)) : books).filter((b) => b.book.toLowerCase().includes(query.trim().toLowerCase())), [books, sort, query]);
   useEffect(() => { if (!open) { setQuery(""); setGridBook(null); setVerseSheet(null); setFilters(false); } }, [open]);
   // The book being read is in view when the list opens, as Bible Strong's list does.
+  // Once per opening, as soon as the book list holds it (the books may still be loading).
   const listRef = useRef<HTMLDivElement>(null);
+  const shown = useRef(false);
+  const hasCurrent = data.some((b) => b.slug === current.slug);
   useEffect(() => {
-    if (!open || gridBook || verseSheet) return;
-    const t = setTimeout(() => listRef.current?.querySelector<HTMLElement>('[data-current]')?.scrollIntoView({ block: "center" }), 0);
+    if (!open) { shown.current = false; return; }
+    if (shown.current || gridBook || verseSheet || !hasCurrent) return;
+    const t = setTimeout(() => {
+      const row = listRef.current?.querySelector<HTMLElement>("[data-current]");
+      if (row) { row.scrollIntoView({ block: "center" }); shown.current = true; }
+    }, 0);
     return () => clearTimeout(t);
-  }, [open, gridBook, verseSheet, layout]);
+  }, [open, gridBook, verseSheet, layout, hasCurrent]);
 
   const pick = async (book: Book, chapter: number) => {
     haptic("select");

@@ -1268,3 +1268,10 @@ test("Stop cancels a pending device voice lookup", async ({ page }) => {
   await page.waitForTimeout(100);
   expect(await page.evaluate(() => (window as unknown as { __pendingSpeech: { calls: number } }).__pendingSpeech.calls)).toBe(0);
 });
+
+test("Books opens on the book being read even when the book list arrives late", async ({ page }) => {
+  await page.route("**/api/kjv/books.json", async (r) => { const res = await r.fetch(); await new Promise((ok) => setTimeout(ok, 2500)); await r.fulfill({ response: res }); });
+  await page.goto(`/read/john/3${LAUNCH}`);
+  await page.click(".bs-pill--book");
+  await expect(page.locator(".bs-bookrow[data-current]")).toBeInViewport({ timeout: 8000 });
+});
