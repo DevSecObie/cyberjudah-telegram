@@ -464,3 +464,11 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-audio__play { background: var(--bs-reverse); }
 
 .bs-audio__chips svg { flex: none; }
+
+.bs-audio__group { margin: 16px 15px 6px; font-size: 13px; color: var(--bs-tertiary); }
+.bs-audio__notice { margin: 8px 15px; font-size: 12px; color: var(--bs-tertiary); }
+.bs-audio__detail { display: block; font-size: 12px; color: var(--bs-tertiary); }
+
+.bs [data-reading] { background: var(--bs-opacity5); box-shadow: inset 3px 0 var(--bs-primary); border-radius: 4px; }
+
+.bs-footer > .bs-scrim { pointer-events: auto; }

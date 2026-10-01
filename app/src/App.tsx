@@ -1,3 +1,4 @@
+import { Credits } from "@/screens/Credits";
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
 
@@ -93,6 +94,7 @@ export function App() {
       <Suspense fallback={<Screen><Skeleton rows={8} /></Screen>}>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/settings/credits" element={<Credits />} />
         <Route path="/search" element={<Search />} />
         <Route path="/classes" element={<Classes />} />
         <Route path="/bible" element={<BibleTab />} />

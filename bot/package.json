@@ -6,7 +6,7 @@
   "description": "The CyberJudah Telegram bot and Mini App worker: serves the app, the Bot API webhook, search, sharing, Stars and the daily verse.",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "node scripts/fetch-dictionary.mjs && bash scripts/prepare-assets.sh && wrangler deploy",
+    "deploy": "node scripts/deploy-recordings.mjs && node scripts/fetch-dictionary.mjs && bash scripts/prepare-assets.sh && wrangler deploy",
     "test": "node --test tests/*.test.mjs && npm run test:bs",
     "typecheck": "tsc --noEmit",
     "setup": "node scripts/setup.mjs",

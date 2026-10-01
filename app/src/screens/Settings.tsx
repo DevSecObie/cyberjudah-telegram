@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
@@ -22,6 +23,7 @@ function Toggle({ on, onChange, title, sub }: { on: boolean; onChange: (v: boole
 }
 
 export function Settings() {
+  const navigate = useNavigate();
   useBackButton(false);
   const sheet = useSheet();
   const [size, setSize] = useStored<"compact" | "regular" | "large">("size", "regular");
@@ -67,8 +69,9 @@ export function Settings() {
     const b = a && list.find((x) => x.slug === a.id);
     if (!b) return;
     setSaving({ slug: b.slug, pct: 0 });
-    await saveBook(b, (d, t) => setSaving({ slug: b.slug, pct: Math.round((d / t) * 100) }));
-    setSaving(null); setSaved(await savedBooks()); haptic("success");
+    const complete = await saveBook(b, (d, t) => setSaving({ slug: b.slug, pct: Math.round((d / t) * 100) }));
+    setSaving(null); setSaved(await savedBooks()); haptic(complete ? "success" : "error");
+    if (!complete) void alert("The book download is incomplete. Please retry while connected to save all text and narration.");
   };
   const forget = async (slug: string) => { const b = books.data?.find((x) => x.slug === slug); if (b) { await removeBook(b); setSaved(await savedBooks()); } };
 
@@ -89,7 +92,7 @@ export function Settings() {
       {offlineSupported ? (
         <Section title="Offline books" action={<button type="button" className="link" onClick={() => void offline()}>Save a book</button>}>
           {saving ? <div className="progress"><i style={{ width: `${saving.pct}%` }} /></div> : null}
-          {saved.length ? <List>{saved.map((s) => <Row key={s} onClick={() => void forget(s)} title={books.data?.find((b) => b.slug === s)?.book ?? s} sub="Saved on this device · tap to remove" trailing={<span className="pill pill--ok">offline</span>} />)}</List> : <p className="hint">Saved books read without a connection.</p>}
+          {saved.length ? <List>{saved.map((s) => <Row key={s} onClick={() => void forget(s)} title={books.data?.find((b) => b.slug === s)?.book ?? s} sub="Saved on this device · tap to remove" trailing={<span className="pill pill--ok">offline</span>} />)}</List> : <p className="hint">Saved books include available narration and read without a connection.</p>}
         </Section>
       ) : null}
       <Section title="Daily verse">
@@ -108,6 +111,7 @@ export function Settings() {
       </Section>
       {me?.admin ? <AskUsage /> : null}
       <Section title="This app">
+        <List><Row title="Credits" sub="Narrators, recordings and licences" onClick={() => navigate("/settings/credits")} /></List>
         {me ? <List><Row title="Your Telegram id" sub={me.canEdit ? "You can edit notes from the app" : me.admin ? "Admin; editing needs the CYBERJUDAH_TOKEN secret on the deploy" : "Notes are read-only for this account"} trailing={<span className="pill">{me.user.id}</span>} onClick={() => { void navigator.clipboard?.writeText(String(me.user.id)).then(() => haptic("success")).catch(() => undefined); }} /></List> : null}
         <p className="hint">{app ? `Telegram ${app.version} on ${app.platform}. ` : "Running in a browser. "}{Object.entries(features).filter(([, v]) => v).length} of {Object.keys(features).length} Mini App features available here.</p>
       </Section>
