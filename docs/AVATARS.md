@@ -90,6 +90,8 @@ the sons of Adam". This is the assembly's chart of the nations, and portraits fo
 | Queens | The royal crown over a head covering; no hair showing | Esther 1:11; 2:17; 1 Corinthians 11:5-6 |
 | Pharaoh | No crown and no Egyptian headdress. Shaven bald head with Egyptian eyeliner (the assembly's direction; the court shaved, Genesis 41:14). Draped vestures of fine linen | Genesis 41:14, 42 |
 | Adam and Eve | Royal garments (Adam's kingdom, the elder world); no crown. The "coats of skins" of Genesis 3:21 is the law (sacrifice, righteousness), not literal hides, as the classes teach | Genesis 3:21; 2 Esdras 7 |
+| Adam | In the likeness of Christ: a full thick head of white woolly hair and a full white woolly beard. Christ's "head and his hairs were white like wool" (Revelation 1:14); the classes: "Adam was made in the image of Christ" | Genesis 1:27; 5:3; Revelation 1:14 |
+| Men of Israel, the Hebrews, Adam's line, Ham | A full head of hair, never bald or receding ("no bald heads"), except Pharaoh (shaven) and Elisha | Leviticus 21:5 |
 | Adam to Noah, and Shem | Dark ("formed… of the dust of the ground"); the long-lived fathers shown as aged elders | Genesis 2:7; 5:5-31; 9:29; 11:10-11 |
 | Cain | Fully leprous, his melanin gone: skin white as snow, blue eyes, blond (the assembly's direction) | Genesis 4:15; Leviticus 13:13 |
 | Cain's line | Fair, lacking melanin. The Bishop: "Cain's line was cursed with a lack of melanin… Esau is the return of Cain's lineage" ("We Are Born in Babylon", 2026-08-01) | Genesis 4:16-22 |
