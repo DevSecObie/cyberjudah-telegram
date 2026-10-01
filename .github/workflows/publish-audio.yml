@@ -70,7 +70,13 @@ jobs:
         working-directory: cyberjudah
         run: |
           python3 scripts/audio/recordings.py check
-          python3 scripts/audio/recordings.py export --output "$RUNNER_TEMP/recordings"
+          # archive.org can stall a download; checked sources are kept, so a retry resumes with the rest.
+          for i in 1 2 3 4; do
+            python3 scripts/audio/recordings.py export --output "$RUNNER_TEMP/recordings" && exit 0
+            echo "::warning::Export attempt $i failed; retrying in $((i * 30))s"
+            sleep $((i * 30))
+          done
+          exit 1
       - name: Publish the narration
         if: ${{ inputs.recordings }}
         working-directory: bot
@@ -81,12 +87,12 @@ jobs:
           node -e 'const c=require(process.env.RECORDINGS_EXPORT_DIR+"/catalog.json").chapters; const by={}; for (const x of c) by[x.slug]=(by[x.slug]||0)+1; console.log(`### Narration\n\n${c.length} chapters, ${(c.reduce((n,x)=>n+x.bytes,0)/1e6).toFixed(1)} MB\n\n`+Object.entries(by).map(([s,n])=>`- ${s}: ${n}`).join("\n"))' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Encode the ambient loops
-        if: ${{ inputs.ambient }}
+        if: ${{ inputs.ambient && !cancelled() }}
         working-directory: bot
         run: python3 scripts/audio/prepare-ambient.py --cache "$RUNNER_TEMP/ambient" | tee "$RUNNER_TEMP/ambient.txt"
       - name: Publish the ambient loops
         id: ambient
-        if: ${{ inputs.ambient }}
+        if: ${{ inputs.ambient && !cancelled() }}
         working-directory: bot
         env:
           AMBIENT_EXPORT_DIR: ${{ runner.temp }}/ambient/encoded
@@ -101,7 +107,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           node scripts/deploy-ambient.mjs $DRY
       - uses: actions/upload-artifact@v7
-        if: ${{ inputs.ambient && failure() && steps.ambient.outcome == 'failure' }}
+        if: ${{ inputs.ambient && !cancelled() && steps.ambient.outcome == 'failure' }}
         with:
           name: ambient-encodings
           path: ${{ runner.temp }}/ambient/encoded
