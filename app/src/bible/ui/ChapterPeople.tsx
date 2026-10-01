@@ -52,7 +52,7 @@ export function ChapterPeople({ slug, chapter, palette: c, resources }: { slug: 
             onClick={(e) => { e.stopPropagation(); haptic("select"); setOpen(true); }}>
             {shown.map(({ p, kind }, i) => {
               const f = fan(i, shown.length);
-              return <EntityAvatar key={p.id} name={p.name} kind={kind} size={62} ink={inkOf(kind, c)} base={c.reverse} className="bs-entities__avatar"
+              return <EntityAvatar key={p.id} id={p.id} name={p.name} kind={kind} size={62} ink={inkOf(kind, c)} base={c.reverse} className="bs-entities__avatar"
                 data-person-stack={p.id} data-rotate={String(f.r)}
                 style={{ transform: `translate(${f.x}px, ${f.y}px) rotate(${f.r}deg)`, zIndex: i + 1, borderColor: c.reverse, visibility: open ? "hidden" : undefined }} />;
             })}
@@ -123,7 +123,7 @@ function PeopleOverlay({ people, source, palette: c, onClosed }: { people: Named
           {people.map(({ p, n, kind }) => (
             <button key={p.id} type="button" className="bs-people__item" aria-label={`Open ${p.name}`}
               onClick={(e) => { e.stopPropagation(); haptic("select"); navigate(`/person/${p.id}`); }}>
-              <EntityAvatar name={p.name} kind={kind} size={68} ink={inkOf(kind, c)} base={c.reverse} className="bs-people__avatar" data-person-card={p.id} style={{ borderColor: c.reverse }} />
+              <EntityAvatar id={p.id} name={p.name} kind={kind} size={68} ink={inkOf(kind, c)} base={c.reverse} className="bs-people__avatar" data-person-card={p.id} style={{ borderColor: c.reverse }} />
               <span className="bs-people__text" style={{ animationDelay: `${delayOf(p.id) + 180}ms` }}>
                 <b>{p.name}</b>
                 <small>{KIND_LABEL[kind]} · {n} {n === 1 ? "verse" : "verses"}</small>

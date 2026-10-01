@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "model": "nano_banana_2 (requested nano_banana_pro), 1k square",
+  "brief": "docs/AVATARS.md",
+  "sizes": [
+    256,
+    128,
+    64
+  ],
+  "people": {
+    "abraham-gen-11-26": {
+      "name": "Abraham",
+      "job": "d1367665-d3df-4eb5-8297-3cb03425665d",
+      "batch": "pilot",
+      "notes": "Style anchor; before Sinai, so no fringes"
+    },
+    "israel-gen-25-26": {
+      "name": "Jacob (Israel)",
+      "job": "c936f6e7-8e2a-4439-9646-e1d4ec5824ac",
+      "batch": "pilot",
+      "notes": "Before Sinai"
+    },
+    "esau-gen-25-25": {
+      "name": "Esau",
+      "job": "06b67b2d-5b47-4ed0-bd52-e11dd0b1fc04",
+      "batch": "pilot",
+      "notes": "Genesis 25:25"
+    },
+    "miriam-exo-15-20": {
+      "name": "Miriam",
+      "job": "fa0d393b-b46f-46e5-8e18-ef6281142119",
+      "batch": "pilot",
+      "notes": "Head covering"
+    },
+    "pharaoh-exo-1-11": {
+      "name": "Pharaoh (Exodus 1)",
+      "job": "bdfc9d23-704d-4f94-84ef-dce8526d845a",
+      "batch": "pilot",
+      "notes": "Hamite; nemes"
+    },
+    "david-rut-4-17": {
+      "name": "David",
+      "job": "d7ac9e46-f2a7-4b7c-bacf-a3908ac5563c",
+      "batch": "pilot",
+      "notes": "Judah; 1 Samuel 16:12 ruddy kept as a warm undertone"
+    },
+    "esther-est-2-7": {
+      "name": "Esther",
+      "job": "3ef6af9f-75b4-4d7f-808c-fc8176baf56e",
+      "batch": "pilot",
+      "notes": "Head covering"
+    },
+    "ebed-melech-jer-38-7": {
+      "name": "Ebed-melech",
+      "job": "44356e8b-d569-49c8-bd93-22e5588e6aab",
+      "batch": "pilot",
+      "notes": "Cushite"
+    },
+    "paul-act-7-58": {
+      "name": "Paul",
+      "job": "c456ddc2-2b27-4539-991f-f3315a5f8e81",
+      "batch": "pilot",
+      "notes": "Acts 21:38; bare-headed"
+    },
+    "moses-exo-2-10": {
+      "name": "Moses",
+      "job": "917ae027-a8f4-4a7a-9453-5e018c20efe0",
+      "batch": "1",
+      "notes": "Fringes with ribband of blue; tight woolly coils (regenerated)"
+    },
+    "pilate-mat-27-2": {
+      "name": "Pilate",
+      "job": "49a8ecda-ad4f-4ffd-9627-6b3321da9dcf",
+      "batch": "1",
+      "notes": "Edom by lineage; natural ruddy complexion as Esau"
+    },
+    "tiberius-mat-22-17": {
+      "name": "Tiberius",
+      "job": "e811d9e4-f1bd-4576-9460-24003e84b91c",
+      "batch": "1",
+      "notes": "Edom by lineage; natural ruddy complexion as Esau"
+    },
+    "herod-mat-2-1": {
+      "name": "Herod the Great",
+      "job": "569a3a6f-7cc0-4f18-a06e-d08d4619ff72",
+      "batch": "1",
+      "notes": "Edom by lineage; natural ruddy complexion as Esau"
+    },
+    "herod-mat-14-1": {
+      "name": "Herod Antipas",
+      "job": "62beaa0b-4858-4903-b4fa-df9d19428651",
+      "batch": "1",
+      "notes": "Edom by lineage; natural ruddy complexion as Esau"
+    },
+    "herod-act-12-1": {
+      "name": "Herod Agrippa I",
+      "job": "ee8c36ce-e4c0-4a03-bbde-6b100ec827eb",
+      "batch": "1",
+      "notes": "Edom by lineage; natural ruddy complexion as Esau"
+    },
+    "agrippa-act-25-13": {
+      "name": "Agrippa II",
+      "job": "34954897-5cbd-4c24-ace3-741d0810b411",
+      "batch": "1",
+      "notes": "Edom by lineage; natural ruddy complexion as Esau"
+    },
+    "aaron-exo-4-14": {
+      "name": "Aaron",
+      "job": "80b8c554-0204-4a8d-bef1-8b0018bf0f37",
+      "batch": "1",
+      "notes": "Levite high priest; linen mitre"
+    },
+    "judah-gen-29-35": {
+      "name": "Judah",
+      "job": "ec30e895-9ef7-4743-87a9-36947815d27e",
+      "batch": "1",
+      "notes": "Before Sinai"
+    },
+    "joseph-gen-30-24": {
+      "name": "Joseph",
+      "job": "845c669e-fa0e-463a-a522-ed2369cab797",
+      "batch": "1",
+      "notes": "Before Sinai; shaven in Egypt (Genesis 41:14)"
+    },
+    "isaac-gen-17-19": {
+      "name": "Isaac",
+      "job": "c2ba5066-b4d2-4300-aa9e-977dc6ddd4d1",
+      "batch": "1",
+      "notes": "Before Sinai"
+    },
+    "solomon-2sa-5-14": {
+      "name": "Solomon",
+      "job": "36a2e248-3ef1-4fcb-b322-4ebde9e3afd1",
+      "batch": "1",
+      "notes": "Judah; Song of Solomon 1:5; fringes"
+    }
+  }
+}

@@ -50,9 +50,9 @@ These people are left out until the assembly's understanding is confirmed:
   1:44:41; Deacon Malachiyah, `…2026-08-22-lucifer-the-antichrist.md:227-229`). Nothing yet says
   whether an app avatar is fitting.
 - **The Most High** is never depicted.
-- **Roman, Greek and Herodian officials** (Pilate, Tiberius, the Herods) are taught as Edom by
-  lineage. Nothing yet says whether to show them with Esau's complexion.
-- **Nations without a description:** Moab, Midian, Arabia and Sheba (Ruth, Zipporah, the Queen of
+- **Early patriarchs** (TIPNR "Early Patriarch", before Abraham) are held back until the line from
+  Noah's sons is settled for depiction.
+- **Nations without a description:** Ammon, Syria, Mesopotamia, Assyria, Moab, Midian, Arabia and Sheba (Ruth, Zipporah, the Queen of
   Sheba), Babylon (Nebuchadnezzar) and Persia.
 - **Unidentified or group records** (76 groups, and 1,637 records with no nation) get no generated
   face. They keep the lettered avatar.
@@ -85,12 +85,50 @@ square, about 2 credits each.
 - Esau's first version was a saturated, sunburnt red that read as caricature. It was regenerated with a natural ruddy complexion: `06b67b2d-5b47-4ed0-bd52-e11dd0b1fc04`. The alternate is `066e60ab-4334-4528-a2a4-e0d0010814fe`.
 - Open point: both Moses regenerations have twisted, loc-like hair rather than the tight woolly coils in the brief.
 - Most first-round images arrived painted inside a circle on a cream page. Derivatives are cropped inside that circle, so no cream ring shows in a round avatar.
-- Status: **pilot, awaiting approval.** None is in the app yet. In the Figma designs they are labelled "PILOT portrait (awaiting approval)", and people without one keep a lettered avatar labelled "TEMPORARY".
+- Status: **approved** (2026-10-01), apart from Moses, who was regenerated in batch 1.
 
 The prompts are kept with each Higgsfield job and repeated in `app/public/people/manifest.json`
 once the images are brought into the repository.
 
-## 5. Asset handling
+## 5. Batch 1 (approved direction, 2026-10-01)
+
+Direction given with the approval: Moses with tight woolly coils, not locs; Pilate, Tiberius and the
+Herods with the same natural ruddy complexion as the approved Esau portrait (Edom by lineage), each
+with distinct features. Prompts were text only, with no face reference, beginning "Square full-bleed
+painted portrait (no circle, no border)". All twelve were reviewed and kept.
+
+| Person id | Name | Higgsfield job | Notes |
+| --- | --- | --- | --- |
+| `moses-exo-2-10` | Moses | `917ae027-a8f4-4a7a-9453-5e018c20efe0` | Replaces `38bf3fad`; tight woolly coils, fringes |
+| `pilate-mat-27-2` | Pilate | `49a8ecda-ad4f-4ffd-9627-6b3321da9dcf` | Edom; ruddy as Esau |
+| `tiberius-mat-22-17` | Tiberius | `e811d9e4-f1bd-4576-9460-24003e84b91c` | Edom; ruddy as Esau |
+| `herod-mat-2-1` | Herod the Great | `569a3a6f-7cc0-4f18-a06e-d08d4619ff72` | Edom; ruddy as Esau |
+| `herod-mat-14-1` | Herod Antipas | `62beaa0b-4858-4903-b4fa-df9d19428651` | Edom; ruddy as Esau |
+| `herod-act-12-1` | Herod Agrippa I | `ee8c36ce-e4c0-4a03-bbde-6b100ec827eb` | Edom; ruddy as Esau |
+| `agrippa-act-25-13` | Agrippa II | `34954897-5cbd-4c24-ace3-741d0810b411` | Edom; ruddy as Esau |
+| `aaron-exo-4-14` | Aaron | `80b8c554-0204-4a8d-bef1-8b0018bf0f37` | High priest; linen mitre |
+| `judah-gen-29-35` | Judah | `ec30e895-9ef7-4743-87a9-36947815d27e` | Before Sinai |
+| `joseph-gen-30-24` | Joseph | `845c669e-fa0e-463a-a522-ed2369cab797` | Before Sinai; shaven in Egypt (Genesis 41:14) |
+| `isaac-gen-17-19` | Isaac | `c2ba5066-b4d2-4300-aa9e-977dc6ddd4d1` | Before Sinai |
+| `solomon-2sa-5-14` | Solomon | `36a2e248-3ef1-4fcb-b322-4ebde9e3afd1` | Song of Solomon 1:5; fringes |
+
+## 6. Scope and credits
+
+Who can get a portrait under this brief: men and women whose nation is one the teaching describes,
+namely the tribes of Israel, Edom (with Rome, `Italy`), and the Hamite nations (Egypt, Cush,
+Canaan, Philistia). Of the 3,129 records, about 1,300 qualify. The rest are groups (76), records
+with no nation (1,587), early patriarchs, or nations still waiting for direction (section 3).
+Batches run in order of how often a person is named.
+
+| Run | Images | Credits | Balance after |
+| --- | --- | --- | --- |
+| Pilot, with regenerations | 16 | about 32 | |
+| Batch 1 | 12 | about 24 | 1,877 |
+
+At about 2 credits an image, the ~1,300 who qualify would need about 2,600 credits, more than the
+balance. The most-named come first, so the people readers meet most get theirs first.
+
+## 7. Asset handling
 
 - **Originals:** the 1k PNGs, kept outside the app bundle.
 - **App copies:** WebP files at 256px (profile header), 128px (cards and lists) and 64px (graph
@@ -99,3 +137,7 @@ once the images are brought into the repository.
 - **Accessibility:** the image is decorative (`alt=""`). The person's name from the record is the
   accessible name, so screen readers don't hear it twice.
 - **Fallback:** a person without an approved avatar keeps the lettered avatar.
+- **In the app:** `PORTRAITS` in `app/src/ui/portraits.ts` lists the ids with an approved portrait.
+  `EntityAvatar` takes the person `id` and picks the 64, 128 or 256px file for the size it draws, in
+  People, Person, the family graph, case studies, the chapter's people, and the verse and search
+  sheets. The record for each image (job, batch, notes) is `app/public/people/manifest.json`.
