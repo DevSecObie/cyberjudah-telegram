@@ -215,6 +215,8 @@ html[data-modal] { overflow: hidden; }
 .nsheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-dock); display: flex; flex-direction: column; background: var(--canvas); border-top: .5px solid var(--mat-edge); border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--shadow-3); transform: translateY(105%); transition: transform var(--dur-3) var(--ease), top var(--dur-3) var(--ease); visibility: hidden; }
 .nsheet[data-full] { z-index: 75; border-radius: 0; border-top-color: transparent; }
 .nsheet[data-open] { transform: translateY(0); visibility: visible; }
+/* Desktop: the notes sheet opens beside the rail, never under it, so its title and the rail stay clear. */
+@media (min-width: 1100px) { .nsheet:not([data-full]) { left: var(--rail-space); border-left: .5px solid var(--mat-edge); border-radius: var(--r-xl) 0 0 0; } }
 .nsheet__head { position: relative; flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: 16px var(--gutter) 10px; border-bottom: .5px solid var(--hairline); cursor: grab; user-select: none; -webkit-user-select: none; }
 .nsheet__head h2 { margin: 0; font: 600 var(--fs-body) var(--font-ui); color: var(--text-1); }
 .nsheet__head small { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; font: 400 var(--fs-footnote) var(--font-ui); color: var(--text-3); }

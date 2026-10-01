@@ -94,7 +94,7 @@ export function MediaDeck({ items, placement, palette: c, fontScale, sections, r
   return (
     <>
       <button ref={stack} type="button" className="bs-deck" data-ignore-verse-touch="" disabled={disabled} style={style}
-        aria-label={`${items.length === 1 ? "A class" : `${items.length} classes`} taught this: ${items.map((m) => m.label).join(", ")}`}
+        aria-label={`${items.length === 1 ? "1 class" : `${items.length} classes`} taught this verse`}
         onClick={(e) => { e.stopPropagation(); if (disabled) return; haptic("select"); setMode("gallery"); }}>
         {shown.map((m, i) => {
           const f = fan(i, shown.length);

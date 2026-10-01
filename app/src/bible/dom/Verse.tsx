@@ -12,8 +12,9 @@ import type { Bookmark, Tag } from "../store";
 
 /**
  * One verse, as Bible Strong's BibleDOM/Verse.tsx draws it: the number, a bookmark ribbon,
- * the count badges (relations, tags) in "With icon" mode, the text, then the tag chip and the
- * relation tags in "Line break" mode. Styles are the same values, on inline style.
+ * the count badges (relations, tags) in "With icon" mode, the text, then, on a line under the
+ * verse, the classes that taught it, the tag chip and the relation tags. Styles are the same
+ * values, on inline style.
  */
 export type VerseTagGroup = { tags: Tag[] };
 export type VerseProps = {
@@ -57,6 +58,10 @@ export function Verse(p: VerseProps) {
     ...(p.isFocused === false ? { opacity: 0.55 } : {}),
     ...(p.isTouched ? { opacity: 0.7 } : {}),
   };
+  const deck = !!(p.moments?.length && p.deck);
+  const tags = !!(p.tagGroup?.tags.length && s.tagsDisplay === "inline");
+  const rels = !!(p.relationItems?.length && s.relationsDisplay === "inline");
+  const under = deck || tags || rels;
   return (
     <span id={`verset-${p.number}`} className="bs-verse" data-vk={p.verseKey} data-selected={p.isSelected ? "" : undefined} style={wrapper}>
       <span style={container}>
@@ -65,10 +70,15 @@ export function Verse(p: VerseProps) {
         {p.relationCount && s.relationsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.relationCount} onClick={p.onOpenRelations} label={`${p.relationCount} relations`}><Feather name="git-merge" size={16} color={c.primary} /></CountBadge> : null}
         {p.taggedItemsCount && s.tagsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.taggedItemsCount} onClick={p.onOpenTags} label={`${p.taggedItemsCount} tags`}><Feather name="tag" size={14} color={c.primary} /></CountBadge> : null}
         <span className="bs-text" data-verse-key={p.verseKey} style={{ fontSize: getBibleTextFontSize(false, s.fontSizeScale), lineHeight: scaleLineHeight(32, s.lineHeight, s.fontSizeScale), whiteSpace: "pre-line" }}>{p.text}</span>
-        {p.moments?.length && p.deck ? <MediaDeck items={p.moments} placement="inline" palette={c} fontScale={s.fontSizeScale} reference={p.deck.reference} from={`${p.deck.from}?v=${p.number}`} disabled={p.isSelectedMode} /> : null}
       </span>
-      {p.tagGroup && s.tagsDisplay === "inline" ? <VerseTags tags={p.tagGroup.tags} settings={s} palette={c} theme={theme} onOpenTags={p.onOpenTags} onOpenTag={p.onOpenTag} /> : null}
-      {p.relationItems?.length && s.relationsDisplay === "inline" ? <span data-ignore-verse-touch=""><RelationsText items={p.relationItems} onClick={p.onOpenRelationItem} /></span> : null}
+      {under ? (
+        // Under the verse, on a line of their own, so the text reads unbroken: the classes that taught it, its tags, its relations.
+        <span className="bs-under" data-ignore-verse-touch="">
+          {deck ? <MediaDeck items={p.moments!} placement="inline" palette={c} fontScale={s.fontSizeScale} reference={p.deck!.reference} from={`${p.deck!.from}?v=${p.number}`} disabled={p.isSelectedMode} /> : null}
+          {tags ? <VerseTags tags={p.tagGroup!.tags} settings={s} palette={c} theme={theme} onOpenTags={p.onOpenTags} onOpenTag={p.onOpenTag} /> : null}
+          {rels ? <RelationsText items={p.relationItems!} onClick={p.onOpenRelationItem} /> : null}
+        </span>
+      ) : null}
     </span>
   );
 }

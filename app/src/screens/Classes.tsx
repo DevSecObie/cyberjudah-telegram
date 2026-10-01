@@ -197,9 +197,12 @@ function ClassPost({ t, index, total, playing, onPlay, onSeries }: { t: Teaching
 }
 
 /** The recording's picture at 16:9, its space held before it loads; a quiet tile when there is none. */
+/** YouTube's 320px still blurs on a wide feed: offer its 480px one too (its letterbox is cropped by object-fit). */
+const sharper = (src: string) => /\/mqdefault\.jpg$/.test(src) ? `${src} 320w, ${src.replace(/mqdefault\.jpg$/, "hqdefault.jpg")} 480w` : undefined;
+
 function Poster({ src }: { src: string }) {
   const [failed, setFailed] = useState(!src);
-  return failed ? <span className="post__noimg"><Icon name="play" size={28} /></span> : <img src={src} alt="" width={320} height={180} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
+  return failed ? <span className="post__noimg"><Icon name="play" size={28} /></span> : <img src={src} srcSet={sharper(src)} sizes="(min-width: 700px) 600px, 100vw" alt="" width={320} height={180} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
 }
 
 function FeedSkeleton() {

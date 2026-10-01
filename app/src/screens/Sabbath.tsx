@@ -37,7 +37,7 @@ export function Sabbath() {
   return (
     <Screen title="Sabbath" kicker="From even unto even · Leviticus 23:32">
       {!loc ? (
-        <Empty title="Where are you?">Sunset depends on where you are. Share your location once and the app keeps it, on every device.</Empty>
+        <Empty title="Where are you?">Sunset depends on where you are. Share your location once and the app remembers it{app ? ", on every device where you open CyberJudah in Telegram" : " in this browser"}.</Empty>
       ) : !state ? (
         <Empty title="No sunset here today">Above the polar circle the sun does not set for part of the year.</Empty>
       ) : (

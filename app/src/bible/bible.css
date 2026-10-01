@@ -535,3 +535,9 @@ html[data-transparency="reduced"] .bs { --mat-nav: var(--bs-reverse); --mat-elev
 
 /* Desktop: the reader stands beside the rail, never under it. */
 @media (min-width: 1100px) { #root .bs { left: var(--rail-space); } }
+
+/* Under the verse: the classes that taught it, its tags and its relations, on a line of their own
+   so the verse text and the next verse are never broken up by them. */
+.bs .bs-under { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 2px 0 12px; padding-inline-start: 2px; }
+.bs .bs-under .rel-inline { margin: 0; }
+.bs .bs-under .bs-inline-item { margin-inline: 0 !important; }

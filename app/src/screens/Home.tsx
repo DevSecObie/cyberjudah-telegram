@@ -73,7 +73,7 @@ export function useTeachings() {
 const LEARN: [string, string, string, IconName][] = [
   ["/classes", "Classes", "Every Sabbath class, with its notes", "play"],
   ["/books", "Library", "The books the classes read from", "layers"],
-  ["/history", "Our Hidden History", "The episodes, with their notes", "history"],
+  ["/classes?feed=history", "Our Hidden History", "The episodes, with their notes", "history"],
   ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book", "book"],
 ];
 /** The Law shelf. */
