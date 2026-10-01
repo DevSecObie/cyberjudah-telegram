@@ -227,7 +227,7 @@ export function BibleTab() {
 
   const headerHeight = (fullscreen ? HEADER_HEIGHT_MIN : HEADER_HEIGHT) + (focus && contextMode ? PASSAGE_CONTEXT_HEADER_HEIGHT : 0);
   const focusedReference = focus ? reference(focus) : null;
-  const bottomBar = 48 + (Number(getComputedStyle(document.documentElement).getPropertyValue("--safe-bottom").replace("px", "")) || 0);
+  const bottomBar = 64 + (Number(getComputedStyle(document.documentElement).getPropertyValue("--safe-bottom").replace("px", "")) || 0);
   const items = colorItems(settings, palette);
   const resource = verses.find((v) => v.verse === resourceVerse);
 
