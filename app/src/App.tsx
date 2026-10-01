@@ -6,12 +6,12 @@ import { isTabPath, recordPath } from "@/lib/tabs";
 import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
-import { useSettingsButton, useStored, useTheme } from "@/tg/hooks";
+import { useSettingsButton } from "@/tg/hooks";
 import { AppRoot } from "@telegram-apps/telegram-ui";
 import { Button, PageActions, Screen, Skeleton, TabBar } from "@/ui/ui";
 import { Drawers } from "@/ui/drawers";
 import { ScreenBoundary } from "@/ui/boundary";
-import { ThemeApplier } from "@/ui/theme";
+import { ThemeApplier, useAppTheme } from "@/ui/theme";
 import { Home } from "@/screens/Home";
 import { NavEditor } from "@/screens/NavEditor";
 const NoteRequests = lazy(() => import("@/screens/NoteRequests").then((m) => ({ default: m.NoteRequests })));
@@ -83,9 +83,8 @@ export function App() {
   // The tab bar stays through a class note or a recording: a reader who came from a verse is still in the app.
   const tabs = true;
   // Like an iOS app, the look follows the phone (through Telegram) until the reader picks one.
-  const [theme] = useStored<string>("theme", "system");
-  const { scheme } = useTheme();
-  const appearance = theme === "light" || theme === "sepia" ? "light" : theme === "system" ? scheme : "dark";
+  // One theme for the whole app: the Bible's day or night colour, following the phone until the reader picks one.
+  const appearance = useAppTheme().dark ? "dark" : "light";
   return (
     <AppRoot className="cj" appearance={appearance} platform={app?.platform === "ios" || app?.platform === "macos" ? "ios" : "base"} id="shell" data-tabs={tabs ? "" : undefined}>
       <ThemeApplier />

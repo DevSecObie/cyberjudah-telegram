@@ -13,7 +13,8 @@ import { useSheet } from "@/ui/sheet";
 import { Icon, List, Row, Screen, Section, Segmented } from "@/ui/ui";
 import { useRelationsDisplay } from "@/lib/relations";
 import { useBibleSettings } from "@/bible/settings";
-import type { Font, Spacing, Theme } from "@/ui/theme";
+import type { Font, Spacing } from "@/ui/theme";
+import { DARK_THEMES, LIGHT_THEMES } from "@/bible/theme";
 
 /** A setting's current value, iOS style: quiet text before the chevron. */
 function Value({ children }: { children: string }) {
@@ -30,7 +31,6 @@ export function Settings() {
   const sheet = useSheet();
   const [size, setSize] = useStored<"compact" | "regular" | "large">("size", "regular");
   const [transparency, setTransparency] = useStored<"system" | "reduced">("transparency", "system");
-  const [theme, setTheme] = useStored<Theme>("theme", "system");
   const [font, setFont] = useStored<Font>("font", "serif");
   const [spacing, setSpacing] = useStored<Spacing>("spacing", "regular");
   const [justify, setJustify] = useStored("justify", false);
@@ -94,8 +94,11 @@ export function Settings() {
   return (
     <Screen title="Settings">
       <Section title="Reading">
-        <Segmented label="Theme" value={theme} onChange={setTheme} options={[["system", "Automatic"], ["light", "Light"], ["dark", "Dark"], ["sepia", "Sepia"]]} />
+        <Segmented label="Theme" value={bible.preferredColorScheme} onChange={(v) => setBible({ preferredColorScheme: v })} options={[["auto", "Automatic"], ["light", "Day"], ["dark", "Night"]]} />
         <List>
+          {/* The Bible's own colours, worn by the whole app: the same choice as Font and settings in the reader. */}
+          <Row onClick={() => { const i = LIGHT_THEMES.findIndex((t) => t.id === bible.preferredLightTheme); setBible({ preferredLightTheme: LIGHT_THEMES[(i + 1) % LIGHT_THEMES.length].id }); }} title="Day colour" sub="The whole app takes the Bible’s colours" trailing={<Value>{LIGHT_THEMES.find((t) => t.id === bible.preferredLightTheme)?.label ?? ""}</Value>} />
+          <Row onClick={() => { const i = DARK_THEMES.findIndex((t) => t.id === bible.preferredDarkTheme); setBible({ preferredDarkTheme: DARK_THEMES[(i + 1) % DARK_THEMES.length].id }); }} title="Night colour" trailing={<Value>{DARK_THEMES.find((t) => t.id === bible.preferredDarkTheme)?.label ?? ""}</Value>} />
           <Row onClick={() => setSize(size === "compact" ? "regular" : size === "regular" ? "large" : "compact")} title="Text size" trailing={<Value>{{ compact: "Small", regular: "Regular", large: "Large" }[size]}</Value>} />
           <Row onClick={() => { const serif = face !== "Newsreader"; setFont(serif ? "serif" : "sans"); setBible({ fontFamily: serif ? "Newsreader" : "System" }); }} title="Typeface" sub={face === "Newsreader" || face === "System" ? undefined : "Chosen in the Bible’s own settings"} trailing={<Value>{face}</Value>} />
           <Row onClick={() => setSpacing(spacing === "tight" ? "regular" : spacing === "regular" ? "airy" : "tight")} title="Line spacing" trailing={<Value>{{ tight: "Tight", regular: "Regular", airy: "Airy" }[spacing]}</Value>} />
