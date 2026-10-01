@@ -28,6 +28,7 @@ export function Settings() {
   useBackButton(false);
   const sheet = useSheet();
   const [size, setSize] = useStored<"compact" | "regular" | "large">("size", "regular");
+  const [transparency, setTransparency] = useStored<"system" | "reduced">("transparency", "system");
   const [theme, setTheme] = useStored<Theme>("theme", "system");
   const [font, setFont] = useStored<Font>("font", "serif");
   const [spacing, setSpacing] = useStored<Spacing>("spacing", "regular");
@@ -96,6 +97,7 @@ export function Settings() {
           <Row onClick={() => setSpacing(spacing === "tight" ? "regular" : spacing === "regular" ? "airy" : "tight")} title="Line spacing" trailing={<Value>{{ tight: "Tight", regular: "Regular", airy: "Airy" }[spacing]}</Value>} />
           <Toggle on={justify} onChange={setJustify} title="Justify the text" />
           <Row onClick={() => setRelDisplay(relDisplay === "inline" ? "block" : "inline")} title="Related passages" sub={relDisplay === "inline" ? "Shown as tags under each verse" : "Shown as a count beside the verse number"} trailing={<Value>{relDisplay === "inline" ? "Tags" : "Count"}</Value>} />
+          <Toggle on={transparency === "reduced"} onChange={(v) => setTransparency(v ? "reduced" : "system")} title="Reduce transparency" sub="Solid bars and panels instead of see-through glass" />
           {features.fullscreen ? <Toggle on={fullscreen} onChange={setFs} title="Full screen" sub="The app fills the screen, without Telegram's header" /> : null}
           {features.fullscreen && (platform === "ios" || platform === "android") ? <Toggle on={portrait} onChange={setPortrait} title="Lock portrait" sub="Keep the reader upright" /> : null}
         </List>

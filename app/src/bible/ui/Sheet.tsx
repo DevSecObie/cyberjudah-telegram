@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from "react";
 
 import { sheetOpened } from "@/tg/hooks";
+import { useModal } from "@/ui/modal";
 
 import { Feather } from "../icons";
 
@@ -24,16 +25,13 @@ export function Sheet({ open, onClose, backdrop = true, height = "auto", title, 
   const down = (e: RPointerEvent) => { if ((e.target as HTMLElement).closest("button")) return; start.current = e.clientY; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); };
   const move = (e: RPointerEvent) => { if (start.current !== null) setDrag(e.clientY - start.current); };
   const up = () => { if (start.current === null) return; start.current = null; if (drag > 90) onClose(); else if (drag < -60 && height !== "full") setTall(true); setDrag(0); };
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  // A sheet over a dimmed page holds the focus; one that leaves the page usable (no backdrop) does not.
+  const box = useRef<HTMLDivElement>(null);
+  useModal(box, open, onClose, { lock: backdrop, trap: backdrop });
   if (!open) return null;
   return (
     <div className={`sheet__scrim bs-scrim${backdrop ? "" : " bs-scrim--clear"}`} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className={`bs-sheet bs-sheet--${tall ? "full" : height}${className ? ` ${className}` : ""}`} role="dialog" aria-modal={backdrop} aria-label={label ?? (typeof title === "string" ? title : "Sheet")} data-sheet-open=""
+      <div ref={box} className={`bs-sheet bs-sheet--${tall ? "full" : height}${className ? ` ${className}` : ""}`} role="dialog" aria-modal={backdrop} aria-label={label ?? (typeof title === "string" ? title : "Sheet")} data-sheet-open=""
         style={drag > 0 ? { transform: `translateY(${drag}px)`, transition: "none" } : undefined}>
         <div className="bs-sheet__grab" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
           <div className="bs-sheet__handle" aria-hidden="true" />

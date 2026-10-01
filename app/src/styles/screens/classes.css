@@ -1,0 +1,74 @@
+/* ── Classes: a feed of posts, media first ───────────────────────────────────────────────────
+   Each post: who taught it and when, the recording (playing in place on request), the actions,
+   then the title and the opening of the notes. Posts are plain content on the canvas; only the
+   media carries a frame, so a long feed stays light to scroll. */
+.classes { max-width: 600px; }
+.cfeed__tools { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
+.cfeed__series .chips { margin: 0 calc(-1 * var(--gutter)); padding: 2px var(--gutter); }
+.cfeed__filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+#root .cfeed__filters .cfeed__pick {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 36px; padding: 0 var(--sp-3);
+  border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--control-edge);
+  font: 500 var(--fs-sub)/1.2 var(--font-ui); color: var(--text-1); cursor: pointer; transition: background-color var(--dur-2) ease;
+}
+#root .cfeed__filters .cfeed__pick:hover { background: var(--fill-2); }
+#root .cfeed__filters .cfeed__pick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#root .cfeed__filters .cfeed__pick svg { flex: none; transform: rotate(90deg); color: var(--text-3); }
+#root .cfeed__filters .cfeed__pick[data-on] { background: var(--text-1); color: var(--canvas); box-shadow: none; }
+#root .cfeed__filters .cfeed__pick[data-on] svg { color: var(--canvas); }
+#root .cfeed__filters .cfeed__pick:disabled { opacity: var(--disabled-opacity); cursor: default; }
+#root .cfeed__filters .cfeed__reset { min-height: 36px; padding: 0 6px; border: 0; background: none; font: 600 var(--fs-sub) var(--font-ui); color: var(--accent); cursor: pointer; }
+.cfeed__count { margin: -8px 0 0; font: 500 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
+.cfeed { display: grid; gap: 30px; }
+.cfeed__more { display: grid; justify-items: center; padding: var(--sp-2) 0 4px; }
+#root .cfeed__more .cfeed__morebtn { min-height: var(--touch); padding: 0 var(--sp-5); border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); font: 600 var(--fs-sub) var(--font-ui); color: var(--text-1); cursor: pointer; }
+.cfeed__end { margin: 0; font: 500 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
+
+.post { display: grid; min-width: 0; }
+.post__head { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 0 0 10px; }
+.post__mark { flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%;
+  background: hsl(var(--mark-h, 200) 45% 40%); color: #fff; font: 600 15px var(--font-ui);
+  box-shadow: 0 0 0 2px var(--canvas), 0 0 0 3.5px color-mix(in srgb, hsl(var(--mark-h, 200) 60% 55%) 70%, transparent); }
+.post__who { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
+.post__who b { font: 600 var(--fs-sub)/1.25 var(--font-ui); color: var(--text-1); overflow-wrap: anywhere; }
+.post__who span { font: 400 var(--fs-footnote)/1.35 var(--font-ui); color: var(--text-3); overflow-wrap: anywhere; }
+#root .post .post__series { all: unset; box-sizing: border-box; font: inherit; font-weight: 600; color: var(--accent); cursor: pointer; border-radius: 4px; overflow-wrap: anywhere; }
+#root .post .post__series:hover { text-decoration: underline; text-underline-offset: 2px; }
+#root .post .post__series:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.post__tools { flex: none; display: flex; margin-left: auto; }
+#root .post .post__icon { display: grid; place-items: center; width: var(--touch); height: var(--touch); padding: 0; border: 0; border-radius: 50%; background: none; color: var(--text-1); cursor: pointer; transition: background-color var(--dur-1) ease; }
+#root .post .post__icon:hover { background: var(--state-hover); }
+#root .post .post__icon[aria-pressed="true"] { color: var(--accent); }
+/* The recording: full bleed on a phone, framed inside the column from a tablet up; always 16:9. */
+.post__media { position: relative; aspect-ratio: 16 / 9; margin: 0 calc(-1 * var(--gutter)); overflow: hidden; background: var(--surface-2); }
+@media (min-width: 600px) { .post__media { margin: 0; border-radius: var(--r-lg); box-shadow: var(--card-edge), var(--shadow-1); } }
+.post__media iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+#root .post .post__poster { position: absolute; inset: 0; display: block; padding: 0; border: 0; background: none; cursor: pointer; }
+.post__poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.post__noimg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-3); background: linear-gradient(135deg, var(--surface-2), var(--surface-1)); }
+/* The play mark: a dark disc with a thin rim, no filter (there is one per post). */
+.post__playicon { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%;
+  background: rgba(0, 0, 0, .62); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22), 0 6px 18px rgba(0, 0, 0, .35);
+  transition: transform var(--dur-2) var(--ease), background-color var(--dur-2) ease; }
+.post__poster:hover .post__playicon, .post__poster:focus-visible .post__playicon { transform: scale(1.06); background: rgba(0, 0, 0, .75); }
+.post__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 0 2px; }
+#root .post .post__act { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px 0 11px; border: 0; border-radius: var(--r-pill);
+  background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); font: 600 var(--fs-sub)/1 var(--font-ui); color: var(--text-1); text-decoration: none; cursor: pointer;
+  transition: background-color var(--dur-2) ease, color var(--dur-2) ease, transform var(--dur-1) var(--ease); }
+#root .post .post__act:hover { background: var(--fill-2); }
+#root .post .post__act:active { transform: scale(.97); }
+#root .post .post__act small { font: 500 var(--fs-caption) var(--font-ui); color: var(--text-3); }
+#root .post .post__act[aria-pressed="true"], #root .post .post__act[aria-expanded="true"] { background: var(--text-1); color: var(--canvas); box-shadow: none; }
+#root .post .post__act[aria-pressed="true"] small, #root .post .post__act[aria-expanded="true"] small { color: inherit; opacity: .75; }
+.post__scripture { display: grid; gap: var(--sp-2); margin-top: var(--sp-2); padding: var(--sp-3); border-radius: var(--r-md); background: var(--surface-1); box-shadow: var(--card-edge); animation: rise-in var(--dur-2) var(--ease); }
+.post__scripture small { font: 700 11px var(--font-ui); letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); }
+.post__scripture div { display: flex; flex-wrap: wrap; gap: 6px; }
+#root .post .post__ref { display: inline-flex; align-items: center; min-height: 32px; padding: 0 11px; border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent); font: 600 var(--fs-footnote) var(--font-ui); }
+.post__body { display: grid; gap: 4px; min-width: 0; padding-top: var(--sp-2); }
+.post__title { margin: 0; font: 650 var(--fs-callout)/1.3 var(--font-ui); letter-spacing: -.01em; color: var(--text-1); overflow-wrap: anywhere; text-wrap: pretty; }
+.post__title a:hover { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.post__intro { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 2px 0 0; font: 400 15px/1.5 var(--font-ui); color: var(--text-2); overflow-wrap: anywhere; }
+.post__intro[data-open] { display: block; -webkit-line-clamp: unset; overflow: visible; }
+#root .post .post__more { justify-self: start; min-height: 36px; padding: 0; border: 0; background: none; font: 600 var(--fs-sub) var(--font-ui); color: var(--text-3); cursor: pointer; }
+#root .post a.post__more { display: inline-flex; align-items: center; color: var(--accent); }
+.post__soon { margin: 2px 0 0; font: 400 var(--fs-sub)/1.45 var(--font-ui); color: var(--text-3); }

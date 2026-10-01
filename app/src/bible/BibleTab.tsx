@@ -15,6 +15,7 @@ import { Prologue } from "./dom/Prologue";
 import { Chapter, HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGHT } from "./dom/Chapter";
 import { colorItems, paletteOf, resolveTheme, telegramScheme, useBibleSettings, useSchemeChange } from "./settings";
 import { cssVars, isDarkTheme } from "./theme";
+import { useToast } from "@/ui/toast";
 import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
 import { BookSelectorSheet, VersePopup } from "./ui/BookSelectorSheet";
 import { BookmarkSheet, LinkSheet, NoteSheet, TagsPanel } from "./ui/Editors";
@@ -57,11 +58,18 @@ export function BibleTab() {
     // Telegram's chrome takes the page colour while the tab is open, and gives it back after.
     if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(palette.reverse); app.setBackgroundColor(palette.reverse); }
     if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(palette.reverse);
-    // So does the bottom bar, with the Bible's hairline.
+    // So does the dock: its glass takes the page's colour and ink, light or dark as the reader's theme is.
     const root = document.documentElement.style;
-    root.setProperty("--a-bar", palette.reverse); root.setProperty("--a-bar-line", palette.border);
-    return () => { root.removeProperty("--a-bar"); root.removeProperty("--a-bar-line"); const bg = getComputedStyle(document.documentElement).getPropertyValue("--color-void").trim() || "#05070f"; if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(bg); app.setBackgroundColor(bg); } if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(bg); };
-  }, [palette.reverse]);
+    const dark = isDarkTheme(theme);
+    const dock: Record<string, string> = {
+      "--dock-tint-override": `color-mix(in srgb, ${palette.reverse} 78%, transparent)`,
+      "--dock-ink-override": palette.default,
+      "--dock-selected-override": dark ? "color-mix(in srgb, #ffffff 14%, transparent)" : "color-mix(in srgb, #ffffff 92%, transparent)",
+      "--dock-edge-override": dark ? "color-mix(in srgb, #ffffff 12%, transparent)" : "color-mix(in srgb, #000000 9%, transparent)",
+    };
+    for (const [k, v] of Object.entries(dock)) root.setProperty(k, v);
+    return () => { for (const k of Object.keys(dock)) root.removeProperty(k); const bg = getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim() || "#05070f"; if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(bg); app.setBackgroundColor(bg); } if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(bg); };
+  }, [palette.reverse, palette.default, theme]);
 
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const list = books.data ?? [];
@@ -127,8 +135,8 @@ export function BibleTab() {
   const [bookmarkTarget, setBookmarkTarget] = useState<{ verse?: number; existing?: Bookmark }>({});
   const [noteEdit, setNoteEdit] = useState<{ key: string; note: Note; relation?: Relation } | null>(null);
   const [tagsTarget, setTagsTarget] = useState<number[]>([]);
-  const [toast, setToast] = useState<string | null>(null);
-  const say = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2200); };
+  const toast = useToast();
+  const say = (m: string) => toast(m, { ms: 2800 });
   const speech = useSpeech(verses, chapterLabel, slug && ch ? { slug, chapter: ch } : undefined);
   const [repeat, setRepeat] = useState(false);
   const [audioOpen, setAudioOpen] = useState(false);
@@ -282,7 +290,6 @@ export function BibleTab() {
       {sheet === "relation" ? <RelationTargetPicker source={verseEndpoint() as Endpoint} onClose={() => setSheet(null)} onCreated={() => { setSheet(null); setSelected([]); }} /> : null}
       {resource ? <CompareSheet open={sheet === "compare"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={resource.verse} text={resource.text} reference={reference([resource.verse])} books={list} onRead={(s, c, v) => go({ slug: s, ch: c }, v)} /> : null}
       {resource ? <ResourcesSheet open={sheet === "resources"} onClose={() => setSheet(null)} tab={resourceTab} setTab={setResourceTab} slug={slug} chapter={ch} verse={resource.verse} text={resource.text} reference={reference([resource.verse])} books={list} /> : null}
-      {toast ? <div className="bs-toast" role="status">{toast}</div> : null}
     </div>
   );
 }
