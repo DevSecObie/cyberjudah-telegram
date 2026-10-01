@@ -1,4 +1,4 @@
-import { Children, useEffect, useRef, type ReactNode } from "react";
+import { Children, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
 
@@ -7,6 +7,7 @@ import { haptic } from "@/tg/sdk";
 import { usePageActions } from "@/tg/hooks";
 import { adjacentTab, askTabPath, bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
+import { expandBar, useBarMini, useBarScroll } from "@/lib/barscroll";
 import { SwitcherBar } from "@/screens/Tabs";
 import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
 
@@ -101,23 +102,59 @@ export function TabBar() {
     onPointerLeave: () => window.clearTimeout(press.current),
     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
   };
+  // The bar follows the reading: a small capsule while scrolling down, the full bar otherwise.
+  useBarScroll(pathname);
+  const mini = useBarMini() && !drawer;
+  const bar = useRef<HTMLElement>(null);
+  // The current button sits on a pill that slides to whichever is chosen; the button opens to
+  // show its name when the bar has the room.
+  useLayoutEffect(() => {
+    const nav = bar.current; if (!nav) return;
+    const place = () => {
+      // Room for the name: the icons share what the current one's name leaves, down to 38px each.
+      const buttons = nav.querySelectorAll(".tab").length;
+      const label = nav.querySelector<HTMLElement>(".tab[data-on] .tab__label");
+      const slot = label ? Math.min(42, Math.floor((nav.clientWidth - 14 - label.scrollWidth - 10) / buttons)) : 42;
+      const fits = !mini && !!label && slot >= 38;
+      nav.style.setProperty("--slot", `${fits ? slot : 42}px`);
+      if (fits) delete nav.dataset.nolabel; else nav.dataset.nolabel = "";
+      const on = nav.querySelector<HTMLElement>(".tab[data-on]");
+      nav.style.setProperty("--pill-x", `${on ? on.offsetLeft : 0}px`);
+      nav.style.setProperty("--pill-w", `${on ? on.offsetWidth : 0}px`);
+      nav.dataset.pill = on ? "" : "none";
+    };
+    place();
+    const ro = new ResizeObserver(place); ro.observe(nav);
+    for (const b of nav.querySelectorAll(".tab")) ro.observe(b);
+    nav.addEventListener("transitionend", place);
+    return () => { ro.disconnect(); nav.removeEventListener("transitionend", place); };
+  });
   // While the switcher is open the bar becomes its controls, as in Bible Strong.
   if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /></nav>;
   const count = tabs.length > 100 ? ":)" : String(tabs.length);
+  const items: { id: NavId | "more"; label: string; aria: string; glyph: ReactNode; onClick: () => void }[] = [
+    ...ids.map((id) => {
+      const item = navItem(id);
+      return { id, label: id === "tabs" ? "Tabs" : item.label, aria: id === "tabs" ? `Tabs, ${tabs.length} open` : item.label,
+        glyph: item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={23} />,
+        onClick: () => id === "home" ? toggle("home") : go(navPath(id)) };
+    }),
+    { id: "more", label: "Menu", aria: "Menu", glyph: <Icon name="more" size={28} />, onClick: () => toggle("more") },
+  ];
   return (
-    <nav className="tabs" aria-label="Sections" {...hold}>
-      {ids.map((id) => {
-        const item = navItem(id);
+    <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} {...hold}
+      onClickCapture={(e) => { if (mini) { e.stopPropagation(); e.preventDefault(); haptic("select"); expandBar(); } }}>
+      <span className="tabs__pill" aria-hidden="true" />
+      {items.map((it) => {
+        const on = current === it.id;
         return (
-          <button key={id} type="button" className="tab" data-on={current === id ? "" : undefined} aria-current={current === id ? "page" : undefined}
-            aria-label={id === "tabs" ? `Tabs, ${tabs.length} open` : item.label} onClick={() => id === "home" ? toggle("home") : go(navPath(id))}>
-            {item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={23} />}
+          <button key={it.id} type="button" className="tab" data-on={on ? "" : undefined} aria-current={on ? "page" : undefined}
+            aria-label={it.aria} tabIndex={mini && !on ? -1 : undefined} onClick={it.onClick}>
+            <span className="tab__glyph">{it.glyph}</span>
+            <span className="tab__label" aria-hidden="true">{it.label}</span>
           </button>
         );
       })}
-      <button type="button" className="tab" data-on={current === "more" ? "" : undefined} aria-current={current === "more" ? "page" : undefined} aria-label="Menu" onClick={() => toggle("more")}>
-        <Icon name="more" size={28} />
-      </button>
     </nav>
   );
 }
