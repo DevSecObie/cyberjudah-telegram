@@ -25,8 +25,8 @@ import { Header, PassageContextBar, VersionSheet, type MenuAction } from "./ui/H
 import { ParamsSheet } from "./ui/ParamsSheet";
 import { ResourcesSheet, type ResourceTab } from "./ui/ResourcesSheet";
 import { CompareSheet } from "./ui/CompareSheet";
-import { isWhy, slugOfUrl, useMomentsByVerse, useTaughtRelations, whyVerse } from "@/lib/taught";
-import { MediaDeck, deckKey } from "./dom/MediaDeck";
+import { chapterClasses, isWhy, slugOfUrl, useClassesByVerse, useTaughtRelations, whyVerse } from "@/lib/taught";
+import { MediaDeck } from "./dom/MediaDeck";
 import { newTab, selectTab } from "@/lib/tabs";
 import { WhySheet } from "./ui/WhySheet";
 import { SelectedVersesSheet } from "./ui/SelectedVersesSheet";
@@ -114,10 +114,11 @@ export function BibleTab() {
   // Sheets.
   const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare">(null);
   // The classes that taught each verse: pictures after the verses, as Bible Strong shows its videos.
-  const classMoments = useMomentsByVerse(slug, ch);
+  // Every class that read each verse: those with notes first, then every other the transcripts find.
+  const classMoments = useClassesByVerse(slug, ch);
   // The chapter's own deck, at its end: every class moment in it, in the order of the verses.
-  const chapterDeck = useMemo(() => Object.entries(classMoments.data ?? {}).sort(([a], [b]) => +a - +b).flatMap(([, ms]) => ms)
-    .filter((m, i, all) => all.findIndex((x) => deckKey(x) === deckKey(m)) === i), [classMoments.data]);
+  const chapterGroups = useMemo(() => chapterClasses(classMoments.data ?? {}), [classMoments.data]);
+  const chapterDeck = useMemo(() => [...chapterGroups.taught, ...chapterGroups.read], [chapterGroups]);
   const [whyAt, setWhyAt] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [resourceTab, setResourceTab] = useState<ResourceTab>("dictionary");
@@ -246,7 +247,7 @@ export function BibleTab() {
           moments={classMoments.data} deck={{ reference: chapterLabel, from: `/read/${slug}/${ch}` }}
           headerHeight={headerHeight} fullscreen={fullscreen} canSwipe
           footer={<><ChapterPeople slug={slug} chapter={ch} palette={palette} resources={chapterDeck.length ? <MediaDeck items={chapterDeck} placement="chapter" palette={palette} fontScale={settings.fontSizeScale} reference={chapterLabel} from={`/read/${slug}/${ch}`}
-            sections={[{ title: `Taught from ${chapterLabel}`, items: chapterDeck }]} /> : null} /><ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
+            sections={[{ title: `Taught from ${chapterLabel}`, items: chapterGroups.taught }, { title: `Read in class`, items: chapterGroups.read }].filter((x) => x.items.length)} /> : null} /><ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
             onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} /></>}
           onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "dictionary")}
           onSwipe={(dir) => go(dir === "left" ? next : prev)} onFullscreen={setFullscreen}

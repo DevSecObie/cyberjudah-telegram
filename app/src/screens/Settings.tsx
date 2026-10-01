@@ -121,6 +121,7 @@ export function Settings() {
         <p className="hint">Telegram Stars go toward hosting the library. The text and the notes stay free.</p>
       </Section>
       {me?.admin ? <AskUsage /> : null}
+      {me?.admin ? <Section title="Notes"><List><Row title="Requested notes" sub="Classes readers asked notes for, the most asked first" onClick={() => navigate("/settings/requests")} /></List></Section> : null}
       <Section title="This app">
         <List><Row title="Credits" sub="Narrators, recordings and licences" onClick={() => navigate("/settings/credits")} /></List>
         {me ? <List><Row title="Your Telegram id" sub={me.canEdit ? "You can edit notes from the app" : me.admin ? "Admin; editing needs the CYBERJUDAH_TOKEN secret on the deploy" : "Notes are read-only for this account"} trailing={<span className="pill">{me.user.id}</span>} onClick={() => { void navigator.clipboard?.writeText(String(me.user.id)).then(() => haptic("success")).catch(() => undefined); }} /></List> : null}
