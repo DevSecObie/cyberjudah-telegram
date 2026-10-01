@@ -89,6 +89,10 @@ the sons of Adam". This is the assembly's chart of the nations, and portraits fo
 | Kings and queens | A true crown of gold set with precious stones, not a band, on everyone the KJV calls king (including "king Herod" and Caesar) | 2 Samuel 1:10; 12:30; 2 Kings 11:12; Song of Solomon 3:11; Psalm 21:3; Mark 6:14; Acts 12:1; 25:13; John 19:15 |
 | Queens | The royal crown over a head covering; no hair showing | Esther 1:11; 2:17; 1 Corinthians 11:5-6 |
 | Pharaoh | No crown and no Egyptian headdress. Shaven bald head with Egyptian eyeliner (the assembly's direction; the court shaved, Genesis 41:14). Draped vestures of fine linen | Genesis 41:14, 42 |
+| Adam and Eve | Royal garments (Adam's kingdom, the elder world); no crown. The "coats of skins" of Genesis 3:21 is the law (sacrifice, righteousness), not literal hides, as the classes teach | Genesis 3:21; 2 Esdras 7 |
+| Adam to Noah, and Shem | Dark ("formed… of the dust of the ground"); the long-lived fathers shown as aged elders | Genesis 2:7; 5:5-31; 9:29; 11:10-11 |
+| Cain | Fully leprous, his melanin gone: skin white as snow, blue eyes, blond (the assembly's direction) | Genesis 4:15; Leviticus 13:13 |
+| Cain's line | Fair, lacking melanin. The Bishop: "Cain's line was cursed with a lack of melanin… Esau is the return of Cain's lineage" ("We Are Born in Babylon", 2026-08-01) | Genesis 4:16-22 |
 | Elisha | Bald: "Go up, thou bald head" (for when his record has a nation) | 2 Kings 2:23 |
 | High priest | Mitre of fine linen with the plate of pure gold on a blue lace, the robe of the ephod all of blue, the breastplate | Exodus 28:15-17, 31, 36-39; Leviticus 8:9; Ecclesiasticus 45:8-12 |
 | Priests (Aaron's sons) | Linen coats, girdles and bonnets | Exodus 28:40; 39:28; Leviticus 8:13; Ezekiel 44:18 |
@@ -100,7 +104,9 @@ the sons of Adam". This is the assembly's chart of the nations, and portraits fo
 | Ages given by scripture | Aaron 83, Eli 98, Joseph 30, Esther a young maid, Saul "a choice young man" | Exodus 7:7; 1 Samuel 4:15; Genesis 41:46; Esther 2:7; 1 Samuel 9:2 |
 | Micah of Judges 17 | Not a priest: "a man of mount Ephraim" | Judges 17:1, 5 |
 
-Before any batch is generated, every element of the prompt is checked against these verses.
+Before any batch is generated, every element of the prompt is checked against these verses. Where the
+KJV leaves something open, the class notes are searched first, and the Bishops' and Deacons' teaching
+takes precedence. Only after that is the assembly asked.
 
 ## 2. Artistic choices (not settled by the teaching)
 
