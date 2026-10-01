@@ -27,7 +27,7 @@
 .tabcard__title b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 var(--fs-caption) var(--font-ui); color: var(--text-1); }
 #root .tabcard__close { position: absolute; top: 0; right: 0; display: grid; place-items: center; width: var(--touch); height: var(--touch); padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
 .tabcard__close span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 13px; background: var(--fill-2); }
-.tabcard__preview { position: absolute; inset: 48px var(--sp-3) 0; overflow: hidden; opacity: .18; text-align: left; font: 400 var(--fs-caption)/1.65 var(--font-read); pointer-events: none; }
+.tabcard__preview { position: absolute; inset: 48px var(--sp-3) 0; overflow: hidden; opacity: .5; color: var(--text-2); text-align: left; -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent); mask-image: linear-gradient(to bottom, #000 55%, transparent); font: 400 var(--fs-caption)/1.65 var(--font-read); pointer-events: none; }
 .tabcard__preview > span { display: block; margin-top: 6px; }
 .groupdot { flex: none; display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
 

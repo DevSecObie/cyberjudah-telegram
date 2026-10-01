@@ -79,10 +79,10 @@ export function Relations() {
     const e = r.endpoints.find((x) => x.type === "verse" || x.type === "note");
     const key = e?.type === "verse" ? e.verseKeys.join(",") : e?.type === "note" ? `note:${e.verseKey}` : "";
     if (key) navigate(`/relations?endpoint=${encodeURIComponent(key)}`);
-  }}><Icon name="link" /><span className="nt-item__body"><b>{r.endpoints[0].label}</b><small>{relationText(r, r.endpoints[0])} {r.endpoints[1].label}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="No relations" />}</Screen>;
+  }}><Icon name="link" /><span className="nt-item__body"><b>{r.endpoints[0].label}</b><small>{relationText(r, r.endpoints[0])} {r.endpoints[1].label}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="No relations yet" action={{ label: "Open the Bible", href: "/bible" }}>A relation is a link you make between a verse and another passage, a class, a note or a dictionary entry, so they show together when you read. Select a verse and tap Relation to make one. In Telegram they follow your account to every device; in a browser they stay on this device.</Empty>}</Screen>;
   return (
     <Screen title="Relations" kicker={endpoint.label} action={<button type="button" className="icon-btn" aria-label="Add relation" onClick={() => setPicking(true)}>+</button>}>
-      {!count && !precepts.length ? <div className="rel-empty"><MergeIcon size={64} /><p>No relations</p></div> : null}
+      {!count && !precepts.length ? <div className="rel-empty"><MergeIcon size={64} /><p>No relations yet</p><small>Tap + to link this passage to another passage, a class, a note or a dictionary entry.</small></div> : null}
       {precepts.length ? (
         <div className="rel-section">
           <p className="rel-section__title"><TargetIcon type="entry" /> Taught in class</p>

@@ -20,8 +20,8 @@ function Value({ children }: { children: string }) {
   return <span className="row__value">{children}<Icon name="chevron" size={16} /></span>;
 }
 
-function Toggle({ on, onChange, title, sub }: { on: boolean; onChange: (v: boolean) => void; title: string; sub?: string }) {
-  return <button type="button" className="toggle" role="switch" aria-checked={on} onClick={() => { haptic("select"); onChange(!on); }}><span><b>{title}</b>{sub ? <small>{sub}</small> : null}</span><span className="switch" /></button>;
+function Toggle({ on, onChange, title, sub, disabled }: { on: boolean; onChange: (v: boolean) => void; title: string; sub?: string; disabled?: boolean }) {
+  return <button type="button" className="toggle" role="switch" aria-checked={on} disabled={disabled} onClick={() => { haptic("select"); onChange(!on); }}><span><b>{title}</b>{sub ? <small>{sub}</small> : null}</span><span className="switch" /></button>;
 }
 
 export function Settings() {
@@ -114,8 +114,9 @@ export function Settings() {
       ) : null}
       <Section title="Daily verse">
         <List>
-          <Toggle on={!!daily} onChange={(v) => void subscribe(v)} title="A verse every morning" sub={daily === null ? "Checking…" : daily ? `The bot sends it at ${hour}:00` : "Sent by the CyberJudah bot, with a button to read the chapter"} />
-          <Row onClick={() => void pickHour()} title="Time" sub="In your time zone" trailing={<Value>{`${hour}:00`}</Value>} />
+          {/* Outside Telegram there is no chat for the bot to send to: said here, at the switch. */}
+          <Toggle on={!!daily} disabled={!app} onChange={(v) => void subscribe(v)} title="A verse every morning" sub={!app ? "Sent by the CyberJudah bot in Telegram. Open CyberJudah in Telegram to turn it on." : daily === null ? "Checking…" : daily ? `The bot sends it at ${hour}:00` : "Sent by the CyberJudah bot, with a button to read the chapter"} />
+          {app ? <Row onClick={() => void pickHour()} title="Time" sub="In your time zone" trailing={<Value>{`${hour}:00`}</Value>} /> : null}
         </List>
       </Section>
       {features.biometrics && features.secureStorage ? (
@@ -123,15 +124,15 @@ export function Settings() {
       ) : null}
       <BackupSection />
       <Section title="Support CyberJudah">
-        <div className="btn--row">{[50, 100, 500].map((n) => <button key={n} type="button" className="btn btn--quiet" onClick={() => void support(n)}>⭐ {n}</button>)}</div>
-        <p className="hint">Telegram Stars go toward hosting the library. The text and the notes stay free.</p>
+        <div className="btn--row">{[50, 100, 500].map((n) => <button key={n} type="button" className="btn btn--quiet" disabled={!app} onClick={() => void support(n)}>⭐ {n}</button>)}</div>
+        <p className="hint">Telegram Stars go toward hosting the library. The text and the notes stay free.{app ? "" : " Stars are given inside Telegram."}</p>
       </Section>
       {me?.admin ? <AskUsage /> : null}
       {me?.admin ? <Section title="Notes"><List><Row title="Requested notes" sub="Classes readers asked notes for, the most asked first" onClick={() => navigate("/settings/requests")} /></List></Section> : null}
       <Section title="This app">
         <List><Row title="Credits" sub="Narrators, recordings and licences" onClick={() => navigate("/settings/credits")} /></List>
         {me ? <List><Row title="Your Telegram id" sub={me.canEdit ? "You can edit notes from the app" : me.admin ? "Admin; editing needs the CYBERJUDAH_TOKEN secret on the deploy" : "Notes are read-only for this account"} trailing={<span className="pill">{me.user.id}</span>} onClick={() => { void navigator.clipboard?.writeText(String(me.user.id)).then(() => haptic("success")).catch(() => undefined); }} /></List> : null}
-        <p className="hint">{app ? `Telegram ${app.version} on ${app.platform}. ` : "Running in a browser. "}{Object.entries(features).filter(([, v]) => v).length} of {Object.keys(features).length} Mini App features available here.</p>
+        <p className="hint">{app ? `Telegram ${app.version} on ${app.platform}. ${Object.entries(features).filter(([, v]) => v).length} of ${Object.keys(features).length} Mini App features available here.` : "Open in a browser: reading, the classes and the library all work here. Searching the classes, Ask, the daily verse and Stars work when CyberJudah is opened in Telegram."}</p>
       </Section>
     </Screen>
   );

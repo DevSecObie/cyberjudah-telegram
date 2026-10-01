@@ -236,7 +236,7 @@ export function Ask() {
       {history ? <ChatsSheet current={chatId} onClose={() => setHistory(false)} onOpen={openChat} onDeleted={(id) => { if (id === conv.chatId) startNewChat(); }} /> : null}
       <form ref={formRef} className="composer2" onSubmit={(e) => { e.preventDefault(); send(input); }}>
         <div className="composer2__box">
-          <textarea ref={boxRef} value={input} rows={1} placeholder={outside ? "Open CyberJudah in Telegram to ask" : turns.length ? "Ask a follow-up" : "Ask CyberJudah"} disabled={outside} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onFocus={() => typing(true)} onBlur={() => typing(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} />
+          <textarea ref={boxRef} value={input} rows={1} placeholder={outside ? "Open in Telegram to ask" : turns.length ? "Ask a follow-up" : "Ask CyberJudah"} disabled={outside} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onFocus={() => typing(true)} onBlur={() => typing(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} />
           {busy
             ? <button type="button" className="composer2__go composer2__go--stop" aria-label="Stop" onClick={stop}><span /></button>
             : <button type="submit" className="composer2__go" aria-label="Send" disabled={!input.trim()}><Icon name="arrowUp" size={20} /></button>}

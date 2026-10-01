@@ -141,7 +141,7 @@ export const askTabPath = () => tabOfKind((p) => /^\/ask(\/|\?|$)/.test(p), "/as
 const KINDS: [RegExp, string, string][] = [
   [/^\/new/, "New tab", "compose"], [/^\/(bible|read)/, "Bible", "book-open"], [/^\/search/, "Search", "search"], [/^\/lexicon/, "Strong", "spark"],
   [/^\/dictionary/, "Dictionary", "type"], [/^\/topics/, "Topics", "tag"], [/^\/(person|people)/, "People", "star"], [/^\/(classes|note|watch)/, "Classes", "play"],
-  [/^\/history/, "Our Hidden History", "history"], [/^\/books/, "Library", "layers"], [/^\/encyclopedia/, "Encyclopedia", "book"], [/^\/law/, "The Law", "law"],
+  [/^\/history/, "Recently viewed", "history"], [/^\/books/, "Library", "layers"], [/^\/encyclopedia/, "Encyclopedia", "book"], [/^\/law/, "The Law", "law"],
   [/^\/precepts/, "Precepts", "quote"], [/^\/cases/, "Case studies", "folder"], [/^\/plan/, "Reading plan", "check"], [/^\/study/, "4 Chapters a Day", "book"],
   [/^\/(bookmarks|tags)/, "Kept", "bookmark"], [/^\/ask/, "Ask CyberJudah", "chat"], [/^\/relations/, "Relations", "merge"], [/^\/sabbath/, "Sabbath", "sun"], [/^\/settings/, "Settings", "gear"],
 ];
@@ -149,12 +149,15 @@ export function tabKind(path: string): { kind: string; icon: string } {
   const k = KINDS.find(([re]) => re.test(path));
   return { kind: k?.[1] ?? "Page", icon: k?.[2] ?? "layers" };
 }
+/** Settings' own pages, named as the Menu names them. */
+const SETTINGS_PAGES: Record<string, string> = { bar: "Bottom bar", requests: "Note requests", credits: "Credits" };
 /** The place itself: "Genesis 1", "H430", a class title's slug, in words. */
 export function tabPlace(path: string): string {
   const p = path.split(/[?#]/)[0].split("/").filter(Boolean);
   const words = (s: string) => decodeURIComponent(s).replace(/[-_]+/g, " ").replace(/^\d{4} \d{2} \d{2} /, "").replace(/\b\w/g, (c) => c.toUpperCase());
   if ((p[0] === "bible" || p[0] === "read") && p[1]) return `${APOCRYPHA.find(([slug]) => slug === p[1])?.[1] ?? words(p[1])}${p[2] ? ` ${p[2]}` : ""}`;
   if (p[0] === "lexicon" && p[1]) return p[1].toUpperCase();
+  if (p[0] === "settings" && p[1]) return SETTINGS_PAGES[p[1]] ?? words(p[1]);
   if (p.length > 1) return words(p[p.length - 1]);
   return "";
 }
