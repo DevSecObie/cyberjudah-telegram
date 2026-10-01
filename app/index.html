@@ -18,12 +18,15 @@
       (function () {
         try {
           var d = document.documentElement, pref = localStorage.getItem("cj:theme-pref"), t = pref;
-          if (t !== "light" && t !== "dark" && t !== "sepia") {
+          if (t !== "light" && t !== "dark") {
             var tg = window.Telegram && window.Telegram.WebApp;
             t = tg && tg.colorScheme ? (tg.colorScheme === "light" ? "light" : "dark") : (window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
           }
           d.setAttribute("data-theme", t);
           d.style.colorScheme = t === "dark" ? "dark" : "light";
+          // The Bible's colours, which the whole app wears, as last applied.
+          var pal = JSON.parse(localStorage.getItem("cj:palette") || "null");
+          if (pal && pref === t) for (var k in pal) d.style.setProperty(k, pal[k]);
           var tr = localStorage.getItem("cj:transparency");
           if (tr === "reduced") d.setAttribute("data-transparency", "reduced");
         } catch (e) { /* storage blocked: the app sets the theme once it starts */ }

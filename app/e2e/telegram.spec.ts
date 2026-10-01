@@ -274,7 +274,7 @@ test("a verse's precepts lead with one note, Precepts: why each is there, from t
 test("relations: a verse linked to a passage shows as a tag under the verse, with edit and delete", async ({ page }) => {
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await tapVerse(page, 1);
-  await page.click(".bs-action >> text=Precept");
+  await page.click(".bs-action >> text=Relation");
   await page.fill("#rel-q", "John 10:11");
   await expect(page.locator(".rel-result__title", { hasText: "John 10:11" })).toBeVisible();
   await expect(page.locator(".rel-result__desc").first()).toContainText("good shepherd");
@@ -301,6 +301,17 @@ test("relations: a verse linked to a passage shows as a tag under the verse, wit
   await page.click('.rel-row .icon-btn[aria-label="Options"]');
   await page.click(".sheet__item >> text=Remove");
   await expect(page.locator(".rel-empty p")).toHaveText("No precepts yet");
+});
+
+test("Link and Relation are their own verse actions: a link saved from Link shows under the verse", async ({ page }) => {
+  await page.goto(`/read/psalms/23${LAUNCH}`);
+  await tapVerse(page, 1);
+  await expect(page.locator(".bs-action >> text=Relation")).toBeVisible();
+  await page.click(".bs-action >> text=Link");
+  await page.fill('input[placeholder="https://"]', "https://www.youtube.com/watch?v=abc");
+  await page.fill('input[placeholder="Untitled link"]', "The shepherd class");
+  await page.click(".bs-sheet__actions button >> text=Save");
+  await expect(page.locator("#verset-1 .rel-inline .rel-tag", { hasText: "The shepherd class" })).toBeVisible();
 });
 
 test("tabs are roots, detail screens push, and the back button walks them", async ({ page }) => {
@@ -363,10 +374,30 @@ test("the reading plan ticks today's chapters and keeps a streak", async ({ page
   await expect(page.locator(".card__ref")).toContainText("1 day streak");
 });
 
+test("one theme: the Bible's day and night colours are the whole app's", async ({ page }) => {
+  await page.goto(`/settings${LAUNCH}`);
+  const canvas = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim());
+  await page.click('[role=tab] >> text=Day');
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("html")).toHaveAttribute("data-palette", "default");
+  expect(await canvas()).toBe("#fcfbf7");
+  await page.click(".row >> text=Day colour");
+  await page.click(".row >> text=Day colour");
+  await expect(page.locator("html")).toHaveAttribute("data-palette", "nature");
+  expect(await canvas()).toBe("#fdfffd");
+  await page.click('[role=tab] >> text=Night');
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-palette", "dark");
+  expect(await canvas()).toBe("#122d42");
+  const stored = await page.evaluate(() => localStorage.getItem("cj:palette"));
+  expect(JSON.parse(stored!)["--canvas"]).toBe("#122d42");
+});
+
 liveDataTest("settings: theme, spacing and offline books", async ({ page }) => {
   await page.goto(`/settings${LAUNCH}`);
-  await page.click('[role=tab] >> text=Sepia');
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "sepia");
+  await page.click('[role=tab] >> text=Day');
+  await page.click(".row >> text=Day colour");
+  await expect(page.locator("html")).toHaveAttribute("data-palette", "sepia");
   await page.click(".link >> text=Save a book");
   await page.click(".sheet__item >> text=Jude");
   await expect(page.locator(".pill--ok")).toHaveText("offline");
