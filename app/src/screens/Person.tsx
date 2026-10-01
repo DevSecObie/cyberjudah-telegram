@@ -11,6 +11,7 @@ import { haptic, openLink } from "@/tg/sdk";
 import { avatarKind, EntityAvatar } from "@/ui/avatar";
 import { refLabel, refOfLink, refOfPath, ScriptureCard, usePassage, type VerseRef } from "@/ui/scripture";
 import { Empty, Screen } from "@/ui/ui";
+import { CaseCard } from "./Cases";
 import { FamilyGraph, relationsOf } from "./FamilyGraph";
 
 /**
@@ -64,6 +65,14 @@ export function Person() {
       {relationsOf(d).length ? (
         <EntitySection title="Relationships">
           <FamilyGraph person={d} onOpenProfile={(pid) => { haptic("select"); navigate(`/person/${pid}`); }} />
+        </EntitySection>
+      ) : null}
+
+      {d.cases?.length ? (
+        <EntitySection title="Related case studies" count={d.cases.length}>
+          <div className="entity__cards">
+            {d.cases.map((c) => <CaseCard key={c.slug} to={c.url} name={c.name} preview={c.preview} kind={c.kind} meta={[c.kind === "blessing" ? "Blessing" : "Judgment", c.era, c.verdictLabel].join(" · ")} />)}
+          </div>
         </EntitySection>
       ) : null}
 

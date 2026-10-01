@@ -83,47 +83,6 @@ export function PreceptScreen() {
   );
 }
 
-export function Cases() {
-  useBackButton(false);
-  const [params, setParams] = useSearchParams();
-  const kind = params.get("kind") === "blessing" ? "blessing" : params.get("kind") === "judgment" ? "judgment" : "all";
-  const era = params.get("era") ?? "";
-  const idx = useQuery({ queryKey: ["cases"], queryFn: data.cases });
-  const [q, setQ] = useState("");
-  const list = useMemo(() => (idx.data?.cases ?? []).filter((c) => (kind === "all" || c.kind === kind) && (!era || c.era === era) && (!q || `${c.name} ${c.charge} ${c.verdict}`.toLowerCase().includes(q.toLowerCase()))), [idx.data, kind, era, q]);
-  const set = (k: string, v: string) => { const p = new URLSearchParams(params); if (v) p.set(k, v); else p.delete(k); setParams(p, { replace: true }); };
-  return (
-    <Screen title="Case studies" kicker="The judgments, and the blessings">
-      <Segmented label="Kind" value={kind} onChange={(v) => set("kind", v === "all" ? "" : v)} options={[["all", "All"], ["judgment", "Judgments"], ["blessing", "Blessings"]]} />
-      <SearchField id="case-q" value={q} onChange={setQ} placeholder="A name, a charge, a verdict" />
-      {idx.data ? <Chips><Chip on={!era} onClick={() => set("era", "")}>Every era</Chip>{idx.data.eras.map((e) => <Chip key={e} on={era === e} onClick={() => set("era", era === e ? "" : e)}>{e}</Chip>)}</Chips> : null}
-      {idx.isPending ? <Skeleton rows={10} /> : !list.length ? <Empty title="No case matches" /> : <List>{list.slice(0, 200).map((c) => <Row key={c.slug} href={c.url} meta={`${c.era} · ${c.verdict}`} title={c.name} sub={c.charge} trailing={<span className={`pill ${c.kind === "blessing" ? "pill--ok" : "pill--hot"}`}>{c.kind === "blessing" ? "blessed" : "judged"}</span>} />)}</List>}
-    </Screen>
-  );
-}
-
-export function CaseScreen() {
-  const { slug = "" } = useParams();
-  useBackButton(false);
-  const c = useQuery({ queryKey: ["case", slug], queryFn: () => data.case(slug) });
-  useBottomButtons(c.data ? { text: "Share", onClick: () => void share({ kind: "note", title: `${c.data!.name}: ${c.data!.charge}`, text: `${c.data!.verdictLabel ?? c.data!.verdict} · CyberJudah case study`, sitePath: c.data!.url }) } : null);
-  if (c.isPending) return <Screen title="…"><Skeleton /></Screen>;
-  if (!c.data) return <Screen title="Case"><Empty title="This case did not load" /></Screen>;
-  const k = c.data;
-  return (
-    <Screen title={k.name} kicker={`${k.era} · ${k.verdictLabel ?? k.verdict}`}>
-      <div className="card"><p className="card__label">The charge</p><p className="verse" style={{ fontSize: 19 }}>{k.charge}</p></div>
-      <Section title="What happened"><p className="note" style={{ margin: 0 }}>{k.summary || k.offense}</p></Section>
-      <Section title="The judgment"><p className="note" style={{ margin: 0 }}>{k.judgment}</p></Section>
-      {k.refsResolved?.length ? <Section title="Scripture"><List>{k.refsResolved.map((r) => <div key={r.label} className="lawrow"><b>{r.label}</b>{r.text.length ? <Quote r={r} /> : null}<Refs refs={[r]} /></div>)}</List></Section> : null}
-      {k.lawsResolved?.length ? <Section title="The laws"><List>{k.lawsResolved.map((l) => l.url ? <Row key={l.id} href={l.url} meta={l.id} title={l.text} /> : <div key={l.id} className="lawrow"><b>{l.id}</b><p>{l.text}</p></div>)}</List></Section> : null}
-      {k.preceptsResolved?.length ? <Section title="Precepts"><Chips>{k.preceptsResolved.map((p) => p.url ? <Link key={p.slug} className="chip" to={`/precepts/${p.slug}`}>{p.title}</Link> : null)}</Chips></Section> : null}
-      {k.relatedCases?.length ? <Section title="Related cases"><List>{k.relatedCases.map((r) => <Row key={r.slug} href={`/cases/${k.era.toLowerCase().replace(/[^a-z0-9]+/g, "-")}/${r.slug}`} title={r.name} sub={r.desc} />)}</List></Section> : null}
-      {k.taught?.length ? <Section title="Taught in"><List>{k.taught.map((t) => <Row key={t.url} href={t.url} meta={t.range} title={t.title} />)}</List></Section> : null}
-    </Screen>
-  );
-}
-
 export function Topics() {
   useBackButton(false);
   const rows = useQuery({ queryKey: ["topics"], queryFn: data.topics });

@@ -904,6 +904,94 @@ test("People: a Strong's number opens its word study, a class card opens the cla
   await expect(page.getByRole("link", { name: "browse everyone" })).toHaveAttribute("href", "/people");
 });
 
+for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 }]) {
+  test(`Case studies: era by era, a case in sections with its people and scripture, every link and the way back (${viewport.width}px)`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto(`/cases${LAUNCH}`);
+    await expect(page.getByRole("region", { name: "Primeval" }).locator(".caserow__name").first()).toHaveText("Adam and Eve");
+    await page.fill("#case-q", "abraham");
+    await expect(page.getByRole("region", { name: "Patriarchal" })).toBeVisible();
+    await page.locator(".caserow", { hasText: /^Abraham/ }).first().click();
+    await expect(page).toHaveURL(/\/cases\/02-patriarchal\/abraham$/);
+    await expect(page.locator(".case__eyebrow")).toHaveText("Blessing · Patriarchal · C011");
+    await expect(page.getByRole("heading", { level: 1, name: "Abraham" })).toBeVisible();
+    await expect(page.locator(".case__verdict")).toHaveText("Kept the law");
+    await expect(page.locator(".case__charge")).toContainText("Obeying the Lord’s voice");
+    for (const t of ["People in this case", "The obedience", "The blessing", "Scripture", "The law", "Precepts", "Related cases", "Taught in"]) await expect(page.getByRole("region", { name: t })).toBeVisible();
+    // A reference in the writing opens its verse; back returns to the same place.
+    const ref = page.getByRole("region", { name: "The obedience" }).getByRole("link", { name: "Genesis 12:1", exact: true });
+    await ref.scrollIntoViewIfNeeded();
+    const y = await page.evaluate(() => Math.round(scrollY));
+    await ref.click();
+    await expect(page).toHaveURL(/\/read\/genesis\/12\?v=1$/);
+    await expect(page.locator("#verset-1")).toBeVisible();
+    await press(page, "back");
+    await expect(page.getByRole("heading", { level: 1, name: "Abraham" })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => Math.round(scrollY))).toBeGreaterThan(y - 40);
+    // Scripture cards: the text, all the verses of a long one, and the verse in the reader.
+    const scripture = page.getByRole("region", { name: "Scripture" });
+    const card = scripture.locator(".scard").first();
+    await expect(card.locator(".scard__ref")).toHaveText("Genesis 12:1-4");
+    await expect(card.locator(".scard__text")).toContainText("Now the Lord had said unto Abram, Get thee out of thy country");
+    const before = await scripture.locator(".scard").count();
+    await scripture.getByRole("button", { name: /^Show \d+ more/ }).click();
+    await expect.poll(() => scripture.locator(".scard").count()).toBeGreaterThan(before);
+    const expanded = await scripture.locator(".scard").count();
+    await card.getByRole("link", { name: /^Go to verse/ }).click();
+    await expect(page).toHaveURL(/\/read\/genesis\/12\?v=1-4$/);
+    await expect(page.locator("#verset-4")).toBeVisible();
+    await expect(page.locator("#verset-6")).toHaveCount(0);
+    await press(page, "back");
+    await expect(scripture.locator(".scard")).toHaveCount(expanded);
+    // Its people, and back from them; a related case.
+    await page.getByRole("region", { name: "People in this case" }).getByRole("link", { name: /Abraham/ }).click();
+    await expect(page).toHaveURL(/\/person\/abraham-gen-11-26$/);
+    const related = page.getByRole("region", { name: "Related case studies" });
+    await expect(related.locator(".ccard__name")).toContainText(["Abraham", "Rebekah and Abraham’s servant"]);
+    await expect(related.locator(".ccard").first().locator(".ccard__preview")).toContainText("Called alone out of Ur");
+    await press(page, "back");
+    await expect(page).toHaveURL(/\/cases\/02-patriarchal\/abraham$/);
+    const rel = page.getByRole("region", { name: "Related cases" }).locator(".ccard").first();
+    const relName = await rel.locator(".ccard__name").innerText();
+    await rel.click();
+    await expect(page.getByRole("heading", { level: 1, name: relName })).toBeVisible();
+    await press(page, "back");
+    await press(page, "back");
+    await expect(page.locator("#case-q")).toHaveValue("abraham");
+  });
+}
+
+test("Case studies: a person's related case opens it, and the case links back; a case that does not load says so", async ({ page }) => {
+  await page.goto(`/person/rachel-gen-29-6${LAUNCH}`);
+  const related = page.getByRole("region", { name: "Related case studies" });
+  await related.locator(".ccard", { hasText: "Rachel and the stolen teraphim" }).getByText("Open case study").click();
+  await expect(page).toHaveURL(/\/cases\/[a-z0-9-]+\/rachel-and-the-teraphim$/);
+  await expect(page.locator(".case__eyebrow")).toContainText("Judgment");
+  await page.getByRole("region", { name: "People in this case" }).getByRole("link", { name: /Rachel/ }).click();
+  await expect(page).toHaveURL(/\/person\/rachel-gen-29-6$/);
+  await page.route("**/api/cases/nothing-here.json", (r) => r.fulfill({ status: 500, body: "" }));
+  await page.goto(`/cases/01-primeval/nothing-here${LAUNCH}`);
+  await expect(page.getByText("This case did not load")).toBeVisible();
+  await expect(page.getByRole("link", { name: "browse every case" })).toHaveAttribute("href", "/cases");
+});
+
+test("the collapsed bar is one glass circle around one icon: the section, or the Menu off the sections", async ({ page }) => {
+  await page.goto(`/cases/02-patriarchal/abraham${LAUNCH}`);
+  await expect(page.getByRole("heading", { level: 1, name: "Abraham" })).toBeVisible();
+  const bar = page.locator("nav.tabs");
+  await page.mouse.move(195, 400);
+  for (let i = 0; i < 8 && !(await bar.getAttribute("data-mini")); i++) { await page.mouse.wheel(0, 300); await page.waitForTimeout(120); }
+  await expect(bar).toHaveAttribute("data-mini", "");
+  await expect.poll(() => bar.evaluate((n) => { const r = n.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; })).toBe("48x48");
+  const kept = bar.locator(".tab[data-kept]");
+  await expect(kept).toHaveCount(1);
+  await expect(kept).toHaveAttribute("aria-label", "Menu");
+  const box = await kept.boundingBox(), outer = await bar.boundingBox();
+  expect(Math.abs(box!.width - outer!.width)).toBeLessThan(2);
+  await kept.click();
+  await expect(bar).not.toHaveAttribute("data-mini");
+});
+
 test("Library: The Lost Tribes a Myth, page by page with its scans and maps, and the classes that read it", async ({ page }) => {
   await page.goto(`/more${LAUNCH}`);
   await page.locator('a[href$="/books"]').first().click();

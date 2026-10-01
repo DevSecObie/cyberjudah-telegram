@@ -42,8 +42,8 @@ const LawIndex = lazy(() => import("@/screens/Library").then((m) => ({ default: 
 const LawSectionScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.LawSectionScreen })));
 const Precepts = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Precepts })));
 const PreceptScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.PreceptScreen })));
-const Cases = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Cases })));
-const CaseScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.CaseScreen })));
+const Cases = lazy(() => import("@/screens/Cases").then((m) => ({ default: m.Cases })));
+const CaseScreen = lazy(() => import("@/screens/Cases").then((m) => ({ default: m.CaseScreen })));
 const Topics = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Topics })));
 const TopicScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.TopicScreen })));
 const Study = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Study })));

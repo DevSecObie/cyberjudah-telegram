@@ -147,9 +147,11 @@ export function TabBar() {
       <span className="tabs__pill" aria-hidden="true" />
       {items.map((it) => {
         const on = current === it.id;
+        // Collapsed, the capsule shows the current section, or the Menu where the screen is not one of them.
+        const kept = mini && (on || (it.id === "more" && !items.some((x) => x.id === current)));
         return (
-          <button key={it.id} type="button" className="tab" data-on={on ? "" : undefined} aria-current={on ? "page" : undefined}
-            aria-label={it.aria} tabIndex={mini && !on ? -1 : undefined} onClick={it.onClick}>
+          <button key={it.id} type="button" className="tab" data-on={on ? "" : undefined} data-kept={kept ? "" : undefined} aria-current={on ? "page" : undefined}
+            aria-label={it.aria} tabIndex={mini && !kept ? -1 : undefined} onClick={it.onClick}>
             <span className="tab__glyph">{it.glyph}</span>
             <span className="tab__label" aria-hidden="true">{it.label}</span>
           </button>
