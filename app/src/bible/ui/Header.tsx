@@ -1,9 +1,9 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { haptic } from "@/tg/sdk";
 import { sheetOpened } from "@/tg/hooks";
 import { Feather, Ion, type FeatherName } from "../icons";
-import { Sheet } from "./Sheet";
+import { HeaderPicker } from "./HeaderPicker";
 import { HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGHT } from "../dom/Chapter";
 
 /**
@@ -70,18 +70,19 @@ function OptionsMenu({ hasChapterBookmark, onClose, onPick }: { hasChapterBookma
   const items: [MenuAction, string, FeatherName][] = [
     ["params", "Font and settings", "type"],
     ["search", "Search the Scriptures", "search"],
-    ["history", "History", "clock"],
+    ["history", "Recently viewed", "clock"],
     ["bookmark", hasChapterBookmark ? "Edit bookmark" : "Add bookmark", "bookmark"],
-    ["export", "Export", "share-2"],
+    ["export", "Export…", "share-2"],
     ["newtab", "Open in new tab", "external-link"],
   ];
   return (
     <>
       <div className="bs-dropdown__catch" onClick={onClose} />
-      <div ref={ref} className="bs-dropdown" role="menu" aria-label="Scripture options" data-sheet-open="">
+      <div ref={ref} className="bs-dropdown" role="menu" aria-label="Passage options" data-sheet-open="">
+        <b className="bs-dropdown__title">Passage options</b>
         {items.map(([a, label, icon]) => (
           <button key={a} type="button" role="menuitem" className="bs-dropdown__item" onClick={() => { haptic("select"); onPick(a); }}>
-            <span>{label}</span><Feather name={icon} size={18} />
+            <Feather name={icon} size={18} /><span>{label}</span>{["params", "bookmark", "export"].includes(a) ? <Feather name="chevron-right" size={16} /> : null}
           </button>
         ))}
       </div>
@@ -100,12 +101,18 @@ export function PassageContextBar({ focused, collapsed, onExpand, onCollapse, on
 }
 
 export function VersionSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState(false);
+  useEffect(() => { if (!open) { setQuery(""); setFilters(false); } }, [open]);
+  const matches = "KJV King James Version English Apocrypha".toLowerCase().includes(query.trim().toLowerCase());
   return (
-    <Sheet open={open} onClose={onClose} title="Version">
+    <HeaderPicker open={open} onClose={onClose} title="Version" right={<button type="button" className="bs-filterbtn" aria-label="Version filters" aria-expanded={filters} onClick={() => setFilters(!filters)}><Feather name="sliders" size={18} color="var(--bs-primary)" /></button>}>
+      <label className="bs-search"><Feather name="search" size={18} /><input aria-label="Search versions" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
+      {filters ? <p className="bs-tip">English · Public domain · Includes the Apocrypha</p> : null}
       <div className="bs-versions">
-        <button type="button" className="bs-versionrow" aria-current="true" onClick={onClose}><span className="bs-versionrow__id">KJV</span><span className="bs-versionrow__name">King James Version, with the Apocrypha</span><small>Public domain · the library's one text</small><Feather name="check" size={18} color="var(--bs-primary)" /></button>
+        {matches ? <><h3 className="bs-versions__language">English</h3><button type="button" className="bs-versionrow" aria-current="true" onClick={onClose}><span className="bs-versionrow__id">KJV</span><span className="bs-versionrow__name">King James Version, with the Apocrypha</span><small>Public domain · the library's one text</small><Feather name="check" size={18} color="var(--bs-primary)" /></button></> : <p className="bs-tip">No versions found.</p>}
       </div>
-    </Sheet>
+    </HeaderPicker>
   );
 }
 

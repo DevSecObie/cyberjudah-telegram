@@ -438,3 +438,29 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 @media (prefers-reduced-transparency: reduce) {
   .bs-header, .bs-sheet, .bs-dropdown { background: var(--bs-reverse); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }
+
+/* Header selectors use the same glass material as the existing sheets. */
+.bs-picker-scrim { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-start; justify-content: center; padding: calc(var(--safe-top, 0px) + 62px) 12px 12px; background: transparent; }
+.bs-picker { box-sizing: border-box; width: 100%; max-width: 400px; max-height: min(530px, calc(100dvh - var(--safe-top, 0px) - 86px)); display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; color: var(--bs-default); background: color-mix(in srgb, var(--bs-reverse) 84%, transparent); backdrop-filter: blur(30px) saturate(1.9); -webkit-backdrop-filter: blur(30px) saturate(1.9); border: .5px solid color-mix(in srgb, var(--bs-default) 14%, transparent); box-shadow: 0 12px 34px rgba(0,0,0,.28); animation: bs-drop .16s ease-out; }
+.bs-picker__header { display: flex; align-items: center; padding: 4px 10px 4px 16px; min-height: 48px; flex: none; border-bottom: .5px solid var(--bs-border); }
+.bs-picker__header b { flex: 1; font-size: 16px; }
+.bs-picker__body { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+.bs-picker .bs-search { margin: 12px; }
+.bs-picker .bs-chaptergrid { padding-bottom: 16px; }
+.bs-picker .bs-versegrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.bs-picker .bs-versetile { width: 100%; height: 44px; background: none; }
+.bs-picker .bs-versetile:active { background: var(--bs-light-grey); }
+.bs-picker :focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
+.bs-versions__language { margin: 4px 16px 10px; color: var(--bs-tertiary); font-size: 13px; }
+.bs-dropdown__title { display: block; padding: 10px 16px; font-size: 13px; color: var(--bs-tertiary); }
+.bs-dropdown__item > span { flex: 1; }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .bs-picker { background: var(--bs-reverse); } }
+@media (prefers-reduced-transparency: reduce) { .bs-picker { background: var(--bs-reverse); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+
+/* Four compact audio chips fit on a phone without wrapping. */
+.bs-audio__chips { flex-wrap: nowrap; gap: 5px; }
+#root .bs-audio__chips .bs-chip { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 0 7px; font: 600 10px system-ui, sans-serif; white-space: nowrap; min-width: 0; }
+.bs-audio__chips .bs-chip:disabled { opacity: .45; cursor: default; }
+.bs-audio__play { background: var(--bs-reverse); }
+
+.bs-audio__chips svg { flex: none; }

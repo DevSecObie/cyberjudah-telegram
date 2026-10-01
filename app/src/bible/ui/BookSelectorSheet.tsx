@@ -4,15 +4,9 @@ import type { Book } from "@/api/data";
 import { expand, type Progress } from "@/lib/marks";
 import { haptic } from "@/tg/sdk";
 import { Feather } from "../icons";
-import { Sheet } from "./Sheet";
+import { HeaderPicker } from "./HeaderPicker";
 
-/**
- * The book selector (BookSelectorSheet): "Books", a filters button (Order, Verse, Display),
- * the books as 46 px rows that unfold a grid of chapter tiles, or as a 5-column grid of
- * three-letter names that opens a chapter grid; with "With verses" a chapter opens the
- * "Go to verse" sheet. The filters persist on the device. Chapters already read are filled,
- * and each book shows how far through it the reader is.
- */
+/** Books, chapters and optional verses stay in one header card. Filters persist on the device. */
 type Sort = "classical" | "alphabetical"; type Layout = "list" | "grid"; type Verses = "without-verses" | "with-verses";
 const pref = <T extends string>(k: string, d: T): T => { try { return (localStorage.getItem(k) as T) || d; } catch { return d; } };
 const setPref = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
@@ -22,12 +16,25 @@ export function BookSelectorSheet({ open, onClose, books, current, onSelect, loa
   const [layout, setLayout] = useState<Layout>(() => pref("bookSelectorSelectionMode", "list"));
   const [verses, setVerses] = useState<Verses>(() => pref("bookSelectorVerses", "without-verses"));
   const [filters, setFilters] = useState(false);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [gridBook, setGridBook] = useState<Book | null>(null);
   const [verseSheet, setVerseSheet] = useState<{ book: Book; chapter: number; count: number } | null>(null);
+  const data = useMemo(() => (sort === "alphabetical" ? [...books].sort((a, b) => a.book.localeCompare(b.book)) : books).filter((b) => b.book.toLowerCase().includes(query.trim().toLowerCase())), [books, sort, query]);
+  useEffect(() => { if (!open) { setQuery(""); setGridBook(null); setVerseSheet(null); setFilters(false); } }, [open]);
+  // The book being read is in view when the list opens, as Bible Strong's list does.
+  // Once per opening, as soon as the book list holds it (the books may still be loading).
   const listRef = useRef<HTMLDivElement>(null);
-  const data = useMemo(() => (sort === "alphabetical" ? [...books].sort((a, b) => a.book.localeCompare(b.book)) : books), [books, sort]);
-  useEffect(() => { if (!open) { setExpanded(null); setGridBook(null); setVerseSheet(null); setFilters(false); return; } const i = data.findIndex((b) => b.slug === current.slug); const t = setTimeout(() => listRef.current?.closest('.bs-sheet__body')?.scrollTo({ top: Math.max(0, 46 * (i - 2)) }), 100); return () => clearTimeout(t); }, [open, data, current.slug]);
+  const shown = useRef(false);
+  const hasCurrent = data.some((b) => b.slug === current.slug);
+  useEffect(() => {
+    if (!open) { shown.current = false; return; }
+    if (shown.current || gridBook || verseSheet || !hasCurrent) return;
+    const t = setTimeout(() => {
+      const row = listRef.current?.querySelector<HTMLElement>("[data-current]");
+      if (row) { row.scrollIntoView({ block: "center" }); shown.current = true; }
+    }, 0);
+    return () => clearTimeout(t);
+  }, [open, gridBook, verseSheet, layout, hasCurrent]);
 
   const pick = async (book: Book, chapter: number) => {
     haptic("select");
@@ -35,12 +42,13 @@ export function BookSelectorSheet({ open, onClose, books, current, onSelect, loa
     onSelect(book.slug, chapter, 1); onClose();
   };
   const set = { sort: (v: Sort) => { setSort(v); setPref("bookSelectorSort", v); }, layout: (v: Layout) => { setLayout(v); setPref("bookSelectorSelectionMode", v); }, verses: (v: Verses) => { setVerses(v); setPref("bookSelectorVerses", v); } };
-  const grid = layout === "grid" && gridBook !== null;
+  const grid = gridBook !== null;
   const readOf = (b: Book) => expand(progress[b.slug]);
   return (
     <>
-      <Sheet open={open && !verseSheet} onClose={onClose} height="full" title={grid ? gridBook!.book : "Books"} subTitle={grid ? "Chapters" : undefined} hasBack={grid} onBack={() => setGridBook(null)}
-        right={grid ? <span style={{ width: 54 }} /> : <button type="button" className="bs-filterbtn" aria-label="Filters" aria-expanded={filters} onClick={() => setFilters(!filters)}><Feather name="sliders" size={18} color="var(--bs-primary)" /></button>}>
+      <HeaderPicker open={open && !verseSheet} onClose={onClose} title={grid ? gridBook!.book : "Books"} onBack={grid ? () => setGridBook(null) : undefined}
+        right={grid ? null : <button type="button" className="bs-filterbtn" aria-label="Filters" aria-expanded={filters} onClick={() => setFilters(!filters)}><Feather name="sliders" size={18} color="var(--bs-primary)" /></button>}>
+        {!grid ? <label className="bs-search"><Feather name="search" size={18} /><input aria-label="Search books" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} /></label> : null}
         {!grid && filters ? (
           <div className="bs-filters">
             <Filter icon="list" label="Order" value={sort === "classical" ? "Classical order" : "Alphabetical order"} options={[["classical", "Classical order"], ["alphabetical", "Alphabetical order"]]} current={sort} onSelect={set.sort} />
@@ -48,39 +56,27 @@ export function BookSelectorSheet({ open, onClose, books, current, onSelect, loa
             <Filter icon="grid" label="Display" value={layout === "list" ? "List" : "Grid"} options={[["list", "List"], ["grid", "Grid"]]} current={layout} onSelect={set.layout} />
           </div>
         ) : null}
-        {!grid ? <p className="bs-tip">Tap a book, then a chapter.</p> : null}
-        {layout === "grid" ? (
-          grid ? <ChapterGrid book={gridBook!} read={readOf(gridBook!)} selectedChapter={gridBook!.slug === current.slug ? current.chapter : undefined} onPick={(c) => void pick(gridBook!, c)} /> : (
-            <div className="bs-bookgrid">
-              {data.map((b) => <button key={b.slug} type="button" className="bs-bookshort" aria-label={b.book} aria-pressed={b.slug === current.slug} style={{ color: b.slug === current.slug ? "var(--bs-primary)" : b.testament === "New Testament" ? "var(--bs-quart)" : b.testament === "Apocrypha" ? "var(--bs-tertiary)" : "var(--bs-default)", fontWeight: b.slug === current.slug ? "bold" : "normal" }} onClick={() => setGridBook(b)}>{b.book.replace(/^(Rest|Wisdom|Epistle|Song|History|Prayer) of (the )?/, "").replace(/\s/g, "").slice(0, 3)}<BookBar read={readOf(b).size} total={b.chapterIds.length} /></button>)}
-            </div>
-          )
+        {grid ? <ChapterGrid book={gridBook!} read={readOf(gridBook!)} selectedChapter={gridBook!.slug === current.slug ? current.chapter : undefined} onPick={(c) => void pick(gridBook!, c)} /> : layout === "grid" ? (
+          <div ref={listRef} className="bs-bookgrid">
+            {data.map((b) => <button key={b.slug} type="button" className="bs-bookshort" data-current={b.slug === current.slug ? "" : undefined} aria-label={b.book} aria-pressed={b.slug === current.slug} style={{ color: b.slug === current.slug ? "var(--bs-primary)" : b.testament === "New Testament" ? "var(--bs-quart)" : b.testament === "Apocrypha" ? "var(--bs-tertiary)" : "var(--bs-default)", fontWeight: b.slug === current.slug ? "bold" : "normal" }} onClick={() => setGridBook(b)}>{b.book.replace(/^(Rest|Wisdom|Epistle|Song|History|Prayer) of (the )?/, "").replace(/\s/g, "").slice(0, 3)}<BookBar read={readOf(b).size} total={b.chapterIds.length} /></button>)}
+          </div>
         ) : (
           <div ref={listRef} className="bs-booklist">
-            {data.map((b) => {
-              const isSel = b.slug === current.slug, isOpen = expanded === b.slug, read = readOf(b);
-              return (
-                <div key={b.slug}>
-                  <button type="button" className="bs-bookrow" aria-expanded={isOpen} style={{ background: isSel ? "var(--bs-light-grey)" : "transparent" }} onClick={() => { haptic("select"); setExpanded(isOpen ? null : b.slug); }}>
-                    <span style={{ color: isSel ? "var(--bs-primary)" : "var(--bs-default)", fontWeight: isSel ? "bold" : undefined }}>{b.book}</span>
-                    {read.size ? <BookRing read={read.size} total={b.chapterIds.length} /> : null}
-                    <Feather name="chevron-down" size={24} color="var(--bs-grey)" style={{ opacity: 0.5, transform: isOpen ? "rotate(180deg)" : "none", transition: "transform .3s" }} />
-                  </button>
-                  <div className="bs-accordion" style={{ maxHeight: isOpen ? 2000 : 0 }}>
-                    {isOpen ? <div className="bs-chaptertiles">{b.chapterIds.map((c) => <button key={c} type="button" aria-label={`Chapter ${c}`} className="bs-chaptertile" data-read={read.has(c) ? "" : undefined} onClick={() => void pick(b, c)}>{c}</button>)}</div> : null}
-                  </div>
-                </div>
-              );
-            })}
+            {data.map((b) => <button key={b.slug} type="button" className="bs-bookrow" data-current={b.slug === current.slug ? "" : undefined} style={{ background: b.slug === current.slug ? "var(--bs-light-grey)" : "transparent" }} onClick={() => { haptic("select"); setGridBook(b); }}>
+              <span style={{ color: b.slug === current.slug ? "var(--bs-primary)" : "var(--bs-default)", fontWeight: b.slug === current.slug ? "bold" : undefined }}>{b.book}</span>
+              {readOf(b).size ? <BookRing read={readOf(b).size} total={b.chapterIds.length} /> : null}
+              <Feather name="chevron-right" size={20} color="var(--bs-grey)" />
+            </button>)}
           </div>
         )}
-      </Sheet>
+        {!grid && !data.length ? <p className="bs-tip">No books found.</p> : null}
+      </HeaderPicker>
       {verseSheet ? (
-        <Sheet open onClose={() => setVerseSheet(null)} height="half" title="Go to verse">
+        <HeaderPicker open={open} onClose={onClose} onBack={() => setVerseSheet(null)} title="Go to verse">
           <div className="bs-versegrid">
             {Array.from({ length: verseSheet.count }, (_, i) => i + 1).map((v) => <button key={v} type="button" aria-label={`Verse ${v}`} className="bs-versetile bs-versetile--48" onClick={() => { haptic("select"); onSelect(verseSheet.book.slug, verseSheet.chapter, v); setVerseSheet(null); onClose(); }}>{v}</button>)}
           </div>
-        </Sheet>
+        </HeaderPicker>
       ) : null}
     </>
   );
@@ -114,13 +110,13 @@ function BookBar({ read, total }: { read: number; total: number }) {
   return read ? <i className="bs-bookbar" aria-hidden="true"><i style={{ width: `${Math.min(100, (read / total) * 100)}%` }} /></i> : null;
 }
 
-/** VerseSelectorPopup: the chevrons in the header open "Go to verse", a grid of 40 px tiles. */
+/** The chevrons in the header open the six-column verse grid. */
 export function VersePopup({ open, onClose, count, selected, onSelect }: { open: boolean; onClose: () => void; count: number; selected?: number; onSelect: (v: number) => void }) {
   return (
-    <Sheet open={open} onClose={onClose} title="Go to verse">
+    <HeaderPicker open={open} onClose={onClose} title="Go to verse">
       <div className="bs-versegrid">
         {count ? Array.from({ length: count }, (_, i) => i + 1).map((v) => <button key={v} type="button" aria-label={`Verse ${v}`} aria-pressed={v === selected} className="bs-versetile" onClick={() => { haptic("select"); onSelect(v); onClose(); }}>{v}</button>) : <p className="bs-loading">Loading...</p>}
       </div>
-    </Sheet>
+    </HeaderPicker>
   );
 }

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { data } from "@/api/data";
 import { useNavigate } from "react-router";
 
-import { adjacentGroup, closeTab, DEFAULT_GROUP, deleteGroup, GROUP_COLORS, MAX_GROUPS, newGroup, newTab, renameGroup, selectTab, switchGroup, tabKind, tabPlace, useTabs, type Group } from "@/lib/tabs";
+import { adjacentGroup, closeTab, DEFAULT_GROUP, deleteGroup, GROUP_COLORS, MAX_GROUPS, newGroup, newTab, renameGroup, selectTab, switchGroup, tabKind, tabTitle, useTabs, type Group } from "@/lib/tabs";
 import { useSheet } from "@/ui/sheet";
 import { useBackButton } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
@@ -45,9 +47,10 @@ export function NewTab() {
   return (
     <Screen className="newtab">
       <h1 className="nt-heading">What would you like to explore?</h1>
+      <button type="button" className="nt-search" onClick={() => open("/search")}><Icon name="search" size={20} /><span>A passage, a tab, a tool…</span></button>
       <h2 className="shelf">Read and explore</h2>
       <button type="button" className="nt-hero" onClick={() => open("/bible")}>
-        <span className="nt-hero__icon"><Icon name="book" size={40} /></span>
+        <span className="nt-hero__icon"><Icon name="book-open" size={64} /></span>
         <span className="nt-hero__body"><b>Bible</b><small>Open the Bible and start reading</small></span>
         <Icon name="chevron" size={22} />
       </button>
@@ -154,12 +157,12 @@ export function Tabs() {
     <main className="switcher" onTouchStart={onStart} onTouchEnd={onEnd}>
       <div className="switcher__grid" style={{ gridTemplateColumns: `repeat(${size.perRow}, ${size.w}px)` }}>
         {tabs.map((t) => {
-          const { kind, icon } = tabKind(t.path);
-          const place = tabPlace(t.path);
-          const title = place ? `${kind} · ${place}` : kind;
+          const { icon } = tabKind(t.path);
+          const title = tabTitle(t.path);
           return (
             <div key={t.id} className="tabcard" data-current={t.id === current ? "" : undefined} style={{ width: size.w, height: size.h }}>
               <button type="button" className="tabcard__open" onClick={() => go(selectTab(t.id))} aria-label={`Open ${title}`}>
+                <TabPreview path={t.path} />
                 <span className="tabcard__icon"><Icon name={icon as IconName} size={30} /></span>
               </button>
               <span className="tabcard__title"><Icon name={icon as IconName} size={16} /><b>{title}</b></span>
@@ -177,4 +180,16 @@ function cardSize() {
   const W = window.innerWidth, H = window.innerHeight, perRow = W > 600 ? 4 : 2;
   const w = Math.floor((W - 20 * 2 - (perRow - 1) * 20) / perRow);
   return { perRow, w, h: Math.round(((w * H) / W) * (W > 600 ? 1 : 0.7)) };
+}
+
+/** Reuse the chapter cache: the faded text is our own KJV, with no snapshot of private UI. */
+function TabPreview({ path }: { path: string }) {
+  const passage = /^\/(?:read|bible)\/([^/?]+)\/(\d+)/.exec(path);
+  const slug = passage?.[1] ?? "", chapter = Number(passage?.[2]);
+  const text = useQuery({ queryKey: ["chapter", slug, chapter], queryFn: () => data.chapter(slug, chapter), enabled: !!passage, staleTime: Infinity });
+  const item = [...READ, ...PERSONAL, ...LIBRARY].find(([to]) => path.split(/[?#]/)[0] === to);
+  return <span className="tabcard__preview" aria-hidden="true">
+    <b>{tabTitle(path)}</b>
+    {passage ? text.data?.verses.slice(0, 6).map((v) => <span key={v.verse}><sup>{v.verse}</sup> {v.text}</span>) : <span>{item?.[2] ?? tabKind(path).kind}</span>}
+  </span>;
 }

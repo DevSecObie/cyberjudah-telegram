@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router";
 
 import { data } from "@/api/data";
 import { referencePath } from "@/screens/Search";
-import { RELATION_TYPES, createRelation, deleteRelation, endpointHref, endpointsMatch, isDirectional, parseVerseKey, relationText, updateRelation, useEndpointRelations, verseKey, type Endpoint, type Relation, type RelationDirection, type RelationType } from "@/lib/relations";
+import { RELATION_TYPES, createRelation, deleteRelation, endpointHref, endpointsMatch, isDirectional, parseVerseKey, relationText, updateRelation, useSavedRelations, useEndpointRelations, verseKey, type Endpoint, type Relation, type RelationDirection, type RelationType } from "@/lib/relations";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { alert, api, confirm, haptic, openLink } from "@/tg/sdk";
 import { store } from "@/tg/store";
@@ -17,6 +17,7 @@ import { fmtDate } from "@/api/data";
 /** Parses `?endpoint=` (a verse endpoint as `john-3-16,john-3-17`, or an identity) into an endpoint. */
 export function endpointFromParam(p: string | null, books: { slug: string; book: string }[] | undefined): Endpoint | null {
   if (!p) return null;
+  if (p.startsWith("note:") && parseVerseKey(p.slice(5))) return { type: "note", verseKey: p.slice(5), label: `Note on ${verseLabel([p.slice(5)], books)}` };
   if (p.startsWith("dictionary:")) return { type: "dictionary", slug: p.slice(11), label: p.slice(11) };
   if (p.startsWith("entry:")) return { type: "entry", url: p.slice(6), kind: "", label: p.slice(6) };
   const keys = p.split(",").filter((k) => parseVerseKey(k));
@@ -41,6 +42,7 @@ export function Relations() {
   useBackButton(false);
   const [params] = useSearchParams();
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
+  const saved = useSavedRelations();
   const endpoint = useMemo(() => endpointFromParam(params.get("endpoint"), books.data), [params, books.data]);
   const { sections, reload, count } = useEndpointRelations(endpoint);
   // The library's own relations for a verse: the precepts the classes lined up with it.
@@ -72,7 +74,11 @@ export function Relations() {
     }
   };
 
-  if (!endpoint) return <Screen title="Relations"><Empty title="No relations" /></Screen>;
+  if (!endpoint) return <Screen title="Relations">{saved.length ? <div className="nt-list">{saved.map((r) => <button type="button" className="nt-item" key={r.id} onClick={() => {
+    const e = r.endpoints.find((x) => x.type === "verse" || x.type === "note");
+    const key = e?.type === "verse" ? e.verseKeys.join(",") : e?.type === "note" ? `note:${e.verseKey}` : "";
+    if (key) navigate(`/relations?endpoint=${encodeURIComponent(key)}`);
+  }}><Icon name="link" /><span className="nt-item__body"><b>{r.endpoints[0].label}</b><small>{relationText(r, r.endpoints[0])} {r.endpoints[1].label}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="No relations" />}</Screen>;
   return (
     <Screen title="Relations" kicker={endpoint.label} action={<button type="button" className="icon-btn" aria-label="Add relation" onClick={() => setPicking(true)}>+</button>}>
       {!count && !precepts.length ? <div className="rel-empty"><MergeIcon size={64} /><p>No relations</p></div> : null}
