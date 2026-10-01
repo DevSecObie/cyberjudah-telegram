@@ -1,0 +1,108 @@
+name: publish-audio
+
+# Publishes the reading audio to the cyberjudah-audio R2 bucket: the human KJV narration
+# (LibriVox recordings cut to the timing-checked chapters in the cyberjudah repository) and
+# the ambient loops (CC0 Freesound sources). Every source is pinned by checksum; nothing
+# downloaded is kept in Git. The narration catalog is written last, so a failed run never
+# points the app at audio that is not there. On demand only.
+#
+# An ambient loop is published only when its encoding matches the checksum in
+# app/src/lib/ambient.ts. When the encoder here gives different bytes, the run says so,
+# keeps the encodings as an artifact to listen to, and publishes nothing for ambient.
+on:
+  workflow_dispatch:
+    inputs:
+      recordings:
+        description: Publish the human narration
+        type: boolean
+        default: true
+      ambient:
+        description: Publish the ambient loops
+        type: boolean
+        default: true
+      dry_run:
+        description: Encode and check only; upload nothing
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-audio
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
+    steps:
+      - name: Check the repository secrets
+        if: ${{ !inputs.dry_run }}
+        run: |
+          missing=""
+          for k in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do [ -n "${!k}" ] || missing="$missing $k"; done
+          if [ -n "$missing" ]; then echo "::error::Missing repository secrets:$missing"; exit 1; fi
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        if: ${{ inputs.recordings }}
+        with:
+          repository: DevSecObie/cyberjudah
+          ref: main
+          path: cyberjudah
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Install FFmpeg and NumPy
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          python3 -m pip install --quiet numpy
+          ffmpeg -version | head -1 | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Encode the narration
+        if: ${{ inputs.recordings }}
+        working-directory: cyberjudah
+        run: |
+          python3 scripts/audio/recordings.py check
+          python3 scripts/audio/recordings.py export --output "$RUNNER_TEMP/recordings"
+      - name: Publish the narration
+        if: ${{ inputs.recordings }}
+        working-directory: bot
+        env:
+          RECORDINGS_EXPORT_DIR: ${{ runner.temp }}/recordings
+        run: |
+          node scripts/deploy-recordings.mjs $DRY
+          node -e 'const c=require(process.env.RECORDINGS_EXPORT_DIR+"/catalog.json").chapters; const by={}; for (const x of c) by[x.slug]=(by[x.slug]||0)+1; console.log(`### Narration\n\n${c.length} chapters, ${(c.reduce((n,x)=>n+x.bytes,0)/1e6).toFixed(1)} MB\n\n`+Object.entries(by).map(([s,n])=>`- ${s}: ${n}`).join("\n"))' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Encode the ambient loops
+        if: ${{ inputs.ambient }}
+        working-directory: bot
+        run: python3 scripts/audio/prepare-ambient.py --cache "$RUNNER_TEMP/ambient" | tee "$RUNNER_TEMP/ambient.txt"
+      - name: Publish the ambient loops
+        id: ambient
+        if: ${{ inputs.ambient }}
+        working-directory: bot
+        env:
+          AMBIENT_EXPORT_DIR: ${{ runner.temp }}/ambient/encoded
+        run: |
+          {
+            echo "### Ambient"; echo
+            echo "| Loop | Seconds | Bytes | SHA-256 here | Matches ambient.ts |"; echo "| --- | --- | --- | --- | --- |"
+            while read -r id secs bytes sha; do
+              grep -q "\"$id\".*$sha\|id: \"$id\".*$sha" ../app/src/lib/ambient.ts && ok=yes || ok=no
+              echo "| $id | $secs | $bytes | \`$sha\` | $ok |"
+            done < "$RUNNER_TEMP/ambient.txt"
+          } >> "$GITHUB_STEP_SUMMARY"
+          node scripts/deploy-ambient.mjs $DRY
+      - uses: actions/upload-artifact@v7
+        if: ${{ inputs.ambient && failure() && steps.ambient.outcome == 'failure' }}
+        with:
+          name: ambient-encodings
+          path: ${{ runner.temp }}/ambient/encoded
+          retention-days: 14
