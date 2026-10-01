@@ -35,6 +35,8 @@ export type ChapterProps = {
   footer?: ReactNode;
 };
 
+const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 export function Chapter(p: ChapterProps) {
   const { settings: s, palette: c, theme, slug, chapter } = p;
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -47,16 +49,49 @@ export function Chapter(p: ChapterProps) {
   const focus = p.focusVerses;
   const adjacent = focus?.length ? { prev: Math.min(...focus) - 1, next: Math.max(...focus) + 1 } : null;
 
+  // The verse being read: marked, and kept in view a third of the way down while the reading follows
+  // it. A scroll by the reader frees the page; "Back to verse N" (or the reading reaching a verse
+  // they are looking at, once they have stopped scrolling) brings the following back.
+  const reading = p.readingVerse ?? null;
+  const followRef = useRef(true), inputAtRef = useRef(0);
+  const [readingAway, setReadingAway] = useState<"top" | "bottom" | null>(null);
+  const verseEl = (v: number | null) => (v == null ? null : scrollRef.current?.querySelector<HTMLElement>(`#verset-${v}`) ?? null);
+  const awayOf = (v: number | null): "top" | "bottom" | null => {
+    const sc = scrollRef.current, el = verseEl(v); if (!sc || !el) return null;
+    const r = el.getBoundingClientRect(), s0 = sc.getBoundingClientRect();
+    if (r.bottom < s0.top + p.headerHeight + 8) return "top";
+    if (r.top > s0.bottom - RETURN_BOTTOM_OFFSET) return "bottom";
+    return null;
+  };
+  const placeReading = (behavior: ScrollBehavior) => {
+    const sc = scrollRef.current, el = verseEl(reading); if (!sc || !el) return;
+    const r = el.getBoundingClientRect(), s0 = sc.getBoundingClientRect();
+    const target = p.headerHeight + Math.max(24, (sc.clientHeight - p.headerHeight - RETURN_BOTTOM_OFFSET) * 0.3);
+    suppressRef.current = true;
+    sc.scrollTo({ top: sc.scrollTop + (r.top - s0.top) - target, behavior: reducedMotion() ? "auto" : behavior });
+    setTimeout(() => { suppressRef.current = false; }, 500);
+  };
+  const followReading = () => { followRef.current = true; setReadingAway(null); placeReading("smooth"); };
   useEffect(() => {
-    const root = scrollRef.current;
-    if (!root) return;
-    root.querySelectorAll("[data-reading]").forEach((el) => el.removeAttribute("data-reading"));
-    if (p.readingVerse != null) {
-      const verse = root.querySelector(`#verset-${p.readingVerse}`);
-      verse?.setAttribute("data-reading", "");
-      verse?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    }
-  }, [p.readingVerse]);
+    const root = scrollRef.current; if (!root) return;
+    root.querySelectorAll("[data-reading]").forEach((el) => { el.removeAttribute("data-reading"); el.removeAttribute("aria-current"); });
+    const el = verseEl(reading);
+    if (reading == null || !el) { if (reading == null) { followRef.current = true; setReadingAway(null); } return; }
+    el.setAttribute("data-reading", ""); el.setAttribute("aria-current", "true");
+    if (!followRef.current && Date.now() - inputAtRef.current > 3000 && awayOf(reading) === null) followRef.current = true;
+    if (followRef.current) { setReadingAway(null); requestAnimationFrame(() => placeReading("smooth")); }
+    else setReadingAway(awayOf(reading));
+  }, [reading, hasVerses]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const sc = scrollRef.current; if (!sc || reading == null) return;
+    const free = () => { inputAtRef.current = Date.now(); if (followRef.current) { followRef.current = false; setReadingAway(awayOf(reading)); } };
+    const keys = (e: KeyboardEvent) => { if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(e.key) && !(e.target as HTMLElement)?.closest?.("input, textarea, [contenteditable]")) free(); };
+    let raf: number | null = null;
+    const onScroll = () => { if (followRef.current) return; if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(() => setReadingAway(awayOf(reading))); };
+    sc.addEventListener("touchmove", free, { passive: true }); sc.addEventListener("wheel", free, { passive: true }); window.addEventListener("keydown", keys);
+    sc.addEventListener("scroll", onScroll, { passive: true });
+    return () => { sc.removeEventListener("touchmove", free); sc.removeEventListener("wheel", free); window.removeEventListener("keydown", keys); sc.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, [reading, p.headerHeight]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Tags on highlights: verses highlighted together share a date; the chip goes under the last of them.
   const tagGroups = useMemo(() => {
@@ -74,7 +109,7 @@ export function Chapter(p: ChapterProps) {
   const verseOf = (vk: string) => Number(vk.split("-").pop());
   useVerseGestures(scrollRef, {
     onTouchedVerseChange: setTouched,
-    onTapVerse: (vk) => { const v = verseOf(vk); if (p.onSeekVerse) { p.onSeekVerse(v); return; } if (selectedMode || s.press === "longPress") p.onToggleVerse(v); else p.onVerseDetail(v); },
+    onTapVerse: (vk) => { const v = verseOf(vk); if (p.onSeekVerse) { followRef.current = true; setReadingAway(null); p.onSeekVerse(v); return; } if (selectedMode || s.press === "longPress") p.onToggleVerse(v); else p.onVerseDetail(v); },
     onLongPressVerse: (vk) => { const v = verseOf(vk); if (s.press === "shortPress") p.onToggleVerse(v); else p.onVerseDetail(v); },
     onDoubleTapVerse: (vk) => p.onDoubleTap?.(verseOf(vk)),
     onSwipe: (dir) => { if (p.canSwipe && !isContextFocused) p.onSwipe(dir); },
@@ -141,6 +176,7 @@ export function Chapter(p: ChapterProps) {
   }, [lastSelected, p.headerHeight]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
+    <>
     <div ref={scrollRef} className="bs-scroll" style={{ background: c.reverse, color: c.default }}>
       <div className="bs-container" style={{ maxWidth: READING_TEXT_MAX_WIDTH + HORIZONTAL_PADDING * 2, padding: `${p.headerHeight + 10}px ${HORIZONTAL_PADDING}px 300px`, textAlign: s.alignContent, background: c.reverse, color: c.default }}>
         {p.verses.map((row) => {
@@ -168,5 +204,11 @@ export function Chapter(p: ChapterProps) {
         <Feather name={returnPos === "top" ? "chevron-up" : "chevron-down"} size={24} color={c.primary} />
       </button>
     </div>
+      <button type="button" className="bs-follow" aria-label={reading != null ? `Back to verse ${reading}, now being read` : undefined} aria-hidden={readingAway ? undefined : true} tabIndex={readingAway ? 0 : -1} onClick={followReading}
+        data-at={readingAway ?? undefined} style={{ top: p.headerHeight + 12 }}>
+        <Feather name={readingAway === "top" ? "arrow-up" : "arrow-down"} size={16} color="currentColor" />
+        <span>Back to verse {reading}</span>
+      </button>
+    </>
   );
 }

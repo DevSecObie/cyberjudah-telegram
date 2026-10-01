@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { data } from "@/api/data";
+import { useKeptScroll, useVisitState } from "@/lib/place";
 import { useBackButton } from "@/tg/hooks";
 import { avatarKind, EntityAvatar } from "@/ui/avatar";
 import { Empty, List, Row, Screen, SearchField, Section, Segmented, Skeleton } from "@/ui/ui";
@@ -15,12 +16,13 @@ const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ']/g, "").toLowerC
  */
 export function People() {
   useBackButton(true);
-  const [q, setQ] = useState("");
-  const [debounced, setDebounced] = useState("");
+  const [q, setQ] = useVisitState("q", "");
+  const [debounced, setDebounced] = useState(() => fold(q.trim()));
   useEffect(() => { const t = setTimeout(() => setDebounced(fold(q.trim())), 150); return () => clearTimeout(t); }, [q]);
-  const [order, setOrder] = useState<"most" | "az">("most");
-  const [limit, setLimit] = useState(60);
+  const [order, setOrder] = useVisitState<"most" | "az">("order", "most");
+  const [limit, setLimit] = useVisitState("limit", 60);
   const people = useQuery({ queryKey: ["people-index"], queryFn: data.people, staleTime: Infinity });
+  useKeptScroll(!!people.data);
   const rows = useMemo(() => {
     const all = people.data ?? [];
     const hits = debounced ? all.filter((p) => fold(p.name).includes(debounced) || p.names.some((n) => fold(n).includes(debounced))).sort((a, b) => Number(fold(b.name).startsWith(debounced)) - Number(fold(a.name).startsWith(debounced)) || b.verses - a.verses) : [...all];

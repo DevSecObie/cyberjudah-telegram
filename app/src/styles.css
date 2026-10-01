@@ -794,21 +794,6 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 @keyframes plan-pop { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
 
 /* A person of the Bible. */
-.person__aka { margin: -6px 0 14px; font: 500 14px var(--a-ui); color: var(--a-muted); }
-.person__family { display: grid; gap: 12px; }
-.person__rel small { display: block; margin-bottom: 6px; font: 600 12px var(--a-ui); letter-spacing: .03em; text-transform: uppercase; color: var(--a-muted); }
-.person__taught { display: grid; gap: 12px; }
-.person__teach { padding: 14px; border-radius: var(--r-lg); background: var(--a-card); border: 1px solid var(--a-line); }
-.person__verse { padding: 0; border: 0; background: none; font: 700 15px var(--a-ui); color: var(--a-accent); cursor: pointer; }
-.person__teach ul { margin: 8px 0; padding-left: 18px; display: grid; gap: 6px; }
-.person__teach li { font-size: 15px; line-height: 1.55; color: var(--a-ink-2); }
-.person__src { margin: 0; font: 500 12.5px var(--a-ui); color: var(--a-muted); }
-.person__src button { padding: 0; border: 0; background: none; font: inherit; color: var(--a-accent); cursor: pointer; }
-.person__verses { display: grid; gap: 12px; }
-.person__book small { display: block; margin-bottom: 6px; font: 600 13px var(--a-ui); color: var(--a-ink-2); }
-.person__book div { display: flex; flex-wrap: wrap; gap: 6px; }
-.person__book button { min-height: 32px; padding: 0 10px; border-radius: var(--r-sm); border: 1px solid var(--a-line); background: var(--a-card); font: 500 13px var(--a-ui); color: var(--a-ink-2); cursor: pointer; font-variant-numeric: tabular-nums; }
-#root .person__more { margin-top: 10px; padding: 0; border: 0; background: none; font: 600 14px var(--a-ui); color: var(--a-accent); cursor: pointer; }
 
 /* Library: books the classes read from */
 .book__sub { margin: -4px 0 14px; font: 400 14px/1.45 var(--a-ui); color: var(--a-muted); }
@@ -924,13 +909,13 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 #root .filters__active button { border: 0; background: none; padding: 0; color: var(--a-accent); font: 600 13px var(--a-ui); cursor: pointer; }
 
 /* One look for every "show more" link */
-#root .person__more, #root .bookpage__more, #root .section__more, #root .bs-word__more { border: 0; background: none; padding: 8px 0 0; color: var(--a-accent); font: 600 14px var(--a-ui); cursor: pointer; }
+#root .bookpage__more, #root .section__more, #root .bs-word__more { border: 0; background: none; padding: 8px 0 0; color: var(--a-accent); font: 600 14px var(--a-ui); cursor: pointer; }
 
 /* Motion: screens settle in, lists arrive a row at a time, nothing longer than 300 ms */
 @keyframes screen-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes row-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .route { animation: screen-fade .2s ease backwards; }
-.feed > *, .list > *, .book__reads > *, .person__taught > * { animation: row-in .3s var(--ease) both; }
+.feed > *, .list > *, .book__reads > * { animation: row-in .3s var(--ease) both; }
 .feed > :nth-child(1), .list > :nth-child(1) { animation-delay: 0ms; } .feed > :nth-child(2), .list > :nth-child(2) { animation-delay: 40ms; }
 .feed > :nth-child(3), .list > :nth-child(3) { animation-delay: 80ms; } .feed > :nth-child(4), .list > :nth-child(4) { animation-delay: 120ms; }
 .feed > :nth-child(5), .list > :nth-child(5) { animation-delay: 160ms; } .feed > :nth-child(6), .list > :nth-child(6) { animation-delay: 200ms; }
@@ -1361,11 +1346,6 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 /* A person (Bible Strong's StrongEntitySummaryCard): the avatar, what they were, the name. */
-.person__card { display: flex; gap: 14px; align-items: flex-start; margin: 4px 0 18px; }
-.person__card h1 { margin: 2px 0 4px; font: 700 28px/1.15 var(--a-ui); color: var(--a-ink); }
-.person__card p { margin: 0 0 4px; color: var(--a-ink-2); font: 400 14.5px/1.45 var(--a-ui); }
-.person__eyebrow { display: block; color: var(--a-muted); font: 600 11.5px var(--a-ui); letter-spacing: .06em; text-transform: uppercase; }
-#root button.person__first { display: inline-block; text-align: left; margin-top: 6px; padding: 5px 10px; border: 0; border-radius: 10px; background: color-mix(in srgb, var(--a-ink) 7%, transparent); color: var(--a-ink-2); font: 600 12px var(--a-ui); cursor: pointer; }
 
 /* The family graph (Bible Strong's StrongEntityRelationGraph): a card, the person in the middle, the family around. */
 .fg { border: 1px solid var(--a-line); border-radius: 20px; background: var(--a-card); overflow: hidden; }
@@ -1400,7 +1380,6 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 @keyframes fg-fade { from { opacity: 0; } }
 @keyframes fg-pulse { to { opacity: .45; } }
 @media (prefers-reduced-motion: reduce) { .fg__sat, .fg__center, .fg__lines line, #root button.fg__hist { animation: none; } }
-.person__card .person__aka { margin: 0 0 4px; }
 
 /* ── The bottom bar as a floating glass capsule that follows the reading (iOS, Instagram) ───────
    Full: the sections in a capsule above the home indicator, the current one on a pill that slides
@@ -1456,3 +1435,47 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 .nreq__main small { color: var(--a-muted); font: 500 12px var(--a-ui); }
 #root button.nreq__btn { flex: none; padding: 8px 12px; border-radius: 16px; border: 1px solid transparent; background: var(--a-accent); color: var(--a-on-accent, #001014); font: 600 13px var(--a-ui); cursor: pointer; }
 #root button.nreq__btn--quiet { background: color-mix(in srgb, var(--a-ink) 8%, transparent); color: var(--a-ink-2); }
+
+
+/* A person, as Bible Strong's entity page: the summary card, then sections under a hairline with an eyebrow title. */
+.screen.entity { max-width: 600px; padding-left: 20px; padding-right: 20px; }
+.entity__id { display: flex; align-items: center; gap: 12px; }
+.entity__id > div { min-width: 0; }
+.entity__eyebrow { margin: 0; color: var(--a-accent); font: 700 11px/1.3 var(--a-ui); letter-spacing: .06em; text-transform: uppercase; }
+.entity__eyebrow span { color: var(--a-muted); }
+.entity__name { margin: 3px 0 0; color: var(--a-ink-2); font: 700 22px/1.2 var(--a-ui); letter-spacing: -.015em; }
+.entity__codes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+#root .entity__code { display: inline-flex; align-items: center; gap: 2px; min-height: 26px; padding: 0 8px; border-radius: 10px; background: var(--a-card-2); color: var(--a-muted); font: 700 11px var(--a-ui); text-decoration: none; }
+.entity__desc { margin: 14px 0 0; color: var(--a-ink); font: 400 17px/1.55 var(--a-ui); }
+.entity__aka { margin: 6px 0 0; color: var(--a-muted); font: 500 14px/1.4 var(--a-ui); }
+.entity__section { display: grid; gap: 12px; margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--a-line); }
+.entity__note { margin: -6px 0 0; color: var(--a-muted); font: 500 13px var(--a-ui); }
+.entity__cards { display: grid; gap: 10px; }
+.entity__empty { margin: 0; color: var(--a-muted); font: 400 15px/1.5 var(--a-ui); }
+#root button.entity__more { justify-self: start; min-height: 44px; padding: 0; border: 0; background: none; color: var(--a-accent); font: 600 15px var(--a-ui); cursor: pointer; }
+#root button.entity__more span { color: var(--a-muted); font-weight: 500; }
+.entity__source { margin: 32px 0 8px; color: var(--a-muted); font: 400 12.5px/1.5 var(--a-ui); }
+#root .entity__source button { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+
+/* A scripture card: the reference, the King James text in the reading face, and the way to the verse. */
+.scard { padding: 14px 16px 2px; border-radius: 17px; background: var(--a-card); border: 1px solid var(--a-line); }
+.scard__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.scard__ref { margin: 0; color: var(--a-ink-2); font: 700 15px/1.3 var(--a-ui); letter-spacing: -.005em; font-variant-numeric: tabular-nums; }
+.scard__ver { flex: none; color: var(--a-muted); font: 600 11px var(--a-ui); letter-spacing: .05em; }
+.scard__text { margin: 8px 0 0; color: var(--a-ink); font: 400 17.5px/1.6 var(--a-read); text-wrap: pretty; }
+.scard__text sup { margin-right: 3px; color: var(--a-muted); font: 600 10px var(--a-ui); vertical-align: 5px; }
+.scard__text--wait { display: grid; gap: 9px; padding: 4px 0 2px; }
+.scard__text--wait .skel { height: 13px; }
+.scard__text--wait .skel:nth-child(1) { width: 94%; } .scard__text--wait .skel:nth-child(2) { width: 86%; } .scard__text--wait .skel:nth-child(3) { width: 52%; }
+.scard__fail { margin: 8px 0 0; color: var(--a-muted); font: 500 14px/1.5 var(--a-ui); }
+#root .scard__fail button { padding: 0; border: 0; background: none; color: var(--a-accent); font: inherit; font-weight: 600; cursor: pointer; }
+.scard__points { display: grid; gap: 8px; margin: 12px 0 0; padding: 12px 0 0; border-top: 1px solid var(--a-line); list-style: none; }
+.scard__points li { color: var(--a-ink-2); font: 400 15px/1.55 var(--a-ui); }
+.scard__src { display: grid; gap: 2px; margin: 10px 0 0; color: var(--a-muted); font: 500 13px/1.4 var(--a-ui); }
+#root .scard__src a { color: var(--a-ink-2); font-weight: 600; text-decoration: none; }
+.scard__foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-height: 44px; margin-top: 4px; }
+#root .scard__go { display: inline-flex; align-items: center; gap: 1px; min-height: 44px; padding-left: 10px; color: var(--a-accent); font: 600 15px var(--a-ui); text-decoration: none; -webkit-tap-highlight-color: transparent; }
+#root button.scard__act { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-right: auto; padding: 0; border: 0; background: none; color: var(--a-muted); font: 600 14px var(--a-ui); cursor: pointer; }
+#root .scard__go:active, #root button.scard__act:active, #root .entity__code:active { opacity: .6; }
+.scard a:focus-visible, .scard button:focus-visible, .entity__code:focus-visible, #root button.entity__more:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; border-radius: 6px; }
+@media (hover: hover) { .scard__go:hover, .scard__src a:hover { text-decoration: underline; text-underline-offset: 3px; } }
