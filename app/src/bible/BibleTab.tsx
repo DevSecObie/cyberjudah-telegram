@@ -11,6 +11,7 @@ import { useSpeech } from "@/lib/tts";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { alert, app, haptic, openLink } from "@/tg/sdk";
 import { RelationTargetPicker } from "@/screens/Relations";
+import { Prologue } from "./dom/Prologue";
 import { Chapter, HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGHT } from "./dom/Chapter";
 import { colorItems, paletteOf, resolveTheme, telegramScheme, useBibleSettings, useSchemeChange } from "./settings";
 import { cssVars, isDarkTheme } from "./theme";
@@ -246,6 +247,7 @@ export function BibleTab() {
           highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={relItems}
           moments={classMoments.data} deck={{ reference: chapterLabel, from: `/read/${slug}/${ch}` }}
           headerHeight={headerHeight} fullscreen={fullscreen} canSwipe
+          header={text.data?.prologue?.length ? <Prologue items={text.data.prologue} settings={settings} palette={palette} /> : null}
           footer={<><ChapterPeople slug={slug} chapter={ch} palette={palette} resources={chapterDeck.length ? <MediaDeck items={chapterDeck} placement="chapter" palette={palette} fontScale={settings.fontSizeScale} reference={chapterLabel} from={`/read/${slug}/${ch}`}
             sections={[{ title: `Taught from ${chapterLabel}`, items: chapterGroups.taught }, { title: `Read in class`, items: chapterGroups.read }].filter((x) => x.items.length)} /> : null} /><ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
             onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} /></>}

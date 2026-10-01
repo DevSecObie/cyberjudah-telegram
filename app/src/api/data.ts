@@ -48,7 +48,7 @@ export function orderApocrypha(books: Book[]): Book[] {
   const known = new Set(APOCRYPHA.map(([s]) => s));
   return [...rest, ...apoc, ...books.filter((b) => b.testament === "Apocrypha" && !known.has(b.slug))];
 }
-export type Chapter = { book: string; chapter: number; translation: string; url: string; verses: Verse[] };
+export type Chapter = { book: string; chapter: number; translation: string; url: string; verses: Verse[]; /** The 1611's prologue(s) before chapter 1 (Ecclesiasticus), not verses. */ prologue?: { title: string; text: string }[] };
 export type Citation = { kind: string; label: string; url: string; verses?: string };
 /** A precept lined up with a scripture in class: `precept` = taught under this chapter's verses, `opened` = this chapter's verses were the precept under `ref`. */
 export type TaughtPrecept = { verses: string; kind: "precept" | "opened"; ref: { book: string; chapter: number; verses: string; label: string; url: string }; text: string; point: string; /** A short breakdown of why this precept goes with the verse, written from the class. */ why?: string; note: { label: string; url: string; date: string; teacher: string }; ts: string };

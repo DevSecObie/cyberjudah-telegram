@@ -32,6 +32,8 @@ export type ChapterProps = {
   onToggleVerse: (v: number) => void; onVerseDetail: (v: number) => void; onDoubleTap?: (v: number) => void;
   onSwipe: (dir: "left" | "right") => void; onFullscreen: (on: boolean) => void;
   onOpenBookmark: (b: Bookmark) => void; onOpenRelations: (v: number) => void; onOpenRelationItem: (it: VerseRelationItem) => void; onOpenTags: (v: number) => void; onOpenTag: (id: string) => void;
+  /** Before verse 1 (a book's prologue); hidden while a passage is focused. */
+  header?: ReactNode;
   footer?: ReactNode;
 };
 
@@ -179,6 +181,7 @@ export function Chapter(p: ChapterProps) {
     <>
     <div ref={scrollRef} className="bs-scroll" style={{ background: c.reverse, color: c.default }}>
       <div className="bs-container" style={{ maxWidth: READING_TEXT_MAX_WIDTH + HORIZONTAL_PADDING * 2, padding: `${p.headerHeight + 10}px ${HORIZONTAL_PADDING}px 300px`, textAlign: s.alignContent, background: c.reverse, color: c.default }}>
+        {isContextFocused && focus?.length ? null : p.header}
         {p.verses.map((row) => {
           const n = row.verse;
           const isFocused = focus?.length ? focus.includes(n) : undefined;

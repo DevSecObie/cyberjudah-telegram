@@ -88,3 +88,28 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     await expect(pill).not.toHaveAttribute("data-at");
   });
 }
+
+test("a book's prologue stands before chapter 1, closed to its titles, and opens to its words", async ({ page }) => {
+  await setup(page);
+  // Sirach 1 as the data gives it, with the 1611's two prologues; later chapters have none.
+  const one = { book: "Sirach", chapter: 1, translation: "KJV", url: "/bible/sirach/1", verses: [{ verse: 1, text: "All wisdom cometh from the Lord, and is with him for ever." }, { verse: 2, text: "Who can number the sand of the sea, and the drops of rain, and the days of eternity?" }],
+    prologue: [{ title: "A Prologue made by an uncertain Author", text: "This Jesus was the son of Sirach, and grandchild to Jesus of the same name with him." }, { title: "The Prologue of the Wisdom of Jesus the Son of Sirach", text: "Whereas many and great things have been delivered unto us by the law and the prophets." }] };
+  await page.route("**/api/kjv/sirach/1.json", (r) => r.fulfill({ json: one }));
+  await page.goto("/read/sirach/1");
+  const prologue = page.getByRole("region", { name: "Prologue" });
+  const toggle = prologue.getByRole("button");
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(toggle).toContainText("A Prologue made by an uncertain Author · The Prologue of the Wisdom of Jesus the Son of Sirach");
+  await expect(prologue.getByText("This Jesus was the son of Sirach")).toHaveCount(0);
+  // It stands before verse 1, and is not numbered as one.
+  expect(await page.evaluate(() => !!(document.querySelector(".bs-prologue")!.compareDocumentPosition(document.querySelector("#verset-1")!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(prologue.getByRole("heading", { name: "The Prologue of the Wisdom of Jesus the Son of Sirach" })).toBeVisible();
+  await expect(prologue.getByText("Whereas many and great things have been delivered unto us")).toBeVisible();
+  await expect(page.locator("#verset-1")).toContainText("All wisdom cometh from the Lord");
+  // A chapter with no prologue shows none.
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await expect(page.locator(".bs-prologue")).toHaveCount(0);
+});
