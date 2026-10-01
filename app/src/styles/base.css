@@ -22,7 +22,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto 0; height: 60vh; z-
 }
 #root [data-tabs] { padding-bottom: calc(var(--dock-space) + var(--sp-6)); }
 #root a { color: inherit; text-decoration: none; }
-#root button:not([class*="tgui-"]) { font: inherit; color: inherit; }
+/* The plainest of resets, at the lowest weight (:where), so every #root .component rule for a button wins over it. */
+#root :where(button:not([class*="tgui-"])) { font: inherit; color: inherit; }
 #root img { max-width: 100%; }
 ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 
@@ -81,3 +82,6 @@ mark { background: color-mix(in srgb, var(--accent) 24%, transparent); color: in
   .glass, .card, .tabs, .sheet, .drawer, .scard, .lawcard, .post__scripture, .srch__list { border: 1px solid CanvasText !important; }
   #root :focus-visible { outline: 2px solid Highlight; }
 }
+
+/* telegram-ui's Subheadline renders a <span> here (vite.config.ts), not an <h6>; it keeps the block layout the heading had. */
+span.tgui-266b6ffdbad2b90e { display: block; }

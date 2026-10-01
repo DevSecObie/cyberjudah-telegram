@@ -44,12 +44,13 @@ export function Plan() {
     if (a) { setPlan(startPlan(+a.id)); haptic("success"); }
   };
   const reset = async () => { if (await confirm("Start the plan over from Genesis 1? Your reading progress stays.")) setPlan(null); };
-  useBottomButtons(plan ? (today?.done ? { text: "Tomorrow's reading", onClick: () => setPlan(advance(plan)) } : today?.chapters.find((c) => !c.read) ? { text: `Read ${today.chapters.find((c) => !c.read)!.book} ${today.chapters.find((c) => !c.read)!.chapter}`, onClick: () => { const c = today!.chapters.find((x) => !x.read)!; location.assign(`/read/${c.slug}/${c.chapter}`); } } : null) : { text: "Start the plan", onClick: () => void start() }, plan ? { text: "Start over", onClick: () => void reset() } : null);
+  useBottomButtons(plan ? (today?.done ? { text: "Tomorrow's reading", onClick: () => setPlan(advance(plan)) } : today?.chapters.find((c) => !c.read) ? { text: `Read ${today.chapters.find((c) => !c.read)!.book} ${today.chapters.find((c) => !c.read)!.chapter}`, onClick: () => { const c = today!.chapters.find((x) => !x.read)!; location.assign(`/read/${c.slug}/${c.chapter}`); } } : null) : null, plan ? { text: "Start over", onClick: () => void reset() } : null);
 
   if (books.isPending) return <Screen title="Reading plan"><Skeleton rows={4} /></Screen>;
   if (!plan || !today) return (
     <Screen title="Reading plan" kicker="4 Chapters a Day">
-      <Empty title="Read the whole library, a few chapters a day">Genesis to Revelation with the Apocrypha, in order. The app ticks off each chapter as you read it and keeps your streak.</Empty>
+      {/* Before a plan is started there is little on the page, so its one action sits with the words it answers. */}
+      <Empty title="Read the whole library, a few chapters a day" action={{ label: "Start the plan", onClick: () => void start() }}>Genesis to Revelation with the Apocrypha, in order. The app ticks off each chapter as you read it and keeps your streak.</Empty>
       <Card><p className="card__label">So far</p><p className="verse" style={{ fontFamily: "var(--font-ui)", fontWeight: 700 }}>{chaptersRead(progress)} chapters read</p></Card>
     </Screen>
   );

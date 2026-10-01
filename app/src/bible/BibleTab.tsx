@@ -47,7 +47,8 @@ export function BibleTab() {
   const [last, setLast, lastLoaded] = useLast();
   const slug = slugParam ?? last?.slug ?? "genesis";
   const ch = chapterParam ? Number(chapterParam) : last?.chapter ?? 1;
-  useEffect(() => { if (!slugParam && lastLoaded) navigate(`/read/${slug}/${ch}`, { replace: true }); }, [slugParam, lastLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  const searchParam = params.get("search");
+  useEffect(() => { if (!slugParam && lastLoaded) navigate(`/read/${slug}/${ch}${searchParam ? `?search=${encodeURIComponent(searchParam)}` : ""}`, { replace: true }); }, [slugParam, lastLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [settings, setSettings] = useBibleSettings();
   const [scheme, setScheme] = useState(telegramScheme);
@@ -223,6 +224,13 @@ export function BibleTab() {
     try { await navigator.clipboard.writeText(body); say("Copied to the clipboard."); } catch { void alert("Export is not available here."); }
   };
 
+  // A search handed over from elsewhere (?search=passover) opens Search the Scriptures with those words in it.
+  const [searchSeed, setSearchSeed] = useState("");
+  useEffect(() => {
+    if (!slugParam || !searchParam) return;
+    setSearchSeed(searchParam); setSheet("search");
+    const next = new URLSearchParams(params); next.delete("search"); setParams(next, { replace: true });
+  }, [slugParam, searchParam]); // eslint-disable-line react-hooks/exhaustive-deps
   const openResources = (v: number, tab: ResourceTab) => { setResourceVerse(v); setResourceTab(tab); setSheet("resources"); };
   const onMenu = (a: MenuAction) => {
     if (a === "params") setSheet("params");
@@ -279,7 +287,7 @@ export function BibleTab() {
         onCopy={() => void copy()} onShare={shareSel} onExport={() => void exportSel("selection")} onSelectAll={() => setSelected(verses.map((v) => v.verse))} />
 
       <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v)} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />
-      <SearchSheet open={sheet === "search"} onClose={() => setSheet(null)} books={list} onGo={(s, c, v) => go({ slug: s, ch: c }, v)} />
+      <SearchSheet open={sheet === "search"} initial={searchSeed} onClose={() => { setSheet(null); setSearchSeed(""); }} books={list} onGo={(s, c, v) => go({ slug: s, ch: c }, v)} />
       <VersionSheet open={sheet === "version"} onClose={() => setSheet(null)} />
       <VersePopup open={sheet === "verses"} onClose={() => setSheet(null)} count={verses.length} selected={verseToScroll} onSelect={(v) => { setVerseToScroll(v); setNavRequest((n) => n + 1); }} />
       <ParamsSheet open={sheet === "params"} onClose={() => setSheet(null)} settings={settings} set={setSettings} palette={palette} />

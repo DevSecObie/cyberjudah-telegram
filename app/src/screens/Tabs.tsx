@@ -14,7 +14,7 @@ type Item = [to: string, title: string, description: string, icon: IconName];
 const READ: Item[] = [
   ["/plan", "Reading plan", "Follow a reading plan", "check"],
   ["/study", "4 Chapters a Day", "The daily reading, a note for every chapter", "book"],
-  ["/history", "Our Hidden History", "Explore our history, episode by episode", "history"],
+  ["/classes?feed=history", "Our Hidden History", "Explore our history, episode by episode", "history"],
 ];
 const PERSONAL: Item[] = [
   ["/classes", "Classes", "Every Sabbath class, with its notes", "play"],

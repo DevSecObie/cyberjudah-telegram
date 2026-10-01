@@ -83,7 +83,7 @@ export function BookScreen() {
         <Section title={b.figures.some((f) => f.kind === "foldout") ? "Maps and pictures" : "Pictures"} action={b.figures.length > 8 ? <button type="button" className="section__more" onClick={() => setAllFigures((v) => !v)}>{allFigures ? "Fewer" : `All ${b.figures.length}`}</button> : undefined}>
           <div className={`book__figures${allFigures ? " book__figures--grid" : ""}`}>{figures.map((f) => (
             <button key={f.file} type="button" className="book__figure" onClick={() => { haptic("select"); setFigure(f); }}>
-              <img src={src(f.url)} alt={f.title || KIND[f.kind]} loading="lazy" />
+              <img src={src(f.url)} alt="" loading="lazy" />
               <b>{f.title || KIND[f.kind]}</b><small>{KIND[f.kind]}{f.page != null ? ` · ${f.kind === "foldout" ? "facing " : ""}${pageLabel(b, f.vol, f.page, volumeOf(f.vol))}` : ""}{f.reads ? ` · in ${f.reads} ${f.reads === 1 ? "class" : "classes"}` : ""}</small>
             </button>
           ))}</div>
@@ -183,7 +183,7 @@ export function BookChapterScreen() {
               {scans.has(p.img)
                 ? <img className="bookpage__img" src={scanUrl(p.img)} alt={`Page ${p.page} as printed`} loading="lazy" />
                 : <>
-                    {p.figure ? <button type="button" className="bookpage__fig" onClick={() => { haptic("select"); if (fig) setFigure(fig); }}><img src={src(p.figure)} alt={fig?.title || "Illustration"} loading="lazy" /><small>{fig?.title ? `${fig.title} · ` : ""}tap to open</small></button> : null}
+                    {p.figure ? <button type="button" className="bookpage__fig" onClick={() => { haptic("select"); if (fig) setFigure(fig); }}><img src={src(p.figure)} alt="" loading="lazy" /><small>{fig?.title ? `${fig.title} · ` : ""}tap to open</small></button> : null}
                     <div className="bookpage__text">{p.text.split(/\n\s*\n/).map((para, i) => <p key={i}>{para}</p>)}</div>
                   </>}
             </article>

@@ -68,19 +68,26 @@ the sons of Adam". This is the assembly's chart of the nations, and portraits fo
   - Melchizedek, and the Kenites.
   - Records whose mother and father are of different nations, where the classes don't say.
 
-### Before and after the mingling
+### Before and after the mingling (as directed 2026-10-01)
 
-- **Everyone was dark before the mingling.** Man was formed "of the dust of the ground" (Genesis 2:7),
-  and the first red man is Esau: "the first came out red, all over like an hairy garment" (Genesis 25:25).
-  So everyone in Bible times is dark-skinned except Edom (with Rome).
-- **Israel.** Israelites in Bible times are shown Black. The assembly's 12 Tribes breakdown (Judah:
-  American Blacks; Benjamin: West Indians; Levi: Haitians; Simeon: Dominicans; Zebulun: Mayans;
-  Issachar: Mexicans; Reuben: Seminoles; Naphtali: Argentineans and Chileans; Gad: North American
-  Indians; Ephraim: Puerto Ricans; Manasseh: Cubans; Dan: Caribs; Asher: South Americans) describes
-  the tribes after they mingled with other nations, so it does not apply to Bible-era portraits.
-- **The other nations.** In Bible times they are dark-skinned but carry the features their people have
-  today: Moab Chinese, Ammon Japanese, Ishmael and Keturah's sons Arab, Aram Syrian, Asshur Kurdish,
-  Elam East Indian, Japheth Pacific Islander. Sodom had much intermingling (Genesis 19).
+- **Everyone stays dark** (Genesis 2:7), and each person carries the features of their people as they
+  are today, by the assembly's chart and the 12 Tribes breakdown. The one exception is Edom (with Rome):
+  the first red man is Esau, "red, all over like an hairy garment" (Genesis 25:25).
+- **Israel, by tribe:** Judah American Blacks; Benjamin West Indians; Levi Haitians; Simeon Dominicans;
+  Zebulun Mayans; Issachar Mexicans; Reuben Seminoles; Naphtali Argentineans and Chileans; Gad North
+  American Indians; Ephraim Puerto Ricans; Manasseh Cubans; Dan Caribs; Asher South Americans. Dark,
+  with that people's features.
+- **The other nations:** dark, with today's features: Moab Chinese, Ammon Japanese, Ishmael and
+  Keturah's sons Arab, Aram Syrian, Asshur Kurdish, Elam East Indian, Cush Ethiopian, Mizraim Egyptian,
+  Phut North African, Canaan South African, Japheth Pacific Islander. Sodom had much intermingling
+  (Genesis 19).
+- **Before the nations were divided** (Adam to Noah, and Shem, Ham and Japheth themselves): dark.
+  Cain: fully leprous, blond and blue-eyed; Cain's line as recorded below.
+- **No information, no portrait:** a person whose tribe or people today the chart and the classes do
+  not give (for example Abraham, Isaac and Jacob before the tribes, Terah's house, Remaliah, Nimshi) is
+  left blank until directed.
+- **No two people look alike:** different face, age, build, hair, pose, angle, light, background and
+  dress for each person, checked against every portrait already made before one is accepted.
 
 ### Dress and headwear, from the KJV and the Apocrypha
 
