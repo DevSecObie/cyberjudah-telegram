@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboa
 import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { useRecentSearches } from "@/lib/marks";
+import { showOf } from "@/lib/series";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { api, ApiError, haptic, hideKeyboard } from "@/tg/sdk";
 import { Button, Chip, Icon, Img, Skeleton, timestamp, type IconName } from "@/ui/ui";
@@ -331,7 +332,7 @@ function Recording({ h, eager }: { h: TeachingHit; eager: boolean }) {
     <Link to={teachingPath(h)} className="rec" data-result="">
       <span className="rec__thumb">{frame ? <span className="rec__frame" style={frame} /> : <Img src={thumbOf(h.video)} eager={eager} />}<span className="rec__time">{timestamp(at)}</span></span>
       <span className="rec__body">
-        <span className="rec__meta">{FEED_NAME[h.feed] ?? h.feed} · {h.date ? fmtDate(h.date) : "Date unavailable"} · <b>{timestamp(at)}</b></span>
+        <span className="rec__meta">{showOf(h.title) ?? FEED_NAME[h.feed] ?? h.feed} · {h.date ? fmtDate(h.date) : "Date unavailable"} · <b>{timestamp(at)}</b></span>
         <span className="rec__title"><Marked text={h.matchedTitle || h.title} /></span>
         <span className="rec__excerpt"><Marked text={h.excerpt} /></span>
         <span className="rec__links">{h.note ? "Watch at this moment · Read the notes" : "Watch at this moment"}</span>
