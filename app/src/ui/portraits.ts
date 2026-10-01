@@ -1,5 +1,6 @@
 /** People with an approved portrait, keyed by person id (see docs/AVATARS.md and public/people/manifest.json). */
 export const PORTRAITS: ReadonlySet<string> = new Set([
+  "enoch-gen-4-17",
   "aaron-exo-4-14",
   "abel-gen-4-2",
   "abiel-1sa-9-1",

@@ -1062,19 +1062,17 @@
   },
   "irad-gen-4-18": {
    "name": "Irad",
-   "job": "754721c0-95a7-4173-8613-5fa5a901e9ee",
-   "batch": "g-01",
-   "notes": "Cain's line",
+   "job": "6eb1f44c-e5d5-4122-8ab8-60391b1fff93",
+   "batch": "cain-line-redo",
    "nation": "cainline",
-   "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Irad, a man of the line of Cain, before the Flood, Man living at the time before the Flood; in his late twenties, an oval face and heavy-lidded eyes, fair skin lacking melanin (the Bishop: \"Cain's line was cursed with a lack of melanin\"), thin straight sandy hair, a full beard, distinct features, dignified, not villainous. Dress: plain undyed wool and linen in earth tones, no fringes; bare head (1 Corinthians 11:4): no crown, no headband, no hat, no turban. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
+   "notes": "Cain's line carries Cain's curse: white as snow (2 Kings 5:27), the hair turned white (Leviticus 13:3); the classes: Cain's line cursed with lack of melanin, returned as Esau. Generated as one of three for Enoch son of Cain; the user kept all three for Enoch, Irad and Mehujael (2026-10-01)."
   },
   "mehujael-gen-4-18": {
    "name": "Mehujael",
-   "job": "84125e7a-38ea-4041-8809-3524d4cbc6cf",
-   "batch": "g-01",
-   "notes": "Cain's line",
+   "job": "6671fd46-b1b7-4c6c-beec-6b9ad0053ebd",
+   "batch": "cain-line-redo",
    "nation": "cainline",
-   "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Mehujael, a man of the line of Cain, before the Flood, Man living at the time before the Flood; in his forties, a round face and full cheeks, fair skin lacking melanin (the Bishop: \"Cain's line was cursed with a lack of melanin\"), thin straight light brown hair, a full beard, distinct features, dignified, not villainous. Dress: plain undyed wool and linen in earth tones, no fringes; bare head (1 Corinthians 11:4): no crown, no headband, no hat, no turban. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
+   "notes": "Cain's line carries Cain's curse: white as snow (2 Kings 5:27), the hair turned white (Leviticus 13:3); the classes: Cain's line cursed with lack of melanin, returned as Esau. Generated as one of three for Enoch son of Cain; the user kept all three for Enoch, Irad and Mehujael (2026-10-01)."
   },
   "methushael-gen-4-18": {
    "name": "Methusael",
@@ -1131,6 +1129,13 @@
    "notes": "Cain's line",
    "nation": "cainline",
    "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Naamah, a woman of the line of Cain, before the Flood, Woman living at the time before the Flood; in her sixties, a lean face and deep-set eyes, fair skin lacking melanin (the Bishop: \"Cain's line was cursed with a lack of melanin\"), thin straight sandy hair, distinct features, dignified, not villainous. Dress: plain undyed wool and linen in earth tones, a head covering wrap, modest dress; no crown, no headband. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
+  },
+  "enoch-gen-4-17": {
+   "name": "Enoch",
+   "job": "9387815e-76fa-4ef3-ab9b-c02f027b4f4f",
+   "batch": "cain-line-redo",
+   "nation": "cainline",
+   "notes": "Cain's line carries Cain's curse: white as snow (2 Kings 5:27), the hair turned white (Leviticus 13:3); the classes: Cain's line cursed with lack of melanin, returned as Esau. Generated as one of three for Enoch son of Cain; the user kept all three for Enoch, Irad and Mehujael (2026-10-01)."
   }
  }
 }
