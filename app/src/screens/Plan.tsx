@@ -50,7 +50,7 @@ export function Plan() {
   if (!plan || !today) return (
     <Screen title="Reading plan" kicker="4 Chapters a Day">
       <Empty title="Read the whole library, a few chapters a day">Genesis to Revelation with the Apocrypha, in order. The app ticks off each chapter as you read it and keeps your streak.</Empty>
-      <Card><p className="card__label">So far</p><p className="verse" style={{ fontFamily: "var(--a-ui)", fontWeight: 700 }}>{chaptersRead(progress)} chapters read</p></Card>
+      <Card><p className="card__label">So far</p><p className="verse" style={{ fontFamily: "var(--font-ui)", fontWeight: 700 }}>{chaptersRead(progress)} chapters read</p></Card>
     </Screen>
   );
   const dayDone = shown!.done;
@@ -58,7 +58,7 @@ export function Plan() {
     <Screen title="Reading plan" kicker={`Day ${today.day + 1} of ${today.total}`}>
       <Card glow>
         <p className="card__label">{today.done ? "Today · done" : "Today"}</p>
-        <p className="verse" style={{ fontFamily: "var(--a-ui)", fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em" }}>{today.label}</p>
+        <p className="verse" style={{ fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em" }}>{today.label}</p>
         <div className="progress" style={{ marginTop: 12 }}><i style={{ width: `${today.pct}%` }} /></div>
         <p className="card__ref">{today.pct}% of the library · {plan.streak} day streak{plan.streak >= 7 ? " 🔥" : ""}{sched && sched.offset < 0 ? ` · ${-sched.offset} ${sched.offset === -1 ? "day" : "days"} ahead` : ""}</p>
         {sched && sched.offset > 0 ? <button type="button" className="catchup" onClick={() => void catchUp()}>Catch up · {sched.owed} {sched.owed === 1 ? "chapter" : "chapters"}</button> : null}

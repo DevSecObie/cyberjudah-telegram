@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { App } from "./App";
 import { SheetProvider } from "./ui/sheet";
+import { ToastProvider } from "./ui/toast";
 import { boot } from "./tg/sdk";
 import { installBackGuard } from "./lib/backguard";
 import "@telegram-apps/telegram-ui/dist/styles.css";
@@ -33,9 +34,11 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename={basename}>
+        <ToastProvider>
         <SheetProvider>
           <App />
         </SheetProvider>
+        </ToastProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

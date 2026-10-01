@@ -1,6 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { haptic, hideKeyboard } from "@/tg/sdk";
+
+import { useModal } from "./modal";
 
 /**
  * A bottom sheet, the app's own: Telegram's showPopup takes three buttons at most, and a
@@ -29,13 +31,14 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   const answer = useCallback((a: SheetAnswer) => { resolver.current?.(a); resolver.current = null; setSpec(null); }, []);
   const open = useCallback((s: SheetSpec) => new Promise<SheetAnswer>((resolve) => { resolver.current?.(null); resolver.current = resolve; setText(s.text?.value ?? ""); setSpec(s); haptic("select"); }), []);
   const ctx = useMemo(() => ({ open, close: () => answer(null), isOpen: spec !== null }), [open, answer, spec]);
-  useEffect(() => { if (!spec) return; const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") answer(null); }; window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, [spec, answer]);
+  const box = useRef<HTMLDivElement>(null);
+  useModal(box, spec !== null, () => answer(null));
   return (
     <SheetContext.Provider value={ctx}>
       {children}
       {spec ? (
         <div className="sheet__scrim" onClick={(e) => { if (e.target === e.currentTarget) answer(null); }}>
-          <div className="sheet" role="dialog" aria-modal="true" aria-label={spec.title ?? "Options"} data-sheet-open="">
+          <div ref={box} className="sheet" role="dialog" aria-modal="true" aria-label={spec.title ?? "Options"} data-sheet-open="">
             <div className="sheet__grip" aria-hidden="true" />
             {spec.title ? <p className="sheet__title">{spec.title}</p> : null}
             {spec.colors ? (

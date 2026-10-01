@@ -44,7 +44,7 @@ export function Sabbath() {
         <>
           <Card glow>
             <p className="card__label">{state.sabbath ? "It is the Sabbath" : "Until the Sabbath"}</p>
-            <p className="verse" style={{ fontFamily: "var(--a-ui)", fontWeight: 700, fontSize: 34, letterSpacing: "-0.02em" }}>{state.sabbath ? "Shabbat shalom" : countdown(state.next, now)}</p>
+            <p className="verse" style={{ fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: 34, letterSpacing: "-0.02em" }}>{state.sabbath ? "Shabbat shalom" : countdown(state.next, now)}</p>
             <p className="card__ref">{state.label} · {state.next.toLocaleString(undefined, { weekday: "long", hour: "numeric", minute: "2-digit" })}</p>
           </Card>
           <Section title="Today">

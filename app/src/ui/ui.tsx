@@ -11,7 +11,7 @@ import { expandBar, useBarMini, useBarScroll } from "@/lib/barscroll";
 import { SwitcherBar } from "@/screens/Tabs";
 import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
 
-export type IconName = "home" | "search" | "play" | "book" | "book-open" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus" | "close" | "image";
+export type IconName = "home" | "search" | "play" | "book" | "book-open" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus" | "close" | "image" | "alert" | "info";
 export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
   const p: Record<IconName, ReactNode> = {
     image: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8" cy="8" r="1.5" /><path d="m21 15-5-5L5 21" /></>,
@@ -51,6 +51,8 @@ export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
     trash: <><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></>,
     plus: <path d="M12 5v14M5 12h14" />,
     close: <path d="M6 6l12 12M18 6 6 18" />,
+    alert: <><circle cx="12" cy="12" r="9" /><path d="M12 7.5v5.5M12 16.5v.01" /></>,
+    info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5.5M12 7.5v.01" /></>,
     chat: <path d="M4 5h16v11H9l-5 4z" />,
     retry: <><path d="M4 12a8 8 0 1 0 2.3-5.6" /><path d="M4 4v4h4" /></>,
     folder: <path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />,
@@ -107,28 +109,23 @@ export function TabBar() {
   // Ask keeps the full bar: its composer sits on it, as a chat app keeps its input in place.
   const mini = useBarMini() && !drawer && pathname !== "/ask";
   const bar = useRef<HTMLElement>(null);
-  // The current button sits on a pill that slides to whichever is chosen; the button opens to
-  // show its name when the bar has the room.
+  // The current section sits on a pill that slides to it (across the dock on phones, down the
+  // rail on desktops). Every section keeps its slot, so only the pill moves.
   useLayoutEffect(() => {
     const nav = bar.current; if (!nav) return;
     const place = () => {
-      // Room for the name: the icons share what the current one's name leaves, down to 38px each.
-      const buttons = nav.querySelectorAll(".tab").length;
-      const label = nav.querySelector<HTMLElement>(".tab[data-on] .tab__label");
-      const slot = label ? Math.min(42, Math.floor((nav.clientWidth - 14 - label.scrollWidth - 10) / buttons)) : 42;
-      const fits = !mini && !!label && slot >= 38;
-      nav.style.setProperty("--slot", `${fits ? slot : 42}px`);
-      if (fits) delete nav.dataset.nolabel; else nav.dataset.nolabel = "";
       const on = nav.querySelector<HTMLElement>(".tab[data-on]");
-      nav.style.setProperty("--pill-x", `${on ? on.offsetLeft : 0}px`);
-      nav.style.setProperty("--pill-w", `${on ? on.offsetWidth : 0}px`);
-      nav.dataset.pill = on ? "" : "none";
+      const shown = !!on && on.offsetWidth > 0;
+      nav.style.setProperty("--pill-x", `${shown ? on!.offsetLeft : 0}px`);
+      nav.style.setProperty("--pill-y", `${shown ? on!.offsetTop : 0}px`);
+      nav.style.setProperty("--pill-w", `${shown ? on!.offsetWidth : 0}px`);
+      nav.style.setProperty("--pill-h", `${shown ? on!.offsetHeight : 0}px`);
+      nav.dataset.pill = shown ? "" : "none";
     };
     place();
     const ro = new ResizeObserver(place); ro.observe(nav);
     for (const b of nav.querySelectorAll(".tab")) ro.observe(b);
-    nav.addEventListener("transitionend", place);
-    return () => { ro.disconnect(); nav.removeEventListener("transitionend", place); };
+    return () => ro.disconnect();
   });
   // While the switcher is open the bar becomes its controls, as in Bible Strong.
   if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /></nav>;
@@ -137,10 +134,10 @@ export function TabBar() {
     ...ids.map((id) => {
       const item = navItem(id);
       return { id, label: id === "tabs" ? "Tabs" : item.label, aria: id === "tabs" ? `Tabs, ${tabs.length} open` : item.label,
-        glyph: item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={23} />,
+        glyph: item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={22} />,
         onClick: () => id === "home" ? toggle("home") : go(navPath(id)) };
     }),
-    { id: "more", label: "Menu", aria: "Menu", glyph: <Icon name="more" size={28} />, onClick: () => toggle("more") },
+    { id: "more", label: "Menu", aria: "Menu", glyph: <Icon name="more" size={24} />, onClick: () => toggle("more") },
   ];
   return (
     <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} {...hold}

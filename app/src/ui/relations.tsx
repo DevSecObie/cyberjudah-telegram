@@ -5,7 +5,7 @@ import { haptic } from "@/tg/sdk";
 import { Icon } from "./ui";
 
 /** Bible Strong's per-type colours and icons (verse: book-open, note: document, link: link, dictionary: book). */
-export const TARGET_COLOR: Record<Endpoint["type"], string> = { verse: "var(--a-accent)", note: "#ff9f1c", entry: "#a78bfa", dictionary: "#3ddc84", link: "#ff2d78" };
+export const TARGET_COLOR: Record<Endpoint["type"], string> = { verse: "var(--accent)", note: "#ff9f1c", entry: "#a78bfa", dictionary: "#3ddc84", link: "#ff2d78" };
 export function TargetIcon({ type, size = 15 }: { type: Endpoint["type"]; size?: number }) {
   const name = ({ verse: "book", note: "note", entry: "play", dictionary: "book", link: "link" } as const)[type];
   return <span style={{ color: TARGET_COLOR[type], display: "inline-flex" }}><Icon name={name} size={size} /></span>;

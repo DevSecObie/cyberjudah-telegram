@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
 import { data } from "@/api/data";
@@ -8,6 +8,7 @@ import { RELATION_TYPES, createRelation, deleteRelation, endpointHref, endpoints
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { alert, api, confirm, haptic, openLink } from "@/tg/sdk";
 import { store } from "@/tg/store";
+import { useModal } from "@/ui/modal";
 import { useSheet } from "@/ui/sheet";
 import { Empty, Icon, Screen, SearchField, Skeleton } from "@/ui/ui";
 import { MergeIcon, TargetIcon } from "@/ui/relations";
@@ -168,10 +169,12 @@ export function RelationTargetPicker({ source, onClose, onCreated }: { source: E
     if (!r) { void alert("This relation already exists."); return; }
     haptic("success"); onCreated(r);
   };
+  const box = useRef<HTMLDivElement>(null);
+  useModal(box, true, onClose);
   const loading = (refKeys && refText.isPending) || (library.isFetching && !library.data) || (dict.isFetching && !dict.data);
   return (
     <div className="sheet__scrim" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="sheet sheet--tall" role="dialog" aria-modal="true" aria-label="Add relation" data-sheet-open="">
+      <div ref={box} className="sheet sheet--tall" role="dialog" aria-modal="true" aria-label="Add relation" data-sheet-open="">
         <div className="sheet__grip" aria-hidden="true" />
         <p className="sheet__title">Add relation<small>{source.label}</small></p>
         <SearchField id="rel-q" value={q} onChange={setQ} placeholder="Scripture, note, class, dictionary, link..." autoFocus />

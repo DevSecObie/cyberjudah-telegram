@@ -1,0 +1,122 @@
+/* ─────────────────────────────────────────────────────────────────────────────────────────────
+   Content: sections, cards, grouped lists, the loading, empty and failed states, and the pieces
+   that carry scripture. Content surfaces are tinted and edged, never frosted: the glass belongs
+   to the navigation layer above them.
+   ───────────────────────────────────────────────────────────────────────────────────────────── */
+
+/* ── Sections ─────────────────────────────────────────────────────────────────────────────── */
+.section { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.section__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); padding: 0 2px; }
+.section__head h2 { margin: 0; font: 700 var(--fs-title3)/1.25 var(--font-ui); letter-spacing: -.012em; color: var(--text-1); }
+.shelf { margin: 14px 0 -4px; font: 600 var(--fs-title2)/1.2 var(--font-read); color: var(--text-1); }
+/* An eyebrow: a small heading over a group. Title case, a little tracking; never shouting. */
+.eyebrow { margin: 0; font: 700 var(--fs-caption)/1.3 var(--font-ui); letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); }
+
+/* ── Cards ───────────────────────────────────────────────────────────────────────────────── */
+.card { display: block; box-sizing: border-box; min-width: 0; padding: var(--sp-4); border-radius: var(--r-xl); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); color: inherit; }
+.card--btn { width: 100%; border: 0; text-align: left; cursor: pointer; font: inherit; }
+.card--btn:hover, a.card:hover { background: color-mix(in srgb, var(--text-1) 3%, var(--surface-1)); }
+.card--glow { background: linear-gradient(140deg, color-mix(in srgb, var(--accent) 12%, var(--surface-1)), var(--surface-1) 65%); }
+.card__label { margin: 0 0 var(--sp-2); font: 600 var(--fs-footnote)/1.2 var(--font-ui); color: var(--text-3); }
+.card__ref { margin: 10px 0 0; font: 500 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
+
+/* ── Grouped lists (TelegramUI's Section and Cell) ───────────────────────────────────────── */
+#root .list { overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
+#root .list > * { background: transparent; }
+.row { width: 100%; text-align: left; cursor: pointer; transition: background-color var(--dur-1) ease; }
+#root button.row { appearance: none; -webkit-appearance: none; margin: 0; border: 0; border-radius: 0; background: transparent; font: inherit; }
+#root .row:hover { background: var(--state-hover); }
+#root .row:active { background: var(--state-press); }
+.row__thumb { flex: none; width: 96px; aspect-ratio: 16 / 9; border-radius: var(--r-sm); overflow: hidden; background: var(--surface-2); }
+.row__thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.row__icon { flex: none; width: 36px; height: 36px; border-radius: var(--r-sm); display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.row__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.row__meta { font: 500 var(--fs-caption)/1.3 var(--font-ui); color: var(--text-3); }
+.row__title { font: 500 var(--fs-body)/1.3 var(--font-ui); color: var(--text-1); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.row__sub { font: 400 var(--fs-sub)/1.4 var(--font-ui); color: var(--text-3); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.row__chev { flex: none; color: var(--text-4); }
+.row__count, .row__value { flex: none; display: inline-flex; align-items: center; gap: 4px; font: 400 var(--fs-sub) var(--font-ui); color: var(--text-3); white-space: nowrap; }
+.row__value svg { color: var(--text-4); }
+.row--skel { cursor: default; }
+
+/* ── Loading: content-shaped placeholders that keep the page's geometry ──────────────────── */
+.skel { display: block; height: 12px; border-radius: 6px; background: var(--fill-2); animation: pulse 1.4s ease-in-out infinite; }
+
+/* ── Empty, failed, crashed ──────────────────────────────────────────────────────────────── */
+.empty { display: grid; justify-items: center; gap: 4px; padding: var(--sp-7) var(--sp-3); text-align: center; color: var(--text-3); }
+.empty__title { margin: 0 0 2px; font: 600 var(--fs-callout) var(--font-ui); color: var(--text-1); }
+.empty__body { max-width: 36ch; font: 400 var(--fs-sub)/var(--lh-body) var(--font-ui); text-wrap: pretty; }
+.trouble { display: grid; gap: 10px; padding: 14px; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), inset 3px 0 0 color-mix(in srgb, var(--danger) 70%, transparent); }
+.trouble__head { display: flex; align-items: center; gap: 10px; }
+.trouble__head b { font: 600 var(--fs-body)/1.3 var(--font-ui); color: var(--text-1); }
+.trouble__badge { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 15px; background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
+.trouble__why { margin: 0; font: 400 var(--fs-sub)/var(--lh-body) var(--font-ui); color: var(--text-2); }
+.trouble__actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.crash { min-height: 60vh; justify-content: center; text-align: center; gap: 10px; }
+.crash__actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: var(--sp-2); }
+
+/* ── Rails and tiles ─────────────────────────────────────────────────────────────────────── */
+.rail { display: flex; gap: var(--sp-3); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--gutter); margin: 0 calc(-1 * var(--gutter)); padding: 2px var(--gutter) 6px; scrollbar-width: none; }
+.rail::after { content: ""; flex: none; width: 4px; }
+.rail::-webkit-scrollbar { display: none; }
+.tile { flex: none; width: 220px; scroll-snap-align: start; display: flex; flex-direction: column; gap: var(--sp-2); }
+.tile__img { aspect-ratio: 16 / 9; border-radius: var(--r-md); overflow: hidden; background: var(--surface-2); box-shadow: var(--card-edge); }
+.tile__img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tile b { font: 600 15px/1.3 var(--font-ui); color: var(--text-1); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tile span { font: 500 var(--fs-caption) var(--font-ui); color: var(--text-3); }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.grid a { display: flex; flex-direction: column; justify-content: space-between; gap: 18px; min-height: 86px; padding: var(--sp-3); border-radius: var(--r-md); background: var(--surface-1); box-shadow: var(--card-edge); }
+.grid a b { font: 600 var(--fs-sub)/1.25 var(--font-ui); color: var(--text-1); }
+.grid a span { font: 500 var(--fs-caption) var(--font-ui); color: var(--text-3); }
+
+/* ── Avatars ─────────────────────────────────────────────────────────────────────────────── */
+.avatar { --av-ink: var(--accent); flex: none; display: inline-grid; place-items: center; box-sizing: border-box; overflow: hidden; border-radius: 50%; background: color-mix(in srgb, var(--av-ink) 18%, var(--av-base, var(--surface-1))); color: var(--av-ink); font-family: var(--font-ui); font-weight: 700; line-height: 1; }
+.avatar[data-kind="female"] { --av-ink: var(--danger); }
+.avatar[data-kind="group"], .avatar[data-kind="other"] { --av-ink: var(--text-3); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── Scripture: a card, a quoted verse, a reference link ─────────────────────────────────────
+   The verse is set in the reading face on a stable surface; the reference and the way to the
+   verse are interface type, set apart from it. */
+.scard { padding: 14px var(--sp-4) 2px; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
+.scard__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.scard__ref { margin: 0; color: var(--text-1); font: 700 15px/1.3 var(--font-ui); letter-spacing: -.005em; font-variant-numeric: tabular-nums; }
+.scard__ver { flex: none; color: var(--text-3); font: 600 11px var(--font-ui); letter-spacing: .05em; }
+.scard__text { margin: var(--sp-2) 0 0; padding-left: 12px; border-left: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); color: var(--text-1); font: 400 17.5px/1.6 var(--font-read); text-wrap: pretty; overflow-wrap: anywhere; }
+.scard__text sup { margin-right: 3px; color: var(--text-3); font: 600 10px var(--font-ui); vertical-align: 5px; }
+.scard__text--wait { display: grid; gap: 9px; padding: 4px 0 2px 12px; }
+.scard__text--wait .skel { height: 13px; }
+.scard__text--wait .skel:nth-child(1) { width: 94%; } .scard__text--wait .skel:nth-child(2) { width: 86%; } .scard__text--wait .skel:nth-child(3) { width: 52%; }
+.scard__fail { margin: var(--sp-2) 0 0; color: var(--text-3); font: 500 var(--fs-sub)/1.5 var(--font-ui); }
+#root .scard__fail button { min-height: var(--touch); padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+.scard__points { display: grid; gap: var(--sp-2); margin: var(--sp-3) 0 0; padding: var(--sp-3) 0 0; border-top: .5px solid var(--hairline); list-style: none; }
+.scard__points li { color: var(--text-2); font: 400 15px/1.55 var(--font-ui); }
+.scard__src { display: grid; gap: 2px; margin: 10px 0 0; color: var(--text-3); font: 500 var(--fs-footnote)/1.4 var(--font-ui); }
+#root .scard__src a { color: var(--text-1); font-weight: 600; text-decoration: none; }
+.scard__foot { display: flex; align-items: center; justify-content: flex-end; gap: var(--sp-2); min-height: var(--touch); margin-top: var(--sp-1); }
+#root .scard__go { display: inline-flex; align-items: center; gap: 1px; min-height: var(--touch); padding: 0 4px 0 12px; border-radius: var(--r-pill); color: var(--accent); font: 600 15px var(--font-ui); text-decoration: none; }
+#root .scard__go:hover { background: var(--accent-softer); }
+#root button.scard__act { display: inline-flex; align-items: center; gap: 6px; min-height: var(--touch); margin-right: auto; padding: 0; border: 0; background: none; color: var(--text-3); font: 600 var(--fs-sub) var(--font-ui); cursor: pointer; }
+#root .scard__go:active, #root button.scard__act:active { opacity: .6; }
+.verse-quote { margin: var(--sp-2) 0 0; padding: var(--sp-2) 12px; border-left: 2px solid var(--accent); font: 400 15.5px/1.5 var(--font-read); color: var(--text-2); }
+.verse-quote sup { margin-right: 3px; color: var(--accent); font: 600 10px var(--font-ui); }
+.verse { margin: 0; font: 400 21px/1.45 var(--font-read); color: var(--text-1); text-wrap: pretty; }
+.verse b { font-weight: 600; }
+.reftext__refs { color: var(--text-3); font-size: .94em; }
+#root .reflink { color: var(--accent); font-weight: 500; text-decoration: none; white-space: nowrap; }
+#root .reflink:active { opacity: .6; }
+@media (hover: hover) { #root .reflink:hover, .scard__src a:hover { text-decoration: underline; text-underline-offset: 3px; } }
+
+/* ── Grouped menu cards (the More screen and drawer) ──────────────────────────────────────── */
+.more { padding: var(--sp-4) 0 var(--sp-6); }
+.mcard { margin: 0 var(--sp-5) var(--sp-4); border-radius: var(--r-lg); background: var(--surface-2); overflow: hidden; box-shadow: var(--card-edge); }
+.screen .mcard, .drawer .screen .mcard { margin-inline: 0; }
+.mcard__head { display: flex; align-items: center; gap: var(--sp-2); margin: 0; padding: 12px var(--sp-4) 6px; color: var(--text-3); font: 700 var(--fs-caption) var(--font-ui); letter-spacing: .02em; }
+#root .mcard__row, .mcard__row { display: flex; align-items: center; gap: var(--sp-3); width: 100%; box-sizing: border-box; min-height: var(--h-lg); padding: 6px var(--sp-3); border: 0; background: none; color: var(--text-1); font: 400 15px var(--font-ui); text-align: left; text-decoration: none; cursor: pointer; transition: background-color var(--dur-1) ease; }
+#root .mcard__row:hover { background: var(--state-hover); }
+#root .mcard__row:active { background: var(--state-press); }
+.mcard__row + .mcard__row { border-top: .5px solid var(--hairline); }
+.mcard__icon { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; }
+.mcard__label { flex: 1; min-width: 0; }
+.mcard__chev { display: grid; color: var(--text-4); }
+.more__foot { margin: var(--sp-2) var(--sp-5) 0; color: var(--text-3); font: 400 var(--fs-sub)/1.4 var(--font-ui); text-align: center; }
