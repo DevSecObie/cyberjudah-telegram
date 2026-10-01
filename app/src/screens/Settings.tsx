@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
 import { data } from "@/api/data";
-import { offlineSupported, removeBook, saveBook, savedBooks } from "@/lib/offline";
+import { offlineSupported, removeBook, saveBook, saveNarration, savedBooks } from "@/lib/offline";
+import { recordingJson, type RecordingCredit } from "@/lib/recordings";
 import { useBackButton, useStored, useTheme } from "@/tg/hooks";
 import { alert, api, app, confirm, features, haptic, openInvoice, platform, requestWriteAccess, setFullscreen, lockPortrait } from "@/tg/sdk";
 import { secure } from "@/tg/store";
@@ -71,7 +72,17 @@ export function Settings() {
     setSaving({ slug: b.slug, pct: 0 });
     const complete = await saveBook(b, (d, t) => setSaving({ slug: b.slug, pct: Math.round((d / t) * 100) }));
     setSaving(null); setSaved(await savedBooks()); haptic(complete ? "success" : "error");
-    if (!complete) void alert("The book download is incomplete. Please retry while connected to save all text and narration.");
+    if (!complete) { void alert("The book download is incomplete. Please retry while connected to save all text."); return; }
+    try {
+      const catalog = await recordingJson<{ chapters: RecordingCredit[] }>("/api/recordings/catalog");
+      const bytes = catalog.chapters.filter((r) => r.slug === b.slug).reduce((sum, r) => sum + r.bytes, 0);
+      if (bytes > 0 && Number.isFinite(bytes) && await confirm(`Text saved. Also save narration (≈ ${(bytes / 1_000_000).toFixed(1)} MB)?`)) {
+        setSaving({ slug: b.slug, pct: 0 });
+        const audioComplete = await saveNarration(b, (d, t) => setSaving({ slug: b.slug, pct: Math.round(d / t * 100) }));
+        if (!audioComplete) void alert("Text is saved. Some narration could not be downloaded; please retry while connected.");
+      }
+    } catch { /* Text is complete even if the optional audio catalog is unavailable. */ }
+    finally { setSaving(null); }
   };
   const forget = async (slug: string) => { const b = books.data?.find((x) => x.slug === slug); if (b) { await removeBook(b); setSaved(await savedBooks()); } };
 
@@ -90,9 +101,9 @@ export function Settings() {
         </List>
       </Section>
       {offlineSupported ? (
-        <Section title="Offline books" action={<button type="button" className="link" onClick={() => void offline()}>Save a book</button>}>
+        <Section title="Offline books" action={<button type="button" className="link" disabled={books.isPending || !!saving} onClick={() => void offline()}>Save a book</button>}>
           {saving ? <div className="progress"><i style={{ width: `${saving.pct}%` }} /></div> : null}
-          {saved.length ? <List>{saved.map((s) => <Row key={s} onClick={() => void forget(s)} title={books.data?.find((b) => b.slug === s)?.book ?? s} sub="Saved on this device · tap to remove" trailing={<span className="pill pill--ok">offline</span>} />)}</List> : <p className="hint">Saved books include available narration and read without a connection.</p>}
+          {saved.length ? <List>{saved.map((s) => <Row key={s} onClick={() => void forget(s)} title={books.data?.find((b) => b.slug === s)?.book ?? s} sub="Saved on this device · tap to remove" trailing={<span className="pill pill--ok">offline</span>} />)}</List> : <p className="hint">Save the text to read without a connection. Available narration is an optional extra download.</p>}
         </Section>
       ) : null}
       <Section title="Daily verse">

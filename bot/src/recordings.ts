@@ -4,10 +4,14 @@ import type { Env } from "./env";
 export type RecordingChapter = { readerId: string; reader: string; slug: string; chapter: number; index: string; audio: string; source: string; license: string; sha256: string; bytes: number };
 type Catalog = { schemaVersion: number; chapters: RecordingChapter[] };
 export const recordings = new Hono<{ Bindings: Env }>();
+const catalogs = new WeakMap<Env["AUDIO"], { expires: number; value: Promise<Catalog> }>();
 
 async function catalog(env: Env): Promise<Catalog> {
-  const object = await env.AUDIO.get("recordings/catalog.json");
-  return object ? object.json<Catalog>() : { schemaVersion: 1, chapters: [] };
+  const cached = catalogs.get(env.AUDIO);
+  if (cached && cached.expires > Date.now()) return cached.value;
+  const value = env.AUDIO.get("recordings/catalog.json").then((object) => object ? object.json<Catalog>() : { schemaVersion: 1, chapters: [] });
+  catalogs.set(env.AUDIO, { expires: Date.now() + 300_000, value });
+  try { return await value; } catch (error) { catalogs.delete(env.AUDIO); throw error; }
 }
 recordings.get("/catalog", async (c) => c.json(await catalog(c.env), 200, { "cache-control": "public, max-age=300" }));
 recordings.get("/:slug/:chapter", async (c) => {

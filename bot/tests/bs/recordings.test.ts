@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 const expect = (actual: unknown) => ({ toBe: (expected: unknown) => assert.equal(actual, expected) });
-import { recordingAudio } from "../../src/recordings";
+import { recordingAudio, recordings } from "../../src/recordings";
 import type { Env } from "../../src/env";
 const bytes = new TextEncoder().encode("0123456789");
 const env = { AUDIO: {
@@ -10,6 +10,13 @@ const env = { AUDIO: {
 } } as unknown as Pick<Env, "AUDIO">;
 const url = "https://cyberjudah.io/api/audio/recordings/reader/tobit/9.m4a";
 describe("human recording byte ranges", () => {
+  it("shares a five-minute catalog read across requests", async () => {
+    let reads = 0;
+    const bindings = { AUDIO: { get: async () => { reads++; return { json: async () => ({ schemaVersion: 1, chapters: [] }) }; } } } as unknown as Env;
+    await Promise.all([recordings.request("/catalog", {}, bindings), recordings.request("/catalog", {}, bindings)]);
+    await recordings.request("/catalog", {}, bindings);
+    expect(reads).toBe(1);
+  });
   it("returns full, bounded, suffix and HEAD responses", async () => {
     for (const [range, expected, body] of [[null, 200, "0123456789"], ["bytes=2-4", 206, "234"], ["bytes=-3", 206, "789"], ["bytes=8-", 206, "89"]] as const) {
       const r = await recordingAudio(new Request(url, { headers: range ? { range } : {} }), env);
