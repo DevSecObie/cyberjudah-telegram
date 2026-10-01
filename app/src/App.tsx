@@ -38,8 +38,8 @@ const Books = lazy(() => import("@/screens/Books").then((m) => ({ default: m.Boo
 const BookScreen = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookScreen })));
 const BookChapterScreen = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookChapterScreen })));
 const BookPageLink = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookPageLink })));
-const LawIndex = lazy(() => import("@/screens/Library").then((m) => ({ default: m.LawIndex })));
-const LawSectionScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.LawSectionScreen })));
+const LawIndex = lazy(() => import("@/screens/Laws").then((m) => ({ default: m.LawIndex })));
+const LawSectionScreen = lazy(() => import("@/screens/Laws").then((m) => ({ default: m.LawSectionScreen })));
 const Precepts = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Precepts })));
 const PreceptScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.PreceptScreen })));
 const Cases = lazy(() => import("@/screens/Cases").then((m) => ({ default: m.Cases })));

@@ -992,6 +992,88 @@ test("the collapsed bar is one glass circle around one icon: the section, or the
   await expect(bar).not.toHaveAttribute("data-mini");
 });
 
+for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 }]) {
+  test(`The Law: parts and sections, a section's laws with their scripture, its cases, and the way back (${viewport.width}px)`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto(`/law${LAUNCH}`);
+    await expect(page.getByRole("region", { name: "The Ten Commandments" })).toBeVisible();
+    await page.fill("#law-q", "obedience");
+    await page.locator(".caserow", { hasText: "Obedience and Submission" }).click();
+    await expect(page).toHaveURL(/\/law\/02-relationship-to-god\/2h$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("2HObedience and Submission");
+    const first = page.getByRole("article", { name: "Law 2H.1", exact: true });
+    await expect(first.locator(".lawcard__text")).toHaveText("You shall obey the voice of the LORD your God.");
+    await expect(first.locator(".scard__ref")).toHaveText("Exodus 15:26");
+    // Another of its scriptures, then that verse in the reader, and back to the same place.
+    await first.getByRole("tab", { name: "Deuteronomy 13:4" }).click();
+    await expect(first.locator(".scard__ref")).toHaveText("Deuteronomy 13:4");
+    await expect(first.locator(".scard__text")).toContainText("Ye shall walk after the Lord your God");
+    const y = await page.evaluate(() => Math.round(scrollY));
+    await first.getByRole("link", { name: /^Go to verse/ }).click();
+    await expect(page).toHaveURL(/\/read\/deuteronomy\/13\?v=4$/);
+    await expect(page.locator("#verset-4")).toBeVisible();
+    await press(page, "back");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("2HObedience and Submission");
+    await expect.poll(() => page.evaluate(() => Math.round(scrollY))).toBeGreaterThan(y - 40);
+    // The cases judged under it, all of them, one opened.
+    const cases = page.getByRole("region", { name: "Cases under this law" });
+    await expect(cases.locator(".ccard")).toHaveCount(4);
+    await cases.getByRole("button", { name: /^Show all 39/ }).click();
+    await expect(cases.locator(".ccard")).toHaveCount(39);
+    await cases.locator(".ccard", { hasText: "Enoch" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Enoch" })).toBeVisible();
+    await press(page, "back");
+    await expect(cases.locator(".ccard")).toHaveCount(39);
+    // Its part, and back to the handbook with the search as it was.
+    await page.getByRole("link", { name: "Part 2 · Relationship to God" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Relationship to God" })).toBeVisible();
+    await press(page, "back");
+    await press(page, "back");
+    await expect(page.locator("#law-q")).toHaveValue("obedience");
+  });
+}
+
+test("Classes: the series with their counts, months as headings, and the search kept on the way back", async ({ page }) => {
+  await page.goto(`/classes${LAUNCH}`);
+  const series = page.getByRole("group", { name: "Series" });
+  await expect(series.getByRole("button", { name: /^All\s?[\d,]+$/ })).toHaveAttribute("aria-pressed", "true");
+  await series.getByRole("button", { name: /^Captains\s?[\d,]+$/ }).click();
+  await expect(page).toHaveURL(/feed=captains/);
+  await expect(page.locator(".classes__month").first().locator(".cases__eraname")).toHaveText(/^[A-Z][a-z]+ \d{4}\d+$/);
+  await page.fill("#class-q", "passover");
+  // A series changed with a search typed keeps the search.
+  await series.getByRole("button", { name: /^All\s?[\d,]+$/ }).click();
+  await expect(page).not.toHaveURL(/feed=/);
+  await expect(page.locator("#class-q")).toHaveValue("passover");
+  const card = page.locator(".feed__card").first();
+  await expect(card).toBeVisible();
+  const title = await card.locator("b").innerText();
+  await card.click();
+  await expect(page).toHaveURL(/\/note\//);
+  await expect(page.getByText("Class notes", { exact: true }).first()).toBeVisible();
+  await press(page, "back");
+  await expect(page).toHaveURL(/\/classes(\?|$)/);
+  await expect(page.locator("#class-q")).toHaveValue("passover");
+  await expect(page.locator(".feed__card").first().locator("b")).toHaveText(title);
+});
+
+test("Ask: scripture in an answer opens the verse, and a source card shows its words", async ({ page }) => {
+  await page.route("**/api/ask/account", (r) => r.fulfill({ json: { metered: false, unlimited: false, balance: {}, perQuestion: 1, freeDaily: 0, plan: {}, packs: [] } }));
+  const answer = "The Lord called him alone (Genesis 12:1), and Isaiah 51:2 says the same [1].";
+  await page.route("**/api/ask", (r) => r.fulfill({ contentType: "application/x-ndjson", body: ndjson({ delta: answer }, { done: true, answer, followups: [], sources: [{ ...SOURCE, text: "Look unto Abraham your father, and unto Sarah that bare you" }] }) }));
+  await page.goto(`/ask${LAUNCH}`);
+  await page.fill('textarea[aria-label="Your question"]', "Why was Abraham called alone?");
+  await page.keyboard.press("Enter");
+  const text = page.locator(".msg--ai .msg__text");
+  await expect(text.getByRole("link", { name: "Isaiah 51:2" })).toBeVisible();
+  await expect(page.locator(".msg--ai .srccard__text")).toContainText("Look unto Abraham your father");
+  await text.getByRole("link", { name: "Genesis 12:1" }).click();
+  await expect(page).toHaveURL(/\/read\/genesis\/12\?v=1$/);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await press(page, "back");
+  await expect(page.locator(".msg--ai .msg__text")).toContainText("called him alone");
+});
+
 test("Library: The Lost Tribes a Myth, page by page with its scans and maps, and the classes that read it", async ({ page }) => {
   await page.goto(`/more${LAUNCH}`);
   await page.locator('a[href$="/books"]').first().click();

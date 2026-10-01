@@ -55,3 +55,36 @@ export function RefText({ text }: { text: string }) {
   out.push(text.slice(last));
   return <>{out}</>;
 }
+
+/**
+ * HTML (an answer) with each scripture reference in its text, "Genesis 12:1", "Romans 4:1-3",
+ * made a link to the verse in the reader. Text inside links, buttons and code is left alone.
+ */
+export function linkRefsInHtml(html: string, slugs: Map<string, string>): string {
+  if (!slugs.size || typeof DOMParser === "undefined") return html;
+  const names = [...slugs.keys()].sort((a, b) => b.length - a.length).map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const re = new RegExp(`\\b(${names.join("|")})\\s+(\\d+):(\\d+(?:\\s*[-–]\\s*\\d+)?(?:,\\s*\\d+(?:\\s*[-–]\\s*\\d+)?)*)`, "g");
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
+  const root = doc.body.firstElementChild!;
+  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const texts: Text[] = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) if (!(n.parentElement?.closest("a, button, code, pre"))) texts.push(n as Text);
+  for (const node of texts) {
+    const s = node.data; re.lastIndex = 0;
+    if (!re.test(s)) continue;
+    re.lastIndex = 0;
+    const frag = doc.createDocumentFragment(); let last = 0;
+    for (const m of s.matchAll(re)) {
+      const slug = slugs.get(m[1]); if (!slug) continue;
+      frag.append(s.slice(last, m.index));
+      const [toSlug, toChapter] = slug === "baruch" && m[2] === "6" ? ["epistle-of-jeremiah", "1"] : [slug, m[2]];
+      const a = doc.createElement("a");
+      a.className = "reflink"; a.textContent = m[0];
+      a.setAttribute("href", `/read/${toSlug}/${toChapter}?v=${m[3].replace(/\s+/g, "").replace(/–/g, "-")}`);
+      frag.append(a); last = (m.index ?? 0) + m[0].length;
+    }
+    frag.append(s.slice(last));
+    node.replaceWith(frag);
+  }
+  return root.innerHTML;
+}
