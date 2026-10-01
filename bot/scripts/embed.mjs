@@ -32,7 +32,7 @@ const getJson = async (url, headers = {}) => { for (let a = 1; ; a++) { const r 
 const DB = "cyberjudah-telegram", INDEX = "cyberjudah-teachings";
 const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID, TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 if (!ACCOUNT || !TOKEN) { console.error("CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are needed"); process.exit(1); }
-const PAGE = 2000, EMBED_BATCH = 100, UPSERT_BATCH = 1000, CONCURRENCY = 4;
+const PAGE = 2000, EMBED_BATCH = 100, EMBED_CHARS = 120000, UPSERT_BATCH = 1000, CONCURRENCY = 4;
 
 const cf = async (path, init = {}, raw = false) => {
   for (let attempt = 1; ; attempt++) {
@@ -52,7 +52,16 @@ const sql = async (query) => {
   const r = await cf(`/accounts/${ACCOUNT}/d1/database/${dbId}/query`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sql: query }) });
   return r[0]?.results ?? [];
 };
-const embedTexts = async (texts) => (await cf(`/accounts/${ACCOUNT}/ai/run/${EMBED_MODEL}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: texts }) })).data;
+// bge-m3 takes at most 60,000 tokens a request across the whole batch: a batch that is too long
+// (a run of long passages) is split in half until each half fits.
+const embedTexts = async (texts) => {
+  try { return (await cf(`/accounts/${ACCOUNT}/ai/run/${EMBED_MODEL}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text: texts }) })).data; }
+  catch (e) {
+    if (texts.length < 2 || !/Max context reached|3030/.test(e.message)) throw e;
+    const mid = Math.ceil(texts.length / 2);
+    return [...await embedTexts(texts.slice(0, mid)), ...await embedTexts(texts.slice(mid))];
+  }
+};
 const deleteIds = async (ids) => { for (let i = 0; i < ids.length; i += 100) await cf(`/accounts/${ACCOUNT}/vectorize/v2/indexes/${INDEX}/delete_by_ids`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: ids.slice(i, i + 100) }) }); };
 const upsert = async (vectors) => cf(`/accounts/${ACCOUNT}/vectorize/v2/indexes/${INDEX}/upsert`, { method: "POST", headers: { "content-type": "application/x-ndjson" }, body: vectors.map((v) => JSON.stringify(v)).join("\n") });
 const lit = (v) => `'${String(v).replace(/'/g, "''")}'`;
@@ -109,7 +118,7 @@ async function* records() {
 }
 
 let seen = 0, todo = 0, done = 0, marksBlocked = false;
-let pending = [];
+let pending = [], pendingChars = 0;
 const inflight = new Set();
 const flushEmbedded = async (batch) => {
   const vectors = (await embedTexts(batch.map((r) => r.text))).map((values, i) => ({ id: batch[i].id, values, metadata: batch[i].metadata }));
@@ -134,7 +143,9 @@ for await (const r of records()) {
   todo++;
   if (todo > LIMIT) break;
   pending.push({ ...r, hash: h });
-  if (pending.length >= EMBED_BATCH) { await schedule(pending); pending = []; }
+  pendingChars += r.text.length;
+  // A batch also closes on its length: about 3 characters a token keeps it well under the model's 60,000.
+  if (pending.length >= EMBED_BATCH || pendingChars >= EMBED_CHARS) { await schedule(pending); pending = []; pendingChars = 0; }
 }
 if (pending.length) await schedule(pending);
 await Promise.all(inflight);

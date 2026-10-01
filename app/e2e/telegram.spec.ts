@@ -300,7 +300,7 @@ test("relations: a verse linked to a passage shows as a tag under the verse, wit
   await expect(page.locator(".rel-row__title")).toContainText("refers to");
   await page.click('.rel-row .icon-btn[aria-label="Options"]');
   await page.click(".sheet__item >> text=Remove");
-  await expect(page.locator(".rel-empty p")).toHaveText("No relations");
+  await expect(page.locator(".rel-empty p")).toHaveText("No relations yet");
 });
 
 test("tabs are roots, detail screens push, and the back button walks them", async ({ page }) => {
@@ -347,10 +347,11 @@ test("Home is Bible Strong's drawer: it slides the app aside and closes with a s
 
 test("the reading plan ticks today's chapters and keeps a streak", async ({ page }) => {
   await page.goto(`/plan${LAUNCH}`);
-  // The screen's actions are glass buttons above the tab bar, not Telegram's own bottom buttons.
-  await expect(page.locator(".pageaction").last()).toHaveText("Start the plan");
+  // Before a plan is started, its one action sits with the words it answers, not in Telegram's bottom buttons.
+  const start = page.locator(".empty__act", { hasText: "Start the plan" });
+  await expect(start).toBeVisible();
   expect((await state(page)).main).toBeNull();
-  await page.locator(".pageaction").last().click();
+  await start.click();
   await page.click(".sheet__item >> text=4 chapters a day");
   await expect(page.locator(".card__label")).toHaveText("Today");
   await expect(page.locator(".plan-row")).toHaveCount(4);
