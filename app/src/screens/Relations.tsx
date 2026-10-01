@@ -79,10 +79,10 @@ export function Relations() {
     const e = r.endpoints.find((x) => x.type === "verse" || x.type === "note");
     const key = e?.type === "verse" ? e.verseKeys.join(",") : e?.type === "note" ? `note:${e.verseKey}` : "";
     if (key) navigate(`/relations?endpoint=${encodeURIComponent(key)}`);
-  }}><Icon name="precepts" /><span className="nt-item__body"><b>{r.endpoints[0].label}</b><small>{relationText(r, r.endpoints[0])} {r.endpoints[1].label}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="No precepts yet" action={{ label: "Open the Bible", href: "/bible" }}>Precept upon precept, line upon line (Isaiah 28:10): join a verse to another passage, a class, a note or a dictionary entry, so they show together when you read. Select a verse and tap Precept to make one. In Telegram they follow your account to every device; in a browser they stay on this device.</Empty>}</Screen>;
+  }}><Icon name="precepts" /><span className="nt-item__body"><b>{r.endpoints[0].label}</b><small>{relationText(r, r.endpoints[0])} {r.endpoints[1].label}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="No precepts yet" action={{ label: "Open the Bible", href: "/bible" }}>Precept upon precept, line upon line (Isaiah 28:10): join a verse to another passage, a class, a note, a dictionary entry or a link, so they show together when you read. Select a verse and tap Relation to make one. In Telegram they follow your account to every device; in a browser they stay on this device.</Empty>}</Screen>;
   return (
     <Screen title="Precepts" kicker={endpoint.label} action={<button type="button" className="icon-btn" aria-label="Add a precept" onClick={() => setPicking(true)}>+</button>}>
-      {!count && !precepts.length ? <div className="rel-empty"><PreceptsIcon size={64} /><p>No precepts yet</p><small>Tap + to join this passage to another passage, a class, a note or a dictionary entry.</small></div> : null}
+      {!count && !precepts.length ? <div className="rel-empty"><PreceptsIcon size={64} /><p>No precepts yet</p><small>Tap + to join this passage to another passage, a class, a note, a dictionary entry or a link.</small></div> : null}
       {precepts.length ? (
         <div className="rel-section">
           <p className="rel-section__title"><TargetIcon type="entry" /> Taught in class</p>
@@ -159,6 +159,7 @@ export function RelationTargetPicker({ source, onClose, onCreated }: { source: E
     if (lib.length) out.push({ id: "library", title: "Library", items: lib });
     const d = (dict.data?.rows ?? []).map<Target>((r) => ({ id: `dictionary:${r.slug}`, type: "dictionary", title: r.term, subtitle: "Dictionary", endpoint: { type: "dictionary", slug: r.slug, label: r.term } }));
     if (d.length) out.push({ id: "dictionary", title: "Dictionary", items: d });
+    if (/^https?:\/\/\S+$/i.test(debounced)) { let host = debounced; try { host = new URL(debounced).hostname.replace(/^www\./, ""); } catch { /* keep */ } out.push({ id: "links", title: "Links", items: [{ id: `link:${debounced}`, type: "link", title: host, subtitle: "Link", description: debounced, endpoint: { type: "link", url: debounced, label: host } }] }); }
     return out;
   }, [refKeys, refText.data, books.data, debounced, notes, library.data, dict.data]);
 
@@ -176,9 +177,9 @@ export function RelationTargetPicker({ source, onClose, onCreated }: { source: E
       <div ref={box} className="sheet sheet--tall" role="dialog" aria-modal="true" aria-label="Add relation" data-sheet-open="">
         <div className="sheet__grip" aria-hidden="true" />
         <p className="sheet__title">Add relation<small>{source.label}</small></p>
-        <SearchField id="rel-q" value={q} onChange={setQ} placeholder="Scripture, note, class, dictionary..." autoFocus />
+        <SearchField id="rel-q" value={q} onChange={setQ} placeholder="Scripture, note, class, dictionary, link..." autoFocus />
         <div className="rel-results">
-          {!sections.length ? (loading ? <Skeleton rows={3} /> : <div className="rel-empty rel-empty--small"><Icon name="search" size={40} /><p>{debounced ? "No target found" : "Search for a Scripture, a note, a class or a dictionary entry"}</p></div>) : sections.map((s) => {
+          {!sections.length ? (loading ? <Skeleton rows={3} /> : <div className="rel-empty rel-empty--small"><Icon name="search" size={40} /><p>{debounced ? "No target found" : "Search for a Scripture, a note, a class, a dictionary entry or a link"}</p></div>) : sections.map((s) => {
             const shown = more[s.id] ?? PREVIEW;
             return (
               <section key={s.id} className="rel-section">
