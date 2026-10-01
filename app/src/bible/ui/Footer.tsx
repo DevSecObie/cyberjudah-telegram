@@ -1,3 +1,5 @@
+import { AmbientSheet } from "./AmbientSheet";
+import { useAmbient } from "@/lib/ambient";
 import { useState } from "react";
 
 import { haptic } from "@/tg/sdk";
@@ -18,6 +20,8 @@ export type Speech = { supported: boolean; playing: boolean; paused: boolean; cu
 export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, hidden, bottomBar, reference, verseCount, repeat, setRepeat, expanded, setExpanded }: {
   hasPrev: boolean; hasNext: boolean; onPrev: () => void; onNext: () => void; speech: Speech; fullscreen: boolean; hidden: boolean; bottomBar: number; reference: string; verseCount: number; repeat: boolean; setRepeat: (v: boolean) => void; expanded: boolean; setExpanded: (v: boolean) => void;
 }) {
+  const ambient = useAmbient();
+  const [ambientOpen, setAmbientOpen] = useState(false);
   const [voices, setVoices] = useState(false);
   const [adjust, setAdjust] = useState<"Speed" | "Pitch" | null>(null);
   const aiVoices = useAiVoices();
@@ -40,7 +44,7 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
           <div className="bs-audio__controls">
             <button type="button" className="bs-audio__ctl" aria-label="Previous chapter" disabled={!hasPrev} onClick={onPrev}><Ion name="play-skip-back" size={20} color="var(--bs-tertiary)" /></button>
             <button type="button" className="bs-audio__ctl" aria-label="Previous verse" onClick={() => speech.play(Math.max(1, cur - 1))}><Feather name="chevron-left" size={22} color="var(--bs-tertiary)" /></button>
-            <button type="button" className="bs-audio__play" aria-label={speech.playing ? "Stop audio playback" : "Start audio playback"} onClick={() => { haptic(); if (speech.playing) speech.stop(); else speech.play(cur); }}><Feather name={speech.playing ? "x" : "play"} size={24} color={speech.playing ? "var(--bs-quart)" : "var(--bs-primary)"} /></button>
+            <button type="button" className="bs-audio__play" aria-label={speech.playing && speech.paused ? "Resume audio playback" : speech.playing ? "Stop audio playback" : "Start audio playback"} onClick={() => { haptic(); if (speech.playing && speech.paused) speech.toggle(); else if (speech.playing) speech.stop(); else speech.play(cur); }}><Feather name={speech.playing && !speech.paused ? "x" : "play"} size={24} color={speech.playing ? "var(--bs-quart)" : "var(--bs-primary)"} /></button>
             <button type="button" className="bs-audio__ctl" aria-label="Next verse" onClick={() => speech.play(Math.min(verseCount, cur + 1))}><Feather name="chevron-right" size={22} color="var(--bs-tertiary)" /></button>
             <button type="button" className="bs-audio__ctl" aria-label="Next chapter" disabled={!hasNext} onClick={onNext}><Ion name="play-skip-forward" size={20} color="var(--bs-tertiary)" /></button>
           </div>
@@ -49,6 +53,7 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
             <button type="button" className="bs-chip" onClick={() => setVoices(true)}><Feather name="mic" size={12} />Voice</button>
             <button type="button" className="bs-chip" onClick={() => setAdjust("Speed")}><Feather name="clock" size={12} />Speed {speech.rate}x</button>
             <button type="button" className="bs-chip" disabled={!speech.pitchSupported} title={!speech.pitchSupported ? "Pitch is available with device voices" : undefined} onClick={() => setAdjust("Pitch")}><Feather name="sliders" size={12} />Pitch {speech.pitch}x</button>
+            <button type="button" className="bs-chip" onClick={() => setAmbientOpen(true)} aria-label={ambient.error ? "Ambient unavailable" : "Ambient"}><span aria-hidden="true">♫</span>{ambient.error ? "Ambient !" : "Ambient"}</button>
             <button type="button" className="bs-chip" aria-pressed={repeat} onClick={() => setRepeat(!repeat)}><Feather name="repeat" size={12} />Repeat</button>
           </div>
 
@@ -60,6 +65,7 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
           </button>
         </div>
       )}
+          <AmbientSheet open={ambientOpen} onClose={() => setAmbientOpen(false)} />
           <Sheet open={adjust !== null} onClose={() => setAdjust(null)} title={adjust ?? "Audio"}>
             <div className="bs-fontlist">{RATES.map((value) => <button key={value} type="button" role="radio" aria-checked={value === (adjust === "Pitch" ? speech.pitch : speech.rate)} className="bs-fontrow" onClick={() => { if (adjust === "Pitch") speech.setPitch(value); else speech.setRate(value); setAdjust(null); }}><span>{value}x</span>{value === (adjust === "Pitch" ? speech.pitch : speech.rate) ? <Feather name="check" size={18} color="var(--bs-primary)" /> : null}</button>)}</div>
           </Sheet>

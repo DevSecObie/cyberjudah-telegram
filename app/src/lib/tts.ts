@@ -1,3 +1,4 @@
+import { ambient } from "./ambient";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -37,9 +38,12 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
   const narrators = useNarrators(where);
   const human = voiceName?.startsWith("narrator:") ?? false;
   const choice = narrators.data?.narrators.find((n) => `narrator:${n.id}` === voiceName);
+  const continuation = useRef(false), previousChapter = useRef("");
+  const playingRef = useRef(playing); playingRef.current = playing;
   const run = useRef(0), audio = useRef<HTMLAudioElement | null>(null);
   const recording = useRef<Narrator | null>(null), release = useRef<() => void>(() => undefined);
   const activeVoice = useRef<string | null>(null), utterance = useRef<SpeechSynthesisUtterance | null>(null);
+  const pendingNext = useRef<(() => void) | null>(null);
   const options = useRef({ rate, pitch }); options.current = { rate, pitch };
   const currentRef = useRef(current); currentRef.current = current;
   const pausedRef = useRef(paused); pausedRef.current = paused;
@@ -53,14 +57,16 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
     if (audio.current) { audio.current.onended = null; audio.current.ontimeupdate = null; audio.current.onerror = null; audio.current.pause(); audio.current.removeAttribute("src"); }
     audio.current = null; recording.current = null; release.current(); release.current = () => undefined;
   };
-  const stop = () => {
+  const stop = (betweenChapters = false) => {
+    continuation.current = betweenChapters; if (!betweenChapters) ambient.stop();
     run.current++; if (ttsSupported) speechSynthesis.cancel(); utterance.current = null;
+    pendingNext.current = null;
     if (audio.current) audio.current.pause();
     setPlaying(false); setPaused(false); setCurrent(null); setCompleted(false);
   };
   const finish = (generation: number) => {
     if (generation !== run.current) return;
-    setPlaying(false); setPaused(false); setCurrent(null); setCompleted(true);
+    ambient.stop(); setPlaying(false); setPaused(false); setCurrent(null); setCompleted(true);
   };
   const fail = (generation: number, message: string) => {
     if (generation !== run.current) return;
@@ -72,6 +78,8 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
     const queue = [...(from === 1 && !ai ? [{ verse: 0, text: intro }] : []), ...verses.filter((v) => v.verse >= from)];
     const next = () => {
       if (generation !== run.current) return;
+      if (pausedRef.current) { pendingNext.current = next; return; }
+      pendingNext.current = null;
       const item = queue.shift(); if (!item) { finish(generation); return; }
       if (ai && where) {
         void verseAudio(where.slug, where.chapter, item.verse, voice!.slice(3)).then((url) => {
@@ -101,9 +109,11 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
     } else next();
   };
   const play = (from = 1) => {
+    pendingNext.current = null;
+    continuation.current = false; ambient.begin();
     const generation = ++run.current;
     setNotice(""); setCompleted(false); setPlaying(true); setPaused(false); pausedRef.current = false;
-    if (ttsSupported) speechSynthesis.cancel();
+    if (ttsSupported) { speechSynthesis.cancel(); speechSynthesis.resume(); }
     const start = async () => {
       let narrator = choice;
       if (human && !narrators.data && !narrators.isError) {
@@ -147,6 +157,8 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
   const toggle = () => {
     if (!playing) { play(current ?? 1); return; }
     const next = !paused; pausedRef.current = next; setPaused(next);
+    if (next) ambient.stop(); else ambient.begin();
+    if (!next && pendingNext.current) { pendingNext.current(); return; }
     if (audio.current) { if (next) audio.current.pause(); else void audio.current.play().catch(() => fail(run.current, "Tap Play to resume.")); }
     else if (ttsSupported) { if (next) speechSynthesis.pause(); else speechSynthesis.resume(); }
   };
@@ -154,8 +166,20 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
     if (audio.current) audio.current.playbackRate = rate;
     else if (playing && ttsSupported) play(current ?? 1);
   }, [rate, pitch]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { stop(); clearAudio(); }, [verses]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => () => { run.current++; if (ttsSupported) speechSynthesis.cancel(); clearAudio(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const key = `${where?.slug}/${where?.chapter}`;
+    const resume = !pausedRef.current && (continuation.current || (previousChapter.current !== key && playingRef.current));
+    previousChapter.current = key; stop(resume); clearAudio();
+    if (resume && verses.length) play(1);
+  }, [verses.length, where?.slug, where?.chapter]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { ambient.voice(playing && !paused && current !== null); }, [playing, paused, current]);
+  useEffect(() => {
+    const pause = () => { if (audio.current) audio.current.pause(); if (ttsSupported) speechSynthesis.pause(); pausedRef.current = true; setPaused(true); ambient.background(); };
+    const hidden = () => { if (document.hidden) pause(); };
+    document.addEventListener("visibilitychange", hidden); app?.onEvent("deactivated", pause);
+    return () => { document.removeEventListener("visibilitychange", hidden); app?.offEvent("deactivated", pause); };
+  }, []);
+  useEffect(() => () => { ambient.stop(); run.current++; if (ttsSupported) speechSynthesis.cancel(); clearAudio(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return { supported: verses.length > 0 && (ttsSupported || !!where), playing, paused, current, rate, setRate, pitch, setPitch,
     pitchSupported: ttsSupported && !human && !isAiVoice(voiceName), completed, play, stop, toggle,
     voices: available, voice: voiceName, setVoice, currentVoice: activeVoice.current,
