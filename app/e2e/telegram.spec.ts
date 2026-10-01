@@ -1417,6 +1417,11 @@ test("Reader: the classes that taught a verse are a deck after it; it spreads in
   // The Bishops' teaching comes first, each with the moment's time on its picture.
   await expect(items.first().locator("small")).toContainText(/Bishop|Deacon/);
   await expect(items.first().locator(".bs-gallery__badge")).toHaveText(/^\d+:\d{2}(:\d{2})?$/);
+  // Its close sits at the bottom centre, where the Home drawer keeps its own.
+  const x = await gallery.locator(".bs-gallery__close").boundingBox();
+  const vp = page.viewportSize()!;
+  expect(Math.abs(x!.x + x!.width / 2 - vp.width / 2)).toBeLessThan(2);
+  expect(x!.y).toBeGreaterThan(vp.height * 0.8);
   await page.waitForTimeout(700);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/class-gallery.png` });
   // A card plays the class right there, at that moment, without leaving the chapter.
