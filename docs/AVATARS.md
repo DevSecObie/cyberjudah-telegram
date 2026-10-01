@@ -88,7 +88,8 @@ the sons of Adam". This is the assembly's chart of the nations, and portraits fo
 | --- | --- | --- |
 | Kings and queens | A true crown of gold set with precious stones, not a band, on everyone the KJV calls king (including "king Herod" and Caesar) | 2 Samuel 1:10; 12:30; 2 Kings 11:12; Song of Solomon 3:11; Psalm 21:3; Mark 6:14; Acts 12:1; 25:13; John 19:15 |
 | Queens | The royal crown over a head covering; no hair showing | Esther 1:11; 2:17; 1 Corinthians 11:5-6 |
-| Pharaoh | No crown and no Egyptian headdress; draped vestures of fine linen | Genesis 41:42 |
+| Pharaoh | No crown and no Egyptian headdress. Shaven bald head with Egyptian eyeliner (the assembly's direction; the court shaved, Genesis 41:14). Draped vestures of fine linen | Genesis 41:14, 42 |
+| Elisha | Bald: "Go up, thou bald head" (for when his record has a nation) | 2 Kings 2:23 |
 | High priest | Mitre of fine linen with the plate of pure gold on a blue lace, the robe of the ephod all of blue, the breastplate | Exodus 28:15-17, 31, 36-39; Leviticus 8:9; Ecclesiasticus 45:8-12 |
 | Priests (Aaron's sons) | Linen coats, girdles and bonnets | Exodus 28:40; 39:28; Leviticus 8:13; Ezekiel 44:18 |
 | Levites who were not priests | No head covering; white linen when serving | 2 Chronicles 5:12; 1 Chronicles 15:27 |
