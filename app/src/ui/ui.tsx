@@ -104,7 +104,8 @@ export function TabBar() {
   };
   // The bar follows the reading: a small capsule while scrolling down, the full bar otherwise.
   useBarScroll(pathname);
-  const mini = useBarMini() && !drawer;
+  // Ask keeps the full bar: its composer sits on it, as a chat app keeps its input in place.
+  const mini = useBarMini() && !drawer && pathname !== "/ask";
   const bar = useRef<HTMLElement>(null);
   // The current button sits on a pill that slides to whichever is chosen; the button opens to
   // show its name when the bar has the room.

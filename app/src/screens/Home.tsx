@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
-import { data, fmtDate, type FeedRow, type HistoryRow } from "@/api/data";
+import { data, fmtDate, type FeedRow, type HistoryRow, type Opened } from "@/api/data";
 import { toAppPath } from "@shared/links.mjs";
 const toApp = (sitePath: string) => toAppPath(sitePath) ?? sitePath;
 import { pullStyle, usePullToRefresh } from "@/lib/pull";
@@ -22,7 +22,7 @@ import { TodayCard, type DailyVerse as Verse } from "./TodayCard";
 export type LiveNow = { live: boolean; upcoming: boolean; video: string | null; title: string | null; starts: string | null };
 /** Whether a class is on the air, asked again every minute while Home is open. */
 export const useLive = (enabled = true) => useQuery({ queryKey: ["live"], queryFn: () => api<LiveNow>("/api/live"), enabled, refetchInterval: 60_000, staleTime: 45_000, retry: false });
-export type Teaching = { kind: "class" | "captains" | "history"; url: string; title: string; date: string; teacher: string; thumb: string; topics: string[]; books: string[]; sub?: string; collection?: string; video?: string; pending?: boolean };
+export type Teaching = { kind: "class" | "captains" | "history"; url: string; title: string; date: string; teacher: string; thumb: string; topics: string[]; books: string[]; sub?: string; collection?: string; video?: string; pending?: boolean; intro?: string; opens?: Opened[] };
 export type RecentVideo = { video: string; title: string; published: string; views: number | null };
 /** The video behind a teaching's thumbnail: YouTube's own (/vi/<id>/) or the site's local copy (/img/<feed>/<id>.jpg). */
 const videoOfThumb = (thumb: string) => /(?:\/vi\/|\/img\/[a-z]+\/)([A-Za-z0-9_-]{11})(?=[/.])/.exec(thumb ?? "")?.[1] ?? null;
@@ -38,8 +38,8 @@ function useNotedTeachings() {
     queryKey: ["teachings"],
     queryFn: async (): Promise<Teaching[]> => {
       const [classes, captains, history] = await Promise.all([data.classes(), data.captains(), data.history().catch(() => [] as HistoryRow[])]);
-      const row = (kind: Teaching["kind"]) => (r: FeedRow): Teaching => ({ kind, url: r.url, title: r.title, date: r.date, teacher: r.teacher, thumb: r.thumb, topics: r.topics ?? [], books: r.books ?? [], collection: r.collection });
-      const hist = history.map<Teaching>((r) => ({ kind: "history", url: r.url, title: r.title, date: r.date ?? "", teacher: r.teacher, thumb: r.thumb, topics: r.topics, books: [], sub: r.episode ? `Episode ${r.episode}` : undefined }));
+      const row = (kind: Teaching["kind"]) => (r: FeedRow): Teaching => ({ kind, url: r.url, title: r.title, date: r.date, teacher: r.teacher, thumb: r.thumb, topics: r.topics ?? [], books: r.books ?? [], collection: r.collection, video: r.videoId ?? videoOfThumb(r.thumb) ?? undefined, intro: r.intro, opens: r.opens });
+      const hist = history.map<Teaching>((r) => ({ kind: "history", url: r.url, title: r.title, date: r.date ?? "", teacher: r.teacher, thumb: r.thumb, topics: r.topics, books: [], sub: r.episode ? `Episode ${r.episode}` : undefined, video: r.videoId || undefined, intro: r.intro }));
       return [...classes.map(row("class")), ...captains.map(row("captains")), ...hist].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
     },
     staleTime: 10 * 60_000,

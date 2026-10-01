@@ -94,7 +94,9 @@ html[data-fullscreen="yes"] .reader__bar { padding-top: 4px; }
 @keyframes count-pulse { 50% { transform: scale(1.2); } }
 
 /* Search field: TelegramUI's Input. */
-.field { display: block; }
+.field { display: block; min-width: 0; }
+/* The kit's input wrapper insets itself 22px; the field lines up with the page's content instead. */
+.field > div { padding-left: 0; padding-right: 0; }
 .field input::-webkit-search-cancel-button { display: none; }
 .field__clear { width: 26px; height: 26px; border-radius: 50%; border: 0; background: var(--a-line); color: var(--a-ink) !important; font-size: 17px !important; line-height: 1; cursor: pointer; }
 
@@ -1560,24 +1562,184 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 .filters__scroll { flex: 1; min-width: 0; margin-right: -16px; padding-right: 16px; overflow-x: auto; scrollbar-width: none; }
 .filters__scroll::-webkit-scrollbar { display: none; }
 .filters__scroll .chips { flex-wrap: nowrap; width: max-content; }
-.classes__month + .classes__month { margin-top: 6px; }
-.classes__month .feed { margin-top: 2px; }
 
-/* The law: parts and sections, then a section's laws as cards with their scripture. */
-.laws__n { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 7px; background: var(--a-card-2); color: var(--a-ink-2); font-variant-numeric: tabular-nums; letter-spacing: 0; }
-.laws__part { margin-top: 22px; }
-.lawrow2__code { flex: none; display: inline-grid; place-items: center; min-width: 38px; height: 26px; padding: 0 7px; border-radius: 8px; background: color-mix(in srgb, var(--a-accent) 12%, transparent); color: var(--a-accent); font: 700 12px var(--a-ui); font-variant-numeric: tabular-nums; }
-#root .law__part { color: inherit; text-decoration: none; }
-#root .law__part:active { opacity: .6; }
-.law__id { margin-right: 10px; color: var(--a-accent); font-variant-numeric: tabular-nums; }
-.law__count { margin: 10px 0 0; color: var(--a-muted); font: 500 14px var(--a-ui); }
-.law__entries { display: grid; gap: 12px; margin-top: 22px; }
-.lawcard { display: grid; gap: 10px; padding: 16px; border-radius: 18px; background: color-mix(in srgb, var(--a-card) 55%, transparent); border: 1px solid var(--a-line); scroll-margin-top: 16px; }
-.lawcard__code { margin: 0; color: var(--a-muted); font: 700 11px var(--a-ui); letter-spacing: .06em; font-variant-numeric: tabular-nums; }
-.lawcard__text { margin: 0; color: var(--a-ink-2); font: 400 19px/1.45 var(--a-read); text-wrap: pretty; }
-.lawcard__refs { display: flex; gap: 6px; margin: 0 -16px; padding: 2px 16px; overflow-x: auto; scrollbar-width: none; }
-.lawcard__refs::-webkit-scrollbar { display: none; }
-#root button.lawcard__ref { flex: none; min-height: 32px; padding: 0 11px; border: 1px solid var(--a-line); border-radius: 999px; background: none; color: var(--a-ink); font: 600 13px var(--a-ui); white-space: nowrap; cursor: pointer; font-variant-numeric: tabular-nums; }
-#root button.lawcard__ref[aria-selected="true"] { border-color: transparent; background: color-mix(in srgb, var(--a-accent) 16%, transparent); color: var(--a-accent); }
-#root button.lawcard__ref:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
-.lawcard .scard { background: var(--a-card); }
+
+/* An empty or failed state's action: the accent with the page's own ground for its words. The
+   generic button rule (#root button:not(...)) would otherwise give it the muted ink. */
+#root .empty button.empty__act, #root .empty a.empty__act { color: var(--a-bg); }
+
+/* ---------------- Classes: a feed of posts, the way Instagram lays one out ---------------- */
+.classes { max-width: 600px; }
+.cfeed__tools { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
+.cfeed__series .chips { margin: 0 -16px; padding: 0 16px; }
+.cfeed__filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+#root .cfeed__filters .cfeed__pick {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 36px; padding: 0 12px;
+  border: 1px solid var(--a-line); border-radius: var(--r-pill); background: transparent;
+  font: 500 14px/1.2 var(--a-ui); color: var(--a-ink-2); cursor: pointer;
+}
+#root .cfeed__filters .cfeed__pick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#root .cfeed__filters .cfeed__pick svg { flex: none; transform: rotate(90deg); color: var(--a-muted); }
+#root .cfeed__filters .cfeed__pick[data-on] { border-color: var(--a-ink-2); background: var(--a-ink-2); color: var(--a-bg); }
+#root .cfeed__filters .cfeed__pick[data-on] svg { color: var(--a-bg); }
+#root .cfeed__filters .cfeed__pick:disabled { opacity: .45; cursor: default; }
+#root .cfeed__filters .cfeed__reset { min-height: 36px; padding: 0 6px; border: 0; background: none; font: 600 14px var(--a-ui); color: var(--a-accent); cursor: pointer; }
+.cfeed__count { margin: -8px 0 0; font: 500 13px var(--a-ui); color: var(--a-muted); }
+.cfeed { display: grid; gap: 28px; }
+
+.post { display: grid; min-width: 0; }
+.post__head { display: flex; align-items: center; gap: 10px; padding: 0 0 10px; min-width: 0; }
+.post__mark {
+  flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+  background: hsl(var(--mark-h, 200) 45% 42%); color: #fff; font: 600 15px var(--a-ui);
+  box-shadow: 0 0 0 2px var(--a-bg), 0 0 0 3.5px color-mix(in srgb, hsl(var(--mark-h, 200) 60% 55%) 70%, transparent);
+}
+.post__who { display: flex; flex-direction: column; min-width: 0; }
+.post__who b { font: 600 14.5px/1.25 var(--a-ui); color: var(--a-ink-2); overflow-wrap: anywhere; }
+.post__who span { font: 400 12.5px/1.35 var(--a-ui); color: var(--a-muted); overflow-wrap: anywhere; }
+/* The recording full width on a phone, rounded inside the column from a tablet up; always 16:9. */
+.post__media { position: relative; aspect-ratio: 16 / 9; margin: 0 -16px; background: var(--a-card-2); overflow: hidden; }
+@media (min-width: 600px) { .post__media { margin: 0; border-radius: var(--r-lg); } }
+.post__media iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+#root .post .post__poster { position: absolute; inset: 0; display: block; padding: 0; border: 0; background: none; cursor: pointer; }
+.post__poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.post__noimg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--a-muted); background: linear-gradient(135deg, var(--a-card-2), var(--a-card)); }
+.post__playicon {
+  position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; display: grid; place-items: center;
+  border-radius: 50%; background: rgba(0, 0, 0, .55); color: #fff; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: transform .18s var(--ease), background-color .18s;
+}
+.post__poster:hover .post__playicon, .post__poster:focus-visible .post__playicon { transform: scale(1.06); background: rgba(0, 0, 0, .7); }
+.post__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 8px 0 2px; }
+#root .post .post__act {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px 0 10px; border: 0; border-radius: var(--r-pill);
+  background: var(--a-card-2); font: 600 14px/1 var(--a-ui); color: var(--a-ink-2); cursor: pointer; text-decoration: none;
+}
+#root .post .post__act small { font: 500 12px var(--a-ui); color: var(--a-muted); }
+#root .post .post__act[aria-pressed="true"], #root .post .post__act[aria-expanded="true"] { background: var(--a-ink-2); color: var(--a-bg); }
+#root .post .post__act[aria-pressed="true"] small, #root .post .post__act[aria-expanded="true"] small { color: inherit; opacity: .7; }
+.post__gap { flex: 1 1 0; }
+#root .post .post__icon { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--a-ink-2); cursor: pointer; }
+#root .post .post__icon[aria-pressed="true"] { color: var(--a-accent); }
+.post__scripture { display: grid; gap: 8px; margin-top: 8px; padding: 12px; border-radius: var(--r-md); background: var(--a-card); border: 1px solid var(--a-line); }
+.post__scripture small { font: 600 11px var(--a-ui); letter-spacing: .05em; text-transform: uppercase; color: var(--a-muted); }
+.post__scripture div { display: flex; flex-wrap: wrap; gap: 6px; }
+#root .post .post__ref { display: inline-flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--a-accent) 12%, transparent); color: var(--a-accent); font: 600 13.5px var(--a-ui); }
+.post__body { display: grid; gap: 4px; padding-top: 8px; min-width: 0; }
+.post__title { margin: 0; font: 600 17px/1.3 var(--a-ui); color: var(--a-ink-2); overflow-wrap: anywhere; text-wrap: pretty; }
+.post__intro { margin: 2px 0 0; font: 400 15px/1.5 var(--a-ui); color: var(--a-ink); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.post__intro[data-open] { display: block; -webkit-line-clamp: unset; overflow: visible; }
+#root .post .post__more { justify-self: start; min-height: 32px; padding: 0; border: 0; background: none; font: 600 14px var(--a-ui); color: var(--a-muted); cursor: pointer; }
+#root .post a.post__more { display: inline-flex; align-items: center; color: var(--a-accent); }
+.post__soon { margin: 2px 0 0; font: 400 14px/1.45 var(--a-ui); color: var(--a-muted); }
+.cfeed__more { display: grid; justify-items: center; padding: 8px 0 4px; }
+#root .cfeed__more .cfeed__morebtn { min-height: 44px; padding: 0 20px; border: 1px solid var(--a-line); border-radius: var(--r-pill); background: none; font: 600 14px var(--a-ui); color: var(--a-ink-2); cursor: pointer; }
+.cfeed__end { margin: 0; font: 500 13px var(--a-ui); color: var(--a-muted); }
+@media (prefers-reduced-motion: reduce) { .post__playicon { transition: none; } }
+.post__tools { margin-left: auto; display: flex; flex: none; }
+.post__head .post__who { flex: 1 1 auto; }
+
+
+/* ---------------- The Law: a handbook to browse, a section to read law by law ---------------- */
+.laws, .lawsec { max-width: 680px; }
+.laws__tools { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
+.laws__head { margin: 0; font: 600 13px var(--a-ui); letter-spacing: .02em; color: var(--a-muted); }
+.laws__head span { font-weight: 500; }
+.laws__note { margin: 0; font: 400 14px/1.45 var(--a-ui); color: var(--a-muted); }
+.laws__wait { display: grid; gap: 8px; padding: 6px 0; }
+.laws__hits, .laws__part { display: grid; gap: 10px; min-width: 0; }
+.laws__parthead { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 0; font: 600 17px/1.3 var(--a-ui); color: var(--a-ink-2); overflow-wrap: anywhere; }
+.laws__n { flex: none; min-width: 1.6em; font: 600 13px var(--a-ui); color: var(--a-muted); font-variant-numeric: tabular-nums; }
+/* One grouped list per part, the way Settings groups its rows: hairlines between, rounded as a whole. */
+.laws__list { list-style: none; margin: 0; padding: 0; border-radius: var(--r-lg); background: var(--a-card); border: 1px solid var(--a-line); overflow: hidden; }
+.laws__list > li + li { border-top: 1px solid var(--a-line); }
+#root .lawlink { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 10px 14px; color: var(--a-ink-2); text-decoration: none; }
+#root .lawlink:hover { background: color-mix(in srgb, var(--a-ink) 4%, transparent); }
+#root .lawlink:active { background: color-mix(in srgb, var(--a-ink) 8%, transparent); }
+#root .lawlink > svg { flex: none; color: var(--a-muted); }
+.lawlink__code { flex: none; min-width: 42px; padding: 3px 7px; border-radius: 7px; text-align: center; background: color-mix(in srgb, var(--a-accent) 11%, transparent); color: var(--a-accent); font: 700 12px/1.3 var(--a-ui); font-variant-numeric: tabular-nums; }
+.lawlink__body { flex: 1 1 auto; display: grid; gap: 2px; min-width: 0; }
+.lawlink__body b { font: 600 15.5px/1.3 var(--a-ui); overflow-wrap: anywhere; }
+.lawlink__body small { font: 400 13px/1.3 var(--a-ui); color: var(--a-muted); overflow-wrap: anywhere; }
+.lawlink__law { font: 400 15px/1.45 var(--a-ui); color: var(--a-ink-2); overflow-wrap: anywhere; }
+
+.lawsec__head { display: grid; gap: 8px; }
+.lawsec__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+#root .lawsec__part { font: 600 13px/1.3 var(--a-ui); color: var(--a-accent); text-decoration: none; overflow-wrap: anywhere; }
+#root .lawsec__top .lawsec__share { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid var(--a-line); border-radius: var(--r-pill); background: none; font: 600 13px var(--a-ui); color: var(--a-ink-2); cursor: pointer; }
+.lawsec__title { margin: 0; font: 700 26px/1.2 var(--a-ui); color: var(--a-ink-2); overflow-wrap: anywhere; text-wrap: balance; }
+.lawsec__id { color: var(--a-accent); font-variant-numeric: tabular-nums; }
+.lawsec__count { margin: 0; font: 500 14px var(--a-ui); color: var(--a-muted); }
+.lawsec__laws { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+
+.lawcard { display: grid; gap: 12px; min-width: 0; padding: 18px; border-radius: var(--r-xl); background: var(--a-card); border: 1px solid var(--a-line); scroll-margin-top: calc(16px + var(--safe-top, 0px)); transition: box-shadow .6s var(--ease); }
+.lawcard[data-flash] { box-shadow: 0 0 0 2px var(--a-accent); }
+.lawcard__code { margin: 0; font: 700 11.5px var(--a-ui); letter-spacing: .06em; color: var(--a-muted); font-variant-numeric: tabular-nums; }
+/* The law's own words: the card's title. */
+.lawcard__text { margin: -6px 0 0; font: 600 18px/1.4 var(--a-ui); color: var(--a-ink-2); overflow-wrap: anywhere; text-wrap: pretty; }
+.lawcard__refs { display: flex; flex-wrap: wrap; gap: 6px; }
+#root .lawcard__refs .lawcard__ref { min-height: 34px; max-width: 100%; padding: 0 12px; border: 1px solid var(--a-line); border-radius: var(--r-pill); background: none; color: var(--a-ink); font: 600 13px/1.2 var(--a-ui); cursor: pointer; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; text-align: left; }
+#root .lawcard__refs .lawcard__ref[aria-selected="true"] { border-color: transparent; background: var(--a-ink-2); color: var(--a-bg); }
+#root .lawcard__refs .lawcard__ref--more { border-style: dashed; color: var(--a-muted); }
+/* The scripture, set apart from the law's words: the reading face, a rule on its left. */
+.lawcard__quote { margin: 0; display: grid; gap: 8px; padding: 2px 0 0 14px; border-left: 3px solid color-mix(in srgb, var(--a-accent) 55%, transparent); min-width: 0; }
+.lawcard__cite { display: flex; align-items: baseline; gap: 8px; font: 600 13px var(--a-ui); color: var(--a-ink-2); overflow-wrap: anywhere; }
+.lawcard__cite span { font: 700 10px var(--a-ui); letter-spacing: .08em; color: var(--a-muted); }
+.lawcard__quote blockquote { margin: 0; font: 400 17px/1.6 var(--a-read); color: var(--a-ink); overflow-wrap: anywhere; }
+.lawcard__quote sup { margin-right: 3px; font: 600 10px var(--a-ui); color: var(--a-muted); vertical-align: super; }
+.lawcard__foot { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
+#root .lawcard__foot .lawcard__all { min-height: 36px; padding: 0; border: 0; background: none; font: 600 14px var(--a-ui); color: var(--a-muted); cursor: pointer; }
+#root .lawcard__foot .lawcard__go { display: inline-flex; align-items: center; gap: 2px; min-height: 40px; margin-left: auto; padding: 0 14px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--a-accent) 12%, transparent); color: var(--a-accent); font: 600 14px var(--a-ui); text-decoration: none; }
+.lawcard__noref { margin: 0; font: 400 14px/1.45 var(--a-ui); color: var(--a-muted); }
+@media (prefers-reduced-motion: reduce) { .lawcard { transition: none; } }
+
+/* ---------------- Ask CyberJudah: a conversation set like ChatGPT's or Claude's ---------------- */
+/* The bar reads as a solid edge, the conversation passing under it out of sight. */
+.chat2__bar { background: color-mix(in srgb, var(--a-bg) 97%, transparent); }
+.chat2__turns { min-width: 0; gap: 28px; padding: 20px 18px 8px; }
+.msg { min-width: 0; }
+/* Your question: a quiet surface on the right, never a loud accent. */
+.msg__bubble, html[data-theme="light"] .msg__bubble, html[data-theme="sepia"] .msg__bubble { max-width: min(84%, 560px); padding: 11px 16px; border-radius: 20px 20px 6px 20px; background: var(--a-card-2); color: var(--a-ink-2); font: 400 16px/1.5 var(--a-ui); }
+/* The answer: prose on the page itself, no card around it. */
+.msg__text { font: 400 16.5px/1.65 var(--a-ui); color: var(--a-ink-2); min-width: 0; }
+.msg__text p { margin: 0 0 14px; }
+.msg__text h1 { margin: 22px 0 10px; font: 700 21px/1.3 var(--a-ui); letter-spacing: -0.01em; }
+.msg__text h2 { margin: 22px 0 10px; font: 700 19px/1.3 var(--a-ui); letter-spacing: -0.01em; }
+.msg__text h3, .msg__text h4 { margin: 20px 0 8px; font: 650 17px/1.35 var(--a-ui); }
+.msg__text > :first-child { margin-top: 0; }
+.msg__text ul, .msg__text ol { margin: 0 0 14px; padding-left: 1.4em; }
+.msg__text li { margin: 6px 0; padding-left: 2px; }
+.msg__text li::marker { color: var(--a-muted); }
+.msg__text li > p { margin: 0 0 6px; }
+.msg__text hr { margin: 20px 0; border: 0; border-top: 1px solid var(--a-line); }
+/* Links the model wrote (not the reader's own scripture links): visible as links, and able to break. */
+#root .msg__text a:not(.reflink) { color: var(--a-accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+#root .msg__text .reflink { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--a-accent) 40%, transparent); text-underline-offset: 2px; }
+/* Scripture quoted: the reading face, a rule on its left; its reference beneath. */
+.msg__text blockquote { margin: 4px 0 16px; padding: 12px 16px; border-left: 3px solid color-mix(in srgb, var(--a-accent) 70%, transparent); border-radius: 0 var(--r-md) var(--r-md) 0; background: var(--a-card); font: 400 17px/1.6 var(--a-read); color: var(--a-ink); }
+/* Code and tables keep their width inside their own scrolling box, never the page's. */
+.msg__text :not(pre) > code { padding: 1px 6px; border-radius: 6px; background: var(--a-card-2); font: 500 .86em var(--a-mono); overflow-wrap: anywhere; }
+.msg__text pre { max-width: 100%; margin: 0 0 14px; padding: 12px 14px; overflow-x: auto; border-radius: var(--r-md); background: var(--a-card); border: 1px solid var(--a-line); font: 400 13.5px/1.55 var(--a-mono); }
+.msg__text pre code { font: inherit; white-space: pre; }
+.msg__text table { display: block; max-width: 100%; overflow-x: auto; margin: 0 0 14px; border-collapse: collapse; font: 400 15px/1.45 var(--a-ui); }
+.msg__text th, .msg__text td { padding: 8px 14px 8px 0; border-bottom: 1px solid var(--a-line); text-align: left; vertical-align: top; min-width: 7em; }
+.msg__text th { font-weight: 600; color: var(--a-ink-2); border-bottom-color: color-mix(in srgb, var(--a-ink) 30%, transparent); }
+.msg__thinking { min-height: 28px; }
+.msg__error { padding: 12px 14px; border-radius: var(--r-md); background: color-mix(in srgb, var(--a-hot) 8%, transparent); border: 1px solid color-mix(in srgb, var(--a-hot) 25%, transparent); }
+.msg__error p { color: var(--a-ink-2); }
+/* The composer: always findable, its words and its button easy to see. */
+.composer2__box { padding: 6px 6px 6px 10px; border-radius: 28px; border: 1px solid var(--a-line); box-shadow: 0 8px 28px rgba(0, 0, 0, .22); }
+.composer2__box:focus-within { border-color: color-mix(in srgb, var(--a-accent) 60%, transparent); box-shadow: 0 8px 28px rgba(0, 0, 0, .22), 0 0 0 3px color-mix(in srgb, var(--a-accent) 18%, transparent); }
+html[data-theme="light"] .composer2__box, html[data-theme="sepia"] .composer2__box { box-shadow: 0 6px 20px rgba(40, 30, 10, .10); }
+.composer2 textarea { color: var(--a-ink-2); font: 400 17px/1.4 var(--a-ui); overflow-wrap: anywhere; }
+.composer2 textarea::placeholder { color: var(--a-muted); opacity: 1; }
+.composer2__go { width: 40px; height: 40px; }
+.composer2__go:disabled { background: color-mix(in srgb, var(--a-muted) 30%, transparent); color: color-mix(in srgb, var(--a-ink-2) 55%, transparent) !important; cursor: not-allowed; }
+#root .composer2__go:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; border-radius: 50%; }
+/* The conversation ends above the composer, however tall the question grows. */
+.chat2 { padding-bottom: calc(var(--composer-h, 110px) + 20px); }
+#root [data-tabs] .chat2 { padding-bottom: calc(var(--composer-h, 110px) + var(--a-tabs) + 20px); }
+html[data-typing] #root [data-tabs] .chat2 { padding-bottom: calc(var(--composer-h, 110px) + 20px); }
+.chat2__end { scroll-margin-bottom: calc(var(--composer-h, 110px) + 20px); }
+#root [data-tabs] .chat2__end { scroll-margin-bottom: calc(var(--composer-h, 110px) + var(--a-tabs) + 20px); }
+@media (min-width: 760px) { .chat2__turns { padding-left: 24px; padding-right: 24px; } }

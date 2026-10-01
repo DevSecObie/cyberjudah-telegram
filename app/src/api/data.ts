@@ -80,8 +80,10 @@ export type BookFigure = { kind: "foldout" | "plate" | "figure"; title: string; 
 export type LibraryBook = LibraryRow & { publisher: string; license: string; source: string; items: { id: string; label: string }[]; scan: string; chapters: BookChapterRow[]; figures: BookFigure[]; reads: ClassReading[] };
 export type BookPage = { vol: number; page: number; img: number; words: number; text: string; reads: Omit<ClassReading, "page" | "vol">[]; figure: string | null; foldout: BookFigure | null };
 export type LibraryChapter = BookChapterRow & { item: string | null; pages: BookPage[] };
-export type FeedRow = { title: string; url: string; date: string; year: string; teacher: string; collection?: string; thumb: string; books: string[]; topics?: string[] };
-export type HistoryRow = { slug: string; title: string; url: string; episode: number | null; date: string | null; year: string; duration: number | null; videoId: string; thumb: string; teacher: string; topics: string[]; summary: string; noted?: boolean };
+/** A chapter a class opened, in the class's order. */
+export type Opened = { label: string; slug: string; chapter: number };
+export type FeedRow = { title: string; url: string; date: string; year: string; teacher: string; collection?: string; thumb: string; books: string[]; topics?: string[]; videoId?: string | null; /** The note's opening, plain text, cut near 600 characters. */ intro?: string; opens?: Opened[] };
+export type HistoryRow = { slug: string; title: string; url: string; episode: number | null; date: string | null; year: string; duration: number | null; videoId: string; thumb: string; teacher: string; topics: string[]; summary: string; noted?: boolean; intro?: string };
 export type HistoryEpisode = HistoryRow & { start: number; body: string | null; turns: { t: number; text: string }[] };
 export type WhatsNew = { kind: "pass" | "book" | "class" | "captains"; title: string; url: string; date: string; teacher: string; sub: string };
 export type Stats = { chapters: number; books: number; verses: number; studies: number; classes: number; captains: number; laws: number; precepts: number; cases: number; recent: { kind: string; title: string; url: string; date: string; teacher: string; thumb: string; books: string[] }[]; whatsNew?: WhatsNew[] };
@@ -125,6 +127,8 @@ export const data = {
   stats: () => get<Stats>("/api/stats.json").then((s) => ({ ...s, recent: abs(s.recent) })),
   laws: () => get<LawPart[]>("/api/laws/index.json"),
   law: (id: string) => get<LawSection>(`/api/laws/${id.toUpperCase()}.json`),
+  /** Every law's words, for searching the handbook law by law. */
+  lawTexts: () => get<{ id: string; text: string; url: string }[]>("/search/laws.json"),
   precepts: () => get<PreceptRow[]>("/api/precepts/index.json"),
   precept: (slug: string) => get<Precept>(`/api/precepts/${slug}.json`),
   cases: () => get<CaseIndex>("/api/cases/index.json"),
