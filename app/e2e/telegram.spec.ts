@@ -998,22 +998,29 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     await page.goto(`/law${LAUNCH}`);
     await expect(page.getByRole("region", { name: "The Ten Commandments" })).toBeVisible();
     await page.fill("#law-q", "obedience");
-    await page.locator(".caserow", { hasText: "Obedience and Submission" }).click();
+    await page.locator(".laws__part .lawlink", { hasText: "Obedience and Submission" }).click();
     await expect(page).toHaveURL(/\/law\/02-relationship-to-god\/2h$/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("2HObedience and Submission");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("2H Obedience and Submission");
+    // A law: its words as the title, then its scripture set apart, the first chosen.
     const first = page.getByRole("article", { name: "Law 2H.1", exact: true });
-    await expect(first.locator(".lawcard__text")).toHaveText("You shall obey the voice of the LORD your God.");
-    await expect(first.locator(".scard__ref")).toHaveText("Exodus 15:26");
+    await expect(first.getByRole("heading", { level: 2 })).toHaveText("You shall obey the voice of the LORD your God.");
+    await expect(first.locator(".lawcard__cite")).toHaveText(/^Exodus 15:26/);
+    await expect(first.locator("blockquote")).toContainText("If thou wilt diligently hearken to the voice of the Lord thy God");
+    // Eight scriptures: three shown, the rest a tap away.
+    await expect(first.getByRole("tab")).toHaveCount(3);
+    await first.getByRole("button", { name: "+5 more" }).click();
+    await expect(first.getByRole("tab")).toHaveCount(8);
     // Another of its scriptures, then that verse in the reader, and back to the same place.
     await first.getByRole("tab", { name: "Deuteronomy 13:4" }).click();
-    await expect(first.locator(".scard__ref")).toHaveText("Deuteronomy 13:4");
-    await expect(first.locator(".scard__text")).toContainText("Ye shall walk after the Lord your God");
+    await expect(first.getByRole("tab", { name: "Deuteronomy 13:4" })).toHaveAttribute("aria-selected", "true");
+    await expect(first.locator(".lawcard__cite")).toHaveText(/^Deuteronomy 13:4/);
+    await expect(first.locator("blockquote")).toContainText("Ye shall walk after the Lord your God");
     const y = await page.evaluate(() => Math.round(scrollY));
-    await first.getByRole("link", { name: /^Go to verse/ }).click();
+    await first.getByRole("link", { name: "Go to verse: Deuteronomy 13:4" }).click();
     await expect(page).toHaveURL(/\/read\/deuteronomy\/13\?v=4$/);
     await expect(page.locator("#verset-4")).toBeVisible();
     await press(page, "back");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("2HObedience and Submission");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("2H Obedience and Submission");
     await expect.poll(() => page.evaluate(() => Math.round(scrollY))).toBeGreaterThan(y - 40);
     // The cases judged under it, all of them, one opened.
     const cases = page.getByRole("region", { name: "Cases under this law" });
@@ -1024,6 +1031,8 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     await expect(page.getByRole("heading", { level: 1, name: "Enoch" })).toBeVisible();
     await press(page, "back");
     await expect(cases.locator(".ccard")).toHaveCount(39);
+    // Related laws, verified by the handbook's own "see also".
+    await expect(page.getByRole("region", { name: "Related laws" }).locator(".lawlink", { hasText: "Judgment and Punishment" })).toBeVisible();
     // Its part, and back to the handbook with the search as it was.
     await page.getByRole("link", { name: "Part 2 · Relationship to God" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Relationship to God" })).toBeVisible();
@@ -1033,29 +1042,117 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
   });
 }
 
-test("Classes: the series with their counts, months as headings, and the search kept on the way back", async ({ page }) => {
+test("The Law: a law found by its words opens in its section, brought into view; a part narrows the handbook and Reset clears it", async ({ page }) => {
+  await page.goto(`/law${LAUNCH}`);
+  await page.fill("#law-q", "usury");
+  const hits = page.getByRole("region", { name: "Laws that say this" });
+  await expect(hits.locator(".lawlink").first()).toBeVisible();
+  const hit = hits.locator(".lawlink").first();
+  const id = (await hit.locator(".lawlink__code").innerText()).trim();
+  await expect(hit).toContainText(/usury/i);
+  await hit.click();
+  await expect(page).toHaveURL(new RegExp(`#${id.replace(".", "\\.")}$`));
+  const card = page.getByRole("article", { name: `Law ${id}`, exact: true });
+  await expect(card).toHaveAttribute("data-flash", "");
+  await expect(card).toBeInViewport();
+  await press(page, "back");
+  await expect(page.locator("#law-q")).toHaveValue("usury");
+  await page.getByRole("button", { name: "Reset" }).click();
+  await expect(page.locator("#law-q")).toHaveValue("");
+  // One part only.
+  await page.getByRole("button", { name: "Part: every part" }).click();
+  await page.locator(".sheet__item", { hasText: "9. Feasts and observances" }).click();
+  await expect(page.locator(".laws__part")).toHaveCount(1);
+  await expect(page.getByRole("region", { name: "Feasts and observances" })).toBeVisible();
+  await page.getByRole("button", { name: "Reset" }).click();
+  await expect(page.getByRole("region", { name: "The Ten Commandments" })).toBeVisible();
+});
+
+test("Classes: a feed of posts with the series, filters and search, kept on the way back from a class", async ({ page }) => {
   await page.goto(`/classes${LAUNCH}`);
   const series = page.getByRole("group", { name: "Series" });
   await expect(series.getByRole("button", { name: /^All\s?[\d,]+$/ })).toHaveAttribute("aria-pressed", "true");
   await series.getByRole("button", { name: /^Captains\s?[\d,]+$/ }).click();
   await expect(page).toHaveURL(/feed=captains/);
-  await expect(page.locator(".classes__month").first().locator(".cases__eraname")).toHaveText(/^[A-Z][a-z]+ \d{4}\d+$/);
+  const post = page.locator("article.post").first();
+  await expect(post.locator(".post__who b")).toHaveText(/^Captain /);
+  await expect(post.locator(".post__who time")).toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}$/);
   await page.fill("#class-q", "passover");
   // A series changed with a search typed keeps the search.
   await series.getByRole("button", { name: /^All\s?[\d,]+$/ }).click();
   await expect(page).not.toHaveURL(/feed=/);
   await expect(page.locator("#class-q")).toHaveValue("passover");
-  const card = page.locator(".feed__card").first();
-  await expect(card).toBeVisible();
-  const title = await card.locator("b").innerText();
-  await card.click();
+  const title = (await post.locator(".post__title").innerText()).trim();
+  await post.locator(".post__title a").click();
   await expect(page).toHaveURL(/\/note\//);
   await expect(page.getByText("Class notes", { exact: true }).first()).toBeVisible();
   await press(page, "back");
   await expect(page).toHaveURL(/\/classes(\?|$)/);
   await expect(page.locator("#class-q")).toHaveValue("passover");
-  await expect(page.locator(".feed__card").first().locator("b")).toHaveText(title);
+  await expect(page.locator("article.post").first().locator(".post__title")).toHaveText(title);
+  await page.getByRole("button", { name: "Reset" }).click();
+  await expect(page.locator("#class-q")).toHaveValue("");
 });
+
+test("Classes: one recording plays at a time, a preview reads on, the scripture opens, and a class is saved", async ({ page }) => {
+  await page.goto(`/classes${LAUNCH}`);
+  const posts = page.locator("article.post");
+  await expect(posts).toHaveCount(12);
+  const [a, b] = [posts.nth(0), posts.nth(1)];
+  // Nothing plays until asked; then only the one asked for.
+  await expect(page.locator("article.post iframe")).toHaveCount(0);
+  await a.getByRole("button", { name: "Watch" }).click();
+  await expect(a.locator("iframe")).toHaveCount(1);
+  await b.getByRole("button", { name: "Watch" }).click();
+  await expect(b.locator("iframe")).toHaveCount(1);
+  await expect(a.locator("iframe")).toHaveCount(0);
+  await b.getByRole("button", { name: "Stop" }).click();
+  await expect(page.locator("article.post iframe")).toHaveCount(0);
+  // The preview is cut at three lines with Read more; read on, the full notes are a tap away.
+  const intro = a.locator(".post__intro");
+  const short = await intro.evaluate((e) => e.clientHeight);
+  await a.getByRole("button", { name: "Read more" }).click();
+  await expect(intro).toHaveAttribute("data-open", "");
+  expect(await intro.evaluate((e) => e.clientHeight)).toBeGreaterThan(short);
+  await expect(a.getByRole("link", { name: "Read the full notes" })).toHaveAttribute("href", /^\/note\//);
+  // The chapters the class opened, in order, each to the reader.
+  await a.getByRole("button", { name: /^Scripture/ }).click();
+  const ref = a.locator(".post__ref").first();
+  await expect(ref).toHaveAttribute("href", /^\/read\/[a-z0-9-]+\/\d+$/);
+  // Saved to the bookmarks, and unsaved.
+  await a.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(a.getByRole("button", { name: "Remove from saved" })).toHaveAttribute("aria-pressed", "true");
+  await a.getByRole("button", { name: "Remove from saved" }).click();
+  // More posts come as the feed nears its end, none twice.
+  await page.locator(".cfeed__more").scrollIntoViewIfNeeded();
+  await expect.poll(() => posts.count()).toBeGreaterThan(12);
+  const urls = await page.locator("article.post .post__title a").evaluateAll((els) => els.map((e) => e.getAttribute("href")));
+  expect(new Set(urls).size).toBe(urls.length);
+});
+
+for (const width of [320, 390, 820, 1280]) {
+  test(`Classes, the Law and Ask fit their screens: no sideways scroll (${width}px)`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 860 });
+    for (const path of ["/classes", "/law", "/law/02-relationship-to-god/2h"]) {
+      await page.goto(`${path}${LAUNCH}`);
+      await expect(page.locator("article.post, .laws__part, .lawcard").first()).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), path).toBeLessThanOrEqual(0);
+    }
+    await page.route("**/api/ask/account", (r) => r.fulfill({ json: { metered: false, unlimited: false, balance: {}, perQuestion: 1, freeDaily: 0, plan: {}, packs: [] } }));
+    const wide = "A long answer.\n\n| Scripture | Read for |\n| --- | --- |\n| Genesis 12:1 | The call |\n\n```\n" + "x".repeat(300) + "\n```\n\nhttps://cyberjudah.io/" + "y".repeat(200) + " and Abrahamicpromisecovenantseedblessinglandnationsfamiliesearth.";
+    await page.route("**/api/ask", (r) => r.fulfill({ contentType: "application/x-ndjson", body: ndjson({ delta: wide }, { done: true, answer: wide, sources: [SOURCE] }) }));
+    await page.goto(`/ask${LAUNCH}`);
+    await page.fill('textarea[aria-label="Your question"]', "Why? ".repeat(80));
+    await page.keyboard.press("Enter");
+    await expect(page.locator(".msg--ai .msg__text pre")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), "/ask").toBeLessThanOrEqual(0);
+    // The last of the conversation clears the composer.
+    await page.evaluate(() => scrollTo(0, document.body.scrollHeight));
+    const actions = await page.locator(".msg__actions").last().boundingBox();
+    const composer = await page.locator(".composer2").boundingBox();
+    expect(actions!.y + actions!.height).toBeLessThanOrEqual(composer!.y + 1);
+  });
+}
 
 test("Ask: scripture in an answer opens the verse, and a source card shows its words", async ({ page }) => {
   await page.route("**/api/ask/account", (r) => r.fulfill({ json: { metered: false, unlimited: false, balance: {}, perQuestion: 1, freeDaily: 0, plan: {}, packs: [] } }));
