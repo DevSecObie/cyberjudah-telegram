@@ -22,6 +22,8 @@
 .btn--row .btn { flex: 1; }
 #root .empty__act { margin-top: var(--sp-3); }
 #root .trouble__act { min-height: 40px; padding: 0 14px; font-size: var(--fs-footnote); }
+/* The primary recovery action keeps the accent's own ink, whatever a screen sets for buttons in general (4.5:1 or better). */
+#root .trouble .trouble__act--primary { background: var(--accent); color: var(--on-accent); }
 
 /* An icon button: a round 44px target on a quiet fill. */
 .icon-btn {

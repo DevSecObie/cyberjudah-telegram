@@ -8,6 +8,7 @@ import { api, haptic } from "@/tg/sdk";
 import { findBook, parseReference } from "../../../../bot/src/refs.mjs";
 import { Feather } from "../icons";
 import { Sheet } from "./Sheet";
+import { diagnose } from "@/ui/trouble";
 
 /**
  * Search the Scriptures: a reference goes straight there ("john 3:16", "ps 23", "ruth"), and
@@ -17,13 +18,13 @@ import { Sheet } from "./Sheet";
 type Hit = { title: string; url: string; snippet: string };
 const useDebounced = (v: string, ms: number) => { const [d, setD] = useState(v); useEffect(() => { const t = setTimeout(() => setD(v), ms); return () => clearTimeout(t); }, [v, ms]); return d; };
 
-export function SearchSheet({ open, onClose, books, onGo }: { open: boolean; onClose: () => void; books: Book[]; onGo: (slug: string, chapter: number, verse?: number) => void }) {
+export function SearchSheet({ open, initial = "", onClose, books, onGo }: { open: boolean; initial?: string; onClose: () => void; books: Book[]; onGo: (slug: string, chapter: number, verse?: number) => void }) {
   const [q, setQ] = useState("");
   // Bible Strong's search filters: the canon (Old Testament, New Testament, Apocrypha) and one book.
   const [canon, setCanon] = useState<"" | Book["testament"]>("");
   const [bookFilter, setBookFilter] = useState("");
   const input = useRef<HTMLInputElement>(null);
-  useEffect(() => { if (open) { const t = setTimeout(() => input.current?.focus({ preventScroll: true }), 250); return () => clearTimeout(t); } setQ(""); setCanon(""); setBookFilter(""); }, [open]);
+  useEffect(() => { if (open) { setQ(initial); const t = setTimeout(() => input.current?.focus({ preventScroll: true }), 250); return () => clearTimeout(t); } setQ(""); setCanon(""); setBookFilter(""); }, [open, initial]);
   const text = q.trim();
   const ref = text ? parseReference(text, books) : null;
   const bookOnly = text && !ref && !/\d/.test(text) && text.length >= 2 ? findBook(text, books) : null;
@@ -70,7 +71,7 @@ export function SearchSheet({ open, onClose, books, onGo }: { open: boolean; onC
         {who.map((p) => <Row key={p.id} icon="users" leading={<EntityAvatar name={p.name} kind={avatarKind(p.type)} size={30} ink={avatarKind(p.type) === "female" ? "var(--bs-quart)" : "var(--bs-primary)"} base="var(--bs-reverse)" />} title={p.name} sub={`${p.description} · named in ${p.verses} ${p.verses === 1 ? "verse" : "verses"}`} onClick={() => { haptic("select"); onClose(); navigate(`/person/${p.id}`); }} />)}
         {!text ? <p className="bs-search__hint">Type a reference to go there, or a few words to find the verses. Put words in quotes to keep them together.</p> : null}
         {words.length >= 3 && found.isPending ? <p className="bs-search__hint">Searching…</p> : null}
-        {words.length >= 3 && found.isError ? <p className="bs-search__hint">Search is unavailable right now. Try again in a moment.</p> : null}
+        {words.length >= 3 && found.isError ? <p className="bs-search__hint" role="status">{diagnose(found.error).kind === "telegram" ? "Searching for words in the verses works inside Telegram. A reference like John 3:16, or a book’s name, opens here." : "Search is unavailable right now. Try again in a moment."}</p> : null}
         {words.length >= 3 && found.isSuccess && !hits.length && !bookOnly ? <p className="bs-search__hint">{filtered && allHits.length ? `No verse has those words in ${bookFilter ? name(bookFilter) : `the ${canon}`}. ${allHits.length} elsewhere.` : "No verse has those words."}</p> : null}
         {hits.length ? <p className="bs-search__count">{!filtered && hits.length === 50 ? "50+ verses" : `${hits.length} ${hits.length === 1 ? "verse" : "verses"}${bookFilter ? ` in ${name(bookFilter)}` : canon ? ` in the ${canon}` : ""}`}</p> : null}
         {hits.map((h) => (

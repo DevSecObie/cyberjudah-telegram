@@ -4,7 +4,8 @@ import { useNavigate, useSearchParams } from "react-router";
 
 import { fmtDate } from "@/api/data";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
-import { api, ApiError, app, confirm, haptic, hideKeyboard, openInvoice } from "@/tg/sdk";
+import { api, ApiError, app, confirm, haptic, hideKeyboard, openInvoice, openLink } from "@/tg/sdk";
+import { APP_URL } from "@/lib/share";
 import { Trouble } from "@/ui/trouble";
 import { Sheet } from "@/bible/ui/Sheet";
 import { Icon, timestamp } from "@/ui/ui";
@@ -192,10 +193,12 @@ export function Ask() {
   // A question from elsewhere (Home, a verse) starts its own conversation, once (StrictMode runs effects twice).
   const asked = useRef(false);
   useEffect(() => {
-    if (first && !asked.current) { asked.current = true; setParams({}, { replace: true }); if (!conv.busy) { startNewChat(); send(first); } }
+    if (first && !asked.current) { asked.current = true; setParams({}, { replace: true }); if (!app) setInput(first); else if (!conv.busy) { startNewChat(); send(first); } }
     else void recoverChat();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Outside Telegram there is no launch data to sign a question with: say so before anything is typed.
+  const outside = !app;
   const lastUser = [...turns].reverse().find((t) => t.role === "user")?.content ?? "";
   return (
     <main className="chat2" ref={mainRef}>
@@ -210,8 +213,14 @@ export function Ask() {
           <img className="chat2__mark" src={assetUrl("brand/cyber-lion.webp")} alt="" width={72} height={72} />
           <h1>What would you like to learn?</h1>
           <p>Ask about anything that was taught. Every answer comes from the classes, the notes, the law and the Scripture, and shows where it came from.</p>
+          {outside ? (
+            <div className="chat2__outside" role="note">
+              <p><b>Ask CyberJudah answers inside Telegram.</b> Telegram signs each question, which is how your free questions and plan are kept. In this browser the Bible, the classes and the rest of the library still work.</p>
+              <button type="button" className="btn" onClick={() => openLink(APP_URL)}><Icon name="link" size={16} />Open in Telegram</button>
+            </div>
+          ) : null}
           <div className="chat2__starters">
-            {EXAMPLES.map(([q, sub]) => <button key={q} type="button" className="starter" onClick={() => send(q)}><b>{q}</b><small>{sub}</small></button>)}
+            {EXAMPLES.map(([q, sub]) => <button key={q} type="button" className="starter" disabled={outside} onClick={() => send(q)}><b>{q}</b><small>{sub}</small></button>)}
           </div>
         </section>
       ) : (
@@ -227,7 +236,7 @@ export function Ask() {
       {history ? <ChatsSheet current={chatId} onClose={() => setHistory(false)} onOpen={openChat} onDeleted={(id) => { if (id === conv.chatId) startNewChat(); }} /> : null}
       <form ref={formRef} className="composer2" onSubmit={(e) => { e.preventDefault(); send(input); }}>
         <div className="composer2__box">
-          <textarea ref={boxRef} value={input} rows={1} placeholder={turns.length ? "Ask a follow-up" : "Ask CyberJudah"} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onFocus={() => typing(true)} onBlur={() => typing(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} />
+          <textarea ref={boxRef} value={input} rows={1} placeholder={outside ? "Open CyberJudah in Telegram to ask" : turns.length ? "Ask a follow-up" : "Ask CyberJudah"} disabled={outside} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onFocus={() => typing(true)} onBlur={() => typing(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} />
           {busy
             ? <button type="button" className="composer2__go composer2__go--stop" aria-label="Stop" onClick={stop}><span /></button>
             : <button type="submit" className="composer2__go" aria-label="Send" disabled={!input.trim()}><Icon name="arrowUp" size={20} /></button>}

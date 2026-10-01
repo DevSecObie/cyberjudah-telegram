@@ -12,6 +12,7 @@ import { parseBackup, restore, sendBackup } from "@/lib/backup";
 import { useSheet } from "@/ui/sheet";
 import { Icon, List, Row, Screen, Section, Segmented } from "@/ui/ui";
 import { useRelationsDisplay } from "@/lib/relations";
+import { useBibleSettings } from "@/bible/settings";
 import type { Font, Spacing, Theme } from "@/ui/theme";
 
 /** A setting's current value, iOS style: quiet text before the chevron. */
@@ -34,6 +35,9 @@ export function Settings() {
   const [spacing, setSpacing] = useStored<Spacing>("spacing", "regular");
   const [justify, setJustify] = useStored("justify", false);
   const [relDisplay, setRelDisplay] = useRelationsDisplay();
+  // One typeface for reading: the notes and the Bible both follow this row, and it names the face the Bible is really set in.
+  const [bible, setBible] = useBibleSettings();
+  const face = ["System", "Avenir", "normal", "Roboto"].includes(bible.fontFamily) ? "System" : bible.fontFamily;
   const [fullscreen, setFs, fsLoaded] = useStored("fullscreen", true);
   const [portrait, setPortrait] = useStored("portrait", false);
   const [daily, setDaily] = useState<boolean | null>(null);
@@ -93,7 +97,7 @@ export function Settings() {
         <Segmented label="Theme" value={theme} onChange={setTheme} options={[["system", "Automatic"], ["light", "Light"], ["dark", "Dark"], ["sepia", "Sepia"]]} />
         <List>
           <Row onClick={() => setSize(size === "compact" ? "regular" : size === "regular" ? "large" : "compact")} title="Text size" trailing={<Value>{{ compact: "Small", regular: "Regular", large: "Large" }[size]}</Value>} />
-          <Row onClick={() => setFont(font === "serif" ? "sans" : "serif")} title="Typeface" trailing={<Value>{font === "serif" ? "Newsreader" : "System"}</Value>} />
+          <Row onClick={() => { const serif = face !== "Newsreader"; setFont(serif ? "serif" : "sans"); setBible({ fontFamily: serif ? "Newsreader" : "System" }); }} title="Typeface" sub={face === "Newsreader" || face === "System" ? undefined : "Chosen in the Bible’s own settings"} trailing={<Value>{face}</Value>} />
           <Row onClick={() => setSpacing(spacing === "tight" ? "regular" : spacing === "regular" ? "airy" : "tight")} title="Line spacing" trailing={<Value>{{ tight: "Tight", regular: "Regular", airy: "Airy" }[spacing]}</Value>} />
           <Toggle on={justify} onChange={setJustify} title="Justify the text" />
           <Row onClick={() => setRelDisplay(relDisplay === "inline" ? "block" : "inline")} title="Related passages" sub={relDisplay === "inline" ? "Shown as tags under each verse" : "Shown as a count beside the verse number"} trailing={<Value>{relDisplay === "inline" ? "Tags" : "Count"}</Value>} />

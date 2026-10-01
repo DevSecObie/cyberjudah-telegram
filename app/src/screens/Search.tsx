@@ -153,6 +153,8 @@ export function Search() {
   const count = (s: Scope) => s === "top" ? undefined : s === "spoken" ? (spoken.data?.ok ? spoken.data.hits.length + (spoken.data.more ? "+" : "") : undefined) : SCOPE_KINDS[s].reduce((n, k) => n + (counts[k] ?? 0), 0) || undefined;
   const busy = (library.isFetching || spoken.isFetching) && term.trim().length >= 2;
   const total = hits.length + (spoken.data?.ok ? spoken.data.hits.length : 0);
+  // A failure is announced as a failure (the alert below names it), never as "0 results".
+  const failed = (library.isError || library.data?.ok === false) && (spoken.isError || spoken.data?.ok === false || !spoken.data);
 
   return (
     <main className="screen srch">
@@ -177,7 +179,7 @@ export function Search() {
           </div>
         ) : null}
       </div>
-      <p className="sr-only" aria-live="polite">{term.trim().length >= 2 && !busy ? `${total} results for ${term}` : ""}</p>
+      <p className="sr-only" aria-live="polite">{term.trim().length >= 2 && !busy && !failed ? `${total} ${total === 1 ? "result" : "results"} for ${term}` : ""}</p>
       <div id="srch-results" ref={results} className="srch__results" onKeyDown={onResultsKey}>
         {term.trim().length < 2 ? (
           <Start recent={recent} onPick={choose} onForget={(r) => setRecent(recent.filter((x) => x !== r))} onClear={() => setRecent([])} />
