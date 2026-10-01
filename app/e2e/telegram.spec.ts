@@ -363,10 +363,30 @@ test("the reading plan ticks today's chapters and keeps a streak", async ({ page
   await expect(page.locator(".card__ref")).toContainText("1 day streak");
 });
 
+test("one theme: the Bible's day and night colours are the whole app's", async ({ page }) => {
+  await page.goto(`/settings${LAUNCH}`);
+  const canvas = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim());
+  await page.click('[role=tab] >> text=Day');
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator("html")).toHaveAttribute("data-palette", "default");
+  expect(await canvas()).toBe("#fcfbf7");
+  await page.click(".row >> text=Day colour");
+  await page.click(".row >> text=Day colour");
+  await expect(page.locator("html")).toHaveAttribute("data-palette", "nature");
+  expect(await canvas()).toBe("#fdfffd");
+  await page.click('[role=tab] >> text=Night');
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-palette", "dark");
+  expect(await canvas()).toBe("#122d42");
+  const stored = await page.evaluate(() => localStorage.getItem("cj:palette"));
+  expect(JSON.parse(stored!)["--canvas"]).toBe("#122d42");
+});
+
 liveDataTest("settings: theme, spacing and offline books", async ({ page }) => {
   await page.goto(`/settings${LAUNCH}`);
-  await page.click('[role=tab] >> text=Sepia');
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "sepia");
+  await page.click('[role=tab] >> text=Day');
+  await page.click(".row >> text=Day colour");
+  await expect(page.locator("html")).toHaveAttribute("data-palette", "sepia");
   await page.click(".link >> text=Save a book");
   await page.click(".sheet__item >> text=Jude");
   await expect(page.locator(".pill--ok")).toHaveText("offline");
