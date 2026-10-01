@@ -176,9 +176,9 @@ export function RelationTargetPicker({ source, onClose, onCreated }: { source: E
       <div ref={box} className="sheet sheet--tall" role="dialog" aria-modal="true" aria-label="Add relation" data-sheet-open="">
         <div className="sheet__grip" aria-hidden="true" />
         <p className="sheet__title">Add relation<small>{source.label}</small></p>
-        <SearchField id="rel-q" value={q} onChange={setQ} placeholder="Scripture, note, class, dictionary, link..." autoFocus />
+        <SearchField id="rel-q" value={q} onChange={setQ} placeholder="Scripture, note, class, dictionary..." autoFocus />
         <div className="rel-results">
-          {!sections.length ? (loading ? <Skeleton rows={3} /> : <div className="rel-empty rel-empty--small"><Icon name="search" size={40} /><p>{debounced ? "No target found" : "Search for a Scripture, a note, a class, a dictionary entry or a link"}</p></div>) : sections.map((s) => {
+          {!sections.length ? (loading ? <Skeleton rows={3} /> : <div className="rel-empty rel-empty--small"><Icon name="search" size={40} /><p>{debounced ? "No target found" : "Search for a Scripture, a note, a class or a dictionary entry"}</p></div>) : sections.map((s) => {
             const shown = more[s.id] ?? PREVIEW;
             return (
               <section key={s.id} className="rel-section">
