@@ -10,6 +10,7 @@ import { Sheet } from "@/bible/ui/Sheet";
 import { Icon, timestamp } from "@/ui/ui";
 import { KIND_LABEL, hitPath, teachingPath } from "@/ui/search-hero";
 import { assetUrl } from "@/lib/asset";
+import { linkRefsInHtml, useBookSlugs } from "@/ui/reftext";
 import { KIND_NAME } from "./Home";
 
 export type Passage = { kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string; text: string };
@@ -243,9 +244,13 @@ function AssistantTurn({ t, question, last, busy, onRetry, onFollow, onPlans }: 
   const [copied, setCopied] = useState(false);
   const sources = t.sources ?? [];
   const lookup = sources.length ? sources : (t.passages ?? []);
-  const html = useMemo(() => answerHtml(t.content, lookup), [t.content, lookup]);
+  // Scripture named in the answer opens in the reader, as a reference does anywhere in the app.
+  const slugs = useBookSlugs();
+  const html = useMemo(() => linkRefsInHtml(answerHtml(t.content, lookup), slugs), [t.content, lookup, slugs]);
   const open = (s: Source) => { haptic("select"); navigate(passagePath(s)); };
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
+    const ref = (e.target as HTMLElement).closest<HTMLAnchorElement>("a.reflink");
+    if (ref) { e.preventDefault(); haptic("select"); navigate(ref.getAttribute("href")!); return; }
     const c = (e.target as HTMLElement).closest<HTMLElement>("[data-n]");
     const s = c && lookup.find((x) => x.n === Number(c.dataset.n));
     if (s) { e.preventDefault(); open(s); }
@@ -282,6 +287,7 @@ function AssistantTurn({ t, question, last, busy, onRetry, onFollow, onPlans }: 
                   <button key={s.n} type="button" className="srccard" onClick={() => open(s)}>
                     <span className="srccard__top"><b className="cite">{s.n}</b><small>{passageLabel(s)}</small></span>
                     <span className="srccard__title">{s.title}</span>
+                    {s.text ? <span className="srccard__text">{s.text}</span> : null}
                   </button>
                 ))}
               </div>

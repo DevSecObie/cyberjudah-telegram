@@ -687,6 +687,8 @@ html[data-theme="light"] .starter, html[data-theme="sepia"] .starter { box-shado
 .srccard__top { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .srccard__top small { font: 500 11.5px var(--a-ui); color: var(--a-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .srccard__title { font: 500 14px/1.3 var(--a-ui); color: var(--a-ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.srccard__text { font: 400 13px/1.45 var(--a-read); color: var(--a-muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+#root .msg__text .reflink { color: var(--a-accent); }
 html[data-theme="light"] .srccard, html[data-theme="sepia"] .srccard { box-shadow: 0 1px 2px rgba(20, 16, 8, .06), 0 0 0 .5px rgba(20, 16, 8, .05); }
 .msg__actions { display: flex; gap: 4px; margin-left: -8px; }
 .msg__action { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 0; border-radius: var(--r-sm); background: none; color: var(--a-muted) !important; font: 500 13.5px var(--a-ui) !important; cursor: pointer; }
@@ -1545,3 +1547,32 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 .ccard__go { display: inline-flex; align-items: center; gap: 1px; justify-self: end; min-height: 44px; color: var(--a-accent); font: 600 15px var(--a-ui); }
 .ccard:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
 @media (min-width: 900px) { .case__title { font-size: 32px; } .case__prose p { font-size: 17px; } }
+
+/* Classes: the series as chips with counts, filters on one line each, months as headings. */
+.chip__n { margin-left: 6px; color: var(--a-muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.filters__row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.filters__row > small { flex: none; width: 56px; color: var(--a-muted); font: 700 11px var(--a-ui); letter-spacing: .06em; text-transform: uppercase; }
+.filters__scroll { flex: 1; min-width: 0; margin-right: -16px; padding-right: 16px; overflow-x: auto; scrollbar-width: none; }
+.filters__scroll::-webkit-scrollbar { display: none; }
+.filters__scroll .chips { flex-wrap: nowrap; width: max-content; }
+.classes__month + .classes__month { margin-top: 6px; }
+.classes__month .feed { margin-top: 2px; }
+
+/* The law: parts and sections, then a section's laws as cards with their scripture. */
+.laws__n { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 7px; background: var(--a-card-2); color: var(--a-ink-2); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.laws__part { margin-top: 22px; }
+.lawrow2__code { flex: none; display: inline-grid; place-items: center; min-width: 38px; height: 26px; padding: 0 7px; border-radius: 8px; background: color-mix(in srgb, var(--a-accent) 12%, transparent); color: var(--a-accent); font: 700 12px var(--a-ui); font-variant-numeric: tabular-nums; }
+#root .law__part { color: inherit; text-decoration: none; }
+#root .law__part:active { opacity: .6; }
+.law__id { margin-right: 10px; color: var(--a-accent); font-variant-numeric: tabular-nums; }
+.law__count { margin: 10px 0 0; color: var(--a-muted); font: 500 14px var(--a-ui); }
+.law__entries { display: grid; gap: 12px; margin-top: 22px; }
+.lawcard { display: grid; gap: 10px; padding: 16px; border-radius: 18px; background: color-mix(in srgb, var(--a-card) 55%, transparent); border: 1px solid var(--a-line); scroll-margin-top: 16px; }
+.lawcard__code { margin: 0; color: var(--a-muted); font: 700 11px var(--a-ui); letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+.lawcard__text { margin: 0; color: var(--a-ink-2); font: 400 19px/1.45 var(--a-read); text-wrap: pretty; }
+.lawcard__refs { display: flex; gap: 6px; margin: 0 -16px; padding: 2px 16px; overflow-x: auto; scrollbar-width: none; }
+.lawcard__refs::-webkit-scrollbar { display: none; }
+#root button.lawcard__ref { flex: none; min-height: 32px; padding: 0 11px; border: 1px solid var(--a-line); border-radius: 999px; background: none; color: var(--a-ink); font: 600 13px var(--a-ui); white-space: nowrap; cursor: pointer; font-variant-numeric: tabular-nums; }
+#root button.lawcard__ref[aria-selected="true"] { border-color: transparent; background: color-mix(in srgb, var(--a-accent) 16%, transparent); color: var(--a-accent); }
+#root button.lawcard__ref:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
+.lawcard .scard { background: var(--a-card); }

@@ -21,41 +21,6 @@ function Quote({ r }: { r: ResolvedRef }) {
   return <blockquote className="verse-quote">{r.text.map((v) => <span key={v.verse}><sup>{v.verse}</sup>{v.text} </span>)}{r.more ? <em>… {r.more} more</em> : null}</blockquote>;
 }
 
-export function LawIndex() {
-  useBackButton(false);
-  const { part } = useParams();
-  const laws = useQuery({ queryKey: ["laws"], queryFn: data.laws });
-  const [q, setQ] = useState("");
-  const parts = (laws.data ?? []).filter((p) => !part || p.url.endsWith(`/${part}`));
-  const lc = q.toLowerCase();
-  return (
-    <Screen title="The Law" kicker="The handbook of Bible law">
-      <SearchField id="law-q" value={q} onChange={setQ} placeholder="Find a section" />
-      {laws.isPending ? <Skeleton rows={8} /> : parts.map((p) => {
-        const secs = p.sections.filter((s) => !lc || `${s.id} ${s.title} ${p.title}`.toLowerCase().includes(lc)); if (!secs.length) return null;
-        return <Section key={p.n} title={`${p.n}. ${p.title}`}><List>{secs.map((s) => <Row key={s.id} href={s.url} meta={s.id} title={s.title} trailing={<span className="row__count">{s.laws}</span>} />)}</List></Section>;
-      })}
-    </Screen>
-  );
-}
-
-export function LawSectionScreen() {
-  const { section = "" } = useParams();
-  useBackButton(false);
-  const sec = useQuery({ queryKey: ["law", section], queryFn: () => data.law(section) });
-  useBottomButtons(sec.data ? { text: "Share", onClick: () => void share({ kind: "note", title: `${sec.data!.id} ${sec.data!.title}`, text: "The handbook of Bible law · CyberJudah", sitePath: sec.data!.url }) } : null);
-  if (sec.isPending) return <Screen title="…"><Skeleton /></Screen>;
-  if (!sec.data) return <Screen title="Law"><Empty title="This section did not load" /></Screen>;
-  const s = sec.data;
-  return (
-    <Screen title={s.title} kicker={`${s.id} · ${s.part.title}`}>
-      <List>{s.entries.map((e) => <div key={e.id} className="lawrow"><b>{e.id}</b><p>{e.text}</p><Refs refs={e.refs} />{e.refs[0]?.text?.length ? <Quote r={e.refs[0]} /> : null}</div>)}</List>
-      {s.caseRefs?.length ? <Section title="Cases under this law"><List>{s.caseRefs.map((c) => <Row key={c.slug} href={c.url} meta={c.verdict} title={c.name} sub={c.charge} />)}</List></Section> : null}
-      {s.seeAlso.length ? <Section title="See also"><List>{s.seeAlso.map((x) => x.url ? <Row key={x.id} href={x.url} meta={x.id} title={x.title} /> : null)}</List></Section> : null}
-    </Screen>
-  );
-}
-
 export function Precepts() {
   useBackButton(false);
   const rows = useQuery({ queryKey: ["precepts"], queryFn: data.precepts });
