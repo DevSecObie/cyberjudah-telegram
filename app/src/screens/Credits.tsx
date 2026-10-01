@@ -1,3 +1,4 @@
+import { AMBIENT_TRACKS } from "@/lib/ambient";
 import { useQuery } from "@tanstack/react-query";
 import { recordingJson, type RecordingCredit } from "@/lib/recordings";
 import { Screen, Section } from "@/ui/ui";
@@ -13,5 +14,5 @@ export function Credits() {
     {catalog.isError ? <p role="status" className="hint">Credits are unavailable. Please try again when connected.</p> : null}
     {credits.map((r) => <p key={`${r.readerId}:${r.source}`}><b>{r.reader}</b><br /><a href={r.source} onClick={(e) => { e.preventDefault(); openLink(r.source); }}>Recording source</a> · <a href={r.license} onClick={(e) => { e.preventDefault(); openLink(r.license); }}>Public-domain dedication</a></p>)}
     {!catalog.isPending && !catalog.isError && !credits.length ? <p className="hint">No human recordings have been published yet.</p> : null}
-  </Section></Screen>;
+  </Section><Section title="Ambient music and nature"><p className="hint">Original CC0 recordings, looped and level adjusted for reading.</p>{AMBIENT_TRACKS.map((t) => <p key={t.id}><b>{t.name}</b><br />{t.original} — {t.artist}<br /><a href={t.source} onClick={(e) => { e.preventDefault(); openLink(t.source); }}>Recording source</a> · <a href={t.licenseUrl} onClick={(e) => { e.preventDefault(); openLink(t.licenseUrl); }}>{t.license}</a><br /><small>{t.changes}</small></p>)}</Section></Screen>;
 }

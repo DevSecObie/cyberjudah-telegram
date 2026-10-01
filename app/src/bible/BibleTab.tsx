@@ -131,7 +131,7 @@ export function BibleTab() {
   const speech = useSpeech(verses, chapterLabel, slug && ch ? { slug, chapter: ch } : undefined);
   const [repeat, setRepeat] = useState(false);
   const [audioOpen, setAudioOpen] = useState(false);
-  useEffect(() => { if (speech.completed && audioOpen && repeat && verses.length) speech.play(1); }, [speech.completed, audioOpen, repeat]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (speech.completed && audioOpen && repeat && verses.length) speech.play(1, undefined, false); }, [speech.completed, audioOpen, repeat]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useBottomButtons(null, null);
   useBackButton(true, () => {

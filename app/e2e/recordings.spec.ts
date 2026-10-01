@@ -111,7 +111,7 @@ test("recording credits open with Telegram's link handler", async ({ page }) => 
   await setup(page);
   await page.route("**/api/recordings/catalog", (r) => r.fulfill({ json: { chapters: [{ readerId: "test", reader: "Test reader", source: narrator.source, license: narrator.license }] } }));
   await page.goto("/settings/credits#tgWebAppData=auth_date%3D1&tgWebAppPlatform=ios");
-  await page.getByRole("link", { name: "Recording source", exact: true }).click();
+  await page.locator('a[href="https://librivox.org/"]').click();
   await expect.poll(() => page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.some((r) => r[0] === "openLink" && r[1] === "https://librivox.org/"))).toBe(true);
 });
 

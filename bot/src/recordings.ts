@@ -30,7 +30,7 @@ recordings.get("/:slug/:chapter", async (c) => {
 /** R2 stays private. Only approved recording keys are readable; AI caches are excluded. */
 export async function recordingAudio(request: Request, env: Pick<Env, "AUDIO">): Promise<Response> {
   const key = new URL(request.url).pathname.slice("/api/audio/".length);
-  if (!/^recordings\/[a-z0-9-]+\/[a-z0-9-]+\/[1-9][0-9]{0,2}\.m4a$/.test(key)) return new Response(null, { status: 404 });
+  if (!/^recordings\/[a-z0-9-]+\/[a-z0-9-]+\/[1-9][0-9]{0,2}\.m4a$/.test(key) && !/^ambient\/(quiet-piano|soft-keys|stillness|evening-pad|rain|wind|ocean|fire)\.m4a$/.test(key)) return new Response(null, { status: 404 });
   const meta = await env.AUDIO.head(key);
   if (!meta) return new Response(null, { status: 404 });
   const headers = new Headers({ "content-type": "audio/mp4", "accept-ranges": "bytes", "etag": meta.httpEtag,

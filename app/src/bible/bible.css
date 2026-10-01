@@ -479,6 +479,17 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs [data-reading] { background: var(--bs-opacity5); box-shadow: inset 3px 0 var(--bs-primary); border-radius: 4px; }
 
 .bs-footer > .bs-scrim { pointer-events: auto; }
+
+/* Five controls stay tappable at phone width. */
+.bs-audio__chips { flex-wrap: wrap; }
+.bs-ambient-row { display: flex; align-items: center; padding-right: 12px; }
+.bs-ambient-row .bs-fontrow { flex: 1; }
+.bs-ambient-volume { display: flex; flex-wrap: wrap; gap: 10px; margin: 15px; font-size: 14px; }
+.bs-ambient-volume span { margin-left: auto; color: var(--bs-tertiary); }
+.bs-ambient-volume input { width: 100%; accent-color: var(--bs-primary); }
+.bs-ambient-tabs { display: flex; gap: 8px; padding: 10px 15px; }
+.bs-ambient-tabs .bs-chip { flex: 1; }
+.bs-ambient-tabs [aria-selected="true"] { background: var(--bs-primary); color: var(--bs-reverse); }
 /* A person in a verse's resources: the avatar beside the name. */
 .bs-resrow--person { flex-direction: row; align-items: center; gap: 12px; }
 .bs-resrow--person > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
