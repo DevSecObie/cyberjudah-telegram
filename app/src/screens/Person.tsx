@@ -44,7 +44,7 @@ export function Person() {
   const verses = d.verses.map(refOfPath).filter((r): r is VerseRef => !!r);
   const taught = [...d.taught].sort((a, b) => teacherRank(a.note.teacher) - teacherRank(b.note.teacher) || b.note.date.localeCompare(a.note.date));
   const kind = avatarKind(d.type);
-  const eyebrow = [kind === "group" ? "Group" : "Person", d.tribe].filter(Boolean).join(" · ");
+  const eyebrow = [d.type === "Female" ? "Woman" : d.type === "Male" ? "Man" : kind === "group" ? "Group" : "Person", d.tribe].filter(Boolean).join(" · ");
 
   return (
     <Screen className="entity">
