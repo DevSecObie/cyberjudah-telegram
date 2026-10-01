@@ -27,7 +27,7 @@ html[data-fullscreen="yes"] .reader__bar { padding-top: 4px; }
   --a-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
   --a-read: "Newsreader", Georgia, "Times New Roman", serif;
   --a-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
-  --a-tabs: calc(48px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  --a-tabs: calc(64px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
   min-height: 100dvh;
   background: var(--a-bg);
   color: var(--a-ink);
@@ -1401,3 +1401,39 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 @keyframes fg-pulse { to { opacity: .45; } }
 @media (prefers-reduced-motion: reduce) { .fg__sat, .fg__center, .fg__lines line, #root button.fg__hist { animation: none; } }
 .person__card .person__aka { margin: 0 0 4px; }
+
+/* ── The bottom bar as a floating glass capsule that follows the reading (iOS, Instagram) ───────
+   Full: the sections in a capsule above the home indicator, the current one on a pill that slides
+   between them and opens to show its name. Scrolling down into a page shrinks it to a small
+   capsule with just the current section; scrolling up, the page's top or end, or a tap brings it
+   back. A chosen icon gives a short spring. */
+:root { --bar-spring: cubic-bezier(.2, 1.12, .32, 1); }
+.tabs:not(.tabs--switcher) {
+  left: max(10px, calc(50vw - 260px)); right: auto; bottom: calc(8px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  width: min(calc(100vw - 20px), 520px); height: 56px; padding: 0 6px; box-sizing: border-box;
+  justify-content: space-between; border-radius: 28px; overflow: hidden;
+  border: .5px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow), var(--glass-shine);
+  transition: width .55s var(--bar-spring), transform .38s var(--drawer-ease, ease), box-shadow .3s ease;
+}
+.tabs[data-mini] { width: 56px; justify-content: flex-start; cursor: pointer; }
+.tabs:not(.tabs--switcher) .tab { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: flex-start; width: auto; min-width: 0; max-width: 170px; height: 44px; padding: 0; border-radius: 22px; overflow: hidden;
+  transition: color .2s ease, max-width .5s var(--bar-spring), opacity .25s ease; }
+.tabs:not(.tabs--switcher) .tab::before { display: none; }
+.tabs:not(.tabs--switcher) .tab:active { transform: none; }
+.tabs:not(.tabs--switcher) .tab:active .tab__glyph { transform: scale(.88); }
+.tab__glyph { flex: none; display: grid; place-items: center; width: var(--slot, 42px); height: 44px; transition: transform .16s ease; }
+.tab__label { max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap; margin-left: -4px; font: 650 13px/1 var(--a-ui); letter-spacing: -.01em;
+  transition: max-width .5s var(--bar-spring), opacity .18s ease, padding .5s var(--bar-spring); }
+.tabs:not([data-nolabel]) .tab[data-on] .tab__label { max-width: 110px; opacity: 1; padding-right: 14px; transition-delay: 0s, .08s, 0s; }
+.tabs[data-mini] .tab:not([data-on]) { max-width: 0; opacity: 0; pointer-events: none; }
+.tabs__pill { position: absolute; z-index: 0; left: 0; top: 50%; height: 44px; margin-top: -22px; width: var(--pill-w, 44px); transform: translateX(var(--pill-x, 6px)); border-radius: 22px;
+  background: color-mix(in srgb, var(--a-ink) 12%, transparent); box-shadow: inset 0 .5px 0 color-mix(in srgb, #fff 18%, transparent);
+  transition: transform .5s var(--bar-spring), width .5s var(--bar-spring), opacity .2s ease; pointer-events: none; }
+.tabs[data-pill="none"] .tabs__pill { opacity: 0; }
+.tabs .tab[data-on] .tab__glyph > * { animation: tab-pop .5s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes tab-pop { 0% { transform: scale(.72); } 55% { transform: scale(1.14); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .tabs:not(.tabs--switcher), .tabs .tab, .tab__label, .tabs__pill { transition: none; }
+  .tabs .tab[data-on] .tab__glyph > * { animation: none; }
+}

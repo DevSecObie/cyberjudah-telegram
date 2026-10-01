@@ -1084,6 +1084,8 @@ test("the bottom bar sits above the Bible, and each reader chooses its buttons",
   await expect(page.locator(".tabs .tab")).toHaveCount(7);
   const labels = await page.locator(".tabs .tab").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
   expect(labels).toEqual(["Home", "Bible", "Classes", "Ask", "Library", expect.stringMatching(/^Tabs/), "Menu"]);
+  // Scrolling the editor may have shrunk the bar to its capsule: a tap on it opens it first.
+  if (await page.locator("nav.tabs[data-mini]").count()) await page.locator("nav.tabs .tab[data-on]").click();
   await page.click('.tab[aria-label="Library"]');
   await expect(page).toHaveURL(/\/books/);
   // The choice is kept with the reader's other settings, in Telegram's cloud.
@@ -1307,3 +1309,31 @@ test("Books opens on the book being read even when the book list arrives late", 
   await expect(page.locator(".bs-bookrow[data-current]")).toBeInViewport({ timeout: 8000 });
 });
 
+
+test("the bar follows the reading: a capsule while scrolling down, back on scroll up or a tap, the current section named", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#verset-3")).toBeVisible();
+  const bar = page.locator("nav.tabs");
+  // The current section sits on the pill, with its name.
+  await expect(bar.locator(".tab[data-on] .tab__label")).toHaveText("Bible");
+  await expect(bar.locator(".tab[data-on] .tab__label")).toBeVisible();
+  await expect(bar).not.toHaveAttribute("data-mini");
+  // Scrolling down into the chapter shrinks it to a capsule with just the Bible.
+  await page.mouse.move(195, 400);
+  await page.mouse.wheel(0, 600);
+  await expect(bar).toHaveAttribute("data-mini", "");
+  await expect(bar.getByRole("button", { name: "Search" })).toBeHidden();
+  // Scrolling back up brings it back.
+  await page.mouse.wheel(0, -150);
+  await expect(bar).not.toHaveAttribute("data-mini");
+  // Down again, then a tap on the capsule opens it rather than navigating.
+  await page.mouse.wheel(0, 600);
+  await expect(bar).toHaveAttribute("data-mini", "");
+  await bar.locator(".tab[data-on]").click();
+  await expect(bar).not.toHaveAttribute("data-mini");
+  await expect(page).toHaveURL(/\/read\/genesis\/1/);
+  // Another section: the pill and the name move to it.
+  await bar.getByRole("button", { name: "Search" }).click();
+  await expect(page).toHaveURL(/\/search/);
+  await expect(bar.locator(".tab[data-on] .tab__label")).toHaveText("Search");
+});
