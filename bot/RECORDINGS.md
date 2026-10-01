@@ -29,7 +29,9 @@ before deploying the Worker. Set `RECORDINGS_EXPORT_DIR` to that export and
 export the existing audio is untouched. The script verifies audio checksums,
 uploads media and indexes, and publishes `recordings/catalog.json` last. No audio
 or source download is tracked in Git. Deploying the Worker alone does not make
-new narration available; publish the export as part of that deployment.
+new narration available. The `publish-audio` workflow (Actions → publish-audio → Run
+workflow) exports, checks and uploads the narration and the ambient loops; it has a
+dry-run option.
 
 `/api/audio/recordings/<reader>/<slug>/<chapter>.m4a` supports GET, HEAD, single
 byte ranges, suffix ranges, ETags and If-Range. It deliberately cannot expose
