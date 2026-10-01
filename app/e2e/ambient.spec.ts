@@ -37,23 +37,24 @@ async function panel(page: Page) {
   await expect(page.locator("#verset-1")).toBeVisible();
   await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
   await page.getByRole("button", { name: "Ambient", exact: true }).click();
+  await page.getByRole("tab", { name: "Music", exact: true }).click();
 }
-test("ambient selection, independent volume and previews persist without autoplay", async ({ page }) => {
+test("ambient selection, independent volume and previews persist without autoplay", async ({ page }, testInfo) => {
   await setup(page); await panel(page);
   const sheet = page.getByRole("dialog", { name: "Ambient", exact: true });
   await expect(sheet.getByRole("radio", { name: "Off", exact: true })).toHaveAttribute("aria-checked", "true");
-  await expect(sheet.getByRole("slider", { name: /Music volume/ })).toHaveValue("25");
+  await expect(sheet.getByRole("slider", { name: /Ambient volume/ })).toHaveValue("25");
   await sheet.getByRole("radio", { name: "Warm keys", exact: true }).click();
   await expect.poll(async () => (await state(page)).starts).toBe(1);
   expect((await state(page)).loops).toEqual([true]);
   expect((await state(page)).ramps.some(([gain, seconds]) => gain === .25 && seconds === 1.5)).toBe(true);
   await page.evaluate(() => (window as unknown as { __music: { finish(): void } }).__music.finish());
   await expect.poll(async () => (await state(page)).ramps.some(([gain]) => Math.abs(gain - .18) < .001)).toBe(true);
-  await sheet.getByRole("slider", { name: /Music volume/ }).fill("40");
+  await sheet.getByRole("slider", { name: /Ambient volume/ }).fill("40");
   expect(await page.evaluate(() => localStorage.getItem("ambientVolume"))).toBe("0.4");
-  await page.screenshot({ animations: "disabled", path: "/private/tmp/cj-human-audio/ambient-sheet-390x780.png" });
+  await page.screenshot({ animations: "disabled", path: testInfo.outputPath("ambient-sheet-390x780.png") });
   await sheet.getByRole("button", { name: "Close", exact: true }).click();
-  await page.screenshot({ animations: "disabled", path: "/private/tmp/cj-human-audio/ambient-panel-390x780.png" });
+  await page.screenshot({ animations: "disabled", path: testInfo.outputPath("ambient-panel-390x780.png") });
   await page.getByRole("button", { name: "Stop audio playback", exact: true }).click();
   expect((await state(page)).ramps.at(-1)).toEqual([0, 1]);
   await expect.poll(async () => (await state(page)).stops).toBe(1);
@@ -62,7 +63,7 @@ test("ambient selection, independent volume and previews persist without autopla
   await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
   await page.getByRole("button", { name: "Ambient", exact: true }).click();
   await expect(sheet.getByRole("radio", { name: "Warm keys", exact: true })).toHaveAttribute("aria-checked", "true");
-  await expect(sheet.getByRole("slider", { name: /Music volume/ })).toHaveValue("40");
+  await expect(sheet.getByRole("slider", { name: /Ambient volume/ })).toHaveValue("40");
   await sheet.getByRole("button", { name: "Preview Soft piano", exact: true }).click();
   await expect(sheet.getByRole("button", { name: "Stop preview Soft piano", exact: true })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem("ambientTrack"))).toBe("soft-keys");
@@ -70,13 +71,44 @@ test("ambient selection, independent volume and previews persist without autopla
 test("failed ambient track leaves the reading running", async ({ page }) => {
   await setup(page, true); await panel(page);
   await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("radio", { name: "Soft piano", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("Music is unavailable");
+  await expect(page.getByRole("status")).toContainText("Ambient sound is unavailable");
   await expect(page.getByRole("button", { name: "Ambient unavailable", exact: true })).toBeVisible();
   await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop audio playback", exact: true })).toBeVisible();
   const before = (await state(page)).voices;
   await page.evaluate(() => (window as unknown as { __music: { finish(): void } }).__music.finish());
   await expect.poll(async () => (await state(page)).voices).toBeGreaterThan(before);
+});
+test("nature sounds preview independently, save the selected element and can be switched off", async ({ page }, testInfo) => {
+  await setup(page); await panel(page);
+  const sheet = page.getByRole("dialog", { name: "Ambient", exact: true });
+  await sheet.getByRole("tab", { name: "Nature", exact: true }).click();
+  await sheet.getByRole("button", { name: "Preview Rain", exact: true }).click();
+  await expect.poll(async () => (await state(page)).starts).toBe(1);
+  await expect(sheet.getByRole("radio", { name: "Off", exact: true })).toHaveAttribute("aria-checked", "true");
+  expect(await page.evaluate(() => localStorage.getItem("ambientTrack"))).toBeNull();
+  for (const [id, name] of [["rain", "Rain"], ["wind", "Wind"], ["ocean", "Ocean waves"], ["fire", "Gentle fire"]]) {
+    await sheet.getByRole("radio", { name, exact: true }).click();
+    await expect(sheet.getByRole("radio", { name, exact: true })).toHaveAttribute("aria-checked", "true");
+    expect(await page.evaluate(() => localStorage.getItem("ambientTrack"))).toBe(id);
+  }
+  await expect.poll(async () => (await state(page)).starts).toBe(4);
+  await page.screenshot({ animations: "disabled", path: testInfo.outputPath("ambient-nature-390x780.png") });
+  await page.reload(); await expect(page.locator("#verset-1")).toBeVisible();
+  expect((await state(page)).starts).toBe(0);
+  await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
+  await page.getByRole("button", { name: "Ambient", exact: true }).click();
+  await expect(sheet.getByRole("tab", { name: "Nature", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(sheet.getByRole("radio", { name: "Gentle fire", exact: true })).toHaveAttribute("aria-checked", "true");
+  await expect.poll(async () => (await state(page)).starts).toBe(1);
+  await sheet.getByRole("radio", { name: "Off", exact: true }).click();
+  await expect.poll(async () => (await state(page)).stops).toBe(1);
+  expect(await page.evaluate(() => localStorage.getItem("ambientTrack"))).toBe("off");
+  await page.goto("/settings/credits");
+  for (const id of ["640655", "528944", "578524", "650574"]) {
+    await expect(page.locator(`a[href$="/sounds/${id}/"]`)).toBeVisible();
+  }
+  await expect(page.getByRole("link", { name: "CC0 1.0", exact: true })).toHaveCount(8);
 });
 test("music carries across chapters and pauses in the background until a tap", async ({ page }) => {
   await setup(page); await page.addInitScript(() => localStorage.setItem("ambientTrack", "soft-keys"));

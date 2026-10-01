@@ -10,8 +10,8 @@ const env = { AUDIO: {
 } } as unknown as Pick<Env, "AUDIO">;
 const url = "https://cyberjudah.io/api/audio/recordings/reader/tobit/9.m4a";
 describe("human recording byte ranges", () => {
-  it("serves only the four licensed ambient keys through the same range endpoint", async () => {
-    for (const id of ["quiet-piano", "soft-keys", "stillness", "evening-pad"]) {
+  it("serves only the licensed ambient keys through the same range endpoint", async () => {
+    for (const id of ["quiet-piano", "soft-keys", "stillness", "evening-pad", "rain", "wind", "ocean", "fire"]) {
       const r = await recordingAudio(new Request(`https://cyberjudah.io/api/audio/ambient/${id}.m4a`, { headers: { range: "bytes=2-4" } }), env);
       expect(r.status).toBe(206); expect(await r.text()).toBe("234");
     }

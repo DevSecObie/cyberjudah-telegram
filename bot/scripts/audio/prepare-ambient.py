@@ -1,4 +1,4 @@
-"""Prepare four source-pinned CC0 loops; writes only a local ignored cache."""
+"""Prepare source-pinned CC0 loops; writes only a local ignored cache."""
 import subprocess,hashlib
 from pathlib import Path
 import argparse, urllib.request
@@ -11,6 +11,8 @@ checksums={
  'stillness':'839dc7b1d278c4a38b44096e185637ed580c04ce768884fc543b2aaa811b25f9',
  'evening-pad':'9d10edf9ad84f5a302c754c37ad94fbcb180ca39788fc9cf3faf4ba0e8064c83',
 }
+sources.update({'rain': '640/640655_2414299', 'wind': '528/528944_3302313', 'ocean': '578/578524_5487341', 'fire': '650/650574_9782868'})
+checksums.update({'rain': '75c8b42334537ba7a5a4c4d3ee555e3e4a67f9b2a0a52c17ac26657dc398b36c', 'wind': '4d4dfd182e9f5a98619a31b36312bdf72c1d774929cd8d0a9106b7115e63cc43', 'ocean': 'cf666271e740f8cd582e76738749d532d9971540759b2a3875a158ccb6f78fd9', 'fire': 'a2bb88a1c69393c43cc47ad635fc4f62d454302e4d80d96008b8900ff4d68335'})
 for name, key in sources.items():
  target=root/(name+'.mp3')
  if not target.exists():
@@ -19,7 +21,7 @@ for name, key in sources.items():
   raise ValueError(f'{name}: source changed; verify its licence and content before updating the pinned checksum')
 # Decode, repeat and crossfade in PCM; cut on one cycle. The Web Audio player loops
 # the decoded buffer, avoiding AAC's container/startup gap on every repeat.
-for name in ['quiet-piano','soft-keys','stillness','evening-pad']:
+for name in sources:
  src=root/(name+'.mp3')
  duration=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1',str(src)]))
  cycle=duration-2
