@@ -24,6 +24,7 @@ const Ask = lazy(() => import("@/screens/Ask").then((m) => ({ default: m.Ask }))
 const BibleTab = lazy(() => import("@/bible/BibleTab").then((m) => ({ default: m.BibleTab })));
 const More = lazy(() => import("@/screens/More").then((m) => ({ default: m.More })));
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
+const Credits = lazy(() => import("@/screens/Credits").then((m) => ({ default: m.Credits })));
 const Plan = lazy(() => import("@/screens/Plan").then((m) => ({ default: m.Plan })));
 const History = lazy(() => import("@/screens/History").then((m) => ({ default: m.History })));
 const Dictionary = lazy(() => import("@/screens/Dictionary").then((m) => ({ default: m.Dictionary })));
@@ -93,6 +94,7 @@ export function App() {
       <Suspense fallback={<Screen><Skeleton rows={8} /></Screen>}>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/settings/credits" element={<Credits />} />
         <Route path="/search" element={<Search />} />
         <Route path="/classes" element={<Classes />} />
         <Route path="/bible" element={<BibleTab />} />

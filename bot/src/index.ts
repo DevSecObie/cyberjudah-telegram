@@ -1,3 +1,4 @@
+import { recordings, recordingAudio } from "./recordings";
 import { Hono } from "hono";
 import { Api, webhookCallback } from "grammy";
 import type { InlineQueryResultArticle } from "grammy/types";
@@ -29,6 +30,8 @@ type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
 // Public Bible Strong resource feed; independent of Telegram authentication.
 app.route("/bs", bs);
+app.route("/api/recordings", recordings);
+app.on(["GET", "HEAD"], "/api/audio/*", (c) => recordingAudio(c.req.raw, c.env));
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 
 /**

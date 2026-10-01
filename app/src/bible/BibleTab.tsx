@@ -241,7 +241,7 @@ export function BibleTab() {
         <div className="bs-error" style={{ paddingTop: headerHeight + 100 }}><span className="bs-error__icon"><Feather2 /></span><p>This chapter did not load. Check your connection, or save this book for offline reading in Settings.</p><button type="button" className="bs-btn" onClick={() => void text.refetch()}>Retry</button></div>
       ) : (
         <Chapter slug={slug} chapter={ch} verses={verses} settings={settings} palette={palette} theme={theme}
-          selected={selected} focusVerses={focus} contextDisplayMode={contextMode} verseToScroll={verseToScroll} navigationRequest={navRequest}
+          readingVerse={speech.current} onSeekVerse={speech.playing ? speech.play : undefined} selected={selected} focusVerses={focus} contextDisplayMode={contextMode} verseToScroll={verseToScroll} navigationRequest={navRequest}
           highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={relItems}
           moments={classMoments.data} deck={{ reference: chapterLabel, from: `/read/${slug}/${ch}` }}
           headerHeight={headerHeight} fullscreen={fullscreen} canSwipe

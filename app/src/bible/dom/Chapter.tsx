@@ -19,6 +19,7 @@ export const HEADER_HEIGHT = 54, HEADER_HEIGHT_MIN = 20, PASSAGE_CONTEXT_HEADER_
 const READING_TEXT_MAX_WIDTH = 580, HORIZONTAL_PADDING = 15, RETURN_BOTTOM_OFFSET = 250;
 
 export type ChapterProps = {
+  readingVerse?: number | null; onSeekVerse?: (verse: number) => void;
   slug: string; chapter: number; verses: { verse: number; text: string }[];
   settings: BibleSettings; palette: Palette; theme: ThemeName;
   selected: number[]; focusVerses: number[] | null; contextDisplayMode: "focused" | "fullChapter";
@@ -46,6 +47,17 @@ export function Chapter(p: ChapterProps) {
   const focus = p.focusVerses;
   const adjacent = focus?.length ? { prev: Math.min(...focus) - 1, next: Math.max(...focus) + 1 } : null;
 
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root) return;
+    root.querySelectorAll("[data-reading]").forEach((el) => el.removeAttribute("data-reading"));
+    if (p.readingVerse != null) {
+      const verse = root.querySelector(`#verset-${p.readingVerse}`);
+      verse?.setAttribute("data-reading", "");
+      verse?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [p.readingVerse]);
+
   // Tags on highlights: verses highlighted together share a date; the chip goes under the last of them.
   const tagGroups = useMemo(() => {
     const byDate = new Map<number, { last: number; tagIds: Set<string> }>();
@@ -62,7 +74,7 @@ export function Chapter(p: ChapterProps) {
   const verseOf = (vk: string) => Number(vk.split("-").pop());
   useVerseGestures(scrollRef, {
     onTouchedVerseChange: setTouched,
-    onTapVerse: (vk) => { const v = verseOf(vk); if (selectedMode || s.press === "longPress") p.onToggleVerse(v); else p.onVerseDetail(v); },
+    onTapVerse: (vk) => { const v = verseOf(vk); if (p.onSeekVerse) { p.onSeekVerse(v); return; } if (selectedMode || s.press === "longPress") p.onToggleVerse(v); else p.onVerseDetail(v); },
     onLongPressVerse: (vk) => { const v = verseOf(vk); if (s.press === "shortPress") p.onToggleVerse(v); else p.onVerseDetail(v); },
     onDoubleTapVerse: (vk) => p.onDoubleTap?.(verseOf(vk)),
     onSwipe: (dir) => { if (p.canSwipe && !isContextFocused) p.onSwipe(dir); },

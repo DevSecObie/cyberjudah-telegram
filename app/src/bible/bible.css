@@ -472,6 +472,13 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 
 .bs-audio__chips svg { flex: none; }
 
+.bs-audio__group { margin: 16px 15px 6px; font-size: 13px; color: var(--bs-tertiary); }
+.bs-audio__notice { margin: 8px 15px; font-size: 12px; color: var(--bs-tertiary); }
+.bs-audio__detail { display: block; font-size: 12px; color: var(--bs-tertiary); }
+
+.bs [data-reading] { background: var(--bs-opacity5); box-shadow: inset 3px 0 var(--bs-primary); border-radius: 4px; }
+
+.bs-footer > .bs-scrim { pointer-events: auto; }
 /* A person in a verse's resources: the avatar beside the name. */
 .bs-resrow--person { flex-direction: row; align-items: center; gap: 12px; }
 .bs-resrow--person > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
