@@ -32,23 +32,21 @@
       "batch": "pilot",
       "notes": "Head covering"
     },
-    "pharaoh-exo-1-11": {
-      "name": "Pharaoh (Exodus 1)",
-      "job": "bdfc9d23-704d-4f94-84ef-dce8526d845a",
-      "batch": "pilot",
-      "notes": "Hamite; nemes"
-    },
     "david-rut-4-17": {
       "name": "David",
-      "job": "d7ac9e46-f2a7-4b7c-bacf-a3908ac5563c",
-      "batch": "pilot",
-      "notes": "Judah; 1 Samuel 16:12 ruddy kept as a warm undertone"
+      "job": "c77d1344-e6ee-4a94-81c5-976bcc277ecd",
+      "batch": "r-00",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: David, an Israelite man of the Tribe of Judah, King living at the time of United Monarchy; in his forties, a lean face and deep-set eyes, a dark brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: a richer dyed robe, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38); on his head a crown of gold set with precious stones (2 Samuel 12:30), a true crown, not a plain band. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
     },
     "esther-est-2-7": {
       "name": "Esther",
-      "job": "3ef6af9f-75b4-4d7f-808c-fc8176baf56e",
-      "batch": "pilot",
-      "notes": "Head covering"
+      "job": "dc7381a6-8071-4f5d-82eb-9d666974b95c",
+      "batch": "s-00",
+      "notes": "Tribe of Benjamin",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Esther, an Israelite woman of the Tribe of Benjamin, Woman living at the time of Exile and Return; a young woman in her twenties, a square jaw and wide nose, a rich dark brown complexion, tight woolly black coils, not locs. Dress: a richer dyed robe, a head covering wrap, modest dress; her hair fully covered by a cloth head covering (1 Corinthians 11:5-6), and on top of the covering the royal crown (Esther 2:17), a true crown of gold with raised points, set with precious stones; no hair showing. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
     },
     "ebed-melech-jer-38-7": {
       "name": "Ebed-melech",
@@ -68,59 +66,35 @@
       "batch": "1",
       "notes": "Fringes with ribband of blue; tight woolly coils (regenerated)"
     },
-    "pilate-mat-27-2": {
-      "name": "Pilate",
-      "job": "49a8ecda-ad4f-4ffd-9627-6b3321da9dcf",
-      "batch": "1",
-      "notes": "Edom by lineage; natural ruddy complexion as Esau"
-    },
     "tiberius-mat-22-17": {
       "name": "Tiberius",
-      "job": "e811d9e4-f1bd-4576-9460-24003e84b91c",
-      "batch": "1",
-      "notes": "Edom by lineage; natural ruddy complexion as Esau"
+      "job": "d1452077-6af6-4638-9a35-579654a9ad81",
+      "batch": "r-00",
+      "notes": "Italy",
+      "nation": "edom",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Tiberius, an Edomite man in Roman office, Emperor living at the time of the New Testament; in his forties, an oval face and heavy-lidded eyes, fair skin with a natural ruddy flush (Edom, as Genesis 25:25 describes Esau), thin straight light brown hair, clean-shaven, distinct features, dignified, not villainous. Dress: royal apparel (Acts 12:21); on his head a crown of gold set with precious stones (2 Samuel 12:30), a true crown, not a plain band. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
     },
     "herod-mat-2-1": {
-      "name": "Herod the Great",
-      "job": "569a3a6f-7cc0-4f18-a06e-d08d4619ff72",
-      "batch": "1",
-      "notes": "Edom by lineage; natural ruddy complexion as Esau"
-    },
-    "herod-mat-14-1": {
-      "name": "Herod Antipas",
-      "job": "62beaa0b-4858-4903-b4fa-df9d19428651",
-      "batch": "1",
-      "notes": "Edom by lineage; natural ruddy complexion as Esau"
-    },
-    "herod-act-12-1": {
-      "name": "Herod Agrippa I",
-      "job": "ee8c36ce-e4c0-4a03-bbde-6b100ec827eb",
-      "batch": "1",
-      "notes": "Edom by lineage; natural ruddy complexion as Esau"
-    },
-    "agrippa-act-25-13": {
-      "name": "Agrippa II",
-      "job": "34954897-5cbd-4c24-ace3-741d0810b411",
-      "batch": "1",
-      "notes": "Edom by lineage; natural ruddy complexion as Esau"
+      "name": "Herod",
+      "job": "3f09e0ff-6a12-49ee-aa98-efd16ec09ce8",
+      "batch": "r-00",
+      "notes": "Edom",
+      "nation": "edom",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Herod, an Edomite man, King Herod the Great: Ruler living at the time of the New Testament; in his fifties, a lean face and deep-set eyes, fair skin with a natural ruddy flush (Edom, as Genesis 25:25 describes Esau), thin straight reddish-brown hair, a short beard, distinct features, dignified, not villainous. Dress: royal apparel (Acts 12:21); on his head a crown of gold set with precious stones (2 Samuel 12:30), a true crown, not a plain band. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
     },
     "aaron-exo-4-14": {
       "name": "Aaron",
-      "job": "80b8c554-0204-4a8d-bef1-8b0018bf0f37",
-      "batch": "1",
-      "notes": "Levite high priest; linen mitre"
+      "job": "6b0a76fb-a8a0-4422-8436-d386eead669c",
+      "batch": "s-00",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Aaron, an Israelite man of the Tribe of Levi, High Priest living at the time of Egypt and Wilderness; an elder in his eighties, a broad face and strong brow, a rich dark brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: the holy garments of the high priest: the robe of the ephod all of blue (Exodus 28:31) and the breastplate of judgment of gold, blue, purple, scarlet and fine twined linen set with precious stones (Exodus 28:15-17), fringes on the borders of the garment held by a ribband of blue (Numbers 15:38); on his head the mitre of fine linen (Exodus 28:39), a wound white linen headdress, not a pointed bishop's mitre, with a small plate of pure gold tied by a blue lace upon its forefront (Exodus 28:36-37), any engraving too small to read. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
     },
     "judah-gen-29-35": {
       "name": "Judah",
       "job": "ec30e895-9ef7-4743-87a9-36947815d27e",
       "batch": "1",
       "notes": "Before Sinai"
-    },
-    "joseph-gen-30-24": {
-      "name": "Joseph",
-      "job": "845c669e-fa0e-463a-a522-ed2369cab797",
-      "batch": "1",
-      "notes": "Before Sinai; shaven in Egypt (Genesis 41:14)"
     },
     "isaac-gen-17-19": {
       "name": "Isaac",
@@ -130,9 +104,11 @@
     },
     "solomon-2sa-5-14": {
       "name": "Solomon",
-      "job": "36a2e248-3ef1-4fcb-b322-4ebde9e3afd1",
-      "batch": "1",
-      "notes": "Judah; Song of Solomon 1:5; fringes"
+      "job": "2002e69e-1969-4a68-b5e3-12c875301485",
+      "batch": "r-00",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Solomon, an Israelite man of the Tribe of Judah, King living at the time of United Monarchy; an elder in his seventies, a strong chin and furrowed brow, a very dark complexion, tight woolly grey-and-white coils, not locs, a long beard with its natural line. Dress: a richer dyed robe, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38); on his head a crown of gold set with precious stones (2 Samuel 12:30), a true crown, not a plain band. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
     },
     "levi-gen-29-34": {
       "name": "Levi",
@@ -143,10 +119,11 @@
     },
     "saul-1sa-9-2": {
       "name": "Saul",
-      "job": "7aeee06d-fc4f-43f4-9841-97caf2164dbf",
-      "batch": "2",
+      "job": "f997ed31-07b8-4022-ac2a-c10803bb49c5",
+      "batch": "r-00",
       "notes": "Tribe of Benjamin",
-      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Saul, an Israelite man of the Tribe of Benjamin, a tall, choice young king, higher than any of the people from his shoulders upward (1 Samuel 9:2); in his thirties, a wide face and prominent cheekbones, a deep black complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: a richer dyed robe and a simple gold circlet, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Saul, an Israelite man of the Tribe of Benjamin, a tall, choice young king, higher than any of the people from his shoulders upward (1 Samuel 9:2); in his thirties, a wide face and prominent cheekbones, a deep black complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: a richer dyed robe, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38); on his head a crown of gold set with precious stones (2 Samuel 12:30), a true crown, not a plain band. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
     },
     "joshua-exo-17-9": {
       "name": "Joshua",
@@ -183,26 +160,12 @@
       "notes": "Tribe of Judah",
       "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Joab, an Israelite man of the Tribe of Judah, David's compatriot living at the time of United Monarchy; an elder in his seventies, a square jaw and wide nose, a deep black complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
     },
-    "hezekiah-2ki-16-20": {
-      "name": "Hezekiah",
-      "job": "e4b693a9-5105-4852-b4d8-c0e59a2fca5e",
-      "batch": "2",
-      "notes": "Tribe of Judah",
-      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Hezekiah, an Israelite man of the Tribe of Judah, King living at the time of Divided Monarchy; in his forties, a lean face and deep-set eyes, a deep black complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: a richer dyed robe and a simple gold circlet, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
-    },
     "manasseh-gen-41-51": {
       "name": "Manasseh",
       "job": "72fdcdad-1366-4c54-b7f9-dbc19220f9e3",
       "batch": "2",
       "notes": "Tribe of Manasseh",
       "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Manasseh, an Israelite man of the Tribe of Manasseh, Joseph's son living at the time of the Patriarchs; in his thirties, a broad face and strong brow, a rich dark brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, no fringes. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
-    },
-    "pharaoh-exo-3-10": {
-      "name": "Pharaoh",
-      "job": "ce55a8fa-526e-4250-93d8-ade20b01388e",
-      "batch": "2",
-      "notes": "Egypt",
-      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Pharaoh, a Hamite man of Egypt, Pharaoh living at the time of Egypt and Wilderness; in his forties, a wide face and prominent cheekbones, a deep brown complexion, tight woolly black coils, not locs, clean-shaven. Dress: Egyptian royal nemes headcloth and a broad beaded collar, white linen. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
     },
     "absalom-2sa-3-3": {
       "name": "Absalom",
@@ -232,54 +195,12 @@
       "notes": "Tribe of Benjamin",
       "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Jonathan, an Israelite man of the Tribe of Benjamin, David's compatriot living at the time of United Monarchy; in his fifties, a square jaw and wide nose, a very dark complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
     },
-    "jeroboam-1ki-11-26": {
-      "name": "Jeroboam",
-      "job": "e282025c-64c9-46e2-ad01-3642bf66c222",
-      "batch": "3",
-      "notes": "Israel",
-      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Jeroboam, an Israelite man of Israel, King living at the time of United Monarchy and Divided Monarchy; in his thirties, a square jaw and wide nose, a deep black complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: a richer dyed robe and a simple gold circlet, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
-    },
-    "ahab-1ki-16-28": {
-      "name": "Ahab",
-      "job": "2d76296c-28c0-4b11-81bd-7e4698bb5680",
-      "batch": "3",
-      "notes": "Israel",
-      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Ahab, an Israelite man of Israel, King living at the time of Divided Monarchy; in his late twenties, an oval face and heavy-lidded eyes, a dark brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: a richer dyed robe and a simple gold circlet, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
-    },
-    "pharaoh-gen-37-36": {
-      "name": "Pharaoh",
-      "job": "6b92716c-6765-4b4d-8934-8d665ef2509e",
-      "batch": "3",
-      "notes": "Egypt",
-      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Pharaoh, a Hamite man of Egypt, Pharaoh living at the time of the Patriarchs; in his fifties, a square jaw and wide nose, a very dark complexion, tight woolly black coils, not locs, clean-shaven. Dress: Egyptian royal nemes headcloth and a broad beaded collar, white linen. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
-    },
-    "jehoshaphat-1ki-15-24": {
-      "name": "Jehoshaphat",
-      "job": "de283a2f-5db3-4198-9f05-dfa5b00812d6",
-      "batch": "3",
-      "notes": "Tribe of Judah",
-      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Jehoshaphat, an Israelite man of the Tribe of Judah, King living at the time of Divided Monarchy; in his fifties, a lean face and deep-set eyes, a very dark complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: a richer dyed robe and a simple gold circlet, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
-    },
-    "eleazar-exo-6-23": {
-      "name": "Eleazar",
-      "job": "c947dba2-0c20-44d9-8d70-bfddcb1dc6dc",
-      "batch": "3",
-      "notes": "Tribe of Levi",
-      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Eleazar, an Israelite man of the Tribe of Levi, High Priest living at the time of Egypt and Wilderness; in his late twenties, a broad face and strong brow, a dark brown complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: white linen garments and a white linen mitre, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
-    },
     "gad-gen-30-11": {
       "name": "Gad",
       "job": "1a811d5a-291c-4c1a-bd90-c0d164f10a87",
       "batch": "3",
       "notes": "Tribe of Gad",
       "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Gad, an Israelite man of the Tribe of Gad, Jacob's son living at the time of the Patriarchs; in his forties, a square jaw and wide nose, a rich dark brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, no fringes. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
-    },
-    "zedekiah-2ki-24-17": {
-      "name": "Zedekiah",
-      "job": "7dc0f45a-c08a-46f6-803a-4f6078809238",
-      "batch": "3",
-      "notes": "Tribe of Judah",
-      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Zedekiah, an Israelite man of the Tribe of Judah, King living at the time of Divided Monarchy; in his fifties, a broad face and strong brow, a deep brown complexion, tight woolly grey-and-white coils, not locs, a long beard with its natural line. Dress: a richer dyed robe and a simple gold circlet, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
     },
     "abner-1sa-14-50": {
       "name": "Abner",
@@ -288,19 +209,1004 @@
       "notes": "Tribe of Benjamin",
       "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Abner, an Israelite man of the Tribe of Benjamin, David's compatriot living at the time of United Monarchy; in his thirties, a lean face and deep-set eyes, a rich dark brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
     },
-    "asa-1ki-15-8": {
-      "name": "Asa",
-      "job": "3a055aa8-0b0c-47f9-a4d6-0d55031f6dcc",
-      "batch": "3",
-      "notes": "Tribe of Judah",
-      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Asa, an Israelite man of the Tribe of Judah, King living at the time of Divided Monarchy; in his sixties, a strong chin and furrowed brow, a deep black complexion, tight woolly grey-and-white coils, not locs, a full beard with its natural line. Dress: a richer dyed robe and a simple gold circlet, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
-    },
     "mordecai-est-2-5": {
       "name": "Mordecai",
       "job": "bce86690-a311-470d-8270-96f53dd5a093",
       "batch": "3",
       "notes": "Tribe of Judah",
       "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Mordecai, an Israelite man of the Tribe of Judah, Esther's relative living at the time of Exile and Return; in his fifties, a round face and full cheeks, a rich dark brown complexion, tight woolly grey-and-white coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "naphtali-gen-30-8": {
+      "name": "Naphtali",
+      "job": "b5ad3880-05c9-499b-800d-769fd2def227",
+      "batch": "a-00",
+      "notes": "Tribe of Naphtali",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Naphtali, an Israelite man of the Tribe of Naphtali, Jacob's son living at the time of the Patriarchs; in his thirties, a round face and full cheeks, a deep black complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, no fringes. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "merari-gen-46-11": {
+      "name": "Merari",
+      "job": "b3bfc584-51f4-43d1-a145-6ac739b571d8",
+      "batch": "a-00",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Merari, an Israelite man of the Tribe of Levi, Levite living at the time of Egypt and Wilderness; in his fifties, a lean face and deep-set eyes, a rich dark brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "gershon-gen-46-11": {
+      "name": "Gershon",
+      "job": "b32dfe38-364d-4254-8738-d4de4f3f0bc2",
+      "batch": "a-00",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Gershon, an Israelite man of the Tribe of Levi, Levite living at the time of Egypt and Wilderness; in his sixties, a long, narrow face and high cheekbones, a rich dark brown complexion, tight woolly grey-and-white coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "nun-exo-33-11": {
+      "name": "Nun",
+      "job": "ab66c03b-66ee-422d-b716-d359050d8710",
+      "batch": "a-00",
+      "notes": "Tribe of Ephraim",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Nun, an Israelite man of the Tribe of Ephraim, Man living at the time of Egypt and Wilderness; in his forties, a strong chin and furrowed brow, a deep black complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "nebat-1ki-11-26": {
+      "name": "Nebat",
+      "job": "b7db87a5-bce1-4499-8456-a88d85e51c41",
+      "batch": "a-00",
+      "notes": "Israel",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Nebat, an Israelite man of Israel, Man living at the time of United Monarchy; in his thirties, a lean face and deep-set eyes, a deep brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "ezra-ezr-7-1": {
+      "name": "Ezra",
+      "job": "1e796624-9189-4672-ba05-493dcb3a6df9",
+      "batch": "r-00",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Ezra, an Israelite man of the Tribe of Levi, Priest living at the time of Exile and Return; in his fifties, a strong chin and furrowed brow, a rich dark brown complexion, tight woolly grey-and-white coils, not locs, a long beard with its natural line. Dress: white linen garments, the coat and girdle of the priests (Exodus 28:40), fringes on the borders of the garment held by a ribband of blue (Numbers 15:38); on his head a bonnet of fine linen (Exodus 28:40). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
+    },
+    "machir-gen-50-23": {
+      "name": "Machir",
+      "job": "362ea8f0-bff1-43f1-b456-d3c601990c30",
+      "batch": "a-01",
+      "notes": "Tribe of Manasseh",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Machir, an Israelite man of the Tribe of Manasseh, Manasseh's son living at the time of Egypt and Wilderness; in his forties, a wide face and prominent cheekbones, a very dark complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "obed-edom-2sa-6-10": {
+      "name": "Obed-edom",
+      "job": "291516be-f70e-415f-8a10-a1e57221143f",
+      "batch": "a-01",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Obed-edom, an Israelite man of the Tribe of Levi, Singer living at the time of United Monarchy; in his sixties, a broad face and strong brow, a rich dark brown complexion, tight woolly grey-and-white coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "perez-gen-38-29": {
+      "name": "Perez",
+      "job": "aeaa20cd-e874-4c4f-b3a6-995451a5ad84",
+      "batch": "a-01",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Perez, an Israelite man of the Tribe of Judah, Man living at the time of Egypt and Wilderness; in his late twenties, a round face and full cheeks, a very dark complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "uzziel-exo-6-18": {
+      "name": "Uzziel",
+      "job": "674539eb-2609-4912-aea8-480fde39bd73",
+      "batch": "a-01",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Uzziel, an Israelite man of the Tribe of Levi, Aaron's uncle living at the time of Egypt and Wilderness; in his thirties, a round face and full cheeks, a dark brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "hur-exo-17-10": {
+      "name": "Hur",
+      "job": "e1376cb1-a22d-40b9-9ef8-0f03f5bcd299",
+      "batch": "a-01",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Hur, an Israelite man of the Tribe of Judah, Aaron's compatriot living at the time of Egypt and Wilderness; in his forties, a lean face and deep-set eyes, a deep black complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "elkanah-1sa-1-1": {
+      "name": "Elkanah",
+      "job": "55a78283-f931-44c4-a4f7-8ba13f6e7cce",
+      "batch": "a-01",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Elkanah, an Israelite man of the Tribe of Levi, Levite living at the time of United Monarchy; in his fifties, a square jaw and wide nose, a very dark complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "hori-gen-14-6": {
+      "name": "Hori",
+      "job": "e1e2f5e6-5596-4a7d-be89-d0a6145ebd3f",
+      "batch": "a-02",
+      "notes": "Seir (a Horite)",
+      "nation": "ham",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Hori, a Hamite man of Seir (a Horite), Man living at the time of the Patriarchs; in his late twenties, a broad face and strong brow, a rich dark brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain dress of Seir (a Horite). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "bezalel-exo-31-2": {
+      "name": "Bezaleel",
+      "job": "39605ee0-5115-4c53-ab4d-075aa707417a",
+      "batch": "a-02",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Bezaleel, an Israelite man of the Tribe of Judah, Man living at the time of Egypt and Wilderness; an elder in his seventies, a square jaw and wide nose, a deep black complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "elizabeth-luk-1-5": {
+      "name": "Elisabeth",
+      "job": "7770af77-1759-4b24-b012-48013e5adfb2",
+      "batch": "a-02",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Elisabeth, an Israelite woman of the Tribe of Levi, Woman living at the time of the New Testament; in her thirties, an oval face and heavy-lidded eyes, a dark brown complexion, tight woolly black coils, not locs. Dress: plain undyed wool and linen in earth tones, a head covering wrap, modest dress. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "abiezer-num-26-30": {
+      "name": "Abiezer",
+      "job": "a2bf745d-7e50-44c5-ae05-83ea5d91436d",
+      "batch": "a-02",
+      "notes": "Tribe of Manasseh",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Abiezer, an Israelite man of the Tribe of Manasseh, Man living at the time of Egypt and Wilderness; in his sixties, an oval face and heavy-lidded eyes, a deep brown complexion, tight woolly grey-and-white coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "bela-gen-46-21": {
+      "name": "Bela",
+      "job": "a3e9253f-dc2d-47b5-b289-96072647f555",
+      "batch": "a-02",
+      "notes": "Tribe of Benjamin",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Bela, an Israelite man of the Tribe of Benjamin, Man living at the time of Egypt and Wilderness; in his sixties, a round face and full cheeks, a rich dark brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "abiel-1sa-9-1": {
+      "name": "Abiel",
+      "job": "cc2bc1e0-fb69-43e4-8fba-b81b6f21ef4f",
+      "batch": "a-02",
+      "notes": "Tribe of Benjamin",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Abiel, an Israelite man of the Tribe of Benjamin, Man living at the time of United Monarchy; in his fifties, a square jaw and wide nose, a deep black complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "dan-gen-30-6": {
+      "name": "Dan",
+      "job": "c9cc8aed-b049-44d6-9878-6ae92f44b9de",
+      "batch": "a-02",
+      "notes": "Tribe of Dan",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Dan, an Israelite man of the Tribe of Dan, Jacob's son living at the time of the Patriarchs; in his forties, a round face and full cheeks, a rich dark brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, no fringes. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "er-gen-38-3": {
+      "name": "Er",
+      "job": "dbb218c9-5926-4538-9a53-cd4d5e16312a",
+      "batch": "a-02",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Er, an Israelite man of the Tribe of Judah, Man living at the time of Egypt and Wilderness; an elder in his seventies, a wide face and prominent cheekbones, a rich dark brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "issachar-gen-30-18": {
+      "name": "Issachar",
+      "job": "af8ed687-4b20-47ca-8230-aa45f3d78e66",
+      "batch": "b-00",
+      "notes": "Tribe of Issachar",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Issachar, an Israelite man of the Tribe of Issachar, Jacob's son living at the time of the Patriarchs; in his forties, a wide face and prominent cheekbones, a deep black complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, no fringes. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "asaph-1ch-6-39": {
+      "name": "Asaph",
+      "job": "889200ab-8832-40c6-acb8-c8055e973049",
+      "batch": "b-00",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Asaph, an Israelite man of the Tribe of Levi, Singer living at the time of Divided Monarchy; in his fifties, a wide face and prominent cheekbones, a deep black complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "zeruiah-1sa-26-6": {
+      "name": "Zeruiah",
+      "job": "eb7222c6-825c-453d-bb16-577c503a4b7b",
+      "batch": "b-00",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Zeruiah, an Israelite woman of the Tribe of Judah, Woman living at the time of United Monarchy; in her forties, a lean face and deep-set eyes, a very dark complexion, tight woolly black coils, not locs. Dress: plain undyed wool and linen in earth tones, a head covering wrap, modest dress. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "micah-jdg-17-1": {
+      "name": "Micah",
+      "job": "112f8ad4-10bf-4e2c-97d7-1d65eff5b421",
+      "batch": "r-00",
+      "notes": "Israel",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Micah, an Israelite man of Israel, Man of mount Ephraim (Judges 17:1) living before Israel's Monarchy; in his late twenties, a strong chin and furrowed brow, a rich dark brown complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38); bare head (1 Corinthians 11:4): no crown, no headband, no hat, no turban. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
+    },
+    "joseph-mat-1-16": {
+      "name": "Joseph",
+      "job": "37a8a8c4-27c1-4722-b2e9-cea7ad85b097",
+      "batch": "b-01",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Joseph, an Israelite man of the Tribe of Judah, Mary's husband living at the time of the New Testament; in his sixties, a round face and full cheeks, a very dark complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "asahel-2sa-2-18": {
+      "name": "Asahel",
+      "job": "5f0c0072-583f-4b37-92f2-70f3b7708243",
+      "batch": "b-01",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Asahel, an Israelite man of the Tribe of Judah, David's compatriot living at the time of United Monarchy; in his sixties, a round face and full cheeks, a rich dark brown complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "remaliah-2ki-15-25": {
+      "name": "Remaliah",
+      "job": "191044a8-bb07-4a1c-82f9-ae2723ab8aad",
+      "batch": "b-01",
+      "notes": "Israel",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Remaliah, an Israelite man of Israel, Man living at the time of Divided Monarchy; in his thirties, an oval face and heavy-lidded eyes, a deep brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "abihu-exo-6-23": {
+      "name": "Abihu",
+      "job": "743a46df-4ebd-465b-9d26-d0e78ab55ea8",
+      "batch": "s-00",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Abihu, an Israelite man of the Tribe of Levi, Priest living at the time of Egypt and Wilderness; in his fifties, a broad face and strong brow, a dark brown complexion, tight woolly grey-and-white coils, not locs, a short full beard with its natural line. Dress: white linen garments, the coat and girdle of the priests (Exodus 28:40), fringes on the borders of the garment held by a ribband of blue (Numbers 15:38); on his head a bonnet of fine linen (Exodus 28:40). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
+    },
+    "ish-bosheth-2sa-2-8": {
+      "name": "Ish-bosheth",
+      "job": "d0a5a4fc-f51c-4922-bd1c-613f77996124",
+      "batch": "b-01",
+      "notes": "Tribe of Benjamin",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Ish-bosheth, an Israelite man of the Tribe of Benjamin, Saul's son living at the time of United Monarchy; in his thirties, a square jaw and wide nose, a very dark complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "amminadab-exo-6-23": {
+      "name": "Amminadab",
+      "job": "9f6b2b1e-c5a8-4513-b054-42e187d3de36",
+      "batch": "b-01",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Amminadab, an Israelite man of the Tribe of Judah, Man living at the time of Egypt and Wilderness; in his fifties, a strong chin and furrowed brow, a very dark complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "shealtiel-1ch-3-17": {
+      "name": "Shealtiel",
+      "job": "c4411aea-d6eb-4540-893f-06ac99b3ad02",
+      "batch": "b-01",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Shealtiel, an Israelite man of the Tribe of Judah, Man living at the time of Exile and Return; in his thirties, a lean face and deep-set eyes, a dark brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "mahli-exo-6-19": {
+      "name": "Mahli",
+      "job": "7e0f6fc3-f5dd-4ab5-9cc1-302cb21199c5",
+      "batch": "b-01",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Mahli, an Israelite man of the Tribe of Levi, Levite living at the time of Egypt and Wilderness; in his fifties, an oval face and heavy-lidded eyes, a deep black complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "bichri-2sa-20-1": {
+      "name": "Bichri",
+      "job": "a93a0a95-2335-4cce-8036-b76d036901dc",
+      "batch": "b-02",
+      "notes": "Tribe of Benjamin",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Bichri, an Israelite man of the Tribe of Benjamin, Man living at the time of United Monarchy; in his forties, a strong chin and furrowed brow, a deep black complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "libni-exo-6-17": {
+      "name": "Libni",
+      "job": "d75e7914-384a-4b21-ab91-0024a49082c0",
+      "batch": "b-02",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Libni, an Israelite man of the Tribe of Levi, Levite living at the time of Egypt and Wilderness; in his sixties, a round face and full cheeks, a very dark complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "dathan-num-16-1": {
+      "name": "Dathan",
+      "job": "fc971d0f-1c67-44e6-abf3-6b78966ecd34",
+      "batch": "b-02",
+      "notes": "Tribe of Reuben",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Dathan, an Israelite man of the Tribe of Reuben, Man living at the time of Egypt and Wilderness; in his sixties, a round face and full cheeks, a deep black complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "sheba-2sa-20-1": {
+      "name": "Sheba",
+      "job": "d5ee5b62-a1d7-4587-888b-c803d0849fa4",
+      "batch": "b-02",
+      "notes": "Tribe of Benjamin",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Sheba, an Israelite man of the Tribe of Benjamin, Man living at the time of United Monarchy; in his forties, a strong chin and furrowed brow, a deep black complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "achan-jos-7-1": {
+      "name": "Achan",
+      "job": "a206619f-e317-432c-a33a-762ad7106bc2",
+      "batch": "b-02",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Achan, an Israelite man of the Tribe of Judah, Man living before Israel's Monarchy; in his fifties, a long, narrow face and high cheekbones, a rich dark brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "shimeah-1sa-16-9": {
+      "name": "Shimeah",
+      "job": "d4d08f73-88c3-45ed-bc54-787b4c48d46a",
+      "batch": "b-02",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Shimeah, an Israelite man of the Tribe of Judah, David's brother living at the time of United Monarchy; in his fifties, a broad face and strong brow, a very dark complexion, tight woolly grey-and-white coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "adah-gen-26-34": {
+      "name": "Adah",
+      "job": "161bd0c7-0460-4b13-9d3a-b17024f80277",
+      "batch": "b-02",
+      "notes": "Canaan (a Hittite)",
+      "nation": "ham",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Adah, a Hamite woman of Canaan (a Hittite), Woman living at the time of the Patriarchs; in her late twenties, an oval face and heavy-lidded eyes, a rich dark brown complexion, tight woolly black coils, not locs. Dress: plain dress of Canaan (a Hittite), modest dress. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "elimelech-rut-1-2": {
+      "name": "Elimelech",
+      "job": "260c00a1-2f21-4da6-ba5f-23f1a83ad775",
+      "batch": "b-02",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Elimelech, an Israelite man of the Tribe of Judah, Man living before Israel's Monarchy; an elder in his seventies, a long, narrow face and high cheekbones, a very dark complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "gershom-exo-2-22": {
+      "name": "Gershom",
+      "job": "a8c6442d-ccb1-4b7c-808f-3189277b50eb",
+      "batch": "b-02",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Gershom, an Israelite man of the Tribe of Levi, Levite living at the time of Egypt and Wilderness; in his forties, an oval face and heavy-lidded eyes, a deep brown complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "zebulun-gen-30-20": {
+      "name": "Zebulun",
+      "job": "8825776f-85d9-4118-ac5c-1e128fbf2ed1",
+      "batch": "c-00",
+      "notes": "Tribe of Zebulun",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Zebulun, an Israelite man of the Tribe of Zebulun, Jacob's son living at the time of the Patriarchs; in his forties, an oval face and heavy-lidded eyes, a deep brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, no fringes. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "simeon-gen-29-33": {
+      "name": "Simeon",
+      "job": "491e3a46-55b0-4069-bf9a-8322a2913dff",
+      "batch": "c-00",
+      "notes": "Tribe of Simeon",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Simeon, an Israelite man of the Tribe of Simeon, Jacob's son living at the time of the Patriarchs; in his forties, a long, narrow face and high cheekbones, a very dark complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, no fringes. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "barnabas-act-4-36": {
+      "name": "Barnabas",
+      "job": "e217b0f2-91a2-4137-a9b3-e5642d4389cb",
+      "batch": "c-00",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Barnabas, an Israelite man of the Tribe of Levi, Levite living at the time of the New Testament; in his late twenties, a strong chin and furrowed brow, a very dark complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "abishai-1sa-26-6": {
+      "name": "Abishai",
+      "job": "dab92965-152a-49e9-9d7a-389c3c4fa4bd",
+      "batch": "c-00",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Abishai, an Israelite man of the Tribe of Judah, David's warrior living at the time of United Monarchy; in his forties, a long, narrow face and high cheekbones, a deep brown complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "abijah-1ki-14-31": {
+      "name": "Abijah",
+      "job": "d246beb1-cda0-4717-8d20-ab7ecde93bd7",
+      "batch": "s-00",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Abijah, an Israelite man of the Tribe of Judah, King living at the time of Divided Monarchy; an elder in his seventies, a round face and full cheeks, a very dark complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: a richer dyed robe, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38); on his head a crown of gold set with precious stones (2 Samuel 12:30): a true crown with raised points all around, not a band, not a circlet, not a diadem. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
+    },
+    "mary-mat-1-16": {
+      "name": "Mary",
+      "job": "8626b506-7466-443f-8d66-c534b083bdad",
+      "batch": "c-00",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Mary, an Israelite woman of the Tribe of Levi, Jesus' mother living at the time of the New Testament; in her late twenties, a square jaw and wide nose, a deep black complexion, tight woolly black coils, not locs. Dress: plain undyed wool and linen in earth tones, a head covering wrap, modest dress. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "zerah-gen-38-30": {
+      "name": "Zerah",
+      "job": "d7763471-c84f-416c-b01a-2e5df3de587a",
+      "batch": "c-01",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Zerah, an Israelite man of the Tribe of Judah, Judah's son living at the time of Egypt and Wilderness; in his forties, a square jaw and wide nose, a dark brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "michal-1sa-14-49": {
+      "name": "Michal",
+      "job": "254b2c94-a9eb-4e8f-a89c-d5d45eea0ec5",
+      "batch": "c-01",
+      "notes": "Tribe of Benjamin",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Michal, an Israelite woman of the Tribe of Benjamin, Woman living at the time of United Monarchy; in her thirties, a round face and full cheeks, a dark brown complexion, tight woolly black coils, not locs. Dress: plain undyed wool and linen in earth tones, a head covering wrap, modest dress. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "mephibosheth-2sa-4-4": {
+      "name": "Mephibosheth",
+      "job": "ba511918-ddc3-42a9-9a67-c3009e320df4",
+      "batch": "c-01",
+      "notes": "Tribe of Benjamin",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Mephibosheth, an Israelite man of the Tribe of Benjamin, Jonathan's son living at the time of United Monarchy; in his forties, a broad face and strong brow, a deep black complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "amram-exo-6-18": {
+      "name": "Amram",
+      "job": "7d142a79-f1c6-4cb5-8c88-debb0043d480",
+      "batch": "c-01",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Amram, an Israelite man of the Tribe of Levi, Moses' father living at the time of Egypt and Wilderness; in his fifties, an oval face and heavy-lidded eyes, a deep black complexion, tight woolly grey-and-white coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "tamar-2sa-13-1": {
+      "name": "Tamar",
+      "job": "5a60c323-05c6-49c8-95ba-5dd9144c5cb4",
+      "batch": "c-01",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Tamar, an Israelite woman of the Tribe of Judah, David's daughter living at the time of United Monarchy; a young woman in her twenties, a broad face and strong brow, a rich dark brown complexion, tight woolly black coils, not locs. Dress: plain undyed wool and linen in earth tones, a head covering wrap, modest dress. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "hebron-exo-6-18": {
+      "name": "Hebron",
+      "job": "80643004-ada4-4c53-b17b-6c5fdf4dfab5",
+      "batch": "c-01",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Hebron, an Israelite man of the Tribe of Levi, Levite living at the time of Egypt and Wilderness; an elder in his seventies, a lean face and deep-set eyes, a deep black complexion, tight woolly grey-and-white coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "james-mat-13-55": {
+      "name": "James",
+      "job": "52787632-8aa9-449f-9b66-edca5a46f5a8",
+      "batch": "c-01",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: James, an Israelite man of the Tribe of Judah, Man living at the time of the New Testament; in his late twenties, a square jaw and wide nose, a deep brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "anah-gen-36-2": {
+      "name": "Anah",
+      "job": "e2dd0d90-7fcf-4e83-80f0-96e032af8ff8",
+      "batch": "c-01",
+      "notes": "Seir (a Horite)",
+      "nation": "ham",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Anah, a Hamite man of Seir (a Horite), Man living at the time of the Patriarchs; in his late twenties, a round face and full cheeks, a deep brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain dress of Seir (a Horite). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "mark-act-12-12": {
+      "name": "Mark",
+      "job": "6850ce4a-9400-4309-a5a9-f39b10120913",
+      "batch": "c-01",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Mark, an Israelite man of the Tribe of Levi, Levite living at the time of the New Testament; in his sixties, a broad face and strong brow, a rich dark brown complexion, tight woolly grey-and-white coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "zelophehad-num-26-33": {
+      "name": "Zelophehad",
+      "job": "95467fdd-73bd-4c6a-9a0e-4b5a763711ff",
+      "batch": "c-02",
+      "notes": "Tribe of Manasseh",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Zelophehad, an Israelite man of the Tribe of Manasseh, Man living at the time of Egypt and Wilderness; in his thirties, a strong chin and furrowed brow, a deep brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "ehud-jdg-3-15": {
+      "name": "Ehud",
+      "job": "87de3aa0-d70f-4a82-b9b4-81c6c36963b7",
+      "batch": "c-02",
+      "notes": "Tribe of Benjamin",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Ehud, an Israelite man of the Tribe of Benjamin, Judge living before Israel's Monarchy; in his thirties, a round face and full cheeks, a rich dark brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "jerahmeel-1sa-27-10": {
+      "name": "Jerahmeel",
+      "job": "347db46e-a769-43a8-a2d4-c689e0e89061",
+      "batch": "c-02",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Jerahmeel, an Israelite man of the Tribe of Judah, Man living before Israel's Monarchy; in his late twenties, a strong chin and furrowed brow, a deep black complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "shelah-gen-38-5": {
+      "name": "Shelah",
+      "job": "1ece8fdb-8036-40bc-9cc0-9701f64a1329",
+      "batch": "c-02",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Shelah, an Israelite man of the Tribe of Judah, Man living at the time of Egypt and Wilderness; in his sixties, a strong chin and furrowed brow, a deep brown complexion, tight woolly grey-and-white coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "jonadab-2sa-13-3": {
+      "name": "Jonadab",
+      "job": "8014b54c-b42a-4b78-a1a8-c6b06e27620a",
+      "batch": "c-02",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Jonadab, an Israelite man of the Tribe of Judah, David's nephew living at the time of United Monarchy; in his sixties, a round face and full cheeks, a very dark complexion, tight woolly grey-and-white coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "shimei-exo-6-17": {
+      "name": "Shimei",
+      "job": "5444c7eb-3d91-4125-b427-cfc46bd45c57",
+      "batch": "c-02",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Shimei, an Israelite man of the Tribe of Levi, Levite living at the time of Egypt and Wilderness; in his late twenties, an oval face and heavy-lidded eyes, a deep black complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "ahoah-2sa-23-9": {
+      "name": "Ahoah",
+      "job": "e89f9913-fa42-43c7-9b7e-9630a7b1112f",
+      "batch": "c-02",
+      "notes": "Tribe of Benjamin",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Ahoah, an Israelite man of the Tribe of Benjamin, Man living at the time of Egypt and Wilderness; an elder in his seventies, a long, narrow face and high cheekbones, a dark brown complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "elishama-num-1-10": {
+      "name": "Elishama",
+      "job": "909bda22-2bb8-4ef2-905b-da01f57dc9d3",
+      "batch": "c-02",
+      "notes": "Tribe of Ephraim",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Elishama, an Israelite man of the Tribe of Ephraim, Man living at the time of Egypt and Wilderness; in his forties, a strong chin and furrowed brow, a very dark complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "obed-rut-4-17": {
+      "name": "Obed",
+      "job": "ea549fe9-9d5d-4c88-82dd-43655430b251",
+      "batch": "c-02",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Obed, an Israelite man of the Tribe of Judah, Man living before Israel's Monarchy; in his thirties, a lean face and deep-set eyes, a deep brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "asher-gen-30-13": {
+      "name": "Asher",
+      "job": "3eb57a79-a9a8-4fd0-acaa-0ba8fd580fc1",
+      "batch": "d-00",
+      "notes": "Tribe of Asher",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Asher, an Israelite man of the Tribe of Asher, Jacob's son living at the time of the Patriarchs; in his fifties, a wide face and prominent cheekbones, a deep brown complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, no fringes. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "kohath-gen-46-11": {
+      "name": "Kohath",
+      "job": "5025946c-e313-4c7a-8475-f85848d56958",
+      "batch": "d-00",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Kohath, an Israelite man of the Tribe of Levi, Levi's son living at the time of Egypt and Wilderness; an elder in his seventies, a strong chin and furrowed brow, a dark brown complexion, tight woolly grey-and-white coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "korah-exo-6-21": {
+      "name": "Korah",
+      "job": "bfdb9901-7e0f-4061-b717-b53b74deeeed",
+      "batch": "d-00",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Korah, an Israelite man of the Tribe of Levi, Aaron's adversary living at the time of Egypt and Wilderness; an elder in his seventies, a broad face and strong brow, a very dark complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "eli-1sa-1-3": {
+      "name": "Eli",
+      "job": "e9db1736-d27d-4012-abff-40839c4a2e97",
+      "batch": "r-00",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Eli, an Israelite man of the Tribe of Levi, a very old and heavy high priest, eyes dim (1 Samuel 4:15); an elder in his nineties, a broad face and strong brow, a very dark complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: the holy garments of the high priest: the robe of the ephod all of blue (Exodus 28:31) and the breastplate of judgment of gold, blue, purple, scarlet and fine twined linen set with precious stones (Exodus 28:15-17), fringes on the borders of the garment held by a ribband of blue (Numbers 15:38); on his head the mitre of fine linen with a plate of pure gold on a blue lace upon its forefront (Exodus 28:36-39), any engraving too small to read. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
+    },
+    "zerubbabel-1ch-3-19": {
+      "name": "Zerubbabel",
+      "job": "1601fe87-7642-4cbe-8125-52ae8117f028",
+      "batch": "d-00",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Zerubbabel, an Israelite man of the Tribe of Judah, Governor living at the time of Exile and Return; in his forties, a broad face and strong brow, a deep brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "adonijah-2sa-3-4": {
+      "name": "Adonijah",
+      "job": "116651c4-67d7-4e07-8b82-dee451cef4f6",
+      "batch": "d-00",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Adonijah, an Israelite man of the Tribe of Judah, David's son living at the time of United Monarchy; in his sixties, a long, narrow face and high cheekbones, a dark brown complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "boaz-rut-2-1": {
+      "name": "Boaz",
+      "job": "0982200d-9f71-417b-b1ad-44ffd94d7e1e",
+      "batch": "d-00",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Boaz, an Israelite man of the Tribe of Judah, Man living before Israel's Monarchy; in his forties, a lean face and deep-set eyes, a dark brown complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "amnon-2sa-3-2": {
+      "name": "Amnon",
+      "job": "4861ed8b-2180-4d58-bb98-09cf9b54d4e9",
+      "batch": "d-00",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Amnon, an Israelite man of the Tribe of Judah, David's son living at the time of United Monarchy; an elder in his seventies, a round face and full cheeks, a dark brown complexion, tight woolly grey-and-white coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "nethaniah-2ki-25-23": {
+      "name": "Nethaniah",
+      "job": "d8bb09f3-75dc-48bf-8487-8ed1f0029aec",
+      "batch": "d-01",
+      "notes": "Tribe of Benjamin",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Nethaniah, an Israelite man of the Tribe of Benjamin, Man living at the time of Divided Monarchy; in his fifties, a round face and full cheeks, a deep brown complexion, tight woolly grey-and-white coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "jeduthun-1ch-6-44": {
+      "name": "Jeduthun",
+      "job": "3d602273-fb4e-4dd4-84e6-a501ed082c26",
+      "batch": "d-01",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Jeduthun, an Israelite man of the Tribe of Levi, Singer living at the time of United Monarchy; in his late twenties, a lean face and deep-set eyes, a dark brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "izhar-exo-6-18": {
+      "name": "Izhar",
+      "job": "6ad7c377-2ac1-4f6d-8bc5-a9dce0132762",
+      "batch": "d-01",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Izhar, an Israelite man of the Tribe of Levi, Levite living at the time of Egypt and Wilderness; an elder in his seventies, an oval face and heavy-lidded eyes, a deep brown complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "ner-1sa-14-50": {
+      "name": "Ner",
+      "job": "c2fc13fa-18fa-4d87-8f3c-261c4159d59b",
+      "batch": "d-01",
+      "notes": "Tribe of Benjamin",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Ner, an Israelite man of the Tribe of Benjamin, Saul's uncle living at the time of United Monarchy; an elder in his seventies, a round face and full cheeks, a deep black complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "kish-1sa-9-1": {
+      "name": "Kish",
+      "job": "508add48-a933-4e86-9e41-6d13f97e13d7",
+      "batch": "d-01",
+      "notes": "Tribe of Benjamin",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Kish, an Israelite man of the Tribe of Benjamin, Saul's father living at the time of United Monarchy; in his forties, a lean face and deep-set eyes, a deep brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "teman-gen-36-11": {
+      "name": "Teman",
+      "job": "41e8eb38-ca2d-4e44-aafd-021d2760b702",
+      "batch": "d-01",
+      "notes": "Edom",
+      "nation": "edom",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Teman, an Edomite man, Edomite living at the time of the Patriarchs; in his sixties, a round face and full cheeks, fair skin with a natural ruddy flush (Edom, as Genesis 25:25 describes Esau), thin straight greying brown hair, clean-shaven, distinct features, dignified, not villainous. Dress: rough tan wool with a leather strap across the shoulder. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "heman-1ch-6-33": {
+      "name": "Heman",
+      "job": "511b5c5a-e3ec-41d0-b786-b530a8fda6e7",
+      "batch": "d-01",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Heman, an Israelite man of the Tribe of Levi, Singer living at the time of United Monarchy; in his forties, a broad face and strong brow, a dark brown complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "nahshon-exo-6-23": {
+      "name": "Nahshon",
+      "job": "9858da65-fcfd-4261-ac68-048eca944cb9",
+      "batch": "d-01",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Nahshon, an Israelite man of the Tribe of Judah, Man living before Israel's Monarchy; in his sixties, a lean face and deep-set eyes, a dark brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "caleb-1ch-2-9": {
+      "name": "Caleb",
+      "job": "fed29c2e-96fe-4737-af31-ff949107a02e",
+      "batch": "d-01",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Caleb, an Israelite man of the Tribe of Judah, Man living at the time of Egypt and Wilderness; in his late twenties, an oval face and heavy-lidded eyes, a very dark complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "mushi-exo-6-19": {
+      "name": "Mushi",
+      "job": "32228f91-4c8e-4e2e-bcf8-6171947d5c87",
+      "batch": "d-01",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Mushi, an Israelite man of the Tribe of Levi, Levite living at the time of Egypt and Wilderness; in his forties, an oval face and heavy-lidded eyes, a rich dark brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "gilead-num-26-29": {
+      "name": "Gilead",
+      "job": "195d3ac6-100c-44a1-a024-bd3212e999f7",
+      "batch": "d-02",
+      "notes": "Tribe of Manasseh",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Gilead, an Israelite man of the Tribe of Manasseh, Man living at the time of Egypt and Wilderness; in his forties, a broad face and strong brow, a very dark complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "abiram-num-16-1": {
+      "name": "Abiram",
+      "job": "18ed8449-7bd3-4e0e-ac65-ee63e2a5f1dd",
+      "batch": "d-02",
+      "notes": "Tribe of Reuben",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Abiram, an Israelite man of the Tribe of Reuben, Aaron's adversary living at the time of Egypt and Wilderness; in his sixties, a wide face and prominent cheekbones, a very dark complexion, tight woolly grey-and-white coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "eliphaz-gen-36-4": {
+      "name": "Eliphaz",
+      "job": "600ab249-f72c-4846-865a-a95bf0280160",
+      "batch": "d-02",
+      "notes": "Edom",
+      "nation": "edom",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Eliphaz, an Edomite man, Edomite living at the time of the Patriarchs; in his late twenties, a lean face and deep-set eyes, fair skin with a natural ruddy flush (Edom, as Genesis 25:25 describes Esau), thin straight greying brown hair, a trimmed beard, distinct features, dignified, not villainous. Dress: rough tan wool with a leather strap across the shoulder. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "maacah-1ki-15-2": {
+      "name": "Maachah",
+      "job": "baeb82b1-1106-4de5-806e-4497f46e4b81",
+      "batch": "d-02",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Maachah, an Israelite woman of the Tribe of Judah, Woman living at the time of United Monarchy; an elder woman in her seventies, a long, narrow face and high cheekbones, a rich dark brown complexion, tight woolly black coils, not locs. Dress: plain undyed wool and linen in earth tones, a head covering wrap, modest dress. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "alphaeus-mat-10-3": {
+      "name": "Alpheus",
+      "job": "d742360a-1dce-42c8-9cf9-f62f1bbc0a93",
+      "batch": "d-02",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Alpheus, an Israelite man of the Tribe of Judah, Man living at the time of the New Testament; in his late twenties, a broad face and strong brow, a deep black complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "oholibamah-gen-36-2": {
+      "name": "Aholibamah",
+      "job": "d012d6cb-ca7b-4b0e-bf4e-40fdce477d0c",
+      "batch": "d-02",
+      "notes": "Seir (a Horite)",
+      "nation": "ham",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Aholibamah, a Hamite woman of Seir (a Horite), Woman living at the time of the Patriarchs; in her fifties, a round face and full cheeks, a deep brown complexion, tight woolly grey-and-white coils, not locs. Dress: plain dress of Seir (a Horite), modest dress. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "zechariah-1ch-9-21": {
+      "name": "Zechariah",
+      "job": "6910272b-a07b-4395-9d71-5b1b70c5c349",
+      "batch": "d-02",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Zechariah, an Israelite man of the Tribe of Levi, Singer living at the time of Exile and Return; an elder in his seventies, an oval face and heavy-lidded eyes, a dark brown complexion, tight woolly grey-and-white coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "ammihud-num-1-10": {
+      "name": "Ammihud",
+      "job": "8d222fdc-c14c-4962-93a3-367d246ea435",
+      "batch": "d-02",
+      "notes": "Tribe of Ephraim",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Ammihud, an Israelite man of the Tribe of Ephraim, Man living at the time of Egypt and Wilderness; in his sixties, a broad face and strong brow, a very dark complexion, tight woolly grey-and-white coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "ephrathah-rut-1-2": {
+      "name": "Ephratah",
+      "job": "22a8335f-cdf6-43cd-ad51-45629ab2b7fe",
+      "batch": "d-02",
+      "notes": "Tribe of Judah(?)",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Ephratah, an Israelite woman of the Tribe of Judah, Woman living at the time of Egypt and Wilderness; in her forties, a square jaw and wide nose, a very dark complexion, tight woolly black coils, not locs. Dress: plain undyed wool and linen in earth tones, a head covering wrap, modest dress. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "jehiel-1ch-6-20": {
+      "name": "Jehiel",
+      "job": "52bd5231-ec68-4d48-ac0e-8c7b05284b00",
+      "batch": "d-02",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Jehiel, an Israelite man of the Tribe of Levi, Levite living at the time of Divided Monarchy; in his fifties, a strong chin and furrowed brow, a deep black complexion, tight woolly grey-and-white coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "onan-gen-38-4": {
+      "name": "Onan",
+      "job": "468962f7-96c5-4648-a356-6ee95e101658",
+      "batch": "d-02",
+      "notes": "Tribe of Judah",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Onan, an Israelite man of the Tribe of Judah, Man living at the time of Egypt and Wilderness; in his late twenties, a wide face and prominent cheekbones, a deep black complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "ahiezer-num-1-12": {
+      "name": "Ahiezer",
+      "job": "407d9745-c4df-4081-bb0f-939cdcecf20b",
+      "batch": "d-03",
+      "notes": "Tribe of Dan",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Ahiezer, an Israelite man of the Tribe of Dan, Man living at the time of Egypt and Wilderness; in his late twenties, a round face and full cheeks, a deep brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "beriah-gen-46-17": {
+      "name": "Beriah",
+      "job": "a12af7cf-2650-4b81-96da-870fe1bb9f49",
+      "batch": "d-03",
+      "notes": "Tribe of Asher",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Beriah, an Israelite man of the Tribe of Asher, Man living at the time of Egypt and Wilderness; in his late twenties, a lean face and deep-set eyes, a very dark complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "ebiasaph-exo-6-24": {
+      "name": "Ebiasaph",
+      "job": "54794098-e814-4a41-88ac-d70de4d23acf",
+      "batch": "d-03",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Ebiasaph, an Israelite man of the Tribe of Levi, Levite living at the time of Egypt and Wilderness; in his forties, a long, narrow face and high cheekbones, a deep brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "eliasaph-num-1-14": {
+      "name": "Eliasaph",
+      "job": "8c39726d-7d5c-4039-a898-1a820fdd0d9f",
+      "batch": "d-03",
+      "notes": "Tribe of Gad",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Eliasaph, an Israelite man of the Tribe of Gad, Man living at the time of Egypt and Wilderness; in his thirties, a broad face and strong brow, a deep black complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "ezer-gen-36-21": {
+      "name": "Ezer",
+      "job": "eff398eb-da65-4165-af25-c0f14a4a2de5",
+      "batch": "d-03",
+      "notes": "Seir (a Horite)",
+      "nation": "ham",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Ezer, a Hamite man of Seir (a Horite), Man living at the time of the Patriarchs; an elder in his seventies, a square jaw and wide nose, a deep brown complexion, tight woolly grey-and-white coils, not locs, a long beard with its natural line. Dress: plain dress of Seir (a Horite). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "helon-num-1-9": {
+      "name": "Helon",
+      "job": "96e6ef29-fc42-449c-af11-4c93579b49c3",
+      "batch": "d-03",
+      "notes": "Tribe of Zebulun",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Helon, an Israelite man of the Tribe of Zebulun, Man living at the time of Egypt and Wilderness; in his late twenties, a square jaw and wide nose, a deep brown complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "kenaz-gen-36-11": {
+      "name": "Kenaz",
+      "job": "aa85ec94-e9cb-4de4-93d3-0fa343eb48fd",
+      "batch": "d-03",
+      "notes": "Edom",
+      "nation": "edom",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Kenaz, an Edomite man, Edomite living at the time of the Patriarchs; an elder in his seventies, a square jaw and wide nose, fair skin with a natural ruddy flush (Edom, as Genesis 25:25 describes Esau), thin straight greying brown hair, a short beard, distinct features, dignified, not villainous. Dress: rough tan wool with a leather strap across the shoulder. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "meshelemiah-1ch-9-21": {
+      "name": "Meshelemiah",
+      "job": "084ab912-c80c-4b53-b47b-01516a6faf28",
+      "batch": "d-03",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Meshelemiah, an Israelite man of the Tribe of Levi, Levite living at the time of Exile and Return; in his sixties, an oval face and heavy-lidded eyes, a deep brown complexion, tight woolly grey-and-white coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "nimshi-1ki-19-16": {
+      "name": "Nimshi",
+      "job": "06f39fa4-41c3-4f95-9d39-3a34f0954077",
+      "batch": "d-03",
+      "notes": "Israel",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Nimshi, an Israelite man of Israel, Man living at the time of Divided Monarchy; in his forties, a wide face and prominent cheekbones, a rich dark brown complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "pashhur-1ch-9-12": {
+      "name": "Pashur",
+      "job": "7f7762f6-ef65-4415-827f-3bc3046affce",
+      "batch": "d-03",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Pashur, an Israelite man of the Tribe of Levi, Levite living at the time of Exile and Return; an elder in his seventies, a strong chin and furrowed brow, a deep brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "shobal-gen-36-20": {
+      "name": "Shobal",
+      "job": "3bbf24dc-f1c3-4489-af38-724b84c219c7",
+      "batch": "d-04",
+      "notes": "Seir (a Horite)",
+      "nation": "ham",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Shobal, a Hamite man of Seir (a Horite), Man living at the time of the Patriarchs; an elder in his seventies, a square jaw and wide nose, a deep black complexion, tight woolly grey-and-white coils, not locs, a short full beard with its natural line. Dress: plain dress of Seir (a Horite). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "zuar-num-1-8": {
+      "name": "Zuar",
+      "job": "2453d213-2b39-4e95-a5bd-893d8ff95c2a",
+      "batch": "d-04",
+      "notes": "Tribe of Issachar",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Zuar, an Israelite man of the Tribe of Issachar, Man living at the time of Egypt and Wilderness; an elder in his seventies, a lean face and deep-set eyes, a deep black complexion, tight woolly black coils, not locs, a short full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "eliezer-exo-18-4": {
+      "name": "Eliezer",
+      "job": "d0f35a89-5c0b-4e5c-ad5a-45379fc14a46",
+      "batch": "d-04",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Eliezer, an Israelite man of the Tribe of Levi, Levite living at the time of Egypt and Wilderness; in his late twenties, a square jaw and wide nose, a very dark complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "hezron-gen-46-9": {
+      "name": "Hezron",
+      "job": "53a0bb55-b082-44a2-ab0b-9cc530b05e3f",
+      "batch": "d-04",
+      "notes": "Tribe of Reuben",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Hezron, an Israelite man of the Tribe of Reuben, Man living at the time of Egypt and Wilderness; in his fifties, a lean face and deep-set eyes, a deep black complexion, tight woolly grey-and-white coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "jalam-gen-36-5": {
+      "name": "Jaalam",
+      "job": "35447223-2796-4cdf-b4ba-c86d212f81dd",
+      "batch": "d-04",
+      "notes": "Edom",
+      "nation": "edom",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Jaalam, an Edomite man, Edomite living at the time of the Patriarchs; an elder in his seventies, an oval face and heavy-lidded eyes, fair skin with a natural ruddy flush (Edom, as Genesis 25:25 describes Esau), thin straight greying brown hair, a trimmed beard, distinct features, dignified, not villainous. Dress: rough tan wool with a leather strap across the shoulder. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "jeush-gen-36-5": {
+      "name": "Jeush",
+      "job": "9d432677-acb3-43c7-a950-8a7573d6e35f",
+      "batch": "d-04",
+      "notes": "Edom",
+      "nation": "edom",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Jeush, an Edomite man, Edomite living at the time of the Patriarchs; an elder in his seventies, an oval face and heavy-lidded eyes, fair skin with a natural ruddy flush (Edom, as Genesis 25:25 describes Esau), thin straight greying brown hair, a trimmed beard, distinct features, dignified, not villainous. Dress: rough tan wool with a leather strap across the shoulder. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "joiarib-1ch-9-10": {
+      "name": "Joiarib",
+      "job": "2200beb3-2040-4bee-b6bf-5dbc3b1fadc0",
+      "batch": "d-04",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Joiarib, an Israelite man of the Tribe of Levi, Levite living at the time of Exile and Return; an elder in his seventies, a lean face and deep-set eyes, a rich dark brown complexion, tight woolly grey-and-white coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "mattaniah-1ch-9-15": {
+      "name": "Mattaniah",
+      "job": "f99d68d9-f804-4940-a7b4-a66c7fc151b5",
+      "batch": "d-04",
+      "notes": "Tribe of Levi",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Mattaniah, an Israelite man of the Tribe of Levi, Levite living at the time of Exile and Return; in his late twenties, a round face and full cheeks, a deep black complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "heth-gen-10-15": {
+      "name": "Heth",
+      "job": "c2d53610-1e15-49d9-abe7-1f2f8346da8c",
+      "batch": "e-00",
+      "notes": "Canaan",
+      "nation": "ham",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Heth, a Hamite man of Canaan, Man living at the time of the Patriarchs; in his late twenties, a lean face and deep-set eyes, a deep brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain dress of Canaan. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "sarah-gen-11-29": {
+      "name": "Sarah",
+      "job": "3fd562ec-f9ee-4849-b8fe-aeab3f27633e",
+      "batch": "e-00",
+      "notes": "the house of Terah (Hebrew)",
+      "nation": "hebrew",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Sarah, a Hebrew woman of the house of Terah, kin of Abraham, Woman living at the time of the Patriarchs; an elder woman in her sixties, a lean face and deep-set eyes, a very dark complexion, tight woolly grey-and-white coils, not locs. Dress: plain undyed wool and linen in earth tones, a head covering wrap, modest dress. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "laban-gen-24-29": {
+      "name": "Laban",
+      "job": "5f0217a3-a609-4a4d-a6a9-076053b6d45b",
+      "batch": "e-00",
+      "notes": "the house of Terah (Hebrew)",
+      "nation": "hebrew",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Laban, a Hebrew man of the house of Terah, kin of Abraham, Man living at the time of the Patriarchs; in his forties, a square jaw and wide nose, a deep brown complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, no fringes. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "rachel-gen-29-6": {
+      "name": "Rachel",
+      "job": "5ab08c18-871c-4dec-8a5a-c2d15161e9f9",
+      "batch": "e-00",
+      "notes": "the house of Terah (Hebrew)",
+      "nation": "hebrew",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Rachel, a Hebrew woman of the house of Terah, kin of Abraham, Woman living at the time of the Patriarchs; a young woman in her twenties, a square jaw and wide nose, a very dark complexion, tight woolly black coils, not locs. Dress: plain undyed wool and linen in earth tones, a head covering wrap, modest dress. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "lot-gen-11-27": {
+      "name": "Lot",
+      "job": "815a5b1d-bc83-4810-9adb-f5b16598ae34",
+      "batch": "e-00",
+      "notes": "the house of Terah (Hebrew)",
+      "nation": "hebrew",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Lot, a Hebrew man of the house of Terah, kin of Abraham, Man living at the time of the Patriarchs; in his thirties, a lean face and deep-set eyes, a dark brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, no fringes. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "leah-gen-29-16": {
+      "name": "Leah",
+      "job": "109aa888-9909-4a3e-9926-edb1897e9f12",
+      "batch": "e-00",
+      "notes": "the house of Terah (Hebrew)",
+      "nation": "hebrew",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Leah, a Hebrew woman of the house of Terah, kin of Abraham, Woman living at the time of the Patriarchs; a young woman in her twenties, a strong chin and furrowed brow, a deep black complexion, tight woolly black coils, not locs. Dress: plain undyed wool and linen in earth tones, a head covering wrap, modest dress. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "rebekah-gen-22-23": {
+      "name": "Rebekah",
+      "job": "c3425954-8516-4707-90eb-0aa5285a8015",
+      "batch": "e-00",
+      "notes": "the house of Terah (Hebrew)",
+      "nation": "hebrew",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Rebekah, a Hebrew woman of the house of Terah, kin of Abraham, Woman living at the time of the Patriarchs; a young woman in her twenties, a square jaw and wide nose, a deep black complexion, tight woolly black coils, not locs. Dress: plain undyed wool and linen in earth tones, a head covering wrap, modest dress. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "hazael-1ki-19-15": {
+      "name": "Hazael",
+      "job": "9c337276-86f0-48f8-bb5f-cee8a8782e55",
+      "batch": "s-00",
+      "notes": "Syria",
+      "nation": "syria",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Hazael, a Syrian man, King living at the time of Divided Monarchy; in his thirties, a lean face and deep-set eyes, a dark brown complexion, with the facial features of the people known today as the Syrians, dark curly hair, a full beard. Dress: plain ancient Near Eastern wool and linen in earth tones; on his head a crown of gold set with precious stones (2 Samuel 12:30): a true crown with raised points all around, not a band, not a circlet, not a diadem. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
+    },
+    "ishmael-2ki-25-23": {
+      "name": "Ishmael",
+      "job": "1a011aaa-dfe2-4953-aeb5-30ce1999317a",
+      "batch": "e-01",
+      "notes": "Tribe of Benjamin",
+      "nation": "israel",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Ishmael, an Israelite man of the Tribe of Benjamin, Jeremiah's adversary living at the time of Divided Monarchy; an elder in his seventies, an oval face and heavy-lidded eyes, a deep brown complexion, tight woolly black coils, not locs, a long beard with its natural line. Dress: plain undyed wool and linen in earth tones, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38). Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "ben-hadad-1ki-15-18": {
+      "name": "Ben-hadad",
+      "job": "ed7b4d72-57ce-42fc-b5fa-6465dec7fb34",
+      "batch": "s-00",
+      "notes": "Syria",
+      "nation": "syria",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Ben-hadad, a Syrian man, King living at the time of Divided Monarchy; in his thirties, a strong chin and furrowed brow, a dark brown complexion, with the facial features of the people known today as the Syrians, dark curly hair, a short beard. Dress: plain ancient Near Eastern wool and linen in earth tones; on his head a crown of gold set with precious stones (2 Samuel 12:30): a true crown with raised points all around, not a band, not a circlet, not a diadem. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons, no necklace or jewellery at the neck."
+    },
+    "anak-num-13-22": {
+      "name": "Anak",
+      "job": "a6be365e-95e1-4810-9f04-2e410679c878",
+      "batch": "e-01",
+      "notes": "Canaan",
+      "nation": "ham",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Anak, a Hamite man of Canaan, of the people known today as the South Africans, Man living at the time of Egypt and Wilderness; an elder in his seventies, a wide face and prominent cheekbones, a deep black complexion, tight woolly grey-and-white coils, not locs, a full beard with its natural line. Dress: plain dress of Canaan. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
+    },
+    "eber-gen-10-21": {
+      "name": "Eber",
+      "job": "b9b8bde3-63e6-44f4-94a7-cb07e8a1036a",
+      "batch": "e-01",
+      "notes": "the house of Terah (Hebrew)",
+      "nation": "hebrew",
+      "prompt": "Square full-bleed painted portrait (no circle, no border, background fills the whole square). Dignified matte gouache and oil painting, head and shoulders, three-quarter view, face centred with headroom. Soft warm key light from the upper left, plain smooth gradient background of muted deep slate blue. Subject: Eber, a Hebrew man of the house of Terah, kin of Abraham, Man living at the time of the Patriarchs; in his sixties, a lean face and deep-set eyes, a very dark complexion, tight woolly black coils, not locs, a full beard with its natural line. Dress: plain undyed wool and linen in earth tones, no fringes. Calm, dignified expression. No text, no halo, no religious symbols, no modern clothing, no armour, no weapons."
     }
   }
 }

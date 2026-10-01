@@ -68,6 +68,39 @@ the sons of Adam". This is the assembly's chart of the nations, and portraits fo
   - Melchizedek, and the Kenites.
   - Records whose mother and father are of different nations, where the classes don't say.
 
+### Before and after the mingling
+
+- **Everyone was dark before the mingling.** Man was formed "of the dust of the ground" (Genesis 2:7),
+  and the first red man is Esau: "the first came out red, all over like an hairy garment" (Genesis 25:25).
+  So everyone in Bible times is dark-skinned except Edom (with Rome).
+- **Israel.** Israelites in Bible times are shown Black. The assembly's 12 Tribes breakdown (Judah:
+  American Blacks; Benjamin: West Indians; Levi: Haitians; Simeon: Dominicans; Zebulun: Mayans;
+  Issachar: Mexicans; Reuben: Seminoles; Naphtali: Argentineans and Chileans; Gad: North American
+  Indians; Ephraim: Puerto Ricans; Manasseh: Cubans; Dan: Caribs; Asher: South Americans) describes
+  the tribes after they mingled with other nations, so it does not apply to Bible-era portraits.
+- **The other nations.** In Bible times they are dark-skinned but carry the features their people have
+  today: Moab Chinese, Ammon Japanese, Ishmael and Keturah's sons Arab, Aram Syrian, Asshur Kurdish,
+  Elam East Indian, Japheth Pacific Islander. Sodom had much intermingling (Genesis 19).
+
+### Dress and headwear, from the KJV and the Apocrypha
+
+| What | Rule | Scripture |
+| --- | --- | --- |
+| Kings and queens | A true crown of gold set with precious stones, not a band, on everyone the KJV calls king (including "king Herod" and Caesar) | 2 Samuel 1:10; 12:30; 2 Kings 11:12; Song of Solomon 3:11; Psalm 21:3; Mark 6:14; Acts 12:1; 25:13; John 19:15 |
+| Queens | The royal crown over a head covering; no hair showing | Esther 1:11; 2:17; 1 Corinthians 11:5-6 |
+| Pharaoh | No crown and no Egyptian headdress; draped vestures of fine linen | Genesis 41:42 |
+| High priest | Mitre of fine linen with the plate of pure gold on a blue lace, the robe of the ephod all of blue, the breastplate | Exodus 28:15-17, 31, 36-39; Leviticus 8:9; Ecclesiasticus 45:8-12 |
+| Priests (Aaron's sons) | Linen coats, girdles and bonnets | Exodus 28:40; 39:28; Leviticus 8:13; Ezekiel 44:18 |
+| Levites who were not priests | No head covering; white linen when serving | 2 Chronicles 5:12; 1 Chronicles 15:27 |
+| Other men | Bare head | 1 Corinthians 11:4 |
+| Women | Head covering | 1 Corinthians 11:5-6; Genesis 24:65 |
+| Israel | Fringes with a ribband of blue from the Wilderness on; the beard kept | Numbers 15:38; Deuteronomy 22:12; Leviticus 19:27 |
+| Herods | Royal apparel | Acts 12:21 |
+| Ages given by scripture | Aaron 83, Eli 98, Joseph 30, Esther a young maid, Saul "a choice young man" | Exodus 7:7; 1 Samuel 4:15; Genesis 41:46; Esther 2:7; 1 Samuel 9:2 |
+| Micah of Judges 17 | Not a priest: "a man of mount Ephraim" | Judges 17:1, 5 |
+
+Before any batch is generated, every element of the prompt is checked against these verses.
+
 ## 2. Artistic choices (not settled by the teaching)
 
 - **Style:** a matte gouache and oil painting. Head and shoulders in three-quarter view, with soft
@@ -191,6 +224,18 @@ KJV. These are corrected before generating:
   and Zidon is Hamitic in the classes, so she is shown as a Hamite of Zidon.
 - Esau's Hittite wives, Judith and Adah (Bashemath), and their fathers Beeri and Elon are tagged
   "Edom". Heth is a son of Canaan (Genesis 10:15), so they are shown as Hamites of Canaan.
+
+### Status (154 portraits in the app)
+
+154 portraits pass review and are in the app. These are waiting to be redone under the rules above
+and keep the lettered avatar until they are:
+
+- Kings that came out with plain gold bands, and the Pharaohs.
+- The high priests and priests made before the holy-garments rule.
+- Bible-era people of other nations made before the dark-skin rule.
+- A few that failed review: Jesse, Joseph, Jezebel, Pilate and Hezron.
+
+That makes 82 in all. Lot's daughters are held back until the question of Sodom is settled.
 
 ## 7. Scope and credits
 
