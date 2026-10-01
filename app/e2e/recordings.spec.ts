@@ -19,6 +19,7 @@ async function setup(page: Page, hasRecording = true) {
       removeAttribute() { this.src = ""; }
     }
     Object.defineProperty(window, "Audio", { value: FakeAudio });
+    Object.defineProperty(window, "SpeechSynthesisUtterance", { value: class { constructor(public text: string) {} } });
     Object.defineProperty(window, "speechSynthesis", { value: { getVoices: () => [{ name: "Test device", lang: "en-GB" }], addEventListener() {}, removeEventListener() {}, cancel() {}, speak() {}, pause() {}, resume() {} } });
     (window as unknown as { __audio: unknown }).__audio = list;
   });
@@ -36,10 +37,12 @@ test("human narrator seeks in one chapter audio element and follows verse timing
   const sheet = page.getByRole("dialog", { name: "Voice", exact: true });
   await expect(sheet.getByRole("heading", { name: "Narrators", exact: true })).toBeVisible();
   await sheet.getByRole("radio", { name: /Test human narrator/ }).click();
-  await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Stop audio playback", exact: true })).toBeVisible();
   await expect.poll(async () => (await audios(page)).length).toBe(1);
   await expect(page.getByRole("button", { name: "Pitch 1x" })).toBeDisabled();
   await tick(page, 21);
+  await expect(page.locator("#verset-3")).toHaveAttribute("data-reading", "");
+  await tick(page, 29.5);
   await expect(page.locator("#verset-3")).toHaveAttribute("data-reading", "");
   await page.getByRole("button", { name: "Next verse", exact: true }).click();
   await expect.poll(async () => (await audios(page))[0].currentTime).toBe(30);
@@ -58,6 +61,76 @@ test("human narrator seeks in one chapter audio element and follows verse timing
   await page.screenshot({ animations: "disabled", path: "/private/tmp/cj-human-audio/narrator-panel-390x780.png" });
   await page.getByRole("button", { name: "Voice", exact: true }).click();
   await page.screenshot({ animations: "disabled", path: "/private/tmp/cj-human-audio/narrator-sheet-390x780.png" });
+});
+
+test("AI prefetches the next verse and switching voices keeps the current verse", async ({ page }) => {
+  await setup(page);
+  await page.addInitScript(() => localStorage.setItem("ttsVoice", "narrator:test-reader"));
+  const requested: string[] = []; page.on("request", (r) => { if (r.url().includes("/api/tts/")) requested.push(r.url()); });
+  await page.goto("/read/psalms/23");
+  await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
+  await expect.poll(async () => (await audios(page)).length).toBe(1);
+  await tick(page, 21);
+  await page.getByRole("button", { name: "Voice", exact: true }).click();
+  await page.getByRole("radio", { name: /Asteria/ }).click();
+  await expect(page.locator("#verset-3")).toHaveAttribute("data-reading", "");
+  await expect.poll(() => requested.some((u) => u.includes("/23/4?"))).toBe(true);
+  expect(requested.some((u) => u.includes("/23/3?"))).toBe(true);
+  await page.getByRole("button", { name: "Voice", exact: true }).click();
+  await page.getByRole("radio", { name: /Test human narrator/ }).click();
+  await expect.poll(async () => (await audios(page)).at(-1)?.currentTime).toBe(20);
+  await expect(page.getByRole("button", { name: "Stop audio playback", exact: true })).toBeVisible();
+});
+
+test("offline text stays saved when the optional narration is declined or fails", async ({ page }) => {
+  await setup(page);
+  const chapter = { readerId: "test-reader", reader: "Test reader", slug: "obadiah", chapter: 1, audio: "recordings/test-reader/obadiah/1.m4a", bytes: 12_000_000, source: narrator.source, license: narrator.license };
+  await page.route("**/api/recordings/catalog", (r) => r.fulfill({ json: { chapters: [chapter] } }));
+  await page.route("**/api/kjv/books.json", (r) => r.fulfill({ json: [{ book: "Obadiah", slug: "obadiah", chapters: 1, chapterIds: [1], testament: "old" }] }));
+  await page.route("**/api/kjv/obadiah/1.json", (r) => r.fulfill({ json: { book: "Obadiah", chapter: 1, verses: [{ verse: 1, text: "Test verse" }] } }));
+  const requests: string[] = []; page.on("request", (r) => { if (r.url().includes("/api/audio/recordings/")) requests.push(r.url()); });
+  await page.goto("/settings#tgWebAppData=auth_date%3D1&tgWebAppPlatform=ios");
+  await page.evaluate(() => { const tg = (window as unknown as { Telegram: { WebApp: { showConfirm: (text: string, cb: (yes: boolean) => void) => void } } }).Telegram.WebApp; tg.showConfirm = (text, cb) => { (window as unknown as { __confirmation: string }).__confirmation = text; cb(false); }; });
+  await page.getByRole("button", { name: "Save a book", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /Obadiah/ }).click();
+  await expect(page.locator(".pill--ok")).toHaveText("offline");
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __confirmation: string }).__confirmation)).toContain("12.0 MB");
+  expect(requests).toEqual([]);
+  // Remove and save again, consenting to narration but with its media unavailable.
+  await page.getByRole("button", { name: /Obadiah.*Saved on this device/ }).click();
+  await expect(page.locator(".pill--ok")).toHaveCount(0);
+  await page.evaluate(() => { (window as unknown as { Telegram: { WebApp: { showConfirm: (text: string, cb: (yes: boolean) => void) => void } } }).Telegram.WebApp.showConfirm = (_text, cb) => cb(true); });
+  await page.route("**/api/audio/recordings/**", (r) => r.fulfill({ status: 503 }));
+  await page.getByRole("button", { name: "Save a book", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /Obadiah/ }).click();
+  await expect.poll(() => requests.length).toBeGreaterThan(0);
+  await expect(page.locator(".pill--ok")).toHaveText("offline");
+});
+
+test("recording credits open with Telegram's link handler", async ({ page }) => {
+  await setup(page);
+  await page.route("**/api/recordings/catalog", (r) => r.fulfill({ json: { chapters: [{ readerId: "test", reader: "Test reader", source: narrator.source, license: narrator.license }] } }));
+  await page.goto("/settings/credits#tgWebAppData=auth_date%3D1&tgWebAppPlatform=ios");
+  await page.getByRole("link", { name: "Recording source", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.some((r) => r[0] === "openLink" && r[1] === "https://librivox.org/"))).toBe(true);
+});
+
+test("Stop releases the prefetched AI verse without starting it", async ({ page }) => {
+  await setup(page);
+  await page.addInitScript(() => {
+    localStorage.setItem("ttsVoice", "ai:asteria");
+    const urls = { created: [] as string[], revoked: [] as string[] };
+    const create = URL.createObjectURL.bind(URL), revoke = URL.revokeObjectURL.bind(URL);
+    URL.createObjectURL = (blob) => { const url = create(blob); urls.created.push(url); return url; };
+    URL.revokeObjectURL = (url) => { urls.revoked.push(url); revoke(url); };
+    (window as unknown as { __urls: unknown }).__urls = urls;
+  });
+  await page.goto("/read/psalms/23");
+  await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __urls: { created: string[] } }).__urls.created.length)).toBe(2);
+  await page.getByRole("button", { name: "Stop audio playback", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => { const u = (window as unknown as { __urls: { created: string[]; revoked: string[] } }).__urls; return u.revoked.includes(u.created[1]); })).toBe(true);
+  expect((await audios(page)).length).toBe(1);
 });
 test("missing chapter narration falls back to the saved AI voice", async ({ page }) => {
   await setup(page, false);

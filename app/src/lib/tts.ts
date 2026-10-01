@@ -37,13 +37,14 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
   const [notice, setNotice] = useState("");
   const narrators = useNarrators(where);
   const human = voiceName?.startsWith("narrator:") ?? false;
-  const choice = narrators.data?.narrators.find((n) => `narrator:${n.id}` === voiceName);
   const continuation = useRef(false), previousChapter = useRef("");
   const playingRef = useRef(playing); playingRef.current = playing;
   const run = useRef(0), audio = useRef<HTMLAudioElement | null>(null);
   const recording = useRef<Narrator | null>(null), release = useRef<() => void>(() => undefined);
   const activeVoice = useRef<string | null>(null), utterance = useRef<SpeechSynthesisUtterance | null>(null);
   const pendingNext = useRef<(() => void) | null>(null);
+  const ahead = useRef<{ verse: number; voice: string; promise: Promise<string | null> } | null>(null);
+  const discardAhead = () => { const pending = ahead.current; ahead.current = null; if (pending) void pending.promise.then((url) => { if (url) URL.revokeObjectURL(url); }); };
   const options = useRef({ rate, pitch }); options.current = { rate, pitch };
   const currentRef = useRef(current); currentRef.current = current;
   const pausedRef = useRef(paused); pausedRef.current = paused;
@@ -54,11 +55,13 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
     return () => speechSynthesis.removeEventListener("voiceschanged", load);
   }, []);
   const clearAudio = () => {
+    discardAhead();
     if (audio.current) { audio.current.onended = null; audio.current.ontimeupdate = null; audio.current.onerror = null; audio.current.pause(); audio.current.removeAttribute("src"); }
     audio.current = null; recording.current = null; release.current(); release.current = () => undefined;
   };
   const stop = (betweenChapters = false) => {
     continuation.current = betweenChapters; if (!betweenChapters) ambient.stop();
+    discardAhead();
     run.current++; if (ttsSupported) speechSynthesis.cancel(); utterance.current = null;
     pendingNext.current = null;
     if (audio.current) audio.current.pause();
@@ -82,12 +85,19 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
       pendingNext.current = null;
       const item = queue.shift(); if (!item) { finish(generation); return; }
       if (ai && where) {
-        void verseAudio(where.slug, where.chapter, item.verse, voice!.slice(3)).then((url) => {
+        const prefetched = ahead.current?.verse === item.verse && ahead.current.voice === voice ? ahead.current.promise : null;
+        if (prefetched) ahead.current = null;
+        void (prefetched ?? Promise.resolve(null)).then((url) => generation === run.current ? url ?? verseAudio(where.slug, where.chapter, item.verse, voice!.slice(3)) : null).then((url) => {
+          if (!url) return;
           if (generation !== run.current) { URL.revokeObjectURL(url); return; }
           release.current(); release.current = () => URL.revokeObjectURL(url);
           const a = new Audio(url); audio.current = a; a.playbackRate = options.current.rate;
           a.onended = next; a.onerror = () => fail(generation, "Reading voice is unavailable. Please try again.");
           setCurrent(item.verse); if (!pausedRef.current) void a.play().catch(() => fail(generation, "Tap Play to try the reading voice again."));
+          const following = queue[0];
+          if (following) ahead.current = { verse: following.verse, voice: voice!, promise: verseAudio(where.slug, where.chapter, following.verse, voice!.slice(3)).then((url) => {
+            if (generation !== run.current) { URL.revokeObjectURL(url); return null; } return url;
+          }).catch(() => null) };
         }).catch(() => fail(generation, "Reading voice is unavailable. Please try again."));
         return;
       }
@@ -108,21 +118,23 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
       speechSynthesis.addEventListener("voiceschanged", ready, { once: true });
     } else next();
   };
-  const play = (from = 1) => {
+  const play = (from = 1, requestedVoice = voiceName) => {
+    discardAhead();
     pendingNext.current = null;
     continuation.current = false; ambient.begin();
     const generation = ++run.current;
     setNotice(""); setCompleted(false); setPlaying(true); setPaused(false); pausedRef.current = false;
     if (ttsSupported) { speechSynthesis.cancel(); speechSynthesis.resume(); }
     const start = async () => {
-      let narrator = choice;
-      if (human && !narrators.data && !narrators.isError) {
-        const result = await narrators.refetch(); narrator = result.data?.narrators.find((n) => `narrator:${n.id}` === voiceName);
+      const requestedHuman = requestedVoice?.startsWith("narrator:");
+      let narrator = narrators.data?.narrators.find((n) => `narrator:${n.id}` === requestedVoice);
+      if (requestedHuman && !narrators.data && !narrators.isError) {
+        const result = await narrators.refetch(); narrator = result.data?.narrators.find((n) => `narrator:${n.id}` === requestedVoice);
       }
       if (generation !== run.current) return;
       if (!narrator) {
-        if (human) setNotice("No recording for this chapter. Using your chosen AI reading voice.");
-        readVerses(from, generation, human ? fallback : voiceName); return;
+        if (requestedHuman) setNotice("No recording for this chapter. Using your chosen AI reading voice.");
+        readVerses(from, generation, requestedHuman ? fallback : requestedVoice); return;
       }
       const verse = narrator.verses.find((v) => v[0] === from);
       if (!verse) { fail(generation, "This verse has no verified recording timing."); return; }
@@ -137,7 +149,7 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
       a.ontimeupdate = () => {
         if (generation !== run.current) return;
         const match = narrator!.verses.find((v) => a.currentTime >= v[1] && a.currentTime < v[2]);
-        setCurrent(match?.[0] ?? null);
+        setCurrent(match?.[0] ?? currentRef.current);
       };
       a.onended = () => finish(generation);
       a.onerror = () => {
@@ -150,9 +162,11 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
     void start().catch(() => fail(generation, "Recording unavailable. Please try again."));
   };
   const setVoice = (name: string | null) => {
+    const resume = playing && !paused, from = currentRef.current ?? 1;
     stop(); clearAudio(); setVoiceName(name);
     try { if (name) localStorage.setItem("ttsVoice", name); else localStorage.removeItem("ttsVoice"); } catch { /* private mode */ }
     if (isAiVoice(name)) { setFallback(name!); try { localStorage.setItem("ttsAiVoice", name!); } catch { /* private mode */ } }
+    if (resume) play(from, name);
   };
   const toggle = () => {
     if (!playing) { play(current ?? 1); return; }

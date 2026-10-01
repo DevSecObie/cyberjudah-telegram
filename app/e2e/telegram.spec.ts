@@ -698,12 +698,20 @@ test("a verse links to each class that read it, on YouTube at that moment", asyn
   await tag.click();
   const opened = await page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.filter((l) => l[0] === "openLink"));
   expect(opened.at(-1)?.[1]).toBe("https://www.youtube.com/watch?v=36emQd9wjts&t=3633s");
-  // In this chapter (Bible Strong's ChapterEntities): the people named, at the end of the text, each opening the person.
-  const cain = page.locator(".bs-entity", { hasText: "Cain" }).first();
-  await cain.scrollIntoViewIfNeeded();
+  // In this chapter (Bible Strong's ChapterEntities): the people named, as a stack of avatars at the end of the text.
+  const stack = page.locator(".bs-entities__stack");
+  await stack.scrollIntoViewIfNeeded();
   await expect(page.locator(".bs-entities__title")).toHaveText("In this chapter");
-  await expect(page.locator(".bs-entity").first()).toContainText("Cain");
-  await cain.click();
+  await expect(stack).toHaveAttribute("aria-label", /^People in this chapter: Cain, /);
+  await expect(stack.locator("[data-person-stack]")).toHaveCount(3);
+  // A tap spreads everyone over the page; Escape puts them back; a person opens their page.
+  await stack.click();
+  const people = page.getByRole("dialog", { name: "People in this chapter" });
+  await expect(people.locator(".bs-people__item").first()).toContainText("Cain");
+  await page.keyboard.press("Escape");
+  await expect(people).toHaveCount(0);
+  await stack.click();
+  await people.getByRole("button", { name: "Open Cain" }).click();
   await expect(page).toHaveURL(/\/person\/cain-gen-4-1/);
 });
 
@@ -781,12 +789,35 @@ test("People: who is named in a verse, a page per person with family, the classe
   await expect(page.locator(".bs-resrow b")).toHaveText(["Abraham", "Lot", "Sarah"]);
   await page.locator(".bs-resrow", { hasText: "Abraham" }).click();
   await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
-  await expect(page.locator("h1.title")).toHaveText("Abraham");
+  await expect(page.locator(".person__card h1")).toHaveText("Abraham");
+  await expect(page.locator(".person__eyebrow")).toHaveText("Man · Early Patriarch");
   await expect(page.locator(".person__aka")).toContainText("Abram");
   await expect(page.locator(".person__teach").first()).toBeVisible();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/person.png` });
-  await page.locator(".person__rel", { hasText: "Father" }).locator("button", { hasText: "Terah" }).click();
-  await expect(page.locator("h1.title")).toHaveText("Terah");
+  // The family graph (Bible Strong's relationship graph): walk it, page it, go back, start again, open a profile.
+  const graph = page.locator(".fg");
+  await expect(graph.getByRole("button", { name: "Father, Terah" })).toBeVisible();
+  await expect(graph.getByRole("button", { name: "Wife, Sarah" })).toBeVisible();
+  await expect(graph.locator(".fg__foot")).toContainText("1 / 3");
+  await graph.getByRole("button", { name: "Next page" }).click();
+  await graph.getByRole("button", { name: /^(Son|Child), Isaac$/ }).click();
+  await expect(graph.locator(".fg__label--center b")).toHaveText("Isaac");
+  await expect(graph.getByRole("button", { name: "Back to Abraham" })).toBeVisible();
+  await expect(graph.getByRole("button", { name: "Wife, Rebekah" })).toBeVisible();
+  await graph.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(graph.locator(".fg__label--center b")).toHaveText("Abraham");
+  await expect(graph.locator(".fg__foot")).toContainText("2 / 3");
+  await graph.getByRole("button", { name: /^(Son|Child), Isaac$/ }).click();
+  await graph.getByRole("button", { name: "Wife, Rebekah" }).click();
+  await expect(graph.locator(".fg__label--center b")).toHaveText("Rebekah");
+  await graph.getByRole("button", { name: "Start again from Abraham" }).click();
+  await expect(graph.locator(".fg__label--center b")).toHaveText("Abraham");
+  await expect(graph.locator(".fg__foot")).toContainText("1 / 3");
+  await graph.getByRole("button", { name: "Father, Terah" }).click();
+  await expect(graph.locator(".fg__label--center b")).toHaveText("Terah");
+  await graph.getByRole("button", { name: "View Terah's profile" }).click();
+  await expect(page).toHaveURL(/\/person\/terah-gen-11-24/);
+  await expect(page.locator(".person__card h1")).toHaveText("Terah");
   // Search the Scriptures finds a person by name.
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await page.click('.bs-iconbtn[aria-label="Scripture options"]');
@@ -1275,3 +1306,4 @@ test("Books opens on the book being read even when the book list arrives late", 
   await page.click(".bs-pill--book");
   await expect(page.locator(".bs-bookrow[data-current]")).toBeInViewport({ timeout: 8000 });
 });
+

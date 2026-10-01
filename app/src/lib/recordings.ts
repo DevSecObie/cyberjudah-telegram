@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { cachedResponse } from "./offline";
 
 export type Narrator = { id: string; reader: string; audio: string; verses: [number, number, number][]; source: string; license: string };
-export type RecordingCredit = { readerId: string; reader: string; slug: string; chapter: number; audio: string; source: string; license: string };
+export type RecordingCredit = { readerId: string; reader: string; slug: string; chapter: number; audio: string; source: string; license: string; bytes: number };
 export const recordingUrl = (slug: string, chapter: number) => `/api/recordings/${encodeURIComponent(slug)}/${chapter}`;
 export async function recordingJson<T>(path: string): Promise<T> {
   let response: Response | undefined;

@@ -36,8 +36,9 @@ byte ranges, suffix ranges, ETags and If-Range. It deliberately cannot expose
 cached AI speech. Audio is public, has a one-year cache, and catalog URLs carry
 its content hash. The catalog refreshes every five minutes. The app credits every
 published reader/source/license and caches the catalog, available chapter choices
-and full narration files when a book is saved offline. A partial download is
-reported as incomplete instead of marking the book saved.
+when narration is explicitly added to an offline book. Text saves independently;
+a prompt shows the catalog byte total before downloading narration. A failed or
+declined audio download does not undo a complete text download.
 
 Review flags from alignment must remain available in the data index. Automated
 ASR disagreement is not proof of a reader mistake; consult the data PR's COVERAGE.

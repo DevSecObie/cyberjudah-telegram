@@ -1,4 +1,3 @@
-import { Credits } from "@/screens/Credits";
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
 
@@ -25,6 +24,7 @@ const Ask = lazy(() => import("@/screens/Ask").then((m) => ({ default: m.Ask }))
 const BibleTab = lazy(() => import("@/bible/BibleTab").then((m) => ({ default: m.BibleTab })));
 const More = lazy(() => import("@/screens/More").then((m) => ({ default: m.More })));
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
+const Credits = lazy(() => import("@/screens/Credits").then((m) => ({ default: m.Credits })));
 const Plan = lazy(() => import("@/screens/Plan").then((m) => ({ default: m.Plan })));
 const History = lazy(() => import("@/screens/History").then((m) => ({ default: m.History })));
 const Dictionary = lazy(() => import("@/screens/Dictionary").then((m) => ({ default: m.Dictionary })));

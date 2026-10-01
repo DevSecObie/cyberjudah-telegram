@@ -26,25 +26,25 @@ const INLINE = { height: 25, ratio: 1.3, container: 0.7, margin: 2 };
 const CHAPTER = { height: 76, ratio: 16 / 9 };
 const MAX_STACKED = 3;
 const SCROLL_SHRINK = { distance: 30, min: 0.2 };
-const SOURCE_STAGGER = 70, SOURCE_SETTLE = 380, EXTRA_STAGGER = 50;
+export const SOURCE_STAGGER = 70, SOURCE_SETTLE = 380, EXTRA_STAGGER = 50;
 // Bible Strong's spring (stiffness 360, damping 34, mass 0.8) as a curve: fast, with a slight settle.
 const SPRING = "cubic-bezier(.2, 1.12, .32, 1)";
 const FLY_MS = 480;
 
 export const deckKey = (m: ClassMoment) => `${m.video}-${m.t}`;
 const fan = (i: number, n: number) => { if (n <= 1) return { x: 0, r: 0 }; const p = (i / (n - 1)) * 2 - 1; return { x: p * 3, r: p * 5 }; };
-const reduced = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+export const reduced = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 const embed = (id: string, start: number) => `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0&start=${Math.max(0, Math.floor(start))}`;
 
 /** Where an element sits, with its unrotated size: a rotated card's box is larger than the card. */
-function place(el: HTMLElement) {
+export function place(el: HTMLElement) {
   const r = el.getBoundingClientRect();
   return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, w: el.offsetWidth, h: el.offsetHeight };
 }
-function fly(el: HTMLElement, from: ReturnType<typeof place>, rotate: number, delay: number, reverse = false) {
+export function fly(el: HTMLElement, from: ReturnType<typeof place>, rotate: number, delay: number, reverse = false, radius: [string, string] = ["5px", "11px"]) {
   const to = place(el);
   const start = `translate(${from.cx - to.cx}px, ${from.cy - to.cy}px) scale(${from.w / to.w}, ${from.h / to.h}) rotate(${rotate}deg)`;
-  const frames = [{ transform: start, borderRadius: "5px" }, { transform: "none", borderRadius: "11px" }];
+  const frames = [{ transform: start, borderRadius: radius[0] }, { transform: "none", borderRadius: radius[1] }];
   return el.animate(reverse ? frames.reverse() : frames, { duration: reduced() ? 0 : reverse ? 300 : FLY_MS, delay: reduced() ? 0 : delay, easing: reverse ? "cubic-bezier(.4, 0, .2, 1)" : SPRING, fill: "both" });
 }
 
@@ -83,7 +83,7 @@ export function MediaDeck({ items, placement, palette: c, fontScale, sections, r
   const boxW = inline ? cardW * INLINE.container : cardW;
   const style: CSSProperties = {
     position: "relative", display: inline ? "inline-grid" : "grid", width: boxW, height: boxH,
-    margin: inline ? `0 ${INLINE.margin}px` : "42px auto 0", overflow: "visible", isolation: "isolate",
+    margin: inline ? `0 ${INLINE.margin}px` : 0, overflow: "visible", isolation: "isolate",
     padding: 0, border: 0, background: "transparent", cursor: disabled ? "default" : "pointer", verticalAlign: "middle",
     transformOrigin: "center bottom", transform: scale < 1 ? `scale(${scale})` : undefined, WebkitTapHighlightColor: "transparent",
   };
