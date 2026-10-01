@@ -42,7 +42,7 @@ export function RelationsCount({ count, onClick }: { count: number; onClick: () 
   );
 }
 
-/** Precept upon precept; line upon line (Isaiah 28:10): the precepts mark. */
+/** The precepts mark: one Scripture joined to another, precept upon precept (Isaiah 28:10). */
 export function PreceptsIcon({ size = 16 }: { size?: number }): ReactNode {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="15" width="18" height="5" rx="1.5" /><rect x="6" y="9" width="12" height="5" rx="1.5" /><rect x="9" y="3" width="6" height="5" rx="1.5" /></svg>;
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2.5" y="3" width="8" height="11" rx="1.5" /><rect x="13.5" y="10" width="8" height="11" rx="1.5" /><path d="M5 7h3M5 10h3M16 14h3M16 17h3" /><path d="M10.5 8.5c3 0 4 1 4 1.5" /></svg>;
 }
