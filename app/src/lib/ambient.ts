@@ -3,14 +3,14 @@ import { app } from "@/tg/sdk";
 
 /** Licences apply to these recordings, not merely their compositions. All are CC0. */
 export const AMBIENT_TRACKS = [
-  { id: "quiet-piano", name: "Soft piano", category: "music", artist: "blankie.rest", original: "Sleepy Upright Piano Seamless Loop", source: "https://freesound.org/people/blankie.rest/sounds/859607/", download: "https://cdn.freesound.org/previews/859/859607_15820073-lq.mp3", duration: 227.502, sha256: "81c8dbdd82fcf01a3c80685a0c3159ef5639dcafc87853cbcc0e106dfde5b77b" },
-  { id: "soft-keys", name: "Warm keys", category: "music", artist: "Boatlanman-", original: "Ambient piano loop", source: "https://freesound.org/people/Boatlanman-/sounds/788677/", download: "https://cdn.freesound.org/previews/788/788677_16161631-lq.mp3", duration: 182, sha256: "db6a8ce481340a0898c13ff6923a7bd59506977c34f9fcf4074caf8dcee1860e" },
-  { id: "stillness", name: "Slow chords", category: "music", artist: "Erokia", original: "Synth Loop Ambiance (Unedited - 100 BPM)", source: "https://freesound.org/people/Erokia/sounds/524947/", download: "https://cdn.freesound.org/previews/524/524947_9497060-lq.mp3", duration: 240, sha256: "c8222f955844527c562f897684ebf6121df50b611fcbfb52ad4a1d73bd9978e5" },
-  { id: "evening-pad", name: "Evening pad", category: "music", artist: "deadrobotmusic", original: "Blurred Piano Atmosphere [G Sharp Minor]", source: "https://freesound.org/people/deadrobotmusic/sounds/575035/", download: "https://cdn.freesound.org/previews/575/575035_11532701-lq.mp3", duration: 164.335, sha256: "6edcc0854746f47cd247fc3bd58a44559af6fe4311a3c9dcfae0262641ae2595" },
-  {"id": "rain", "name": "Rain", "category": "nature", "artist": "barkenov", "original": "Soft rain.WAV", "source": "https://freesound.org/people/barkenov/sounds/640655/", "download": "https://cdn.freesound.org/previews/640/640655_2414299-lq.mp3", "duration": 177.29, "sha256": "c8bc4526e89f6ff77a2ff270141435ab1d5a990aa2ea59b6b519fdb23ba43d8f"},
-  {"id": "wind", "name": "Wind", "category": "nature", "artist": "fthgurdy", "original": "Gentle wind", "source": "https://freesound.org/people/fthgurdy/sounds/528944/", "download": "https://cdn.freesound.org/previews/528/528944_3302313-lq.mp3", "duration": 150.639, "sha256": "0daff730c8c1c9986a67e4e7b20cf8b8915bc69752c07ea4c355a7d16e3672cc"},
-  {"id": "ocean", "name": "Ocean waves", "category": "nature", "artist": "SamsterBirdies", "original": "Calm ocean waves", "source": "https://freesound.org/people/SamsterBirdies/sounds/578524/", "download": "https://cdn.freesound.org/previews/578/578524_5487341-lq.mp3", "duration": 240.0, "sha256": "e06cd01020cc9004df3271511e3f0cea63cde4f6e39dab34b01e9df7bdc95585"},
-  {"id": "fire", "name": "Gentle fire", "category": "nature", "artist": "soundofsong", "original": "fire crackling loop.wav", "source": "https://freesound.org/people/soundofsong/sounds/650574/", "download": "https://cdn.freesound.org/previews/650/650574_9782868-lq.mp3", "duration": 151.5, "sha256": "6eeec23eac3f8b6535f9617227042c3a75ef03d162a0b9d792a91f6379c73e4e"},
+  { id: "quiet-piano", name: "Soft piano", category: "music", artist: "blankie.rest", original: "Sleepy Upright Piano Seamless Loop", source: "https://freesound.org/people/blankie.rest/sounds/859607/", download: "https://cdn.freesound.org/previews/859/859607_15820073-hq.mp3", duration: 227.502, sha256: "e748560c3879f5941310e844ea2d20b4eafc4bc4b6a330a2c5227d70ebf43e2d" },
+  { id: "soft-keys", name: "Warm keys", category: "music", artist: "Boatlanman-", original: "Ambient piano loop", source: "https://freesound.org/people/Boatlanman-/sounds/788677/", download: "https://cdn.freesound.org/previews/788/788677_16161631-hq.mp3", duration: 182, sha256: "c85876379da96dee8d3a8756734f1ab9d55181db530344a0b9c1d93ba6ae52cb" },
+  { id: "stillness", name: "Slow chords", category: "music", artist: "Erokia", original: "Synth Loop Ambiance (Unedited - 100 BPM)", source: "https://freesound.org/people/Erokia/sounds/524947/", download: "https://cdn.freesound.org/previews/524/524947_9497060-hq.mp3", duration: 240, sha256: "724de257a27a0a452d38c2ac5f994cea4149f3f4423151c69437e61253e59626" },
+  { id: "evening-pad", name: "Evening pad", category: "music", artist: "deadrobotmusic", original: "Blurred Piano Atmosphere [G Sharp Minor]", source: "https://freesound.org/people/deadrobotmusic/sounds/575035/", download: "https://cdn.freesound.org/previews/575/575035_11532701-hq.mp3", duration: 164.335, sha256: "0e6c55a11b68de5197cced964ef4bc12d53a932f6ae4e8f2803be75bc216b8bb" },
+  {"id": "rain", "name": "Rain", "category": "nature", "artist": "barkenov", "original": "Soft rain.WAV", "source": "https://freesound.org/people/barkenov/sounds/640655/", "download": "https://cdn.freesound.org/previews/640/640655_2414299-hq.mp3", "duration": 177.29, "sha256": "f50f4a015253e4ba1ff4ea3104548967b93e1a918f1fc2f1eaf212b31fcf15cc"},
+  {"id": "wind", "name": "Wind", "category": "nature", "artist": "fthgurdy", "original": "Gentle wind", "source": "https://freesound.org/people/fthgurdy/sounds/528944/", "download": "https://cdn.freesound.org/previews/528/528944_3302313-hq.mp3", "duration": 150.639, "sha256": "4c44bead2b78665e2dc0db322db1f46328b572900bce2ca9c9d7e0c30b8f8177"},
+  {"id": "ocean", "name": "Ocean waves", "category": "nature", "artist": "SamsterBirdies", "original": "Calm ocean waves", "source": "https://freesound.org/people/SamsterBirdies/sounds/578524/", "download": "https://cdn.freesound.org/previews/578/578524_5487341-hq.mp3", "duration": 240.0, "sha256": "5387cee3faeecc3c7e6afbd5d88b291416609fcb3fc70292babe30e8e50f723e"},
+  {"id": "fire", "name": "Gentle fire", "category": "nature", "artist": "soundofsong", "original": "fire crackling loop.wav", "source": "https://freesound.org/people/soundofsong/sounds/650574/", "download": "https://cdn.freesound.org/previews/650/650574_9782868-hq.mp3", "duration": 151.5, "sha256": "c6869ba7dbb43294b72943e94f08cfd01eb9fd627c4aa02550953f1e2ea06f05"},
 ].map((t) => ({ ...t, license: "CC0 1.0", licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/", changes: "Repeated with crossfades, level adjusted and encoded to AAC at 96 kbps", audio: `/api/audio/ambient/${t.id}.m4a?v=${t.sha256}` }));
 type State = { choice: string; volume: number; error: boolean; preview: string | null };
 const get = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
@@ -101,8 +101,9 @@ class AmbientAudio {
     if (this.reading && this.state.choice !== "off") void this.start(this.state.choice);
     else this.fadeOut();
   }
-  begin() {
-    this.ensureGesture(); this.cancelTimer(); this.reading = true; this.update({ preview: null, error: false });
+  begin(fromGesture = true) {
+    if (fromGesture && !document.hidden) this.ensureGesture();
+    this.cancelTimer(); this.reading = true; this.update({ preview: null, error: false });
     if (this.state.choice !== "off") void this.start(this.state.choice);
   }
   voice(active: boolean) { this.speaking = active; if (this.source && this.reading) this.ramp(this.target(), Math.max(.25, this.fadeUntil - (this.context?.currentTime ?? 0))); }
@@ -112,7 +113,7 @@ class AmbientAudio {
     this.timer = setTimeout(() => { if (generation === this.generation) this.clearSource(); }, 1000);
   }
   background = () => {
-    this.generation++; this.unlocked = false; this.reading = false; this.cancelTimer(); this.clearSource(); this.update({ preview: null });
+    this.generation++; this.unlocked = false; this.cancelTimer(); this.clearSource(); this.update({ preview: null });
     if (this.context) void this.context.suspend().catch(() => undefined);
   };
 }

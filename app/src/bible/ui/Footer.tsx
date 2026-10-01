@@ -53,7 +53,7 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
             <button type="button" className="bs-chip" onClick={() => setVoices(true)}><Feather name="mic" size={12} />Voice</button>
             <button type="button" className="bs-chip" onClick={() => setAdjust("Speed")}><Feather name="clock" size={12} />Speed {speech.rate}x</button>
             <button type="button" className="bs-chip" disabled={!speech.pitchSupported} title={!speech.pitchSupported ? "Pitch is available with device voices" : undefined} onClick={() => setAdjust("Pitch")}><Feather name="sliders" size={12} />Pitch {speech.pitch}x</button>
-            <button type="button" className="bs-chip" onClick={() => setAmbientOpen(true)} aria-label={ambient.error ? "Ambient unavailable" : "Ambient"}><span aria-hidden="true">♫</span>{ambient.error ? "Ambient !" : "Ambient"}</button>
+            <button type="button" className="bs-chip" onClick={() => setAmbientOpen(true)} aria-label={ambient.error ? "Ambient unavailable" : "Ambient"}><Feather name={ambient.error ? "alert-circle" : "music"} size={12} />Ambient</button>
             <button type="button" className="bs-chip" aria-pressed={repeat} onClick={() => setRepeat(!repeat)}><Feather name="repeat" size={12} />Repeat</button>
           </div>
 

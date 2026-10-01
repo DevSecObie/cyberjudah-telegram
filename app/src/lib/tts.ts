@@ -118,10 +118,10 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
       speechSynthesis.addEventListener("voiceschanged", ready, { once: true });
     } else next();
   };
-  const play = (from = 1, requestedVoice = voiceName) => {
+  const play = (from = 1, requestedVoice = voiceName, fromGesture = true) => {
     discardAhead();
     pendingNext.current = null;
-    continuation.current = false; ambient.begin();
+    continuation.current = false; ambient.begin(fromGesture);
     const generation = ++run.current;
     setNotice(""); setCompleted(false); setPlaying(true); setPaused(false); pausedRef.current = false;
     if (ttsSupported) { speechSynthesis.cancel(); speechSynthesis.resume(); }
@@ -178,21 +178,15 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
   };
   useEffect(() => {
     if (audio.current) audio.current.playbackRate = rate;
-    else if (playing && ttsSupported) play(current ?? 1);
+    else if (playing && ttsSupported) play(current ?? 1, voiceName, false);
   }, [rate, pitch]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const key = `${where?.slug}/${where?.chapter}`;
     const resume = !pausedRef.current && (continuation.current || (previousChapter.current !== key && playingRef.current));
     previousChapter.current = key; stop(resume); clearAudio();
-    if (resume && verses.length) play(1);
+    if (resume && verses.length) play(1, voiceName, false);
   }, [verses.length, where?.slug, where?.chapter]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { ambient.voice(playing && !paused && current !== null); }, [playing, paused, current]);
-  useEffect(() => {
-    const pause = () => { if (audio.current) audio.current.pause(); if (ttsSupported) speechSynthesis.pause(); pausedRef.current = true; setPaused(true); ambient.background(); };
-    const hidden = () => { if (document.hidden) pause(); };
-    document.addEventListener("visibilitychange", hidden); app?.onEvent("deactivated", pause);
-    return () => { document.removeEventListener("visibilitychange", hidden); app?.offEvent("deactivated", pause); };
-  }, []);
   useEffect(() => () => { ambient.stop(); run.current++; if (ttsSupported) speechSynthesis.cancel(); clearAudio(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return { supported: verses.length > 0 && (ttsSupported || !!where), playing, paused, current, rate, setRate, pitch, setPitch,
     pitchSupported: ttsSupported && !human && !isAiVoice(voiceName), completed, play, stop, toggle,

@@ -8,7 +8,7 @@ async function setup(page: Page, fail = false) {
   await page.route("**/api/recordings/**", (r) => r.fulfill({ json: { narrators: [] } }));
   await page.route("**/api/audio/ambient/**", (r) => r.fulfill({ status: fail ? 503 : 200, contentType: "audio/mp4", body: "stub" }));
   await page.addInitScript(() => {
-    const state = { starts: 0, stops: 0, resumes: 0, suspends: 0, ramps: [] as [number, number][], loops: [] as boolean[], voices: 0, finish: () => {} };
+    const state = { starts: 0, stops: 0, resumes: 0, suspends: 0, voicePauses: 0, ramps: [] as [number, number][], loops: [] as boolean[], voices: 0, finish: () => {} };
     class AudioContext {
       currentTime = 0; destination = {};
       async resume() { state.resumes++; }
@@ -26,12 +26,12 @@ async function setup(page: Page, fail = false) {
     } });
     Object.defineProperty(window, "speechSynthesis", { value: {
       getVoices: () => [{ name: "Test device", lang: "en-GB" }], addEventListener() {}, removeEventListener() {},
-      speak(u: SpeechSynthesisUtterance) { state.voices++; u.onstart?.({} as SpeechSynthesisEvent); state.finish = () => u.onend?.({} as SpeechSynthesisEvent); }, cancel() {}, pause() {}, resume() {},
+      speak(u: SpeechSynthesisUtterance) { state.voices++; u.onstart?.({} as SpeechSynthesisEvent); state.finish = () => u.onend?.({} as SpeechSynthesisEvent); }, cancel() {}, pause() { state.voicePauses++; }, resume() {},
     } });
     (window as unknown as { __music: unknown }).__music = state;
   });
 }
-const state = (page: Page) => page.evaluate(() => (window as unknown as { __music: { starts: number; stops: number; resumes: number; suspends: number; voices: number; ramps: [number, number][]; loops: boolean[] } }).__music);
+const state = (page: Page) => page.evaluate(() => (window as unknown as { __music: { starts: number; stops: number; resumes: number; suspends: number; voicePauses: number; voices: number; ramps: [number, number][]; loops: boolean[] } }).__music);
 async function panel(page: Page) {
   await page.goto("/read/psalms/23");
   await expect(page.locator("#verset-1")).toBeVisible();
@@ -110,7 +110,7 @@ test("nature sounds preview independently, save the selected element and can be 
   }
   await expect(page.getByRole("link", { name: "CC0 1.0", exact: true })).toHaveCount(8);
 });
-test("music carries across chapters and pauses in the background until a tap", async ({ page }) => {
+test("music pauses in the background while device narration continues across verses", async ({ page }) => {
   await setup(page); await page.addInitScript(() => localStorage.setItem("ambientTrack", "soft-keys"));
   await panel(page);
   await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
@@ -122,9 +122,18 @@ test("music carries across chapters and pauses in the background until a tap", a
   expect((await state(page)).starts).toBe(1);
   await page.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, value: true }); document.dispatchEvent(new Event("visibilitychange")); });
   await expect.poll(async () => (await state(page)).suspends).toBeGreaterThan(0);
+  expect((await state(page)).voicePauses).toBe(0);
+  const before = (await state(page)).voices;
+  await page.evaluate(() => (window as unknown as { __music: { finish(): void } }).__music.finish());
+  await expect.poll(async () => (await state(page)).voices).toBeGreaterThan(before);
   await page.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, value: false }); document.dispatchEvent(new Event("visibilitychange")); });
   expect((await state(page)).starts).toBe(1);
-  await page.getByRole("button", { name: "Resume audio playback", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Stop audio playback", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Ambient", exact: true }).click();
+  await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("radio", { name: "Warm keys", exact: true }).click();
+  await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
+  await expect.poll(async () => (await state(page)).starts).toBe(2);
+  await page.getByRole("button", { name: "Next verse", exact: true }).click();
   await expect.poll(async () => (await state(page)).starts).toBe(2);
   await page.evaluate(() => { history.pushState({}, "", "/settings"); dispatchEvent(new PopStateEvent("popstate")); });
   await expect.poll(async () => (await state(page)).ramps.at(-1)).toEqual([0, 1]);
@@ -143,7 +152,7 @@ for (const voice of ["ai:asteria", "narrator:test-reader"]) {
       localStorage.setItem("ttsVoice", voice); localStorage.setItem("ambientTrack", "soft-keys");
       Object.defineProperty(window, "Audio", { value: class {
         currentTime = 0; playbackRate = 1;
-        async play() {} pause() {} removeAttribute() {}
+        async play() {} pause() { (window as unknown as { __music: { voicePauses: number } }).__music.voicePauses++; } removeAttribute() {}
       } });
     }, voice);
     await panel(page);
@@ -154,5 +163,10 @@ for (const voice of ["ai:asteria", "narrator:test-reader"]) {
     await page.getByRole("button", { name: "Next verse", exact: true }).click();
     await expect(page.locator("#verset-2")).toHaveAttribute("data-reading", "");
     expect((await state(page)).starts).toBe(1);
+    const pauses = (await state(page)).voicePauses;
+    await page.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, value: true }); document.dispatchEvent(new Event("visibilitychange")); });
+    await expect.poll(async () => (await state(page)).suspends).toBeGreaterThan(0);
+    expect((await state(page)).voicePauses).toBe(pauses);
+    await expect(page.getByRole("button", { name: "Stop audio playback", exact: true })).toBeVisible();
   });
 }

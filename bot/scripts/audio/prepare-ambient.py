@@ -6,23 +6,23 @@ p=argparse.ArgumentParser();p.add_argument('--cache', default='.cache/ambient');
 root=Path(args.cache);out=root/'encoded';out.mkdir(parents=True,exist_ok=True)
 sources={'quiet-piano':'859/859607_15820073','soft-keys':'788/788677_16161631','stillness':'524/524947_9497060','evening-pad':'575/575035_11532701'}
 checksums={
- 'quiet-piano':'34a1167e62481497f0bbc2fc53147399a38dfd19744a78d2cb0f97fa52ec72b1',
- 'soft-keys':'121354297afb04043c906429e2b3cb4005b31e20dd602db4fe439272c4ca9c1c',
- 'stillness':'839dc7b1d278c4a38b44096e185637ed580c04ce768884fc543b2aaa811b25f9',
- 'evening-pad':'9d10edf9ad84f5a302c754c37ad94fbcb180ca39788fc9cf3faf4ba0e8064c83',
+ 'quiet-piano':'853640ecc0f906d18b4b07cb66d36e47015f94d5435cd2a4e725c034c9d36d49',
+ 'soft-keys':'b174863df8a0f5ab01f55e854a58e0843dd85b87cefc6f005c29166fef230294',
+ 'stillness':'0355ea5ddbfc25ed518ab4f91de2f9433ac24d82c7ea35f7b44f4e96245c38fd',
+ 'evening-pad':'02ce8ece08e96187679adbf88763a4cc2473f09c92b44de5eeef9b35a5a90c92',
 }
 sources.update({'rain': '640/640655_2414299', 'wind': '528/528944_3302313', 'ocean': '578/578524_5487341', 'fire': '650/650574_9782868'})
-checksums.update({'rain': '75c8b42334537ba7a5a4c4d3ee555e3e4a67f9b2a0a52c17ac26657dc398b36c', 'wind': '4d4dfd182e9f5a98619a31b36312bdf72c1d774929cd8d0a9106b7115e63cc43', 'ocean': 'cf666271e740f8cd582e76738749d532d9971540759b2a3875a158ccb6f78fd9', 'fire': 'a2bb88a1c69393c43cc47ad635fc4f62d454302e4d80d96008b8900ff4d68335'})
+checksums.update({'rain': 'f5e4d1958e192762dc35e535e79afd30755986e18e7edabade998d84d446e6b9', 'wind': '4667388a7e4d0e080904fb072130495da659ed397466e74d6c52950e34c9730e', 'ocean': 'fd505dbd43cb1c3508f884279bf5d3e060bb14f2bc3d9b4cce334eb7a75b5d7f', 'fire': '2c952878199efd54fbb54e96f012967f790b71148e7d269162b7cd1c3c3850a3'})
 for name, key in sources.items():
- target=root/(name+'.mp3')
+ target=root/(name+'-hq.mp3')
  if not target.exists():
-  with urllib.request.urlopen('https://cdn.freesound.org/previews/'+key+'-lq.mp3',timeout=60) as r:target.write_bytes(r.read())
+  with urllib.request.urlopen('https://cdn.freesound.org/previews/'+key+'-hq.mp3',timeout=60) as r:target.write_bytes(r.read())
  if hashlib.sha256(target.read_bytes()).hexdigest()!=checksums[name]:
   raise ValueError(f'{name}: source changed; verify its licence and content before updating the pinned checksum')
 # Decode, repeat and crossfade in PCM; cut on one cycle. The Web Audio player loops
 # the decoded buffer, avoiding AAC's container/startup gap on every repeat.
 for name in sources:
- src=root/(name+'.mp3')
+ src=root/(name+'-hq.mp3')
  duration=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1',str(src)]))
  cycle=duration-2
  # Build a 2–4 minute period from crossfaded repetitions, then crossfade final tail to head.

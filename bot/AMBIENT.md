@@ -23,7 +23,7 @@ No Dwell music, track names, artwork or recordings are included.
 All eight recordings have CC0 statements on their individual source pages. Names,
 creators, original titles, source links, license links, changes, durations and
 encoded checksums live in `app/src/lib/ambient.ts` and are shown in Credits.
-We use each source's public MP3 preview, crossfade repetitions and the wrap point,
+We use each source's public **HQ MP3** preview (`-hq.mp3`), crossfade repetitions and the wrap point,
 level-adjust and encode AAC at 96 kbps. Prepared lengths are 150–240 seconds and
 sizes are 1.8–3.0 MB. The Music tab offers Soft piano, Warm keys, Slow chords and
 Evening pad. The Nature tab adds the requested Rain, Wind, Ocean waves and Gentle
@@ -39,6 +39,27 @@ fire. These are field recordings, alongside four instrumental piano/synth loops.
 | Wind | [fthgurdy](https://freesound.org/people/fthgurdy/sounds/528944/) |
 | Ocean waves | [SamsterBirdies](https://freesound.org/people/SamsterBirdies/sounds/578524/) |
 | Gentle fire | [soundofsong](https://freesound.org/people/soundofsong/sounds/650574/) |
+
+### Saved license evidence
+
+Checked **2026-10-01 UTC** by reading each individual Freesound page linked below.
+The quoted license label on every page was **“Creative Commons 0”**, linking to
+[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Each also explicitly
+permits “copy, modify, distribute and perform the sound, even for commercial purposes”.
+These are excerpts of the page's license text, not inferred from search filters or
+from a creator's general profile. The source MP3 checksums in the preparation script
+pin the reviewed assets. No NC, ND or unconfirmed-license source is included.
+
+| Track / Freesound ID | Creator as displayed | Page license text | Date checked (UTC) |
+| --- | --- | --- | --- |
+| [Soft piano / 859607](https://freesound.org/people/blankie.rest/sounds/859607/) | blankie.rest | “Creative Commons 0” | 2026-10-01 |
+| [Warm keys / 788677](https://freesound.org/people/Boatlanman-/sounds/788677/) | Boatlanman- | “Creative Commons 0” | 2026-10-01 |
+| [Slow chords / 524947](https://freesound.org/people/Erokia/sounds/524947/) | Erokia | “Creative Commons 0” | 2026-10-01 |
+| [Evening pad / 575035](https://freesound.org/people/deadrobotmusic/sounds/575035/) | deadrobotmusic | “Creative Commons 0” | 2026-10-01 |
+| [Rain / 640655](https://freesound.org/people/barkenov/sounds/640655/) | barkenov | “Creative Commons 0” | 2026-10-01 |
+| [Wind / 528944](https://freesound.org/people/fthgurdy/sounds/528944/) | fthgurdy | “Creative Commons 0” | 2026-10-01 |
+| [Ocean waves / 578524](https://freesound.org/people/SamsterBirdies/sounds/578524/) | SamsterBirdies | “Creative Commons 0” | 2026-10-01 |
+| [Gentle fire / 650574](https://freesound.org/people/soundofsong/sounds/650574/) | soundofsong | “Creative Commons 0” | 2026-10-01 |
 
 Prepare with Python + NumPy and FFmpeg (reference encoding: the task's installed
 FFmpeg; encoders can differ, so a checksum mismatch requires reviewing the result
@@ -59,8 +80,10 @@ there are no new media-element requests at a loop boundary. A GainNode handles
 independent volume on iOS. The default volume is 25%, ducked to 72% of that while a
 verse is active. Track and volume persist; Off is the initial selection. Preview
 lasts up to eight seconds without changing the saved track. Backgrounding cancels
-pending loads, stops the music and suspends the AudioContext. Returning alone does
-not start audio; a tap resumes it. Track failures show on the chip and do not stop
+pending loads, stops the music and suspends the AudioContext. Narration is left
+playing when the app is hidden; the platform may still impose its own restrictions.
+Returning alone does not restart ambient audio; a playback or track-selection tap
+resumes it. Track failures show on the chip and do not stop
 narration. Physical iOS/Telegram playback remains a device-validation item.
 
 ## Notes
