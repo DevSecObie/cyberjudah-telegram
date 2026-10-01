@@ -170,6 +170,16 @@ export function Ask() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
   useEffect(() => { if (stick.current) endRef.current?.scrollIntoView({ block: "end" }); }, [turns]);
+  // The conversation keeps clear of the composer, whatever its height (a long question, the keyboard).
+  const formRef = useRef<HTMLFormElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const f = formRef.current, m = mainRef.current;
+    if (!f || !m || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => m.style.setProperty("--composer-h", `${Math.ceil(f.getBoundingClientRect().height)}px`));
+    ro.observe(f);
+    return () => ro.disconnect();
+  }, []);
   // The composer grows with the question, up to a few lines.
   useLayoutEffect(() => { const b = boxRef.current; if (!b) return; b.style.height = "auto"; b.style.height = `${Math.min(b.scrollHeight, 160)}px`; }, [input]);
 
@@ -187,7 +197,7 @@ export function Ask() {
 
   const lastUser = [...turns].reverse().find((t) => t.role === "user")?.content ?? "";
   return (
-    <main className="chat2">
+    <main className="chat2" ref={mainRef}>
       <header className="chat2__bar">
         <button type="button" className="chat2__new" aria-label="Your chats" onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
         <button type="button" className="chat2__heading" onClick={() => { if (acct?.metered) { haptic("select"); setPlans(true); } }}><b>Ask CyberJudah</b><small>{meterLine(acct)}</small></button>
@@ -214,7 +224,7 @@ export function Ask() {
 
       {plans && acct ? <PlansSheet acct={acct} onClose={() => setPlans(false)} onPaid={() => { setPlans(false); void pollAccount(acct, setAcct); }} /> : null}
       {history ? <ChatsSheet current={chatId} onClose={() => setHistory(false)} onOpen={openChat} onDeleted={(id) => { if (id === conv.chatId) startNewChat(); }} /> : null}
-      <form className="composer2" onSubmit={(e) => { e.preventDefault(); send(input); }}>
+      <form ref={formRef} className="composer2" onSubmit={(e) => { e.preventDefault(); send(input); }}>
         <div className="composer2__box">
           <textarea ref={boxRef} value={input} rows={1} placeholder={turns.length ? "Ask a follow-up" : "Ask CyberJudah"} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onFocus={() => typing(true)} onBlur={() => typing(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} />
           {busy
