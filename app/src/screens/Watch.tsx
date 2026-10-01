@@ -8,9 +8,10 @@ import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { api, openLink } from "@/tg/sdk";
 import { NoteBody, noteLede } from "@/ui/note-body";
 import { Frame } from "@/lib/frames";
+import { showOf } from "@/lib/series";
 import { NotesOpener, NotesSheet, Player } from "@/ui/player";
 import { Empty, Skeleton, timestamp, youtube } from "@/ui/ui";
-import { KIND_NAME, useLive, useRecent } from "./Home";
+import { KIND_NAME, teachingLabel, useLive, useRecent, useTeachings } from "./Home";
 
 export type TranscriptWindow = { ok: true; video: string; kind: string; title: string; url: string; date: string; duration: number | null; t: number; chunks: { t: number; text: string }[] } | { ok: false; reason: string };
 export const useTranscriptAround = (video: string | null, t: number) => useQuery({ queryKey: ["transcript", video, Math.round(t)], enabled: !!video, queryFn: () => api<TranscriptWindow>(`/api/transcript/${encodeURIComponent(video!)}?t=${Math.round(t)}`), staleTime: 60 * 60_000 });
@@ -35,6 +36,7 @@ export function Watch() {
   const r = res.data;
   const recent = useRecent();
   const meta = recent.data?.find((v) => v.video === video);
+  const teaching = useTeachings().data?.find((x) => x.video === video);
   const note = useQuery({ queryKey: ["note", r?.ok ? r.url : ""], queryFn: () => data.note(r!.ok ? r!.url : "/"), enabled: !!(r?.ok && r.url) });
   useBottomButtons(res.isPending ? null : { text: "Open in YouTube", onClick: () => openLink(youtube(video, isLive ? 0 : start)) }, null);
   useEffect(() => { if (r?.ok) setTimeout(() => document.querySelector(".tx__chunk[data-here]")?.scrollIntoView({ block: "center" }), 60); }, [r]);
@@ -54,7 +56,7 @@ export function Watch() {
     <main className="screen screen--player">
       <Player video={video} start={start} playing={playing} onPlay={() => setPlaying(true)} title={meta?.title || "Class recording"} />
       <header className="note-head">
-        <p className="kicker">{["Sabbath class", meta ? fmtDate(meta.published.slice(0, 10)) : ""].filter(Boolean).join(" · ")}</p>
+        <p className="kicker">{[teaching ? teachingLabel(teaching) : showOf(meta?.title ?? "") ?? "Sabbath class", meta ? fmtDate(meta.published.slice(0, 10)) : ""].filter(Boolean).join(" · ")}</p>
         <h1>{meta?.title || "Class recording"}</h1>
       </header>
       <p className="hint">The captions for this class are on their way. Watch the recording meanwhile; the search and Ask CyberJudah pick it up once the captions land.</p>
@@ -65,7 +67,7 @@ export function Watch() {
     <main className="screen screen--player">
       <Player video={video} start={start} playing={playing} onPlay={() => setPlaying(true)} title={r.title} pip={full && notes && playing} onExpand={() => setFull(false)} />
       <header className="note-head">
-        <p className="kicker">{[KIND_NAME[r.kind as keyof typeof KIND_NAME] ?? "Recording", fmtDate(r.date)].filter(Boolean).join(" · ")}</p>
+        <p className="kicker">{[teaching ? teachingLabel(teaching) : showOf(r.title) ?? KIND_NAME[r.kind as keyof typeof KIND_NAME] ?? "Recording", fmtDate(r.date)].filter(Boolean).join(" · ")}</p>
         <h1>{r.title}</h1>
       </header>
       {r.url ? <NotesOpener lede={note.data ? noteLede(note.data.body) : undefined} onOpen={() => setNotes(true)} /> : <NotesWanted video={video} title={r.title} />}

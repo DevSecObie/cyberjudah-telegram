@@ -1105,6 +1105,25 @@ test("Classes: a feed of posts with the series, filters and search, kept on the 
   await expect(page.locator("#class-q")).toHaveValue("");
 });
 
+test("Classes: a class in a series is labelled by it, and the series opens in order", async ({ page }) => {
+  await page.goto(`/classes${LAUNCH}`);
+  await page.fill("#class-q", "Navigating Through Paul");
+  const post = page.locator("article.post").first();
+  const name = post.getByRole("button", { name: "Navigating Through Paul's Letters", exact: true });
+  await expect(name).toBeVisible();
+  await expect(post.locator(".post__who")).not.toContainText("Sabbath class");
+  await name.click();
+  await expect(page).toHaveURL(/series=Navigating/);
+  const posts = page.locator("article.post");
+  await expect.poll(() => posts.count()).toBeGreaterThan(1);
+  // Oldest first, as the series was taught.
+  const dates = await page.locator("article.post .post__who time").evaluateAll((els) => els.map((e) => e.getAttribute("datetime") ?? ""));
+  expect(dates).toEqual([...dates].sort());
+  // Leaving the series shows every class again.
+  await page.getByRole("button", { name: /^Series: Navigating/ }).click();
+  await expect(page).not.toHaveURL(/series=/);
+});
+
 test("Classes: one recording plays at a time, a preview reads on, the scripture opens, and a class is saved", async ({ page }) => {
   await page.goto(`/classes${LAUNCH}`);
   const posts = page.locator("article.post");

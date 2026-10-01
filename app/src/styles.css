@@ -1597,6 +1597,10 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 .post__who { display: flex; flex-direction: column; min-width: 0; }
 .post__who b { font: 600 14.5px/1.25 var(--a-ui); color: var(--a-ink-2); overflow-wrap: anywhere; }
 .post__who span { font: 400 12.5px/1.35 var(--a-ui); color: var(--a-muted); overflow-wrap: anywhere; }
+/* A series name: a quiet link to the rest of the series. */
+#root .post .post__series { all: unset; box-sizing: border-box; font: inherit; color: var(--a-accent); font-weight: 600; cursor: pointer; border-radius: 4px; overflow-wrap: anywhere; }
+#root .post .post__series:hover { text-decoration: underline; }
+#root .post .post__series:focus-visible { outline: 2px solid var(--a-accent); outline-offset: 2px; }
 /* The recording full width on a phone, rounded inside the column from a tablet up; always 16:9. */
 .post__media { position: relative; aspect-ratio: 16 / 9; margin: 0 -16px; background: var(--a-card-2); overflow: hidden; }
 @media (min-width: 600px) { .post__media { margin: 0; border-radius: var(--r-lg); } }

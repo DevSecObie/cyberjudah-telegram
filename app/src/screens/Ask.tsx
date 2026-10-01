@@ -10,6 +10,7 @@ import { Sheet } from "@/bible/ui/Sheet";
 import { Icon, timestamp } from "@/ui/ui";
 import { KIND_LABEL, hitPath, teachingPath } from "@/ui/search-hero";
 import { assetUrl } from "@/lib/asset";
+import { showOf } from "@/lib/series";
 import { linkRefsInHtml, useBookSlugs } from "@/ui/reftext";
 import { KIND_NAME } from "./Home";
 
@@ -133,7 +134,7 @@ async function recoverChat() {
 
 /** Where a cited passage opens: the class at its moment, the note at its section, the verse. */
 export const passagePath = (p: Passage) => p.video ? teachingPath({ video: p.video, start: p.t ?? 0, note: p.url }) : hitPath({ kind: p.kind, title: p.title, url: p.url, sub: p.sub ?? "", snippet: "" });
-export const passageLabel = (p: Passage) => p.video ? `${KIND_NAME[p.sub as keyof typeof KIND_NAME] ?? "Recording"}${p.date ? ` · ${fmtDate(p.date)}` : ""} · ${timestamp(p.t ?? 0)}` : `${KIND_LABEL[p.kind] ?? p.kind}${p.sub ? ` · ${p.sub}` : ""}`;
+export const passageLabel = (p: Passage) => p.video ? `${showOf(p.title) ?? KIND_NAME[p.sub as keyof typeof KIND_NAME] ?? "Recording"}${p.date ? ` · ${fmtDate(p.date)}` : ""} · ${timestamp(p.t ?? 0)}` : `${KIND_LABEL[p.kind] ?? p.kind}${p.sub ? ` · ${p.sub}` : ""}`;
 
 /**
  * Ask CyberJudah, laid out like an AI chat app: a slim bar with a new-chat button, a welcome

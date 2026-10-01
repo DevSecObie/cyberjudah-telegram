@@ -18,11 +18,12 @@ import { assetUrl } from "@/lib/asset";
 import { SearchHero } from "@/ui/search-hero";
 import { PersonOfTheDay, PreceptOfTheDay, StrongOfTheDay, StudyStats, TopicOfTheDay, WordOfTheDay, useRandomVerse } from "./home-widgets";
 
+import { seriesLabel, seriesOf, showOf, type Series } from "@/lib/series";
 import { TodayCard, type DailyVerse as Verse } from "./TodayCard";
 export type LiveNow = { live: boolean; upcoming: boolean; video: string | null; title: string | null; starts: string | null };
 /** Whether a class is on the air, asked again every minute while Home is open. */
 export const useLive = (enabled = true) => useQuery({ queryKey: ["live"], queryFn: () => api<LiveNow>("/api/live"), enabled, refetchInterval: 60_000, staleTime: 45_000, retry: false });
-export type Teaching = { kind: "class" | "captains" | "history"; url: string; title: string; date: string; teacher: string; thumb: string; topics: string[]; books: string[]; sub?: string; collection?: string; video?: string; pending?: boolean; intro?: string; opens?: Opened[] };
+export type Teaching = { kind: "class" | "captains" | "history"; url: string; title: string; date: string; teacher: string; thumb: string; topics: string[]; books: string[]; sub?: string; collection?: string; video?: string; pending?: boolean; intro?: string; opens?: Opened[]; series?: Series };
 export type RecentVideo = { video: string; title: string; published: string; views: number | null };
 /** The video behind a teaching's thumbnail: YouTube's own (/vi/<id>/) or the site's local copy (/img/<feed>/<id>.jpg). */
 const videoOfThumb = (thumb: string) => /(?:\/vi\/|\/img\/[a-z]+\/)([A-Za-z0-9_-]{11})(?=[/.])/.exec(thumb ?? "")?.[1] ?? null;
@@ -31,6 +32,8 @@ export const teachingTo = (t: Teaching) => (t.pending && t.video ? `/watch/${enc
 /** The channel's newest uploads, so a class is in the app before its notes are written. */
 export const useRecent = () => useQuery({ queryKey: ["recent"], queryFn: () => api<{ videos: RecentVideo[] }>("/api/recent").then((r) => r.videos), staleTime: 10 * 60_000, retry: false });
 export const KIND_NAME: Record<Teaching["kind"], string> = { class: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History" };
+/** What a teaching is shown as: the series its title names, else its collection. */
+export const teachingLabel = (t: Pick<Teaching, "kind" | "series">) => (t.series ? seriesLabel(t.series) : KIND_NAME[t.kind]);
 
 /** Everything with notes, newest first, in one feed. */
 function useNotedTeachings() {
@@ -54,7 +57,14 @@ export function useTeachings() {
     if (!notes.data) return notes.data;
     const have = new Set(notes.data.map((t) => videoOfThumb(t.thumb)).filter(Boolean));
     const extra = (recent.data ?? []).filter((v) => !have.has(v.video)).map<Teaching>((v) => ({ kind: "class", url: `/watch/${v.video}`, title: v.title, date: v.published.slice(0, 10), teacher: "", thumb: `https://img.youtube.com/vi/${v.video}/mqdefault.jpg`, topics: [], books: [], video: v.video, pending: true }));
-    return extra.length ? [...notes.data, ...extra].sort((a, b) => (b.date || "").localeCompare(a.date || "")) : notes.data;
+    const all = extra.length ? [...notes.data, ...extra].sort((a, b) => (b.date || "").localeCompare(a.date || "")) : notes.data;
+    // A class taught as one of a run, or on one of the shows, carries that name, read from the titles.
+    const series = seriesOf(all.filter((t) => t.kind === "class").map((t) => t.title));
+    return all.map((t) => {
+      if (t.kind !== "class") return t;
+      const s = series.get(t.title) ?? (showOf(t.title) ? { name: showOf(t.title)! } : undefined);
+      return s ? { ...t, series: s } : t;
+    });
   }, [notes.data, recent.data]);
   return { ...notes, data };
 }
@@ -221,7 +231,7 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
         <div className="feed">
           {rows.map((t) => (
             <Link key={t.url} to={teachingTo(t)} className="feed__card">
-              <span className="feed__img"><Img src={t.thumb} /><span className="feed__kind">{KIND_NAME[t.kind]}</span></span>
+              <span className="feed__img"><Img src={t.thumb} /><span className="feed__kind">{teachingLabel(t)}</span></span>
               <span className="feed__body"><b>{t.title}</b><small>{[t.sub, fmtDate(t.date), t.teacher].filter(Boolean).join(" · ")}{t.pending ? <span className="soon">Notes coming soon</span> : null}</small></span>
             </Link>
           ))}
