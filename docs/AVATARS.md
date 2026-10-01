@@ -25,6 +25,8 @@ and teachers are named as the class gives them.
 | Women | A wrap or head covering (1 Corinthians 11); modest dress, skirts not pants (Deuteronomy 22:5); 1 Peter 3:3-4 | `-RHCA5UNOlg` [3:30:27]; `0N1tUWScwMU` [1:57:19]; Deacon Yashua, `…2026-09-12-she-reverence…md:319` |
 | Men | Uncovered head (1 Corinthians 11) | `08mCpZzZOtE` [10:03] |
 | Hamites (Egypt, Cush, Canaan, Philistia) | Black: "the Egyptians were Hamites, black folks"; Kush, "pure Hamites"; "everybody in that region was black" | Bishop Nathanyel, `…2026-03-28-religion-the-false-prophet.md:236-237`; `…2026-05-02-jude-116.md:307`; `…2026-05-30-god-purpose-and-sacrifice.md:176` |
+| Horites (Seir) | "A group of Hamites named after the region they lived in", in Mount Seir before Esau, who conquered them and took the title of duke from them | `E7-T_cAwLUc` [47:21] |
+| Tyre and Zidon | "Tyre and Zidon represents the Hamitic nations" | Joel classes on Tyre and Zidon |
 | Edom (Esau) | Genesis 25:25, "red all over like an hairy garment"; born without pigment, so the blood showed through; thin, stringy hair "not woolly like a sheep" | Bishop Nathanyel, `…2026-02-08-edom-s-achilles-heel.md:258` [1:15:24]; `…2026-02-14-fighting-satan…md:188`; `…2026-04-03-edom…md:150` |
 
 ## 2. Artistic choices (not settled by the teaching)
@@ -50,6 +52,9 @@ These people are left out until the assembly's understanding is confirmed:
   1:44:41; Deacon Malachiyah, `…2026-08-22-lucifer-the-antichrist.md:227-229`). Nothing yet says
   whether an app avatar is fitting.
 - **The Most High** is never depicted.
+- **Melchizedek** and **the Kenites** (Rechab, Jonadab): the classes do not say which nation they were.
+- **Records that may be a town** ("Man or town"), uncertain records ("Woman (?)") and plural records
+  ("wives", "compatriots").
 - **Early patriarchs** (TIPNR "Early Patriarch", before Abraham) are held back until the line from
   Noah's sons is settled for depiction.
 - **Nations without a description:** Ammon, Syria, Mesopotamia, Assyria, Moab, Midian, Arabia and Sheba (Ruth, Zipporah, the Queen of
@@ -134,6 +139,19 @@ automatically. Every prompt is stored with its job in `app/public/people/manifes
 | --- | --- |
 | 2 | Levi, Saul, Joshua, Benjamin, Ephraim, Samuel, Joab, Hezekiah, Manasseh, Pharaoh (Exodus 3), Absalom, John the Baptist |
 | 3 | Reuben, Jonathan, Jeroboam, Ahab, Pharaoh (Genesis 37), Jehoshaphat, Eleazar, Gad, Zedekiah, Abner, Asa, Mordecai |
+
+### Records the data has wrong
+
+The people data comes from TIPNR, and some of its nations differ from the classes' teaching and the
+KJV. These are corrected before generating:
+
+- The Horites of Genesis 36:20-30 and 14:6 (Seir, Lotan, Shobal, Zibeon, Anah, Dishon, Ezer, Dishan,
+  their sons, Timna and Oholibamah) are tagged "Edom". The class teaches they were Hamites, so they
+  are shown as Hamites.
+- Jezebel is tagged "Israel". She was the daughter of Ethbaal, king of the Zidonians (1 Kings 16:31),
+  and Zidon is Hamitic in the classes, so she is shown as a Hamite of Zidon.
+- Esau's Hittite wives, Judith and Adah (Bashemath), and their fathers Beeri and Elon are tagged
+  "Edom". Heth is a son of Canaan (Genesis 10:15), so they are shown as Hamites of Canaan.
 
 ## 7. Scope and credits
 
