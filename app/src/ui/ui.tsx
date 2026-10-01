@@ -178,11 +178,11 @@ export function Img({ src, eager }: { src: string; eager?: boolean }) {
 }
 
 /** A tappable list row: TelegramUI's Cell. `href` is a site or app path. */
-export function Row({ href, onClick, title, sub, meta, thumb, trailing, icon }: { href?: string; onClick?: () => void; title: ReactNode; sub?: ReactNode; meta?: ReactNode; thumb?: string; trailing?: ReactNode; icon?: IconName }) {
+export function Row({ href, onClick, title, sub, meta, thumb, trailing, icon, leading }: { href?: string; onClick?: () => void; title: ReactNode; sub?: ReactNode; meta?: ReactNode; thumb?: string; trailing?: ReactNode; icon?: IconName; leading?: ReactNode }) {
   const slots = {
     className: "row",
     multiline: true,
-    before: thumb !== undefined ? <span className="row__thumb">{thumb ? <Img src={thumb} /> : null}</span> : icon ? <span className="row__icon"><Icon name={icon} size={20} /></span> : undefined,
+    before: leading ?? (thumb !== undefined ? <span className="row__thumb">{thumb ? <Img src={thumb} /> : null}</span> : icon ? <span className="row__icon"><Icon name={icon} size={20} /></span> : undefined),
     subhead: meta ? <span className="row__meta">{meta}</span> : undefined,
     subtitle: sub ? <span className="row__sub">{sub}</span> : undefined,
     after: trailing ?? <span className="row__chev"><Icon name="chevron" size={18} /></span>,
