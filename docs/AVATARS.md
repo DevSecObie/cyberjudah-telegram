@@ -29,6 +29,45 @@ and teachers are named as the class gives them.
 | Tyre and Zidon | "Tyre and Zidon represents the Hamitic nations" | Joel classes on Tyre and Zidon |
 | Edom (Esau) | Genesis 25:25, "red all over like an hairy garment"; born without pigment, so the blood showed through; thin, stringy hair "not woolly like a sheep" | Bishop Nathanyel, `…2026-02-08-edom-s-achilles-heel.md:258` [1:15:24]; `…2026-02-14-fighting-satan…md:188`; `…2026-04-03-edom…md:150` |
 
+### The nations (the assembly's chart, Genesis 10)
+
+Deuteronomy 32:8: "When the Most High divided to the nations their inheritance, when he separated
+the sons of Adam". This is the assembly's chart of the nations, and portraits follow it:
+
+| Line | Nation | So called today | Scripture |
+| --- | --- | --- | --- |
+| Shem | Elam | East Indians | Genesis 10:22; 1 Chronicles 1:17 |
+| Shem | Asshur | Kurds | Genesis 10:22 |
+| Shem | Aram | Syrians | Genesis 10:22 |
+| Shem | Ishmael (and Keturah's sons, taught as Arabs with him) | Arabs | Genesis 16; 17:18-20; 25; 1 Chronicles 1:28-31 |
+| Shem | Moab | Chinese | Genesis 19:29-38 |
+| Shem | Ammon | Japanese | Genesis 19:29-38 |
+| Shem | Edom | so-called white people | Genesis 25:19-34; 36 |
+| Shem | Israel | Blacks, Hispanics, Native Americans | Genesis 29-30; 41:50-52; 49; Deuteronomy 28:15-68; Joel 3:1-6 |
+| Ham | Cush | Ethiopians | Genesis 10:6-12 |
+| Ham | Mizraim | Egyptians, Watusi | Genesis 10:6, 13-14 |
+| Ham | Phut | North Africans | Genesis 10:6 |
+| Ham | Canaan | South Africans | Genesis 10:6, 15-19 |
+| Japheth | Gomer, Magog, Javan, Ashkenaz, Tarshish, Kittim and their brothers | Hawaiians, Filipinos, Indonesians, Polynesians, Aborigines of Australia, natives of New Guinea, Tahiti and Samoa | Genesis 10:2-4 |
+
+- The people of Japheth were driven out of Europe by the Greeks and Romans. The Romans of the New
+  Testament are therefore shown as Edom.
+- Where the people data gives no nation, the nation is found through the generations in Genesis, by
+  the fathers' house (Numbers 1:18).
+- The Hebrew line from Arphaxad to Terah, and the houses of Terah and Nahor, are shown like
+  Abraham. The KJV calls Bethuel and Laban "Syrian" after the land they lived in, but by their
+  generations they are Terah's house.
+- On "ruddy" (1 Samuel 16:12): the classes teach that it means a healthy brown, "dark and lovely",
+  for David. The Zondervan Compact Bible Dictionary (p. 510) sets "ruddy" against "the dark skin of
+  the Hebrews". The Ham entry calls Ham "progenitor of the dark races… the Egyptians, Ethiopians,
+  Libyans and Canaanites" (Genesis 10:6-20).
+- Still held back:
+  - Adam to Noah, and Shem, whose generations divide into several nations.
+  - Joktan and Lud.
+  - Babylon and Persia.
+  - Melchizedek, and the Kenites.
+  - Records whose mother and father are of different nations, where the classes don't say.
+
 ## 2. Artistic choices (not settled by the teaching)
 
 - **Style:** a matte gouache and oil painting. Head and shoulders in three-quarter view, with soft
