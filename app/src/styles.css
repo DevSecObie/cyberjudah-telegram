@@ -1437,3 +1437,22 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
   .tabs:not(.tabs--switcher), .tabs .tab, .tab__label, .tabs__pill { transition: none; }
   .tabs .tab[data-on] .tab__glyph > * { animation: none; }
 }
+
+/* Asking for a class's notes: a quiet pill that turns into a check once asked. */
+#root button.request-notes, button.request-notes { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 20px; border: 1px solid var(--a-line, rgba(127,127,127,.3)); background: color-mix(in srgb, var(--a-accent, #00e5ff) 14%, transparent); color: var(--a-accent, #00e5ff); font: 600 14px var(--a-ui, system-ui), sans-serif; cursor: pointer; }
+#root button.request-notes[data-done], button.request-notes[data-done] { background: none; color: var(--a-muted, inherit); cursor: default; }
+#root button.request-notes:disabled, button.request-notes:disabled { opacity: 1; }
+.notes-wanted { display: grid; gap: 10px; justify-items: start; margin: 12px 0 18px; padding: 14px 16px; border-radius: 16px; background: var(--a-card); border: 1px solid var(--a-line); }
+.notes-wanted p { margin: 0; color: var(--a-ink-2); font: 400 14.5px/1.45 var(--a-ui); }
+.notes-wanted b { color: var(--a-ink); }
+
+/* The admins' queue of requested notes. */
+.nreq__bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 14px; }
+.nreq { list-style: none; margin: 0; padding: 0; border-radius: 16px; background: var(--a-card); overflow: hidden; }
+.nreq__row { display: flex; align-items: center; gap: 6px; padding: 10px 10px 10px 14px; border-top: .5px solid var(--a-line); }
+.nreq__row:first-child { border-top: 0; }
+#root button.nreq__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 0; border: 0; background: none; color: var(--a-ink); text-align: left; cursor: pointer; }
+.nreq__main b { font: 600 15px/1.3 var(--a-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nreq__main small { color: var(--a-muted); font: 500 12px var(--a-ui); }
+#root button.nreq__btn { flex: none; padding: 8px 12px; border-radius: 16px; border: 1px solid transparent; background: var(--a-accent); color: var(--a-on-accent, #001014); font: 600 13px var(--a-ui); cursor: pointer; }
+#root button.nreq__btn--quiet { background: color-mix(in srgb, var(--a-ink) 8%, transparent); color: var(--a-ink-2); }

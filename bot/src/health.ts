@@ -72,7 +72,7 @@ async function lastDailySlot(env: Env, now: number): Promise<{ sent: number; fai
 const adminIds = (env: Env): number[] =>
   String(env.ADMIN_IDS ?? "").split(/[,\s]+/).filter(Boolean).map(Number).filter((n) => Number.isInteger(n) && n > 0);
 
-async function tellAdmins(env: Env, text: string): Promise<void> {
+export async function tellAdmins(env: Env, text: string): Promise<void> {
   const ids = adminIds(env);
   if (!ids.length) { console.log(JSON.stringify({ event: "health_no_admins" })); return; }
   const api = new Api(env.BOT_TOKEN);

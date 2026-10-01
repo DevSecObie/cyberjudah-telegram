@@ -493,3 +493,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 /* A person in a verse's resources: the avatar beside the name. */
 .bs-resrow--person { flex-direction: row; align-items: center; gap: 12px; }
 .bs-resrow--person > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+/* A gallery with many classes: its count, and the rest on request. */
+.bs-gallery__count { opacity: .6; font-weight: 600; }
+#root button.bs-gallery__more, button.bs-gallery__more { display: block; margin: 16px auto 0; padding: 10px 18px; border-radius: 20px; border: 1px solid; font: 600 14px system-ui, sans-serif; cursor: pointer; }

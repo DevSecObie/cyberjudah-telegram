@@ -8,6 +8,7 @@ import { haptic, openLink } from "@/tg/sdk";
 import { sheetOpened } from "@/tg/hooks";
 import { youtube } from "@/ui/ui";
 import { toAppPath } from "@shared/links.mjs";
+import { RequestNotes } from "@/ui/request-notes";
 import { Feather } from "../icons";
 import type { Palette } from "../theme";
 import { scaleFontSizeNumber } from "../typography";
@@ -27,6 +28,9 @@ const CHAPTER = { height: 76, ratio: 16 / 9 };
 const MAX_STACKED = 3;
 const SCROLL_SHRINK = { distance: 30, min: 0.2 };
 export const SOURCE_STAGGER = 70, SOURCE_SETTLE = 380, EXTRA_STAGGER = 50;
+// A chapter can have a hundred classes: after the first dozen the rest arrive together, and the
+// gallery shows the first SHOWN of each section until the reader asks for all of them.
+const STAGGER_CAP = 12, SHOWN = 24;
 // Bible Strong's spring (stiffness 360, damping 34, mass 0.8) as a curve: fast, with a slight settle.
 const SPRING = "cubic-bezier(.2, 1.12, .32, 1)";
 const FLY_MS = 480;
@@ -132,12 +136,13 @@ function DeckOverlay({ items, sections, source, palette: c, reference, from, mod
   const [shown, setShown] = useState(false);
   const [closing, setClosing] = useState(false);
   const [ready, setReady] = useState(false);
+  const [all, setAll] = useState<Set<string>>(() => new Set());
   const picked = useRef<ReturnType<typeof place> | null>(null);
   const sourceKeys = [...(source.current?.querySelectorAll<HTMLElement>("[data-deck-card]") ?? [])].map((el) => el.dataset.deckCard!);
   const list = sections?.length ? sections.flatMap((s) => s.items).filter((m, i, all) => all.findIndex((x) => deckKey(x) === deckKey(m)) === i) : items;
   const extras = list.filter((m) => !sourceKeys.includes(deckKey(m)));
   const extraStart = sourceKeys.length ? (sourceKeys.length - 1) * SOURCE_STAGGER + SOURCE_SETTLE : 160;
-  const delayOf = (m: ClassMoment) => { const i = sourceKeys.indexOf(deckKey(m)); return i >= 0 ? i * SOURCE_STAGGER : extraStart + extras.findIndex((x) => deckKey(x) === deckKey(m)) * EXTRA_STAGGER; };
+  const delayOf = (m: ClassMoment) => { const i = sourceKeys.indexOf(deckKey(m)); return i >= 0 ? i * SOURCE_STAGGER : extraStart + Math.min(extras.findIndex((x) => deckKey(x) === deckKey(m)), STAGGER_CAP) * EXTRA_STAGGER; };
 
   // The deck's cards fly to their places in the gallery; the others fade in after them.
   useLayoutEffect(() => {
@@ -231,12 +236,22 @@ function DeckOverlay({ items, sections, source, palette: c, reference, from, mod
             <div className={`bs-gallery__sections${list.length <= 4 ? " bs-gallery__sections--center" : ""}`}>
               {sections.map((s, i) => (
                 <section key={s.title}>
-                  {list.length > 1 ? <h2 style={{ animationDelay: `${80 + i * 60}ms` }}>{s.title}</h2> : null}
-                  {grid(s.items, false)}
+                  {list.length > 1 ? <h2 style={{ animationDelay: `${80 + i * 60}ms` }}>{s.title}{s.items.length > 1 ? <span className="bs-gallery__count"> · {s.items.length}</span> : null}</h2> : null}
+                  {grid(all.has(s.title) ? s.items : s.items.slice(0, SHOWN), false)}
+                  {s.items.length > SHOWN && !all.has(s.title) ? (
+                    <button type="button" className="bs-gallery__more" style={{ background: c.reverse, color: c.default, borderColor: c.border }}
+                      onClick={(e) => { e.stopPropagation(); haptic("select"); setAll((a) => new Set(a).add(s.title)); }}>Show all {s.items.length}</button>
+                  ) : null}
                 </section>
               ))}
             </div>
-          ) : grid(items, items.length <= 4)}
+          ) : <>
+            {grid(all.has("") ? items : items.slice(0, SHOWN), items.length <= 4)}
+            {items.length > SHOWN && !all.has("") ? (
+              <button type="button" className="bs-gallery__more" style={{ background: c.reverse, color: c.default, borderColor: c.border }}
+                onClick={(e) => { e.stopPropagation(); haptic("select"); setAll((a) => new Set(a).add("")); }}>Show all {items.length}</button>
+            ) : null}
+          </>}
         </div>
       ) : selected ? (
         <div className="bs-player" onClick={(e) => e.stopPropagation()}>
@@ -246,7 +261,9 @@ function DeckOverlay({ items, sections, source, palette: c, reference, from, mod
               onLoad={() => window.setTimeout(() => setReady(true), 220)} style={{ opacity: ready ? 1 : 0 }} />
           </div>
           <div className="bs-player__actions">
-            <button type="button" style={{ background: c.reverse, color: c.default, borderColor: c.border }} onClick={() => openNote(selected)}>Class notes</button>
+            {selected.url
+              ? <button type="button" style={{ background: c.reverse, color: c.default, borderColor: c.border }} onClick={() => openNote(selected)}>Class notes</button>
+              : <RequestNotes video={selected.video} title={selected.label} style={{ background: c.reverse, color: c.default, borderColor: c.border }} />}
             <button type="button" style={{ background: c.reverse, color: c.default, borderColor: c.border }} onClick={() => { haptic("select"); openLink(youtube(selected.video, selected.t)); }}>Open in YouTube</button>
           </div>
         </div>

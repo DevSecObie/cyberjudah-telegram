@@ -21,6 +21,8 @@ import { bs } from "./bs";
 import { buildCatalog, emptyCatalog, SLUGS, type PassageMediaMoment } from "./passage-media.mjs";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
 import { CHAT_ID, deleteChat, getChat, listChats } from "./chats";
+import { closeRequest, getRequest, listRequests, requestNotes, validVideo } from "./requests";
+import { tellAdmins } from "./health";
 import { notePdf, pdfName } from "./pdf.mjs";
 import { billingOn, invoiceFor, prices, pruneBilling, standing, usageDay, SUPPORT_STARS } from "./billing";
 import { InputFile } from "grammy";
@@ -249,6 +251,32 @@ app.get("/api/admin/usage", async (c) => {
 });
 
 // The person's saved conversations with Ask CyberJudah: the list, one to reopen, one to delete.
+// Requests for class notes: a reader asks for a class's notes (one vote each); the admins see the
+// most asked for first and are told as a class gathers asks.
+app.get("/api/requests", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false }, 403);
+  return c.json({ ok: true, requests: await listRequests(c.env) });
+});
+app.get("/api/requests/:video", async (c) => {
+  const video = c.req.param("video");
+  if (!validVideo(video)) return c.json({ ok: false, error: "bad-video" }, 400);
+  const r = await getRequest(c.env, video);
+  return c.json({ ok: true, count: r?.count ?? 0, mine: !!r?.users.includes(c.get("tma").user!.id) });
+});
+app.post("/api/requests/:video", async (c) => {
+  const video = c.req.param("video");
+  if (!validVideo(video)) return c.json({ ok: false, error: "bad-video" }, 400);
+  const body = await c.req.json().catch(() => ({})) as { title?: unknown };
+  const title = typeof body.title === "string" ? body.title.replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 200) : "";
+  const res = await requestNotes(c.env, video, c.get("tma").user!.id, title, new Date(), (r) => {
+    c.executionCtx.waitUntil(tellAdmins(c.env, `Notes requested ${r.count === 1 ? "for the first time" : `${r.count} times`}: ${r.title || video}\nhttps://www.youtube.com/watch?v=${video}\nDraft them from the draft-notes workflow with this video id: ${video}`));
+  });
+  return c.json({ ok: true, ...res });
+});
+app.delete("/api/requests/:video", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false }, 403);
+  return c.json({ ok: await closeRequest(c.env, c.req.param("video")) });
+});
 app.get("/api/chats", async (c) => c.json({ ok: true, chats: await listChats(c.env, c.get("tma").user!.id) }));
 app.get("/api/chats/:id", async (c) => {
   const chat = await getChat(c.env, c.get("tma").user!.id, c.req.param("id"));
