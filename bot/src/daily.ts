@@ -5,12 +5,12 @@ import { todaysVerse, openButton } from "./bot";
 /** The subscriber's hour of the day for a UTC hour: tz is their offset in minutes (half-hour zones round down). */
 export const localHour = (utcHour: number, tz: number) => Math.floor((((utcHour * 60 + tz) % 1440) + 1440) % 1440 / 60);
 
-const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /** Telegram allows roughly 30 messages a second to distinct users; the broadcast stays under it. */
-const SENDS_PER_SECOND = 25;
-const CHUNK = 20;
+export const SENDS_PER_SECOND = 25;
+export const CHUNK = 20;
 /** A slot's counts live three days: the health check reads the last finished slot. */
-const SLOT_TTL = 3 * 86400;
+export const SLOT_TTL = 3 * 86400;
 
 type Counts = { sent: number; dropped: number; failed: number };
 

@@ -7,6 +7,7 @@ import { parseReference } from "./refs.mjs";
 import { verseOfDay } from "./verse-of-day.mjs";
 import { pathToStartParam, startParamToPath } from "../../shared/links.mjs";
 import { applyPayment, checkout, SUPPORT_STARS } from "./billing";
+import { linkDevice, reminderButton } from "./remind";
 
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 const MAX_INLINE = 50;
@@ -52,6 +53,12 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
 
   bot.command("start", async (ctx) => {
     const param = SAFE_PARAM.test(ctx.match) ? ctx.match : "";
+    // A browser asking for reading reminders in this chat (Settings → Reading reminders → Start the bot).
+    const link = /^remind_([0-9a-f]{32})$/.exec(param);
+    if (link && ctx.chat.type === "private" && ctx.from) {
+      const ok = await linkDevice(env, link[1], ctx.from.id);
+      return ctx.reply(ok ? "Your reading reminders will come to this chat. Change them in Settings → Reading reminders." : "That link has expired. Open Settings → Reading reminders and press Start the bot again.", { reply_markup: open(ctx, "settings_reminders", "Reading reminders") });
+    }
     if (param) {
       const path = startParamToPath(param);
       const label = path === "/" ? "CyberJudah" : path.replace(/[?#].*$/, "").split("/").filter(Boolean).map((p) => p.replace(/-/g, " ")).join(" › ");
@@ -95,6 +102,14 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     if (!SUPPORT_STARS.includes(stars)) return ctx.answerCallbackQuery({ text: "That amount is not on offer." });
     await ctx.replyWithInvoice("Support CyberJudah", "Keep the library free and the classes online. Thank you.", `support:${ctx.from?.id ?? 0}:${stars}`, "XTR", [{ label: "Support CyberJudah", amount: stars }]);
     return ctx.answerCallbackQuery();
+  });
+
+  // The Done / Pause / Stop buttons under a reading reminder.
+  bot.callbackQuery(/^rd:(done|pause|stop)$/, async (ctx) => {
+    const action = ctx.match[1] as "done" | "pause" | "stop";
+    const text = await reminderButton(env, ctx.from.id, action);
+    if (action !== "done") await ctx.editMessageReplyMarkup({ reply_markup: undefined }).catch(() => undefined);
+    return ctx.answerCallbackQuery({ text });
   });
 
   // Stars are taken only for a real item at its real price, bought by the person paying.

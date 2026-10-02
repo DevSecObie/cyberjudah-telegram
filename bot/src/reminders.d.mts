@@ -1,0 +1,57 @@
+import type { BookRow } from "./refs.mjs";
+
+export type Channel = "telegram" | "push";
+export type PushSub = { endpoint: string; keys: { p256dh: string; auth: string } };
+export type Pending = { day?: number; chapters: { slug: string; chapter: number }[]; date: string };
+export type Reminder = {
+  v: 1;
+  on: boolean;
+  hour: number;
+  tz: string;
+  channels: { telegram: boolean; push: boolean };
+  chatId?: number;
+  push?: PushSub;
+  plan?: { day: number; perDay: number } | null;
+  last?: { slug: string; chapter: number } | null;
+  from?: string;
+  pausedUntil?: string;
+  done?: string;
+  sent: { telegram?: string; push?: string };
+  pending: Pending[];
+  notice?: "push-fallback";
+  tgMessage?: { date: string; id: number };
+};
+export type Meta = { o: 0 | 1; h: number; z: string; t: 0 | 1; p: 0 | 1; u: string };
+export type Portion = { kind: "plan" | "last"; day?: number; label: string; slug: string; chapter: number; chapters: { slug: string; chapter: number }[]; param: string };
+
+export const CATCH_UP_HOURS: number;
+export const PAUSE_DAYS: number;
+export const PUSH_GONE: Set<number>;
+export function validTz(tz: unknown): boolean;
+export function localNow(tz: string, now?: Date): { date: string; hour: number };
+export function addDays(date: string, n: number): string;
+export function blank(tz?: string): Reminder;
+export function applySettings(rec: Reminder, input: unknown, now?: Date): Reminder;
+export function applyContent(rec: Reminder, content: unknown): Reminder;
+export function reachable(rec: Reminder, ch: Channel): boolean;
+export function dueChannels(rec: Reminder | null | undefined, now?: Date): Channel[];
+export function markSent(rec: Reminder, ch: Channel, now?: Date): Reminder;
+export const APOCRYPHA: [slug: string, name: string][];
+export function orderBooks<T extends BookRow>(books: readonly T[] | null | undefined): T[];
+export function flatChapters(books: readonly BookRow[] | null | undefined): { slug: string; book: string; chapter: number }[];
+export function chapterParam(slug: string, chapter: number): string;
+export function portion(rec: Reminder, books: readonly BookRow[] | null | undefined): Portion | null;
+export function markDone(rec: Reminder, books: readonly BookRow[] | null | undefined, now?: Date): Reminder;
+export function pause(rec: Reminder, now?: Date): Reminder;
+export function stop(rec: Reminder): Reminder;
+export function pushFailed(rec: Reminder, status: number, now?: Date): { rec: Reminder; gone: boolean; sendTelegram: boolean };
+export function telegramGone(rec: Reminder): Reminder;
+export function ackPending(rec: Reminder, dates: unknown): Reminder;
+export function meta(rec: Reminder): Meta;
+export function mayBeDue(m: Meta | null | undefined, now?: Date): boolean;
+export function countByChannel(metas: (Meta | null | undefined)[]): { telegram: number; push: number; both: number; paused: number; off: number };
+export function publicView(rec: Reminder): {
+  on: boolean; hour: number; tz: string; channels: { telegram: boolean; push: boolean };
+  telegramLinked: boolean; pushEndpoint: string | null; pausedUntil: string | null; done: string | null;
+  pending: Pending[]; notice: string | null; plan: Reminder["plan"] | null; last: Reminder["last"] | null;
+};

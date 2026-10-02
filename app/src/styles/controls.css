@@ -117,3 +117,22 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgu
 /* Spinners keep their size; a busy button keeps its width. */
 [aria-busy="true"] { cursor: progress; }
 .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
+
+/* Reading reminders: where to remind, each choice with what it means here. */
+.remind-choices { display: block; }
+.remind-choice { position: relative; }
+.remind-choice + .remind-choice::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; border-top: .5px solid var(--hairline); pointer-events: none; }
+.remind-choice .toggle { min-height: 52px; }
+.remind-choice .toggle svg { color: var(--accent); flex: none; }
+.remind-choice__dot { flex: none; width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--text-4); }
+.remind-choice__why { padding: 0 14px 12px; font-size: var(--fs-footnote); line-height: 1.45; color: var(--text-3); }
+.remind-choice__why p { margin: 0; }
+.remind-choice__why p + p, .remind-choice__why .remind-howto, .remind-start { margin-top: 6px; }
+.remind-choice[data-disabled] .remind-choice__why { color: var(--text-3); }
+.remind-howto { margin: 0; padding-left: 1.3em; }
+.remind-start { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: var(--text-2); }
+.remind-start .btn { min-height: 36px; }
+.remind-notice { padding: 14px; display: grid; gap: 10px; }
+.remind-notice p { margin: 0; color: var(--text-1); }
+.remind-toast { z-index: calc(var(--z-toast) + 1); }
+.remind-toast__go { flex: none; min-height: 32px; padding: 0 12px; }
