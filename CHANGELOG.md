@@ -26,15 +26,19 @@ Merged to `main` and not yet in a tagged release. Production currently runs `799
 ([deploy run 36961422040](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/36961422040)).
 
 ### Added
-- Reading reminders ([issue #47]): opt-in and off by default, at an hour in the reader's own time
-  zone, by Telegram (the bot), Web Push (cyberjudah.io/app in a browser) or both. The reminder
-  names today's plan portion, or the last chapter read, with Open (the chapter) and Done (marks it
-  read); Done in either place clears both, and Pause or Stop work from the app or the reminder. An
-  expired push subscription falls back to Telegram with a notice. Admins see reminder counts by
-  channel. This reverses the removal of the earlier reading tracker and reminders on 2026-09-28
-  ([#14], [#15]), on the owner's decision recorded in [issue #47]. Push needs three new Worker
-  secrets (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`); until they are added, push is
-  shown as not set up and Telegram reminders work.
+- Reading reminders ([issue #47]): opt-in and off by default, at a quarter-hour time in the
+  reader's own time zone, by Telegram (the bot), Web Push (cyberjudah.io/app in up to ten
+  browsers) or both. The reminder names today's plan portion, or the last chapter read, with
+  Open (the chapter) and Done (marks it read); Done in either place clears both. Pause (until
+  tomorrow, a week, a date, or until resumed) and Stop work from the app, the reminder, or `/stop`
+  in the bot. An expired push subscription (404/410) falls back to Telegram with a notice; a push
+  key error alerts the admins and drops nothing. Every reminder endpoint is rate limited, and an
+  unused browser is forgotten after 180 days or on request. Admins see reminder counts by channel.
+  This reverses the removal of the earlier reading tracker and reminders on 2026-09-28 ([#14],
+  [#15]), on the owner's decision recorded in [issue #47]. Push needs three new Worker secrets
+  (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`); until they are added, push is shown
+  as not set up and Telegram reminders work. The Worker's cron now also runs at :15, :30 and :45
+  for reminders; the hourly jobs still run only on the hour.
 
 ### Changed
 - This changelog, the incident log ([docs/INCIDENTS.md](docs/INCIDENTS.md)) and the release rules;

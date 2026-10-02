@@ -38,8 +38,11 @@
   "ai": { "binding": "AI" },
   "vectorize": [{ "binding": "VEC", "index_name": "cyberjudah-teachings" }],
   "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "cyberjudah-audio" }],
-  // Hourly: the daily verse goes to every subscriber whose local hour is now.
-  "triggers": { "crons": ["0 * * * *"] },
+  // On the hour: the daily verse and the hourly jobs; every quarter hour: reading reminders
+  // (so each reader's own time is reached in every time zone, including :30 and :45 offsets).
+  "triggers": { "crons": ["0 * * * *", "15,30,45 * * * *"] },
+  // Abuse protection for the reading-reminder endpoints (remind.ts): per caller, per minute.
+  "ratelimits": [{ "name": "REMIND_LIMIT", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } }],
   // Staging: the same code against separate resources, deployed by .github/workflows/stage.yml.
   // The staging bot is a second @BotFather bot; its token and webhook secret live in the
   // STAGING_BOT_TOKEN / STAGING_WEBHOOK_SECRET repository secrets. D1 "cyberjudah-telegram"
@@ -56,6 +59,7 @@
         { "binding": "TEACH", "database_name": "cyberjudah", "database_id": "11111111-1111-1111-1111-111111111111" }
       ],
       "kv_namespaces": [{ "binding": "SUBS", "id": "00000000000000000000000000000000" }],
+      "ratelimits": [{ "name": "REMIND_LIMIT", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } }],
       // Environments do not inherit "vars": every production setting is repeated here (only
       // APP_URL differs). tests/wrangler.test.mjs fails if one goes missing.
       "vars": {

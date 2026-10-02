@@ -430,9 +430,11 @@ app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 export default {
   fetch: app.fetch,
   scheduled(event, env, ctx) {
-    ctx.waitUntil(sendDaily(env, new Date(event.scheduledTime)));
-    // Reading reminders, at each reader's own hour (remind.ts).
+    // Reading reminders every quarter hour, so each reader's own time is reached in every time zone (remind.ts).
     ctx.waitUntil(sendReminders(env, new Date(event.scheduledTime)).catch((e) => console.error(JSON.stringify({ event: "reminders_failed", message: (e as Error).message?.slice(0, 120) }))));
+    // Everything else runs on the hour only.
+    if (event.cron !== "0 * * * *") return;
+    ctx.waitUntil(sendDaily(env, new Date(event.scheduledTime)));
     // The hourly self-check pages the admins over Telegram when something breaks.
     ctx.waitUntil(selfCheck(env).then((r) => reportHealth(env, r)));
     // Old usage rows are pruned; the tables stay small.

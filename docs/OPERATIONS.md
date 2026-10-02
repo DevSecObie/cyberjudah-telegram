@@ -101,18 +101,23 @@ Rotate exposed credentials immediately, preserve non-sensitive evidence, and use
 
 ## Reading reminders
 
-Reminders run in the hourly cron (`sendReminders` in `bot/src/remind.ts`), beside the daily verse. Each run logs one line per hour slot: `{"event":"reminders","slot":"remind-slot:YYYY-MM-DD:HH","telegram":n,"push":n,"fallback":n,"failed":n}`. Counts by channel are on the admin usage view (Settings → Ask usage, admins only).
+Reminders run every quarter hour (`sendReminders` in `bot/src/remind.ts`; cron `15,30,45 * * * *` plus the hourly `0 * * * *`, which alone also runs the daily verse, the self-check, pruning and frame warming). Each run logs one line: `{"event":"reminders","slot":"remind-slot:YYYY-MM-DDTHH:MM","telegram":n,"push":n,"fallback":n,"failed":n}`. Counts by channel are on the admin usage view (Settings → Ask usage, admins only).
 
-Push needs three Worker secrets, added by the owner only: `VAPID_PUBLIC_KEY` (base64url, 65-byte uncompressed P-256 point), `VAPID_PRIVATE_KEY` (base64url, its 32-byte private scalar) and `VAPID_SUBJECT` (`mailto:` or `https:` contact). Without them `/api/push/key` returns `null` and the app shows push as not set up; Telegram reminders are unaffected. Rotating the keys invalidates every push subscription: the next send gets a refusal, falls back to Telegram where linked, and readers turn push on again.
+- **Delivery is at most once a day per channel:** the day is claimed on the record before a send, and given back only when the send failed in a way worth retrying (Telegram errors other than 403; push 5xx/429/network), which the next quarter-hour run retries within three hours of the reader's time.
+- **Push failures:** 404/410 drop that browser's subscription (when none is left, the reminder falls back to Telegram with a notice). 401/403 mean our VAPID keys are wrong: nothing is dropped and the admins get one Telegram message a day (`reminders_vapid_refused` in the logs) until it is fixed.
+- **Rate limits:** the `REMIND_LIMIT` Workers Rate Limiting binding (`wrangler.jsonc` "ratelimits", 30 requests per caller per 60 s; namespace 1001 production, 1002 staging) answers 429 with `Retry-After: 60`. New browser credentials are also capped at 100 per address per day (`remcreate:` keys).
+- **Telegram:** `/stop` turns reminders off; a reader who blocked the bot is switched off and restored when they `/start` it again or unblock it (`my_chat_member`, now in the webhook's `allowed_updates`, applied by `npm run setup` in the deploy).
+
+Push needs three Worker secrets, added by the owner only: `VAPID_PUBLIC_KEY` (base64url, 65-byte uncompressed P-256 point), `VAPID_PRIVATE_KEY` (base64url, its 32-byte private scalar) and `VAPID_SUBJECT` (`mailto:` or `https:` contact). Without them `/api/push/key` returns `null` and the app shows push as not set up; Telegram reminders are unaffected. Rotating the keys makes every push service answer 403: subscriptions are kept, the admins are alerted, and readers must turn push on again in each browser (the app re-subscribes on open once permission is granted).
 
 **Smoke test after a deploy that touches reminders:**
 
-1. In Telegram, open Settings → Reading reminders. Push shows greyed with "Push notifications aren't available inside Telegram…". Turn the switch on with Telegram, and set the time to the next full hour.
+1. In Telegram, open Settings → Reading reminders. Push shows greyed with "Push notifications aren't available inside Telegram…". Turn the switch on with Telegram, and set the time to the next quarter hour.
 2. Check the record: `wrangler kv key get --binding SUBS "remind:tg:<your user id>"` shows `"on":true`, the hour and your time zone.
-3. After the hour, the bot sends "Today's reading" (or "Continue where you left off") with Open, Done, Pause for a week and Stop, and no verse text. Open lands on the chapter. Done answers "Marked done."; reopening the app marks the chapters read.
+3. At that time, the bot sends "Today's reading" (or "Continue where you left off") with Open, Done, Pause… and Stop, and no verse text. Pause… offers Until tomorrow, A week and Until I resume. Open lands on the chapter. Done answers "Marked done."; reopening the app marks the chapters read.
 4. In a desktop browser at cyberjudah.io/app, choose Push notification and allow the prompt; `wrangler kv key list --binding SUBS --prefix pushep:` lists one more key. At the hour a notification arrives with Done and Pause.
-5. The cron log for the hour shows the `reminders` line with no `failed`.
-6. Turn the reminder off in both places when done.
+5. The cron log for that quarter hour shows the `reminders` line with no `failed`.
+6. Send `/stop` to the bot: it answers that reminders are off. Then use Forget this browser in the desktop browser.
 
 ## Backups and recovery
 

@@ -37,3 +37,12 @@ self.addEventListener("notificationclick", (e) => {
     return self.clients.openWindow(url);
   })());
 });
+
+// The browser replaced the subscription (it expired or was rotated): subscribe again with the
+// same key and tell the Worker which old endpoint the new one takes over from. Not every
+// browser fires this, so the app also sends its current subscription on each open.
+self.addEventListener("pushsubscriptionchange", (e) => e.waitUntil((async () => {
+  const old = e.oldSubscription?.endpoint;
+  const sub = e.newSubscription ?? (e.oldSubscription?.options ? await self.registration.pushManager.subscribe(e.oldSubscription.options) : null);
+  if (old && sub) await post("/api/push/renew", { old, sub: sub.toJSON() });
+})().catch(() => undefined)));

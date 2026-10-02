@@ -31,7 +31,7 @@ async function call(method, body) {
 await call("setWebhook", {
   url: `${origin}/webhook`,
   secret_token: WEBHOOK_SECRET || undefined,
-  allowed_updates: ["message", "inline_query", "chosen_inline_result", "pre_checkout_query", "callback_query"],
+  allowed_updates: ["message", "inline_query", "chosen_inline_result", "pre_checkout_query", "callback_query", "my_chat_member"],
   drop_pending_updates: false,
 });
 await call("setMyCommands", {
@@ -39,6 +39,7 @@ await call("setMyCommands", {
     { command: "start", description: "Open CyberJudah" },
     { command: "verse", description: "Today's verse" },
     { command: "daily", description: "The daily verse, on or off" },
+    { command: "stop", description: "Stop reading reminders" },
     { command: "support", description: "Support the work with Stars" },
     { command: "help", description: "What this bot does" },
   ],

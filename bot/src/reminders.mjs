@@ -1,12 +1,14 @@
 /**
  * Reading reminders: the rules, with no I/O, so they can be tested without a Worker.
  *
- * A reminder is opt-in and off by default. It names an hour in the reader's own time zone
- * (an IANA name such as "America/Chicago", so summer time is followed), and the channels it
- * goes to: Telegram (the bot's chat), push (Web Push to a browser), or both. Each channel
- * gets at most one reminder a local day. The hourly cron sends at the reader's hour; a run
- * that was missed is caught up once in the next hours (CATCH_UP_HOURS), never twice, because
- * the day it was sent is kept per channel. "Done" in either place marks the day done, which
+ * A reminder is opt-in and off by default. It names a time on the quarter hour in the
+ * reader's own time zone (an IANA name such as "America/Chicago", so summer time is
+ * followed), and the channels it goes to: Telegram (the bot's chat), push (Web Push to up to
+ * PUSH_DEVICES browsers), or both. Each channel gets at most one reminder a local day. The
+ * cron runs every quarter hour, so every time zone's quarter hours are reached, including
+ * the half- and three-quarter-hour zones (India, Nepal, Chatham). A run that was missed is
+ * caught up once in the next hours (CATCH_UP_HOURS), never twice, because the day it was
+ * sent is kept per channel. "Done" in either place marks the day done, which
  * stops the other channel for that day too.
  *
  * What is reminded is the reader's own place: today's portion of their reading plan when
@@ -16,10 +18,28 @@
 
 /** A missed hour is made up within this many hours of the reader's time, once. */
 export const CATCH_UP_HOURS = 3;
-/** "Pause" from the reminder skips this many days. */
+/**
+ * How long a pause can be: until tomorrow, a week, a chosen date (up to a year ahead), or
+ * until the reader resumes it. A week when none is given.
+ */
+export const PAUSE_CHOICES = [1, 7];
 export const PAUSE_DAYS = 7;
-/** Push responses that mean this subscription will never deliver again (expired, unsubscribed, or bound to another key). */
-export const PUSH_GONE = new Set([400, 401, 403, 404, 410]);
+/** A pause with no end: the reader resumes it in Settings. */
+export const PAUSE_FOREVER = "9999-12-31";
+/** The quarter hours a reminder can be set to. */
+export const MINUTES = [0, 15, 30, 45];
+/** Browsers that can take a reader's push reminders at once; past it, the one seen longest ago is let go. */
+export const PUSH_DEVICES = 10;
+/**
+ * Push responses that mean this subscription will never deliver again (RFC 8030: 404 not
+ * found, 410 gone). Only these drop a subscription, as the standard push libraries do.
+ */
+export const PUSH_GONE = new Set([404, 410]);
+/**
+ * Push responses that mean our own VAPID keys are wrong (a bad or rotated key): every
+ * subscription would get them, so none is dropped and the admins are told instead.
+ */
+export const PUSH_AUTH = new Set([401, 403]);
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -29,11 +49,13 @@ export function validTz(tz) {
   try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; } catch { return false; }
 }
 
-/** The reader's local calendar date (YYYY-MM-DD) and hour (0-23) at an instant. */
+/** The reader's local calendar date (YYYY-MM-DD), hour (0-23) and minute at an instant. */
 export function localNow(tz, now = new Date()) {
-  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: validTz(tz) ? tz : "UTC", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" }).formatToParts(now).map((p) => [p.type, p.value]));
-  return { date: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour) % 24 };
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: validTz(tz) ? tz : "UTC", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(now).map((p) => [p.type, p.value]));
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, hour: Number(parts.hour) % 24, minute: Number(parts.minute) };
 }
+/** Minutes past the reader's set time now (negative before it). */
+const lateBy = (local, hour, minute = 0) => local.hour * 60 + local.minute - (hour * 60 + minute);
 
 /** A calendar date moved by n days. */
 export function addDays(date, n) {
@@ -43,13 +65,13 @@ export function addDays(date, n) {
 
 /** A new reminder: everything off. */
 export function blank(tz = "UTC") {
-  return { v: 1, on: false, hour: 7, tz: validTz(tz) ? tz : "UTC", channels: { telegram: false, push: false }, sent: {}, pending: [] };
+  return { v: 1, on: false, hour: 7, minute: 0, tz: validTz(tz) ? tz : "UTC", channels: { telegram: false, push: false }, pushes: [], sent: {}, pending: [] };
 }
 
 /**
  * The reader's settings applied to a record, from untrusted input: unknown fields are
- * ignored, a bad hour or time zone keeps the old value. Turning it on, or moving the hour,
- * starts it from the next time that hour comes round, so a change made after today's hour
+ * ignored, a bad time or time zone keeps the old value. Turning it on, or moving the time,
+ * starts it from the next time that time comes round, so a change made after today's time
  * does not send at once.
  */
 export function applySettings(rec, input, now = new Date()) {
@@ -57,16 +79,17 @@ export function applySettings(rec, input, now = new Date()) {
   if (!input || typeof input !== "object") return next;
   if (typeof input.on === "boolean") next.on = input.on;
   if (Number.isInteger(input.hour) && input.hour >= 0 && input.hour <= 23) next.hour = input.hour;
+  if (MINUTES.includes(input.minute)) next.minute = input.minute;
   if (validTz(input.tz)) next.tz = input.tz;
   if (input.channels && typeof input.channels === "object") {
     if (typeof input.channels.telegram === "boolean") next.channels.telegram = input.channels.telegram;
     if (typeof input.channels.push === "boolean") next.channels.push = input.channels.push;
   }
   if (input.paused === false) delete next.pausedUntil;
-  if (input.paused === true) next.pausedUntil = addDays(localNow(next.tz, now).date, PAUSE_DAYS);
-  if (next.on && (!rec.on || next.hour !== rec.hour || next.tz !== rec.tz)) {
-    const { date, hour } = localNow(next.tz, now);
-    next.from = hour < next.hour ? date : addDays(date, 1);
+  if (input.paused === true) next.pausedUntil = pause(next, now, input.pauseDays ?? input.pauseUntil).pausedUntil;
+  if (next.on && (!rec.on || next.hour !== rec.hour || (next.minute ?? 0) !== (rec.minute ?? 0) || next.tz !== rec.tz)) {
+    const local = localNow(next.tz, now);
+    next.from = lateBy(local, next.hour, next.minute) < 0 ? local.date : addDays(local.date, 1);
   }
   if (!next.channels.telegram && !next.channels.push) next.on = false;
   return next;
@@ -88,7 +111,26 @@ export function applyContent(rec, content) {
 /** A channel can be sent to when it is chosen and has somewhere to go. */
 export function reachable(rec, ch) {
   if (!rec.channels?.[ch]) return false;
-  return ch === "telegram" ? Number.isInteger(rec.chatId) : !!rec.push?.endpoint;
+  return ch === "telegram" ? Number.isInteger(rec.chatId) : (rec.pushes?.length ?? 0) > 0;
+}
+
+/**
+ * A browser's push subscription added to the reader's devices (the same endpoint again
+ * replaces itself). Past PUSH_DEVICES the one added longest ago is let go; its endpoint is
+ * returned so its index can be removed.
+ */
+export function addPush(rec, sub, now = new Date()) {
+  const date = localNow(rec.tz, now).date;
+  const list = (rec.pushes ?? []).filter((p) => p.endpoint !== sub.endpoint);
+  list.push({ endpoint: sub.endpoint, keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth }, seen: date });
+  // The least recently seen go first (a stable sort keeps the order they were added among equals).
+  list.sort((a, b) => (a.seen ?? "").localeCompare(b.seen ?? ""));
+  const dropped = list.length > PUSH_DEVICES ? list.splice(0, list.length - PUSH_DEVICES).map((p) => p.endpoint) : [];
+  return { rec: { ...rec, pushes: list }, dropped };
+}
+/** One browser's subscription removed (push turned off there, or the service said it is gone). */
+export function removePush(rec, endpoint) {
+  return { ...rec, pushes: (rec.pushes ?? []).filter((p) => p.endpoint !== endpoint) };
 }
 
 /**
@@ -97,12 +139,13 @@ export function reachable(rec, ch) {
  */
 export function dueChannels(rec, now = new Date()) {
   if (!rec?.on) return [];
-  const { date, hour } = localNow(rec.tz, now);
+  const local = localNow(rec.tz, now);
+  const { date } = local;
   if (rec.from && date < rec.from) return [];
   if (rec.pausedUntil && date < rec.pausedUntil) return [];
   if (rec.done === date) return [];
-  const late = hour - rec.hour;
-  if (late < 0 || late >= CATCH_UP_HOURS) return [];
+  const late = lateBy(local, rec.hour, rec.minute);
+  if (late < 0 || late >= CATCH_UP_HOURS * 60) return [];
   return ["telegram", "push"].filter((ch) => reachable(rec, ch) && rec.sent?.[ch] !== date);
 }
 
@@ -189,9 +232,18 @@ export function markDone(rec, books, now = new Date()) {
   return next;
 }
 
-/** Pause from the reminder: no reminders for PAUSE_DAYS, then they resume by themselves. */
-export function pause(rec, now = new Date()) {
-  return { ...rec, pausedUntil: addDays(localNow(rec.tz, now).date, PAUSE_DAYS) };
+/**
+ * Pause: `until` is a number of days (1 = until tomorrow, 7 = a week), a date (YYYY-MM-DD,
+ * from tomorrow to a year ahead), or "forever" (until resumed). Anything else is a week.
+ * A dated pause ends by itself.
+ */
+export function pause(rec, now = new Date(), until = PAUSE_DAYS) {
+  const today = localNow(rec.tz, now).date;
+  let end;
+  if (until === "forever") end = PAUSE_FOREVER;
+  else if (typeof until === "string" && DATE.test(until) && until > today && until <= addDays(today, 366)) end = until;
+  else end = addDays(today, PAUSE_CHOICES.includes(until) ? until : PAUSE_DAYS);
+  return { ...rec, pausedUntil: end };
 }
 /** Stop from the reminder: off, as if switched off in the app. */
 export function stop(rec) {
@@ -199,27 +251,62 @@ export function stop(rec) {
 }
 
 /**
- * A push the push service refused. A gone subscription is dropped and push is switched off;
- * when the reader also has Telegram, today's reminder goes there instead (unless Telegram
- * already had it) and the app shows the notice once. Any other failure is left to retry on
- * the next hour, inside the catch-up window.
+ * What the push services answered for each of the reader's browsers.
+ *
+ * - Delivered to any: push is marked sent for today.
+ * - 404/410 (gone): that browser is dropped. When none is left, push is switched off; if
+ *   the reader also has Telegram, today's reminder goes there instead (unless Telegram
+ *   already had it) and the app shows the notice once.
+ * - 401/403: our VAPID keys are wrong. Nothing is dropped; `misconfigured` tells the caller
+ *   to alert the admins, and the next run tries again.
+ * - Anything else (5xx, 429, a network error): retried on the next run, inside the catch-up
+ *   window.
  */
-export function pushFailed(rec, status, now = new Date()) {
-  if (!PUSH_GONE.has(status)) return { rec, gone: false, sendTelegram: false };
-  const next = { ...rec, channels: { ...rec.channels, push: false } };
-  delete next.push;
+export function pushOutcome(rec, results, now = new Date()) {
+  const date = localNow(rec.tz, now).date;
+  const gone = results.filter((r) => PUSH_GONE.has(r.status)).map((r) => r.endpoint);
+  const delivered = results.filter((r) => r.status >= 200 && r.status < 300).map((r) => r.endpoint);
+  const misconfigured = results.some((r) => PUSH_AUTH.has(r.status));
+  let next = gone.reduce((r, e) => removePush(r, e), rec);
+  next = { ...next, pushes: (next.pushes ?? []).map((p) => (delivered.includes(p.endpoint) ? { ...p, seen: date } : p)) };
+  if (delivered.length) return { rec: markSent(next, "push", now), sent: true, gone, misconfigured, sendTelegram: false };
+  if (next.pushes.length) return { rec: next, sent: false, gone, misconfigured, sendTelegram: false };
+  next = { ...next, channels: { ...next.channels, push: false } };
   const tg = Number.isInteger(rec.chatId);
   if (tg) { next.channels.telegram = true; next.notice = "push-fallback"; }
   if (!next.channels.telegram) next.on = false;
-  const date = localNow(rec.tz, now).date;
-  return { rec: next, gone: true, sendTelegram: tg && rec.sent?.telegram !== date && rec.done !== date };
+  return { rec: next, sent: false, gone, misconfigured, sendTelegram: tg && rec.sent?.telegram !== date && rec.done !== date };
 }
 
-/** Telegram refused the chat (the reader blocked the bot): Telegram is switched off. */
+/**
+ * Telegram refused the chat (the reader blocked the bot): Telegram is switched off, and
+ * what was on is remembered so starting the bot again (telegramBack) restores it.
+ */
 export function telegramGone(rec) {
-  const next = { ...rec, channels: { ...rec.channels, telegram: false } };
+  const next = { ...rec, channels: { ...rec.channels, telegram: false }, tgBlocked: { on: !!rec.on } };
   if (!reachable(next, "push")) next.on = false;
   return next;
+}
+/** The reader started the bot again after blocking it: Telegram reminders resume as they were. */
+export function telegramBack(rec) {
+  if (!rec.tgBlocked) return rec;
+  const next = { ...rec, channels: { ...rec.channels, telegram: true }, on: rec.on || rec.tgBlocked.on };
+  delete next.tgBlocked;
+  return next;
+}
+
+/**
+ * At most once a day per channel: the day is marked sent before the message goes out (an
+ * interrupted run can then lose a reminder but never send one twice). `release` gives the
+ * claim back when the send failed in a way worth retrying.
+ */
+export function claim(rec, channels, now = new Date()) {
+  return channels.reduce((r, ch) => markSent(r, ch, now), rec);
+}
+export function release(rec, ch, before) {
+  const sent = { ...rec.sent };
+  if (before?.sent?.[ch] === undefined) delete sent[ch]; else sent[ch] = before.sent[ch];
+  return { ...rec, sent };
 }
 
 /** The pending marks the app has applied are cleared, by the dates it confirms. */
@@ -230,16 +317,16 @@ export function ackPending(rec, dates) {
 
 /** The KV metadata kept beside a record: what the cron filters on and the admin counts read, without opening every record. */
 export function meta(rec) {
-  return { o: rec.on ? 1 : 0, h: rec.hour, z: rec.tz, t: reachable(rec, "telegram") ? 1 : 0, p: reachable(rec, "push") ? 1 : 0, u: rec.pausedUntil ?? "" };
+  return { o: rec.on ? 1 : 0, h: rec.hour, n: rec.minute ?? 0, z: rec.tz, t: reachable(rec, "telegram") ? 1 : 0, p: reachable(rec, "push") ? 1 : 0, u: rec.pausedUntil ?? "" };
 }
 
 /** Whether the cron needs to open this record now, from its metadata alone. */
 export function mayBeDue(m, now = new Date()) {
   if (!m || !m.o || !(m.t || m.p)) return false;
-  const { date, hour } = localNow(m.z, now);
-  if (m.u && date < m.u) return false;
-  const late = hour - m.h;
-  return late >= 0 && late < CATCH_UP_HOURS;
+  const local = localNow(m.z, now);
+  if (m.u && local.date < m.u) return false;
+  const late = lateBy(local, m.h, m.n ?? 0);
+  return late >= 0 && late < CATCH_UP_HOURS * 60;
 }
 
 /** Reminder counts by channel, for the admin usage page. */
@@ -254,12 +341,12 @@ export function countByChannel(metas) {
   return out;
 }
 
-/** What the settings screen is told: the record without the push keys or the chat id. */
+/** What the settings screen is told: the record without the push keys or the chat id (the reader's own push endpoints let a browser see whether it is one of them). */
 export function publicView(rec) {
   return {
-    on: !!rec.on, hour: rec.hour, tz: rec.tz,
+    on: !!rec.on, hour: rec.hour, minute: rec.minute ?? 0, tz: rec.tz,
     channels: { telegram: !!rec.channels?.telegram, push: !!rec.channels?.push },
-    telegramLinked: Number.isInteger(rec.chatId), pushEndpoint: rec.push?.endpoint ?? null,
+    telegramLinked: Number.isInteger(rec.chatId), pushEndpoints: (rec.pushes ?? []).map((p) => p.endpoint),
     pausedUntil: rec.pausedUntil ?? null, done: rec.done ?? null,
     pending: rec.pending ?? [], notice: rec.notice ?? null,
     plan: rec.plan ?? null, last: rec.last ?? null,

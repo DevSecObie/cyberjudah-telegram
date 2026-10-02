@@ -6,11 +6,11 @@ import { data } from "@/api/data";
 import { advance, planDay } from "@/lib/plan";
 import { markRead, useLast, usePlan, useProgress } from "@/lib/marks";
 import {
-  ackReminder, getReminder, hasDevice, hourLabel, linkLink, pushState, saveReminder, subscribePush, timeZone, unsubscribePush,
+  ackReminder, currentEndpoint, currentSubscription, forgetReminder, getReminder, hasDevice, linkLink, PAUSE_FOREVER, pushState, saveReminder, subscribePush, timeLabel, timeZone, unsubscribePush,
   type Channels, type Content, type PushState, type ReminderView,
 } from "@/lib/reminders";
 import { useBackButton, useStored } from "@/tg/hooks";
-import { alert, app, haptic, openLink, requestWriteAccess } from "@/tg/sdk";
+import { alert, app, confirm, haptic, openLink, requestWriteAccess } from "@/tg/sdk";
 import { useSheet } from "@/ui/sheet";
 import { Icon, List, Row, Screen, Section } from "@/ui/ui";
 
@@ -64,6 +64,9 @@ export function Reminders() {
   const [needsBot, setNeedsBot] = useState(false);
   const [declined, setDeclined] = useState(false);
   const [notice, setNotice] = useState(false);
+  const [here, setHere] = useState<string | null>(null);
+  const [pickDate, setPickDate] = useState(false);
+  useEffect(() => { void currentEndpoint().then(setHere); }, []);
 
   useEffect(() => {
     void getReminder().then((v) => {
@@ -76,6 +79,11 @@ export function Reminders() {
   const push: PushState = pushState(view?.publicKey ?? null);
   const pushOk = (push === "ask" || push === "granted") && !declined;
   const delivery = view ? deliveryOf(view.channels) : null;
+  /** Whether this browser is one of the reader's push devices. */
+  const herePushed = !!here && !!view?.pushEndpoints.includes(here);
+  const todayKey = new Date().toLocaleDateString("en-CA");
+  const pausedNow = !!view?.pausedUntil && view.pausedUntil > todayKey;
+  const maxDate = new Date(Date.now() + 366 * 86400000).toLocaleDateString("en-CA");
   const botStarted = app ? !needsBot : !!view?.telegramLinked;
 
   const save = async (settings: Parameters<typeof saveReminder>[0]["settings"], extra: Partial<Parameters<typeof saveReminder>[0]> = {}) => {
@@ -112,16 +120,20 @@ export function Reminders() {
     if (!view) return;
     const want = channelsOf(d);
     let sub: PushSubscriptionJSON | undefined;
-    if (want.push && !view.pushEndpoint) {
+    // Each browser subscribes for itself; a reader can have several (bot/src/reminders.mjs PUSH_DEVICES).
+    if (want.push && !herePushed && !app) {
       if (!pushOk || !view.publicKey) return;
       const r = await subscribePush(view.publicKey);
       if (r === "denied") { setDeclined(true); haptic("error"); return; }
       if (r === "failed") { void alert("This browser could not turn on push notifications."); return; }
       sub = r;
+      if (sub.endpoint) setHere(sub.endpoint);
     }
     if (want.telegram && !(await telegramReady())) return;
-    if (!want.push && view.pushEndpoint) await unsubscribePush();
-    await save({ channels: want, ...(turnOn ? { on: true } : {}) }, sub ? { push: sub } : !want.push && view.pushEndpoint ? { push: null } : {});
+    // Push turned off here: this browser lets go of its subscription; others the reader has stay.
+    const leaving = !want.push && herePushed ? here! : undefined;
+    if (leaving) { await unsubscribePush(); setHere(null); }
+    await save({ channels: want, ...(turnOn ? { on: true } : {}) }, sub ? { push: sub } : leaving ? { pushRemove: leaving } : {});
   };
 
   const toggle = async (on: boolean) => {
@@ -131,9 +143,30 @@ export function Reminders() {
     await choose(d, true);
   };
 
-  const pickHour = async () => {
-    const a = await sheet.open({ title: "When should the reminder come?", items: Array.from({ length: 24 }, (_, h) => ({ id: String(h), text: hourLabel(h) })) });
-    if (a) await save({ hour: +a.id });
+  /** The time in two steps, hour then quarter hour, in the reader's own time zone. */
+  const pickTime = async () => {
+    const h = await sheet.open({ title: "When should the reminder come?", items: Array.from({ length: 24 }, (_, n) => ({ id: String(n), text: `${n}:00 – ${n}:45` })) });
+    if (!h) return;
+    const m = await sheet.open({ title: "At", items: [0, 15, 30, 45].map((n) => ({ id: String(n), text: timeLabel(+h.id, n) })) });
+    if (m) await save({ hour: +h.id, minute: +m.id });
+  };
+  /** Pause: until tomorrow, a week, a chosen date, or until resumed. */
+  const pickPause = async () => {
+    const a = await sheet.open({ title: "Pause reminders", items: [{ id: "1", text: "Until tomorrow" }, { id: "7", text: "For a week" }, { id: "date", text: "Until a date…" }, { id: "forever", text: "Until I resume" }] });
+    if (!a) return;
+    if (a.id === "date") { setPickDate(true); return; }
+    await save(a.id === "forever" ? { paused: true, pauseUntil: "forever" } : { paused: true, pauseDays: +a.id });
+  };
+  const forget = async () => {
+    const ok = await confirm(app ? "Delete your reading reminder and everything it keeps?" : "Forget this browser? Its reminders and push notifications stop here.");
+    if (!ok) return;
+    try {
+      if (herePushed) await unsubscribePush();
+      await forgetReminder(here);
+      setHere(null); setEnabled(false);
+      setView(await getReminder());
+      haptic("success");
+    } catch { void alert("Could not reach the server right now. Try again in a moment."); }
   };
 
   const today = plan && books.data ? planDay(plan, books.data, progress) : null;
@@ -148,7 +181,7 @@ export function Reminders() {
     if (push === "denied" || declined) return <p>Notifications are blocked for this site. You can allow them in your browser settings.</p>;
     if (push === "unsupported") return <p>This browser can't receive push notifications.</p>;
     if (push === "no-server") return <p>Push notifications aren't set up yet.</p>;
-    if (push === "ask" && !view?.pushEndpoint) return <p>Your browser will ask permission next.</p>;
+    if (push === "ask" && !herePushed) return <p>Your browser will ask permission next.</p>;
     return null;
   })();
   const botWhy = <>
@@ -171,25 +204,35 @@ export function Reminders() {
       <Section>
         <List>
           <button type="button" className="toggle" role="switch" aria-checked={!!view?.on} disabled={!view || busy} onClick={() => { haptic("select"); void toggle(!view?.on); }}>
-            <span><b>Remind me to read</b><small>{!view ? "Checking…" : view.on ? `Every day at ${hourLabel(view.hour)}` : "Off"}</small></span><span className="switch" />
+            <span><b>Remind me to read</b><small>{!view ? "Checking…" : view.on ? `Every day at ${timeLabel(view.hour, view.minute)}` : "Off"}</small></span><span className="switch" />
           </button>
-          <Row onClick={() => void pickHour()} title="Time" sub={`In your time zone${view ? ` (${view.tz})` : ""}`} trailing={<span className="row__value">{hourLabel(view?.hour ?? 7)}<Icon name="chevron" size={16} /></span>} />
+          <Row onClick={() => void pickTime()} title="Time" sub={`In your time zone${view ? ` (${view.tz})` : ""}`} trailing={<span className="row__value">{timeLabel(view?.hour ?? 7, view?.minute ?? 0)}<Icon name="chevron" size={16} /></span>} />
           {view?.on ? (
-            view.pausedUntil ? <Row onClick={() => void save({ paused: false })} title="Paused" sub={`Until ${view.pausedUntil} · tap to resume`} />
-              : <Row onClick={() => void save({ paused: true })} title="Pause for a week" sub="Or stop it with the switch above" />
+            pausedNow ? <Row onClick={() => void save({ paused: false })} title="Paused" sub={`${view.pausedUntil === PAUSE_FOREVER ? "Until you resume" : `Until ${view.pausedUntil}`} · tap to resume`} />
+              : <Row onClick={() => void pickPause()} title="Pause" sub="Until tomorrow, for a week, until a date, or until you resume" />
           ) : null}
         </List>
+        {pickDate ? (
+          <div className="remind-date surface">
+            <label htmlFor="remind-until">Pause until</label>
+            <input id="remind-until" type="date" min={new Date(Date.now() + 86400000).toLocaleDateString("en-CA")} max={maxDate} onChange={(e) => { const v = e.target.value; if (v) { setPickDate(false); void save({ paused: true, pauseUntil: v }); } }} />
+            <button type="button" className="btn btn--quiet" onClick={() => setPickDate(false)}>Cancel</button>
+          </div>
+        ) : null}
         <p className="hint">{about}</p>
       </Section>
       <Section title="Where to remind you">
         <div role="radiogroup" aria-label="Where to remind you" className="remind-choices list">
           <Choice title="Telegram" checked={delivery === "telegram"} disabled={!view || busy} onPick={() => void choose("telegram")}>{botWhy}</Choice>
-          <Choice title="Push notification" checked={delivery === "push"} disabled={!view || busy || (!pushOk && !view?.pushEndpoint)} onPick={() => void choose("push")}>{pushWhy}</Choice>
-          <Choice title="Both" checked={delivery === "both"} disabled={!view || busy || (!pushOk && !view?.pushEndpoint)} onPick={() => void choose("both")}>
+          <Choice title="Push notification" checked={delivery === "push"} disabled={!view || busy || (!pushOk && !herePushed)} onPick={() => void choose("push")}>{pushWhy}</Choice>
+          <Choice title="Both" checked={delivery === "both"} disabled={!view || busy || (!pushOk && !herePushed)} onPick={() => void choose("both")}>
             <p>You'll get one reminder in each place. Marking it Done in either one clears both.</p>
           </Choice>
         </div>
       </Section>
+      {view && (view.on || view.pushEndpoints.length || hasDevice() || view.telegramLinked) ? (
+        <List><Row title={app ? "Delete my reading reminder" : "Forget this browser"} sub={app ? "Removes the reminder and every browser it reaches" : "Removes this browser's reminders and push notifications"} onClick={() => void forget()} /></List>
+      ) : null}
       <p className="hint">The reminder names the chapters to read, with Open to go straight to them and Done to mark them read. It never sends the text itself.</p>
     </Screen>
   );
@@ -226,7 +269,9 @@ export function ReminderSync() {
         if (p && done.day === p.day && planDay(p, books.data!, prog).done) p = advance(p, done.date);
       }
       if (v.pending.length) { setProgress(prog); if (p !== plan) setPlan(p); await ackReminder(v.pending.map((x) => x.date)).catch(() => undefined); }
-      if (app || !v.linked) await saveReminder({ content: { plan: p ? { day: p.day, perDay: p.perDay } : null, last: last ? { slug: last.slug, chapter: last.chapter } : null } }).catch(() => undefined);
+      // This browser's push subscription is sent again on every open, so a renewed one is never missed.
+      const sub = !app && v.channels.push ? await currentSubscription() : null;
+      if (app || !v.linked || sub) await saveReminder({ ...(app || !v.linked ? { content: { plan: p ? { day: p.day, perDay: p.perDay } : null, last: last ? { slug: last.slug, chapter: last.chapter } : null } } : {}), ...(sub ? { push: sub } : {}) }).catch(() => undefined);
       // The fallback notice, once on the next open (Settings also shows it once).
       try {
         if (v.notice === "push-fallback" && localStorage.getItem("cj:remind-notice") !== "seen") { localStorage.setItem("cj:remind-notice", "seen"); setNotice(true); }

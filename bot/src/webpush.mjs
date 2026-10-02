@@ -44,9 +44,15 @@ export async function vapidAuthorization(endpoint, keys, now = Date.now()) {
   return `vapid t=${head}.${body}.${b64u(sig)}, k=${keys.publicKey}`;
 }
 
+/**
+ * The push topic (RFC 8030 §5.4, at most 32 base64url characters): a reminder still waiting
+ * at the push service is replaced by the next, so an offline device never gets a stack of them.
+ */
+export const TOPIC = "daily-reading";
+
 /** Wake one subscription. Resolves to the push service's HTTP status (201 when accepted). */
 export async function sendPush(sub, keys, { ttl = 6 * 3600, fetchImpl = fetch, now = Date.now() } = {}) {
   if (!validSubscription(sub)) return 404;
-  const res = await fetchImpl(sub.endpoint, { method: "POST", headers: { authorization: await vapidAuthorization(sub.endpoint, keys, now), ttl: String(ttl), urgency: "normal", "content-length": "0" } });
+  const res = await fetchImpl(sub.endpoint, { method: "POST", headers: { authorization: await vapidAuthorization(sub.endpoint, keys, now), ttl: String(ttl), urgency: "normal", topic: TOPIC, "content-length": "0" } });
   return res.status;
 }

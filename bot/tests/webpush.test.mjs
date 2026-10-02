@@ -32,6 +32,11 @@ test("a push carries no payload, only the wake-up", async () => {
   assert.equal(seen.init.body, undefined);
   assert.equal(seen.init.headers["content-length"], "0");
   assert.match(seen.init.headers.authorization, /^vapid t=/);
+  // RFC 8030: an explicit TTL (a day's reminder is useless after hours), normal urgency, and a
+  // topic so a reminder still waiting is replaced by the next instead of stacking.
+  assert.equal(seen.init.headers.ttl, String(6 * 3600));
+  assert.equal(seen.init.headers.urgency, "normal");
+  assert.match(seen.init.headers.topic, /^[A-Za-z0-9_-]{1,32}$/);
 });
 
 test("only real push services are accepted as endpoints", () => {

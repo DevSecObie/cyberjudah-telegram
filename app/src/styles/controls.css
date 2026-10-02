@@ -136,3 +136,6 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgu
 .remind-notice p { margin: 0; color: var(--text-1); }
 .remind-toast { z-index: calc(var(--z-toast) + 1); }
 .remind-toast__go { flex: none; min-height: 32px; padding: 0 12px; }
+.remind-date { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; margin-top: 8px; }
+.remind-date label { font-weight: 500; color: var(--text-1); }
+.remind-date input { min-height: 40px; padding: 0 10px; border-radius: var(--r-sm, 10px); border: .5px solid var(--hairline); background: var(--fill-1); color: var(--text-1); font: inherit; }

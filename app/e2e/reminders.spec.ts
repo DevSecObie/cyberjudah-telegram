@@ -41,9 +41,12 @@ async function setup(page: Page, { withKey = false } = {}) {
   if (DATA_ORIGIN !== "https://data.cyberjudah.io") await page.route("https://data.cyberjudah.io/**", (r) => r.continue({ url: r.request().url().replace("https://data.cyberjudah.io", DATA_ORIGIN) }));
   // The real Worker answers; only the public key is added, as a deploy with the VAPID secrets would.
   if (withKey) await page.route(/\/api\/reminders(\?|$)/, async (r: Route) => {
-    const res = await r.fetch();
-    const json = await res.json();
-    await r.fulfill({ response: res, json: { ...json, publicKey: PUBLIC_KEY } });
+    // A reload can cancel a request mid-flight; that request is simply gone.
+    try {
+      const res = await r.fetch();
+      const json = await res.json();
+      await r.fulfill({ response: res, json: { ...json, publicKey: PUBLIC_KEY } });
+    } catch { /* the page moved on */ }
   });
 }
 const choice = (page: Page, name: string) => page.locator(".remind-choice", { has: page.getByRole("radio", { name }) });
@@ -69,12 +72,19 @@ test("inside Telegram: Telegram is offered, push is greyed with the reason, the 
   expect(log.some((e) => e[0] === "writeAccess")).toBe(true);
   // The time is the reader's own, and it is kept.
   await page.getByRole("button", { name: /^Time/ }).click();
-  await page.getByRole("button", { name: "20:00", exact: true }).click();
-  await expect(sw).toContainText("Every day at 20:00");
+  await page.getByRole("button", { name: "20:00 – 20:45", exact: true }).click();
+  await page.getByRole("button", { name: "20:15", exact: true }).click();
+  await expect(sw).toContainText("Every day at 20:15");
   await shot(page, "2-telegram-on");
-  // Pause, then stop with the switch: off again.
-  await page.getByRole("button", { name: /Pause for a week/ }).click();
-  await expect(page.getByRole("button", { name: /Paused/ })).toContainText("tap to resume");
+  // Pause (until tomorrow, a week, a date, or until resumed), resume, then stop with the switch.
+  await page.getByRole("button", { name: /^Pause/ }).click();
+  await expect(page.getByRole("button", { name: "Until a date…", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Until I resume", exact: true }).click();
+  await expect(page.getByRole("button", { name: /Paused/ })).toContainText("Until you resume · tap to resume");
+  await page.getByRole("button", { name: /Paused/ }).click();
+  await page.getByRole("button", { name: /^Pause/ }).click();
+  await page.getByRole("button", { name: "For a week", exact: true }).click();
+  await expect(page.getByRole("button", { name: /Paused/ })).toContainText(/Until \d{4}-\d{2}-\d{2} · tap to resume/);
   await sw.click();
   await expect(sw).toHaveAttribute("aria-checked", "false");
 });
@@ -175,4 +185,38 @@ test("Settings lists Reading reminders", async ({ page }) => {
   await page.goto(`/settings${launch(7004)}`);
   await page.getByRole("button", { name: /^Reading reminders/ }).click();
   await expect(page).toHaveURL(/\/settings\/reminders/);
+});
+
+/** The Worker's own rules, called as a browser would. */
+const SUB = (n: string) => ({ endpoint: `https://fcm.googleapis.com/fcm/send/e2e-${RUN}-${n}`, keys: { p256dh: "B".repeat(87), auth: "A".repeat(22) } });
+
+test("API: a browser's subscription is renewed in place, and Forget removes the browser", async ({ request }) => {
+  const made = await request.put("/api/reminders", { data: { settings: { on: true, tz: "UTC", channels: { push: true } }, push: SUB("a") } });
+  expect(made.status()).toBe(200);
+  const { device, pushEndpoints } = await made.json();
+  expect(pushEndpoints).toEqual([SUB("a").endpoint]);
+  const headers = { "x-cj-device": device };
+  // pushsubscriptionchange: the old endpoint hands over to the new one.
+  expect((await request.post("/api/push/renew", { data: { old: SUB("a").endpoint, sub: SUB("b") } })).status()).toBe(200);
+  expect((await (await request.get("/api/reminders?tz=UTC", { headers })).json()).pushEndpoints).toEqual([SUB("b").endpoint]);
+  // A second browser of the same reader is added beside it, not in place of it.
+  await request.put("/api/reminders", { headers, data: { push: SUB("c") } });
+  expect((await (await request.get("/api/reminders?tz=UTC", { headers })).json()).pushEndpoints).toEqual([SUB("b").endpoint, SUB("c").endpoint]);
+  // A refused endpoint host is not accepted.
+  expect((await request.put("/api/reminders", { headers, data: { push: { ...SUB("d"), endpoint: "https://evil.example/x" } } })).status()).toBe(400);
+  // Forget: the credential stops working and the subscriptions are gone.
+  expect((await request.delete("/api/reminders", { headers, data: {} })).status()).toBe(200);
+  expect((await (await request.get("/api/reminders?tz=UTC", { headers })).json()).identity).toBe("none");
+  expect((await request.post("/api/push/today", { data: { endpoint: SUB("b").endpoint } })).status()).toBe(404);
+});
+
+test("API: each caller is rate limited, with Retry-After", async ({ request }) => {
+  const { device } = await (await request.put("/api/reminders", { data: { settings: { tz: "UTC" } } })).json();
+  const headers = { "x-cj-device": device };
+  let limited = null as null | { status: number; retry: string | undefined };
+  for (let i = 0; i < 40 && !limited; i++) {
+    const r = await request.get("/api/reminders?tz=UTC", { headers });
+    if (r.status() === 429) limited = { status: 429, retry: r.headers()["retry-after"] };
+  }
+  expect(limited).toEqual({ status: 429, retry: "60" });
 });

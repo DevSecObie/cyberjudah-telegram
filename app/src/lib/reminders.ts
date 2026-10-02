@@ -9,8 +9,8 @@ import { app, api, ApiError } from "@/tg/sdk";
 export type Channels = { telegram: boolean; push: boolean };
 export type Pending = { day?: number; chapters: { slug: string; chapter: number }[]; date: string };
 export type ReminderView = {
-  ok: boolean; on: boolean; hour: number; tz: string; channels: Channels;
-  telegramLinked: boolean; pushEndpoint: string | null; pausedUntil: string | null; done: string | null;
+  ok: boolean; on: boolean; hour: number; minute: number; tz: string; channels: Channels;
+  telegramLinked: boolean; pushEndpoints: string[]; pausedUntil: string | null; done: string | null;
   pending: Pending[]; notice: "push-fallback" | null; publicKey: string | null;
   identity?: "telegram" | "device" | "none"; linked?: boolean; device?: string;
 };
@@ -37,13 +37,21 @@ async function call<T>(path: string, init?: RequestInit & { json?: unknown }): P
 }
 
 export const getReminder = () => call<ReminderView>(`/api/reminders?tz=${encodeURIComponent(timeZone())}`);
-export async function saveReminder(body: { settings?: Partial<{ on: boolean; hour: number; tz: string; channels: Partial<Channels>; paused: boolean }>; content?: Content; push?: PushSubscriptionJSON | null; notice?: false }): Promise<ReminderView> {
+export type Settings = Partial<{ on: boolean; hour: number; minute: number; tz: string; channels: Partial<Channels>; paused: boolean; pauseDays: number; pauseUntil: string }>;
+/** A pause: until tomorrow, a week, a chosen date, or until resumed (bot/src/reminders.mjs pause). */
+export const PAUSE_FOREVER = "9999-12-31";
+export async function saveReminder(body: { settings?: Settings; content?: Content; push?: PushSubscriptionJSON; pushRemove?: string; notice?: false }): Promise<ReminderView> {
   const v = await call<ReminderView>("/api/reminders", { method: "PUT", json: body });
   if (v.device) keepDevice(v.device);
   return v;
 }
 export const ackReminder = (dates: string[]) => call<ReminderView>("/api/reminders/ack", { method: "POST", json: { dates } });
 export const linkLink = () => call<{ ok: boolean; link: string }>("/api/reminders/link", { method: "POST" });
+/** Forget: this browser's credential and subscription (or, in Telegram, the whole reminder). */
+export async function forgetReminder(endpoint: string | null): Promise<void> {
+  await call<{ ok: boolean }>("/api/reminders", { method: "DELETE", json: { endpoint } });
+  try { localStorage.removeItem(DEVICE); } catch { /* nothing kept */ }
+}
 
 /** Where push stands in this environment, for the settings screen's explanations. */
 export type PushState = "telegram" | "ios-browser" | "unsupported" | "no-server" | "denied" | "ask" | "granted";
@@ -84,9 +92,25 @@ export async function subscribePush(publicKey: string): Promise<PushSubscription
     return "failed";
   }
 }
+/** This browser's own push endpoint, if it has subscribed. */
+export async function currentEndpoint(): Promise<string | null> {
+  try {
+    if (!("serviceWorker" in navigator)) return null;
+    const reg = await navigator.serviceWorker.getRegistration(import.meta.env.BASE_URL);
+    return (await reg?.pushManager.getSubscription())?.endpoint ?? null;
+  } catch { return null; }
+}
+/** This browser's subscription, to refresh it with the Worker on each open (web.dev: re-sync on every visit). */
+export async function currentSubscription(): Promise<PushSubscriptionJSON | null> {
+  try {
+    if (!("serviceWorker" in navigator) || Notification.permission !== "granted") return null;
+    const reg = await navigator.serviceWorker.getRegistration(import.meta.env.BASE_URL);
+    return (await reg?.pushManager.getSubscription())?.toJSON() ?? null;
+  } catch { return null; }
+}
 export async function unsubscribePush(): Promise<void> {
   try { const reg = await navigator.serviceWorker.getRegistration(import.meta.env.BASE_URL); await (await reg?.pushManager.getSubscription())?.unsubscribe(); } catch { /* nothing to undo */ }
 }
 
-/** "7:00", "18:00". */
-export const hourLabel = (h: number) => `${h}:00`;
+/** "7:00", "18:45". */
+export const timeLabel = (h: number, m = 0) => `${h}:${String(m).padStart(2, "0")}`;

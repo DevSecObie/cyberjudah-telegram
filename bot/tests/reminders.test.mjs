@@ -2,8 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
-  APOCRYPHA, flatChapters, CATCH_UP_HOURS, addDays, applyContent, applySettings, blank, countByChannel, dueChannels, localNow,
-  markDone, markSent, mayBeDue, meta, pause, portion, pushFailed, stop, telegramGone, ackPending, validTz,
+  APOCRYPHA, flatChapters, CATCH_UP_HOURS, PUSH_DEVICES, PAUSE_FOREVER, addDays, addPush, applyContent, applySettings, blank, claim, countByChannel, dueChannels, localNow,
+  markDone, markSent, mayBeDue, meta, pause, portion, pushOutcome, release, removePush, stop, telegramBack, telegramGone, ackPending, validTz,
 } from "../src/reminders.mjs";
 
 const BOOKS = [
@@ -13,19 +13,20 @@ const BOOKS = [
 /** A reminder that is on: Telegram linked to chat 42, push subscribed, 7:00 in the given zone. */
 const on = (tz = "America/Chicago", extra = {}) => ({
   ...blank(tz), on: true, hour: 7, chatId: 42, channels: { telegram: true, push: false },
-  push: { endpoint: "https://push.example/abc", keys: { p256dh: "k", auth: "a" } }, ...extra,
+  pushes: [{ endpoint: "https://push.example/abc", keys: { p256dh: "k", auth: "a" } }], ...extra,
 });
 
 test("time zones: the reader's own hour and date, summer time followed", () => {
   // 12:00 UTC on 2026-07-01 is 07:00 in Chicago (CDT, -5) and 21:00 in Tokyo.
-  assert.deepEqual(localNow("America/Chicago", new Date("2026-07-01T12:00:00Z")), { date: "2026-07-01", hour: 7 });
-  assert.deepEqual(localNow("Asia/Tokyo", new Date("2026-07-01T12:00:00Z")), { date: "2026-07-01", hour: 21 });
+  assert.deepEqual(localNow("America/Chicago", new Date("2026-07-01T12:00:00Z")), { date: "2026-07-01", hour: 7, minute: 0 });
+  assert.deepEqual(localNow("Asia/Tokyo", new Date("2026-07-01T12:00:00Z")), { date: "2026-07-01", hour: 21, minute: 0 });
   // In January Chicago is CST (-6): 07:00 local is 13:00 UTC.
-  assert.deepEqual(localNow("America/Chicago", new Date("2026-01-15T13:00:00Z")), { date: "2026-01-15", hour: 7 });
+  assert.deepEqual(localNow("America/Chicago", new Date("2026-01-15T13:00:00Z")), { date: "2026-01-15", hour: 7, minute: 0 });
   // Across midnight: 03:00 UTC is still the day before in Los Angeles.
   assert.equal(localNow("America/Los_Angeles", new Date("2026-07-02T03:00:00Z")).date, "2026-07-01");
-  // Half-hour zones keep their own hour: 01:30 UTC is 07:00 in Kolkata.
-  assert.equal(localNow("Asia/Kolkata", new Date("2026-07-01T01:30:00Z")).hour, 7);
+  // Half- and three-quarter-hour zones: 01:30 UTC is 07:00 in Kolkata, 01:15 UTC is 07:00 in Kathmandu.
+  assert.deepEqual(localNow("Asia/Kolkata", new Date("2026-07-01T01:30:00Z")), { date: "2026-07-01", hour: 7, minute: 0 });
+  assert.deepEqual(localNow("Asia/Kathmandu", new Date("2026-07-01T01:15:00Z")), { date: "2026-07-01", hour: 7, minute: 0 });
   assert.equal(validTz("Europe/London"), true);
   assert.equal(validTz("Mars/Olympus"), false);
   assert.equal(validTz(""), false);
@@ -88,7 +89,7 @@ test("channel choice: Telegram, push, or both, each only where it can be deliver
   const noChat = on("America/Chicago", { channels: { telegram: true, push: true } }); delete noChat.chatId;
   assert.deepEqual(dueChannels(noChat, at), ["push"]);
   // Push chosen but no subscription on file: nothing on push.
-  const noSub = on("America/Chicago", { channels: { telegram: false, push: true } }); delete noSub.push;
+  const noSub = on("America/Chicago", { channels: { telegram: false, push: true }, pushes: [] });
   assert.deepEqual(dueChannels(noSub, at), []);
 });
 
@@ -134,7 +135,14 @@ test("Done moves the reader on and queues the chapters for the app to mark read"
 test("pause and stop, from the app or the reminder", () => {
   const at = new Date("2026-07-01T12:00:00Z");
   const paused = pause(on(), at);
-  assert.equal(paused.pausedUntil, "2026-07-08");
+  assert.equal(paused.pausedUntil, "2026-07-08", "a week when no length is given");
+  assert.equal(pause(on(), at, 1).pausedUntil, "2026-07-02", "until tomorrow");
+  assert.equal(pause(on(), at, "2026-08-15").pausedUntil, "2026-08-15", "until a chosen date");
+  assert.equal(pause(on(), at, "2028-01-01").pausedUntil, "2026-07-08", "more than a year ahead is refused");
+  assert.equal(pause(on(), at, "2026-06-01").pausedUntil, "2026-07-08", "a past date is refused");
+  assert.equal(pause(on(), at, "forever").pausedUntil, PAUSE_FOREVER, "until resumed");
+  assert.deepEqual(dueChannels(pause(on(), at, "forever"), new Date("2030-07-01T12:00:00Z")), []);
+  assert.equal(applySettings(on(), { paused: true, pauseUntil: "2026-07-20" }, at).pausedUntil, "2026-07-20");
   assert.deepEqual(dueChannels(paused, new Date("2026-07-05T12:00:00Z")), []);
   assert.deepEqual(dueChannels(paused, new Date("2026-07-08T12:00:00Z")), ["telegram"], "resumes by itself");
   assert.equal(applySettings(paused, { paused: false }, at).pausedUntil, undefined);
@@ -142,27 +150,101 @@ test("pause and stop, from the app or the reminder", () => {
   assert.equal(mayBeDue(meta(paused), new Date("2026-07-05T12:00:00Z")), false);
 });
 
-test("an expired or rejected push falls back to Telegram, with a notice", () => {
+test("an expired push (404/410) falls back to Telegram, with a notice", () => {
   const at = new Date("2026-07-01T12:00:00Z");
-  const both = on("America/Chicago", { channels: { telegram: false, push: true } });
-  const gone = pushFailed(both, 410, at);
-  assert.equal(gone.gone, true);
+  const ep = "https://push.example/abc";
+  const pushOnly = on("America/Chicago", { channels: { telegram: false, push: true } });
+  const gone = pushOutcome(pushOnly, [{ endpoint: ep, status: 410 }], at);
+  assert.deepEqual(gone.gone, [ep]);
   assert.equal(gone.sendTelegram, true);
   assert.equal(gone.rec.channels.push, false);
   assert.equal(gone.rec.channels.telegram, true);
-  assert.equal(gone.rec.push, undefined, "the dead subscription is forgotten");
+  assert.deepEqual(gone.rec.pushes, [], "the dead subscription is forgotten");
   assert.equal(gone.rec.notice, "push-fallback");
+  assert.equal(pushOutcome(pushOnly, [{ endpoint: ep, status: 404 }], at).gone.length, 1);
   // Telegram already had today's: the notice, but no second message.
-  assert.equal(pushFailed(markSent({ ...both, channels: { telegram: true, push: true } }, "telegram", at), 404, at).sendTelegram, false);
-  // A passing failure (the push service is busy) is retried on the next hour instead.
-  const busy = pushFailed(both, 503, at);
-  assert.equal(busy.gone, false); assert.equal(busy.rec.channels.push, true);
+  assert.equal(pushOutcome(markSent({ ...pushOnly, channels: { telegram: true, push: true } }, "telegram", at), [{ endpoint: ep, status: 404 }], at).sendTelegram, false);
   // No Telegram to fall back to: push turns off, and so does the reminder.
-  const alone = { ...both }; delete alone.chatId;
-  const r = pushFailed(alone, 410, at);
+  const alone = { ...pushOnly }; delete alone.chatId;
+  const r = pushOutcome(alone, [{ endpoint: ep, status: 410 }], at);
   assert.equal(r.sendTelegram, false); assert.equal(r.rec.on, false); assert.equal(r.rec.notice, undefined);
-  // A blocked bot switches Telegram off and keeps push.
-  assert.deepEqual(telegramGone(on("UTC", { channels: { telegram: true, push: true } })).channels, { telegram: false, push: true });
+  // A blocked bot switches Telegram off and keeps push; starting the bot again brings it back.
+  const blocked = telegramGone(on("UTC", { channels: { telegram: true, push: true } }));
+  assert.deepEqual(blocked.channels, { telegram: false, push: true });
+  assert.deepEqual(telegramBack(blocked).channels, { telegram: true, push: true });
+  const tgOnly = telegramGone(on("UTC"));
+  assert.equal(tgOnly.on, false);
+  assert.equal(telegramBack(tgOnly).on, true, "a reminder that was on is on again");
+  assert.equal(telegramBack(on("UTC")).tgBlocked, undefined, "nothing to restore when it was never blocked");
+});
+
+test("our own key errors (401/403) and passing failures never drop a subscription", () => {
+  const at = new Date("2026-07-01T12:00:00Z");
+  const ep = "https://push.example/abc";
+  const r = on("America/Chicago", { channels: { telegram: false, push: true } });
+  for (const status of [400, 401, 403, 413, 429, 500, 503, 0]) {
+    const f = pushOutcome(r, [{ endpoint: ep, status }], at);
+    assert.equal(f.rec.pushes.length, 1, `kept on ${status}`);
+    assert.equal(f.rec.channels.push, true);
+    assert.equal(f.sent, false);
+    assert.equal(f.sendTelegram, false);
+    assert.equal(f.misconfigured, status === 401 || status === 403, `misconfigured on ${status}`);
+  }
+});
+
+test("several browsers: one delivery counts for the day, a gone one is dropped, the rest kept", () => {
+  const at = new Date("2026-07-01T12:00:00Z");
+  let r = on("America/Chicago", { channels: { telegram: false, push: true }, pushes: [] });
+  for (let i = 0; i < PUSH_DEVICES + 2; i++) {
+    const out = addPush(r, { endpoint: `https://push.example/${i}`, keys: { p256dh: "k", auth: "a" } }, at);
+    r = out.rec;
+    if (i >= PUSH_DEVICES) assert.equal(out.dropped.length, 1, "past the limit one is let go");
+  }
+  assert.equal(r.pushes.length, PUSH_DEVICES);
+  assert.equal(r.pushes[0].endpoint, "https://push.example/2", "the oldest went first");
+  // The same browser again does not take a second place.
+  assert.equal(addPush(r, { endpoint: "https://push.example/5", keys: { p256dh: "k", auth: "a" } }, at).rec.pushes.length, PUSH_DEVICES);
+  const results = r.pushes.map((p, i) => ({ endpoint: p.endpoint, status: i === 0 ? 410 : i === 1 ? 201 : 503 }));
+  const f = pushOutcome(r, results, at);
+  assert.equal(f.sent, true);
+  assert.equal(f.rec.pushes.length, PUSH_DEVICES - 1);
+  assert.equal(f.rec.sent.push, "2026-07-01");
+  assert.deepEqual(removePush(f.rec, f.rec.pushes[0].endpoint).pushes.length, PUSH_DEVICES - 2);
+});
+
+test("at most once: the day is claimed before sending, and given back only to retry", () => {
+  const at = new Date("2026-07-01T12:00:00Z");
+  const r = on("America/Chicago", { channels: { telegram: true, push: true } });
+  const claimed = claim(r, ["telegram", "push"], at);
+  assert.deepEqual(dueChannels(claimed, at), [], "a second run in the meantime sends nothing");
+  const back = release(claimed, "push", r);
+  assert.deepEqual(dueChannels(back, at), ["push"], "a failed push is tried again");
+  assert.equal(back.sent.telegram, "2026-07-01");
+});
+
+test("summer time: a skipped time is sent at the next valid moment, a repeated one once", () => {
+  // 2026-03-08 in Chicago: 02:00 jumps to 03:00. A 2:30 reminder goes at 03:00.
+  const spring = on("America/Chicago", { hour: 2, minute: 30 });
+  assert.deepEqual(dueChannels(spring, new Date("2026-03-08T08:00:00Z")), ["telegram"], "03:00 CDT");
+  // 2026-11-01: 01:00-02:00 happens twice. A 1:30 reminder goes the first time only.
+  let fall = on("America/Chicago", { hour: 1, minute: 30 });
+  const first = new Date("2026-11-01T06:30:00Z"); // 01:30 CDT
+  assert.deepEqual(dueChannels(fall, first), ["telegram"]);
+  fall = markSent(fall, "telegram", first);
+  assert.deepEqual(dueChannels(fall, new Date("2026-11-01T07:30:00Z")), [], "01:30 CST, the second time");
+});
+
+test("quarter hours: 7:15 is due at 7:15, and the :30 and :45 zones are reached by the quarter-hour cron", () => {
+  const r = on("America/Chicago", { minute: 15 });
+  assert.deepEqual(dueChannels(r, new Date("2026-07-01T12:00:00Z")), [], "07:00 is before 07:15");
+  assert.deepEqual(dueChannels(r, new Date("2026-07-01T12:15:00Z")), ["telegram"]);
+  assert.equal(applySettings(r, { minute: 20 }).minute, 15, "only quarter hours");
+  assert.equal(applySettings(r, { minute: 45 }).minute, 45);
+  // 7:00 in Kolkata (UTC+5:30) is 01:30 UTC, and in Kathmandu (UTC+5:45) 01:15 UTC: both quarter-hour runs.
+  assert.deepEqual(dueChannels(on("Asia/Kolkata"), new Date("2026-07-01T01:30:00Z")), ["telegram"]);
+  assert.deepEqual(dueChannels(on("Asia/Kathmandu"), new Date("2026-07-01T01:15:00Z")), ["telegram"]);
+  assert.equal(mayBeDue(meta(on("Asia/Kathmandu")), new Date("2026-07-01T01:15:00Z")), true);
+  assert.equal(mayBeDue(meta(on("Asia/Kathmandu")), new Date("2026-07-01T01:00:00Z")), false);
 });
 
 test("the cron's metadata filter and the admin counts agree with the records", () => {
