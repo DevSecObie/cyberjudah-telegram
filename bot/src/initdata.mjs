@@ -26,6 +26,14 @@ function sameHex(a, b) {
  * The parsed launch fields (user, receiver and chat as objects) when the signature holds and
  * auth_date is within maxAgeSec of now; null otherwise.
  */
+/**
+ * How old launch data the API accepts. Telegram keeps a Mini App open in the background for
+ * weeks and makes new launch data only when it is opened again; at three days, a reader who
+ * never closed the app lost Search and Ask together. The signature still proves who is asking;
+ * the age only bounds a replay.
+ */
+export const LAUNCH_DATA_MAX_AGE = 30 * 86400;
+
 export async function validateInitData(initData, botToken, maxAgeSec = 86400, now = Date.now()) {
   if (typeof initData !== "string" || !initData || typeof botToken !== "string" || !botToken) return null;
   let params;
