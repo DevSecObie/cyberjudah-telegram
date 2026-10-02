@@ -44,6 +44,8 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   reader's own time.
 - Ask's allowance is on in production: about 2 in-depth answers a day free per reader, then up to
   25 shorter answers until the next day, or a plan or top-up in Stars. Admins are not limited.
+- Plans and top-ups are sold at cost: every Star a reader pays buys Claude use at Claude's own
+  price, with no margin.
 - Claude can be paid through Cloudflare (Unified Billing, from the account's AI Gateway credits)
   instead of an Anthropic key; production and staging are set to it (`CLAUDE_BILLING`). When
   the credits run out, Ask answers with the backup.

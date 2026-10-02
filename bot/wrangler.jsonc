@@ -69,7 +69,7 @@
         "SITE_URL": "https://cyberjudah.io",
         "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr",
         "CLAUDE_MODEL": "claude-opus-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "cloudflare",
-        "ASK_USD_PER_MTOK": "5", "ASK_USD_PER_STAR": "0.013", "ASK_MARGIN": "1.3",
+        "ASK_USD_PER_MTOK": "5", "ASK_USD_PER_STAR": "0.013", "ASK_MARGIN": "1",
         "ASK_FREE_DAILY": "120000", "ASK_PLAN_STARS": "750", "ASK_PACKS": "150,500,1500",
         "ASK_BILLING": "on", "ASK_BASIC_DAILY": "25"
       }
@@ -98,11 +98,12 @@
     "CLAUDE_BILLING": "cloudflare",
     // Ask CyberJudah's allowance. Each answer is measured in units (Claude's tokens, output
     // weighted five times input), and a Star buys ASK_USD_PER_STAR / ASK_USD_PER_MTOK * 1e6 /
-    // ASK_MARGIN units, so every plan and pack pays for what it allows. Check ASK_USD_PER_MTOK
+    // ASK_MARGIN units, so every plan and pack pays for what it allows. ASK_MARGIN is 1: no
+    // margin, a reader's Stars buy exactly the Claude use they pay for (the owner's choice). Check ASK_USD_PER_MTOK
     // against Anthropic's price for the model's input tokens, and ASK_USD_PER_STAR against what
     // a Star brings in after Telegram's cut. ASK_FREE_DAILY is units free per person per day
     // (an average answer is about 60,000); /api/admin/usage shows the real averages.
-    "ASK_USD_PER_MTOK": "5", "ASK_USD_PER_STAR": "0.013", "ASK_MARGIN": "1.3",
+    "ASK_USD_PER_MTOK": "5", "ASK_USD_PER_STAR": "0.013", "ASK_MARGIN": "1",
     "ASK_FREE_DAILY": "120000", "ASK_PLAN_STARS": "750", "ASK_PACKS": "150,500,1500",
     // "on": each reader gets ASK_FREE_DAILY units of in-depth (Claude) answers a day, then
     // ASK_BASIC_DAILY shorter answers (Workers AI, no charge) until the next UTC day, or pays
