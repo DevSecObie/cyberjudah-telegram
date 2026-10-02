@@ -14,7 +14,7 @@ const STUDY: [string, string, string, IconName][] = [
   ["/lexicon", "Lexicon", "Strong's Hebrew and Greek behind every word", "spark"],
   ["/dictionary", "Dictionary", "Easton's: names, places and words", "type"],
   ["/people", "People", "Everyone named in the Bible, with their family and their verses", "star"],
-  ["/relations", "Relations", "The links you drew between verses, notes and entries", "merge"],
+  ["/relations", "Your precepts", "The verses, notes and entries you joined, precept upon precept", "precepts"],
   ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book", "layers"],
   ["/topics", "Topics", "Classes and episodes by what they cover", "tag"],
 ];
@@ -45,7 +45,7 @@ function Card({ icon, title, items }: { icon: IconName; title: string; items: (I
   );
 }
 
-const C = { blue: "var(--a-accent)", teal: "var(--a-accent)", violet: "var(--a-hot)", amber: "var(--a-resource-dictionary)", rose: "var(--a-hot)", green: "var(--a-accent)", red: "var(--a-hot)", slate: "var(--a-muted)" };
+const C = { blue: "var(--accent)", teal: "var(--accent)", violet: "var(--danger)", amber: "var(--gold)", rose: "var(--danger)", green: "var(--accent)", red: "var(--danger)", slate: "var(--text-3)" };
 
 /** The menu's content (Bible Strong's MoreScreen), on its own page or in the menu drawer. */
 export function MoreBody() {

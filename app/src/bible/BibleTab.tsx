@@ -15,6 +15,7 @@ import { Prologue } from "./dom/Prologue";
 import { Chapter, HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGHT } from "./dom/Chapter";
 import { colorItems, paletteOf, resolveTheme, telegramScheme, useBibleSettings, useSchemeChange } from "./settings";
 import { cssVars, isDarkTheme } from "./theme";
+import { useToast } from "@/ui/toast";
 import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
 import { BookSelectorSheet, VersePopup } from "./ui/BookSelectorSheet";
 import { BookmarkSheet, LinkSheet, NoteSheet, TagsPanel } from "./ui/Editors";
@@ -46,7 +47,8 @@ export function BibleTab() {
   const [last, setLast, lastLoaded] = useLast();
   const slug = slugParam ?? last?.slug ?? "genesis";
   const ch = chapterParam ? Number(chapterParam) : last?.chapter ?? 1;
-  useEffect(() => { if (!slugParam && lastLoaded) navigate(`/read/${slug}/${ch}`, { replace: true }); }, [slugParam, lastLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  const searchParam = params.get("search");
+  useEffect(() => { if (!slugParam && lastLoaded) navigate(`/read/${slug}/${ch}${searchParam ? `?search=${encodeURIComponent(searchParam)}` : ""}`, { replace: true }); }, [slugParam, lastLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [settings, setSettings] = useBibleSettings();
   const [scheme, setScheme] = useState(telegramScheme);
@@ -57,11 +59,18 @@ export function BibleTab() {
     // Telegram's chrome takes the page colour while the tab is open, and gives it back after.
     if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(palette.reverse); app.setBackgroundColor(palette.reverse); }
     if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(palette.reverse);
-    // So does the bottom bar, with the Bible's hairline.
+    // So does the dock: its glass takes the page's colour and ink, light or dark as the reader's theme is.
     const root = document.documentElement.style;
-    root.setProperty("--a-bar", palette.reverse); root.setProperty("--a-bar-line", palette.border);
-    return () => { root.removeProperty("--a-bar"); root.removeProperty("--a-bar-line"); const bg = getComputedStyle(document.documentElement).getPropertyValue("--color-void").trim() || "#05070f"; if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(bg); app.setBackgroundColor(bg); } if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(bg); };
-  }, [palette.reverse]);
+    const dark = isDarkTheme(theme);
+    const dock: Record<string, string> = {
+      "--dock-tint-override": `color-mix(in srgb, ${palette.reverse} 78%, transparent)`,
+      "--dock-ink-override": palette.default,
+      "--dock-selected-override": dark ? "color-mix(in srgb, #ffffff 14%, transparent)" : "color-mix(in srgb, #ffffff 92%, transparent)",
+      "--dock-edge-override": dark ? "color-mix(in srgb, #ffffff 12%, transparent)" : "color-mix(in srgb, #000000 9%, transparent)",
+    };
+    for (const [k, v] of Object.entries(dock)) root.setProperty(k, v);
+    return () => { for (const k of Object.keys(dock)) root.removeProperty(k); const bg = getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim() || "#05070f"; if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(bg); app.setBackgroundColor(bg); } if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(bg); };
+  }, [palette.reverse, palette.default, theme]);
 
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const list = books.data ?? [];
@@ -127,8 +136,8 @@ export function BibleTab() {
   const [bookmarkTarget, setBookmarkTarget] = useState<{ verse?: number; existing?: Bookmark }>({});
   const [noteEdit, setNoteEdit] = useState<{ key: string; note: Note; relation?: Relation } | null>(null);
   const [tagsTarget, setTagsTarget] = useState<number[]>([]);
-  const [toast, setToast] = useState<string | null>(null);
-  const say = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2200); };
+  const toast = useToast();
+  const say = (m: string) => toast(m, { ms: 2800 });
   const speech = useSpeech(verses, chapterLabel, slug && ch ? { slug, chapter: ch } : undefined);
   const [repeat, setRepeat] = useState(false);
   const [audioOpen, setAudioOpen] = useState(false);
@@ -215,6 +224,13 @@ export function BibleTab() {
     try { await navigator.clipboard.writeText(body); say("Copied to the clipboard."); } catch { void alert("Export is not available here."); }
   };
 
+  // A search handed over from elsewhere (?search=passover) opens Search the Scriptures with those words in it.
+  const [searchSeed, setSearchSeed] = useState("");
+  useEffect(() => {
+    if (!slugParam || !searchParam) return;
+    setSearchSeed(searchParam); setSheet("search");
+    const next = new URLSearchParams(params); next.delete("search"); setParams(next, { replace: true });
+  }, [slugParam, searchParam]); // eslint-disable-line react-hooks/exhaustive-deps
   const openResources = (v: number, tab: ResourceTab) => { setResourceVerse(v); setResourceTab(tab); setSheet("resources"); };
   const onMenu = (a: MenuAction) => {
     if (a === "params") setSheet("params");
@@ -262,7 +278,7 @@ export function BibleTab() {
       <WhySheet open={sheet === "why"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={whyAt} reference={`${chapterLabel}:${whyAt}`}
         onRead={(url, v) => { setSheet(null); const m = slugOfUrl(url); navigate(m ? `/read/${m[1]}/${m[2]}${v ? `?v=${v}` : ""}` : url); }}
         onOpenClass={(url, ts) => { setSheet(null); const t = ts ? ts.split(":").reduce((n, p) => n * 60 + Number(p || 0), 0) : 0; if (/^https?:/.test(url)) openLink(`${url}${t ? `&t=${t}s` : ""}`); else navigate(`/note${url}${t ? `?t=${t}` : ""}`); }} />
-      <SelectedVersesSheet open={selected.length > 0 && !sheet} onDismiss={() => setSelected([])}
+      <SelectedVersesSheet open={selected.length > 0 && !sheet} onDismiss={() => setSelected([])} reference={selectedReference ?? undefined}
         colors={items} selectedColor={selectedColor} onAddHighlight={addHighlight} onRemoveHighlight={removeHighlight} onAddColor={() => setSheet("params")} onEditColor={() => setSheet("params")}
         moreThanOne={selected.length > 1} hasBookmark={hasBookmark} hasFocus={hasFocus}
         onNote={() => { setNoteEdit(null); setSheet("note"); }} onTag={() => { setTagsTarget(selectedSorted); setSheet("tags"); }} onLink={() => setSheet("link")} onRelation={() => setSheet("relation")}
@@ -271,7 +287,7 @@ export function BibleTab() {
         onCopy={() => void copy()} onShare={shareSel} onExport={() => void exportSel("selection")} onSelectAll={() => setSelected(verses.map((v) => v.verse))} />
 
       <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v)} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />
-      <SearchSheet open={sheet === "search"} onClose={() => setSheet(null)} books={list} onGo={(s, c, v) => go({ slug: s, ch: c }, v)} />
+      <SearchSheet open={sheet === "search"} initial={searchSeed} onClose={() => { setSheet(null); setSearchSeed(""); }} books={list} onGo={(s, c, v) => go({ slug: s, ch: c }, v)} />
       <VersionSheet open={sheet === "version"} onClose={() => setSheet(null)} />
       <VersePopup open={sheet === "verses"} onClose={() => setSheet(null)} count={verses.length} selected={verseToScroll} onSelect={(v) => { setVerseToScroll(v); setNavRequest((n) => n + 1); }} />
       <ParamsSheet open={sheet === "params"} onClose={() => setSheet(null)} settings={settings} set={setSettings} palette={palette} />
@@ -282,7 +298,6 @@ export function BibleTab() {
       {sheet === "relation" ? <RelationTargetPicker source={verseEndpoint() as Endpoint} onClose={() => setSheet(null)} onCreated={() => { setSheet(null); setSelected([]); }} /> : null}
       {resource ? <CompareSheet open={sheet === "compare"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={resource.verse} text={resource.text} reference={reference([resource.verse])} books={list} onRead={(s, c, v) => go({ slug: s, ch: c }, v)} /> : null}
       {resource ? <ResourcesSheet open={sheet === "resources"} onClose={() => setSheet(null)} tab={resourceTab} setTab={setResourceTab} slug={slug} chapter={ch} verse={resource.verse} text={resource.text} reference={reference([resource.verse])} books={list} /> : null}
-      {toast ? <div className="bs-toast" role="status">{toast}</div> : null}
     </div>
   );
 }

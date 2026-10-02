@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
 import { data } from "@/api/data";
@@ -8,9 +8,10 @@ import { RELATION_TYPES, createRelation, deleteRelation, endpointHref, endpoints
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { alert, api, confirm, haptic, openLink } from "@/tg/sdk";
 import { store } from "@/tg/store";
+import { useModal } from "@/ui/modal";
 import { useSheet } from "@/ui/sheet";
 import { Empty, Icon, Screen, SearchField, Skeleton } from "@/ui/ui";
-import { MergeIcon, TargetIcon } from "@/ui/relations";
+import { PreceptsIcon, TargetIcon } from "@/ui/relations";
 import { preceptsForVerse, slugOfUrl, useTaughtPrecepts } from "@/lib/taught";
 import { fmtDate } from "@/api/data";
 
@@ -56,7 +57,7 @@ export function Relations() {
 
   const open = (e: Endpoint) => { const href = endpointHref(e); if (e.type === "link") openLink(href); else navigate(href); };
   const edit = async (r: Relation, active: Endpoint) => {
-    const a = await sheet.open({ title: "Relations", items: [{ id: "edit", text: "Edit", icon: <Icon name="note" size={16} /> }, { id: "delete", text: "Remove", destructive: true }] });
+    const a = await sheet.open({ title: "Precept", items: [{ id: "edit", text: "Edit", icon: <Icon name="note" size={16} /> }, { id: "delete", text: "Remove", destructive: true }] });
     if (a?.id === "delete") { if (await confirm("Do you want to delete this relation?")) { await deleteRelation(r); haptic("warning"); reload(); } }
     if (a?.id === "edit") {
       // Type cycles through the five kinds; a directional kind can be swapped; a short label.
@@ -74,14 +75,14 @@ export function Relations() {
     }
   };
 
-  if (!endpoint) return <Screen title="Relations">{saved.length ? <div className="nt-list">{saved.map((r) => <button type="button" className="nt-item" key={r.id} onClick={() => {
+  if (!endpoint) return <Screen title="Your precepts">{saved.length ? <div className="nt-list">{saved.map((r) => <button type="button" className="nt-item" key={r.id} onClick={() => {
     const e = r.endpoints.find((x) => x.type === "verse" || x.type === "note");
     const key = e?.type === "verse" ? e.verseKeys.join(",") : e?.type === "note" ? `note:${e.verseKey}` : "";
     if (key) navigate(`/relations?endpoint=${encodeURIComponent(key)}`);
-  }}><Icon name="link" /><span className="nt-item__body"><b>{r.endpoints[0].label}</b><small>{relationText(r, r.endpoints[0])} {r.endpoints[1].label}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="No relations" />}</Screen>;
+  }}><Icon name="precepts" /><span className="nt-item__body"><b>{r.endpoints[0].label}</b><small>{relationText(r, r.endpoints[0])} {r.endpoints[1].label}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="No precepts yet" action={{ label: "Open the Bible", href: "/bible" }}>Precept upon precept, line upon line (Isaiah 28:10): join a verse to another passage, a class, a note, a dictionary entry or a link, so they show together when you read. Select a verse and tap Relation to make one. In Telegram they follow your account to every device; in a browser they stay on this device.</Empty>}</Screen>;
   return (
-    <Screen title="Relations" kicker={endpoint.label} action={<button type="button" className="icon-btn" aria-label="Add relation" onClick={() => setPicking(true)}>+</button>}>
-      {!count && !precepts.length ? <div className="rel-empty"><MergeIcon size={64} /><p>No relations</p></div> : null}
+    <Screen title="Precepts" kicker={endpoint.label} action={<button type="button" className="icon-btn" aria-label="Add a precept" onClick={() => setPicking(true)}>+</button>}>
+      {!count && !precepts.length ? <div className="rel-empty"><PreceptsIcon size={64} /><p>No precepts yet</p><small>Tap + to join this passage to another passage, a class, a note, a dictionary entry or a link.</small></div> : null}
       {precepts.length ? (
         <div className="rel-section">
           <p className="rel-section__title"><TargetIcon type="entry" /> Taught in class</p>
@@ -168,10 +169,12 @@ export function RelationTargetPicker({ source, onClose, onCreated }: { source: E
     if (!r) { void alert("This relation already exists."); return; }
     haptic("success"); onCreated(r);
   };
+  const box = useRef<HTMLDivElement>(null);
+  useModal(box, true, onClose);
   const loading = (refKeys && refText.isPending) || (library.isFetching && !library.data) || (dict.isFetching && !dict.data);
   return (
     <div className="sheet__scrim" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="sheet sheet--tall" role="dialog" aria-modal="true" aria-label="Add relation" data-sheet-open="">
+      <div ref={box} className="sheet sheet--tall" role="dialog" aria-modal="true" aria-label="Add relation" data-sheet-open="">
         <div className="sheet__grip" aria-hidden="true" />
         <p className="sheet__title">Add relation<small>{source.label}</small></p>
         <SearchField id="rel-q" value={q} onChange={setQ} placeholder="Scripture, note, class, dictionary, link..." autoFocus />

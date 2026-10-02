@@ -37,14 +37,14 @@ export function Sabbath() {
   return (
     <Screen title="Sabbath" kicker="From even unto even · Leviticus 23:32">
       {!loc ? (
-        <Empty title="Where are you?">Sunset depends on where you are. Share your location once and the app keeps it, on every device.</Empty>
+        <Empty title="Where are you?">Sunset depends on where you are. Share your location once and the app remembers it{app ? ", on every device where you open CyberJudah in Telegram" : " in this browser"}.</Empty>
       ) : !state ? (
         <Empty title="No sunset here today">Above the polar circle the sun does not set for part of the year.</Empty>
       ) : (
         <>
           <Card glow>
             <p className="card__label">{state.sabbath ? "It is the Sabbath" : "Until the Sabbath"}</p>
-            <p className="verse" style={{ fontFamily: "var(--a-ui)", fontWeight: 700, fontSize: 34, letterSpacing: "-0.02em" }}>{state.sabbath ? "Shabbat shalom" : countdown(state.next, now)}</p>
+            <p className="verse" style={{ fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: 34, letterSpacing: "-0.02em" }}>{state.sabbath ? "Shabbat shalom" : countdown(state.next, now)}</p>
             <p className="card__ref">{state.label} · {state.next.toLocaleString(undefined, { weekday: "long", hour: "numeric", minute: "2-digit" })}</p>
           </Card>
           <Section title="Today">

@@ -134,7 +134,7 @@ export function StudyStats({ expanded = false }: { expanded?: boolean }) {
     ["Highlights", c.highlights, "/bookmarks?tab=highlights", "compose"],
     ["Bookmarks", c.bookmarks, "/bookmarks", "bookmark"],
     ["Notes", c.notes, "/bookmarks?tab=notes", "note"],
-    ...(expanded ? [["Studies", plan ? 1 : 0, "/plan", "check"], ["Links", relations.length, "/relations", "link"]] as [string, number, string, IconName][] : []),
+    ...(expanded ? [["Studies", plan ? 1 : 0, "/plan", "check"], ["Precepts", relations.length, "/relations", "precepts"]] as [string, number, string, IconName][] : []),
     ["Tags", c.tags, "/tags", "tag"],
   ];
   return (

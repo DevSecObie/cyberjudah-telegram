@@ -142,14 +142,17 @@ export function markMoments(html: string): string {
 }
 
 /** The rendered note; its links open in the app when they are the site's, else outside. */
-export function NoteBody({ md, video, onSeek }: { md: string; video?: string | null; onSeek?: (t: number) => void }) {
+/** The note's head line with the series the class belongs to in place of the general collection. */
+const withSeries = (html: string, series?: string) => (series ? html.replace(/(<p class="note-meta">)[^<·]*?( · |<\/p>)/, (_m, open: string, rest: string) => `${open}${series.replace(/&/g, "&amp;").replace(/</g, "&lt;")}${rest}`) : html);
+
+export function NoteBody({ md, video, onSeek, series }: { md: string; video?: string | null; onSeek?: (t: number) => void; series?: string }) {
   const go = useGo();
   const board = useBoard(video);
   const visuals = useVisuals(video);
   const html = useMemo(() => {
-    const out = renderNote(md, video ? { video, board: board.data, visuals: visuals.data } : undefined);
+    const out = withSeries(renderNote(md, video ? { video, board: board.data, visuals: visuals.data } : undefined), series);
     return onSeek ? markMoments(out) : out;
-  }, [md, video, board.data, visuals.data, !!onSeek]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [md, video, board.data, visuals.data, !!onSeek, series]); // eslint-disable-line react-hooks/exhaustive-deps
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
     const el = e.target as HTMLElement;
     // A moment (its frame or its time) plays the recording from there when a player is on the screen.

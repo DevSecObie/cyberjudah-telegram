@@ -1,0 +1,139 @@
+/* ── Class notes, the recording and what was said ──────────────────────────────────────────── */
+.note-head { display: flex; flex-direction: column; gap: var(--sp-2); }
+.note-head h1 { margin: 0; font: 600 27px/1.2 var(--font-read); color: var(--text-1); text-wrap: balance; overflow-wrap: anywhere; }
+.backto { display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; min-height: 36px; margin: 0 0 10px; padding: 0 12px 0 9px; border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent); font: 600 var(--fs-footnote) var(--font-ui); text-decoration: none; }
+
+/* The player page: the recording pinned on top, full bleed, the page scrolling under it. */
+.screen--player { padding-top: 0; }
+.player { position: sticky; top: 0; z-index: var(--z-dock); margin: 0 calc(-1 * var(--gutter)); padding-top: var(--safe-top); background: #000; box-shadow: var(--shadow-2); }
+.player__box { position: relative; aspect-ratio: 16 / 9; background: #000; overflow: hidden; }
+.player__box iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.player .watch { height: 100%; border-radius: 0; }
+.player__frame { position: absolute; inset: 0; border-radius: 0; }
+@media (min-width: 700px) { .player { margin: 0; padding-top: calc(var(--safe-top) + var(--sp-3)); background: var(--canvas); box-shadow: none; } .player__box { border-radius: var(--r-lg); box-shadow: var(--shadow-2); } }
+/* Picture in picture: the player floats above the dock while the notes fill the screen. */
+.player[data-pip] { position: fixed; top: auto; left: auto; right: var(--sp-3); bottom: calc(var(--dock-space) + var(--sp-3)); z-index: var(--z-pip); width: min(46vw, 260px); margin: 0; padding-top: 0; overflow: hidden; border-radius: var(--r-md); box-shadow: var(--shadow-3), 0 0 0 .5px var(--mat-edge); animation: pop-in var(--dur-3) var(--ease) backwards; }
+.player[data-pip] .player__box { border-radius: 0; box-shadow: none; }
+#root .player__expand { position: absolute; top: 6px; left: 6px; z-index: 2; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .62); color: #fff; cursor: pointer; }
+.player__expand svg { transform: rotate(-90deg); }
+/* A poster with a play label, over the frame (dark in every theme). */
+.watch { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; padding: 0; border: 0; border-radius: var(--r-lg); background: var(--surface-2); cursor: pointer; }
+.watch img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.watch span { position: absolute; left: var(--sp-3); bottom: var(--sp-3); display: inline-flex; align-items: center; gap: var(--sp-2); min-height: 36px; padding: 0 14px; border-radius: var(--r-pill); background: rgba(5, 7, 15, .78); color: #fff; font: 600 var(--fs-sub) var(--font-ui); }
+
+/* The way into the notes from the player. */
+.notes-open { display: grid; gap: 1px; width: 100%; overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
+#root .notes-open__main { display: grid; grid-template-columns: 1fr auto; column-gap: 10px; align-items: center; width: 100%; padding: var(--sp-3) 14px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+#root .notes-open__main:hover { background: var(--state-hover); }
+#root .notes-open__at { display: flex; align-items: center; gap: 6px; width: 100%; min-height: var(--touch); padding: 0 14px; border: 0; border-top: .5px solid var(--hairline); background: var(--accent-softer); color: var(--accent); font: 600 var(--fs-footnote) var(--font-ui); text-align: left; cursor: pointer; }
+.notes-open__head { display: flex; align-items: center; gap: var(--sp-2); color: var(--accent); }
+.notes-open__head b { font: 600 var(--fs-sub) var(--font-ui); color: var(--text-1); }
+.notes-open__head small { font: 500 var(--fs-caption) var(--font-ui); color: var(--text-3); }
+.notes-open__lede { grid-column: 1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px; font: 400 var(--fs-sub)/1.4 var(--font-ui); color: var(--text-3); }
+.notes-open > svg { grid-column: 2; grid-row: 1 / 3; color: var(--text-4); }
+
+/* The notes: the reading face, generous measure; the interface face for headings and chips. */
+.note { font: 400 18.5px/var(--lh-read) var(--font-read); color: var(--text-2); overflow-wrap: anywhere; }
+.note h2, .note h3 { margin: 1.6em 0 .5em; font-family: var(--font-ui); line-height: 1.25; color: var(--text-1); letter-spacing: -.01em; }
+.note h2 { font-size: 21px; }
+.note h3 { font-size: 18px; }
+.note a { color: var(--accent); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); text-underline-offset: 3px; }
+.note blockquote { margin: 1em 0; padding: 10px 14px; border-left: 3px solid var(--accent); border-radius: 0 var(--r-md) var(--r-md) 0; background: var(--surface-1); color: var(--text-1); }
+.note blockquote p { margin: .3em 0; }
+.note img, .note iframe { max-width: 100%; border-radius: var(--r-md); }
+.note .note-video { display: none; }
+.note ul, .note ol { padding-left: 1.3em; }
+.note .who { margin-right: 6px; font: 600 var(--fs-caption) var(--font-ui); color: var(--accent); }
+.note .note-meta { margin: 0 0 14px; font: 500 var(--fs-sub)/1.4 var(--font-ui); color: var(--text-3); letter-spacing: .01em; }
+.note .note-opens { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0 0 var(--sp-2); padding: 14px; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge); }
+.note .note-opens__label { font: 700 var(--fs-caption) var(--font-ui); letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); }
+.note .note-opens__refs { display: flex; flex-wrap: wrap; gap: 6px; }
+.note a.note-opens__ref { display: inline-flex; align-items: center; min-height: 32px; padding: 0 11px; border-radius: var(--r-pill); background: var(--fill-1); font: 500 var(--fs-footnote)/1.3 var(--font-ui); color: var(--text-1); text-decoration: none; }
+.note a.note-opens__ref:hover { background: var(--fill-2); }
+.note .note-opens__more { align-self: center; padding: 0 4px; font: 400 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
+/* A moment: a chip that plays the recording from there. */
+.note .moment__at, .note .shown__at { display: inline-block; margin-right: 4px; padding: 2px 9px; border-radius: var(--r-pill); background: var(--accent-soft); font: 600 12.5px/1.5 var(--font-ui); font-style: normal; color: var(--accent); text-decoration: none; font-variant-numeric: tabular-nums; vertical-align: 1px; }
+.note em:has(> .moment__at) { font-style: normal; }
+/* With the recording on screen, a passage is a tap from its place in it. */
+.note--seek [data-at] { border-radius: var(--r-xs); cursor: pointer; transition: background-color var(--dur-1) ease; }
+.note--seek [data-at]:hover { background: var(--accent-softer); }
+.note--seek [data-at]:active { background: var(--accent-soft); }
+/* What was on the screen at a moment. */
+.note .shown { margin: 14px 0 18px; padding: 0; cursor: pointer; }
+.note .shown a { display: block; color: inherit; text-decoration: none; }
+.note .shown__frame { display: block; width: 100% !important; height: auto !important; aspect-ratio: 16 / 9; border-radius: var(--r-md); box-shadow: var(--card-edge), var(--shadow-1); }
+.note .shown figcaption { margin: var(--sp-2) 2px 0; }
+.note .shown-all h2 { margin-top: 28px; }
+.frame { display: inline-block; flex: none; overflow: hidden; border-radius: var(--r-sm); background-color: var(--surface-2); }
+.frame[role="button"] { cursor: pointer; }
+
+/* What was said: transcript chunks and lines, the moment found lit. */
+.transcript p { margin: 0 0 10px; font: 400 16.5px/1.55 var(--font-read); }
+.transcript p[data-found] { margin-inline: -10px; padding: var(--sp-2) 10px; border-radius: var(--r-sm); background: var(--accent-soft); }
+.transcript button { margin-right: var(--sp-2); padding: 0; border: 0; background: none; color: var(--accent); font: 600 var(--fs-caption) var(--font-ui); cursor: pointer; }
+.tx { display: grid; gap: 10px; padding: 4px 0; }
+.tx__chunk { margin: 0; padding: 10px var(--sp-3); border-radius: var(--r-md); font: 400 var(--fs-body)/1.55 var(--font-read); color: var(--text-2); }
+.tx__chunk[data-here] { background: var(--accent-softer); box-shadow: inset 3px 0 0 var(--accent); color: var(--text-1); }
+.tx__chunk button { display: inline-block; margin: 0 var(--sp-2) 0 0; padding: 2px 8px; border: 0; border-radius: var(--r-pill); background: var(--fill-1); color: var(--accent) !important; font: 600 var(--fs-caption) var(--font-ui) !important; cursor: pointer; vertical-align: 1px; }
+.tx__at { color: var(--accent); font-weight: 600; }
+.tx__frame { display: block; margin: 0 0 10px; border-radius: var(--r-md); }
+.said { display: grid; gap: 6px; }
+.said__line { margin: 0; padding: var(--sp-2) 10px; border-radius: var(--r-sm); font: 400 15px/1.55 var(--font-read); color: var(--text-2); }
+.said--compact .said__line { padding: 6px var(--sp-2); font-size: var(--fs-sub); }
+.said__line[data-here] { background: var(--accent-softer); box-shadow: inset 3px 0 0 var(--accent); color: var(--text-1); }
+#root .said__line button { display: inline-block; margin: 0 var(--sp-2) 0 0; padding: 2px 8px; border: 0; border-radius: var(--r-pill); background: var(--fill-1); color: var(--accent); font: 600 var(--fs-caption) var(--font-ui); cursor: pointer; vertical-align: 1px; }
+.spoken__notes { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) 14px; border-radius: var(--r-md); background: var(--surface-1); box-shadow: var(--card-edge); color: var(--text-1); }
+.spoken__notes span { flex: 1; display: grid; }
+.spoken__notes b { font: 600 15px var(--font-ui); }
+.spoken__notes small { font-size: var(--fs-footnote); color: var(--text-3); }
+
+/* A class page: the books it teaches from, the next one. */
+.taught { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.taught__label { margin-right: 4px; font: 600 11px var(--font-ui); color: var(--text-3); }
+.taught__book { padding: 5px 11px; border-radius: var(--r-pill); background: var(--fill-1); font: 500 var(--fs-footnote) var(--font-ui); color: var(--text-2); }
+.upnext { display: grid; gap: 10px; margin-top: var(--sp-2); }
+.upnext__card { display: block; padding: var(--sp-3) 14px; border-radius: var(--r-md); background: var(--surface-1); box-shadow: var(--card-edge); }
+.upnext__card:hover { background: color-mix(in srgb, var(--text-1) 3%, var(--surface-1)); }
+.upnext__card small, .upnext__card span { display: block; font: 500 var(--fs-caption) var(--font-ui); color: var(--text-3); }
+.upnext__card b { display: block; margin: 2px 0; font: 600 var(--fs-body)/1.3 var(--font-ui); color: var(--text-1); }
+
+/* Asking for notes, and the admins' queue. */
+#root button.request-notes { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--touch); padding: 0 var(--sp-4); border: 0; border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent); font: 600 var(--fs-sub) var(--font-ui); cursor: pointer; }
+#root button.request-notes[data-done] { background: none; color: var(--text-3); cursor: default; }
+#root button.request-notes:disabled { opacity: 1; }
+.notes-wanted { display: grid; justify-items: start; gap: 10px; margin: var(--sp-3) 0 18px; padding: 14px var(--sp-4); border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge); }
+.notes-wanted p { margin: 0; color: var(--text-1); font: 400 var(--fs-sub)/1.45 var(--font-ui); }
+.notes-wanted b { color: var(--text-2); }
+.nreq__bar { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 4px 0 14px; }
+.nreq { margin: 0; padding: 0; list-style: none; overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge); }
+.nreq__row { display: flex; align-items: center; gap: 6px; padding: 10px 10px 10px 14px; border-top: .5px solid var(--hairline); }
+.nreq__row:first-child { border-top: 0; }
+#root button.nreq__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; min-height: var(--touch); justify-content: center; padding: 0; border: 0; background: none; color: var(--text-2); text-align: left; cursor: pointer; }
+.nreq__main b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 15px/1.3 var(--font-ui); }
+.nreq__main small { font: 500 var(--fs-caption) var(--font-ui); color: var(--text-3); }
+#root button.nreq__btn { flex: none; min-height: 36px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: var(--accent); color: var(--on-accent); font: 600 var(--fs-footnote) var(--font-ui); cursor: pointer; }
+#root button.nreq__btn--quiet { background: var(--fill-1); color: var(--text-1); }
+
+/* Editing a note in place (admins): a form in a full sheet. */
+.edit { box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; max-width: 600px; margin: 0 auto; padding: var(--sp-2) var(--sp-4) var(--sp-6); }
+.edit-sheet .edit { padding-bottom: 40vh; }
+.edit[data-mode="text"] { min-height: 100%; padding-bottom: var(--sp-6); }
+.edit__field { display: flex; flex-direction: column; gap: 4px; }
+.edit__field span, .edit__label { font: 600 var(--fs-footnote)/1.3 var(--font-ui); color: var(--text-3); }
+.edit__label { margin: 10px 0 0; }
+.edit__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+#root .edit__chips .chip { min-height: 34px; padding: 0 var(--sp-3); }
+.edit__pair { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 34px; align-items: center; gap: 6px; }
+.edit__arrow { color: var(--text-3); }
+.edit__pair small { font: 500 var(--fs-caption)/1 var(--font-ui); color: var(--accent); text-align: right; }
+.edit__pair small.edit__none { color: var(--text-3); }
+.edit__text { flex: 1; min-height: 55dvh; resize: none; padding: 14px; font: 400 15px/1.55 var(--font-ui); -webkit-overflow-scrolling: touch; }
+.edit .hint code { font: 500 12.5px var(--font-mono); }
+.edit__footer { display: flex; justify-content: flex-end; gap: var(--sp-2); padding: 10px var(--sp-4) calc(10px + var(--safe-bottom)); border-top: .5px solid var(--hairline); background: var(--mat-overlay); }
+.edit__footer .btn { min-width: 96px; }
+/* The editor and the chats list borrow the Bible tab's sheet outside the Bible tab: the app's colours. */
+.edit-sheet, .chats-sheet { --bs-reverse: var(--surface-1); --bs-default: var(--text-1); --bs-tertiary: var(--text-3); --bs-border: var(--hairline); --bs-light-grey: var(--fill-1); }
+.edit-sheet { z-index: 80; }
+.edit-sheet .bs-sheet__titles b, .chats-sheet .bs-sheet__titles b { color: var(--text-1); }
+.edit-sheet .bs-sheet__footer { flex: none; }
+.edit-sheet .bs-sheet__body { overscroll-behavior: contain; }

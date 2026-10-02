@@ -4,8 +4,9 @@ import { Navigate, useLocation } from "react-router";
 
 import { data, fmtDate, when, type HistoryEpisode } from "@/api/data";
 import { toggleBookmark, useBookmarks, useLastNote } from "@/lib/marks";
+import { showOf } from "@/lib/series";
 import { Link, useSearchParams } from "react-router";
-import { useTeachings } from "./Home";
+import { teachingLabel, useTeachings } from "./Home";
 import { share } from "@/lib/share";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { api, haptic, openLink, setClosingConfirmation, alert, downloadFile, features } from "@/tg/sdk";
@@ -38,6 +39,8 @@ export function NoteScreen() {
   const kept = marks.some((m) => m.id === path);
   const feedIdx = teachings.data?.findIndex((t) => t.url === path) ?? -1;
   const me = feedIdx >= 0 ? teachings.data![feedIdx] : undefined;
+  // A class in a series is shown as that series, not as a plain Sabbath class.
+  const label = (kind: string) => (me?.series ? teachingLabel(me) : (kind === "class" && note.data ? showOf(note.data.title) : null) ?? KIND[kind]);
   const next = feedIdx > 0 ? teachings.data![feedIdx - 1] : undefined;
   const prev = feedIdx >= 0 ? teachings.data![feedIdx + 1] : undefined;
   useEffect(() => { if (note.data && (isHistory || path.startsWith("/classes/") || path.startsWith("/captains/"))) setLastNote({ href: `/note${path}`, title: note.data.title, at: Date.now() }); }, [note.data?.title]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -58,7 +61,7 @@ export function NoteScreen() {
   const seek = (t: number) => { setStart(t); setPlaying(true); setNotes(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
   useBottomButtons(
-    note.data ? { text: "Share", onClick: () => void share({ kind: "note", title: note.data!.title, text: KIND[note.data!.kind] ?? "CyberJudah", sitePath: path }) } : null,
+    note.data ? { text: "Share", onClick: () => void share({ kind: "note", title: note.data!.title, text: label(note.data!.kind) ?? "CyberJudah", sitePath: path }) } : null,
     video ? { text: "Open in YouTube", onClick: () => openLink(youtube(video, start)) } : null,
   );
   // Reading a long note: keep a stray swipe from closing the app mid-read.
@@ -100,12 +103,12 @@ export function NoteScreen() {
   const head = (
     <header className="note-head">
       {backTo}
-      <p className="kicker">{[KIND[n.kind] ?? "", when(n.date, n.teacher)].filter(Boolean).join(" · ")}</p>
+      <p className="kicker">{[label(n.kind) ?? "", when(n.date, n.teacher)].filter(Boolean).join(" · ")}</p>
       <h1>{n.title}</h1>
       <div className="head__actions">
         {pdfButton}
         {who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}
-        <button type="button" className="icon-btn" aria-pressed={kept} aria-label={kept ? "Remove bookmark" : "Bookmark"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: path, kind: "note", title: n.title, text: [KIND[n.kind], fmtDate(n.date)].filter(Boolean).join(" · "), href: path })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={18} /></button>
+        <button type="button" className="icon-btn" aria-pressed={kept} aria-label={kept ? "Remove bookmark" : "Bookmark"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: path, kind: "note", title: n.title, text: [label(n.kind), fmtDate(n.date)].filter(Boolean).join(" · "), href: path })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={18} /></button>
       </div>
     </header>
   );
@@ -140,7 +143,7 @@ export function NoteScreen() {
       {readFrom}
       {isHistory && episode.data?.turns?.length ? <Transcript ep={episode.data} find={params.get("find") ?? ""} onSeek={seek} /> : null}
       {upnext}
-      <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={n.title} action={<>{pdfButton}{who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}</>}><NoteBody md={n.body} video={video} onSeek={seek} /></NotesSheet>
+      <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={n.title} action={<>{pdfButton}{who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}</>}><NoteBody md={n.body} video={video} onSeek={seek} series={me?.series ? teachingLabel(me) : undefined} /></NotesSheet>
       {editing ? <NoteEditSheet open onClose={() => setEditing(false)} note={n} onSaved={saved} /> : null}
     </main>
   );
@@ -149,7 +152,7 @@ export function NoteScreen() {
       {head}
       {taught}
       {readFrom}
-      <NoteBody md={n.body} />
+      <NoteBody md={n.body} series={me?.series ? teachingLabel(me) : undefined} />
       {upnext}
       {editing ? <NoteEditSheet open onClose={() => setEditing(false)} note={n} onSaved={saved} /> : null}
     </main>
