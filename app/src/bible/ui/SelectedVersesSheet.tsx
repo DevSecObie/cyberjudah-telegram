@@ -32,6 +32,15 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
   const goTo = (i: number) => { setTab(i); try { localStorage.setItem(TAB_KEY, String(i)); } catch { /* ignore */ } };
   const [width, setWidth] = useState(360);
   const ref = useRef<HTMLDivElement>(null);
+  // The sheet covers the app's dock: while it is open the dock is out of reach for the keyboard and
+  // screen readers too (Tab would otherwise land on buttons hidden under the sheet).
+  useEffect(() => {
+    if (!p.open) return;
+    const dock = document.querySelector<HTMLElement>("nav.tabs");
+    if (!dock || dock.inert) return;
+    dock.inert = true;
+    return () => { dock.inert = false; };
+  }, [p.open]);
   useEffect(() => { if (!p.open) return; const el = ref.current; if (!el) return; const ro = new ResizeObserver(() => setWidth(el.clientWidth)); ro.observe(el); setWidth(el.clientWidth); return () => ro.disconnect(); }, [p.open]);
   // A horizontal swipe over the footer or the pages moves between tabs.
   const swipe = useRef<{ x: number; t: number; first?: boolean; last?: boolean } | null>(null);
@@ -52,7 +61,7 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
         <ColorCirclesBar colors={p.colors} selected={p.selectedColor} onSelect={(k) => (p.selectedColor === k ? p.onRemoveHighlight() : p.onAddHighlight(k))} onLongPress={p.onEditColor} onAdd={p.onAddColor} />
         <div ref={ref} className="bs-pages" onTouchStart={(e) => onStart(e.touches[0].clientX, (e.target as Element).closest(".bs-actions"))} onTouchEnd={(e) => onEnd(e.changedTouches[0].clientX)}>
           <div className="bs-pages__track" style={{ width: width * TABS.length, transform: `translateX(${-tab * width}px)` }}>
-            <div className="bs-page" style={{ width }} aria-hidden={tab !== 0} inert={tab !== 0}>
+            <div className="bs-page" style={{ width }} role="tabpanel" id={`sv-panel-0`} aria-labelledby={`sv-tab-0`} aria-hidden={tab !== 0} inert={tab !== 0}>
               <ActionsLayout>
                 <ActionItem name="file-plus" label="Note" onPress={p.onNote} />
                 <ActionItem name="tag" label="Tag" onPress={p.onTag} />
@@ -62,7 +71,7 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
                 <ActionItem name="crosshair" label="Focus" onPress={p.onFocus} isActive={p.hasFocus} />
               </ActionsLayout>
             </div>
-            <div className="bs-page" style={{ width }} aria-hidden={tab !== 1} inert={tab !== 1}>
+            <div className="bs-page" style={{ width }} role="tabpanel" id={`sv-panel-1`} aria-labelledby={`sv-tab-1`} aria-hidden={tab !== 1} inert={tab !== 1}>
               <ActionsLayout>
                 <ActionItem icon={<LexiconIcon />} label="Lexicon" onPress={p.onLexicon} disabled={p.moreThanOne} />
                 <ActionItem icon={<DictionaryIcon />} label="Dictionary" onPress={p.onDictionary} disabled={p.moreThanOne} />
@@ -72,7 +81,7 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
                 <ActionItem name="layers" label="Side by side" onPress={p.onCompare} disabled={p.moreThanOne} />
               </ActionsLayout>
             </div>
-            <div className="bs-page" style={{ width }} aria-hidden={tab !== 2} inert={tab !== 2}>
+            <div className="bs-page" style={{ width }} role="tabpanel" id={`sv-panel-2`} aria-labelledby={`sv-tab-2`} aria-hidden={tab !== 2} inert={tab !== 2}>
               <ActionsLayout>
                 <ActionItem name="copy" label="Copy" onPress={p.onCopy} />
                 <ActionItem name="share-2" label="Share" onPress={p.onShare} />
@@ -84,9 +93,9 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
         </div>
         <div className="bs-tabsfooter" role="tablist" aria-label="Actions" onTouchStart={(e) => onStart(e.touches[0].clientX)} onTouchEnd={(e) => onEnd(e.changedTouches[0].clientX)}>
           <span className="bs-tabsfooter__indicator" style={{ width: `calc((100% - 6px) / ${TABS.length})`, transform: `translateX(${tab * 100}%)` }} />
-          {TABS.map((t, i) => <button key={t} type="button" role="tab" aria-selected={tab === i} tabIndex={tab === i ? 0 : -1} className="bs-tabsfooter__tab"
+          {TABS.map((t, i) => <button key={t} type="button" role="tab" id={`sv-tab-${i}`} aria-controls={`sv-panel-${i}`} aria-selected={tab === i} tabIndex={tab === i ? 0 : -1} className="bs-tabsfooter__tab"
             onClick={() => { haptic("select"); goTo(i); }}
-            onKeyDown={(e) => { const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0; if (!d) return; e.preventDefault(); const n = (tab + d + TABS.length) % TABS.length; goTo(n); (e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("[role=tab]")[n])?.focus(); }}>{t}</button>)}
+            onKeyDown={(e) => { const n = e.key === "ArrowRight" ? (tab + 1) % TABS.length : e.key === "ArrowLeft" ? (tab - 1 + TABS.length) % TABS.length : e.key === "Home" ? 0 : e.key === "End" ? TABS.length - 1 : -1; if (n < 0) return; e.preventDefault(); goTo(n); (e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("[role=tab]")[n])?.focus(); }}>{t}</button>)}
         </div>
       </div>
     </Sheet>
