@@ -34,6 +34,10 @@ Merged to `main` and not yet in a tagged release. Production currently runs `799
   refusals and cut-off answers said plainly. While it works, Ask shows a line suited to the
   question, drawn from the King James words the assembly reads (serious for doctrine, the law and
   judgment; lighter for the app, the time and short follow-ups).
+- A backup for Ask CyberJudah: if Claude is overloaded, rate limited, down, or its key is refused,
+  Workers AI answers from the passages already found, says it is the backup, and does not charge.
+  Workers AI calls now go through Cloudflare AI Gateway (`default`) for logs and analytics; Claude
+  goes through it too once the `CF_AIG_TOKEN` secret is added.
 - Reading reminders ([issue #47]): opt-in and off by default, at a quarter-hour time in the
   reader's own time zone, by Telegram (the bot), Web Push (cyberjudah.io/app in up to ten
   browsers) or both. The reminder names today's plan portion, or the last chapter read, with

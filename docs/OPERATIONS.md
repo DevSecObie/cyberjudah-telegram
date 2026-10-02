@@ -121,6 +121,18 @@ Push needs three Worker secrets, added by the owner only: `VAPID_PUBLIC_KEY` (ba
 5. The cron log for that quarter hour shows the `reminders` line with no `failed`.
 6. Send `/stop` to the bot: it answers that reminders are off. Then use Forget this browser in the desktop browser.
 
+## Ask CyberJudah's models and the backup
+
+Ask answers with Claude (`CLAUDE_MODEL`, the `ANTHROPIC_API_KEY` secret). Workers AI (Llama 3.3 70B, `ANSWER_MODEL`) is the backup:
+- **No key:** with no Claude key, every answer comes from Workers AI.
+- **Claude fails:** if Claude fails with an overloaded, rate-limited, server or connection error, or the key is refused (`claudeUnavailable` in `bot/src/providers.ts`), that answer is written by Workers AI from the passages already found. The reader sees "the backup model wrote this shorter answer" and is not charged. With no passages, it says the main model is busy, and nothing is saved as an answer.
+- **Logs:** each failover logs `ask_claude_unavailable` with the status.
+
+**Cloudflare AI Gateway** (`AI_GATEWAY` in `wrangler.jsonc`, `"default"` for production and staging):
+- **Workers AI:** calls (answers, embeddings, reranking, voices) pass `{ gateway: { id } }` and appear under AI Gateway → `default` in the Cloudflare dashboard, with logs and analytics. Cloudflare creates the `default` gateway on its first request. The AI binding authenticates it, so no token is needed.
+- **Claude:** calls go through the same gateway only when the **`CF_AIG_TOKEN`** Worker secret is set. That is an AI Gateway token with Run permission, made under the gateway's Settings → Create authentication token; it is sent as `cf-aig-authorization` because the default gateway is authenticated. Without the token, Claude is called directly, as before. **The owner adds this secret.**
+- **Dashboard settings:** gateway-level caching, rate limiting and retries are set in the dashboard. Leave caching off for Ask: answers depend on the conversation.
+
 ## Backups and recovery
 
 Define and test D1 backup/export and KV subscription recovery before public launch. Document recovery time and recovery point objectives after the first successful drill.

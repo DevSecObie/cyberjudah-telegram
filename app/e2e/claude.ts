@@ -12,6 +12,7 @@ import type http from "node:http";
  *   mentions "dangerous"   → an answer with a javascript: link and a link to another site
  *   mentions "refuse"      → stop_reason "refusal" with no text
  *   mentions "slowly"      → the answer after 10 seconds (to leave and come back mid-answer)
+ *   mentions "overloaded"  → HTTP 529 overloaded_error, as the API answers when Claude is overloaded
  *   anything else          → a short answer
  *
  * After a tool, the answer is written from the tool results it was sent, so what the reader
@@ -46,6 +47,10 @@ export async function claude(req: ClaudeRequest, res: http.ServerResponse) {
   })();
 
   if (/slowly/i.test(question)) await new Promise((r) => setTimeout(r, 10_000));
+  if (/overloaded/i.test(question)) {
+    res.writeHead(529, { "content-type": "application/json" });
+    return res.end(JSON.stringify({ type: "error", error: { type: "overloaded_error", message: "Overloaded" } }));
+  }
   res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
   const ev = (type: string, data: Record<string, unknown>) => res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`);
   const usage = { input_tokens: 1000, output_tokens: 200, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 };

@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 import { books, chapter, dataJson } from "./data";
+import { claude } from "./providers";
 import type { Env, Exec } from "./env";
 import { answerCandidates, APP, normalizeHistory, RESEARCH, SYSTEM, type Passage, type Turn } from "./ai.mjs";
 import { checkInput, describeReminder, findCases, findChats, findFeatures, findPeople, proposeReminder } from "./assistant.mjs";
@@ -96,8 +97,8 @@ export async function runAgent(
   ctx?: Exec,
   userId?: number,
 ): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean }> {
-  // ANTHROPIC_BASE_URL is for tests against a stand-in server; production leaves it unset.
-  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, ...(env.ANTHROPIC_BASE_URL ? { baseURL: env.ANTHROPIC_BASE_URL } : {}) });
+  // Directly, through the AI Gateway, or to the tests' stand-in (providers.ts).
+  const client = await claude(env);
   const passages: Numbered[] = [];
   const seen = new Map<string, number>();
   const add = (p: Passage): { n: number; fresh: boolean } | null => {

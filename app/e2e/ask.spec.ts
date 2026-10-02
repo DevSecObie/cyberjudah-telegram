@@ -165,3 +165,20 @@ test("the conversation is kept per account on this device", async ({ page }) => 
   const keys = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("cj:ask")));
   expect(keys).toEqual([`cj:ask:${RUN + 9}`]);
 });
+
+test("Claude overloaded: Ask turns to the backup model, and with nothing to answer from says Claude is busy, not that the library is empty", async ({ page, request }) => {
+  test.setTimeout(90_000);
+  await setup(page);
+  const t0 = Date.now();
+  await page.goto(`/ask${launch(10)}`);
+  await ask(page, "Is the main model overloaded?");
+  const a = answer(page);
+  // The Worker tried Claude (with the SDK's own retries) and then went to the backup.
+  await expect.poll(async () => (await modelCalls(request, t0)).length, { timeout: 30_000 }).toBeGreaterThanOrEqual(1);
+  // The local Worker has no Workers AI (its binding runs only on Cloudflare) and no search index,
+  // so the backup has no passages here: it must say Claude is busy, not that the library is empty.
+  await expect(a.locator(".msg__error")).toContainText("main model is busy right now", { timeout: 45_000 });
+  await expect(a).not.toContainText("did not find enough reliable material");
+  await expect(a.getByRole("button", { name: "Try again" })).toBeVisible();
+  await shot(page, "5-backup");
+});

@@ -38,6 +38,10 @@ export type Env = {
   VAPID_SUBJECT?: string;
   /** End-to-end tests only: a loopback Bot API and push service (http://127.0.0.1:…). Ignored unless loopback. */
   TELEGRAM_API_ROOT?: string;
+  /** The name of a Cloudflare AI Gateway to send Claude and Workers AI calls through (logs, analytics, rate limits). Not a secret; unset means direct. */
+  AI_GATEWAY?: string;
+  /** Worker secret, added by the owner only: an AI Gateway token (Run permission), so Claude's calls can go through an authenticated gateway. Without it Claude is called directly. */
+  CF_AIG_TOKEN?: string;
   PUSH_TEST_ORIGIN?: string;
   /** Workers Rate Limiting binding for the reading-reminder endpoints (wrangler.jsonc "ratelimits"). */
   REMIND_LIMIT?: RateLimit;
