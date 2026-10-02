@@ -29,7 +29,7 @@ export function CompareSheet({ open, onClose, slug, chapter, verse, text, refere
     try { await navigator.clipboard.writeText(lines.join("\n").trim()); haptic("success"); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* clipboard may be unavailable */ }
   };
   return (
-    <Sheet open={open} onClose={onClose} height="full" title="Compare" subTitle={reference} label="Compare" right={<button type="button" className="bs-compare__copy" onClick={() => void copyAll()}>{copied ? "Copied" : "Copy all"}</button>}>
+    <Sheet open={open} onClose={onClose} height="full" title="Precepts side by side" subTitle={reference} label="Precepts side by side" right={<button type="button" className="bs-compare__copy" onClick={() => void copyAll()}>{copied ? "Copied" : "Copy all"}</button>}>
       <div className="bs-compare">
         <blockquote className="bs-compare__verse"><b>{reference}</b><p>{text}</p></blockquote>
         <div className="bs-compare__lanes" role="tablist">

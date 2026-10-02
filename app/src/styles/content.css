@@ -23,7 +23,7 @@
 /* ── Grouped lists (TelegramUI's Section and Cell) ───────────────────────────────────────── */
 #root .list { overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
 #root .list > * { background: transparent; }
-.row { width: 100%; text-align: left; cursor: pointer; transition: background-color var(--dur-1) ease; }
+.row { box-sizing: border-box; width: 100%; text-align: left; cursor: pointer; transition: background-color var(--dur-1) ease; }
 #root button.row { appearance: none; -webkit-appearance: none; margin: 0; border: 0; border-radius: 0; background: transparent; font: inherit; }
 #root .row:hover { background: var(--state-hover); }
 #root .row:active { background: var(--state-press); }
@@ -123,3 +123,5 @@
 /* A row's count after its title (People: the verses a person is named in), quiet beside the name. */
 .row__count { display: inline-flex; align-items: center; gap: 4px; flex: none; font: 500 var(--fs-caption)/1.3 var(--font-ui); color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .row__count svg { color: var(--text-4); }
+/* Room on both sides of a trailing count, so it never sits against the card's right edge. */
+.row .row__count { margin-inline-start: var(--sp-3); }
