@@ -10,7 +10,7 @@ import { runSearch } from "./search";
 import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./teachings";
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
-import { ask, askStream, similar, speakVerse } from "./ai";
+import { ask, askStream, freeModel, similar, speakVerse } from "./ai";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -29,6 +29,7 @@ import { billingOn, invoiceFor, prices, pruneBilling, standing, usageDay, SUPPOR
 import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 import { hasClaude, unifiedBilling } from "./providers";
+import { costFactor, MODELS, modelOf } from "../../shared/ask-models.mjs";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
@@ -173,10 +174,10 @@ app.get("/api/transcript/:video", async (c) => {
 // The AI: a question answered from the teachings with citations, search by meaning, and
 // the reading voices (a verse at a time, cached).
 app.post("/api/ask", async (c) => {
-  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean }>().catch(() => null);
+  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string }>().catch(() => null);
   // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
   const history = normalizeHistory(body?.history, 8);
-  if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true);
+  if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined);
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history);
   return c.json(res, res.ok ? 200 : res.reason === "limit" ? 429 : res.reason === "too-short" ? 400 : 503);
 });
@@ -237,7 +238,7 @@ app.get("/api/ask/account", async (c) => {
   const uid = c.get("tma").user!.id;
   const p = prices(c.env);
   const st = await standing(c.env, uid);
-  return c.json({ ok: true, metered: billingOn(c.env), unlimited: st.unlimited, balance: st.balance, perQuestion: st.perQuestion, freeDaily: p.freeDaily, plan: p.plan, packs: p.packs });
+  return c.json({ ok: true, metered: billingOn(c.env), unlimited: st.unlimited, balance: st.balance, perQuestion: st.perQuestion, freeDaily: p.freeDaily, plan: p.plan, packs: p.packs, models: MODELS.filter((m) => (m.format === "anthropic" ? hasClaude(c.env) : !!c.env.AI_GATEWAY)).map(({ id, name, provider, what }) => ({ id, name, provider, what, cost: costFactor(modelOf(id)), ...(id === freeModel(c.env).id ? { free: true } : {}) })), model: modelOf(c.env.CLAUDE_MODEL).id });
 });
 app.post("/api/ask/buy", async (c) => {
   const item = String(((await c.req.json<{ item?: string }>().catch(() => null)) ?? {}).item ?? "");

@@ -4,6 +4,7 @@ import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { claude, claudeUnavailable, hasClaude, viaGateway } from "./providers";
+import { modelOf } from "../../shared/ask-models.mjs";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
 import { isAdmin } from "./edit";
 import { billingOn, charge, reserveAsk, settleAsk, standing, type Take } from "./billing";
@@ -102,7 +103,14 @@ async function allowed(env: Env, userId: number): Promise<boolean> {
   return takeQuota(env, "ask", userId, ASK_LIMIT);
 }
 
-/** Free basic answers once the in-depth ones are used: ASK_BASIC_DAILY a day per person (25 unless set). */
+/**
+ * The free model: never charged, open to every reader, and the one Ask goes on with once the paid
+ * answers are used up. ASK_FREE_MODEL names it; by default the strongest low-cost model in
+ * Cloudflare's catalog that researches with tools (GLM 5.3 Flash, Workers AI).
+ */
+export const freeModel = (env: Env) => modelOf(env.ASK_FREE_MODEL || "@cf/zai-org/glm-5.3-flash", "@cf/zai-org/glm-5.3-flash");
+
+/** Free answers: ASK_BASIC_DAILY a day per person (25 unless set). */
 async function basicAllowed(env: Env, userId: number): Promise<boolean> {
   const n = Number(env.ASK_BASIC_DAILY);
   return takeQuota(env, "ask-basic", userId, Number.isInteger(n) && n >= 0 ? n : 25);
@@ -202,7 +210,12 @@ const sourcesOf = (answer: string, passages: Passage[]) => {
  * The same, streamed: one JSON line with the passages first, then a line per piece of the
  * answer as the model writes it, then a line with the sources it cited.
  */
-export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string, replaceLast = false): Promise<Response> {
+export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string, replaceLast = false, modelId?: string): Promise<Response> {
+  // The reader's choice of model, or the setup's own (CLAUDE_MODEL) when none or an unknown one is sent.
+  let model = modelOf(modelId, env.CLAUDE_MODEL || CLAUDE_DEFAULT);
+  // The free model (ASK_FREE_MODEL) is never charged: chosen, or once the allowance is used up.
+  const free = freeModel(env);
+  let gratis = model.id === free.id;
   const question = q.trim().slice(0, 400);
   const line = (o: unknown) => `${JSON.stringify(o)}\n`;
   if (question.length < 2) return new Response(line({ error: "too-short" }), { status: 400, headers: { "content-type": "application/x-ndjson" } });
@@ -210,15 +223,15 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // Leaving mid-answer does not cancel it (waitUntil), so it is still settled once.
   const metered = billingOn(env) && hasClaude(env);
   let take: Take | null = null;
-  // With the in-depth answers used up, Ask does not stop: it goes on with basic answers (the
-  // Workers AI model, from the passages found, not charged), as the large AI apps fall back to
-  // a lighter model at their limit, up to ASK_BASIC_DAILY a day; then the plans are offered.
+  // With the paid answers used up, Ask does not stop: it goes on with the free model, which
+  // researches with the same tools and is not charged, as the large AI apps fall back to a
+  // lighter model at their limit, up to ASK_BASIC_DAILY a day; then the plans are offered.
   let limited = false;
   if (metered && !isAdmin(env, userId)) {
-    const r = await reserveAsk(env, userId);
-    if (r.ok) take = r.take;
-    else if (await basicAllowed(env, userId)) limited = true;
-    else return new Response(line({ error: "allowance", balance: r.balance }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
+    const r = gratis ? null : await reserveAsk(env, userId);
+    if (r?.ok) take = r.take;
+    else if (await basicAllowed(env, userId)) { limited = !gratis; model = free; gratis = true; }
+    else return new Response(line({ error: "allowance", ...(r ? { balance: r.balance } : {}) }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
   } else if (billingOn(env)) {
     const st = await standing(env, userId);
     if (!st.ok) return new Response(line({ error: "allowance", balance: st.balance }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
@@ -252,11 +265,12 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
         try {
           const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
           let backup = limited;
-          if (hasClaude(env) && !limited) {
+          // Claude needs its own access (hasClaude); every other model goes through the AI Gateway.
+          if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
             // Claude researches first (searches and verses, reported as it goes), then writes.
             const steps: string[] = [];
             let ran: Awaited<ReturnType<typeof runAgent>> | null = null;
-            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId); }
+            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model); }
             catch (e) {
               // Claude cannot answer now (overloaded, rate limited, down, or its key refused): the
               // backup model answers from the passages already found, and the reader is not charged.
@@ -270,7 +284,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             if (ran) {
               const { text, passages, units, calls, actions, cut, refused } = ran;
               const { answer, followups } = splitFollowups(text);
-              const left = await settle(units);
+              const left = await settle(gratis ? 0 : units);
               console.log(JSON.stringify({ event: "ask_usage", units, calls, searches: steps.length, actions: actions.length, cut }));
               // Claude declined the question (stop_reason "refusal"): said so, never shown as an answer.
               if (refused && !answer.trim()) { send({ error: "refused" }); return; }
@@ -278,7 +292,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               const sources = sourcesOf(answer, passages);
               // Saved first: whatever happens to the connection after this, the answer is kept.
               await keep(answer, sources, followups, steps, actions, cut);
-              send({ done: true, answer, followups, sources, actions, ...(cut ? { cut: true } : {}) });
+              send({ done: true, answer, followups, sources, actions, ...(cut ? { cut: true } : {}), ...(limited ? { limited: true } : {}) });
               if (left && billingOn(env)) send({ usage: { units, balance: left } });
               return;
             }

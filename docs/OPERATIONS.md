@@ -188,6 +188,15 @@ Ask answers with Claude (`CLAUDE_MODEL`), paid for as `CLAUDE_BILLING` says (bel
   - Once Unified Billing is confirmed in the gateway's logs, the `ANTHROPIC_API_KEY` repository secret and Worker secret are no longer used and can be removed.
 - **Dashboard settings:** gateway-level caching, rate limiting and retries are set in the dashboard. Leave caching off for Ask: answers depend on the conversation.
 
+## Ask's models
+
+Readers pick the model in Ask (the name under the question box).
+- **The list** is `shared/ask-models.json`, built by `node bot/scripts/ask-models.mjs <cloudflare-docs>/src/content <commit>` from Cloudflare's catalog (`catalog-models` for third-party models, `workers-ai-models` for Cloudflare-hosted ones). It holds every text model with a published price. Rebuild it to pick up new models or prices.
+- **Claude** models go through the Anthropic SDK (`agent.ts`). Every other model goes through the AI binding and the gateway (`agent-open.ts`): chat completions, the Responses API or the Messages format, with the same tools, or no tools for models without function calling.
+- **Pricing:** each answer is charged at the price of the model that wrote it (`unitsFor`).
+- **The free model** (`ASK_FREE_MODEL`, GLM 5.3 Flash) is never charged. It is open to everyone, up to `ASK_BASIC_DAILY` a day, and takes over when a reader's paid answers run out.
+- **Failures:** if any model fails or Cloudflare refuses it (out of credits, for example), the answer falls back to the backup as before.
+
 ## Backups and recovery
 
 Define and test D1 backup/export and KV subscription recovery before public launch. Document recovery time and recovery point objectives after the first successful drill.
