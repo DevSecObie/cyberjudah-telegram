@@ -38,6 +38,9 @@ Merged to `main` and not yet in a tagged release. Production currently runs `799
   Workers AI answers from the passages already found, says it is the backup, and does not charge.
   Workers AI calls now go through Cloudflare AI Gateway (`default`) for logs and analytics; Claude
   goes through it too once the `CF_AIG_TOKEN` secret is added.
+- Claude can be paid through Cloudflare (Unified Billing, from the account's AI Gateway credits)
+  instead of an Anthropic key; production and staging are set to it (`CLAUDE_BILLING`). When
+  the credits run out, Ask answers with the backup.
 - Reading reminders ([issue #47]): opt-in and off by default, at a quarter-hour time in the
   reader's own time zone, by Telegram (the bot), Web Push (cyberjudah.io/app in up to ten
   browsers) or both. The reminder names today's plan portion, or the last chapter read, with

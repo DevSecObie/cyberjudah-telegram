@@ -13,8 +13,20 @@ import type { Env } from "./env";
  *   An authenticated gateway (the default one is) needs a token in the cf-aig-authorization
  *   header (docs: Authenticated Gateway), so Claude goes through it only when CF_AIG_TOKEN is set,
  *   and directly otherwise.
- * ANTHROPIC_BASE_URL, for the end-to-end tests' stand-in, takes precedence over both.
+ *
+ * Who pays for Claude (CLAUDE_BILLING):
+ * - "cloudflare": Unified Billing. Claude is paid from the Cloudflare account's AI Gateway
+ *   credits, and no Anthropic key is sent: the gateway uses a provider key only when the request
+ *   carries none (docs: Unified Billing, credential precedence; Anthropic provider, "With Stored
+ *   Keys (BYOK) / Unified Billing"). It needs the gateway and CF_AIG_TOKEN.
+ * - otherwise: the ANTHROPIC_API_KEY secret, billed by Anthropic.
+ * ANTHROPIC_BASE_URL, for the end-to-end tests' stand-in, takes precedence over all of these.
  */
+export const unifiedBilling = (env: Env) => env.CLAUDE_BILLING === "cloudflare" && !!env.AI_GATEWAY && !!env.CF_AIG_TOKEN && !env.ANTHROPIC_BASE_URL;
+
+/** Whether Ask can call Claude at all: with Anthropic's key, or paid through Cloudflare. Without either, Ask answers with Workers AI. */
+export const hasClaude = (env: Env) => !!env.ANTHROPIC_API_KEY || unifiedBilling(env);
+
 export async function claude(env: Env): Promise<Anthropic> {
   let baseURL = env.ANTHROPIC_BASE_URL || undefined;
   let viaAig = false;
@@ -22,10 +34,14 @@ export async function claude(env: Env): Promise<Anthropic> {
     try { baseURL = await env.AI.gateway(env.AI_GATEWAY).getUrl("anthropic"); viaAig = true; }
     catch (e) { console.error(JSON.stringify({ event: "ai_gateway_url_failed", message: (e as Error).message?.slice(0, 120) })); }
   }
+  const unified = unifiedBilling(env);
+  // Paid through Cloudflare but the gateway cannot be reached: Claude cannot answer now, so the backup does.
+  if (unified && !viaAig) throw new Anthropic.APIConnectionError({ message: "AI Gateway unavailable for Unified Billing" });
   return new Anthropic({
-    apiKey: env.ANTHROPIC_API_KEY,
+    // No key at all under Unified Billing: the SDK sends no x-api-key when the header is explicitly omitted.
+    apiKey: unified ? null : env.ANTHROPIC_API_KEY,
     ...(baseURL ? { baseURL } : {}),
-    ...(viaAig ? { defaultHeaders: { "cf-aig-authorization": `Bearer ${env.CF_AIG_TOKEN}` } } : {}),
+    ...(viaAig ? { defaultHeaders: { "cf-aig-authorization": `Bearer ${env.CF_AIG_TOKEN}`, ...(unified ? { "x-api-key": null } : {}) } } : {}),
   });
 }
 
@@ -36,9 +52,10 @@ export const viaGateway = (env: Env) => (env.AI_GATEWAY ? { gateway: { id: env.A
  * Whether a failure from Claude means Claude cannot answer right now (overloaded, rate limited,
  * a server error, the connection lost, or a key that no longer works), so the backup should.
  * A request Claude rejected as malformed (400) is a bug, not an outage: it is not hidden.
+ * 402 is the gateway saying the Cloudflare credits that pay for Claude have run out.
  */
 export function claudeUnavailable(e: unknown): boolean {
   if (!(e instanceof Anthropic.APIError)) return false;
   const s = e.status;
-  return s === undefined || s === 401 || s === 403 || s === 408 || s === 409 || s === 429 || s >= 500;
+  return s === undefined || s === 401 || s === 402 || s === 403 || s === 408 || s === 409 || s === 429 || s >= 500;
 }

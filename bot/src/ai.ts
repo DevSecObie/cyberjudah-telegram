@@ -3,7 +3,7 @@ import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
-import { claude, claudeUnavailable, viaGateway } from "./providers";
+import { claude, claudeUnavailable, hasClaude, viaGateway } from "./providers";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
 import { isAdmin } from "./edit";
 import { billingOn, charge, reserveAsk, settleAsk, standing, RESERVE_UNITS, type Take } from "./billing";
@@ -109,7 +109,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   if (question.length < 2) return { ok: false, reason: "too-short" };
   // A metered answer reserves its minimum up front and settles the exact units at the end,
   // so an abandoned or failed request cannot spend the model's work for free.
-  const metered = billingOn(env) && !!env.ANTHROPIC_API_KEY;
+  const metered = billingOn(env) && hasClaude(env);
   let take: Take | null = null;
   if (metered && !isAdmin(env, userId)) {
     const r = await reserveAsk(env, userId);
@@ -120,7 +120,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   }
   try {
     const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
-    if (env.ANTHROPIC_API_KEY) {
+    if (hasClaude(env)) {
       const { text, passages, units } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), () => undefined, ctx);
       if (metered && take) await settleAsk(env, userId, take, units);
       else await charge(env, userId, units);
@@ -142,9 +142,9 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 type Msg = { role: "system" | "user" | "assistant"; content: string };
 const CLAUDE_DEFAULT = "claude-opus-5";
 
-/** The answer, whole: Claude when the key is set, Llama on Workers AI otherwise, or when Claude cannot answer now. */
+/** The answer, whole: Claude when it can be called (hasClaude), Llama on Workers AI otherwise, or when Claude cannot answer now. */
 async function answerOnce(env: Env, messages: Msg[]): Promise<string> {
-  if (env.ANTHROPIC_API_KEY) {
+  if (hasClaude(env)) {
     try { return await claudeOnce(env, messages); }
     catch (e) {
       if (!claudeUnavailable(e)) throw e;
@@ -164,7 +164,7 @@ async function claudeOnce(env: Env, messages: Msg[]): Promise<string> {
 
 /** The answer as it is written, piece by piece: Claude, or Workers AI when there is no key or `backup` is asked for. */
 async function* answerPieces(env: Env, messages: Msg[], backup = false): AsyncGenerator<string> {
-  if (env.ANTHROPIC_API_KEY && !backup) {
+  if (hasClaude(env) && !backup) {
     const client = await claude(env);
     const stream = client.messages.stream({ model: env.CLAUDE_MODEL || CLAUDE_DEFAULT, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" }, system: messages.filter((m) => m.role === "system").map((m) => m.content).join("\n\n"), messages: messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role as "user" | "assistant", content: m.content })) });
     for await (const event of stream) if (event.type === "content_block_delta" && event.delta.type === "text_delta") yield event.delta.text;
@@ -202,7 +202,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   if (question.length < 2) return new Response(line({ error: "too-short" }), { status: 400, headers: { "content-type": "application/x-ndjson" } });
   // A metered answer reserves its minimum up front (see ask): an abandoned or failed
   // stream cannot spend the model's work for free.
-  const metered = billingOn(env) && !!env.ANTHROPIC_API_KEY;
+  const metered = billingOn(env) && hasClaude(env);
   let take: Take | null = null;
   if (metered && !isAdmin(env, userId)) {
     const r = await reserveAsk(env, userId);
@@ -241,7 +241,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
         try {
           const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
           let backup = false;
-          if (env.ANTHROPIC_API_KEY) {
+          if (hasClaude(env)) {
             // Claude researches first (searches and verses, reported as it goes), then writes.
             const steps: string[] = [];
             let ran: Awaited<ReturnType<typeof runAgent>> | null = null;

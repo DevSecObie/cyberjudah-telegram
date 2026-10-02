@@ -68,7 +68,7 @@
         "DATA_ORIGIN": "https://data.cyberjudah.io",
         "SITE_URL": "https://cyberjudah.io",
         "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr",
-        "CLAUDE_MODEL": "claude-opus-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default",
+        "CLAUDE_MODEL": "claude-opus-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "cloudflare",
         "ASK_USD_PER_MTOK": "5", "ASK_USD_PER_STAR": "0.013", "ASK_MARGIN": "1.3",
         "ASK_FREE_DAILY": "120000", "ASK_PLAN_STARS": "750", "ASK_PACKS": "150,500,1500",
         "ASK_BILLING": "off"
@@ -90,6 +90,12 @@
     // too once the CF_AIG_TOKEN secret is set; until then Claude is called directly. If Claude
     // fails, Ask answers with Workers AI (the backup) either way.
     "AI_GATEWAY": "default",
+    // Who pays for Claude. "cloudflare": Unified Billing, from the Cloudflare account's AI Gateway
+    // credits (AI → AI Gateway → Credits Available), with no Anthropic key sent; it needs the
+    // CF_AIG_TOKEN secret, and until that is set the ANTHROPIC_API_KEY secret is used if present.
+    // Anything else: the ANTHROPIC_API_KEY secret, billed by Anthropic. When the credits run
+    // out, Ask answers with Workers AI (the backup) until they are topped up.
+    "CLAUDE_BILLING": "cloudflare",
     // Ask CyberJudah's allowance. Each answer is measured in units (Claude's tokens, output
     // weighted five times input), and a Star buys ASK_USD_PER_STAR / ASK_USD_PER_MTOK * 1e6 /
     // ASK_MARGIN units, so every plan and pack pays for what it allows. Check ASK_USD_PER_MTOK

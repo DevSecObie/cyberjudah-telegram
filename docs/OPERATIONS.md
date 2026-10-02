@@ -129,14 +129,20 @@ node -e 'const c=require("crypto");const j=c.generateKeyPairSync("ec",{namedCurv
 
 ## Ask CyberJudah's models and the backup
 
-Ask answers with Claude (`CLAUDE_MODEL`, the `ANTHROPIC_API_KEY` secret). Workers AI (Llama 3.3 70B, `ANSWER_MODEL`) is the backup:
-- **No key:** with no Claude key, every answer comes from Workers AI.
-- **Claude fails:** if Claude fails with an overloaded, rate-limited, server or connection error, or the key is refused (`claudeUnavailable` in `bot/src/providers.ts`), that answer is written by Workers AI from the passages already found. The reader sees "the backup model wrote this shorter answer" and is not charged. With no passages, it says the main model is busy, and nothing is saved as an answer.
+Ask answers with Claude (`CLAUDE_MODEL`), paid for as `CLAUDE_BILLING` says (below). Workers AI (Llama 3.3 70B, `ANSWER_MODEL`) is the backup:
+- **No Claude:** with neither Unified Billing set up nor an `ANTHROPIC_API_KEY`, every answer comes from Workers AI.
+- **Claude fails:** if Claude fails with an overloaded, rate-limited, server or connection error, the key is refused, or the Cloudflare credits have run out (402) (`claudeUnavailable` in `bot/src/providers.ts`), that answer is written by Workers AI from the passages already found. The reader sees "the backup model wrote this shorter answer" and is not charged. With no passages, it says the main model is busy, and nothing is saved as an answer.
 - **Logs:** each failover logs `ask_claude_unavailable` with the status.
 
 **Cloudflare AI Gateway** (`AI_GATEWAY` in `wrangler.jsonc`, `"default"` for production and staging):
 - **Workers AI:** calls (answers, embeddings, reranking, voices) pass `{ gateway: { id } }` and appear under AI Gateway → `default` in the Cloudflare dashboard, with logs and analytics. Cloudflare creates the `default` gateway on its first request. The AI binding authenticates it, so no token is needed.
 - **Claude:** calls go through the same gateway only when the **`CF_AIG_TOKEN`** Worker secret is set. That is an AI Gateway token with Run permission, made under the gateway's Settings → Create authentication token; it is sent as `cf-aig-authorization` because the default gateway is authenticated. Add it as the GitHub repository secret `CF_AIG_TOKEN` (Settings → Secrets and variables → Actions); the deploy puts it on the Worker. Without the token, Claude is called directly, as before. **The owner adds this secret.**
+- **Who pays for Claude** (`CLAUDE_BILLING` in `wrangler.jsonc`, `"cloudflare"` for production and staging):
+  - `"cloudflare"`: **Unified Billing.** Claude is paid from the Cloudflare account's AI Gateway credits, and no Anthropic key is sent, because the gateway uses a provider key whenever the request carries one (Cloudflare docs: Unified Billing → Credential precedence). It needs `AI_GATEWAY` and the `CF_AIG_TOKEN` secret. Until the token is on the Worker, the `ANTHROPIC_API_KEY` secret is used if there is one.
+  - **Credits:** load them under AI → AI Gateway → Credits Available → Manage → Top-up credits. Cloudflare adds a 5% fee on each purchase and passes Anthropic's per-token prices through. Auto top-up is set in the same place. When the credits run out, Ask answers with the backup until they are topped up.
+  - **Check it:** `/health` shows `ask.billing` as `cloudflare`, `anthropic` or `none`.
+  - Anything else: the `ANTHROPIC_API_KEY` secret, billed by Anthropic; calls still go through the gateway when `CF_AIG_TOKEN` is set.
+  - Once Unified Billing is confirmed in the gateway's logs, the `ANTHROPIC_API_KEY` repository secret and Worker secret are no longer used and can be removed.
 - **Dashboard settings:** gateway-level caching, rate limiting and retries are set in the dashboard. Leave caching off for Ask: answers depend on the conversation.
 
 ## Backups and recovery

@@ -42,6 +42,8 @@ export type Env = {
   AI_GATEWAY?: string;
   /** Worker secret, added by the owner only: an AI Gateway token (Run permission), so Claude's calls can go through an authenticated gateway. Without it Claude is called directly. */
   CF_AIG_TOKEN?: string;
+  /** Who pays for Claude: "cloudflare" (Unified Billing, from the account's AI Gateway credits; needs AI_GATEWAY and CF_AIG_TOKEN, sends no Anthropic key) or anything else for the ANTHROPIC_API_KEY secret. Not a secret. */
+  CLAUDE_BILLING?: string;
   PUSH_TEST_ORIGIN?: string;
   /** Workers Rate Limiting binding for the reading-reminder endpoints (wrangler.jsonc "ratelimits"). */
   REMIND_LIMIT?: RateLimit;

@@ -28,6 +28,7 @@ import { notePdf, pdfName } from "./pdf.mjs";
 import { billingOn, invoiceFor, prices, pruneBilling, standing, usageDay, SUPPORT_STARS } from "./billing";
 import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
+import { hasClaude, unifiedBilling } from "./providers";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
@@ -82,7 +83,7 @@ app.get("/api/health", async (c) => {
     probe(() => c.env.DB.prepare("SELECT count(*) AS n FROM search_docs LIMIT 1").first()),
     probe(() => c.env.TEACH.prepare("SELECT count(*) AS n FROM teaching_passages LIMIT 1").first()),
   ]);
-  return c.json({ ok: search.ok && teachings.ok, search, teachings, ask: { model: c.env.ANTHROPIC_API_KEY ? c.env.CLAUDE_MODEL : "workers-ai" }, at: new Date().toISOString() }, { headers: { "cache-control": "no-store" } });
+  return c.json({ ok: search.ok && teachings.ok, search, teachings, ask: { model: hasClaude(c.env) ? c.env.CLAUDE_MODEL : "workers-ai", billing: unifiedBilling(c.env) ? "cloudflare" : hasClaude(c.env) ? "anthropic" : "none" }, at: new Date().toISOString() }, { headers: { "cache-control": "no-store" } });
 });
 app.get("/api/me", async (c) => {
   const { user } = c.get("tma");
