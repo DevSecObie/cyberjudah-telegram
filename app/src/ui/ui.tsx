@@ -117,8 +117,13 @@ export function TabBar() {
     const place = () => {
       const on = nav.querySelector<HTMLElement>(".tab[data-on]");
       const shown = !!on && on.offsetWidth > 0;
-      nav.style.setProperty("--pill-x", `${shown ? on!.offsetLeft : 0}px`);
-      nav.style.setProperty("--pill-y", `${shown ? on!.offsetTop : 0}px`);
+      // Moving to another section, the pill flows there (pill-flow in materials.css).
+      const x = `${shown ? on!.offsetLeft : 0}px`, y = `${shown ? on!.offsetTop : 0}px`;
+      const pill = nav.querySelector<HTMLElement>(".tabs__pill");
+      const was = nav.style.getPropertyValue("--pill-x"), wasY = nav.style.getPropertyValue("--pill-y");
+      if (pill && shown && was && (was !== x || wasY !== y)) { delete pill.dataset.flow; void pill.offsetWidth; pill.dataset.flow = ""; }
+      nav.style.setProperty("--pill-x", x);
+      nav.style.setProperty("--pill-y", y);
       nav.style.setProperty("--pill-w", `${shown ? on!.offsetWidth : 0}px`);
       nav.style.setProperty("--pill-h", `${shown ? on!.offsetHeight : 0}px`);
       nav.dataset.pill = shown ? "" : "none";
@@ -143,7 +148,7 @@ export function TabBar() {
   return (
     <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} {...hold}
       onClickCapture={(e) => { if (mini) { e.stopPropagation(); e.preventDefault(); haptic("select"); expandBar(); } }}>
-      <span className="tabs__pill" aria-hidden="true" />
+      <span className="tabs__pill" aria-hidden="true" onAnimationEnd={(e) => { delete e.currentTarget.dataset.flow; }} />
       {items.map((it) => {
         const on = current === it.id;
         // Collapsed, the capsule shows the current section, or the Menu where the screen is not one of them.

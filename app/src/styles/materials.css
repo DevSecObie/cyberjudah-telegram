@@ -87,14 +87,46 @@
 .tab__label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 10.5px/1.1 var(--font-ui); letter-spacing: -.01em; }
 .tabs .tab[data-on] { color: var(--dock-ink-override, var(--text-1)); }
 .tabs .tab[data-on] .tab__label { font-weight: 700; }
-/* The pill under the current section: brighter tint, a rim of light, and a glow along its foot. */
+/* The pill under the current section, a drop of liquid glass: it lifts and saturates what lies
+   behind it, catches light along its top and at its rim, sits on a soft shadow, and stretches as
+   it flows to another section before settling. Its glow along the foot names the section. */
 .tabs__pill {
   position: absolute; z-index: 0; left: 0; top: 0; width: var(--pill-w, 44px); height: var(--pill-h, 48px);
   transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)); border-radius: 24px; pointer-events: none;
-  background: var(--dock-selected-override, var(--mat-selected));
-  box-shadow: inset 0 1px 0 var(--rim-highlight), inset 0 0 0 .5px var(--mat-edge);
-  transition: transform var(--dur-2) var(--ease), width var(--dur-2) var(--ease), opacity var(--dur-2) ease;
+  background:
+    radial-gradient(120% 80% at 30% -10%, color-mix(in srgb, #fff 30%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, #fff 14%, transparent), color-mix(in srgb, #fff 3%, transparent) 55%, color-mix(in srgb, #fff 9%, transparent)),
+    var(--dock-selected-override, color-mix(in srgb, var(--mat-selected) 60%, transparent));
+  -webkit-backdrop-filter: blur(2px) saturate(190%) brightness(1.18); backdrop-filter: blur(2px) saturate(190%) brightness(1.18);
+  box-shadow:
+    inset 0 1px 1px color-mix(in srgb, #fff 60%, transparent),
+    inset 0 -1px 1px color-mix(in srgb, #fff 16%, transparent),
+    inset 0 -10px 16px -12px rgba(0, 0, 0, .35),
+    0 8px 18px -8px rgba(0, 0, 0, .45);
+  transition: transform var(--dur-3) var(--ease-spring), width var(--dur-3) var(--ease-spring), opacity var(--dur-2) ease;
 }
+/* Its rim: light gathered at the upper left and lower right, as on a lens. */
+.tabs__pill::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(135deg, color-mix(in srgb, #fff 75%, transparent), color-mix(in srgb, #fff 10%, transparent) 38%, color-mix(in srgb, #fff 6%, transparent) 62%, color-mix(in srgb, #fff 45%, transparent));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+/* Moving to another section, it stretches along the way and settles like a drop. */
+.tabs__pill[data-flow] { animation: pill-flow var(--dur-4) var(--ease); }
+@keyframes pill-flow { 0% { scale: 1 1; } 35% { scale: 1.16 .86; } 70% { scale: .97 1.04; } 100% { scale: 1 1; } }
+html[data-theme="light"] .tabs__pill {
+  background:
+    radial-gradient(120% 80% at 30% -10%, color-mix(in srgb, #fff 95%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, #fff 55%, transparent), color-mix(in srgb, #fff 10%, transparent) 60%, color-mix(in srgb, #fff 35%, transparent)),
+    var(--dock-selected-override-light, color-mix(in srgb, var(--text-1) 8%, transparent));
+  -webkit-backdrop-filter: blur(2px) saturate(170%) brightness(1.04); backdrop-filter: blur(2px) saturate(170%) brightness(1.04);
+}
+html[data-theme="light"] .tabs__pill::before { background: linear-gradient(135deg, #fff, color-mix(in srgb, var(--text-1) 6%, transparent) 40%, color-mix(in srgb, var(--text-1) 10%, transparent) 62%, color-mix(in srgb, var(--text-1) 22%, transparent)); }
+html[data-theme="light"] .tabs__pill { box-shadow: inset 0 1px 1px color-mix(in srgb, #fff 90%, transparent), inset 0 -1px 1px color-mix(in srgb, #fff 50%, transparent), inset 0 -10px 16px -12px rgba(0, 0, 0, .12), 0 6px 14px -8px rgba(40, 30, 10, .3); }
+html[data-transparency="reduced"] .tabs__pill { -webkit-backdrop-filter: none; backdrop-filter: none; }
+@media (prefers-reduced-transparency: reduce) { .tabs__pill { -webkit-backdrop-filter: none; backdrop-filter: none; } }
+@media (prefers-reduced-motion: reduce) { .tabs__pill[data-flow] { animation: none; } }
 .tabs__pill::after {
   content: ""; position: absolute; left: 32%; right: 32%; bottom: 3px; height: 2px; border-radius: 2px;
   background: var(--accent); box-shadow: 0 0 10px 1px var(--mat-glow);
