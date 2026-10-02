@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import { ackPending, applyContent, applySettings, blank, publicView, type Reminder } from "../../bot/src/reminders.mjs";
 
 /**
  * Reading reminders at 390×844, in each place a reader can be: inside Telegram, a browser
@@ -49,10 +50,27 @@ async function setup(page: Page, { withKey = false } = {}) {
     } catch { /* the page moved on */ }
   });
 }
+/**
+ * Inside Telegram the Worker knows the reader only by launch data signed with the bot's
+ * token, and CI's local Worker has no token (no .dev.vars). So for the Telegram tests the
+ * reminder API answers in the page, from the Worker's own rules (bot/src/reminders.mjs).
+ * The browser tests and the API tests below use the real local Worker.
+ */
+async function telegramWorker(page: Page) {
+  let rec: Reminder = { ...blank("UTC"), chatId: RUN };
+  await page.route(/\/api\/reminders(\/ack)?(\?|$)/, async (r: Route) => {
+    const req = r.request();
+    const body = (req.postDataJSON() ?? {}) as { settings?: unknown; content?: unknown; notice?: boolean; dates?: unknown };
+    if (req.method() === "PUT") { rec = applyContent(applySettings(rec, body.settings), body.content); if (body.notice === false) delete rec.notice; }
+    if (req.url().includes("/ack")) rec = ackPending(rec, body.dates);
+    await r.fulfill({ json: { ok: true, ...publicView(rec), publicKey: null, identity: "telegram", linked: true } });
+  });
+}
 const choice = (page: Page, name: string) => page.locator(".remind-choice", { has: page.getByRole("radio", { name }) });
 
 test("inside Telegram: Telegram is offered, push is greyed with the reason, the switch turns it on", async ({ page }) => {
   await setup(page);
+  await telegramWorker(page);
   await page.goto(`/settings/reminders${launch(7001)}`);
   await expect(page.getByRole("heading", { name: "Reading reminders" })).toBeVisible();
   const sw = page.getByRole("switch", { name: /Remind me to read/ });
@@ -173,7 +191,12 @@ test("notifications declined: push says they are blocked and stays off", async (
 
 test("declined at the browser's own prompt: the same explanation, push left off", async ({ page }) => {
   await setup(page, { withKey: true });
-  await page.addInitScript(() => { Notification.requestPermission = async () => "denied"; });
+  // Not yet asked (headless Chromium may start at "denied"), then declined at the prompt.
+  await page.addInitScript(() => {
+    let perm: NotificationPermission = "default";
+    Object.defineProperty(Notification, "permission", { get: () => perm, configurable: true });
+    Notification.requestPermission = async () => (perm = "denied");
+  });
   await page.goto("/settings/reminders");
   await page.getByRole("radio", { name: "Push notification" }).click();
   await expect(choice(page, "Push notification")).toContainText("Notifications are blocked for this site. You can allow them in your browser settings.");
