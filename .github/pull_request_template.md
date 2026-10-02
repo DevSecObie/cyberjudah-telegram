@@ -18,6 +18,7 @@ Describe the user or operational problem and the approach taken.
 - [ ] `npm run build`
 - [ ] Playwright tests, when UI, navigation, Telegram integration, or storage changed
 - [ ] Manual Telegram-client verification, when required
+- [ ] `CHANGELOG.md`: a line under Unreleased (Added, Changed, Fixed, Security or Removed), and an Incident row if people were affected
 
 ## Risk and operations
 

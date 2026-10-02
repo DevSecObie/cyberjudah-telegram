@@ -27,6 +27,11 @@ npm run test:e2e --workspace app
 - Never commit tokens, launch data, production exports, or user information.
 - Call out migrations, new permissions, new external services, and operational changes.
 - Update documentation when routes, environment variables, scheduled jobs, or setup steps change.
+- Add a line to [CHANGELOG.md](CHANGELOG.md) under Unreleased. Anything that broke for people, or stopped a deploy, also gets a row in its Incident and hang-up log (what people saw, the cause, the fix).
+
+## Releases
+
+A release is cut from what reached `main`: Unreleased becomes the new version with its date (UTC), the version in `package.json` and `bot/package.json` is raised to match (regenerate the lockfile with `npm install --package-lock-only`), and the merge is tagged `vX.Y.Z`. Fixes only raise the patch number, new or visibly changed features the minor, and anything that breaks saved data, shared links or bot commands the major.
 
 ## Commit and review expectations
 
