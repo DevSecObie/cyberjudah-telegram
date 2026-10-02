@@ -162,3 +162,15 @@ html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc
 .chat2__outside p { max-width: none; margin: 0; font: 400 var(--fs-sub)/var(--lh-body) var(--font-ui); color: var(--text-2); }
 .chat2__outside b { color: var(--text-1); font-weight: 600; }
 .chat2__starters .starter:disabled { opacity: var(--disabled-opacity); cursor: default; }
+
+/* A change Ask proposed: what it will do, and Confirm / Cancel. Nothing happens until Confirm. */
+.msg__actionsets { display: grid; gap: 8px; margin-top: 14px; }
+.actioncard { display: grid; gap: 10px; padding: 14px; border-radius: var(--r-md); background: var(--surface-1); box-shadow: var(--card-edge); }
+.actioncard__what { display: flex; align-items: flex-start; gap: 10px; color: var(--text-1); font: 600 var(--fs-sub)/1.4 var(--font-ui); }
+.actioncard__what svg { flex: none; margin-top: 1px; color: var(--accent); }
+.actioncard__buttons { display: flex; gap: 8px; }
+.actioncard__buttons .btn { min-height: var(--touch); }
+.actioncard__note { margin: 0; color: var(--text-2); font: 400 var(--fs-caption)/1.45 var(--font-ui); }
+.actioncard[data-state="applied"] .actioncard__what svg { color: var(--ok, var(--accent)); }
+.actioncard[data-state="failed"] .actioncard__note { color: var(--danger, var(--text-1)); }
+.actioncard .linkish, .msg__text a.applink { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }

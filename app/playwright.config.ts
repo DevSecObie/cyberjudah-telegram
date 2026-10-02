@@ -27,6 +27,9 @@ const vars = [
   `TELEGRAM_API_ROOT:${STAND_IN}`,
   `PUSH_TEST_ORIGIN:${STAND_IN}`,
   "ADMIN_IDS:100000002",
+  // Ask runs its real agent loop against a scripted stand-in of the Claude Messages API (e2e/claude.ts).
+  "ANTHROPIC_API_KEY:e2e-not-a-real-key",
+  `ANTHROPIC_BASE_URL:${STAND_IN}/anthropic`,
 ].map((v) => `--var '${v}'`).join(" ");
 
 /**

@@ -1,4 +1,5 @@
 import http from "node:http";
+import { claude } from "./claude";
 
 /**
  * What the local Worker talks to beyond itself, on loopback: the Telegram Bot API and a
@@ -11,6 +12,7 @@ import http from "node:http";
  *   POST /push/<id>             answers 201 Created, as a push service does
  *   POST /push/gone-<id>        410 Gone (the browser unsubscribed)
  *   POST /push/refuse-<id>      403 Forbidden (the VAPID signature was refused)
+ *   POST /anthropic/v1/messages the Claude Messages API, streamed (claude.ts): a scripted model
  */
 export const STAND_IN_PORT = 8791;
 export const STAND_IN = `http://127.0.0.1:${STAND_IN_PORT}`;
@@ -36,6 +38,7 @@ export default async function globalSetup() {
         if (bot[1] === "sendMessage") return json(200, { ok: true, result: { message_id: ++messageId, date: Math.floor(Date.now() / 1000), chat: { id: p.chat_id, type: "private" }, text: p.text } });
         return json(200, { ok: true, result: true });
       }
+      if (path === "/anthropic/v1/messages" && req.method === "POST") return void claude(body as Parameters<typeof claude>[0], res);
       const push = /^\/push\/(gone-|refuse-)?[\w-]+$/.exec(path);
       if (push && req.method === "POST") { res.writeHead(push[1] === "gone-" ? 410 : push[1] === "refuse-" ? 403 : 201); return res.end(); }
       json(404, { ok: false });

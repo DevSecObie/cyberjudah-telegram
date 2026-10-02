@@ -26,6 +26,14 @@ Merged to `main` and not yet in a tagged release. Production currently runs `799
 ([deploy run 36961422040](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/36961422040)).
 
 ### Added
+- Ask CyberJudah as the app's assistant: it answers questions about the app from the app's own
+  list of screens, with links that open in place; finds people and case studies; finds and reopens
+  your saved chats; reads your reading reminder; and proposes changes to it as a card you Confirm
+  or Cancel. Nothing changes until you confirm, and the card says what was done. Built to the
+  Claude docs' tool-use guidance: cached instructions, streamed and checked tool input, and
+  refusals and cut-off answers said plainly. While it works, Ask shows a line suited to the
+  question, drawn from the King James words the assembly reads (serious for doctrine, the law and
+  judgment; lighter for the app, the time and short follow-ups).
 - Reading reminders ([issue #47]): opt-in and off by default, at a quarter-hour time in the
   reader's own time zone, by Telegram (the bot), Web Push (cyberjudah.io/app in up to ten
   browsers) or both. The reminder names today's plan portion, or the last chapter read, with
@@ -40,6 +48,14 @@ Merged to `main` and not yet in a tagged release. Production currently runs `799
   as not set up and Telegram reminders work. The Worker's cron now also runs at :15, :30 and :45
   for reminders; the hourly jobs still run only on the hour. If the browser's permission prompt is
   closed without an answer, push is not called blocked; choosing it again asks again.
+
+### Fixed
+- Ask CyberJudah: an answer is finished and saved even if you leave mid-answer, and coming back
+  (a refresh, the app reopened, the connection back) waits for it instead of calling it lost; an
+  answer still arriving for a chat you left never appears in the next one; a question typed while
+  an answer is coming is kept; tapping Send after typing no longer misses; conversations on a shared
+  device are kept per account; links in answers lead only inside the app; and if search by meaning
+  is unavailable, Ask answers from the keyword search.
 
 ### Changed
 - This changelog, the incident log ([docs/INCIDENTS.md](docs/INCIDENTS.md)) and the release rules;

@@ -5,7 +5,7 @@ import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
-import { saveExchange } from "./chats";
+import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
 import { isAdmin } from "./edit";
 import { billingOn, charge, reserveAsk, settleAsk, standing, RESERVE_UNITS, type Take } from "./billing";
 import type { Account } from "./billing.mjs";
@@ -36,7 +36,10 @@ const passageOf = (m: { metadata?: Record<string, unknown>; score: number }): Pa
  */
 export async function retrieve(env: Env, text: string, topK = 12): Promise<(Passage & { score: number })[]> {
   const [vectorRes, keywordRes] = await Promise.all([
-    embed(env, [text]).then(([vector]) => (vector ? env.VEC.query(vector, { topK: 20, returnMetadata: "all" }) : { matches: [] as VectorizeMatches["matches"] })),
+    // Search by meaning falls back to the keyword search alone if Workers AI or Vectorize fails,
+    // so a question is still answered (and Claude can still research) rather than failing whole.
+    embed(env, [text]).then(([vector]) => (vector ? env.VEC.query(vector, { topK: 20, returnMetadata: "all" }) : { matches: [] as VectorizeMatches["matches"] }))
+      .catch((e: Error) => { console.error(JSON.stringify({ event: "retrieve_vector_failed", message: e.message?.slice(0, 120) })); return { matches: [] as VectorizeMatches["matches"] }; }),
     runSearch(env.DB, text, undefined, 3, true).catch(() => null),
   ]);
   // A passage must say something: scraps of captions ("do", "yeah so") sit close to every question.
@@ -205,7 +208,8 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   }
   const encoder = new TextEncoder();
   // The reader can leave at any moment (Stop, another screen, the app closed). From then on
-  // nothing more is sent, but the answer is still finished, saved and charged exactly once.
+  // nothing more is sent, but the answer is still finished, saved and charged exactly once:
+  // the work runs under waitUntil, not inside the response, so leaving does not cancel it.
   let open = true;
   let settled = false;
   const settle = async (units: number) => {
@@ -213,52 +217,65 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
     settled = true;
     return metered && take ? await settleAsk(env, userId, take, units).catch(() => null) : await charge(env, userId, units).catch(() => null);
   };
+  // While it is being answered, the conversation says so, for a refresh or another device to wait on.
+  if (chatId) await markPending(env, userId, chatId, question).catch(() => undefined);
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); } catch { open = false; } };
+      // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
+      const beat = setInterval(() => send({ ping: 1 }), 15000);
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.
-      const keep = (content: string, sources: unknown[], followups: string[], steps: string[] = []) => {
+      const keep = async (content: string, sources: unknown[], followups: string[], steps: string[] = [], actions: SavedAction[] = [], cut = false) => {
         if (!chatId) return;
-        const save = saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
-        if (ctx) ctx.waitUntil(save);
+        await saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps, actions, cut }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
       };
-      try {
-        const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
-        if (env.ANTHROPIC_API_KEY) {
-          // Claude researches first (searches and verses, reported as it goes), then writes.
-          const steps: string[] = [];
-          const { text, passages, units, calls } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading)/.test(e.status)) steps.push(e.status); send(e); }, ctx);
-          const { answer, followups } = splitFollowups(text);
-          const left = await settle(units);
-          console.log(JSON.stringify({ event: "ask_usage", units, calls, searches: steps.length }));
-          if (!answer.trim()) { send({ error: "empty" }); return; }
-          const sources = sourcesOf(answer, passages);
-          // Saved first: whatever happens to the connection after this, the answer is kept.
-          keep(answer, sources, followups, steps);
-          send({ done: true, answer, followups, sources });
-          if (left && billingOn(env)) send({ usage: { units, balance: left } });
-          return;
+      const job = (async () => {
+        try {
+          const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
+          if (env.ANTHROPIC_API_KEY) {
+            // Claude researches first (searches and verses, reported as it goes), then writes.
+            const steps: string[] = [];
+            const { text, passages, units, calls, actions, cut, refused } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId);
+            const { answer, followups } = splitFollowups(text);
+            const left = await settle(units);
+            console.log(JSON.stringify({ event: "ask_usage", units, calls, searches: steps.length, actions: actions.length, cut }));
+            // Claude declined the question (stop_reason "refusal"): said so, never shown as an answer.
+            if (refused && !answer.trim()) { send({ error: "refused" }); return; }
+            if (!answer.trim()) { send({ error: "empty" }); return; }
+            const sources = sourcesOf(answer, passages);
+            // Saved first: whatever happens to the connection after this, the answer is kept.
+            await keep(answer, sources, followups, steps, actions, cut);
+            send({ done: true, answer, followups, sources, actions, ...(cut ? { cut: true } : {}) });
+            if (left && billingOn(env)) send({ usage: { units, balance: left } });
+            return;
+          }
+          const passages = first;
+          send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
+          if (!passages.length) {
+            const answer = "The search did not find enough reliable material in the library to answer that question.";
+            await keep(answer, [], []);
+            send({ delta: answer }); send({ done: true, answer, followups: [], sources: [] }); return;
+          }
+          let answer = "";
+          for await (const piece of answerPieces(env, buildPrompt(question, passages, history))) { answer += piece; send({ delta: piece }); }
+          const { answer: clean, followups } = splitFollowups(answer);
+          if (!clean.trim()) { send({ error: "empty" }); return; }
+          const sources = sourcesOf(clean, passages);
+          await keep(clean, sources, followups);
+          send({ done: true, answer: clean, followups, sources });
+        } catch (e) {
+          // The reservation stands: the model was paid for whether the answer arrived or not.
+          await settle(RESERVE_UNITS);
+          console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
+          send({ error: "unavailable" });
+        } finally {
+          clearInterval(beat);
+          if (chatId) await clearPending(env, userId, chatId).catch(() => undefined);
         }
-        const passages = first;
-        send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
-        if (!passages.length) {
-          const answer = "The search did not find enough reliable material in the library to answer that question.";
-          keep(answer, [], []);
-          send({ delta: answer }); send({ done: true, answer, followups: [], sources: [] }); return;
-        }
-        let answer = "";
-        for await (const piece of answerPieces(env, buildPrompt(question, passages, history))) { answer += piece; send({ delta: piece }); }
-        const { answer: clean, followups } = splitFollowups(answer);
-        if (!clean.trim()) { send({ error: "empty" }); return; }
-        const sources = sourcesOf(clean, passages);
-        keep(clean, sources, followups);
-        send({ done: true, answer: clean, followups, sources });
-      } catch (e) {
-        // The reservation stands: the model was paid for whether the answer arrived or not.
-        await settle(RESERVE_UNITS);
-        console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
-        send({ error: "unavailable" });
-      } finally { if (open) { open = false; try { controller.close(); } catch { /* already closed */ } } }
+      })();
+      ctx?.waitUntil(job);
+      await job;
+      if (open) { open = false; try { controller.close(); } catch { /* already closed */ } }
     },
     cancel() { open = false; },
   });

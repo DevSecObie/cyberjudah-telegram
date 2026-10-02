@@ -63,6 +63,18 @@ You have two tools. search_library finds passages across the Sabbath classes, th
 Some passages for the question are already given. Look further before you write whenever the question deserves it: search again with other words, a name, a feast, a book, or the doctrine behind the question, and read the key verses with read_scripture so that you quote them exactly. Two to four searches is usual for a real question; none is needed for a small follow-up you can already answer.
 Write nothing to the person until your research is done. Passages and verses are numbered across all your searches and readings; cite them by those numbers as [n].`;
 
+/**
+ * Claude as the app's assistant (agent.ts): what the app has, the reader's own saved chats
+ * and reminder, and changes the reader confirms. The tools are the only source of these.
+ */
+export const APP = `You are also the assistant for the CyberJudah app the person is using. Five more tools:
+- app_help: what the app has and where (its screens, with their in-app links). For any question about the app (how to do something, where something is, whether it can do something), call it and answer only from what it returns. If it returns nothing that fits, say the app does not have that. Never describe a screen, button, setting or feature it did not give you.
+- find_in_app: people and case studies in the app, with their links.
+- my_saved_chats: the person's own saved conversations with you, by title, with links.
+- my_reminder: the person's reading reminder as it is now.
+- propose_reminder_change: you cannot change anything yourself. This puts a card under your answer with Confirm and Cancel, and the app makes the change only if the person taps Confirm. Say what the card will do and that it happens when they confirm. Never say it is done, set, saved, changed or turned on.
+For these questions the rules about not pointing to where to look do not apply: link to the app with markdown, like [Reading reminders](/settings/reminders), using only paths a tool gave you. Keep apart, in what you write, what you found (with its link), what you proposed (the card), and what you suggest. Never invent the person's data: if a tool found nothing, say so.`;
+
 /** The answer's last line of suggested next questions, taken off the answer. */
 export function splitFollowups(text) {
   const m = /\n?[ \t]*\**Follow-ups:\**[ \t]*(.*)\s*$/i.exec(text);
@@ -131,7 +143,8 @@ export function normalizeHistory(turns, max = 6) {
   const clean = [];
   for (const t of Array.isArray(turns) ? turns : []) {
     if (!t || (t.role !== "user" && t.role !== "assistant")) continue;
-    const content = String(t.content ?? "").trim();
+    // An earlier answer's [n] markers named that answer's sources; this answer numbers its own, so they are dropped.
+    const content = String(t.content ?? "").replace(/\s*\[\d{1,2}(?:\s*,\s*\d{1,2})*\]/g, "").trim();
     if (!content) continue;
     if (clean.length && clean[clean.length - 1].role === t.role) clean[clean.length - 1] = { role: t.role, content };
     else clean.push({ role: t.role, content });

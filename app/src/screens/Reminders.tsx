@@ -27,7 +27,7 @@ const deliveryOf = (c: Channels): Delivery | null => (c.telegram && c.push ? "bo
 const channelsOf = (d: Delivery): Channels => ({ telegram: d !== "push", push: d !== "telegram" });
 
 /** The reader's place, as the reminder needs it: the plan's day and pace, and the last chapter. */
-function useContent(): Content | null {
+export function useContent(): Content | null {
   const [plan, , planLoaded] = usePlan();
   const [last, , lastLoaded] = useLast();
   if (!planLoaded || !lastLoaded) return null;
