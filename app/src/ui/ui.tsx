@@ -134,7 +134,8 @@ export function TabBar() {
     nav.style.removeProperty("--pill-sx"); nav.style.removeProperty("--pill-sy");
     delete nav.dataset.drag; delete nav.dataset.near; delete nav.dataset.lift;
     if (!L.moved) return;
-    eatClick.current = true; window.setTimeout(() => { eatClick.current = false; }, 80);
+    // The click the browser sends at the end of the drag is the drag's, not a tap: swallow that one.
+    eatClick.current = true;
     const it = open && near >= 0 ? items[near] : null;
     // Opening the section moves the pill there; otherwise it springs back to where it was.
     if (it && current !== it.id) { long.current = false; it.onClick(); }
@@ -144,7 +145,7 @@ export function TabBar() {
   };
   const hold = {
     onPointerDown: (e: React.PointerEvent) => {
-      long.current = false; swipe.current = { x: e.clientX, y: e.clientY };
+      long.current = false; eatClick.current = false; swipe.current = { x: e.clientX, y: e.clientY };
       press.current = window.setTimeout(() => { long.current = true; lensEnd(false); haptic("heavy"); setDrawer(null); navigate("/settings/bar"); }, 600);
       const nav = bar.current, on = (e.target as HTMLElement).closest<HTMLElement>(".tab[data-on]");
       if (nav && on && !mini && e.isPrimary) {
@@ -216,7 +217,7 @@ export function TabBar() {
   ];
   return (
     <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} data-refract={refracts && lensSize.w ? "" : undefined} {...hold}
-      onClickCapture={(e) => { if (eatClick.current) { e.stopPropagation(); e.preventDefault(); return; } if (mini) { e.stopPropagation(); e.preventDefault(); haptic("select"); expandBar(); } }}>
+      onClickCapture={(e) => { if (eatClick.current) { eatClick.current = false; e.stopPropagation(); e.preventDefault(); return; } if (mini) { e.stopPropagation(); e.preventDefault(); haptic("select"); expandBar(); } }}>
       <LensFilters w={lensSize.w} h={lensSize.h} />
       <span className="tabs__pill" aria-hidden="true" onAnimationEnd={(e) => { delete e.currentTarget.dataset.flow; }} />
       {items.map((it) => {
