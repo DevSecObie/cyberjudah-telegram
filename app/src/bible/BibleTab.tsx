@@ -278,7 +278,7 @@ export function BibleTab() {
       <WhySheet open={sheet === "why"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={whyAt} reference={`${chapterLabel}:${whyAt}`}
         onRead={(url, v) => { setSheet(null); const m = slugOfUrl(url); navigate(m ? `/read/${m[1]}/${m[2]}${v ? `?v=${v}` : ""}` : url); }}
         onOpenClass={(url, ts) => { setSheet(null); const t = ts ? ts.split(":").reduce((n, p) => n * 60 + Number(p || 0), 0) : 0; if (/^https?:/.test(url)) openLink(`${url}${t ? `&t=${t}s` : ""}`); else navigate(`/note${url}${t ? `?t=${t}` : ""}`); }} />
-      <SelectedVersesSheet open={selected.length > 0 && !sheet} onDismiss={() => setSelected([])}
+      <SelectedVersesSheet open={selected.length > 0 && !sheet} onDismiss={() => setSelected([])} reference={selectedReference ?? undefined}
         colors={items} selectedColor={selectedColor} onAddHighlight={addHighlight} onRemoveHighlight={removeHighlight} onAddColor={() => setSheet("params")} onEditColor={() => setSheet("params")}
         moreThanOne={selected.length > 1} hasBookmark={hasBookmark} hasFocus={hasFocus}
         onNote={() => { setNoteEdit(null); setSheet("note"); }} onTag={() => { setTagsTarget(selectedSorted); setSheet("tags"); }} onLink={() => setSheet("link")} onRelation={() => setSheet("relation")}

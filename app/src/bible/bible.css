@@ -97,8 +97,7 @@
 .bs-action { width: 25%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px 0; border: 0; background: none; cursor: pointer; }
 /* A page of exactly five actions (Note, Tag, Precept, Bookmark, Focus) keeps them on one row. */
 .bs-actions:has(> .bs-action:nth-child(5):last-child) > .bs-action { width: 20%; }
-.bs-action__box { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; background: var(--bs-light-grey); transition: background-color .1s, box-shadow .1s, transform .2s cubic-bezier(.2, 1.12, .32, 1); }
-.bs-action__box[data-active] { box-shadow: inset 0 0 0 2px var(--bs-primary); }
+.bs-action__box { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; transition: background-color .1s, box-shadow .1s; }
 .bs-action__label { font-size: 10px; text-align: center; color: var(--bs-default); white-space: nowrap; }
 .bs-tabsfooter { position: relative; display: flex; margin: 0 16px 5px; padding: 3px; border-radius: var(--r-lg); background: var(--bs-light-grey); }
 .bs-tabsfooter__indicator { position: absolute; top: 3px; bottom: 3px; left: 3px; background: var(--bs-reverse); border-radius: var(--r-md); transition: transform .25s ease; }
@@ -545,62 +544,78 @@ html[data-transparency="reduced"] .bs { --mat-nav: var(--bs-reverse); --mat-elev
 .bs .rel-inline .rel-tag { padding: 1px 6px; border-radius: 6px; line-height: 1.5; }
 .bs .bs-inline-item { vertical-align: middle; box-shadow: none !important; border: .5px solid color-mix(in srgb, var(--bs-default) 14%, transparent); }
 
-/* The selection sheet, as Bible Strong lays it out and as liquid glass: a card floating clear of
-   the screen's edges, rounded all round, its glass lifting and saturating the page beneath, a rim
-   of light along its top; six actions to a row on small glass tiles that give under the finger;
-   the tab switch a glass track whose lens springs to the chosen tab. No close button, as in Bible
-   Strong: it closes by swiping it down, the back button, or Escape. */
+/* The selection sheet as Bible Strong shows it on an iPhone (measured from its screen): a card
+   floating 8 px in from the sides and bottom, corners of 38 px, a fine light hairline; the grabber,
+   then the 56 px colour row of 20 px swatches spread across; the six actions on one row (48 px
+   tiles of radius 16 in the theme's light grey, the icon in the accent, an 11 px label); then the
+   footer track (radius 20, 3 px in, 16 px from the card's sides) with the chosen tab dark and in
+   the accent. The material is restrained: a dense tint and a light blur (one backdrop filter,
+   never animated), so the Scripture behind never competes. The selected colour also carries a
+   check, not its ring alone. */
+.bs-selected {
+  --sel-surface: color-mix(in srgb, var(--bs-reverse) 92%, transparent);
+  --sel-hairline: color-mix(in srgb, #000 12%, transparent);
+  --sel-tile: var(--bs-light-grey);
+  --sel-accent: var(--bs-primary);
+}
+.bs[data-dark] .bs-selected {
+  --sel-surface: color-mix(in srgb, color-mix(in srgb, var(--bs-reverse) 70%, #1c1f22) 92%, transparent);
+  --sel-hairline: color-mix(in srgb, #9cc4e4 26%, transparent);
+  --sel-tile: var(--bs-light-grey);
+  --sel-accent: rgb(14, 211, 185);
+}
 .bs-scrim--clear > .bs-sheet.bs-selected {
-  position: relative; box-sizing: border-box; width: calc(100% - 20px); max-width: 620px;
-  margin: 0 auto calc(10px + var(--safe-bottom, 0px)); padding-bottom: 6px;
-  border-radius: 34px; border: .5px solid color-mix(in srgb, #fff 16%, transparent);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, #fff 7%, transparent), transparent 40%),
-    color-mix(in srgb, var(--bs-reverse) 66%, transparent);
-  -webkit-backdrop-filter: blur(26px) saturate(180%); backdrop-filter: blur(26px) saturate(180%);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 22%, transparent), inset 0 0 0 .5px color-mix(in srgb, #fff 6%, transparent), 0 18px 50px rgba(0, 0, 0, .38), 0 2px 8px rgba(0, 0, 0, .2);
+  box-sizing: border-box; width: calc(100% - 16px); max-width: 640px;
+  margin: 0 auto calc(8px + max(0px, var(--safe-bottom, 0px) - 26px));
+  padding: 0 0 calc(10px + min(var(--safe-bottom, 0px), 26px));
+  border-radius: 38px; border: 1px solid var(--sel-hairline);
+  background: var(--sel-surface);
+  -webkit-backdrop-filter: blur(20px) saturate(120%); backdrop-filter: blur(20px) saturate(120%);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, .3);
+  animation-duration: .2s;
 }
-.bs-sheet.bs-selected::before {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
-  background: linear-gradient(160deg, color-mix(in srgb, #fff 38%, transparent), transparent 30%, transparent 70%, color-mix(in srgb, #fff 14%, transparent));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+.bs-selected .bs-sheet__handle { width: 36px; height: 5px; border-radius: 3px; margin: 6px auto 0; background: color-mix(in srgb, var(--bs-default) 45%, transparent); }
+.bs-selected__inner { overflow: hidden; }
+
+.bs-selected .bs-colors { margin: 0 4px; justify-content: flex-start; }
+.bs-selected .bs-colors__cell { flex: 1 0 44px; min-width: 44px; height: 56px; }
+.bs-selected .bs-colors__cell:focus-visible { outline: 2px solid var(--sel-accent); outline-offset: -4px; border-radius: 10px; }
+.bs-colors__swatch { position: relative; display: grid; place-items: center; width: 20px; height: 20px; }
+.bs-colors__swatch > span:first-child { border-radius: 6px !important; }
+.bs-colors__swatch[data-on] > span:first-child { box-shadow: 0 0 0 3px var(--bs-reverse), 0 0 0 5px var(--bs-default) !important; }
+.bs-colors__check { position: absolute; inset: 0; display: grid; place-items: center; }
+.bs-colors__check::before { content: ""; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: rgba(0, 0, 0, .6); }
+.bs-colors__check > svg { position: relative; width: 10px; height: 10px; }
+.bs-colors__more { color: color-mix(in srgb, var(--bs-default) 80%, transparent); }
+
+.bs-selected .bs-pages { margin: 0; }
+.bs-selected .bs-pages__track { transition: transform .22s cubic-bezier(.3, .7, .2, 1); }
+.bs-selected .bs-actions { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); padding: 0 6px; }
+#root .bs-selected .bs-actions > .bs-action { width: auto; min-width: 0; gap: 8px; padding: 8px 0; border-radius: 12px; }
+.bs-selected .bs-action:focus-visible { outline: 2px solid var(--sel-accent); outline-offset: -2px; }
+.bs-selected .bs-action__box { width: 48px; height: 48px; border-radius: 16px; background: var(--sel-tile); transition: background-color .1s, box-shadow .1s, transform .18s ease; }
+.bs-selected .bs-action__box[data-active] { box-shadow: inset 0 0 0 2px var(--sel-accent); }
+.bs-selected .bs-action:not(:disabled):active .bs-action__box { transform: scale(.94); }
+.bs-selected .bs-action:disabled { opacity: .6; cursor: default; }
+.bs-selected .bs-action:disabled > * { opacity: .4; }
+#root .bs-selected .bs-action__label { font-size: 11px; line-height: 1.25; letter-spacing: .01em; color: color-mix(in srgb, var(--bs-default) 92%, #fff); white-space: nowrap; max-width: none; overflow: visible; }
+/* A phone narrower than Bible Strong's leaves under 70 px a column: the longest labels
+   (Commentary, Side by side) take a little less type there, and wrap at their spaces on the
+   narrowest phones. */
+@media (max-width: 420px) { #root .bs-selected .bs-action__label { font-size: 10px; letter-spacing: -.01em; } .bs-selected .bs-actions { padding: 0 2px; } .bs-selected .bs-action__box { width: 46px; height: 46px; } }
+@media (max-width: 360px) { #root .bs-selected .bs-action__label { font-size: 9px; white-space: normal; text-align: center; line-height: 1.15; } .bs-selected .bs-action__box { width: 42px; height: 42px; border-radius: 14px; } }
+
+.bs-selected .bs-tabsfooter { margin: 1px 16px 0; padding: 3px; border-radius: 20px; background: var(--sel-tile); }
+.bs-selected .bs-tabsfooter__indicator { top: 3px; bottom: 3px; left: 3px; border-radius: 17px; background: var(--bs-reverse); transition: transform .22s cubic-bezier(.3, .7, .2, 1); }
+#root .bs-selected .bs-tabsfooter__tab { min-height: 38px; padding: 9px 0; font-size: 15px; line-height: 20px; font-weight: 400; color: color-mix(in srgb, var(--bs-default) 92%, #fff); }
+#root .bs-selected .bs-tabsfooter__tab[aria-selected="true"] { font-weight: 600; color: var(--sel-accent); }
+#root .bs-selected .bs-tabsfooter__tab:focus-visible { outline: 2px solid var(--sel-accent); outline-offset: -2px; border-radius: 17px; }
+
+/* Reduced transparency: the same sheet, opaque. Reduced motion: no slide, no spring. */
+html[data-transparency="reduced"] .bs-scrim--clear > .bs-sheet.bs-selected { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bs-reverse); }
+@media (prefers-reduced-transparency: reduce) { html:not([data-transparency="full"]) .bs-scrim--clear > .bs-sheet.bs-selected { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bs-reverse); } }
+@media (prefers-reduced-motion: reduce) {
+  .bs-scrim--clear > .bs-sheet.bs-selected { animation: none; }
+  .bs-selected .bs-pages__track, .bs-selected .bs-tabsfooter__indicator, .bs-selected .bs-action__box { transition: none; }
+  .bs-selected .bs-action:not(:disabled):active .bs-action__box { transform: none; }
 }
-.bs-selected .bs-actions { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); row-gap: 2px; }
-.bs-selected .bs-actions > .bs-action { width: auto; min-width: 0; padding: 8px 0 6px; }
-@media (max-width: 459px) { .bs-selected .bs-actions[data-long] { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.bs-selected .bs-action__box {
-  width: 50px; height: 50px; border-radius: 18px;
-  background: linear-gradient(180deg, color-mix(in srgb, #fff 9%, transparent), color-mix(in srgb, #fff 3%, transparent)), color-mix(in srgb, var(--bs-default) 8%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 20%, transparent), inset 0 0 0 .5px color-mix(in srgb, #fff 9%, transparent), 0 4px 12px -6px rgba(0, 0, 0, .4);
-}
-.bs-selected .bs-action__box[data-active] { box-shadow: inset 0 0 0 2px var(--bs-primary), inset 0 1px 0 color-mix(in srgb, #fff 20%, transparent); }
-.bs-selected .bs-action:not(:disabled):active .bs-action__box { transform: scale(.9); }
-#root .bs-selected .bs-action__label { font-size: 10.5px; letter-spacing: -.02em; max-width: none; overflow: visible; }
-.bs-selected .bs-tabsfooter {
-  margin: 4px 12px 6px; padding: 4px; border-radius: 22px;
-  background: color-mix(in srgb, var(--bs-default) 7%, transparent);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .18), inset 0 0 0 .5px color-mix(in srgb, #fff 6%, transparent);
-}
-.bs-selected .bs-tabsfooter__indicator {
-  top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3) !important; border-radius: 18px;
-  background:
-    radial-gradient(120% 90% at 30% -10%, color-mix(in srgb, #fff 26%, transparent), transparent 60%),
-    linear-gradient(180deg, color-mix(in srgb, #fff 12%, transparent), color-mix(in srgb, #fff 3%, transparent) 60%, color-mix(in srgb, #fff 8%, transparent)),
-    color-mix(in srgb, var(--bs-reverse) 55%, transparent);
-  -webkit-backdrop-filter: saturate(180%) brightness(1.15); backdrop-filter: saturate(180%) brightness(1.15);
-  box-shadow: inset 0 1px 1px color-mix(in srgb, #fff 55%, transparent), inset 0 -1px 1px color-mix(in srgb, #fff 14%, transparent), 0 6px 14px -6px rgba(0, 0, 0, .45);
-  transition: transform .42s cubic-bezier(.2, 1.12, .32, 1);
-}
-#root .bs-selected .bs-tabsfooter__tab { padding: 11px 0; font-size: 15px; color: var(--bs-default); }
-#root .bs-selected .bs-tabsfooter__tab[aria-selected="true"] { color: var(--bs-primary); font-weight: 650; }
-html[data-theme="light"] .bs-scrim--clear > .bs-sheet.bs-selected {
-  border-color: color-mix(in srgb, #000 8%, transparent);
-  background: linear-gradient(180deg, color-mix(in srgb, #fff 55%, transparent), transparent 45%), color-mix(in srgb, var(--bs-reverse) 72%, transparent);
-  box-shadow: inset 0 1px 0 #fff, 0 18px 50px rgba(40, 30, 10, .18), 0 2px 8px rgba(40, 30, 10, .08);
-}
-html[data-theme="light"] .bs-selected .bs-action__box { background: linear-gradient(180deg, color-mix(in srgb, #fff 80%, transparent), color-mix(in srgb, #fff 40%, transparent)), color-mix(in srgb, var(--bs-default) 5%, transparent); box-shadow: inset 0 1px 0 #fff, inset 0 0 0 .5px color-mix(in srgb, #000 6%, transparent), 0 4px 12px -6px rgba(40, 30, 10, .25); }
-html[data-theme="light"] .bs-selected .bs-tabsfooter__indicator { background: radial-gradient(120% 90% at 30% -10%, #fff, transparent 60%), linear-gradient(180deg, color-mix(in srgb, #fff 85%, transparent), color-mix(in srgb, #fff 55%, transparent)); box-shadow: inset 0 1px 1px #fff, inset 0 0 0 .5px color-mix(in srgb, #000 6%, transparent), 0 6px 14px -6px rgba(40, 30, 10, .3); }
-html[data-transparency="reduced"] .bs-scrim--clear > .bs-sheet.bs-selected, html[data-transparency="reduced"] .bs-selected .bs-tabsfooter__indicator { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bs-reverse); }
-@media (prefers-reduced-transparency: reduce) { .bs-scrim--clear > .bs-sheet.bs-selected, .bs-selected .bs-tabsfooter__indicator { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bs-reverse); } }
-@media (prefers-reduced-motion: reduce) { .bs-selected .bs-tabsfooter__indicator { transition: none; } .bs-selected .bs-action:active .bs-action__box { transform: none; } }
