@@ -22,6 +22,7 @@ const LAW: [string, string, string, IconName][] = [
   ["/law", "The Law", "The handbook, every law with its scripture", "law"],
   ["/precepts", "Precepts", "Every subject scripture speaks to, A to Z", "quote"],
   ["/cases", "Case studies", "Judgments, and those who kept the law and were blessed", "folder"],
+  ["/timeline", "Bible timeline", "The periods and events by year, with the case studies on them", "clock"],
 ];
 
 export function More() {
