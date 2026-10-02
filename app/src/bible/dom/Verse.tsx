@@ -12,8 +12,9 @@ import type { Bookmark, Tag } from "../store";
 
 /**
  * One verse, as Bible Strong's BibleDOM/Verse.tsx draws it: the number, a bookmark ribbon,
- * the count badges (relations, tags) in "With icon" mode, the text, then the tag chip and the
- * relation tags in "Line break" mode. Styles are the same values, on inline style.
+ * the count badges (precepts, tags) in "With icon" mode, the text and the deck of the classes
+ * that taught it, then the tag chip and the precept tags in "Line break" mode. Styles are the
+ * same values, on inline style.
  */
 export type VerseTagGroup = { tags: Tag[] };
 export type VerseProps = {
@@ -54,21 +55,26 @@ export function Verse(p: VerseProps) {
     fontFamily: font, transition: "background 0.3s ease, color 0.3s ease", ...hl, padding: 4, WebkitBoxDecorationBreak: "clone", boxDecorationBreak: "clone",
     borderBottom: p.isSelected ? `2px dashed ${c.default}` : "none", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none",
     ...(p.isVerseToScroll ? { animation: "bs-zoom 0.5s ease 0s 3 normal none running" } : {}),
-    ...(p.isFocused === false ? { opacity: 0.55 } : {}),
+    // While verses are selected the selection's own dim (the wrapper's .3) is the only one, not
+    // multiplied by the focus dim.
+    ...(p.isFocused === false && !p.isSelectedMode ? { opacity: 0.55 } : {}),
     ...(p.isTouched ? { opacity: 0.7 } : {}),
   };
+  const deck = !!(p.moments?.length && p.deck);
+  const tags = !!(p.tagGroup?.tags.length && s.tagsDisplay === "inline");
+  const rels = !!(p.relationItems?.length && s.relationsDisplay === "inline");
   return (
     <span id={`verset-${p.number}`} className="bs-verse" data-vk={p.verseKey} data-selected={p.isSelected ? "" : undefined} style={wrapper}>
       <span style={container}>
         <span className="bs-num" style={{ fontSize: scaleFontSize(14, s.fontSizeScale) }}>{p.number} </span>
         {p.bookmark ? <BookmarkIcon color={p.bookmark.color} onClick={() => p.onOpenBookmark(p.bookmark!)} /> : null}
-        {p.relationCount && s.relationsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.relationCount} onClick={p.onOpenRelations} label={`${p.relationCount} relations`}><Feather name="git-merge" size={16} color={c.primary} /></CountBadge> : null}
+        {p.relationCount && s.relationsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.relationCount} onClick={p.onOpenRelations} label={`${p.relationCount} ${p.relationCount === 1 ? "precept" : "precepts"}`}><Feather name="precepts" size={16} color={c.primary} /></CountBadge> : null}
         {p.taggedItemsCount && s.tagsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.taggedItemsCount} onClick={p.onOpenTags} label={`${p.taggedItemsCount} tags`}><Feather name="tag" size={14} color={c.primary} /></CountBadge> : null}
         <span className="bs-text" data-verse-key={p.verseKey} style={{ fontSize: getBibleTextFontSize(false, s.fontSizeScale), lineHeight: scaleLineHeight(32, s.lineHeight, s.fontSizeScale), whiteSpace: "pre-line" }}>{p.text}</span>
-        {p.moments?.length && p.deck ? <MediaDeck items={p.moments} placement="inline" palette={c} fontScale={s.fontSizeScale} reference={p.deck.reference} from={`${p.deck.from}?v=${p.number}`} disabled={p.isSelectedMode} /> : null}
+        {deck ? <MediaDeck items={p.moments!} placement="inline" palette={c} fontScale={s.fontSizeScale} reference={p.deck!.reference} from={`${p.deck!.from}?v=${p.number}`} disabled={p.isSelectedMode} /> : null}
       </span>
-      {p.tagGroup && s.tagsDisplay === "inline" ? <VerseTags tags={p.tagGroup.tags} settings={s} palette={c} theme={theme} onOpenTags={p.onOpenTags} onOpenTag={p.onOpenTag} /> : null}
-      {p.relationItems?.length && s.relationsDisplay === "inline" ? <span data-ignore-verse-touch=""><RelationsText items={p.relationItems} onClick={p.onOpenRelationItem} /></span> : null}
+      {tags ? <VerseTags tags={p.tagGroup!.tags} settings={s} palette={c} theme={theme} onOpenTags={p.onOpenTags} onOpenTag={p.onOpenTag} /> : null}
+      {rels ? <span data-ignore-verse-touch=""><RelationsText items={p.relationItems!} onClick={p.onOpenRelationItem} /></span> : null}
     </span>
   );
 }

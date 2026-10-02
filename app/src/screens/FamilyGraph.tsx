@@ -27,9 +27,9 @@ const positionOf = (i: number, w: number) => [
   { x: w / 2, y: 52 }, { x: 54, y: 284 }, { x: w - 54, y: 284 }, { x: 54, y: 92 }, { x: w - 54, y: 92 }, { x: w / 2, y: 324 },
 ][i] ?? { x: w / 2, y: 324 };
 const VISUAL: Record<Relation, { icon: FeatherName; tone: string }> = {
-  father: { icon: "arrow-up", tone: "var(--a-accent)" }, mother: { icon: "arrow-up", tone: "var(--a-accent)" },
-  partner: { icon: "heart", tone: "var(--a-hot)" }, offspring: { icon: "arrow-down", tone: "var(--a-ok, #34d399)" },
-  sibling: { icon: "users", tone: "var(--a-resource-dictionary, #f59e0b)" },
+  father: { icon: "arrow-up", tone: "var(--accent)" }, mother: { icon: "arrow-up", tone: "var(--accent)" },
+  partner: { icon: "heart", tone: "var(--danger)" }, offspring: { icon: "arrow-down", tone: "var(--success, #34d399)" },
+  sibling: { icon: "users", tone: "var(--gold, #f59e0b)" },
 };
 
 /** Everyone around a person, in Bible Strong's order, each person once. */

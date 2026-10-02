@@ -9,7 +9,7 @@ import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { useSheet } from "@/ui/sheet";
 import { Chip, Chips, Empty, Icon, Screen, SearchField } from "@/ui/ui";
-import { KIND_NAME, teachingTo, useTeachings, type Teaching } from "./Home";
+import { teachingLabel, teachingTo, useTeachings, type Teaching } from "./Home";
 
 type Feed = "all" | "classes" | "captains" | "history" | "truth";
 const FEEDS: [Feed, string][] = [["all", "All"], ["classes", "Sabbath"], ["captains", "Captains"], ["history", "History"], ["truth", "Truth"]];
@@ -26,7 +26,7 @@ const embed = (id: string) => `https://www.youtube-nocookie.com/embed/${encodeUR
 export function Classes() {
   const [params, setParams] = useSearchParams();
   const feed = (FEEDS.some(([f]) => f === params.get("feed")) ? params.get("feed") : "all") as Feed;
-  const teacher = params.get("teacher") ?? "", year = params.get("year") ?? "";
+  const teacher = params.get("teacher") ?? "", year = params.get("year") ?? "", series = params.get("series") ?? "";
   useBackButton(true);
   useBottomButtons(null, null);
   const sheet = useSheet();
@@ -36,7 +36,7 @@ export function Classes() {
   const query = useDeferredValue(q.trim().toLowerCase());
   const res = useTeachings();
   useKeptScroll(!!res.data);
-  const set = (next: Record<string, string | undefined>) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries({ feed, teacher, year, ...next })) if (v && v !== "all") p.set(k, v); setParams(p, { replace: true }); setShown(PAGE); setPlaying(null); };
+  const set = (next: Record<string, string | undefined>) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries({ feed, teacher, year, series, ...next })) if (v && v !== "all") p.set(k, v); setParams(p, { replace: true }); setShown(PAGE); setPlaying(null); };
   const all = useMemo(() => {
     // One post per class: the notes and the channel's newest uploads can name the same recording.
     const seen = new Set<string>();
@@ -46,9 +46,13 @@ export function Classes() {
   const counts = useMemo(() => Object.fromEntries(FEEDS.map(([f]) => [f, all.filter((t) => inFeedOf(f, t)).length])), [all]);
   const teachers = useMemo(() => [...new Set(inFeed.map((t) => t.teacher).filter(Boolean))].sort(), [inFeed]);
   const years = useMemo(() => [...new Set(inFeed.map((t) => t.date.slice(0, 4)).filter(Boolean))].sort().reverse(), [inFeed]);
-  const rows = useMemo(() => inFeed.filter((t) => (!teacher || t.teacher === teacher) && (!year || t.date.startsWith(year)) && (!query || `${t.title} ${t.teacher} ${t.topics.join(" ")} ${t.books.join(" ")} ${(t.opens ?? []).map((o) => o.label).join(" ")}`.toLowerCase().includes(query))), [inFeed, teacher, year, query]);
-  const filtered = !!(q.trim() || teacher || year || feed !== "all");
-  const reset = () => { setQ(""); set({ feed: "all", teacher: undefined, year: undefined }); };
+  const rows = useMemo(() => {
+    const out = inFeed.filter((t) => (!series || t.series?.name === series) && (!teacher || t.teacher === teacher) && (!year || t.date.startsWith(year)) && (!query || `${t.title} ${t.teacher} ${t.series?.name ?? ""} ${t.topics.join(" ")} ${t.books.join(" ")} ${(t.opens ?? []).map((o) => o.label).join(" ")}`.toLowerCase().includes(query)));
+    // A series reads in its own order: part 1 first, then by date.
+    return series ? out.sort((a, b) => (a.series?.part ?? 0) - (b.series?.part ?? 0) || a.date.localeCompare(b.date)) : out;
+  }, [inFeed, series, teacher, year, query]);
+  const filtered = !!(q.trim() || teacher || year || series || feed !== "all");
+  const reset = () => { setQ(""); set({ feed: "all", teacher: undefined, year: undefined, series: undefined }); };
   const choose = async (title: string, current: string, options: string[], key: "teacher" | "year") => {
     haptic("select");
     const a = await sheet.open({ title, items: [{ id: "", text: key === "year" ? "Every year" : "Every teacher", hint: current ? undefined : "Selected" }, ...options.map((o) => ({ id: o, text: o, hint: o === current ? "Selected" : undefined }))] });
@@ -70,11 +74,12 @@ export function Classes() {
       <div className="cfeed__tools">
         <SearchField id="class-q" value={q} onChange={(v) => { setQ(v); setShown(PAGE); }} placeholder="Search classes, teachers, books" />
         <div className="cfeed__series" role="group" aria-label="Series">
-          <Chips>{FEEDS.map(([f, label]) => <Chip key={f} on={feed === f} onClick={() => set({ feed: f, teacher: undefined, year: undefined })}>{label}{res.data ? <span className="chip__n"> {counts[f]}</span> : null}</Chip>)}</Chips>
+          <Chips>{FEEDS.map(([f, label]) => <Chip key={f} on={feed === f} onClick={() => set({ feed: f, teacher: undefined, year: undefined, series: undefined })}>{label}{res.data ? <span className="chip__n"> {counts[f]}</span> : null}</Chip>)}</Chips>
         </div>
         <div className="cfeed__filters">
           <button type="button" className="cfeed__pick" data-on={year ? "" : undefined} disabled={years.length < 2} aria-label={`Year: ${year || "any"}`} onClick={() => void choose("Year", year, years, "year")}><span>{year || "Any year"}</span><Icon name="chevron" size={14} /></button>
           <button type="button" className="cfeed__pick" data-on={teacher ? "" : undefined} disabled={teachers.length < 2} aria-label={`Teacher: ${teacher || "any"}`} onClick={() => void choose("Teacher", teacher, teachers, "teacher")}><span>{teacher || "Any teacher"}</span><Icon name="chevron" size={14} /></button>
+          {series ? <button type="button" className="cfeed__pick" data-on="" aria-label={`Series: ${series}. Show every class`} onClick={() => { haptic("select"); set({ series: undefined }); }}><span>{series}</span><Icon name="close" size={14} /></button> : null}
           {filtered ? <button type="button" className="cfeed__reset" onClick={() => { haptic("select"); reset(); }}>Reset</button> : null}
         </div>
       </div>
@@ -86,7 +91,7 @@ export function Classes() {
         <>
           <p className="cfeed__count" aria-live="polite">{rows.length.toLocaleString()} {rows.length === 1 ? "class" : "classes"}</p>
           <div className="cfeed" role="feed" aria-label="Classes">
-            {rows.slice(0, shown).map((t, i) => <ClassPost key={t.url} t={t} index={i} total={rows.length} playing={playing === t.url} onPlay={(on) => setPlaying(on ? t.url : null)} />)}
+            {rows.slice(0, shown).map((t, i) => <ClassPost key={t.url} t={t} index={i} total={rows.length} playing={playing === t.url} onPlay={(on) => setPlaying(on ? t.url : null)} onSeries={series ? undefined : (name) => { set({ series: name }); window.scrollTo({ top: 0 }); }} />)}
           </div>
           <div ref={more} className="cfeed__more">
             {rows.length > shown ? <button type="button" className="cfeed__morebtn" onClick={() => setShown(shown + PAGE)}>Show more classes</button> : <p className="cfeed__end">You’re all caught up</p>}
@@ -105,7 +110,7 @@ function TeacherMark({ t }: { t: Teaching }) {
   return <span className="post__mark" aria-hidden="true" style={{ ["--mark-h" as string]: String(h) }}>{letter || <Icon name="play" size={14} />}</span>;
 }
 
-function ClassPost({ t, index, total, playing, onPlay }: { t: Teaching; index: number; total: number; playing: boolean; onPlay: (on: boolean) => void }) {
+function ClassPost({ t, index, total, playing, onPlay, onSeries }: { t: Teaching; index: number; total: number; playing: boolean; onPlay: (on: boolean) => void; onSeries?: (name: string) => void }) {
   const [marks, setMarks] = useBookmarks();
   const [open, setOpen] = useState(false);
   const [scripture, setScripture] = useState(false);
@@ -115,7 +120,9 @@ function ClassPost({ t, index, total, playing, onPlay }: { t: Teaching; index: n
   const kept = marks.some((m) => m.id === t.url);
   const id = `post-${index}`;
   const opens = t.opens ?? [];
-  const series = [KIND_NAME[t.kind], t.sub].filter(Boolean).join(" · ");
+  const label = [teachingLabel(t), t.sub].filter(Boolean).join(" · ");
+  // A series name opens the rest of the series.
+  const series = t.series && onSeries ? <button type="button" className="post__series" onClick={() => { haptic("select"); onSeries(t.series!.name); }}>{label}</button> : label;
   // "Read more" only where the preview is actually cut.
   useLayoutEffect(() => {
     const el = intro.current; if (!el || open) return;
@@ -131,13 +138,13 @@ function ClassPost({ t, index, total, playing, onPlay }: { t: Teaching; index: n
       <header className="post__head">
         <TeacherMark t={t} />
         <div className="post__who">
-          <b>{t.teacher || KIND_NAME[t.kind]}</b>
-          <span>{t.teacher ? `${series} · ` : t.sub ? `${t.sub} · ` : ""}{t.date ? <time dateTime={t.date}>{fmtDate(t.date)}</time> : "Date to come"}</span>
+          <b>{t.teacher || (t.series ? series : teachingLabel(t))}</b>
+          <span>{t.teacher ? <>{series} · </> : t.sub ? `${t.sub} · ` : ""}{t.date ? <time dateTime={t.date}>{fmtDate(t.date)}</time> : "Date to come"}</span>
         </div>
         {!t.pending ? (
           <div className="post__tools">
-            <button type="button" className="post__icon" aria-label={`Share ${t.title}`} onClick={() => { haptic("select"); void share({ kind: "note", title: t.title, text: KIND_NAME[t.kind], sitePath: t.url }); }}><Icon name="share" size={20} /></button>
-            <button type="button" className="post__icon" aria-pressed={kept} aria-label={kept ? "Remove from saved" : "Save"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: t.url, kind: "note", title: t.title, text: [KIND_NAME[t.kind], fmtDate(t.date)].filter(Boolean).join(" · "), href: t.url })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={20} /></button>
+            <button type="button" className="post__icon" aria-label={`Share ${t.title}`} onClick={() => { haptic("select"); void share({ kind: "note", title: t.title, text: teachingLabel(t), sitePath: t.url }); }}><Icon name="share" size={20} /></button>
+            <button type="button" className="post__icon" aria-pressed={kept} aria-label={kept ? "Remove from saved" : "Save"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: t.url, kind: "note", title: t.title, text: [teachingLabel(t), fmtDate(t.date)].filter(Boolean).join(" · "), href: t.url })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={20} /></button>
           </div>
         ) : null}
       </header>
@@ -190,9 +197,12 @@ function ClassPost({ t, index, total, playing, onPlay }: { t: Teaching; index: n
 }
 
 /** The recording's picture at 16:9, its space held before it loads; a quiet tile when there is none. */
+/** YouTube's 320px still blurs on a wide feed: offer its 480px one too (its letterbox is cropped by object-fit). */
+const sharper = (src: string) => /\/mqdefault\.jpg$/.test(src) ? `${src} 320w, ${src.replace(/mqdefault\.jpg$/, "hqdefault.jpg")} 480w` : undefined;
+
 function Poster({ src }: { src: string }) {
   const [failed, setFailed] = useState(!src);
-  return failed ? <span className="post__noimg"><Icon name="play" size={28} /></span> : <img src={src} alt="" width={320} height={180} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
+  return failed ? <span className="post__noimg"><Icon name="play" size={28} /></span> : <img src={src} srcSet={sharper(src)} sizes="(min-width: 700px) 600px, 100vw" alt="" width={320} height={180} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
 }
 
 function FeedSkeleton() {

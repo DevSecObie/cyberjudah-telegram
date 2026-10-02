@@ -1,0 +1,48 @@
+/* ── Tabs: the New Tab page, the switcher and the dock's editor ────────────────────────────── */
+.newtab .shelf { font-family: var(--font-ui); font-weight: 700; }
+.nt-heading { margin: var(--sp-4) 0 4px; text-align: center; font: 700 var(--fs-title1)/1.25 var(--font-ui); letter-spacing: -.02em; color: var(--text-1); }
+.nt-list { display: grid; gap: 10px; }
+#root .nt-search { display: flex; align-items: center; gap: 10px; width: 100%; min-height: var(--h-lg); margin: var(--sp-6) 0 var(--sp-2); padding: 0 var(--sp-4); border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--control-edge); color: var(--text-3); font: 400 15px var(--font-ui); text-align: left; cursor: pointer; }
+#root .nt-search:hover { background: var(--fill-2); }
+.nt-item, .nt-hero { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; width: 100%; padding: 14px; border: 0; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); color: var(--text-2); text-align: left; cursor: pointer; }
+.nt-item:hover { background: color-mix(in srgb, var(--text-1) 3%, var(--surface-1)); }
+.nt-item__icon, .nt-hero__icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
+.nt-item__body, .nt-hero__body { display: grid; gap: 3px; min-width: 0; }
+.nt-item__body b { font: 600 var(--fs-body) var(--font-ui); color: var(--text-1); }
+.nt-item__body small, .nt-hero__body small { font: 400 var(--fs-footnote)/1.4 var(--font-ui); color: var(--text-3); }
+.nt-item > svg:last-child, .nt-hero > svg:last-child { color: var(--text-4); }
+.nt-hero { min-height: 180px; padding: 22px; background: linear-gradient(140deg, color-mix(in srgb, var(--accent) 14%, var(--surface-1)), var(--surface-1) 70%); }
+.nt-hero__icon { width: 80px; height: 100px; background: none; }
+.nt-hero__body b { font: 700 var(--fs-title1)/1.1 var(--font-ui); color: var(--text-1); }
+
+/* The switcher: two cards a row, each a tinted surface (no filter: there are many of them). */
+.switcher { min-height: 100dvh; padding: calc(var(--safe-top) + var(--sp-5)) var(--sp-5) calc(var(--dock-space) + 40px); touch-action: pan-y; }
+.switcher__grid { display: grid; gap: var(--sp-5); justify-content: start; }
+.tabcard { position: relative; overflow: hidden; border-radius: var(--r-xl); background: var(--surface-1); box-shadow: var(--card-edge), inset 0 1px 0 var(--rim-highlight), var(--shadow-2); transition: transform var(--dur-2) var(--ease), box-shadow var(--dur-2) ease; }
+.tabcard:active { transform: scale(.97); }
+.tabcard[data-current] { box-shadow: var(--card-edge), inset 0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent), var(--shadow-2); }
+#root .tabcard__open { position: absolute; inset: 0; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
+.tabcard__icon { position: relative; z-index: 1; display: grid; place-items: center; width: 80px; height: 80px; border-radius: 40px; color: var(--accent); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline), inset 0 1px 0 var(--rim-highlight); }
+.tabcard__title { position: absolute; top: 0; left: 0; right: 40px; display: flex; align-items: center; gap: var(--sp-2); height: 40px; padding: 0 5px 0 14px; color: var(--text-3); pointer-events: none; }
+.tabcard__title b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 var(--fs-caption) var(--font-ui); color: var(--text-1); }
+#root .tabcard__close { position: absolute; top: 0; right: 0; display: grid; place-items: center; width: var(--touch); height: var(--touch); padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
+.tabcard__close span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 13px; background: var(--fill-2); }
+.tabcard__preview { position: absolute; inset: 48px var(--sp-3) 0; overflow: hidden; opacity: .5; color: var(--text-2); text-align: left; -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent); mask-image: linear-gradient(to bottom, #000 55%, transparent); font: 400 var(--fs-caption)/1.65 var(--font-read); pointer-events: none; }
+.tabcard__preview > span { display: block; margin-top: 6px; }
+.groupdot { flex: none; display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+
+/* The dock's editor. */
+.naved__preview { display: flex; justify-content: space-around; align-items: center; height: 52px; margin: 4px 0 18px; padding: 0 var(--sp-3); border-radius: var(--r-pill); background: var(--surface-1); box-shadow: var(--card-edge), inset 0 1px 0 var(--rim-highlight); color: var(--text-2); }
+.naved__preview > span { display: grid; place-items: center; width: 40px; }
+.naved { margin: 0; padding: 0; list-style: none; overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge); }
+.naved__row { display: flex; align-items: center; gap: var(--sp-3); min-height: var(--h-lg); padding: 0 var(--sp-2) 0 var(--sp-4); border-top: .5px solid var(--hairline); }
+.naved__row:first-child { border-top: 0; }
+.naved__icon { display: grid; place-items: center; min-width: 26px; color: var(--text-1); }
+.naved__label { flex: 1; font: 500 15px var(--font-ui); color: var(--text-2); }
+.naved__btn { display: grid; place-items: center; width: var(--touch); height: var(--touch); border: 0; border-radius: 50%; background: none; color: var(--text-1); cursor: pointer; }
+.naved__btn--down svg { transform: rotate(180deg); }
+.naved__btn--add { color: var(--accent); }
+.naved__btn:disabled { opacity: .3; cursor: default; }
+.naved__btn:not(:disabled):hover { background: var(--state-hover); }
+.naved__btn:not(:disabled):active { background: var(--state-press); }
+.naved__reset { display: block; min-height: var(--touch); margin: 18px auto 0; border: 0; background: none; font: 500 15px var(--font-ui); color: var(--accent); cursor: pointer; }

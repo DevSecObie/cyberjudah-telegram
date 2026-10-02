@@ -5,11 +5,14 @@ import path from "node:path";
 const MOCK = fs.readFileSync(new URL("./telegram-mock.js", import.meta.url), "utf8");
 /** The library from a local build when DATA_DIR is set, as in telegram.spec, else from the data origin. */
 const DATA = process.env.DATA_DIR ?? "";
+// The origin the app was built to read its data from (app/src/api/data.ts): stand-ins must sit
+// there, or a build pointed elsewhere (VITE_DATA_ORIGIN, as local runs use) bypasses them.
+const DATA_ORIGIN = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
 
 /** A device voice that speaks a verse when the test says so: `__speech.next()` ends the current one. */
 async function setup(page: Page) {
   await page.route("https://telegram.org/**", (r) => r.fulfill({ contentType: "application/javascript", body: MOCK }));
-  if (DATA) await page.route("https://data.cyberjudah.io/**", (r) => {
+  if (DATA) await page.route(`${DATA_ORIGIN}/**`, (r) => {
     const f = path.join(DATA, decodeURIComponent(new URL(r.request().url()).pathname));
     return f.startsWith(DATA) && fs.existsSync(f) && fs.statSync(f).isFile() ? r.fulfill({ path: f }) : r.fulfill({ status: 404, body: "" });
   });

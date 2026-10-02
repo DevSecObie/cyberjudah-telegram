@@ -1,0 +1,61 @@
+/* ── The Law: a handbook to browse, a section to read law by law ───────────────────────────── */
+.laws, .lawsec { max-width: 680px; }
+.laws__tools { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
+.laws__head { margin: 0; font: 600 var(--fs-footnote) var(--font-ui); letter-spacing: .02em; color: var(--text-3); }
+.laws__head span { font-weight: 500; }
+.laws__note { margin: 0; font: 400 var(--fs-sub)/1.45 var(--font-ui); color: var(--text-3); }
+.laws__wait { display: grid; gap: var(--sp-2); padding: 6px 0; }
+.laws__hits, .laws__part { display: grid; gap: 10px; min-width: 0; }
+.laws__parthead { display: flex; align-items: baseline; gap: 10px; margin: 10px 0 0; font: 700 var(--fs-callout)/1.3 var(--font-ui); letter-spacing: -.01em; color: var(--text-1); overflow-wrap: anywhere; scroll-margin-top: calc(var(--header-h) + var(--safe-top) + 12px); }
+.laws__n { flex: none; min-width: 1.6em; font: 600 var(--fs-footnote) var(--font-ui); color: var(--text-3); font-variant-numeric: tabular-nums; }
+/* One grouped list per part: hairlines between, rounded as a whole. */
+.laws__list { margin: 0; padding: 0; list-style: none; overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
+.laws__list > li + li { border-top: .5px solid var(--hairline); }
+#root .lawlink { display: flex; align-items: center; gap: var(--sp-3); min-height: 58px; padding: 10px 14px; color: var(--text-1); text-decoration: none; transition: background-color var(--dur-1) ease; }
+#root .lawlink:hover { background: var(--state-hover); }
+#root .lawlink:active { background: var(--state-press); }
+#root .lawlink > svg { flex: none; color: var(--text-4); }
+.lawlink__code { flex: none; min-width: 42px; padding: 3px 7px; border-radius: var(--r-xs); text-align: center; background: var(--accent-soft); color: var(--accent); font: 700 var(--fs-caption)/1.3 var(--font-ui); font-variant-numeric: tabular-nums; }
+.lawlink__body { flex: 1 1 auto; display: grid; gap: 2px; min-width: 0; }
+.lawlink__body b { font: 600 15.5px/1.3 var(--font-ui); overflow-wrap: anywhere; }
+.lawlink__body small { font: 400 var(--fs-footnote)/1.3 var(--font-ui); color: var(--text-3); overflow-wrap: anywhere; }
+.lawlink__law { font: 400 15px/1.45 var(--font-ui); color: var(--text-1); overflow-wrap: anywhere; }
+
+.lawsec__head { display: grid; gap: var(--sp-2); }
+.lawsec__top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+#root .lawsec__part { display: inline-flex; align-items: center; min-height: 36px; font: 600 var(--fs-footnote)/1.3 var(--font-ui); color: var(--accent); text-decoration: none; overflow-wrap: anywhere; }
+#root .lawsec__top .lawsec__share, #root button.case__share { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); font: 600 var(--fs-footnote) var(--font-ui); color: var(--text-1); cursor: pointer; }
+#root .lawsec__top .lawsec__share:hover, #root button.case__share:hover { background: var(--fill-2); }
+.lawsec__title { margin: 0; font: 700 var(--fs-title1)/1.2 var(--font-ui); letter-spacing: -.02em; color: var(--text-1); overflow-wrap: anywhere; text-wrap: balance; }
+.lawsec__id { color: var(--accent); font-variant-numeric: tabular-nums; }
+.lawsec__count { margin: 0; font: 500 var(--fs-sub) var(--font-ui); color: var(--text-3); }
+.lawsec__laws { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+
+/* A law: its own words as the title, its scriptures as tabs, the verse beneath in the reading face. */
+.lawcard { display: grid; gap: var(--sp-3); min-width: 0; padding: 18px; border-radius: var(--r-xl); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); scroll-margin-top: calc(var(--sp-4) + var(--safe-top)); transition: box-shadow var(--dur-4) var(--ease); }
+.lawcard[data-flash] { box-shadow: var(--card-edge), 0 0 0 2px var(--accent), var(--shadow-2); }
+.lawcard__code { margin: 0; font: 700 11.5px var(--font-ui); letter-spacing: .06em; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.lawcard__text { margin: -6px 0 0; font: 600 18px/1.4 var(--font-ui); color: var(--text-1); overflow-wrap: anywhere; text-wrap: pretty; }
+.lawcard__refs { display: flex; flex-wrap: wrap; gap: 6px; }
+#root .lawcard__refs .lawcard__ref { max-width: 100%; min-height: 36px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--control-edge); color: var(--text-2); font: 600 var(--fs-footnote)/1.2 var(--font-ui); text-align: left; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; cursor: pointer; }
+#root .lawcard__refs .lawcard__ref:hover { background: var(--fill-2); }
+#root .lawcard__refs .lawcard__ref[aria-selected="true"] { background: var(--text-1); color: var(--canvas); box-shadow: none; }
+#root .lawcard__refs .lawcard__ref--more { background: none; box-shadow: inset 0 0 0 1px var(--hairline); color: var(--text-3); }
+.lawcard__quote { display: grid; gap: var(--sp-2); min-width: 0; margin: 0; padding: 2px 0 0 14px; border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); }
+.lawcard__cite { display: flex; align-items: baseline; gap: var(--sp-2); font: 600 var(--fs-footnote) var(--font-ui); color: var(--text-1); overflow-wrap: anywhere; }
+.lawcard__cite span { font: 700 10px var(--font-ui); letter-spacing: .08em; color: var(--text-3); }
+.lawcard__quote blockquote { margin: 0; font: 400 var(--fs-callout)/1.6 var(--font-read); color: var(--text-2); overflow-wrap: anywhere; }
+.lawcard__quote sup { margin-right: 3px; font: 600 10px var(--font-ui); color: var(--text-3); vertical-align: super; }
+.lawcard__foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-3); }
+#root .lawcard__foot .lawcard__all { min-height: 40px; padding: 0; border: 0; background: none; font: 600 var(--fs-sub) var(--font-ui); color: var(--text-3); cursor: pointer; }
+#root .lawcard__foot .lawcard__all:hover { color: var(--text-1); }
+#root .lawcard__foot .lawcard__go { display: inline-flex; align-items: center; gap: 2px; min-height: 40px; margin-left: auto; padding: 0 14px; border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent); font: 600 var(--fs-sub) var(--font-ui); text-decoration: none; }
+#root .lawcard__foot .lawcard__go:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+.lawcard__noref { margin: 0; font: 400 var(--fs-sub)/1.45 var(--font-ui); color: var(--text-3); }
+/* Older law rows (search hits, precepts). */
+.lawrow { position: relative; padding: var(--sp-3) 14px; }
+.lawrow + .lawrow::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; border-top: .5px solid var(--hairline); pointer-events: none; }
+.lawrow b { font: 600 var(--fs-caption) var(--font-ui); color: var(--accent); }
+.lawrow p { margin: 4px 0 6px; font: 400 var(--fs-callout)/1.45 var(--font-read); color: var(--text-1); }
+.refs { display: flex; flex-wrap: wrap; gap: 6px; }
+.refs a { display: inline-flex; align-items: center; min-height: 28px; font: 600 var(--fs-footnote) var(--font-ui); color: var(--accent); }

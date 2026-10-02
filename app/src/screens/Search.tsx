@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboa
 import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { useRecentSearches } from "@/lib/marks";
+import { showOf } from "@/lib/series";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { api, ApiError, haptic, hideKeyboard } from "@/tg/sdk";
 import { Button, Chip, Icon, Img, Skeleton, timestamp, type IconName } from "@/ui/ui";
@@ -152,6 +153,8 @@ export function Search() {
   const count = (s: Scope) => s === "top" ? undefined : s === "spoken" ? (spoken.data?.ok ? spoken.data.hits.length + (spoken.data.more ? "+" : "") : undefined) : SCOPE_KINDS[s].reduce((n, k) => n + (counts[k] ?? 0), 0) || undefined;
   const busy = (library.isFetching || spoken.isFetching) && term.trim().length >= 2;
   const total = hits.length + (spoken.data?.ok ? spoken.data.hits.length : 0);
+  // A failure is announced as a failure (the alert below names it), never as "0 results".
+  const failed = (library.isError || library.data?.ok === false) && (spoken.isError || spoken.data?.ok === false || !spoken.data);
 
   return (
     <main className="screen srch">
@@ -176,7 +179,7 @@ export function Search() {
           </div>
         ) : null}
       </div>
-      <p className="sr-only" aria-live="polite">{term.trim().length >= 2 && !busy ? `${total} results for ${term}` : ""}</p>
+      <p className="sr-only" aria-live="polite">{term.trim().length >= 2 && !busy && !failed ? `${total} ${total === 1 ? "result" : "results"} for ${term}` : ""}</p>
       <div id="srch-results" ref={results} className="srch__results" onKeyDown={onResultsKey}>
         {term.trim().length < 2 ? (
           <Start recent={recent} onPick={choose} onForget={(r) => setRecent(recent.filter((x) => x !== r))} onClear={() => setRecent([])} />
@@ -331,7 +334,7 @@ function Recording({ h, eager }: { h: TeachingHit; eager: boolean }) {
     <Link to={teachingPath(h)} className="rec" data-result="">
       <span className="rec__thumb">{frame ? <span className="rec__frame" style={frame} /> : <Img src={thumbOf(h.video)} eager={eager} />}<span className="rec__time">{timestamp(at)}</span></span>
       <span className="rec__body">
-        <span className="rec__meta">{FEED_NAME[h.feed] ?? h.feed} · {h.date ? fmtDate(h.date) : "Date unavailable"} · <b>{timestamp(at)}</b></span>
+        <span className="rec__meta">{showOf(h.title) ?? FEED_NAME[h.feed] ?? h.feed} · {h.date ? fmtDate(h.date) : "Date unavailable"} · <b>{timestamp(at)}</b></span>
         <span className="rec__title"><Marked text={h.matchedTitle || h.title} /></span>
         <span className="rec__excerpt"><Marked text={h.excerpt} /></span>
         <span className="rec__links">{h.note ? "Watch at this moment · Read the notes" : "Watch at this moment"}</span>

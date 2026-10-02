@@ -94,7 +94,7 @@ export function MediaDeck({ items, placement, palette: c, fontScale, sections, r
   return (
     <>
       <button ref={stack} type="button" className="bs-deck" data-ignore-verse-touch="" disabled={disabled} style={style}
-        aria-label={`${items.length === 1 ? "A class" : `${items.length} classes`} taught this: ${items.map((m) => m.label).join(", ")}`}
+        aria-label={`${items.length === 1 ? "1 class" : `${items.length} classes`} taught this ${placement === "chapter" ? "chapter" : "verse"}`}
         onClick={(e) => { e.stopPropagation(); if (disabled) return; haptic("select"); setMode("gallery"); }}>
         {shown.map((m, i) => {
           const f = fan(i, shown.length);
@@ -228,7 +228,7 @@ function DeckOverlay({ items, sections, source, palette: c, reference, from, mod
       style={{ ["--deck-bg" as string]: c.reverse, ["--deck-ink" as string]: c.default, ["--deck-primary" as string]: c.primary, color: c.default }}
       onClick={close}>
       <button type="button" className="bs-gallery__close" aria-label="Close" style={{ background: c.reverse, color: c.default }} onClick={(e) => { e.stopPropagation(); close(); }}>
-        <Feather name="x" size={21} color={c.default} />
+        <Feather name="x" size={24} color={c.default} />
       </button>
       {mode === "gallery" ? (
         <div className="bs-gallery__scroll">

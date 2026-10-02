@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark" style="color-scheme: dark">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#05070f" />
     <meta name="robots" content="noindex" />
     <title>CyberJudah</title>
@@ -13,6 +13,25 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,700;1,7..72,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" />
     <!-- Telegram's SDK first, before the app reads the launch parameters. -->
     <script src="https://telegram.org/js/telegram-web-app.js?59"></script>
+    <!-- The reader's theme before the first paint, so a light reader never sees a dark flash. -->
+    <script>
+      (function () {
+        try {
+          var d = document.documentElement, pref = localStorage.getItem("cj:theme-pref"), t = pref;
+          if (t !== "light" && t !== "dark") {
+            var tg = window.Telegram && window.Telegram.WebApp;
+            t = tg && tg.colorScheme ? (tg.colorScheme === "light" ? "light" : "dark") : (window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+          }
+          d.setAttribute("data-theme", t);
+          d.style.colorScheme = t === "dark" ? "dark" : "light";
+          // The Bible's colours, which the whole app wears, as last applied.
+          var pal = JSON.parse(localStorage.getItem("cj:palette") || "null");
+          if (pal && pref === t) for (var k in pal) d.style.setProperty(k, pal[k]);
+          var tr = localStorage.getItem("cj:transparency");
+          if (tr === "reduced") d.setAttribute("data-transparency", "reduced");
+        } catch (e) { /* storage blocked: the app sets the theme once it starts */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
-import { validateInitData, signInitData } from "../src/initdata.mjs";
+import { LAUNCH_DATA_MAX_AGE, validateInitData, signInitData } from "../src/initdata.mjs";
 
 // Build a structurally useful value without committing anything secret scanners can mistake
 // for a live Telegram credential.
@@ -57,4 +57,14 @@ test("rejects launch data dated materially in the future", async () => {
   assert.equal(await validateInitData(future, TOKEN, 86400, now), null);
   const clockSkew = sign({ ...fresh, auth_date: String(Math.floor(now / 1000) + 30) });
   assert.ok(await validateInitData(clockSkew, TOKEN, 86400, now));
+});
+
+// Regression (ed9ac6d): the API refused launch data older than three days, so a Mini App left
+// open past that lost Search and Ask together. A reader's session must last at least 30 days.
+test("the API's window keeps a Mini App left open for weeks signed in", async () => {
+  assert.ok(LAUNCH_DATA_MAX_AGE >= 30 * 86400);
+  const daysOld = (d) => sign({ ...fresh, auth_date: String(Math.floor(now / 1000) - d * 86400) });
+  assert.ok(await validateInitData(daysOld(4), TOKEN, LAUNCH_DATA_MAX_AGE, now));
+  assert.ok(await validateInitData(daysOld(29), TOKEN, LAUNCH_DATA_MAX_AGE, now));
+  assert.equal(await validateInitData(daysOld(31), TOKEN, LAUNCH_DATA_MAX_AGE, now), null);
 });

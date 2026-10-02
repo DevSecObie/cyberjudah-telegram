@@ -59,7 +59,7 @@ export function Lexicon() {
         <Section title="Word of the day">
           <Link to={`/lexicon/${ofDay.n}`} className="lex-day" onClick={() => haptic("select")}>
             <span className="lex-day__lemma" lang={lang === "hebrew" ? "he" : "el"} dir={lang === "hebrew" ? "rtl" : "ltr"}>{ofDay.lemma}</span>
-            <span className="lex-day__body"><b>{ofDay.xlit || ofDay.n}</b><span>{ofDay.def}</span><small>Strong's {ofDay.n} · {ofDay.count.toLocaleString()} times</small></span>
+            <span className="lex-day__body"><b>{ofDay.xlit || ofDay.n}</b><span>{preview(ofDay.def)}</span><small>Strong's {ofDay.n} · {ofDay.count.toLocaleString()} times</small></span>
             <Icon name="chevron" size={18} />
           </Link>
         </Section>
@@ -75,9 +75,17 @@ export function Lexicon() {
   );
 }
 
+/** The index keeps the first 90 characters of a definition; a cut one ends at a whole word, with an ellipsis. */
+const INDEX_DEF_CAP = 90;
+const preview = (def: string) => {
+  if (def.length < INDEX_DEF_CAP) return def;
+  const cut = def.slice(0, def.lastIndexOf(" ") > 40 ? def.lastIndexOf(" ") : def.length).replace(/[\s,;:.(-]+$/, "");
+  return `${cut}…`;
+};
+
 export function StrongRow({ row }: { row: StrongsRow }) {
   const heb = row.n[0] === "H";
-  return <Row href={`/lexicon/${row.n}`} title={<span className="lex-row"><span className="lex-row__lemma" lang={heb ? "he" : "el"} dir={heb ? "rtl" : "ltr"}>{row.lemma}</span><span>{row.xlit || row.n}</span></span>} sub={row.def} meta={<span className="lex-row__meta"><b>{row.n}</b><small>{row.count.toLocaleString()}</small></span>} />;
+  return <Row href={`/lexicon/${row.n}`} title={<span className="lex-row"><span className="lex-row__lemma" lang={heb ? "he" : "el"} dir={heb ? "rtl" : "ltr"}>{row.lemma}</span><span>{row.xlit || row.n}</span></span>} sub={preview(row.def)} meta={<span className="lex-row__meta"><b>{row.n}</b><small>{row.count.toLocaleString()}</small></span>} />;
 }
 
 /** One word's full study, as a screen: `/lexicon/H430`. */

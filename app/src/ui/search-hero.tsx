@@ -57,14 +57,14 @@ export function SearchHero({ value, onChange, onSubmit, autoFocus, big, mode = "
   const prompts = ask ? ASK_PROMPTS : PROMPTS;
   useEffect(() => { if (value) return; const t = setInterval(() => setI((n) => (n + 1) % prompts.length), 3000); return () => clearInterval(t); }, [value, prompts.length]);
   return (
-    <form className={`hero${big ? " hero--big" : ""}`} data-focus={focused ? "" : undefined} data-mode={ask ? "ask" : undefined} role="search" onSubmit={(e) => { e.preventDefault(); hideKeyboard(); onSubmit(value); }}>
-      <div className="hero__field">
+    <form className={`shero${big ? " shero--big" : ""}`} data-focus={focused ? "" : undefined} data-mode={ask ? "ask" : undefined} role="search" onSubmit={(e) => { e.preventDefault(); hideKeyboard(); onSubmit(value); }}>
+      <div className="shero__field">
         <Icon name={ask ? "note" : "search"} size={20} />
         <input ref={inputRef} id="q" type="search" enterKeyHint={ask ? "send" : "search"} autoComplete="off" autoCorrect="off" spellCheck={false} value={value} autoFocus={autoFocus} aria-label={ask ? "Ask CyberJudah" : "Search the teachings"} placeholder=" "
           onChange={(e) => onChange(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
-        {!value ? <span className="hero__prompts" aria-hidden="true">{prompts.map((p, k) => <span key={p} className="hero__prompt" data-on={k === i % prompts.length ? "" : undefined}>{p}</span>)}</span> : null}
-        {value ? <button type="button" className="hero__clear" aria-label="Clear" onClick={() => { onChange(""); inputRef.current?.focus(); }}>×</button> : null}
-        <button type="submit" className="hero__go" aria-label={ask ? "Ask" : "Search"} disabled={!value.trim()}><Icon name="chevron" size={18} /></button>
+        {!value ? <span className="shero__prompts" aria-hidden="true">{prompts.map((p, k) => <span key={p} className="shero__prompt" data-on={k === i % prompts.length ? "" : undefined}>{p}</span>)}</span> : null}
+        {value ? <button type="button" className="shero__clear" aria-label="Clear" onClick={() => { onChange(""); inputRef.current?.focus(); }}>×</button> : null}
+        <button type="submit" className="shero__go" aria-label={ask ? "Ask" : "Search"} disabled={!value.trim()}><Icon name="chevron" size={18} /></button>
       </div>
       {children}
     </form>

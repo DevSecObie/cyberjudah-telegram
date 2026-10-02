@@ -1,0 +1,194 @@
+/* ─────────────────────────────────────────────────────────────────────────────────────────────
+   Design tokens. Every colour, material, size, motion and layer in the app reads from here; the
+   rest of the stylesheets never hard-code them. Three themes (dark, the default; light; sepia) set
+   the colour tokens on <html data-theme>. The materials are our own CSS approximation of the
+   layering Apple describes for Liquid Glass (a translucent navigation layer floating over content);
+   they are not Apple's native rendering.
+   ───────────────────────────────────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+
+  /* Colour: the canvas, content surfaces, fills that sit on any surface. */
+  --canvas: #05070f;
+  --canvas-glow: color-mix(in srgb, #00e5ff 9%, transparent);   /* a faint light at the top of the page */
+  --surface-1: #0b1020;                                          /* cards, lists, reading blocks */
+  --surface-2: #141c36;                                          /* inset fills inside a surface */
+  --fill-1: color-mix(in srgb, #f2f6fb 6%, transparent);        /* quiet control fill */
+  --fill-2: color-mix(in srgb, #f2f6fb 10%, transparent);       /* control fill, hovered */
+  --fill-3: color-mix(in srgb, #f2f6fb 15%, transparent);       /* pressed */
+
+  /* Text: primary, body, secondary, placeholder, on an inverse ground. */
+  --text-1: #f2f6fb;
+  --text-2: #d6e0ec;
+  --text-3: #9fb1c8;
+  --text-4: #8a9db6;
+  --text-inverse: #05070f;
+
+  /* Accent and status. "-ink" is what reads on a filled chip of that colour. */
+  --accent: #00e5ff;
+  --on-accent: #00161c;
+  --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-softer: color-mix(in srgb, var(--accent) 8%, transparent);
+  --danger: #ff5c93;
+  --success: #3ddc97;
+  --warning: #fbbf24;
+  --gold: #d9b45c;
+  --violet: #b9a2ff;
+  --sky: #7cb8ff;
+
+  /* Lines: a hairline between rows, a required control edge (3:1), the glass rim. */
+  --hairline: #22304b;
+  --control-edge: #6b7d99;
+  --rim: color-mix(in srgb, #ffffff 14%, transparent);
+  --rim-highlight: color-mix(in srgb, #ffffff 16%, transparent);
+
+  /* Elevation. */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .28);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, .32);
+  --shadow-3: 0 18px 50px rgba(0, 0, 0, .45);
+  --card-edge: inset 0 0 0 .5px color-mix(in srgb, #ffffff 7%, transparent);
+
+  /* States. */
+  --state-hover: color-mix(in srgb, var(--text-1) 5%, transparent);
+  --state-press: color-mix(in srgb, var(--text-1) 10%, transparent);
+  --state-selected: color-mix(in srgb, var(--accent) 14%, transparent);
+  --focus-ring: 0 0 0 2px var(--canvas), 0 0 0 4px var(--accent);
+  --disabled-opacity: .42;
+
+  /* Materials (see materials.css). Tint is the colour the glass carries; the blur is the frost. */
+  --mat-base: var(--canvas);
+  --mat-nav: color-mix(in srgb, var(--mat-base) 76%, transparent);
+  --mat-elevated: color-mix(in srgb, var(--surface-1) 93%, transparent);
+  --mat-overlay: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  --mat-blur: blur(16px) saturate(170%);
+  --mat-blur-strong: blur(22px) saturate(180%);
+  --mat-edge: color-mix(in srgb, #ffffff 12%, transparent);
+  --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent);
+  --mat-shadow: 0 10px 30px rgba(0, 0, 0, .35), 0 1px 3px rgba(0, 0, 0, .25);
+  --mat-selected: color-mix(in srgb, var(--text-1) 13%, transparent);
+  --mat-glow: color-mix(in srgb, var(--accent) 75%, transparent);
+
+  /* Scrims. */
+  --scrim-modal: rgba(0, 0, 0, .6);
+  --scrim-soft: rgba(0, 0, 0, .32);
+  --scrim-media: rgba(0, 0, 0, .35);
+
+  /* Shape: radii nest (inner = outer − padding). */
+  --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 18px; --r-xl: 22px; --r-2xl: 28px; --r-pill: 999px;
+
+  /* Space and size. */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 44px;
+  --gutter: 16px;
+  --touch: 44px;
+  --h-sm: 34px; --h-md: 44px; --h-lg: 52px;
+  --w-read: 640px; --w-wide: 760px; --w-max: 1120px;
+
+  /* Type. */
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-read: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --fs-caption: 12px; --fs-footnote: 13px; --fs-sub: 14.5px; --fs-body: 16px; --fs-callout: 17px;
+  --fs-title3: 19px; --fs-title2: 22px; --fs-title1: 28px; --fs-large: 32px;
+  --lh-tight: 1.2; --lh-snug: 1.35; --lh-body: 1.5; --lh-read: 1.65;
+
+  /* Motion. Routine changes are quick; nothing runs longer than --dur-4. */
+  --dur-1: 120ms; --dur-2: 200ms; --dur-3: 280ms; --dur-4: 380ms;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --ease-spring: cubic-bezier(.2, 1.12, .32, 1);
+  --ease-exit: cubic-bezier(.4, 0, 1, 1);
+
+  /* Layers. */
+  --z-sticky: 20; --z-actions: 55; --z-dock: 60; --z-drawer: 70; --z-pip: 80; --z-sheet: 90; --z-toast: 100; --z-lock: 110;
+
+  /* Safe areas and the dock. --dock-space is the room content keeps clear at the bottom. */
+  --safe-top: 0px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --dock-h: 60px;
+  --dock-gap: 10px;
+  --dock-space: calc(var(--dock-h) + var(--dock-gap) + var(--safe-bottom));
+  --header-h: 56px;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --canvas: #f6f4ee;
+  --canvas-glow: color-mix(in srgb, #0a7fae 7%, transparent);
+  --surface-1: #ffffff;
+  --surface-2: #ece8de;
+  --fill-1: color-mix(in srgb, #14120e 5%, transparent);
+  --fill-2: color-mix(in srgb, #14120e 8%, transparent);
+  --fill-3: color-mix(in srgb, #14120e 12%, transparent);
+  --text-1: #14120e; --text-2: #2a2620; --text-3: #5c574e; --text-4: #6b665c; --text-inverse: #ffffff;
+  --accent: #006a93; --on-accent: #ffffff;
+  --danger: #b8124f; --success: #0a6e4c; --warning: #8a5a00; --gold: #7d5f17; --violet: #6a48c9; --sky: #1f5fb8;
+  --hairline: #dcd6c8; --control-edge: #7d776b;
+  --rim: color-mix(in srgb, #000000 9%, transparent);
+  --rim-highlight: color-mix(in srgb, #ffffff 85%, transparent);
+  --shadow-1: 0 1px 2px rgba(40, 30, 10, .08);
+  --shadow-2: 0 8px 24px rgba(40, 30, 10, .10);
+  --shadow-3: 0 18px 50px rgba(40, 30, 10, .18);
+  --card-edge: inset 0 0 0 .5px rgba(40, 30, 10, .08);
+  --mat-nav: color-mix(in srgb, var(--mat-base) 78%, transparent);
+  --mat-elevated: color-mix(in srgb, var(--surface-1) 93%, transparent);
+  --mat-overlay: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  --mat-edge: color-mix(in srgb, #000000 8%, transparent);
+  --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 90%, transparent);
+  --mat-shadow: 0 10px 30px rgba(40, 30, 10, .12), 0 1px 3px rgba(40, 30, 10, .08);
+  --mat-selected: color-mix(in srgb, var(--text-inverse) 92%, transparent);
+  --mat-glow: color-mix(in srgb, var(--accent) 55%, transparent);
+  --scrim-modal: rgba(20, 16, 8, .5);
+  --scrim-soft: rgba(20, 16, 8, .2);
+}
+html[data-theme="sepia"] {
+  color-scheme: light;
+  --canvas: #f4ecd8;
+  --canvas-glow: color-mix(in srgb, #b07a22 8%, transparent);
+  --surface-1: #fbf5e6;
+  --surface-2: #ebdec0;
+  --fill-1: color-mix(in srgb, #1f170c 5%, transparent);
+  --fill-2: color-mix(in srgb, #1f170c 8%, transparent);
+  --fill-3: color-mix(in srgb, #1f170c 12%, transparent);
+  --text-1: #1f170c; --text-2: #3b2f1e; --text-3: #65543b; --text-4: #6f5e44; --text-inverse: #fbf5e6;
+  --accent: #7f520f; --on-accent: #ffffff;
+  --danger: #9e1f2a; --success: #2f6b2a; --warning: #7a4a00; --gold: #7a5512; --violet: #5e3f9a; --sky: #2b5a92;
+  --hairline: #d9caa6; --control-edge: #7a6e5a;
+  --rim: color-mix(in srgb, #3b2f1e 12%, transparent);
+  --rim-highlight: color-mix(in srgb, #fffaf0 85%, transparent);
+  --shadow-1: 0 1px 2px rgba(60, 40, 10, .1);
+  --shadow-2: 0 8px 24px rgba(60, 40, 10, .12);
+  --shadow-3: 0 18px 50px rgba(60, 40, 10, .2);
+  --card-edge: inset 0 0 0 .5px rgba(60, 40, 10, .1);
+  --mat-nav: color-mix(in srgb, var(--mat-base) 80%, transparent);
+  --mat-elevated: color-mix(in srgb, #fbf5e6 94%, transparent);
+  --mat-overlay: color-mix(in srgb, #fbf5e6 93%, transparent);
+  --mat-edge: color-mix(in srgb, #3b2f1e 10%, transparent);
+  --mat-highlight: inset 0 1px 0 color-mix(in srgb, #fffaf0 85%, transparent);
+  --mat-shadow: 0 10px 30px rgba(60, 40, 10, .14), 0 1px 3px rgba(60, 40, 10, .1);
+  --mat-selected: color-mix(in srgb, #fffaf0 90%, transparent);
+  --mat-glow: color-mix(in srgb, var(--accent) 55%, transparent);
+  --scrim-modal: rgba(30, 20, 5, .5);
+  --scrim-soft: rgba(30, 20, 5, .2);
+}
+
+/* Larger screens carry more of the page behind the glass; give the frost a little more depth there.
+   Phones keep the lighter blur (cheaper, and the dock is small). */
+@media (min-width: 900px) { :root { --mat-blur: blur(22px) saturate(175%); --mat-blur-strong: blur(28px) saturate(180%); --gutter: 24px; } }
+@media (min-width: 600px) and (max-width: 899px) { :root { --gutter: 20px; } }
+
+/* Less transparency: the system setting, or the app's own switch (Settings → Reduce transparency). */
+@media (prefers-reduced-transparency: reduce) {
+  :root:not([data-transparency="full"]) { --mat-nav: var(--mat-base); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); --mat-blur: none; --mat-blur-strong: none; }
+}
+html[data-transparency="reduced"] { --mat-nav: var(--mat-base); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); --mat-blur: none; --mat-blur-strong: none; }
+
+/* No backdrop filter at all: a solid ground keeps text readable. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root, html[data-theme] { --mat-nav: color-mix(in srgb, var(--mat-base) 96%, transparent); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); }
+}
+
+/* More contrast: firmer edges, brighter secondary text, opaque materials. */
+@media (prefers-contrast: more) {
+  :root { --text-3: #c3d0e0; --text-4: #b3c1d4; --hairline: #50607e; --control-edge: #a6b4c9; --mat-edge: color-mix(in srgb, #ffffff 40%, transparent); --mat-nav: var(--mat-base); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); }
+  html[data-theme="light"] { --text-3: #3d3932; --text-4: #46423a; --hairline: #9f978a; --control-edge: #4f4a41; --mat-edge: color-mix(in srgb, #000000 35%, transparent); --mat-nav: var(--mat-base); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); }
+  html[data-theme="sepia"] { --text-3: #4a3c26; --text-4: #54452d; --hairline: #a3916b; --control-edge: #54452d; --mat-edge: color-mix(in srgb, #1f170c 35%, transparent); --mat-nav: var(--mat-base); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); }
+}
