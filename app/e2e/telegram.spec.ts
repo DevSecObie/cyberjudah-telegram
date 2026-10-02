@@ -1365,12 +1365,12 @@ test("a verse's Comments list every class that read it aloud, from the transcrip
   await expect(page).toHaveURL(/\/(watch|note)\/.*[?&]t=\d+/);
 });
 
-test("Compare puts a verse beside its precepts and its cross references, each written out", async ({ page }) => {
+test("Side by side puts a verse beside its precepts and its cross references, each written out", async ({ page }) => {
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   await tapVerse(page, 1);
   await page.click(".bs-tabsfooter__tab >> text=Study");
-  await page.click(".bs-action >> text=Compare");
+  await page.click(".bs-action >> text=Side by side");
   await expect(page.locator(".bs-compare__verse")).toContainText("The Lord is my shepherd");
   await page.click('.bs-compare__lanes button >> text=Cross references');
   await expect(page.locator(".bs-compare__item").first()).toBeVisible();

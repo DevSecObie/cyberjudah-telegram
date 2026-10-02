@@ -57,7 +57,7 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
                 <ActionItem icon={<NaveIcon />} tint="var(--bs-quint)" label="Themes" onPress={p.onThemes} disabled={p.moreThanOne} />
                 <ActionItem icon={<ReferencesIcon />} tint="var(--bs-quart)" label="References" onPress={p.onReferences} disabled={p.moreThanOne} />
                 <ActionItem icon={<CommentIcon />} tint="#26A69A" label="Commentary" onPress={p.onCommentary} disabled={p.moreThanOne} />
-                <ActionItem name="layers" tint="var(--bs-primary)" label="Compare" onPress={p.onCompare} disabled={p.moreThanOne} />
+                <ActionItem name="layers" tint="var(--bs-primary)" label="Side by side" onPress={p.onCompare} disabled={p.moreThanOne} />
               </ActionsLayout>
             </div>
             <div className="bs-page" style={{ width }}>
