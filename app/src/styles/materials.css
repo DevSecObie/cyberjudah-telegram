@@ -70,12 +70,34 @@
   display: flex; align-items: center; gap: 0;
   border-radius: calc(var(--dock-h) / 2);
   background: var(--dock-tint-override, var(--mat-nav));
-  -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
   border: .5px solid var(--dock-edge-override, var(--mat-edge));
   box-shadow: var(--mat-highlight), var(--mat-shadow);
   touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
   transition: transform var(--dur-4) var(--drawer-ease), width var(--dur-3) var(--ease), height var(--dur-3) var(--ease), border-radius var(--dur-3) var(--ease);
 }
+/* The frost is its own layer, not the bar's: a blur on the bar itself would hide what lies
+   behind it from the lens inside it. */
+.tabs::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
+}
+/* Where the lens can bend what is behind it (refraction.tsx, Chromium), it floats over the icons
+   as the glass does in iOS: the section beneath it seen through the drop, magnified at its middle,
+   curved and split into colour at its rim. Its tint thins so what it bends shows clearly. */
+.tabs[data-refract] .tabs__pill { z-index: 2; }
+/* Only inner shadows on the refracting lens: in Chromium an outer shadow shifts the filter's
+   coordinates and tears the refraction. */
+html:root .tabs[data-refract] .tabs__pill { box-shadow: inset 0 1px 1px color-mix(in srgb, #fff 60%, transparent), inset 0 -1px 1px color-mix(in srgb, #fff 16%, transparent), inset 0 -10px 16px -12px rgba(0, 0, 0, .35); }
+html:root .tabs[data-refract][data-lift] .tabs__pill { box-shadow: inset 0 1.5px 1px color-mix(in srgb, #fff 75%, transparent), inset 0 -1.5px 1px color-mix(in srgb, #fff 30%, transparent), inset 0 0 12px color-mix(in srgb, #fff 10%, transparent); }
+.tabs[data-refract] .tabs__pill,
+html[data-theme="light"] .tabs[data-refract] .tabs__pill { background: radial-gradient(120% 80% at 30% -10%, color-mix(in srgb, #fff 18%, transparent), transparent 60%); }
+.tabs[data-refract] .tab__glyph { scale: 1; }
+/* On a pale bar the lens keeps the page's own brightness, or it washes to white. */
+html:root[data-theme="light"] .tabs[data-refract] .tabs__pill { -webkit-backdrop-filter: url(#lens-rest) saturate(140%); backdrop-filter: url(#lens-rest) saturate(140%); }
+html:root[data-theme="light"] .tabs[data-refract][data-lift] .tabs__pill { -webkit-backdrop-filter: url(#lens-lift) saturate(150%) brightness(1.02); backdrop-filter: url(#lens-lift) saturate(150%) brightness(1.02); }
+/* The lens bends what lies behind it (refraction.tsx): a little at rest, fully when lifted. */
+.tabs[data-refract] .tabs__pill { -webkit-backdrop-filter: url(#lens-rest) saturate(160%) brightness(1.12); backdrop-filter: url(#lens-rest) saturate(160%) brightness(1.12); }
+html:root .tabs[data-refract][data-lift] .tabs__pill { -webkit-backdrop-filter: url(#lens-lift) saturate(180%) brightness(1.2); backdrop-filter: url(#lens-lift) saturate(180%) brightness(1.2); }
 .tabs .tab {
   position: relative; z-index: 1; flex: 1 1 0; min-width: var(--touch); height: 48px; padding: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
@@ -156,7 +178,8 @@ html[data-theme="light"] .tabs__pill {
 html[data-theme="light"] .tabs__pill::before { background: linear-gradient(135deg, #fff, color-mix(in srgb, var(--text-1) 6%, transparent) 40%, color-mix(in srgb, var(--text-1) 10%, transparent) 62%, color-mix(in srgb, var(--text-1) 22%, transparent)); }
 html[data-theme="light"] .tabs__pill { box-shadow: inset 0 1px 1px color-mix(in srgb, #fff 90%, transparent), inset 0 -1px 1px color-mix(in srgb, #fff 50%, transparent), inset 0 -10px 16px -12px rgba(0, 0, 0, .12), 0 6px 14px -8px rgba(40, 30, 10, .3); }
 html[data-transparency="reduced"] .tabs__pill { -webkit-backdrop-filter: none; backdrop-filter: none; }
-@media (prefers-reduced-transparency: reduce) { .tabs__pill { -webkit-backdrop-filter: none; backdrop-filter: none; } }
+@media (prefers-reduced-transparency: reduce) { html:root .tabs .tabs__pill { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } }
+html:root[data-transparency="reduced"] .tabs .tabs__pill { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 @media (prefers-reduced-motion: reduce) { .tabs__pill[data-flow] { animation: none; } }
 .tabs__pill::after {
   content: ""; position: absolute; left: 32%; right: 32%; bottom: 3px; height: 2px; border-radius: 2px;

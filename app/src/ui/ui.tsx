@@ -1,4 +1,4 @@
-import { Children, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
+import { Children, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
 
@@ -9,6 +9,7 @@ import { adjacentTab, askTabPath, bibleTabPath, searchTabPath, useTabs } from "@
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { expandBar, useBarMini, useBarScroll } from "@/lib/barscroll";
 import { SwitcherBar } from "@/screens/Tabs";
+import { LensFilters, refracts } from "./refraction";
 import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
 
 export type IconName = "home" | "search" | "play" | "book" | "book-open" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "precepts" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus" | "close" | "image" | "alert" | "info";
@@ -175,6 +176,8 @@ export function TabBar() {
   // Ask keeps the full bar: its composer sits on it, as a chat app keeps its input in place.
   const mini = useBarMini() && !drawer && pathname !== "/ask";
   const bar = useRef<HTMLElement>(null);
+  // The lens's size, for the refraction map drawn to fit it.
+  const [lensSize, setLensSize] = useState({ w: 0, h: 0 });
   // The current section sits on a pill that slides to it (across the dock on phones, down the
   // rail on desktops). Every section keeps its slot, so only the pill moves.
   useLayoutEffect(() => {
@@ -192,6 +195,7 @@ export function TabBar() {
       nav.style.setProperty("--pill-w", `${shown ? on!.offsetWidth : 0}px`);
       nav.style.setProperty("--pill-h", `${shown ? on!.offsetHeight : 0}px`);
       nav.dataset.pill = shown ? "" : "none";
+      if (shown && (on!.offsetWidth !== lensSize.w || on!.offsetHeight !== lensSize.h)) setLensSize({ w: on!.offsetWidth, h: on!.offsetHeight });
     };
     place();
     const ro = new ResizeObserver(place); ro.observe(nav);
@@ -211,8 +215,9 @@ export function TabBar() {
     { id: "more", label: "Menu", aria: "Menu", glyph: <Icon name="more" size={24} />, onClick: () => toggle("more") },
   ];
   return (
-    <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} {...hold}
+    <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} data-refract={refracts && lensSize.w ? "" : undefined} {...hold}
       onClickCapture={(e) => { if (eatClick.current) { e.stopPropagation(); e.preventDefault(); return; } if (mini) { e.stopPropagation(); e.preventDefault(); haptic("select"); expandBar(); } }}>
+      <LensFilters w={lensSize.w} h={lensSize.h} />
       <span className="tabs__pill" aria-hidden="true" onAnimationEnd={(e) => { delete e.currentTarget.dataset.flow; }} />
       {items.map((it) => {
         const on = current === it.id;
