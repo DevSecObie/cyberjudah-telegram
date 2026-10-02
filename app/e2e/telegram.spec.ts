@@ -1843,7 +1843,7 @@ test("an admin's note editor fits the phone: a long note keeps Save on screen", 
   await page.route("**/api/me", (r) => r.fulfill({ json: { user: { id: 1, first_name: "Test" }, subscribed: false, premium: false, admin: true, canEdit: true } }));
   await page.route("**/api/notes/source*", (r) => r.fulfill({ json: { ok: true, sha: "abc", text: "---\ntitle: Religion\n---\n\n" + "The whole note as written.\n\n".repeat(200) } }));
   await page.goto(`/note/classes/2026/2026-03-28-religion-the-false-prophet${LAUNCH}`);
-  await page.getByRole("button", { name: "Edit this note" }).first().click();
+  await page.locator('.nsheet button[aria-label="Edit this note"]').click();
   const text = page.locator(".edit__text");
   await expect(text).toBeVisible();
   await text.click();
@@ -1856,9 +1856,10 @@ test("an admin's note editor fits the phone: a long note keeps Save on screen", 
   expect(box.y).toBeGreaterThanOrEqual(0);
 });
 
-// Regression (#75, fixed in #76): the verse-selection sheet became a tall floating card that
-// wrapped its actions. It keeps Bible Strong's size: the six Annotate actions on one row, and
-// the sheet under half the screen, with the selected verse above it.
+// Regression (#75, fixed in #76): the verse-selection sheet became a tall floating card (about
+// 330 px at 390x844, with an empty band above the tabs). It keeps Bible Strong's size: the six
+// Annotate actions on one row, the sheet no taller than 280 px (Bible Strong's is about 212),
+// and the selected verse above it.
 test("the verse-selection sheet keeps Bible Strong's size: one row of actions, the verse in view", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/read/psalms/23${LAUNCH}`);
@@ -1872,7 +1873,7 @@ test("the verse-selection sheet keeps Bible Strong's size: one row of actions, t
   const tops = new Set(await actions.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top))));
   expect(tops.size).toBe(1);
   const s = (await sheet.boundingBox())!;
-  expect(s.height).toBeLessThan(844 * 0.45);
+  expect(s.height).toBeLessThanOrEqual(280);
   const v = (await page.locator("#verset-1").boundingBox())!;
   expect(v.y + v.height).toBeLessThanOrEqual(s.y);
 });
