@@ -87,6 +87,9 @@
 
 /* Selected verses */
 .bs-selected { padding-top: 2px; }
+/* The colour row is the first thing in this sheet: keep the floating close on the same line as the swatches, with clear air between it and the add arrow. */
+.bs-selected .bs-sheet__close--float { top: 28px; right: 16px; }
+.bs-selected .bs-colors { margin-right: 72px; }
 .bs-colors { display: flex; justify-content: center; align-items: center; margin: 0 16px; overflow-x: auto; scrollbar-width: none; }
 .bs-colors::-webkit-scrollbar { display: none; }
 .bs-colors__cell { flex: 1 0 40px; min-width: 40px; height: 60px; display: grid; place-items: center; border: 0; background: none; padding: 0; cursor: pointer; }
@@ -97,8 +100,7 @@
 .bs-action { width: 25%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px 0; border: 0; background: none; cursor: pointer; }
 /* A page of exactly five actions (Note, Tag, Precept, Bookmark, Focus) keeps them on one row. */
 .bs-actions:has(> .bs-action:nth-child(5):last-child) > .bs-action { width: 20%; }
-.bs-action__box { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; background: var(--bs-light-grey); transition: background-color .1s, box-shadow .1s, transform .2s cubic-bezier(.2, 1.12, .32, 1); }
-.bs-action__box[data-active] { box-shadow: inset 0 0 0 2px var(--bs-primary); }
+.bs-action__box { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; transition: background-color .1s, box-shadow .1s; }
 .bs-action__label { font-size: 10px; text-align: center; color: var(--bs-default); white-space: nowrap; }
 .bs-tabsfooter { position: relative; display: flex; margin: 0 16px 5px; padding: 3px; border-radius: var(--r-lg); background: var(--bs-light-grey); }
 .bs-tabsfooter__indicator { position: absolute; top: 3px; bottom: 3px; left: 3px; background: var(--bs-reverse); border-radius: var(--r-md); transition: transform .25s ease; }
@@ -545,62 +547,20 @@ html[data-transparency="reduced"] .bs { --mat-nav: var(--bs-reverse); --mat-elev
 .bs .rel-inline .rel-tag { padding: 1px 6px; border-radius: 6px; line-height: 1.5; }
 .bs .bs-inline-item { vertical-align: middle; box-shadow: none !important; border: .5px solid color-mix(in srgb, var(--bs-default) 14%, transparent); }
 
-/* The selection sheet, as Bible Strong lays it out and as liquid glass: a card floating clear of
-   the screen's edges, rounded all round, its glass lifting and saturating the page beneath, a rim
-   of light along its top; six actions to a row on small glass tiles that give under the finger;
-   the tab switch a glass track whose lens springs to the chosen tab. No close button, as in Bible
-   Strong: it closes by swiping it down, the back button, or Escape. */
+/* The selection sheet in liquid glass. Material only: its size, place, rows, tiles, tabs and close
+   are Bible Strong's, untouched. The sheet lets the page show through, blurred and saturated, with
+   a rim of light; the tiles and the tab lens get a glass sheen over their own colours. */
 .bs-scrim--clear > .bs-sheet.bs-selected {
-  position: relative; box-sizing: border-box; width: calc(100% - 20px); max-width: 620px;
-  margin: 0 auto calc(10px + var(--safe-bottom, 0px)); padding-bottom: 6px;
-  border-radius: 34px; border: .5px solid color-mix(in srgb, #fff 16%, transparent);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, #fff 7%, transparent), transparent 40%),
-    color-mix(in srgb, var(--bs-reverse) 66%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, #fff 6%, transparent), transparent 40%), color-mix(in srgb, var(--bs-reverse) 72%, transparent);
   -webkit-backdrop-filter: blur(26px) saturate(180%); backdrop-filter: blur(26px) saturate(180%);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 22%, transparent), inset 0 0 0 .5px color-mix(in srgb, #fff 6%, transparent), 0 18px 50px rgba(0, 0, 0, .38), 0 2px 8px rgba(0, 0, 0, .2);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 22%, transparent), 0 -12px 40px rgba(0, 0, 0, .22);
 }
-.bs-sheet.bs-selected::before {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
-  background: linear-gradient(160deg, color-mix(in srgb, #fff 38%, transparent), transparent 30%, transparent 70%, color-mix(in srgb, #fff 14%, transparent));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-}
-.bs-selected .bs-actions { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); row-gap: 2px; }
-.bs-selected .bs-actions > .bs-action { width: auto; min-width: 0; padding: 8px 0 6px; }
-@media (max-width: 459px) { .bs-selected .bs-actions[data-long] { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.bs-selected .bs-action__box {
-  width: 50px; height: 50px; border-radius: 18px;
-  background: linear-gradient(180deg, color-mix(in srgb, #fff 9%, transparent), color-mix(in srgb, #fff 3%, transparent)), color-mix(in srgb, var(--bs-default) 8%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 20%, transparent), inset 0 0 0 .5px color-mix(in srgb, #fff 9%, transparent), 0 4px 12px -6px rgba(0, 0, 0, .4);
-}
-.bs-selected .bs-action__box[data-active] { box-shadow: inset 0 0 0 2px var(--bs-primary), inset 0 1px 0 color-mix(in srgb, #fff 20%, transparent); }
-.bs-selected .bs-action:not(:disabled):active .bs-action__box { transform: scale(.9); }
-#root .bs-selected .bs-action__label { font-size: 10.5px; letter-spacing: -.02em; max-width: none; overflow: visible; }
-.bs-selected .bs-tabsfooter {
-  margin: 4px 12px 6px; padding: 4px; border-radius: 22px;
-  background: color-mix(in srgb, var(--bs-default) 7%, transparent);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .18), inset 0 0 0 .5px color-mix(in srgb, #fff 6%, transparent);
-}
+.bs-selected .bs-action[data-variant="default"] .bs-action__box { background-image: linear-gradient(180deg, color-mix(in srgb, #fff 12%, transparent), color-mix(in srgb, #fff 2%, transparent)) !important; }
+.bs-selected .bs-tabsfooter { background: color-mix(in srgb, var(--bs-light-grey) 70%, transparent); }
 .bs-selected .bs-tabsfooter__indicator {
-  top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3) !important; border-radius: 18px;
-  background:
-    radial-gradient(120% 90% at 30% -10%, color-mix(in srgb, #fff 26%, transparent), transparent 60%),
-    linear-gradient(180deg, color-mix(in srgb, #fff 12%, transparent), color-mix(in srgb, #fff 3%, transparent) 60%, color-mix(in srgb, #fff 8%, transparent)),
-    color-mix(in srgb, var(--bs-reverse) 55%, transparent);
-  -webkit-backdrop-filter: saturate(180%) brightness(1.15); backdrop-filter: saturate(180%) brightness(1.15);
-  box-shadow: inset 0 1px 1px color-mix(in srgb, #fff 55%, transparent), inset 0 -1px 1px color-mix(in srgb, #fff 14%, transparent), 0 6px 14px -6px rgba(0, 0, 0, .45);
-  transition: transform .42s cubic-bezier(.2, 1.12, .32, 1);
+  background: radial-gradient(120% 90% at 30% -10%, color-mix(in srgb, #fff 24%, transparent), transparent 60%), color-mix(in srgb, var(--bs-reverse) 70%, transparent);
+  -webkit-backdrop-filter: saturate(180%) brightness(1.1); backdrop-filter: saturate(180%) brightness(1.1);
+  box-shadow: inset 0 1px 1px color-mix(in srgb, #fff 45%, transparent), 0 4px 10px -4px rgba(0, 0, 0, .35);
 }
-#root .bs-selected .bs-tabsfooter__tab { padding: 11px 0; font-size: 15px; color: var(--bs-default); }
-#root .bs-selected .bs-tabsfooter__tab[aria-selected="true"] { color: var(--bs-primary); font-weight: 650; }
-html[data-theme="light"] .bs-scrim--clear > .bs-sheet.bs-selected {
-  border-color: color-mix(in srgb, #000 8%, transparent);
-  background: linear-gradient(180deg, color-mix(in srgb, #fff 55%, transparent), transparent 45%), color-mix(in srgb, var(--bs-reverse) 72%, transparent);
-  box-shadow: inset 0 1px 0 #fff, 0 18px 50px rgba(40, 30, 10, .18), 0 2px 8px rgba(40, 30, 10, .08);
-}
-html[data-theme="light"] .bs-selected .bs-action__box { background: linear-gradient(180deg, color-mix(in srgb, #fff 80%, transparent), color-mix(in srgb, #fff 40%, transparent)), color-mix(in srgb, var(--bs-default) 5%, transparent); box-shadow: inset 0 1px 0 #fff, inset 0 0 0 .5px color-mix(in srgb, #000 6%, transparent), 0 4px 12px -6px rgba(40, 30, 10, .25); }
-html[data-theme="light"] .bs-selected .bs-tabsfooter__indicator { background: radial-gradient(120% 90% at 30% -10%, #fff, transparent 60%), linear-gradient(180deg, color-mix(in srgb, #fff 85%, transparent), color-mix(in srgb, #fff 55%, transparent)); box-shadow: inset 0 1px 1px #fff, inset 0 0 0 .5px color-mix(in srgb, #000 6%, transparent), 0 6px 14px -6px rgba(40, 30, 10, .3); }
 html[data-transparency="reduced"] .bs-scrim--clear > .bs-sheet.bs-selected, html[data-transparency="reduced"] .bs-selected .bs-tabsfooter__indicator { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bs-reverse); }
 @media (prefers-reduced-transparency: reduce) { .bs-scrim--clear > .bs-sheet.bs-selected, .bs-selected .bs-tabsfooter__indicator { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bs-reverse); } }
-@media (prefers-reduced-motion: reduce) { .bs-selected .bs-tabsfooter__indicator { transition: none; } .bs-selected .bs-action:active .bs-action__box { transform: none; } }
