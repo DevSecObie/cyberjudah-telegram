@@ -11,6 +11,9 @@ import path from "node:path";
  */
 const MOCK = fs.readFileSync(new URL("./telegram-mock.js", import.meta.url), "utf8");
 const DATA = process.env.DATA_DIR ?? "";
+// The origin the app was built to read its data from (app/src/api/data.ts): stand-ins must sit
+// there, or a build pointed elsewhere (VITE_DATA_ORIGIN, as local runs use) bypasses them.
+const DATA_ORIGIN = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
 // Search and full-library coverage runs separately against production every night. Pull
 // requests remain deterministic and never depend on the current contents of the library.
 const liveDataTest = process.env.RUN_LIVE_E2E ? test : test.skip;
@@ -27,7 +30,7 @@ const LAUNCH = signed();
 
 async function setup(page: Page) {
   await page.route("https://telegram.org/**", (r) => r.fulfill({ contentType: "application/javascript", body: MOCK }));
-  if (DATA) await page.route("https://data.cyberjudah.io/**", (r) => {
+  if (DATA) await page.route(`${DATA_ORIGIN}/**`, (r) => {
     const p = decodeURIComponent(new URL(r.request().url()).pathname);
     const f = path.join(DATA, p);
     if (f.startsWith(DATA) && fs.existsSync(f) && fs.statSync(f).isFile()) return r.fulfill({ path: f });
@@ -52,7 +55,7 @@ const goInApp = (page: Page, to: string) => page.evaluate((t) => { history.pushS
 test.beforeEach(async ({ page }) => setup(page));
 
 test("note HTML is sanitized before it reaches the page", async ({ page }) => {
-  await page.route("https://data.cyberjudah.io/api/notes/classes/security-test.json", (r) => r.fulfill({
+  await page.route(`${DATA_ORIGIN}/api/notes/classes/security-test.json`, (r) => r.fulfill({
     contentType: "application/json",
     body: JSON.stringify({ kind: "class", title: "Security test", url: "/classes/security-test", body: "## Safe heading\n\n<script>window.__noteXss = true</script><img src=x onerror=\"window.__noteXss=true\"><a href=\"javascript:window.__noteXss=true\">bad link</a>" }),
   }));
@@ -613,7 +616,7 @@ liveDataTest("the notes' grip drags them full screen; a playing recording shrink
 test("what was on the screen: a frame lands in the notes where the teacher pointed at it, a tap from playing there", async ({ page }) => {
   // A storyboard the Worker would serve (one level, 5x5 cells, a frame every 10 s) and two moments the captions flagged.
   const board = { ok: true, duration: 9557, levels: [{ level: 2, w: 160, h: 90, frames: 956, rows: 5, cols: 5, sheets: 39, interval: 10 }] };
-  await page.route("https://data.cyberjudah.io/api/notes/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement.json", (r) => r.fulfill({
+  await page.route(`${DATA_ORIGIN}/api/notes/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement.json`, (r) => r.fulfill({
     contentType: "application/json",
     body: JSON.stringify({ kind: "class", title: "The Art of War - Rules of Engagement", url: "/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement", date: "2026-09-26", teacher: "Captain Joel", videoId: "eNMvid6j-qk", body: "## Scriptures Opened\n\n**[Deuteronomy 30:11-13](/bible/deuteronomy/30#v11):** *[[10:37](https://www.youtube.com/watch?v=eNMvid6j-qk&t=637s)]*\n\nThe commandment is not beyond the sea.\n\n**[Isaiah 11:10-12](/bible/isaiah/11#v10):** *[[24:08](https://www.youtube.com/watch?v=eNMvid6j-qk&t=1448s)]*\n\nThe remnant is gathered." }),
   }));
@@ -1522,7 +1525,7 @@ test("Ask is on the bottom bar: it opens Ask CyberJudah in its own tab", async (
 });
 
 test("an opened class keeps the tab bar, with its actions floating above it", async ({ page }) => {
-  await page.route("https://data.cyberjudah.io/api/notes/classes/2026/2026-09-26-keep-the-bar.json", (r) => r.fulfill({
+  await page.route(`${DATA_ORIGIN}/api/notes/classes/2026/2026-09-26-keep-the-bar.json`, (r) => r.fulfill({
     contentType: "application/json",
     body: JSON.stringify({ kind: "class", title: "Keep the bar", url: "/classes/2026/2026-09-26-keep-the-bar", date: "2026-09-26", teacher: "Captain Joel", videoId: "eNMvid6j-qk", body: "## Scriptures Opened\n\nThe remnant is gathered." }),
   }));
