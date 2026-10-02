@@ -21,7 +21,8 @@ const OPUS = MODELS.find((m) => m.id === "anthropic/claude-opus-5") ?? MODELS[0]
 
 /** The chosen model (by Cloudflare id, or Claude's own id), or the setup's default when it is not one of these. */
 export function modelOf(id, fallback = "claude-opus-5") {
-  const find = (x) => MODELS.find((m) => m.id === x || m.native === x);
+  // Only a real id can match: an empty choice must not match the models that have no Claude id.
+  const find = (x) => (typeof x === "string" && x ? MODELS.find((m) => m.id === x || m.native === x) : undefined);
   return find(id) ?? find(fallback) ?? OPUS;
 }
 

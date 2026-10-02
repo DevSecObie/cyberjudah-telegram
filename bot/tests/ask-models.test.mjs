@@ -15,6 +15,8 @@ test("the model list is Cloudflare's catalog: every model priced, spoken to in a
   assert.equal(new Set(MODELS.map((m) => m.id)).size, MODELS.length, "no model twice");
   assert.equal(modelOf("claude-opus-5").id, "anthropic/claude-opus-5", "the setup's Claude id finds its model");
   assert.equal(modelOf("no/such-model").id, "anthropic/claude-opus-5", "an unknown choice falls back to the default");
+  for (const none of [undefined, null, ""]) assert.equal(modelOf(none, "claude-opus-5").id, "anthropic/claude-opus-5", `no choice (${none}) is the setup's own model`);
+  assert.equal(modelOf(undefined, "claude-sonnet-5").id, "anthropic/claude-sonnet-5");
   const free = modelOf("@cf/zai-org/glm-5.3-flash");
   assert.equal(free.format, "chat", "the free model researches with tools");
 });
