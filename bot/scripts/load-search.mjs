@@ -8,11 +8,12 @@
  *
  *   node scripts/load-search.mjs [path/to/search.sql(.gz)] [--local]
  */
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
+import { importRetryDelay } from "./import-retry.mjs";
 
 const args = process.argv.slice(2);
 const local = args.includes("--local");
@@ -49,10 +50,15 @@ const file = join(dir, "search.sql");
 // and fail; a comment with the time keeps every run's upload fresh.
 writeFileSync(file, Buffer.concat([sql, Buffer.from(`\n-- loaded ${new Date().toISOString()}\n`)]));
 try {
-  // D1's import occasionally drops mid-way ("Not currently importing anything"); one more try covers it.
+  // D1 runs one import at a time and its imports occasionally drop part-way: see import-retry.mjs.
   for (let attempt = 1; ; attempt++) {
-    try { execFileSync("npx", ["wrangler", "d1", "execute", DB, local ? "--local" : "--remote", "--yes", "--file", file], { stdio: "inherit", cwd: new URL("..", import.meta.url) }); break; }
-    catch (e) { if (attempt >= 2) throw e; console.error("the import failed; trying once more in 15 s"); await new Promise((r) => setTimeout(r, 15000)); }
+    const run = spawnSync("npx", ["wrangler", "d1", "execute", DB, local ? "--local" : "--remote", "--yes", "--file", file], { cwd: new URL("..", import.meta.url), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    process.stdout.write(run.stdout ?? ""); process.stderr.write(run.stderr ?? "");
+    if (run.status === 0) break;
+    const wait = importRetryDelay(`${run.stdout ?? ""}\n${run.stderr ?? ""}`, attempt);
+    if (wait === null) throw new Error(`the search index import failed (attempt ${attempt}, exit ${run.status ?? run.signal})`);
+    console.error(`the import did not finish; trying again in ${wait} s (attempt ${attempt + 1})`);
+    await new Promise((r) => setTimeout(r, wait * 1000));
   }
 } finally {
   rmSync(dir, { recursive: true, force: true });
