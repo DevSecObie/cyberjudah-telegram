@@ -7,8 +7,8 @@ import { Sheet } from "./Sheet";
 
 /**
  * SelectedVersesModal: the colour bar, then three groups of actions (Annotate, Study,
- * Share) swiped as pages under a segmented footer with a sliding indicator. Four actions
- * per row, each a 48 px rounded box with a 20 px icon and a 10 px label.
+ * Share) swiped as pages under a segmented footer with a sliding indicator, on a floating card
+ * of liquid glass. Six actions to a row, as Bible Strong lays them out.
  */
 export type ColorItem = { key: string; hex: string; name?: string; type: HighlightType };
 export type SelectedVersesSheetProps = {
@@ -35,7 +35,7 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
   const onEnd = (x: number) => { const s = swipe.current; swipe.current = null; if (!s) return; const dx = x - s.x; if (Math.abs(dx) > 40 && Date.now() - s.t < 500) goTo(Math.max(0, Math.min(TABS.length - 1, tab + (dx < 0 ? 1 : -1)))); };
 
   return (
-    <Sheet open={p.open} onClose={p.onDismiss} backdrop={false} label="Selected verses" className="bs-selected">
+    <Sheet open={p.open} onClose={p.onDismiss} backdrop={false} closable={false} label="Selected verses" className="bs-selected">
       <div style={{ overflow: "hidden" }}>
         <ColorCirclesBar colors={p.colors} selected={p.selectedColor} onSelect={(k) => (p.selectedColor === k ? p.onRemoveHighlight() : p.onAddHighlight(k))} onLongPress={p.onEditColor} onAdd={p.onAddColor} />
         <div ref={ref} className="bs-pages" onTouchStart={(e) => onStart(e.touches[0].clientX)} onTouchEnd={(e) => onEnd(e.changedTouches[0].clientX)}>
@@ -51,7 +51,7 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
               </ActionsLayout>
             </div>
             <div className="bs-page" style={{ width }}>
-              <ActionsLayout>
+              <ActionsLayout long>
                 <ActionItem icon={<LexiconIcon />} tint="var(--bs-primary)" label="Lexicon" onPress={p.onLexicon} disabled={p.moreThanOne} />
                 <ActionItem icon={<DictionaryIcon />} tint="var(--bs-secondary)" label="Dictionary" onPress={p.onDictionary} disabled={p.moreThanOne} />
                 <ActionItem icon={<NaveIcon />} tint="var(--bs-quint)" label="Themes" onPress={p.onThemes} disabled={p.moreThanOne} />
@@ -79,13 +79,14 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
   );
 }
 
-export function ActionsLayout({ children }: { children: ReactNode }) { return <div className="bs-actions">{children}</div>; }
+/** A row of actions; `long` marks a page whose labels need more room than six to a row gives a phone. */
+export function ActionsLayout({ children, long }: { children: ReactNode; long?: boolean }) { return <div className="bs-actions" data-long={long ? "" : undefined}>{children}</div>; }
 
 export function ActionItem({ name, icon, tint, label, onPress, disabled, isActive, variant = "default" }: { name?: FeatherName; icon?: ReactNode; tint?: string; label: string; onPress: () => void; disabled?: boolean; isActive?: boolean; variant?: "default" | "emphasized" }) {
   const color = variant === "emphasized" ? "var(--bs-reverse)" : tint ?? "var(--bs-primary)";
   return (
     <button type="button" className="bs-action" disabled={disabled} aria-pressed={isActive} data-variant={variant} onClick={() => { haptic("select"); onPress(); }} style={{ opacity: disabled ? 0.6 : 1 }}>
-      <span className="bs-action__box" style={{ background: variant === "emphasized" ? "var(--bs-primary)" : "var(--bs-light-grey)", boxShadow: variant === "emphasized" ? "0 2px 8px 0 var(--bs-primary)" : isActive ? "inset 0 0 0 2px var(--bs-primary)" : undefined, color, opacity: disabled ? 0.4 : 1 }}>
+      <span className="bs-action__box" data-active={isActive ? "" : undefined} style={{ ...(variant === "emphasized" ? { background: "var(--bs-primary)", boxShadow: "0 2px 8px 0 var(--bs-primary)" } : {}), color, opacity: disabled ? 0.4 : 1 }}>
         {icon ?? (name ? <Feather name={name} size={20} color={color} /> : null)}
       </span>
       <span className="bs-action__label" style={{ opacity: disabled ? 0.4 : 1 }}>{label}</span>
