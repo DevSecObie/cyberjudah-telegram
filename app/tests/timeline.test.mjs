@@ -39,7 +39,9 @@ test("the data keeps their history and leaves out their prophetic teaching", () 
   const titles = DATA.sections.flatMap((s) => s.events.map((e) => e.title));
   for (const t of ["2300 Day Prophecy", "1260 Day Prophecy", "The Two Beasts of Revelation 13", "Church of Laodicea, Age of Judgment"]) assert.ok(!titles.includes(t), t);
   assert.ok(titles.includes("Isaiah Prophecy Concerning Cyrus II"), "a prophecy that is an event in the text stays");
-  assert.ok(!JSON.stringify(DATA).includes("biblehistory.com"), "no pictures");
+  // No pictures or links from their servers: the only link is the Who's Who citation.
+  const hosts = [...JSON.stringify(DATA).matchAll(/https?:\/\/[^"\s]+/g)].map((m) => new URL(m[0]).hostname);
+  assert.deepEqual(hosts, ["archive.org"]);
   assert.ok(!JSON.stringify(first).includes("description"), "no descriptions");
   assert.equal(first.title, "First Generation");
 });
