@@ -23,5 +23,6 @@ export type InitData = {
   signature?: string;
   [key: string]: unknown;
 };
+export const LAUNCH_DATA_MAX_AGE: number;
 export function validateInitData(initData: unknown, botToken: string, maxAgeSec?: number, now?: number): Promise<InitData | null>;
 export function signInitData(fields: Record<string, string | object | number>, botToken: string): Promise<string>;
