@@ -71,7 +71,7 @@
         "CLAUDE_MODEL": "claude-opus-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "cloudflare",
         "ASK_USD_PER_MTOK": "5", "ASK_USD_PER_STAR": "0.013", "ASK_MARGIN": "1.3",
         "ASK_FREE_DAILY": "120000", "ASK_PLAN_STARS": "750", "ASK_PACKS": "150,500,1500",
-        "ASK_BILLING": "off"
+        "ASK_BILLING": "on", "ASK_BASIC_DAILY": "25"
       }
     }
   },
@@ -104,8 +104,10 @@
     // (an average answer is about 60,000); /api/admin/usage shows the real averages.
     "ASK_USD_PER_MTOK": "5", "ASK_USD_PER_STAR": "0.013", "ASK_MARGIN": "1.3",
     "ASK_FREE_DAILY": "120000", "ASK_PLAN_STARS": "750", "ASK_PACKS": "150,500,1500",
-    // "on" starts charging (free allowance, plans, packs, the meter in the app). Off, every
-    // answer is still measured for /api/admin/usage and the old cap of 100 a day applies.
-    "ASK_BILLING": "off"
+    // "on": each reader gets ASK_FREE_DAILY units of in-depth (Claude) answers a day, then
+    // ASK_BASIC_DAILY shorter answers (Workers AI, no charge) until the next UTC day, or pays
+    // in Stars (plan or packs). Admins (ADMIN_IDS) are not limited. Off, every answer is still
+    // measured for /api/admin/usage and the old cap of 100 a day applies.
+    "ASK_BILLING": "on", "ASK_BASIC_DAILY": "25"
   }
 }

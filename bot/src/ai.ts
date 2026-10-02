@@ -102,6 +102,12 @@ async function allowed(env: Env, userId: number): Promise<boolean> {
   return takeQuota(env, "ask", userId, ASK_LIMIT);
 }
 
+/** Free basic answers once the in-depth ones are used: ASK_BASIC_DAILY a day per person (25 unless set). */
+async function basicAllowed(env: Env, userId: number): Promise<boolean> {
+  const n = Number(env.ASK_BASIC_DAILY);
+  return takeQuota(env, "ask-basic", userId, Number.isInteger(n) && n >= 0 ? n : 25);
+}
+
 /** A question answered in one piece (the bot and older clients); a hundred a day per person. */
 export async function ask(env: Env, q: string, userId: number, ctx?: Exec, history: Turn[] = []): Promise<Answer> {
   const t0 = Date.now();
@@ -206,12 +212,12 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   let take: Take | null = null;
   // With the in-depth answers used up, Ask does not stop: it goes on with basic answers (the
   // Workers AI model, from the passages found, not charged), as the large AI apps fall back to
-  // a lighter model at their limit, within the same daily cap as before billing.
+  // a lighter model at their limit, up to ASK_BASIC_DAILY a day; then the plans are offered.
   let limited = false;
   if (metered && !isAdmin(env, userId)) {
     const r = await reserveAsk(env, userId);
     if (r.ok) take = r.take;
-    else if (await allowed(env, userId)) limited = true;
+    else if (await basicAllowed(env, userId)) limited = true;
     else return new Response(line({ error: "allowance", balance: r.balance }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
   } else if (billingOn(env)) {
     const st = await standing(env, userId);
