@@ -579,7 +579,11 @@ html[data-transparency="reduced"] .bs { --mat-nav: var(--bs-reverse); --mat-elev
 
 .bs-selected .bs-colors { margin: 0 4px; justify-content: flex-start; }
 .bs-selected .bs-colors__cell { flex: 1 0 44px; min-width: 44px; height: 56px; }
-.bs-selected .bs-colors__cell:focus-visible { outline: 2px solid var(--sel-accent); outline-offset: -4px; border-radius: 10px; }
+/* The reader's generic ring (#root .bs :focus-visible, 1-2-0) sits 2px outside and is clipped at the
+   sheet's edge; these take precedence and draw it inside each control. The sheet itself takes the
+   focus on open only so that Tab starts inside it; it is not a control and draws no ring. */
+#root .bs .bs-sheet.bs-selected:focus-visible { outline: none; }
+#root .bs-selected .bs-colors__cell:focus-visible { outline: 2px solid var(--sel-accent); outline-offset: -4px; border-radius: 10px; }
 .bs-colors__swatch { position: relative; display: grid; place-items: center; width: 20px; height: 20px; }
 .bs-colors__swatch > span:first-child { border-radius: 6px !important; }
 .bs-colors__swatch[data-on] > span:first-child { box-shadow: 0 0 0 3px var(--bs-reverse), 0 0 0 5px var(--bs-default) !important; }
@@ -592,7 +596,7 @@ html[data-transparency="reduced"] .bs { --mat-nav: var(--bs-reverse); --mat-elev
 .bs-selected .bs-pages__track { transition: transform .22s cubic-bezier(.3, .7, .2, 1); }
 .bs-selected .bs-actions { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); padding: 0 6px; }
 #root .bs-selected .bs-actions > .bs-action { width: auto; min-width: 0; gap: 8px; padding: 8px 0; border-radius: 12px; }
-.bs-selected .bs-action:focus-visible { outline: 2px solid var(--sel-accent); outline-offset: -2px; }
+#root .bs-selected .bs-action:focus-visible { outline: 2px solid var(--sel-accent); outline-offset: -2px; border-radius: 12px; }
 .bs-selected .bs-action__box { width: 48px; height: 48px; border-radius: 16px; background: var(--sel-tile); transition: background-color .1s, box-shadow .1s, transform .18s ease; }
 .bs-selected .bs-action__box[data-active] { box-shadow: inset 0 0 0 2px var(--sel-accent); }
 .bs-selected .bs-action:not(:disabled):active .bs-action__box { transform: scale(.94); }
@@ -610,6 +614,8 @@ html[data-transparency="reduced"] .bs { --mat-nav: var(--bs-reverse); --mat-elev
 #root .bs-selected .bs-tabsfooter__tab { min-height: 38px; padding: 9px 0; font-size: 15px; line-height: 20px; font-weight: 400; color: color-mix(in srgb, var(--bs-default) 92%, #fff); }
 #root .bs-selected .bs-tabsfooter__tab[aria-selected="true"] { font-weight: 600; color: var(--sel-accent); }
 #root .bs-selected .bs-tabsfooter__tab:focus-visible { outline: 2px solid var(--sel-accent); outline-offset: -2px; border-radius: 17px; }
+/* The tabs keep Bible Strong's 38 px look, with a 48 px touch target reaching into the track's padding. */
+.bs-selected .bs-tabsfooter__tab::after { content: ""; position: absolute; inset: -5px 0; }
 
 /* Reduced transparency: the same sheet, opaque. Reduced motion: no slide, no spring. */
 html[data-transparency="reduced"] .bs-scrim--clear > .bs-sheet.bs-selected { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bs-reverse); }
