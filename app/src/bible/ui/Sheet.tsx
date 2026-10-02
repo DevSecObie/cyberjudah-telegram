@@ -10,10 +10,11 @@ import { Feather } from "../icons";
  * title, a back arrow or a right control, scrolling content and a footer. `backdrop` false
  * leaves the page tappable behind it, as the selected-verses sheet does. Telegram's back
  * button shows while it is open and closes it first (tg/hooks), and it can always be closed
- * with its ✕ or by swiping it down by the handle or the title.
+ * with its ✕ (unless `closable` is false: Bible Strong's selection sheet has none) or by swiping
+ * it down by the handle or the title.
  */
-export function Sheet({ open, onClose, backdrop = true, height = "auto", title, subTitle, hasBack, onBack, right, left, children, footer, className, label }: {
-  open: boolean; onClose: () => void; backdrop?: boolean; height?: "auto" | "half" | "full" | "40"; title?: ReactNode; subTitle?: ReactNode; hasBack?: boolean; onBack?: () => void; right?: ReactNode; left?: ReactNode; children?: ReactNode; footer?: ReactNode; className?: string; label?: string;
+export function Sheet({ open, onClose, backdrop = true, height = "auto", title, subTitle, hasBack, onBack, right, left, children, footer, className, label, closable = true }: {
+  open: boolean; onClose: () => void; backdrop?: boolean; closable?: boolean; height?: "auto" | "half" | "full" | "40"; title?: ReactNode; subTitle?: ReactNode; hasBack?: boolean; onBack?: () => void; right?: ReactNode; left?: ReactNode; children?: ReactNode; footer?: ReactNode; className?: string; label?: string;
 }) {
   const [drag, setDrag] = useState(0);
   const [tall, setTall] = useState(false);
@@ -41,7 +42,7 @@ export function Sheet({ open, onClose, backdrop = true, height = "auto", title, 
               <div className="bs-sheet__titles"><b>{title}</b>{subTitle ? <small>{subTitle}</small> : null}</div>
               <div className="bs-sheet__side bs-sheet__side--right">{right}<button type="button" className="bs-iconbtn bs-sheet__close" aria-label="Close" onClick={onClose}><Feather name="x" size={18} /></button></div>
             </div>
-          ) : <button type="button" className="bs-iconbtn bs-sheet__close bs-sheet__close--float" aria-label="Close" onClick={onClose}><Feather name="x" size={18} /></button>}
+          ) : closable ? <button type="button" className="bs-iconbtn bs-sheet__close bs-sheet__close--float" aria-label="Close" onClick={onClose}><Feather name="x" size={18} /></button> : null}
         </div>
         <div className="bs-sheet__body">{children}</div>
         {footer ? <div className="bs-sheet__footer">{footer}</div> : null}

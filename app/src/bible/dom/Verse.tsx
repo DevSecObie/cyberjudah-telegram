@@ -55,7 +55,9 @@ export function Verse(p: VerseProps) {
     fontFamily: font, transition: "background 0.3s ease, color 0.3s ease", ...hl, padding: 4, WebkitBoxDecorationBreak: "clone", boxDecorationBreak: "clone",
     borderBottom: p.isSelected ? `2px dashed ${c.default}` : "none", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none",
     ...(p.isVerseToScroll ? { animation: "bs-zoom 0.5s ease 0s 3 normal none running" } : {}),
-    ...(p.isFocused === false ? { opacity: 0.55 } : {}),
+    // While verses are selected the selection's own dim (the wrapper's .3) is the only one, not
+    // multiplied by the focus dim.
+    ...(p.isFocused === false && !p.isSelectedMode ? { opacity: 0.55 } : {}),
     ...(p.isTouched ? { opacity: 0.7 } : {}),
   };
   const deck = !!(p.moments?.length && p.deck);

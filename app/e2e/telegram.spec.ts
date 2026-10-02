@@ -93,10 +93,10 @@ test("tapping verses selects them, the sheet highlights, notes, tags and bookmar
   await tapVerse(page, 2);
   await expect(page.locator(".bs-header__center")).toHaveText("Psalms 23:1-2");
   // Colour 3 (yellow) on both verses.
-  await page.click('.bs-colors__cell[aria-label="Color 3"]');
+  await page.click('.bs-colors__cell[aria-label="Highlight yellow"]');
   await expect(page.locator("#verset-1 > span").first()).toHaveCSS("background-color", "rgba(253, 203, 110, 0.9)");
   await expect(page.locator("#verset-2 > span").first()).toHaveCSS("background-color", "rgba(253, 203, 110, 0.9)");
-  await expect(page.locator('.bs-colors__cell[aria-label="Color 3"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator('.bs-colors__cell[aria-label="Highlight yellow"]')).toHaveAttribute("aria-pressed", "true");
   let c = await cloud(page);
   expect(JSON.parse(c.bs_h_psalms_23)["1"].color).toBe("color3");
   // A note becomes a relation under the last verse of the selection.
