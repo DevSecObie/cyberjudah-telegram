@@ -69,7 +69,7 @@ jobs:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
           CYBERJUDAH_APP_BASE: /app/
       - name: Cache the Bible Strong fork's packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.yarn/berry/cache
           key: strong-yarn-${{ hashFiles('strong/yarn.lock') }}
