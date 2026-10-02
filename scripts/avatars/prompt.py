@@ -12,7 +12,14 @@ OVERRIDE = {
  "eli-1sa-1-3": "a very old and heavy high priest, eyes dim (1 Samuel 4:15)",
 }
 AGE = {"joseph-gen-30-24": "thirty years old (Genesis 41:46)", "seth-gen-4-25": "an aged elder (Genesis 5:8)", "enosh-gen-4-26": "an aged elder (Genesis 5:11)", "kenan-gen-5-9": "an aged elder (Genesis 5:14)", "mahalalel-gen-5-12": "an aged elder (Genesis 5:17)", "jared-gen-5-15": "an aged elder (Genesis 5:20)", "enoch-gen-5-18": "an aged elder (Genesis 5:23)", "lamech-gen-5-25": "an aged elder (Genesis 5:31)", "shem-gen-5-32": "an aged elder (Genesis 11:10-11)", "abel-gen-4-2": "a young man in his twenties", "adam-gen-2-19": "an aged elder (Genesis 5:5)", "methuselah-gen-5-21": "a very aged elder, the oldest of men (Genesis 5:27)", "noah-gen-5-29": "an aged elder (Genesis 9:29)", "eve-gen-3-20": "in her forties", "esther-est-2-7": "a young woman in her twenties", "aaron-exo-4-14": "an elder in his eighties", "ruth-rut-1-4": "a young woman in her twenties", "orpah-rut-1-4": "a young woman in her twenties", "rachel-gen-29-6": "a young woman in her twenties", "leah-gen-29-16": "a young woman in her twenties", "rebekah-gen-22-23": "a young woman in her twenties", "zipporah-exo-2-21": "in her thirties", "dinah-gen-30-21": "a young woman in her twenties", "sarah-gen-11-29": "an elder woman in her sixties", "john-mat-3-1": "about thirty", "saul-1sa-9-2": "in his thirties", "absalom-2sa-3-3": "in his twenties", "samuel-1sa-1-20": "an elder in his seventies", "eli-1sa-1-3": "an elder in his nineties"}
-DRESS = {"elijah-1ki-17-1": "a rough hairy garment of an hairy man, girt with a girdle of leather about his loins (2 Kings 1:8)", "joseph-gen-30-24": "draped vestures of fine white linen, ancient, not a shirt, a gold chain about his neck (Genesis 41:42)", "adam-gen-2-19": "royal garments: a rich royal robe of fine dyed linen and wool, no crown", "eve-gen-3-20": "royal garments: a rich royal robe of fine dyed linen and wool, a head covering, modest dress", "haman-est-3-1": "rich Persian court robes", "john-mat-3-1": "raiment of camel's hair with a leathern girdle (Matthew 3:4)"}
+DRESS = {"daniel-ezk-14-14": "clothed with scarlet: a scarlet robe over plain linen, fringes on the borders of the garment held by a ribband of blue (Numbers 15:38), a chain of gold about his neck (Daniel 5:29)", "elijah-1ki-17-1": "a rough hairy garment of an hairy man, girt with a girdle of leather about his loins (2 Kings 1:8)", "joseph-gen-30-24": "draped vestures of fine white linen, ancient, not a shirt, a gold chain about his neck (Genesis 41:42)", "adam-gen-2-19": "royal garments: a rich royal robe of fine dyed linen and wool, no crown", "eve-gen-3-20": "royal garments: a rich royal robe of fine dyed linen and wool, a head covering, modest dress", "haman-est-3-1": "rich Persian court robes", "john-mat-3-1": "raiment of camel's hair with a leathern girdle (Matthew 3:4)"}
+# Jewellery only where the scripture puts it on them (directed 2026-10-02: "They can have jewelry if the
+# scripture says they have it"). Anyone listed here loses the "no jewellery at the neck" clause.
+JEWELRY = {
+    "joseph-gen-30-24": "Pharaoh's ring upon his hand and a gold chain about his neck (Genesis 41:42)",
+    "daniel-ezk-14-14": "a chain of gold about his neck (Daniel 5:29)",
+    "rebekah-gen-22-23": "a golden earring upon her face and bracelets of gold upon her hands (Genesis 24:22, 47)",
+}
 # Every nation was dark before the mingling (Genesis 2:7: man formed "of the dust of the ground"); only Esau's line
 # came out "red" (Genesis 25:25). So Bible-era nations are dark-skinned, with the features their people carry today.
 LOOK = {
@@ -32,6 +39,27 @@ def ham_people(tribe):
     for k, v in HAM_PEOPLE.items():
         if tribe == k or tribe.startswith(k + " ") or f"({k})" in tribe or tribe.endswith(f"{k})"): return v
     return None
+# Israel by tribe, as the assembly's 12 Tribes breakdown gives each people today (directed 2026-10-01: "they
+# should stay dark but look like those ethnicities today"). The hair follows that people.
+COILS = "short, tight, kinky woolly {c} coils close to the head, not locs, not loose curls, not waves"
+TRIBE_TODAY = {
+    "Judah": ("the American Blacks (African Americans)", COILS),
+    "Benjamin": ("the West Indians (Jamaicans)", COILS),
+    "Levi": ("the Haitians", COILS),
+    "Simeon": ("the Dominicans", "tight curly {c} hair"),
+    "Zebulun": ("the Mayans of Guatemala", "straight thick {c} hair"),
+    "Issachar": ("the Mexicans (Aztec features)", "straight thick {c} hair"),
+    "Reuben": ("the Seminole Indians", "straight thick {c} hair"),
+    "Naphtali": ("the indigenous Argentineans and Chileans", "straight thick {c} hair"),
+    "Gad": ("the North American Indians", "straight thick {c} hair"),
+    "Ephraim": ("the Puerto Ricans", "tight curly {c} hair"),
+    "Manasseh": ("the Cubans", "tight curly {c} hair"),
+    "Dan": ("the Carib Indians", "straight thick {c} hair"),
+    "Asher": ("the indigenous South Americans", "straight thick {c} hair"),
+}
+def tribe_today(tribe):
+    t = tribe.replace("Tribe of", "").strip()
+    return TRIBE_TODAY.get(t)
 NATION = {"moab": "a Moabite", "ammon": "an Ammonite", "ishmael": "an Arab", "syria": "a Syrian", "assyria": "an Assyrian", "elam": "an Elamite", "japheth": "a son of Japheth"}
 def pick(h, i, opts): return opts[h[i] % len(opts)]
 def prompt(p):
@@ -64,7 +92,10 @@ def prompt(p):
         skin = f"fair skin with a natural ruddy flush (Edom, as Genesis 25:25 describes Esau), {hair} hair" + ("" if fem else ", " + pick(h, 3, ["a short beard", "clean-shaven", "a trimmed beard"])) + ", distinct features, dignified, not villainous"
     else:
         tone = pick(h, 2, ["a deep black complexion", "a dark brown complexion", "a very dark complexion", "a rich dark brown complexion", "a deep brown complexion"])
-        hair = "short, tight, kinky woolly " + ("grey-and-white" if elder and (h[4] % 2 or "aged elder" in age) else "black") + " coils close to the head, not locs, not loose curls, not waves"
+        colour = "grey-and-white" if elder and (h[4] % 2 or "aged elder" in age) else "black"
+        today = tribe_today(p['tribe']) if p['n'] == 'israel' else None
+        hair = (today[1] if today else COILS).format(c=colour)
+        if today: tone += f", with the facial features of the people known today as {today[0]}, still dark-skinned"
         if p['n'] == 'ham' and dl.startswith('pharaoh') and not fem:
             # The assembly's direction: Pharaoh shaven bald, with Egyptian eyeliner (the Egyptian court shaved: Genesis 41:14)
             hair = "a clean-shaven bald head, dark Egyptian eyeliner (kohl) around the eyes"
@@ -128,8 +159,8 @@ def prompt(p):
     elif dl.startswith('pharaoh') and not fem: head = "shaven bald head, uncovered: no crown, no headdress, no headband, no wig"
     elif fem: head = "no crown, no headband"
     else: head = "bare head (1 Corinthians 11:4): no crown, no headband, no hat, no turban"
-    dress = DRESS.get(p['id'], dress) + "; " + head
+    dress = DRESS.get(p['id'], dress) + (", " + JEWELRY[p['id']] if p['id'] in JEWELRY and p['id'] not in DRESS else "") + "; " + head
     role = OVERRIDE.get(p['id'], re.sub(r"\s+(descended\s+)?from$", "", re.sub(r"\s+", " ", d.replace("Monarchyand", "Monarchy and")).rstrip(".")))
     if p['n'] != 'edom': role = re.sub(r'\bEdomite\b', 'Woman' if fem else 'Man', role)
-    tail = TAIL.replace(", no necklace or jewellery at the neck", "") if "gold chain" in dress else TAIL
+    tail = TAIL.replace(", no necklace or jewellery at the neck", "") if p['id'] in JEWELRY else TAIL
     return BASE + f"Subject: {p['name']}, {who}, {role}; {age}, {face}, {feats}, {skin}. Dress: {dress}." + tail
