@@ -1,7 +1,7 @@
 {
   "name": "cyberjudah-telegram",
   "private": true,
-  "version": "1.8.1",
+  "version": "1.0.0",
   "description": "CyberJudah as a Telegram Mini App: the KJV with the Apocrypha, the classes, the law, the precepts and the cases, built on Telegram's Mini App platform end to end.",
   "type": "module",
   "workspaces": ["app", "bot"],

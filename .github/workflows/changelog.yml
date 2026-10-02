@@ -1,0 +1,34 @@
+name: changelog
+
+# Every pull request either adds a line to CHANGELOG.md or says, in its description, why it needs
+# none: "Changelog: not applicable — <reason>" (a reason of at least a few words). Dependabot's
+# updates are exempt. The description is read from the event payload, never run as a command.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: A changelog line, or a reason there is none
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$AUTHOR" = "dependabot[bot]" ]; then echo "Dependency update: exempt."; exit 0; fi
+          if git diff --name-only "$BASE...$HEAD" | grep -qx 'CHANGELOG.md'; then echo "CHANGELOG.md is updated."; exit 0; fi
+          if printf '%s' "$BODY" | grep -Eiq 'changelog:[[:space:]]*not applicable[[:space:]]*(—|–|-|:)[[:space:]]*[^[:space:]].{9,}'; then
+            echo "Not applicable, with a reason:"; printf '%s\n' "$BODY" | grep -Ei 'changelog:[[:space:]]*not applicable' | head -1; exit 0
+          fi
+          echo "::error::Add a line under Unreleased in CHANGELOG.md, or write 'Changelog: not applicable — <reason>' in the pull request's description."
+          exit 1

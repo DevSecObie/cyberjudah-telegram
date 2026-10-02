@@ -27,11 +27,15 @@ npm run test:e2e --workspace app
 - Never commit tokens, launch data, production exports, or user information.
 - Call out migrations, new permissions, new external services, and operational changes.
 - Update documentation when routes, environment variables, scheduled jobs, or setup steps change.
-- Add a line to [CHANGELOG.md](CHANGELOG.md) under Unreleased. Anything that broke for people, or stopped a deploy, also gets a row in its Incident and hang-up log (what people saw, the cause, the fix).
+- Add a line to [CHANGELOG.md](CHANGELOG.md) under Unreleased for anything a reader, an admin or the bot's users would notice. When nothing would be noticed (tests, CI, documentation, refactors), write `Changelog: not applicable — <reason>` in the pull request's description instead; the `changelog` check accepts either. Outages, failed deploys and data problems go in [docs/INCIDENTS.md](docs/INCIDENTS.md).
 
 ## Releases
 
-A release is cut from what reached `main`: Unreleased becomes the new version with its date (UTC), the version in `package.json` and `bot/package.json` is raised to match (regenerate the lockfile with `npm install --package-lock-only`), and the merge is tagged `vX.Y.Z`. Fixes only raise the patch number, new or visibly changed features the minor, and anything that breaks saved data, shared links or bot commands the major.
+No version has been tagged yet. A release is cut only from a commit that a successful production deploy ran (the `deploy` workflow's `deploy` job, green):
+
+1. In one pull request, Unreleased in `CHANGELOG.md` becomes the new version with the deploy's date (UTC), and `package.json` and `bot/package.json` move to that version; regenerate the lockfile with `npm install --package-lock-only` and commit only that change.
+2. Choose the number by the public contract (see the top of `CHANGELOG.md`): major if a reader's saved data, a shared link, a bot command or the app's API breaks; minor for a new or visibly changed capability; patch for fixes only.
+3. After that pull request is merged and deployed, the repository owner tags the deployed commit `vX.Y.Z` and publishes the release notes from the changelog section. Tags and releases are created by the owner, not by automation.
 
 ## Commit and review expectations
 

@@ -1,7 +1,7 @@
 {
   "name": "cyberjudah-bot",
   "private": true,
-  "version": "1.8.1",
+  "version": "1.0.0",
   "type": "module",
   "description": "The CyberJudah Telegram bot and Mini App worker: serves the app, the Bot API webhook, search, sharing, Stars and the daily verse.",
   "scripts": {
