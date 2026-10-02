@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { Api, webhookCallback } from "grammy";
 import type { InlineQueryResultArticle } from "grammy/types";
 import type { Env, Sub } from "./env";
-import { validateInitData, type InitData } from "./initdata.mjs";
+import { LAUNCH_DATA_MAX_AGE, validateInitData, type InitData } from "./initdata.mjs";
 import { createBot, todaysVerse } from "./bot";
 import { chapter, dataJson, escapeHtml, openLink } from "./data";
 import { runSearch } from "./search";
@@ -52,7 +52,7 @@ app.use("/api/*", async (c, next) => {
   // data is only made afresh when it is opened again, so a short window turned every Search
   // and Ask into "not answering" for a reader who never closed the app. The signature still
   // proves who is asking; the age check only bounds a replay.
-  const data = m ? await validateInitData(m[1], c.env.BOT_TOKEN, 30 * 86400) : null;
+  const data = m ? await validateInitData(m[1], c.env.BOT_TOKEN, LAUNCH_DATA_MAX_AGE) : null;
   if (!data?.user) {
     const stale = m ? !!(await validateInitData(m[1], c.env.BOT_TOKEN, 10 * 365 * 86400))?.user : false;
     return c.json({ error: "unauthorized", reason: stale ? "stale" : m ? "invalid" : "missing" }, 401);
