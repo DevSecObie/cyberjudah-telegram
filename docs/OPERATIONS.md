@@ -110,6 +110,8 @@ Reminders run every quarter hour (`sendReminders` in `bot/src/remind.ts`; cron `
 
 Push needs three Worker secrets, added by the owner only: `VAPID_PUBLIC_KEY` (base64url, 65-byte uncompressed P-256 point), `VAPID_PRIVATE_KEY` (base64url, its 32-byte private scalar) and `VAPID_SUBJECT` (`mailto:` or `https:` contact). Without them `/api/push/key` returns `null` and the app shows push as not set up; Telegram reminders are unaffected. Rotating the keys makes every push service answer 403: subscriptions are kept, the admins are alerted, and readers must turn push on again in each browser (the app re-subscribes on open once permission is granted).
 
+**End-to-end tests.** `app/e2e/reminders.spec.ts` runs against the real local Worker (`wrangler dev --test-scheduled`, fresh storage each run). The Worker is started with a test-only bot token and VAPID keys made for the run, and two variables that point its outbound calls at a loopback stand-in (`app/e2e/stand-ins.ts`): `TELEGRAM_API_ROOT` (the Bot API) and `PUSH_TEST_ORIGIN` (a push service). Both are honoured only for `http://127.0.0.1` or `http://localhost`, so a deployed Worker is unaffected; never set them in production. `/__scheduled` is in `run_worker_first` so the tests can run the cron; a deployed Worker hands it to the assets like any unknown path.
+
 **Smoke test after a deploy that touches reminders:**
 
 1. In Telegram, open Settings → Reading reminders. Push shows greyed with "Push notifications aren't available inside Telegram…". Turn the switch on with Telegram, and set the time to the next quarter hour.

@@ -77,10 +77,16 @@ function keyBytes(b64: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
-/** Ask the browser for permission and subscribe. Resolves to the subscription, or why not. */
-export async function subscribePush(publicKey: string): Promise<PushSubscriptionJSON | "denied" | "failed"> {
+/**
+ * Ask the browser for permission and subscribe. Resolves to the subscription, or why not:
+ * "denied" when the reader said no (the browser will not ask again), "dismissed" when the
+ * prompt was closed without an answer (it can be asked again), "failed" when the browser
+ * could not subscribe.
+ */
+export async function subscribePush(publicKey: string): Promise<PushSubscriptionJSON | "denied" | "dismissed" | "failed"> {
   try {
     const permission = await Notification.requestPermission();
+    if (permission === "default") return "dismissed";
     if (permission !== "granted") return "denied";
     const base = import.meta.env.BASE_URL;
     const reg = await navigator.serviceWorker.register(`${base}sw.js`, { scope: base });

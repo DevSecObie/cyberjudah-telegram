@@ -19,8 +19,10 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
     // The fork's pages (not its files) go through the Worker, so a deep link under /app/strong
-    // gets the fork's own index.html instead of the current app's.
-    "run_worker_first": ["/api/*", "/webhook", "/card/*", "/frames/*", "/bs/*", "/app/strong", "/app/strong/*", "!/app/strong/_expo/*", "!/app/strong/assets/*"]
+    // gets the fork's own index.html instead of the current app's. /__scheduled reaches the
+    // Worker so `wrangler dev --test-scheduled` (the end-to-end tests) can run the cron; a
+    // deployed Worker has no such route and hands it to the assets like any unknown path.
+    "run_worker_first": ["/api/*", "/webhook", "/__scheduled", "/card/*", "/frames/*", "/bs/*", "/app/strong", "/app/strong/*", "!/app/strong/_expo/*", "!/app/strong/assets/*"]
   },
   // search_docs (FTS5) loaded from the engine's search.sql.gz by scripts/load-search.mjs. The
   // id is filled in by the deploy workflow (scripts/d1-id.sh); nothing account-specific is committed.

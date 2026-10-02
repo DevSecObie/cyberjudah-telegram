@@ -11,12 +11,28 @@
 /** The push services browsers use. A subscription naming any other host is refused, so the Worker cannot be made to post to arbitrary URLs. */
 const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^android\.googleapis\.com$/, /^updates\.push\.services\.mozilla\.com$/, /^push\.services\.mozilla\.com$/, /(^|\.)push\.apple\.com$/, /\.notify\.windows\.com$/];
 
-export function validSubscription(sub) {
+/**
+ * A loopback origin the end-to-end tests run a stand-in push service on (PUSH_TEST_ORIGIN).
+ * Only http on 127.0.0.1 or localhost is ever accepted, so a deployed Worker is unaffected
+ * even if the variable were set.
+ */
+export function loopbackOrigin(origin) {
+  if (typeof origin !== "string" || !origin) return null;
+  try {
+    const u = new URL(origin);
+    return u.protocol === "http:" && (u.hostname === "127.0.0.1" || u.hostname === "localhost") && !u.username && !u.password ? u.origin : null;
+  } catch { return null; }
+}
+
+export function validSubscription(sub, testOrigin) {
   if (!sub || typeof sub !== "object" || typeof sub.endpoint !== "string" || sub.endpoint.length > 1024) return false;
   let u;
   try { u = new URL(sub.endpoint); } catch { return false; }
-  if (u.protocol !== "https:" || u.username || u.password || u.port) return false;
-  if (!PUSH_HOSTS.some((h) => h.test(u.hostname))) return false;
+  const loop = loopbackOrigin(testOrigin);
+  if (!(loop && u.origin === loop && !u.username && !u.password)) {
+    if (u.protocol !== "https:" || u.username || u.password || u.port) return false;
+    if (!PUSH_HOSTS.some((h) => h.test(u.hostname))) return false;
+  }
   const k = sub.keys;
   return !!k && typeof k.p256dh === "string" && typeof k.auth === "string" && /^[A-Za-z0-9_-]{20,200}=*$/.test(k.p256dh) && /^[A-Za-z0-9_-]{8,100}=*$/.test(k.auth);
 }
@@ -51,8 +67,8 @@ export async function vapidAuthorization(endpoint, keys, now = Date.now()) {
 export const TOPIC = "daily-reading";
 
 /** Wake one subscription. Resolves to the push service's HTTP status (201 when accepted). */
-export async function sendPush(sub, keys, { ttl = 6 * 3600, fetchImpl = fetch, now = Date.now() } = {}) {
-  if (!validSubscription(sub)) return 404;
+export async function sendPush(sub, keys, { ttl = 6 * 3600, fetchImpl = fetch, now = Date.now(), testOrigin } = {}) {
+  if (!validSubscription(sub, testOrigin)) return 404;
   const res = await fetchImpl(sub.endpoint, { method: "POST", headers: { authorization: await vapidAuthorization(sub.endpoint, keys, now), ttl: String(ttl), urgency: "normal", topic: TOPIC, "content-length": "0" } });
   return res.status;
 }

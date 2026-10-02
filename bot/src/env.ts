@@ -36,6 +36,9 @@ export type Env = {
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
   VAPID_SUBJECT?: string;
+  /** End-to-end tests only: a loopback Bot API and push service (http://127.0.0.1:…). Ignored unless loopback. */
+  TELEGRAM_API_ROOT?: string;
+  PUSH_TEST_ORIGIN?: string;
   /** Workers Rate Limiting binding for the reading-reminder endpoints (wrangler.jsonc "ratelimits"). */
   REMIND_LIMIT?: RateLimit;
 };

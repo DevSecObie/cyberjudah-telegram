@@ -63,6 +63,8 @@ export function Reminders() {
   const [busy, setBusy] = useState(false);
   const [needsBot, setNeedsBot] = useState(false);
   const [declined, setDeclined] = useState(false);
+  /** The browser's permission prompt was closed without an answer: it can be asked again. */
+  const [dismissed, setDismissed] = useState(false);
   const [notice, setNotice] = useState(false);
   const [here, setHere] = useState<string | null>(null);
   const [pickDate, setPickDate] = useState(false);
@@ -124,7 +126,9 @@ export function Reminders() {
     if (want.push && !herePushed && !app) {
       if (!pushOk || !view.publicKey) return;
       const r = await subscribePush(view.publicKey);
+      setDismissed(r === "dismissed");
       if (r === "denied") { setDeclined(true); haptic("error"); return; }
+      if (r === "dismissed") return;
       if (r === "failed") { void alert("This browser could not turn on push notifications."); return; }
       sub = r;
       if (sub.endpoint) setHere(sub.endpoint);
@@ -181,6 +185,7 @@ export function Reminders() {
     if (push === "denied" || declined) return <p>Notifications are blocked for this site. You can allow them in your browser settings.</p>;
     if (push === "unsupported") return <p>This browser can't receive push notifications.</p>;
     if (push === "no-server") return <p>Push notifications aren't set up yet.</p>;
+    if (push === "ask" && !herePushed && dismissed) return <p>The browser's question was closed without an answer. Choose Push notification again to be asked.</p>;
     if (push === "ask" && !herePushed) return <p>Your browser will ask permission next.</p>;
     return null;
   })();

@@ -1,4 +1,4 @@
-import { Api } from "grammy";
+import { telegramApi } from "./telegram-api";
 import type { Env } from "./env";
 
 /**
@@ -75,7 +75,7 @@ const adminIds = (env: Env): number[] =>
 export async function tellAdmins(env: Env, text: string): Promise<void> {
   const ids = adminIds(env);
   if (!ids.length) { console.log(JSON.stringify({ event: "health_no_admins" })); return; }
-  const api = new Api(env.BOT_TOKEN);
+  const api = telegramApi(env);
   // Plain text: check details carry server error text, which must not be parsed as HTML.
   const results = await Promise.allSettled(ids.map((id) => api.sendMessage(id, text)));
   for (const [i, r] of results.entries()) {

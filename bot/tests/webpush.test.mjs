@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { b64u, fromB64u, sendPush, validSubscription, vapidAuthorization } from "../src/webpush.mjs";
+import { b64u, fromB64u, loopbackOrigin, sendPush, validSubscription, vapidAuthorization } from "../src/webpush.mjs";
 
 async function keys() {
   const pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
@@ -47,6 +47,19 @@ test("only real push services are accepted as endpoints", () => {
     assert.equal(validSubscription({ ...SUB, endpoint }), false, endpoint);
   }
   assert.equal(validSubscription({ endpoint: SUB.endpoint }), false, "keys are required");
+});
+
+test("the end-to-end tests' push service is accepted only on loopback, and only when named", () => {
+  const local = { ...SUB, endpoint: "http://127.0.0.1:8791/push/abc" };
+  assert.equal(validSubscription(local), false, "not without PUSH_TEST_ORIGIN");
+  assert.equal(validSubscription(local, "http://127.0.0.1:8791"), true);
+  assert.equal(validSubscription({ ...local, endpoint: "http://127.0.0.1:9999/push/abc" }, "http://127.0.0.1:8791"), false, "another port");
+  assert.equal(validSubscription(SUB, "http://127.0.0.1:8791"), true, "real push services still accepted");
+  for (const origin of ["https://evil.example", "http://169.254.169.254", "http://10.0.0.1:80", "https://127.0.0.1", "javascript:alert(1)", "", undefined]) {
+    assert.equal(loopbackOrigin(origin), null, String(origin));
+  }
+  assert.equal(validSubscription({ ...SUB, endpoint: "http://169.254.169.254/latest" }, "http://169.254.169.254"), false);
+  assert.equal(loopbackOrigin("http://localhost:8791/tg"), "http://localhost:8791");
 });
 
 test("a refused endpoint is never fetched", async () => {

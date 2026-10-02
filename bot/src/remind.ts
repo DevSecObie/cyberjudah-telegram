@@ -1,11 +1,12 @@
 import { Hono, type Context } from "hono";
-import { Api, GrammyError, InlineKeyboard } from "grammy";
+import { GrammyError, InlineKeyboard } from "grammy";
 import type { Env } from "./env";
 import { validateInitData } from "./initdata.mjs";
 import { books, escapeHtml } from "./data";
 import { openButton } from "./bot";
 import { CHUNK, SENDS_PER_SECOND, SLOT_TTL, sleep } from "./daily";
 import { tellAdmins } from "./health";
+import { telegramApi } from "./telegram-api";
 import {
   ackPending, applyContent, applySettings, blank, countByChannel, dueChannels, localNow, markDone, markSent, mayBeDue, meta,
   addPush, claim, release, pause, portion, telegramBack, publicView, pushOutcome, removePush, stop, telegramGone, validTz, PAUSE_CHOICES,
@@ -75,6 +76,9 @@ async function overLimit(env: Env, key: string): Promise<boolean> {
 const tooMany = (c: Context<{ Bindings: Env }>) => c.json({ ok: false, error: "rate-limited" }, 429, { "retry-after": "60" });
 const clientIp = (c: Context<{ Bindings: Env }>) => c.req.header("cf-connecting-ip") ?? "unknown";
 
+/** A push subscription the Worker will post to: a browser push service, or in tests the loopback one (PUSH_TEST_ORIGIN). */
+const pushable = (env: Env, sub: unknown) => validSubscription(sub, env.PUSH_TEST_ORIGIN);
+
 export function vapidKeys(env: Env): VapidKeys | null {
   return env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT ? { publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY, subject: env.VAPID_SUBJECT } : null;
 }
@@ -127,7 +131,7 @@ async function withBackoff<T>(f: () => Promise<T>): Promise<T> {
 /** The Telegram reminder of the day, when it was sent, is marked done in place. */
 async function markTelegramDone(env: Env, rec: Reminder, before: Portion | null) {
   if (!before || !rec.tgMessage || !Number.isInteger(rec.chatId) || rec.tgMessage.date !== rec.done) return;
-  try { await new Api(env.BOT_TOKEN).editMessageText(rec.chatId!, rec.tgMessage.id, `${telegramMessage(before)}\n\n✓ Done`, { parse_mode: "HTML", reply_markup: telegramKeyboard(env, before, true) }); }
+  try { await telegramApi(env).editMessageText(rec.chatId!, rec.tgMessage.id, `${telegramMessage(before)}\n\n✓ Done`, { parse_mode: "HTML", reply_markup: telegramKeyboard(env, before, true) }); }
   catch { /* already edited, or deleted by the reader */ }
 }
 
@@ -146,7 +150,7 @@ export async function doneFor(env: Env, rid: string, now = new Date()): Promise<
 
 /** A browser's push subscription added to a record, with its index; a device past the limit is let go. */
 async function addPushTo(env: Env, rid: string, rec: Reminder, sub: unknown): Promise<Reminder> {
-  if (!validSubscription(sub)) return rec;
+  if (!pushable(env, sub)) return rec;
   const { rec: next, dropped } = addPush(rec, sub);
   await putIndex(env, sub.endpoint, rid);
   for (const e of dropped) await env.SUBS.delete(`pushep:${await sha256(e)}`);
@@ -222,7 +226,7 @@ export async function reminderKeyboard(env: Env, uid: number, choosing: boolean)
 
 let botUsername: string | undefined;
 async function botLink(env: Env, start: string) {
-  botUsername ??= (await new Api(env.BOT_TOKEN).getMe()).username;
+  botUsername ??= (await telegramApi(env).getMe()).username;
   return `https://t.me/${botUsername}?start=${start}`;
 }
 
@@ -248,7 +252,7 @@ reminders.get("/", async (c) => {
 reminders.put("/", async (c) => {
   const body = await c.req.json<{ settings?: unknown; content?: unknown; push?: unknown; pushRemove?: unknown; notice?: boolean }>().catch(() => null);
   if (!body) return c.json({ ok: false, error: "bad-json" }, 400);
-  if (body.push !== undefined && !validSubscription(body.push)) return c.json({ ok: false, error: "bad-subscription" }, 400);
+  if (body.push !== undefined && !pushable(c.env, body.push)) return c.json({ ok: false, error: "bad-subscription" }, 400);
   let w = await who(c);
   let device: string | undefined;
   if (!w) {
@@ -349,7 +353,7 @@ async function byEndpoint(c: Context<{ Bindings: Env }>): Promise<string | null>
  */
 push.post("/renew", async (c) => {
   const body = await c.req.json<{ old?: unknown; sub?: unknown }>().catch(() => null);
-  if (typeof body?.old !== "string" || body.old.length > 1024 || !validSubscription(body.sub)) return c.json({ ok: false }, 400);
+  if (typeof body?.old !== "string" || body.old.length > 1024 || !pushable(c.env, body.sub)) return c.json({ ok: false }, 400);
   const rid = await c.env.SUBS.get(`pushep:${await sha256(body.old)}`);
   const rec = rid ? await loadReminder(c.env, rid) : null;
   if (!rid || !rec) return c.json({ ok: false }, 404);
@@ -424,7 +428,7 @@ export async function sendReminders(env: Env, now = new Date()): Promise<Counts>
 async function runSlot(env: Env, key: string, now: Date, list: NonNullable<Awaited<ReturnType<typeof books>>>, out: Counts) {
   const saved = (await env.SUBS.get(key, "json")) as { cursor?: string; done?: boolean } | null;
   if (saved?.done) return;
-  const api = new Api(env.BOT_TOKEN);
+  const api = telegramApi(env);
   const keys = vapidKeys(env);
   const slot: Counts = { telegram: 0, push: 0, fallback: 0, failed: 0 };
   let misconfigured = false;
@@ -457,7 +461,7 @@ async function runSlot(env: Env, key: string, now: Date, list: NonNullable<Await
       if (due.includes("push") && keys) {
         // Every browser the reader turned push on in; one delivery counts for the day.
         const subs = r.pushes ?? [];
-        const results = await Promise.all(subs.map(async (sub) => ({ endpoint: sub.endpoint, status: await sendPush(sub, keys).catch(() => 0) })));
+        const results = await Promise.all(subs.map(async (sub) => ({ endpoint: sub.endpoint, status: await sendPush(sub, keys, { testOrigin: env.PUSH_TEST_ORIGIN }).catch(() => 0) })));
         // The claim is given back first; pushOutcome marks the day sent again if any browser took it.
         const f = pushOutcome(release(r, "push", rec), results, now);
         for (const e of f.gone) await env.SUBS.delete(`pushep:${await sha256(e)}`);

@@ -38,7 +38,8 @@ Merged to `main` and not yet in a tagged release. Production currently runs `799
   [#15]), on the owner's decision recorded in [issue #47]. Push needs three new Worker secrets
   (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`); until they are added, push is shown
   as not set up and Telegram reminders work. The Worker's cron now also runs at :15, :30 and :45
-  for reminders; the hourly jobs still run only on the hour.
+  for reminders; the hourly jobs still run only on the hour. If the browser's permission prompt is
+  closed without an answer, push is not called blocked; choosing it again asks again.
 
 ### Changed
 - This changelog, the incident log ([docs/INCIDENTS.md](docs/INCIDENTS.md)) and the release rules;
