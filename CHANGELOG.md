@@ -22,8 +22,8 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
-Merged to `main` and not yet in a tagged release. Production currently runs `799f696`
-([deploy run 36961422040](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/36961422040)).
+Merged to `main` and not yet in a tagged release. Production currently runs `861242f`
+([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
 ### Added
 - Reading reminders ([issue #47]): opt-in and off by default, at a quarter-hour time in the
@@ -49,7 +49,6 @@ Merged to `main` and not yet in a tagged release. Production currently runs `799
 
 | Issue | Owner (role) | Tracking | Impact | Workaround | Next action |
 |---|---|---|---|---|---|
-| A production deploy can go red after the new Worker is live (the search import collides with one still running) | Maintainer (deploy pipeline) | [#78] | The deploy job fails; the webhook, commands and secrets step is skipped for that deploy. The app keeps working on the new Worker | Re-run the deploy once the earlier import ends | Review and merge [#78] |
 | Search may fail during each production deploy while the search index is re-imported | Maintainer (deploy pipeline) | None yet | Search errors for the length of the import (not measured) | None | Decide whether to skip the import when the index is unchanged |
 | Precept-pass fixes requested with `@codex` never arrived (Codex was not connected until 2026-10-02) | Repository owner | cyberjudah [#14](https://github.com/DevSecObie/cyberjudah/pull/14), [#15](https://github.com/DevSecObie/cyberjudah/pull/15) | Two passes cannot merge | The owner applies the listed fixes | Fixes re-requested on 2026-10-02; review the new commits, then merge |
 | Liquid Glass refraction (the lens bend on the dock) is Chromium-only | Front end | None | Cosmetic: iPhone (Telegram's WebKit view, Safari, Chrome on iOS) and Firefox get frosted glass without the bend | None needed | Keep it a progressive enhancement; see the selection-sheet review |
@@ -57,9 +56,9 @@ Merged to `main` and not yet in a tagged release. Production currently runs `799
 
 ## Production history (retrospective, untagged)
 
-### 2026-10-02: production deploy `799f696`
+### 2026-10-02: production deploy `861242f`
 
-Deployed 2026-10-02T03:51Z by [deploy run 36961422040](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/36961422040); commits [`f55751c…799f696`](https://github.com/DevSecObie/cyberjudah-telegram/compare/f55751c...799f696). Untagged.
+Deployed 2026-10-02T20:49Z by [deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554); commits [`f55751c…861242f`](https://github.com/DevSecObie/cyberjudah-telegram/compare/f55751c...861242f). Untagged. The day's first deploy, `799f696` at 03:51Z ([run 36961422040](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/36961422040)), carried [#70], [#73], [#74], [#75] and [#76]; the later ones carried [#78], [#80], [#81] and [#84], with test and CI changes ([#63], [#64], [#79], [#83]).
 
 #### Added
 - **The dock is a drop of Liquid Glass** ([#74]). The current section sits on a glass lens you can
@@ -91,6 +90,16 @@ Deployed 2026-10-02T03:51Z by [deploy run 36961422040](https://github.com/DevSec
 - **List rows fit their cards** ([#70]): counts and chevrons were cut off. The chapter's class
   deck says "chapter".
 - **The tap after a drag** on the dock is no longer swallowed ([#74]).
+- **No cyan ring round the verse-selection sheet** ([#84]). It appeared whenever the sheet opened;
+  the sheet's own controls keep their focus rings, now drawn inside them instead of clipped at
+  the edge. The tabs reach a 48px touch target with the same look, Home and End go to the first
+  and last tab, and the dock can't be reached by Tab while the sheet covers it.
+- **A deploy no longer fails when the search import is busy** ([#78]): it waits for the import
+  already running instead of failing after one 15-second retry.
+
+#### Security
+- Dependency updates with no change to the app: undici 7.29.1 through wrangler 4.147.0 ([#80]),
+  and 14 advisories in the Bible Strong fork's lockfile ([#81]).
 
 ### 2026-10-01: production deploy `f55751c`
 
@@ -406,3 +415,10 @@ Deployed 2026-09-26T23:37Z by [deploy run 36279966157](https://github.com/DevSec
 [#76]: https://github.com/DevSecObie/cyberjudah-telegram/pull/76
 [#77]: https://github.com/DevSecObie/cyberjudah-telegram/pull/77
 [#78]: https://github.com/DevSecObie/cyberjudah-telegram/pull/78
+[#83]: https://github.com/DevSecObie/cyberjudah-telegram/pull/83
+[#79]: https://github.com/DevSecObie/cyberjudah-telegram/pull/79
+[#64]: https://github.com/DevSecObie/cyberjudah-telegram/pull/64
+[#63]: https://github.com/DevSecObie/cyberjudah-telegram/pull/63
+[#80]: https://github.com/DevSecObie/cyberjudah-telegram/pull/80
+[#81]: https://github.com/DevSecObie/cyberjudah-telegram/pull/81
+[#84]: https://github.com/DevSecObie/cyberjudah-telegram/pull/84

@@ -58,6 +58,49 @@ Logs must not include bot tokens, webhook secrets, raw Telegram `initData`, note
   Environments → production to gate every production deploy (and rollback) behind a human.
 - Record the deployed commit SHA.
 
+### Deployment checklist
+
+What a production deploy does, in order (`deploy.yml`, job `deploy`), and what to check at each step:
+
+1. **Before merging:** the pull request's checks are green: `check` (typecheck, unit tests,
+   build), `playwright`, `stage` (a staging deploy with its smoke test), `codeql`,
+   `dependency-review`. Dependabot pull requests have no secrets, so their `stage` is red by
+   design; judge them on the rest.
+2. **Approval:** the `deploy` job targets the `production` environment, and waits there when it
+   has required reviewers (the run history shows deploys pending for up to two hours, so a gate
+   appears to be set; confirm under Settings → Environments → production). Approve the newest
+   pending run; an older pending run superseded by a newer one can be rejected, since the
+   newer deploy carries its commits.
+3. **Configuration:** the job checks four secrets by name (`CLOUDFLARE_API_TOKEN`,
+   `CLOUDFLARE_ACCOUNT_ID`, `BOT_TOKEN`, `WEBHOOK_SECRET`), finds or creates the D1
+   databases, KV namespace, Vectorize index and R2 bucket, and writes their ids into
+   `wrangler.jsonc` in the runner only. Optional secrets (`ANTHROPIC_API_KEY`,
+   `CYBERJUDAH_TOKEN`, `ADMIN_IDS`) are pushed to the Worker when present.
+4. **Schema:** there is no migration step. Tables are created on first use with
+   `CREATE TABLE IF NOT EXISTS` (`bot/src/billing.ts`, `bot/src/ai.ts`). A schema change must
+   be additive (new tables or nullable columns) so the previous Worker still runs against it
+   after a rollback.
+5. **Publish:** `wrangler deploy` publishes the Worker and the app's assets; its log prints
+   `Current Version ID`. **The new code is live from this moment**, even if a later step fails.
+6. **Search index:** `load-search.mjs` replaces the whole search index from the data set. D1
+   warns that the database "will be unavailable to serve queries" while it imports, so Search
+   may fail for that time. If this step fails, the job is red with the Worker already live and
+   step 7 skipped; re-run the job once the earlier import has finished (see
+   [docs/INCIDENTS.md](INCIDENTS.md)).
+7. **Bot setup:** secrets put on the Worker, then the webhook, commands and menu button
+   registered (`scripts/setup.mjs`).
+8. **Identify the release:** record the commit SHA, the deploy run id and the Worker's
+   version id (from step 5) together, in the pull request or the incident log.
+9. **Smoke test** (production, within minutes):
+   - `GET https://cyberjudah.io/api/health` answers `ok: true` (search and teachings).
+   - `https://cyberjudah.io/app` and `https://cyberjudah.io/app/read/john/3` render.
+   - The bot's menu button opens the app (the Worker's root).
+   - In Telegram: a search, an Ask question, opening a verse and a class.
+   - The nightly `live-smoke` workflow runs the end-to-end suite against `vars.WORKER_URL`; a
+     manual run (Actions → live-smoke → Run workflow) gives the same check on demand.
+10. **Roll back** if a check fails: see below. The search index is not part of a rollback;
+    the next deploy or the nightly `refresh-search` reloads it.
+
 ## Rollback
 
 No rebuilds. The `rollback` workflow (`Actions → rollback → Run workflow`) repoints the
@@ -85,8 +128,8 @@ you do not have.
 - **Ask CyberJudah**: the expensive path. Per-user daily quotas bound one person's cost
   (100 asks, 50 new TTS generations); the free allowance (`ASK_FREE_DAILY`) bounds
   everyone's. Re-tune the allowance from `/api/admin/usage` real averages after launch,
-  not from estimates. Billing balances still live in KV — do not enable `ASK_BILLING`
-  with a large audience until they move to D1.
+  not from estimates. Billing balances and usage totals live in D1 (`accounts`, `payments`,
+  `usage_daily`, `usage_people`, with version-checked updates; PR #16), not KV.
 - **Search**: D1 FTS is cheap; `/api/search` cache headers are the lever if read volume spikes.
 - **Quotas**: `takeQuota()` in D1 is atomic per user/day; `rate_counts` rows for old days
   are swept on use, so the table stays small.
@@ -139,5 +182,5 @@ Define and test D1 backup/export and KV subscription recovery before public laun
 - Data migrations and rollback compatibility reviewed
 - Privacy documentation matches telemetry changes
 - Monitoring and alerts cover new routes or jobs
-- Changelog and version tag prepared
+- Changelog updated (or marked not applicable); a version tag only on a deployed commit (CONTRIBUTING.md, Releases)
 - Production smoke test and owner recorded

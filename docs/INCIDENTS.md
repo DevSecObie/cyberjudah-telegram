@@ -4,7 +4,7 @@ Everything that broke for people, stopped a deploy, or left production in a half
 what people saw, the cause, the fix, where the fix first reached production, and what now
 stops it from coming back. Newest first. Product-facing changes are in [CHANGELOG.md](../CHANGELOG.md).
 
-How each row was checked (2026-10-02, against `main` at `799f696`):
+How each row was checked (2026-10-02, against `main` at `799f696`; the D1 import row moved to Resolved at `861242f`):
 
 - **Fix on main:** `git merge-base --is-ancestor <fix> origin/main`.
 - **First deployed:** the first successful production deploy run whose commit contains the fix.
@@ -19,7 +19,6 @@ How each row was checked (2026-10-02, against `main` at `799f696`):
 
 | Opened | What people see | Cause | Status | Tracking |
 |---|---|---|---|---|
-| 2026-10-01 | A production deploy goes red after the new Worker is already live; the webhook, commands and secrets step is skipped | The search-index import runs after `wrangler deploy`; D1 runs one import at a time and the single 15 s retry was shorter than a running import ([run 36915871818](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/36915871818): "Currently processing a long-running import") | Fix in review: wait out a busy import (30–240 s pauses, ~9 min) | [#78] |
 | 2026-10-01 | Search can fail while a deploy runs | Every deploy re-imports the full 147 MB search index, and wrangler warns that "your D1 database will be unavailable to serve queries" during the import. How long Search is down has not been measured | Needs a decision: skip the import when the data set's index is unchanged | None yet |
 | 2026-09-30 | Precept-pass fixes requested with `@codex` are never made | The Codex GitHub connector answers every request with "To use Codex here, create a Codex account and connect to github" (cyberjudah #14, #15) | Codex connected by the owner on 2026-10-02; the fixes were requested again on both pull requests the same day | cyberjudah [#14](https://github.com/DevSecObie/cyberjudah/pull/14), [#15](https://github.com/DevSecObie/cyberjudah/pull/15) |
 
@@ -27,6 +26,7 @@ How each row was checked (2026-10-02, against `main` at `799f696`):
 
 | Date | What people saw | Cause | Fix | Fix on main / first deployed | Regression coverage |
 |---|---|---|---|---|---|
+| 2026-10-01 | A production deploy went red after the new Worker was already live; the webhook, commands and secrets step was skipped | The search-index import runs after `wrangler deploy`; D1 runs one import at a time and the single 15 s retry was shorter than a running import ([run 36915871818](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/36915871818): "Currently processing a long-running import") | [#78]: wait out a busy import (30–240 s pauses, ~9 min) | yes / 2026-10-02, run [37053626500](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37053626500) | unit `bot/tests/import-retry.test.mjs` ([#78]) |
 | 2026-10-02 | The verse-selection sheet grew into a large floating card with a cyan rim and wrapped actions, live 02:51–03:51 UTC | [#75] changed the sheet's layout and behaviour, not only its material | [#76] | yes / 2026-10-02, run 36961422040 | e2e "the verse-selection sheet keeps Bible Strong's size" ([#79]); before it, none |
 | 2026-10-02 | After dragging the dock, the next tap did nothing (caught in CI before release) | The click ending a drag was swallowed for 80 ms | [#74] (`0026f8f`) | yes / 2026-10-02, run 36961422040 | e2e "liquid glass: … a plain tap on another section still opens it" |
 | 2026-10-01 | The nightly and post-deploy embedding failed ("Max context reached 63000 tokens") | A batch of 100 long passages passed bge-m3's 60,000-token limit | [#68] (`2ac6602`) | yes / 2026-10-01, run 36916930059 | None |
@@ -59,7 +59,7 @@ up (secrets, dictionary, index and bucket creation, D1 loading); they are summar
 2026-09-26 rows above and were not re-examined one by one. The other three: `d083f0e`
 ([run 36723132065](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/36723132065), search index 404, fixed by [#20]); `e746728`
 ([run 36770171200](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/36770171200), failed in "Deploy the worker"; the log shown by the API does not include the error
-line, so the cause is not confirmed); `d971840` ([run 36915871818](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/36915871818), the open D1 import row above).
+line, so the cause is not confirmed); `d971840` ([run 36915871818](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/36915871818), the D1 import row above, fixed by [#78]).
 
 [#16]: https://github.com/DevSecObie/cyberjudah-telegram/pull/16
 [#18]: https://github.com/DevSecObie/cyberjudah-telegram/pull/18
