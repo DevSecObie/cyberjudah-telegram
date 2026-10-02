@@ -314,6 +314,28 @@ test("Link and Relation are their own verse actions: a link saved from Link show
   await expect(page.locator("#verset-1 .rel-inline .rel-tag", { hasText: "The shepherd class" })).toBeVisible();
 });
 
+test("liquid glass: pressing the current section lifts its pill, dragging carries it along the bar, letting go opens where it lands", async ({ page }) => {
+  await page.goto(`/search${LAUNCH}`);
+  const dock = page.locator("nav.tabs");
+  const from = await dock.locator(".tab[data-on]").boundingBox();
+  const to = await dock.locator(".tab", { hasText: "Classes" }).boundingBox();
+  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+  await page.mouse.down();
+  await expect(dock).toHaveAttribute("data-lift", "");
+  for (let i = 1; i <= 8; i++) await page.mouse.move(from!.x + from!.width / 2 + ((to!.x - from!.x) * i) / 8, from!.y + from!.height / 2);
+  await expect(dock).toHaveAttribute("data-drag", "");
+  // The icon under the lens swells.
+  expect(Number(await dock.locator(".tab", { hasText: "Classes" }).evaluate((b) => b.style.getPropertyValue("--mag")))).toBeGreaterThan(1.1);
+  if (process.env.SHOTS) await dock.screenshot({ path: `${process.env.SHOTS}/liquid-drag.png` });
+  await page.mouse.up();
+  await expect(page).toHaveURL(/\/classes/);
+  await expect(dock).not.toHaveAttribute("data-lift", "");
+  await expect(dock.locator(".tab[data-on]")).toContainText("Classes");
+  // A plain tap on another section still opens it.
+  await dock.locator(".tab", { hasText: "Search" }).click();
+  await expect(page).toHaveURL(/\/search/);
+});
+
 test("tabs are roots, detail screens push, and the back button walks them", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
   await expect(page.locator(".hello h1")).toHaveText("What do you want to learn?");

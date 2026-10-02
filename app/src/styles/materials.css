@@ -70,12 +70,34 @@
   display: flex; align-items: center; gap: 0;
   border-radius: calc(var(--dock-h) / 2);
   background: var(--dock-tint-override, var(--mat-nav));
-  -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
   border: .5px solid var(--dock-edge-override, var(--mat-edge));
   box-shadow: var(--mat-highlight), var(--mat-shadow);
-  touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
   transition: transform var(--dur-4) var(--drawer-ease), width var(--dur-3) var(--ease), height var(--dur-3) var(--ease), border-radius var(--dur-3) var(--ease);
 }
+/* The frost is its own layer, not the bar's: a blur on the bar itself would hide what lies
+   behind it from the lens inside it. */
+.tabs::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
+}
+/* Where the lens can bend what is behind it (refraction.tsx, Chromium), it floats over the icons
+   as the glass does in iOS: the section beneath it seen through the drop, magnified at its middle,
+   curved and split into colour at its rim. Its tint thins so what it bends shows clearly. */
+.tabs[data-refract] .tabs__pill { z-index: 2; }
+/* Only inner shadows on the refracting lens: in Chromium an outer shadow shifts the filter's
+   coordinates and tears the refraction. */
+html:root .tabs[data-refract] .tabs__pill { box-shadow: inset 0 1px 1px color-mix(in srgb, #fff 60%, transparent), inset 0 -1px 1px color-mix(in srgb, #fff 16%, transparent), inset 0 -10px 16px -12px rgba(0, 0, 0, .35); }
+html:root .tabs[data-refract][data-lift] .tabs__pill { box-shadow: inset 0 1.5px 1px color-mix(in srgb, #fff 75%, transparent), inset 0 -1.5px 1px color-mix(in srgb, #fff 30%, transparent), inset 0 0 12px color-mix(in srgb, #fff 10%, transparent); }
+.tabs[data-refract] .tabs__pill,
+html[data-theme="light"] .tabs[data-refract] .tabs__pill { background: radial-gradient(120% 80% at 30% -10%, color-mix(in srgb, #fff 18%, transparent), transparent 60%); }
+.tabs[data-refract] .tab__glyph { scale: 1; }
+/* On a pale bar the lens keeps the page's own brightness, or it washes to white. */
+html:root[data-theme="light"] .tabs[data-refract] .tabs__pill { -webkit-backdrop-filter: url(#lens-rest) saturate(140%); backdrop-filter: url(#lens-rest) saturate(140%); }
+html:root[data-theme="light"] .tabs[data-refract][data-lift] .tabs__pill { -webkit-backdrop-filter: url(#lens-lift) saturate(150%) brightness(1.02); backdrop-filter: url(#lens-lift) saturate(150%) brightness(1.02); }
+/* The lens bends what lies behind it (refraction.tsx): a little at rest, fully when lifted. */
+.tabs[data-refract] .tabs__pill { -webkit-backdrop-filter: url(#lens-rest) saturate(160%) brightness(1.12); backdrop-filter: url(#lens-rest) saturate(160%) brightness(1.12); }
+html:root .tabs[data-refract][data-lift] .tabs__pill { -webkit-backdrop-filter: url(#lens-lift) saturate(180%) brightness(1.2); backdrop-filter: url(#lens-lift) saturate(180%) brightness(1.2); }
 .tabs .tab {
   position: relative; z-index: 1; flex: 1 1 0; min-width: var(--touch); height: 48px; padding: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
@@ -87,14 +109,78 @@
 .tab__label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 10.5px/1.1 var(--font-ui); letter-spacing: -.01em; }
 .tabs .tab[data-on] { color: var(--dock-ink-override, var(--text-1)); }
 .tabs .tab[data-on] .tab__label { font-weight: 700; }
-/* The pill under the current section: brighter tint, a rim of light, and a glow along its foot. */
+/* The pill under the current section, a drop of liquid glass: it lifts and saturates what lies
+   behind it, catches light along its top and at its rim, sits on a soft shadow, and stretches as
+   it flows to another section before settling. Its glow along the foot names the section. */
 .tabs__pill {
   position: absolute; z-index: 0; left: 0; top: 0; width: var(--pill-w, 44px); height: var(--pill-h, 48px);
   transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)); border-radius: 24px; pointer-events: none;
-  background: var(--dock-selected-override, var(--mat-selected));
-  box-shadow: inset 0 1px 0 var(--rim-highlight), inset 0 0 0 .5px var(--mat-edge);
-  transition: transform var(--dur-2) var(--ease), width var(--dur-2) var(--ease), opacity var(--dur-2) ease;
+  background:
+    radial-gradient(120% 80% at 30% -10%, color-mix(in srgb, #fff 30%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, #fff 14%, transparent), color-mix(in srgb, #fff 3%, transparent) 55%, color-mix(in srgb, #fff 9%, transparent)),
+    var(--dock-selected-override, color-mix(in srgb, var(--mat-selected) 60%, transparent));
+  -webkit-backdrop-filter: blur(2px) saturate(190%) brightness(1.18); backdrop-filter: blur(2px) saturate(190%) brightness(1.18);
+  box-shadow:
+    inset 0 1px 1px color-mix(in srgb, #fff 60%, transparent),
+    inset 0 -1px 1px color-mix(in srgb, #fff 16%, transparent),
+    inset 0 -10px 16px -12px rgba(0, 0, 0, .35),
+    0 8px 18px -8px rgba(0, 0, 0, .45);
+  transition: transform var(--dur-3) var(--ease-spring), width var(--dur-3) var(--ease-spring), opacity var(--dur-2) ease;
 }
+/* Its rim: light gathered at the upper left and lower right, as on a lens. */
+.tabs__pill::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: linear-gradient(135deg, color-mix(in srgb, #fff 75%, transparent), color-mix(in srgb, #fff 10%, transparent) 38%, color-mix(in srgb, #fff 6%, transparent) 62%, color-mix(in srgb, #fff 45%, transparent));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+/* Held, it lifts into a clear lens: larger, lighter, a brighter rim and a deeper shadow, the
+   section's glow put away while it travels. Dragged, it follows the finger with no lag and
+   stretches with its speed (--pill-sx/--pill-sy, set as it moves); the icons it passes swell. */
+.tabs__pill { scale: var(--pill-sx, 1) var(--pill-sy, 1); }
+.tabs[data-lift] .tabs__pill {
+  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(1.22, 1.16);
+  background:
+    radial-gradient(120% 80% at 30% -10%, color-mix(in srgb, #fff 34%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, #fff 10%, transparent), transparent 55%, color-mix(in srgb, #fff 8%, transparent));
+  -webkit-backdrop-filter: blur(.5px) saturate(220%) brightness(1.28) contrast(1.06); backdrop-filter: blur(.5px) saturate(220%) brightness(1.28) contrast(1.06);
+  box-shadow:
+    inset 0 1.5px 1px color-mix(in srgb, #fff 75%, transparent),
+    inset 0 -1.5px 1px color-mix(in srgb, #fff 30%, transparent),
+    inset 0 0 12px color-mix(in srgb, #fff 10%, transparent),
+    0 14px 30px -10px rgba(0, 0, 0, .5);
+  transition: transform 260ms var(--ease-spring), scale 140ms ease, opacity var(--dur-2) ease;
+}
+.tabs[data-lift] .tabs__pill::after { opacity: 0; }
+.tabs__pill::after { transition: opacity var(--dur-2) ease; }
+.tabs[data-drag] .tabs__pill { transition: scale 140ms ease, opacity var(--dur-2) ease; }
+.tabs[data-drag] { cursor: grabbing; }
+.tabs .tab__glyph { scale: var(--mag, 1); transition: transform var(--dur-1) var(--ease), scale 140ms var(--ease); }
+.tabs[data-drag] .tab { color: var(--dock-ink-override, var(--text-1)); }
+html[data-theme="light"] .tabs[data-lift] .tabs__pill {
+  background:
+    radial-gradient(120% 80% at 30% -10%, #fff, transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, #fff 45%, transparent), color-mix(in srgb, #fff 8%, transparent) 60%, color-mix(in srgb, #fff 30%, transparent));
+  -webkit-backdrop-filter: blur(.5px) saturate(180%) brightness(1.06); backdrop-filter: blur(.5px) saturate(180%) brightness(1.06);
+  box-shadow: inset 0 1.5px 1px #fff, inset 0 -1.5px 1px color-mix(in srgb, #fff 60%, transparent), 0 12px 26px -10px rgba(40, 30, 10, .35);
+}
+@media (prefers-reduced-motion: reduce) { .tabs[data-lift] .tabs__pill { transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)); } .tabs__pill { scale: none; } }
+/* Moving to another section, it stretches along the way and settles like a drop. */
+.tabs__pill[data-flow] { animation: pill-flow var(--dur-4) var(--ease); }
+@keyframes pill-flow { 0% { scale: 1 1; } 35% { scale: 1.16 .86; } 70% { scale: .97 1.04; } 100% { scale: 1 1; } }
+html[data-theme="light"] .tabs__pill {
+  background:
+    radial-gradient(120% 80% at 30% -10%, color-mix(in srgb, #fff 95%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, #fff 55%, transparent), color-mix(in srgb, #fff 10%, transparent) 60%, color-mix(in srgb, #fff 35%, transparent)),
+    var(--dock-selected-override-light, color-mix(in srgb, var(--text-1) 8%, transparent));
+  -webkit-backdrop-filter: blur(2px) saturate(170%) brightness(1.04); backdrop-filter: blur(2px) saturate(170%) brightness(1.04);
+}
+html[data-theme="light"] .tabs__pill::before { background: linear-gradient(135deg, #fff, color-mix(in srgb, var(--text-1) 6%, transparent) 40%, color-mix(in srgb, var(--text-1) 10%, transparent) 62%, color-mix(in srgb, var(--text-1) 22%, transparent)); }
+html[data-theme="light"] .tabs__pill { box-shadow: inset 0 1px 1px color-mix(in srgb, #fff 90%, transparent), inset 0 -1px 1px color-mix(in srgb, #fff 50%, transparent), inset 0 -10px 16px -12px rgba(0, 0, 0, .12), 0 6px 14px -8px rgba(40, 30, 10, .3); }
+html[data-transparency="reduced"] .tabs__pill { -webkit-backdrop-filter: none; backdrop-filter: none; }
+@media (prefers-reduced-transparency: reduce) { html:root .tabs .tabs__pill { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } }
+html:root[data-transparency="reduced"] .tabs .tabs__pill { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+@media (prefers-reduced-motion: reduce) { .tabs__pill[data-flow] { animation: none; } }
 .tabs__pill::after {
   content: ""; position: absolute; left: 32%; right: 32%; bottom: 3px; height: 2px; border-radius: 2px;
   background: var(--accent); box-shadow: 0 0 10px 1px var(--mat-glow);
