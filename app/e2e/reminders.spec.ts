@@ -23,8 +23,8 @@ const MOCK = fs.readFileSync(new URL("./telegram-mock.js", import.meta.url), "ut
 const DATA_ORIGIN = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
 const BOT_TOKEN = process.env.BOT_TOKEN!;
 const BOT_DIR = new URL("../../bot/", import.meta.url).pathname;
-/** A fresh reader each run. */
-const RUN = 100000 + Math.floor(Math.random() * 1e9);
+/** A fresh reader each run (crypto.randomInt: the id is signed into launch data). */
+const RUN = 100000 + crypto.randomInt(1e9);
 const initData = (n: number) => {
   const params: Record<string, string> = { query_id: "AAH", user: JSON.stringify({ id: RUN + n, first_name: "Test" }), auth_date: String(Math.floor(Date.now() / 1000)) };
   const check = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join("\n");
