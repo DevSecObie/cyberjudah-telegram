@@ -136,7 +136,7 @@ Ask answers with Claude (`CLAUDE_MODEL`, the `ANTHROPIC_API_KEY` secret). Worker
 
 **Cloudflare AI Gateway** (`AI_GATEWAY` in `wrangler.jsonc`, `"default"` for production and staging):
 - **Workers AI:** calls (answers, embeddings, reranking, voices) pass `{ gateway: { id } }` and appear under AI Gateway → `default` in the Cloudflare dashboard, with logs and analytics. Cloudflare creates the `default` gateway on its first request. The AI binding authenticates it, so no token is needed.
-- **Claude:** calls go through the same gateway only when the **`CF_AIG_TOKEN`** Worker secret is set. That is an AI Gateway token with Run permission, made under the gateway's Settings → Create authentication token; it is sent as `cf-aig-authorization` because the default gateway is authenticated. Without the token, Claude is called directly, as before. **The owner adds this secret.**
+- **Claude:** calls go through the same gateway only when the **`CF_AIG_TOKEN`** Worker secret is set. That is an AI Gateway token with Run permission, made under the gateway's Settings → Create authentication token; it is sent as `cf-aig-authorization` because the default gateway is authenticated. Add it as the GitHub repository secret `CF_AIG_TOKEN` (Settings → Secrets and variables → Actions); the deploy puts it on the Worker. Without the token, Claude is called directly, as before. **The owner adds this secret.**
 - **Dashboard settings:** gateway-level caching, rate limiting and retries are set in the dashboard. Leave caching off for Ask: answers depend on the conversation.
 
 ## Backups and recovery
