@@ -1881,3 +1881,34 @@ test("the verse-selection sheet keeps Bible Strong's size: one row of actions, t
   const v = (await page.locator("#verset-1").boundingBox())!;
   expect(v.y + v.height).toBeLessThanOrEqual(s.y);
 });
+
+// The selection sheet for keyboard and screen-reader users: no focus ring drawn round the sheet
+// itself on open (it showed as a cyan outline), tabs tied to their panels and moved with arrows
+// and Home/End, every tab a 48 px target, and the dock hidden under the sheet out of Tab's reach.
+test("the verse-selection sheet works by keyboard: no ring on the sheet, tabs with panels, the dock out of reach", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/read/psalms/23${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await tapVerse(page, 1);
+  const sheet = page.locator(".bs-sheet.bs-selected");
+  await expect(sheet).toBeVisible();
+  expect(await sheet.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe("none");
+  await expect(page.locator("nav.tabs")).toHaveJSProperty("inert", true);
+  const tabs = page.locator(".bs-tabsfooter__tab");
+  for (let i = 0; i < 3; i++) {
+    const id = await tabs.nth(i).getAttribute("aria-controls");
+    await expect(page.locator(`#${id}`)).toHaveAttribute("role", "tabpanel");
+    const box = await tabs.nth(i).evaluate((el) => { const r = el.getBoundingClientRect(); const a = getComputedStyle(el, "::after"); return { w: r.width, h: r.height + parseFloat(a.top) * -1 + parseFloat(a.bottom) * -1 }; });
+    expect(box.w).toBeGreaterThanOrEqual(48);
+    expect(box.h).toBeGreaterThanOrEqual(48);
+  }
+  await tabs.nth(0).click();
+  await page.keyboard.press("End");
+  await expect(tabs.nth(2)).toHaveAttribute("aria-selected", "true");
+  await expect(tabs.nth(2)).toBeFocused();
+  await page.keyboard.press("Home");
+  await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("Escape");
+  await expect(sheet).toHaveCount(0);
+  await expect(page.locator("nav.tabs")).toHaveJSProperty("inert", false);
+});
