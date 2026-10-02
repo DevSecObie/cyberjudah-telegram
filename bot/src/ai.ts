@@ -6,7 +6,7 @@ import { runAgent, type AgentEvent } from "./agent";
 import { claude, claudeUnavailable, hasClaude, viaGateway } from "./providers";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
 import { isAdmin } from "./edit";
-import { billingOn, charge, reserveAsk, settleAsk, standing, RESERVE_UNITS, type Take } from "./billing";
+import { billingOn, charge, reserveAsk, settleAsk, standing, type Take } from "./billing";
 import type { Account } from "./billing.mjs";
 
 /**
@@ -107,8 +107,8 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   const t0 = Date.now();
   const question = q.trim().slice(0, 400);
   if (question.length < 2) return { ok: false, reason: "too-short" };
-  // A metered answer reserves its minimum up front and settles the exact units at the end,
-  // so an abandoned or failed request cannot spend the model's work for free.
+  // A metered answer reserves its minimum up front, so questions sent at once cannot spend more
+  // than is left, and settles the exact units at the end (nothing, if it failed on our side).
   const metered = billingOn(env) && hasClaude(env);
   let take: Take | null = null;
   if (metered && !isAdmin(env, userId)) {
@@ -132,8 +132,8 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
     const { answer } = splitFollowups(await answerOnce(env, buildPrompt(question, passages, history)));
     return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
   } catch (e) {
-    // The reservation stands: the model was paid for whether the answer arrived or not.
-    if (metered && take) await settleAsk(env, userId, take, RESERVE_UNITS).catch(() => null);
+    // An answer that failed on our side is not charged: the reservation goes back.
+    if (metered && take) await settleAsk(env, userId, take, 0).catch(() => null);
     console.error(JSON.stringify({ event: "ask_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 200) }));
     return { ok: false, reason: "unavailable" };
   }
@@ -200,14 +200,19 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const question = q.trim().slice(0, 400);
   const line = (o: unknown) => `${JSON.stringify(o)}\n`;
   if (question.length < 2) return new Response(line({ error: "too-short" }), { status: 400, headers: { "content-type": "application/x-ndjson" } });
-  // A metered answer reserves its minimum up front (see ask): an abandoned or failed
-  // stream cannot spend the model's work for free.
+  // A metered answer reserves its minimum up front and settles the exact units at the end (see ask).
+  // Leaving mid-answer does not cancel it (waitUntil), so it is still settled once.
   const metered = billingOn(env) && hasClaude(env);
   let take: Take | null = null;
+  // With the in-depth answers used up, Ask does not stop: it goes on with basic answers (the
+  // Workers AI model, from the passages found, not charged), as the large AI apps fall back to
+  // a lighter model at their limit, within the same daily cap as before billing.
+  let limited = false;
   if (metered && !isAdmin(env, userId)) {
     const r = await reserveAsk(env, userId);
-    if (!r.ok) return new Response(line({ error: "allowance", balance: r.balance }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
-    take = r.take;
+    if (r.ok) take = r.take;
+    else if (await allowed(env, userId)) limited = true;
+    else return new Response(line({ error: "allowance", balance: r.balance }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
   } else if (billingOn(env)) {
     const st = await standing(env, userId);
     if (!st.ok) return new Response(line({ error: "allowance", balance: st.balance }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
@@ -240,8 +245,8 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
       const job = (async () => {
         try {
           const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
-          let backup = false;
-          if (hasClaude(env)) {
+          let backup = limited;
+          if (hasClaude(env) && !limited) {
             // Claude researches first (searches and verses, reported as it goes), then writes.
             const steps: string[] = [];
             let ran: Awaited<ReturnType<typeof runAgent>> | null = null;
@@ -276,6 +281,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
           // The backup cannot research: with nothing found to answer from, it says Claude is busy
           // rather than that the library has nothing (which only the research could tell).
+          if (!passages.length && limited) { send({ error: "allowance" }); return; }
           if (!passages.length && backup) { send({ error: "busy" }); return; }
           if (!passages.length) {
             const answer = "The search did not find enough reliable material in the library to answer that question.";
@@ -288,10 +294,10 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           if (!clean.trim()) { send({ error: "empty" }); return; }
           const sources = sourcesOf(clean, passages);
           await keep(clean, sources, followups);
-          send({ done: true, answer: clean, followups, sources, ...(backup ? { backup: true } : {}) });
+          send({ done: true, answer: clean, followups, sources, ...(limited ? { limited: true } : backup ? { backup: true } : {}) });
         } catch (e) {
-          // The reservation stands: the model was paid for whether the answer arrived or not.
-          await settle(RESERVE_UNITS);
+          // An answer that failed on our side is not charged: the reservation goes back.
+          await settle(0);
           console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
           send({ error: "unavailable" });
         } finally {

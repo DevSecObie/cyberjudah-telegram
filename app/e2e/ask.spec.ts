@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import { STAND_IN, type Logged } from "./stand-ins";
 import type { ClaudeRequest } from "./claude";
@@ -181,4 +182,29 @@ test("Claude overloaded: Ask turns to the backup model, and with nothing to answ
   await expect(a).not.toContainText("did not find enough reliable material");
   await expect(a.getByRole("button", { name: "Try again" })).toBeVisible();
   await shot(page, "5-backup");
+});
+
+/** The local Worker's own D1 (the Ask accounts), as the Worker stores it. */
+const d1 = (sql: string) => execFileSync("npx", ["wrangler", "d1", "execute", "DB", "--local", "--persist-to", ".wrangler/e2e", "--json", "--command", sql], { cwd: new URL("../../bot/", import.meta.url).pathname, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+
+test("with today's free answers used, Ask does not call Claude or charge, and says when they come back", async ({ page, request }) => {
+  test.setTimeout(90_000);
+  await setup(page);
+  await page.goto(`/ask${launch(11)}`);
+  await ask(page, "Who are the twelve tribes?");
+  await expect(answer(page)).toContainText("A short answer to");
+  // The reader's free day is used up, as if they had asked all day.
+  d1(`UPDATE accounts SET free_used = 100000000 WHERE user_id = '${RUN + 11}'`);
+  const before = JSON.parse(d1(`SELECT free_used, credits FROM accounts WHERE user_id = '${RUN + 11}'`))[0].results[0];
+  await page.reload();
+  await expect(page.locator(".chat2")).toContainText("In-depth answers back at");
+  const t0 = Date.now();
+  await ask(page, "Why keep the Passover?");
+  // Not stopped: it goes to the basic answer. The local Worker has no Workers AI or search index,
+  // so there is nothing to answer from, and the plans are offered with the time answers return.
+  await expect(answer(page).locator(".paywall")).toContainText(/Your free answers come back at \d{1,2}:\d{2}/);
+  await shot(page, "6-allowance");
+  expect(await modelCalls(request, t0)).toHaveLength(0);
+  const after = JSON.parse(d1(`SELECT free_used, credits FROM accounts WHERE user_id = '${RUN + 11}'`))[0].results[0];
+  expect(after).toEqual(before);
 });

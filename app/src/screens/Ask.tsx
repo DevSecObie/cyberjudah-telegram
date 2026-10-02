@@ -8,6 +8,7 @@ import { api, ApiError, app, confirm, haptic, hideKeyboard, openInvoice, openLin
 import { saveReminder, timeLabel, timeZone, type Settings as ReminderSettings } from "@/lib/reminders";
 import { useContent } from "./Reminders";
 import { safeLinks } from "@/lib/safe-links";
+import { resetTime } from "@/lib/reset-time";
 import { spinnerLine } from "@/lib/spinner";
 import { APP_URL } from "@/lib/share";
 import { Trouble } from "@/ui/trouble";
@@ -23,7 +24,7 @@ export type Passage = { kind: string; title: string; url: string; sub?: string; 
 export type Source = Passage & { n: number };
 /** A change the assistant proposed; only the reader's Confirm carries it out (bot/src/assistant.mjs). */
 export type Action = { id: string; kind: "reminder"; summary: string; settings: ReminderSettings; state?: "applied" | "cancelled" };
-type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[]; actions?: Action[]; waiting?: boolean; backup?: boolean };
+type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[]; actions?: Action[]; waiting?: boolean; backup?: boolean; limited?: boolean };
 /** The welcome screen's starters: a question and the line under it. */
 const EXAMPLES: [string, string][] = [
   ["Why do we keep the Passover?", "The feast, from the law to Christ"],
@@ -109,7 +110,7 @@ async function runQuestion(q: string, opts: { retry?: boolean; onAccount?: () =>
     const reader = res.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
     const handle = (l: string) => {
       if (!l.trim()) return;
-      let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[]; usage?: { units: number; balance: Balance }; action?: Action; actions?: Action[]; cut?: boolean; ping?: number; backup?: boolean };
+      let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[]; usage?: { units: number; balance: Balance }; action?: Action; actions?: Action[]; cut?: boolean; ping?: number; backup?: boolean; limited?: boolean };
       try { msg = JSON.parse(l); } catch { return; }
       if (msg.passages) patch((t) => ({ ...t, passages: msg.passages }));
       // The research as it happens: each search, reading and look-up is a step under the answer's head.
@@ -118,7 +119,7 @@ async function runQuestion(q: string, opts: { retry?: boolean; onAccount?: () =>
       if (msg.reset) patch((t) => ({ ...t, content: "", thinking: true }));
       if (msg.delta) patch((t) => ({ ...t, thinking: false, content: t.content + msg.delta }));
       if (msg.usage) opts.setBalance?.(msg.usage.balance);
-      if (msg.done) { finished = true; haptic("success"); patch((t) => ({ ...t, thinking: false, cut: !!msg.cut, error: undefined, content: msg.answer || t.content, sources: msg.sources ?? [], followups: msg.followups ?? [], actions: msg.actions ?? t.actions, backup: !!msg.backup })); }
+      if (msg.done) { finished = true; haptic("success"); patch((t) => ({ ...t, thinking: false, cut: !!msg.cut, error: undefined, content: msg.answer || t.content, sources: msg.sources ?? [], followups: msg.followups ?? [], actions: msg.actions ?? t.actions, backup: !!msg.backup, limited: !!msg.limited })); }
       // A failure after part of the answer keeps the part and says it was cut off.
       if (msg.error) { finished = true; patch((t) => (t.content ? { ...t, thinking: false, cut: true } : { ...t, thinking: false, error: msg.error })); }
     };
@@ -390,7 +391,7 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
       ) : t.error === "allowance" && !t.content ? (
         <div className="paywall">
           <b>You have used today's free answers</b>
-          <p>Subscribe for a month of in-depth answers, or top up with Stars. Your free answers come back tomorrow.</p>
+          <p>Subscribe for a month of in-depth answers, or top up with Stars. Your free answers come back at {resetTime()}.</p>
           <button type="button" className="paywall__go" onClick={onPlans}>See the plans</button>
         </div>
       ) : t.error && !t.content ? (
@@ -428,6 +429,7 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
               {t.followups.map((q) => <button key={q} type="button" className="followup" onClick={() => onFollow(q)}><Icon name="arrowUp" size={14} /><span>{q}</span></button>)}
             </div>
           ) : null}
+          {t.limited ? <p className="msg__cut" role="status"><Icon name="info" size={14} />Today's in-depth answers are used, so this is a shorter answer from the library, at no charge. In-depth answers come back at {resetTime()}. <button type="button" className="msg__link" onClick={onPlans}>See the plans</button></p> : null}
           {t.backup ? <p className="msg__cut" role="status"><Icon name="info" size={14} />The main model was busy, so the backup model wrote this shorter answer. You were not charged for it. Retry for a full answer.</p> : null}
           {t.cut ? <p className="msg__cut" role="status"><Icon name="retry" size={14} />The answer was cut off before it finished.</p> : null}
           {!last || !busy ? (
@@ -496,7 +498,7 @@ function meterLine(a: AskAccount | null): string {
   if (a.unlimited) return "Unlimited · admin";
   const n = answers(a.balance.total, a.perQuestion);
   if (a.balance.planOn) return `Monthly plan · about ${n} answers left`;
-  if (!n) return "No answers left today · see plans";
+  if (!n) return `In-depth answers back at ${resetTime()} · plans`;
   return `About ${n} ${n === 1 ? "answer" : "answers"} left${a.balance.credits ? "" : " today"} · plans`;
 }
 /** After paying, the credit lands when Telegram tells the bot; look again for a little while. */

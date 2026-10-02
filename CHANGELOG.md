@@ -38,6 +38,10 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   Workers AI answers from the passages already found, says it is the backup, and does not charge.
   Workers AI calls now go through Cloudflare AI Gateway (`default`) for logs and analytics; Claude
   goes through it too once the `CF_AIG_TOKEN` secret is added.
+- Ask's allowance works as the large AI apps' do: with the day's in-depth answers used, Ask
+  goes on with shorter answers from the library at no charge instead of stopping; an answer that
+  fails on our side is no longer charged; and the meter says when answers come back, in the
+  reader's own time.
 - Claude can be paid through Cloudflare (Unified Billing, from the account's AI Gateway credits)
   instead of an Anthropic key; production and staging are set to it (`CLAUDE_BILLING`). When
   the credits run out, Ask answers with the backup.

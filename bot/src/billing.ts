@@ -123,10 +123,10 @@ export async function charge(env: Env, uid: number, units: number): Promise<Bala
 
 /**
  * Reserve the minimum up front for a metered answer (Claude with billing on). The gate is
- * the reservation itself: no balance, no request. The returned take (what came from each
- * pot) settles the request at the end against the actual units, so an abandoned or failed
- * stream cannot spend the model's work for free — and a concurrent request cannot have its
- * reservation clobbered by the other's settle.
+ * the reservation itself: no balance, no in-depth answer. The returned take (what came from
+ * each pot) settles the request at the end against the actual units (nothing, if it failed
+ * on our side), so questions sent at once cannot spend more than is left — and a concurrent
+ * request cannot have its reservation clobbered by the other's settle.
  */
 export async function reserveAsk(env: Env, uid: number): Promise<{ ok: false; balance: Balance } | { ok: true; take: Take; balance: Balance }> {
   const p = prices(env);
