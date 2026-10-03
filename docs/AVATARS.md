@@ -389,6 +389,13 @@ means it passed this review.
   James Tissot's *Herod* (Brooklyn Museum) was found and not used: it paints Herod as a dark-skinned man, against the assembly's teaching on Edom.
 - **How they reach the app**: `app/scripts/timeline-portraits.json` `events` maps an event to a portrait where the title names more than one person (Daniel, Jonathan, Uzziah …) or a figure outside People (Caesar, Constantine, Leo X). A mapped portrait still shows only once its id is in `ids` (the test holds this).
 
+#### Owner's verdicts on round 2, and round 3 (3 October 2026)
+
+- **Approved by the owner**: the cropped Solomon throne (period 6), the fixed Life of Christ (9) and Early Church (10) paintings, the fringed Solomon portrait, the replaced David, Sarah and Esther portraits, all 12 round-2 portraits, and all six Edomite and Roman images, Herod the Great's included. Their ids are in `app/scripts/timeline-portraits.json`.
+- **Denied**: Bethel, with the note "the idol needs to be destroyed" and, for period 7, "a destructive fire and people running away because the Lord is destroying his altar unto idols". Redone as `2a4f90dd-abe0-491d-9e0d-d3f8b6e103f6`, an edit of `b62a1da3`. The golden calf Jeroboam set in Bethel (1 Kings 12:29) cracks and burns, the altar is rent (13:5), the worshippers flee, and Jeroboam's hand is dried up (13:4). The edit made Jeroboam and the man of God very dark: they were light-skinned in `b62a1da3` and `06df4480`. Shipped as period 7; awaiting review.
+- **Round 3 portraits** (awaiting review, gated): Shem `f72bf11e`, Job `1d202381`, Terah `719737e3`, Rebekah `7ff735a7`, Leah `1dc6fa99`, Rachel `e56417a5`, Joseph `04a05542`, Levi `1ac4977a`, Jesse `0a5d79aa`, Bathsheba `cde79742`, Othniel `a8c2e534`, Eleazar `409d548c`. The women are drawn beautiful as the verses describe them, after the owner's notes on Sarah and David.
+- **People portraits reused**: nine approved People portraits are mapped onto timeline events whose names are shared by several people: Judah, Simeon, Gad, Issachar, Benjamin, Miriam, Joshua, Amram and Ehud. The files are taken from `claude/people-portraits`.
+
 ### 9.6 Bible Strong's timeline pictures: what may be reused
 
 Direction (2 October 2026): reuse Bible Strong's images that show only landmarks, landscapes,
