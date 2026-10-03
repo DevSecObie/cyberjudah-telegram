@@ -38,16 +38,16 @@ export const emptyAccount = () => ({ day: "", freeUsed: 0, plan: null, credits: 
 
 /**
  * The minimum charged for a metered answer, in units (about a third of an average answer).
- * It is reserved up front so an abandoned or failed request still pays its share of the
- * model's work; the request then settles against the exact units the answer used.
+ * It is reserved up front so questions sent at once cannot spend more than is left; the
+ * request then settles against the exact units the answer used, or nothing if it failed.
  */
 export const RESERVE_UNITS = 20000;
 
 /**
  * Reserve-then-settle metering. Reserve deducts the minimum up front and snapshots the
  * account; settle the caller charges the actual units against the snapshot with spend(),
- * so metering stays exact with no refund bookkeeping. A failed request settles for the
- * reservation: the model was still paid for.
+ * so metering stays exact with no refund bookkeeping. A request that failed on our side
+ * settles for nothing: the reader is not charged for an answer they did not get.
  */
 export function reserve(acct, p, now = Date.now()) {
   const a = structuredClone(acct ?? emptyAccount());

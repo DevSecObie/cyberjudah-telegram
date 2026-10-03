@@ -10,7 +10,8 @@ import { listChats, type SavedAction } from "./chats";
 import { loadReminder } from "./remind";
 import { publicView } from "./reminders.mjs";
 import { parseReference } from "./refs.mjs";
-import { unitsOf } from "./billing.mjs";
+import { modelOf, unitsFor, type AskModel } from "../../shared/ask-models.mjs";
+import { researchOpen } from "./agent-open";
 
 /**
  * Ask CyberJudah with Claude doing its own research: it starts from the passages retrieval
@@ -96,6 +97,7 @@ export async function runAgent(
   emit: (e: AgentEvent) => void,
   ctx?: Exec,
   userId?: number,
+  model: AskModel = modelOf(env.CLAUDE_MODEL || CLAUDE_DEFAULT),
 ): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean }> {
   // Directly, through the AI Gateway, or to the tests' stand-in (providers.ts).
   const client = await claude(env);
@@ -192,6 +194,13 @@ export async function runAgent(
     { role: "user", content: `${passages.length ? `Passages already found for this question:\n\n${passages.map(listed).join("\n\n")}` : "The first search found nothing close; search the library yourself."}\n\nQuestion: ${question}` },
   ];
 
+  // Every other model researches through Cloudflare, with the same tools and the same sources
+  // (agent-open.ts); only Claude streams through the Messages API below.
+  if (model.format !== "anthropic") {
+    const r = await researchOpen(env, model, `${SYSTEM}\n\n${RESEARCH}\n\n${APP}`, messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, run, emit, MAX_ROUNDS);
+    return { ...r, passages, actions };
+  }
+
   let text = "";
   let cut = false, refused = false;
   // What the answer cost, measured from every call's usage, so the person is charged what it used.
@@ -205,10 +214,12 @@ export async function runAgent(
     if (round === 0) emit({ status: "Studying the question" });
     let said = "";
     const stream = client.messages.stream({
-      model: env.CLAUDE_MODEL || CLAUDE_DEFAULT,
-      max_tokens: 12000,
-      thinking: { type: "adaptive" },
-      output_config: { effort: "high" },
+      // The reader's chosen Claude model (shared/ask-models.mjs), with adaptive thinking and an
+      // effort level only where the model takes them.
+      model: model.native ?? model.id,
+      max_tokens: Math.min(12000, model.maxOutput ?? 12000),
+      ...(model.thinking ? { thinking: { type: "adaptive" as const } } : {}),
+      ...(model.effort ? { output_config: { effort: "high" as const } } : {}),
       cache_control: { type: "ephemeral" },
       system,
       tools: TOOLS,
@@ -226,7 +237,7 @@ export async function runAgent(
       round--;
       continue;
     }
-    units += unitsOf(message.usage); calls++;
+    units += unitsFor(message.usage, model); calls++;
     const uses = message.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
     // A refusal can cut a tool request off mid-input: no tool of that turn is run.
     if (message.stop_reason === "refusal") { text = said; refused = true; break; }
