@@ -55,6 +55,24 @@ test("search placement: Search stays available in the minimized dock and the tab
   await expect(page).toHaveURL(/\/search/);
 });
 
+test("search placement: touch opens Menu once per tap", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium", "Real touch dispatch uses Chromium's device input protocol.");
+  await setup(page);
+  await page.goto(`/classes${LAUNCH}`);
+  const menu = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Menu", exact: true });
+  const session = await page.context().newCDPSession(page);
+  for (let i = 0; i < 3; i++) {
+    await menu.click({ trial: true });
+    const box = (await menu.boundingBox())!;
+    await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }] });
+    await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect(page.locator(".drawer--more")).toHaveAttribute("data-open", "");
+    await page.getByRole("button", { name: "Close the menu", exact: true }).click();
+    await expect(page.locator(".drawer--more")).not.toHaveAttribute("data-open");
+  }
+  await session.detach();
+});
+
 for (const theme of ["default", "dark", "sepia"]) {
   test(`search placement: ${theme} remains usable at 200% with accessibility preferences`, async ({ page, browserName }) => {
     await setup(page, undefined, theme);
@@ -65,9 +83,16 @@ for (const theme of ["default", "dark", "sepia"]) {
     await page.evaluate(() => document.documentElement.style.fontSize = "200%");
     const cdp = browserName === "chromium" ? await page.context().newCDPSession(page) : null;
     for (const mode of ["normal", "app", "system", "motion", "contrast", "forced"]) {
-      // Playwright cannot emulate the OS transparency preference in WebKit; the app fallback runs there.
+      // OS transparency emulation uses Chromium's protocol; the app fallback runs in every engine.
       if (mode === "system" && !cdp) continue;
       await page.emulateMedia({ reducedMotion: mode === "motion" ? "reduce" : "no-preference", contrast: mode === "contrast" ? "more" : "no-preference", forcedColors: mode === "forced" ? "active" : "none" });
+      // Firefox's protocol updates matchMedia before existing stylesheet media rules.
+      // Load with the preference in force; Chromium/WebKit also cover live changes above.
+      if (browserName === "firefox") {
+        await page.reload();
+        await expect(field).toBeFocused();
+        await page.evaluate(() => document.documentElement.style.fontSize = "200%");
+      }
       await page.evaluate(mode => { if (mode === "app") document.documentElement.dataset.transparency = "reduced"; else delete document.documentElement.dataset.transparency; }, mode);
       if (cdp) await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-transparency", value: mode === "system" ? "reduce" : "no-preference" }, { name: "prefers-reduced-motion", value: mode === "motion" ? "reduce" : "no-preference" }, { name: "prefers-contrast", value: mode === "contrast" ? "more" : "no-preference" }, { name: "forced-colors", value: mode === "forced" ? "active" : "none" }] });
       const box = (await field.boundingBox())!;

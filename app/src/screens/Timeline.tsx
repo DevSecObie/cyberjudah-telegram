@@ -49,7 +49,7 @@ const BASE = import.meta.env.BASE_URL;
  * The others wait on a depiction the assembly has not settled (docs/TIMELINE_PARITY.md) and show
  * the period's colour in its place.
  */
-const PERIOD_PICTURES = new Set(["1", "2", "5", "6", "7", "8", "9", "10", "11", "12"]);
+const PERIOD_PICTURES = new Set(["1", "2", "4", "5", "6", "7", "8", "9", "10", "11", "12"]);
 
 /** An admin's cover or the existing approved period artwork; no image for unapproved periods. */
 function usePeriodPicture(s: TimelineSection) {

@@ -131,6 +131,9 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 - Search stays last in its own round dock control without rewriting saved button choices; the phone search field follows the keyboard viewport above the dock.
 - Increased contrast now has explicit light, dark and sepia palettes, including Bible controls; secondary text, status colors and Home widgets keep readable contrast on their surfaces.
 - Lists and settings use roomier grouped rows with shared rounded corners. Section headings keep normal title case, and related settings have accessible form groups.
+- The Bible Timeline shows 45 more portraits (83 in all): picture rounds 2–4 (Solomon recropped, the
+  Red Sea, Bethel, Christ, prophets, kings, apostles, Reformation figures and Jacob), with their
+  sources in docs/AVATARS.md.
 - Auto and half sheets float inside the safe edges with shared rounded corners; full sheets expand to the phone edges. On larger screens, action lists open beside their control and leave the page usable.
 
 - Unify menu action icons and toolbar groups, add desktop tooltips and keyboard menu navigation, and animate popovers from their controls with accessible fallbacks.

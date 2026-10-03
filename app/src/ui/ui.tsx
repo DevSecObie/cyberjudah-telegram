@@ -51,6 +51,7 @@ export function TabBar() {
   const lens = useRef<{ x0: number; y0: number; px: number; py: number; t: number; at: number; moved: boolean; col: boolean; tabs: { el: HTMLElement; start: number; size: number }[] } | null>(null);
   const eatClick = useRef(false);
   const pointer = useRef<number | null>(null);
+  const touchTarget = useRef<HTMLButtonElement | null>(null);
   const placePill = useRef<(() => void) | null>(null);
   useEffect(() => () => { window.clearTimeout(press.current); }, []);
   const tabsOf = (nav: HTMLElement) => [...nav.querySelectorAll<HTMLElement>(".tab")].filter((b) => b.offsetWidth > 0);
@@ -118,6 +119,7 @@ export function TabBar() {
     onPointerDown: (e: React.PointerEvent) => {
       if (!e.isPrimary || e.button !== 0 || pointer.current !== null) return;
       pointer.current = e.pointerId;
+      touchTarget.current = e.pointerType === "touch" ? (e.target as Element).closest<HTMLButtonElement>("button.tab") : null;
       long.current = false; eatClick.current = false; swipe.current = { x: e.clientX, y: e.clientY };
       press.current = window.setTimeout(() => { long.current = true; lensEnd(false, false); haptic("heavy"); setDrawer(null); navigate("/settings/bar"); }, 600);
       const nav = bar.current, on = (e.target as HTMLElement).closest<HTMLElement>(".tab[data-on]");
@@ -146,8 +148,15 @@ export function TabBar() {
       if (pointer.current !== e.pointerId) return;
       pointer.current = null;
       window.clearTimeout(press.current);
-      if (lens.current) { swipe.current = null; lensEnd(!long.current); return; }
+      if (lens.current?.moved) { swipe.current = null; touchTarget.current = null; lensEnd(!long.current); return; }
+      if (lens.current) lensEnd(false, false);
       const s = swipe.current; swipe.current = null; if (!s || long.current) return;
+      // Complete a stationary touch on its original button. Chromium can suppress the
+      // compatibility click immediately after a captured drag; keyboard clicks stay native.
+      const target = touchTarget.current; touchTarget.current = null;
+      if (target?.isConnected && Math.hypot(e.clientX - s.x, e.clientY - s.y) < 10 && (e.target as Element).closest("button.tab") === target) {
+        target.click(); eatClick.current = true; return;
+      }
       if (bar.current?.hasAttribute("data-scrollable")) return;
       const dx = e.clientX - s.x, dy = e.clientY - s.y;
       if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
