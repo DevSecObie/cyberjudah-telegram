@@ -330,7 +330,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 /* In this chapter (Bible Strong's ChapterEntities): the people named, at the end of the text. */
 /* "In this chapter" (Bible Strong's ChapterEntities): the people stack beside the chapter's deck. */
 .bs-entities { margin: 64px 0 8px; direction: ltr; -webkit-user-select: none; user-select: none; }
-.bs-entities__title { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--bs-tertiary); font: 600 12px/1.2 var(--bs-font, inherit); text-align: center; opacity: .62; }
+.bs-entities__title { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--bs-tertiary); font: 600 12px/1.2 var(--bs-font, inherit); text-align: center; }
 .bs-entities__title::before, .bs-entities__title::after { content: ""; flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--bs-border)); }
 .bs-entities__title::after { background: linear-gradient(to left, transparent, var(--bs-border)); }
 .bs-entities__row { display: flex; align-items: center; justify-content: center; gap: 38px; margin-top: 20px; }

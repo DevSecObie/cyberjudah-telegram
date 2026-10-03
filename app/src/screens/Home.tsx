@@ -141,7 +141,7 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
       </div>
       <Link to={verse.data ? `/read/${verse.data.slug}/${verse.data.chapter}?v=${verse.data.verse}` : "/bible"} className="hero" onClick={() => haptic("select")}>
         <small>Today's Scripture</small>
-        {verse.data ? <><p className="hero__verse">{verse.data.text}</p><span className="hero__ref">{verse.data.ref}</span></> : <p className="hero__verse" style={{ opacity: 0.5 }}>Loading the day's verse…</p>}
+        {verse.data ? <><p className="hero__verse">{verse.data.text}</p><span className="hero__ref">{verse.data.ref}</span></> : <p className="hero__verse" style={{ color: "var(--text-3)" }}>Loading the day's verse…</p>}
       </Link>
       <SearchHero value={q} onChange={setQ} onSubmit={search} big />
       <div className="door">
