@@ -370,7 +370,20 @@ means it passed this review.
 | 11 Middle Ages | A pope hands a decree to a monk, a cardinal by (Rome as Edom) | `c530aa6f-9fb3-4187-a402-f27296f30929` (an edit of `42e75672`) | `d2511460`, `95b39dcc` (crosses), `48b21bcc` (a likeness of a modern pope), `42e75672` (a pectoral cross, removed by the edit) | Reviewed |
 | 12 Reformation | A preacher on horseback before a ruined abbey | `a3be71c6-06ea-4c68-bb21-57a76b45ef93` | | Reviewed |
 
-Bible Strong's own period and event pictures are not reused: every one of its 13 period pictures shows
-people, and its event pictures are licensed stock on biblehistory.com (GoodSalt), which is not ours to
-reuse. On an event the timeline shows the person's approved portrait (28 events; `app/scripts/timeline-portraits.json`);
-other major events keep a lettered tile in the period's colour, as People does without a portrait.
+### 9.6 Bible Strong's timeline pictures: what may be reused
+
+Direction (2 October 2026): reuse Bible Strong's images that show only landmarks, landscapes,
+architecture, maps or objects and agree with the brief, keeping their licence and attribution; use
+Higgsfield for pictures with people or that need correcting; keep suitable assets rather than
+regenerating. Inventory of every picture the reference timeline uses:
+
+| Placement | Source and licence | Shows | Decision |
+| --- | --- | --- | --- |
+| Period pictures, 13 (`strong/apps/expo/src/assets/timeline/periods/period-1..13.jpg`) | In the fork, under its GPL-3.0 licence (`strong/LICENSE`) | Every one shows people (Adam, Noah's family, Abraham and Isaac, Moses, Samson, a king, Elijah, the exiles, Christ, the martyrs, a pope, a reformer, the woman and the dragon) | Not reused: people, depicted against the brief. Replaced by our pictures (9.5); period 13 (Revelation Prophecies) is not on our timeline |
+| Timeline card on their home (`assets/images/home/bible-timeline.jpg`) | In the fork, GPL-3.0 | A road through hills with small figures of people | Not reused: people. Not a placement in our timeline |
+| Event pictures, 198 on the major events we keep (`events.txt` `image`) | Hosted on timeline.biblehistory.com, not in the fork. About 97 are GoodSalt or iStock stock (licensed to them, not to us); most others are paintings of people (Tissot, Rembrandt and others) | People, except possibly three: the rock tombs of Artaxerxes II and III at Persepolis, and a page of the Tyndale Bible (Gospel of John) | Not reused. The three possible ones are Wikimedia Commons files by their names, but neither timeline.biblehistory.com nor commons.wikimedia.org can be reached from this environment, so their content and licence could not be inspected. The Persepolis façades also carry carved figures and the winged emblem, which the brief does not allow. **Open:** allow `commons.wikimedia.org` and `upload.wikimedia.org` to inspect them; if one passes, it is used with its Commons licence and attribution |
+| Event detail images carousel | Same host as above (originals) | As above | Not carried |
+
+So no Bible Strong picture is reused yet. On an event the timeline shows the person's approved
+portrait (28 events; `app/scripts/timeline-portraits.json`); other major events keep a lettered tile in
+the period's colour, as People does without a portrait.
