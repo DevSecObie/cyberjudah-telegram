@@ -758,8 +758,12 @@ test("menus: collapsed Bible header removes its hidden controls and restores who
   await expect(page.locator(".bs-header")).toHaveCSS("height", "20px");
   await expect(page.locator(".bs-header button")).toHaveCount(0);
   await expect(page.locator(".bs-header__summary")).toHaveText("Genesis 1 · KJV");
+  await expect.poll(() => page.locator(".bs-scroll").evaluate(el => el.scrollTop)).toBeGreaterThanOrEqual(579);
   await page.clock.runFor(1000);
-  await page.mouse.wheel(0, -80); await page.mouse.wheel(0, -300);
+  const down = await page.locator(".bs-scroll").evaluate(el => el.scrollTop);
+  await page.mouse.wheel(0, -80);
+  await expect.poll(() => page.locator(".bs-scroll").evaluate(el => el.scrollTop)).toBeLessThanOrEqual(down - 79);
+  await page.mouse.wheel(0, -300);
   await expect(page.getByRole("group", { name: "Passage", exact: true })).toBeVisible();
   await expect(page.getByRole("group", { name: "Scripture actions", exact: true })).toBeVisible();
 });
