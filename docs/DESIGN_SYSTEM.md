@@ -129,7 +129,7 @@ Each route was reviewed in the running app at 390px (dark and light) and at 1280
 
 - **Blur budget**, counted in the running app as the frosted surfaces visible in the viewport, on all 38 routes:
   - At rest: 2 at most on every route, at 390px dark, 390px light and 1280px dark. Before the redesign it reached 5 in the reader (header, two chapter buttons, the play pill, the dock). Classes added one more per post's play icon.
-  - Open states: a sheet or drawer adds none. The Bible ⋮ menu and the book picker add one while open. Reduce transparency leaves 0.
+  - Open states: a content sheet or Home drawer adds none. The Bible ⋮ menu, book picker, More navigation drawer and action-only menu each add one while open. Reduce transparency leaves 0.
 - **Horizontal overflow:** none on any route at 390, 820 or 1280px.
 - **Rendered contrast** (the pixels behind the text, with a bright, striped picture scrolled under the glass):
   - Dock labels: lowest 5.61:1 dark and 14.30:1 light.
@@ -340,7 +340,7 @@ This table covers every authored CSS background and backdrop declaration in `app
 | **styles/materials.css · bs-selected**<br>`html:has(.bs-selected) .tabs::before` | content | None | Content, control state, or decoration; never glass. |
 | **styles/materials.css · switcherbar**<br>`#root .switcherbar__add`, `#root .switcherbar__ok`, `#root .switcherbar__group` | navigation | None | Control, selection, or edge fill; no additional glass. |
 | **styles/materials.css · pageaction**<br>`#root .pageaction`, `#root .pageaction--quiet` | navigation | None | Control, selection, or edge fill; no additional glass. |
-| **styles/materials.css · drawer**<br>`.drawer`, `.drawer__fade`, `.drawer__head`, `#root button.drawer__back`, `.drawer__back`, `#root button.drawer__x`, `.drawer__x`, `.drawer:not([data-open])` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
+| **styles/materials.css · drawer**<br>`.drawer`, `.drawer__fade`, `.drawer__head`, `#root button.drawer__back`, `.drawer__back`, `#root button.drawer__x`, `.drawer__x`, `.drawer:not([data-open])` | overlay / elevated | More: one shared filter; Home: none | More is a navigation surface. Content and controls never add a nested filter. |
 | **styles/materials.css · drawer-scrim**<br>`.drawer-scrim`, `.drawer-scrim[data-open]` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
 | **styles/materials.css · sheet**<br>`.sheet__scrim`, `.sheet`, `.sheet__grip`, `.sheet__items`, `.sheet__item`, `.sheet__item:hover`, `.sheet__item:active`, `.sheet__icon`, `.sheet__cancel` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
 | **styles/materials.css · nsheet**<br>`.nsheet`, `.nsheet__grip`, `.nsheet__close` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
@@ -547,3 +547,16 @@ Timeline period artwork and a note’s existing recording poster also provide a 
 No inspector was added. A verse’s desktop study panel could become an inspector in a later proposal; that would need a separate information-architecture decision.
 
 Apple mapping: [Adopting Liquid Glass — Navigation](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass), [Layout](https://developer.apple.com/design/human-interface-guidelines/layout), and [Tab bars](https://developer.apple.com/design/human-interface-guidelines/tab-bars). CSS layout and the shared scroll observer adapt the native tab/sidebar behavior. The image-only decoration is a web approximation of background extension, with content constrained to the remaining width.
+
+
+## Section 04: menus and toolbar groups
+
+[Menus](https://developer.apple.com/design/human-interface-guidelines/menus) and [Toolbars](https://developer.apple.com/design/human-interface-guidelines/toolbars) use the same common-action glyphs from `ui/icons.tsx`. Bible icon aliases delegate to that set; Copy, Share, Bookmark, Edit, Delete, Open and Search keep their meaning across screens. Highlight remains an explicitly named color swatch rather than an ambiguous standalone icon. Destructive menu items are last and use `--danger`; the photo editor similarly puts removal last. Saved chats and bookmarks have visible delete controls, and Tabs swipes change groups: none has a row swipe-action menu to reorder.
+
+The Bible text controls and icon actions form separate capsule groups, with `--toolbar-gap` between them and one tint per group over the existing bar material. Note actions are an icon group; Ask's title and its two independent icon actions stay separated by the same gap. The photo editor uses text actions together. The legacy reader bar has no mounted component. A collapsed Bible header renders its short reference instead of invisible focusable controls; conditional actions are removed completely. Explicitly named buttons also expose desktop titles.
+
+Header menus, pickers and shared action menus animate from the activating control. Where supported, the View Transitions API captures the control and menu; fixed snapshot geometry animates only scale and opacity. Other browsers use Web Animations with a measured trigger-relative transform origin, including the reverse exit. Reduced motion uses opacity only. Focus moves into the menu, arrow/Home/End keys move between commands, Escape closes it, and focus returns to its trigger. Animation state is cleaned up when a transition is interrupted or the component unmounts. This is a web adaptation, not native optical material morphing.
+
+The More drawer and action-only shared menus use `--mat-elevated` and one `--mat-blur-strong`; their rows and header add no filter. The More drawer retains its established navigation slide and grouping. Saved-chat/model lists remain opaque content sheets; verse actions retain the shared elevated selection material. Reduced transparency, contrast, forced colors and unsupported filtering resolve the shared tokens to solid colors and no blur. The three-filter open-menu budget still applies.
+
+Additional inventory: `styles/popovers.css` / `.drawer--more` and `.sheet[data-actions]` — elevated navigation, one shared strong filter each, no nested material. `ui/popover.ts` snapshot layers are transient browser animation surfaces, with no authored backdrop filter. Apple mapping: [Adopting Liquid Glass — Menus and toolbars](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass).

@@ -94,7 +94,7 @@ export function MediaDeck({ items, placement, palette: c, fontScale, sections, r
   return (
     <>
       <button ref={stack} type="button" className="bs-deck" data-ignore-verse-touch="" disabled={disabled} style={style}
-        aria-label={`${items.length === 1 ? "1 class" : `${items.length} classes`} taught this ${placement === "chapter" ? "chapter" : "verse"}`}
+        aria-label={`${items.length === 1 ? "1 class" : `${items.length} classes`} taught this ${placement === "chapter" ? "chapter" : "verse"}`} title={`${items.length === 1 ? "1 class" : `${items.length} classes`} taught this ${placement === "chapter" ? "chapter" : "verse"}`}
         onClick={(e) => { e.stopPropagation(); if (disabled) return; haptic("select"); setMode("gallery"); }}>
         {shown.map((m, i) => {
           const f = fan(i, shown.length);
@@ -209,7 +209,7 @@ function DeckOverlay({ items, sections, source, palette: c, reference, from, mod
 
   const card = (m: ClassMoment) => (
     <article key={deckKey(m)} className="bs-gallery__item" onClick={(e) => e.stopPropagation()}>
-      <button type="button" className="bs-gallery__btn" aria-label={`${m.label}, at ${m.ts}`} onClick={(e) => choose(m, e)}>
+      <button type="button" className="bs-gallery__btn" aria-label={`${m.label}, at ${m.ts}`} title={`${m.label}, at ${m.ts}`} onClick={(e) => choose(m, e)}>
         <span className="bs-gallery__pic" data-gallery-card={deckKey(m)} style={{ borderColor: c.reverse }}>
           <DeckImage video={m.video}><span className="bs-gallery__badge">{m.ts}</span></DeckImage>
         </span>
@@ -227,7 +227,7 @@ function DeckOverlay({ items, sections, source, palette: c, reference, from, mod
     <div ref={root} className="bs-gallery" data-open={shown ? "" : undefined} data-mode={mode} role="dialog" aria-modal="true" aria-label="Classes that taught this" data-sheet-open=""
       style={{ ["--deck-bg" as string]: c.reverse, ["--deck-ink" as string]: c.default, ["--deck-primary" as string]: c.primary, color: c.default }}
       onClick={close}>
-      <button type="button" className="bs-gallery__close" aria-label="Close" style={{ background: c.reverse, color: c.default }} onClick={(e) => { e.stopPropagation(); close(); }}>
+      <button type="button" className="bs-gallery__close" aria-label="Close" title="Close" style={{ background: c.reverse, color: c.default }} onClick={(e) => { e.stopPropagation(); close(); }}>
         <Feather name="x" size={24} color={c.default} />
       </button>
       {mode === "gallery" ? (

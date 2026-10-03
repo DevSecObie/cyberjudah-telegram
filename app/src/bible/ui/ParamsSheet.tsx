@@ -45,7 +45,7 @@ export function ParamsSheet({ open, onClose, settings: s, set, palette }: { open
             <IconBtn name={s.alignContent === "left" ? "align-left" : "align-justify"} label={`Text alignment: ${align}`} selected onPress={() => set({ alignContent: s.alignContent === "left" ? "justify" : "left" })} />
           </Row>
           <Row label="Line height" value={lh} valueGap>
-            <button type="button" className="bs-touchicon" aria-label={`Line height: ${lh}`} onClick={() => { haptic("select"); set({ lineHeight: ({ small: "normal", normal: "large", large: "small" } as const)[s.lineHeight] }); }}><LineHeightIcon gap={s.lineHeight === "small" ? 1 : s.lineHeight === "normal" ? 2 : 4} color="var(--bs-primary)" /></button>
+            <button type="button" className="bs-touchicon" aria-label={`Line height: ${lh}`} title={`Line height: ${lh}`} onClick={() => { haptic("select"); set({ lineHeight: ({ small: "normal", normal: "large", large: "small" } as const)[s.lineHeight] }); }}><LineHeightIcon gap={s.lineHeight === "small" ? 1 : s.lineHeight === "normal" ? 2 : 4} color="var(--bs-primary)" /></button>
           </Row>
           <Row label="Verse mode" value={td}>
             <IconBtn name={s.textDisplay === "inline" ? "arrow-right" : "corner-down-right"} label={`Verse mode: ${td}`} selected onPress={() => set({ textDisplay: s.textDisplay === "inline" ? "block" : "inline" })} />
@@ -57,7 +57,7 @@ export function ParamsSheet({ open, onClose, settings: s, set, palette }: { open
             <IconBtn name={s.tagsDisplay === "inline" ? "align-left" : "tag"} label={`Tags display: ${tg}`} selected onPress={() => set({ tagsDisplay: s.tagsDisplay === "inline" ? "block" : "inline" })} />
           </Row>
           <Row label="Showing strongs" value={press}>
-            <button type="button" className="bs-touchicon" aria-label={`Showing strongs: ${press}`} onClick={() => { haptic("select"); set({ press: s.press === "shortPress" ? "longPress" : "shortPress" }); }}><PressIcon long={s.press === "longPress"} color="var(--bs-primary)" /></button>
+            <button type="button" className="bs-touchicon" aria-label={`Showing strongs: ${press}`} title={`Showing strongs: ${press}`} onClick={() => { haptic("select"); set({ press: s.press === "shortPress" ? "longPress" : "shortPress" }); }}><PressIcon long={s.press === "longPress"} color="var(--bs-primary)" /></button>
           </Row>
           <LinkRow label="Fonts" value={<span style={{ fontFamily: webFontFamily(s.fontFamily) }}>{s.fontFamily}</span>} onPress={() => setSub("fonts")} />
           <LinkRow label="Color palette" onPress={() => setSub("palette")} />
@@ -90,10 +90,10 @@ function LinkRow({ label, value, onPress }: { label: string; value?: ReactNode; 
 }
 /** TouchableIcon: a 30 px pill on lightPrimary, the icon primary when selected. */
 function IconBtn({ name, label, selected, onPress, size = 17 }: { name: FeatherName; label: string; selected?: boolean; onPress: () => void; size?: number }) {
-  return <button type="button" className="bs-touchicon" aria-label={label} aria-pressed={selected} onClick={() => { haptic("select"); onPress(); }}><Feather name={name} size={size} color={selected ? "var(--bs-primary)" : "var(--bs-primary)"} style={{ opacity: selected === false ? 0.45 : 1 }} /></button>;
+  return <button type="button" className="bs-touchicon" aria-label={label} title={label} aria-pressed={selected} onClick={() => { haptic("select"); onPress(); }}><Feather name={name} size={size} color={selected ? "var(--bs-primary)" : "var(--bs-primary)"} style={{ opacity: selected === false ? 0.45 : 1 }} /></button>;
 }
 function ThemeCircle({ label, color, selected, onPress }: { label: string; color: string; selected: boolean; onPress: () => void }) {
-  return <button type="button" role="radio" aria-checked={selected} aria-label={label} className="bs-themecircle" onClick={() => { haptic("select"); onPress(); }}><span style={{ width: 20, height: 20, borderRadius: 20 / 3, background: color, boxShadow: selected ? "0 0 0 3px var(--bs-reverse), 0 0 0 5px var(--bs-primary)" : "inset 0 0 0 1px rgba(0,0,0,.15)" }} /></button>;
+  return <button type="button" role="radio" aria-checked={selected} aria-label={label} title={label} className="bs-themecircle" onClick={() => { haptic("select"); onPress(); }}><span style={{ width: 20, height: 20, borderRadius: 20 / 3, background: color, boxShadow: selected ? "0 0 0 3px var(--bs-reverse), 0 0 0 5px var(--bs-primary)" : "inset 0 0 0 1px rgba(0,0,0,.15)" }} /></button>;
 }
 
 /** Share options: the four switches and a preview of Genesis 1:1-2 in that shape. */
@@ -156,7 +156,7 @@ export function ColorEditSheet({ open, initial, onClose, onSave, onRemove }: { o
     <Sheet open={open} onClose={onClose} title="Edit color" hasBack onBack={onClose} footer={<div className="bs-sheet__actions">{onRemove ? <Button reverse onClick={onRemove}>Remove</Button> : null}<Button onClick={() => onSave(hex, name.trim(), type)}>Save</Button></div>}>
       <div className="bs-coloredit">
         <div className="bs-coloredit__head"><HighlightTypeIndicator color={hex} type={type} size={34} /><input className="bs-input" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} maxLength={30} aria-label="Name" /></div>
-        <div className="bs-coloredit__grid">{PRESETS.map((c) => <button key={c} type="button" aria-label={c} aria-pressed={hex.toLowerCase() === c} style={{ background: c, boxShadow: hex.toLowerCase() === c ? "0 0 0 3px var(--bs-reverse), 0 0 0 5px var(--bs-primary)" : undefined }} onClick={() => setHex(c)} />)}</div>
+        <div className="bs-coloredit__grid">{PRESETS.map((c) => <button key={c} type="button" aria-label={c} title={c} aria-pressed={hex.toLowerCase() === c} style={{ background: c, boxShadow: hex.toLowerCase() === c ? "0 0 0 3px var(--bs-reverse), 0 0 0 5px var(--bs-primary)" : undefined }} onClick={() => setHex(c)} />)}</div>
         <label className="bs-coloredit__hex">Color <input type="color" value={/^#[0-9a-f]{6}$/i.test(hex) ? hex : "#ff7675"} onChange={(e) => setHex(e.target.value)} /><span>{hex}</span></label>
         <div className="bs-coloredit__types" role="radiogroup" aria-label="Type">
           {([["background", "Highlight"], ["textColor", "Text color"], ["underline", "Underline"]] as const).map(([t, l]) => <button key={t} type="button" role="radio" aria-checked={type === t} onClick={() => setType(t)}><HighlightTypeIndicator color={hex} type={t} size={22} isSelected={type === t} /><span>{l}</span></button>)}

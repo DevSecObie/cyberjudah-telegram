@@ -95,7 +95,7 @@ export function NoteScreen() {
       void alert(a.id === "send" ? "The bot could not send the file. Open a chat with the CyberJudah bot, press Start, and try again." : "The PDF could not be made just now. Try again in a moment.");
     }
   };
-  const pdfButton = <button type="button" className="icon-btn" aria-label="Export as PDF" onClick={() => void exportPdf()}><Icon name="download" size={18} /></button>;
+  const pdfButton = <button type="button" className="icon-btn" aria-label="Export as PDF" title="Export as PDF" onClick={() => void exportPdf()}><Icon name="download" size={18} /></button>;
   // The verse the reader came from (a precept, a comment or a theme opened this note): a way straight back to it.
   const from = params.get("from");
   const fromLabel = (() => { const m = from && /^\/read\/([a-z0-9-]+)\/(\d+)(?:\?v=(\d+))?/.exec(from); if (!m) return null; const book = m[1].split("-").map((w) => (/^\d/.test(w) ? w : w[0].toUpperCase() + w.slice(1))).join(" "); return `${book} ${m[2]}${m[3] ? `:${m[3]}` : ""}`; })();
@@ -105,10 +105,10 @@ export function NoteScreen() {
       {backTo}
       <p className="kicker">{[label(n.kind) ?? "", when(n.date, n.teacher)].filter(Boolean).join(" · ")}</p>
       <h1>{n.title}</h1>
-      <div className="head__actions">
+      <div className="head__actions toolbar-group" role="group" aria-label="Note actions">
         {pdfButton}
-        {who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}
-        <button type="button" className="icon-btn" aria-pressed={kept} aria-label={kept ? "Remove bookmark" : "Bookmark"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: path, kind: "note", title: n.title, text: [label(n.kind), fmtDate(n.date)].filter(Boolean).join(" · "), href: path })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={18} /></button>
+        {who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" title="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="compose" size={18} /></button> : null}
+        <button type="button" className="icon-btn" aria-pressed={kept} aria-label={kept ? "Remove bookmark" : "Bookmark"} title={kept ? "Remove bookmark" : "Bookmark"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: path, kind: "note", title: n.title, text: [label(n.kind), fmtDate(n.date)].filter(Boolean).join(" · "), href: path })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={18} /></button>
       </div>
     </header>
   );
@@ -143,7 +143,7 @@ export function NoteScreen() {
       {readFrom}
       {isHistory && episode.data?.turns?.length ? <Transcript ep={episode.data} find={params.get("find") ?? ""} onSeek={seek} /> : null}
       {upnext}
-      <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={n.title} action={<>{pdfButton}{who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="note" size={18} /></button> : null}</>}><NoteBody md={n.body} video={video} onSeek={seek} series={me?.series ? teachingLabel(me) : undefined} /></NotesSheet>
+      <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={n.title} action={<>{pdfButton}{who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" title="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="compose" size={18} /></button> : null}</>}><NoteBody md={n.body} video={video} onSeek={seek} series={me?.series ? teachingLabel(me) : undefined} /></NotesSheet>
       {editing ? <NoteEditSheet open onClose={() => setEditing(false)} note={n} onSaved={saved} /> : null}
     </main>
   );

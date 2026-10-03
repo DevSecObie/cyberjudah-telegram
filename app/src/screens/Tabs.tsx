@@ -119,13 +119,13 @@ export function SwitcherBar() {
   const named = !isDefault(group);
   return (
     <div className="switcherbar" role="toolbar" aria-label="Tabs">
-      <button type="button" className="switcherbar__add" aria-label="Add a tab" onClick={() => go(newTab())}><Icon name="plus" size={24} /></button>
-      <button type="button" className="switcherbar__group" aria-label={`${groupLabel(group)}. Groups`} onClick={() => void openGroups()}
+      <button type="button" className="switcherbar__add" aria-label="Add a tab" title="Add a tab" onClick={() => go(newTab())}><Icon name="plus" size={24} /></button>
+      <button type="button" className="switcherbar__group" aria-label={`${groupLabel(group)}. Groups`} title={`${groupLabel(group)}. Groups`} onClick={() => void openGroups()}
         style={named ? { ["--group" as string]: group.color } : undefined}>
         <span>{groupLabel(group)}</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
       </button>
-      <button type="button" className="switcherbar__ok" aria-label="Open the selected tab" onClick={() => go(tabs.find((t) => t.id === current)?.path ?? "/new")}>OK</button>
+      <button type="button" className="switcherbar__ok" aria-label="Open the selected tab" title="Open the selected tab" onClick={() => go(tabs.find((t) => t.id === current)?.path ?? "/new")}>OK</button>
     </div>
   );
 }
@@ -162,12 +162,12 @@ export function Tabs() {
           const title = tabTitle(t.path);
           return (
             <div key={t.id} className="tabcard" data-current={t.id === current ? "" : undefined} style={{ width: size.w, height: size.h }}>
-              <button type="button" className="tabcard__open" onClick={() => go(selectTab(t.id))} aria-label={`Open ${title}`}>
+              <button type="button" className="tabcard__open" onClick={() => go(selectTab(t.id))} aria-label={`Open ${title}`} title={`Open ${title}`}>
                 <TabPreview path={t.path} />
                 <span className="tabcard__icon"><Icon name={icon as IconName} size={30} /></span>
               </button>
               <span className="tabcard__title"><Icon name={icon as IconName} size={16} /><b>{title}</b></span>
-              <button type="button" className="tabcard__close" aria-label={`Close ${title}`} onClick={() => { haptic("select"); closeTab(t.id); }}>
+              <button type="button" className="tabcard__close" aria-label={`Close ${title}`} title={`Close ${title}`} onClick={() => { haptic("select"); closeTab(t.id); }}>
                 <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg></span>
               </button>
             </div>

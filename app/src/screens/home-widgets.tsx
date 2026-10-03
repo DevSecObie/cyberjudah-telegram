@@ -23,7 +23,7 @@ export function Widget({ label, title, sub, to, resource, resourceTo, icon, colo
   const navigate = useNavigate();
   return (
     <div className="widget" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}>
-      {onShuffle ? <button type="button" className="widget__shuffle" aria-label="Another one" onClick={(e) => { e.stopPropagation(); haptic("select"); onShuffle(); }}><Icon name="retry" size={16} /></button> : null}
+      {onShuffle ? <button type="button" className="widget__shuffle" aria-label="Another one" title="Another one" onClick={(e) => { e.stopPropagation(); haptic("select"); onShuffle(); }}><Icon name="retry" size={16} /></button> : null}
       <Link to={to} className="widget__body" onClick={() => haptic("select")} aria-busy={loading || undefined}>
         <span className="widget__label">{label}</span>
         {loading ? <span className="widget__title" style={{ opacity: 0.6 }}>…</span> : <><b className="widget__title">{title}</b>{sub ? <span className="widget__sub">{sub}</span> : null}</>}

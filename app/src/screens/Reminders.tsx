@@ -306,7 +306,7 @@ export function ReminderSync() {
         <span className="toast__icon" aria-hidden="true"><Icon name="info" size={18} /></span>
         <span className="toast__text">{FALLBACK}</span>
         <button type="button" className="btn btn--quiet remind-toast__go" onClick={() => { setNotice(false); navigate("/settings/reminders"); }}>Turn on</button>
-        <button type="button" className="toast__close" aria-label="Dismiss" onClick={() => setNotice(false)}><Icon name="close" size={16} /></button>
+        <button type="button" className="toast__close" aria-label="Dismiss" title="Dismiss" onClick={() => setNotice(false)}><Icon name="close" size={16} /></button>
       </div>
     </div>
   );

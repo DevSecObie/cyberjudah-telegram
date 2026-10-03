@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { Icon, type IconName } from "@/ui/icons";
 
 /** Feather icons (the set Bible Strong draws from) as inline SVG; `ion` adds the few Ionicons it uses. */
 export type FeatherName =
@@ -78,6 +79,9 @@ const P: Record<FeatherName, string> = {
 };
 
 export function Feather({ name, size = 20, color = "currentColor", style, fill }: { name: FeatherName; size?: number; color?: string; style?: CSSProperties; fill?: string }) {
+  const common: Partial<Record<FeatherName, IconName>> = { copy: "copy", "share-2": "share", bookmark: "bookmark", "edit-2": "compose", "edit-3": "compose", "trash-2": "trash", "external-link": "open", search: "search" };
+  const shared = common[name];
+  if (shared) return <Icon name={shared} size={size} color={color} style={style} fill={fill} />;
   return <svg width={size} height={size} viewBox="0 0 24 24" fill={fill ?? "none"} stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={style} aria-hidden="true" dangerouslySetInnerHTML={{ __html: P[name] }} />;
 }
 

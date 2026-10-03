@@ -40,11 +40,11 @@ export function Sheet({ open, onClose, backdrop = true, height = "auto", title, 
           <div className="bs-sheet__handle" aria-hidden="true" />
           {title !== undefined ? (
             <div className="bs-sheet__header">
-              <div className="bs-sheet__side">{hasBack ? <button type="button" className="bs-iconbtn" aria-label="Back" onClick={onBack ?? onClose}><Feather name="arrow-left" size={20} /></button> : left}</div>
+              <div className="bs-sheet__side">{hasBack ? <button type="button" className="bs-iconbtn" aria-label="Back" title="Back" onClick={onBack ?? onClose}><Feather name="arrow-left" size={20} /></button> : left}</div>
               <div className="bs-sheet__titles"><b>{title}</b>{subTitle ? <small>{subTitle}</small> : null}</div>
-              <div className="bs-sheet__side bs-sheet__side--right">{right}<button type="button" className="bs-iconbtn bs-sheet__close" aria-label="Close" onClick={onClose}><Feather name="x" size={18} /></button></div>
+              <div className="bs-sheet__side bs-sheet__side--right">{right}<button type="button" className="bs-iconbtn bs-sheet__close" aria-label="Close" title="Close" onClick={onClose}><Feather name="x" size={18} /></button></div>
             </div>
-          ) : closable ? <button type="button" className="bs-iconbtn bs-sheet__close bs-sheet__close--float" aria-label="Close" onClick={onClose}><Feather name="x" size={18} /></button> : null}
+          ) : closable ? <button type="button" className="bs-iconbtn bs-sheet__close bs-sheet__close--float" aria-label="Close" title="Close" onClick={onClose}><Feather name="x" size={18} /></button> : null}
         </div>
         <div className="bs-sheet__body">{children}</div>
         {footer ? <div className="bs-sheet__footer">{footer}</div> : null}
@@ -61,7 +61,7 @@ export function Button({ children, onClick, reverse, disabled, small }: { childr
 /** Bible Strong's `Switch` on the web: a 36×22 track with a white thumb. */
 export function Switch({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
-    <button type="button" role="switch" aria-checked={on} aria-label={label} className="bs-switchrow" onClick={() => onChange(!on)}>
+    <button type="button" role="switch" aria-checked={on} aria-label={label} title={label} className="bs-switchrow" onClick={() => onChange(!on)}>
       <span className="bs-switchrow__label">{label}</span>
       <span className="bs-switch" data-on={on ? "" : undefined}><span /></span>
     </button>
