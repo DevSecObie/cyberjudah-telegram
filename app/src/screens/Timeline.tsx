@@ -134,7 +134,7 @@ function About() {
       {FINAL_CAPTIVITY ? <>
         <h3 className="tl-about__h">{FINAL_CAPTIVITY.age}</h3>
         <p>The last age is ours: the captivity, displacement, persecution, resistance and achievements of the peoples the assembly identifies as the Israelites today, and the founding and growth of Israel United in Christ.</p>
-        <p>Each event keeps three things apart: the documented history, from the sources listed under it; the assembly's teaching, linked to the class or episode at the moment it was taught; and the Scriptures read with it. Where sources disagree, both are shown.</p>
+        <p>Each event keeps three things apart: the documented history, from the sources listed under it; what the classes teach, linked to the class or episode at the moment it was taught; and the Scriptures read with it. Where sources disagree, both are shown.</p>
         <p>This age is still being written. Events are added as each one is checked against the classes and the sources, through today. Sources reviewed through {reviewed(FINAL_CAPTIVITY.reviewedThrough)}.</p>
       </> : null}
     </div>

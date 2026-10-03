@@ -9,7 +9,7 @@ import { ScriptureCard, type VerseRef } from "@/ui/scripture";
 /**
  * An event of The Final Captivity, in the Timeline's event sheet (app/scripts/final-captivity).
  * The summary comes first, so the sheet's first detent shows it; then the documented history,
- * the assembly's teaching (each part linked to the moment it was taught), the Scriptures read
+ * what the classes teach (each part linked to the moment it was taught), the Scriptures read
  * with it, where the sources differ, and the sources. The three kinds of statement are
  * labelled and never run together: what is documented, what the assembly teaches, and how the
  * Scripture is applied.
@@ -82,7 +82,7 @@ export function FinalCaptivityDetail({ slug, reviewedThrough }: { slug: string; 
 
       {e.teaching?.length ? (
         <section className="tl-event__section fc-section" aria-labelledby={`${slug}-t`}>
-          <h3 id={`${slug}-t`}><span className="fc-kind fc-kind--teaching">The assembly's teaching</span>What the classes teach</h3>
+          <h3 id={`${slug}-t`}><span className="fc-kind fc-kind--teaching">Teaching</span>What the classes teach</h3>
           {e.teaching.map((t, i) => (
             <article key={i} className="fc-teach">
               {(t.points ?? []).map((p, j) => <p key={j} className="fc-para">{p}</p>)}
