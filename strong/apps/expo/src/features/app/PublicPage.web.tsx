@@ -26,8 +26,8 @@ const PublicPage = ({
           <TouchableBox
             className="flex-1 flex-row items-center min-w-0"
             accessibilityRole="link"
-            accessibilityLabel="Bible Strong"
-            onPress={() => void Linking.openURL('https://bible-strong.app')}
+            accessibilityLabel="CyberJudah"
+            onPress={() => void Linking.openURL('https://cyberjudah.io/app/')}
           >
             <Image
               source={require('~assets/images/icon.png')}
@@ -35,7 +35,7 @@ const PublicPage = ({
               accessible={false}
             />
             <Text className="ml-[10px] font-bold text-[15px]" numberOfLines={1}>
-              Bible Strong
+              CyberJudah
             </Text>
           </TouchableBox>
           <Text
@@ -48,10 +48,10 @@ const PublicPage = ({
             <TouchableBox
               className="h-[36px] items-center justify-center rounded-full bg-primary px-[14px]"
               accessibilityRole="button"
-              accessibilityLabel="Ouvrir l’app"
+              accessibilityLabel="Open the app"
               onPress={onOpenApp ?? publicShell.openWorkspace}
             >
-              <Text className="text-[13px] font-bold text-reverse">Ouvrir l’app</Text>
+              <Text className="text-[13px] font-bold text-reverse">Open the app</Text>
             </TouchableBox>
           </Box>
         </PageContent>
