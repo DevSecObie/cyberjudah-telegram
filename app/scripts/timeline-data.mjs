@@ -18,6 +18,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { writeFinalCaptivity } from "./final-captivity/build.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const SOURCE = path.join(ROOT, "strong/apps/expo/src/assets/timeline/events.txt");
@@ -172,6 +173,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const attached = new Set(kept.flatMap((s) => s.events.flatMap((e) => (e.cases ?? []).map((c) => c.slug))));
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify({ source: "Bible Strong timeline (events.txt), history only; case studies attached by exact name", reigns: reigns.source, sections: kept }) + "\n");
-  console.log(JSON.stringify({ periods: kept.length, events: kept.reduce((n, s) => n + s.events.length, 0), droppedSections, droppedEvents: dropped.length, casesAttached: attached.size, casesTotal: cases.length, ambiguous, reignsPlaced: placed.size, reignsUnplaced: unplaced, portraits: Object.fromEntries(portraits) }, null, 1));
+  // The Final Captivity follows the Reformation (final-captivity/README.md).
+  const finalCaptivity = writeFinalCaptivity();
+  console.log(JSON.stringify({ finalCaptivity, periods: kept.length, events: kept.reduce((n, s) => n + s.events.length, 0), droppedSections, droppedEvents: dropped.length, casesAttached: attached.size, casesTotal: cases.length, ambiguous, reignsPlaced: placed.size, reignsUnplaced: unplaced, portraits: Object.fromEntries(portraits) }, null, 1));
   if (process.env.VERBOSE) console.log(dropped.join("\n"));
 }

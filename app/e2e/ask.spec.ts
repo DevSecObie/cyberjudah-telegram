@@ -97,6 +97,24 @@ test("a reminder change is only proposed: nothing changes until Confirm, which s
   await expect(answer(page).locator(".actioncard")).toHaveAttribute("data-state", "applied");
 });
 
+test("Your chats opens as a sheet over the conversation, styled before the Bible has ever been opened", async ({ page }) => {
+  await setup(page);
+  await page.goto(`/ask${launch(9)}`);
+  await ask(page, "Why keep the Passover?");
+  await expect(answer(page)).toContainText("A short answer");
+  await page.getByRole("button", { name: "Your chats" }).click();
+  const sheet = page.locator(".bs-sheet.chats-sheet");
+  await expect(sheet).toBeVisible();
+  await expect(sheet.locator(".bs-sheet__titles b")).toHaveText("Your chats");
+  // Laid out as a sheet (the full width, most of the height), and opaque, so the chat under it does not show through.
+  const look = await sheet.evaluate((el) => { const r = el.getBoundingClientRect(); return { left: r.left, width: r.width, height: r.height, bg: getComputedStyle(el).backgroundColor }; });
+  expect(look.left).toBeGreaterThanOrEqual(0);
+  expect(look.width).toBeGreaterThan(380);
+  expect(look.height).toBeGreaterThan(600);
+  expect(look.bg).not.toMatch(/rgba\(0, 0, 0, 0\)|\/ 0\.\d+\)$/);
+  await shot(page, "8-your-chats");
+});
+
 test("Cancel leaves the reminder as it was", async ({ page, request }) => {
   await setup(page);
   await page.goto(`/ask${launch(3)}`);

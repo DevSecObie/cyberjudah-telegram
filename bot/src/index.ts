@@ -33,6 +33,8 @@ import { costFactor, MODELS, modelOf } from "../../shared/ask-models.mjs";
 import { pid, seal } from "./privacy.mjs";
 import { migratePrivacy } from "./privacy-migrate";
 import { deleteData, exportData } from "./mydata";
+import { photoFile, photoManifest, removePhoto, setPhoto } from "./photos";
+import { MAX_BYTES } from "./photos.mjs";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
@@ -54,6 +56,8 @@ app.use("/api/*", async (c, next) => {
   if (c.req.method === "GET" && c.req.path.startsWith("/api/pdf/")) return next();
   // Reading reminders authenticate themselves: Telegram launch data, a browser's device credential, or (for the service worker) its push endpoint.
   if (c.req.path === "/api/reminders" || c.req.path.startsWith("/api/reminders/") || c.req.path.startsWith("/api/push/")) return next();
+  // The photos an admin sets are public pictures like the app's own: readers fetch them without signing in.
+  if (c.req.method === "GET" && (c.req.path === "/api/photos" || c.req.path.startsWith("/api/photos/file/"))) return next();
   if (c.req.path === "/api/verse-of-day" || c.req.path === "/api/health" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
   // Thirty days: Telegram keeps a Mini App open in the background for weeks, and its launch
@@ -119,6 +123,21 @@ app.post("/api/notes/edit", async (c) => {
     console.error(JSON.stringify({ event: "note_edit_failed", message: (e as Error).message?.slice(0, 200) }));
     return c.json({ ok: false, error: "The save failed on the server." }, 400);
   }
+});
+
+// Photos an admin sets from the app (bot/src/photos.ts): the manifest, the files, and setting or removing one.
+app.get("/api/photos", async (c) => c.json(await photoManifest(c.env), 200, { "cache-control": "public, max-age=30" }));
+app.get("/api/photos/file/*", (c) => photoFile(c.env, c.req.path.slice("/api/photos/file/".length)));
+app.put("/api/admin/photos", async (c) => {
+  const { user } = c.get("tma");
+  if (Number(c.req.header("content-length") ?? 0) > MAX_BYTES) return c.json({ ok: false, error: "That photo is too large." }, 413);
+  const res = await setPhoto(c.env, user!, c.req.query("slot") ?? "", await c.req.arrayBuffer());
+  return res.ok ? c.json(res) : c.json({ ok: false, error: res.error }, res.status);
+});
+app.delete("/api/admin/photos", async (c) => {
+  const { user } = c.get("tma");
+  const res = await removePhoto(c.env, user!, c.req.query("slot") ?? "");
+  return res.ok ? c.json(res) : c.json({ ok: false, error: res.error }, res.status);
 });
 
 app.get("/api/search", async (c) => {
