@@ -37,7 +37,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto 0; height: 60vh; z-
   --tgui--link_color: var(--accent); --tgui--accent_text_color: var(--accent); --tgui--button_color: var(--accent); --tgui--button_text_color: var(--on-accent);
   --tgui--destructive_text_color: var(--danger);
   --tgui--divider: var(--hairline); --tgui--outline: var(--control-edge);
-  --tgui--surface_primary: var(--mat-nav);
+  /* Chip uses this fallback. Our dock does not use TelegramUI's Tabbar. */
+  --tgui--surface_primary: var(--surface-1);
   --tgui--plain_background: var(--surface-2); --tgui--plain_foreground: var(--text-2);
   --tgui--skeleton: var(--fill-1);
   --tgui--secondary_fill: var(--accent-soft);

@@ -58,9 +58,11 @@
   /* Materials (see materials.css). Tint is the colour the glass carries; the blur is the frost. */
   --mat-base: var(--canvas);
   --mat-density: 92%;
+  --mat-elevated-density: 93%;
   --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent);
-  --mat-elevated: color-mix(in srgb, var(--surface-1) 93%, transparent);
-  --mat-overlay: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  --mat-elevated: color-mix(in srgb, var(--surface-1) var(--mat-elevated-density), transparent);
+  --mat-overlay: var(--surface-1);
+  --mat-scroll-edge: linear-gradient(#000 calc(100% - 14px), transparent);
   --mat-blur: blur(16px) saturate(170%);
   --mat-blur-strong: blur(22px) saturate(180%);
   --mat-edge: color-mix(in srgb, #ffffff 12%, transparent);
@@ -68,6 +70,11 @@
   --mat-shadow: 0 10px 30px rgba(0, 0, 0, .35), 0 1px 3px rgba(0, 0, 0, .25);
   --mat-selected: color-mix(in srgb, var(--text-1) 13%, transparent);
   --mat-glow: color-mix(in srgb, var(--accent) 75%, transparent);
+
+  /* Full-screen media retains a dark context in every reading palette. */
+  --media-canvas: #0a0b10; --media-surface: #13151d;
+  --media-ink: #fff; --media-muted: #c4c8d4;
+  --media-edge: rgb(255 255 255 / .14); --media-fill: rgb(255 255 255 / .1);
 
   /* Scrims. */
   --scrim-modal: rgba(0, 0, 0, .6);
@@ -88,8 +95,8 @@
   --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
   --font-read: "Newsreader", Georgia, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
-  --fs-caption: 12px; --fs-footnote: 13px; --fs-sub: 14.5px; --fs-body: 16px; --fs-callout: 17px;
-  --fs-title3: 19px; --fs-title2: 22px; --fs-title1: 28px; --fs-large: 32px;
+  --fs-caption: .75rem; --fs-footnote: .8125rem; --fs-sub: .90625rem; --fs-body: 1rem; --fs-callout: 1.0625rem;
+  --fs-title3: 1.1875rem; --fs-title2: 1.375rem; --fs-title1: 1.75rem; --fs-large: 2rem;
   --lh-tight: 1.2; --lh-snug: 1.35; --lh-body: 1.5; --lh-read: 1.65;
 
   /* Motion. Routine changes are quick; nothing runs longer than --dur-4. */
@@ -130,8 +137,6 @@ html[data-theme="light"] {
   --shadow-3: 0 18px 50px rgba(40, 30, 10, .18);
   --card-edge: inset 0 0 0 .5px rgba(40, 30, 10, .08);
   --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent);
-  --mat-elevated: color-mix(in srgb, var(--surface-1) 93%, transparent);
-  --mat-overlay: color-mix(in srgb, var(--surface-1) 92%, transparent);
   --mat-edge: color-mix(in srgb, #000000 8%, transparent);
   --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 90%, transparent);
   --mat-shadow: 0 10px 30px rgba(40, 30, 10, .12), 0 1px 3px rgba(40, 30, 10, .08);
@@ -160,8 +165,6 @@ html[data-theme="sepia"] {
   --shadow-3: 0 18px 50px rgba(60, 40, 10, .2);
   --card-edge: inset 0 0 0 .5px rgba(60, 40, 10, .1);
   --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent);
-  --mat-elevated: color-mix(in srgb, #fbf5e6 94%, transparent);
-  --mat-overlay: color-mix(in srgb, #fbf5e6 93%, transparent);
   --mat-edge: color-mix(in srgb, #3b2f1e 10%, transparent);
   --mat-highlight: inset 0 1px 0 color-mix(in srgb, #fffaf0 85%, transparent);
   --mat-shadow: 0 10px 30px rgba(60, 40, 10, .14), 0 1px 3px rgba(60, 40, 10, .1);
@@ -182,13 +185,17 @@ html[data-palette="default"], html[data-palette="sepia"] { --mat-density: 80%; }
 
 /* Less transparency: the system setting, or the app's own switch (Settings → Reduce transparency). */
 @media (prefers-reduced-transparency: reduce) {
-  :root:not([data-transparency="full"]) { --mat-nav: var(--mat-base); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); --mat-blur: none; --mat-blur-strong: none; }
+  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; }
 }
-html[data-transparency="reduced"] { --mat-nav: var(--mat-base); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); --mat-blur: none; --mat-blur-strong: none; }
+html[data-transparency="reduced"] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; }
 
 /* No backdrop filter at all: a solid ground keeps text readable. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root, html[data-theme] { --mat-nav: color-mix(in srgb, var(--mat-base) 96%, transparent); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); }
+  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; }
+}
+
+@media (prefers-contrast: more), (forced-colors: active) {
+  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; }
 }
 
 /* More contrast: firmer edges, brighter secondary text, opaque materials. */

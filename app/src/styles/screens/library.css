@@ -42,46 +42,46 @@
 #root .readfrom__page { display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border: 0; border-radius: var(--r-pill); background: var(--fill-1); color: var(--accent); font: 600 var(--fs-caption) var(--font-ui); text-decoration: none; cursor: pointer; }
 
 /* ── Picture viewer: a picture full screen, the classes' words beneath. Dark in every theme. ── */
-.pv { position: fixed; inset: 0; z-index: var(--z-dock); display: grid; grid-template-rows: auto 1fr auto; background: #0a0b10; color: #fff; opacity: 0; transition: opacity var(--dur-3) ease, grid-template-rows var(--dur-4) var(--ease); }
+.pv { --mat-base: var(--media-canvas); --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent); position: fixed; inset: 0; z-index: var(--z-dock); display: grid; grid-template-rows: auto 1fr auto; background: var(--media-canvas); color: var(--media-ink); opacity: 0; transition: opacity var(--dur-3) ease; }
 .pv--in { opacity: 1; }
 .pv--words { grid-template-rows: auto minmax(34vh, 1fr) minmax(0, 52vh); }
 .pv--full { grid-template-rows: auto 0fr 1fr; }
 .pv--full .pv__stage { visibility: hidden; }
 /* The bar is the viewer's one piece of glass. */
-.pv__bar { z-index: 2; display: flex; align-items: center; gap: 6px; padding: calc(var(--safe-top) + var(--sp-2)) 10px var(--sp-2); background: rgba(10, 11, 16, .72); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur); border-bottom: .5px solid rgba(255, 255, 255, .1); }
+.pv__bar { z-index: 2; display: flex; align-items: center; gap: 6px; padding: calc(var(--safe-top) + var(--sp-2)) 10px var(--sp-2); background: var(--mat-nav); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur); border-bottom: .5px solid var(--media-fill); }
 .pv__title { flex: 1; min-width: 0; display: grid; }
 .pv__title b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 15px/1.25 var(--font-ui); }
-.pv__title small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 var(--fs-caption) var(--font-ui); color: #c4c8d4; }
-#root .pv__btn { flex: none; display: grid; place-items: center; width: var(--touch); height: var(--touch); border: .5px solid rgba(255, 255, 255, .14); border-radius: 50%; background: rgba(255, 255, 255, .1); color: #fff; font: 600 20px/1 var(--font-ui); cursor: pointer; }
+.pv__title small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 var(--fs-caption) var(--font-ui); color: var(--media-muted); }
+#root .pv__btn { flex: none; display: grid; place-items: center; width: var(--touch); height: var(--touch); border: .5px solid var(--media-edge); border-radius: 50%; background: var(--media-fill); color: var(--media-ink); font: 600 20px/1 var(--font-ui); cursor: pointer; }
 #root .pv__btn:disabled { opacity: .3; }
 .pv__stage { position: relative; display: grid; place-items: center; min-height: 0; overflow: hidden; background: radial-gradient(ellipse at center, #1a1c26, #0a0b10 75%); }
 .pv__stage img { max-width: 100%; max-height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; box-shadow: 0 20px 60px rgba(0, 0, 0, .6); }
-#root .pv__nav { position: absolute; top: 50%; display: grid; place-items: center; width: var(--touch); height: var(--touch); margin-top: -22px; border: .5px solid rgba(255, 255, 255, .16); border-radius: 50%; background: rgba(10, 11, 16, .7); color: #fff; cursor: pointer; }
+#root .pv__nav { position: absolute; top: 50%; display: grid; place-items: center; width: var(--touch); height: var(--touch); margin-top: -22px; border: .5px solid var(--media-edge); border-radius: 50%; background: var(--media-surface); color: var(--media-ink); cursor: pointer; }
 #root .pv__nav:disabled { opacity: .2; }
 .pv__nav--prev { left: 10px; } .pv__nav--prev svg { transform: rotate(180deg); }
 .pv__nav--next { right: 10px; }
-.pv__zoom { position: absolute; left: 50%; bottom: var(--sp-3); transform: translateX(-50%); padding: 3px 10px; border-radius: var(--r-pill); background: rgba(10, 11, 16, .75); font: 600 var(--fs-caption) var(--font-ui); color: #fff; }
-.pv__panel { display: grid; grid-template-rows: auto 0fr; padding-bottom: var(--safe-bottom); border-top: .5px solid rgba(255, 255, 255, .1); border-radius: var(--r-xl) var(--r-xl) 0 0; background: #13151d; box-shadow: 0 -12px 40px rgba(0, 0, 0, .5); transition: grid-template-rows var(--dur-4) var(--ease); }
+.pv__zoom { position: absolute; left: 50%; bottom: var(--sp-3); transform: translateX(-50%); padding: 3px 10px; border-radius: var(--r-pill); background: var(--media-surface); font: 600 var(--fs-caption) var(--font-ui); color: var(--media-ink); }
+.pv__panel { display: grid; grid-template-rows: auto 0fr; padding-bottom: var(--safe-bottom); border-top: .5px solid var(--media-fill); border-radius: var(--r-xl) var(--r-xl) 0 0; background: var(--media-surface); box-shadow: 0 -12px 40px rgba(0, 0, 0, .5); }
 .pv__panel--open { grid-template-rows: auto 1fr; }
-#root .pv__grab { box-sizing: border-box; display: grid; grid-template-columns: auto 1fr; column-gap: var(--sp-3); align-items: center; width: 100%; padding: 6px var(--sp-4) 10px; border: 0; background: none; color: #fff; text-align: left; cursor: grab; user-select: none; -webkit-user-select: none; }
+#root .pv__grab { box-sizing: border-box; display: grid; grid-template-columns: auto 1fr; column-gap: var(--sp-3); align-items: center; width: 100%; padding: 6px var(--sp-4) 10px; border: 0; background: none; color: var(--media-ink); text-align: left; cursor: grab; user-select: none; -webkit-user-select: none; }
 #root .pv__mini { grid-column: 1; width: 56px; height: 42px; padding: 0; overflow: hidden; border: 0; border-radius: var(--r-sm); background: #000; box-shadow: 0 0 0 1px rgba(255, 255, 255, .15); cursor: pointer; animation: pop-in var(--dur-3) var(--ease) backwards; }
 .pv__mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pv__grabtext { grid-column: 2; display: grid; }
 .pv__grab:not(:has(.pv__mini)) .pv__grabtext { grid-column: 1 / -1; }
 .pv__grabbar { grid-column: 1 / -1; justify-self: center; width: 40px; height: 5px; margin-bottom: var(--sp-2); border-radius: 3px; background: rgba(255, 255, 255, .3); }
 .pv__grabtext b { font: 600 15px/1.25 var(--font-ui); }
-.pv__grabtext small { font: 400 var(--fs-caption) var(--font-ui); color: #c4c8d4; }
+.pv__grabtext small { font: 400 var(--fs-caption) var(--font-ui); color: var(--media-muted); }
 .pv__scroll { display: grid; gap: 14px; min-height: 0; overflow: auto; padding: 0 14px var(--sp-4); -webkit-overflow-scrolling: touch; }
 .pv__caption { margin: 0; font: 400 var(--fs-sub)/1.5 var(--font-ui); color: #dadde5; }
-.pv__class { display: grid; gap: var(--sp-2); padding: var(--sp-3); border-radius: var(--r-md); background: rgba(255, 255, 255, .06); border: .5px solid rgba(255, 255, 255, .1); }
+.pv__class { display: grid; gap: var(--sp-2); padding: var(--sp-3); border-radius: var(--r-md); background: rgba(255, 255, 255, .06); border: .5px solid var(--media-fill); }
 .pv__classhead { display: grid; grid-template-columns: 120px 1fr; gap: var(--sp-3); align-items: start; }
 .pv__classhead > div { display: grid; gap: 4px; min-width: 0; }
 .pv__classhead b { font: 600 var(--fs-sub)/1.3 var(--font-ui); }
-.pv__classhead small { font: 400 var(--fs-caption) var(--font-ui); color: #c4c8d4; }
+.pv__classhead small { font: 400 var(--fs-caption) var(--font-ui); color: var(--media-muted); }
 .pv__frame { overflow: hidden; border-radius: var(--r-sm); }
 #root .pv__play { justify-self: start; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; margin-top: 2px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: #ffd27a; color: #1a1400; font: 600 var(--fs-caption) var(--font-ui); cursor: pointer; }
 .pv .said__line { color: #e8e8ec; }
-.pv .said__line[data-here] { color: #fff; background: rgba(255, 255, 255, .1); }
+.pv .said__line[data-here] { color: var(--media-ink); background: var(--media-fill); }
 #root .pv .said__line button { background: rgba(255, 255, 255, .12); color: #ffd27a; }
 
 /* ── Lexicon, dictionary, tags ─────────────────────────────────────────────────────────────── */
