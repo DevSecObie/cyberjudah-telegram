@@ -158,7 +158,12 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 }
 
 type Msg = { role: "system" | "user" | "assistant"; content: string };
-const CLAUDE_DEFAULT = "claude-opus-5";
+const CLAUDE_DEFAULT = "claude-sonnet-5";
+/**
+ * The model an answer uses when the reader has not chosen one: an admin's (CLAUDE_MODEL_ADMIN,
+ * Claude Opus 5.5 when unset) or every other reader's (CLAUDE_MODEL, Claude Sonnet when unset).
+ */
+export const defaultModelId = (env: Env, userId: number) => (isAdmin(env, userId) ? env.CLAUDE_MODEL_ADMIN || "claude-opus-5-5" : env.CLAUDE_MODEL || CLAUDE_DEFAULT);
 
 /** The answer, whole: Claude when it can be called (hasClaude), Llama on Workers AI otherwise, or when Claude cannot answer now. */
 async function answerOnce(env: Env, messages: Msg[]): Promise<string> {
@@ -215,8 +220,8 @@ const sourcesOf = (answer: string, passages: Passage[]) => {
  * answer as the model writes it, then a line with the sources it cited.
  */
 export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string, replaceLast = false, modelId?: string, consent: string[] = []): Promise<Response> {
-  // The reader's choice of model, or the setup's own (CLAUDE_MODEL) when none or an unknown one is sent.
-  let model = modelOf(modelId, env.CLAUDE_MODEL || CLAUDE_DEFAULT);
+  // The reader's choice of model, or their default (defaultModelId) when none or an unknown one is sent.
+  let model = modelOf(modelId, defaultModelId(env, userId));
   // The free model (ASK_FREE_MODEL) is never charged: chosen, or once the allowance is used up.
   const free = freeModel(env);
   let gratis = model.id === free.id;
