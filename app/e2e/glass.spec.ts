@@ -346,6 +346,7 @@ test("materials: unsupported-filter CSS branch yields opaque reader surfaces", a
   });
   expect(changed).toBeGreaterThan(0);
   await page.getByRole("button", { name: "Scripture options" }).click();
+  await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
   for (const material of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) expect(material).toMatchObject({ filter: "none", alpha: 255 });
 });
 
@@ -636,7 +637,12 @@ test("navigation: document, Bible and Timeline scrolls minimize down and expand 
     await expect(nav, path).toHaveAttribute("data-mini", "");
     const mini = (await nav.boundingBox())!;
     expect(mini.width).toBeGreaterThanOrEqual(44); expect(mini.height).toBeGreaterThanOrEqual(44);
+    // The first wheel is asynchronous, even with reduced CSS motion. Reverse after
+    // its real scroll reaches the requested position, then verify upward travel too.
+    await expect.poll(() => scroller.evaluate(el => el.scrollTop), path).toBeGreaterThanOrEqual(travel - 1);
+    const down = await scroller.evaluate(el => el.scrollTop);
     await page.mouse.wheel(0, -80);
+    await expect.poll(() => scroller.evaluate(el => el.scrollTop), path).toBeLessThan(down - 14);
     await expect(nav, path).not.toHaveAttribute("data-mini");
   }
   await page.goto(`/timeline/0${LAUNCH}`);
