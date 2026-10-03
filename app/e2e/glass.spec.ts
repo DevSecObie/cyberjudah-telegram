@@ -255,7 +255,7 @@ for (const theme of ["default", "dark", "sepia"]) {
         await page.locator("#verset-1").click();
         await expect(page.locator(".bs-selected")).toBeVisible();
         expect((await materials(page, [[".bs-selected"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
-        expect(await filteredSurfaces(page)).toEqual([]);
+        await expect.poll(() => filteredSurfaces(page)).toEqual([]);
         // Selection is saved with the reader tab; clear it before checking the next viewport.
         await page.locator("#verset-1").click();
         await expect(page.locator(".bs-selected")).toHaveCount(0);
@@ -266,7 +266,7 @@ for (const theme of ["default", "dark", "sepia"]) {
       await page.locator(".book__figure").click();
       await expect(page.locator(".pv")).toBeVisible();
       expect((await materials(page, [[".pv__bar"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
-      expect(await filteredSurfaces(page)).toEqual([]);
+      await expect.poll(() => filteredSurfaces(page)).toEqual([]);
     });
   }
 }
@@ -275,11 +275,11 @@ test("materials: header, menu and selection stay within budget without stacked g
   await setup(page);
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
-  expect(await filteredSurfaces(page)).toHaveLength(2);
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
   await page.getByRole("button", { name: "Scripture options" }).click();
   const menu = page.getByRole("menu", { name: "Passage options" });
   await expect(menu).toBeVisible();
-  expect(await filteredSurfaces(page)).toHaveLength(3);
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(3);
   expect(await menu.evaluate(element => {
     for (let parent = element.parentElement; parent; parent = parent.parentElement) {
       const style = getComputedStyle(parent);
@@ -293,7 +293,7 @@ test("materials: header, menu and selection stay within budget without stacked g
   await page.keyboard.press("Escape");
   await page.locator("#verset-1").click();
   await expect(page.locator(".bs-selected")).toBeVisible();
-  expect(await filteredSurfaces(page)).toHaveLength(2);
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
 });
 
 test("materials: content stays unfiltered at 200% shared text size with reduced motion", async ({ page }) => {
@@ -306,11 +306,11 @@ test("materials: content stays unfiltered at 200% shared text size with reduced 
   await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
   await expect.poll(() => title.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBe(normal * 2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
-  expect(await filteredSurfaces(page)).toHaveLength(2);
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
   expect((await materials(page, [[".book__figure"]]))[0].filter).toBe("none");
   await page.locator(".book__figure").click();
   await expect(page.locator(".pv__bar")).toBeVisible();
-  expect(await filteredSurfaces(page)).toEqual(["pv__bar"]);
+  await expect.poll(() => filteredSurfaces(page)).toEqual(["pv__bar"]);
   await page.locator(".pv").getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.locator(".pv")).toHaveCount(0);
 });

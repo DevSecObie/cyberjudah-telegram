@@ -3,7 +3,7 @@
 The app's look and feel. It follows the layering Apple describes for Liquid Glass and applies it to
 a web app with CSS. Apple's Liquid Glass is a native material (lensing, adaptive tint, motion-aware
 highlights) that SwiftUI, UIKit and AppKit render. Our materials approximate its hierarchy and feel
-with one `backdrop-filter` per navigation surface, palette-aware tint, a rim and a press-position highlight. They are not Apple's rendering.
+with one `backdrop-filter` per navigation surface, palette-aware tint, a rim and a press highlight. They are not Apple's rendering.
 
 Apple references used by this design system:
 
@@ -145,7 +145,7 @@ The dock now follows the single-material hierarchy above on both Chromium and We
 Chromium-only SVG displacement filter was drawn **above the icons and labels**, bending their
 shapes and adding coloured fringes. It also put a second filter on a glass surface. That filter
 and its canvas map are removed. The regular material lives on the dock's `::before`; the filled
-selection sits below the controls. A specular rim follows a press without sampling another
+selection sits below the controls. A specular rim brightens during a press without sampling another
 backdrop or changing the label pixels.
 
 Pressing the current section gently lifts its selection. Dragging follows the pointer directly,
@@ -215,7 +215,7 @@ This table covers every authored CSS background and backdrop declaration in `app
 | **bible/bible.css · bs-playpill**<br>`.bs-playpill` | navigation | None | Control, selection, or edge fill; no additional glass. |
 | **bible/bible.css · bs-audio**<br>`.bs-audio`, `.bs-audio__mode`, `.bs-audio__ctl`, `.bs-audio__play` | navigation | None | Control, selection, or edge fill; no additional glass. |
 | **bible/bible.css · bs-chip**<br>`.bs-chip`, `.bs-chip[aria-pressed="true"]`, `#root .bs-chip--select` | content | None | Content, control state, or decoration; never glass. |
-| **bible/bible.css · bs-scrim**<br>`.bs-scrim`, `.bs-scrim--clear`, `.bs-scrim--clear > .bs-sheet.bs-selected` | navigation | `var(--mat-blur-strong)` | Only the floating selection sheet filters; modal scrims merely dim and ordinary sheets stay opaque. |
+| **bible/bible.css · bs-scrim**<br>`.bs-scrim`, `.bs-scrim--clear`, `.bs-scrim--clear > .bs-sheet.bs-selected` | overlay / floating navigation | `var(--mat-blur-strong)` | Only the floating selection sheet filters; modal scrims merely dim and ordinary sheets stay opaque. |
 | **bible/bible.css · bs-sheet**<br>`.bs-sheet`, `.bs-sheet__handle`, `.bs-sheet__close` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
 | **bible/bible.css · bs-btn**<br>`.bs-btn`, `.bs-btn--reverse` | content | None | Content, control state, or decoration; never glass. |
 | **bible/bible.css · bs-input**<br>`.bs-input` | content | None | Content, control state, or decoration; never glass. |
@@ -273,7 +273,7 @@ This table covers every authored CSS background and backdrop declaration in `app
 | **bible/bible.css · bs-ambient-tabs**<br>`.bs-ambient-tabs [aria-selected="true"]` | content | None | Content, control state, or decoration; never glass. |
 | **bible/bible.css · bs-selected**<br>`.bs-selected .bs-sheet__handle`, `.bs-selected .bs-action__box`, `.bs-selected .bs-tabsfooter`, `.bs-selected .bs-tabsfooter__indicator` | content | None | Content, control state, or decoration; never glass. |
 | **bible/ui/sheet.css · bs-iconbtn**<br>`.bs-iconbtn` | content | None | Content, control state, or decoration; never glass. |
-| **bible/ui/sheet.css · bs-scrim**<br>`.bs-scrim`, `.bs-scrim--clear` | overlay | None | Only the floating selection sheet filters; modal scrims merely dim and ordinary sheets stay opaque. |
+| **bible/ui/sheet.css · bs-scrim**<br>`.bs-scrim`, `.bs-scrim--clear` | overlay | None | Modal scrims dim the page; their content sheets stay opaque. |
 | **bible/ui/sheet.css · bs-sheet**<br>`.bs-sheet`, `.bs-sheet__handle`, `.bs-sheet__close`, `.bs-sheet.chats-sheet`, `.bs-sheet.edit-sheet` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
 | **bible/ui/sheet.css · bs-btn**<br>`.bs-btn`, `.bs-btn--reverse` | content | None | Content, control state, or decoration; never glass. |
 | **bible/ui/sheet.css · bs-switchrow**<br>`.bs-switchrow` | content | None | Content, control state, or decoration; never glass. |
@@ -331,7 +331,7 @@ This table covers every authored CSS background and backdrop declaration in `app
 | **styles/materials.css · reader**<br>`.reader__bar::before`, `.reader__bar::after` | navigation | `var(--mat-blur)` | One shared material on the navigation surface; nested control fills have no filter. |
 | **styles/materials.css · tabs**<br>`.tabs`, `.tabs::before`, `.tabs::after`, `.tabs .tab`, `.tabs__pill`, `html[data-transparency="reduced"] .tabs::before`, `.tabs .tab__count[style*="--group"]` | navigation | `var(--mat-blur)` | One shared material on the navigation surface; nested control fills have no filter. |
 | **styles/materials.css · bs-selected**<br>`html:has(.bs-selected) .tabs::before` | content | None | Content, control state, or decoration; never glass. |
-| **styles/materials.css · pv**<br>`html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__bar)::before` | overlay | None | Only the media bar filters. Its dark semantic palette preserves white controls in every app theme. |
+| **styles/materials.css · pv**<br>`html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__bar)::before` | navigation | None | Disable covered app navigation filters while full-screen media is present. |
 | **styles/materials.css · switcherbar**<br>`#root .switcherbar__add`, `#root .switcherbar__ok`, `#root .switcherbar__group` | navigation | None | Control, selection, or edge fill; no additional glass. |
 | **styles/materials.css · pageaction**<br>`#root .pageaction`, `#root .pageaction--quiet` | navigation | None | Control, selection, or edge fill; no additional glass. |
 | **styles/materials.css · drawer**<br>`.drawer`, `.drawer__fade`, `.drawer__head`, `#root button.drawer__back`, `.drawer__back`, `#root button.drawer__x`, `.drawer__x`, `.drawer:not([data-open])` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
@@ -383,7 +383,7 @@ This table covers every authored CSS background and backdrop declaration in `app
 | **styles/screens/library.css · book**<br>`.book__figure`, `.book__figure:hover`, `.book__figure img`, `.book__read`, `.book__readpage a` | content | None | Content, control state, or decoration; never glass. |
 | **styles/screens/library.css · bookpage**<br>`.bookpage--at`, `#root .bookpage__scan`, `.bookpage__read`, `#root .bookpage__readhead`, `#root .bookpage__readhead:hover`, `.bookpage__watch`, `.bookpage__img`, `#root .bookpage__fig` | content | None | Content, control state, or decoration; never glass. |
 | **styles/screens/library.css · readfrom**<br>`#root .readfrom__page` | content | None | Content, control state, or decoration; never glass. |
-| **styles/screens/library.css · pv**<br>`.pv`, `.pv__bar`, `#root .pv__btn`, `.pv__stage`, `#root .pv__nav`, `.pv__zoom`, `.pv__panel`, `#root .pv__grab`, `#root .pv__mini`, `.pv__grabbar`, `.pv__class`, `#root .pv__play`, `.pv .said__line[data-here]`, `#root .pv .said__line button` | navigation | `var(--mat-blur)` | Only the media bar filters. Its dark semantic palette preserves white controls in every app theme. |
+| **styles/screens/library.css · pv**<br>`.pv`, `.pv__bar`, `#root .pv__btn`, `.pv__stage`, `#root .pv__nav`, `.pv__zoom`, `.pv__panel`, `#root .pv__grab`, `#root .pv__mini`, `.pv__grabbar`, `.pv__class`, `#root .pv__play`, `.pv .said__line[data-here]`, `#root .pv .said__line button` | navigation / content | `var(--mat-blur)` | Only the media bar filters. Its dark semantic palette preserves white controls in every app theme. |
 | **styles/screens/library.css · lex**<br>`.lex .bs-word__head` | content | None | Content, control state, or decoration; never glass. |
 | **styles/screens/library.css · lex-day**<br>`.lex-day` | content | None | Content, control state, or decoration; never glass. |
 | **styles/screens/library.css · thread**<br>`.thread::before`, `#root .thread__head`, `.thread__dot`, `.thread__stop--open .thread__dot`, `.thread__class`, `.thread__class:hover`, `.thread__ts`, `#root .thread__more button` | content | None | Content, control state, or decoration; never glass. |
