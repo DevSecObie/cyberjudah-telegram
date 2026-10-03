@@ -16,7 +16,7 @@ export { Icon, type IconName } from "./icons";
 
 /**
  * Bible Strong's bottom bar (app-switcher/BottomTabBar): a full-width row of icons, 48 high, no
- * labels. Here the reader picks and orders the buttons (lib/nav); the menu always ends the row.
+ * labels. Here the reader picks and orders the buttons (lib/nav); Menu and then Search end the row.
  * Search, the Bible and Ask go to their tab (or open one); the tabs button shows how many are
  * open and opens the switcher. A long press on the bar opens its editor.
  */
@@ -54,6 +54,10 @@ export function TabBar() {
   const placePill = useRef<(() => void) | null>(null);
   useEffect(() => () => { window.clearTimeout(press.current); }, []);
   const tabsOf = (nav: HTMLElement) => [...nav.querySelectorAll<HTMLElement>(".tab")].filter((b) => b.offsetWidth > 0);
+  const geometryOf = (nav: HTMLElement, el: HTMLElement) => {
+    const outer = nav.getBoundingClientRect(), box = el.getBoundingClientRect();
+    return { x: box.left - outer.left - nav.clientLeft + nav.scrollLeft, y: box.top - outer.top - nav.clientTop + nav.scrollTop, width: box.width, height: box.height };
+  };
   const lensMove = (e: React.PointerEvent) => {
     const L = lens.current, nav = bar.current; if (!L || !nav) return false;
     const d = L.col ? e.clientY - L.y0 : e.clientX - L.x0;
@@ -97,7 +101,7 @@ export function TabBar() {
     if (!L.moved) return;
     // The click the browser sends at the end of the drag is the drag's, not a tap: swallow that one.
     eatClick.current = suppressClick;
-    const it = open && near >= 0 ? items[near] : null;
+    const it = open && near >= 0 ? items.find(it => it.id === L.tabs[near]?.el.dataset.nav) : null;
     // Opening the section moves the pill there; otherwise it springs back to where it was.
     if (it && current !== it.id) { long.current = false; it.onClick(); }
     const pill = nav.querySelector<HTMLElement>(".tabs__pill");
@@ -124,8 +128,9 @@ export function TabBar() {
       if (nav && on && !mini && !(nav.hasAttribute("data-scrollable") && e.pointerType !== "mouse")) {
         const col = getComputedStyle(nav).flexDirection === "column";
         // Read all gesture geometry before pointer-move feedback begins.
-        const geometry = tabsOf(nav).map(el => ({ el, start: col ? el.offsetTop : el.offsetLeft, size: col ? el.offsetHeight : el.offsetWidth }));
-        lens.current = { x0: e.clientX, y0: e.clientY, px: on.offsetLeft, py: on.offsetTop, t: performance.now(), at: col ? on.offsetTop : on.offsetLeft, moved: false, col, tabs: geometry };
+        const geometry = tabsOf(nav).map(el => { const b = geometryOf(nav, el); return { el, start: col ? b.y : b.x, size: col ? b.height : b.width }; });
+        const selected = geometryOf(nav, on);
+        lens.current = { x0: e.clientX, y0: e.clientY, px: selected.x, py: selected.y, t: performance.now(), at: col ? selected.y : selected.x, moved: false, col, tabs: geometry };
         nav.dataset.lift = ""; haptic("tap");
       }
     },
@@ -143,6 +148,7 @@ export function TabBar() {
       window.clearTimeout(press.current);
       if (lens.current) { swipe.current = null; lensEnd(!long.current); return; }
       const s = swipe.current; swipe.current = null; if (!s || long.current) return;
+      if (bar.current?.hasAttribute("data-scrollable")) return;
       const dx = e.clientX - s.x, dy = e.clientY - s.y;
       if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
       const to = adjacentTab(dx < 0 ? 1 : -1);
@@ -156,6 +162,15 @@ export function TabBar() {
   // Ask keeps the full bar: its composer sits on it, as a chat app keeps its input in place.
   const mini = useBarMini() && !drawer && pathname !== "/ask";
   const bar = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const nav = bar.current, on = nav?.querySelector<HTMLElement>(".tabs__main .tab[data-on]");
+    const group = nav?.querySelector<HTMLElement>(".tabs__main");
+    if (on && group && getComputedStyle(group).display !== "contents") {
+      const item = on.getBoundingClientRect(), bounds = group.getBoundingClientRect();
+      if (item.left < bounds.left) group.scrollLeft -= bounds.left - item.left;
+      else if (item.right > bounds.right) group.scrollLeft += item.right - bounds.right;
+    }
+  }, [current, mini, ids.join()]);
   // The current section sits on a pill that slides to it (across the dock on phones, down the
   // rail on desktops). Every section keeps its slot, so only the pill moves.
   useLayoutEffect(() => {
@@ -163,14 +178,17 @@ export function TabBar() {
     const place = () => {
       if (lens.current) return; // A data refresh or resize must not pull a held selection away.
       const on = nav.querySelector<HTMLElement>(".tab[data-on]");
-      const shown = !!on && on.offsetWidth > 0;
-      const style = getComputedStyle(nav), last = nav.querySelector<HTMLElement>(".tab:last-child");
+      const style = getComputedStyle(nav), last = tabsOf(nav).at(-1), group = nav.querySelector<HTMLElement>(".tabs__main");
+      const selected = on ? geometryOf(nav, on) : null, end = last ? geometryOf(nav, last) : null;
+      const groupBounds = group?.getBoundingClientRect(), onBounds = on?.getBoundingClientRect();
+      const clipped = style.flexDirection !== "column" && on?.parentElement === group && groupBounds && onBounds && (onBounds.left < groupBounds.left - 1 || onBounds.right > groupBounds.right + 1);
+      const shown = !!on && on.offsetWidth > 0 && !clipped;
       // Measure the controls, not scrollHeight: the material itself spans this height and
       // must not keep an old overflow measurement alive after the viewport grows.
-      const contentHeight = last ? last.offsetTop + last.offsetHeight + parseFloat(style.paddingBottom) : 0;
-      const scrollable = style.flexDirection === "column" && contentHeight > nav.clientHeight + 1;
+      const contentHeight = end ? end.y + end.height + parseFloat(style.paddingBottom) : 0;
+      const scrollable = style.flexDirection === "column" ? contentHeight > nav.clientHeight + 1 : !!group && group.scrollWidth > group.clientWidth + 1;
       // Translation and a release highlight settle independently, without forcing layout.
-      const x = `${shown ? on!.offsetLeft : 0}px`, y = `${shown ? on!.offsetTop : 0}px`;
+      const x = `${shown ? selected!.x : 0}px`, y = `${shown ? selected!.y : 0}px`;
       const was = nav.style.getPropertyValue("--pill-x"), wasY = nav.style.getPropertyValue("--pill-y");
       const pill = nav.querySelector<HTMLElement>(".tabs__pill");
       if (pill && shown && was && (was !== x || wasY !== y) && !matchMedia("(prefers-reduced-motion: reduce)").matches) pill.dataset.flow = "";
@@ -189,33 +207,32 @@ export function TabBar() {
     return () => { ro.disconnect(); placePill.current = null; };
   });
   // While the switcher is open the bar becomes its controls, as in Bible Strong.
-  if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /></nav>;
+  if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /><button type="button" className="tab tab--search" aria-label="Search" title="Search" onClick={() => go(searchTabPath())}><Icon name="search" size={22} /></button></nav>;
   const count = tabs.length > 100 ? ":)" : String(tabs.length);
   const items: { id: NavId | "more"; label: string; aria: string; glyph: ReactNode; onClick: () => void }[] = [
-    ...ids.map((id) => {
+    ...ids.filter(id => id !== "search").map((id) => {
       const item = navItem(id);
       return { id, label: id === "tabs" ? "Tabs" : item.label, aria: id === "tabs" ? `Tabs, ${tabs.length} open` : item.label,
         glyph: item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={22} />,
         onClick: () => id === "home" ? toggle("home") : go(navPath(id)) };
     }),
     { id: "more", label: "Menu", aria: "Menu", glyph: <Icon name="more" size={24} />, onClick: () => toggle("more") },
+    { id: "search", label: "Search", aria: "Search", glyph: <Icon name="search" size={22} />, onClick: () => go(searchTabPath()) },
   ];
+  const button = (it: typeof items[number]) => {
+    const on = current === it.id;
+    const kept = mini && (on || (it.id === "more" && !items.some(x => x.id === current)));
+    return <button key={it.id} type="button" className={`tab${it.id === "search" ? " tab--search" : ""}`} data-nav={it.id} data-on={on ? "" : undefined} data-kept={kept ? "" : undefined} aria-current={on ? "page" : undefined}
+      aria-label={it.aria} title={it.aria} tabIndex={mini && !kept && it.id !== "search" ? -1 : undefined} onClick={it.onClick}>
+      <span className="tab__glyph">{it.glyph}</span><span className="tab__label" aria-hidden="true">{it.label}</span>
+    </button>;
+  };
   return (
-    <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} {...hold}
-      onClickCapture={(e) => { if (eatClick.current) { eatClick.current = false; if (e.detail > 0) { e.stopPropagation(); e.preventDefault(); return; } } if (mini) { e.stopPropagation(); e.preventDefault(); haptic("select"); expandBar(); } }}>
+    <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} data-search-current={current === "search" ? "" : undefined} {...hold}
+      onClickCapture={(e) => { if (eatClick.current) { eatClick.current = false; if (e.detail > 0) { e.stopPropagation(); e.preventDefault(); return; } } if (mini) { expandBar(); if (!(e.target as HTMLElement).closest(".tab--search")) { e.stopPropagation(); e.preventDefault(); haptic("select"); } } }}>
       <span className="tabs__pill" aria-hidden="true" onAnimationEnd={(e) => { delete e.currentTarget.dataset.flow; }} />
-      {items.map((it) => {
-        const on = current === it.id;
-        // Collapsed, the capsule shows the current section, or the Menu where the screen is not one of them.
-        const kept = mini && (on || (it.id === "more" && !items.some((x) => x.id === current)));
-        return (
-          <button key={it.id} type="button" className="tab" data-on={on ? "" : undefined} data-kept={kept ? "" : undefined} aria-current={on ? "page" : undefined}
-            aria-label={it.aria} title={it.aria} tabIndex={mini && !kept ? -1 : undefined} onClick={it.onClick}>
-            <span className="tab__glyph">{it.glyph}</span>
-            <span className="tab__label" aria-hidden="true">{it.label}</span>
-          </button>
-        );
-      })}
+      <div className="tabs__main" onScroll={() => placePill.current?.()}>{items.slice(0, -1).map(button)}</div>
+      {button(items[items.length - 1])}
     </nav>
   );
 }

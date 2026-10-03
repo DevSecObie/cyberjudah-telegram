@@ -125,6 +125,8 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   is unavailable, Ask answers from the keyword search.
 
 ### Changed
+
+- Search stays last in its own round dock control without rewriting saved button choices; the phone search field follows the keyboard viewport above the dock.
 - Increased contrast now has explicit light, dark and sepia palettes, including Bible controls; secondary text, status colors and Home widgets keep readable contrast on their surfaces.
 - Lists and settings use roomier grouped rows with shared rounded corners. Section headings keep normal title case, and related settings have accessible form groups.
 - Auto and half sheets float inside the safe edges with shared rounded corners; full sheets expand to the phone edges. On larger screens, action lists open beside their control and leave the page usable.
