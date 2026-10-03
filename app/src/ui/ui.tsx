@@ -73,13 +73,14 @@ export function TabBar() {
     // Past either end the lens gives a little and resists, like glass held by surface tension.
     let pos = (L.col ? L.py : L.px) + d;
     if (pos < lo) pos = lo - Math.sqrt(lo - pos) * 2; else if (pos > hi) pos = hi + Math.sqrt(pos - hi) * 2;
-    nav.style.setProperty(L.col ? "--pill-y" : "--pill-x", `${pos}px`);
+    const pill = nav.querySelector<HTMLElement>(".tabs__pill")!;
+    pill.style.setProperty(L.col ? "--pill-y" : "--pill-x", `${pos}px`);
     // It stretches along its path with speed and thins across it.
     const now = performance.now(), v = Math.abs(pos - L.at) / Math.max(8, now - L.t);
     L.at = pos; L.t = now;
     const k = Math.min(.08, v * .08);
-    nav.style.setProperty("--pill-sx", String(L.col ? 1 - k * .6 : 1 + k));
-    nav.style.setProperty("--pill-sy", String(L.col ? 1 + k : 1 - k * .6));
+    pill.style.setProperty("--pill-sx", String(L.col ? 1 - k * .6 : 1 + k));
+    pill.style.setProperty("--pill-sy", String(L.col ? 1 + k : 1 - k * .6));
     // The icons under the lens swell; the nearest one is where it will land.
     const size = first.size, mid = pos + size / 2;
     let near = 0, best = Infinity;
@@ -95,7 +96,8 @@ export function TabBar() {
     const L = lens.current, nav = bar.current; lens.current = null; if (!L || !nav) return;
     const all = tabsOf(nav), near = Number(nav.dataset.near ?? -1);
     for (const b of all) b.style.removeProperty("--mag");
-    nav.style.removeProperty("--pill-sx"); nav.style.removeProperty("--pill-sy");
+    const pill = nav.querySelector<HTMLElement>(".tabs__pill");
+    pill?.style.removeProperty("--pill-sx"); pill?.style.removeProperty("--pill-sy");
     delete nav.dataset.drag; delete nav.dataset.near; delete nav.dataset.lift;
     placePill.current?.();
     if (!L.moved) return;
@@ -104,7 +106,6 @@ export function TabBar() {
     const it = open && near >= 0 ? items.find(it => it.id === L.tabs[near]?.el.dataset.nav) : null;
     // Opening the section moves the pill there; otherwise it springs back to where it was.
     if (it && current !== it.id) { long.current = false; it.onClick(); }
-    const pill = nav.querySelector<HTMLElement>(".tabs__pill");
     if (pill && !matchMedia("(prefers-reduced-motion: reduce)").matches) pill.dataset.flow = "";
   };
   const cancelPress = () => {
@@ -189,13 +190,16 @@ export function TabBar() {
       const scrollable = style.flexDirection === "column" ? contentHeight > nav.clientHeight + 1 : !!group && group.scrollWidth > group.clientWidth + 1;
       // Translation and a release highlight settle independently, without forcing layout.
       const x = `${shown ? selected!.x : 0}px`, y = `${shown ? selected!.y : 0}px`;
-      const was = nav.style.getPropertyValue("--pill-x"), wasY = nav.style.getPropertyValue("--pill-y");
       const pill = nav.querySelector<HTMLElement>(".tabs__pill");
+      if (!pill) return;
+      const was = pill.style.getPropertyValue("--pill-x"), wasY = pill.style.getPropertyValue("--pill-y");
       if (pill && shown && was && (was !== x || wasY !== y) && !matchMedia("(prefers-reduced-motion: reduce)").matches) pill.dataset.flow = "";
-      nav.style.setProperty("--pill-x", x);
-      nav.style.setProperty("--pill-y", y);
-      nav.style.setProperty("--pill-w", `${shown ? on!.offsetWidth : 0}px`);
-      nav.style.setProperty("--pill-h", `${shown ? on!.offsetHeight : 0}px`);
+      // Keep per-frame variables on the selection, so other labels don't inherit them.
+      // Read geometry before writing styles; a write followed by offsetWidth forces layout.
+      pill.style.setProperty("--pill-x", x);
+      pill.style.setProperty("--pill-y", y);
+      pill.style.setProperty("--pill-w", `${shown ? selected!.width : 0}px`);
+      pill.style.setProperty("--pill-h", `${shown ? selected!.height : 0}px`);
       nav.dataset.pill = shown ? "" : "none";
       nav.toggleAttribute("data-scrollable", scrollable);
       nav.style.setProperty("--rail-content-h", `${contentHeight}px`);

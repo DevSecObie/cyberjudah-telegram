@@ -126,6 +126,8 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 
 ### Changed
 
+- Reduced repeated palette calculations and dock style updates; browser checks now cover glass budgets across main routes in Chromium, WebKit and Firefox.
+
 - Local app icons now include layered lion artwork, full-bleed light/dark squares, PWA maskable safe-zone exports and a monochrome variant.
 
 - Search stays last in its own round dock control without rewriting saved button choices; the phone search field follows the keyboard viewport above the dock.
