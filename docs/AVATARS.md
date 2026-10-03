@@ -370,6 +370,52 @@ means it passed this review.
 | 11 Middle Ages | A pope hands a decree to a monk, a cardinal by (Rome as Edom) | `c530aa6f-9fb3-4187-a402-f27296f30929` (an edit of `42e75672`) | `d2511460`, `95b39dcc` (crosses), `48b21bcc` (a likeness of a modern pope), `42e75672` (a pectoral cross, removed by the edit) | Reviewed |
 | 12 Reformation | A preacher on horseback before a ruined abbey | `a3be71c6-06ea-4c68-bb21-57a76b45ef93` | | Reviewed |
 
+#### Round 2 (3 October 2026)
+
+- **6 United Kingdom**: the owner called Solomon's portrait right but the step lions "little baby lions", then directed "just crop King Solomon's lions out". Shipped: a 4:5 crop of `bd657165-75fe-4f7a-a0ab-60867449ca30` (the throne with fringes and a ribband of blue added to his robe, Numbers 15:38) that keeps Solomon on the throne and leaves the steps out. Not used: `12139983`, `990ba08b` (edits that kept cub-sized lions), `bdceebe4`, `ec9d94d7` (recomposed with full-grown lions; overtaken by the crop).
+- **Solomon's portrait**: fringes and a ribband of blue added, `89baf23f-f145-43d4-b46a-09be69cea8ba` (owner: "fire").
+- **New event portraits** (Higgsfield, the approved portrait style; awaiting the owner's review, not shown in the app until their ids are approved): Noah `9cf8ed5d`, Samson `c7ac714a` (from the approved Samson), Elijah `4a016e1c` (from the period 7 Elijah), Gideon `7a5be852`, Eli `5dad90c2`, Jonathan `9d9b275d`, Rehoboam `b40eb012`, Hezekiah `b039f9d2`, Josiah `b5113799`, Jeremiah `87811f7d`, Daniel `fce0b18b`, Uzziah `4b0f23c6` (replacing `7841c00c`, which came out light-skinned against the brief).
+- **Edomite and Roman figures: images from online** (owner's direction, 3 October 2026: "for all of the edomites you can use images from online … Romans etc"). Only public-domain works are used, cropped square; nothing is generated:
+
+| Event | Work | Source | Status |
+| --- | --- | --- | --- |
+| Herod Antipas | John Rogers Herbert, *John the Baptist Reproving Herod* (1848) | archive.org mirror; painting public domain | **Approved by the owner** ("use h-crop") |
+| Julius Caesar | Peter Paul Rubens, *Julius Caesar* (c. 1625) | Wikimedia Commons `Caesar_by_Rubens.jpg` (PD-Art) | Awaiting review |
+| Augustus Caesar | *Augustus of Prima Porta* | Commons `Statue-Augustus.jpg` (photo released to the public domain by Till Niermann) | Awaiting review |
+| Constantine the Great | Bronze head, Musei Capitolini | Commons `Head_Constantine_Musei_Capitolini_MC1072.jpg` (photo by Jastrow, public domain) | Awaiting review |
+| Pope Leo X | Raphael, *Portrait of Leo X* (1518) | Commons `Pope-leo10.jpg` (PD-Art) | Awaiting review |
+| Herod the Great | J. W. Waterhouse, *Mariamne Leaving the Judgement Seat of Herod* (1887) | archive.org mirror; painting public domain | Candidate only: his face is bowed and hidden |
+
+  James Tissot's *Herod* (Brooklyn Museum) was found and not used: it paints Herod as a dark-skinned man, against the assembly's teaching on Edom.
+- **How they reach the app**: `app/scripts/timeline-portraits.json` `events` maps an event to a portrait where the title names more than one person (Daniel, Jonathan, Uzziah …) or a figure outside People (Caesar, Constantine, Leo X). A mapped portrait still shows only once its id is in `ids` (the test holds this).
+
+#### Owner's verdicts on round 2, and round 3 (3 October 2026)
+
+- **Approved by the owner**: the cropped Solomon throne (period 6), the fixed Life of Christ (9) and Early Church (10) paintings, the fringed Solomon portrait, the replaced David, Sarah and Esther portraits, all 12 round-2 portraits, and all six Edomite and Roman images, Herod the Great's included. Their ids are in `app/scripts/timeline-portraits.json`.
+- **Denied**: Bethel, with the note "the idol needs to be destroyed" and, for period 7, "a destructive fire and people running away because the Lord is destroying his altar unto idols". Redone as `2a4f90dd-abe0-491d-9e0d-d3f8b6e103f6`, an edit of `b62a1da3`. The golden calf Jeroboam set in Bethel (1 Kings 12:29) cracks and burns, the altar is rent (13:5), the worshippers flee, and Jeroboam's hand is dried up (13:4). The edit made Jeroboam and the man of God very dark: they were light-skinned in `b62a1da3` and `06df4480`. Shipped as period 7; awaiting review.
+- **Round 3 portraits** (awaiting review, gated): Shem `f72bf11e`, Job `1d202381`, Terah `719737e3`, Rebekah `7ff735a7`, Leah `1dc6fa99`, Rachel `e56417a5`, Joseph `04a05542`, Levi `1ac4977a`, Jesse `0a5d79aa`, Bathsheba `cde79742`, Othniel `a8c2e534`, Eleazar `409d548c`. The women are drawn beautiful as the verses describe them, after the owner's notes on Sarah and David.
+- **People portraits reused**: nine approved People portraits are mapped onto timeline events whose names are shared by several people: Judah, Simeon, Gad, Issachar, Benjamin, Miriam, Joshua, Amram and Ehud. The files are taken from `claude/people-portraits`.
+
+#### Round 4 (3 October 2026): the most important figures
+
+- **Higgsfield portraits** (awaiting review, gated):
+  - Christ in his earthly ministry: `10e45ae4`, with black woolly hair and the seamless coat with fringes and a ribband of blue, per REVIEW.md.
+  - The prophets: Isaiah `43270395`, Elisha `43259d96` (bald, 2 Kings 2:23), Ezekiel `30fcfaae` and Jonah `2928cc62`.
+  - Nehemiah `f5034854`.
+  - The kings: Ahab `4a93fa4a` and Jehoshaphat `f10bf6de`.
+  - Joseph, the husband of Mary: `99568a65`.
+  - The apostles: Peter `9067d2cf`, John `8b5f36f6` and Paul `1ad912ed` (Benjamin, Philippians 3:5).
+- **Reformation figures**: real people with real portraits, so their own public-domain likenesses are used and none is generated. All are cropped square and fetched from Wikimedia Commons originals through the Wayback Machine, because Commons is blocked here.
+  - Martin Luther: Cranach, 1528, Veste Coburg.
+  - John Calvin: Bibliothèque de Genève.
+  - William Tyndale: engraving.
+  - John Wycliffe: after Kirkby, Balliol.
+  - Erasmus: Holbein.
+  - Thomas More: Holbein, Frick.
+  - John Knox: Beza's *Icones*, 1580.
+  - Ulrich Zwingli: Asper.
+- **Jacob**: the approved People portrait `israel-gen-25-26` is now mapped onto the Jacob events.
+
 ### 9.6 Bible Strong's timeline pictures: what may be reused
 
 Direction (2 October 2026): reuse Bible Strong's images that show only landmarks, landscapes,
