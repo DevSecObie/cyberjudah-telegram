@@ -57,7 +57,8 @@
 
   /* Materials (see materials.css). Tint is the colour the glass carries; the blur is the frost. */
   --mat-base: var(--canvas);
-  --mat-nav: color-mix(in srgb, var(--mat-base) 76%, transparent);
+  --mat-density: 92%;
+  --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent);
   --mat-elevated: color-mix(in srgb, var(--surface-1) 93%, transparent);
   --mat-overlay: color-mix(in srgb, var(--surface-1) 92%, transparent);
   --mat-blur: blur(16px) saturate(170%);
@@ -128,13 +129,13 @@ html[data-theme="light"] {
   --shadow-2: 0 8px 24px rgba(40, 30, 10, .10);
   --shadow-3: 0 18px 50px rgba(40, 30, 10, .18);
   --card-edge: inset 0 0 0 .5px rgba(40, 30, 10, .08);
-  --mat-nav: color-mix(in srgb, var(--mat-base) 78%, transparent);
+  --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent);
   --mat-elevated: color-mix(in srgb, var(--surface-1) 93%, transparent);
   --mat-overlay: color-mix(in srgb, var(--surface-1) 92%, transparent);
   --mat-edge: color-mix(in srgb, #000000 8%, transparent);
   --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 90%, transparent);
   --mat-shadow: 0 10px 30px rgba(40, 30, 10, .12), 0 1px 3px rgba(40, 30, 10, .08);
-  --mat-selected: color-mix(in srgb, var(--text-inverse) 92%, transparent);
+  --mat-selected: color-mix(in srgb, var(--text-1) 9%, transparent);
   --mat-glow: color-mix(in srgb, var(--accent) 55%, transparent);
   --scrim-modal: rgba(20, 16, 8, .5);
   --scrim-soft: rgba(20, 16, 8, .2);
@@ -158,17 +159,21 @@ html[data-theme="sepia"] {
   --shadow-2: 0 8px 24px rgba(60, 40, 10, .12);
   --shadow-3: 0 18px 50px rgba(60, 40, 10, .2);
   --card-edge: inset 0 0 0 .5px rgba(60, 40, 10, .1);
-  --mat-nav: color-mix(in srgb, var(--mat-base) 80%, transparent);
+  --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent);
   --mat-elevated: color-mix(in srgb, #fbf5e6 94%, transparent);
   --mat-overlay: color-mix(in srgb, #fbf5e6 93%, transparent);
   --mat-edge: color-mix(in srgb, #3b2f1e 10%, transparent);
   --mat-highlight: inset 0 1px 0 color-mix(in srgb, #fffaf0 85%, transparent);
   --mat-shadow: 0 10px 30px rgba(60, 40, 10, .14), 0 1px 3px rgba(60, 40, 10, .1);
-  --mat-selected: color-mix(in srgb, #fffaf0 90%, transparent);
+  --mat-selected: color-mix(in srgb, var(--text-1) 9%, transparent);
   --mat-glow: color-mix(in srgb, var(--accent) 55%, transparent);
   --scrim-modal: rgba(30, 20, 5, .5);
   --scrim-soft: rgba(30, 20, 5, .2);
 }
+
+/* Regular glass protects the ink even over black/white content. The darker ink of Paper and
+   Sepia allows a lighter material; other reader palettes need more tint for small labels. */
+html[data-palette="default"], html[data-palette="sepia"] { --mat-density: 80%; }
 
 /* Larger screens carry more of the page behind the glass; give the frost a little more depth there.
    Phones keep the lighter blur (cheaper, and the dock is small). */

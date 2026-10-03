@@ -3,9 +3,9 @@
 The app's look and feel. It follows the layering Apple describes for Liquid Glass and applies it to
 a web app with CSS. Apple's Liquid Glass is a native material (lensing, adaptive tint, motion-aware
 highlights) that SwiftUI, UIKit and AppKit render. Our materials approximate its hierarchy and feel
-with `backdrop-filter`, tint, a rim and a highlight. They are not Apple's rendering.
+with one `backdrop-filter` per navigation surface, palette-aware tint, a rim and a press-position highlight. They are not Apple's rendering.
 
-Sources read:
+Apple references used by this design system:
 
 - [Liquid Glass](https://developer.apple.com/documentation/technologyoverviews/liquid-glass)
 - [Adopting Liquid Glass](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass)
@@ -19,20 +19,21 @@ Sources read:
 | --- | --- |
 | Liquid Glass is the functional layer for navigation and controls, floating above content. | Only the header bar and the dock are frosted at rest (`.glass`, the `::before` of `.head`, `.srch__bar`, `.chat2__bar`, `.bs-header`, `.tabs`). |
 | Don't use it in the content layer; use standard materials there. | Cards, lists, feeds, scripture and messages are tinted surfaces (`--surface-1`, `--surface-2`) with a fine edge, and no filter. |
-| Never glass on glass; use fills and tints on top of glass. | Controls inside the dock and bars use fills (`--fill-*`) and a selected pill, never a second blur. |
+| Avoid layering glass on glass; use fills and tints within one surface. | Controls inside the dock and bars use fills (`--fill-*`) and a selected pill, never a second blur. |
 | Use it sparingly. | The budget: no more than two frosted surfaces visible at rest. A menu or picker may make a third while it is open. |
-| Regular variant for text-heavy components; clear only over rich media with dimming. | Every glass here is the "regular" kind, with a dense tint. Nothing uses a clear variant. |
+| Regular variant for text-heavy components; clear over rich media, with dimming when needed. | The CSS material approximates the regular variant with a legible tint. It does not implement Apple’s native regular or clear variants. |
 | Scroll edge effects keep bars legible over scrolling content. | Header glass runs past the bar and fades out over 14px (a mask), with a hairline at the edge. |
 | Concentric shapes. | Radii nest (`--r-*`): pill controls inside a pill dock, 22–28px sheets, 18px cards. |
 | Sheets are rounder, inset, and more opaque at full height. | Sheets are near-opaque (`--mat-overlay`) over a 60% scrim. They are inset and centred from 680px up. |
 | Reduce transparency, increase contrast, reduce motion. | All three follow the system setting. Reduce transparency also has an app switch: **Settings → Reduce transparency**. |
-| Selection by more than colour. | The dock's current section has a brighter pill, a glow along its foot and a bolder label. Segments and chips change fill, weight and ink. |
+| Selection by more than colour. | The dock's current section has a filled pill and a bolder label; increased contrast adds an outline. Segments and chips change fill, weight and ink. |
 
 Project choices, not Apple's numbers:
 
 - The ~200ms dock transition.
-- The glow under the selected tab.
+- A restrained press/drag response (up to 6% icon growth), with the labels always above the material.
 - The blur radii: 16px on phones, 22px from 900px up.
+- The palette-based tint densities (80% or 92%); Apple’s native regular material instead adapts background luminosity dynamically.
 - The two-surface budget.
 - The notification timing: 3.5s, with a visible progress line; errors stay until dismissed.
 
@@ -57,7 +58,7 @@ The Bible tab keeps its own palette (the reader's chosen theme, `--bs-*` in `bib
   - `--accent`, `--on-accent`
   - `--danger`, `--success`, `--warning`, `--gold`, `--violet`, `--sky`
 - **Lines:** `--hairline` (decorative separators), `--control-edge` (a required control boundary, at least 3:1), `--mat-edge` (glass rim).
-- **Materials:** `--mat-nav`, `--mat-elevated`, `--mat-overlay`, `--mat-blur`, `--mat-blur-strong`, `--mat-highlight`, `--mat-shadow`, `--mat-selected`, `--mat-glow`.
+- **Materials:** `--mat-nav`, `--mat-density`, `--mat-elevated`, `--mat-overlay`, `--mat-blur`, `--mat-blur-strong`, `--mat-highlight`, `--mat-shadow`, `--mat-selected`, `--mat-glow`.
 - **State:** `--state-hover`, `--state-press`, `--state-selected`, `--disabled-opacity`, `--focus-ring`.
 - **Shape and space:**
   - `--r-xs..--r-2xl`, `--r-pill`
@@ -81,9 +82,9 @@ All pairs are WCAG AA (4.5:1 text, 3:1 large text and control boundaries):
 - `--on-accent` on `--accent`.
 - `--control-edge` on the surfaces: 3:1 or more.
 
-The dock and header tints are dense (76–80% of the canvas) so their labels keep at least 4.5:1 even over a bright picture scrolling beneath.
+The navigation tint uses 80% of the canvas in Paper and Sepia and 92% in the other reader palettes. The dock tests composite its actual computed material, selection fill and text against black and white backdrops and require at least 4.5:1 in all eight palettes. The Bible dock uses the same density and an explicit opaque base for accessibility fallbacks.
 
-## Routes and states reviewed
+## Earlier redesign: routes and states reviewed
 
 Each route was reviewed in the running app at 390px (dark and light) and at 1280px (dark). The checks:
 
@@ -124,7 +125,7 @@ Each route was reviewed in the running app at 390px (dark and light) and at 1280
 | No `backdrop-filter` | ✓ | Materials fall back to near-opaque tints |
 | Increased contrast, forced colours | ✓ | Stronger text and edges; opaque materials; system colours draw edges |
 
-## Validation (this redesign)
+## Earlier redesign: validation record
 
 - **Blur budget**, counted in the running app as the frosted surfaces visible in the viewport, on all 38 routes:
   - At rest: 2 at most on every route, at 390px dark, 390px light and 1280px dark. Before the redesign it reached 5 in the reader (header, two chapter buttons, the play pill, the dock). Classes added one more per post's play icon.
@@ -136,3 +137,62 @@ Each route was reviewed in the running app at 390px (dark and light) and at 1280
 - **Focus:** a sheet takes the focus, Tab stays inside, Escape closes it, and the focus returns to the control that opened it. The Bible tab, which used to remove the focus ring, now shows it.
 - **Checks:** `npm run typecheck`, lint, unit tests (9) and the end-to-end suites `telegram.spec` and `reading.spec` (74 tests) pass. The audio specs (`ambient.spec`, `recordings.spec`) fail the same way on unmodified `main` in the development sandbox and are left to CI.
 - **Browsers:** Chromium (Playwright) at phone, tablet and desktop sizes, with reduced motion emulated. Not tested: Safari or WebKit, Firefox, Telegram's own webviews, and any physical phone.
+
+
+## Dock material and interaction correction
+
+The dock now follows the single-material hierarchy above on both Chromium and WebKit. The old
+Chromium-only SVG displacement filter was drawn **above the icons and labels**, bending their
+shapes and adding coloured fringes. It also put a second filter on a glass surface. That filter
+and its canvas map are removed. The regular material lives on the dock's `::before`; the filled
+selection sits below the controls. A specular rim follows a press without sampling another
+backdrop or changing the label pixels.
+
+Pressing the current section gently lifts its selection. Dragging follows the pointer directly,
+with bounded stretch and small icon feedback; release selects the nearest destination. The
+pointer is captured only after movement crosses the drag threshold, so an ordinary tap still
+reaches the selected button. Cancel/lost capture restores the current selection and clears the
+pending long press. Transfer of a touch's implicit capture from a button to the dock does not
+cancel that drag. Secondary touches and right clicks cannot start it. Navigation by keyboard,
+the long press to edit the bar, and the collapsed bar remain available.
+
+Reduce Motion disables selection stretch, icon scaling, moving highlights and smooth
+scroll-to-top. Reduce Transparency and Increased Contrast make the dock opaque, including the
+Bible reader's palette override; Increased Contrast marks the selection with an outline. Forced
+colours use system colours, and missing backdrop-filter support falls back to an opaque surface.
+
+`app/e2e/glass.spec.ts` exercises the material, all eight palettes, 44px targets, ordinary taps,
+cancellation, keyboard activation, reduced motion/transparency, increased contrast and desktop
+vertical dragging. The CI workflow installs WebKit as well as Chromium and runs this focused
+suite in both engines. A Chromium-only device-input test covers implicit touch-capture transfer.
+This does not replace checking an actual iPhone inside Telegram.
+
+## Apple documentation review — October 3, 2026
+
+Reviewed Apple's current [Liquid Glass overview](https://developer.apple.com/documentation/technologyoverviews/liquid-glass),
+[adoption guide](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass),
+[Materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials), and
+[custom-view implementation guide](https://developer.apple.com/documentation/swiftui/applying-liquid-glass-to-custom-views)
+after access to `developer.apple.com` became available.
+
+The review supports the dock correction: keep glass in the navigation layer above content,
+avoid layering glass effects, preserve label contrast, and test custom controls with reduced
+motion, reduced transparency and increased contrast. Apple's regular variant is appropriate
+where text needs protection from the background; its highly translucent clear variant is meant
+for controls over visually rich media. This text-heavy reader uses a regular-style CSS material.
+
+The native implementation has capabilities this web adaptation does not reproduce. Apple's
+standard SwiftUI, UIKit and AppKit components adopt the material when built with current SDKs.
+For custom SwiftUI controls, `glassEffect(_:in:)` renders behind the content, `.interactive()`
+adds touch and pointer responses, and `GlassEffectContainer` coordinates merging and morphing
+shapes. The material reflects surrounding light and color and adjusts background luminosity.
+These APIs are not available to the React DOM app inside Telegram or a browser; rebuilding its
+JavaScript does not enable them. Apple's advice to remove custom backgrounds is directed at
+native components that already receive the system material.
+
+Our single backdrop, palette tint, specular edge and bounded pointer feedback follow the design
+principles, but remain CSS approximations. The screenshot is not Apple's native Liquid Glass
+renderer, and WebKit test coverage does not establish visual parity with it. Exact native
+material rendering would require native controls in an Apple client. No further production
+code change was warranted by this documentation review; physical iOS Telegram and macOS Safari
+verification remains outstanding.
