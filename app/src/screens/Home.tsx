@@ -145,8 +145,8 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
       </Link>
       <SearchHero value={q} onChange={setQ} onSubmit={search} big />
       <div className="door">
-        <button type="button" className="door__btn" onClick={() => { if (q.trim()) search(q); else document.getElementById("q")?.focus(); }}><Icon name="search" size={18} /> Search</button>
-        <button type="button" className="door__btn door__btn--ask" onClick={() => { haptic("select"); navigate(q.trim() ? `/ask?q=${encodeURIComponent(q.trim())}` : "/ask"); }}><Icon name="note" size={18} /> Ask CyberJudah</button>
+        <button type="button" className="btn btn--bordered door__btn" onClick={() => { if (q.trim()) search(q); else document.getElementById("q")?.focus(); }}><Icon name="search" size={18} /> Search</button>
+        <button type="button" className="btn btn--bordered door__btn door__btn--ask" onClick={() => { haptic("select"); navigate(q.trim() ? `/ask?q=${encodeURIComponent(q.trim())}` : "/ask"); }}><Icon name="note" size={18} /> Ask CyberJudah</button>
       </div>
       <p className="hint hint--center">Search finds the moment a word, a name or a Scripture was said in a class. Ask answers your question from the teachings, with its sources.</p>
       </>}
@@ -241,8 +241,8 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
 
       <h2 className="shelf">Go further</h2>
       <div className="door">
-        <Link to="/more" className="door__btn" onClick={() => haptic("select")}><Icon name="more" size={18} /> Everything else</Link>
-        <button type="button" className="door__btn" onClick={() => void share({ kind: "app", title: "CyberJudah", text: "The KJV with the Apocrypha, and everything taught from it, in Telegram.", sitePath: "/" })}><Icon name="share" size={18} /> Share the app</button>
+        <Link to="/more" className="btn btn--bordered door__btn" onClick={() => haptic("select")}><Icon name="more" size={18} /> Everything else</Link>
+        <button type="button" className="btn btn--bordered door__btn" onClick={() => void share({ kind: "app", title: "CyberJudah", text: "The KJV with the Apocrypha, and everything taught from it, in Telegram.", sitePath: "/" })}><Icon name="share" size={18} /> Share the app</button>
       </div>
     </Screen>
   );

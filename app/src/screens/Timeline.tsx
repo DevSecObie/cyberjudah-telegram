@@ -18,6 +18,7 @@ import { SearchBar, useSettled } from "@/ui/search-bar";
 import { useSheet } from "@/ui/sheet";
 import { Empty, Icon } from "@/ui/ui";
 import { FinalCaptivityDetail } from "./TimelineFinalCaptivity";
+import { BackgroundExtension } from "@/ui/BackgroundExtension";
 import { PhotoEdit, usePhotos } from "@/ui/photo-edit";
 
 /**
@@ -50,12 +51,17 @@ const BASE = import.meta.env.BASE_URL;
  */
 const PERIOD_PICTURES = new Set(["1", "2", "5", "6", "7", "8", "9", "10", "11", "12"]);
 
+/** An admin's cover or the existing approved period artwork; no image for unapproved periods. */
+function usePeriodPicture(s: TimelineSection) {
+  const set = usePhotos().data?.[`period:${s.id}`];
+  return set ?? (PERIOD_PICTURES.has(s.id) ? `${BASE}timeline/periods/${s.id}.webp` : undefined);
+}
+
 /** A period's picture, or its colour where the picture waits on direction. Decorative: the title is beside it. */
 function PeriodPicture({ s, className, eager }: { s: TimelineSection; className: string; eager?: boolean }) {
-  // A cover an admin set in the app comes first (ui/photo-edit.tsx).
-  const set = usePhotos().data?.[`period:${s.id}`];
-  return set || PERIOD_PICTURES.has(s.id)
-    ? <img className={className} src={set ?? `${BASE}timeline/periods/${s.id}.webp`} alt="" width={640} height={800} loading={eager ? "eager" : "lazy"} decoding="async" draggable={false} />
+  const src = usePeriodPicture(s);
+  return src
+    ? <img className={className} src={src} alt="" width={640} height={800} loading={eager ? "eager" : "lazy"} decoding="async" draggable={false} />
     : <span className={`${className} tl-pic--none`} style={{ ["--tl-color" as string]: s.color }} aria-hidden="true" />;
 }
 
@@ -208,6 +214,7 @@ export function TimelinePeriod() {
   const navigate = useNavigate();
   const index = Math.min(Math.max(Number(n) || 0, 0), SECTIONS.length - 1);
   const s = SECTIONS[index];
+  const picture = usePeriodPicture(s);
   const prev = SECTIONS[index - 1], next = SECTIONS[index + 1];
   const box = useRef<HTMLDivElement>(null);
   const [vw, setVw] = useState(() => (typeof window === "undefined" ? 390 : Math.min(window.innerWidth, 1400)));
@@ -286,6 +293,7 @@ export function TimelinePeriod() {
   const color = { ["--tl-color" as string]: s.color } as CSSProperties;
   return (
     <main className="tl-period" style={color} data-phase={phase}>
+      <BackgroundExtension src={picture} />
       <Header title={s.title} color={s.color} onSearch={() => navigate("/timeline/search")} onMenu={menu} />
       <div className="tl-stage">
         {prev ? <div className="tl-behind" style={{ opacity: prevShown }} aria-hidden="true"><SectionCard s={prev} direction="previous" /></div> : null}

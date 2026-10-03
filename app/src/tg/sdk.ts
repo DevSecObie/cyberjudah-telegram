@@ -170,9 +170,9 @@ export function boot(colors: { bg: string; header: string; bottomBar: string }) 
     const s = app.safeAreaInset ?? { top: 0, bottom: 0, left: 0, right: 0 };
     const c = app.contentSafeAreaInset ?? { top: 0, bottom: 0, left: 0, right: 0 };
     root.style.setProperty("--safe-top", `${s.top + c.top}px`);
-    root.style.setProperty("--safe-bottom", `${s.bottom}px`);
-    root.style.setProperty("--safe-left", `${s.left}px`);
-    root.style.setProperty("--safe-right", `${s.right}px`);
+    root.style.setProperty("--safe-bottom", `${s.bottom + c.bottom}px`);
+    root.style.setProperty("--safe-left", `${s.left + c.left}px`);
+    root.style.setProperty("--safe-right", `${s.right + c.right}px`);
     root.dataset.fullscreen = app.isFullscreen ? "yes" : "no";
   };
   const viewport = () => { root.style.setProperty("--vh", `${app.viewportStableHeight}px`); root.dataset.expanded = app.isExpanded ? "yes" : "no"; };

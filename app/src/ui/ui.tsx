@@ -1,6 +1,6 @@
 import { Children, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
+import { Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
 
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
@@ -149,7 +149,7 @@ export function TabBar() {
     // Opening the section moves the pill there; otherwise it springs back to where it was.
     if (it && current !== it.id) { long.current = false; it.onClick(); }
     const pill = nav.querySelector<HTMLElement>(".tabs__pill");
-    if (pill) { delete pill.dataset.flow; void pill.offsetWidth; pill.dataset.flow = ""; }
+    if (pill && !matchMedia("(prefers-reduced-motion: reduce)").matches) pill.dataset.flow = "";
   };
   const cancelPress = () => {
     window.clearTimeout(press.current);
@@ -165,7 +165,11 @@ export function TabBar() {
       long.current = false; eatClick.current = false; swipe.current = { x: e.clientX, y: e.clientY };
       press.current = window.setTimeout(() => { long.current = true; lensEnd(false, false); haptic("heavy"); setDrawer(null); navigate("/settings/bar"); }, 600);
       const nav = bar.current, on = (e.target as HTMLElement).closest<HTMLElement>(".tab[data-on]");
-      if (nav && on && !mini) {
+      const pill = nav?.querySelector<HTMLElement>(".tabs__pill");
+      if (pill) delete pill.dataset.flow;
+      // An overflowing rail belongs to native touch scrolling. Mouse dragging and the
+      // non-scrolling dock keep their selection gesture; taps and long presses still work.
+      if (nav && on && !mini && !(nav.hasAttribute("data-scrollable") && e.pointerType !== "mouse")) {
         const col = getComputedStyle(nav).flexDirection === "column";
         // Read all gesture geometry before pointer-move feedback begins.
         const geometry = tabsOf(nav).map(el => ({ el, start: col ? el.offsetTop : el.offsetLeft, size: col ? el.offsetHeight : el.offsetWidth }));
@@ -208,16 +212,23 @@ export function TabBar() {
       if (lens.current) return; // A data refresh or resize must not pull a held selection away.
       const on = nav.querySelector<HTMLElement>(".tab[data-on]");
       const shown = !!on && on.offsetWidth > 0;
-      // Moving to another section, the pill flows there (pill-flow in materials.css).
+      const style = getComputedStyle(nav), last = nav.querySelector<HTMLElement>(".tab:last-child");
+      // Measure the controls, not scrollHeight: the material itself spans this height and
+      // must not keep an old overflow measurement alive after the viewport grows.
+      const contentHeight = last ? last.offsetTop + last.offsetHeight + parseFloat(style.paddingBottom) : 0;
+      const scrollable = style.flexDirection === "column" && contentHeight > nav.clientHeight + 1;
+      // Translation and a release highlight settle independently, without forcing layout.
       const x = `${shown ? on!.offsetLeft : 0}px`, y = `${shown ? on!.offsetTop : 0}px`;
-      const pill = nav.querySelector<HTMLElement>(".tabs__pill");
       const was = nav.style.getPropertyValue("--pill-x"), wasY = nav.style.getPropertyValue("--pill-y");
-      if (pill && shown && was && (was !== x || wasY !== y)) { delete pill.dataset.flow; void pill.offsetWidth; pill.dataset.flow = ""; }
+      const pill = nav.querySelector<HTMLElement>(".tabs__pill");
+      if (pill && shown && was && (was !== x || wasY !== y) && !matchMedia("(prefers-reduced-motion: reduce)").matches) pill.dataset.flow = "";
       nav.style.setProperty("--pill-x", x);
       nav.style.setProperty("--pill-y", y);
       nav.style.setProperty("--pill-w", `${shown ? on!.offsetWidth : 0}px`);
       nav.style.setProperty("--pill-h", `${shown ? on!.offsetHeight : 0}px`);
       nav.dataset.pill = shown ? "" : "none";
+      nav.toggleAttribute("data-scrollable", scrollable);
+      nav.style.setProperty("--rail-content-h", `${contentHeight}px`);
     };
     placePill.current = place;
     place();
@@ -269,7 +280,7 @@ export function PageActions() {
   }, [main, secondary]);
   if (!main && !secondary) return null;
   const button = (a: NonNullable<typeof main>, quiet: boolean) => (
-    <button type="button" className={`pageaction${quiet || a.quiet ? " pageaction--quiet" : ""}`} disabled={a.disabled || a.progress} aria-busy={a.progress || undefined} onClick={a.onClick}>
+    <button type="button" className={`btn ${quiet || a.quiet ? "btn--glass" : "btn--prominent"} pageaction${quiet || a.quiet ? " pageaction--quiet" : ""}`} disabled={a.disabled || a.progress} aria-busy={a.progress || undefined} onClick={a.onClick}>
       {a.progress ? <span className="pageaction__spin" aria-hidden="true" /> : null}{a.text}
     </button>
   );
@@ -366,7 +377,7 @@ export function Empty({ title, children, action }: { title: string; children?: R
   );
 }
 
-export { Button };
+export { Button } from "./Button";
 
 export function Card({ children, glow, href, onClick, className }: { children: ReactNode; glow?: boolean; href?: string; onClick?: () => void; className?: string }) {
   const cls = `card${glow ? " card--glow" : ""}${className ? ` ${className}` : ""}`;

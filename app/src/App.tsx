@@ -188,7 +188,7 @@ function Lock() {
         <img src={assetUrl("brand/cyber-lion.webp")} alt="" />
         <h1>CyberJudah</h1>
         <p>Unlock with your fingerprint or face.</p>
-        <Button size="l" onClick={() => app!.BiometricManager.authenticate({ reason: "Unlock CyberJudah" }, (ok) => { if (ok) setLocked(false); })}>Unlock</Button>
+        <Button size="xl" onClick={() => app!.BiometricManager.authenticate({ reason: "Unlock CyberJudah" }, (ok) => { if (ok) setLocked(false); })}>Unlock</Button>
       </div>
     </div>
   );

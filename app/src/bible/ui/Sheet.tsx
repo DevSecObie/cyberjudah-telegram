@@ -5,6 +5,7 @@ import { useModal } from "@/ui/modal";
 
 import { Feather } from "../icons";
 import "./sheet.css";
+import { Button as ControlButton } from "@/ui/Button";
 
 /**
  * Bible Strong's bottom sheet (common/sheet): a handle, an optional header with a centred
@@ -54,7 +55,7 @@ export function Sheet({ open, onClose, backdrop = true, height = "auto", title, 
 
 /** Bible Strong's `Button`: primary fill, or `reverse` (outlined) for a secondary action. */
 export function Button({ children, onClick, reverse, disabled, small }: { children: ReactNode; onClick: () => void; reverse?: boolean; disabled?: boolean; small?: boolean }) {
-  return <button type="button" className={`bs-btn${reverse ? " bs-btn--reverse" : ""}${small ? " bs-btn--small" : ""}`} disabled={disabled} onClick={onClick}>{children}</button>;
+  return <ControlButton className="bs-btn" appearance={reverse ? "bordered" : "prominent"} size={small ? "sm" : "md"} disabled={disabled} onClick={onClick}>{children}</ControlButton>;
 }
 
 /** Bible Strong's `Switch` on the web: a 36×22 track with a white thumb. */

@@ -138,7 +138,7 @@ export function PictureViewer({ figure, figures, book, onClose, onChange }: { fi
                 <div>
                   <b>{r.title || "Class"}</b>
                   <small>{[fmtDate(r.date ?? ""), r.teacher, `at ${r.ts}`].filter(Boolean).join(" · ")}</small>
-                  <button type="button" className="pv__play" onClick={() => watch(r.video, r.t)}><Icon name="play" size={14} /> Watch from {r.ts}</button>
+                  <button type="button" className="btn btn--prominent btn--sm pv__play" onClick={() => watch(r.video, r.t)}><Icon name="play" size={14} /> Watch from {r.ts}</button>
                 </div>
               </header>
               <Said lines={r.said ?? []} at={r.t} onSeek={(t) => watch(r.video, t)} />

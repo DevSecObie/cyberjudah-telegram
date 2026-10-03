@@ -11,7 +11,7 @@
 /* One grouped list per part: hairlines between, rounded as a whole. */
 .laws__list { margin: 0; padding: 0; list-style: none; overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
 .laws__list > li + li { border-top: .5px solid var(--hairline); }
-#root .lawlink { display: flex; align-items: center; gap: var(--sp-3); min-height: 58px; padding: 10px 14px; color: var(--text-1); text-decoration: none; transition: background-color var(--dur-1) ease; }
+#root .lawlink { display: flex; align-items: center; gap: var(--sp-3); min-height: 58px; padding: 10px 14px; color: var(--text-1); text-decoration: none; transition: none; }
 #root .lawlink:hover { background: var(--state-hover); }
 #root .lawlink:active { background: var(--state-press); }
 #root .lawlink > svg { flex: none; color: var(--text-4); }
@@ -32,7 +32,7 @@
 .lawsec__laws { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
 
 /* A law: its own words as the title, its scriptures as tabs, the verse beneath in the reading face. */
-.lawcard { display: grid; gap: var(--sp-3); min-width: 0; padding: 18px; border-radius: var(--r-xl); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); scroll-margin-top: calc(var(--sp-4) + var(--safe-top)); transition: box-shadow var(--dur-4) var(--ease); }
+.lawcard { display: grid; gap: var(--sp-3); min-width: 0; padding: 18px; border-radius: var(--r-xl); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); scroll-margin-top: calc(var(--sp-4) + var(--safe-top)); transition: none; }
 .lawcard[data-flash] { box-shadow: var(--card-edge), 0 0 0 2px var(--accent), var(--shadow-2); }
 .lawcard__code { margin: 0; font: 700 11.5px var(--font-ui); letter-spacing: .06em; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .lawcard__text { margin: -6px 0 0; font: 600 18px/1.4 var(--font-ui); color: var(--text-1); overflow-wrap: anywhere; text-wrap: pretty; }

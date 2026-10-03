@@ -34,7 +34,7 @@
 #root { overflow-x: clip; }
 .screen {
   box-sizing: border-box; max-width: var(--w-read); margin: 0 auto;
-  padding: calc(var(--sp-3) + var(--safe-top)) var(--gutter) var(--sp-6);
+  padding: calc(var(--sp-3) + var(--safe-top)) calc(var(--gutter) + var(--safe-right)) var(--sp-6) calc(var(--gutter) + var(--safe-left));
   display: flex; flex-direction: column; gap: 22px; min-width: 0;
 }
 .head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-3); min-width: 0; }
@@ -49,14 +49,23 @@
 .screen > .head { margin: 0 calc(-1 * var(--gutter)); padding: calc(var(--sp-2) + var(--safe-top)) var(--gutter) var(--sp-2); }
 .screen > .head .title { font-size: var(--fs-title1); }
 .screen > .head::before, .srch__bar::before, .chat2__bar::before, .reader__bar::before {
-  content: ""; position: absolute; z-index: -1; top: 0; bottom: -14px; left: 50%; width: 100vw; margin-left: -50vw; pointer-events: none;
+  content: ""; position: absolute; z-index: -1; top: 0; bottom: calc(-1 * var(--mat-scroll-edge-depth)); left: 50%; width: var(--content-width); margin-left: calc(var(--content-width) / -2); pointer-events: none;
   background: var(--mat-nav);
   -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
   -webkit-mask-image: var(--mat-scroll-edge); mask-image: var(--mat-scroll-edge);
 }
+/* One scroll-edge mask for every header material, including lazy-loaded screens. */
+:is(.bs-header, .tlh, .pv__bar)::before {
+  content: ""; position: absolute; inset: 0 0 calc(-1 * var(--mat-scroll-edge-depth)); z-index: -1; pointer-events: none;
+  background: var(--mat-nav); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
+}
+:is(.screen > .head, .srch__bar, .chat2__bar, .reader__bar, .bs-header, .tlh, .pv__bar)::before {
+  -webkit-mask-image: var(--mat-scroll-edge); mask-image: var(--mat-scroll-edge);
+}
+.tlh.glass, .pv__bar { isolation: isolate; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* A hairline where the glass meets the page, drawn inside the fade so it reads as an edge. */
 .screen > .head::after, .srch__bar::after, .chat2__bar::after, .reader__bar::after {
-  content: ""; position: absolute; z-index: -1; bottom: 0; left: 50%; width: 100vw; margin-left: -50vw; height: .5px; pointer-events: none;
+  content: ""; position: absolute; z-index: -1; bottom: 0; left: 50%; width: var(--content-width); margin-left: calc(var(--content-width) / -2); height: .5px; pointer-events: none;
   background: var(--mat-edge);
 }
 
@@ -64,10 +73,11 @@
    A floating glass capsule. Every section keeps a fixed slot with its icon and name, so nothing
    moves when the selection changes; a filled selection and bolder name mark the current section. Scrolling down shrinks it to the current section alone. */
 .tabs {
-  position: fixed; z-index: var(--z-dock); left: 0; right: 0; bottom: calc(var(--dock-gap) + var(--safe-bottom));
-  box-sizing: border-box; width: min(calc(100% - 20px), 560px); height: var(--dock-h); margin: 0 auto; padding: 6px;
+  position: fixed; z-index: var(--z-dock); left: var(--safe-left); right: var(--safe-right); bottom: calc(var(--dock-gap) + var(--safe-bottom));
+  box-sizing: border-box; width: min(calc(100% - 20px - var(--safe-left) - var(--safe-right)), 560px); height: var(--dock-h); margin: 0 auto; padding: 6px;
   display: flex; align-items: center; gap: 0;
-  border-radius: calc(var(--dock-h) / 2);
+  --r-outer: calc(var(--dock-h) / 2); --inset: 6px; --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset)));
+  border-radius: var(--r-outer);
   background: transparent;
   border: .5px solid var(--dock-edge-override, var(--mat-edge));
   box-shadow: var(--mat-highlight), var(--mat-shadow);
@@ -78,6 +88,8 @@
    fill on this surface, never a second backdrop filter over the labels. */
 .tabs::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  top: calc(-1 * var(--mat-scroll-edge-depth));
+  -webkit-mask-image: var(--mat-scroll-edge-up); mask-image: var(--mat-scroll-edge-up);
   background: var(--dock-tint-override, var(--mat-nav));
   -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
 }
@@ -85,7 +97,7 @@
    on desktop where part of the rail remains visible; only the header and sheet then blur. */
 html:has(.bs-selected) .tabs::before { background: var(--dock-base-override, var(--mat-base)); -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* Full-screen media already covers the app's navigation. Do not keep hidden filters running. */
-html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__bar)::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
+html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__bar, .tlh)::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* A specular edge brightens during a press without distorting the text or sampling a
    second backdrop. The highlight fades into the material, not into a coloured fringe. */
 .tabs::after {
@@ -97,37 +109,38 @@ html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__ba
 }
 .tabs[data-lift]::after { opacity: 1; }
 .tabs .tab {
-  position: relative; z-index: 1; flex: 1 1 0; min-width: var(--touch); height: 48px; padding: 0;
+  position: relative; z-index: 1; flex: 1 1 0; min-width: var(--touch); height: calc(var(--dock-h) - 12px); padding: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  border: 0; border-radius: 24px; background: none; color: var(--dock-ink-override, var(--text-2)); cursor: pointer;
+  border: 0; border-radius: var(--r-inner); background: none; color: var(--dock-ink-override, var(--text-2)); cursor: pointer;
 }
 .tab__glyph { display: grid; place-items: center; height: 26px; transition: transform var(--dur-1) var(--ease); }
 .tabs .tab:active .tab__glyph { transform: scale(.88); }
-.tab__label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 10.5px/1.1 var(--font-ui); letter-spacing: -.01em; }
+.tab__label { max-width: 100%; overflow-wrap: anywhere; text-align: center; font: 500 .65625rem/1.1 var(--font-ui); letter-spacing: -.01em; }
 .tabs .tab[data-on] { color: var(--dock-ink-override, var(--text-1)); }
 .tabs .tab[data-on] .tab__label { font-weight: 700; }
 /* Concentric selection inside the dock. It shares the dock's material and keeps all glyphs
    and labels crisp. Transforms provide press/drag feedback; blur itself never animates. */
 .tabs__pill {
   position: absolute; z-index: 0; left: 0; top: 0; width: var(--pill-w, 44px); height: var(--pill-h, 48px);
-  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)); border-radius: 24px; pointer-events: none;
+  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(var(--pill-sx, 1), var(--pill-sy, 1)); border-radius: var(--r-inner); pointer-events: none;
   background: var(--dock-selected-override, var(--mat-selected));
   box-shadow: inset 0 1px 0 color-mix(in srgb, white 14%, transparent), 0 1px 3px rgb(0 0 0 / .06);
-  scale: var(--pill-sx, 1) var(--pill-sy, 1);
   transition: transform var(--dur-3) var(--ease-spring), opacity var(--dur-2) ease;
 }
 .tabs[data-lift] .tabs__pill {
   will-change: transform;
-  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(1.06, 1.04);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, white 28%, transparent), 0 3px 8px rgb(0 0 0 / .1);
-  transition: transform var(--dur-2) var(--ease-spring), scale var(--dur-1) ease, opacity var(--dur-2) ease;
+  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(calc(var(--pill-sx, 1) * var(--control-lift-scale)), calc(var(--pill-sy, 1) * var(--control-lift-scale)));
+  background: color-mix(in srgb, var(--dock-base-override, var(--mat-base)) 82%, var(--dock-ink-override, var(--text-1)));
+  box-shadow: var(--control-lift-shadow);
+  transition: transform var(--dur-2) var(--ease-spring), opacity var(--dur-2) ease;
 }
-.tabs[data-drag] .tabs__pill { transition: scale var(--dur-1) ease, opacity var(--dur-2) ease; }
+.tabs[data-drag] .tabs__pill { transition: opacity var(--dur-2) ease; }
 .tabs[data-drag] { cursor: grabbing; }
-.tabs .tab__glyph { scale: var(--mag, 1); transition: transform var(--dur-1) var(--ease), scale var(--dur-1) var(--ease); }
+.tabs__pill::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--rim-highlight); opacity: 0; pointer-events: none; }
+.tabs__pill[data-flow]::after { animation: pill-release var(--dur-3) var(--ease); }
+@keyframes pill-release { 0%, 100% { opacity: 0; } 40% { opacity: 1; } }
+.tabs .tab__glyph { transform: scale(var(--mag, 1)); transition: transform var(--dur-1) var(--ease); }
 .tabs[data-drag] .tab { color: var(--dock-ink-override, var(--text-1)); }
-.tabs__pill[data-flow] { animation: pill-flow var(--dur-3) var(--ease); }
-@keyframes pill-flow { 0%, 100% { scale: 1; } 40% { scale: 1.06 .97; } 75% { scale: .99 1.01; } }
 /* The reader's palette overrides must not bypass transparency/contrast preferences. */
 html[data-transparency="reduced"] .tabs::before { background: var(--dock-base-override, var(--mat-base)); -webkit-backdrop-filter: none; backdrop-filter: none; }
 html[data-transparency="reduced"] .tabs::after { display: none; }
@@ -145,21 +158,22 @@ html[data-transparency="reduced"] .tabs::after { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .tabs[data-lift] .tabs__pill { transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)); }
   .tabs__pill, .tabs .tab__glyph { scale: none; }
+  .tabs .tab__glyph { transform: none; }
   .tabs .tab:active .tab__glyph { transform: none; }
-  .tabs__pill[data-flow] { animation: none; }
+  .tabs__pill[data-flow]::after { animation: none; }
   .tabs::after { display: none; }
 }
 @media (forced-colors: active) {
   .tabs::before { background: Canvas; -webkit-backdrop-filter: none; backdrop-filter: none; }
   .tabs::after { display: none; }
-  .tabs__pill { background: Highlight; forced-color-adjust: none; box-shadow: none; }
+  .tabs__pill, .tabs[data-lift] .tabs__pill { background: Highlight; forced-color-adjust: none; box-shadow: none; }
   .tabs .tab[data-on] { color: HighlightText; forced-color-adjust: none; }
 }
 .tabs[data-pill="none"] .tabs__pill { opacity: 0; }
 .tabs .tab__count { display: grid; place-items: center; box-sizing: border-box; min-width: 22px; height: 22px; padding: 0 4px; border: 1.75px solid currentColor; border-radius: 6px; font: 700 11.5px/1 var(--font-ui); font-variant-numeric: tabular-nums; }
 .tabs .tab__count[style*="--group"] { background: var(--group); border-color: var(--group); color: #fff; }
 /* Collapsed (phones, scrolling down): a small capsule holding only the current section. */
-@media (max-width: 1099px) {
+@media (max-width: 899px) {
   .tabs[data-mini] { width: 48px; height: 48px; padding: 0; border-radius: 24px; cursor: pointer; }
   .tabs[data-mini] .tabs__pill { opacity: 0; }
   .tabs[data-mini] .tab:not([data-kept]) { display: none; }
@@ -179,16 +193,19 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 #root .switcherbar__group span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Desktop: the dock stands as a rail on the left, the page keeps its reading width beside it. */
-@media (min-width: 1100px) {
-  :root { --dock-space: 0px; --rail-space: 112px; }
+@media (min-width: 900px) {
+  :root { --dock-space: 0px; --rail-space: calc(112px + var(--safe-left)); }
   .tabs:not(.tabs--switcher) {
-    left: var(--sp-5); right: auto; top: 0; bottom: 0; margin: auto 0; width: 76px; height: fit-content; max-height: calc(100dvh - 40px);
-    flex-direction: column; padding: 8px 6px; gap: 4px; border-radius: 30px;
+    left: calc(var(--sp-5) + var(--safe-left)); right: auto; top: var(--safe-top); bottom: var(--safe-bottom); margin: auto 0; width: 76px; height: fit-content; max-height: calc(100dvh - 40px - var(--safe-top) - var(--safe-bottom));
+    flex-direction: column; padding: 8px 6px; gap: 4px; --r-outer: 30px; border-radius: var(--r-outer); overflow-y: auto; scrollbar-width: none;
   }
-  .tabs:not(.tabs--switcher) .tab { flex: none; width: 64px; height: 56px; border-radius: 20px; }
-  .tabs:not(.tabs--switcher) .tabs__pill { border-radius: 20px; }
-  .tabs:not(.tabs--switcher) .tab__label { font-size: 11px; }
+  .tabs:not(.tabs--switcher) .tab { flex: none; width: 64px; min-height: 56px; height: auto; padding-block: 6px; border-radius: var(--r-inner); }
+  .tabs:not(.tabs--switcher) .tabs__pill { border-radius: var(--r-inner); }
+  .tabs:not(.tabs--switcher) .tab__label { font-size: .6875rem; }
+  .tabs[data-scrollable] { touch-action: pan-y; overscroll-behavior-y: contain; }
+  .tabs[data-scrollable]::before { bottom: auto; height: var(--rail-content-h); }
   #root [data-tabs] { padding-bottom: var(--sp-7); }
+  #shell .route { box-sizing: border-box; padding-left: var(--rail-space); }
 }
 
 /* ── Page actions: the screen's buttons, floating just above the dock ────────────────────── */
@@ -207,7 +224,7 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 .pageaction__spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
 html[data-actions] #root [data-tabs] { padding-bottom: calc(var(--dock-space) + var(--h-md) + var(--sp-7)); }
 html[data-typing] .pageactions { display: none; }
-@media (min-width: 1100px) { .pageactions { left: calc(var(--rail-space) + var(--gutter)); } }
+@media (min-width: 900px) { .pageactions { left: calc(var(--rail-space) + var(--gutter)); } }
 
 /* ── Drawers: Home and the menu, pushing the app aside ────────────────────────────────────── */
 :root { --drawer-w: min(95vw, 450px); --drawer-ease: cubic-bezier(.2, .9, .25, 1); }
@@ -231,7 +248,7 @@ html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[dat
 #root button.drawer__back, .drawer__back { display: grid; place-items: center; width: var(--touch); height: var(--touch); padding: 0; border: 0; border-radius: var(--r-pill); background: none; color: var(--text-1); cursor: pointer; }
 #root button.drawer__x, .drawer__x { position: absolute; left: 50%; bottom: calc(var(--sp-6) + var(--safe-bottom)); display: grid; place-items: center; width: 52px; height: 52px; margin-left: -26px; padding: 0;
   border-radius: var(--r-pill); border: .5px solid var(--mat-edge); background: var(--mat-overlay); color: var(--text-1); box-shadow: var(--mat-highlight), var(--shadow-2); cursor: pointer; }
-.drawer-scrim { position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 5); pointer-events: none; background: transparent; transition: background-color var(--dur-4) ease; }
+.drawer-scrim { position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 5); pointer-events: none; background: transparent; transition: none; }
 .drawer-scrim[data-open] { pointer-events: auto; background: var(--scrim-soft); }
 .drawer-scrim[data-side="home"] { left: var(--drawer-w); }
 .drawer-scrim[data-side="more"] { right: var(--drawer-w); }
@@ -255,7 +272,7 @@ html[data-modal] { overflow: hidden; }
 .sheet__title small { display: block; margin-top: 2px; font: 400 var(--fs-caption) var(--font-ui); color: var(--text-3); }
 .sheet__colors { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; padding: var(--sp-1) 0 var(--sp-4); }
 .sheet__items { border-radius: var(--r-lg); background: var(--surface-2); overflow: hidden; }
-.sheet__item { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: var(--h-lg); padding: 10px 14px; border: 0; background: none; text-align: left; cursor: pointer; font: inherit; color: inherit; transition: background-color var(--dur-1) ease; }
+.sheet__item { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: var(--h-lg); padding: 10px 14px; border: 0; background: none; text-align: left; cursor: pointer; font: inherit; color: inherit; transition: none; }
 .sheet__item:hover { background: var(--state-hover); }
 .sheet__item:active { background: var(--state-press); }
 .sheet__item + .sheet__item { border-top: .5px solid var(--hairline); }
@@ -268,11 +285,11 @@ html[data-modal] { overflow: hidden; }
 .sheet__form label { font: 600 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
 
 /* ── Notes sheet: the class notes sliding up under a playing recording ─────────────────────── */
-.nsheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-dock); display: flex; flex-direction: column; background: var(--canvas); border-top: .5px solid var(--mat-edge); border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--shadow-3); transform: translateY(105%); transition: transform var(--dur-3) var(--ease), top var(--dur-3) var(--ease); visibility: hidden; }
+.nsheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-dock); display: flex; flex-direction: column; background: var(--canvas); border-top: .5px solid var(--mat-edge); border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--shadow-3); transform: translateY(105%); transition: transform var(--dur-3) var(--ease); visibility: hidden; }
 .nsheet[data-full] { z-index: 75; border-radius: 0; border-top-color: transparent; }
 .nsheet[data-open] { transform: translateY(0); visibility: visible; }
 /* Desktop: the notes sheet opens beside the rail, never under it, so its title and the rail stay clear. */
-@media (min-width: 1100px) { .nsheet:not([data-full]) { left: var(--rail-space); border-left: .5px solid var(--mat-edge); border-radius: var(--r-xl) 0 0 0; } }
+@media (min-width: 900px) { .nsheet:not([data-full]) { left: var(--rail-space); border-left: .5px solid var(--mat-edge); border-radius: var(--r-xl) 0 0 0; } }
 .nsheet__head { position: relative; flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: 16px var(--gutter) 10px; border-bottom: .5px solid var(--hairline); cursor: grab; user-select: none; -webkit-user-select: none; }
 .nsheet__head h2 { margin: 0; font: 600 var(--fs-body) var(--font-ui); color: var(--text-1); }
 .nsheet__head small { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; font: 400 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
@@ -310,3 +327,13 @@ html[data-actions] .toasts { bottom: calc(var(--dock-space) + var(--h-md) + var(
 /* Off-screen panels keep no filter running. */
 .drawer:not([data-open]) { -webkit-backdrop-filter: none; backdrop-filter: none; }
 @media (prefers-reduced-motion: reduce) { #shell .route, .tabs, .pageactions, .drawer, .drawer-scrim, .tabs__pill, .nsheet { transition: none; } .sheet, .sheet__scrim { animation: none; } }
+
+/* A decorative mirror of an existing hero's leading edge behind the sidebar. This
+   filters only its own image pixels; it never samples or distorts text underneath. */
+.rail-background { display: none; }
+@media (min-width: 900px) {
+  .rail-background { display: block; position: fixed; z-index: 0; inset: var(--safe-top) auto var(--safe-bottom) 0; width: var(--rail-space); overflow: hidden; pointer-events: none; }
+  .rail-background img { position: absolute; inset: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; object-position: left; transform: scaleX(-1); filter: blur(18px); opacity: .3; }
+}
+html[data-transparency="reduced"] .rail-background { display: none; }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) { .rail-background { display: none; } }

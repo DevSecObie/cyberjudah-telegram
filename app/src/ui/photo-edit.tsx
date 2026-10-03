@@ -40,7 +40,7 @@ export function PhotoEdit({ slot, label, shape = "square", hasPhoto }: { slot: P
   const set = !!photos.data?.[slot];
   return (
     <div className="photo-edit">
-      <button type="button" className="photo-edit__btn" onClick={() => { haptic("select"); input.current?.click(); }}>{hasPhoto ? "Change photo" : "Add photo"}</button>
+      <button type="button" className="btn btn--bordered btn--sm photo-edit__btn" onClick={() => { haptic("select"); input.current?.click(); }}>{hasPhoto ? "Change photo" : "Add photo"}</button>
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setFile(f); }} />
       {file ? <Framer file={file} slot={slot} label={label} shape={shape} canRemove={set} onDone={() => setFile(null)} /> : null}
     </div>
