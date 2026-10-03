@@ -56,6 +56,9 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
     expect(material.backdrop).toContain("blur(");
     expect(material.layers.every(s => s.filter === "none" && (!s.backdrop || s.backdrop === "none"))).toBe(true);
     await expect(dock.getByRole("button", { name: "Bible", exact: true })).toHaveAttribute("aria-current", "page");
+    // The tabs fade their ink when the theme applies (transition: color); measure them at rest,
+    // not mid-fade, which WebKit can catch right after load.
+    await page.waitForFunction(() => document.getAnimations().every(a => !(a instanceof CSSTransition) || a.playState !== "running"));
     // Check actual computed material/ink colours against both extreme backdrops. A translucent
     // selection must remain legible even when a bright picture or dark passage moves underneath.
     const minimumContrast = await dock.evaluate(nav => {
