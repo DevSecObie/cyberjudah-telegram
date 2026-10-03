@@ -125,7 +125,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   is unavailable, Ask answers from the keyword search.
 
 ### Changed
-- Document the completed Liquid Glass web adaptations, validation evidence and native/device follow-ups.
+- Document the Liquid Glass adoption review and keep reader selection context and panel captions readable across themes.
 
 - Reduced repeated palette calculations and dock style updates; browser checks now cover glass budgets across main routes in Chromium, WebKit and Firefox.
 

@@ -1,5 +1,5 @@
 /** Runs in the page: canvas resolves browser color syntax and composites real alpha values. */
-export function auditContrast() {
+export function auditContrast(options?: { includePanels?: boolean }) {
   const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
   const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
   const sample = (...colors: string[]) => {
@@ -44,10 +44,10 @@ export function auditContrast() {
   }
   // Actual text on flat content surfaces catches component-level color/opacity overrides.
   let textNodes = 0; const manual: string[] = [];
-  for (const element of document.querySelectorAll<HTMLElement>(".route *")) {
+  for (const element of document.querySelectorAll<HTMLElement>(options?.includePanels ? ".route *, .bs-gallery *" : ".route *")) {
     if (!Array.from(element.childNodes).some(n => n.nodeType === Node.TEXT_NODE && n.textContent?.trim())) continue;
     const rect = element.getBoundingClientRect(), style = getComputedStyle(element);
-    if (!rect.width || !rect.height || style.visibility !== "visible" || element.closest('[inert], [aria-hidden="true"], :disabled, .tabs, .bs-header, .sheet, .bs-sheet')) continue;
+    if (!rect.width || !rect.height || style.visibility !== "visible" || element.closest('[inert], [aria-hidden="true"], :disabled, .tabs') || (!options?.includePanels && element.closest('.bs-header, .sheet, .bs-sheet'))) continue;
     const stack: HTMLElement[] = []; let ancestor: HTMLElement | null = element, opacity = 1;
     while (ancestor) { stack.unshift(ancestor); opacity *= Number(getComputedStyle(ancestor).opacity); ancestor = ancestor.parentElement; }
     if (!opacity) continue;
