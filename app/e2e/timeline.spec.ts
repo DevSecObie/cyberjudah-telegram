@@ -187,7 +187,8 @@ test("pictures: each period's, a colour where a picture waits on direction, and 
   await expect.poll(() => pics.nth(0).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBe(640);
   await page.goto("/timeline/5");
   await expect(page.locator('a[data-slug="solomon"] .tl-major__pic img')).toHaveAttribute("src", /solomon-2sa-5-14-128\.webp$/);
-  await expect(page.locator('[data-slug="jonathan"] .tl-major__letter')).toHaveText("J");
+  // An event with no portrait yet shows its letter (Jonathan's, the earlier example, came in round 4).
+  await expect(page.locator(".tl-major .tl-major__letter").first()).toHaveText(/^[A-Z]$/);
 });
 
 test("search keeps its words: in the address, and on coming back from an event", async ({ page }) => {
