@@ -17,3 +17,16 @@ test("staging has every production setting (environments do not inherit vars)", 
   assert.equal(config.env.staging.vars.DATA_ORIGIN, config.vars.DATA_ORIGIN);
   assert.notEqual(config.env.staging.vars.APP_URL, config.vars.APP_URL);
 });
+
+test("the end-to-end tests' clock is never on in a deployed Worker", () => {
+  assert.equal(config.vars.E2E_CLOCK, undefined);
+  assert.equal(config.env.staging.vars.E2E_CLOCK, undefined);
+});
+
+test("Ask is sold at cost: no margin, no plan, no free daily allowance for paid models", () => {
+  for (const vars of [config.vars, config.env.staging.vars]) {
+    assert.equal(vars.ASK_MARGIN, "1");
+    for (const gone of ["ASK_PLAN_STARS", "ASK_PLAN_BONUS", "ASK_PACKS", "ASK_FREE_DAILY", "ASK_FREE_DAILY_CREDITS", "ASK_BASIC_DAILY", "ASK_USD_PER_MTOK"]) assert.equal(vars[gone], undefined, gone);
+    assert.equal(vars.ASK_TOPUPS_USD, "1,5,20");
+  }
+});
