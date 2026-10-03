@@ -45,7 +45,7 @@ test("an admin changes a leader's portrait in the app; every reader sees it; Rem
   // The picker is the hidden file input next to the button.
   await page.locator(".photo-edit input[type=file]").setInputFiles({ name: "portrait.png", mimeType: "image/png", buffer: shot });
   const sheet = page.getByRole("dialog", { name: "Leader's portrait" });
-  await expect(sheet.locator(".photo-frame img")).toBeVisible();
+  await expect(sheet.locator(".photo-frame canvas")).toBeVisible();
   await sheet.getByRole("slider", { name: "Zoom" }).fill("1.5");
   await page.waitForTimeout(400);
   await shotTo(page, "2-framing");

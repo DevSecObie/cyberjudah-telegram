@@ -8,7 +8,7 @@
 .photo-edit__btn:active { opacity: .7; }
 .photo-sheet .bs-sheet__body { padding: 16px 20px 24px; }
 .photo-frame { position: relative; width: min(100%, 360px); margin: 0 auto; overflow: hidden; border-radius: 16px; background: var(--fill-1); touch-action: none; cursor: grab; display: grid; place-items: center; }
-.photo-frame img { position: absolute; top: 0; left: 0; max-width: none; user-select: none; -webkit-user-select: none; pointer-events: none; }
+.photo-frame canvas { position: absolute; top: 0; left: 0; max-width: none; user-select: none; -webkit-user-select: none; pointer-events: none; }
 .photo-zoom { display: flex; align-items: center; gap: 12px; width: min(100%, 360px); margin: 16px auto 0; font-size: 14px; color: var(--text-2); }
 .photo-zoom input { flex: 1; }
 .photo-actions { display: grid; gap: 10px; width: min(100%, 360px); margin: 18px auto 0; }

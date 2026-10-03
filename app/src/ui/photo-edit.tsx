@@ -35,23 +35,24 @@ export function PhotoEdit({ slot, label, shape = "square", hasPhoto }: { slot: P
   const admin = useIsAdmin();
   const photos = usePhotos();
   const input = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   if (!admin) return null;
   const set = !!photos.data?.[slot];
   return (
     <div className="photo-edit">
       <button type="button" className="photo-edit__btn" onClick={() => { haptic("select"); input.current?.click(); }}>{hasPhoto ? "Change photo" : "Add photo"}</button>
-      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setFile(URL.createObjectURL(f)); }} />
-      {file ? <Framer src={file} slot={slot} label={label} shape={shape} canRemove={set} onDone={() => { URL.revokeObjectURL(file); setFile(null); }} /> : null}
+      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setFile(f); }} />
+      {file ? <Framer file={file} slot={slot} label={label} shape={shape} canRemove={set} onDone={() => setFile(null)} /> : null}
     </div>
   );
 }
 
-function Framer({ src, slot, label, shape, canRemove, onDone }: { src: string; slot: PhotoSlot; label: string; shape: keyof typeof SHAPE; canRemove: boolean; onDone: () => void }) {
+function Framer({ file, slot, label, shape, canRemove, onDone }: { file: File; slot: PhotoSlot; label: string; shape: keyof typeof SHAPE; canRemove: boolean; onDone: () => void }) {
   const qc = useQueryClient();
   const out = SHAPE[shape];
   const frame = useRef<HTMLDivElement>(null);
-  const [img, setImg] = useState<HTMLImageElement | null>(null);
+  const view = useRef<HTMLCanvasElement>(null);
+  const [img, setImg] = useState<ImageBitmap | null>(null);
   const [fw, setFw] = useState(280);
   const [zoom, setZoom] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -60,16 +61,28 @@ function Framer({ src, slot, label, shape, canRemove, onDone }: { src: string; s
   const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
   const fh = Math.round(fw * out.h / out.w);
 
-  useEffect(() => { const i = new Image(); i.onload = () => setImg(i); i.src = src; }, [src]);
+  // The photo is decoded straight from the file and drawn on a canvas: no URL to it is ever made.
+  useEffect(() => {
+    let live = true, bmp: ImageBitmap | null = null;
+    createImageBitmap(file).then((b) => { bmp = b; if (live) setImg(b); else b.close(); }, () => { if (live) { setError("That file is not a photo this phone can open."); setState("error"); } });
+    return () => { live = false; bmp?.close(); };
+  }, [file]);
   useEffect(() => { if (frame.current) setFw(frame.current.clientWidth); }, [img]);
   // The photo covers the frame at zoom 1; it can be enlarged and moved but never leave a gap.
-  const base = img ? Math.max(fw / img.naturalWidth, fh / img.naturalHeight) : 1;
+  const base = img ? Math.max(fw / img.width, fh / img.height) : 1;
   const scale = base * zoom;
-  const w = img ? img.naturalWidth * scale : 0, h = img ? img.naturalHeight * scale : 0;
+  const w = img ? img.width * scale : 0, h = img ? img.height * scale : 0;
   const clamp = (p: { x: number; y: number }) => ({ x: Math.min(0, Math.max(fw - w, p.x)), y: Math.min(0, Math.max(fh - h, p.y)) });
   // Centred when it loads, and kept in bounds as the zoom changes.
   useEffect(() => { if (img) setPos({ x: (fw - w) / 2, y: (fh - h) / 2 }); }, [img, fw]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setPos((p) => clamp(p)); }, [zoom]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const c = view.current;
+    if (!c || !img) return;
+    const r = window.devicePixelRatio || 1;
+    c.width = Math.round(w * r); c.height = Math.round(h * r);
+    c.getContext("2d")?.drawImage(img, 0, 0, c.width, c.height);
+  }, [img, w, h]);
 
   const down = (e: RPointerEvent) => { (e.target as Element).setPointerCapture(e.pointerId); drag.current = { x: e.clientX, y: e.clientY, px: pos.x, py: pos.y }; };
   const move = (e: RPointerEvent) => { const d = drag.current; if (d) setPos(clamp({ x: d.px + e.clientX - d.x, y: d.py + e.clientY - d.y })); };
@@ -111,7 +124,7 @@ function Framer({ src, slot, label, shape, canRemove, onDone }: { src: string; s
   return (
     <Sheet open onClose={onDone} height="full" title={label} subTitle="Drag to frame it, then Save" className="photo-sheet">
       <div className="photo-frame" ref={frame} style={{ aspectRatio: `${out.w} / ${out.h}` }} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
-        {img ? <img src={src} alt="" draggable={false} style={{ width: w, height: h, transform: `translate(${pos.x}px, ${pos.y}px)` }} /> : <span className="hint" aria-busy="true">Loading the photo…</span>}
+        {img ? <canvas ref={view} aria-hidden="true" style={{ width: w, height: h, transform: `translate(${pos.x}px, ${pos.y}px)` }} /> : <span className="hint" aria-busy="true">Loading the photo…</span>}
       </div>
       <label className="photo-zoom"><span>Zoom</span><input type="range" min={1} max={3} step={0.01} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} aria-label="Zoom" /></label>
       {state === "error" ? <p className="photo-error" role="alert">{error}</p> : null}
