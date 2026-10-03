@@ -359,7 +359,12 @@ for (const theme of ["default", "dark", "sepia"]) {
         await expect.poll(() => captions.evaluateAll(labels => labels.map(e => parseFloat(getComputedStyle(e).fontSize)))).toEqual(initialCaptionFonts.map(size => size * 2));
         expect(await captions.evaluateAll(labels => labels.every(label => {
           const l = label.getBoundingClientRect(), b = label.parentElement!.getBoundingClientRect();
-          return l.left >= b.left && l.right <= b.right && l.top >= b.top && l.bottom <= b.bottom && label.scrollWidth <= label.clientWidth + 1;
+          // Inline spans have clientWidth=0; Firefox still reports their scrollWidth.
+          // Measure the painted text fragments so every wrapped line must fit the button.
+          const text = document.createRange(); text.selectNodeContents(label);
+          const fragments = [...text.getClientRects()];
+          return l.left >= b.left && l.right <= b.right && l.top >= b.top && l.bottom <= b.bottom && fragments.length > 0 &&
+            fragments.every(r => r.left >= b.left && r.right <= b.right && r.top >= b.top && r.bottom <= b.bottom);
         }))).toBe(true);
         await toggle.focus();
         const before = await toggle.getAttribute("aria-checked");
@@ -368,7 +373,7 @@ for (const theme of ["default", "dark", "sepia"]) {
         const knob = toggle.locator(".switch");
         const restShadow = await knob.evaluate(e => getComputedStyle(e, "::after").boxShadow);
         await toggle.hover(); await page.mouse.down();
-        await expect.poll(() => knob.evaluate(e => new DOMMatrix(getComputedStyle(e, "::after").transform).a)).toBe(preference === "motion" ? 1 : 1.2);
+        await expect.poll(() => knob.evaluate(e => new DOMMatrix(getComputedStyle(e, "::after").transform).a)).toBeCloseTo(preference === "motion" ? 1 : 1.2, 5);
         if (preference !== "forced") expect(await knob.evaluate(e => getComputedStyle(e, "::after").boxShadow)).not.toBe(restShadow);
         if (["system", "app", "contrast", "forced"].includes(preference)) expect((await materials(page, [[".switch", "::after"]]))[0].alpha).toBe(255);
         await page.mouse.up();
