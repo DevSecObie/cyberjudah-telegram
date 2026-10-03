@@ -5,8 +5,8 @@
  *   node app/scripts/final-captivity/check.mjs            the shape, dates, links and rules
  *   CJ_ROOT=../cyberjudah node …/check.mjs                 also against the corpus: every cited
  *                                                          recording exists, its moment is inside
- *                                                          it, every quote is in the recording near
- *                                                          that moment, every scripture is a real verse
+ *                                                          it, every quote is in the recording in the
+ *                                                          ten minutes from that moment, every scripture is a real verse
  *
  * Prints each problem and exits 1 if there is any. Drafts are checked for shape only.
  */
@@ -80,7 +80,7 @@ export function checkEvent(e, periods, { corpus, draft = false } = {}) {
       const rec = corpus?.recording?.(s.id);
       if (corpus?.recording && !rec) p.push(`${at}: recording ${s.id} is not in the corpus`);
       if (rec && sec != null && rec.duration && sec > rec.duration) p.push(`${at}: ${s.ts} is past the end of ${s.id}`);
-      if (rec && t.quote && !rec.has(words(t.quote), sec)) p.push(`${at}: quote not found in ${s.id} within three minutes of ${s.ts}: "${t.quote.slice(0, 60)}…"`);
+      if (rec && t.quote && !rec.has(words(t.quote), sec)) p.push(`${at}: quote not found in ${s.id} in the ten minutes from ${s.ts}: "${t.quote.slice(0, 60)}…"`);
     }
   }
   for (const s of e.sources ?? []) {
@@ -107,7 +107,8 @@ export function loadCorpus(root) {
         duration: t.duration,
         has(q, sec) {
           if (!q) return true;
-          const near = segs.filter((s) => s[0] >= (sec ?? 0) - 180 && s[0] <= (sec ?? 0) + 180).map((s) => s[1]).join(" ");
+          // From a minute before the moment cited (where that teaching begins) to ten minutes into it.
+          const near = segs.filter((s) => s[0] >= (sec ?? 0) - 60 && s[0] <= (sec ?? 0) + 600).map((s) => s[1]).join(" ");
           return words(near).includes(q);
         },
       };

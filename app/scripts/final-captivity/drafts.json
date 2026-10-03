@@ -275,6 +275,46 @@
   "needs": "The only moments found (tfH_TDX9BLc 0:37 and MtljMsRavVY 57:57) are a clip of an outside speaker played in class, not the class’s own teaching; a class moment that teaches Sand Creek and a documented source (e.g. NPS Sand Creek Massacre NHS) must be read. Date in this draft is from general knowledge and must be checked."
  },
  {
+  "slug": "ponce-massacre-1937",
+  "title": "The Ponce massacre",
+  "start": 1937,
+  "end": 1937,
+  "date": {
+   "text": "1937",
+   "precision": "year"
+  },
+  "period": "jim-crow",
+  "group": "Caribbean and Latin America",
+  "place": "Ponce, Puerto Rico",
+  "region": "Caribbean",
+  "peoples": [
+   "Hispanic"
+  ],
+  "people": [
+   "Pedro Albizu Campos"
+  ],
+  "summary": "",
+  "account": [],
+  "teaching": [
+   {
+    "points": [
+     "The massacres at Ponce and Utuado are among the atrocities that show why Esau is greatly despised; the class pointed to Captain Zef's book on them and to Pedro Albizu Campos, imprisoned in Atlanta."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "IyYFXp99olM",
+     "title": "Edom: The Greatly Despised",
+     "date": "2026-04-25",
+     "ts": "51:54",
+     "url": "https://youtu.be/IyYFXp99olM?t=3114"
+    }
+   }
+  ],
+  "sources": [],
+  "status": "draft",
+  "needs": "A documented source read for the Ponce massacre (date, events, deaths); the class only names it in passing at 51:54 and 1:36:28 and says there was no time to go into it, so a fuller class moment should be found too."
+ },
+ {
   "slug": "school-of-the-americas",
   "title": "The School of the Americas",
   "start": 1953,

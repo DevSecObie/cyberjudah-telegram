@@ -2,6 +2,14 @@
  "reviewedThrough": "2026-10-03",
  "sources": [
   {
+   "kind": "book",
+   "ref": "https://archive.org/details/black-gods-of-the-metropolis-vol-3",
+   "title": "Arthur Huff Fauset, Black Gods of the Metropolis (1944)",
+   "status": "inaccessible",
+   "note": "Full text not available (the djvu text link returned an HTML page); would document Cherry's Philadelphia church.",
+   "events": []
+  },
+  {
    "kind": "class",
    "ref": "--ETQxas6ls",
    "title": "(IUIC Raleigh) Juneteenth C.F.T.S (undated)",
@@ -17,7 +25,8 @@
    "note": "58:28–1:07:30 and 1:11:59–1:15:10 read: Vesey from Before the Mayflower, Hosea 6:1, Hebrews 11:24-25, Wisdom 5:1, Gabriel",
    "events": [
     "denmark-vesey-1822",
-    "gabriels-conspiracy-1800"
+    "gabriels-conspiracy-1800",
+    "marcus-garvey-unia"
    ]
   },
   {
@@ -32,12 +41,23 @@
   },
   {
    "kind": "class",
-   "ref": "37NBSWy3MVk",
-   "title": "Traumatizing Knees Of Pressure!! Leviticus 26 (2021-05-08)",
+   "ref": "2mnHrhPTKw4",
+   "title": "#IUIC | When Christians Tell The Truth ! (2022-06-18)",
    "status": "reviewed",
-   "note": "1:05:00–1:08:50 read: Emmett Till as Leviticus 26:16 terror",
+   "note": "Read at 1:02:39–1:05:53: Tulsa hidden.",
    "events": [
-    "emmett-till-1955"
+    "tulsa-race-massacre-1921"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "37NBSWy3MVk",
+   "title": "THE BIBLE : THE BOOK OF OUR FATHERS | Traumatizing Knees Of Pressure!! Leviticus 26 (2021-05-08)",
+   "status": "reviewed",
+   "note": "Read at 59:48–1:04:20: Opelousas and Colfax segment; Leviticus 26:16; also Emmett Till at 1:05:19–1:06:54.",
+   "events": [
+    "emmett-till-1955",
+    "opelousas-and-colfax-massacres-1868-1873"
    ]
   },
   {
@@ -56,6 +76,16 @@
    "note": "33:00–35:45 read: Judah rises, the tribes follow",
    "events": [
     "young-lords-brown-berets"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "5o4I9KeaN7M",
+   "title": "Morning Sabbath: European Terrorism Or Black History (2020-02-15)",
+   "status": "reviewed",
+   "note": "Read at 1:20:39–1:23:48: Inventors list: Latimer.",
+   "events": [
+    "lewis-latimer-carbon-filament-1881"
    ]
   },
   {
@@ -81,6 +111,48 @@
   },
   {
    "kind": "class",
+   "ref": "6ogOk1Vze3I",
+   "title": "THE NATIVES HOUR: STATE OF EMERGENCY AT THE PINE RIDGE RESERVATION (undated)",
+   "status": "reviewed",
+   "note": "Read at 1:35:49–1:38:58: General Allotment Act of 1887.",
+   "events": [
+    "dawes-act-1887"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "6wJ-FOK9q0o",
+   "title": "#IUIC | RAVENING WOLVES RADIO SHOW: Episode 44 - God Will Give Us Reparations (undated)",
+   "status": "reviewed",
+   "note": "Read at 1:14:27–1:16:28: Deuteronomy 28:31, forty acres and reparations.",
+   "events": [
+    "forty-acres-and-the-freedmans-bank-1865"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "7CIoec7oJxE",
+   "title": "The Israelites: What Is Black Power & A Black Community? (2017-01-09)",
+   "status": "reviewed",
+   "note": "Read at 22:26–30:51, 33:49–36:50: Greenwood, Chicago 1919, Rosewood.",
+   "events": [
+    "tulsa-race-massacre-1921",
+    "red-summer-and-elaine-1919",
+    "rosewood-massacre-1923"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "7L9duQL_Zew",
+   "title": "Hammer Time: Amalek Funds The KKK (undated)",
+   "status": "reviewed",
+   "note": "Read at 19:57–20:51: Second Klan (1915) read from a 1930 book.",
+   "events": [
+    "ku-klux-klan-founded-1865"
+   ]
+  },
+  {
+   "kind": "class",
    "ref": "7LQSdQJgsRw",
    "title": "RAVENING WOLVES SHOW: Episode 78 - Terror is Coming To Babylon (2023-12-25)",
    "status": "unreviewed",
@@ -92,8 +164,9 @@
    "ref": "7eibXgwt3W0",
    "title": "THE DISTURBING TRUTH (undated)",
    "status": "reviewed",
-   "note": "2:13:20–2:16:28 read: 1975 Torah School, photos of the elders; date used in a disagreement only",
+   "note": "Read at 1:22:26–1:24:35: Commandment Keepers and Amalek's agents.",
    "events": [
+    "harlem-hebrew-congregations-1919-1930",
     "the-awakening-1969-abba-bivens"
    ]
   },
@@ -102,9 +175,10 @@
    "ref": "8vnEFt0HGxc",
    "title": "#IUIC | FROM CHAOS TO COMMANDER IN CHIEF (undated)",
    "status": "reviewed",
-   "note": "1:16:10–1:19:55 read: MOVE bombing article",
+   "note": "Read at 1:08:18–1:13:10: Red Summer clip, Elaine.",
    "events": [
-    "move-bombing-1985"
+    "move-bombing-1985",
+    "red-summer-and-elaine-1919"
    ]
   },
   {
@@ -164,12 +238,65 @@
   },
   {
    "kind": "class",
-   "ref": "D_9BCkvT7H4",
-   "title": "ESCP 2.0 | The Scapegoat And The Return Of The Red Summer (2026-09-14)",
+   "ref": "BxMLXDo5p3k",
+   "title": "HAMMER TIME: Destruction Of The Indies (undated)",
    "status": "reviewed",
-   "note": "1:28:50–1:31:30 read: Brown, CRA, VRA did not dismantle Jim Crow; Genesis 43:32",
+   "note": "Read at 16:19–19:14: Carlisle clip.",
    "events": [
-    "brown-v-board-1954"
+    "carlisle-indian-school-1879"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "CiL1d9RUSfE",
+   "title": "FINAL CALL: MESSAGE TO THE BLACK MAN (2026-09-19)",
+   "status": "reviewed",
+   "note": "Read at 1:33:38–1:36:00: IUIC history page read in class; Bivens and the Commandment Keepers.",
+   "events": [
+    "harlem-hebrew-congregations-1919-1930"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "D06gQwFxH4w",
+   "title": "Patient Saints Radio | December 6, 2020 (2020-12-06)",
+   "status": "reviewed",
+   "note": "Read at 57:19–1:00:09: Rhoads and Ecclesiasticus 12:10.",
+   "events": [
+    "rhoads-letter-puerto-rico-1931"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "D_9BCkvT7H4",
+   "title": "ESCP 2.0 | The Scapegoat And The Return Of The Red Summer (undated)",
+   "status": "reviewed",
+   "note": "Read at 1:29:38–1:31:25, 1:52:19–1:53:25: Plessy, Genesis 43:32, Jim Crow evolved; the narrative before the Red Summer.",
+   "events": [
+    "brown-v-board-1954",
+    "plessy-v-ferguson-1896",
+    "red-summer-and-elaine-1919"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "DgpJgffhWfw",
+   "title": "#IUIC | SABBATH MORNING CLASS : The Faith Of Christ In A World Full Of Hate (2022-08-06)",
+   "status": "reviewed",
+   "note": "Read at 1:10:09–1:11:24, 1:19:27–1:27:15: Isaiah 5:8 and redlining; boarding schools and 1 Maccabees 1:43.",
+   "events": [
+    "great-migration-and-redlining",
+    "carlisle-indian-school-1879"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "EJUOBouQeiI",
+   "title": "Rejoice Thou Holy Prophets And Apostles (undated)",
+   "status": "reviewed",
+   "note": "Read at 7:08–9:24: Wilmington, Black Wall Street and others destroyed.",
+   "events": [
+    "wilmington-coup-1898"
    ]
   },
   {
@@ -233,6 +360,16 @@
   },
   {
    "kind": "class",
+   "ref": "GHPpWmDEIbg",
+   "title": "HAMMERTIME: There Is No Democracy, There Is No America (undated)",
+   "status": "reviewed",
+   "note": "Read at 31:58–35:35: Rosewood news clip; Klan terror.",
+   "events": [
+    "rosewood-massacre-1923"
+   ]
+  },
+  {
+   "kind": "class",
    "ref": "HQwNyXObaeM",
    "title": "Secrets Of History: The Two Promised Lands Chapter 6 (2020-10-11, date from YouTube)",
    "status": "reviewed",
@@ -243,12 +380,53 @@
   },
   {
    "kind": "class",
+   "ref": "IlIKA0b4OGA",
+   "title": "#IUIC | PRECEPT UPON PRECEPT: #Black History - The Robert Smalls Story (undated)",
+   "status": "reviewed",
+   "note": "Read at 21:39–24:02: Smalls the politician.",
+   "events": [
+    "robert-smalls-in-congress-1875"
+   ]
+  },
+  {
+   "kind": "class",
    "ref": "Iux2iP0ok6I",
    "title": "PASSOVER: A CELEBRATION OF DELIVERANCE FROM OPPRESSION (2023-04-23)",
    "status": "reviewed",
    "note": "1:43:30–1:46:55 and 1:59:30–2:01:50 read: AIM, Deuteronomy 28:68, Young Lords, Brown Berets",
    "events": [
     "alcatraz-and-wounded-knee"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "IyYFXp99olM",
+   "title": "Edom: The Greatly Despised (2026-04-25)",
+   "status": "reviewed",
+   "note": "Read at 51:54, 1:36:28–1:39:48: Jones Act; Ponce named only.",
+   "events": [
+    "jones-act-1920",
+    "ponce-massacre-1937"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "KJyibd8-6PM",
+   "title": "The Hunter And The Prey (2024-03-16)",
+   "status": "reviewed",
+   "note": "Read at 1:28:38–1:34:32: Bulhoek and 1 Kings 8:46-49.",
+   "events": [
+    "bulhoek-massacre-1921"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "KXHV35e4bCg",
+   "title": "The Israelites: BEN CARSON GET OUT!!! (2017-03-20)",
+   "status": "reviewed",
+   "note": "Read at 6:28–8:24: Deuteronomy 28:31 and forty acres.",
+   "events": [
+    "forty-acres-and-the-freedmans-bank-1865"
    ]
   },
   {
@@ -299,6 +477,26 @@
    "note": "Read 2:01:19–2:06:02: Las Casas on Hispaniola. Host's name garbled ('bishop youngsta'), so no teacher recorded.",
    "events": [
     "las-casas-short-account-1552"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "MtljMsRavVY",
+   "title": "#IUIC | Be Not Deceived Evil Communications Corrupt Good Manners. (undated)",
+   "status": "reviewed",
+   "note": "Read at 57:19–57:49: Clip: Wounded Knee, Sand Creek.",
+   "events": [
+    "wounded-knee-massacre-1890"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "MyPhZvlWFQg",
+   "title": "THE ROAD TO THE BATTLE OF ARMAGEDDON (undated)",
+   "status": "reviewed",
+   "note": "Read at 28:49–33:39: Wilmington documentary.",
+   "events": [
+    "wilmington-coup-1898"
    ]
   },
   {
@@ -360,12 +558,32 @@
   },
   {
    "kind": "class",
+   "ref": "QtTSe8xTT5g",
+   "title": "#IUIC | TUESDAY NIGHT REDEMPTION: Woe (undated)",
+   "status": "reviewed",
+   "note": "Read at 25:49–29:51: Great Migration, redlining, Isaiah 5:8.",
+   "events": [
+    "great-migration-and-redlining"
+   ]
+  },
+  {
+   "kind": "class",
    "ref": "R0Vc-Kf6M_8",
    "title": "The Enemy Strikes First And Now it's Our Turn!! (streamed 2025-06-07)",
    "status": "reviewed",
    "note": "Read 22:28–27:23: Elmina 1482 and the other European forts.",
    "events": [
     "elmina-castle-1482"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "R6zYvdSsN84",
+   "title": "God's Revolution (2022-11-13)",
+   "status": "reviewed",
+   "note": "Read at 1:45:19–1:47:53: Moorish Zionist Temple and Commandment Keepers photos.",
+   "events": [
+    "harlem-hebrew-congregations-1919-1930"
    ]
   },
   {
@@ -386,6 +604,16 @@
    "note": "1:46:28–1:50:40 read: New England slave codes, Jeremiah 22:13",
    "events": [
     "virginia-condition-of-the-mother-1662"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "T9beROw7-Ws",
+   "title": "AMERICA AND THE WORLD WILL PAY REPARATIONS (2023-02-26)",
+   "status": "reviewed",
+   "note": "Read at 1:24:18–1:26:58: Klan founding read from screen.",
+   "events": [
+    "ku-klux-klan-founded-1865"
    ]
   },
   {
@@ -420,6 +648,16 @@
   },
   {
    "kind": "class",
+   "ref": "VJ7Q5Aj0TmQ",
+   "title": "THE BIBLE: BOOK OF OUR FATHERS | For He That Cometh Preacheth Another Jesus. (undated)",
+   "status": "reviewed",
+   "note": "Read at 1:01:08–1:04:26: Tuskegee with Deuteronomy 28, Ecclesiasticus 12:10, 2 Chronicles 7:14.",
+   "events": [
+    "tuskegee-syphilis-study-1932"
+   ]
+  },
+  {
+   "kind": "class",
    "ref": "VS6wYFxlwcU",
    "title": "The Archenemy Doctrine Of Christianity (2023-03-18)",
    "status": "reviewed",
@@ -442,10 +680,11 @@
   {
    "kind": "class",
    "ref": "WKwGsI57VmI",
-   "title": "Traumatizing Knees Of Pressure!! Leviticus 26 (2021-05-01)",
+   "title": "THE BIBLE : THE BOOK OF OUR FATHERS | Traumatizing Knees Of Pressure!! Leviticus 26 (2021-05-01)",
    "status": "reviewed",
-   "note": "45:15–48:30 read: Rodney King vs Emmett Till, the whole system",
+   "note": "Read at 1:06:22–1:09:59: Freedman's Bank, Deuteronomy 28:44, redlining clip.",
    "events": [
+    "forty-acres-and-the-freedmans-bank-1865",
     "rodney-king-1991"
    ]
   },
@@ -457,6 +696,26 @@
    "note": "1:55:28–2:04:10 read: Dred Scott v. Sandford",
    "events": [
     "dred-scott-1857"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "WaIcuHYexGs",
+   "title": "FROM  COVENANTS TO COLONIZATION TO CATASTROPHE (undated)",
+   "status": "reviewed",
+   "note": "Read at 3:02:37–3:04:39: Pratt's motto.",
+   "events": [
+    "carlisle-indian-school-1879"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "XKQtjuPlUa0",
+   "title": "Affliction: Trump 2.0 (2025-02-01)",
+   "status": "reviewed",
+   "note": "Read at 6:06–8:57: Garvey's pardon.",
+   "events": [
+    "marcus-garvey-unia"
    ]
   },
   {
@@ -474,6 +733,27 @@
    "status": "unreviewed",
    "note": "Search snippet only: Deuteronomy 28:68 as the Israelites taken as a nation on cargo slave ships (frame).",
    "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "_BiQAHG6SuE",
+   "title": "#IUIC | SABBATH MORNING CLASS: Prayer (2021-12-04)",
+   "status": "reviewed",
+   "note": "Read at 1:46:47–1:49:16: Wounded Knee Medals of Honor.",
+   "events": [
+    "wounded-knee-massacre-1890"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "_EHWzW6v7o0",
+   "title": "When Their Iniquity Had An End (2024-03-16)",
+   "status": "reviewed",
+   "note": "Read at 52:47, 1:23:23: Black Codes with Psalm 94:20; convict leasing read from screen.",
+   "events": [
+    "black-codes-1865",
+    "convict-leasing"
+   ]
   },
   {
    "kind": "class",
@@ -497,12 +777,50 @@
   },
   {
    "kind": "class",
+   "ref": "bXRHgh6OFFo",
+   "title": "#IUIC |OHH RADIO SHOW- TIMES OF THE GENTILES: RISE OF ROME (DEATH OF THE 12) CHAPTER 37 (undated)",
+   "status": "reviewed",
+   "note": "Read at 47:19–48:59: Sharecropping ended secretly in 1960.",
+   "events": [
+    "sharecropping"
+   ]
+  },
+  {
+   "kind": "class",
    "ref": "bcDnpqS5WMA",
    "title": "VENGEANCE: THE RETURN OF CHRIST (2022-12-26)",
    "status": "reviewed",
    "note": "Read 3:05:27–3:14:49: 1441 not 1619, Nicholas V, Black Pete. Panel includes Deacon Malachi and Captain Gideon, but the speaker at this moment is not named, so no teacher recorded.",
    "events": [
     "portuguese-captives-1441"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "bcDnpqS5WMA etc.",
+   "title": "Other search hits (Emmett Till classes, D_9BCkvT7H4 Tulsa video at 2:01:18, 2iTTN9QdCgc Garvey at 4:43:57, xq2_FUAs2XE Tulsa, IlIKA0b4OGA escape of 1862, H5r5CisviT8 convict leasing, I2t9az3C2EY Sugar Land)",
+   "status": "unreviewed",
+   "note": "Seen only as search snippets; not read in full.",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "bcGAKnFPmJU",
+   "title": "#IUIC | FIXX YA FACE FRIDAYS | APPLY THE PRESSURE! (2022-06-11)",
+   "status": "reviewed",
+   "note": "Read at 2:01:28–2:03:33: Clip on Crowdy.",
+   "events": [
+    "william-saunders-crowdy-1896"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "c-E3hvIwWuU",
+   "title": "#IUIC | The Israelites Are Back In Egypt (2021-05-22)",
+   "status": "reviewed",
+   "note": "Read at 25:27–30:01: Genesis 47:23-24 and sharecropping.",
+   "events": [
+    "sharecropping"
    ]
   },
   {
@@ -558,13 +876,25 @@
   },
   {
    "kind": "class",
+   "ref": "et2QscoZjjA",
+   "title": "Secrets Of History: The Two Promised Lands Chapter 5 (undated)",
+   "status": "reviewed",
+   "note": "Read at 58:38–1:00:02: Gad last conquered; Wounded Knee with Geronimo.",
+   "events": [
+    "wounded-knee-massacre-1890"
+   ]
+  },
+  {
+   "kind": "class",
    "ref": "hgF0VF-5XxA",
    "title": "The Israelites: The 8 Deadly Atrocities Committed Against Puerto Rico (2017-07-29)",
    "status": "reviewed",
    "note": "Read 47:28–52:57: Columbus's Taíno shipment to Seville, Deuteronomy 28:68. Captain Isaac reads the text; the teacher is not named.",
    "events": [
     "columbus-taino-captives-1495",
-    "puerto-rico-sterilizations"
+    "puerto-rico-sterilizations",
+    "rhoads-letter-puerto-rico-1931",
+    "us-invades-puerto-rico-1898"
    ]
   },
   {
@@ -574,6 +904,16 @@
    "status": "unreviewed",
    "note": "Snippet only: a news report that the Wood letter is fake; not read, not cited",
    "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "jkjOxb1_w-k",
+   "title": "STRANGE FRUIT (2026-08-01)",
+   "status": "reviewed",
+   "note": "Read at 21:28–25:14, 46:38–50:43: Strange Fruit, Marion photo, Ginzburg.",
+   "events": [
+    "marion-lynching-and-strange-fruit-1930"
+   ]
   },
   {
    "kind": "class",
@@ -593,8 +933,12 @@
    "note": "6:14–9:50 read: narrated timeline (Kimpa Vita, Gabriel, Turner, later forerunners)",
    "events": [
     "ben-ammi-liberia-dimona",
+    "bulhoek-massacre-1921",
     "gabriels-conspiracy-1800",
-    "kimpa-vita-1706"
+    "harlem-hebrew-congregations-1919-1930",
+    "kimpa-vita-1706",
+    "prophet-cherry-church-of-god",
+    "william-saunders-crowdy-1896"
    ]
   },
   {
@@ -620,12 +964,63 @@
   },
   {
    "kind": "class",
+   "ref": "lpKKZNtosss",
+   "title": "SABBATH NOON CLASS:  Jurisprudence (2020-04-04)",
+   "status": "reviewed",
+   "note": "Read at 55:48–59:05: Plessy v. Ferguson read from a list.",
+   "events": [
+    "plessy-v-ferguson-1896"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "mkiExG7y_UA",
+   "title": "THE BLACK BOULÉ & BOURGEOISIE IN THE BIBLE (2025-10-05)",
+   "status": "reviewed",
+   "note": "Read at 32:59–36:20: Ezekiel 35:5 and Zechariah 1:15 with a Black Codes clip.",
+   "events": [
+    "black-codes-1865"
+   ]
+  },
+  {
+   "kind": "class",
    "ref": "mxSm7WuTnEI",
    "title": "LET'S TALK TRUTH || The Cult Origins of Caucasian Christianity (streamed 2023-10-06)",
    "status": "reviewed",
    "note": "Read 1:19:37–1:25:54: Lagos 1444, 235 captives, Order of Christ, Zurara's description, Obadiah 1:12.",
    "events": [
     "lagos-captives-1444"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "nGba4nef0AM",
+   "title": "ITSR: The Trenches: Activism & Revolution In The Truth (undated)",
+   "status": "reviewed",
+   "note": "Read at 1:26:19–1:30:27: Cherry, Bivens, ISUPK history read from screen.",
+   "events": [
+    "prophet-cherry-church-of-god"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "ngs2u3Xkzn8",
+   "title": "#IUIC | THE BIBLE: BOOK OF OUR FATHERS | Freedom From Fear & Bondage (Part 2) (undated)",
+   "status": "reviewed",
+   "note": "Read at 1:54:38–1:57:58: Deuteronomy 28:50 and Tuskegee.",
+   "events": [
+    "tuskegee-syphilis-study-1932"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "nwLjEGhd2oA",
+   "title": "AS IN THE DAYS OF NOAH: PAST & PRESENT (2026-07-18)",
+   "status": "reviewed",
+   "note": "Read at 59:48–1:01:33: Sharecropping to 1960; Tulsa planes.",
+   "events": [
+    "sharecropping",
+    "tulsa-race-massacre-1921"
    ]
   },
   {
@@ -646,6 +1041,46 @@
    "note": "Read 1:16:28–1:21:12: caravels, February 1495 shipment, Cuneo, Deuteronomy 28:68.",
    "events": [
     "columbus-taino-captives-1495"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "p07mRoV4BYo",
+   "title": "Nephilim And The Warnings Of Jude (undated)",
+   "status": "reviewed",
+   "note": "Read at 34:49–38:24: Hoover, Garvey, Tulsa.",
+   "events": [
+    "marcus-garvey-unia"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "pBD8P3LGW9k",
+   "title": "State of Decay (2025-11-01)",
+   "status": "reviewed",
+   "note": "Read at 53:38–55:38: Allotment act and Psalm 55:21.",
+   "events": [
+    "dawes-act-1887"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "pnATaclxdds",
+   "title": "#IUIC | PRECEPT UPON PRECEPT: #Black History - The Robert Smalls Story 2 (undated)",
+   "status": "reviewed",
+   "note": "Read at 8:59–17:05: Daniel 1:9; early life; Reconstruction officials and the Klan (18:48–20:06).",
+   "events": [
+    "robert-smalls-in-congress-1875"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "powU4vAS7TI",
+   "title": "The Israelites: Christianity Is Worse Than Radical Islam (2015-03-27)",
+   "status": "reviewed",
+   "note": "Read at 16:43–19:00: Black Wall Street figures.",
+   "events": [
+    "tulsa-race-massacre-1921"
    ]
   },
   {
@@ -751,6 +1186,7 @@
    "status": "reviewed",
    "note": "52:26–1:09:30 read: Emancipation Proclamation, 13th Amendment, Deuteronomy 28:48",
    "events": [
+    "convict-leasing",
     "emancipation-proclamation-1863",
     "thirteenth-amendment-1865"
    ]
@@ -770,6 +1206,16 @@
    "status": "reviewed",
    "note": "29:57–32:20 read: a played documentary on Hispaniola 1697–1844; not used (undated, mostly played clip)",
    "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "wPYCWcMjc7o",
+   "title": "#IUIC | SABBATH EVENING CLASS: RACE, FAITH & PERSECUTION (2022-07-10)",
+   "status": "reviewed",
+   "note": "Read at 1:15:37–1:17:32: Capirote and the Klan.",
+   "events": [
+    "ku-klux-klan-founded-1865"
+   ]
   },
   {
    "kind": "class",
@@ -912,15 +1358,19 @@
    "note": "Kimpa Vita, Gabriel Prosser, Denmark Vesey, Nat Turner, Revelation 11:11 (350 years)",
    "events": [
     "ben-ammi-liberia-dimona",
+    "bulhoek-massacre-1921",
     "denmark-vesey-1822",
     "gabriels-conspiracy-1800",
+    "harlem-hebrew-congregations-1919-1930",
     "kimpa-vita-1706",
     "masha-yaiqab-and-the-seven",
     "nat-turner-1831",
     "point-comfort-1619",
+    "prophet-cherry-church-of-god",
     "shirley-chisholm-1969",
     "the-1990s-splits",
     "the-awakening-1969-abba-bivens",
+    "william-saunders-crowdy-1896",
     "yahweh-ben-yahweh"
    ]
   },
@@ -1027,6 +1477,16 @@
   },
   {
    "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Arnold_Josiah_Ford",
+   "title": "Arnold Josiah Ford",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "harlem-hebrew-congregations-1919-1930"
+   ]
+  },
+  {
+   "kind": "web",
    "ref": "https://en.wikipedia.org/wiki/Asiento_de_Negros",
    "title": "Asiento de Negros (Wikipedia)",
    "status": "reviewed",
@@ -1088,13 +1548,26 @@
   },
   {
    "kind": "web",
-   "ref": "https://en.wikipedia.org/wiki/Black_Hebrew_Israelites",
-   "title": "Wikipedia: Black Hebrew Israelites",
+   "ref": "https://en.wikipedia.org/wiki/Black_Codes_(United_States)",
+   "title": "Black Codes (United States) (read via Wayback)",
    "status": "reviewed",
-   "note": "read",
+   "note": "Read on 2026-10-03.",
    "events": [
+    "black-codes-1865"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Black_Hebrew_Israelites",
+   "title": "Black Hebrew Israelites",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "ben-ammi-liberia-dimona",
+    "harlem-hebrew-congregations-1919-1930",
+    "prophet-cherry-church-of-god",
     "the-awakening-1969-abba-bivens",
-    "ben-ammi-liberia-dimona"
+    "william-saunders-crowdy-1896"
    ]
   },
   {
@@ -1109,6 +1582,36 @@
   },
   {
    "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Bulhoek_massacre",
+   "title": "Bulhoek massacre",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "bulhoek-massacre-1921"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Carlisle_Indian_Industrial_School",
+   "title": "Carlisle Indian Industrial School",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "carlisle-indian-school-1879"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Chicago_race_riot_of_1919",
+   "title": "Chicago race riot of 1919",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "red-summer-and-elaine-1919"
+   ]
+  },
+  {
+   "kind": "web",
    "ref": "https://en.wikipedia.org/wiki/Christopher_Columbus",
    "title": "Christopher Columbus (Wikipedia)",
    "status": "reviewed",
@@ -1116,6 +1619,14 @@
    "events": [
     "columbus-taino-captives-1495"
    ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Church_of_God_(Black_Jews)",
+   "title": "Church of God (Black Jews)",
+   "status": "inaccessible",
+   "note": "No snapshot; the Frank Cherry article was used instead.",
+   "events": []
   },
   {
    "kind": "web",
@@ -1135,6 +1646,46 @@
    "note": "read",
    "events": [
     "clotilda-1860"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Colfax_massacre",
+   "title": "Colfax massacre",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "opelousas-and-colfax-massacres-1868-1873"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Commandment_Keepers",
+   "title": "Commandment Keepers",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "harlem-hebrew-congregations-1919-1930"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Convict_leasing",
+   "title": "Convict leasing",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "convict-leasing"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Cornelius_P._Rhoads",
+   "title": "Cornelius P. Rhoads",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "rhoads-letter-puerto-rico-1931"
    ]
   },
   {
@@ -1177,6 +1728,17 @@
   },
   {
    "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Elaine_massacre",
+   "title": "Elaine massacre",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "red-summer-and-elaine-1919",
+    "sharecropping"
+   ]
+  },
+  {
+   "kind": "web",
    "ref": "https://en.wikipedia.org/wiki/Elmina_Castle",
    "title": "Elmina Castle (Wikipedia)",
    "status": "reviewed",
@@ -1197,6 +1759,16 @@
   },
   {
    "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Enoch_Mgijima",
+   "title": "Enoch Mgijima",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "bulhoek-massacre-1921"
+   ]
+  },
+  {
+   "kind": "web",
    "ref": "https://en.wikipedia.org/wiki/Fall_of_Tenochtitlan",
    "title": "Fall of Tenochtitlan (Wikipedia)",
    "status": "reviewed",
@@ -1207,12 +1779,42 @@
   },
   {
    "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Forty_acres_and_a_mule",
+   "title": "Forty acres and a mule",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "forty-acres-and-the-freedmans-bank-1865"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Frank_S._Cherry",
+   "title": "Frank Cherry",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "prophet-cherry-church-of-god"
+   ]
+  },
+  {
+   "kind": "web",
    "ref": "https://en.wikipedia.org/wiki/Fred_Hampton",
    "title": "Wikipedia: Fred Hampton",
    "status": "reviewed",
    "note": "read",
    "events": [
     "fred-hampton-cointelpro-1969"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Freedman%27s_Savings_Bank",
+   "title": "Freedman's Savings Bank",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "forty-acres-and-the-freedmans-bank-1865"
    ]
   },
   {
@@ -1233,6 +1835,16 @@
    "note": "Maroon colony c. 1570–1618/1641.",
    "events": [
     "yanga-maroons-1570"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Great_Migration_(African_American)",
+   "title": "Great Migration (African American)",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "great-migration-and-redlining"
    ]
   },
   {
@@ -1325,6 +1937,16 @@
   },
   {
    "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Ku_Klux_Klan",
+   "title": "Ku Klux Klan",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "ku-klux-klan-founded-1865"
+   ]
+  },
+  {
+   "kind": "web",
    "ref": "https://en.wikipedia.org/wiki/La_Amistad",
    "title": "La Amistad / United States v. The Amistad (Wikipedia)",
    "status": "reviewed",
@@ -1355,6 +1977,47 @@
   },
   {
    "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Lewis_Howard_Latimer",
+   "title": "Lewis Howard Latimer",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "lewis-latimer-carbon-filament-1881"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Lynching_in_the_United_States",
+   "title": "Lynching in the United States",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "marion-lynching-and-strange-fruit-1930",
+    "emmett-till-1955"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Lynching_of_Thomas_Shipp_and_Abram_Smith",
+   "title": "Lynching of Thomas Shipp and Abram Smith",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "marion-lynching-and-strange-fruit-1930"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Marcus_Garvey",
+   "title": "Marcus Garvey",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "marcus-garvey-unia"
+   ]
+  },
+  {
+   "kind": "web",
    "ref": "https://en.wikipedia.org/wiki/Maroons",
    "title": "Maroons (Wikipedia)",
    "status": "reviewed",
@@ -1375,12 +2038,40 @@
   },
   {
    "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Merchant_Marine_Act_of_1920",
+   "title": "Merchant Marine Act of 1920",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "jones-act-1920"
+   ]
+  },
+  {
+   "kind": "web",
    "ref": "https://en.wikipedia.org/wiki/Montgomery_bus_boycott",
    "title": "Wikipedia: Montgomery bus boycott",
    "status": "reviewed",
    "note": "read",
    "events": [
     "montgomery-bus-boycott"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Moorish_Zionist_Temple",
+   "title": "Moorish Zionist Temple",
+   "status": "inaccessible",
+   "note": "No article or snapshot; the Mordecai Herman article was used instead.",
+   "events": []
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Mordecai_Herman",
+   "title": "Mordecai Herman",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "harlem-hebrew-congregations-1919-1930"
    ]
   },
   {
@@ -1405,12 +2096,32 @@
   },
   {
    "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Opelousas_massacre",
+   "title": "Opelousas massacre",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "opelousas-and-colfax-massacres-1868-1873"
+   ]
+  },
+  {
+   "kind": "web",
    "ref": "https://en.wikipedia.org/wiki/Pope_Nicholas_V",
    "title": "Pope Nicholas V (Wikipedia)",
    "status": "reviewed",
    "note": "Papacy 1447–1455.",
    "events": [
     "papal-bulls-1452-1455"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Puerto_Rico_campaign",
+   "title": "Puerto Rico campaign",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "us-invades-puerto-rico-1898"
    ]
   },
   {
@@ -1422,6 +2133,34 @@
    "events": [
     "nanny-of-the-maroons"
    ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Red_Summer",
+   "title": "Red Summer",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "red-summer-and-elaine-1919"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Redlining",
+   "title": "Redlining",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "great-migration-and-redlining"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Robert_Smalls",
+   "title": "Robert Smalls",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03. Read but not cited (the House entry was used instead).",
+   "events": []
   },
   {
    "kind": "web",
@@ -1441,6 +2180,26 @@
    "note": "January 1455.",
    "events": [
     "papal-bulls-1452-1455"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Rosewood_massacre",
+   "title": "Rosewood massacre",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "rosewood-massacre-1923"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Sharecropping",
+   "title": "Sharecropping",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "sharecropping"
    ]
   },
   {
@@ -1495,6 +2254,26 @@
   },
   {
    "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Strange_Fruit",
+   "title": "Strange Fruit",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "marion-lynching-and-strange-fruit-1930"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Sugar_Land_95",
+   "title": "Sugar Land 95",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "convict-leasing"
+   ]
+  },
+  {
+   "kind": "web",
    "ref": "https://en.wikipedia.org/wiki/Treaty_of_Tordesillas",
    "title": "Treaty of Tordesillas (Wikipedia)",
    "status": "reviewed",
@@ -1505,12 +2284,23 @@
   },
   {
    "kind": "web",
-   "ref": "https://en.wikipedia.org/wiki/Tuskegee_Syphilis_Study",
-   "title": "Wikipedia: Tuskegee Syphilis Study",
+   "ref": "https://en.wikipedia.org/wiki/Tulsa_race_massacre",
+   "title": "Tulsa race massacre",
    "status": "reviewed",
-   "note": "read",
+   "note": "Read on 2026-10-03.",
    "events": [
-    "tuskegee-study-exposed-1972"
+    "tulsa-race-massacre-1921"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Tuskegee_Syphilis_Study",
+   "title": "Tuskegee Syphilis Study",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "tuskegee-study-exposed-1972",
+    "tuskegee-syphilis-study-1932"
    ]
   },
   {
@@ -1521,6 +2311,46 @@
    "note": "read",
    "events": [
     "drug-laws-1986-and-crime-bill-1994"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Wentworth_Arthur_Matthew",
+   "title": "Wentworth Arthur Matthew",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "harlem-hebrew-congregations-1919-1930"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/William_Saunders_Crowdy",
+   "title": "William Saunders Crowdy",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "william-saunders-crowdy-1896"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Wilmington_massacre",
+   "title": "Wilmington massacre",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "wilmington-coup-1898"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Wounded_Knee_Massacre",
+   "title": "Wounded Knee Massacre",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "wounded-knee-massacre-1890"
    ]
   },
   {
@@ -1552,6 +2382,14 @@
    "events": [
     "young-lords-brown-berets"
    ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://encyclopediaofarkansas.net/entries/elaine-massacre-1102/",
+   "title": "Elaine Massacre, Encyclopedia of Arkansas",
+   "status": "inaccessible",
+   "note": "No snapshot reachable.",
+   "events": []
   },
   {
    "kind": "web",
@@ -1589,6 +2427,16 @@
    "note": "read",
    "events": [
     "virginia-condition-of-the-mother-1662"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://history.house.gov/People/Detail/21764",
+   "title": "SMALLS, Robert — House History, Art & Archives (read via Wayback)",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "robert-smalls-in-congress-1875"
    ]
   },
   {
@@ -1708,6 +2556,16 @@
   },
   {
    "kind": "web",
+   "ref": "https://www.archives.gov/milestone-documents/dawes-act",
+   "title": "Dawes Act (1887), National Archives",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "dawes-act-1887"
+   ]
+  },
+  {
+   "kind": "web",
    "ref": "https://www.archives.gov/milestone-documents/dred-scott-v-sandford",
    "title": "Dred Scott v. Sandford (National Archives)",
    "status": "reviewed",
@@ -1724,6 +2582,16 @@
    "note": "read",
    "events": [
     "emancipation-proclamation-1863"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.archives.gov/milestone-documents/plessy-v-ferguson",
+   "title": "Plessy v. Ferguson (1896), National Archives",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "plessy-v-ferguson-1896"
    ]
   },
   {
@@ -1754,6 +2622,16 @@
    "note": "read",
    "events": [
     "tuskegee-study-exposed-1972"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.cdc.gov/tuskegee/about/timeline.html",
+   "title": "The Untreated Syphilis Study at Tuskegee Timeline, CDC (read via Wayback)",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "tuskegee-syphilis-study-1932"
    ]
   },
   {
@@ -1827,6 +2705,16 @@
   },
   {
    "kind": "web",
+   "ref": "https://www.okhistory.org/publications/enc/entry?entry=TU013",
+   "title": "Tulsa Race Massacre, Oklahoma Historical Society",
+   "status": "reviewed",
+   "note": "Read on 2026-10-03.",
+   "events": [
+    "tulsa-race-massacre-1921"
+   ]
+  },
+  {
+   "kind": "web",
    "ref": "https://www.splcenter.org/fighting-hate/intelligence-report/2015/history-hebrew-israelism",
    "title": "SPLC: History of Hebrew Israelism (via Wayback)",
    "status": "reviewed",
@@ -1877,6 +2765,22 @@
   "house-of-bondage: image: 'Death of Capt. Ferrer, the Captain of the Amistad, July, 1839', lithograph in J. W. Barber, A History of the Amistad Captives (1840), shown in yPfk3nm3mHo; find on Library of Congress / Wikimedia Commons.",
   "house-of-bondage: image: General Order No. 3 (National Archives, RG 393) and the Emancipation Proclamation and 13th Amendment joint resolution (National Archives catalog).",
   "house-of-bondage: image: Nanny on the Jamaican $500 note is not public domain; look instead for an archival map of the Blue Mountains maroon settlements.",
+  "jim-crow: The Great Migration is folded into the redlining event; it may deserve its own event (1910–1970 runs past this period's end).",
+  "jim-crow: Black Wall Street before 1921, Mound Bayou, Durham's Hayti and Detroit's Black Bottom are named by the classes (Rejoice Thou Holy Prophets And Apostles; Church Invites ISRAELITES Inside) but were not researched as events.",
+  "jim-crow: Emmett Till (1955) sits on the boundary with Civil Rights and the Awakening: owner to decide which period takes it (draft queued).",
+  "jim-crow: Ponce massacre (1937) and the 1917 Jones–Shafroth Act (U.S. citizenship for Puerto Ricans): class moments only name them; documented sources not read.",
+  "jim-crow: Inventors beyond Latimer (Elijah McCoy, Granville Woods, Garrett Morgan, Frederick McKinley Jones) are taught in PRECEPT UPON PRECEPT: FORGOTTEN BLACK INVENTORS (85YCbSQhEeg) and MORE FORGOTTEN BLACK INVENTORS (DpWh65LlfyI), both undated; not yet researched.",
+  "jim-crow: Robert Smalls's 1862 escape on the Planter falls before this period's startYear (1863); it belongs to The House of Bondage.",
+  "jim-crow: Many of the best class moments here are undated in the recordings' metadata (e.g. Hammer Time, ESCP 2.0, Two Promised Lands classes); dates should be filled in if the channel metadata is completed.",
+  "jim-crow: Lynching is covered through Marion (1930); a general lynching-era event with the Tuskegee Institute totals could be added, and the class's use of Ginzburg's 100 Years of Lynchings checked against the book.",
+  "jim-crow: image: Lawrence Beitler's photograph of the Marion lynching (1930) is widely reproduced but is a documentary photograph of an atrocity; owner to decide whether any image should be used.",
+  "jim-crow: image: Harper's Weekly engraving “Gathering the dead after the Colfax massacre” (May 10, 1873), public domain; source page via Wikimedia Commons (from the Colfax massacre article).",
+  "jim-crow: image: HOLC 1937 “residential security” map of Philadelphia (public domain, U.S. government); Wikimedia Commons, linked from the Redlining article.",
+  "jim-crow: image: Carlisle Indian School before-and-after photographs (public domain); Wikimedia Commons, linked from the Carlisle Indian Industrial School article.",
+  "jim-crow: image: Official portrait of Robert Smalls (public domain), Library of Congress / U.S. House collection.",
+  "jim-crow: image: Photograph of Marcus Garvey, 1924 (public domain), Library of Congress (George Grantham Bain collection).",
+  "jim-crow: image: James Van Der Zee photograph of Rabbi Mordecai Herman (rights to be checked; cited by the New Orleans Museum of Art).",
+  "jim-crow: image: 1921 postcard “Little Africa on fire, Tulsa race riot” (public domain), shown in Nephilim And The Warnings Of Jude; Library of Congress / Wikimedia Commons copies to be located.",
   "civil-rights-awakening: Independent documentation for IUIC's account of the 1990s: Lahab's excommunication (1994), the Rosicrucian offers, the 1995 split, the founding of the House of David (1996) and the ICGJC at 1941 Madison Avenue. Only IUIC's page, the classes and the SPLC's general statements were found. Michael T. Miller, Black Hebrew Israelites (Cambridge UP, 2024) is cited by Wikipedia and may cover it; not read.",
   "civil-rights-awakening: Abba Bivens: no independent source gives his dates, the Torah School of Knowledge name, or the circumstances of his death. The classes give 1969 and one gives 1975; IUIC's page gives 1960.",
   "civil-rights-awakening: Owner's decision: whether to show the SPLC/ADL characterisations of other Hebrew Israelite groups at all. They were left out; only dated facts from the SPLC were used, attributed.",
