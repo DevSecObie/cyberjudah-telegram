@@ -124,6 +124,9 @@ html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__ba
 }
 .tabs[data-drag] .tabs__pill { transition: opacity var(--dur-2) ease; }
 .tabs[data-drag] { cursor: grabbing; }
+.tabs__pill::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--rim-highlight); opacity: 0; pointer-events: none; }
+.tabs__pill[data-flow]::after { animation: pill-release var(--dur-3) var(--ease); }
+@keyframes pill-release { 0%, 100% { opacity: 0; } 40% { opacity: 1; } }
 .tabs .tab__glyph { transform: scale(var(--mag, 1)); transition: transform var(--dur-1) var(--ease); }
 .tabs[data-drag] .tab { color: var(--dock-ink-override, var(--text-1)); }
 /* The reader's palette overrides must not bypass transparency/contrast preferences. */
@@ -145,7 +148,7 @@ html[data-transparency="reduced"] .tabs::after { display: none; }
   .tabs__pill, .tabs .tab__glyph { scale: none; }
   .tabs .tab__glyph { transform: none; }
   .tabs .tab:active .tab__glyph { transform: none; }
-  .tabs__pill[data-flow] { animation: none; }
+  .tabs__pill[data-flow]::after { animation: none; }
   .tabs::after { display: none; }
 }
 @media (forced-colors: active) {

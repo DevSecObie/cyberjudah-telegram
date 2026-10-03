@@ -223,7 +223,7 @@ test("glass: transferring touch capture from the button to the dock does not can
   await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await expect(page).toHaveURL(/\/classes/);
   // Let the selection settle before starting a separate touch gesture.
-  await dock.locator(".tabs__pill").evaluate(async pill => { await Promise.all(pill.getAnimations().map(animation => animation.finished.catch(() => {}))); });
+  await expect(dock.locator(".tabs__pill")).not.toHaveAttribute("data-flow");
   await dock.getByRole("button", { name: "Search", exact: true }).tap();
   await expect(page).toHaveURL(/\/search/);
   await session.detach();

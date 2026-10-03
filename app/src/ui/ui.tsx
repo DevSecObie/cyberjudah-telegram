@@ -147,6 +147,8 @@ export function TabBar() {
     const it = open && near >= 0 ? items[near] : null;
     // Opening the section moves the pill there; otherwise it springs back to where it was.
     if (it && current !== it.id) { long.current = false; it.onClick(); }
+    const pill = nav.querySelector<HTMLElement>(".tabs__pill");
+    if (pill && !matchMedia("(prefers-reduced-motion: reduce)").matches) pill.dataset.flow = "";
   };
   const cancelPress = () => {
     window.clearTimeout(press.current);
@@ -162,6 +164,8 @@ export function TabBar() {
       long.current = false; eatClick.current = false; swipe.current = { x: e.clientX, y: e.clientY };
       press.current = window.setTimeout(() => { long.current = true; lensEnd(false, false); haptic("heavy"); setDrawer(null); navigate("/settings/bar"); }, 600);
       const nav = bar.current, on = (e.target as HTMLElement).closest<HTMLElement>(".tab[data-on]");
+      const pill = nav?.querySelector<HTMLElement>(".tabs__pill");
+      if (pill) delete pill.dataset.flow;
       if (nav && on && !mini) {
         const col = getComputedStyle(nav).flexDirection === "column";
         // Read all gesture geometry before pointer-move feedback begins.
@@ -205,8 +209,11 @@ export function TabBar() {
       if (lens.current) return; // A data refresh or resize must not pull a held selection away.
       const on = nav.querySelector<HTMLElement>(".tab[data-on]");
       const shown = !!on && on.offsetWidth > 0;
-      // The transform transition moves the pill without forcing layout to restart a keyframe.
+      // Translation and a release highlight settle independently, without forcing layout.
       const x = `${shown ? on!.offsetLeft : 0}px`, y = `${shown ? on!.offsetTop : 0}px`;
+      const was = nav.style.getPropertyValue("--pill-x"), wasY = nav.style.getPropertyValue("--pill-y");
+      const pill = nav.querySelector<HTMLElement>(".tabs__pill");
+      if (pill && shown && was && (was !== x || wasY !== y) && !matchMedia("(prefers-reduced-motion: reduce)").matches) pill.dataset.flow = "";
       nav.style.setProperty("--pill-x", x);
       nav.style.setProperty("--pill-y", y);
       nav.style.setProperty("--pill-w", `${shown ? on!.offsetWidth : 0}px`);
@@ -234,7 +241,7 @@ export function TabBar() {
   return (
     <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} {...hold}
       onClickCapture={(e) => { if (eatClick.current) { eatClick.current = false; if (e.detail > 0) { e.stopPropagation(); e.preventDefault(); return; } } if (mini) { e.stopPropagation(); e.preventDefault(); haptic("select"); expandBar(); } }}>
-      <span className="tabs__pill" aria-hidden="true" />
+      <span className="tabs__pill" aria-hidden="true" onAnimationEnd={(e) => { delete e.currentTarget.dataset.flow; }} />
       {items.map((it) => {
         const on = current === it.id;
         // Collapsed, the capsule shows the current section, or the Menu where the screen is not one of them.
