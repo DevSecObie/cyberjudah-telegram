@@ -56,7 +56,7 @@ export function Lexicon() {
       <Segmented label="Language" value={lang} onChange={(l) => { setLimit(60); set({ lang: l }); }} options={[["hebrew", `Hebrew ${idx.data ? (idx.data.length - rows.length && lang === "greek" ? idx.data.filter((r) => r.n[0] === "H").length : rows.length).toLocaleString() : ""}`], ["greek", `Greek ${idx.data ? idx.data.filter((r) => r.n[0] === "G").length.toLocaleString() : ""}`]]} />
       <SearchField id="lex-q" value={q} onChange={(v) => { setQ(v); setLimit(60); }} placeholder={lang === "hebrew" ? "A number (H430), a word, elohim, or a meaning" : "A number (G26), a word, agape, or a meaning"} />
       {!debounced && ofDay ? (
-        <Section title="Word of the day">
+        <Section title="Word of the Day">
           <Link to={`/lexicon/${ofDay.n}`} className="lex-day" onClick={() => haptic("select")}>
             <span className="lex-day__lemma" lang={lang === "hebrew" ? "he" : "el"} dir={lang === "hebrew" ? "rtl" : "ltr"}>{ofDay.lemma}</span>
             <span className="lex-day__body"><b>{ofDay.xlit || ofDay.n}</b><span>{preview(ofDay.def)}</span><small>Strong's {ofDay.n} · {ofDay.count.toLocaleString()} times</small></span>

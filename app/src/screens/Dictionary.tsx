@@ -39,7 +39,7 @@ export function Dictionary() {
       {!q && !letter && !from ? <div className="letters">{LETTERS.map((l) => <button key={l} type="button" aria-pressed={letter === l} onClick={() => setParams({ letter: l }, { replace: true })}>{l}</button>)}</div> : null}
       {letter ? <Chips><Chip on onClick={() => setParams({}, { replace: true })}>{letter} ×</Chip></Chips> : null}
       {from && !q ? (
-        <Section title="In these verses">
+        <Section title="In These Verses">
           {found.isPending ? <Skeleton rows={3} /> : !found.data?.length ? <Empty title="No dictionary entry for these words">Search for a name or a place instead.</Empty> : <List>{found.data.map((e) => <Row key={e.slug} href={`/dictionary/${e.slug}`} title={e.term} sub={e.definitions[0]} />)}</List>}
         </Section>
       ) : null}

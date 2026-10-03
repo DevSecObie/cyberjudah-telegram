@@ -49,7 +49,7 @@ export function WordStudy({ number, books, here, onRead, enabled = true }: { num
           </header>
           {e.def ? <section className="bs-word__sec"><h3>Meaning</h3><p>{e.def}</p></section> : null}
           {e.derivation ? <section className="bs-word__sec"><h3>Derivation</h3><p>{e.derivation}</p></section> : null}
-          {e.kjv ? <section className="bs-word__sec"><h3>The King James renders it</h3><p>{e.kjv}</p></section> : null}
+          {e.kjv ? <section className="bs-word__sec"><h3>The King James Renders It</h3><p>{e.kjv}</p></section> : null}
           {e.words.length ? (
             <section className="bs-word__sec">
               <h3>Most often as</h3>

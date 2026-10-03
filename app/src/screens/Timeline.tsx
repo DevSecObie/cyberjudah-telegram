@@ -163,7 +163,7 @@ function SectionCard({ s, direction }: { s: TimelineSection; direction?: "previo
       <span className="tl-card__side" aria-hidden="true">{direction === "previous" ? <Feather name="chevron-left" size={60} color="currentColor" /> : null}</span>
       <span className="tl-card__main">
         <span className="tl-card__age">{s.sectionTitle}</span>
-        <span className="tl-card__title">{s.title.toUpperCase()}</span>
+        <span className="tl-card__title">{s.title}</span>
         <span className="tl-card__sub">{s.subTitle}</span>
         <PeriodPicture s={s} className="tl-card__pic" />
         <i className="tl-card__bar" aria-hidden="true" />
@@ -334,7 +334,7 @@ function PeriodDetails({ s }: { s: TimelineSection }) {
       <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.id)} />
       {withCases.length ? (
         <>
-          <h2 className="entity__eyebrow">Case studies in this period<span> · {withCases.reduce((n, e) => n + e.cases!.length, 0)}</span></h2>
+          <h2 className="entity__eyebrow">Case Studies in This Period<span> · {withCases.reduce((n, e) => n + e.cases!.length, 0)}</span></h2>
           <ul className="tl-details__list">{withCases.map((e) => <li key={e.slug}><Link to={`/timeline/event/${e.slug}`} onClick={() => haptic("select")}><b>{e.title}</b><span>{calculateLabel(e.start, e.end)}</span></Link></li>)}</ul>
         </>
       ) : <p className="hint">No case study is on an event of this period yet.</p>}

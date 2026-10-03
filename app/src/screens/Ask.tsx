@@ -441,7 +441,7 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
           <div className="msg__text" onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />
           {t.actions?.length && !t.thinking ? (
             <div className="msg__actionsets">
-              <p className="msg__label">Waiting for you</p>
+              <p className="msg__label">Waiting for You</p>
               {t.actions.map((a) => <ActionCard key={a.id} action={a} chatId={chatId} />)}
             </div>
           ) : null}
@@ -568,7 +568,7 @@ function ModelSheet({ models: list, current, onClose, onPick, onRetry }: { model
     <Sheet open onClose={onClose} height="full" title="Model" subTitle="What a typical answer costs on each, at the model's own price" className="chats-sheet">
       <div className="models" role="radiogroup" aria-label="Model">
         <input className="models__search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search models or providers" aria-label="Search models" />
-        {shown.filter((m) => m.free).map((m) => <div key="free" className="models__group"><h3>Free, always</h3>{row(m)}</div>)}
+        {shown.filter((m) => m.free).map((m) => <div key="free" className="models__group"><h3>Free, Always</h3>{row(m)}</div>)}
         {groups.map((g) => <div key={g} className="models__group"><h3>{g}</h3>{shown.filter((m) => !m.free && m.provider === g).map(row)}</div>)}
         {!list ? <p className="models__none" aria-busy="true">Loading the models…</p>
           : !models.length ? <p className="models__none">The models could not be loaded. <button type="button" className="msg__link" onClick={onRetry}>Try again</button></p>
@@ -603,7 +603,7 @@ function ShortCard({ m, acct, last, onPlans, onRetry, onUseModel }: { m?: MeterI
       <p className="creditcard__text">Your question is kept here. Ask it with the free model, or top up and ask again.</p>
       {last ? <div className="consent__actions">
         {free && free.id !== m?.model ? <button type="button" className="btn consent__go" onClick={() => onUseModel(free.id)}>Ask with {free.name} (free)</button> : null}
-        <button type="button" className={free && free.id !== m?.model ? "consent__alt" : "btn consent__go"} onClick={onPlans}>Top up</button>
+        <button type="button" className={free && free.id !== m?.model ? "consent__alt" : "btn consent__go"} onClick={onPlans}>Top Up</button>
         <button type="button" className="consent__alt" onClick={onRetry}>Ask again</button>
       </div> : null}
     </div>
@@ -662,7 +662,7 @@ function BalanceSheet({ acct, onClose, onPaid, onUsage, onChanged }: { acct: Ask
 
         {sale ? (
           <>
-            <h3 className="credits__label">Top up</h3>
+            <h3 className="credits__label">Top Up</h3>
             {sale.pause ? <p className="credits__pause" role="status"><Icon name="clock" size={16} />{sale.pause.message}</p>
               : !sale.open ? <p className="credits__closed" role="status">Top-ups open soon. Your balance and the free model work as usual.</p>
               : <div className="credits__topups">{sale.topups.map((t) => (

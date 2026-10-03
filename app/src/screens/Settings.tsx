@@ -10,7 +10,7 @@ import { alert, api, app, confirm, features, haptic, openInvoice, platform, requ
 import { secure } from "@/tg/store";
 import { parseBackup, restore, sendBackup } from "@/lib/backup";
 import { useSheet } from "@/ui/sheet";
-import { Icon, List, Row, Screen, Section, Segmented } from "@/ui/ui";
+import { Icon, List, Row, Screen, FormSection as Section, Segmented } from "@/ui/ui";
 import { useRelationsDisplay } from "@/lib/relations";
 import { useBibleSettings } from "@/bible/settings";
 import type { Font, Spacing } from "@/ui/theme";
@@ -110,16 +110,16 @@ export function Settings() {
         </List>
       </Section>
       {offlineSupported ? (
-        <Section title="Offline books" action={<button type="button" className="link" disabled={books.isPending || !!saving} onClick={() => void offline()}>Save a book</button>}>
+        <Section title="Offline Books" action={<button type="button" className="link" disabled={books.isPending || !!saving} onClick={() => void offline()}>Save a book</button>}>
           {saving ? <div className="progress"><i style={{ width: `${saving.pct}%` }} /></div> : null}
           {saved.length ? <List>{saved.map((s) => <Row key={s} onClick={() => void forget(s)} title={books.data?.find((b) => b.slug === s)?.book ?? s} sub="Saved on this device · tap to remove" trailing={<span className="pill pill--ok">offline</span>} />)}</List> : <p className="hint">Save the text to read without a connection. Available narration is an optional extra download.</p>}
         </Section>
       ) : null}
-      <Section title="Reading reminders">
+      <Section title="Reading Reminders">
         <List><Row title="Reading reminders" sub="Today's reading, at your time, in Telegram or as a push notification" onClick={() => navigate("/settings/reminders")} /></List>
         <List><Row title="Privacy" sub="What is kept, who sees it, and your choices: download or delete your data" onClick={() => navigate("/privacy")} /></List>
       </Section>
-      <Section title="Daily verse">
+      <Section title="Daily Verse">
         <List>
           {/* Outside Telegram there is no chat for the bot to send to: said here, at the switch. */}
           <Toggle on={!!daily} disabled={!app} onChange={(v) => void subscribe(v)} title="A verse every morning" sub={!app ? "Sent by the CyberJudah bot in Telegram. Open CyberJudah in Telegram to turn it on." : daily === null ? "Checking…" : daily ? `The bot sends it at ${hour}:00` : "Sent by the CyberJudah bot, with a button to read the chapter"} />
@@ -136,7 +136,7 @@ export function Settings() {
       </Section>
       {me?.admin ? <AskUsage /> : null}
       {me?.admin ? <Section title="Notes"><List><Row title="Requested notes" sub="Classes readers asked notes for, the most asked first" onClick={() => navigate("/settings/requests")} /></List></Section> : null}
-      <Section title="This app">
+      <Section title="This App">
         <List><Row title="Credits" sub="Narrators, recordings and licences" onClick={() => navigate("/settings/credits")} /></List>
         {me ? <List><Row title="Your Telegram id" sub={me.canEdit ? "You can edit notes from the app" : me.admin ? "Admin; editing needs the CYBERJUDAH_TOKEN secret on the deploy" : "Notes are read-only for this account"} trailing={<span className="pill">{me.user.id}</span>} onClick={() => { void navigator.clipboard?.writeText(String(me.user.id)).then(() => haptic("success")).catch(() => undefined); }} /></List> : null}
         <p className="hint">{app ? `Telegram ${app.version} on ${app.platform}. ${Object.entries(features).filter(([, v]) => v).length} of ${Object.keys(features).length} Mini App features available here.` : "Open in a browser: reading, the classes and the library all work here. Searching the classes, Ask, the daily verse and Stars work when CyberJudah is opened in Telegram."}</p>
@@ -153,7 +153,7 @@ function AskUsage() {
   if (!u) return null;
   const week = u.days.slice(0, 7), q = week.reduce((a, d) => a + d.questions, 0), usd = week.reduce((a, d) => a + d.usd, 0);
   return (
-    <Section title="Ask usage">
+    <Section title="Ask Usage">
       <div className="stat">
         <div><b>{q}</b><span>answers, 7 days</span></div>
         <div><b>${q ? (usd / q).toFixed(2) : "0.00"}</b><span>per answer</span></div>
