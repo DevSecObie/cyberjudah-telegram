@@ -396,6 +396,26 @@ means it passed this review.
 - **Round 3 portraits** (awaiting review, gated): Shem `f72bf11e`, Job `1d202381`, Terah `719737e3`, Rebekah `7ff735a7`, Leah `1dc6fa99`, Rachel `e56417a5`, Joseph `04a05542`, Levi `1ac4977a`, Jesse `0a5d79aa`, Bathsheba `cde79742`, Othniel `a8c2e534`, Eleazar `409d548c`. The women are drawn beautiful as the verses describe them, after the owner's notes on Sarah and David.
 - **People portraits reused**: nine approved People portraits are mapped onto timeline events whose names are shared by several people: Judah, Simeon, Gad, Issachar, Benjamin, Miriam, Joshua, Amram and Ehud. The files are taken from `claude/people-portraits`.
 
+#### Round 4 (3 October 2026): the most important figures
+
+- **Higgsfield portraits** (awaiting review, gated):
+  - Christ in his earthly ministry: `10e45ae4`, with black woolly hair and the seamless coat with fringes and a ribband of blue, per REVIEW.md.
+  - The prophets: Isaiah `43270395`, Elisha `43259d96` (bald, 2 Kings 2:23), Ezekiel `30fcfaae` and Jonah `2928cc62`.
+  - Nehemiah `f5034854`.
+  - The kings: Ahab `4a93fa4a` and Jehoshaphat `f10bf6de`.
+  - Joseph, the husband of Mary: `99568a65`.
+  - The apostles: Peter `9067d2cf`, John `8b5f36f6` and Paul `1ad912ed` (Benjamin, Philippians 3:5).
+- **Reformation figures**: real people with real portraits, so their own public-domain likenesses are used and none is generated. All are cropped square and fetched from Wikimedia Commons originals through the Wayback Machine, because Commons is blocked here.
+  - Martin Luther: Cranach, 1528, Veste Coburg.
+  - John Calvin: Bibliothèque de Genève.
+  - William Tyndale: engraving.
+  - John Wycliffe: after Kirkby, Balliol.
+  - Erasmus: Holbein.
+  - Thomas More: Holbein, Frick.
+  - John Knox: Beza's *Icones*, 1580.
+  - Ulrich Zwingli: Asper.
+- **Jacob**: the approved People portrait `israel-gen-25-26` is now mapped onto the Jacob events.
+
 ### 9.6 Bible Strong's timeline pictures: what may be reused
 
 Direction (2 October 2026): reuse Bible Strong's images that show only landmarks, landscapes,
