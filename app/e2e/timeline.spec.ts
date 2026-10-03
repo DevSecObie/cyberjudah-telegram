@@ -136,7 +136,10 @@ test.describe("as Bible Strong moves through it", () => {
     // Playwright brings an element into view before it clicks: do that first, so the place kept is the place tapped from.
     await page.locator('a[data-slug="solomon"]').scrollIntoViewIfNeeded();
     const at = await scroll.evaluate((s) => [Math.round(s.scrollLeft), Math.round(s.scrollTop)]);
-    const year = await page.locator(".tl-current__year").textContent();
+    // The year follows the scroll a frame later: read it once it has settled.
+    const yearNow = () => page.locator(".tl-current__year").textContent();
+    let year = await yearNow();
+    for (let last = ""; last !== year; ) { last = year!; await page.waitForTimeout(150); year = await yearNow(); }
     await page.locator('a[data-slug="solomon"]').click();
     await expect(page).toHaveURL(/\/timeline\/event\/solomon$/);
     await expect(page.locator(".tl-event__pic")).toHaveAttribute("src", /people\/solomon-2sa-5-14-256\.webp$/);
@@ -158,14 +161,17 @@ test.describe("as Bible Strong moves through it", () => {
   });
 });
 
-test("pulling past the start: the line and year go with the canvas, the previous period shows through, and letting go opens it", async ({ page }) => {
+test("pulling past the start: the line and year go with the canvas, the previous period shows through, and letting go past 100px opens it", async ({ page }) => {
   await page.goto("/timeline/5");
   const scroll = page.locator(".tl-scroll");
-  await scroll.evaluate((s) => { s.scrollLeft -= 200; s.dispatchEvent(new Event("scroll")); });
-  await expect(page.locator(".tl-line")).toHaveAttribute("style", /translateX\(200px\)/);
-  await expect.poll(() => page.locator(".tl-behind").first().evaluate((el) => Number(getComputedStyle(el).opacity))).toBeGreaterThan(0.4);
+  // Within their 100px threshold: the canvas draws away and stays.
+  await scroll.evaluate((s) => { s.scrollLeft -= 80; });
+  await expect(page.locator(".tl-line")).toHaveAttribute("style", /translateX\(80px\)/);
+  await expect.poll(() => page.locator(".tl-behind").first().evaluate((el) => Number(getComputedStyle(el).opacity))).toBeGreaterThan(0.15);
   await expect(page.locator(".tl-behind").first()).toContainText("THE JUDGES");
-  await scroll.evaluate((s) => s.dispatchEvent(new Event("scrollend")));
+  await expect(page).toHaveURL(/\/timeline\/5$/);
+  // Past it, letting go opens the period before, at its end.
+  await scroll.evaluate((s) => { s.scrollLeft -= 120; s.dispatchEvent(new Event("scrollend")); });
   await expect(page).toHaveURL(/\/timeline\/4\?from=next$/);
 });
 
