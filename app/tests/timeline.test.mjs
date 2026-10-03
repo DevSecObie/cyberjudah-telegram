@@ -91,4 +91,9 @@ test("an event's picture is only an approved portrait of its own person, and the
   // Noah's father is not Lamech of Cain's line; Abraham's approved portrait is reused (2 October 2026).
   assert.equal(all.find((e) => e.slug === "lamech").portrait, undefined);
   assert.equal(all.find((e) => e.slug === "abraham").portrait, "abraham-gen-11-26");
+  // An event mapped by hand (a shared name, or a figure outside People) still waits for approval.
+  assert.equal(all.find((e) => e.slug === "herod-antipas").portrait, "herod-mat-14-1");
+  for (const [slug, id] of Object.entries(approved.events ?? {})) {
+    if (!ids.has(id)) assert.equal(all.find((e) => e.slug === slug)?.portrait, undefined, `${slug} waits for ${id}`);
+  }
 });

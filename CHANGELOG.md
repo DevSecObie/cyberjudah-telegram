@@ -125,6 +125,9 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   is unavailable, Ask answers from the keyword search.
 
 ### Changed
+- The Bible Timeline shows 45 more portraits (83 in all): picture rounds 2–4 (Solomon recropped, the
+  Red Sea, Bethel, Christ, prophets, kings, apostles, Reformation figures and Jacob), with their
+  sources in docs/AVATARS.md.
 - Auto and half sheets float inside the safe edges with shared rounded corners; full sheets expand to the phone edges. On larger screens, action lists open beside their control and leave the page usable.
 
 - Unify menu action icons and toolbar groups, add desktop tooltips and keyboard menu navigation, and animate popovers from their controls with accessible fallbacks.
