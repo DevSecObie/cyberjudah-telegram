@@ -62,7 +62,7 @@ Each section's PR maps the relevant Apple guidance to its implementation and rec
 
 The contrast audit checks rendered text and semantic foreground/background pairs at unchanged AA thresholds, including black/white behind glass. Image-backed content and reader-authored annotation colors need contextual review; the automated result does not certify arbitrary imagery or user colors.
 
-Full local suite and CI results are recorded in the PRs and the [running work log](vault/Codex%20log.md). Existing environment-dependent skips remain identified. An upstream transcript DNS failure is reported separately from visual regressions; it is not a passing test.
+Full local suite and CI results are recorded in the PRs and the [running work log](https://github.com/DevSecObie/cyberjudah-telegram/blob/codex/log/docs/vault/Codex%20log.md). Existing environment-dependent skips remain identified. An upstream transcript DNS failure is reported separately from visual regressions; it is not a passing test.
 
 ## Follow-ups
 

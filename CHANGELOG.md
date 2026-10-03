@@ -22,9 +22,6 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
-### Changed
-- Document the completed Liquid Glass web adaptations, validation evidence and native/device follow-ups.
-
 Merged to `main` and not yet in a tagged release. Production currently runs `861242f`
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
@@ -128,6 +125,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   is unavailable, Ask answers from the keyword search.
 
 ### Changed
+- Document the completed Liquid Glass web adaptations, validation evidence and native/device follow-ups.
 
 - Reduced repeated palette calculations and dock style updates; browser checks now cover glass budgets across main routes in Chromium, WebKit and Firefox.
 
