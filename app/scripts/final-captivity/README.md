@@ -65,3 +65,8 @@ documentary photograph of an atrocity, never presented as evidence). See docs/AV
 - The teacher's meaning is kept. Quotes are word for word from the recording; strong language
   stays as said; a bleeped word is left out.
 - An event without a teaching moment, or without a documented source, stays in `drafts.json`.
+- **Israel United in Christ (owner's direction, 2026-10-03):** the period covers the leaders and the
+  organization only: its founding, leaders, schools and camps, publications, broadcasts, missions at
+  home and overseas, and ministries. Outside characterisations of IUIC (designations, labels and
+  accusations by critics, former members or third parties) are not recorded anywhere on the Timeline,
+  as events or as disagreements, and their publications are not used as sources.
