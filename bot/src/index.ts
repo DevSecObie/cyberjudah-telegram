@@ -10,7 +10,7 @@ import { runSearch } from "./search";
 import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./teachings";
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
-import { ask, askStream, freeModel, similar, speakVerse } from "./ai";
+import { ask, askStream, defaultModelId, freeModel, similar, speakVerse } from "./ai";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -263,7 +263,7 @@ app.get("/api/ask/account", async (c) => {
   const uid = c.get("tma").user!.id;
   const p = prices(c.env);
   const st = await standing(c.env, uid);
-  return c.json({ ok: true, metered: billingOn(c.env), unlimited: st.unlimited, balance: st.balance, perQuestion: st.perQuestion, freeDaily: p.freeDaily, plan: p.plan, packs: p.packs, models: MODELS.filter((m) => (m.format === "anthropic" ? hasClaude(c.env) : !!c.env.AI_GATEWAY)).map(({ id, name, provider, what }) => ({ id, name, provider, what, cost: costFactor(modelOf(id)), ...(id === freeModel(c.env).id ? { free: true } : {}) })), model: modelOf(c.env.CLAUDE_MODEL).id });
+  return c.json({ ok: true, metered: billingOn(c.env), unlimited: st.unlimited, balance: st.balance, perQuestion: st.perQuestion, freeDaily: p.freeDaily, plan: p.plan, packs: p.packs, models: MODELS.filter((m) => (m.format === "anthropic" ? hasClaude(c.env) : !!c.env.AI_GATEWAY)).map(({ id, name, provider, what }) => ({ id, name, provider, what, cost: costFactor(modelOf(id)), ...(id === freeModel(c.env).id ? { free: true } : {}) })), model: modelOf(defaultModelId(c.env, uid)).id });
 });
 app.post("/api/ask/buy", async (c) => {
   const item = String(((await c.req.json<{ item?: string }>().catch(() => null)) ?? {}).item ?? "");

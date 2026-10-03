@@ -107,6 +107,10 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   is unavailable, Ask answers from the keyword search.
 
 ### Changed
+- Ask CyberJudah: the model is chosen at the top, under the title (tap it to change), and the
+  allowance moves to the line under the question box. An admin starts on Claude Opus 5.5
+  (`CLAUDE_MODEL_ADMIN`) and every other reader on Claude Sonnet 5 (`CLAUDE_MODEL`); a model a
+  reader picks is kept as before.
 - This changelog, the incident log ([docs/INCIDENTS.md](docs/INCIDENTS.md)) and the release rules;
   a pull-request check asks every change for a changelog line or a reason it needs none ([#77]).
 
