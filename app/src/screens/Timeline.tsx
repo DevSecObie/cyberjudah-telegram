@@ -17,6 +17,7 @@ import { Lit } from "@/ui/search-hero";
 import { SearchBar, useSettled } from "@/ui/search-bar";
 import { useSheet } from "@/ui/sheet";
 import { Empty, Icon } from "@/ui/ui";
+import { FinalCaptivityDetail } from "./TimelineFinalCaptivity";
 
 /**
  * Bible Strong's Bible Timeline (strong/apps/expo/src/features/timeline), ported to the web:
@@ -36,6 +37,9 @@ import { Empty, Icon } from "@/ui/ui";
 const TL = raw as TimelineData;
 const SECTIONS = TL.sections;
 const ALL = flatten(SECTIONS);
+/** The Final Captivity, the last age (app/scripts/final-captivity): its name and the date its sources were reviewed through. */
+const FINAL_CAPTIVITY = TL.finalCaptivity;
+const reviewed = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString([], { year: "numeric", month: "long", day: "numeric" });
 const BASE = import.meta.env.BASE_URL;
 
 /**
@@ -53,7 +57,8 @@ function PeriodPicture({ s, className, eager }: { s: TimelineSection; className:
 }
 
 /** An event's picture: the approved portrait of its person, at the size drawn (64px strip, 150px detail, search). */
-const portraitSrc = (e: TimelineEvent, size: 128 | 256) => (e.portrait ? `${BASE}people/${e.portrait}-${size}.webp` : null);
+/** An event's picture: the approved People portrait of its person, or the portrait of the IUIC leader it is about (app/scripts/final-captivity/leaders.json). */
+const portraitSrc = (e: TimelineEvent, size: 128 | 256) => (e.portrait ? `${BASE}people/${e.portrait}-${size}.webp` : e.leader ? `${BASE}timeline/leaders/${e.leader}-${size}.webp` : null);
 
 /** Where a period's canvas was, and which event was opened from it, for this visit (the history entry). */
 type Place = { x: number; y: number; focus?: string };
@@ -110,7 +115,7 @@ function Panel({ title, onClose, children }: { title: string; onClose: () => voi
 function Emblem({ s }: { s: TimelineSection }) {
   return (
     <span className="tl-emblem tl-emblem--card" style={{ ["--tl-color" as string]: s.color }}>
-      <span className="tl-emblem__age">{s.sectionTitle}</span>
+      <span className="tl-emblem__age">{s.sectionTitle}{String(s.id).startsWith("fc-") ? <b className="tl-emblem__new">New</b> : null}</span>
       <span className="tl-emblem__title">{s.title}</span>
       <span className="tl-emblem__sub">{s.subTitle}</span>
       <i className="tl-emblem__bar" aria-hidden="true" />
@@ -126,6 +131,12 @@ function About() {
       <p>The pictures are ours, painted for CyberJudah under the assembly's depiction brief: each period's scene, and on an event the approved portrait of the person it is about. A period still waiting on direction shows its colour.</p>
       <p>A king's reign, where shown, is from <i>Who's Who in the Bible</i> (Joan Comay and Ronald Brownrigg), its chronology of the kings.</p>
       <p>An event opens to our case studies on it, with their scripture in the KJV. An event with no case study yet stays on the line, greyed, as Bible Strong shows an event without details.</p>
+      {FINAL_CAPTIVITY ? <>
+        <h3 className="tl-about__h">{FINAL_CAPTIVITY.age}</h3>
+        <p>The last age is ours: the captivity, displacement, persecution, resistance and achievements of the peoples the assembly identifies as the Israelites today, and the founding and growth of Israel United in Christ.</p>
+        <p>Each event keeps three things apart: the documented history, from the sources listed under it; the assembly's teaching, linked to the class or episode at the moment it was taught; and the Scriptures read with it. Where sources disagree, both are shown.</p>
+        <p>This age is still being written. Events are added as each one is checked against the classes and the sources, through today. Sources reviewed through {reviewed(FINAL_CAPTIVITY.reviewedThrough)}.</p>
+      </> : null}
     </div>
   );
 }
@@ -301,6 +312,7 @@ export function TimelinePeriod() {
 
 /** SectionDetailsModal: the period's card with its picture; in place of their description, the case studies on its events. */
 function PeriodDetails({ s }: { s: TimelineSection }) {
+  if (s.events.some((e) => e.fc)) return <FcPeriodDetails s={s} />;
   const withCases = s.events.filter((e) => e.cases?.length);
   return (
     <div className="tl-details">
@@ -311,6 +323,25 @@ function PeriodDetails({ s }: { s: TimelineSection }) {
           <ul className="tl-details__list">{withCases.map((e) => <li key={e.slug}><Link to={`/timeline/event/${e.slug}`} onClick={() => haptic("select")}><b>{e.title}</b><span>{calculateLabel(e.start, e.end)}</span></Link></li>)}</ul>
         </>
       ) : <p className="hint">No case study is on an event of this period yet.</p>}
+    </div>
+  );
+}
+
+/** A Final Captivity period's details: its events by research category, in time order within each. */
+function FcPeriodDetails({ s }: { s: TimelineSection }) {
+  const groups = new Map<string, TimelineEvent[]>();
+  for (const e of s.events) groups.set(e.group ?? "Events", [...(groups.get(e.group ?? "Events") ?? []), e]);
+  return (
+    <div className="tl-details">
+      <SectionCard s={s} />
+      <p className="hint">More events are being added to this period as each one is checked against the classes and the sources.</p>
+      {[...groups].map(([g, list]) => (
+        <section key={g}>
+          <h2 className="entity__eyebrow">{g}<span> · {list.length}</span></h2>
+          <ul className="tl-details__list">{list.map((e) => <li key={e.slug}><Link to={`/timeline/event/${e.slug}`} onClick={() => haptic("select")}><b>{e.title}</b><span>{calculateLabel(e.start, e.end)}</span></Link></li>)}</ul>
+        </section>
+      ))}
+      {FINAL_CAPTIVITY ? <p className="hint">Sources reviewed through {reviewed(FINAL_CAPTIVITY.reviewedThrough)}.</p> : null}
     </div>
   );
 }
@@ -472,6 +503,8 @@ export function TimelineEventScreen() {
           <p className="tl-event__date">{calculateLabel(e.start, e.end)}</p>
           <Link className="tl-event__period" to={`/timeline/${e.sectionIndex}`}>{s.title} · {s.subTitle}</Link>
         </div>
+
+        {e.fc ? <FinalCaptivityDetail slug={e.slug} reviewedThrough={FINAL_CAPTIVITY?.reviewedThrough} /> : null}
 
         {e.reign ? (
           <section className="tl-event__section" aria-label="Reign">
