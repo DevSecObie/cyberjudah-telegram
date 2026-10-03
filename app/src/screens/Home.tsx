@@ -81,6 +81,7 @@ const LAW: [string, string, string, IconName][] = [
   ["/law", "The Law", "Every law with its scripture", "law"],
   ["/precepts", "Precepts", "Every subject scripture speaks to", "quote"],
   ["/cases", "Case studies", "Judgments, and those who were blessed", "folder"],
+  ["/timeline", "Bible timeline", "Periods and events by year", "clock"],
   ["/topics", "Topics", "Classes and episodes by subject", "tag"],
 ];
 /** The Study shelf: the reference works, each browsable on its own. */
