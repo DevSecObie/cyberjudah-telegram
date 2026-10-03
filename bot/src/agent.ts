@@ -26,7 +26,7 @@ export type AgentEvent = { status: string } | { passages: Numbered[] } | { delta
 
 const MAX_ROUNDS = 6;
 const MAX_SOURCES = 48;
-const CLAUDE_DEFAULT = "claude-opus-5";
+const CLAUDE_DEFAULT = "claude-sonnet-5";
 
 const TOOL_DEFS: Anthropic.Tool[] = [
   {

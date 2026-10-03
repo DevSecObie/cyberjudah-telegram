@@ -64,7 +64,8 @@ async function setup(page: Page, opts: { caps?: Record<string, number>; now?: st
   await page.route("https://telegram.org/**", (r) => r.fulfill({ contentType: "application/javascript", body: MOCK }));
   await page.route(/ytimg|youtube\.com|fonts\.g/, (r) => r.abort());
   if (DATA_ORIGIN !== "https://data.cyberjudah.io") await page.route("https://data.cyberjudah.io/**", (r) => r.continue({ url: r.request().url().replace("https://data.cyberjudah.io", DATA_ORIGIN) }));
-  await page.addInitScript((c) => { try { localStorage.setItem("cj:ai-limits", JSON.stringify(c)); } catch { /* none */ } }, opts.caps ?? { [OPUS]: 2_000_000 });
+  // A fixed paid model keeps cost assertions independent of account defaults.
+  await page.addInitScript(({ caps, model }) => { try { localStorage.setItem("cj:ai-limits", JSON.stringify(caps)); localStorage.setItem("cj:ask-model", model); } catch { /* none */ } }, { caps: opts.caps ?? { [OPUS]: 2_000_000 }, model: OPUS });
   // The Worker's clock for the balance and top-ups, when a test sets it.
   if (opts.now) { const now = opts.now; await page.route(/\/api\/ask\/(account|buy)/, (r) => r.continue({ headers: { ...r.request().headers(), "x-e2e-now": now } })); }
 }
@@ -76,8 +77,8 @@ test("the balance is in dollars, and each answer deducts what it actually cost, 
   await setup(page);
   expect((await fund(request, 1, 1)).ok()).toBe(true);
   await page.goto(`/ask${launch(1)}`);
-  // No "credits" anywhere: the header is the balance in dollars.
-  await expect(page.locator(".chat2__heading small")).toHaveText("$1.00 left");
+  // The composer balance remains exact and separate from the header model picker.
+  await expect(page.locator(".composer2__model")).toHaveAccessibleName("$1.00 left");
   await ask(page, "Why keep the Passover?");
   await expect(answer(page)).toContainText("A short answer to: Why keep the Passover?");
   const used = answer(page).locator(".msg__usage");
@@ -90,11 +91,11 @@ test("the balance is in dollars, and each answer deducts what it actually cost, 
   expect(Number(u[0].charged_mc)).toBeGreaterThan(0);
   expect(Number(u[0].charged_mc)).toBeLessThanOrEqual(Number(u[0].held_mc));
   expect(Number(u[0].charged_mc)).toBe(Math.ceil(Number(u[0].cost_usd) * 1e6 - 1e-6));
-  // The books agree, and the header shows what is left.
+  // The books agree, and the composer shows what is left.
   const b = await books(1);
   expect(b.lots).toBe(b.ledger);
   expect(b.lots).toBe(1_000_000 - Number(u[0].charged_mc));
-  await expect(page.locator(".chat2__heading small")).toHaveText(`${dollars(b.lots)} left`);
+  await expect(page.locator(".composer2__model")).toHaveAccessibleName(`${dollars(b.lots)} left`);
   await shot(page, "1-cost-under-answer");
   // The usage history lists the answer and what was added.
   await used.getByRole("button", { name: "Usage" }).click();
@@ -121,8 +122,8 @@ test("a dearer model asks before an answer that may cost more than $0.25, and ca
 test("the top-up sheet: $1, $5 and $20 with their Stars, why a dollar costs that many, and a payment adds what the Stars pay out", async ({ page, request }) => {
   await setup(page, { now: WEDNESDAY });
   await page.goto(`/ask${launch(3)}`);
-  await expect(page.locator(".chat2__heading small")).toHaveText("$0.00 left");
-  await page.locator(".chat2__heading").click();
+  await expect(page.locator(".composer2__model")).toHaveAccessibleName("$0.00 left");
+  await page.locator(".composer2__model").click();
   const sheet = page.getByRole("dialog", { name: "Balance" });
   await expect(sheet.getByRole("button", { name: "Add $1.00 for 77 Stars" })).toBeVisible();
   await expect(sheet.getByRole("button", { name: "Add $5.00 for 385 Stars" })).toBeVisible();
@@ -144,15 +145,15 @@ test("the top-up sheet: $1, $5 and $20 with their Stars, why a dollar costs that
   expect((await account(request, 3)).wallet.total_mc).toBe(5_005_000);
   expect((await books(3)).ledger).toBe(5_005_000);
   await page.reload();
-  await expect(page.locator(".chat2__heading small")).toHaveText("$5.00 left");
+  await expect(page.locator(".composer2__model")).toHaveAccessibleName("$5.00 left");
 });
 
 test("during the Sabbath the top-up buttons give way to when they open again, and the server makes no invoice; the balance is still used", async ({ page, request }) => {
   await setup(page, { now: FRIDAY_NIGHT });
   await fund(request, 4, 1);
   await page.goto(`/ask${launch(4)}`);
-  await expect(page.locator(".chat2__heading small")).toHaveText("$1.00 left");
-  await page.locator(".chat2__heading").click();
+  await expect(page.locator(".composer2__model")).toHaveAccessibleName("$1.00 left");
+  await page.locator(".composer2__model").click();
   const sheet = page.getByRole("dialog", { name: "Balance" });
   await expect(sheet.locator(".credits__pause")).toHaveText("Top-ups pause for the Sabbath — they open again after dark on Saturday");
   await expect(sheet.getByRole("button", { name: /^Add \$/ })).toHaveCount(0);
@@ -203,5 +204,5 @@ test("with nothing in the balance a paid model is not called and the free model 
   const id = await owner(5);
   expect(d1(`SELECT COUNT(*) AS n FROM credit_usage WHERE user_id = '${id}'`)[0].n).toBe(0);
   expect((await books(5)).lots).toBe(0);
-  await expect(page.locator(".composer2__model")).toContainText("glm-5.3-flash · free");
+  await expect(page.locator(".chat2__heading")).toContainText("glm-5.3-flash · free");
 });

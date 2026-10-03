@@ -10,7 +10,7 @@ import { runSearch } from "./search";
 import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./teachings";
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
-import { ask, askStream, creditsOn, freeModel, similar, speakVerse } from "./ai";
+import { ask, askStream, creditsOn, defaultModelId, freeModel, similar, speakVerse } from "./ai";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -301,7 +301,7 @@ app.get("/api/ask/account", async (c) => {
     sale: { open: !cfg.missing.length, usd_per_star: cfg.usdPerStar, topups: cfg.topups, pause: pause ? { kind: pause.kind, until: pause.until, message: pauseMessage(pause) } : null },
     remind: await getTopupReminder(c.env, uid).catch(() => ({ on: false, tz: null })),
     models: await modelCosts(c.env, askModels(c.env)),
-    model: modelOf(c.env.CLAUDE_MODEL).id,
+    model: modelOf(defaultModelId(c.env, uid)).id,
   });
 });
 app.get("/api/ask/history", async (c) => c.json({ ok: true, items: await creditHistory(c.env, await ownerOfUser(c.env, c.get("tma").user!.id), 60) }));

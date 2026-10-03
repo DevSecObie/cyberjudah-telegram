@@ -196,7 +196,7 @@ refuses to run without it, and it must never change) and the bot's Privacy Polic
 
 ## Ask's models
 
-Readers pick the model in Ask (the name under the question box).
+Readers pick the model in Ask’s header. The dollar balance under the question box opens the top-up sheet.
 - **The list** is `shared/ask-models.json`, built by `node bot/scripts/ask-models.mjs <cloudflare-docs>/src/content <commit>` from Cloudflare's catalog (`catalog-models` for third-party models, `workers-ai-models` for Cloudflare-hosted ones). It holds every text model with a published price. Rebuild it to pick up new models or prices.
 - **Claude** models go through the Anthropic SDK (`agent.ts`). Every other model goes through the AI binding and the gateway (`agent-open.ts`): chat completions, the Responses API or the Messages format, with the same tools, or no tools for models without function calling.
 - **Pricing:** each answer is charged exactly what it cost, at the price of the model that wrote it, with Unified Billing's fee where it applies and the library searches at Cloudflare's rates (`shared/credits.mjs`, `bot/src/spend.ts`). No margin.

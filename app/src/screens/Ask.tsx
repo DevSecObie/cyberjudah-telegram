@@ -307,7 +307,11 @@ export function Ask() {
     <main className="chat2" ref={mainRef}>
       <header className="chat2__bar">
         <button type="button" className="chat2__new" aria-label="Your chats" disabled={!app} title={app ? undefined : "Your chats are kept with your Telegram account"} onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
-        <button type="button" className="chat2__heading" onClick={() => { if (acct?.metered) { haptic("select"); setPlans(true); } }}><b>Ask CyberJudah</b><small>{model?.free && acct?.metered && !acct.unlimited ? `${model.name} · free` : meterLine(acct)}</small></button>
+        {/* The model is chosen here, at the top, as in ChatGPT and Claude: the title, then the model and what is left. */}
+        <button type="button" className="chat2__heading" aria-label={model ? `Model: ${model.name}. Change` : "Ask CyberJudah"} disabled={!acct?.models?.length} onClick={() => { haptic("select"); setPicking(true); }}>
+          <b>Ask CyberJudah</b>
+          <small>{model ? <>{model.name.replace(/^Claude /, "")}{model.free ? " · free" : ""}<span className="chat2__chev" aria-hidden="true"> ▾</span>{acct?.unlimited ? " · Unlimited" : acct?.metered && !model.free ? <> · {meterLine(acct)}</> : null}</> : meterLine(acct)}</small>
+        </button>
         <button type="button" className="chat2__new" aria-label="New chat" disabled={!turns.length} onClick={newChat}><Icon name="compose" size={21} /></button>
       </header>
 
@@ -348,7 +352,7 @@ export function Ask() {
             // move the composer under the finger before the tap ends, and the tap would be lost.
             : <button type="submit" className="composer2__go" aria-label="Send" disabled={!input.trim()} onPointerDown={(e) => e.preventDefault()}><Icon name="arrowUp" size={20} /></button>}
         </div>
-        <p className="composer2__note">{model ? <><button type="button" className="composer2__model" aria-label={`Model: ${model.name}. Change`} onClick={openPicker}>{model.name.replace(/^Claude /, "")}{model.free ? " · free" : ""}<span aria-hidden="true"> ▾</span></button> · </> : null}Answers can be wrong. Check them against the sources.</p>
+        <p className="composer2__note">{acct?.metered && !acct.unlimited ? <><button type="button" className="composer2__model" onClick={() => { haptic("select"); setPlans(true); }}>{meterLine(acct)}<span aria-hidden="true"> ›</span></button> · </> : null}Answers can be wrong. Check them against the sources.</p>
       </form>
     </main>
   );
@@ -534,7 +538,7 @@ const readCaps = (): Record<string, number> => { try { return JSON.parse(localSt
 const acceptCap = (model: string, mc: number) => { try { localStorage.setItem(CAPS, JSON.stringify({ ...readCaps(), [model]: Math.ceil(mc) })); } catch { /* private mode */ } };
 
 const left = (mc: number) => fmtUsd(mc, { floor: true });
-/** The line under Ask's title: what is left, in dollars, the way an AI API shows it. */
+/** The balance label in the header and composer, in dollars. */
 function meterLine(a: AskAccount | null): string {
   if (!a) return "Answers from the teachings";
   if (a.unlimited) return "Admin · not charged";

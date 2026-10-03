@@ -43,9 +43,9 @@ const adminData = () => {
 const funded = new Set<number>();
 async function setup(page: Page) {
   // Paid models are paid from the reader's balance (credits.spec.ts tests that): each reader here
-  // gets $5 from the admins once, as the app first loads their account, and has accepted Claude
-  // Opus's limit once, so these tests are about Ask itself.
-  await page.addInitScript(() => { try { if (!localStorage.getItem("cj:ai-limits")) localStorage.setItem("cj:ai-limits", JSON.stringify({ "anthropic/claude-opus-5": 2_000_000 })); } catch { /* none */ } });
+  // gets $5 from the admins once, as the app first loads their account, and has accepted the
+  // default paid model's limit once, so these tests exercise Ask beyond its spending prompt.
+  await page.addInitScript(() => { try { if (!localStorage.getItem("cj:ai-limits")) localStorage.setItem("cj:ai-limits", JSON.stringify({ "anthropic/claude-opus-5": 2_000_000, "anthropic/claude-sonnet-5": 2_000_000 })); } catch { /* none */ } });
   await page.route("**/api/ask/account*", async (r) => {
     const data = (r.request().headers().authorization ?? "").replace(/^tma /, "");
     const id = Number(JSON.parse(new URLSearchParams(data).get("user") ?? "{}").id);
@@ -276,4 +276,22 @@ test("privacy: Delete my data removes the reader's saved chats and balance, and 
   // The balance, its history and holds are gone from D1 too.
   const id = await pid({ PRIVACY_KEY: "e2e-privacy-key-not-secret" }, RUN + 13);
   for (const t of ["credit_lots", "credit_ledger", "credit_usage", "credit_holds"]) expect(JSON.parse(d1(`SELECT COUNT(*) AS n FROM ${t} WHERE user_id = '${id}'`))[0].results[0].n).toBe(0);
+});
+
+test("the model is chosen at the top: an admin starts on Claude Opus 5.5, every other reader on Claude Sonnet", async ({ page, request }) => {
+  const acct = async (n: number) => (await (await request.get("/api/ask/account", { headers: { authorization: `tma ${initData(n)}` } })).json()) as { model: string };
+  expect((await acct(100000002 - RUN)).model).toBe("anthropic/claude-opus-5.5");
+  expect((await acct(51)).model).toBe("anthropic/claude-sonnet-5");
+  await setup(page);
+  await page.goto(`/ask${launch(51)}`);
+  const heading = page.locator(".chat2__heading");
+  await expect(heading).toHaveAttribute("aria-label", "Model: Claude Sonnet 5. Change");
+  await expect(heading).toContainText("Sonnet 5");
+  await heading.click();
+  await expect(page.getByRole("radiogroup", { name: "Model" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  const balance = page.locator(".composer2__model");
+  await expect(balance).toHaveAccessibleName("$5.00 left");
+  await balance.click();
+  await expect(page.getByRole("dialog", { name: "Balance" })).toBeVisible();
 });
