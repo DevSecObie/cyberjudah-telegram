@@ -87,7 +87,7 @@
   --scrim-media: rgba(0, 0, 0, .35);
 
   /* Shape: radii nest (inner = outer − padding). */
-  --r-min: 4px; --r-floating: 38px;
+  --r-min: 4px; --r-floating: 38px; --r-sheet: 36px; --sheet-gap: 8px;
   --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 18px; --r-xl: 22px; --r-2xl: 28px; --r-pill: 999px;
 
   /* Space and size. */

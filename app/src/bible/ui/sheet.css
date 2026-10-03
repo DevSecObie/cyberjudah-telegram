@@ -1,27 +1,38 @@
 /* The shared sheet (Sheet.tsx), and what it exports (Button, Switch, Checkbox): loaded with the
    component, so a sheet looks the same on every screen, not only once the Bible has been opened
    (bible.css is the Bible tab's). Colours are the --bs-* tokens: inside the Bible they are its
-   theme; elsewhere a sheet's class maps them to the app's (screens/notes.css). */
+   theme; outside the reader, the root defaults use the app palette. */
+:root { --bs-reverse: var(--surface-1); --bs-default: var(--text-1); --bs-tertiary: var(--text-3); --bs-border: var(--hairline); --bs-light-grey: var(--fill-1); --bs-primary: var(--accent); }
 @keyframes bs-fadein { from { opacity: 0; } to { opacity: 1; } }
 .bs-iconbtn { flex: none; width: var(--touch); height: var(--touch); border: 0; background: none; display: grid; place-items: center; cursor: pointer; padding: 0; border-radius: var(--r-pill); }
 .bs-iconbtn:active { opacity: .6; }
 /* Sheets */
-.bs-scrim { position: fixed; inset: 0; z-index: 90; background: var(--scrim-modal); display: flex; align-items: flex-end; justify-content: center; animation: bs-fadein .15s ease-out; }
-.bs-scrim--clear { background: transparent; pointer-events: none; }
+.sheet__scrim.bs-scrim { padding: 0; position: fixed; inset: 0; z-index: 90; background: var(--scrim-modal); display: flex; align-items: flex-end; justify-content: center; animation: bs-fadein .15s ease-out; }
+.bs-scrim.bs-scrim--clear { background: transparent; pointer-events: none; }
 .bs-scrim--clear > .bs-sheet { pointer-events: auto; box-shadow: 0 -8px 30px rgba(0,0,0,.18); }
-.bs-sheet { width: 100%; max-width: 640px; max-height: calc(100dvh - var(--safe-top) - 24px); display: flex; flex-direction: column; background: var(--bs-reverse); color: var(--bs-default); border-radius: var(--r-2xl) var(--r-2xl) 0 0; padding-bottom: var(--safe-bottom, 0px); animation: bs-rise .22s ease-out; }
+/* One geometry for auto/half sheets, including the selection toolbar. Content sheets use
+   the opaque overlay; only command surfaces opt into the shared elevated material. */
+.bs-sheet { box-sizing: border-box; width: calc(100% - 2 * var(--sheet-gap) - var(--safe-left) - var(--safe-right)); max-width: 640px;
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 2 * var(--sheet-gap)); margin: 0 auto calc(var(--sheet-gap) + var(--safe-bottom));
+  margin-left: max(calc(var(--sheet-gap) + var(--safe-left)), calc((100% - 640px + var(--safe-left) - var(--safe-right)) / 2));
+  display: flex; flex-direction: column; min-width: 0; overflow: hidden; background: var(--mat-overlay); color: var(--bs-default);
+  --r-outer: var(--r-sheet); --inset: 16px; --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset)));
+  border-radius: var(--r-outer); border: 1px solid var(--mat-edge); box-shadow: var(--mat-highlight), var(--shadow-3); padding-bottom: 10px; animation: bs-rise .22s ease-out; }
+.bs-sheet.bs-sheet--full { width: 100%; margin: 0 auto; max-height: calc(100dvh - var(--safe-top) - var(--sheet-gap)); padding-bottom: var(--safe-bottom); border-radius: var(--r-sheet) var(--r-sheet) 0 0; border-bottom: 0; }
 .bs-sheet--half { height: 50dvh; }
 .bs-sheet--full { height: 92dvh; }
 .bs-sheet--40 { min-height: 40dvh; }
 .bs-sheet__handle { width: 36px; height: 4px; border-radius: 2px; background: var(--bs-border); margin: 8px auto 4px; flex: none; }
-.bs-sheet__header { display: flex; align-items: center; min-height: 48px; padding: 4px 8px; flex: none; }
+.bs-sheet__resize { display: grid; place-items: center; width: 64px; height: 44px; margin: 0 auto; padding: 0; border: 0; border-radius: var(--r-pill); background: transparent; cursor: ns-resize; }
+.bs-sheet .bs-sheet__resize .bs-sheet__handle { display: block; margin: 0; }
+.bs-sheet__header { display: flex; align-items: center; min-height: 48px; padding: 4px 20px; flex: none; }
 .bs-sheet__side { min-width: 60px; display: flex; align-items: center; gap: 4px; }
 .bs-sheet__side--right { justify-content: flex-end; }
 .bs-sheet__titles { flex: 1; text-align: center; min-width: 0; }
 .bs-sheet__titles b { display: block; font-size: 1rem; }
 .bs-sheet__titles small { display: block; font-size: .75rem; color: var(--bs-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bs-sheet__body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.bs-sheet__footer { flex: none; padding: 10px 16px; border-top: 1px solid var(--bs-border); }
+.bs-sheet__body { overscroll-behavior: contain; flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.bs-sheet__footer { flex: none; padding: 10px 20px; border-top: 1px solid var(--bs-border); }
 .bs-sheet__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 @keyframes bs-rise { from { transform: translateY(24px); opacity: 0; } }
 .bs-switchrow { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 0; border: 0; background: none; cursor: pointer; text-align: left; }
@@ -37,7 +48,4 @@
 .bs-sheet__grab { flex: none; position: relative; touch-action: none; cursor: grab; }
 .bs-sheet__close { width: 32px; height: 32px; border-radius: 50%; background: var(--bs-light-grey); display: grid; place-items: center; color: var(--bs-tertiary); }
 .bs-sheet__close--float { position: absolute; right: 12px; top: 8px; }
-.bs-sheet { background: var(--mat-overlay); border: .5px solid var(--mat-edge); border-bottom: 0; box-shadow: var(--mat-highlight), 0 -12px 40px rgba(0, 0, 0, .2); }
-/* Sheets over the app's own screens (Ask's chats, models and plans; a note's editor) are opaque: the
-   conversation under them would otherwise read through their text. */
-.bs-sheet.chats-sheet, .bs-sheet.edit-sheet { background: var(--bs-reverse); }
+@media (prefers-reduced-motion: reduce) { .bs-sheet, .bs-scrim { animation: none; transition: none; } }

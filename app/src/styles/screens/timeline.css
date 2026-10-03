@@ -97,7 +97,7 @@ a.tl-major:focus-visible, a.tl-minor:focus-visible { outline: 2px solid var(--ac
 
 /* Panels (SectionDetailsModal, the home's details). */
 .tlp { padding: 0 0 16px; }
-.tlp__head { display: flex; align-items: center; justify-content: space-between; padding: 6px 6px 6px 18px; font: 600 15px/1.3 var(--font-ui); }
+.tlp__head { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px; font: 600 15px/1.3 var(--font-ui); }
 .tlp__head .tlh__btn { height: 44px; }
 .tlp__body { padding: 0 20px; overflow: auto; }
 .tl-details { display: grid; justify-items: center; gap: 18px; padding: 10px 0 8px; }

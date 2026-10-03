@@ -27,6 +27,11 @@
 }
 
 /* Command surfaces share the elevated recipe; their rows add no material of their own. */
-.drawer--more, .sheet[data-actions] { background: var(--mat-elevated); -webkit-backdrop-filter: var(--mat-blur-strong); backdrop-filter: var(--mat-blur-strong); }
+.drawer--more, .sheet[data-actions], .bs-sheet[data-actions] { background: var(--mat-elevated); -webkit-backdrop-filter: var(--mat-blur-strong); backdrop-filter: var(--mat-blur-strong); }
 .drawer--more .drawer__head, .sheet[data-actions] .sheet__items { background: transparent; }
 .drawer--more:not([data-open]) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* A desktop action menu occupies its own anchor, leaving the rest of the page usable. */
+.sheet__scrim[data-anchored] { inset: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left); display: block; background: transparent; pointer-events: none; animation: none; }
+.sheet__scrim[data-anchored] .sheet { position: absolute; pointer-events: auto; margin: 0; width: min(320px, calc(100% - 16px)); max-height: calc(100% - 16px); border-radius: var(--r-xl); }
+.sheet__scrim[data-anchored] .sheet__grip { display: none; }

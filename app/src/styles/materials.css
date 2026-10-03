@@ -259,13 +259,14 @@ html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[dat
 html[data-modal] { overflow: hidden; }
 .sheet__scrim { position: fixed; inset: 0; z-index: var(--z-sheet); display: flex; align-items: flex-end; justify-content: center; background: var(--scrim-modal); animation: fade-in var(--dur-2) ease-out; }
 .sheet {
-  box-sizing: border-box; width: 100%; max-width: 640px; max-height: calc(100dvh - var(--safe-top) - 24px); overflow-y: auto; overscroll-behavior: contain;
-  padding: var(--sp-2) var(--sp-4) calc(var(--sp-4) + var(--safe-bottom));
-  border-radius: var(--r-2xl) var(--r-2xl) 0 0; background: var(--mat-overlay); color: var(--text-2);
-  border: .5px solid var(--mat-edge); border-bottom: 0; box-shadow: var(--mat-highlight), var(--shadow-3);
-  animation: sheet-in var(--dur-3) var(--ease);
+  box-sizing: border-box; width: calc(100% - 2 * var(--sheet-gap) - var(--safe-left) - var(--safe-right)); max-width: 640px;
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 2 * var(--sheet-gap)); margin: 0 auto calc(var(--sheet-gap) + var(--safe-bottom)); overflow-y: auto; overscroll-behavior: contain;
+  margin-left: max(calc(var(--sheet-gap) + var(--safe-left)), calc((100% - 640px + var(--safe-left) - var(--safe-right)) / 2));
+  padding: var(--sp-2) var(--sp-5) var(--sp-4); --r-outer: var(--r-sheet); --inset: var(--sp-5); --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset)));
+  border-radius: var(--r-outer); background: var(--mat-overlay); color: var(--text-2);
+  border: 1px solid var(--mat-edge); box-shadow: var(--mat-highlight), var(--shadow-3); animation: sheet-in var(--dur-3) var(--ease);
 }
-@media (min-width: 680px) { .sheet__scrim { align-items: center; padding: var(--sp-6); } .sheet { border-radius: var(--r-2xl); border-bottom: .5px solid var(--mat-edge); animation: pop-in var(--dur-2) var(--ease); max-height: min(720px, calc(100dvh - 48px)); } }
+@media (min-width: 768px) { .sheet__scrim { align-items: center; } .sheet { max-height: min(720px, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 16px)); } }
 .sheet--tall { height: min(85dvh, 760px); display: flex; flex-direction: column; }
 .sheet__grip { width: 36px; height: 5px; border-radius: 3px; background: var(--fill-3); margin: 2px auto 12px; }
 .sheet__title { margin: 0 0 var(--sp-3); text-align: center; font: 600 var(--fs-body) var(--font-ui); color: var(--text-1); }
