@@ -1,8 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 
 export type IconName = "home" | "search" | "play" | "book" | "book-open" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "precepts" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus" | "close" | "image" | "alert" | "info" | "shield" | "highlight" | "open";
-export function Icon({ name, size = 22, color = "currentColor", style, fill = "none" }: { name: IconName; size?: number; color?: string; style?: CSSProperties; fill?: string }) {
-  const p: Record<IconName, ReactNode> = {
+const paths: Record<IconName, ReactNode> = {
     highlight: <><path d="m14 3 7 7-10 10H4v-7zM11 6l7 7M3 22h10" /></>,
     open: <><path d="M14 3h7v7M21 3l-11 11M10 5H5v15h15v-5" /></>,
     image: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8" cy="8" r="1.5" /><path d="m21 15-5-5L5 21" /></>,
@@ -49,6 +48,8 @@ export function Icon({ name, size = 22, color = "currentColor", style, fill = "n
     chat: <path d="M4 5h16v11H9l-5 4z" />,
     retry: <><path d="M4 12a8 8 0 1 0 2.3-5.6" /><path d="M4 4v4h4" /></>,
     folder: <path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />,
-  };
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} style={style} data-icon={name} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{p[name]}</svg>;
+};
+
+export function Icon({ name, size = 22, color = "currentColor", style, fill = "none" }: { name: IconName; size?: number; color?: string; style?: CSSProperties; fill?: string }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} style={style} data-icon={name} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
 }
