@@ -279,3 +279,16 @@ test("privacy: Delete my data removes the reader's saved chats and allowance, an
   const id = await pid({ PRIVACY_KEY: "e2e-privacy-key-not-secret" }, RUN + 13);
   expect(JSON.parse(d1(`SELECT COUNT(*) AS n FROM accounts WHERE user_id = '${id}'`))[0].results[0].n).toBe(0);
 });
+
+test("the model is chosen at the top: an admin starts on Claude Opus 5.5, every other reader on Claude Sonnet", async ({ page, request }) => {
+  const acct = async (n: number) => (await (await request.get("/api/ask/account", { headers: { authorization: `tma ${initData(n)}` } })).json()) as { model: string };
+  expect((await acct(100000002 - RUN)).model).toBe("anthropic/claude-opus-5.5");
+  expect((await acct(51)).model).toBe("anthropic/claude-sonnet-5");
+  await setup(page);
+  await page.goto(`/ask${launch(51)}`);
+  const heading = page.locator(".chat2__heading");
+  await expect(heading).toHaveAttribute("aria-label", "Model: Claude Sonnet 5. Change");
+  await expect(heading).toContainText("Sonnet 5");
+  await heading.click();
+  await expect(page.getByRole("radiogroup", { name: "Model" })).toBeVisible();
+});
