@@ -12,6 +12,8 @@ import { consented, withdraw } from "@/lib/ai-consent";
  * Policy (7.3), and by Apple's App Review Guidelines 5.1.1(i) and 5.1.2(i).
  */
 export const PRIVACY_UPDATED = "2026-10-03";
+/** Where privacy questions and requests go (the owner's address). */
+export const PRIVACY_CONTACT = "privacy@cyberjudah.io";
 
 type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse: boolean; classNoteRequests: number; askCredits: number; askPlanUntil: string | null };
 
@@ -82,6 +84,10 @@ export function Privacy() {
 
       <Section title="Your rights">
         <p>You can get a copy of what is kept, have it deleted, withdraw your agreement, and stop any feature at any time, in this screen or with /mydata and /deletemydata in the bot. What the app does for you here happens at once. You can also complain to the data protection authority where you live. Payments: send /paysupport to the bot.</p>
+      </Section>
+
+      <Section title="Contact">
+        <p>For any question about your data, or a request you would rather send by email: <a href={`mailto:${PRIVACY_CONTACT}`}>{PRIVACY_CONTACT}</a>. Requests are answered within 30 days.</p>
       </Section>
     </Screen>
   );

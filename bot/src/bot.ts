@@ -110,7 +110,7 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
 
   // Privacy (docs/PRIVACY.md): read the policy, get a copy of what is kept, or delete it all.
   bot.command("privacy", (ctx) =>
-    ctx.reply("What CyberJudah keeps about you, why, for how long, and who else sees it: read the privacy policy. Send /mydata for a copy of everything kept, or /deletemydata to delete it all.", { reply_markup: open(ctx, "privacy", "Privacy policy") }));
+    ctx.reply("What CyberJudah keeps about you, why, for how long, and who else sees it: read the privacy policy. Send /mydata for a copy of everything kept, or /deletemydata to delete it all. Questions: privacy@cyberjudah.io", { reply_markup: open(ctx, "privacy", "Privacy policy") }));
   bot.command("mydata", async (ctx) => {
     if (ctx.chat.type !== "private" || !ctx.from) return ctx.reply("Send /mydata in a private chat with me.");
     const data = await exportData(env, ctx.from.id);

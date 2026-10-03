@@ -71,9 +71,10 @@ a bounded amount each hour, until none are left. Chats also move the first time 
 2. **Set the bot's privacy policy in @BotFather** (Bot Settings → Privacy Policy) to
    `https://cyberjudah.io/app/privacy`, as the Bot Developer Terms require when the standard policy
    does not fit (CyberJudah sends questions to AI providers).
-3. **Breach response** (Bot Developer Terms 4.4(b), (d)): if the `PRIVACY_KEY`, the bot token or the
+3. **Contact:** privacy questions and requests go to **privacy@cyberjudah.io** (a SimpleLogin alias), shown on the Privacy screen and in `/privacy`. Answer within 30 days (Standard Bot Privacy Policy 7.3(c)).
+4. **Breach response** (Bot Developer Terms 4.4(b), (d)): if the `PRIVACY_KEY`, the bot token or the
    Cloudflare account is exposed, rotate what was exposed, tell readers through the bot, and record
    it in `docs/INCIDENTS.md`. Rotating `PRIVACY_KEY` makes stored chats and reminders unreadable:
    tell readers to set reminders again.
-4. **Requests by message:** the app and the bot answer data requests at once. Anything sent to the
+5. **Requests by message:** the app and the bot answer data requests at once. Anything sent to the
    admins (for example through `/paysupport`) is answered within 30 days.
