@@ -44,6 +44,11 @@ def source(dark=False, clear=False, maskable=False, monochrome=False, layer=None
             root.remove(group)
             mask.append(group)
         ET.SubElement(root, "rect", {"width": "1024", "height": "1024", "fill": "#000000", "mask": "url(#mono)"})
+    # Generated variants are compact; the editable master keeps one path per line.
+    for element in root.iter():
+        element.tail = None
+        if element.text and not element.text.strip():
+            element.text = None
     return ET.tostring(root)
 
 
