@@ -574,3 +574,5 @@ Expanding a half sheet applies full geometry once, then translates and fades the
 Action-only shared sheets attach to their initiating control at 768px and above, opening above or below it within the safe viewport. They do not lock scrolling or trap focus; a click outside dismisses the menu and activates the underlying control. At narrower widths they become inset modal sheets. Resize changes the modality and releases/acquires the shared scroll lock; Escape and focus return work in both presentations. Forms and color pickers remain modal.
 
 Inventory changes: `.bs-sheet` and `.sheet` share bounded geometry and opaque content material; `.bs-sheet[data-actions]` shares the existing elevated command recipe, one filter. Removed selection-specific filter/geometry and chat/note/photo background overrides. No extra backdrop layers are added.
+
+Section 05 production sample (Chrome 153, 4× CPU, 390×844): dock median/p95/max **16.7/16.8/66.7 ms**, first sheet **16.7/33.3/83.3 ms**; layout totals 36.27/37.39 ms across 3/4 layout events. `glass-05/profile-production.json` records the build provenance. Residual cold-mount/navigation spikes remain for section 10.
