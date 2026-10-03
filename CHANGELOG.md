@@ -44,6 +44,12 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   reader's own time.
 - Ask's allowance is on in production: about 2 in-depth answers a day free per reader, then up to
   25 shorter answers until the next day, or a plan or top-up in Stars. Admins are not limited.
+- Privacy, to Telegram's Bot Developer Terms and Standard Bot Privacy Policy and Apple's 5.1.1 and
+  5.1.2 (docs/PRIVACY.md): records about people are filed under a coded ID, never the Telegram ID,
+  and encrypted at rest with a key kept apart; saved chats go after 180 days unused; the AI Gateway
+  keeps no question or answer text; Ask asks before a question first goes to an AI provider (the
+  server refuses otherwise); a Privacy screen and `/privacy`, Download my data (`/mydata`) and
+  Delete my data (`/deletemydata`); `/paysupport` for Stars payments.
 - Readers choose the model for Ask: every text model in Cloudflare's catalog (92: Claude, OpenAI,
   Google, xAI, DeepSeek, Qwen, Kimi, MiniMax and the Cloudflare-hosted ones), each researching
   the library with the same tools and sources and charged at its own price. A free model, GLM 5.3

@@ -15,7 +15,8 @@ test("Claude being unavailable (overloaded, rate limited, down, key refused, con
 });
 
 test("the AI Gateway: Workers AI goes through it when named; Claude only with its token, with the gateway's own URL", async () => {
-  assert.deepEqual(viaGateway({ AI_GATEWAY: "default" }), { gateway: { id: "default" } });
+  assert.deepEqual(viaGateway({ AI_GATEWAY: "default" }), { gateway: { id: "default", collectLog: false } }, "calls with a reader's words are not logged");
+  assert.deepEqual(viaGateway({ AI_GATEWAY: "default" }, { log: true }), { gateway: { id: "default" } });
   assert.equal(viaGateway({}), undefined);
   const AI = { gateway: (id) => ({ getUrl: async (p) => `https://gateway.ai.cloudflare.com/v1/acct/${id}/${p}` }) };
   const direct = await claude({ ANTHROPIC_API_KEY: "k", AI_GATEWAY: "default", AI });
@@ -48,6 +49,7 @@ test("Unified Billing: Claude is paid through Cloudflare, with no Anthropic key 
   const sent = await sentHeaders(env);
   assert.equal(sent.url, "https://gateway.ai.cloudflare.com/v1/acct/default/anthropic/v1/messages");
   assert.equal(sent.headers.get("cf-aig-authorization"), "Bearer t");
+  assert.equal(sent.headers.get("cf-aig-collect-log-payload"), "false", "the gateway keeps the cost, not the text");
   assert.equal(sent.headers.get("x-api-key"), null, "a provider key on the request would bypass Unified Billing");
   assert.equal(sent.headers.get("authorization"), null);
   // Even when an Anthropic key is still on the Worker, it is not sent.

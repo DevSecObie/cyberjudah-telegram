@@ -212,3 +212,52 @@ test("with today's free answers used, Ask does not call Claude or charge, and sa
   const after = JSON.parse(d1(`SELECT free_used, credits FROM accounts WHERE user_id = '${id}'`))[0].results[0];
   expect(after).toEqual(before);
 });
+
+test("privacy: nothing is sent to an AI provider until the reader agrees, and the agreement can be withdrawn", async ({ page, request }) => {
+  await page.addInitScript(() => { (window as unknown as { __noConsent: boolean }).__noConsent = true; });
+  await setup(page);
+  const t0 = Date.now();
+  await page.goto(`/ask${launch(12)}`);
+  await ask(page, "Why keep the Passover?");
+  const card = answer(page).locator(".consent");
+  await expect(card).toContainText("Send your question to Anthropic?");
+  await expect(card).toContainText("Your name and Telegram ID are not sent");
+  await shot(page, "7-consent");
+  expect(await modelCalls(request, t0)).toHaveLength(0);
+  await card.getByRole("button", { name: "Agree and ask" }).click();
+  await expect(answer(page)).toContainText("A short answer to: Why keep the Passover?");
+  expect((await modelCalls(request, t0)).length).toBeGreaterThan(0);
+  // The server refuses on its own too: a question naming no agreement is not answered.
+  const refused = await request.post("/api/ask", { headers: { authorization: `tma ${initData(12)}` }, data: { q: "Why keep the Passover?", stream: true } });
+  expect(refused.status()).toBe(428);
+  expect((await refused.text())).toContain('"provider":"Anthropic"');
+  // Withdrawn in Settings → Privacy: asked again.
+  await page.goto(`/privacy${launch(12)}`);
+  await page.getByText("Withdraw AI agreement").click();
+  await expect(page.getByRole("status")).toContainText("Ask will ask before sending");
+  await page.goto(`/ask${launch(12)}`);
+  await page.getByRole("button", { name: "New chat" }).click();
+  await ask(page, "And the Sabbath?");
+  await expect(answer(page).locator(".consent")).toContainText("Send your question to Anthropic?");
+});
+
+test("privacy: Delete my data removes the reader's saved chats and allowance, and Download my data then shows nothing kept", async ({ page, request }) => {
+  await setup(page);
+  await page.goto(`/ask${launch(13)}`);
+  await ask(page, "Who are the twelve tribes?");
+  await expect(answer(page)).toContainText("A short answer to");
+  const auth = { authorization: `tma ${initData(13)}` };
+  const before = await (await request.get("/api/privacy/export", { headers: auth })).json();
+  expect(before.savedChats).toHaveLength(1);
+  expect(JSON.stringify(before)).not.toContain(String(RUN + 13));
+  await page.goto(`/privacy${launch(13)}`);
+  await shot(page, "8-privacy");
+  await page.getByText("Delete my data").click();
+  await expect(page.getByRole("status")).toContainText("Done. Deleted: 1 saved Ask chat");
+  const after = await (await request.get("/api/privacy/export", { headers: auth })).json();
+  expect([after.savedChats, after.readingReminder, after.dailyVerse, after.classNoteRequests]).toEqual([[], null, null, []]);
+  expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("cj:ask")))).toEqual([]);
+  // The stored allowance row is gone from D1 too.
+  const id = await pid({ PRIVACY_KEY: "e2e-privacy-key-not-secret" }, RUN + 13);
+  expect(JSON.parse(d1(`SELECT COUNT(*) AS n FROM accounts WHERE user_id = '${id}'`))[0].results[0].n).toBe(0);
+});

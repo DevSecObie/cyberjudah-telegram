@@ -41,6 +41,10 @@ await call("setMyCommands", {
     { command: "daily", description: "The daily verse, on or off" },
     { command: "stop", description: "Stop reading reminders" },
     { command: "support", description: "Support the work with Stars" },
+    { command: "privacy", description: "Privacy policy" },
+    { command: "mydata", description: "A copy of what is kept about you" },
+    { command: "deletemydata", description: "Delete everything kept about you" },
+    { command: "paysupport", description: "Help with a Stars payment" },
     { command: "help", description: "What this bot does" },
   ],
 });

@@ -208,11 +208,13 @@ export async function deleteBilling(env: Env, uid: number): Promise<{ credits: n
 }
 
 /** What is kept for this person, for "Download my data". */
-export async function billingRecord(env: Env, uid: number): Promise<{ account: Account; payments: { kind: string; stars: number; at: string }[] }> {
+/** What is kept for this person, for "Download my data". Read only: it never creates a record. */
+export async function billingRecord(env: Env, uid: number): Promise<{ account: Account | null; payments: { kind: string; stars: number; at: string }[] }> {
   await ensureTables(env);
   const id = await pid(env, uid);
+  const row = await env.DB.prepare(`SELECT ${COLS}, version FROM accounts WHERE user_id = ?`).bind(id).first<Row>();
   const pays = await env.DB.prepare("SELECT kind, stars, created_at FROM payments WHERE user_id = ? ORDER BY created_at").bind(id).all<{ kind: string; stars: number; created_at: number }>();
-  return { account: await account(env, uid), payments: (pays.results ?? []).map((r) => ({ kind: r.kind, stars: r.stars, at: new Date(r.created_at).toISOString() })) };
+  return { account: row ? normalized(toAccount(row)) : null, payments: (pays.results ?? []).map((r) => ({ kind: r.kind, stars: r.stars, at: new Date(r.created_at).toISOString() })) };
 }
 
 /** One day's totals for the admins' usage page. */

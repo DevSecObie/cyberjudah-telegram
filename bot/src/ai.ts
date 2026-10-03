@@ -4,7 +4,7 @@ import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { claude, claudeUnavailable, hasClaude, viaGateway } from "./providers";
-import { modelOf } from "../../shared/ask-models.mjs";
+import { modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid } from "./privacy.mjs";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
 import { isAdmin } from "./edit";
@@ -119,10 +119,12 @@ async function basicAllowed(env: Env, userId: number): Promise<boolean> {
 }
 
 /** A question answered in one piece (the bot and older clients); a hundred a day per person. */
-export async function ask(env: Env, q: string, userId: number, ctx?: Exec, history: Turn[] = []): Promise<Answer> {
+export async function ask(env: Env, q: string, userId: number, ctx?: Exec, history: Turn[] = [], consent: string[] = []): Promise<Answer> {
   const t0 = Date.now();
   const question = q.trim().slice(0, 400);
   if (question.length < 2) return { ok: false, reason: "too-short" };
+  // The one-piece answer uses the setup's own model: agreed to, as in askStream.
+  if (hasClaude(env) && !consent.includes(modelOf(env.CLAUDE_MODEL || CLAUDE_DEFAULT).provider)) return { ok: false, reason: "consent" };
   // A metered answer reserves its minimum up front, so questions sent at once cannot spend more
   // than is left, and settles the exact units at the end (nothing, if it failed on our side).
   const metered = billingOn(env) && hasClaude(env);
@@ -212,7 +214,7 @@ const sourcesOf = (answer: string, passages: Passage[]) => {
  * The same, streamed: one JSON line with the passages first, then a line per piece of the
  * answer as the model writes it, then a line with the sources it cited.
  */
-export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string, replaceLast = false, modelId?: string): Promise<Response> {
+export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string, replaceLast = false, modelId?: string, consent: string[] = []): Promise<Response> {
   // The reader's choice of model, or the setup's own (CLAUDE_MODEL) when none or an unknown one is sent.
   let model = modelOf(modelId, env.CLAUDE_MODEL || CLAUDE_DEFAULT);
   // The free model (ASK_FREE_MODEL) is never charged: chosen, or once the allowance is used up.
@@ -223,6 +225,11 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   if (question.length < 2) return new Response(line({ error: "too-short" }), { status: 400, headers: { "content-type": "application/x-ndjson" } });
   // A metered answer reserves its minimum up front and settles the exact units at the end (see ask).
   // Leaving mid-answer does not cancel it (waitUntil), so it is still settled once.
+  // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
+  // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
+  const needsConsent = (m: AskModel) => !consent.includes(m.provider) && new Response(line({ error: "consent", provider: m.provider, model: m.name }), { status: 428, headers: { "content-type": "application/x-ndjson" } });
+  const refused0 = needsConsent(model);
+  if (refused0) return refused0;
   const metered = billingOn(env) && hasClaude(env);
   let take: Take | null = null;
   // With the paid answers used up, Ask does not stop: it goes on with the free model, which
@@ -232,7 +239,12 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   if (metered && !isAdmin(env, userId)) {
     const r = gratis ? null : await reserveAsk(env, userId);
     if (r?.ok) take = r.take;
-    else if (await basicAllowed(env, userId)) { limited = !gratis; model = free; gratis = true; }
+    else if (await basicAllowed(env, userId)) {
+      // The free model may be another provider: agreed to as well, or asked for first (nothing was reserved).
+      const refused1 = needsConsent(free);
+      if (refused1) return refused1;
+      limited = !gratis; model = free; gratis = true;
+    }
     else return new Response(line({ error: "allowance", ...(r ? { balance: r.balance } : {}) }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
   } else if (billingOn(env)) {
     const st = await standing(env, userId);
@@ -372,7 +384,7 @@ export async function speakVerse(env: Env, slug: string, ch: number, verse: numb
   const v = c?.verses.find((x) => x.verse === verse);
   if (!v) return Response.json({ ok: false, reason: "not-found" }, { status: 404 });
   try {
-    const out = await env.AI.run(VOICE_MODEL, { text: v.text, speaker: voice as "asteria", encoding: "mp3" }, viaGateway(env));
+    const out = await env.AI.run(VOICE_MODEL, { text: v.text, speaker: voice as "asteria", encoding: "mp3" }, viaGateway(env, { log: true }));
     const bytes = await toBytes(out);
     if (!bytes?.length) throw new Error("no audio");
     const put = env.AUDIO.put(key, bytes, { httpMetadata: { contentType: "audio/mpeg" } });

@@ -286,6 +286,16 @@ reminders.put("/", async (c) => {
   return c.json(view(c.env, rec, { identity: w.kind, linked: w.rid.startsWith("tg:"), ...(device ? { device } : {}) }));
 });
 
+/** Delete my data: the Telegram reader's reminder and every push subscription it holds. */
+export async function forgetReminder(env: Env, uid: number): Promise<boolean> {
+  const rid = await tgRid(env, uid);
+  const rec = await loadReminder(env, rid);
+  if (!rec) return false;
+  for (const p of rec.pushes ?? []) await env.SUBS.delete(`pushep:${await sha256(p.endpoint)}`);
+  await env.SUBS.delete(recKey(rid));
+  return true;
+}
+
 /**
  * Forget: a browser forgets itself (its credential, its push subscription, and its record
  * if it was never linked); a Telegram reader deletes their reminder and every subscription.

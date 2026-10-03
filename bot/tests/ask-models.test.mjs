@@ -56,7 +56,7 @@ test("chat completions: the model searches with the same tool, then answers; the
   assert.equal(r.text, "Keep it for ever [1].");
   assert.equal(r.calls, 2);
   assert.equal(r.units, unitsFor({ prompt_tokens: 1000, completion_tokens: 20 }, modelOf("openai/gpt-5.1")) + unitsFor({ prompt_tokens: 1200, completion_tokens: 30 }, modelOf("openai/gpt-5.1")));
-  assert.deepEqual(sent[0].options, { gateway: { id: "default" } });
+  assert.deepEqual(sent[0].options, { gateway: { id: "default", collectLog: false } }, "the reader's question is not logged");
   assert.equal(sent[0].model, "openai/gpt-5.1");
   assert.equal(sent[0].input.tools[0].function.name, "search_library");
   assert.deepEqual(sent[1].input.messages.at(-1), { role: "tool", tool_call_id: "c1", content: "[1] Exodus 12:14" });

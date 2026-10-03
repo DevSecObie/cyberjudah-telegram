@@ -1,5 +1,6 @@
-import { Bot, InlineKeyboard, type Context } from "grammy";
+import { Bot, InlineKeyboard, InputFile, type Context } from "grammy";
 import type { InlineQueryResultArticle, UserFromGetMe } from "grammy/types";
+import { tellAdmins } from "./health";
 import type { Env, Exec, Sub } from "./env";
 import { books, chapter, openLink, verseLink, verseMessage, escapeHtml } from "./data";
 import { runSearch } from "./search";
@@ -9,6 +10,7 @@ import { pathToStartParam, startParamToPath } from "../../shared/links.mjs";
 import { applyPayment, checkout, SUPPORT_STARS } from "./billing";
 import { linkDevice, reminderButton, reminderKeyboard, stopFor, telegramReturned } from "./remind";
 import { pid, seal } from "./privacy.mjs";
+import { deleteData, deletionToken, exportData, useDeletionToken, type Deleted } from "./mydata";
 
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 const MAX_INLINE = 50;
@@ -104,6 +106,36 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
   // Unblocking the bot (Telegram sends my_chat_member) also brings reminders back.
   bot.on("my_chat_member", async (ctx) => {
     if (ctx.chat.type === "private" && ctx.myChatMember.new_chat_member.status === "member") await telegramReturned(env, ctx.from.id).catch(() => undefined);
+  });
+
+  // Privacy (docs/PRIVACY.md): read the policy, get a copy of what is kept, or delete it all.
+  bot.command("privacy", (ctx) =>
+    ctx.reply("What CyberJudah keeps about you, why, for how long, and who else sees it: read the privacy policy. Send /mydata for a copy of everything kept, or /deletemydata to delete it all.", { reply_markup: open(ctx, "privacy", "Privacy policy") }));
+  bot.command("mydata", async (ctx) => {
+    if (ctx.chat.type !== "private" || !ctx.from) return ctx.reply("Send /mydata in a private chat with me.");
+    const data = await exportData(env, ctx.from.id);
+    const date = data.generated.slice(0, 10);
+    await ctx.replyWithDocument(new InputFile(new TextEncoder().encode(JSON.stringify(data, null, 2)), `cyberjudah-my-data-${date}.json`), { caption: `Everything CyberJudah keeps about you, ${date}.` });
+  });
+  bot.command("deletemydata", async (ctx) => {
+    if (ctx.chat.type !== "private" || !ctx.from) return ctx.reply("Send /deletemydata in a private chat with me.");
+    const token = await deletionToken(env, ctx.from.id);
+    await ctx.reply("This deletes everything CyberJudah keeps about you: your saved Ask chats, your reading reminder, the daily verse, your Ask allowance (any Stars credit or plan left is lost) and your class-note requests. It cannot be undone. Your highlights and notes on your device are not touched.", {
+      reply_markup: new InlineKeyboard().text("Delete everything", `privacydel:${token}`).text("Cancel", "privacydel:no"),
+    });
+  });
+  bot.callbackQuery(/^privacydel:([a-f0-9]{16}|no)$/, async (ctx) => {
+    if (ctx.match[1] === "no" || !ctx.from) { await ctx.answerCallbackQuery({ text: "Nothing was deleted." }); return ctx.editMessageText("Nothing was deleted."); }
+    if (!(await useDeletionToken(env, ctx.match[1], ctx.from.id))) return ctx.answerCallbackQuery({ text: "That button has expired. Send /deletemydata again." });
+    const d = await deleteData(env, ctx.from.id);
+    await ctx.answerCallbackQuery();
+    return ctx.editMessageText(deletedSummary(d));
+  });
+  // Required for Stars sales (Telegram Bot Developer Terms 6.2.1): payment problems reach the admins.
+  bot.command("paysupport", async (ctx) => {
+    if (!ctx.from) return;
+    await tellAdmins(env, `Payment support asked for by ${ctx.from.first_name}${ctx.from.username ? ` (@${ctx.from.username})` : ""}, Telegram ID ${ctx.from.id}: "${(ctx.match || "").slice(0, 500)}"`).catch(() => undefined);
+    await ctx.reply("Your request has reached the CyberJudah admins, who will reply to you here in Telegram. If something you paid for in Stars did not arrive, say what you bought and when (send /paysupport followed by the details).");
   });
 
   bot.command("support", (ctx) =>
@@ -242,4 +274,16 @@ function hashOf(s: string): string {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
   return (h >>> 0).toString(36);
+}
+
+/** What Delete my data removed, said plainly. */
+export function deletedSummary(d: Deleted): string {
+  const parts = [
+    `${d.savedChats} saved Ask ${d.savedChats === 1 ? "chat" : "chats"}`,
+    d.readingReminder ? "your reading reminder" : "",
+    d.dailyVerse ? "the daily verse" : "",
+    d.classNoteRequests ? `${d.classNoteRequests} class-note ${d.classNoteRequests === 1 ? "request" : "requests"}` : "",
+    "your Ask allowance",
+  ].filter(Boolean);
+  return `Done. Deleted: ${parts.join(", ")}.${d.askPlanUntil ? " Your monthly plan's renewal is managed by Telegram: cancel it in Telegram's Stars settings so you are not charged again." : ""} Payment records keep only Telegram's charge reference, not who paid.`;
 }

@@ -41,12 +41,20 @@ export async function claude(env: Env): Promise<Anthropic> {
     // No key at all under Unified Billing: the SDK sends no x-api-key when the header is explicitly omitted.
     apiKey: unified ? null : env.ANTHROPIC_API_KEY,
     ...(baseURL ? { baseURL } : {}),
-    ...(viaAig ? { defaultHeaders: { "cf-aig-authorization": `Bearer ${env.CF_AIG_TOKEN}`, ...(unified ? { "x-api-key": null } : {}) } } : {}),
+    // The gateway logs the call (model, tokens, cost, status) but not its text: readers' questions
+    // and Ask's answers are not kept in the logs (Cloudflare docs: AI Gateway logging,
+    // cf-aig-collect-log-payload; docs/PRIVACY.md).
+    ...(viaAig ? { defaultHeaders: { "cf-aig-authorization": `Bearer ${env.CF_AIG_TOKEN}`, "cf-aig-collect-log-payload": "false", ...(unified ? { "x-api-key": null } : {}) } } : {}),
   });
 }
 
-/** Options for env.AI.run: through the AI Gateway when one is named. */
-export const viaGateway = (env: Env) => (env.AI_GATEWAY ? { gateway: { id: env.AI_GATEWAY } } : undefined);
+/**
+ * Options for env.AI.run: through the AI Gateway when one is named. A call that carries a
+ * reader's words (a question, its embedding, an answer) is not logged at all: the binding can
+ * only turn a log off whole (GatewayOptions.collectLog), not keep it without the text. Only
+ * calls on the library's own text (a verse read aloud) are logged.
+ */
+export const viaGateway = (env: Env, { log = false }: { log?: boolean } = {}) => (env.AI_GATEWAY ? { gateway: { id: env.AI_GATEWAY, ...(log ? {} : { collectLog: false }) } } : undefined);
 
 /**
  * Whether a failure from Claude means Claude cannot answer right now (overloaded, rate limited,

@@ -4,7 +4,7 @@ import { Api, webhookCallback } from "grammy";
 import type { InlineQueryResultArticle } from "grammy/types";
 import type { Env, Sub } from "./env";
 import { LAUNCH_DATA_MAX_AGE, validateInitData, type InitData } from "./initdata.mjs";
-import { createBot, todaysVerse } from "./bot";
+import { createBot, deletedSummary, todaysVerse } from "./bot";
 import { chapter, dataJson, escapeHtml, openLink } from "./data";
 import { runSearch } from "./search";
 import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./teachings";
@@ -32,6 +32,7 @@ import { hasClaude, unifiedBilling } from "./providers";
 import { costFactor, MODELS, modelOf } from "../../shared/ask-models.mjs";
 import { pid, seal } from "./privacy.mjs";
 import { migratePrivacy } from "./privacy-migrate";
+import { deleteData, exportData } from "./mydata";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
@@ -176,11 +177,14 @@ app.get("/api/transcript/:video", async (c) => {
 // The AI: a question answered from the teachings with citations, search by meaning, and
 // the reading voices (a verse at a time, cached).
 app.post("/api/ask", async (c) => {
-  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string }>().catch(() => null);
+  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown }>().catch(() => null);
+  // The AI providers this reader has agreed may receive their questions (docs/PRIVACY.md).
+  const consent = Array.isArray(body?.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
   // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
   const history = normalizeHistory(body?.history, 8);
-  if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined);
-  const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history);
+  if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent);
+  const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent);
+  if (!res.ok && res.reason === "consent") return c.json(res, 428);
   return c.json(res, res.ok ? 200 : res.reason === "limit" ? 429 : res.reason === "too-short" ? 400 : 503);
 });
 // A note as a PDF: a signed link the app hands to Telegram's downloader, or the file sent to the
@@ -351,6 +355,23 @@ app.post("/api/share", async (c) => {
     console.error(JSON.stringify({ event: "share_failed", message: e instanceof Error ? e.message : String(e) }));
     return c.json({ error: "share-failed" }, 502);
   }
+});
+
+// Privacy (docs/PRIVACY.md): a copy of everything kept about the reader, and deletion of all of it.
+app.get("/api/privacy/export", async (c) => c.json(await exportData(c.env, c.get("tma").user!.id)));
+app.post("/api/privacy/export/send", async (c) => {
+  const uid = c.get("tma").user!.id;
+  const data = await exportData(c.env, uid);
+  const date = data.generated.slice(0, 10);
+  try { await new Api(c.env.BOT_TOKEN).sendDocument(uid, new InputFile(new TextEncoder().encode(JSON.stringify(data, null, 2)), `cyberjudah-my-data-${date}.json`), { caption: `Everything CyberJudah keeps about you, ${date}.` }); }
+  catch { return c.json({ ok: false, error: "The bot could not send you the file. Open a chat with the bot, press Start, and try again." }, 400); }
+  return c.json({ ok: true });
+});
+app.post("/api/privacy/delete", async (c) => {
+  const body = await c.req.json<{ confirm?: unknown }>().catch(() => null);
+  if (body?.confirm !== "delete") return c.json({ ok: false, error: "Confirm with { confirm: \"delete\" }." }, 400);
+  const d = await deleteData(c.env, c.get("tma").user!.id);
+  return c.json({ ok: true, deleted: d, summary: deletedSummary(d) });
 });
 
 app.post("/api/subscribe", async (c) => {

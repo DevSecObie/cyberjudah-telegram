@@ -188,6 +188,12 @@ Ask answers with Claude (`CLAUDE_MODEL`), paid for as `CLAUDE_BILLING` says (bel
   - Once Unified Billing is confirmed in the gateway's logs, the `ANTHROPIC_API_KEY` repository secret and Worker secret are no longer used and can be removed.
 - **Dashboard settings:** gateway-level caching, rate limiting and retries are set in the dashboard. Leave caching off for Ask: answers depend on the conversation.
 
+## Privacy
+
+What is kept about people, for how long, who else handles it and the standards it follows are in
+[docs/PRIVACY.md](PRIVACY.md). Two owner actions: the `PRIVACY_KEY` repository secret (the deploy
+refuses to run without it, and it must never change) and the bot's Privacy Policy URL in @BotFather.
+
 ## Ask's models
 
 Readers pick the model in Ask (the name under the question box).

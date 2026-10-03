@@ -117,6 +117,7 @@ export function Settings() {
       ) : null}
       <Section title="Reading reminders">
         <List><Row title="Reading reminders" sub="Today's reading, at your time, in Telegram or as a push notification" onClick={() => navigate("/settings/reminders")} /></List>
+        <List><Row title="Privacy" sub="What is kept, who sees it, and your choices: download or delete your data" onClick={() => navigate("/privacy")} /></List>
       </Section>
       <Section title="Daily verse">
         <List>

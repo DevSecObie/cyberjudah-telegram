@@ -40,7 +40,8 @@ export async function researchOpen(
   const ai = env.AI as unknown as Ai;
   const call = async (input: unknown): Promise<Record<string, unknown>> => {
     try {
-      const res = await ai.run(model.id, input, { gateway: { id: env.AI_GATEWAY } });
+      // Not logged: the request carries the reader's question (providers.ts viaGateway).
+      const res = await ai.run(model.id, input, { gateway: { id: env.AI_GATEWAY, collectLog: false } });
       if (!res || typeof res !== "object") throw new Error("empty response");
       return res as Record<string, unknown>;
     } catch (e) { throw unavailable(e); }
