@@ -127,7 +127,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 ### Changed
 - Keep reader context readable and gallery panels opaque across themes; document the Liquid Glass adoption review.
 
-- Reduced repeated palette calculations and dock style updates; browser checks now cover glass budgets across main routes in Chromium, WebKit and Firefox.
+- Reduced repeated palette calculations and dock style updates; browser checks now cover glass budgets and large-text label containment in Chromium, WebKit and Firefox.
 
 - Local app icons now include layered lion artwork, full-bleed light/dark squares, PWA maskable safe-zone exports and a monochrome variant.
 
