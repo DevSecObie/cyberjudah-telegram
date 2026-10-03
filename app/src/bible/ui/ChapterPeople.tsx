@@ -48,7 +48,7 @@ export function ChapterPeople({ slug, chapter, palette: c, resources }: { slug: 
       <div className="bs-entities__row">
         {shown.length ? (
           <button ref={stack} type="button" className="bs-entities__stack" data-ignore-verse-touch=""
-            aria-label={`People in this chapter: ${people.map(({ p }) => p.name).join(", ")}`}
+            aria-label={`People in this chapter: ${people.map(({ p }) => p.name).join(", ")}`} title={`People in this chapter: ${people.map(({ p }) => p.name).join(", ")}`}
             onClick={(e) => { e.stopPropagation(); haptic("select"); setOpen(true); }}>
             {shown.map(({ p, kind }, i) => {
               const f = fan(i, shown.length);
@@ -115,13 +115,13 @@ function PeopleOverlay({ people, source, palette: c, onClosed }: { people: Named
     <div ref={root} className="bs-gallery bs-gallery--people" data-open={shown ? "" : undefined} role="dialog" aria-modal="true" aria-label="People in this chapter" data-sheet-open=""
       style={{ ["--deck-bg" as string]: c.reverse, ["--deck-ink" as string]: c.default, ["--deck-primary" as string]: c.primary, color: c.default }}
       onClick={close}>
-      <button type="button" className="bs-gallery__close" aria-label="Close" style={{ background: c.reverse, color: c.default }} onClick={(e) => { e.stopPropagation(); close(); }}>
+      <button type="button" className="bs-gallery__close" aria-label="Close" title="Close" style={{ background: c.reverse, color: c.default }} onClick={(e) => { e.stopPropagation(); close(); }}>
         <Feather name="x" size={24} color={c.default} />
       </button>
       <div className="bs-gallery__scroll">
         <div className={`bs-people${people.length <= 6 ? " bs-people--center" : ""}`}>
           {people.map(({ p, n, kind }) => (
-            <button key={p.id} type="button" className="bs-people__item" aria-label={`Open ${p.name}`}
+            <button key={p.id} type="button" className="bs-people__item" aria-label={`Open ${p.name}`} title={`Open ${p.name}`}
               onClick={(e) => { e.stopPropagation(); haptic("select"); navigate(`/person/${p.id}`); }}>
               <EntityAvatar name={p.name} kind={kind} size={68} ink={inkOf(kind, c)} base={c.reverse} className="bs-people__avatar" data-person-card={p.id} style={{ borderColor: c.reverse }} />
               <span className="bs-people__text" style={{ animationDelay: `${delayOf(p.id) + 180}ms` }}>

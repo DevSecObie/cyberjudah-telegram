@@ -18,10 +18,10 @@ export function Player({ video, start, playing, onPlay, title, live, pip, onExpa
   return (
     <div className="player" data-pip={pip ? "" : undefined}>
       {!pip && !playing ? <BackgroundExtension src={thumbOf(video, true)} /> : null}
-      {pip ? <button type="button" className="player__expand" aria-label="Back to the full player" onClick={() => { haptic("select"); onExpand?.(); }}><Icon name="chevron" size={16} /></button> : null}
+      {pip ? <button type="button" className="player__expand" aria-label="Back to the full player" title="Back to the full player" onClick={() => { haptic("select"); onExpand?.(); }}><Icon name="chevron" size={16} /></button> : null}
       <div className="player__box">
         {playing ? <iframe key={`${video}:${Math.floor(start)}`} src={embed(video, start)} title={title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen /> : (
-          <button type="button" className="watch" onClick={() => { haptic("select"); onPlay(); }} aria-label={start > 0 ? `Watch from ${timestamp(start)}` : "Watch the recording"}>
+          <button type="button" className="watch" onClick={() => { haptic("select"); onPlay(); }} aria-label={start > 0 ? `Watch from ${timestamp(start)}` : "Watch the recording"} title={start > 0 ? `Watch from ${timestamp(start)}` : "Watch the recording"}>
             <Img src={thumbOf(video, true)} eager />{start > 0 && !live ? <Frame video={video} t={start} className="player__frame" /> : null}<span><Icon name="play" size={18} /> {live ? "Watch live" : start > 0 ? `Watch from ${timestamp(start)}` : "Watch"}</span>
           </button>
         )}
@@ -103,7 +103,7 @@ export function NotesSheet({ open, onClose, full = false, onFull, title = "Class
       <header className="nsheet__head" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{ touchAction: "none" }}>
         <span className="nsheet__grip" aria-hidden="true" />
         <div><h2>{title}</h2>{sub ? <small>{sub}</small> : null}</div>
-        <span className="nsheet__actions">{action}<button type="button" className="nsheet__close" aria-label="Close the notes" onClick={() => { haptic("select"); onClose(); }}>×</button></span>
+        <span className="nsheet__actions">{action}<button type="button" className="nsheet__close" aria-label="Close the notes" title="Close the notes" onClick={() => { haptic("select"); onClose(); }}>×</button></span>
       </header>
       <div className="nsheet__body">{open ? children : null}</div>
     </section>

@@ -459,6 +459,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 /* "Back to verse N": the reading went on while the reader scrolled away. */
 .bs .bs-follow { position: absolute; left: 50%; z-index: 41; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px 0 12px; border-radius: 999px; border: 1px solid var(--bs-border); background: var(--bs-reverse); color: var(--bs-primary); font: 600 14px/1 system-ui, -apple-system, sans-serif; letter-spacing: -.01em; white-space: nowrap; cursor: pointer;
   box-shadow: 0 6px 20px rgba(0, 0, 0, .14); transform: translate(-50%, -8px) scale(.96); opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .25s cubic-bezier(.2, .8, .2, 1); }
+.bs .bs-follow:not([data-at]) { visibility: hidden; }
 .bs .bs-follow[data-at] { opacity: 1; pointer-events: auto; transform: translate(-50%, 0) scale(1); }
 .bs[data-dark] .bs-follow { box-shadow: 0 6px 20px rgba(0, 0, 0, .45); }
 .bs .bs-follow:active { transform: translate(-50%, 0) scale(.97); }

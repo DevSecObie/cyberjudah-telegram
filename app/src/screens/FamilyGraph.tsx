@@ -135,7 +135,7 @@ export function FamilyGraph({ person, onOpenProfile }: { person: Person; onOpenP
               label={relationLabel(r.relation, kind)} relation={r.relation} loading={busy === r.id} onPress={() => void walk(r, position)} />;
           })}
           <div className="fg__center" style={{ left: center.x - CENTER / 2, top: center.y - CENTER / 2 }}>
-            <button type="button" className="fg__node fg__node--center" disabled={!elsewhere} aria-label={elsewhere ? `View ${active.name}'s profile` : active.name}
+            <button type="button" className="fg__node fg__node--center" disabled={!elsewhere} aria-label={elsewhere ? `View ${active.name}'s profile` : active.name} title={elsewhere ? `View ${active.name}'s profile` : active.name}
               onClick={() => { haptic("select"); onOpenProfile(active.id); }}>
               <EntityAvatar name={active.name} kind={avatarKind(active.type) !== "other" ? avatarKind(active.type) : kindOf(active.id)} size={CENTER} />
             </button>
@@ -147,11 +147,11 @@ export function FamilyGraph({ person, onOpenProfile }: { person: Person; onOpenP
         </div>
       </div>
       <div className="fg__foot" aria-label={`Page ${shownPage + 1} of ${pages}`}>
-        {history.length ? <button type="button" className="fg__hist fg__hist--left" aria-label="Back" onClick={back}><Feather name="arrow-left" size={16} /></button> : null}
-        <button type="button" className="fg__page" aria-label="Previous page" disabled={shownPage === 0} onClick={() => turn(shownPage - 1)}><Feather name="chevron-left" size={18} /></button>
+        {history.length ? <button type="button" className="fg__hist fg__hist--left" aria-label="Back" title="Back" onClick={back}><Feather name="arrow-left" size={16} /></button> : null}
+        <button type="button" className="fg__page" aria-label="Previous page" title="Previous page" disabled={shownPage === 0} onClick={() => turn(shownPage - 1)}><Feather name="chevron-left" size={18} /></button>
         <span>{shownPage + 1} / {pages}</span>
-        <button type="button" className="fg__page" aria-label="Next page" disabled={shownPage >= pages - 1} onClick={() => turn(shownPage + 1)}><Feather name="chevron-right" size={18} /></button>
-        {history.length ? <button type="button" className="fg__hist fg__hist--right" aria-label={`Start again from ${person.name}`} onClick={reset}><Feather name="rotate-ccw" size={16} /></button> : null}
+        <button type="button" className="fg__page" aria-label="Next page" title="Next page" disabled={shownPage >= pages - 1} onClick={() => turn(shownPage + 1)}><Feather name="chevron-right" size={18} /></button>
+        {history.length ? <button type="button" className="fg__hist fg__hist--right" aria-label={`Start again from ${person.name}`} title={`Start again from ${person.name}`} onClick={reset}><Feather name="rotate-ccw" size={16} /></button> : null}
       </div>
     </div>
   );
@@ -168,7 +168,7 @@ function Satellite({ at, center, order, name, kind, label, relation, back, loadi
   const v = VISUAL[relation];
   return (
     <div className="fg__sat" style={{ left: at.x - NODE / 2, top: at.y - NODE / 2, ["--fg-dx" as string]: `${center.x - at.x}px`, ["--fg-dy" as string]: `${center.y - at.y}px`, animationDelay: `${order * 35}ms` }}>
-      <button type="button" className="fg__node" aria-label={back ? `Back to ${name}` : `${label}, ${name}`} aria-busy={loading || undefined} onClick={onPress}>
+      <button type="button" className="fg__node" aria-label={back ? `Back to ${name}` : `${label}, ${name}`} title={back ? `Back to ${name}` : `${label}, ${name}`} aria-busy={loading || undefined} onClick={onPress}>
         <EntityAvatar name={name} kind={kind} size={NODE} />
         {back ? <span className="fg__back" aria-hidden="true"><Feather name="chevron-left" size={14} /></span> : null}
       </button>

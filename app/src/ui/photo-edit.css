@@ -12,4 +12,4 @@
 .photo-actions { display: grid; gap: 10px; width: min(100%, 360px); margin: 18px auto 0; }
 .photo-error { margin: 12px 0 0; text-align: center; color: var(--danger, #d64545); }
 .photo-note { width: min(100%, 360px); margin: 14px auto 0 !important; text-align: center; }
-#root .photo-actions .btn:not(.btn--quiet) { color: var(--on-accent); }
+#root .photo-actions .btn:not(.btn--quiet):not(.btn--plain) { color: var(--on-accent); }

@@ -63,8 +63,8 @@ export function SearchHero({ value, onChange, onSubmit, autoFocus, big, mode = "
         <input ref={inputRef} id="q" type="search" enterKeyHint={ask ? "send" : "search"} autoComplete="off" autoCorrect="off" spellCheck={false} value={value} autoFocus={autoFocus} aria-label={ask ? "Ask CyberJudah" : "Search the teachings"} placeholder=" "
           onChange={(e) => onChange(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
         {!value ? <span className="shero__prompts" aria-hidden="true">{prompts.map((p, k) => <span key={p} className="shero__prompt" data-on={k === i % prompts.length ? "" : undefined}>{p}</span>)}</span> : null}
-        {value ? <button type="button" className="shero__clear" aria-label="Clear" onClick={() => { onChange(""); inputRef.current?.focus(); }}>×</button> : null}
-        <button type="submit" className="shero__go" aria-label={ask ? "Ask" : "Search"} disabled={!value.trim()}><Icon name="chevron" size={18} /></button>
+        {value ? <button type="button" className="shero__clear" aria-label="Clear" title="Clear" onClick={() => { onChange(""); inputRef.current?.focus(); }}>×</button> : null}
+        <button type="submit" className="shero__go" aria-label={ask ? "Ask" : "Search"} title={ask ? "Ask" : "Search"} disabled={!value.trim()}><Icon name="chevron" size={18} /></button>
       </div>
       {children}
     </form>

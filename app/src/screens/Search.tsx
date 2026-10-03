@@ -171,7 +171,7 @@ function Start({ recent, onPick, onForget, onClear }: { recent: string[]; onPick
             {recent.map((r) => (
               <li key={r}>
                 <button type="button" data-result="" className="srch__recentbtn" onClick={() => onPick(r)}><Icon name="clock" size={16} /><span>{r}</span></button>
-                <button type="button" className="srch__forget" aria-label={`Remove ${r} from recent searches`} onClick={() => onForget(r)}><Icon name="close" size={12} /></button>
+                <button type="button" className="srch__forget" aria-label={`Remove ${r} from recent searches`} title={`Remove ${r} from recent searches`} onClick={() => onForget(r)}><Icon name="close" size={12} /></button>
               </li>
             ))}
           </ul>

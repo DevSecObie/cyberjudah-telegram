@@ -7,7 +7,7 @@
      content     .surface / cards: tinted, edged, no backdrop filter
      navigation  .glass: the header bar and the dock, the only two frosted layers on a screen
      elevated    menus and popovers: a denser glass, transient
-     overlay     sheets, drawers and dialogs: opaque over a dimming scrim, no blur of their own
+     overlay     content sheets, Home drawer and dialogs: opaque over a dimming scrim, no blur
 
    Budget: at most two backdrop filters are visible at rest (the header and the dock); a transient
    menu may make three. Repeated items never carry a filter, and nothing animates a blur.

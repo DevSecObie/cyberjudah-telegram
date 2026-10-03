@@ -128,10 +128,10 @@ function Framer({ file, slot, label, shape, canRemove, onDone }: { file: File; s
       </div>
       <label className="photo-zoom"><span>Zoom</span><input type="range" min={1} max={3} step={0.01} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} aria-label="Zoom" /></label>
       {state === "error" ? <p className="photo-error" role="alert">{error}</p> : null}
-      <div className="photo-actions">
+      <div className="photo-actions" role="group" aria-label="Photo actions">
         <button type="button" className="btn" disabled={!img || state === "saving"} onClick={() => void save()}>{state === "saving" ? "Saving…" : "Save"}</button>
-        {canRemove ? <button type="button" className="btn btn--quiet" disabled={state === "saving"} onClick={() => void remove()}>Remove photo</button> : null}
         <button type="button" className="btn btn--quiet" disabled={state === "saving"} onClick={onDone}>Cancel</button>
+        {canRemove ? <button type="button" className="btn btn--plain" data-destructive="" disabled={state === "saving"} onClick={() => void remove()}>Remove photo</button> : null}
       </div>
       <p className="hint photo-note">Everyone sees the new photo straight away. Remove photo brings back the app's own.</p>
     </Sheet>

@@ -77,9 +77,9 @@ export function Classes() {
           <Chips>{FEEDS.map(([f, label]) => <Chip key={f} on={feed === f} onClick={() => set({ feed: f, teacher: undefined, year: undefined, series: undefined })}>{label}{res.data ? <span className="chip__n"> {counts[f]}</span> : null}</Chip>)}</Chips>
         </div>
         <div className="cfeed__filters">
-          <button type="button" className="cfeed__pick" data-on={year ? "" : undefined} disabled={years.length < 2} aria-label={`Year: ${year || "any"}`} onClick={() => void choose("Year", year, years, "year")}><span>{year || "Any year"}</span><Icon name="chevron" size={14} /></button>
-          <button type="button" className="cfeed__pick" data-on={teacher ? "" : undefined} disabled={teachers.length < 2} aria-label={`Teacher: ${teacher || "any"}`} onClick={() => void choose("Teacher", teacher, teachers, "teacher")}><span>{teacher || "Any teacher"}</span><Icon name="chevron" size={14} /></button>
-          {series ? <button type="button" className="cfeed__pick" data-on="" aria-label={`Series: ${series}. Show every class`} onClick={() => { haptic("select"); set({ series: undefined }); }}><span>{series}</span><Icon name="close" size={14} /></button> : null}
+          <button type="button" className="cfeed__pick" data-on={year ? "" : undefined} disabled={years.length < 2} aria-label={`Year: ${year || "any"}`} title={`Year: ${year || "any"}`} onClick={() => void choose("Year", year, years, "year")}><span>{year || "Any year"}</span><Icon name="chevron" size={14} /></button>
+          <button type="button" className="cfeed__pick" data-on={teacher ? "" : undefined} disabled={teachers.length < 2} aria-label={`Teacher: ${teacher || "any"}`} title={`Teacher: ${teacher || "any"}`} onClick={() => void choose("Teacher", teacher, teachers, "teacher")}><span>{teacher || "Any teacher"}</span><Icon name="chevron" size={14} /></button>
+          {series ? <button type="button" className="cfeed__pick" data-on="" aria-label={`Series: ${series}. Show every class`} title={`Series: ${series}. Show every class`} onClick={() => { haptic("select"); set({ series: undefined }); }}><span>{series}</span><Icon name="close" size={14} /></button> : null}
           {filtered ? <button type="button" className="cfeed__reset" onClick={() => { haptic("select"); reset(); }}>Reset</button> : null}
         </div>
       </div>
@@ -143,8 +143,8 @@ function ClassPost({ t, index, total, playing, onPlay, onSeries }: { t: Teaching
         </div>
         {!t.pending ? (
           <div className="post__tools">
-            <button type="button" className="post__icon" aria-label={`Share ${t.title}`} onClick={() => { haptic("select"); void share({ kind: "note", title: t.title, text: teachingLabel(t), sitePath: t.url }); }}><Icon name="share" size={20} /></button>
-            <button type="button" className="post__icon" aria-pressed={kept} aria-label={kept ? "Remove from saved" : "Save"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: t.url, kind: "note", title: t.title, text: [teachingLabel(t), fmtDate(t.date)].filter(Boolean).join(" · "), href: t.url })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={20} /></button>
+            <button type="button" className="post__icon" aria-label={`Share ${t.title}`} title={`Share ${t.title}`} onClick={() => { haptic("select"); void share({ kind: "note", title: t.title, text: teachingLabel(t), sitePath: t.url }); }}><Icon name="share" size={20} /></button>
+            <button type="button" className="post__icon" aria-pressed={kept} aria-label={kept ? "Remove from saved" : "Save"} title={kept ? "Remove from saved" : "Save"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: t.url, kind: "note", title: t.title, text: [teachingLabel(t), fmtDate(t.date)].filter(Boolean).join(" · "), href: t.url })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={20} /></button>
           </div>
         ) : null}
       </header>
@@ -153,7 +153,7 @@ function ClassPost({ t, index, total, playing, onPlay, onSeries }: { t: Teaching
         {playing && t.video ? (
           <iframe src={embed(t.video)} title={t.title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen />
         ) : t.video ? (
-          <button type="button" className="post__poster" aria-label={`Play ${t.title}`} onClick={() => { haptic("select"); onPlay(true); }}>
+          <button type="button" className="post__poster" aria-label={`Play ${t.title}`} title={`Play ${t.title}`} onClick={() => { haptic("select"); onPlay(true); }}>
             <Poster src={t.thumb} />
             <span className="post__playicon" aria-hidden="true"><Icon name="play" size={22} /></span>
           </button>

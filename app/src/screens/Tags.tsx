@@ -37,7 +37,7 @@ export function Tags() {
     <Screen title="Tags" kicker={all.length ? `${all.length} ${all.length === 1 ? "tag" : "tags"}` : "Sort what you keep"}>
       <form className="tagadd" onSubmit={(e) => { e.preventDefault(); add(); }}>
         <input value={adding} onChange={(e) => setAdding(e.target.value)} placeholder="A new tag" aria-label="A new tag" />
-        <button type="submit" className="icon-btn" disabled={!adding.trim()} aria-label="Add"><Icon name="check" size={18} /></button>
+        <button type="submit" className="icon-btn" disabled={!adding.trim()} aria-label="Add" title="Add"><Icon name="check" size={18} /></button>
       </form>
       {!all.length ? <Empty title="No tags yet">Tag a highlight or a note from the verse menu, or add one here. A tag gathers everything you kept about one thing.</Empty> : (
         <Section>
@@ -77,8 +77,8 @@ export function TagScreen() {
     <Screen title={tag.name} kicker="Tag">
       <form className="tagadd" onSubmit={(e) => { e.preventDefault(); rename(); }}>
         <input value={name} onChange={(e) => setName(e.target.value)} aria-label="Tag name" />
-        <button type="submit" className="icon-btn" disabled={!name.trim() || name.trim() === tag.name} aria-label="Rename"><Icon name="check" size={18} /></button>
-        <button type="button" className="icon-btn" onClick={() => void remove()} aria-label="Delete tag"><Icon name="trash" size={18} /></button>
+        <button type="submit" className="icon-btn" disabled={!name.trim() || name.trim() === tag.name} aria-label="Rename" title="Rename"><Icon name="check" size={18} /></button>
+        <button type="button" className="icon-btn" onClick={() => void remove()} aria-label="Delete tag" title="Delete tag"><Icon name="trash" size={18} /></button>
       </form>
       <Section title="Carries this tag">
         <List>

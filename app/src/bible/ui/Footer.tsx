@@ -32,35 +32,35 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
   const cur = speech.current ?? 1;
   return (
     <div className="bs-footer" style={{ pointerEvents: "none" }}>
-      <button type="button" className="bs-chapterbtn" style={{ left: 10, bottom: 10 + bottomBar, opacity: hasPrev ? 1 : 0.6, transform: `translateY(${arrowsY}px)` }} disabled={!hasPrev} aria-label="Previous chapter" onClick={() => { haptic(); onPrev(); }}><Feather name="arrow-left" size={20} color="var(--bs-tertiary)" /></button>
-      <button type="button" className="bs-chapterbtn" style={{ right: 10, bottom: 10 + bottomBar, opacity: hasNext ? 1 : 0.6, transform: `translateY(${arrowsY}px)` }} disabled={!hasNext} aria-label="Next chapter" onClick={() => { haptic(); onNext(); }}><Feather name="arrow-right" size={20} color="var(--bs-tertiary)" /></button>
+      <button type="button" className="bs-chapterbtn" style={{ left: 10, bottom: 10 + bottomBar, opacity: hasPrev ? 1 : 0.6, transform: `translateY(${arrowsY}px)` }} disabled={!hasPrev} aria-label="Previous chapter" title="Previous chapter" onClick={() => { haptic(); onPrev(); }}><Feather name="arrow-left" size={20} color="var(--bs-tertiary)" /></button>
+      <button type="button" className="bs-chapterbtn" style={{ right: 10, bottom: 10 + bottomBar, opacity: hasNext ? 1 : 0.6, transform: `translateY(${arrowsY}px)` }} disabled={!hasNext} aria-label="Next chapter" title="Next chapter" onClick={() => { haptic(); onNext(); }}><Feather name="arrow-right" size={20} color="var(--bs-tertiary)" /></button>
       {expanded && speech.supported ? (
         <div className="bs-audio" style={{ bottom: 20 + bottomBar, transform: `translateY(${centerY}px)` }}>
           <div className="bs-audio__top">
-            <button type="button" className="bs-iconbtn" aria-label="Collapse" onClick={() => setExpanded(false)}><Feather name="chevron-down" size={20} /></button>
+            <button type="button" className="bs-iconbtn" aria-label="Collapse" title="Collapse" onClick={() => setExpanded(false)}><Feather name="chevron-down" size={20} /></button>
             <b>{reference}:{cur} KJV</b>
             <span className="bs-audio__mode" aria-label="Read aloud"><Feather name="volume-2" size={16} color="currentColor" /></span>
           </div>
           <div className="bs-audio__controls">
-            <button type="button" className="bs-audio__ctl" aria-label="Previous chapter" disabled={!hasPrev} onClick={onPrev}><Ion name="play-skip-back" size={20} color="var(--bs-tertiary)" /></button>
-            <button type="button" className="bs-audio__ctl" aria-label="Previous verse" onClick={() => speech.play(Math.max(1, cur - 1))}><Feather name="chevron-left" size={22} color="var(--bs-tertiary)" /></button>
-            <button type="button" className="bs-audio__play" aria-label={speech.playing && speech.paused ? "Resume audio playback" : speech.playing ? "Stop audio playback" : "Start audio playback"} onClick={() => { haptic(); if (speech.playing && speech.paused) speech.toggle(); else if (speech.playing) speech.stop(); else speech.play(cur); }}><Feather name={speech.playing && !speech.paused ? "x" : "play"} size={24} color={speech.playing ? "var(--bs-quart)" : "var(--bs-primary)"} /></button>
-            <button type="button" className="bs-audio__ctl" aria-label="Next verse" onClick={() => speech.play(Math.min(verseCount, cur + 1))}><Feather name="chevron-right" size={22} color="var(--bs-tertiary)" /></button>
-            <button type="button" className="bs-audio__ctl" aria-label="Next chapter" disabled={!hasNext} onClick={onNext}><Ion name="play-skip-forward" size={20} color="var(--bs-tertiary)" /></button>
+            <button type="button" className="bs-audio__ctl" aria-label="Previous chapter" title="Previous chapter" disabled={!hasPrev} onClick={onPrev}><Ion name="play-skip-back" size={20} color="var(--bs-tertiary)" /></button>
+            <button type="button" className="bs-audio__ctl" aria-label="Previous verse" title="Previous verse" onClick={() => speech.play(Math.max(1, cur - 1))}><Feather name="chevron-left" size={22} color="var(--bs-tertiary)" /></button>
+            <button type="button" className="bs-audio__play" aria-label={speech.playing && speech.paused ? "Resume audio playback" : speech.playing ? "Stop audio playback" : "Start audio playback"} title={speech.playing && speech.paused ? "Resume audio playback" : speech.playing ? "Stop audio playback" : "Start audio playback"} onClick={() => { haptic(); if (speech.playing && speech.paused) speech.toggle(); else if (speech.playing) speech.stop(); else speech.play(cur); }}><Feather name={speech.playing && !speech.paused ? "x" : "play"} size={24} color={speech.playing ? "var(--bs-quart)" : "var(--bs-primary)"} /></button>
+            <button type="button" className="bs-audio__ctl" aria-label="Next verse" title="Next verse" onClick={() => speech.play(Math.min(verseCount, cur + 1))}><Feather name="chevron-right" size={22} color="var(--bs-tertiary)" /></button>
+            <button type="button" className="bs-audio__ctl" aria-label="Next chapter" title="Next chapter" disabled={!hasNext} onClick={onNext}><Ion name="play-skip-forward" size={20} color="var(--bs-tertiary)" /></button>
           </div>
           {speech.notice ? <p className="bs-audio__notice" role="status">{speech.notice}</p> : null}
           <div className="bs-audio__chips">
             <button type="button" className="bs-chip" onClick={() => setVoices(true)}><Feather name="mic" size={12} />Voice</button>
             <button type="button" className="bs-chip" onClick={() => setAdjust("Speed")}><Feather name="clock" size={12} />Speed {speech.rate}x</button>
             <button type="button" className="bs-chip" disabled={!speech.pitchSupported} title={!speech.pitchSupported ? "Pitch is available with device voices" : undefined} onClick={() => setAdjust("Pitch")}><Feather name="sliders" size={12} />Pitch {speech.pitch}x</button>
-            <button type="button" className="bs-chip" onClick={() => setAmbientOpen(true)} aria-label={ambient.error ? "Ambient unavailable" : "Ambient"}><Feather name={ambient.error ? "alert-circle" : "music"} size={12} />Ambient</button>
+            <button type="button" className="bs-chip" onClick={() => setAmbientOpen(true)} aria-label={ambient.error ? "Ambient unavailable" : "Ambient"} title={ambient.error ? "Ambient unavailable" : "Ambient"}><Feather name={ambient.error ? "alert-circle" : "music"} size={12} />Ambient</button>
             <button type="button" className="bs-chip" aria-pressed={repeat} onClick={() => setRepeat(!repeat)}><Feather name="repeat" size={12} />Repeat</button>
           </div>
 
         </div>
       ) : (
         <div className="bs-playpill" style={{ bottom: 10 + bottomBar, transform: `translateY(${centerY}px)` }}>
-          <button type="button" className="bs-playbtn" aria-label={speech.playing ? "Pause audio playback" : "Start audio playback"} aria-busy={false} disabled={!speech.supported} style={{ background: speech.playing ? "var(--bs-primary)" : "var(--bs-reverse)", opacity: speech.supported ? 1 : 0.6 }} onClick={() => { haptic(); if (!speech.playing) speech.play(1); setExpanded(true); }}>
+          <button type="button" className="bs-playbtn" aria-label={speech.playing ? "Pause audio playback" : "Start audio playback"} title={speech.playing ? "Pause audio playback" : "Start audio playback"} aria-busy={false} disabled={!speech.supported} style={{ background: speech.playing ? "var(--bs-primary)" : "var(--bs-reverse)", opacity: speech.supported ? 1 : 0.6 }} onClick={() => { haptic(); if (!speech.playing) speech.play(1); setExpanded(true); }}>
             <Feather name="volume-2" size={22} color={speech.playing ? "var(--bs-reverse)" : "var(--bs-primary)"} />
           </button>
         </div>

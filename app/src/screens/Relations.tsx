@@ -81,7 +81,7 @@ export function Relations() {
     if (key) navigate(`/relations?endpoint=${encodeURIComponent(key)}`);
   }}><Icon name="precepts" /><span className="nt-item__body"><b>{r.endpoints[0].label}</b><small>{relationText(r, r.endpoints[0])} {r.endpoints[1].label}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="No precepts yet" action={{ label: "Open the Bible", href: "/bible" }}>Precept upon precept, line upon line (Isaiah 28:10): join a verse to another passage, a class, a note, a dictionary entry or a link, so they show together when you read. Select a verse and tap Relation to make one. In Telegram they follow your account to every device; in a browser they stay on this device.</Empty>}</Screen>;
   return (
-    <Screen title="Precepts" kicker={endpoint.label} action={<button type="button" className="icon-btn" aria-label="Add a precept" onClick={() => setPicking(true)}>+</button>}>
+    <Screen title="Precepts" kicker={endpoint.label} action={<button type="button" className="icon-btn" aria-label="Add a precept" title="Add a precept" onClick={() => setPicking(true)}>+</button>}>
       {!count && !precepts.length ? <div className="rel-empty"><PreceptsIcon size={64} /><p>No precepts yet</p><small>Tap + to join this passage to another passage, a class, a note, a dictionary entry or a link.</small></div> : null}
       {precepts.length ? (
         <div className="rel-section">
@@ -107,7 +107,7 @@ export function Relations() {
                 {target.type === "note" || target.type === "entry" ? <small>{target.label}</small> : null}
                 {r.label ? <small>{r.label}</small> : null}
               </button>
-              <button type="button" className="icon-btn" aria-label="Options" onClick={() => void edit(r, active)}>···</button>
+              <button type="button" className="icon-btn" aria-label="Options" title="Options" onClick={() => void edit(r, active)}>···</button>
             </div>
           ))}
         </div>

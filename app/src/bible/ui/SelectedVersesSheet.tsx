@@ -125,7 +125,7 @@ export function ColorCirclesBar({ colors, selected, onSelect, onLongPress, onAdd
   return (
     <div className="bs-colors" role="group" aria-label="Highlight colour">
       {colors.map((c, i) => (
-        <button key={c.key} type="button" className="bs-colors__cell" aria-label={`Highlight ${c.name || colourName(c.hex) || i + 1}${c.type === "textColor" ? " text" : c.type === "underline" ? " underline" : ""}`} aria-pressed={selected === c.key}
+        <button key={c.key} type="button" className="bs-colors__cell" aria-label={`Highlight ${c.name || colourName(c.hex) || i + 1}${c.type === "textColor" ? " text" : c.type === "underline" ? " underline" : ""}`} title={`Highlight ${c.name || colourName(c.hex) || i + 1}${c.type === "textColor" ? " text" : c.type === "underline" ? " underline" : ""}`} aria-pressed={selected === c.key}
           onPointerDown={() => start(c.key)} onPointerUp={end} onPointerLeave={end} onPointerCancel={end} onContextMenu={(e) => e.preventDefault()}
           onClick={() => { if (fired.current) { fired.current = false; return; } haptic("select"); onSelect(c.key); }}>
           <span className="bs-colors__swatch" data-on={selected === c.key ? "" : undefined}>
@@ -134,7 +134,7 @@ export function ColorCirclesBar({ colors, selected, onSelect, onLongPress, onAdd
           </span>
         </button>
       ))}
-      {onAdd ? <button type="button" className="bs-colors__cell" aria-label="More highlight colours" onClick={onAdd}><span className="bs-colors__swatch bs-colors__more"><Feather name="arrow-right-circle" size={18} color="currentColor" /></span></button> : null}
+      {onAdd ? <button type="button" className="bs-colors__cell" aria-label="More highlight colours" title="More highlight colours" onClick={onAdd}><span className="bs-colors__swatch bs-colors__more"><Feather name="arrow-right-circle" size={18} color="currentColor" /></span></button> : null}
     </div>
   );
 }
