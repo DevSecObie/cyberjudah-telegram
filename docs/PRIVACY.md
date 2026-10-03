@@ -38,7 +38,8 @@ record holding anything personal is sealed for its owner (AES-GCM, a key derived
 | Reading reminder | KV `remind:tg:<pid>` / `remind:dev:<id>`, sealed; readable metadata: on, hour, minute, zone, channels, pause date | Time, zone, chat ID or push subscriptions, plan position | Until turned off; a browser not linked to Telegram 180 days unused | Settings → Reading reminders, `/stop`, Delete my data |
 | Push lookup | KV `pushep:<sha256(endpoint)>` | The reminder's ID | 180 days | With the reminder |
 | Daily verse | KV `sub:<pid>`, sealed | Hour, offset, chat ID | Until `/daily` again | `/daily`, Delete my data, Telegram blocking the bot |
-| Ask allowance | D1 `accounts` (`user_id` = pid) | Today's use, plan, credit | Until empty and unused for 180 days (`pruneBilling`) | Delete my data |
+| Ask balance | D1 `credit_lots`, `credit_ledger`, `credit_holds`, `credit_usage`, `credit_meta` (`user_id` = pid); the old `accounts` row it was carried over from | Balance, each top-up, refund and adjustment, and each paid answer's model, steps and cost (never the question) | Until Delete my data | Delete my data |
+| Top-up reminder | D1 `topup_reminders` (`user_id` = pid) | Time zone, the chat to write to (sealed), the last eve handled | Until turned off | Delete my data |
 | Stars payments | D1 `payments` | Telegram charge ID, kind, Stars, date; pid | Kept for refunds and accounts | Delete my data unlinks it (`user_id = 'deleted'`) |
 | Who asked on a day | D1 `usage_people` (pid) | pid, day | 30 days | Delete my data |
 | Daily limits | D1 `rate_counts` (`name:pid:day`) | A count | Swept daily | Delete my data |
