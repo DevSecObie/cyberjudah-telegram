@@ -1,0 +1,11 @@
+{
+  "name": "CyberJudah",
+  "short_name": "CyberJudah",
+  "description": "The KJV with the Apocrypha, the classes, the law, the precepts and the cases.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#05070f",
+  "theme_color": "#05070f",
+  "icons": [{ "src": "https://cyberjudah.io/assets/brand/cyber-lion.png", "type": "image/png", "purpose": "any" }]
+}

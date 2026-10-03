@@ -32,6 +32,15 @@ export type Env = {
   D1_SIZE_ALERT_BYTES?: string;
   /** Set as a Worker secret from the CYBERJUDAH_TOKEN repository secret: a fine-grained GitHub token with contents write on the cyberjudah repository, for edits made in the app. */
   CYBERJUDAH_TOKEN?: string;
+  /** Web Push for reading reminders (Worker secrets, base64url): the P-256 public key the browser subscribes with, its private key, and the contact (mailto: or https:) push services are given. Without them push is offered as unavailable. */
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+  VAPID_SUBJECT?: string;
+  /** End-to-end tests only: a loopback Bot API and push service (http://127.0.0.1:…). Ignored unless loopback. */
+  TELEGRAM_API_ROOT?: string;
+  PUSH_TEST_ORIGIN?: string;
+  /** Workers Rate Limiting binding for the reading-reminder endpoints (wrangler.jsonc "ratelimits"). */
+  REMIND_LIMIT?: RateLimit;
 };
 
 /** A daily-verse subscription, KV key sub:<userId>. hour is local, tz the offset in minutes. */

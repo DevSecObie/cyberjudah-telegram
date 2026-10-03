@@ -19,8 +19,10 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
     // The fork's pages (not its files) go through the Worker, so a deep link under /app/strong
-    // gets the fork's own index.html instead of the current app's.
-    "run_worker_first": ["/api/*", "/webhook", "/card/*", "/frames/*", "/bs/*", "/app/strong", "/app/strong/*", "!/app/strong/_expo/*", "!/app/strong/assets/*"]
+    // gets the fork's own index.html instead of the current app's. /__scheduled reaches the
+    // Worker so `wrangler dev --test-scheduled` (the end-to-end tests) can run the cron; a
+    // deployed Worker has no such route and hands it to the assets like any unknown path.
+    "run_worker_first": ["/api/*", "/webhook", "/__scheduled", "/card/*", "/frames/*", "/bs/*", "/app/strong", "/app/strong/*", "!/app/strong/_expo/*", "!/app/strong/assets/*"]
   },
   // search_docs (FTS5) loaded from the engine's search.sql.gz by scripts/load-search.mjs. The
   // id is filled in by the deploy workflow (scripts/d1-id.sh); nothing account-specific is committed.
@@ -38,8 +40,11 @@
   "ai": { "binding": "AI" },
   "vectorize": [{ "binding": "VEC", "index_name": "cyberjudah-teachings" }],
   "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "cyberjudah-audio" }],
-  // Hourly: the daily verse goes to every subscriber whose local hour is now.
-  "triggers": { "crons": ["0 * * * *"] },
+  // On the hour: the daily verse and the hourly jobs; every quarter hour: reading reminders
+  // (so each reader's own time is reached in every time zone, including :30 and :45 offsets).
+  "triggers": { "crons": ["0 * * * *", "15,30,45 * * * *"] },
+  // Abuse protection for the reading-reminder endpoints (remind.ts): per caller, per minute.
+  "ratelimits": [{ "name": "REMIND_LIMIT", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } }],
   // Staging: the same code against separate resources, deployed by .github/workflows/stage.yml.
   // The staging bot is a second @BotFather bot; its token and webhook secret live in the
   // STAGING_BOT_TOKEN / STAGING_WEBHOOK_SECRET repository secrets. D1 "cyberjudah-telegram"
@@ -56,6 +61,7 @@
         { "binding": "TEACH", "database_name": "cyberjudah", "database_id": "11111111-1111-1111-1111-111111111111" }
       ],
       "kv_namespaces": [{ "binding": "SUBS", "id": "00000000000000000000000000000000" }],
+      "ratelimits": [{ "name": "REMIND_LIMIT", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } }],
       // Environments do not inherit "vars": every production setting is repeated here (only
       // APP_URL differs). tests/wrangler.test.mjs fails if one goes missing.
       "vars": {

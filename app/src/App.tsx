@@ -25,6 +25,8 @@ const Ask = lazy(() => import("@/screens/Ask").then((m) => ({ default: m.Ask }))
 const BibleTab = lazy(() => import("@/bible/BibleTab").then((m) => ({ default: m.BibleTab })));
 const More = lazy(() => import("@/screens/More").then((m) => ({ default: m.More })));
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
+const Reminders = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.Reminders })));
+const ReminderSync = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.ReminderSync })));
 const Timeline = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.Timeline })));
 const TimelinePeriod = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.TimelinePeriod })));
 const TimelineSearch = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.TimelineSearch })));
@@ -99,6 +101,7 @@ export function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/settings/credits" element={<Credits />} />
+        <Route path="/settings/reminders" element={<Reminders />} />
         <Route path="/search" element={<Search />} />
         <Route path="/classes" element={<Classes />} />
         <Route path="/bible" element={<BibleTab />} />
@@ -151,6 +154,7 @@ export function App() {
       </Suspense>
       </ScreenBoundary>
       </div>
+      <Suspense fallback={null}><ReminderSync /></Suspense>
       <PageActions />
       <Drawers />
       {tabs ? <TabBar /> : null}

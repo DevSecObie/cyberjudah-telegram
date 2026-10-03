@@ -115,6 +115,9 @@ export function Settings() {
           {saved.length ? <List>{saved.map((s) => <Row key={s} onClick={() => void forget(s)} title={books.data?.find((b) => b.slug === s)?.book ?? s} sub="Saved on this device · tap to remove" trailing={<span className="pill pill--ok">offline</span>} />)}</List> : <p className="hint">Save the text to read without a connection. Available narration is an optional extra download.</p>}
         </Section>
       ) : null}
+      <Section title="Reading reminders">
+        <List><Row title="Reading reminders" sub="Today's reading, at your time, in Telegram or as a push notification" onClick={() => navigate("/settings/reminders")} /></List>
+      </Section>
       <Section title="Daily verse">
         <List>
           {/* Outside Telegram there is no chat for the bot to send to: said here, at the switch. */}
@@ -144,7 +147,7 @@ export function Settings() {
 
 /** For admins: what Ask CyberJudah answers cost, day by day, to price the plans by. */
 function AskUsage() {
-  const [u, setU] = useState<{ usdPerMtok: number; days: { day: string; questions: number; people: number; units: number; usd: number }[] } | null>(null);
+  const [u, setU] = useState<{ usdPerMtok: number; days: { day: string; questions: number; people: number; units: number; usd: number }[]; reminders?: { telegram: number; push: number; both: number; paused: number; off: number } | null } | null>(null);
   useEffect(() => { void api<typeof u>("/api/admin/usage").then(setU).catch(() => undefined); }, []);
   if (!u) return null;
   const week = u.days.slice(0, 7), q = week.reduce((a, d) => a + d.questions, 0), usd = week.reduce((a, d) => a + d.usd, 0);
@@ -157,6 +160,14 @@ function AskUsage() {
       </div>
       <List>{u.days.filter((d) => d.questions).slice(0, 7).map((d) => <Row key={d.day} title={d.day} sub={`${d.questions} answers · ${d.people} people`} trailing={<span className="row__value">${d.usd.toFixed(2)}</span>} />)}</List>
       <p className="hint">At ${u.usdPerMtok} per million input tokens (ASK_USD_PER_MTOK); output counts five times. Check it against Anthropic's price for the model.</p>
+      {u.reminders ? (
+        <div className="stat" aria-label="Reading reminders by channel">
+          <div><b>{u.reminders.telegram}</b><span>reminders, Telegram</span></div>
+          <div><b>{u.reminders.push}</b><span>reminders, push</span></div>
+          <div><b>{u.reminders.both}</b><span>reminders, both</span></div>
+        </div>
+      ) : null}
+      {u.reminders ? <p className="hint">Reading reminders on: {u.reminders.telegram + u.reminders.push + u.reminders.both}, of which {u.reminders.paused} paused; {u.reminders.off} off.</p> : null}
     </Section>
   );
 }

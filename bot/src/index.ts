@@ -14,6 +14,7 @@ import { ask, askStream, similar, speakVerse } from "./ai";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
+import { push, reminderCounts, reminders, sendReminders } from "./remind";
 import { reportHealth, selfCheck } from "./health";
 import { bookLabel } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
@@ -46,6 +47,8 @@ app.use("/api/*", async (c, next) => {
   // The frames' geometry is public like the sheets themselves: the library's build reads it to place frames in the notes.
   // A note's PDF is fetched by Telegram's downloader, which carries no launch data: its link is signed instead.
   if (c.req.method === "GET" && c.req.path.startsWith("/api/pdf/")) return next();
+  // Reading reminders authenticate themselves: Telegram launch data, a browser's device credential, or (for the service worker) its push endpoint.
+  if (c.req.path === "/api/reminders" || c.req.path.startsWith("/api/reminders/") || c.req.path.startsWith("/api/push/")) return next();
   if (c.req.path === "/api/verse-of-day" || c.req.path === "/api/health" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
   // Thirty days: Telegram keeps a Mini App open in the background for weeks, and its launch
@@ -60,6 +63,9 @@ app.use("/api/*", async (c, next) => {
   c.set("tma", data);
   await next();
 });
+
+app.route("/api/reminders", reminders);
+app.route("/api/push", push);
 
 app.post("/webhook", async (c) => {
   // The secret is checked before the bot is built: a stray request must not cost a getMe call.
@@ -247,7 +253,8 @@ app.get("/api/admin/usage", async (c) => {
     const d = await usageDay(c.env, day);
     return { day, questions: d.questions, people: d.people, units: d.units, usd: Math.round((d.units / 1e6) * p.usdPerMtok * 100) / 100 };
   }));
-  return c.json({ ok: true, usdPerMtok: p.usdPerMtok, usdPerStar: p.usdPerStar, margin: p.margin, days });
+  const remindersByChannel = await reminderCounts(c.env).catch(() => null);
+  return c.json({ ok: true, usdPerMtok: p.usdPerMtok, usdPerStar: p.usdPerStar, margin: p.margin, days, reminders: remindersByChannel });
 });
 
 // The person's saved conversations with Ask CyberJudah: the list, one to reopen, one to delete.
@@ -423,6 +430,10 @@ app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 export default {
   fetch: app.fetch,
   scheduled(event, env, ctx) {
+    // Reading reminders every quarter hour, so each reader's own time is reached in every time zone (remind.ts).
+    ctx.waitUntil(sendReminders(env, new Date(event.scheduledTime)).catch((e) => console.error(JSON.stringify({ event: "reminders_failed", message: (e as Error).message?.slice(0, 120) }))));
+    // Everything else runs on the hour only.
+    if (event.cron !== "0 * * * *") return;
     ctx.waitUntil(sendDaily(env, new Date(event.scheduledTime)));
     // The hourly self-check pages the admins over Telegram when something breaks.
     ctx.waitUntil(selfCheck(env).then((r) => reportHealth(env, r)));

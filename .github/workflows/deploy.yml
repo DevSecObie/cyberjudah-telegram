@@ -123,6 +123,9 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CYBERJUDAH_TOKEN: ${{ secrets.CYBERJUDAH_TOKEN }}
           ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
         run: |
           # The Worker needs the same secrets Telegram will present; wrangler stores them on the Worker.
           printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
@@ -135,6 +138,13 @@ jobs:
           # names the Telegram user ids allowed to edit.
           if [ -n "$CYBERJUDAH_TOKEN" ]; then printf '%s' "$CYBERJUDAH_TOKEN" | npx wrangler secret put CYBERJUDAH_TOKEN; else echo "No CYBERJUDAH_TOKEN secret: notes are read-only in the app."; fi
           if [ -n "$ADMIN_IDS" ]; then printf '%s' "$ADMIN_IDS" | npx wrangler secret put ADMIN_IDS; fi
+          # Web Push for reading reminders: all three VAPID secrets or none (docs/OPERATIONS.md).
+          # A partial set would make push look available while every send fails, so it stops here.
+          n=0; for k in VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT; do [ -n "${!k}" ] && n=$((n+1)); done
+          if [ "$n" = 3 ]; then
+            for k in VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT; do printf '%s' "${!k}" | npx wrangler secret put "$k"; done
+          elif [ "$n" = 0 ]; then echo "No VAPID secrets: push reminders show as not set up; Telegram reminders work."
+          else echo "::error::Set all three of VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT, or none."; exit 1; fi
           node scripts/setup.mjs
 
   refresh-search:

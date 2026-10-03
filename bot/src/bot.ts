@@ -7,6 +7,7 @@ import { parseReference } from "./refs.mjs";
 import { verseOfDay } from "./verse-of-day.mjs";
 import { pathToStartParam, startParamToPath } from "../../shared/links.mjs";
 import { applyPayment, checkout, SUPPORT_STARS } from "./billing";
+import { linkDevice, reminderButton, reminderKeyboard, stopFor, telegramReturned } from "./remind";
 
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 const MAX_INLINE = 50;
@@ -40,6 +41,7 @@ const HELP = [
   "",
   "/verse — today's verse",
   "/daily — the daily verse, on or off",
+  "/stop — stop reading reminders",
   "/support — support the work with Telegram Stars",
   "/help — this",
   "",
@@ -52,6 +54,14 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
 
   bot.command("start", async (ctx) => {
     const param = SAFE_PARAM.test(ctx.match) ? ctx.match : "";
+    // A reader who blocked the bot and starts it again gets their reading reminders back.
+    if (ctx.chat.type === "private" && ctx.from) await telegramReturned(env, ctx.from.id).catch(() => undefined);
+    // A browser asking for reading reminders in this chat (Settings → Reading reminders → Start the bot).
+    const link = /^remind_([0-9a-f]{32})$/.exec(param);
+    if (link && ctx.chat.type === "private" && ctx.from) {
+      const ok = await linkDevice(env, link[1], ctx.from.id);
+      return ctx.reply(ok ? "Your reading reminders will come to this chat. Change them in Settings → Reading reminders." : "That link has expired. Open Settings → Reading reminders and press Start the bot again.", { reply_markup: open(ctx, "settings_reminders", "Reading reminders") });
+    }
     if (param) {
       const path = startParamToPath(param);
       const label = path === "/" ? "CyberJudah" : path.replace(/[?#].*$/, "").split("/").filter(Boolean).map((p) => p.replace(/-/g, " ")).join(" › ");
@@ -84,6 +94,17 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     await ctx.reply("The daily verse is on, every day at 08:00 UTC. Pick your own hour in the app's settings, or send /daily to stop.", { reply_markup: open(ctx, "settings", "Open settings") });
   });
 
+  // One command to stop reading reminders from the chat itself.
+  bot.command("stop", async (ctx) => {
+    if (ctx.chat.type !== "private" || !ctx.from) return;
+    const was = await stopFor(env, ctx.from.id);
+    await ctx.reply(was ? "Reading reminders are off. Turn them on again in Settings → Reading reminders." : "Reading reminders are not on.", { reply_markup: open(ctx, "settings_reminders", "Reading reminders") });
+  });
+  // Unblocking the bot (Telegram sends my_chat_member) also brings reminders back.
+  bot.on("my_chat_member", async (ctx) => {
+    if (ctx.chat.type === "private" && ctx.myChatMember.new_chat_member.status === "member") await telegramReturned(env, ctx.from.id).catch(() => undefined);
+  });
+
   bot.command("support", (ctx) =>
     ctx.reply("Support CyberJudah with Telegram Stars — keep the library free and the classes online. Thank you.\n\nPick an amount:", {
       reply_markup: new InlineKeyboard().text("50 ⭐", "support:50").text("100 ⭐", "support:100").text("500 ⭐", "support:500"),
@@ -95,6 +116,22 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     if (!SUPPORT_STARS.includes(stars)) return ctx.answerCallbackQuery({ text: "That amount is not on offer." });
     await ctx.replyWithInvoice("Support CyberJudah", "Keep the library free and the classes online. Thank you.", `support:${ctx.from?.id ?? 0}:${stars}`, "XTR", [{ label: "Support CyberJudah", amount: stars }]);
     return ctx.answerCallbackQuery();
+  });
+
+  // The Done / Pause / Stop buttons under a reading reminder.
+  bot.callbackQuery(/^rd:(done|stop|pause|back)(?::(\d))?$/, async (ctx) => {
+    const action = ctx.match[1], n = ctx.match[2] ? Number(ctx.match[2]) : undefined;
+    // rd:pause:0 is "until I resume".
+    const until = n === 0 ? "forever" as const : n;
+    // Pause asks how long first; Cancel puts the usual buttons back.
+    if ((action === "pause" && until === undefined) || action === "back") {
+      const kb = await reminderKeyboard(env, ctx.from.id, action === "pause");
+      if (kb) await ctx.editMessageReplyMarkup({ reply_markup: kb }).catch(() => undefined);
+      return ctx.answerCallbackQuery();
+    }
+    const text = await reminderButton(env, ctx.from.id, action as "done" | "pause" | "stop", until);
+    if (action !== "done") await ctx.editMessageReplyMarkup({ reply_markup: undefined }).catch(() => undefined);
+    return ctx.answerCallbackQuery({ text });
   });
 
   // Stars are taken only for a real item at its real price, bought by the person paying.
