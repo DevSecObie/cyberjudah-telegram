@@ -8,7 +8,7 @@ const page=await browser.newPage({viewport:{width:390,height:844}});
 await page.addInitScript(()=>window.__cloud={bs:JSON.stringify({preferredColorScheme:'light',preferredLightTheme:'default'})});
 await page.route('https://telegram.org/**',r=>r.fulfill({contentType:'application/javascript',body:fs.readFileSync(new URL('../../telegram-mock.js', import.meta.url),'utf8')}));
 await page.route(/ytimg|youtube\.com|fonts\.g/,r=>r.abort());
-await page.route(/^(https:\/\/data.cyberjudah.io|http:\/\/127.0.0.1:8788)\//,r=>{
+await page.route(/^(https:\/\/data\.cyberjudah\.io|http:\/\/127\.0\.0\.1:8788)\//,r=>{
  const p=new URL(r.request().url()).pathname;
  if(p==='/api/kjv/books.json')return r.fulfill({json:[{book:'Genesis',slug:'genesis',chapters:50,verses:1533,testament:'Old Testament',url:'/bible/genesis',chapterIds:[1]}]});
  if(p==='/api/kjv/genesis/1.json')return r.fulfill({json:JSON.parse(fs.readFileSync(new URL('../../../../bot/tests/fixtures/bs/api/kjv/genesis/1.json', import.meta.url),'utf8'))});
