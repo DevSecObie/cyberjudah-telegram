@@ -1,6 +1,7 @@
 import type { Env } from "./env";
 import { deleteAllChats, getChat, listChats } from "./chats";
 import { billingRecord, deleteBilling } from "./billing";
+import { forgetTopupReminder, getTopupReminder } from "./topup-remind";
 import { forgetReminder, loadReminder, tgRid } from "./remind";
 import { publicView } from "./reminders.mjs";
 import { open, pid, seal } from "./privacy.mjs";
@@ -21,6 +22,7 @@ export type MyData = {
   readingReminder: unknown;
   dailyVerse: { hour: number; tzOffsetMinutes: number } | null;
   ask: unknown;
+  askTopupReminder: unknown;
   classNoteRequests: string[];
 };
 
@@ -53,11 +55,12 @@ export async function exportData(env: Env, uid: number): Promise<MyData> {
     readingReminder: rec ? publicView(rec) : null,
     dailyVerse: sub ? { hour: sub.hour, tzOffsetMinutes: sub.tz } : null,
     ask: await billingRecord(env, uid).catch(() => null),
+    askTopupReminder: await getTopupReminder(env, uid).catch(() => null),
     classNoteRequests: (await noteRequestsOf(env, uid)).map((x) => x.video),
   };
 }
 
-export type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse: boolean; classNoteRequests: number; askCredits: number; askPlanUntil: string | null };
+export type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse: boolean; classNoteRequests: number; askBalanceUsd: number; topupReminder: boolean };
 
 export async function deleteData(env: Env, uid: number): Promise<Deleted> {
   const me = await pid(env, uid);
@@ -73,9 +76,10 @@ export async function deleteData(env: Env, uid: number): Promise<Deleted> {
     if (!count) { await env.SUBS.delete(`notereq:${video}`); continue; }
     await env.SUBS.put(`notereq:${video}`, JSON.stringify({ ...r, users, count }), { metadata: { ...(meta as object), count } });
   }
-  const billing = await deleteBilling(env, uid).catch(() => ({ credits: 0, planUntil: null }));
+  const billing = await deleteBilling(env, uid).catch(() => ({ balanceUsd: 0 }));
+  const topupReminder = await forgetTopupReminder(env, uid).catch(() => false);
   await env.DB.prepare("DELETE FROM rate_counts WHERE key LIKE ?").bind(`%:${me}:%`).run().catch(() => null);
-  return { savedChats, readingReminder, dailyVerse, classNoteRequests: reqs.length, askCredits: billing.credits, askPlanUntil: billing.planUntil ? new Date(billing.planUntil).toISOString() : null };
+  return { savedChats, readingReminder, dailyVerse, classNoteRequests: reqs.length, askBalanceUsd: billing.balanceUsd, topupReminder };
 }
 
 /** A confirmation for Delete my data, kept 10 minutes, so a deletion asked for in the bot is confirmed with one tap. */
