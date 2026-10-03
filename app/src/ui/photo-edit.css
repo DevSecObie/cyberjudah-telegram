@@ -1,6 +1,5 @@
 /* An admin's photo editor (photo-edit.tsx): the button under a picture, and the framing sheet.
-   Loaded with the component, so it looks the same on any screen; the sheet maps the --bs-* colours
-   to the app's own and is opaque, so the page under it does not read through. */
+   Loaded with the component, so it looks the same on any screen; the shared sheet inherits the app palette and opaque content material, so the page under it does not read through. */
 .photo-sheet .bs-sheet__titles b { color: var(--text-1); }
 .photo-edit { display: flex; justify-content: center; margin: 10px 0 0; }
 .photo-sheet .bs-sheet__body { padding: 16px 20px 24px; }

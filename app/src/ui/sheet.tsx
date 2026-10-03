@@ -66,9 +66,10 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isOpen || !anchored) return;
     // Dismiss without consuming the event: the clicked page control still runs its action.
-    const outside = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node) && !anchor.current?.contains(e.target as Node)) answer(null); };
-    document.addEventListener("pointerdown", outside, true);
-    return () => document.removeEventListener("pointerdown", outside, true);
+    const outside = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node) && !anchor.current?.contains(e.target as Node)) answer(null); };
+    // Wait for click: a snapshot started at pointerdown would cover the pointerup target.
+    document.addEventListener("click", outside, true);
+    return () => document.removeEventListener("click", outside, true);
   }, [isOpen, anchored, answer]);
   return (
     <SheetContext.Provider value={ctx}>

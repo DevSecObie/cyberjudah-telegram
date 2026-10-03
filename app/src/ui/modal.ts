@@ -45,7 +45,9 @@ export function useModal(ref: RefObject<HTMLElement | null>, open: boolean, onCl
       document.removeEventListener("keydown", onKey, true);
       stack.splice(stack.indexOf(me), 1);
       if (lock && --locks <= 0) { locks = 0; delete root.dataset.modal; }
-      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+      // A nonmodal panel leaves the page usable; preserve a later focus choice outside it.
+      const focused = document.activeElement;
+      if (trigger?.isConnected && (trap || focused === document.body || el?.contains(focused))) trigger.focus({ preventScroll: true });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, lock, trap]);

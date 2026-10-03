@@ -150,7 +150,7 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgu
 /* Nested contours: compute locally so each container's own radius and inset are used.
    Primary/secondary action capsules keep their fully rounded silhouette (Apple's default);
    close-fitting icon controls, wells and content cards use the inset contour. */
-.sheet, .bs-sheet { --r-outer: var(--r-2xl); --inset: var(--sp-4); --sheet-card-radius: max(var(--r-min), calc(var(--r-outer) - var(--inset))); --r-inner: var(--sheet-card-radius); }
+.sheet, .bs-sheet { --r-outer: var(--r-sheet); --inset: var(--sp-4); --sheet-card-radius: max(var(--r-min), calc(var(--r-outer) - var(--inset))); --r-inner: var(--sheet-card-radius); }
 #root :is(.sheet, .bs-sheet) :is(.sheet__items, .bs-preview, .photo-frame) { border-radius: var(--r-inner); }
 .card, .head, .srch__bar { --r-outer: var(--r-xl); --inset: var(--sp-2); --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset))); }
 #root :is(.card, .head) .icon-btn, #root .srch__field { border-radius: var(--r-inner); }

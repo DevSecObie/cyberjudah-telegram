@@ -853,6 +853,11 @@ for (const reduced of [false, true]) {
     await page.goto(`/read/genesis/1${LAUNCH}`); await page.locator("#verset-1").click();
     const selection = page.locator(".bs-selected");
     await expect(selection).toBeVisible();
+    await selection.focus();
+    await expect(selection).toHaveCSS("border-top-left-radius", "36px");
+    await expect(selection).toHaveCSS("border-bottom-right-radius", "36px");
+    await expect(page.locator(".bs-scrim--clear")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(page.locator(".bs-scrim--clear")).toHaveCSS("pointer-events", "none");
     await expect.poll(async () => Math.round((await selection.boundingBox())!.x)).toBe(22);
     await expect.poll(async () => { const r = (await selection.boundingBox())!; return Math.round(844 - r.y - r.height); }).toBe(38);
     const rect = (await selection.boundingBox())!;
@@ -874,6 +879,11 @@ for (const reduced of [false, true]) {
     expect(frames[0].every((f: object) => Object.keys(f).every(k => ["transform", "opacity", "offset", "easing", "composite"].includes(k)))).toBe(true);
     if (reduced) expect(frames[0].every((f: { transform: string }) => f.transform === "none")).toBe(true);
     expect((await materials(page, [[".bs-sheet--full"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
+    await sheet.getByRole("button", { name: "Collapse sheet", exact: true }).focus(); await page.keyboard.press("Enter");
+    await expect(sheet).toHaveClass(/bs-sheet--half/);
+    await expect(sheet.getByRole("button", { name: "Expand sheet", exact: true })).toBeFocused();
+    await sheet.getByRole("button", { name: "Expand sheet", exact: true }).click();
+    await expect(sheet).toHaveClass(/bs-sheet--full/);
     await sheet.getByRole("button", { name: "Close", exact: true }).click(); await expect(sheet).toHaveCount(0);
   });
 }
@@ -894,6 +904,10 @@ for (const width of [390, 768, 1280]) {
       await expect(menu).toHaveCount(0); await expect(page).toHaveURL(/\/new/);
       await expect(page.getByRole("heading", { name: "What would you like to explore?" })).toBeVisible();
       await page.goto(`/tabs${LAUNCH}`);
+      await trigger.click(); await expect(menu).toBeVisible();
+      const outside = page.getByRole("button", { name: "Add a tab", exact: true });
+      await outside.focus(); await page.keyboard.press("Escape"); await expect(menu).toHaveCount(0);
+      await expect(outside).toBeFocused();
     } else {
       await expect(page.locator("html")).toHaveAttribute("data-modal", "");
       await expect.poll(async () => Math.round((await menu.boundingBox())!.x)).toBe(8);
@@ -935,3 +949,37 @@ test("menus: a delayed picker mount still brings the current book into view", as
   await expect(page.getByRole("dialog", { name: "Books", exact: true })).toBeVisible();
   await expect(page.locator(".bs-bookrow[data-current]")).toBeInViewport();
 });
+
+for (const theme of ["default", "dark", "sepia"]) {
+  test(`sheets: ${theme} photo framing and full forms fit resized windows`, async ({ page }) => {
+    await setup(page, theme);
+    await page.route("**/api/me", r => r.fulfill({ json: { admin: true, canEdit: true } }));
+    await page.route("**/api/photos", r => r.fulfill({ json: {} }));
+    await page.route("**/api/chats", r => r.fulfill({ json: { chats: [] } }));
+    await page.setViewportSize({ width: 320, height: 844 });
+    await page.goto(`/timeline/event/iuic-founded-2003${LAUNCH}`);
+    await page.getByRole("button", { name: "Change photo" }).click();
+    await page.locator(".photo-edit input[type=file]").setInputFiles({ name: "layout.png", mimeType: "image/png", buffer: await page.screenshot() });
+    const photo = page.getByRole("dialog", { name: "Leader's portrait" });
+    await expect(photo.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
+    for (const width of [320, 1280, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      // At zoom 1 this portrait screenshot covers a square crop exactly across its width.
+      await expect.poll(() => photo.locator(".photo-frame").evaluate(el => Math.abs(el.clientWidth - el.querySelector("canvas")!.getBoundingClientRect().width))).toBeLessThanOrEqual(1);
+      expect(await photo.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+      const box = (await photo.boundingBox())!, frame = (await photo.locator(".photo-frame").boundingBox())!;
+      expect(frame.x - box.x).toBeGreaterThanOrEqual(20);
+      expect(box.x + box.width - frame.x - frame.width).toBeGreaterThanOrEqual(20);
+    }
+    await photo.getByRole("button", { name: "Close", exact: true }).click();
+    await page.goto(`/ask${LAUNCH}`); await page.getByRole("button", { name: "Your chats", exact: true }).click();
+    const chats = page.getByRole("dialog", { name: "Your chats", exact: true });
+    await expect(chats).toHaveCSS("border-top-left-radius", "36px"); await expect(chats).toHaveCSS("border-bottom-left-radius", "0px");
+    await chats.getByRole("button", { name: "Close", exact: true }).click();
+    await page.goto(`/read/genesis/1${LAUNCH}`); await page.getByRole("button", { name: "Scripture options" }).click();
+    await page.getByRole("menuitem", { name: "Font and settings", exact: true }).click();
+    const settings = page.getByRole("dialog", { name: "Font and settings", exact: true });
+    await expect(settings).toBeVisible(); await expect(settings).toHaveCSS("border-bottom-left-radius", "0px");
+    expect(await settings.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  });
+}

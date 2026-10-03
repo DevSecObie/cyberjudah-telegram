@@ -8,7 +8,7 @@
 .bs-iconbtn:active { opacity: .6; }
 /* Sheets */
 .sheet__scrim.bs-scrim { padding: 0; position: fixed; inset: 0; z-index: 90; background: var(--scrim-modal); display: flex; align-items: flex-end; justify-content: center; animation: bs-fadein .15s ease-out; }
-.bs-scrim--clear { background: transparent; pointer-events: none; }
+.bs-scrim.bs-scrim--clear { background: transparent; pointer-events: none; }
 .bs-scrim--clear > .bs-sheet { pointer-events: auto; box-shadow: 0 -8px 30px rgba(0,0,0,.18); }
 /* One geometry for auto/half sheets, including the selection toolbar. Content sheets use
    the opaque overlay; only command surfaces opt into the shared elevated material. */
@@ -23,6 +23,8 @@
 .bs-sheet--full { height: 92dvh; }
 .bs-sheet--40 { min-height: 40dvh; }
 .bs-sheet__handle { width: 36px; height: 4px; border-radius: 2px; background: var(--bs-border); margin: 8px auto 4px; flex: none; }
+.bs-sheet__resize { display: grid; place-items: center; width: 64px; height: 44px; margin: 0 auto; padding: 0; border: 0; border-radius: var(--r-pill); background: transparent; cursor: ns-resize; }
+.bs-sheet .bs-sheet__resize .bs-sheet__handle { display: block; margin: 0; }
 .bs-sheet__header { display: flex; align-items: center; min-height: 48px; padding: 4px 20px; flex: none; }
 .bs-sheet__side { min-width: 60px; display: flex; align-items: center; gap: 4px; }
 .bs-sheet__side--right { justify-content: flex-end; }

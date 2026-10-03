@@ -22,19 +22,20 @@ export function Sheet({ open, onClose, backdrop = true, height = "auto", title, 
   const [tall, setTall] = useState(false);
   const start = useRef<number | null>(null);
   const previousTop = useRef<number | null>(null);
+  const dragged = useRef(false);
   useEffect(() => { if (open) return sheetOpened(); }, [open]);
   useEffect(() => { if (!open) { setDrag(0); setTall(false); } }, [open]);
   // Swipe by the handle or the title bar: down follows the finger and closes past 90 px; up
   // opens a shorter sheet to full height.
-  const down = (e: RPointerEvent) => { if ((e.target as HTMLElement).closest("button")) return; start.current = e.clientY; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); };
-  const move = (e: RPointerEvent) => { if (start.current !== null) setDrag(e.clientY - start.current); };
+  const down = (e: RPointerEvent) => { if ((e.target as HTMLElement).closest("button:not(.bs-sheet__resize)")) return; dragged.current = false; start.current = e.clientY; ((e.target as HTMLElement).closest(".bs-sheet__resize") ?? e.currentTarget).setPointerCapture(e.pointerId); };
+  const move = (e: RPointerEvent) => { if (start.current !== null) { const dy = e.clientY - start.current; if (Math.abs(dy) > 6) dragged.current = true; setDrag(dy); } };
   const up = () => { if (start.current === null) return; start.current = null; if (drag > 90) onClose(); else if (drag < -60 && height !== "full" && !tall) { previousTop.current = box.current?.getBoundingClientRect().top ?? null; setTall(true); } setDrag(0); };
   // A sheet over a dimmed page holds the focus; one that leaves the page usable (no backdrop) does not.
   const box = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const el = box.current, from = previousTop.current;
     previousTop.current = null;
-    if (!el || from === null || !tall) return;
+    if (!el || from === null) return;
     // Apply the new size once, then animate only the layer's translation and opacity.
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const animation = el.animate([{ transform: reduced ? "none" : `translateY(${from - el.getBoundingClientRect().top}px)`, opacity: .8 }, { transform: "none", opacity: 1 }], { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" });
@@ -47,7 +48,7 @@ export function Sheet({ open, onClose, backdrop = true, height = "auto", title, 
       <div ref={box} className={`bs-sheet bs-sheet--${tall ? "full" : height}${className ? ` ${className}` : ""}`} role="dialog" aria-modal={backdrop} aria-label={label ?? (typeof title === "string" ? title : "Sheet")} data-sheet-open="" data-actions={actions && !tall && height !== "full" ? "" : undefined}
         style={drag > 0 ? { transform: `translateY(${drag}px)`, transition: "none" } : undefined}>
         <div className="bs-sheet__grab" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; setDrag(0); }}>
-          <div className="bs-sheet__handle" aria-hidden="true" />
+          {height === "full" ? <div className="bs-sheet__handle" aria-hidden="true" /> : <button type="button" className="bs-sheet__resize" aria-label={tall ? "Collapse sheet" : "Expand sheet"} title={tall ? "Collapse sheet" : "Expand sheet"} aria-expanded={tall} onClick={e => { if (e.detail && dragged.current) return; previousTop.current = box.current?.getBoundingClientRect().top ?? null; setTall(!tall); }}><span className="bs-sheet__handle" aria-hidden="true" /></button>}
           {title !== undefined ? (
             <div className="bs-sheet__header">
               <div className="bs-sheet__side">{hasBack ? <button type="button" className="bs-iconbtn" aria-label="Back" title="Back" onClick={onBack ?? onClose}><Feather name="arrow-left" size={20} /></button> : left}</div>

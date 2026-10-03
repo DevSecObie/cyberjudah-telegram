@@ -48,7 +48,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto 0; height: 60vh; z-
 
 /* Focus: one ring everywhere, visible on every surface (a canvas gap, then the accent). */
 #root :focus { outline: none; }
-#root :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-xs); }
+#root :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* Type helpers. */

@@ -3,7 +3,7 @@
 .bs { position: fixed; inset: var(--safe-top, 0px) var(--safe-right) var(--dock-space) var(--safe-left); z-index: 50; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow: hidden; -webkit-tap-highlight-color: transparent; }
 .bs button { font: inherit; color: inherit; }
 /* Keyboard focus stays visible on every page colour: the reader's primary, offset from the control. */
-#root .bs :focus-visible, #root .bs-sheet :focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 2px; border-radius: 6px; }
+#root .bs :focus-visible, #root .bs-sheet :focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
 .bs-scroll { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; animation: bs-fadein 300ms ease-out; }
 .bs-container { position: relative; width: 100%; min-width: 0; box-sizing: border-box; margin: 0 auto; }
 .bs-num { display: inline-flex; margin-right: 4px; align-items: center; justify-content: center; padding: 2px 2px; min-width: 18px; }
