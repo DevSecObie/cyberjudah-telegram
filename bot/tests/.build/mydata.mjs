@@ -250,6 +250,7 @@ var SECTIONS = /* @__PURE__ */ new Set([
   "study",
   "tags",
   "teachings",
+  "timeline",
   "topics",
   "truth-shall-make-you-free"
 ]);

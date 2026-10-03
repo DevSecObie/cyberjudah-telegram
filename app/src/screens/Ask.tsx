@@ -10,6 +10,7 @@ import { useContent } from "./Reminders";
 import { safeLinks } from "@/lib/safe-links";
 import { resetTime } from "@/lib/reset-time";
 import { chosenModel, chooseModel } from "@/lib/ask-model";
+import { agree, consented } from "@/lib/ai-consent";
 import { spinnerLine } from "@/lib/spinner";
 import { APP_URL } from "@/lib/share";
 import { Trouble } from "@/ui/trouble";
@@ -25,7 +26,7 @@ export type Passage = { kind: string; title: string; url: string; sub?: string; 
 export type Source = Passage & { n: number };
 /** A change the assistant proposed; only the reader's Confirm carries it out (bot/src/assistant.mjs). */
 export type Action = { id: string; kind: "reminder"; summary: string; settings: ReminderSettings; state?: "applied" | "cancelled" };
-type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[]; actions?: Action[]; waiting?: boolean; backup?: boolean; limited?: boolean };
+type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[]; actions?: Action[]; waiting?: boolean; backup?: boolean; limited?: boolean; consent?: { provider: string; model: string } };
 /** The welcome screen's starters: a question and the line under it. */
 const EXAMPLES: [string, string][] = [
   ["Why do we keep the Passover?", "The feast, from the law to Christ"],
@@ -69,10 +70,10 @@ const replaceConv = (next: { turns: Turn[]; chatId: string | null }) => { convAb
 /** Patch the last turn of conversation `gen` only (the answer being written); a replaced conversation is left alone. */
 const patchLast = (gen: number, fn: (t: Turn) => Turn) => { if (conv.gen === gen) setConv((c) => ({ turns: c.turns.map((t, i) => (i === c.turns.length - 1 ? fn(t) : t)) })); };
 
-type AskFail = { error?: string; reason?: string };
+type AskFail = { error?: string; reason?: string; provider?: string; model?: string };
 /** What went wrong, from the status and the server's own words. */
 const failure = (status: number, body: AskFail | null): string =>
-  status === 402 ? "allowance" : status === 429 ? "limit" : status === 400 && body?.error === "too-short" ? "too-short"
+  status === 428 && body?.error === "consent" ? "consent" : status === 402 ? "allowance" : status === 429 ? "limit" : status === 400 && body?.error === "too-short" ? "too-short"
     : status === 401 ? (body?.reason === "missing" ? "signin" : "session") : `unavailable:${status}`;
 /** No line from the server for this long (it sends one every 15 seconds while it works): the connection is gone. */
 const STALL_MS = 45_000;
@@ -100,11 +101,11 @@ async function runQuestion(q: string, opts: { retry?: boolean; onAccount?: () =>
   let finished = false, stalled = false, heard = Date.now();
   const watch = setInterval(() => { if (Date.now() - heard > STALL_MS) { stalled = true; ctl.abort(); } }, 5000);
   try {
-    const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, stream: true, chat: id, retry: !!opts.retry, ...(chosenModel() ? { model: chosenModel() } : {}) }) });
+    const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, stream: true, chat: id, retry: !!opts.retry, consent: consented(), ...(chosenModel() ? { model: chosenModel() } : {}) }) });
     heard = Date.now();
     if (!res.ok || !res.body) {
       const body = await res.text().then((t) => { try { return JSON.parse(t.split("\n")[0]) as AskFail; } catch { return null; } }).catch(() => null);
-      patch((t) => ({ ...t, thinking: false, error: failure(res.status, body) }));
+      patch((t) => ({ ...t, thinking: false, error: failure(res.status, body), ...(body?.error === "consent" && body.provider ? { consent: { provider: body.provider, model: body.model ?? body.provider } } : {}) }));
       if (res.status === 402) opts.onAccount?.();
       return;
     }
@@ -393,6 +394,16 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
       {t.steps?.length ? <Research steps={t.steps} live={!!t.thinking || (busy && last)} count={t.passages?.length ?? 0} /> : null}
       {t.thinking ? (
         <div className="msg__thinking" role="status"><span className="answer__dots" aria-hidden="true"><i /><i /><i /></span><Waiting question={question} status={t.status} /></div>
+      ) : t.error === "consent" && t.consent && !t.content ? (
+        <div className="paywall consent" role="group" aria-label="Your agreement">
+          <b>Send your question to {t.consent.provider}?</b>
+          <p>{t.consent.model} is run by {t.consent.provider}. To answer, CyberJudah sends it your question, the earlier questions in this chat, and passages from the library. Your name and Telegram ID are not sent. Your chats are saved for you, encrypted, for 180 days unless you delete them.</p>
+          <div className="consent__actions">
+            <button type="button" className="paywall__go" onClick={() => { agree(t.consent!.provider); haptic("success"); onRetry(); }}>Agree and ask</button>
+            <a className="consent__more" href="/privacy" onClick={(e) => { e.preventDefault(); navigate("/privacy"); }}>Privacy policy</a>
+          </div>
+          <small>You can withdraw this at any time in Settings → Privacy. Choose another model to use a different provider.</small>
+        </div>
       ) : t.error === "allowance" && !t.content ? (
         <div className="paywall">
           <b>You have used today's free answers</b>

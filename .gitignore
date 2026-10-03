@@ -16,3 +16,4 @@ strong/dist/
 
 # Downloaded and prepared licensed audio
 .cache/
+bot/tests/.build/

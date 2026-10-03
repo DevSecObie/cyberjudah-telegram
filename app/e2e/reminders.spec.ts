@@ -3,6 +3,8 @@ import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import { STAND_IN, type Logged } from "./stand-ins";
+import { open, pid, seal } from "../../bot/src/privacy.mjs";
+const KEYS = { PRIVACY_KEY: "e2e-privacy-key-not-secret" };
 
 /**
  * Reading reminders at 390×844, against the real local Worker: its own initData check
@@ -85,10 +87,13 @@ const kv = (...args: string[]) => execFileSync("npx", ["wrangler", "kv", ...args
  * nothing to send today. To test today's run, the record is moved back to having been
  * turned on yesterday: its start date only, nothing else.
  */
-function startedYesterday(key: string) {
-  const rec = JSON.parse(kv("key", "get", key));
+async function startedYesterday(key: string) {
+  // Records are sealed at rest (bot/src/privacy.mjs): opened and sealed again with the test Worker's key.
+  const stored = kv("key", "get", key).trim();
+  expect(stored.startsWith("s1."), "the reminder is sealed at rest").toBe(true);
+  const rec = await open<Record<string, unknown>>(KEYS, key, stored);
   const [{ metadata }] = JSON.parse(kv("key", "list", "--prefix", key)) as { metadata: unknown }[];
-  kv("key", "put", key, JSON.stringify({ ...rec, from: new Date().toISOString().slice(0, 10) }), "--metadata", JSON.stringify(metadata));
+  kv("key", "put", key, await seal(KEYS, key, { ...rec, from: new Date().toISOString().slice(0, 10) }), "--metadata", JSON.stringify(metadata));
 }
 /** The run looks at the quarter hour it is in; a test that starts in the last minute of one waits for the next. */
 async function clearOfQuarterBoundary() {
@@ -351,8 +356,8 @@ test("delivery: at the reader's time the run sends by Telegram and by push once 
   const gone = await dueNow(request, { channels: { push: true }, push: { endpoint: `${STAND_IN}/push/gone-${RUN}`, keys: pushKeys } });
   const refused = await dueNow(request, { channels: { push: true }, push: { endpoint: `${STAND_IN}/push/refuse-${RUN}`, keys: pushKeys } });
   expect(browser.publicKey).toBeTruthy();
-  startedYesterday(`remind:tg:${uid}`);
-  for (const v of [browser, gone, refused]) startedYesterday(`remind:dev:${v.device!.split(".")[0]}`);
+  await startedYesterday(`remind:tg:${await pid(KEYS, uid)}`);
+  for (const v of [browser, gone, refused]) await startedYesterday(`remind:dev:${v.device!.split(".")[0]}`);
   // The admins are told once a day; this run is the first today (a rerun on a reused local Worker may not be).
   for (const { name } of JSON.parse(kv("key", "list", "--prefix", "remind-alert:")) as { name: string }[]) kv("key", "delete", name);
   const toAdmins = (log: Logged[]) => log.filter((e) => e.path.endsWith("/sendMessage") && (e.body as { chat_id?: number })?.chat_id === 100000002);

@@ -1,6 +1,7 @@
 import { Api, GrammyError, InlineKeyboard } from "grammy";
 import type { Env, Sub } from "./env";
 import { todaysVerse, openButton } from "./bot";
+import { open } from "./privacy.mjs";
 
 /** The subscriber's hour of the day for a UTC hour: tz is their offset in minutes (half-hour zones round down). */
 export const localHour = (utcHour: number, tz: number) => Math.floor((((utcHour * 60 + tz) % 1440) + 1440) % 1440 / 60);
@@ -44,7 +45,8 @@ async function sendSlot(env: Env, when: Date, out: Counts): Promise<void> {
   const reply_markup: InlineKeyboard = openButton(env, env.WORKER_URL, "private", verse.param, "Read in CyberJudah");
   const slot: Counts = { sent: 0, dropped: 0, failed: 0 };
   const send = async (name: string): Promise<"sent" | "dropped" | "skip"> => {
-    const sub = await env.SUBS.get<Sub>(name, "json");
+    // Sealed at rest (privacy.mjs); subscriptions from before sealing read as they are.
+    const sub = await open<Sub>(env, name, await env.SUBS.get(name));
     if (!sub || localHour(hour, sub.tz) !== sub.hour) return "skip";
     const attempt = async (): Promise<void> => {
       await api.sendMessage(sub.chatId, html, { parse_mode: "HTML", link_preview_options: { is_disabled: true }, reply_markup });

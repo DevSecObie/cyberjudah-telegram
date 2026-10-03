@@ -1,6 +1,10 @@
 /* A stand-in for telegram-web-app.js: enough of the Mini App API for the app to run, plus a
    window.__tg handle the tests use to press Telegram's buttons and read what the app set. */
 (() => {
+  // A reader who has already agreed, in Ask, to the providers the tests use (the Claude stand-in
+  // and the Cloudflare-hosted free model), so tests about other things are not stopped by the
+  // agreement card. The agreement tests set window.__noConsent to start from no agreement.
+  try { if (!window.__noConsent && !localStorage.getItem("cj:ai-consent")) localStorage.setItem("cj:ai-consent", JSON.stringify(["Anthropic", "Cloudflare (Workers AI)"])); } catch (e) { /* no storage */ }
   const params = new URLSearchParams(location.hash.slice(1));
   const initData = params.get("tgWebAppData") || "";
   const user = (() => { try { return JSON.parse(new URLSearchParams(initData).get("user") || "null"); } catch { return null; } })();

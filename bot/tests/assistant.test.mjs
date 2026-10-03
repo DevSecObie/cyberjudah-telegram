@@ -53,7 +53,7 @@ test("saved chats, people and case studies are found by their own words", () => 
 });
 
 test("a question being answered is marked for a day's worth of minutes, and an applied proposal is remembered", async () => {
-  const env = { SUBS: kv() };
+  const env = { SUBS: kv(), PRIVACY_KEY: "test-key" };
   await markPending(env, 7, "chat00009", "When is Passover?");
   assert.equal((await getPending(env, 7, "chat00009")).q, "When is Passover?");
   assert.equal(await getPending(env, 8, "chat00009"), null, "only the asker's");

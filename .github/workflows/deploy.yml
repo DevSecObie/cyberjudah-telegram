@@ -127,6 +127,7 @@ jobs:
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
           CF_AIG_TOKEN: ${{ secrets.CF_AIG_TOKEN }}
+          PRIVACY_KEY: ${{ secrets.PRIVACY_KEY }}
         run: |
           # The Worker needs the same secrets Telegram will present; wrangler stores them on the Worker.
           printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
@@ -149,6 +150,11 @@ jobs:
           # Claude's calls go through Cloudflare AI Gateway when the repository has a CF_AIG_TOKEN
           # secret (an AI Gateway token with Run permission); otherwise Claude is called directly.
           if [ -n "$CF_AIG_TOKEN" ]; then printf '%s' "$CF_AIG_TOKEN" | npx wrangler secret put CF_AIG_TOKEN; else echo "No CF_AIG_TOKEN secret: Claude is called directly; Workers AI still goes through AI Gateway."; fi
+          # Every record about a person is filed and encrypted under PRIVACY_KEY (bot/src/privacy.mjs,
+          # docs/PRIVACY.md). It must exist before production stores anything, and never change:
+          # records made under one key cannot be found or opened under another.
+          if [ -z "$PRIVACY_KEY" ]; then echo "::error::Add the PRIVACY_KEY repository secret (docs/PRIVACY.md) before deploying: records about people are filed and encrypted under it."; exit 1; fi
+          printf '%s' "$PRIVACY_KEY" | npx wrangler secret put PRIVACY_KEY
           node scripts/setup.mjs
 
   refresh-search:
