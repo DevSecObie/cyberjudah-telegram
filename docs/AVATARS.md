@@ -370,6 +370,25 @@ means it passed this review.
 | 11 Middle Ages | A pope hands a decree to a monk, a cardinal by (Rome as Edom) | `c530aa6f-9fb3-4187-a402-f27296f30929` (an edit of `42e75672`) | `d2511460`, `95b39dcc` (crosses), `48b21bcc` (a likeness of a modern pope), `42e75672` (a pectoral cross, removed by the edit) | Reviewed |
 | 12 Reformation | A preacher on horseback before a ruined abbey | `a3be71c6-06ea-4c68-bb21-57a76b45ef93` | | Reviewed |
 
+#### Round 2 (3 October 2026)
+
+- **6 United Kingdom**: the owner called Solomon's portrait right but the step lions "little baby lions", then directed "just crop King Solomon's lions out". Shipped: a 4:5 crop of `bd657165-75fe-4f7a-a0ab-60867449ca30` (the throne with fringes and a ribband of blue added to his robe, Numbers 15:38) that keeps Solomon on the throne and leaves the steps out. Not used: `12139983`, `990ba08b` (edits that kept cub-sized lions), `bdceebe4`, `ec9d94d7` (recomposed with full-grown lions; overtaken by the crop).
+- **Solomon's portrait**: fringes and a ribband of blue added, `89baf23f-f145-43d4-b46a-09be69cea8ba` (owner: "fire").
+- **New event portraits** (Higgsfield, the approved portrait style; awaiting the owner's review, not shown in the app until their ids are approved): Noah `9cf8ed5d`, Samson `c7ac714a` (from the approved Samson), Elijah `4a016e1c` (from the period 7 Elijah), Gideon `7a5be852`, Eli `5dad90c2`, Jonathan `9d9b275d`, Rehoboam `b40eb012`, Hezekiah `b039f9d2`, Josiah `b5113799`, Jeremiah `87811f7d`, Daniel `fce0b18b`, Uzziah `4b0f23c6` (replacing `7841c00c`, which came out light-skinned against the brief).
+- **Edomite and Roman figures: images from online** (owner's direction, 3 October 2026: "for all of the edomites you can use images from online … Romans etc"). Only public-domain works are used, cropped square; nothing is generated:
+
+| Event | Work | Source | Status |
+| --- | --- | --- | --- |
+| Herod Antipas | John Rogers Herbert, *John the Baptist Reproving Herod* (1848) | archive.org mirror; painting public domain | **Approved by the owner** ("use h-crop") |
+| Julius Caesar | Peter Paul Rubens, *Julius Caesar* (c. 1625) | Wikimedia Commons `Caesar_by_Rubens.jpg` (PD-Art) | Awaiting review |
+| Augustus Caesar | *Augustus of Prima Porta* | Commons `Statue-Augustus.jpg` (photo released to the public domain by Till Niermann) | Awaiting review |
+| Constantine the Great | Bronze head, Musei Capitolini | Commons `Head_Constantine_Musei_Capitolini_MC1072.jpg` (photo by Jastrow, public domain) | Awaiting review |
+| Pope Leo X | Raphael, *Portrait of Leo X* (1518) | Commons `Pope-leo10.jpg` (PD-Art) | Awaiting review |
+| Herod the Great | J. W. Waterhouse, *Mariamne Leaving the Judgement Seat of Herod* (1887) | archive.org mirror; painting public domain | Candidate only: his face is bowed and hidden |
+
+  James Tissot's *Herod* (Brooklyn Museum) was found and not used: it paints Herod as a dark-skinned man, against the assembly's teaching on Edom.
+- **How they reach the app**: `app/scripts/timeline-portraits.json` `events` maps an event to a portrait where the title names more than one person (Daniel, Jonathan, Uzziah …) or a figure outside People (Caesar, Constantine, Leo X). A mapped portrait still shows only once its id is in `ids` (the test holds this).
+
 ### 9.6 Bible Strong's timeline pictures: what may be reused
 
 Direction (2 October 2026): reuse Bible Strong's images that show only landmarks, landscapes,

@@ -43,7 +43,7 @@ const BASE = import.meta.env.BASE_URL;
  * The others wait on a depiction the assembly has not settled (docs/TIMELINE_PARITY.md) and show
  * the period's colour in its place.
  */
-const PERIOD_PICTURES = new Set(["1", "2", "5", "6", "7", "8", "9", "10", "11", "12"]);
+const PERIOD_PICTURES = new Set(["1", "2", "4", "5", "6", "7", "8", "9", "10", "11", "12"]);
 
 /** A period's picture, or its colour where the picture waits on direction. Decorative: the title is beside it. */
 function PeriodPicture({ s, className, eager }: { s: TimelineSection; className: string; eager?: boolean }) {

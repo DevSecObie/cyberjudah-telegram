@@ -130,7 +130,7 @@ export function attachCases(sections, cases, kings = new Map(), peopleIndex = []
  * our people index. Nobody is matched by likeness of name, and a name two people share gets none.
  * `notOn` lists events whose case-study person is not the event's person (see the JSON).
  */
-export function attachPortraits(sections, approved, personEvent, peopleIndex = [], notOn = {}) {
+export function attachPortraits(sections, approved, personEvent, peopleIndex = [], notOn = {}, events = {}) {
   const byName = new Map();
   for (const p of peopleIndex) { const k = norm(p.name); byName.set(k, byName.has(k) ? null : p.id); }
   const placed = new Map();
@@ -140,6 +140,7 @@ export function attachPortraits(sections, approved, personEvent, peopleIndex = [
     const id = byName.get(norm(e.title));
     if (id && approved.has(id)) placed.set(e.slug, id);
   }
+  for (const [slug, id] of Object.entries(events)) if (approved.has(id)) placed.set(slug, id);
   for (const slug of Object.keys(notOn)) placed.delete(slug);
   for (const s of sections) for (const e of s.events) if (placed.has(e.slug)) e.portrait = placed.get(e.slug);
   return placed;
@@ -168,7 +169,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const people = await readPeople(src);
   const { ambiguous, personEvent } = attachCases(kept, cases, placed, people);
   const approved = JSON.parse(fs.readFileSync(PORTRAITS, "utf8"));
-  const portraits = attachPortraits(kept, new Set(approved.ids), personEvent, people, approved.notOn);
+  const portraits = attachPortraits(kept, new Set(approved.ids), personEvent, people, approved.notOn, approved.events);
   const attached = new Set(kept.flatMap((s) => s.events.flatMap((e) => (e.cases ?? []).map((c) => c.slug))));
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify({ source: "Bible Strong timeline (events.txt), history only; case studies attached by exact name", reigns: reigns.source, sections: kept }) + "\n");
