@@ -542,7 +542,7 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   await expect(page).toHaveURL(/endpoint=note%3Apsalms-23-1/);
   await expect(page.locator(".rel-row")).toContainText("CyberJudah");
   await page.getByRole("button", { name: "Menu", exact: true }).click();
-  await expect(page.locator(".mcard__head")).toHaveText(["YOURS", "RESOURCES", "THE LAW", "SETTINGS", "CYBERJUDAH"]);
+  await expect(page.locator(".mcard__head")).toHaveText(["Yours", "Resources", "The Law", "Settings", "CyberJudah"]);
 });
 
 test("Home is the front door: one field, search the classes or ask CyberJudah", async ({ page }) => {
