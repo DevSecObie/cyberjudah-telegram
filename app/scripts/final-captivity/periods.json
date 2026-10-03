@@ -1,10 +1,59 @@
 {
-  "age": "The Final Captivity",
-  "periods": [
-    { "id": "into-the-ships", "title": "Into the Ships", "subTitle": "c.1441–1619", "startYear": 1440, "endYear": 1620, "interval": 5, "color": "#c7552f" },
-    { "id": "house-of-bondage", "title": "The House of Bondage", "subTitle": "1619–1865", "startYear": 1615, "endYear": 1866, "interval": 5, "color": "#9d3a35" },
-    { "id": "jim-crow", "title": "Reconstruction and Jim Crow", "subTitle": "1865–1954", "startYear": 1863, "endYear": 1955, "interval": 2, "color": "#7a3352" },
-    { "id": "civil-rights-awakening", "title": "Civil Rights and the Awakening", "subTitle": "1954–2003", "startYear": 1953, "endYear": 2004, "interval": 1, "color": "#4e3a73" },
-    { "id": "israel-united-in-christ", "title": "Israel United in Christ", "subTitle": "2003–today", "startYear": 2002, "endYear": 2027, "interval": 1, "color": "#2c5d73" }
-  ]
+ "age": "The Final Captivity",
+ "periods": [
+  {
+   "id": "into-the-ships",
+   "title": "Into the Ships",
+   "subTitle": "c.1441–1619",
+   "startYear": 1440,
+   "endYear": 1620,
+   "interval": 5,
+   "color": "#c7552f"
+  },
+  {
+   "id": "house-of-bondage",
+   "title": "The House of Bondage",
+   "subTitle": "1619–1865",
+   "startYear": 1615,
+   "endYear": 1866,
+   "interval": 5,
+   "color": "#9d3a35"
+  },
+  {
+   "id": "jim-crow",
+   "title": "Reconstruction and Jim Crow",
+   "subTitle": "1865–1954",
+   "startYear": 1863,
+   "endYear": 1955,
+   "interval": 2,
+   "color": "#7a3352"
+  },
+  {
+   "id": "civil-rights-awakening",
+   "title": "Civil Rights and the Awakening",
+   "subTitle": "1954–2003",
+   "startYear": 1953,
+   "endYear": 2004,
+   "interval": 1,
+   "color": "#4e3a73"
+  },
+  {
+   "id": "unto-this-day",
+   "title": "Unto This Day",
+   "subTitle": "2003–today",
+   "startYear": 2002,
+   "endYear": 2027,
+   "interval": 1,
+   "color": "#3a4f7a"
+  },
+  {
+   "id": "israel-united-in-christ",
+   "title": "Israel United in Christ",
+   "subTitle": "2003–today",
+   "startYear": 2002,
+   "endYear": 2027,
+   "interval": 1,
+   "color": "#2c5d73"
+  }
+ ]
 }
