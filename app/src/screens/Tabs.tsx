@@ -31,6 +31,7 @@ const LIBRARY: Item[] = [
   ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book", "book"],
   ["/law", "The Law", "Every law with its scripture", "law"],
   ["/cases", "Case studies", "Judgments, and those who were blessed", "folder"],
+  ["/timeline", "Bible timeline", "Periods and events by year", "clock"],
 ];
 
 export function NewTab() {

@@ -1,0 +1,260 @@
+{
+ "source": "Who's Who in the Bible, Joan Comay and Ronald Brownrigg, Chronology (the reigns of the kings, years BC); https://archive.org/details/whos-who-in-the-bible",
+ "reigns": [
+  {
+   "name": "Saul",
+   "kingdom": "United",
+   "from": 1030,
+   "to": 1010,
+   "approx": true
+  },
+  {
+   "name": "David",
+   "kingdom": "United",
+   "from": 1010,
+   "to": 970,
+   "approx": true
+  },
+  {
+   "name": "Solomon",
+   "kingdom": "United",
+   "from": 970,
+   "to": 931,
+   "approx": true
+  },
+  {
+   "name": "Jeroboam",
+   "kingdom": "Israel",
+   "from": 931,
+   "to": 910
+  },
+  {
+   "name": "Nadab",
+   "kingdom": "Israel",
+   "from": 910,
+   "to": 909
+  },
+  {
+   "name": "Baasha",
+   "kingdom": "Israel",
+   "from": 909,
+   "to": 886
+  },
+  {
+   "name": "Elah",
+   "kingdom": "Israel",
+   "from": 886,
+   "to": 885
+  },
+  {
+   "name": "Zimri",
+   "kingdom": "Israel",
+   "from": 885,
+   "to": 885
+  },
+  {
+   "name": "Omri",
+   "kingdom": "Israel",
+   "from": 885,
+   "to": 874
+  },
+  {
+   "name": "Ahab",
+   "kingdom": "Israel",
+   "from": 874,
+   "to": 853
+  },
+  {
+   "name": "Ahaziah",
+   "kingdom": "Israel",
+   "from": 853,
+   "to": 852
+  },
+  {
+   "name": "Jehoram",
+   "kingdom": "Israel",
+   "from": 852,
+   "to": 841
+  },
+  {
+   "name": "Jehu",
+   "kingdom": "Israel",
+   "from": 841,
+   "to": 814
+  },
+  {
+   "name": "Jehoahaz",
+   "kingdom": "Israel",
+   "from": 814,
+   "to": 798
+  },
+  {
+   "name": "Joash",
+   "kingdom": "Israel",
+   "from": 798,
+   "to": 783
+  },
+  {
+   "name": "Jeroboam II",
+   "kingdom": "Israel",
+   "from": 783,
+   "to": 743
+  },
+  {
+   "name": "Zechariah",
+   "kingdom": "Israel",
+   "from": 743,
+   "to": 743
+  },
+  {
+   "name": "Shallum",
+   "kingdom": "Israel",
+   "from": 743,
+   "to": 743
+  },
+  {
+   "name": "Menahem",
+   "kingdom": "Israel",
+   "from": 743,
+   "to": 738
+  },
+  {
+   "name": "Pekahiah",
+   "kingdom": "Israel",
+   "from": 738,
+   "to": 737
+  },
+  {
+   "name": "Pekah",
+   "kingdom": "Israel",
+   "from": 737,
+   "to": 732
+  },
+  {
+   "name": "Hoshea",
+   "kingdom": "Israel",
+   "from": 732,
+   "to": 724
+  },
+  {
+   "name": "Rehoboam",
+   "kingdom": "Judah",
+   "from": 931,
+   "to": 913
+  },
+  {
+   "name": "Abijah",
+   "kingdom": "Judah",
+   "from": 913,
+   "to": 911
+  },
+  {
+   "name": "Asa",
+   "kingdom": "Judah",
+   "from": 911,
+   "to": 870
+  },
+  {
+   "name": "Jehoshaphat",
+   "kingdom": "Judah",
+   "from": 870,
+   "to": 848
+  },
+  {
+   "name": "Jehoram",
+   "kingdom": "Judah",
+   "from": 848,
+   "to": 841
+  },
+  {
+   "name": "Ahaziah",
+   "kingdom": "Judah",
+   "from": 841,
+   "to": 841
+  },
+  {
+   "name": "Athaliah",
+   "kingdom": "Judah",
+   "from": 841,
+   "to": 835
+  },
+  {
+   "name": "Joash",
+   "kingdom": "Judah",
+   "from": 835,
+   "to": 796
+  },
+  {
+   "name": "Amaziah",
+   "kingdom": "Judah",
+   "from": 796,
+   "to": 781
+  },
+  {
+   "name": "Uzziah",
+   "kingdom": "Judah",
+   "from": 781,
+   "to": 740
+  },
+  {
+   "name": "Jotham",
+   "kingdom": "Judah",
+   "from": 740,
+   "to": 736
+  },
+  {
+   "name": "Ahaz",
+   "kingdom": "Judah",
+   "from": 736,
+   "to": 716
+  },
+  {
+   "name": "Hezekiah",
+   "kingdom": "Judah",
+   "from": 716,
+   "to": 687
+  },
+  {
+   "name": "Manasseh",
+   "kingdom": "Judah",
+   "from": 687,
+   "to": 642
+  },
+  {
+   "name": "Amon",
+   "kingdom": "Judah",
+   "from": 642,
+   "to": 640
+  },
+  {
+   "name": "Josiah",
+   "kingdom": "Judah",
+   "from": 640,
+   "to": 609
+  },
+  {
+   "name": "Jehoahaz",
+   "kingdom": "Judah",
+   "from": 609,
+   "to": 609
+  },
+  {
+   "name": "Jehoiakim",
+   "kingdom": "Judah",
+   "from": 609,
+   "to": 598
+  },
+  {
+   "name": "Jehoiachin",
+   "kingdom": "Judah",
+   "from": 598,
+   "to": 598
+  },
+  {
+   "name": "Zedekiah",
+   "kingdom": "Judah",
+   "from": 598,
+   "to": 587
+  }
+ ]
+}
