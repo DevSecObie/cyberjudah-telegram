@@ -293,6 +293,14 @@ export function Row({ href, onClick, title, sub, meta, thumb, trailing, icon, le
 /** A grouped list: TelegramUI's Section body, a divider between rows. */
 export function List({ children }: { children: ReactNode }) { return <TgSection className="list">{Children.toArray(children)}</TgSection>; }
 
+/** Autosaved settings still form a named group, without an artificial submit action. */
+export function FormSection({ title, action, children }: { title?: string; action?: ReactNode; children: ReactNode }) {
+  return <fieldset className="section form-section" aria-label={title ? undefined : "Settings"}>
+    {title ? <legend className="section__head form-section__legend"><h2>{title}</h2>{action}</legend> : null}
+    {children}
+  </fieldset>;
+}
+
 export function SearchField({ value, onChange, onSubmit, placeholder, autoFocus, id, trailing }: { value: string; onChange: (v: string) => void; onSubmit?: () => void; placeholder: string; autoFocus?: boolean; id: string; trailing?: ReactNode }) {
   return (
     <form className="field" role="search" onSubmit={(e) => { e.preventDefault(); (document.activeElement as HTMLElement | null)?.blur(); onSubmit?.(); }}>

@@ -13,7 +13,7 @@ import { Feather } from "../icons";
 import type { Palette } from "../theme";
 
 /**
- * Bible Strong's ChapterEntities, at the end of the chapter: "In this chapter", with the people
+ * Bible Strong's ChapterEntities, at the end of the chapter: "In This Chapter", with the people
  * named in it as a small fanned stack of avatars beside the deck of classes that taught it. A tap
  * spreads the people over the page, each avatar flying from the stack to its place; a person
  * opens their page.
@@ -43,8 +43,8 @@ export function ChapterPeople({ slug, chapter, palette: c, resources }: { slug: 
   if (!people.length && !resources) return null;
   const shown = people.slice(0, MAX_STACKED);
   return (
-    <section className="bs-entities" aria-label="In this chapter">
-      <h2 className="bs-entities__title"><span>In this chapter</span></h2>
+    <section className="bs-entities" aria-label="In This Chapter">
+      <h2 className="bs-entities__title"><span>In This Chapter</span></h2>
       <div className="bs-entities__row">
         {shown.length ? (
           <button ref={stack} type="button" className="bs-entities__stack" data-ignore-verse-touch=""

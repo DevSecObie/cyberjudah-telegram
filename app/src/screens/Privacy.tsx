@@ -44,7 +44,7 @@ export function Privacy() {
 
   return (
     <Screen title="Privacy" kicker={`Last updated ${PRIVACY_UPDATED}`} className="privacy">
-      <Section title="Your choices">
+      <Section title="Your Choices">
         {inTelegram ? (
           <List>
             <Row icon="download" title={busy === "export" ? "Sending…" : "Download my data"} sub="A copy of everything kept about you, sent to your chat with the bot" onClick={busy ? undefined : () => void sendCopy()} />
@@ -55,11 +55,11 @@ export function Privacy() {
         {status ? <p className="hint" role="status">{status}</p> : null}
       </Section>
 
-      <Section title="What stays with you">
+      <Section title="What Stays with You">
         <p>Your highlights, notes, bookmarks, tags, reading history, reading plan and settings are kept on your device and in Telegram's own cloud storage for this app. They are not on CyberJudah's servers. A backup from Settings goes to your own chat with the bot.</p>
       </Section>
 
-      <Section title="What CyberJudah keeps, and for how long">
+      <Section title="What CyberJudah Keeps, and for How Long">
         <p>Only what a feature you use needs. Each record is filed under a coded ID, not your Telegram ID, and what it holds is encrypted, with the key kept apart from the data.</p>
         <ul>
           <li><b>Saved Ask chats:</b> your questions and the answers, so you can reopen them. Removed 180 days after you last use a chat, or when you delete it.</li>
@@ -73,7 +73,7 @@ export function Privacy() {
         </ul>
       </Section>
 
-      <Section title="Who else handles it">
+      <Section title="Who Else Handles It">
         <ul>
           <li><b>Telegram</b> runs the platform: sign-in, messages and Stars payments, under Telegram's own privacy policy.</li>
           <li><b>Cloudflare</b> hosts CyberJudah and runs the Cloudflare-hosted AI models. Its request logs are kept for up to 7 days. Calls to AI models are logged without your words, or not logged at all.</li>
@@ -83,7 +83,7 @@ export function Privacy() {
         <p>CyberJudah does not sell your data or use it for advertising.</p>
       </Section>
 
-      <Section title="Your rights">
+      <Section title="Your Rights">
         <p>You can get a copy of what is kept, have it deleted, withdraw your agreement, and stop any feature at any time, in this screen or with /mydata and /deletemydata in the bot. What the app does for you here happens at once. You can also complain to the data protection authority where you live. Payments: send /paysupport to the bot.</p>
       </Section>
 

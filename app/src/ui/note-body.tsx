@@ -96,7 +96,7 @@ function tidyHead(html: string): string {
     .replace(/<p>\s*<span class="opens">([\s\S]*?)<\/span>\s*<\/p>/, (_m, inner: string) => {
       const refs = [...inner.matchAll(/<a href="([^"]+)">([^<]+)<\/a>/g)].map((m) => `<a class="note-opens__ref" href="${m[1]}">${m[2]}</a>`).join("");
       const more = /<i>([^<]+)<\/i>/.exec(inner)?.[1];
-      return `<div class="note-opens"><span class="note-opens__label">Scriptures opened</span><div class="note-opens__refs">${refs}${more ? `<span class="note-opens__more">${more}</span>` : ""}</div></div>`;
+      return `<div class="note-opens"><span class="note-opens__label">Scriptures Opened</span><div class="note-opens__refs">${refs}${more ? `<span class="note-opens__more">${more}</span>` : ""}</div></div>`;
     });
 }
 

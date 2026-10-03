@@ -125,6 +125,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   is unavailable, Ask answers from the keyword search.
 
 ### Changed
+- Lists and settings use roomier grouped rows with shared rounded corners. Section headings keep normal title case, and related settings have accessible form groups.
 - The Bible Timeline shows 45 more portraits (83 in all): picture rounds 2–4 (Solomon recropped, the
   Red Sea, Bethel, Christ, prophets, kings, apostles, Reformation figures and Jacob), with their
   sources in docs/AVATARS.md.

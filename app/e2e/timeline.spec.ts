@@ -122,7 +122,7 @@ test.describe("as Bible Strong moves through it", () => {
     await page.locator('a[href$="/timeline/5"]').click();
     const period = page.locator(".tl-period");
     await expect(period).toHaveAttribute("data-phase", "card");
-    await expect(page.locator(".tl-behind--current .tl-card__title")).toHaveText("UNITED KINGDOM");
+    await expect(page.locator(".tl-behind--current .tl-card__title")).toHaveText("United Kingdom");
     await expect(period).toHaveAttribute("data-phase", "slide", { timeout: 3000 });
     await expect(period).toHaveAttribute("data-phase", "ready", { timeout: 3000 });
     await expect(page.locator(".tl-behind--current")).toHaveCount(0);
@@ -172,7 +172,7 @@ test("pulling past the start: the line and year go with the canvas, the previous
   await scroll.evaluate((s) => { s.scrollLeft -= 80; });
   await expect(page.locator(".tl-line")).toHaveAttribute("style", /translateX\(80px\)/);
   await expect.poll(() => page.locator(".tl-behind").first().evaluate((el) => Number(getComputedStyle(el).opacity))).toBeGreaterThan(0.15);
-  await expect(page.locator(".tl-behind").first()).toContainText("THE JUDGES");
+  await expect(page.locator(".tl-behind").first()).toContainText("The Judges");
   await expect(page).toHaveURL(/\/timeline\/5$/);
   // Past it, letting go opens the period before, at its end.
   await scroll.evaluate((s) => { s.scrollLeft -= 120; s.dispatchEvent(new Event("scrollend")); });
@@ -219,7 +219,7 @@ test("The Final Captivity: a period's events by category, and an event's history
   await page.goto("/timeline/event/kimpa-vita-1706");
   await expect(page.locator(".tl-event__title")).toHaveText("Kimpa Vita burned in Kongo");
   await expect(page.getByRole("region", { name: "Summary" })).toBeVisible();
-  await expect(page.locator(".fc-kind").first()).toHaveText("Documented history");
+  await expect(page.locator(".fc-kind").first()).toHaveText("Documented History");
   // Each class moment is a source linked to the second it was said; no paraphrase is shown.
   const cite = page.locator(".fc-cite").first();
   await expect(cite).toHaveAttribute("href", /^https:\/\/(youtu\.be\/[\w-]{11}\?t=\d+|israelunite\.org\/)/);

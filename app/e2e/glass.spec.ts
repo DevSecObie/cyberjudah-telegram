@@ -993,3 +993,43 @@ for (const theme of ["default", "dark", "sepia"]) {
     expect(await settings.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
   });
 }
+
+for (const theme of ["default", "dark", "sepia"]) {
+  for (const scene of ["settings", "more", "books", "bookmarks", "reminders", "chats"]) {
+    test(`lists: ${theme} ${scene} keeps grouped rows reachable at large text`, async ({ page }) => {
+      await setup(page, theme);
+      await page.addInitScript(() => { (window as any).__cloud.bs_bm = JSON.stringify([{ id: "layout-bookmark", name: "Genesis 1", book: "genesis", chapter: 1, verse: 1, color: "#0984e3", date: 1 }]); });
+      await page.route(`${DATA_ORIGIN}/api/library/index.json`, r => r.fulfill({ json: [{ slug: "layout", title: "Library layout fixture", subtitle: "", author: "Test", year: 2026, pages: 12, volumes: 1, chapters: 1, figures: 0, cover: null, reads: 1, classes: 1 }] }));
+      await page.route("**/api/chats", r => r.fulfill({ json: { chats: [{ id: "layout-chat", title: "Reading layout", updated: "2026-10-01T12:00:00Z", count: 1 }] } }));
+      for (const [width, scale] of [[390, 100], [390, 200], [1280, 100], [1280, 200]]) {
+        await page.setViewportSize({ width, height: 844 });
+        const path = scene === "reminders" ? "/settings/reminders" : scene === "chats" ? "/ask" : `/${scene}`;
+        await page.goto(`${path}${LAUNCH}`);
+        await page.locator(".route").getByRole("heading").first().waitFor();
+        await page.addStyleTag({ content: `html { font-size: ${scale}% !important; }` });
+        if (scene === "chats") { await page.getByRole("button", { name: "Your chats", exact: true }).click(); await page.locator(".chats__open").waitFor();
+          await page.getByRole("dialog", { name: "Your chats", exact: true }).evaluate(async el => { await Promise.all(el.getAnimations({ subtree: true }).filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))); });
+        }
+        const selector = scene === "chats" ? ".chats__open, .chats__del" : scene === "more" ? ".mcard__row" : ".list .row, .list .toggle";
+        const rows = page.locator(selector); await expect(rows.first()).toBeVisible();
+        if (scene === "more" || scene === "chats") { const label = page.locator(scene === "more" ? ".mcard__label" : ".chats__open b").first(); expect(await label.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBe((scene === "more" ? 15 : 15.5) * scale / 100); }
+        for (const row of await rows.all()) {
+          const rect = (await row.boundingBox())!;
+          expect(rect.height, `${scene} at ${width}/${scale}`).toBeGreaterThanOrEqual(44);
+          expect(rect.width).toBeGreaterThanOrEqual(44);
+        }
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        const caps = await page.locator("h2, h3, .eyebrow, .mcard__head").evaluateAll(els => els.filter(el => getComputedStyle(el).textTransform === "uppercase").map(el => el.textContent));
+        expect(caps).toEqual([]);
+        if (["settings", "reminders"].includes(scene)) {
+          if (scene === "reminders") await expect(page.getByRole("group", { name: "Settings", exact: true })).toBeVisible();
+          const groups = page.locator("fieldset.form-section");
+          expect(await groups.count()).toBeGreaterThan(0);
+          if (scene === "settings") await expect(page.getByRole("group", { name: "Reading", exact: true })).toBeVisible();
+        }
+        if (scene === "more") await expect(page.getByRole("heading", { name: "Resources", exact: true })).toBeVisible();
+        if (scene === "chats") { await page.getByRole("dialog", { name: "Your chats", exact: true }).getByRole("button", { name: "Close", exact: true }).click(); await expect(page.getByRole("dialog", { name: "Your chats", exact: true })).toHaveCount(0); }
+      }
+    });
+  }
+}

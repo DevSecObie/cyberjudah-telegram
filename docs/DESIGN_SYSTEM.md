@@ -576,3 +576,12 @@ Action-only shared sheets attach to their initiating control at 768px and above,
 Inventory changes: `.bs-sheet` and `.sheet` share bounded geometry and opaque content material; `.bs-sheet[data-actions]` shares the existing elevated command recipe, one filter. Removed selection-specific filter/geometry and chat/note/photo background overrides. No extra backdrop layers are added.
 
 Section 05 production sample (Chrome 153, 4× CPU, 390×844): dock median/p95/max **16.7/16.8/66.7 ms**, first sheet **16.7/33.3/83.3 ms**; layout totals 36.27/37.39 ms across 3/4 layout events. `glass-05/profile-production.json` records the build provenance. Residual cold-mount/navigation spikes remain for section 10.
+
+
+## Section 06: grouped lists and headings
+
+Following [Adopting Liquid Glass](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass) and [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables), section headings use authored title case without uppercase transforms or capital-only tracking. Scripture, teaching text, names, abbreviations and acronyms retain their authored spelling. A source test rejects CSS or inline `text-transform: uppercase` in `app/src`; no exception is needed.
+
+Lists, More cards and saved chats share `--group-radius` (the 22px outer radius), `--group-inset` (16px) and `--group-row-height` (56px minimum). Ordinary rows have 12px vertical padding and grow with wrapped text. Nested icon/row surfaces subtract their actual inset from the outer radius. Content groups remain opaque. The shared `FormSection` gives Settings and Reminders native fieldsets and legends; headings remain discoverable, and switches retain their existing labels, state and keyboard behavior. Untitled reminder settings have an explicit accessible group name.
+
+The browser checks cover Settings, More, Reminders, Library, bookmarks and saved chats in light, dark and sepia at phone/desktop widths and 100%/200% text. They assert at least 44px targets, no horizontal page overflow, named form groups and no computed uppercase headings. Only two existing visual assertions change: “Documented History” and “In This Chapter”; their content and behavior assertions remain intact. Before/after review images are in `app/e2e/review/glass-06/`.

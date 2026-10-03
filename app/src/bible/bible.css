@@ -93,7 +93,7 @@
 .bs-fontrow { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 56px; padding: 12px 20px; border: 0; border-bottom: 1px solid var(--bs-border); background: none; cursor: pointer; text-align: left; }
 .bs-shareopts { padding: 8px 16px; }
 .bs-preview { margin: 16px 0; padding: 20px; border-radius: var(--r-lg); background: var(--bs-light-grey); }
-.bs-preview__label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--bs-tertiary); margin-bottom: 12px; }
+.bs-preview__label { display: block; font-size: 11px; color: var(--bs-tertiary); margin-bottom: 12px; }
 .bs-preview p { margin: 0; font-size: 16px; line-height: 1.5; white-space: pre-wrap; }
 .bs-palette { padding: 4px 0; }
 .bs-palette__row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 56px; padding: 8px 20px; border: 0; border-bottom: 1px solid var(--bs-border); background: none; cursor: pointer; text-align: left; }
@@ -229,7 +229,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 #root .bs-chip--select { -webkit-appearance: none; appearance: none; max-width: 150px; text-overflow: ellipsis; padding-right: 22px; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 13px) 12px, calc(100% - 9px) 12px; background-size: 4px 4px; background-repeat: no-repeat; }
 .bs-search__list { display: flex; flex-direction: column; padding: 0 0 24px; }
 .bs-search__hint { margin: 16px 20px; font-size: 14px; line-height: 1.5; color: var(--bs-tertiary); }
-.bs-search__count { margin: 10px 20px 4px; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--bs-tertiary); }
+.bs-search__count { margin: 10px 20px 4px; font-size: 12px; font-weight: 600; color: var(--bs-tertiary); }
 .bs-search__go { display: flex; align-items: center; gap: 14px; margin: 4px 16px; padding: 12px 14px; border: 1px solid var(--bs-border); border-radius: var(--r-md); background: none; text-align: left; cursor: pointer; }
 .bs-search__go span { display: flex; flex-direction: column; gap: 2px; }
 .bs-search__go b { font-size: 16px; color: var(--bs-primary); }
@@ -279,7 +279,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-word__meta b { font-size: 17px; }
 .bs-word__meta span { font-size: 13px; color: var(--bs-secondary); }
 .bs-word__meta small { font-size: 12px; color: var(--bs-tertiary); }
-.bs-word__sec h3 { margin: 0 0 6px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--bs-tertiary); }
+.bs-word__sec h3 { margin: 0 0 6px; font-size: 11px; color: var(--bs-tertiary); }
 .bs-word__sec p { margin: 0; font-size: 15px; line-height: 1.55; }
 .bs-word__chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .bs-word__chip { padding: 4px 10px; border-radius: var(--r-sm); background: var(--bs-card, rgba(127,127,127,.12)); font-size: 13px; }
@@ -306,7 +306,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 /* Compare: the verse on top, its precepts or cross references written out beneath. */
 .bs-compare { display: flex; flex-direction: column; gap: 14px; padding: 4px 0 24px; }
 .bs-compare__verse { margin: 0; padding: 14px 16px; border-radius: var(--r-md); background: var(--bs-light-grey); border-left: 3px solid var(--bs-primary); }
-.bs-compare__verse b { display: block; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--bs-primary); margin-bottom: 6px; }
+.bs-compare__verse b { display: block; font-size: 12px; font-weight: 700; color: var(--bs-primary); margin-bottom: 6px; }
 .bs-compare__verse p { margin: 0; font-size: 17px; line-height: 1.55; color: var(--bs-default); }
 .bs-compare__lanes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border-radius: var(--r-md); background: var(--bs-light-grey); }
 .bs-compare__lanes button { border: 0; border-radius: calc(var(--r-md) - 3px); padding: 9px 8px; background: none; color: var(--bs-tertiary); font-size: 13px; font-weight: 600; cursor: pointer; }
@@ -330,7 +330,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 /* In this chapter (Bible Strong's ChapterEntities): the people named, at the end of the text. */
 /* "In this chapter" (Bible Strong's ChapterEntities): the people stack beside the chapter's deck. */
 .bs-entities { margin: 64px 0 8px; direction: ltr; -webkit-user-select: none; user-select: none; }
-.bs-entities__title { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--bs-tertiary); font: 600 12px/1.2 var(--bs-font, inherit); letter-spacing: .08em; text-align: center; text-transform: uppercase; opacity: .62; }
+.bs-entities__title { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--bs-tertiary); font: 600 12px/1.2 var(--bs-font, inherit); text-align: center; opacity: .62; }
 .bs-entities__title::before, .bs-entities__title::after { content: ""; flex: 1; height: 1px; background: linear-gradient(to right, transparent, var(--bs-border)); }
 .bs-entities__title::after { background: linear-gradient(to left, transparent, var(--bs-border)); }
 .bs-entities__row { display: flex; align-items: center; justify-content: center; gap: 38px; margin-top: 20px; }
@@ -369,7 +369,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-gallery__sections { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; justify-content: flex-start; gap: 28px; }
 .bs-gallery__sections--center { justify-content: center; }
 .bs-gallery__sections .bs-gallery__grid { max-width: none; justify-content: start; }
-.bs-gallery__sections h2 { margin: 0 0 14px 2px; color: var(--deck-primary); font-size: 12px; line-height: 1.2; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; animation: deck-rise .22s ease backwards; }
+.bs-gallery__sections h2 { margin: 0 0 14px 2px; color: var(--deck-primary); font-size: 12px; line-height: 1.2; font-weight: 700; animation: deck-rise .22s ease backwards; }
 .bs-gallery__item { min-width: 0; align-self: start; color: var(--deck-ink); text-align: left; }
 #root .bs-gallery__btn, .bs-gallery__btn { display: block; width: 100%; margin: 0; padding: 0; border: 0; border-radius: 11px; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: opacity 120ms ease, transform 120ms ease; }
 .bs-gallery__btn:active { opacity: .55; transform: scale(.98); }
@@ -490,7 +490,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-prologue { margin: 4px 0 18px; border-top: 1px solid; border-bottom: 1px solid; }
 .bs-prologue__toggle { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; width: 100%; padding: 12px 2px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .bs-prologue__toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; border-radius: 6px; }
-.bs-prologue__eyebrow { grid-column: 1; font-family: -apple-system, system-ui, sans-serif; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.bs-prologue__eyebrow { grid-column: 1; font-family: -apple-system, system-ui, sans-serif; font-weight: 600; }
 .bs-prologue__titles { grid-column: 1; font-style: italic; line-height: 1.35; }
 .bs-prologue__chev { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
 .bs-prologue__part h3 { margin: 6px 0 8px; font-weight: 600; font-style: italic; text-align: center; }
