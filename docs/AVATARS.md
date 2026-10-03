@@ -1,0 +1,389 @@
+# People avatars: depiction brief and asset record
+
+Illustrated avatars for the People section, the relationship diagrams, case studies, search
+results and person cards. They are artistic representations, **not historical portraits**. The
+assembly's own teaching is the authority for how people are shown. Conventional European religious
+art is not used as a reference.
+
+Generated with **Higgsfield** in the project "CyberJudah People Avatars". Every asset is keyed by the
+stable person id from `data/people/people.json` (cyberjudah repo), never by name alone: there are
+six records named Mary and 460 names shared by more than one person.
+
+## 1. What the teaching settles (source-supported)
+
+Sources are the class notes and transcripts in the cyberjudah repo. Paths are relative to that repo,
+and teachers are named as the class gives them.
+
+| Subject | The class's understanding | Where it was taught |
+| --- | --- | --- |
+| Israelites: complexion | Black; Lamentations 4:8 and 5:10 ("already black, and blacker in famine"); Job 30:30; Song of Solomon 1:5 ("Solomon was a black man according to the scripture") | Deacon Malachi, `blog/2026/2026-05-26-…superiority-of-the-chosen-people.md:651`; `…false-new-year…md:93-95` [1:21:59]; `17tibtypANE` [7:37] |
+| Israelites passed as Egyptians | Joseph (Genesis 42), Moses (Exodus 2:19) and Paul (Acts 21:38) were taken for Egyptians; Moses' hand turned "leprous as snow" (Exodus 4:6) | `…false-new-year…md:59-108` [56:28], [1:16:07], [1:37:04]; `EMJJP5C1wDk` [27:54] |
+| Range of shades | Hosea 7:8, "a cake not turned": some are very light and some very dark; "the Lord knows who they are regardless of skin tone" | Elder Nathanyel, `blog/2012/2012-12-24-…truth-of-thanksgiving.md:269`; `…2026-02-14-…iranians-the-ephesians.md:35` |
+| Israelites: hair | Woolly, kinky hair (Revelation 1:14 read of Israel's hair) | `10DhxclyWPc` [13:57] |
+| Beard | Leviticus 19:27 and 21:5: the beard is kept with its natural line. It may be trimmed but is not shaved; no bald heads. | `-YJvTD2P_7I` [34:21]; `1KThtHZBGy4` [31:42] |
+| Fringes | Numbers 15:38: fringes on the borders, held by a ribband of blue. They are a sign of identity: "The fringes, the beard, and the Sabbath are what separate you". | `-eRRg7pa8sk` [2:31:15]-[2:45:01]; Captain Osee, `…2026-03-21-mindset-of-a-leader…md:174` |
+| Women | A wrap or head covering (1 Corinthians 11); modest dress, skirts not pants (Deuteronomy 22:5); 1 Peter 3:3-4 | `-RHCA5UNOlg` [3:30:27]; `0N1tUWScwMU` [1:57:19]; Deacon Yashua, `…2026-09-12-she-reverence…md:319` |
+| Men | Uncovered head (1 Corinthians 11) | `08mCpZzZOtE` [10:03] |
+| Hamites (Egypt, Cush, Canaan, Philistia) | Black: "the Egyptians were Hamites, black folks"; Kush, "pure Hamites"; "everybody in that region was black" | Bishop Nathanyel, `…2026-03-28-religion-the-false-prophet.md:236-237`; `…2026-05-02-jude-116.md:307`; `…2026-05-30-god-purpose-and-sacrifice.md:176` |
+| Horites (Seir) | "A group of Hamites named after the region they lived in", in Mount Seir before Esau, who conquered them and took the title of duke from them | `E7-T_cAwLUc` [47:21] |
+| Tyre and Zidon | "Tyre and Zidon represents the Hamitic nations" | Joel classes on Tyre and Zidon |
+| Edom (Esau) | Genesis 25:25, "red all over like an hairy garment"; born without pigment, so the blood showed through; thin, stringy hair "not woolly like a sheep" | Bishop Nathanyel, `…2026-02-08-edom-s-achilles-heel.md:258` [1:15:24]; `…2026-02-14-fighting-satan…md:188`; `…2026-04-03-edom…md:150` |
+
+### The nations (the assembly's chart, Genesis 10)
+
+Deuteronomy 32:8: "When the Most High divided to the nations their inheritance, when he separated
+the sons of Adam". This is the assembly's chart of the nations, and portraits follow it:
+
+| Line | Nation | So called today | Scripture |
+| --- | --- | --- | --- |
+| Shem | Elam | East Indians | Genesis 10:22; 1 Chronicles 1:17 |
+| Shem | Asshur | Kurds | Genesis 10:22 |
+| Shem | Aram | Syrians | Genesis 10:22 |
+| Shem | Ishmael (and Keturah's sons, taught as Arabs with him) | Arabs | Genesis 16; 17:18-20; 25; 1 Chronicles 1:28-31 |
+| Shem | Moab | Chinese | Genesis 19:29-38 |
+| Shem | Ammon | Japanese | Genesis 19:29-38 |
+| Shem | Edom | so-called white people | Genesis 25:19-34; 36 |
+| Shem | Israel | Blacks, Hispanics, Native Americans | Genesis 29-30; 41:50-52; 49; Deuteronomy 28:15-68; Joel 3:1-6 |
+| Ham | Cush | Ethiopians | Genesis 10:6-12 |
+| Ham | Mizraim | Egyptians, Watusi | Genesis 10:6, 13-14 |
+| Ham | Phut | North Africans | Genesis 10:6 |
+| Ham | Canaan | South Africans | Genesis 10:6, 15-19 |
+| Japheth | Gomer, Magog, Javan, Ashkenaz, Tarshish, Kittim and their brothers | Hawaiians, Filipinos, Indonesians, Polynesians, Aborigines of Australia, natives of New Guinea, Tahiti and Samoa | Genesis 10:2-4 |
+
+- The people of Japheth were driven out of Europe by the Greeks and Romans. The Romans of the New
+  Testament are therefore shown as Edom.
+- Where the people data gives no nation, the nation is found through the generations in Genesis, by
+  the fathers' house (Numbers 1:18).
+- The Hebrew line from Arphaxad to Terah, and the houses of Terah and Nahor, are shown like
+  Abraham. The KJV calls Bethuel and Laban "Syrian" after the land they lived in, but by their
+  generations they are Terah's house.
+- On "ruddy" (1 Samuel 16:12): the classes teach that it means a healthy brown, "dark and lovely",
+  for David. The Zondervan Compact Bible Dictionary (p. 510) sets "ruddy" against "the dark skin of
+  the Hebrews". The Ham entry calls Ham "progenitor of the dark races… the Egyptians, Ethiopians,
+  Libyans and Canaanites" (Genesis 10:6-20).
+- Still held back:
+  - Adam to Noah, and Shem, whose generations divide into several nations.
+  - Joktan and Lud.
+  - Babylon and Persia.
+  - Melchizedek, and the Kenites.
+  - Records whose mother and father are of different nations, where the classes don't say.
+
+### Before and after the mingling (as directed 2026-10-01)
+
+- **Everyone stays dark** (Genesis 2:7), and each person carries the features of their people as they
+  are today, by the assembly's chart and the 12 Tribes breakdown. The one exception is Edom (with Rome):
+  the first red man is Esau, "red, all over like an hairy garment" (Genesis 25:25).
+- **Israel, by tribe:** Judah American Blacks; Benjamin West Indians; Levi Haitians; Simeon Dominicans;
+  Zebulun Mayans; Issachar Mexicans; Reuben Seminoles; Naphtali Argentineans and Chileans; Gad North
+  American Indians; Ephraim Puerto Ricans; Manasseh Cubans; Dan Caribs; Asher South Americans. Dark,
+  with that people's features.
+- **The other nations:** dark, with today's features: Moab Chinese, Ammon Japanese, Ishmael and
+  Keturah's sons Arab, Aram Syrian, Asshur Kurdish, Elam East Indian, Cush Ethiopian, Mizraim Egyptian,
+  Phut North African, Canaan South African, Japheth Pacific Islander. Sodom had much intermingling
+  (Genesis 19).
+- **Before the nations were divided** (Adam to Noah, and Shem, Ham and Japheth themselves): dark.
+  Cain: fully leprous, blond and blue-eyed; Cain's line as recorded below.
+- **Cain's line:** the classes teach that Cain's line was cursed with lack of melanin and came back as Esau (*We Are Born In Babylon*, 2026-08-02; *Economic Collapse & Uncertain Riches*, 2026-08-08). Enoch, son of Cain (Genesis 4:17), is left blank as directed (2026-10-01).
+- **No information, no portrait:** a person whose tribe or people today the chart and the classes do
+  not give (for example Remaliah, Nimshi) is left blank until directed. *As directed 2 October 2026, the
+  approved portraits of Abraham, Isaac, Jacob, Sarah, Lot and Laban are kept and reused wherever they
+  appear (section 9).*
+- **No two people look alike:** different face, age, build, hair, pose, angle, light, background and
+  dress for each person, checked against every portrait already made before one is accepted.
+
+### Dress and headwear, from the KJV and the Apocrypha
+
+| What | Rule | Scripture |
+| --- | --- | --- |
+| Kings and queens | A true crown of gold set with precious stones, not a band, on everyone the KJV calls king (including "king Herod" and Caesar) | 2 Samuel 1:10; 12:30; 2 Kings 11:12; Song of Solomon 3:11; Psalm 21:3; Mark 6:14; Acts 12:1; 25:13; John 19:15 |
+| Queens | The royal crown over a head covering; no hair showing | Esther 1:11; 2:17; 1 Corinthians 11:5-6 |
+| Pharaoh | No crown and no Egyptian headdress. Shaven bald head with Egyptian eyeliner (the owner's direction; Genesis 41:14 says only that Joseph "shaved himself", so it is not read as the whole court shaving). Draped vestures of fine linen | Genesis 41:14, 42 |
+| Adam and Eve | Royal garments (Adam's kingdom, the elder world); no crown. The "coats of skins" of Genesis 3:21 is the law (sacrifice, righteousness), not literal hides, as the classes teach | Genesis 3:21; 2 Esdras 7 |
+| Adam | In the likeness of Christ: a full thick head of white woolly hair and a full white woolly beard. Christ's "head and his hairs were white like wool" (Revelation 1:14); the classes: "Adam was made in the image of Christ" | Genesis 1:27; 5:3; Revelation 1:14 |
+| Men of Israel, the Hebrews, Adam's line, Ham | A full head of hair, never bald or receding ("no bald heads"), except Pharaoh (shaven) and Elisha | Leviticus 21:5 |
+| Adam to Noah, and Shem | Dark ("formed… of the dust of the ground"); the long-lived fathers shown as aged elders | Genesis 2:7; 5:5-31; 9:29; 11:10-11 |
+| Cain | Fully leprous, his melanin gone: skin white as snow, blue eyes, blond (the assembly's direction) | Genesis 4:15; Leviticus 13:13 |
+| Cain's line | Fair, lacking melanin. The Bishop: "Cain's line was cursed with a lack of melanin… Esau is the return of Cain's lineage" ("We Are Born in Babylon", 2026-08-01) | Genesis 4:16-22 |
+| Elisha | Bald: "Go up, thou bald head" (for when his record has a nation) | 2 Kings 2:23 |
+| High priest | Mitre of fine linen with the plate of pure gold on a blue lace, the robe of the ephod all of blue, the breastplate | Exodus 28:15-17, 31, 36-39; Leviticus 8:9; Ecclesiasticus 45:8-12 |
+| Priests (Aaron's sons) | Linen coats, girdles and bonnets | Exodus 28:40; 39:28; Leviticus 8:13; Ezekiel 44:18 |
+| Levites who were not priests | No head covering; white linen when serving | 2 Chronicles 5:12; 1 Chronicles 15:27 |
+| Other men | Bare head | 1 Corinthians 11:4 |
+| Women | Head covering | 1 Corinthians 11:5-6; Genesis 24:65 |
+| Israel | Fringes with a ribband of blue from the Wilderness on; the beard kept | Numbers 15:38; Deuteronomy 22:12; Leviticus 19:27 |
+| Herods | Royal apparel | Acts 12:21 |
+| Ages given by scripture | Aaron 83, Eli 98, Joseph 30, Esther a young maid, Saul "a choice young man" | Exodus 7:7; 1 Samuel 4:15; Genesis 41:46; Esther 2:7; 1 Samuel 9:2 |
+| Micah of Judges 17 | Not a priest: "a man of mount Ephraim" | Judges 17:1, 5 |
+
+Before any batch is generated, every element of the prompt is checked against these verses. Where the
+KJV leaves something open, the class notes are searched first, and the Bishops' and Deacons' teaching
+takes precedence. Only after that is the assembly asked.
+
+## 2. Artistic choices (not settled by the teaching)
+
+- **Style:** a matte gouache and oil painting. Head and shoulders in three-quarter view, with soft
+  warm light from the upper left and a plain gradient of muted deep slate blue. The face is centred
+  with headroom so a circle crop keeps it whole. The style keeps detail low enough to read at 28px.
+- **Dress:** plain undyed wool and linen in earth tones, as fits each period. Royal figures get a
+  simple circlet or the regalia of their own nation (for example Pharaoh's nemes). *Superseded: a true
+  crown of gold for every king and queen, and no nemes for Pharaoh (section 1 and REVIEW.md).*
+- **Fringes before Sinai:** the commandment came at Sinai (Numbers 15), so the patriarchs before it
+  (Abraham, Jacob) are shown without fringes. This is our choice, not a ruling.
+- **Character:** expressions are calm and dignified for everyone, Esau and the Pharaohs included.
+  No one's righteousness or wickedness is shown through skin tone, features or looks.
+- **Never in the artwork:** text or names (labels are rendered by the interface), halos, crosses,
+  light rays, horns, wings, weapons or armour, or modern clothing.
+
+## 3. Waiting for direction (not generated)
+
+These people are left out until the assembly's understanding is confirmed:
+
+- **Christ** needs a separate, reference-backed brief first. The classes teach woolly hair and a very
+  dark complexion (Revelation 1:14-15; Bishop Nathanyel, `data/precepts/classes/Dvja0vhkJ6o.json`
+  1:44:41; Deacon Malachiyah, `…2026-08-22-lucifer-the-antichrist.md:227-229`). Nothing yet says
+  whether an app avatar is fitting.
+- **The Most High** is never depicted.
+- **Melchizedek** and **the Kenites** (Rechab, Jonadab): the classes do not say which nation they were.
+- **Records that may be a town** ("Man or town"), uncertain records ("Woman (?)") and plural records
+  ("wives", "compatriots").
+- **Early patriarchs** (TIPNR "Early Patriarch", before Abraham) are held back until the line from
+  Noah's sons is settled for depiction.
+- **Nations without a description:** Ammon, Syria, Mesopotamia, Assyria, Moab, Midian, Arabia and Sheba (Ruth, Zipporah, the Queen of
+  Sheba), Babylon (Nebuchadnezzar) and Persia.
+- **Unidentified or group records** (76 groups, and 1,637 records with no nation) get no generated
+  face. They keep the lettered avatar.
+
+## 4. Pilot
+
+Ten portraits, one per person. Each was generated from the style anchor (Abraham, job `d1367665`) as
+an image reference so the set stays consistent.
+
+Model: requested `nano_banana_pro`; Higgsfield reported the jobs as `nano_banana_2`. Resolution 1k,
+square, about 2 credits each.
+
+| Person id | Name | Higgsfield job | Notes |
+| --- | --- | --- | --- |
+| `abraham-gen-11-26` | Abraham | `d1367665-d3df-4eb5-8297-3cb03425665d` (alt `95e503d5`) | Style anchor; before Sinai, so no fringes |
+| `israel-gen-25-26` | Jacob (Israel) | `c936f6e7-8e2a-4439-9646-e1d4ec5824ac` (first try `d8cdd3f4`) | Before Sinai |
+| `esau-gen-25-25` | Esau | `06b67b2d-5b47-4ed0-bd52-e11dd0b1fc04` (first try `6c5de6b4`) | Genesis 25:25 |
+| `moses-exo-2-10` | Moses | `38bf3fad-5c53-4c38-ae77-56bf31b75384` (first try `3d1f4bdb`) | Fringes with ribband of blue |
+| `miriam-exo-15-20` | Miriam | `fa0d393b-b46f-46e5-8e18-ef6281142119` | Head covering |
+| `pharaoh-exo-1-11` | Pharaoh (Exodus 1) | `bdfc9d23-704d-4f94-84ef-dce8526d845a` | Hamite; nemes |
+| `david-rut-4-17` | David | `d7ac9e46-f2a7-4b7c-bacf-a3908ac5563c` | Judah; 1 Samuel 16:12 "ruddy" kept as a warm undertone |
+| `esther-est-2-7` | Esther | `3ef6af9f-75b4-4d7f-808c-fc8176baf56e` | Head covering |
+| `ebed-melech-jer-38-7` | Ebed-melech | `44356e8b-d569-49c8-bd93-22e5588e6aab` | Cushite |
+| `paul-act-7-58` | Paul | `c456ddc2-2b27-4539-991f-f3315a5f8e81` (first try `ad4725f8`) | Acts 21:38; bare-headed |
+
+### Review of the pilot (after the image host was opened)
+
+- The set reads as one family (same light, palette and framing) and matches the brief.
+- Using Abraham's portrait as an image reference copied his face as well as the style: Moses came out as nearly the same man, and Israel and Paul were too close. Those three were regenerated **without** a face reference: Moses `38bf3fad-5c53-4c38-ae77-56bf31b75384`, Israel `c936f6e7-8e2a-4439-9646-e1d4ec5824ac`, Paul `c456ddc2-2b27-4539-991f-f3315a5f8e81`.
+- Esau's first version was a saturated, sunburnt red that read as caricature. It was regenerated with a natural ruddy complexion: `06b67b2d-5b47-4ed0-bd52-e11dd0b1fc04`. The alternate is `066e60ab-4334-4528-a2a4-e0d0010814fe`.
+- Open point: both Moses regenerations have twisted, loc-like hair rather than the tight woolly coils in the brief.
+- Most first-round images arrived painted inside a circle on a cream page. Derivatives are cropped inside that circle, so no cream ring shows in a round avatar.
+- Status: **approved** (2026-10-01), apart from Moses, who was regenerated in batch 1.
+
+The prompts are kept with each Higgsfield job and repeated in `app/public/people/manifest.json`
+once the images are brought into the repository.
+
+## 5. Batch 1 (approved direction, 2026-10-01)
+
+Direction given with the approval: Moses with tight woolly coils, not locs; Pilate, Tiberius and the
+Herods with the same natural ruddy complexion as the approved Esau portrait (Edom by lineage), each
+with distinct features. Prompts were text only, with no face reference, beginning "Square full-bleed
+painted portrait (no circle, no border)". All twelve were reviewed and kept.
+
+| Person id | Name | Higgsfield job | Notes |
+| --- | --- | --- | --- |
+| `moses-exo-2-10` | Moses | `917ae027-a8f4-4a7a-9453-5e018c20efe0` | Replaces `38bf3fad`; tight woolly coils, fringes |
+| `pilate-mat-27-2` | Pilate | `49a8ecda-ad4f-4ffd-9627-6b3321da9dcf` | Edom; ruddy as Esau |
+| `tiberius-mat-22-17` | Tiberius | `e811d9e4-f1bd-4576-9460-24003e84b91c` | Edom; ruddy as Esau |
+| `herod-mat-2-1` | Herod the Great | `569a3a6f-7cc0-4f18-a06e-d08d4619ff72` | Edom; ruddy as Esau |
+| `herod-mat-14-1` | Herod Antipas | `62beaa0b-4858-4903-b4fa-df9d19428651` | Edom; ruddy as Esau |
+| `herod-act-12-1` | Herod Agrippa I | `ee8c36ce-e4c0-4a03-bbde-6b100ec827eb` | Edom; ruddy as Esau |
+| `agrippa-act-25-13` | Agrippa II | `34954897-5cbd-4c24-ace3-741d0810b411` | Edom; ruddy as Esau |
+| `aaron-exo-4-14` | Aaron | `80b8c554-0204-4a8d-bef1-8b0018bf0f37` | High priest; linen mitre |
+| `judah-gen-29-35` | Judah | `ec30e895-9ef7-4743-87a9-36947815d27e` | Before Sinai |
+| `joseph-gen-30-24` | Joseph | `845c669e-fa0e-463a-a522-ed2369cab797` | Before Sinai; shaven in Egypt (Genesis 41:14) |
+| `isaac-gen-17-19` | Isaac | `c2ba5066-b4d2-4300-aa9e-977dc6ddd4d1` | Before Sinai |
+| `solomon-2sa-5-14` | Solomon | `36a2e248-3ef1-4fcb-b322-4ebde9e3afd1` | Song of Solomon 1:5; fringes |
+
+## 6. Batches 2 and onward
+
+From batch 2 the prompts are written per person by one template, using the record's nation, role
+and period, so the set follows the brief without hand-editing each prompt:
+
+- Israel: a black complexion within the range Hosea 7:8 allows, tight woolly coils (not locs) and
+  a beard with its natural line. Men carry fringes with a ribband of blue from the Wilderness on, and
+  women wear a head covering. Kings wear a simple circlet, high priests a white linen mitre, and
+  prophets a rough mantle.
+- Edom, with Rome: fair skin with a natural ruddy flush, as approved for Esau and the Herods.
+- Ham: a black complexion, with their nation's dress (Pharaoh's nemes, clean-shaven).
+- Age, face shape and shade are varied from the person id so that faces differ. A few
+  details come from the verse where scripture gives one (Saul's height, Absalom's hair, John's
+  camel's hair, Eli's age).
+
+Each image is reviewed on a contact sheet before it goes in. A light painted frame is trimmed
+automatically. Every prompt is stored with its job in `app/public/people/manifest.json`.
+
+| Batch | People |
+| --- | --- |
+| 2 | Levi, Saul, Joshua, Benjamin, Ephraim, Samuel, Joab, Hezekiah, Manasseh, Pharaoh (Exodus 3), Absalom, John the Baptist |
+| 3 | Reuben, Jonathan, Jeroboam, Ahab, Pharaoh (Genesis 37), Jehoshaphat, Eleazar, Gad, Zedekiah, Abner, Asa, Mordecai |
+
+### Records the data has wrong
+
+The people data comes from TIPNR, and some of its nations differ from the classes' teaching and the
+KJV. These are corrected before generating:
+
+- The Horites of Genesis 36:20-30 and 14:6 (Seir, Lotan, Shobal, Zibeon, Anah, Dishon, Ezer, Dishan,
+  their sons, Timna and Oholibamah) are tagged "Edom". The class teaches they were Hamites, so they
+  are shown as Hamites.
+- Jezebel is tagged "Israel". She was the daughter of Ethbaal, king of the Zidonians (1 Kings 16:31),
+  and Zidon is Hamitic in the classes, so she is shown as a Hamite of Zidon.
+- Esau's Hittite wives, Judith and Adah (Bashemath), and their fathers Beeri and Elon are tagged
+  "Edom". Heth is a son of Canaan (Genesis 10:15), so they are shown as Hamites of Canaan.
+
+### Status (178 portraits in the app)
+
+178 portraits pass review and are in the app. These are waiting to be redone under the rules above
+and keep the lettered avatar until they are:
+
+- Kings that came out with plain gold bands, and the Pharaohs.
+- The high priests and priests made before the holy-garments rule.
+- Bible-era people of other nations made before the dark-skin rule.
+- A few that failed review: Jesse, Joseph, Jezebel, Pilate and Hezron.
+
+That makes 82 in all. Lot's daughters are held back until the question of Sodom is settled.
+
+## 7. Scope and credits
+
+Who can get a portrait under this brief: men and women whose nation is one the teaching describes,
+namely the tribes of Israel, Edom (with Rome, `Italy`), and the Hamite nations (Egypt, Cush,
+Canaan, Philistia). Of the 3,129 records, about 1,300 qualify. The rest are groups (76), records
+with no nation (1,587), early patriarchs, or nations still waiting for direction (section 3).
+Batches run in order of how often a person is named.
+
+| Run | Images | Credits | Balance after |
+| --- | --- | --- | --- |
+| Pilot, with regenerations | 16 | about 32 | |
+| Batch 1 | 12 | about 24 | 1,877 |
+| Batch 2 | 12 | about 24 | |
+| Batch 3 | 12 | about 24 | |
+
+At about 2 credits an image, the ~1,300 who qualify would need about 2,600 credits, more than the
+balance. The most-named come first, so the people readers meet most get theirs first.
+
+## 8. Asset handling
+
+- **Originals:** the 1k PNGs, kept outside the app bundle.
+- **App copies:** WebP files at 256px (profile header), 128px (cards and lists) and 64px (graph
+  nodes and small chips) in `app/public/people/<id>-<size>.webp`.
+- **Display:** width and height are reserved on every `<img>`, and images below the fold load lazily.
+- **Accessibility:** the image is decorative (`alt=""`). The person's name from the record is the
+  accessible name, so screen readers don't hear it twice.
+- **Fallback:** a person without an approved avatar keeps the lettered avatar.
+- **In the app:** `PORTRAITS` in `app/src/ui/portraits.ts` lists the ids with an approved portrait.
+  `EntityAvatar` takes the person `id` and picks the 64, 128 or 256px file for the size it draws, in
+  People, Person, the family graph, case studies, the chapter's people, and the verse and search
+  sheets. The record for each image (job, batch, notes) is `app/public/people/manifest.json`.
+
+## 9. Direction of 2 October 2026 (Timeline pictures and all future portraits)
+
+Recorded as given by the owner on 2 October 2026, with the evidence for each requirement kept apart:
+**Scripture** (the KJV 1611 with the Apocrypha, quoted from `data/bible` in the cyberjudah repo),
+**the assembly** (IUIC's published teaching, as inspected), and **the owner's direction** (artistic
+direction approved by the owner, not claimed as either of the others). Scripture takes precedence over
+any review rule that conflicts with it. `scripts/avatars/REVIEW.md` carries the same rules as checks.
+
+### 9.1 Sources inspected
+
+All accessed 3 October 2026 (UTC). The `www.` host is refused by this environment's network policy;
+the same pages were read at `israelunite.org`. Only what is quoted below was found; nothing else is
+claimed from these pages.
+
+| Page | Title | What it says (verbatim) |
+| --- | --- | --- |
+| https://israelunite.org/beliefs/ | Beliefs | "We Believe Black, Hispanic and Native Americans are the true descendants of Abraham, Isaac and Jacob and are in fact the real Jews also known as the Israelites and the 12 Tribes of Israel"; "firmly rooted in the scriptures of the original 1611 King James Bible, including the books of the Apocrypha" |
+| https://israelunite.org/about-iuic/ | About IUIC | Read; no depiction-specific statement found |
+| https://israelunite.org/our-hidden-history/ | Our Hidden History | "the true identity of the Israelites—Black, Hispanic, and Native American peoples"; Deuteronomy 28, Leviticus 26, Psalms 83:1-4 |
+| https://israelunite.org/the-nations-genesis-10/ | The Nations: Genesis 10 | "EDOM so called white people, Genesis 25:19-34 & 36"; "ISRAEL so called Blacks, Hispanics, Native Americans"; Ham: Cush "Ethiopians", Mizraim "Egyptians-Watusis", Phut "North Africans", Canaanites "South Africans"; Japheth "Hawaiians, Filipinos, Indonesians, Polynesians…", "pushed out of their land located in Europe… by the Greeks and Romans. Today Greece, Russia, Italy, Germany, Spain, & France are inhabited by so-called white people; whose forefathers stole Japheth's land" (Genesis 27:38-40; Daniel 7:7; 2:40) |
+| https://israelunite.org/learn-the-truth/the-biblical-image-of-christ/ | The Biblical Image of Christ | Revelation 1:13-15 quoted; "John describes the hair on his head and face as being white like wool"; "the color of Christ's feet is like brass (golden brown), as if they were burned in a furnace (meaning very dark)"; Daniel 10:5-6 |
+| https://israelunite.org/learn-the-truth/are-images-wrong/ | Are Images Wrong? | "Christ is a Blackman of the tribe of Judah"; images are not forbidden, worshipping them is (Deuteronomy 4:15-19); Solomon's throne, 1 Kings 10:19-20 |
+| https://israelunite.org/learn-the-truth/the-hem-of-his-garment/ | The Hem of His Garment | Numbers 15:37-40 quoted ("throughout their generations"); "Israelite communities across the world honor this Law as did the Israelites during the time of Christ"; "Christ wore the fringes"; Matthew 14:36; Mark 6:56. Nothing on the patriarchs or before Sinai |
+| https://israelunite.org/learn-the-truth/the-12-tribes-of-israel/dan/ | Dan | "Present Name: Carib Indians"; "Around 1140 B.C., Dan ruled Israel under a mighty warrior named Samson" |
+| https://israelunite.org/learn-the-truth/who-are-the-israelites-today/ | Who Are The Israelites Today? | "Blacks, Hispanics, and Native Americans Fit the Curses" (Deuteronomy 28:15-68) |
+| https://israelunite.org/learn-the-truth/brief-israelite-history/ | Brief Israelite History | Read; no depiction-specific statement found |
+
+### 9.2 The requirements and their grounds
+
+| # | Requirement | Scripture | The assembly | The owner's direction |
+| --- | --- | --- | --- | --- |
+| 1 | Follow the explicit description of the person and the scene, with its documented exceptions | (each scene's verses) | | Yes |
+| 2 | All tribes of Israel and all prophets darker, each face their own | Lamentations 4:8; 5:10; Song of Solomon 1:5 (section 1) | Beliefs; The Nations (above) | Yes; varied faces |
+| 3 | Other nations by the chart; Rome as Edom; by the event and the record, not by being the adversary; no caricature | Genesis 10; 25:25; 36 | The Nations: Edom "so called white people"; Italy among the lands now held by "so-called white people" (Genesis 27:38-40) | Rome is Edom for this project |
+| 4 | Samson, of Dan, a Black man ("Samson is a black man", the owner, 2 October 2026), with the seven locks | "the seven locks of my head" (Judges 16:13); "shave off the seven locks of his head" (16:19) | Dan: Samson's tribe; Dan "Carib Indians" | Yes |
+| 5 | Elijah darker, "an hairy man, and girt with a girdle of leather about his loins" | 2 Kings 1:8 | | Darker complexion |
+| 6 | Early Church: Israelite believers darker; Roman persecutors as Edom | | The Nations (above) | Yes |
+| 7 | Reuse the approved portraits of Abraham, Isaac, Jacob, Sarah, Lot and Laban wherever they appear; keep each face | | | Yes. Supersedes the earlier "left blank until directed" for them |
+| 8 | Christ: darker, of Judah. **Earthly ministry:** black woolly hair, about thirty, natural face and eyes. **Vision only:** white woolly hair, golden girdle about the paps, feet like fine brass | Luke 3:23; Hebrews 7:14; John 19:23; Matthew 9:20 (earthly); Revelation 1:13-15 (vision) | The Biblical Image of Christ; Are Images Wrong? ("a Blackman of the tribe of Judah") | Corrected 2 October 2026: "Christ had white hair in a vision in Revelation, not while he was walking around." No glowing eyes or supernatural effects |
+| 9 | The Most High is never depicted, by any figure, face, silhouette or personification | Deuteronomy 4:15 ("ye saw no manner of similitude") | Are Images Wrong? (quotes Deuteronomy 4:15-19) | Yes |
+| 10 | Fringes in the borders with a ribband of blue on Israelite men, prophets and Christ; on the border, not unrelated blue trim | Numbers 15:38; Deuteronomy 22:12; Matthew 9:20; 14:36 | The Hem of His Garment ("Christ wore the fringes") | Yes. Scope before Sinai: **unresolved** (9.4) |
+| 11 | Natural baldness and a receding hairline are allowed; deliberate shaving is restricted, with its exceptions | Leviticus 13:40-41 ("he is bald; yet is he clean"); 21:5; Deuteronomy 14:1; Genesis 41:14 (Joseph "shaved himself"); 2 Kings 2:23; Judges 16:19 | | Yes. Pharaoh's shaven head stays the owner's direction; Genesis 41:14 is not read as the whole court shaving |
+| 12 | Jewellery may be worn by men and women | Exodus 35:22 ("both men and women… bracelets, and earrings, and rings"); Genesis 24:22, 47; 41:42; Ezekiel 16:11-12 | | "Jewelry can be worn" (2 October 2026). Replaces "jewellery only where the scripture gives it" |
+| 13 | Linen breeches for men | Named for the priests: Exodus 28:42; 39:28; Leviticus 6:10; 16:4; Ezekiel 44:18 | | "Men also had linen breeches" (2 October 2026). Worn under the garment, not shown as outer dress |
+
+### 9.3 Conflicts identified (not decided here)
+
+- **Adam's white hair.** REVIEW gives Adam "a full thick head of WHITE woolly hair… (Revelation 1:14)", in the likeness of Christ. After the correction in 9.2 row 8, Revelation 1:14 describes the vision, not Christ in the flesh. The approved Adam rule and the First Generation picture are unchanged until the owner rules.
+- **Dan's features (ruled 2 October 2026).** The 12 Tribes breakdown gives Dan (Caribs) "straight thick black hair". The owner ruled: "Samson is a black man." Samson is drawn as a Black man, his hair in the seven locks of Judges 16:13, 19.
+- **Elijah's tribe.** Scripture names him "the Tishbite" (2 Kings 1:8) and of the inhabitants of Gilead (1 Kings 17:1), not his tribe. REVIEW leaves "an Israelite with no known tribe" blank; the direction of 2 October 2026 asks for him. He is drawn dark, without a tribe's particular features.
+- **The prophets of Baal and the Babylonians** are left out of the Carmel and Exile scenes: the chart does not settle their nation (section 3).
+
+### 9.4 Unresolved: fringes before Sinai
+
+Numbers 15:38 gives the commandment "throughout their generations"; section 2 shows the patriarchs
+without fringes as "our choice, not a ruling"; REVIEW said "from the Wilderness on"; IUIC's "The Hem
+of His Garment" does not address the time before the law. The approved Moses portrait has fringes.
+Waiting on the owner: the Patriarchs (Abraham and Isaac) and Israel in Egypt (the Red Sea) period
+pictures are not shipped until it is settled.
+
+### 9.5 Timeline period pictures
+
+Generated with Higgsfield (`nano_banana_pro`, reported as `nano_banana_2`), 1k at 4:5, about 2 credits
+each; the app copy is `app/public/timeline/periods/<period id>.webp` at 640x800. Reviewed at full size
+and at the card's square crop against REVIEW.md. The owner's direction of 2 October 2026 ("put the proper aggression in") was applied to the scenes whose verses are violent (5, 7, 8, 9, 10). **None is approved by the owner yet**: "Reviewed"
+means it passed this review.
+
+| Period | Shows | Job (shipped) | Superseded jobs (failed review) | Status |
+| --- | --- | --- | --- | --- |
+| 1 First Generation | Adam among the beasts in Eden (Genesis 2:8-20) | `0b029918-c005-4109-8fe4-052c02438e4c` | | Reviewed; see 9.3 (Adam's hair) |
+| 2 Noah & The Flood | The ark on Ararat, the bow, the eight souls (Genesis 7:13; 8:4; 9:13) | `35e8edf4-3734-4500-a250-d1414ad61686` | `3696e037` (three boys and five women), `27bccd60` (seven people, sunbeam) | Reviewed |
+| 3 The Patriarchs | Not generated | | | Waiting on 9.4 |
+| 4 Israel in Egypt | The Red Sea crossing (Exodus 14:21-22), Moses from his approved portrait | not shipped: `6b260c07-3122-46dd-a9b5-1df0b65fc738` is the candidate | `613d5d5c` (a man in a head wrap), `ac7034fb` (a shaven head, under the earlier rule) | Waiting on 9.4 |
+| 5 The Judges | Samson bowing himself with all his might as the house falls (Judges 16:21, 29-30), a Black man, seven locks, eyes shut | `4b39cda8-acaf-4e82-94bd-4f91e6a0923b` (an edit of `a9e318d8`) | `5ecbd4e0` (many locks, one pillar), `827bb292` (about ten braids), `abb38c15` / `f3a078d0` (too gentle), `4fa2b8d1` (eyes open: he was blinded), `a9e318d8` (Carib features: the owner ruled Samson a Black man) | **Approved by the owner** (2 October 2026: "that samson photo is PERFECT") |
+| 6 United Kingdom | Solomon on the throne of six steps and twelve lions (1 Kings 10:18-20), from his approved portrait | `bdd0f12a-7f9f-4337-af8e-deb937ae7990` | `ec4db74a` (eight lions on the steps, light rays), `6e72aaad` (six lions, an orb with a cross) | Reviewed |
+| 7 Divided Kingdom | Elijah taken up by a whirlwind, the chariot and horses of fire parting him from Elisha; his mantle falling; Elisha crying out and rending his clothes (2 Kings 2:11-13; 1:8; 2:23). Composition after the owner's reference, Gustave Doré's engraving (1866, public domain; not itself used) | `93cdfa2b-66ac-419d-b027-0208ee25817f` (an edit of `03b3a998`) | `03b3a998` (a blue sash for the leather girdle; no fringes on Elisha); alternative kept: `190fec8e` (Carmel, 1 Kings 18:38) | Reviewed; chosen scene from the owner's reference |
+| 8 The Exile | Jerusalem burnt and Judah driven out (2 Kings 25:9-11) | `5013d099-5cec-42a4-982e-0ed831accaeb` | `fbe6c816` (too gentle) | Reviewed |
+| 9 Life of Christ | Christ casting out and overthrowing the tables (Matthew 21:12), as in his earthly ministry | `64c8470c-19f9-4261-8ca9-d62d1218d538` | `7ecad4a1` (girdle at the waist), `77337df3` (a sash), `533c7744` / `ab7c8e7f` (white hair and the golden girdle: the vision, per the correction), `14791dda` (too gentle) | Reviewed |
+| 10 Early Church | The lion loosed on the believers; the Roman crowd jeering (Rome as Edom) | `f2cb8bcf-15bb-4b29-ba6c-9ef65155beb6` | `5c1d277e` (too gentle) | Reviewed |
+| 11 Middle Ages | A pope hands a decree to a monk, a cardinal by (Rome as Edom) | `c530aa6f-9fb3-4187-a402-f27296f30929` (an edit of `42e75672`) | `d2511460`, `95b39dcc` (crosses), `48b21bcc` (a likeness of a modern pope), `42e75672` (a pectoral cross, removed by the edit) | Reviewed |
+| 12 Reformation | A preacher on horseback before a ruined abbey | `a3be71c6-06ea-4c68-bb21-57a76b45ef93` | | Reviewed |
+
+### 9.6 Bible Strong's timeline pictures: what may be reused
+
+Direction (2 October 2026): reuse Bible Strong's images that show only landmarks, landscapes,
+architecture, maps or objects and agree with the brief, keeping their licence and attribution; use
+Higgsfield for pictures with people or that need correcting; keep suitable assets rather than
+regenerating. Inventory of every picture the reference timeline uses:
+
+| Placement | Source and licence | Shows | Decision |
+| --- | --- | --- | --- |
+| Period pictures, 13 (`strong/apps/expo/src/assets/timeline/periods/period-1..13.jpg`) | In the fork, under its GPL-3.0 licence (`strong/LICENSE`) | Every one shows people (Adam, Noah's family, Abraham and Isaac, Moses, Samson, a king, Elijah, the exiles, Christ, the martyrs, a pope, a reformer, the woman and the dragon) | Not reused: people, depicted against the brief. Replaced by our pictures (9.5); period 13 (Revelation Prophecies) is not on our timeline |
+| Timeline card on their home (`assets/images/home/bible-timeline.jpg`) | In the fork, GPL-3.0 | A road through hills with small figures of people | Not reused: people. Not a placement in our timeline |
+| Event pictures, 198 on the major events we keep (`events.txt` `image`) | Hosted on timeline.biblehistory.com, not in the fork. About 97 are GoodSalt or iStock stock (licensed to them, not to us); most others are paintings of people (Tissot, Rembrandt and others) | People, except possibly three: the rock tombs of Artaxerxes II and III at Persepolis, and a page of the Tyndale Bible (Gospel of John) | Not reused. The three possible ones are Wikimedia Commons files by their names, but neither timeline.biblehistory.com nor commons.wikimedia.org can be reached from this environment, so their content and licence could not be inspected. The Persepolis façades also carry carved figures and the winged emblem, which the brief does not allow. **Open:** allow `commons.wikimedia.org` and `upload.wikimedia.org` to inspect them; if one passes, it is used with its Commons licence and attribution |
+| Event detail images carousel | Same host as above (originals) | As above | Not carried |
+
+So no Bible Strong picture is reused yet. On an event the timeline shows the person's approved
+portrait (28 events; `app/scripts/timeline-portraits.json`); other major events keep a lettered tile in
+the period's colour, as People does without a portrait.

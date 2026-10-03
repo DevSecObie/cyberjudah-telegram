@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { useRecentSearches } from "@/lib/marks";
@@ -12,6 +12,7 @@ import { FEED_NAME, KIND_LABEL, Lit, Marked, hitPath, teachingPath, useTeachings
 import { thumbOf } from "@/ui/ui";
 import { frameStyle, useBoard } from "@/lib/frames";
 import { Trouble } from "@/ui/trouble";
+import { SearchBar, useSettled } from "@/ui/search-bar";
 
 const EXAMPLES = ["Passover", "Melchizedek", "Matthew 15:24", "\"most high\"", "twelve tribes", "usury"];
 
@@ -45,13 +46,6 @@ const KIND_ICON: Record<string, IconName> = { verse: "book", class: "play", capt
 /** The order the Top results read in: what was taught, then the text, then the law. */
 const TOP_ORDER = ["class", "captains", "history", "study", "verse", "precept", "law", "case", "encyclopedia", "book"];
 const LABEL: Record<string, string> = { ...KIND_LABEL, book: "Library books" };
-
-/** A value that settles after the typing pauses. */
-function useSettled<T>(value: T, ms: number): T {
-  const [v, setV] = useState(value);
-  useEffect(() => { const t = window.setTimeout(() => setV(value), ms); return () => window.clearTimeout(t); }, [value, ms]);
-  return v;
-}
 
 function useLibrary(q: string, live: boolean) {
   return useQuery({
@@ -98,9 +92,7 @@ export function Search() {
   const feed = params.get("feed") ?? "", page = Math.max(0, Number(params.get("page")) || 0);
   const scope = (SCOPES.find(([s]) => s === params.get("in"))?.[0] ?? "top") as Scope;
   const [input, setInput] = useState(q);
-  const [focused, setFocused] = useState(false);
   const [recent, setRecent] = useRecentSearches();
-  const field = useRef<HTMLInputElement>(null);
   const results = useRef<HTMLDivElement>(null);
   useEffect(() => { setInput(q); }, [q]);
   useBackButton(false, () => { if (q || input) { setInput(""); setParams({}, { replace: true }); return true; } });
@@ -127,27 +119,6 @@ export function Search() {
   };
   const choose = (text: string) => { setInput(text); submit(text); };
 
-  // The keyboard: / or Ctrl+K to the field from anywhere on the screen.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const typing = e.target instanceof HTMLElement && (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName));
-      if ((e.key === "/" && !typing) || (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey))) { e.preventDefault(); field.current?.focus(); field.current?.select(); }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-  const items = () => [...(results.current?.querySelectorAll<HTMLElement>("[data-result]") ?? [])];
-  const onFieldKey = (e: ReactKeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowDown") { const first = items()[0]; if (first) { e.preventDefault(); first.focus(); } }
-    if (e.key === "Escape") { e.preventDefault(); if (input) setInput(""); else field.current?.blur(); }
-  };
-  const onResultsKey = (e: ReactKeyboardEvent<HTMLDivElement>) => {
-    const list = items(); const i = list.indexOf(document.activeElement as HTMLElement); if (i < 0) return;
-    if (e.key === "ArrowDown") { e.preventDefault(); list[Math.min(i + 1, list.length - 1)]?.focus(); }
-    if (e.key === "ArrowUp") { e.preventDefault(); if (i === 0) field.current?.focus(); else list[i - 1]?.focus(); }
-    if (e.key === "Escape") { e.preventDefault(); field.current?.focus(); }
-  };
-
   const hits = library.data?.ok ? library.data.hits : [];
   const counts = library.data?.ok ? library.data.counts : {};
   const count = (s: Scope) => s === "top" ? undefined : s === "spoken" ? (spoken.data?.ok ? spoken.data.hits.length + (spoken.data.more ? "+" : "") : undefined) : SCOPE_KINDS[s].reduce((n, k) => n + (counts[k] ?? 0), 0) || undefined;
@@ -158,17 +129,8 @@ export function Search() {
 
   return (
     <main className="screen srch">
-      <div className="srch__bar">
-        <form className="srch__form" role="search" onSubmit={(e) => { e.preventDefault(); submit(); }}>
-          <label className="srch__field" data-focus={focused ? "" : undefined}>
-            <span className="srch__icon" aria-hidden="true">{busy ? <span className="srch__spin" /> : <Icon name="search" size={19} />}</span>
-            <input ref={field} id="q" type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" spellCheck={false} autoFocus={!q}
-              placeholder="Search CyberJudah" aria-label="Search CyberJudah" aria-controls="srch-results"
-              value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onFieldKey} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
-            {input ? <button type="button" className="srch__clear" aria-label="Clear the search" onClick={() => { setInput(""); field.current?.focus(); }}><Icon name="close" size={14} /></button> : <kbd className="srch__kbd" aria-hidden="true">/</kbd>}
-          </label>
-          {focused || input ? <button type="button" className="srch__cancel" onMouseDown={(e) => e.preventDefault()} onClick={() => { setInput(""); field.current?.blur(); if (q) setParams({}, { replace: true }); }}>Cancel</button> : null}
-        </form>
+      <SearchBar id="q" value={input} onChange={setInput} onSubmit={() => submit()} onCancel={() => { setInput(""); if (q) setParams({}, { replace: true }); }}
+        placeholder="Search CyberJudah" busy={busy} autoFocus={!q} results={results} controls="srch-results">
         {term.trim().length >= 2 ? (
           <div className="srch__scopes" role="tablist" aria-label="Search in">
             {SCOPES.map(([s, label]) => (
@@ -178,9 +140,9 @@ export function Search() {
             ))}
           </div>
         ) : null}
-      </div>
+      </SearchBar>
       <p className="sr-only" aria-live="polite">{term.trim().length >= 2 && !busy && !failed ? `${total} ${total === 1 ? "result" : "results"} for ${term}` : ""}</p>
-      <div id="srch-results" ref={results} className="srch__results" onKeyDown={onResultsKey}>
+      <div id="srch-results" ref={results} className="srch__results">
         {term.trim().length < 2 ? (
           <Start recent={recent} onPick={choose} onForget={(r) => setRecent(recent.filter((x) => x !== r))} onClear={() => setRecent([])} />
         ) : scope === "spoken" ? (

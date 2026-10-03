@@ -24,6 +24,7 @@ export function calculateLabel(start, end) {
   if (start >= 3000 && end >= 3000) return "After the millennium";
   if (start >= 2010 && end >= 2010) return "Future";
   if (end === 2020) return `${absStart}-Future`;
+  if (end === 1844) return "457 BC to 1844";
   if (start === end) return `${absStart}${start < 0 ? " BC" : ""}`;
   if (start < 0 && end < 0) return `${absStart}-${absEnd} BC${range > 50 ? ` (${range})` : ""}`;
   if (start > 0 && end > 0) return `${absStart}-${absEnd}${range > 50 ? ` (${range})` : ""}`;

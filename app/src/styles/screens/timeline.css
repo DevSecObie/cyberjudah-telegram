@@ -10,36 +10,65 @@
 .tlh__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -6px; border-radius: 10px; }
 
 /* The periods (TimelineItem), each as its emblem. */
-.tl-home, .tl-search, .tl-event { min-height: 100dvh; padding-bottom: calc(var(--dock-space) + 16px); }
-.tl-items { list-style: none; margin: 0; padding: 20px 20px 0; display: grid; gap: 30px; justify-items: center; }
-.tl-items > li { width: min(100%, 360px); }
-.tl-item { display: block; text-decoration: none; color: inherit; width: 100%; }
+.tl-home, .tl-event { min-height: 100dvh; padding-bottom: calc(var(--dock-space) + 16px); }
+/* TimelineItem: the card (45%, at most 180px, 180px tall) laid 20px over the picture (55%, 250px tall). */
+.tl-items { list-style: none; margin: 0; padding: 20px 0 0; display: grid; gap: 30px; justify-items: center; }
+.tl-items > li { width: min(100%, 440px); }
+.tl-item { display: flex; align-items: center; justify-content: center; padding: 0 20px; text-decoration: none; color: inherit; }
 .tl-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 12px; }
+.tl-item .tl-emblem--card { position: relative; z-index: 2; flex: none; width: 45%; max-width: 180px; box-sizing: border-box; transform: translateX(20px); }
+.tl-item__pic { display: block; width: 55%; height: 250px; border-radius: 10px; object-fit: cover; background: var(--fill-1); }
+/* A period whose picture waits on direction: its colour, softly. */
+.tl-pic--none { background: linear-gradient(160deg, color-mix(in srgb, var(--tl-color) 34%, var(--surface-1)), color-mix(in srgb, var(--tl-color) 12%, var(--surface-1))); }
 .tl-emblem { display: flex; flex-direction: column; justify-content: space-between; gap: 8px; color: var(--text-1); }
 .tl-emblem--card { height: 180px; padding: 20px; border-radius: 10px; background: var(--surface-1); box-shadow: var(--card-edge, 0 0 0 .5px var(--hairline)), 0 2px 7px rgba(89, 131, 240, .1); }
 .tl-emblem__age { font: 12px/1.3 var(--font-ui); color: var(--text-2); }
 .tl-emblem__title { font: 600 18px/1.25 var(--font-ui); }
 .tl-emblem__sub { padding: 3px 0; border-top: 2px solid var(--text-1); border-bottom: 2px solid var(--text-1); text-align: center; font: 10px/1.4 var(--font-ui); }
 .tl-emblem__bar { align-self: center; width: calc(100% - 80px); height: 10px; border-radius: 10px; background: var(--tl-color); }
-.tl-emblem--panel { align-items: center; text-align: center; gap: 10px; max-width: 360px; }
-.tl-emblem--panel .tl-emblem__age { font-size: 20px; }
-.tl-emblem--panel .tl-emblem__title { font-size: 30px; padding: 10px 0; }
-.tl-emblem--panel .tl-emblem__sub { font-size: 14px; }
-.tl-emblem--panel .tl-emblem__bar { width: 50px; margin-top: 40px; }
+
+/* SectionImage: a period's title card, centred, with 60px either side for the chevron. */
+.tl-card { display: flex; width: 100%; height: 100%; color: var(--text-1); }
+.tl-card__side { flex: none; width: 60px; display: grid; place-items: center; }
+.tl-card__main { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.tl-card__age { font: 20px/1.3 var(--font-ui); }
+.tl-card__title { padding: 10px 0; font: 600 30px/1.15 var(--font-ui); }
+.tl-card__sub { padding: 3px 0; border-top: 2px solid var(--text-1); border-bottom: 2px solid var(--text-1); font: 14px/1.4 var(--font-ui); }
+.tl-card__pic { display: block; width: min(50vw, 500px, 100%); aspect-ratio: 1; height: auto; margin-top: 50px; border-radius: 10px; object-fit: cover; box-shadow: 0 2px 7px rgba(89, 131, 240, .1); }
+.tl-card__bar { width: 50px; height: 10px; margin-top: 50px; border-radius: 10px; background: var(--tl-color); }
+@media (max-height: 700px) { .tl-card__pic { width: min(36vh, 50vw, 500px); margin-top: 24px; } .tl-card__bar { margin-top: 24px; } }
 
 /* A period (TimelineSection): the canvas fills the screen above the dock. */
-.tl-period { position: relative; display: flex; flex-direction: column; height: calc(100dvh - var(--dock-space)); overflow: hidden; }
-.tl-scroll { position: relative; flex: 1; overflow: auto; overscroll-behavior: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.tl-period { position: relative; display: flex; flex-direction: column; height: calc(100dvh - var(--dock-space)); overflow: hidden; background: var(--canvas); }
+.tl-stage { position: relative; flex: 1; min-height: 0; }
+/* The title cards behind the canvas: either neighbour, fading in as the canvas is pulled away
+   from it (Prev/NextSectionImage); this period's while it opens (CurrentSectionImage). */
+.tl-behind { position: absolute; inset: 0; overflow: hidden; pointer-events: none; background: var(--canvas); }
+.tl-scroll { position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+/* Opening a period (ScrollView's entrance): the card for 1.5s, then the canvas slides in over 1s
+   from the side it was entered from. */
+.tl-period[data-phase="card"] .tl-world { opacity: 0; }
+.tl-period[data-phase="slide"] .tl-world { animation: tl-enter 1s ease-out both; }
+.tl-period[data-phase="slide"] .tl-world[data-from="next"] { animation-name: tl-enter-next; }
+@keyframes tl-enter { from { transform: translateX(100vw); } to { transform: none; } }
+@keyframes tl-enter-next { from { transform: translateX(-100vw); } to { transform: none; } }
 .tl-scroll::-webkit-scrollbar { display: none; }
 .tl-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .tl-world { position: relative; }
 .tl-canvas { position: absolute; top: 0; background: var(--fill-1); box-shadow: 0 2px 7px rgba(89, 131, 240, .1); }
-.tl-panel { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; gap: 12px; border: 0; background: var(--bg, transparent); color: var(--text-1); cursor: pointer; }
+/* Either side of the canvas, the room to pull into: clear, so the neighbour's card shows through. */
+#root .tl-panel { position: absolute; top: 0; bottom: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.tl-panel:focus-visible { outline: 2px solid var(--accent); outline-offset: -6px; }
 
 /* Events (TimelineEvent). */
 .tl-major, .tl-minor { position: absolute; display: flex; border-radius: 20px; background: var(--surface-1); color: var(--text-1); text-decoration: none; box-shadow: 0 0 0 .5px var(--hairline), 0 2px 7px rgba(89, 131, 240, .1); }
 .tl-major { height: 60px; }
-.tl-major__desc { position: sticky; left: 0; width: 140px; padding: 6px 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+/* The title block rides along the bar as it scrolls past, up to the picture at its end. */
+.tl-major__ride { flex: 1; min-width: 0; display: block; }
+.tl-major__desc { position: sticky; left: 0; box-sizing: border-box; width: 140px; height: 100%; padding: 6px 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+.tl-major__pic { flex: none; width: 60px; height: 60px; overflow: hidden; border-radius: 0 20px 20px 0; }
+.tl-major__pic img { display: block; width: 60px; height: 60px; object-fit: cover; }
+.tl-major__letter { display: grid; place-items: center; width: 100%; height: 100%; background: color-mix(in srgb, var(--tl-color) 22%, var(--surface-1)); color: var(--tl-color); font: 600 22px var(--font-ui); }
 .tl-major__title { font: 12px/1.2 var(--font-ui); text-align: center; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .tl-major__desc i { align-self: stretch; border-bottom: 1px solid var(--hairline); }
 .tl-major__date { font: 10px/1.2 var(--font-ui); text-align: center; color: var(--text-2); }
@@ -57,9 +86,12 @@ a.tl-major:focus-visible, a.tl-minor:focus-visible { outline: 2px solid var(--ac
 
 /* The line (Line) and the year under it (CurrentYear). */
 .tl-line { position: absolute; top: 54px; bottom: 0; width: 1px; background: var(--tl-color); opacity: .3; pointer-events: none; }
-.tl-current { position: absolute; left: 0; right: 0; bottom: 0; height: 40px; pointer-events: none; }
+/* The chevrons beside the year are 30, 40, 60 and 60px across as the screen widens (their r([30, 40, 60, 60])). */
+.tl-current { --tl-nav: 40px; position: absolute; left: 0; right: 0; bottom: 0; height: var(--tl-nav); pointer-events: none; }
+@media (max-width: 320px) { .tl-current { --tl-nav: 30px; } }
+@media (min-width: 768px) { .tl-current { --tl-nav: 60px; } }
 .tl-current__year { position: absolute; bottom: 0; width: 100px; height: 30px; display: grid; place-items: center; border-radius: 5px 5px 0 0; background: var(--tl-color); color: #fff; font: 700 13px/1 var(--font-ui); }
-#root .tl-current__nav { position: absolute; bottom: 0; width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 5px 5px 0 0; background: var(--surface-1); box-shadow: 0 2px 7px rgba(89, 131, 240, .1); pointer-events: auto; cursor: pointer; }
+#root .tl-current__nav { position: absolute; bottom: 0; width: var(--tl-nav); height: var(--tl-nav); display: grid; place-items: center; border: 0; border-radius: 5px 5px 0 0; background: var(--surface-1); box-shadow: 0 2px 7px rgba(89, 131, 240, .1); pointer-events: auto; cursor: pointer; }
 .tl-current__nav--next { right: 0; }
 .tl-current__progress { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--tl-color); }
 
@@ -75,17 +107,17 @@ a.tl-major:focus-visible, a.tl-minor:focus-visible { outline: 2px solid var(--ac
 .tl-details__list span { color: var(--text-2); font-size: var(--fs-footnote); white-space: nowrap; }
 .tl-about p { margin: 0 0 12px; color: var(--text-2); line-height: 1.5; }
 
-/* Search (TimelineSearchScreen). */
-.tl-search__field { padding: 12px 16px; }
-.tl-search__count { margin: 0; padding: 10px 16px; font: 16px/1.3 var(--font-ui); color: var(--text-3); }
-.tl-search__list { list-style: none; margin: 0; padding: 0; }
-.tl-search__list li + li { border-top: .5px solid var(--hairline); }
-.tl-search__list a { display: grid; gap: 4px; padding: 14px 16px; color: var(--text-1); text-decoration: none; }
-.tl-search__list b { font: 600 15px/1.3 var(--font-ui); }
-.tl-search__list span { font-size: var(--fs-footnote); color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* Search (TimelineSearchScreen) in the main search's field and list (search.css); the timeline's
+   header above it, and an event's picture (70px, theirs) where the icon goes. */
+.tl-search { padding-top: 0 !important; gap: 0; padding-bottom: calc(var(--dock-space) + 16px); }
+.tl-search > .tlh { position: static; margin: 0 calc(-1 * var(--gutter)); }
+.tl-search .srch__results { margin-top: var(--sp-3); }
+.tl-search__pic { flex: none; width: 70px; height: 70px; border-radius: 10px; object-fit: cover; background: var(--fill-1); }
+.tl-search__list .srch__snip { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* An event (EventDetails). */
 .tl-event__body { max-width: var(--w-read); margin: 0 auto; padding: 10px 0; }
+.tl-event__pic { display: block; width: 150px; height: 150px; margin: 30px auto 0; border-radius: 10px; object-fit: cover; }
 .tl-event__head { margin: 30px 0; padding: 0 20px; text-align: center; }
 .tl-event__title { margin: 0; font: 600 26px/1.25 var(--font-ui); color: var(--text-1); }
 .tl-event__date { margin: 6px 0 0; font-size: var(--fs-footnote); color: var(--text-3); }
@@ -103,4 +135,4 @@ a.tl-major:focus-visible, a.tl-minor:focus-visible { outline: 2px solid var(--ac
 .tl-verse__ref { display: block; font: 600 13px/1.3 var(--font-ui); color: var(--text-3); }
 .tl-verse__text { display: block; margin-top: 4px; font: 15px/1.6 var(--font-read, Georgia, serif); }
 .tl-verse sup { font-size: .65em; color: var(--text-3); }
-@media (prefers-reduced-motion: reduce) { .tl-scroll { scroll-behavior: auto; } }
+@media (prefers-reduced-motion: reduce) { .tl-scroll { scroll-behavior: auto; } .tl-period .tl-world { animation: none !important; opacity: 1 !important; } }

@@ -69,3 +69,23 @@ test("search and linked events come from the data", () => {
   assert.ok(!linkedEvents(DATA.sections, "abraham").some((e) => e.slug === "abraham"));
   assert.deepEqual(linkedEvents(DATA.sections, "cain"), [], "no shared case study, no link");
 });
+
+test("an end of 1844 reads as Bible Strong writes it", () => {
+  assert.equal(calculateLabel(-457, 1844), "457 BC to 1844");
+});
+
+test("an event's picture is only an approved portrait of its own person, and the file is there", () => {
+  const approved = JSON.parse(fs.readFileSync(new URL("../scripts/timeline-portraits.json", import.meta.url), "utf8"));
+  const ids = new Set(approved.ids);
+  const all = flatten(DATA.sections);
+  const withPortrait = all.filter((e) => e.portrait);
+  assert.ok(withPortrait.length >= 20);
+  for (const e of withPortrait) {
+    assert.ok(ids.has(e.portrait), `${e.slug}: ${e.portrait} is approved`);
+    for (const size of [128, 256]) assert.ok(fs.existsSync(new URL(`../public/people/${e.portrait}-${size}.webp`, import.meta.url)), `${e.portrait}-${size}.webp`);
+  }
+  assert.equal(all.find((e) => e.slug === "solomon").portrait, "solomon-2sa-5-14");
+  // Noah's father is not Lamech of Cain's line; Abraham's approved portrait is reused (2 October 2026).
+  assert.equal(all.find((e) => e.slug === "lamech").portrait, undefined);
+  assert.equal(all.find((e) => e.slug === "abraham").portrait, "abraham-gen-11-26");
+});

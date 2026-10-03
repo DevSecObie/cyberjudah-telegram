@@ -22,6 +22,8 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const SOURCE = path.join(ROOT, "strong/apps/expo/src/assets/timeline/events.txt");
 const OUT = path.join(ROOT, "app/src/data/timeline.json");
+/** People with an approved portrait that the timeline may show (app/public/people/<id>-<size>.webp). */
+const PORTRAITS = path.join(ROOT, "app/scripts/timeline-portraits.json");
 /** The kings' reigns from Who's Who in the Bible (its Chronology), as facts: name, kingdom, years BC. */
 const REIGNS = path.join(ROOT, "app/scripts/whoswho-reigns.json");
 
@@ -119,7 +121,28 @@ export function attachCases(sections, cases, kings = new Map(), peopleIndex = []
     if (!slug && namesake.get(norm(p.name)) === 1 && byTitle.has(norm(p.name))) slug = byTitle.get(norm(p.name));
     if (slug) attach(slug, c);
   }
-  return { ambiguous: [...ambiguous].sort() };
+  return { ambiguous: [...ambiguous].sort(), personEvent };
+}
+
+/**
+ * The approved People portrait (docs/AVATARS.md) of the person an event is about, by person id:
+ * the person a case study already ties to the event, or the only person of the event's name in
+ * our people index. Nobody is matched by likeness of name, and a name two people share gets none.
+ * `notOn` lists events whose case-study person is not the event's person (see the JSON).
+ */
+export function attachPortraits(sections, approved, personEvent, peopleIndex = [], notOn = {}) {
+  const byName = new Map();
+  for (const p of peopleIndex) { const k = norm(p.name); byName.set(k, byName.has(k) ? null : p.id); }
+  const placed = new Map();
+  for (const [id, slug] of personEvent) if (approved.has(id)) placed.set(slug, id);
+  for (const s of sections) for (const e of s.events) {
+    if (placed.has(e.slug)) continue;
+    const id = byName.get(norm(e.title));
+    if (id && approved.has(id)) placed.set(e.slug, id);
+  }
+  for (const slug of Object.keys(notOn)) placed.delete(slug);
+  for (const s of sections) for (const e of s.events) if (placed.has(e.slug)) e.portrait = placed.get(e.slug);
+  return placed;
 }
 
 async function readPeople(src) {
@@ -143,10 +166,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const reigns = JSON.parse(fs.readFileSync(REIGNS, "utf8"));
   const { placed, unplaced } = attachReigns(kept, reigns.reigns);
   const people = await readPeople(src);
-  const { ambiguous } = attachCases(kept, cases, placed, people);
+  const { ambiguous, personEvent } = attachCases(kept, cases, placed, people);
+  const approved = JSON.parse(fs.readFileSync(PORTRAITS, "utf8"));
+  const portraits = attachPortraits(kept, new Set(approved.ids), personEvent, people, approved.notOn);
   const attached = new Set(kept.flatMap((s) => s.events.flatMap((e) => (e.cases ?? []).map((c) => c.slug))));
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
   fs.writeFileSync(OUT, JSON.stringify({ source: "Bible Strong timeline (events.txt), history only; case studies attached by exact name", reigns: reigns.source, sections: kept }) + "\n");
-  console.log(JSON.stringify({ periods: kept.length, events: kept.reduce((n, s) => n + s.events.length, 0), droppedSections, droppedEvents: dropped.length, casesAttached: attached.size, casesTotal: cases.length, ambiguous, reignsPlaced: placed.size, reignsUnplaced: unplaced }, null, 1));
+  console.log(JSON.stringify({ periods: kept.length, events: kept.reduce((n, s) => n + s.events.length, 0), droppedSections, droppedEvents: dropped.length, casesAttached: attached.size, casesTotal: cases.length, ambiguous, reignsPlaced: placed.size, reignsUnplaced: unplaced, portraits: Object.fromEntries(portraits) }, null, 1));
   if (process.env.VERBOSE) console.log(dropped.join("\n"));
 }
