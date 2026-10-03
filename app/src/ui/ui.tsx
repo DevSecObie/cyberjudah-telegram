@@ -166,7 +166,9 @@ export function TabBar() {
       const nav = bar.current, on = (e.target as HTMLElement).closest<HTMLElement>(".tab[data-on]");
       const pill = nav?.querySelector<HTMLElement>(".tabs__pill");
       if (pill) delete pill.dataset.flow;
-      if (nav && on && !mini) {
+      // An overflowing rail belongs to native touch scrolling. Mouse dragging and the
+      // non-scrolling dock keep their selection gesture; taps and long presses still work.
+      if (nav && on && !mini && !(nav.hasAttribute("data-scrollable") && e.pointerType !== "mouse")) {
         const col = getComputedStyle(nav).flexDirection === "column";
         // Read all gesture geometry before pointer-move feedback begins.
         const geometry = tabsOf(nav).map(el => ({ el, start: col ? el.offsetTop : el.offsetLeft, size: col ? el.offsetHeight : el.offsetWidth }));
@@ -209,6 +211,11 @@ export function TabBar() {
       if (lens.current) return; // A data refresh or resize must not pull a held selection away.
       const on = nav.querySelector<HTMLElement>(".tab[data-on]");
       const shown = !!on && on.offsetWidth > 0;
+      const style = getComputedStyle(nav), last = nav.querySelector<HTMLElement>(".tab:last-child");
+      // Measure the controls, not scrollHeight: the material itself spans this height and
+      // must not keep an old overflow measurement alive after the viewport grows.
+      const contentHeight = last ? last.offsetTop + last.offsetHeight + parseFloat(style.paddingBottom) : 0;
+      const scrollable = style.flexDirection === "column" && contentHeight > nav.clientHeight + 1;
       // Translation and a release highlight settle independently, without forcing layout.
       const x = `${shown ? on!.offsetLeft : 0}px`, y = `${shown ? on!.offsetTop : 0}px`;
       const was = nav.style.getPropertyValue("--pill-x"), wasY = nav.style.getPropertyValue("--pill-y");
@@ -219,6 +226,8 @@ export function TabBar() {
       nav.style.setProperty("--pill-w", `${shown ? on!.offsetWidth : 0}px`);
       nav.style.setProperty("--pill-h", `${shown ? on!.offsetHeight : 0}px`);
       nav.dataset.pill = shown ? "" : "none";
+      nav.toggleAttribute("data-scrollable", scrollable);
+      nav.style.setProperty("--rail-content-h", `${contentHeight}px`);
     };
     placePill.current = place;
     place();

@@ -190,6 +190,8 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
   .tabs:not(.tabs--switcher) .tab { flex: none; width: 64px; min-height: 56px; height: auto; padding-block: 6px; border-radius: var(--r-inner); }
   .tabs:not(.tabs--switcher) .tabs__pill { border-radius: var(--r-inner); }
   .tabs:not(.tabs--switcher) .tab__label { font-size: .6875rem; }
+  .tabs[data-scrollable] { touch-action: pan-y; overscroll-behavior-y: contain; }
+  .tabs[data-scrollable]::before { bottom: auto; height: var(--rail-content-h); }
   #root [data-tabs] { padding-bottom: var(--sp-7); }
 }
 

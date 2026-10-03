@@ -109,7 +109,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 
 ### Changed
 
-- Unify Liquid Glass control styles, capsule sizing, nested radii and accessible large-text behavior across the app.
+- Unify Liquid Glass control styles, capsule sizing, nested radii and accessible large-text behavior, including enlarged segmented labels and touch scrolling for overflowing navigation rails.
 - This changelog, the incident log ([docs/INCIDENTS.md](docs/INCIDENTS.md)) and the release rules;
   a pull-request check asks every change for a changelog line or a reason it needs none ([#77]).
 

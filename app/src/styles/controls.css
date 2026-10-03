@@ -69,6 +69,8 @@
 html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgui--segmented_control_active_bg: var(--surface-1); background: var(--fill-2); }
 #root .seg::-webkit-scrollbar { display: none; }
 #root .seg button { min-height: var(--h-sm); padding: var(--sp-2); border-radius: var(--r-pill); color: var(--text-2); font: 500 var(--fs-footnote) var(--font-ui); }
+/* TelegramUI's Caption otherwise fixes the visible text at 13px inside the growing button. */
+#root .seg button > span { font: inherit; white-space: normal; overflow-wrap: anywhere; }
 /* Selected: the lighter capsule, the primary ink and a heavier weight (never colour alone). */
 #root .seg button[aria-selected="true"] { color: var(--text-1); font-weight: 700; }
 

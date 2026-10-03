@@ -358,8 +358,15 @@ for (const theme of ["default", "dark", "sepia"]) {
         const toggle = page.getByRole("switch", { name: "Justify the text", exact: true });
         await expect(toggle).toBeVisible();
         const initialFont = await toggle.locator("b").evaluate(e => parseFloat(getComputedStyle(e).fontSize));
+        const captions = page.getByRole("tablist", { name: "Theme" }).locator("button > span");
+        const initialCaptionFonts = await captions.evaluateAll(labels => labels.map(e => parseFloat(getComputedStyle(e).fontSize)));
         await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
         await expect.poll(() => toggle.locator("b").evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBe(initialFont * 2);
+        await expect.poll(() => captions.evaluateAll(labels => labels.map(e => parseFloat(getComputedStyle(e).fontSize)))).toEqual(initialCaptionFonts.map(size => size * 2));
+        expect(await captions.evaluateAll(labels => labels.every(label => {
+          const l = label.getBoundingClientRect(), b = label.parentElement!.getBoundingClientRect();
+          return l.left >= b.left && l.right <= b.right && l.top >= b.top && l.bottom <= b.bottom && label.scrollWidth <= label.clientWidth + 1;
+        }))).toBe(true);
         await toggle.focus();
         const before = await toggle.getAttribute("aria-checked");
         await page.keyboard.press("Space");
@@ -407,6 +414,52 @@ for (const theme of ["default", "dark", "sepia"]) {
     });
   }
 }
+
+test("controls: an overflowing rail scrolls natively and restores drag after resizing", async ({ page, browserName }) => {
+  await setup(page);
+  await page.addInitScript(() => {
+    (window as unknown as { __cloud: Record<string, string> }).__cloud.nav = JSON.stringify(["plan", "bookmarks", "precepts", "library", "bible", "search"]);
+  });
+  await page.setViewportSize({ width: 1280, height: 550 });
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+  const dock = page.getByRole("navigation", { name: "Sections" });
+  await expect(dock).toHaveAttribute("data-scrollable", "");
+  const bounds = (await dock.boundingBox())!, menu = dock.getByRole("button", { name: "Menu", exact: true });
+  expect((await menu.boundingBox())!.y + (await menu.boundingBox())!.height).toBeGreaterThan(bounds.y + bounds.height);
+  // Start on the selected Bible control: scrolling must not drag the pill to another route.
+  const selected = (await dock.getByRole("button", { name: "Bible", exact: true }).boundingBox())!;
+  const x = selected.x + selected.width / 2, y = selected.y + selected.height / 2;
+  if (browserName === "chromium") {
+    const session = await page.context().newCDPSession(page);
+    await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    for (let i = 1; i <= 12; i++) await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: y - i * 20 }] });
+    await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await session.detach();
+  } else {
+    // Playwright exposes native wheel input in WebKit, but no touch-move protocol.
+    await expect(dock).toHaveCSS("touch-action", "pan-y");
+    await page.mouse.move(x, y); await page.mouse.wheel(0, 500);
+  }
+  await expect.poll(() => dock.evaluate(e => e.scrollTop)).toBeGreaterThan(0);
+  await expect(page).toHaveURL(/\/read\/genesis\/1/);
+  await expect(dock).not.toHaveAttribute("data-lift");
+  await expect.poll(async () => { const m = (await menu.boundingBox())!; return m.y + m.height; }).toBeLessThanOrEqual(bounds.y + bounds.height);
+  const m = (await menu.boundingBox())!;
+  // Coordinate input cannot secretly scroll an offscreen target into view.
+  await page.touchscreen.tap(m.x + m.width / 2, m.y + m.height / 2);
+  await expect(page.locator(".drawer--more")).toHaveAttribute("data-open", "");
+  await page.keyboard.press("Escape");
+  await expect(dock).toHaveCSS("transform", "none");
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(dock).not.toHaveAttribute("data-scrollable");
+  const from = (await dock.getByRole("button", { name: "Bible", exact: true }).boundingBox())!;
+  const to = (await dock.getByRole("button", { name: "Search", exact: true }).boundingBox())!;
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2); await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 }); await page.mouse.up();
+  await expect(page).toHaveURL(/\/search/);
+});
 
 for (const theme of ["default", "dark", "sepia"]) {
   test(`controls: ${theme} nested sheet actions share accessible accent ink and keyboard behavior`, async ({ page }) => {

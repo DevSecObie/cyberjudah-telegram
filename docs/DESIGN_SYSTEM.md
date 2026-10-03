@@ -486,7 +486,7 @@ The OS reduced-transparency E2E uses Chromium CDP media emulation and verifies t
 
 Home actions, library page links/scan buttons, the picture-viewer reading action, note requests, photo editing, recovery actions, pagination and “show more” actions share these recipes. Tappable content cards, highlight swatches, media transport and category badges retain their semantic presentation. The media viewer scopes `--accent`/`--on-accent` to its dark media palette. Ordinary page actions remain capsules, and the main paywall CTA uses the extra-large size.
 
-Sizes are `--h-sm`, `--h-md`, `--h-lg`, `--h-xl`, with a 44px minimum target and rem-based growth. Buttons and chips use `--r-pill`. Labels wrap instead of clipping; dock labels and selection action labels grow with the root text size. The mobile dock's height grows with text; the desktop rail can scroll if it outgrows the safe viewport.
+Sizes are `--h-sm`, `--h-md`, `--h-lg`, `--h-xl`, with a 44px minimum target and rem-based growth. Buttons and chips use `--r-pill`. Labels wrap instead of clipping; dock labels and selection action labels grow with the root text size. TelegramUI's nested segmented captions inherit the button font so the visible text grows too. The mobile dock's height grows with text; the desktop rail uses native vertical touch scrolling if it outgrows the safe viewport. In that state touch pans scroll instead of moving the pill; mouse dragging, taps and long presses remain available. The shared material spans the scrollable controls, and resizing to fit restores touch dragging.
 
 ### Nested shapes
 
