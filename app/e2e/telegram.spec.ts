@@ -901,6 +901,8 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     await page.setViewportSize(viewport);
     await page.goto(`/people${LAUNCH}`);
     await page.fill("#people-q", "abraham");
+    // Filtering is debounced; wait for its result before the list changes under a click.
+    await expect(page.getByRole("heading", { name: "1 person", exact: true })).toBeVisible();
     await page.locator(".row", { hasText: "Abraham" }).first().click();
     await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
     // The summary card: what they are, the name, their Strong's number (to the word study), who they were.
@@ -1192,6 +1194,8 @@ test("Classes: one recording plays at a time, a preview reads on, the scripture 
   await expect(page.locator("article.post iframe")).toHaveCount(0);
   await a.getByRole("button", { name: "Watch" }).click();
   await expect(a.locator("iframe")).toHaveCount(1);
+  // Bring the next control into view before click's stability checks run.
+  await b.getByRole("button", { name: "Watch" }).scrollIntoViewIfNeeded();
   await b.getByRole("button", { name: "Watch" }).click();
   await expect(b.locator("iframe")).toHaveCount(1);
   await expect(a.locator("iframe")).toHaveCount(0);
