@@ -138,7 +138,7 @@ a.tl-major:focus-visible, a.tl-minor:focus-visible { outline: 2px solid var(--ac
 @media (prefers-reduced-motion: reduce) { .tl-scroll { scroll-behavior: auto; } .tl-period .tl-world { animation: none !important; opacity: 1 !important; } }
 
 /* The Final Captivity's events (screens/TimelineFinalCaptivity.tsx): the summary first, then each kind
-   of statement under its own label, so documented history, the assembly's teaching and the scriptural
+   of statement under its own label, so documented history, quotes from the classes and the scriptural
    application never run together. */
 .fc-meta { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 12px; margin: -18px 20px 6px; font-size: var(--fs-footnote); color: var(--text-2); }
 .fc-chip { padding: 4px 10px; border-radius: 99px; background: color-mix(in srgb, var(--tl-color) 16%, transparent); color: var(--text-1); font-weight: 600; }

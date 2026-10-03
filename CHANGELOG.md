@@ -31,7 +31,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   away, and Remove photo brings back the app's own.
 - The Bible Timeline's last age, **The Final Captivity**: five periods from the first ships (1441)
   to Israel United in Christ today, 97 events so far, more being added as each is checked. Each
-  event keeps apart the documented history (with its sources), the assembly's teaching (linked to the
+  event keeps apart the documented history (with its sources), quotes from the classes (each linked to the
   class or episode at the moment it was taught) and the Scriptures read with it; where sources
   disagree, both are shown. Sources reviewed through 3 October 2026.
 - The Bible Timeline moves as Bible Strong's does: a period opens on its title card before the
