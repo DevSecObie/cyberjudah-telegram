@@ -49,7 +49,7 @@
 .screen > .head { margin: 0 calc(-1 * var(--gutter)); padding: calc(var(--sp-2) + var(--safe-top)) var(--gutter) var(--sp-2); }
 .screen > .head .title { font-size: var(--fs-title1); }
 .screen > .head::before, .srch__bar::before, .chat2__bar::before, .reader__bar::before {
-  content: ""; position: absolute; z-index: -1; top: 0; bottom: calc(-1 * var(--mat-scroll-edge-depth)); left: 50%; width: 100vw; margin-left: -50vw; pointer-events: none;
+  content: ""; position: absolute; z-index: -1; top: 0; bottom: calc(-1 * var(--mat-scroll-edge-depth)); left: 50%; width: var(--content-width); margin-left: calc(var(--content-width) / -2); pointer-events: none;
   background: var(--mat-nav);
   -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
   -webkit-mask-image: var(--mat-scroll-edge); mask-image: var(--mat-scroll-edge);
@@ -65,7 +65,7 @@
 .tlh.glass, .pv__bar { isolation: isolate; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* A hairline where the glass meets the page, drawn inside the fade so it reads as an edge. */
 .screen > .head::after, .srch__bar::after, .chat2__bar::after, .reader__bar::after {
-  content: ""; position: absolute; z-index: -1; bottom: 0; left: 50%; width: 100vw; margin-left: -50vw; height: .5px; pointer-events: none;
+  content: ""; position: absolute; z-index: -1; bottom: 0; left: 50%; width: var(--content-width); margin-left: calc(var(--content-width) / -2); height: .5px; pointer-events: none;
   background: var(--mat-edge);
 }
 
@@ -173,7 +173,7 @@ html[data-transparency="reduced"] .tabs::after { display: none; }
 .tabs .tab__count { display: grid; place-items: center; box-sizing: border-box; min-width: 22px; height: 22px; padding: 0 4px; border: 1.75px solid currentColor; border-radius: 6px; font: 700 11.5px/1 var(--font-ui); font-variant-numeric: tabular-nums; }
 .tabs .tab__count[style*="--group"] { background: var(--group); border-color: var(--group); color: #fff; }
 /* Collapsed (phones, scrolling down): a small capsule holding only the current section. */
-@media (max-width: 1099px) {
+@media (max-width: 899px) {
   .tabs[data-mini] { width: 48px; height: 48px; padding: 0; border-radius: 24px; cursor: pointer; }
   .tabs[data-mini] .tabs__pill { opacity: 0; }
   .tabs[data-mini] .tab:not([data-kept]) { display: none; }
@@ -193,10 +193,10 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 #root .switcherbar__group span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Desktop: the dock stands as a rail on the left, the page keeps its reading width beside it. */
-@media (min-width: 1100px) {
-  :root { --dock-space: 0px; --rail-space: 112px; }
+@media (min-width: 900px) {
+  :root { --dock-space: 0px; --rail-space: calc(112px + var(--safe-left)); }
   .tabs:not(.tabs--switcher) {
-    left: calc(var(--sp-5) + var(--safe-left)); right: auto; top: 0; bottom: 0; margin: auto 0; width: 76px; height: fit-content; max-height: calc(100dvh - 40px - var(--safe-top) - var(--safe-bottom));
+    left: calc(var(--sp-5) + var(--safe-left)); right: auto; top: var(--safe-top); bottom: var(--safe-bottom); margin: auto 0; width: 76px; height: fit-content; max-height: calc(100dvh - 40px - var(--safe-top) - var(--safe-bottom));
     flex-direction: column; padding: 8px 6px; gap: 4px; --r-outer: 30px; border-radius: var(--r-outer); overflow-y: auto; scrollbar-width: none;
   }
   .tabs:not(.tabs--switcher) .tab { flex: none; width: 64px; min-height: 56px; height: auto; padding-block: 6px; border-radius: var(--r-inner); }
@@ -205,6 +205,7 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
   .tabs[data-scrollable] { touch-action: pan-y; overscroll-behavior-y: contain; }
   .tabs[data-scrollable]::before { bottom: auto; height: var(--rail-content-h); }
   #root [data-tabs] { padding-bottom: var(--sp-7); }
+  #shell .route { box-sizing: border-box; padding-left: var(--rail-space); }
 }
 
 /* ── Page actions: the screen's buttons, floating just above the dock ────────────────────── */
@@ -223,7 +224,7 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 .pageaction__spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
 html[data-actions] #root [data-tabs] { padding-bottom: calc(var(--dock-space) + var(--h-md) + var(--sp-7)); }
 html[data-typing] .pageactions { display: none; }
-@media (min-width: 1100px) { .pageactions { left: calc(var(--rail-space) + var(--gutter)); } }
+@media (min-width: 900px) { .pageactions { left: calc(var(--rail-space) + var(--gutter)); } }
 
 /* ── Drawers: Home and the menu, pushing the app aside ────────────────────────────────────── */
 :root { --drawer-w: min(95vw, 450px); --drawer-ease: cubic-bezier(.2, .9, .25, 1); }
@@ -288,7 +289,7 @@ html[data-modal] { overflow: hidden; }
 .nsheet[data-full] { z-index: 75; border-radius: 0; border-top-color: transparent; }
 .nsheet[data-open] { transform: translateY(0); visibility: visible; }
 /* Desktop: the notes sheet opens beside the rail, never under it, so its title and the rail stay clear. */
-@media (min-width: 1100px) { .nsheet:not([data-full]) { left: var(--rail-space); border-left: .5px solid var(--mat-edge); border-radius: var(--r-xl) 0 0 0; } }
+@media (min-width: 900px) { .nsheet:not([data-full]) { left: var(--rail-space); border-left: .5px solid var(--mat-edge); border-radius: var(--r-xl) 0 0 0; } }
 .nsheet__head { position: relative; flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: 16px var(--gutter) 10px; border-bottom: .5px solid var(--hairline); cursor: grab; user-select: none; -webkit-user-select: none; }
 .nsheet__head h2 { margin: 0; font: 600 var(--fs-body) var(--font-ui); color: var(--text-1); }
 .nsheet__head small { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; font: 400 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
@@ -326,3 +327,13 @@ html[data-actions] .toasts { bottom: calc(var(--dock-space) + var(--h-md) + var(
 /* Off-screen panels keep no filter running. */
 .drawer:not([data-open]) { -webkit-backdrop-filter: none; backdrop-filter: none; }
 @media (prefers-reduced-motion: reduce) { #shell .route, .tabs, .pageactions, .drawer, .drawer-scrim, .tabs__pill, .nsheet { transition: none; } .sheet, .sheet__scrim { animation: none; } }
+
+/* A decorative mirror of an existing hero's leading edge behind the sidebar. This
+   filters only its own image pixels; it never samples or distorts text underneath. */
+.rail-background { display: none; }
+@media (min-width: 900px) {
+  .rail-background { display: block; position: fixed; z-index: 0; inset: var(--safe-top) auto var(--safe-bottom) 0; width: var(--rail-space); overflow: hidden; pointer-events: none; }
+  .rail-background img { position: absolute; inset: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; object-position: left; transform: scaleX(-1); filter: blur(18px); opacity: .3; }
+}
+html[data-transparency="reduced"] .rail-background { display: none; }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) { .rail-background { display: none; } }

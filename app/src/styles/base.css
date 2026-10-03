@@ -3,7 +3,7 @@
    ───────────────────────────────────────────────────────────────────────────────────────────── */
 /* Anchors and focused controls land clear of the header bar and the dock. */
 html { scroll-padding-top: calc(var(--header-h) + var(--safe-top) + 8px); scroll-padding-bottom: calc(var(--dock-space) + 8px); }
-html, body { margin: 0; background: var(--canvas); color: var(--text-2); overscroll-behavior: none; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { margin: 0; background: var(--canvas); color: var(--text-2); overscroll-behavior: none auto; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 html[data-fullscreen="yes"] .reader__bar { padding-top: 4px; }
 
 /* The canvas: the page colour with a faint light at the top, so the glass above it has something to

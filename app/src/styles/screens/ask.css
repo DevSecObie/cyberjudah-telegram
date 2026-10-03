@@ -106,7 +106,7 @@ img.msg__avatar { border-radius: 0; object-fit: contain; background: none; }
   background: linear-gradient(to top, var(--canvas) 55%, color-mix(in srgb, var(--canvas) 0%, transparent)); pointer-events: none; }
 #root [data-tabs] .composer2 { bottom: var(--dock-space); padding-bottom: 6px; }
 html[data-typing] #root [data-tabs] .composer2 { bottom: 0; padding-bottom: calc(6px + var(--safe-bottom)); }
-@media (min-width: 1100px) { .composer2 { left: var(--rail-space); } }
+@media (min-width: 900px) { .composer2 { left: var(--rail-space); } }
 .composer2__box { pointer-events: auto; display: flex; align-items: flex-end; gap: 6px; max-width: 720px; margin: 0 auto; padding: 6px 6px 6px 10px; border-radius: var(--r-2xl);
   background: var(--mat-overlay); border: 1px solid var(--control-edge); box-shadow: var(--mat-highlight), var(--shadow-2); transition: none; }
 .composer2__box:focus-within { border-color: var(--accent); box-shadow: var(--mat-highlight), var(--shadow-2), 0 0 0 3px var(--accent-soft); }
