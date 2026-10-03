@@ -26,6 +26,21 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
 ### Added
+- Ask CyberJudah as the app's assistant: it answers questions about the app from the app's own
+  list of screens, with links that open in place; finds people and case studies; finds and reopens
+  your saved chats; reads your reading reminder; and proposes changes to it as a card you Confirm
+  or Cancel. Nothing changes until you confirm, and the card says what was done. Built to the
+  Claude docs' tool-use guidance: cached instructions, streamed and checked tool input, and
+  refusals and cut-off answers said plainly. While it works, Ask shows a line suited to the
+  question, drawn from the King James words the assembly reads (serious for doctrine, the law and
+  judgment; lighter for the app, the time and short follow-ups).
+- A backup for Ask CyberJudah: if Claude is overloaded, rate limited, down, or its key is refused,
+  Workers AI answers from the passages already found, says it is the backup, and does not charge.
+  Workers AI calls now go through Cloudflare AI Gateway (`default`) for logs and analytics; Claude
+  goes through it too once the `CF_AIG_TOKEN` secret is added.
+- Claude can be paid through Cloudflare (Unified Billing, from the account's AI Gateway credits)
+  instead of an Anthropic key; production and staging are set to it (`CLAUDE_BILLING`). When
+  the credits run out, Ask answers with the backup.
 - Reading reminders ([issue #47]): opt-in and off by default, at a quarter-hour time in the
   reader's own time zone, by Telegram (the bot), Web Push (cyberjudah.io/app in up to ten
   browsers) or both. The reminder names today's plan portion, or the last chapter read, with
@@ -47,6 +62,14 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   Prophecies" period and 20 prophecy events, are left out). Events open to our case studies on
   them (by exact name only), their verses in the KJV, and for 25 kings the reign from *Who's Who
   in the Bible*. Regenerate the data with `node app/scripts/timeline-data.mjs <cases>`.
+
+### Fixed
+- Ask CyberJudah: an answer is finished and saved even if you leave mid-answer, and coming back
+  (a refresh, the app reopened, the connection back) waits for it instead of calling it lost; an
+  answer still arriving for a chat you left never appears in the next one; a question typed while
+  an answer is coming is kept; tapping Send after typing no longer misses; conversations on a shared
+  device are kept per account; links in answers lead only inside the app; and if search by meaning
+  is unavailable, Ask answers from the keyword search.
 
 ### Changed
 - This changelog, the incident log ([docs/INCIDENTS.md](docs/INCIDENTS.md)) and the release rules;

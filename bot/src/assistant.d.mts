@@ -1,0 +1,12 @@
+export type Feature = { id: string; name: string; path: string; what: string; words?: string[]; telegramOnly?: boolean };
+export type ReminderSettings = Partial<{ on: boolean; hour: number; minute: number; channels: { telegram?: boolean; push?: boolean }; paused: boolean; pauseDays: number; pauseUntil: string }>;
+export function score(text: unknown, query: unknown): number;
+export function best<T>(list: T[], query: string, fields: (x: T) => (string | undefined)[], n?: number): T[];
+export function findChats<T extends { title: string }>(index: T[] | null | undefined, query: string, n?: number): T[];
+export function findPeople<T extends { name: string; names?: string[] }>(rows: T[] | null | undefined, query: string, n?: number): T[];
+export function findCases<T extends { name: string; charge?: string; themes?: string[]; topics?: string[] }>(rows: T[] | null | undefined, query: string, n?: number): T[];
+export function findFeatures(features: Feature[], query: string, n?: number): Feature[];
+export function timeLabel(h: number, m?: number): string;
+export function describeReminder(view: Record<string, any> | null): string;
+export function proposeReminder(input: unknown, opts?: { inTelegram?: boolean; today?: string }): { settings: ReminderSettings; summary: string; error?: undefined } | { error: string; settings?: undefined; summary?: undefined };
+export function checkInput(schema: unknown, input: unknown): string;

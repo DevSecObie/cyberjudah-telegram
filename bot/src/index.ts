@@ -21,13 +21,14 @@ import { dictionary } from "./dictionary";
 import { bs } from "./bs";
 import { buildCatalog, emptyCatalog, SLUGS, type PassageMediaMoment } from "./passage-media.mjs";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
-import { CHAT_ID, deleteChat, getChat, listChats } from "./chats";
+import { CHAT_ID, deleteChat, getChat, getPending, listChats, setActionState } from "./chats";
 import { closeRequest, getRequest, listRequests, requestNotes, validVideo } from "./requests";
 import { tellAdmins } from "./health";
 import { notePdf, pdfName } from "./pdf.mjs";
 import { billingOn, invoiceFor, prices, pruneBilling, standing, usageDay, SUPPORT_STARS } from "./billing";
 import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
+import { hasClaude, unifiedBilling } from "./providers";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
@@ -82,7 +83,7 @@ app.get("/api/health", async (c) => {
     probe(() => c.env.DB.prepare("SELECT count(*) AS n FROM search_docs LIMIT 1").first()),
     probe(() => c.env.TEACH.prepare("SELECT count(*) AS n FROM teaching_passages LIMIT 1").first()),
   ]);
-  return c.json({ ok: search.ok && teachings.ok, search, teachings, ask: { model: c.env.ANTHROPIC_API_KEY ? c.env.CLAUDE_MODEL : "workers-ai" }, at: new Date().toISOString() }, { headers: { "cache-control": "no-store" } });
+  return c.json({ ok: search.ok && teachings.ok, search, teachings, ask: { model: hasClaude(c.env) ? c.env.CLAUDE_MODEL : "workers-ai", billing: unifiedBilling(c.env) ? "cloudflare" : hasClaude(c.env) ? "anthropic" : "none" }, at: new Date().toISOString() }, { headers: { "cache-control": "no-store" } });
 });
 app.get("/api/me", async (c) => {
   const { user } = c.get("tma");
@@ -285,9 +286,21 @@ app.delete("/api/requests/:video", async (c) => {
   return c.json({ ok: await closeRequest(c.env, c.req.param("video")) });
 });
 app.get("/api/chats", async (c) => c.json({ ok: true, chats: await listChats(c.env, c.get("tma").user!.id) }));
+// A conversation, and the question it is still answering if there is one (a refresh or another device waits for it).
 app.get("/api/chats/:id", async (c) => {
-  const chat = await getChat(c.env, c.get("tma").user!.id, c.req.param("id"));
-  return chat ? c.json({ ok: true, chat }) : c.json({ ok: false, error: "not-found" }, 404);
+  const uid = c.get("tma").user!.id, id = c.req.param("id");
+  const [chat, pending] = await Promise.all([getChat(c.env, uid, id), getPending(c.env, uid, id)]);
+  if (!chat && !pending) return c.json({ ok: false, error: "not-found" }, 404);
+  return c.json({ ok: true, chat, pending });
+});
+// The reader applied or cancelled a change the assistant proposed (the change itself is made through its own API).
+app.post("/api/chats/:id/actions/:action", async (c) => {
+  const body = await c.req.json<{ state?: string }>().catch(() => null);
+  const state = body?.state === "applied" || body?.state === "cancelled" ? body.state : null;
+  const action = c.req.param("action");
+  if (!state || !/^[0-9a-f]{16}$/.test(action)) return c.json({ ok: false }, 400);
+  const ok = await setActionState(c.env, c.get("tma").user!.id, c.req.param("id"), action, state);
+  return c.json({ ok }, ok ? 200 : 404);
 });
 app.delete("/api/chats/:id", async (c) => {
   const ok = await deleteChat(c.env, c.get("tma").user!.id, c.req.param("id"));

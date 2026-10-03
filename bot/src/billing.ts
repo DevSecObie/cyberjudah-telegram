@@ -5,6 +5,7 @@ import { balance, emptyAccount, grantPack, grantPlan, payloadOf, pricing, readSu
 export { RESERVE_UNITS, SUPPORT_STARS };
 export type { Account, Balance, Pricing, Take };
 import { isAdmin } from "./edit";
+import { hasClaude } from "./providers";
 
 /**
  * The person's allowance for Ask CyberJudah, kept in D1's `accounts` table: today's free
@@ -15,7 +16,7 @@ import { isAdmin } from "./edit";
  * the admins to price by.
  */
 export const prices = (env: Env): Pricing => pricing(env as unknown as Record<string, unknown>);
-export const billingOn = (env: Env) => Boolean(env.ANTHROPIC_API_KEY) && env.ASK_BILLING === "on";
+export const billingOn = (env: Env) => hasClaude(env) && env.ASK_BILLING === "on";
 
 const TABLES = [
   `CREATE TABLE IF NOT EXISTS accounts (user_id TEXT PRIMARY KEY, day TEXT NOT NULL DEFAULT '',

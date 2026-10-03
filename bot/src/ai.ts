@@ -1,11 +1,10 @@
-import Anthropic from "@anthropic-ai/sdk";
-
 import { chapter } from "./data";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
-import { saveExchange } from "./chats";
+import { claude, claudeUnavailable, hasClaude, viaGateway } from "./providers";
+import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
 import { isAdmin } from "./edit";
 import { billingOn, charge, reserveAsk, settleAsk, standing, RESERVE_UNITS, type Take } from "./billing";
 import type { Account } from "./billing.mjs";
@@ -19,7 +18,7 @@ import type { Account } from "./billing.mjs";
 export async function embed(env: Env, texts: string[]): Promise<number[][]> {
   const out: number[][] = [];
   for (let i = 0; i < texts.length; i += 100) {
-    const res = await env.AI.run(EMBED_MODEL, { text: texts.slice(i, i + 100) }) as { data?: number[][] };
+    const res = await env.AI.run(EMBED_MODEL, { text: texts.slice(i, i + 100) }, viaGateway(env)) as { data?: number[][] };
     out.push(...(res.data ?? []));
   }
   return out;
@@ -36,7 +35,10 @@ const passageOf = (m: { metadata?: Record<string, unknown>; score: number }): Pa
  */
 export async function retrieve(env: Env, text: string, topK = 12): Promise<(Passage & { score: number })[]> {
   const [vectorRes, keywordRes] = await Promise.all([
-    embed(env, [text]).then(([vector]) => (vector ? env.VEC.query(vector, { topK: 20, returnMetadata: "all" }) : { matches: [] as VectorizeMatches["matches"] })),
+    // Search by meaning falls back to the keyword search alone if Workers AI or Vectorize fails,
+    // so a question is still answered (and Claude can still research) rather than failing whole.
+    embed(env, [text]).then(([vector]) => (vector ? env.VEC.query(vector, { topK: 20, returnMetadata: "all" }) : { matches: [] as VectorizeMatches["matches"] }))
+      .catch((e: Error) => { console.error(JSON.stringify({ event: "retrieve_vector_failed", message: e.message?.slice(0, 120) })); return { matches: [] as VectorizeMatches["matches"] }; }),
     runSearch(env.DB, text, undefined, 3, true).catch(() => null),
   ]);
   // A passage must say something: scraps of captions ("do", "yeah so") sit close to every question.
@@ -58,7 +60,7 @@ async function rerank<T extends Passage>(env: Env, question: string, passages: T
   try {
     // The published type leaves `query` out; the model takes it.
     const input = { query: question, contexts: passages.map((p) => ({ text: `${p.title}\n${p.text}`.slice(0, 2000) })), top_k: topK };
-    const res = await (env.AI as unknown as { run(model: string, input: unknown): Promise<unknown> }).run(RERANK_MODEL, input) as { response?: { id?: number; score?: number }[] };
+    const res = await (env.AI as unknown as { run(model: string, input: unknown, options?: unknown): Promise<unknown> }).run(RERANK_MODEL, input, viaGateway(env)) as { response?: { id?: number; score?: number }[] };
     const order = (res.response ?? []).filter((r) => typeof r.id === "number" && passages[r.id!]).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
     if (!order.length) return passages.slice(0, topK);
     return order.slice(0, topK).map((r) => passages[r.id!]);
@@ -107,7 +109,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   if (question.length < 2) return { ok: false, reason: "too-short" };
   // A metered answer reserves its minimum up front and settles the exact units at the end,
   // so an abandoned or failed request cannot spend the model's work for free.
-  const metered = billingOn(env) && !!env.ANTHROPIC_API_KEY;
+  const metered = billingOn(env) && hasClaude(env);
   let take: Take | null = null;
   if (metered && !isAdmin(env, userId)) {
     const r = await reserveAsk(env, userId);
@@ -118,7 +120,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   }
   try {
     const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
-    if (env.ANTHROPIC_API_KEY) {
+    if (hasClaude(env)) {
       const { text, passages, units } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), () => undefined, ctx);
       if (metered && take) await settleAsk(env, userId, take, units);
       else await charge(env, userId, units);
@@ -140,26 +142,35 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 type Msg = { role: "system" | "user" | "assistant"; content: string };
 const CLAUDE_DEFAULT = "claude-opus-5";
 
-/** The answer, whole: Claude when the key is set, Llama on Workers AI otherwise. */
+/** The answer, whole: Claude when it can be called (hasClaude), Llama on Workers AI otherwise, or when Claude cannot answer now. */
 async function answerOnce(env: Env, messages: Msg[]): Promise<string> {
-  if (env.ANTHROPIC_API_KEY) {
-    const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+  if (hasClaude(env)) {
+    try { return await claudeOnce(env, messages); }
+    catch (e) {
+      if (!claudeUnavailable(e)) throw e;
+      console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
+    }
+  }
+  const res = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: 900, temperature: 0.3 }, viaGateway(env)) as { response?: string };
+  return (res.response ?? "").trim();
+}
+async function claudeOnce(env: Env, messages: Msg[]): Promise<string> {
+  {
+    const client = await claude(env);
     const res = await client.messages.create({ model: env.CLAUDE_MODEL || CLAUDE_DEFAULT, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" }, system: messages.filter((m) => m.role === "system").map((m) => m.content).join("\n\n"), messages: messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role as "user" | "assistant", content: m.content })) });
     return res.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("").trim();
   }
-  const res = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: 900, temperature: 0.3 }) as { response?: string };
-  return (res.response ?? "").trim();
 }
 
-/** The answer as it is written, piece by piece. */
-async function* answerPieces(env: Env, messages: Msg[]): AsyncGenerator<string> {
-  if (env.ANTHROPIC_API_KEY) {
-    const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+/** The answer as it is written, piece by piece: Claude, or Workers AI when there is no key or `backup` is asked for. */
+async function* answerPieces(env: Env, messages: Msg[], backup = false): AsyncGenerator<string> {
+  if (hasClaude(env) && !backup) {
+    const client = await claude(env);
     const stream = client.messages.stream({ model: env.CLAUDE_MODEL || CLAUDE_DEFAULT, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" }, system: messages.filter((m) => m.role === "system").map((m) => m.content).join("\n\n"), messages: messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role as "user" | "assistant", content: m.content })) });
     for await (const event of stream) if (event.type === "content_block_delta" && event.delta.type === "text_delta") yield event.delta.text;
     return;
   }
-  const out = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: 900, temperature: 0.3, stream: true }) as ReadableStream<Uint8Array>;
+  const out = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: 900, temperature: 0.3, stream: true }, viaGateway(env)) as ReadableStream<Uint8Array>;
   let buffer = "";
   const reader = out.getReader(); const decoder = new TextDecoder();
   for (;;) {
@@ -191,7 +202,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   if (question.length < 2) return new Response(line({ error: "too-short" }), { status: 400, headers: { "content-type": "application/x-ndjson" } });
   // A metered answer reserves its minimum up front (see ask): an abandoned or failed
   // stream cannot spend the model's work for free.
-  const metered = billingOn(env) && !!env.ANTHROPIC_API_KEY;
+  const metered = billingOn(env) && hasClaude(env);
   let take: Take | null = null;
   if (metered && !isAdmin(env, userId)) {
     const r = await reserveAsk(env, userId);
@@ -205,7 +216,8 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   }
   const encoder = new TextEncoder();
   // The reader can leave at any moment (Stop, another screen, the app closed). From then on
-  // nothing more is sent, but the answer is still finished, saved and charged exactly once.
+  // nothing more is sent, but the answer is still finished, saved and charged exactly once:
+  // the work runs under waitUntil, not inside the response, so leaving does not cancel it.
   let open = true;
   let settled = false;
   const settle = async (units: number) => {
@@ -213,52 +225,83 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
     settled = true;
     return metered && take ? await settleAsk(env, userId, take, units).catch(() => null) : await charge(env, userId, units).catch(() => null);
   };
+  // While it is being answered, the conversation says so, for a refresh or another device to wait on.
+  if (chatId) await markPending(env, userId, chatId, question).catch(() => undefined);
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); } catch { open = false; } };
+      // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
+      const beat = setInterval(() => send({ ping: 1 }), 15000);
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.
-      const keep = (content: string, sources: unknown[], followups: string[], steps: string[] = []) => {
+      const keep = async (content: string, sources: unknown[], followups: string[], steps: string[] = [], actions: SavedAction[] = [], cut = false) => {
         if (!chatId) return;
-        const save = saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
-        if (ctx) ctx.waitUntil(save);
+        await saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps, actions, cut }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
       };
-      try {
-        const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
-        if (env.ANTHROPIC_API_KEY) {
-          // Claude researches first (searches and verses, reported as it goes), then writes.
-          const steps: string[] = [];
-          const { text, passages, units, calls } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading)/.test(e.status)) steps.push(e.status); send(e); }, ctx);
-          const { answer, followups } = splitFollowups(text);
-          const left = await settle(units);
-          console.log(JSON.stringify({ event: "ask_usage", units, calls, searches: steps.length }));
-          if (!answer.trim()) { send({ error: "empty" }); return; }
-          const sources = sourcesOf(answer, passages);
-          // Saved first: whatever happens to the connection after this, the answer is kept.
-          keep(answer, sources, followups, steps);
-          send({ done: true, answer, followups, sources });
-          if (left && billingOn(env)) send({ usage: { units, balance: left } });
-          return;
+      const job = (async () => {
+        try {
+          const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
+          let backup = false;
+          if (hasClaude(env)) {
+            // Claude researches first (searches and verses, reported as it goes), then writes.
+            const steps: string[] = [];
+            let ran: Awaited<ReturnType<typeof runAgent>> | null = null;
+            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId); }
+            catch (e) {
+              // Claude cannot answer now (overloaded, rate limited, down, or its key refused): the
+              // backup model answers from the passages already found, and the reader is not charged.
+              if (!claudeUnavailable(e)) throw e;
+              console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
+              await settle(0);
+              send({ reset: true });
+              send({ status: "Answering with the backup model" });
+              backup = true;
+            }
+            if (ran) {
+              const { text, passages, units, calls, actions, cut, refused } = ran;
+              const { answer, followups } = splitFollowups(text);
+              const left = await settle(units);
+              console.log(JSON.stringify({ event: "ask_usage", units, calls, searches: steps.length, actions: actions.length, cut }));
+              // Claude declined the question (stop_reason "refusal"): said so, never shown as an answer.
+              if (refused && !answer.trim()) { send({ error: "refused" }); return; }
+              if (!answer.trim()) { send({ error: "empty" }); return; }
+              const sources = sourcesOf(answer, passages);
+              // Saved first: whatever happens to the connection after this, the answer is kept.
+              await keep(answer, sources, followups, steps, actions, cut);
+              send({ done: true, answer, followups, sources, actions, ...(cut ? { cut: true } : {}) });
+              if (left && billingOn(env)) send({ usage: { units, balance: left } });
+              return;
+            }
+          }
+          const passages = first;
+          send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
+          // The backup cannot research: with nothing found to answer from, it says Claude is busy
+          // rather than that the library has nothing (which only the research could tell).
+          if (!passages.length && backup) { send({ error: "busy" }); return; }
+          if (!passages.length) {
+            const answer = "The search did not find enough reliable material in the library to answer that question.";
+            await keep(answer, [], []);
+            send({ delta: answer }); send({ done: true, answer, followups: [], sources: [] }); return;
+          }
+          let answer = "";
+          for await (const piece of answerPieces(env, buildPrompt(question, passages, history), backup)) { answer += piece; send({ delta: piece }); }
+          const { answer: clean, followups } = splitFollowups(answer);
+          if (!clean.trim()) { send({ error: "empty" }); return; }
+          const sources = sourcesOf(clean, passages);
+          await keep(clean, sources, followups);
+          send({ done: true, answer: clean, followups, sources, ...(backup ? { backup: true } : {}) });
+        } catch (e) {
+          // The reservation stands: the model was paid for whether the answer arrived or not.
+          await settle(RESERVE_UNITS);
+          console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
+          send({ error: "unavailable" });
+        } finally {
+          clearInterval(beat);
+          if (chatId) await clearPending(env, userId, chatId).catch(() => undefined);
         }
-        const passages = first;
-        send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
-        if (!passages.length) {
-          const answer = "The search did not find enough reliable material in the library to answer that question.";
-          keep(answer, [], []);
-          send({ delta: answer }); send({ done: true, answer, followups: [], sources: [] }); return;
-        }
-        let answer = "";
-        for await (const piece of answerPieces(env, buildPrompt(question, passages, history))) { answer += piece; send({ delta: piece }); }
-        const { answer: clean, followups } = splitFollowups(answer);
-        if (!clean.trim()) { send({ error: "empty" }); return; }
-        const sources = sourcesOf(clean, passages);
-        keep(clean, sources, followups);
-        send({ done: true, answer: clean, followups, sources });
-      } catch (e) {
-        // The reservation stands: the model was paid for whether the answer arrived or not.
-        await settle(RESERVE_UNITS);
-        console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
-        send({ error: "unavailable" });
-      } finally { if (open) { open = false; try { controller.close(); } catch { /* already closed */ } } }
+      })();
+      ctx?.waitUntil(job);
+      await job;
+      if (open) { open = false; try { controller.close(); } catch { /* already closed */ } }
     },
     cancel() { open = false; },
   });
@@ -301,7 +344,7 @@ export async function speakVerse(env: Env, slug: string, ch: number, verse: numb
   const v = c?.verses.find((x) => x.verse === verse);
   if (!v) return Response.json({ ok: false, reason: "not-found" }, { status: 404 });
   try {
-    const out = await env.AI.run(VOICE_MODEL, { text: v.text, speaker: voice as "asteria", encoding: "mp3" });
+    const out = await env.AI.run(VOICE_MODEL, { text: v.text, speaker: voice as "asteria", encoding: "mp3" }, viaGateway(env));
     const bytes = await toBytes(out);
     if (!bytes?.length) throw new Error("no audio");
     const put = env.AUDIO.put(key, bytes, { httpMetadata: { contentType: "audio/mpeg" } });

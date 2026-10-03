@@ -126,6 +126,7 @@ jobs:
           VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          CF_AIG_TOKEN: ${{ secrets.CF_AIG_TOKEN }}
         run: |
           # The Worker needs the same secrets Telegram will present; wrangler stores them on the Worker.
           printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
@@ -145,6 +146,9 @@ jobs:
             for k in VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT; do printf '%s' "${!k}" | npx wrangler secret put "$k"; done
           elif [ "$n" = 0 ]; then echo "No VAPID secrets: push reminders show as not set up; Telegram reminders work."
           else echo "::error::Set all three of VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT, or none."; exit 1; fi
+          # Claude's calls go through Cloudflare AI Gateway when the repository has a CF_AIG_TOKEN
+          # secret (an AI Gateway token with Run permission); otherwise Claude is called directly.
+          if [ -n "$CF_AIG_TOKEN" ]; then printf '%s' "$CF_AIG_TOKEN" | npx wrangler secret put CF_AIG_TOKEN; else echo "No CF_AIG_TOKEN secret: Claude is called directly; Workers AI still goes through AI Gateway."; fi
           node scripts/setup.mjs
 
   refresh-search:

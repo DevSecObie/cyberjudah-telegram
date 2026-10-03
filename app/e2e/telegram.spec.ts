@@ -1619,7 +1619,8 @@ test("Ask: every failure says what happened, with a way on", async ({ page }) =>
     await page.unroute("**/api/ask");
     await page.route("**/api/ask", (r) => r.fulfill({ status, contentType: "application/x-ndjson", body: ndjson(body) }));
     await page.goto(`/ask${LAUNCH}`);
-    await page.evaluate(() => localStorage.removeItem("cj:ask"));
+    // The conversation is kept per account (cj:ask:<user id>); user 1 signs LAUNCH.
+    await page.evaluate(() => localStorage.removeItem("cj:ask:1"));
     await page.reload();
     await page.fill('textarea[aria-label="Your question"]', "Who was Melchizedek?");
     await page.keyboard.press("Enter");
@@ -1640,7 +1641,7 @@ test("Ask: an answer left mid-way is fetched back from the saved chat", async ({
   await page.route("**/api/chats/chatrecover01", (r) => r.fulfill({ json: { ok: true, chat: { id: "chatrecover01", title: "Q", updated: new Date().toISOString(), turns: [{ role: "user", content: "Who are the twelve tribes?" }, { role: "assistant", content: "The children of Israel [1].", sources: [SOURCE] }] } } }));
   await page.goto(`/ask${LAUNCH}`);
   // The app closed while the answer was being written: only the question was kept on the device.
-  await page.evaluate(() => localStorage.setItem("cj:ask", JSON.stringify({ chatId: "chatrecover01", turns: [{ role: "user", content: "Who are the twelve tribes?" }] })));
+  await page.evaluate(() => localStorage.setItem("cj:ask:1", JSON.stringify({ chatId: "chatrecover01", turns: [{ role: "user", content: "Who are the twelve tribes?" }] })));
   await page.reload();
   await expect(page.locator(".msg--ai .msg__text")).toContainText("The children of Israel");
 });

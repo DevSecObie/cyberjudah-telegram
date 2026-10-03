@@ -4,7 +4,11 @@ import { useNavigate, useSearchParams } from "react-router";
 
 import { fmtDate } from "@/api/data";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
-import { api, ApiError, app, confirm, haptic, hideKeyboard, openInvoice, openLink } from "@/tg/sdk";
+import { api, ApiError, app, confirm, haptic, hideKeyboard, openInvoice, openLink, requestWriteAccess, user } from "@/tg/sdk";
+import { saveReminder, timeLabel, timeZone, type Settings as ReminderSettings } from "@/lib/reminders";
+import { useContent } from "./Reminders";
+import { safeLinks } from "@/lib/safe-links";
+import { spinnerLine } from "@/lib/spinner";
 import { APP_URL } from "@/lib/share";
 import { Trouble } from "@/ui/trouble";
 import { Sheet } from "@/bible/ui/Sheet";
@@ -17,7 +21,9 @@ import { KIND_NAME } from "./Home";
 
 export type Passage = { kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string; text: string };
 export type Source = Passage & { n: number };
-type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[] };
+/** A change the assistant proposed; only the reader's Confirm carries it out (bot/src/assistant.mjs). */
+export type Action = { id: string; kind: "reminder"; summary: string; settings: ReminderSettings; state?: "applied" | "cancelled" };
+type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[]; actions?: Action[]; waiting?: boolean; backup?: boolean };
 /** The welcome screen's starters: a question and the line under it. */
 const EXAMPLES: [string, string][] = [
   ["Why do we keep the Passover?", "The feast, from the law to Christ"],
@@ -25,112 +31,171 @@ const EXAMPLES: [string, string][] = [
   ["What does the law say about usury?", "Lending among the brethren"],
   ["How is the Sabbath kept?", "The day, the rest and the assembly"],
 ];
-const STORE = "cj:ask";
+/** Kept per account: a phone shared by two readers never shows one the other's conversation. */
+const STORE = `cj:ask:${user?.id ?? "guest"}`;
 
 /**
  * The conversation lives outside the screen, for as long as the app is open: an answer keeps
  * streaming in while the reader visits a source and is there when they come back. It is kept in
  * the device's storage too, so a refresh or a new session opens it again; the answers themselves
- * are saved to the person's account on the server (see ChatsSheet).
+ * are saved to the person's account on the server (see ChatsSheet). `gen` changes whenever the
+ * conversation is replaced (a new chat, another chat opened), so an answer still arriving for the
+ * old one never lands in the new one.
  */
-type Conv = { turns: Turn[]; chatId: string | null; busy: boolean };
+type Conv = { turns: Turn[]; chatId: string | null; busy: boolean; gen: number };
 const readStore = (): Conv => {
   try {
-    const raw = localStorage.getItem(STORE) ?? sessionStorage.getItem(STORE);
-    const saved = raw ? JSON.parse(raw) as { turns?: Turn[]; chatId?: string | null } | Turn[] : null;
-    const turns = (Array.isArray(saved) ? saved : saved?.turns ?? []).filter((t) => t && !t.thinking);
-    const chatId = Array.isArray(saved) ? sessionStorage.getItem(`${STORE}:id`) : saved?.chatId ?? null;
-    return { turns, chatId, busy: false };
-  } catch { return { turns: [], chatId: null, busy: false }; }
+    // The old shared key held whoever asked last on this device: it is not carried over.
+    localStorage.removeItem("cj:ask");
+    const raw = localStorage.getItem(STORE);
+    const saved = raw ? JSON.parse(raw) as { turns?: Turn[]; chatId?: string | null } : null;
+    const turns = (saved?.turns ?? []).filter((t) => t && !t.thinking && !t.waiting);
+    return { turns, chatId: saved?.chatId ?? null, busy: false, gen: 0 };
+  } catch { return { turns: [], chatId: null, busy: false, gen: 0 }; }
 };
 let conv: Conv = readStore();
 const convListeners = new Set<() => void>();
 const setConv = (next: Partial<Conv> | ((c: Conv) => Partial<Conv>)) => {
   conv = { ...conv, ...(typeof next === "function" ? next(conv) : next) };
-  try { localStorage.setItem(STORE, JSON.stringify({ turns: conv.turns.filter((t) => !t.thinking), chatId: conv.chatId })); } catch { /* private mode */ }
+  try { localStorage.setItem(STORE, JSON.stringify({ turns: conv.turns.filter((t) => !t.thinking && !t.waiting), chatId: conv.chatId })); } catch { /* private mode */ }
   convListeners.forEach((l) => l());
 };
 const useConv = () => useSyncExternalStore((l) => { convListeners.add(l); return () => { convListeners.delete(l); }; }, () => conv);
 let convAbort: AbortController | null = null;
-/** Patch the conversation's last turn (the answer being written). */
-const patchLast = (fn: (t: Turn) => Turn) => setConv((c) => ({ turns: c.turns.map((t, i) => (i === c.turns.length - 1 ? fn(t) : t)) }));
+/** Replace the conversation (a new chat, or a saved one opened): whatever was arriving for the old one is let go. */
+const replaceConv = (next: { turns: Turn[]; chatId: string | null }) => { convAbort?.abort(); convAbort = null; setConv({ ...next, busy: false, gen: conv.gen + 1 }); };
+/** Patch the last turn of conversation `gen` only (the answer being written); a replaced conversation is left alone. */
+const patchLast = (gen: number, fn: (t: Turn) => Turn) => { if (conv.gen === gen) setConv((c) => ({ turns: c.turns.map((t, i) => (i === c.turns.length - 1 ? fn(t) : t)) })); };
 
 type AskFail = { error?: string; reason?: string };
 /** What went wrong, from the status and the server's own words. */
 const failure = (status: number, body: AskFail | null): string =>
   status === 402 ? "allowance" : status === 429 ? "limit" : status === 400 && body?.error === "too-short" ? "too-short"
     : status === 401 ? (body?.reason === "missing" ? "signin" : "session") : `unavailable:${status}`;
+/** No line from the server for this long (it sends one every 15 seconds while it works): the connection is gone. */
+const STALL_MS = 45_000;
 
-/** Ask a question: streamed in, saved to the account by the server as it completes. */
-async function askQuestion(text: string, opts: { retry?: boolean; onAccount?: () => void; setBalance?: (b: Balance) => void } = {}) {
+/**
+ * Ask a question: streamed in, saved to the account by the server as it completes. Returns
+ * false when it was not sent (empty, or an answer is still coming), so the composer keeps the text.
+ */
+function askQuestion(text: string, opts: { retry?: boolean; onAccount?: () => void; setBalance?: (b: Balance) => void } = {}): boolean {
   const q = text.trim();
-  if (!q || conv.busy) return;
+  if (!q || conv.busy) return false;
+  void runQuestion(q, opts);
+  return true;
+}
+async function runQuestion(q: string, opts: { retry?: boolean; onAccount?: () => void; setBalance?: (b: Balance) => void }) {
   haptic("select"); hideKeyboard();
   const base = opts.retry ? conv.turns.slice(0, -2) : conv.turns;
   // The server shapes the history for the model (normalizeHistory); only settled turns are sent.
   const history = base.filter((t) => !t.error && !t.thinking && t.content.trim()).slice(-8).map((t) => ({ role: t.role, content: t.content }));
   const id = conv.chatId ?? newId();
   setConv({ turns: [...base, { role: "user", content: q }, { role: "assistant", content: "", thinking: true }], chatId: id, busy: true });
+  const gen = conv.gen;
+  const patch = (fn: (t: Turn) => Turn) => patchLast(gen, fn);
   const ctl = new AbortController(); convAbort = ctl;
-  let finished = false;
+  let finished = false, stalled = false, heard = Date.now();
+  const watch = setInterval(() => { if (Date.now() - heard > STALL_MS) { stalled = true; ctl.abort(); } }, 5000);
   try {
     const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, stream: true, chat: id, retry: !!opts.retry }) });
+    heard = Date.now();
     if (!res.ok || !res.body) {
       const body = await res.text().then((t) => { try { return JSON.parse(t.split("\n")[0]) as AskFail; } catch { return null; } }).catch(() => null);
-      patchLast((t) => ({ ...t, thinking: false, error: failure(res.status, body) }));
+      patch((t) => ({ ...t, thinking: false, error: failure(res.status, body) }));
       if (res.status === 402) opts.onAccount?.();
       return;
     }
     const reader = res.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
     const handle = (l: string) => {
       if (!l.trim()) return;
-      let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[]; usage?: { units: number; balance: Balance } };
+      let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[]; usage?: { units: number; balance: Balance }; action?: Action; actions?: Action[]; cut?: boolean; ping?: number; backup?: boolean };
       try { msg = JSON.parse(l); } catch { return; }
-      if (msg.passages) patchLast((t) => ({ ...t, passages: msg.passages }));
-      // The research as it happens: each search and reading is a step under the answer's head.
-      if (msg.status) patchLast((t) => ({ ...t, status: msg.status, steps: /^(Searching|Reading)/.test(msg.status!) ? [...(t.steps ?? []), msg.status!] : t.steps }));
-      if (msg.reset) patchLast((t) => ({ ...t, content: "", thinking: true }));
-      if (msg.delta) patchLast((t) => ({ ...t, thinking: false, content: t.content + msg.delta }));
+      if (msg.passages) patch((t) => ({ ...t, passages: msg.passages }));
+      // The research as it happens: each search, reading and look-up is a step under the answer's head.
+      if (msg.status) patch((t) => ({ ...t, status: msg.status, steps: /^(Searching|Reading|Looking)/.test(msg.status!) ? [...(t.steps ?? []), msg.status!] : t.steps }));
+      if (msg.action) patch((t) => ({ ...t, actions: [...(t.actions ?? []), msg.action!] }));
+      if (msg.reset) patch((t) => ({ ...t, content: "", thinking: true }));
+      if (msg.delta) patch((t) => ({ ...t, thinking: false, content: t.content + msg.delta }));
       if (msg.usage) opts.setBalance?.(msg.usage.balance);
-      if (msg.done) { finished = true; haptic("success"); patchLast((t) => ({ ...t, thinking: false, cut: false, error: undefined, content: msg.answer || t.content, sources: msg.sources ?? [], followups: msg.followups ?? [] })); }
+      if (msg.done) { finished = true; haptic("success"); patch((t) => ({ ...t, thinking: false, cut: !!msg.cut, error: undefined, content: msg.answer || t.content, sources: msg.sources ?? [], followups: msg.followups ?? [], actions: msg.actions ?? t.actions, backup: !!msg.backup })); }
       // A failure after part of the answer keeps the part and says it was cut off.
-      if (msg.error) { finished = true; patchLast((t) => (t.content ? { ...t, thinking: false, cut: true } : { ...t, thinking: false, error: msg.error })); }
+      if (msg.error) { finished = true; patch((t) => (t.content ? { ...t, thinking: false, cut: true } : { ...t, thinking: false, error: msg.error })); }
     };
     for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
+      heard = Date.now();
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n"); buffer = lines.pop() ?? "";
       lines.forEach(handle);
     }
     handle(buffer + decoder.decode());
-    // The stream ended without its last line: what came is kept, marked as cut off.
-    if (!finished) patchLast((t) => (t.content ? { ...t, thinking: false, cut: true } : { ...t, thinking: false, error: "unavailable" }));
+    // The stream ended without its last line: the server may still finish and save it.
+    if (!finished) { patch((t) => ({ ...t, thinking: false, error: "network" })); void recoverChat(); }
   } catch {
-    if (ctl.signal.aborted) patchLast((t) => (t.role !== "assistant" ? t : { ...t, thinking: false, error: t.content ? undefined : "stopped", cut: t.content ? true : undefined }));
-    else patchLast((t) => (t.content ? { ...t, thinking: false, cut: true } : { ...t, thinking: false, error: typeof navigator !== "undefined" && navigator.onLine === false ? "offline" : "network" }));
+    if (ctl.signal.aborted && !stalled) patch((t) => (t.role !== "assistant" ? t : { ...t, thinking: false, error: t.content ? undefined : "stopped", cut: t.content ? true : undefined }));
+    else {
+      // The connection was lost (or went silent): the server goes on, so wait for its saved answer.
+      patch((t) => ({ ...t, thinking: false, error: typeof navigator !== "undefined" && navigator.onLine === false ? "offline" : "network" }));
+      void recoverChat();
+    }
   } finally {
-    if (convAbort === ctl) { convAbort = null; setConv({ busy: false }); }
+    clearInterval(watch);
+    if (convAbort === ctl) { convAbort = null; if (conv.gen === gen) setConv({ busy: false }); }
   }
 }
 const stopAsking = () => { convAbort?.abort(); };
-const startNewChat = () => { convAbort?.abort(); convAbort = null; setConv({ turns: [], chatId: null, busy: false }); };
+const startNewChat = () => replaceConv({ turns: [], chatId: null });
+const fromSaved = (turns: Turn[]): Turn[] => turns.map((t) => ({ ...t, sources: t.sources?.map((x) => ({ ...x, text: "" })) }));
 
+/** Failures after which the server may still have finished and saved the answer. */
+const RECOVERABLE = new Set(["network", "offline", "interrupted", "unavailable"]);
+let recovering = false;
 /**
- * A conversation left mid-answer (the app closed, the network lost): the server finished and
- * saved it, so it is fetched back. Without a saved answer the question stays with a Try again.
+ * A conversation left mid-answer (the app closed or refreshed, the connection lost): the server
+ * goes on and saves the answer, so it is fetched back, and while the server says it is still
+ * answering, waited for. Only when the server has neither is it called interrupted.
  */
 async function recoverChat() {
   const last = conv.turns[conv.turns.length - 1];
-  if (conv.busy || !conv.chatId || !last || last.role !== "user") return;
-  const id = conv.chatId;
+  const open = last && (last.role === "user" || (last.role === "assistant" && ((last.error && RECOVERABLE.has(last.error)) || last.cut)));
+  if (recovering || conv.busy || !conv.chatId || !open) return;
+  const id = conv.chatId, gen = conv.gen;
+  const qi = last.role === "user" ? conv.turns.length - 1 : conv.turns.length - 2;
+  const question = conv.turns[qi]?.content.trim();
+  const still = () => conv.gen === gen && conv.chatId === id && !conv.busy;
+  recovering = true;
   try {
-    const r = await api<{ ok: boolean; chat?: SavedChat }>(`/api/chats/${id}`);
-    if (conv.chatId !== id || conv.busy) return;
-    const saved = r.chat?.turns ?? [];
-    if (saved.length >= conv.turns.length && saved[saved.length - 1]?.role === "assistant") { setConv({ turns: saved.map((t) => ({ ...t, sources: t.sources?.map((x) => ({ ...x, text: "" })) })) }); return; }
-  } catch { /* not saved yet, or offline */ }
-  if (conv.chatId === id && !conv.busy) setConv((c) => ({ turns: [...c.turns, { role: "assistant", content: "", error: "interrupted" }] }));
+    for (let i = 0; i < 45 && still(); i++) {
+      let r: { chat?: SavedChat | null; pending?: { q: string } | null } | null = null;
+      try { r = await api<{ ok: boolean; chat?: SavedChat | null; pending?: { q: string } | null }>(`/api/chats/${id}`); }
+      catch (e) { if (!(e instanceof ApiError && e.status === 404)) { if (i === 0 && still() && last.role === "user") setConv((c) => ({ turns: [...c.turns, { role: "assistant", content: "", error: navigator.onLine === false ? "offline" : "network" }] })); return; } }
+      if (!still()) return;
+      const saved = r?.chat?.turns ?? [];
+      const n = saved.length;
+      // The question's answer is saved: the conversation is the server's from here.
+      if (n >= 2 && saved[n - 1].role === "assistant" && saved[n - 2].content.trim() === question) { setConv({ turns: fromSaved(saved) }); return; }
+      if (r?.pending?.q?.trim() === question) {
+        // Still being answered: say so, and look again in a few seconds.
+        setConv((c) => {
+          const turns = c.turns[c.turns.length - 1]?.role === "user" ? [...c.turns, { role: "assistant" as const, content: "" }] : [...c.turns];
+          turns[turns.length - 1] = { ...turns[turns.length - 1], content: "", error: undefined, cut: false, waiting: true, thinking: true, status: "Still answering" };
+          return { turns };
+        });
+        await new Promise((res) => setTimeout(res, 4000));
+        continue;
+      }
+      break;
+    }
+    if (!still()) return;
+    setConv((c) => {
+      const turns = c.turns[c.turns.length - 1]?.role === "user" ? [...c.turns, { role: "assistant" as const, content: "" }] : [...c.turns];
+      const t = turns[turns.length - 1];
+      turns[turns.length - 1] = t.content && !t.waiting ? { ...t, thinking: false, waiting: false, cut: true } : { ...t, content: "", thinking: false, waiting: false, error: "interrupted" };
+      return { turns };
+    });
+  } finally { recovering = false; }
 }
 
 /** Where a cited passage opens: the class at its moment, the note at its section, the verse. */
@@ -186,16 +251,39 @@ export function Ask() {
   useLayoutEffect(() => { const b = boxRef.current; if (!b) return; b.style.height = "auto"; b.style.height = `${Math.min(b.scrollHeight, 160)}px`; }, [input]);
 
   const setBalance = (b: Balance) => setAcct((a) => (a ? { ...a, balance: b } : a));
-  const send = (text: string, retry = false) => { stick.current = true; setInput(""); void askQuestion(text, { retry, onAccount: () => void loadAccount(), setBalance }); };
+  // The composer keeps what was typed unless the question went (an answer still coming holds it back).
+  const send = (text: string, retry = false) => { stick.current = true; if (askQuestion(text, { retry, onAccount: () => void loadAccount(), setBalance }) && text === input) setInput(""); };
   const stop = () => { haptic("select"); stopAsking(); };
   const newChat = () => { haptic("select"); startNewChat(); setInput(""); boxRef.current?.focus(); };
-  const openChat = (c: SavedChat) => { convAbort?.abort(); convAbort = null; setConv({ chatId: c.id, busy: false, turns: c.turns.map((t) => ({ ...t, sources: t.sources?.map((x) => ({ ...x, text: "" })) })) }); setHistory(false); stick.current = true; };
+  const openChat = (c: SavedChat) => { replaceConv({ chatId: c.id, turns: fromSaved(c.turns) }); setHistory(false); stick.current = true; void recoverChat(); };
   // A question from elsewhere (Home, a verse) starts its own conversation, once (StrictMode runs effects twice).
+  // A link to one saved chat (?chat=<id>, as Ask's own answers give) opens it, from anywhere in
+  // the app or from an answer on this screen.
+  const linked = params.get("chat");
+  useEffect(() => {
+    if (!linked) return;
+    setParams({}, { replace: true });
+    if (!app || !/^[a-z0-9]{8,40}$/.test(linked)) return;
+    if (linked === conv.chatId) { void recoverChat(); return; }
+    void api<{ chat: SavedChat | null; pending?: { q: string } | null }>(`/api/chats/${linked}`)
+      .then((r) => openChat(r.chat ?? { id: linked, title: "", updated: "", turns: r.pending ? [{ role: "user", content: r.pending.q }] : [] }))
+      .catch(() => undefined);
+  }, [linked]); // eslint-disable-line react-hooks/exhaustive-deps
   const asked = useRef(false);
   useEffect(() => {
-    if (first && !asked.current) { asked.current = true; setParams({}, { replace: true }); if (!app) setInput(first); else if (!conv.busy) { startNewChat(); send(first); } }
+    if (asked.current || linked) return;
+    asked.current = true;
+    // While an answer is still coming the question waits in the composer, rather than being dropped.
+    if (first) { setParams({}, { replace: true }); if (!app || conv.busy) setInput(first); else { startNewChat(); send(first); } }
     else void recoverChat();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Coming back to the app, or back online: an answer the server finished meanwhile is fetched.
+  useEffect(() => {
+    const again = () => { if (document.visibilityState === "visible") void recoverChat(); };
+    document.addEventListener("visibilitychange", again);
+    window.addEventListener("online", again);
+    return () => { document.removeEventListener("visibilitychange", again); window.removeEventListener("online", again); };
+  }, []);
 
   // Outside Telegram there is no launch data to sign a question with: say so before anything is typed.
   const outside = !app;
@@ -203,7 +291,7 @@ export function Ask() {
   return (
     <main className="chat2" ref={mainRef}>
       <header className="chat2__bar">
-        <button type="button" className="chat2__new" aria-label="Your chats" onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
+        <button type="button" className="chat2__new" aria-label="Your chats" disabled={!app} title={app ? undefined : "Your chats are kept with your Telegram account"} onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
         <button type="button" className="chat2__heading" onClick={() => { if (acct?.metered) { haptic("select"); setPlans(true); } }}><b>Ask CyberJudah</b><small>{meterLine(acct)}</small></button>
         <button type="button" className="chat2__new" aria-label="New chat" disabled={!turns.length} onClick={newChat}><Icon name="compose" size={21} /></button>
       </header>
@@ -227,7 +315,7 @@ export function Ask() {
         <div className="chat2__turns">
           {turns.map((t, i) => t.role === "user"
             ? <div key={`${chatId}-${i}`} className="msg msg--me"><div className="msg__bubble">{t.content}</div></div>
-            : <AssistantTurn key={`${chatId}-${i}`} t={t} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} onRetry={() => send(lastUser, true)} onFollow={(q) => send(q)} onPlans={() => setPlans(true)} />)}
+            : <AssistantTurn key={`${chatId}-${i}`} t={t} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} chatId={chatId} onRetry={() => send(lastUser, true)} onFollow={(q) => send(q)} onPlans={() => setPlans(true)} />)}
           <div ref={endRef} className="chat2__end" />
         </div>
       )}
@@ -239,7 +327,9 @@ export function Ask() {
           <textarea ref={boxRef} value={input} rows={1} placeholder={outside ? "Open in Telegram to ask" : turns.length ? "Ask a follow-up" : "Ask CyberJudah"} disabled={outside} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onFocus={() => typing(true)} onBlur={() => typing(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} />
           {busy
             ? <button type="button" className="composer2__go composer2__go--stop" aria-label="Stop" onClick={stop}><span /></button>
-            : <button type="submit" className="composer2__go" aria-label="Send" disabled={!input.trim()}><Icon name="arrowUp" size={20} /></button>}
+            // Pressing Send keeps the focus in the question: a blur would bring the tab bar back and
+            // move the composer under the finger before the tap ends, and the tap would be lost.
+            : <button type="submit" className="composer2__go" aria-label="Send" disabled={!input.trim()} onPointerDown={(e) => e.preventDefault()}><Icon name="arrowUp" size={20} /></button>}
         </div>
         <p className="composer2__note">Answers can be wrong. Check them against the sources.</p>
       </form>
@@ -247,11 +337,25 @@ export function Ask() {
   );
 }
 
+/**
+ * The line while Ask works: a recovered answer says it is still coming; otherwise a line suited
+ * to the question (lib/spinner.ts), a new one every few seconds. The research steps themselves
+ * are listed above it as they happen.
+ */
+function Waiting({ question, status }: { question: string; status?: string }) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => { const id = setInterval(() => setTick((n) => n + 1), 2800); return () => clearInterval(id); }, []);
+  if (status === "Still answering") return <>Still answering…</>;
+  return <>{spinnerLine(question, tick)}…</>;
+}
+
 /** Failures that need a sentence, not the troubleshooter. */
 const PLAIN_ERRORS: Record<string, string> = {
   limit: "That is a hundred questions today. The count starts again tomorrow.",
   "too-short": "Ask a fuller question: a few words at least.",
-  stopped: "Stopped.",
+  stopped: "Stopped here. The answer may still finish and be kept in Your chats.",
+  refused: "CyberJudah can't answer that one. Ask about the Scripture, the teachings or the app.",
+  busy: "CyberJudah's main model is busy right now, and the backup found nothing close enough to answer from. You were not charged. Try again in a moment.",
   empty: "No answer came back for that. Try asking it another way.",
   offline: "You are offline. Your question is kept; try again when you are connected.",
   network: "The connection dropped before the answer came. Try again.",
@@ -259,7 +363,7 @@ const PLAIN_ERRORS: Record<string, string> = {
   signin: "Open CyberJudah from Telegram to ask questions: your answers are saved to your Telegram account.",
 };
 
-function AssistantTurn({ t, question, last, busy, onRetry, onFollow, onPlans }: { t: Turn; question: string; last: boolean; busy: boolean; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void }) {
+function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onPlans }: { t: Turn; question: string; last: boolean; busy: boolean; chatId: string | null; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void }) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const sources = t.sources ?? [];
@@ -269,8 +373,8 @@ function AssistantTurn({ t, question, last, busy, onRetry, onFollow, onPlans }: 
   const html = useMemo(() => linkRefsInHtml(answerHtml(t.content, lookup), slugs), [t.content, lookup, slugs]);
   const open = (s: Source) => { haptic("select"); navigate(passagePath(s)); };
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
-    const ref = (e.target as HTMLElement).closest<HTMLAnchorElement>("a.reflink");
-    if (ref) { e.preventDefault(); haptic("select"); navigate(ref.getAttribute("href")!); return; }
+    const ref = (e.target as HTMLElement).closest<HTMLAnchorElement>("a.reflink, a.applink");
+    if (ref) { e.preventDefault(); haptic("select"); navigate(ref.getAttribute("href")!.replace(/&amp;/g, "&")); return; }
     const c = (e.target as HTMLElement).closest<HTMLElement>("[data-n]");
     const s = c && lookup.find((x) => x.n === Number(c.dataset.n));
     if (s) { e.preventDefault(); open(s); }
@@ -282,7 +386,7 @@ function AssistantTurn({ t, question, last, busy, onRetry, onFollow, onPlans }: 
       <div className="msg__who"><img className="msg__avatar" src={assetUrl("brand/cyber-lion.webp")} alt="" width={24} height={24} />CyberJudah</div>
       {t.steps?.length ? <Research steps={t.steps} live={!!t.thinking || (busy && last)} count={t.passages?.length ?? 0} /> : null}
       {t.thinking ? (
-        <div className="msg__thinking"><span className="answer__dots" aria-hidden="true"><i /><i /><i /></span>{t.status && !/^(Searching|Reading)/.test(t.status) ? `${t.status}…` : t.passages?.length ? `Reading ${t.passages.length} passages from the teachings…` : "Searching the teachings…"}</div>
+        <div className="msg__thinking" role="status"><span className="answer__dots" aria-hidden="true"><i /><i /><i /></span><Waiting question={question} status={t.status} /></div>
       ) : t.error === "allowance" && !t.content ? (
         <div className="paywall">
           <b>You have used today's free answers</b>
@@ -299,6 +403,12 @@ function AssistantTurn({ t, question, last, busy, onRetry, onFollow, onPlans }: 
       ) : (
         <>
           <div className="msg__text" onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />
+          {t.actions?.length && !t.thinking ? (
+            <div className="msg__actionsets">
+              <p className="msg__label">Waiting for you</p>
+              {t.actions.map((a) => <ActionCard key={a.id} action={a} chatId={chatId} />)}
+            </div>
+          ) : null}
           {sources.length ? (
             <div className="msg__sources">
               <p className="msg__label">Sources · {sources.length}</p>
@@ -318,6 +428,7 @@ function AssistantTurn({ t, question, last, busy, onRetry, onFollow, onPlans }: 
               {t.followups.map((q) => <button key={q} type="button" className="followup" onClick={() => onFollow(q)}><Icon name="arrowUp" size={14} /><span>{q}</span></button>)}
             </div>
           ) : null}
+          {t.backup ? <p className="msg__cut" role="status"><Icon name="info" size={14} />The main model was busy, so the backup model wrote this shorter answer. You were not charged for it. Retry for a full answer.</p> : null}
           {t.cut ? <p className="msg__cut" role="status"><Icon name="retry" size={14} />The answer was cut off before it finished.</p> : null}
           {!last || !busy ? (
             <div className="msg__actions">
@@ -327,6 +438,51 @@ function AssistantTurn({ t, question, last, busy, onRetry, onFollow, onPlans }: 
           ) : null}
         </>
       )}
+    </div>
+  );
+}
+
+/** An action's state, kept on the conversation so a reopened chat shows what was done. */
+const markAction = (id: string, state: "applied" | "cancelled") => setConv((c) => ({ turns: c.turns.map((t) => (t.actions?.some((a) => a.id === id) ? { ...t, actions: t.actions.map((a) => (a.id === id ? { ...a, state } : a)) } : t)) }));
+
+/**
+ * A change Ask proposed, as a card: what it will do, and Confirm / Cancel. Nothing happens until
+ * Confirm, which makes the change through the app's own reminder API with the reader's own
+ * authority, and then shows what the server says the reminder now is. Ask never makes it.
+ */
+function ActionCard({ action, chatId }: { action: Action; chatId: string | null }) {
+  const navigate = useNavigate();
+  const content = useContent();
+  const [state, setState] = useState<"idle" | "working" | "failed">("idle");
+  const [result, setResult] = useState<string | null>(null);
+  const [why, setWhy] = useState("");
+  const record = (s: "applied" | "cancelled") => { markAction(action.id, s); if (chatId) void api(`/api/chats/${chatId}/actions/${action.id}`, { method: "POST", json: { state: s } }).catch(() => undefined); };
+  const confirmIt = async () => {
+    haptic("select"); setState("working"); setWhy("");
+    try {
+      // Telegram reminders need the bot allowed to write, which only the reader can grant.
+      if (action.settings.channels?.telegram && !(await requestWriteAccess())) { setState("failed"); setWhy("Allow @CyberJudah_bot to message you first, then confirm again."); return; }
+      const v = await saveReminder({ settings: { tz: timeZone(), ...action.settings }, ...(content ? { content } : {}) });
+      const ch = v.channels.telegram && v.channels.push ? "by Telegram and push" : v.channels.push ? "by push" : v.channels.telegram ? "by Telegram" : "";
+      setResult(v.on ? `Reminders are on, every day at ${timeLabel(v.hour, v.minute)}${ch ? ` ${ch}` : ""}${v.pausedUntil ? `, paused until ${v.pausedUntil === "9999-12-31" ? "you resume" : v.pausedUntil}` : ""}.` : "Reminders are off.");
+      setState("idle"); haptic("success"); record("applied");
+    } catch { setState("failed"); setWhy("That did not save. Check the connection and try again."); haptic("error"); }
+  };
+  const done = action.state === "applied", cancelled = action.state === "cancelled";
+  return (
+    <div className="actioncard" data-state={done ? "applied" : cancelled ? "cancelled" : state}>
+      <div className="actioncard__what"><Icon name={done ? "check" : "bell"} size={18} /><span>{action.summary}</span></div>
+      {done ? <p className="actioncard__note" role="status">{result ?? "Done. You confirmed this change."} <button type="button" className="linkish" onClick={() => navigate("/settings/reminders")}>Reading reminders</button></p>
+        : cancelled ? <p className="actioncard__note">Cancelled. Nothing was changed.</p>
+        : (
+          <>
+            <div className="actioncard__buttons">
+              <button type="button" className="btn" disabled={state === "working" || !app} onClick={() => void confirmIt()}>{state === "working" ? "Saving…" : "Confirm"}</button>
+              <button type="button" className="btn btn--quiet" disabled={state === "working"} onClick={() => { haptic("select"); record("cancelled"); }}>Cancel</button>
+            </div>
+            <p className="actioncard__note">{why || "Not done yet. It happens only if you confirm."}</p>
+          </>
+        )}
     </div>
   );
 }
@@ -411,7 +567,7 @@ function ChatsSheet({ current, onClose, onOpen, onDeleted }: { current: string |
   const open = async (c: ChatSummary) => {
     if (row?.state === "opening" || row?.state === "deleting") return;
     haptic("select"); setRow({ id: c.id, state: "opening" });
-    try { const r = await api<{ chat: SavedChat }>(`/api/chats/${c.id}`); setRow(null); onOpen(r.chat); }
+    try { const r = await api<{ chat: SavedChat | null; pending?: { q: string } | null }>(`/api/chats/${c.id}`); setRow(null); onOpen(r.chat ?? { id: c.id, title: c.title, updated: c.updated, turns: r.pending ? [{ role: "user", content: r.pending.q }] : [] }); }
     catch (e) {
       // Gone from the server (deleted on another device): it leaves the list too.
       if (e instanceof ApiError && e.status === 404) { setChats((cs) => (cs ?? []).filter((x) => x.id !== c.id)); setRow(null); return; }
@@ -454,8 +610,9 @@ function ChatsSheet({ current, onClose, onOpen, onDeleted }: { current: string |
  */
 function Research({ steps, live, count }: { steps: string[]; live: boolean; count: number }) {
   const [open, setOpen] = useState(false);
-  const searches = steps.filter((s) => s.startsWith("Searching")).length, readings = steps.length - searches;
-  const summary = live ? steps[steps.length - 1] : [searches ? `${searches} search${searches > 1 ? "es" : ""}` : "", readings ? `${readings} reading${readings > 1 ? "s" : ""}` : "", count ? `${count} sources` : ""].filter(Boolean).join(" · ");
+  const searches = steps.filter((s) => s.startsWith("Searching")).length, readings = steps.filter((s) => s.startsWith("Reading")).length, lookups = steps.filter((s) => s.startsWith("Looking")).length;
+  const n = (k: number, one: string, many: string) => (k ? `${k} ${k > 1 ? many : one}` : "");
+  const summary = live ? steps[steps.length - 1] : [n(searches, "search", "searches"), n(readings, "reading", "readings"), n(lookups, "look-up in the app", "look-ups in the app"), count ? `${count} sources` : ""].filter(Boolean).join(" · ");
   return (
     <div className="research" data-open={open ? "" : undefined}>
       <button type="button" className="research__head" onClick={() => setOpen(!open)} aria-expanded={open}>
@@ -480,6 +637,6 @@ export function answerHtml(text: string, sources: Source[]): string {
   const known = new Set(sources.map((s) => s.n));
   const marked_ = escapeHtml(text.replace(/\n?[ \t]*\**Follow-ups:[\s\S]*$/i, "").replace(/\s*\[\d{0,2}$/, ""))
     .replace(/\s*\[(\d{1,2}(?:\s*,\s*\d{1,2})*)\]/g, (_m, list: string) => list.split(/\s*,\s*/).map((n) => (known.has(Number(n)) ? ` CJCITE${n}CJ` : "")).join(""));
-  const html = marked.parse(marked_, { gfm: true, breaks: false, async: false }) as string;
+  const html = safeLinks(marked.parse(marked_, { gfm: true, breaks: false, async: false }) as string);
   return html.replace(/ ?CJCITE(\d{1,2})CJ/g, (_m, n: string) => `<button type="button" class="cite" data-n="${n}" aria-label="Source ${n}">${n}</button>`);
 }
