@@ -34,7 +34,7 @@
 #root { overflow-x: clip; }
 .screen {
   box-sizing: border-box; max-width: var(--w-read); margin: 0 auto;
-  padding: calc(var(--sp-3) + var(--safe-top)) var(--gutter) var(--sp-6);
+  padding: calc(var(--sp-3) + var(--safe-top)) calc(var(--gutter) + var(--safe-right)) var(--sp-6) calc(var(--gutter) + var(--safe-left));
   display: flex; flex-direction: column; gap: 22px; min-width: 0;
 }
 .head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-3); min-width: 0; }
@@ -64,10 +64,11 @@
    A floating glass capsule. Every section keeps a fixed slot with its icon and name, so nothing
    moves when the selection changes; a filled selection and bolder name mark the current section. Scrolling down shrinks it to the current section alone. */
 .tabs {
-  position: fixed; z-index: var(--z-dock); left: 0; right: 0; bottom: calc(var(--dock-gap) + var(--safe-bottom));
-  box-sizing: border-box; width: min(calc(100% - 20px), 560px); height: var(--dock-h); margin: 0 auto; padding: 6px;
+  position: fixed; z-index: var(--z-dock); left: var(--safe-left); right: var(--safe-right); bottom: calc(var(--dock-gap) + var(--safe-bottom));
+  box-sizing: border-box; width: min(calc(100% - 20px - var(--safe-left) - var(--safe-right)), 560px); height: var(--dock-h); margin: 0 auto; padding: 6px;
   display: flex; align-items: center; gap: 0;
-  border-radius: calc(var(--dock-h) / 2);
+  --r-outer: calc(var(--dock-h) / 2); --inset: 6px; --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset)));
+  border-radius: var(--r-outer);
   background: transparent;
   border: .5px solid var(--dock-edge-override, var(--mat-edge));
   box-shadow: var(--mat-highlight), var(--mat-shadow);
@@ -97,37 +98,34 @@ html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__ba
 }
 .tabs[data-lift]::after { opacity: 1; }
 .tabs .tab {
-  position: relative; z-index: 1; flex: 1 1 0; min-width: var(--touch); height: 48px; padding: 0;
+  position: relative; z-index: 1; flex: 1 1 0; min-width: var(--touch); height: calc(var(--dock-h) - 12px); padding: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  border: 0; border-radius: 24px; background: none; color: var(--dock-ink-override, var(--text-2)); cursor: pointer;
+  border: 0; border-radius: var(--r-inner); background: none; color: var(--dock-ink-override, var(--text-2)); cursor: pointer;
 }
 .tab__glyph { display: grid; place-items: center; height: 26px; transition: transform var(--dur-1) var(--ease); }
 .tabs .tab:active .tab__glyph { transform: scale(.88); }
-.tab__label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 10.5px/1.1 var(--font-ui); letter-spacing: -.01em; }
+.tab__label { max-width: 100%; overflow-wrap: anywhere; text-align: center; font: 500 .65625rem/1.1 var(--font-ui); letter-spacing: -.01em; }
 .tabs .tab[data-on] { color: var(--dock-ink-override, var(--text-1)); }
 .tabs .tab[data-on] .tab__label { font-weight: 700; }
 /* Concentric selection inside the dock. It shares the dock's material and keeps all glyphs
    and labels crisp. Transforms provide press/drag feedback; blur itself never animates. */
 .tabs__pill {
   position: absolute; z-index: 0; left: 0; top: 0; width: var(--pill-w, 44px); height: var(--pill-h, 48px);
-  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)); border-radius: 24px; pointer-events: none;
+  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(var(--pill-sx, 1), var(--pill-sy, 1)); border-radius: var(--r-inner); pointer-events: none;
   background: var(--dock-selected-override, var(--mat-selected));
   box-shadow: inset 0 1px 0 color-mix(in srgb, white 14%, transparent), 0 1px 3px rgb(0 0 0 / .06);
-  scale: var(--pill-sx, 1) var(--pill-sy, 1);
   transition: transform var(--dur-3) var(--ease-spring), opacity var(--dur-2) ease;
 }
 .tabs[data-lift] .tabs__pill {
   will-change: transform;
-  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(1.06, 1.04);
+  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(calc(var(--pill-sx, 1) * 1.06), calc(var(--pill-sy, 1) * 1.04));
   box-shadow: inset 0 1px 0 color-mix(in srgb, white 28%, transparent), 0 3px 8px rgb(0 0 0 / .1);
-  transition: transform var(--dur-2) var(--ease-spring), scale var(--dur-1) ease, opacity var(--dur-2) ease;
+  transition: transform var(--dur-2) var(--ease-spring), opacity var(--dur-2) ease;
 }
-.tabs[data-drag] .tabs__pill { transition: scale var(--dur-1) ease, opacity var(--dur-2) ease; }
+.tabs[data-drag] .tabs__pill { transition: opacity var(--dur-2) ease; }
 .tabs[data-drag] { cursor: grabbing; }
-.tabs .tab__glyph { scale: var(--mag, 1); transition: transform var(--dur-1) var(--ease), scale var(--dur-1) var(--ease); }
+.tabs .tab__glyph { transform: scale(var(--mag, 1)); transition: transform var(--dur-1) var(--ease); }
 .tabs[data-drag] .tab { color: var(--dock-ink-override, var(--text-1)); }
-.tabs__pill[data-flow] { animation: pill-flow var(--dur-3) var(--ease); }
-@keyframes pill-flow { 0%, 100% { scale: 1; } 40% { scale: 1.06 .97; } 75% { scale: .99 1.01; } }
 /* The reader's palette overrides must not bypass transparency/contrast preferences. */
 html[data-transparency="reduced"] .tabs::before { background: var(--dock-base-override, var(--mat-base)); -webkit-backdrop-filter: none; backdrop-filter: none; }
 html[data-transparency="reduced"] .tabs::after { display: none; }
@@ -145,6 +143,7 @@ html[data-transparency="reduced"] .tabs::after { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .tabs[data-lift] .tabs__pill { transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)); }
   .tabs__pill, .tabs .tab__glyph { scale: none; }
+  .tabs .tab__glyph { transform: none; }
   .tabs .tab:active .tab__glyph { transform: none; }
   .tabs__pill[data-flow] { animation: none; }
   .tabs::after { display: none; }
@@ -182,12 +181,12 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 @media (min-width: 1100px) {
   :root { --dock-space: 0px; --rail-space: 112px; }
   .tabs:not(.tabs--switcher) {
-    left: var(--sp-5); right: auto; top: 0; bottom: 0; margin: auto 0; width: 76px; height: fit-content; max-height: calc(100dvh - 40px);
-    flex-direction: column; padding: 8px 6px; gap: 4px; border-radius: 30px;
+    left: calc(var(--sp-5) + var(--safe-left)); right: auto; top: 0; bottom: 0; margin: auto 0; width: 76px; height: fit-content; max-height: calc(100dvh - 40px - var(--safe-top) - var(--safe-bottom));
+    flex-direction: column; padding: 8px 6px; gap: 4px; --r-outer: 30px; border-radius: var(--r-outer); overflow-y: auto; scrollbar-width: none;
   }
-  .tabs:not(.tabs--switcher) .tab { flex: none; width: 64px; height: 56px; border-radius: 20px; }
-  .tabs:not(.tabs--switcher) .tabs__pill { border-radius: 20px; }
-  .tabs:not(.tabs--switcher) .tab__label { font-size: 11px; }
+  .tabs:not(.tabs--switcher) .tab { flex: none; width: 64px; min-height: 56px; height: auto; padding-block: 6px; border-radius: var(--r-inner); }
+  .tabs:not(.tabs--switcher) .tabs__pill { border-radius: var(--r-inner); }
+  .tabs:not(.tabs--switcher) .tab__label { font-size: .6875rem; }
   #root [data-tabs] { padding-bottom: var(--sp-7); }
 }
 
@@ -231,7 +230,7 @@ html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[dat
 #root button.drawer__back, .drawer__back { display: grid; place-items: center; width: var(--touch); height: var(--touch); padding: 0; border: 0; border-radius: var(--r-pill); background: none; color: var(--text-1); cursor: pointer; }
 #root button.drawer__x, .drawer__x { position: absolute; left: 50%; bottom: calc(var(--sp-6) + var(--safe-bottom)); display: grid; place-items: center; width: 52px; height: 52px; margin-left: -26px; padding: 0;
   border-radius: var(--r-pill); border: .5px solid var(--mat-edge); background: var(--mat-overlay); color: var(--text-1); box-shadow: var(--mat-highlight), var(--shadow-2); cursor: pointer; }
-.drawer-scrim { position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 5); pointer-events: none; background: transparent; transition: background-color var(--dur-4) ease; }
+.drawer-scrim { position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 5); pointer-events: none; background: transparent; transition: none; }
 .drawer-scrim[data-open] { pointer-events: auto; background: var(--scrim-soft); }
 .drawer-scrim[data-side="home"] { left: var(--drawer-w); }
 .drawer-scrim[data-side="more"] { right: var(--drawer-w); }
@@ -255,7 +254,7 @@ html[data-modal] { overflow: hidden; }
 .sheet__title small { display: block; margin-top: 2px; font: 400 var(--fs-caption) var(--font-ui); color: var(--text-3); }
 .sheet__colors { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; padding: var(--sp-1) 0 var(--sp-4); }
 .sheet__items { border-radius: var(--r-lg); background: var(--surface-2); overflow: hidden; }
-.sheet__item { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: var(--h-lg); padding: 10px 14px; border: 0; background: none; text-align: left; cursor: pointer; font: inherit; color: inherit; transition: background-color var(--dur-1) ease; }
+.sheet__item { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: var(--h-lg); padding: 10px 14px; border: 0; background: none; text-align: left; cursor: pointer; font: inherit; color: inherit; transition: none; }
 .sheet__item:hover { background: var(--state-hover); }
 .sheet__item:active { background: var(--state-press); }
 .sheet__item + .sheet__item { border-top: .5px solid var(--hairline); }
@@ -268,7 +267,7 @@ html[data-modal] { overflow: hidden; }
 .sheet__form label { font: 600 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
 
 /* ── Notes sheet: the class notes sliding up under a playing recording ─────────────────────── */
-.nsheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-dock); display: flex; flex-direction: column; background: var(--canvas); border-top: .5px solid var(--mat-edge); border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--shadow-3); transform: translateY(105%); transition: transform var(--dur-3) var(--ease), top var(--dur-3) var(--ease); visibility: hidden; }
+.nsheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-dock); display: flex; flex-direction: column; background: var(--canvas); border-top: .5px solid var(--mat-edge); border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--shadow-3); transform: translateY(105%); transition: transform var(--dur-3) var(--ease); visibility: hidden; }
 .nsheet[data-full] { z-index: 75; border-radius: 0; border-top-color: transparent; }
 .nsheet[data-open] { transform: translateY(0); visibility: visible; }
 /* Desktop: the notes sheet opens beside the rail, never under it, so its title and the rail stay clear. */

@@ -63,7 +63,7 @@
 .cases__eraname span { font-weight: 600; letter-spacing: 0; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .cases__list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
 .cases__list > li + li .caserow, .cases__list > .caserow + .caserow { border-top: .5px solid var(--hairline); }
-#root .caserow { display: flex; align-items: center; gap: var(--sp-3); min-height: 64px; padding: 13px 14px 13px var(--sp-4); color: var(--text-3); text-decoration: none; transition: background-color var(--dur-1) ease; }
+#root .caserow { display: flex; align-items: center; gap: var(--sp-3); min-height: 64px; padding: 13px 14px 13px var(--sp-4); color: var(--text-3); text-decoration: none; transition: none; }
 #root .caserow:hover { background: var(--state-hover); }
 #root .caserow:active { background: var(--state-press); }
 .caserow:focus-visible { outline: 2px solid var(--accent) !important; outline-offset: -2px; }
@@ -90,7 +90,7 @@
 #root .case__person:hover { background: color-mix(in srgb, var(--text-1) 4%, var(--surface-1)); }
 #root .case__person svg { color: var(--text-4); }
 .case__chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
-#root .ccard { display: grid; gap: 6px; padding: 15px var(--sp-4) 4px; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); color: var(--text-2); text-decoration: none; transition: background-color var(--dur-1) ease; }
+#root .ccard { display: grid; gap: 6px; padding: 15px var(--sp-4) 4px; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); color: var(--text-2); text-decoration: none; transition: none; }
 #root .ccard:hover { background: color-mix(in srgb, var(--text-1) 3%, var(--surface-1)); }
 #root .ccard:active { background: color-mix(in srgb, var(--text-1) 6%, var(--surface-1)); }
 .ccard__meta { display: flex; align-items: center; gap: 7px; font: 600 var(--fs-caption) var(--font-ui); color: var(--text-3); }

@@ -1,6 +1,6 @@
 import { Children, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
+import { Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
 
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
@@ -147,8 +147,6 @@ export function TabBar() {
     const it = open && near >= 0 ? items[near] : null;
     // Opening the section moves the pill there; otherwise it springs back to where it was.
     if (it && current !== it.id) { long.current = false; it.onClick(); }
-    const pill = nav.querySelector<HTMLElement>(".tabs__pill");
-    if (pill) { delete pill.dataset.flow; void pill.offsetWidth; pill.dataset.flow = ""; }
   };
   const cancelPress = () => {
     window.clearTimeout(press.current);
@@ -207,11 +205,8 @@ export function TabBar() {
       if (lens.current) return; // A data refresh or resize must not pull a held selection away.
       const on = nav.querySelector<HTMLElement>(".tab[data-on]");
       const shown = !!on && on.offsetWidth > 0;
-      // Moving to another section, the pill flows there (pill-flow in materials.css).
+      // The transform transition moves the pill without forcing layout to restart a keyframe.
       const x = `${shown ? on!.offsetLeft : 0}px`, y = `${shown ? on!.offsetTop : 0}px`;
-      const pill = nav.querySelector<HTMLElement>(".tabs__pill");
-      const was = nav.style.getPropertyValue("--pill-x"), wasY = nav.style.getPropertyValue("--pill-y");
-      if (pill && shown && was && (was !== x || wasY !== y)) { delete pill.dataset.flow; void pill.offsetWidth; pill.dataset.flow = ""; }
       nav.style.setProperty("--pill-x", x);
       nav.style.setProperty("--pill-y", y);
       nav.style.setProperty("--pill-w", `${shown ? on!.offsetWidth : 0}px`);
@@ -239,7 +234,7 @@ export function TabBar() {
   return (
     <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} {...hold}
       onClickCapture={(e) => { if (eatClick.current) { eatClick.current = false; if (e.detail > 0) { e.stopPropagation(); e.preventDefault(); return; } } if (mini) { e.stopPropagation(); e.preventDefault(); haptic("select"); expandBar(); } }}>
-      <span className="tabs__pill" aria-hidden="true" onAnimationEnd={(e) => { delete e.currentTarget.dataset.flow; }} />
+      <span className="tabs__pill" aria-hidden="true" />
       {items.map((it) => {
         const on = current === it.id;
         // Collapsed, the capsule shows the current section, or the Menu where the screen is not one of them.
@@ -268,7 +263,7 @@ export function PageActions() {
   }, [main, secondary]);
   if (!main && !secondary) return null;
   const button = (a: NonNullable<typeof main>, quiet: boolean) => (
-    <button type="button" className={`pageaction${quiet || a.quiet ? " pageaction--quiet" : ""}`} disabled={a.disabled || a.progress} aria-busy={a.progress || undefined} onClick={a.onClick}>
+    <button type="button" className={`btn ${quiet || a.quiet ? "btn--glass" : "btn--prominent"} pageaction${quiet || a.quiet ? " pageaction--quiet" : ""}`} disabled={a.disabled || a.progress} aria-busy={a.progress || undefined} onClick={a.onClick}>
       {a.progress ? <span className="pageaction__spin" aria-hidden="true" /> : null}{a.text}
     </button>
   );
@@ -365,7 +360,7 @@ export function Empty({ title, children, action }: { title: string; children?: R
   );
 }
 
-export { Button };
+export { Button } from "./Button";
 
 export function Card({ children, glow, href, onClick, className }: { children: ReactNode; glow?: boolean; href?: string; onClick?: () => void; className?: string }) {
   const cls = `card${glow ? " card--glow" : ""}${className ? ` ${className}` : ""}`;

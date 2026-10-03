@@ -279,8 +279,8 @@ function Spoken({ q, res, page, onPage }: { q: string; res: SpokenQuery; page: n
       <p className="hint">Moments {page * 20 + 1}–{page * 20 + r.hits.length} for “{q}”{page ? ` · Page ${page + 1}` : ""}</p>
       <div className="recs">{r.hits.map((h, i) => <Recording key={`${h.video}:${h.start}:${i}`} h={h} eager={i < 3} />)}</div>
       <div className="btn--row">
-        {page > 0 ? <Button mode="bezeled" size="m" stretched onClick={() => onPage(page - 1)}>Previous</Button> : null}
-        {r.more ? <Button mode="bezeled" size="m" stretched onClick={() => onPage(page + 1)}>Next</Button> : null}
+        {page > 0 ? <Button appearance="bordered" size="md" stretched onClick={() => onPage(page - 1)}>Previous</Button> : null}
+        {r.more ? <Button appearance="bordered" size="md" stretched onClick={() => onPage(page + 1)}>Next</Button> : null}
       </div>
     </>
   );

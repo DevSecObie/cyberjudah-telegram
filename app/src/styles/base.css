@@ -70,7 +70,7 @@ mark { background: color-mix(in srgb, var(--accent) 24%, transparent); color: in
 .route { animation: fade-in var(--dur-2) ease backwards; }
 
 /* Press feedback: things you tap give a little under the finger. Transform only, never layout. */
-.pressable, .card, .tile, .shelf-card, .nt-item, .nt-hero, .starter, .srccard, .followup, .whatsnew__card { transition: transform var(--dur-1) var(--ease), background-color var(--dur-2) ease, box-shadow var(--dur-2) ease; }
+.pressable, .card, .tile, .shelf-card, .nt-item, .nt-hero, .starter, .srccard, .followup, .whatsnew__card { transition: transform var(--dur-1) var(--ease); }
 .pressable:active, .card:active, .tile:active, .shelf-card:active, .nt-item:active, .nt-hero:active, .starter:active, .srccard:active, .followup:active, .whatsnew__card:active { transform: scale(.975); }
 
 @media (prefers-reduced-motion: reduce) {

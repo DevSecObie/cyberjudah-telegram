@@ -72,6 +72,7 @@
   --mat-glow: color-mix(in srgb, var(--accent) 75%, transparent);
 
   /* Full-screen media retains a dark context in every reading palette. */
+  --media-accent: #ffd27a; --media-on-accent: #1a1400;
   --media-canvas: #0a0b10; --media-surface: #13151d;
   --media-ink: #fff; --media-muted: #c4c8d4;
   --media-edge: rgb(255 255 255 / .14); --media-fill: rgb(255 255 255 / .1);
@@ -82,13 +83,16 @@
   --scrim-media: rgba(0, 0, 0, .35);
 
   /* Shape: radii nest (inner = outer − padding). */
+  --r-min: 4px; --r-floating: 38px;
   --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 18px; --r-xl: 22px; --r-2xl: 28px; --r-pill: 999px;
 
   /* Space and size. */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 44px;
   --gutter: 16px;
   --touch: 44px;
-  --h-sm: 34px; --h-md: 44px; --h-lg: 52px;
+  --h-sm: max(44px, 2.25rem); --h-md: max(44px, 2.75rem); --h-lg: max(52px, 3.25rem); --h-xl: max(60px, 3.75rem);
+  --control-pad: 18px; --control-font: .9375rem; --control-inset: 3px;
+  --switch-thumb: #fff; --switch-shadow: 0 2px 6px rgb(0 0 0 / .25);
   --w-read: 640px; --w-wide: 760px; --w-max: 1120px;
 
   /* Type. */
@@ -109,9 +113,9 @@
   --z-sticky: 20; --z-actions: 55; --z-dock: 60; --z-drawer: 70; --z-pip: 80; --z-sheet: 90; --z-toast: 100; --z-lock: 110;
 
   /* Safe areas and the dock. --dock-space is the room content keeps clear at the bottom. */
-  --safe-top: 0px;
+  --safe-top: 0px; --safe-left: 0px; --safe-right: 0px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --dock-h: 60px;
+  --dock-h: max(60px, 3.75rem);
   --dock-gap: 10px;
   --dock-space: calc(var(--dock-h) + var(--dock-gap) + var(--safe-bottom));
   --header-h: 56px;

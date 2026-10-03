@@ -95,7 +95,7 @@ export function NotesSheet({ open, onClose, full = false, onFull, title = "Class
     else if (dy > 90 && !full) { haptic("select"); onClose(); }
   };
   const docked = full ? safeTop : top;
-  const style = drag !== null ? { top: Math.max(safeTop, docked + drag), transition: "none" } : { top: docked };
+  const style = drag !== null ? { top: docked, transform: `translateY(${Math.max(safeTop - docked, drag)}px)`, transition: "none", willChange: "transform" } : { top: docked };
   return (
     <section className="nsheet" data-open={open ? "" : undefined} data-full={full ? "" : undefined} aria-hidden={!open} style={style} role="dialog" aria-label={title}>
       <header className="nsheet__head" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{ touchAction: "none" }}>

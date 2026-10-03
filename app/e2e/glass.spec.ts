@@ -223,7 +223,7 @@ test("glass: transferring touch capture from the button to the dock does not can
   await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await expect(page).toHaveURL(/\/classes/);
   // Let the selection settle before starting a separate touch gesture.
-  await expect(dock.locator(".tabs__pill")).not.toHaveAttribute("data-flow");
+  await dock.locator(".tabs__pill").evaluate(async pill => { await Promise.all(pill.getAnimations().map(animation => animation.finished.catch(() => {}))); });
   await dock.getByRole("button", { name: "Search", exact: true }).tap();
   await expect(page).toHaveURL(/\/search/);
   await session.detach();
@@ -340,3 +340,99 @@ test("materials: unsupported-filter CSS branch yields opaque reader surfaces", a
   await page.getByRole("button", { name: "Scripture options" }).click();
   for (const material of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) expect(material).toMatchObject({ filter: "none", alpha: 255 });
 });
+
+for (const theme of ["default", "dark", "sepia"]) {
+  for (const preference of ["normal", "system", "app", "motion", "contrast", "forced"] as const) {
+    test(`controls: ${theme} ${preference} stays usable at 200% with Telegram insets`, async ({ page, browserName }) => {
+      test.skip(preference === "system" && browserName !== "chromium", "OS transparency emulation requires CDP; app preference runs in both engines");
+      await setup(page, theme, preference === "app");
+      await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK.replace(
+        'safeAreaInset: { top: 0, bottom: 0, left: 0, right: 0 }, contentSafeAreaInset: { top: 0, bottom: 0, left: 0, right: 0 }',
+        'safeAreaInset: { top: 24, bottom: 16, left: 8, right: 12 }, contentSafeAreaInset: { top: 20, bottom: 14, left: 6, right: 8 }',
+      ) }));
+      await page.emulateMedia({ reducedMotion: preference === "motion" ? "reduce" : "no-preference", contrast: preference === "contrast" ? "more" : "no-preference", forcedColors: preference === "forced" ? "active" : "none" });
+      if (preference === "system") await (await page.context().newCDPSession(page)).send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-transparency", value: "reduce" }] });
+      for (const [width, height] of [[390, 844], [1280, 800]]) {
+        await page.setViewportSize({ width, height });
+        await page.goto(`/settings${LAUNCH}`);
+        const toggle = page.getByRole("switch", { name: "Justify the text", exact: true });
+        await expect(toggle).toBeVisible();
+        const initialFont = await toggle.locator("b").evaluate(e => parseFloat(getComputedStyle(e).fontSize));
+        await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+        await expect.poll(() => toggle.locator("b").evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBe(initialFont * 2);
+        await toggle.focus();
+        const before = await toggle.getAttribute("aria-checked");
+        await page.keyboard.press("Space");
+        await expect(toggle).toHaveAttribute("aria-checked", String(before !== "true"));
+        const label = (await toggle.locator("b").boundingBox())!, thumb = (await toggle.locator(".switch").boundingBox())!;
+        expect(label.x + label.width).toBeLessThanOrEqual(thumb.x);
+        const dock = page.locator("nav.tabs");
+        if (await dock.getAttribute("data-mini") !== null) await dock.click();
+        await expect(dock).not.toHaveAttribute("data-mini");
+        const bounds = (await dock.boundingBox())!;
+        expect(bounds.x).toBeGreaterThanOrEqual(14);
+        expect(bounds.x + bounds.width).toBeLessThanOrEqual(width - 20);
+        expect(bounds.y + bounds.height).toBeLessThanOrEqual(height - 30);
+        // Navigate in-app to retain 200% text; a reload would silently reset the style tag.
+        await dock.getByRole("button", { name: "Bible", exact: true }).click();
+        await expect(page.locator("#verset-1")).toBeVisible();
+        await page.getByRole("button", { name: "Scripture options" }).click();
+        const menu = page.getByRole("menu", { name: "Passage options" });
+        await expect(menu).toBeVisible();
+        await expect.poll(() => menu.getByRole("menuitem").first().evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBe(30);
+        for (const item of await menu.getByRole("menuitem").all()) {
+          await item.scrollIntoViewIfNeeded();
+          const b = (await item.boundingBox())!;
+          expect(b.width).toBeGreaterThanOrEqual(44); expect(b.height).toBeGreaterThanOrEqual(44);
+          expect(b.x).toBeGreaterThanOrEqual(14); expect(b.x + b.width).toBeLessThanOrEqual(width - 20);
+        }
+        if (["system", "app", "contrast", "forced"].includes(preference)) {
+          for (const m of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) {
+            expect(m.filter).toBe("none"); expect(m.alpha).toBe(255);
+          }
+        }
+        await page.keyboard.press("Escape");
+        await page.locator("#verset-1").click();
+        const sheet = page.locator(".bs-selected");
+        await expect(sheet).toBeVisible();
+        // Every label fits its own action at large text; do not merely hide overflow.
+        const clipped = await sheet.locator(".bs-action:visible").evaluateAll(buttons => buttons.flatMap(button => {
+          const label = button.querySelector(".bs-action__label")!, b = button.getBoundingClientRect(), l = label.getBoundingClientRect();
+          return l.left < b.left - 1 || l.right > b.right + 1 || label.scrollWidth > label.clientWidth + 1 ? [label.textContent] : [];
+        }));
+        expect(clipped).toEqual([]);
+        expect(await sheet.evaluate(e => e.scrollWidth <= e.clientWidth + 1)).toBe(true);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      }
+    });
+  }
+}
+
+for (const theme of ["default", "dark", "sepia"]) {
+  test(`controls: ${theme} nested sheet actions share accessible accent ink and keyboard behavior`, async ({ page }) => {
+    await setup(page, theme);
+    await page.goto(`/read/genesis/1${LAUNCH}`);
+    await page.getByRole("button", { name: "Scripture options" }).click();
+    await page.getByRole("menuitem", { name: /Font and settings/ }).click();
+    await page.getByRole("button", { name: "Color palette", exact: true }).click();
+    await page.locator(".bs-palette__row").first().click();
+    const sheet = page.getByRole("dialog", { name: "Edit color", exact: true });
+    const save = sheet.getByRole("button", { name: "Save", exact: true });
+    await expect(save).toBeVisible();
+    await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+    await expect.poll(() => save.evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBe(30);
+    expect(await sheet.evaluate(e => e.scrollWidth <= e.clientWidth + 1)).toBe(true);
+    const contrast = await save.evaluate(button => {
+      const style = getComputedStyle(button), canvas = document.createElement("canvas"), ctx = canvas.getContext("2d")!;
+      const lum = (color: string) => {
+        ctx.fillStyle = color; ctx.fillRect(0, 0, 1, 1);
+        return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3).map(v => v / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4).reduce((s, v, i) => s + v * [.2126, .7152, .0722][i], 0);
+      };
+      const a = lum(style.color), b = lum(style.backgroundColor);
+      return (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+    });
+    expect(contrast).toBeGreaterThanOrEqual(4.5);
+    await save.focus(); await page.keyboard.press("Enter");
+    await expect(sheet).toHaveCount(0);
+  });
+}

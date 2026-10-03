@@ -6,9 +6,9 @@
 .srch__bar { margin: 0 calc(-1 * var(--gutter)) var(--sp-2); padding: calc(var(--sp-2) + var(--safe-top)) var(--gutter) 0; }
 .srch__form { display: flex; align-items: center; gap: 10px; }
 .srch__field { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--sp-2); height: 46px; padding: 0 var(--sp-2) 0 14px; border-radius: var(--r-pill); cursor: text;
-  background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--control-edge); transition: box-shadow var(--dur-2) ease, background-color var(--dur-2) ease; }
+  background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--control-edge); transition: none; }
 .srch__field[data-focus] { background: var(--surface-1); box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-soft); }
-.srch__icon { display: grid; place-items: center; width: 22px; color: var(--text-3); transition: color var(--dur-2) ease; }
+.srch__icon { display: grid; place-items: center; width: 22px; color: var(--text-3); transition: none; }
 .srch__field[data-focus] .srch__icon { color: var(--accent); }
 .srch__spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
 #root .srch__field input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: none; color: var(--text-1); font: 400 var(--fs-callout)/1.2 var(--font-ui); -webkit-appearance: none; appearance: none; }
@@ -21,7 +21,7 @@
 #root button.srch__cancel { flex: none; min-height: var(--touch); padding: 0 2px; border: 0; background: none; color: var(--accent); font: 500 var(--fs-body) var(--font-ui); cursor: pointer; }
 .srch__scopes { display: flex; gap: 6px; padding: 10px 0; overflow-x: auto; scrollbar-width: none; }
 .srch__scopes::-webkit-scrollbar { display: none; }
-#root button.srch__scope { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); color: var(--text-1); font: 600 var(--fs-footnote) var(--font-ui); cursor: pointer; transition: background-color var(--dur-2) ease, color var(--dur-2) ease; }
+#root button.srch__scope { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); color: var(--text-1); font: 600 var(--fs-footnote) var(--font-ui); cursor: pointer; transition: none; }
 #root button.srch__scope:hover { background: var(--fill-2); }
 #root button.srch__scope[aria-selected="true"] { background: var(--text-1); color: var(--canvas); box-shadow: none; }
 .srch__count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: color-mix(in srgb, currentColor 14%, transparent); font: 700 11px var(--font-ui); font-variant-numeric: tabular-nums; }
@@ -30,7 +30,7 @@
 .srch__head { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 var(--sp-2); }
 .srch__head h2 { display: flex; align-items: center; margin: 0; font: 700 var(--fs-footnote) var(--font-ui); letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); }
 .srch__list { margin: 0; padding: 0; list-style: none; overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
-#root .srch__hit { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-3) var(--sp-3) var(--sp-3) 14px; border-top: .5px solid var(--hairline); color: inherit; text-decoration: none; outline: none; transition: background-color var(--dur-1) ease; }
+#root .srch__hit { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-3) var(--sp-3) var(--sp-3) 14px; border-top: .5px solid var(--hairline); color: inherit; text-decoration: none; outline: none; transition: none; }
 .srch__list > li:first-child .srch__hit { border-top: 0; }
 #root .srch__hit:hover, #root .srch__hit:focus-visible { background: var(--accent-softer); }
 [data-result]:focus-visible { outline: 2px solid var(--accent) !important; outline-offset: -2px; }

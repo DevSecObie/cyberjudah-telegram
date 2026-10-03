@@ -3,13 +3,13 @@
    (bible.css is the Bible tab's). Colours are the --bs-* tokens: inside the Bible they are its
    theme; elsewhere a sheet's class maps them to the app's (screens/notes.css). */
 @keyframes bs-fadein { from { opacity: 0; } to { opacity: 1; } }
-.bs-iconbtn { width: 40px; height: 40px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; padding: 0; border-radius: 0; }
+.bs-iconbtn { flex: none; width: var(--touch); height: var(--touch); border: 0; background: none; display: grid; place-items: center; cursor: pointer; padding: 0; border-radius: var(--r-pill); }
 .bs-iconbtn:active { opacity: .6; }
 /* Sheets */
 .bs-scrim { position: fixed; inset: 0; z-index: 90; background: var(--scrim-modal); display: flex; align-items: flex-end; justify-content: center; animation: bs-fadein .15s ease-out; }
 .bs-scrim--clear { background: transparent; pointer-events: none; }
 .bs-scrim--clear > .bs-sheet { pointer-events: auto; box-shadow: 0 -8px 30px rgba(0,0,0,.18); }
-.bs-sheet { width: 100%; max-width: 640px; max-height: 92dvh; display: flex; flex-direction: column; background: var(--bs-reverse); color: var(--bs-default); border-radius: var(--r-2xl) var(--r-2xl) 0 0; padding-bottom: var(--safe-bottom, 0px); animation: bs-rise .22s ease-out; }
+.bs-sheet { width: 100%; max-width: 640px; max-height: calc(100dvh - var(--safe-top) - 24px); display: flex; flex-direction: column; background: var(--bs-reverse); color: var(--bs-default); border-radius: var(--r-2xl) var(--r-2xl) 0 0; padding-bottom: var(--safe-bottom, 0px); animation: bs-rise .22s ease-out; }
 .bs-sheet--half { height: 50dvh; }
 .bs-sheet--full { height: 92dvh; }
 .bs-sheet--40 { min-height: 40dvh; }
@@ -18,20 +18,16 @@
 .bs-sheet__side { min-width: 60px; display: flex; align-items: center; gap: 4px; }
 .bs-sheet__side--right { justify-content: flex-end; }
 .bs-sheet__titles { flex: 1; text-align: center; min-width: 0; }
-.bs-sheet__titles b { display: block; font-size: 16px; }
-.bs-sheet__titles small { display: block; font-size: 12px; color: var(--bs-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bs-sheet__titles b { display: block; font-size: 1rem; }
+.bs-sheet__titles small { display: block; font-size: .75rem; color: var(--bs-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bs-sheet__body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .bs-sheet__footer { flex: none; padding: 10px 16px; border-top: 1px solid var(--bs-border); }
-.bs-sheet__actions { display: flex; justify-content: flex-end; gap: 10px; }
-.bs-btn { min-height: 44px; padding: 0 18px; border-radius: var(--r-md); border: 1px solid var(--bs-primary); background: var(--bs-primary); color: var(--bs-reverse); font-weight: 700; font-size: 15px; cursor: pointer; }
-.bs-btn--reverse { background: var(--bs-reverse); color: var(--bs-default); border-color: var(--bs-border); }
-.bs-btn--small { min-height: 34px; font-size: 13px; }
-.bs-btn:disabled { opacity: .5; }
+.bs-sheet__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 @keyframes bs-rise { from { transform: translateY(24px); opacity: 0; } }
 .bs-switchrow { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 8px 0; border: 0; background: none; cursor: pointer; text-align: left; }
-.bs-switchrow__label { flex: 1; font-size: 16px; }
-.bs-switch { width: 36px; height: 22px; border-radius: 11px; padding: 3px; box-sizing: border-box; background: var(--bs-border); display: flex; transition: background .15s; }
-.bs-switch span { width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.bs-switchrow__label { flex: 1; font-size: 1rem; }
+.bs-switch { flex: none; width: 36px; height: 22px; border-radius: 11px; padding: 3px; box-sizing: border-box; background: var(--bs-border); display: flex; transition: none; }
+.bs-switch span { width: 16px; height: 16px; border-radius: 50%; background: var(--switch-thumb); box-shadow: var(--switch-shadow); transition: transform .15s; }
 .bs-switch[data-on] { background: var(--bs-primary); }
 .bs-switch[data-on] span { transform: translateX(14px); }
 .bs-checkbox { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--bs-border); display: grid; place-items: center; box-sizing: border-box; }
