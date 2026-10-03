@@ -26,7 +26,11 @@ test("the periods, as Bible Strong lists them, without their prophecy period", a
   await page.goto("/timeline");
   await expect(page.getByRole("heading", { name: "The Bible Timeline" })).toBeVisible();
   const items = page.locator(".tl-item");
-  await expect(items).toHaveCount(12);
+  // Bible Strong's twelve, then The Final Captivity's periods (app/scripts/final-captivity), last.
+  const periods = JSON.parse(fs.readFileSync(new URL("../src/data/timeline.json", import.meta.url), "utf8")).sections.length;
+  expect(periods).toBeGreaterThan(12);
+  await expect(items).toHaveCount(periods);
+  await expect(items.last()).toContainText("The Final Captivity");
   await expect(items.first()).toContainText("Age of Patriarchs");
   await expect(items.first()).toContainText("First Generation");
   await expect(items.first()).toContainText("Creation–c.2500 BC");
@@ -206,3 +210,25 @@ test("search keeps its words: in the address, and on coming back from an event",
   await page.getByRole("searchbox").fill("zzzz");
   await expect(page.getByRole("status")).toContainText("No results for “zzzz”");
 });
+
+test("The Final Captivity: a period's events by category, and an event's history, teaching, sources and where they differ", async ({ page }) => {
+  const data = JSON.parse(fs.readFileSync(new URL("../src/data/timeline.json", import.meta.url), "utf8"));
+  const index = data.sections.findIndex((s: { id: string }) => s.id === "fc-house-of-bondage");
+  expect(index).toBeGreaterThan(11);
+  await page.goto("/timeline/event/kimpa-vita-1706");
+  await expect(page.locator(".tl-event__title")).toHaveText("Kimpa Vita burned in Kongo");
+  await expect(page.getByRole("region", { name: "Summary" })).toBeVisible();
+  await expect(page.locator(".fc-kind").first()).toHaveText("Documented history");
+  // The teaching is linked to the moment it was taught.
+  const cite = page.locator(".fc-cite").first();
+  await expect(cite).toHaveAttribute("href", /^https:\/\/(youtu\.be\/[\w-]{11}\?t=\d+|israelunite\.org\/)/);
+  // Both accounts of her child are shown.
+  await expect(page.locator(".fc-differ").first()).toContainText("baby");
+  await expect(page.locator(".fc-sources li").first()).toBeVisible();
+  await expect(page.locator(".fc-reviewed")).toContainText("Sources reviewed through");
+  await shot(page, "fc-1-event");
+  await page.goto(`/timeline/${index}`);
+  await expect(page.getByRole("heading", { name: "The House of Bondage" })).toBeVisible();
+  await shot(page, "fc-2-period");
+});
+

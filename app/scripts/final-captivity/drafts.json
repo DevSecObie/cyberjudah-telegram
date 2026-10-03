@@ -1,0 +1,696 @@
+[
+ {
+  "slug": "spain-expels-the-jews-1492",
+  "title": "Spain expels the Jews (Alhambra Decree)",
+  "start": 1492,
+  "end": 1492,
+  "date": {
+   "text": "1492",
+   "precision": "year"
+  },
+  "period": "into-the-ships",
+  "group": "African captivity",
+  "place": "Castile and Aragon; Portugal",
+  "region": "Iberia",
+  "peoples": [
+   "Black"
+  ],
+  "people": [
+   "Ferdinand II of Aragon",
+   "Isabella I of Castile",
+   "John II of Portugal"
+  ],
+  "summary": "",
+  "account": [],
+  "teaching": [
+   {
+    "points": [
+     "The Jews of Spain who fled into Portugal were overcharged, ill-treated and their wives and daughters ravished by the ships' captains; the Castilian Jews who had not left in time were ordered taken as slaves and distributed to whoever asked for them."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "6da3wCZl9fc",
+     "title": "Prophecy Fulfilled In The Midst Of War",
+     "date": "2026-04-13",
+     "ts": "6:09",
+     "url": "https://youtu.be/6da3wCZl9fc?t=369"
+    }
+   }
+  ],
+  "scriptures": [],
+  "sources": [],
+  "needs": "A documented source read on the Alhambra Decree (31 March 1492) and on the enslavement of Castilian Jews who entered Portugal under John II.",
+  "status": "draft"
+ },
+ {
+  "slug": "brazil-sugar-colonies-1530s",
+  "title": "Brazil and the sugar colonies",
+  "start": 1500,
+  "end": 1620,
+  "date": {
+   "text": "1500–1620",
+   "precision": "range"
+  },
+  "period": "into-the-ships",
+  "group": "Caribbean and Latin America",
+  "place": "Brazil; São Tomé; Madeira",
+  "region": "South America",
+  "peoples": [
+   "Black",
+   "Native"
+  ],
+  "people": [
+   "Pedro Álvares Cabral"
+  ],
+  "summary": "",
+  "account": [],
+  "teaching": [
+   {
+    "points": [
+     "(Snippet only, not yet read in full.) The Brazilian economy was based on Negro slave labour for sugar and tobacco."
+    ],
+    "source": {
+     "kind": "history",
+     "id": "1SBbipshR2E",
+     "title": "OUR HIDDEN HISTORY | SLAVE SHIPS FOR DUMMIES EP 145",
+     "date": "2024-09-15",
+     "ts": "1:34:40",
+     "url": "https://youtu.be/1SBbipshR2E?t=5680"
+    }
+   }
+  ],
+  "scriptures": [],
+  "sources": [],
+  "needs": "Read the teaching moment in full (1SBbipshR2E 1:34:40; also UWI2pcKI1hA 40:44 on Spaniards and Portuguese carrying Negroes 'to the West Indies and Brazil') and read a documented source on the first enslaved Africans and sugar mills in sixteenth-century Brazil (dates, numbers).",
+  "status": "draft"
+ },
+ {
+  "slug": "palmares-founding-c1605",
+  "title": "The founding of Palmares",
+  "start": 1605,
+  "end": 1620,
+  "date": {
+   "text": "c. 1605 (founding as usually given)",
+   "precision": "circa"
+  },
+  "period": "into-the-ships",
+  "group": "Resistance",
+  "place": "Serra da Barriga, Pernambuco/Alagoas, Brazil",
+  "region": "South America",
+  "peoples": [
+   "Black"
+  ],
+  "people": [],
+  "summary": "",
+  "account": [],
+  "teaching": [],
+  "scriptures": [],
+  "sources": [],
+  "needs": "No teaching moment read on Palmares within this period: the class moments found (e.g. KsTXzp3-Bto 'Quest 8', AfaFMc3tjGA) read about Zumbi (captured 1655, killed 1695), which belongs to the next period. Also needs a documented source for the founding date.",
+  "status": "draft"
+ },
+ {
+  "slug": "brazil-slavery",
+  "title": "Brazil, the largest destination of the trade",
+  "start": 1615,
+  "end": 1866,
+  "date": {
+   "text": "17th–19th centuries",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Caribbean and Latin America",
+  "peoples": [
+   "Black"
+  ],
+  "summary": "Brazil received captives above all from Kongo and Angola and abolished slavery only in the 1880s (as said in class; not yet sourced).",
+  "teaching": [
+   {
+    "points": [
+     "The slaves recruited for Brazil in the 19th century came almost entirely from the lower Congo and Dahomey."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "pQ_MnGdZ9to",
+     "title": "#IUIC | A NEW RELIGION | PART TWO",
+     "date": "2020-10-23",
+     "ts": "35:56",
+     "url": "https://youtu.be/pQ_MnGdZ9to?t=2156"
+    }
+   }
+  ],
+  "status": "draft",
+  "needs": "Moment seen only as a search hit; read it and a documented source (e.g. SlaveVoyages). Brazil’s abolition (1888) falls outside this period and belongs to the next."
+ },
+ {
+  "slug": "palmares-zumbi",
+  "title": "Zumbi and the quilombo of Palmares",
+  "start": 1655,
+  "end": 1695,
+  "date": {
+   "text": "c. 1655–1695",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Caribbean and Latin America",
+  "peoples": [
+   "Black"
+  ],
+  "summary": "Zumbi, born in Kongo, enslaved and shipped to Brazil, escaped and led the quilombo of Palmares, a settlement of escaped Africans (as read in a promotional clip).",
+  "teaching": [
+   {
+    "points": [
+     "King Zumbi dos Palmares, a prince of the kingdom of Kongo, was captured as a child, shipped to Brazil as a slave, escaped and led Palmares in resistance: the king who came over with the Israelites from Africa."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "KsTXzp3-Bto",
+     "title": "Quest 8 - Searching & Seeking For Israel",
+     "date": "",
+     "ts": "3:35:00",
+     "url": "https://youtu.be/KsTXzp3-Bto?t=12900"
+    }
+   }
+  ],
+  "status": "draft",
+  "needs": "The moment is a book advertisement played in class (no date for the recording); find a class moment that teaches Palmares and read a documented source; the years here are not yet sourced."
+ },
+ {
+  "slug": "amherst-smallpox-1763",
+  "title": "Amherst and the smallpox blankets",
+  "start": 1763,
+  "end": 1763,
+  "date": {
+   "text": "1763",
+   "precision": "year"
+  },
+  "period": "house-of-bondage",
+  "group": "Native dispossession",
+  "peoples": [
+   "Native"
+  ],
+  "summary": "Sir Jeffery Amherst wrote of using smallpox against Native Americans during the siege of Fort Pitt (as read in class; not yet sourced).",
+  "teaching": [
+   {
+    "points": [
+     "Sir Jeffery Amherst wrote a letter on using smallpox blankets as a weapon against the Native Americans: the curses of disease applied to the northern kingdom."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "38RwOD1G_LI",
+     "title": "#IUIC | THE BIBLE: BOOK OF OUR FATHERS | Decadence, hatred and judgement the blackout of truth (P…",
+     "date": "2022-06-25",
+     "ts": "1:24:34",
+     "url": "https://youtu.be/38RwOD1G_LI?t=5074"
+    }
+   }
+  ],
+  "status": "draft",
+  "needs": "Read the moment fully (only the search hit was seen) and a documented source on Amherst, Bouquet and Fort Pitt (1763)."
+ },
+ {
+  "slug": "underground-railroad-tubman",
+  "title": "Harriet Tubman and the Underground Railroad",
+  "start": 1849,
+  "end": 1865,
+  "date": {
+   "text": "1849–1860s",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Abolition",
+  "peoples": [
+   "Black"
+  ],
+  "summary": "Harriet Tubman led enslaved people to freedom along the Underground Railroad (to be sourced).",
+  "teaching": [
+   {
+    "points": [
+     "We called Harriet Tubman Moses, not Pharaoh, and sang of Moses and the Jordan, because we knew who we were."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "N-pTbZFcNOI",
+     "title": "#IUIC | OUR HIDDEN HISTORY RADIO SHOW-DARK AGES: THE BEGINNING CHAPTER 1",
+     "date": "",
+     "ts": "2:29:20",
+     "url": "https://youtu.be/N-pTbZFcNOI?t=8960"
+    }
+   }
+  ],
+  "status": "draft",
+  "needs": "Recording undated; most class mentions are passing. Read a fuller teaching moment (e.g. GGhGQ3agZdA 1:23:09 on planned escapes) and a documented source (NPS Underground Railroad / Harriet Tubman NHP); years here are placeholders."
+ },
+ {
+  "slug": "sand-creek-massacre-1864",
+  "title": "The Sand Creek massacre",
+  "start": 1864,
+  "end": 1864,
+  "date": {
+   "text": "November 1864",
+   "precision": "month"
+  },
+  "period": "house-of-bondage",
+  "group": "Native dispossession",
+  "peoples": [
+   "Native"
+  ],
+  "summary": "Cheyenne and Arapaho people, mostly women, children and elders, were slaughtered at Sand Creek, Colorado (as said in the recording; not yet checked against a documented source).",
+  "teaching": [
+   {
+    "points": [
+     "Hundreds of Cheyenne and Arapaho were slaughtered at Sand Creek, primarily women, children and elders, alongside the Pequot massacre of 1637 and Wounded Knee."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "tfH_TDX9BLc",
+     "title": "Is #Thanksgiving a day to Celebrate as the Israelites?",
+     "date": "2020-11-09",
+     "ts": "0:37",
+     "url": "https://youtu.be/tfH_TDX9BLc?t=37"
+    }
+   }
+  ],
+  "status": "draft",
+  "needs": "The only moments found (tfH_TDX9BLc 0:37 and MtljMsRavVY 57:57) are a clip of an outside speaker played in class, not the class’s own teaching; a class moment that teaches Sand Creek and a documented source (e.g. NPS Sand Creek Massacre NHS) must be read. Date in this draft is from general knowledge and must be checked."
+ },
+ {
+  "slug": "ponce-massacre-1937",
+  "title": "The Ponce massacre",
+  "start": 1937,
+  "end": 1937,
+  "date": {
+   "text": "1937",
+   "precision": "year"
+  },
+  "period": "jim-crow",
+  "group": "Caribbean and Latin America",
+  "place": "Ponce, Puerto Rico",
+  "region": "Caribbean",
+  "peoples": [
+   "Hispanic"
+  ],
+  "people": [
+   "Pedro Albizu Campos"
+  ],
+  "summary": "",
+  "account": [],
+  "teaching": [
+   {
+    "points": [
+     "The massacres at Ponce and Utuado are among the atrocities that show why Esau is greatly despised; the class pointed to Captain Zef's book on them and to Pedro Albizu Campos, imprisoned in Atlanta."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "IyYFXp99olM",
+     "title": "Edom: The Greatly Despised",
+     "date": "2026-04-25",
+     "ts": "51:54",
+     "url": "https://youtu.be/IyYFXp99olM?t=3114"
+    }
+   }
+  ],
+  "sources": [],
+  "status": "draft",
+  "needs": "A documented source read for the Ponce massacre (date, events, deaths); the class only names it in passing at 51:54 and 1:36:28 and says there was no time to go into it, so a fuller class moment should be found too."
+ },
+ {
+  "slug": "school-of-the-americas",
+  "title": "The School of the Americas",
+  "start": 1953,
+  "end": 2001,
+  "date": {
+   "text": "1946–2001 (renamed WHINSEC)",
+   "precision": "range"
+  },
+  "group": "Caribbean and Latin America",
+  "peoples": [
+   "Hispanic"
+  ],
+  "people": [],
+  "summary": "The U.S. Army school that trained Latin American officers.",
+  "needs": "Read the class explanation (36emQd9wjts @2:53:21, 2026-01-18) and a documented source; dates above are unverified placeholders and must be checked.",
+  "period": "civil-rights-awakening",
+  "status": "draft"
+ },
+ {
+  "slug": "little-rock-and-birmingham",
+  "title": "Little Rock 1957 and the 16th Street Church bombing 1963",
+  "start": 1957,
+  "end": 1963,
+  "date": {
+   "text": "1957; September 15, 1963",
+   "precision": "range"
+  },
+  "group": "Civil rights",
+  "peoples": [
+   "Black"
+  ],
+  "people": [
+   "The Little Rock Nine"
+  ],
+  "summary": "School desegregation under army escort in Little Rock, and the bombing that killed four girls in Birmingham.",
+  "needs": "Read the class moment (TuGM0DEKzf0 @1:55:54 and @2:12:16, undated) and NARA/NPS sources.",
+  "period": "civil-rights-awakening",
+  "status": "draft"
+ },
+ {
+  "slug": "other-cia-coups-latin-america",
+  "title": "Chile 1973 and the other coups the classes list",
+  "start": 1964,
+  "end": 1989,
+  "date": {
+   "text": "1964–1989",
+   "precision": "range"
+  },
+  "group": "Caribbean and Latin America",
+  "peoples": [
+   "Hispanic"
+  ],
+  "people": [],
+  "summary": "Brazil 1964, Chile 1973, Uruguay 1973, Argentina 1976, El Salvador 1979, Nicaragua 1981, Panama 1989, as listed in classes.",
+  "teaching": [
+   {
+    "points": [
+     "The CIA has overthrown governments across South and Central America since the 1940s."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "stGojnrSmJA",
+     "title": "The End Of PAX Americana",
+     "date": "2026-07-30",
+     "ts": "1:43:14",
+     "url": "https://youtu.be/stGojnrSmJA?t=6194"
+    }
+   }
+  ],
+  "needs": "A documented source for each country and year (history.state.gov and the Church Committee were not reachable from here); several entries in the class's list (e.g. Peru 1968, Costa Rica 1948) need checking against what the sources say about U.S. involvement.",
+  "period": "civil-rights-awakening",
+  "status": "draft"
+ },
+ {
+  "slug": "shirley-chisholm-1969",
+  "title": "Shirley Chisholm sworn in to Congress",
+  "start": 1969,
+  "end": 1969,
+  "date": {
+   "text": "January 21, 1969 (per IUIC's page)",
+   "precision": "day"
+  },
+  "group": "Achievements",
+  "peoples": [
+   "Black"
+  ],
+  "people": [
+   "Shirley Chisholm"
+  ],
+  "summary": "Shirley Chisholm of New York was the first Black woman elected to Congress.",
+  "teaching": [
+   {
+    "points": [
+     "IUIC's history page lists it under the Civil Rights Movement: 'Jan. 21, 1969: New York Representative Shirley Chisholm is sworn in as the first Black woman elected to Congress.'"
+    ],
+    "source": {
+     "kind": "site",
+     "title": "History (Brief Israelite History)",
+     "url": "https://israelunite.org/history/"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Shirley Chisholm",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Shirley_Chisholm",
+    "accessed": "2026-10-03",
+    "supports": "fetched; not yet read for the swearing-in date"
+   }
+  ],
+  "needs": "A class teaching moment (only one passing mention was found, qj3xCqnsXjk @2:17:27, not taught); read the Wikipedia/House history page for the date (IUIC gives January 21, 1969; the House convened January 3, 1969 — check).",
+  "period": "civil-rights-awakening",
+  "status": "draft"
+ },
+ {
+  "slug": "nypd-louima-diallo",
+  "title": "Abner Louima (1997) and Amadou Diallo (1999)",
+  "start": 1997,
+  "end": 1999,
+  "date": {
+   "text": "1997–1999",
+   "precision": "range"
+  },
+  "group": "Other atrocities",
+  "peoples": [
+   "Black"
+  ],
+  "people": [
+   "Abner Louima",
+   "Amadou Diallo"
+  ],
+  "summary": "Two New York police cases of the late 1990s the classes name.",
+  "needs": "Read the class moments (-oIW6wISGJA @37:49 on Louima, 2020-01-24; pfqJkHWCMvY @56:33) and a documented source (court records / reputable press) for both cases.",
+  "period": "civil-rights-awakening",
+  "status": "draft"
+ },
+ {
+  "slug": "iuic-understandest-thou-book-2006",
+  "title": "Understandest Thou, What Thou Readest? is published",
+  "start": 2006,
+  "end": 2006,
+  "date": {
+   "text": "2006",
+   "precision": "year"
+  },
+  "period": "israel-united-in-christ",
+  "group": "Israel United in Christ",
+  "place": "United States",
+  "region": "North America",
+  "peoples": [
+   "Black",
+   "Hispanic",
+   "Native"
+  ],
+  "summary": "Bishop Nathanyel’s first book, Understandest Thou, What Thou Readest? A Pictorial Guide of Bible Secrets, was published by Trafford in 2006.",
+  "account": [
+   "The CDAMM entry (2026) lists Ben Israel, Nathanyel. 2006. Understandest Thou, What Thou Readest? A Pictorial Guide of Bible Secrets. Bloomington, IN: Trafford."
+  ],
+  "sources": [
+   {
+    "title": "Israel United in Christ",
+    "author": "Michael T. Miller",
+    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
+    "year": "2026",
+    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
+    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
+    "accessed": "2026-10-03",
+    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
+   }
+  ],
+  "needs": "A teaching moment about the book itself. Searches for the title found only readings of Acts 8:30, not the book.",
+  "status": "draft"
+ },
+ {
+  "slug": "iuic-jamaica-2015",
+  "title": "IUIC begins in Jamaica",
+  "start": 2015,
+  "end": 2015,
+  "date": {
+   "text": "Early 2015",
+   "precision": "month"
+  },
+  "period": "israel-united-in-christ",
+  "group": "Israel United in Christ",
+  "place": "Kingston, Jamaica",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "summary": "A member told The Gleaner in 2017 that IUIC’s Jamaican membership started in early 2015.",
+  "account": [
+   "The Gleaner (6 May 2017): Jamaican membership started in early 2015; IUIC then had 30 branches."
+  ],
+  "sources": [
+   {
+    "title": "Israel United In Christ offers a different perspective – Part I",
+    "author": "Paul H. Williams",
+    "publisher": "The Gleaner (Kingston, Jamaica)",
+    "year": "2017",
+    "url": "https://jamaica-gleaner.com/article/news/20170506/israel-united-christ-offers-different-perspective-part-i",
+    "via": "https://web.archive.org/web/20230306220108/https://jamaica-gleaner.com/article/news/20170506/israel-united-christ-offers-different-perspective-part-i",
+    "accessed": "2026-10-03",
+    "supports": "A member in Kingston said IUIC was founded in 2003 by Nethanyel Ben Israel in the United States, had 30 branches of “several thousand members” worldwide, and that Jamaican membership started in early 2015."
+   }
+  ],
+  "needs": "A teaching moment about the Jamaica school’s beginning (searches found only passing mentions that IUIC has a school in Jamaica).",
+  "status": "draft"
+ },
+ {
+  "slug": "iuic-community-ministries",
+  "title": "IUIC’s ministries: Men of Valor, Daughters of Sarah, food pantry and prison outreach",
+  "start": 2016,
+  "end": 2026,
+  "date": {
+   "text": "2010s–today",
+   "precision": "range"
+  },
+  "period": "israel-united-in-christ",
+  "group": "Israel United in Christ",
+  "place": "IUIC schools",
+  "region": "Worldwide",
+  "peoples": [
+   "Black",
+   "Hispanic",
+   "Native"
+  ],
+  "summary": "IUIC runs a Mighty Men of Valor training program, the Daughters of Sarah women’s group, food pantries in its schools, community clean-ups, and jail and prison outreach.",
+  "account": [
+   "IUIC’s ministry pages describe the Mighty Men of Valor program, the Food Pantry Program in each school, community clean-ups, “Cuts from the Street” interviews, flyer missions and the Prison Outreach Initiative Program; CDAMM (2026) describes the Daughters of Sarah, led by Nathanyel’s wife, and the community actions."
+  ],
+  "sources": [
+   {
+    "title": "Israel United in Christ",
+    "author": "Michael T. Miller",
+    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
+    "year": "2026",
+    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
+    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
+    "accessed": "2026-10-03",
+    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
+   },
+   {
+    "title": "Community Outreach",
+    "publisher": "Israel United in Christ (israelunite.org)",
+    "year": "2025",
+    "url": "https://israelunite.org/ministry/community-outreach/",
+    "accessed": "2026-10-03",
+    "supports": "Ministry descriptions (undated)."
+   }
+  ],
+  "needs": "Founding dates for each ministry. The earliest dated class mentions found: Daughters of Sarah by September 2016, Men of Valor program by April 2019 (set up by Captains Isaac, Hosea and Joshua), food pantry by March 2020.",
+  "status": "draft"
+ },
+ {
+  "slug": "iuic-hebrew-journal",
+  "title": "The IUIC Hebrew Journal",
+  "start": 2020,
+  "end": 2020,
+  "date": {
+   "text": "by May 2020",
+   "precision": "circa"
+  },
+  "period": "israel-united-in-christ",
+  "group": "Israel United in Christ",
+  "place": "United States",
+  "region": "Worldwide",
+  "peoples": [
+   "Black",
+   "Hispanic",
+   "Native"
+  ],
+  "summary": "IUIC publishes the Hebrew Journal, a digital and print magazine; classes were announcing new editions by May 2020.",
+  "account": [
+   "IUIC’s website describes the IUIC Hebrew Journal as a digital publication, with hard copies sold at local congregations."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "The Hebrew Journal keeps the people updated with the newest news; a new edition is out."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "5LTFsKQUFes",
+     "title": "SABBATH CLASS: African Tears And China's Fear",
+     "date": "2020-05-03",
+     "ts": "2:36:04",
+     "url": "https://youtu.be/5LTFsKQUFes?t=9364"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "The Hebrew Journal",
+    "publisher": "Israel United in Christ (israelunite.org)",
+    "year": "2025",
+    "url": "https://israelunite.org/the-hebrew-journal/",
+    "accessed": "2026-10-03",
+    "supports": "Description of the Hebrew Journal."
+   }
+  ],
+  "needs": "The date of the first issue from an official or documented source.",
+  "status": "draft"
+ },
+ {
+  "slug": "iuic-tv-launch",
+  "title": "IUIC launches IUIC TV",
+  "start": 2020,
+  "end": 2021,
+  "date": {
+   "text": "by January 2021",
+   "precision": "circa"
+  },
+  "period": "israel-united-in-christ",
+  "group": "Israel United in Christ",
+  "place": "Online",
+  "region": "Worldwide",
+  "peoples": [
+   "Black",
+   "Hispanic",
+   "Native"
+  ],
+  "summary": "IUIC launched its own streaming service, IUIC TV; classes were promoting it, available on Amazon Fire Stick, by January 2021.",
+  "account": [
+   "CDAMM (2026): IUIC has its own subscription streaming service, IUIC TV."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "IUIC TV, on Amazon Fire Stick, is how the teaching will be pushed forward."
+    ],
+    "source": {
+     "kind": "history",
+     "id": "v6LKFs-9YJA",
+     "title": "OHH - The Moors Featuring Black Musical Composers Chapter 19",
+     "date": "2021-01-12",
+     "ts": "2:29:22",
+     "url": "https://youtu.be/v6LKFs-9YJA?t=8962"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Israel United in Christ",
+    "author": "Michael T. Miller",
+    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
+    "year": "2026",
+    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
+    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
+    "accessed": "2026-10-03",
+    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
+   }
+  ],
+  "needs": "A documented launch date (app-store listing or official announcement).",
+  "status": "draft"
+ },
+ {
+  "slug": "iuic-worldwide-blitz-2026",
+  "title": "Passover 2026 worldwide blitz",
+  "start": 2026,
+  "end": 2026,
+  "date": {
+   "text": "Spring 2026",
+   "precision": "circa"
+  },
+  "period": "israel-united-in-christ",
+  "group": "Israel United in Christ",
+  "place": "Liberia, Sierra Leone, Kenya, Tanzania, Zanzibar, Madagascar and elsewhere",
+  "region": "Worldwide",
+  "peoples": [
+   "Black"
+  ],
+  "summary": "Around Passover 2026 IUIC officers travelled to congregations in Africa and elsewhere.",
+  "account": [],
+  "sources": [],
+  "needs": "A documented source; only class mentions found (93fP6cddXrs, -cEhJw1V02Y, 2026-05).",
+  "status": "draft"
+ }
+]

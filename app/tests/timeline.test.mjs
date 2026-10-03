@@ -34,7 +34,10 @@ test("the canvas is laid out with their constants: 100/interval px a year, 24 ro
 });
 
 test("the data keeps their history and leaves out their prophetic teaching", () => {
-  assert.equal(DATA.sections.length, 12);
+  // Bible Strong's twelve periods, then The Final Captivity's (app/scripts/final-captivity), last.
+  const theirs = DATA.sections.filter((s) => !String(s.id).startsWith("fc-"));
+  assert.equal(theirs.length, 12);
+  assert.ok(DATA.sections.slice(12).every((s) => s.sectionTitle === "The Final Captivity"));
   assert.ok(!DATA.sections.some((s) => s.title === "Revelation Prophecies"));
   const titles = DATA.sections.flatMap((s) => s.events.map((e) => e.title));
   for (const t of ["2300 Day Prophecy", "1260 Day Prophecy", "The Two Beasts of Revelation 13", "Church of Laodicea, Age of Judgment"]) assert.ok(!titles.includes(t), t);

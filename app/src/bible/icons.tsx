@@ -5,7 +5,7 @@ export type FeatherName =
   | "music" | "alert-circle"
   | "file-plus" | "tag" | "link" | "git-merge" | "precepts" | "bookmark" | "crosshair" | "edit-2" | "copy" | "share-2" | "download" | "check-square" | "layers"
   | "sun" | "moon" | "sunrise" | "type" | "align-left" | "align-justify" | "arrow-right" | "corner-down-right" | "chevron-right" | "chevron-down" | "chevron-up" | "chevron-left" | "chevrons-left" | "chevrons-right" | "chevrons-down"
-  | "more-vertical" | "arrow-left" | "x" | "list" | "hash" | "grid" | "arrow-right-circle" | "book" | "book-open" | "search" | "plus" | "check" | "clock" | "settings" | "trash-2" | "film" | "external-link" | "play" | "pause" | "skip-back" | "skip-forward" | "volume-2" | "edit-3" | "square" | "mic" | "sliders" | "users" | "repeat" | "arrow-up" | "arrow-down" | "heart" | "rotate-ccw" | "user";
+  | "more-vertical" | "arrow-left" | "x" | "list" | "hash" | "grid" | "arrow-right-circle" | "book" | "book-open" | "search" | "plus" | "check" | "clock" | "settings" | "trash-2" | "film" | "external-link" | "play" | "pause" | "skip-back" | "skip-forward" | "volume-2" | "edit-3" | "square" | "mic" | "sliders" | "users" | "repeat" | "arrow-up" | "arrow-down" | "heart" | "rotate-ccw" | "user" | "map-pin" | "globe" | "play-circle";
 
 const P: Record<FeatherName, string> = {
   music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
@@ -63,6 +63,9 @@ const P: Record<FeatherName, string> = {
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
   "trash-2": '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>',
   film: '<rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/>',
+  "map-pin": '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+  globe: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  "play-circle": '<circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>',
   "external-link": '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
   play: '<polygon points="5 3 19 12 5 21 5 3"/>',
   pause: '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>',
