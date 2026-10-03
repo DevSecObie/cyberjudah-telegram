@@ -1,0 +1,25 @@
+{
+ "leaders": [
+  {
+   "id": "bishop-nathanyel",
+   "name": "Bishop Nathanyel",
+   "role": "Founder of Israel United in Christ",
+   "photo": "timeline/leaders/bishop-nathanyel",
+   "credit": "Israel United in Christ; supplied by the owner, 2026-10-03"
+  },
+  {
+   "id": "bishop-yawasap",
+   "name": "Bishop Yawasap",
+   "role": "Bishop of Israel United in Christ",
+   "photo": "timeline/leaders/bishop-yawasap",
+   "credit": "Israel United in Christ, official leadership portrait (israelunite.org/leadership/bishops/bishop-yawasap)"
+  },
+  {
+   "id": "bishop-kani",
+   "name": "Bishop Kani",
+   "role": "Bishop of Israel United in Christ",
+   "photo": "timeline/leaders/bishop-kani",
+   "credit": "Israel United in Christ, official leadership portrait (israelunite.org/leadership/bishops/bishop-kani)"
+  }
+ ]
+}

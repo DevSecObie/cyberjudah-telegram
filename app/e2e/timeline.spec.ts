@@ -230,5 +230,10 @@ test("The Final Captivity: a period's events by category, and an event's history
   await page.goto(`/timeline/${index}`);
   await expect(page.getByRole("heading", { name: "The House of Bondage" })).toBeVisible();
   await shot(page, "fc-2-period");
+  // An event about a leader shows the leader's portrait.
+  await page.goto("/timeline/event/iuic-founded-2003");
+  await expect(page.locator("img.tl-event__pic")).toHaveAttribute("src", /timeline\/leaders\/bishop-nathanyel-256\.webp$/);
+  await expect(page.locator("img.tl-event__pic")).toHaveJSProperty("complete", true);
+  await shot(page, "fc-3-leader");
 });
 

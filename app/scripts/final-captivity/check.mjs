@@ -35,7 +35,7 @@ export const seconds = (ts) => { const m = TS.exec(String(ts)); return m ? (+(m[
 export const words = (s) => String(s).toLowerCase().replace(/[’']/g, "'").replace(/[^a-z0-9' ]+/g, " ").replace(/\s+/g, " ").trim().replace(/(\d) (?=\d)/g, "$1");
 
 /** Problems with one event (and the slugs seen so far), as strings. `corpus` is optional. */
-export function checkEvent(e, periods, { corpus, draft = false } = {}) {
+export function checkEvent(e, periods, { corpus, draft = false, leaders = null } = {}) {
   const p = [];
   const at = `${e.slug ?? "(no slug)"}`;
   const need = (k) => { if (e[k] == null || e[k] === "" || (Array.isArray(e[k]) && !e[k].length)) p.push(`${at}: missing ${k}`); };
@@ -55,6 +55,7 @@ export function checkEvent(e, periods, { corpus, draft = false } = {}) {
     if (!r) p.push(`${at}: scripture "${s.ref}" is not a reference in the app's book names`);
     else if (corpus?.verse && !corpus.verse(r)) p.push(`${at}: scripture "${s.ref}" is not in the KJV`);
   }
+  if (e.leader && leaders && !leaders.some((l) => l.id === e.leader)) p.push(`${at}: leader "${e.leader}" is not in leaders.json`);
   if (e.image) {
     const i = e.image;
     if (!["archival", "generated"].includes(i.kind)) p.push(`${at}: image kind must be archival or generated`);
@@ -135,13 +136,16 @@ export function checkAll({ corpus } = {}) {
   const events = read("events.json");
   const drafts = read("drafts.json");
   const ledger = read("ledger.json");
+  const { leaders } = read("leaders.json");
   const problems = [];
+  // Each leader's portrait (owner-supplied photographs, app/public/<photo>-<size>.webp) is there in every size drawn.
+  for (const l of leaders) for (const n of [128, 256, 512]) if (!fs.existsSync(path.join(HERE, "../../public", `${l.photo}-${n}.webp`))) problems.push(`leaders.json: ${l.id}: ${l.photo}-${n}.webp is missing`);
   const seen = new Set();
   for (const [list, draft] of [[events, false], [drafts, true]]) {
     for (const e of list) {
       if (seen.has(e.slug)) problems.push(`${e.slug}: slug used twice`);
       seen.add(e.slug);
-      problems.push(...checkEvent(e, periods, { corpus, draft }));
+      problems.push(...checkEvent(e, periods, { corpus, draft, leaders }));
     }
   }
   // Published events in time order within each period (the build places them; this keeps the file readable).

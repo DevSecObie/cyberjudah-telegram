@@ -57,7 +57,8 @@ function PeriodPicture({ s, className, eager }: { s: TimelineSection; className:
 }
 
 /** An event's picture: the approved portrait of its person, at the size drawn (64px strip, 150px detail, search). */
-const portraitSrc = (e: TimelineEvent, size: 128 | 256) => (e.portrait ? `${BASE}people/${e.portrait}-${size}.webp` : null);
+/** An event's picture: the approved People portrait of its person, or the portrait of the IUIC leader it is about (app/scripts/final-captivity/leaders.json). */
+const portraitSrc = (e: TimelineEvent, size: 128 | 256) => (e.portrait ? `${BASE}people/${e.portrait}-${size}.webp` : e.leader ? `${BASE}timeline/leaders/${e.leader}-${size}.webp` : null);
 
 /** Where a period's canvas was, and which event was opened from it, for this visit (the history entry). */
 type Place = { x: number; y: number; focus?: string };
