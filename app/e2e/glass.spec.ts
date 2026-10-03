@@ -343,3 +343,30 @@ test("materials: unsupported-filter CSS branch yields opaque reader surfaces", a
   await page.getByRole("button", { name: "Scripture options" }).click();
   for (const material of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) expect(material).toMatchObject({ filter: "none", alpha: 255 });
 });
+
+for (const focus of ["field", "current Search control", "another control"] as const) {
+  test(`search: a delayed mount respects focus on ${focus}`, async ({ page }) => {
+    await setup(page);
+    let release!: () => void, requested!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const waiting = new Promise<void>(resolve => { requested = resolve; });
+    // Hold the real lazy-loaded screen, in production builds and the development server.
+    await page.route(/\/(?:assets\/Search-[^/]+\.js|src\/screens\/Search\.tsx)(?:\?.*)?$/, async route => { requested(); await gate; await route.continue(); });
+    await page.goto(`/search${LAUNCH}`, { waitUntil: "domcontentloaded" });
+    await waiting;
+    const next = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Classes", exact: true });
+    try {
+      if (focus === "another control") await next.focus();
+      else if (focus === "current Search control") await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Search", exact: true }).focus();
+    }
+    finally { release(); }
+    const field = page.getByRole("searchbox", { name: "Search CyberJudah", exact: true });
+    await expect(field).toBeVisible();
+    if (focus !== "another control") await expect(field).toBeFocused();
+    else {
+      await expect(next).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(/\/classes/);
+    }
+  });
+}
