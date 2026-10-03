@@ -123,6 +123,9 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   is unavailable, Ask answers from the keyword search.
 
 ### Changed
+- The Bible Timeline shows 45 more portraits (83 in all): picture rounds 2–4 (Solomon recropped, the
+  Red Sea, Bethel, Christ, prophets, kings, apostles, Reformation figures and Jacob), with their
+  sources in docs/AVATARS.md.
 - Adapt the dock into a sidebar from 900px, reserve content width, and keep navigation reachable after scrolling or resizing, including native document scrolling in WebKit.
 
 - Unify Liquid Glass control styles, capsule sizing, nested radii and accessible large-text behavior, including lifted knobs, shared header fades, enlarged segmented labels and touch scrolling for overflowing navigation rails.
