@@ -1184,6 +1184,17 @@ test("Classes: a class in a series is labelled by it, and the series opens in or
 });
 
 test("Classes: one recording plays at a time, a preview reads on, the scripture opens, and a class is saved", async ({ page }) => {
+  // Exercise a written class, not whichever new upload the live channel currently puts first.
+  const classes = Array.from({ length: 14 }, (_, i) => ({
+    title: `Class fixture ${i + 1}`, url: `/classes/fixture-${i + 1}`, date: "2026-01-01", year: "2026",
+    teacher: "Test teacher", thumb: "", books: ["Genesis"], videoId: String(i).padStart(11, "a"),
+    intro: "The class opens the Scriptures and reads the passage in its context. ".repeat(12),
+    opens: [{ label: "Genesis 1", slug: "genesis", chapter: 1 }],
+  }));
+  await page.route(`${DATA_ORIGIN}/search/classes.json`, r => r.fulfill({ json: classes }));
+  await page.route(`${DATA_ORIGIN}/search/captains.json`, r => r.fulfill({ json: [] }));
+  await page.route(`${DATA_ORIGIN}/api/history/index.json`, r => r.fulfill({ json: [] }));
+  await page.route("**/api/recent", r => r.fulfill({ json: { videos: [] } }));
   await page.goto(`/classes${LAUNCH}`);
   const posts = page.locator("article.post");
   await expect(posts).toHaveCount(12);
