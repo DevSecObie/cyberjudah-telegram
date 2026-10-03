@@ -54,7 +54,7 @@ export function SearchBar({ id, value, onChange, onSubmit, onCancel, placeholder
           <input ref={field} id={id} type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" spellCheck={false}
             placeholder={placeholder} aria-label={placeholder} aria-controls={controls}
             value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={onFieldKey} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
-          {value ? <button type="button" className="srch__clear" aria-label="Clear the search" onClick={() => { onChange(""); field.current?.focus(); }}><Icon name="close" size={14} /></button> : <kbd className="srch__kbd" aria-hidden="true">/</kbd>}
+          {value ? <button type="button" className="srch__clear" aria-label="Clear the search" title="Clear the search" onClick={() => { onChange(""); field.current?.focus(); }}><Icon name="close" size={14} /></button> : <kbd className="srch__kbd" aria-hidden="true">/</kbd>}
         </label>
         {focused || value ? <button type="button" className="srch__cancel" onMouseDown={(e) => e.preventDefault()} onClick={() => { field.current?.blur(); onCancel(); }}>Cancel</button> : null}
       </form>

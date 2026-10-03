@@ -37,8 +37,8 @@ export function NoteRequests() {
                     <b>{r.title || r.video}</b>
                     <small>{r.count} {r.count === 1 ? "request" : "requests"}{r.last ? ` · last ${fmtDate(r.last.slice(0, 10))}` : ""} · {r.video}</small>
                   </button>
-                  <button type="button" className="btn btn--bordered btn--sm nreq__btn nreq__btn--quiet" aria-label={`Copy the id of ${r.title || r.video}`} onClick={() => copy(r.video)}>Copy id</button>
-                  <button type="button" className="btn btn--bordered btn--sm nreq__btn nreq__btn--quiet" aria-label={`Mark ${r.title || r.video} done`} disabled={close.isPending} onClick={() => { haptic("select"); close.mutate(r.video); }}>Done</button>
+                  <button type="button" className="btn btn--bordered btn--sm nreq__btn nreq__btn--quiet" aria-label={`Copy the id of ${r.title || r.video}`} title={`Copy the id of ${r.title || r.video}`} onClick={() => copy(r.video)}>Copy id</button>
+                  <button type="button" className="btn btn--bordered btn--sm nreq__btn nreq__btn--quiet" aria-label={`Mark ${r.title || r.video} done`} title={`Mark ${r.title || r.video} done`} disabled={close.isPending} onClick={() => { haptic("select"); close.mutate(r.video); }}>Done</button>
                 </li>
               ))}
             </ul>

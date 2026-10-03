@@ -1,0 +1,33 @@
+{
+  "browser": "153.0.8010.12",
+  "build": "production",
+  "cpuThrottle": 4,
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "measurements": [
+    {
+      "action": "dock-drag",
+      "samples": 129,
+      "medianMs": 16.7,
+      "p95Ms": 16.8,
+      "maxMs": 66.7,
+      "framesOver33ms": 1,
+      "layoutEvents": 3,
+      "layoutMs": 36.27
+    },
+    {
+      "action": "sheet-open",
+      "samples": 50,
+      "medianMs": 16.7,
+      "p95Ms": 33.3,
+      "maxMs": 83.3,
+      "framesOver33ms": 2,
+      "layoutEvents": 4,
+      "layoutMs": 37.39
+    }
+  ],
+  "measuredCommit": "e156107c26afce2f8ff4878b87d1411342e9caa4",
+  "scope": "Production sheet geometry and focus changes; 4x CPU, cold sheet open and dock release into navigation. Snapshot-isolated browser run; long frames remain for section 10."
+}

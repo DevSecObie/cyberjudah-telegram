@@ -62,6 +62,7 @@
   --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent);
   --mat-elevated: color-mix(in srgb, var(--surface-1) var(--mat-elevated-density), transparent);
   --mat-overlay: var(--surface-1);
+  --toolbar-gap: 12px;
   --rail-space: 0px; --content-width: calc(100vw - var(--rail-space));
   --mat-scroll-edge-depth: 14px;
   --mat-scroll-edge: linear-gradient(#000 calc(100% - var(--mat-scroll-edge-depth)), transparent);
@@ -86,7 +87,7 @@
   --scrim-media: rgba(0, 0, 0, .35);
 
   /* Shape: radii nest (inner = outer − padding). */
-  --r-min: 4px; --r-floating: 38px;
+  --r-min: 4px; --r-floating: 38px; --r-sheet: 36px; --sheet-gap: 8px;
   --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 18px; --r-xl: 22px; --r-2xl: 28px; --r-pill: 999px;
 
   /* Space and size. */
