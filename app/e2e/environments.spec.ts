@@ -42,7 +42,8 @@ test("in a browser, Ask takes a question under the browser's own credential and 
   await page.goto("/ask");
   // Not disabled with "Open in Telegram": the browser asks with the free model.
   await expect(page.locator(".chat2__outside")).toContainText("free model");
-  await expect(page.locator(".chat2__heading small")).toContainText("a day here");
+  // The browser's free credits, never a count of questions.
+  await expect(page.locator(".chat2__heading small")).toHaveText(/^[\d,]+ credits · [\d,]+ free today$/);
   await expect.poll(() => credential(page)).toMatch(/^[0-9a-f]{32}\.[A-Za-z0-9_-]{43}$/);
   const box = page.getByRole("textbox", { name: "Your question" });
   await expect(box).toBeEnabled();
@@ -60,19 +61,19 @@ test("in a browser, Ask takes a question under the browser's own credential and 
   await expect(page.getByRole("button", { name: "Your chats" })).toBeDisabled();
 });
 
-test("in a browser, the day's questions run out with a message, and Open in Telegram keeps Ask as the destination", async ({ page }) => {
+test("in a browser, when the day's free credits are used, Open in Telegram keeps Ask as the destination", async ({ page }) => {
   test.setTimeout(90_000);
   await inBrowser(page);
   await page.goto("/ask");
   await expect.poll(() => credential(page)).toBeTruthy();
   const cred = await credential(page);
-  const day = new Date().toISOString().slice(0, 10);
-  d1(`CREATE TABLE IF NOT EXISTS rate_counts (key TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0); INSERT OR REPLACE INTO rate_counts (key, n) VALUES ('ask-browser:dev:${cred!.split(".")[0]}:${day}', 1000)`);
+  // The browser's free credits for today, spent.
+  d1(`UPDATE credit_lots SET remaining_mc = 0 WHERE user_id = 'dev:${cred!.split(".")[0]}'`);
   await page.getByRole("textbox", { name: "Your question" }).fill("Who are the twelve tribes?");
   await page.getByRole("button", { name: "Send" }).click();
-  const err = page.locator(".msg--ai .msg__error");
-  await expect(err).toContainText("today's questions in this browser");
-  await err.getByRole("button", { name: "Open in Telegram" }).click();
+  const card = page.locator(".msg--ai .creditcard");
+  await expect(card).toContainText("Not enough credits for this answer");
+  await card.getByRole("button", { name: "Get more credits in Telegram" }).click();
   expect(await page.evaluate(() => (window as unknown as { __opened: string[] }).__opened)).toEqual(["https://t.me/CyberJudah_bot/cybr?startapp=ask"]);
 });
 

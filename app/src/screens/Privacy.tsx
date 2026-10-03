@@ -31,7 +31,7 @@ export function Privacy() {
     finally { setBusy(""); }
   };
   const deleteAll = async () => {
-    if (!(await confirm("Delete everything CyberJudah keeps about you? Your saved Ask chats, reading reminder, daily verse, Ask allowance (any Stars credit or plan left is lost) and class-note requests. This cannot be undone."))) return;
+    if (!(await confirm("Delete everything CyberJudah keeps about you? Your saved Ask chats, reading reminder, daily verse, Ask credits (any credits or plan left are lost) and class-note requests. This cannot be undone."))) return;
     setBusy("delete"); setStatus("");
     try {
       const r = await api<{ ok: boolean; summary: string; deleted: Deleted }>("/api/privacy/delete", { method: "POST", json: { confirm: "delete" } });
@@ -65,7 +65,7 @@ export function Privacy() {
           <li><b>Saved Ask chats:</b> your questions and the answers, so you can reopen them. Removed 180 days after you last use a chat, or when you delete it.</li>
           <li><b>Reading reminder:</b> its time, time zone, where to send it and the chat or browser to send it to. Kept until you turn it off. A browser not linked to Telegram is forgotten after 180 days unused.</li>
           <li><b>Daily verse:</b> the hour and the chat to send it to. Kept until you send /daily again.</li>
-          <li><b>Ask allowance:</b> what you used today, your plan and your Stars credit. Removed 180 days after it is empty and unused.</li>
+          <li><b>Ask credits:</b> your balance, each credit added or used (the model, number of steps and cost of each answer, never the question), and your plan. Kept until you delete your data.</li>
           <li><b>Stars payments:</b> Telegram's charge reference, what was bought, the amount and the date, for refunds and the accounts. Deleting your data unlinks them from you.</li>
           <li><b>Class-note requests:</b> so each person counts once. Kept until the notes are written.</li>
           <li><b>Counts:</b> how many questions you asked today (cleared daily) and whether you asked on a given day (30 days), for limits and costs.</li>

@@ -10,7 +10,7 @@ import { runSearch } from "./search";
 import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./teachings";
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
-import { ask, askStream, browserDaily, freeModel, similar, speakVerse } from "./ai";
+import { ask, askStream, creditsOn, freeModel, similar, speakVerse } from "./ai";
 import { clientIp, deviceOf, issueDevice, type Device } from "./device";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
@@ -26,11 +26,13 @@ import { CHAT_ID, deleteChat, getChat, getPending, listChats, moveLegacy, setAct
 import { askedBy, closeRequest, getRequest, listRequests, requestNotes, validVideo } from "./requests";
 import { tellAdmins } from "./health";
 import { notePdf, pdfName } from "./pdf.mjs";
-import { billingOn, invoiceFor, prices, pruneBilling, standing, usageDay, SUPPORT_STARS } from "./billing";
+import { cancelPlan, invoiceFor, pruneBilling, refundStars, SUPPORT_STARS } from "./billing";
+import { creditsConfig, history as creditHistory, ownerOfDevice, ownerOfUser, prepare as prepareCredits, typicalMc, usageDayCredits, wallet as creditWallet } from "./credits";
+import { estimateMc } from "../../shared/credits.mjs";
 import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 import { hasClaude, unifiedBilling } from "./providers";
-import { costFactor, MODELS, modelOf } from "../../shared/ask-models.mjs";
+import { MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid, seal } from "./privacy.mjs";
 import { migratePrivacy } from "./privacy-migrate";
 import { deleteData, exportData } from "./mydata";
@@ -40,7 +42,7 @@ type App = { Bindings: Env; Variables: { tma: InitData; device?: Device } };
  * The calls a browser may make with its device credential (device.ts) instead of Telegram launch
  * data: Ask on the free model and its allowance. Everything else is a Telegram reader's.
  */
-const BROWSER_ROUTES = new Set(["POST /api/ask", "GET /api/ask/account"]);
+const BROWSER_ROUTES = new Set(["POST /api/ask", "GET /api/ask/account", "GET /api/ask/history"]);
 const app = new Hono<App>();
 // Public Bible Strong resource feed; independent of Telegram authentication.
 app.route("/bs", bs);
@@ -196,17 +198,21 @@ app.post("/api/device", async (c) => {
 
 app.post("/api/ask", async (c) => {
   const device = c.get("device");
-  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown }>().catch(() => null);
+  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown; request?: string; maxCredits?: number; caps?: Record<string, unknown> }>().catch(() => null);
+  // The request's id (a retry of the same request holds once) and the most the reader accepted it may cost, in credits.
+  // The app sends every limit the reader accepted, by model (caps); the server takes the one for the model it resolves.
+  const caps = body?.caps && typeof body.caps === "object" ? Object.fromEntries(Object.entries(body.caps).filter(([k, v]) => k.length < 120 && typeof v === "number" && Number.isFinite(v) && v > 0).slice(0, 200)) as Record<string, number> : undefined;
+  const meterOpts = { request: typeof body?.request === "string" ? body.request : undefined, maxCredits: typeof body?.maxCredits === "number" && Number.isFinite(body.maxCredits) ? body.maxCredits : undefined, caps };
   // The AI providers this reader has agreed may receive their questions (docs/PRIVACY.md).
   const consent = Array.isArray(body?.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
   // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
   const history = normalizeHistory(body?.history, 8);
   // A browser asks on the free model, streamed, its conversation kept in the browser (askStream).
-  if (device) return askStream(c.env, String(body?.q ?? ""), 0, c.executionCtx, history, undefined, false, undefined, consent, device.dev);
-  if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent);
+  if (device) return askStream(c.env, String(body?.q ?? ""), 0, c.executionCtx, history, undefined, false, undefined, consent, device.dev, meterOpts);
+  if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent, undefined, meterOpts);
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
-  return c.json(res, res.ok ? 200 : res.reason === "limit" ? 429 : res.reason === "too-short" ? 400 : 503);
+  return c.json(res, res.ok ? 200 : res.reason === "limit" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" ? 400 : 503);
 });
 // A note as a PDF: a signed link the app hands to Telegram's downloader, or the file sent to the
 // person's chat with the bot. The link names the note and an expiry, signed with the bot token.
@@ -260,34 +266,68 @@ app.get("/api/pdf/*", async (c) => {
   return new Response(bytes, { headers: { "content-type": "application/pdf", "content-disposition": `attachment; filename="${pdfName(note)}"`, "cache-control": "private, max-age=600" } });
 });
 
-// Ask CyberJudah's allowance: what is left, what the plan and the packs give, and buying them with Stars.
+// Ask CyberJudah's credits: the balance (by kind, in the order it is spent), today's free credits,
+// the plan and the top-ups on sale, what each model typically and at most costs, the history, and
+// buying with Stars (shared/credits.mjs, credits.ts, billing.ts).
+const askModels = (env: Env) => MODELS.filter((m) => (m.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY));
+async function modelCosts(env: Env, models: AskModel[]) {
+  const cfg = creditsConfig(env);
+  return Promise.all(models.map(async (m) => {
+    const est = estimateMc(m, cfg, { claudeViaCloudflare: unifiedBilling(env) });
+    return { id: m.id, name: m.name, provider: m.provider, what: m.what, typical_mc: (await typicalMc(env, m.id).catch(() => null)) ?? est.typicalMc, max_mc: est.maxMc, ...(m.id === freeModel(env).id ? { free: true } : {}) };
+  }));
+}
 app.get("/api/ask/account", async (c) => {
-  if (c.get("device")) {
-    const f = freeModel(c.env);
-    return c.json({ ok: true, browser: true, metered: false, unlimited: false, balance: 0, perQuestion: 0, freeDaily: 0, browserDaily: browserDaily(c.env), plan: null, packs: [], models: [{ id: f.id, name: f.name, provider: f.provider, what: f.what, cost: 0, free: true }], model: f.id });
-  }
-  const uid = c.get("tma").user!.id;
-  const p = prices(c.env);
-  const st = await standing(c.env, uid);
-  return c.json({ ok: true, metered: billingOn(c.env), unlimited: st.unlimited, balance: st.balance, perQuestion: st.perQuestion, freeDaily: p.freeDaily, plan: p.plan, packs: p.packs, models: MODELS.filter((m) => (m.format === "anthropic" ? hasClaude(c.env) : !!c.env.AI_GATEWAY)).map(({ id, name, provider, what }) => ({ id, name, provider, what, cost: costFactor(modelOf(id)), ...(id === freeModel(c.env).id ? { free: true } : {}) })), model: modelOf(c.env.CLAUDE_MODEL).id });
+  const cfg = creditsConfig(c.env);
+  const device = c.get("device");
+  const owner = device ? ownerOfDevice(device.dev) : await ownerOfUser(c.env, c.get("tma").user!.id);
+  if (creditsOn(c.env)) await prepareCredits(c.env, owner, { dailyMc: device ? cfg.browserDailyMc : cfg.freeDailyMc, uid: device ? undefined : c.get("tma").user!.id });
+  const models = device ? [freeModel(c.env)] : askModels(c.env);
+  return c.json({
+    ok: true, browser: !!device, metered: creditsOn(c.env), unlimited: !device && isAdmin(c.env, c.get("tma").user!.id),
+    wallet: await creditWallet(c.env, owner),
+    free_daily_mc: device ? cfg.browserDailyMc : cfg.freeDailyMc,
+    confirm_above_mc: cfg.confirmAboveMc,
+    // On sale only once the pricing is complete and confirmed (shared/credits.mjs missingPricing).
+    sale: device ? null : { open: !cfg.missing.length, plan: cfg.plan, packs: cfg.packs },
+    models: await modelCosts(c.env, models),
+    model: device ? freeModel(c.env).id : modelOf(c.env.CLAUDE_MODEL).id,
+  });
+});
+app.get("/api/ask/history", async (c) => {
+  const device = c.get("device");
+  const owner = device ? ownerOfDevice(device.dev) : await ownerOfUser(c.env, c.get("tma").user!.id);
+  return c.json({ ok: true, items: await creditHistory(c.env, owner, 60) });
 });
 app.post("/api/ask/buy", async (c) => {
   const item = String(((await c.req.json<{ item?: string }>().catch(() => null)) ?? {}).item ?? "");
   if (!/^(plan|pack:\d{1,6})$/.test(item)) return c.json({ ok: false, error: "Not an item." }, 400);
-  if (!billingOn(c.env)) return c.json({ ok: false, error: "Plans are not on sale yet." }, 409);
-  try { return c.json({ ok: true, link: await invoiceFor(c.env, c.get("tma").user!.id, item) }); }
-  catch (e) { console.error(JSON.stringify({ event: "ask_invoice_failed", message: (e as Error).message?.slice(0, 160) })); return c.json({ ok: false, error: "The invoice could not be made." }, 502); }
+  if (!creditsOn(c.env)) return c.json({ ok: false, error: "Credits are not on sale yet." }, 409);
+  try {
+    const r = await invoiceFor(c.env, c.get("tma").user!.id, item);
+    if (!r.ok) { console.error(JSON.stringify({ event: "ask_sale_closed", missing: r.missing.length })); return c.json({ ok: false, error: "Credits are not on sale just yet." }, 409); }
+    return c.json({ ok: true, link: r.link });
+  } catch (e) { console.error(JSON.stringify({ event: "ask_invoice_failed", message: (e as Error).message?.slice(0, 160) })); return c.json({ ok: false, error: "The invoice could not be made." }, 502); }
 });
-// The admins' view of what Ask costs: questions and units a day, and what that comes to.
+app.post("/api/ask/plan/cancel", async (c) => {
+  try { return c.json({ ok: await cancelPlan(c.env, c.get("tma").user!.id) }); }
+  catch (e) { console.error(JSON.stringify({ event: "plan_cancel_failed", message: (e as Error).message?.slice(0, 160) })); return c.json({ ok: false }, 502); }
+});
+// The admins' view: what Ask cost and was charged each day, the pricing and what it still lacks.
 app.get("/api/admin/usage", async (c) => {
   if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false }, 403);
-  const p = prices(c.env);
-  const days = await Promise.all(Array.from({ length: 14 }, (_, i) => new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)).map(async (day) => {
-    const d = await usageDay(c.env, day);
-    return { day, questions: d.questions, people: d.people, units: d.units, usd: Math.round((d.units / 1e6) * p.usdPerMtok * 100) / 100 };
-  }));
+  const cfg = creditsConfig(c.env);
+  const days = await Promise.all(Array.from({ length: 14 }, (_, i) => new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)).map(async (day) => ({ day, ...(await usageDayCredits(c.env, day)) })));
   const remindersByChannel = await reminderCounts(c.env).catch(() => null);
-  return c.json({ ok: true, usdPerMtok: p.usdPerMtok, usdPerStar: p.usdPerStar, margin: p.margin, days, reminders: remindersByChannel });
+  return c.json({ ok: true, pricing: { usdPerStar: cfg.usdPerStar, margin: cfg.margin, planBonus: cfg.planBonus, creditsPerStar: cfg.creditsPerStar, plan: cfg.plan, packs: cfg.packs, freeDailyMc: cfg.freeDailyMc, unifiedFee: cfg.unifiedFee, research: cfg.research, missing: cfg.missing }, days, reminders: remindersByChannel });
+});
+// An admin's refund: the Stars back through Telegram, and that payment's unspent credits taken back.
+app.post("/api/admin/refund", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false }, 403);
+  const b = await c.req.json<{ user?: number; charge?: string }>().catch(() => null);
+  if (!b || !Number.isSafeInteger(b.user) || typeof b.charge !== "string" || !b.charge) return c.json({ ok: false, error: "user and charge" }, 400);
+  try { return c.json({ ok: true, result: await refundStars(c.env, b.user!, b.charge) }); }
+  catch (e) { return c.json({ ok: false, error: (e as Error).message?.slice(0, 160) }, 502); }
 });
 
 // The person's saved conversations with Ask CyberJudah: the list, one to reopen, one to delete.

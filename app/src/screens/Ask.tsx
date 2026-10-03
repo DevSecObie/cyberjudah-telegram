@@ -9,6 +9,7 @@ import { saveReminder, timeLabel, timeZone, type Settings as ReminderSettings } 
 import { useContent } from "./Reminders";
 import { safeLinks } from "@/lib/safe-links";
 import { resetTime } from "@/lib/reset-time";
+import { fmtCredits, MC } from "@shared/credits.mjs";
 import { chosenModel, chooseModel } from "@/lib/ask-model";
 import { agree, consented } from "@/lib/ai-consent";
 import { spinnerLine } from "@/lib/spinner";
@@ -26,7 +27,9 @@ export type Passage = { kind: string; title: string; url: string; sub?: string; 
 export type Source = Passage & { n: number };
 /** A change the assistant proposed; only the reader's Confirm carries it out (bot/src/assistant.mjs). */
 export type Action = { id: string; kind: "reminder"; summary: string; settings: ReminderSettings; state?: "applied" | "cancelled" };
-type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[]; actions?: Action[]; waiting?: boolean; backup?: boolean; limited?: boolean; consent?: { provider: string; model: string } };
+type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[]; actions?: Action[]; waiting?: boolean; backup?: boolean; consent?: { provider: string; model: string }; meter?: MeterInfo; used?: number };
+/** What the server said about a request's credits: the most it may cost (asked first), or what the balance lacks. */
+type MeterInfo = { model: string; name: string; typical_mc: number; max_mc?: number; available_mc?: number; need_mc?: number };
 /** The welcome screen's starters: a question and the line under it. */
 const EXAMPLES: [string, string][] = [
   ["Why do we keep the Passover?", "The feast, from the law to Christ"],
@@ -73,7 +76,7 @@ const patchLast = (gen: number, fn: (t: Turn) => Turn) => { if (conv.gen === gen
 type AskFail = { error?: string; reason?: string; provider?: string; model?: string; browser?: boolean };
 /** What went wrong, from the status and the server's own words. */
 const failure = (status: number, body: AskFail | null): string =>
-  status === 428 && body?.error === "consent" ? "consent" : status === 402 ? "allowance" : status === 429 ? (body?.browser ? "browser-limit" : "limit") : status === 400 && body?.error === "too-short" ? "too-short"
+  status === 428 && body?.error === "consent" ? "consent" : status === 409 && body?.error === "confirm" ? "confirm" : status === 402 ? "credits" : status === 429 ? "limit" : status === 400 && body?.error === "too-short" ? "too-short"
     : status === 401 ? (body?.reason === "missing" ? "signin" : "session") : `unavailable:${status}`;
 /** No line from the server for this long (it sends one every 15 seconds while it works): the connection is gone. */
 const STALL_MS = 45_000;
@@ -82,13 +85,14 @@ const STALL_MS = 45_000;
  * Ask a question: streamed in, saved to the account by the server as it completes. Returns
  * false when it was not sent (empty, or an answer is still coming), so the composer keeps the text.
  */
-function askQuestion(text: string, opts: { retry?: boolean; onAccount?: () => void; setBalance?: (b: Balance) => void } = {}): boolean {
+type AskOpts = { retry?: boolean; onAccount?: () => void; setWallet?: (w: Wallet) => void; model?: string };
+function askQuestion(text: string, opts: AskOpts = {}): boolean {
   const q = text.trim();
   if (!q || conv.busy) return false;
   void runQuestion(q, opts);
   return true;
 }
-async function runQuestion(q: string, opts: { retry?: boolean; onAccount?: () => void; setBalance?: (b: Balance) => void }) {
+async function runQuestion(q: string, opts: AskOpts) {
   haptic("select"); hideKeyboard();
   const base = opts.retry ? conv.turns.slice(0, -2) : conv.turns;
   // The server shapes the history for the model (normalizeHistory); only settled turns are sent.
@@ -103,18 +107,18 @@ async function runQuestion(q: string, opts: { retry?: boolean; onAccount?: () =>
   try {
     // Outside Telegram the browser asks with its own credential (tg/sdk ensureDevice), made on its first question.
     if (!app && !(await ensureDevice())) { patch((t) => ({ ...t, thinking: false, error: navigator.onLine === false ? "offline" : "no-device" })); return; }
-    const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: authHeaders(new Headers({ "content-type": "application/json" })), body: JSON.stringify({ q, history, stream: true, chat: id, retry: !!opts.retry, consent: consented(), ...(chosenModel() ? { model: chosenModel() } : {}) }) });
+    const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: authHeaders(new Headers({ "content-type": "application/json" })), body: JSON.stringify({ q, history, stream: true, chat: id, retry: !!opts.retry, consent: consented(), request: newId(), ...(chosenModel() ? { model: chosenModel() } : {}), caps: readCaps() }) });
     heard = Date.now();
     if (!res.ok || !res.body) {
       const body = await res.text().then((t) => { try { return JSON.parse(t.split("\n")[0]) as AskFail; } catch { return null; } }).catch(() => null);
-      patch((t) => ({ ...t, thinking: false, error: failure(res.status, body), ...(body?.error === "consent" && body.provider ? { consent: { provider: body.provider, model: body.model ?? body.provider } } : {}) }));
+      patch((t) => ({ ...t, thinking: false, error: failure(res.status, body), ...(body?.error === "consent" && body.provider ? { consent: { provider: body.provider, model: body.model ?? body.provider } } : {}), ...(body?.error === "confirm" || body?.error === "credits" ? { meter: body as unknown as MeterInfo } : {}) }));
       if (res.status === 402) opts.onAccount?.();
       return;
     }
     const reader = res.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
     const handle = (l: string) => {
       if (!l.trim()) return;
-      let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[]; usage?: { units: number; balance: Balance }; action?: Action; actions?: Action[]; cut?: boolean; ping?: number; backup?: boolean; limited?: boolean };
+      let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[]; usage?: { charged_mc: number; balance: Wallet }; action?: Action; actions?: Action[]; cut?: boolean; ping?: number; backup?: boolean };
       try { msg = JSON.parse(l); } catch { return; }
       if (msg.passages) patch((t) => ({ ...t, passages: msg.passages }));
       // The research as it happens: each search, reading and look-up is a step under the answer's head.
@@ -122,8 +126,8 @@ async function runQuestion(q: string, opts: { retry?: boolean; onAccount?: () =>
       if (msg.action) patch((t) => ({ ...t, actions: [...(t.actions ?? []), msg.action!] }));
       if (msg.reset) patch((t) => ({ ...t, content: "", thinking: true }));
       if (msg.delta) patch((t) => ({ ...t, thinking: false, content: t.content + msg.delta }));
-      if (msg.usage) opts.setBalance?.(msg.usage.balance);
-      if (msg.done) { finished = true; haptic("success"); patch((t) => ({ ...t, thinking: false, cut: !!msg.cut, error: undefined, content: msg.answer || t.content, sources: msg.sources ?? [], followups: msg.followups ?? [], actions: msg.actions ?? t.actions, backup: !!msg.backup, limited: !!msg.limited })); }
+      if (msg.usage) { opts.setWallet?.(msg.usage.balance); patch((t) => ({ ...t, used: msg.usage!.charged_mc })); }
+      if (msg.done) { finished = true; haptic("success"); patch((t) => ({ ...t, thinking: false, cut: !!msg.cut, error: undefined, content: msg.answer || t.content, sources: msg.sources ?? [], followups: msg.followups ?? [], actions: msg.actions ?? t.actions, backup: !!msg.backup })); }
       // A failure after part of the answer keeps the part and says it was cut off.
       if (msg.error) { finished = true; patch((t) => (t.content ? { ...t, thinking: false, cut: true } : { ...t, thinking: false, error: msg.error })); }
     };
@@ -264,9 +268,10 @@ export function Ask() {
   // The composer grows with the question, up to a few lines.
   useLayoutEffect(() => { const b = boxRef.current; if (!b) return; b.style.height = "auto"; b.style.height = `${Math.min(b.scrollHeight, 160)}px`; }, [input]);
 
-  const setBalance = (b: Balance) => setAcct((a) => (a ? { ...a, balance: b } : a));
+  const setWallet = (w: Wallet) => setAcct((a) => (a ? { ...a, wallet: w } : a));
+  const [historyOpen, setHistoryOpen] = useState(false);
   // The composer keeps what was typed unless the question went (an answer still coming holds it back).
-  const send = (text: string, retry = false) => { stick.current = true; if (askQuestion(text, { retry, onAccount: () => void loadAccount(), setBalance }) && text === input) setInput(""); };
+  const send = (text: string, retry = false) => { stick.current = true; if (askQuestion(text, { retry, onAccount: () => void loadAccount(), setWallet, model: model?.id }) && text === input) setInput(""); };
   const stop = () => { haptic("select"); stopAsking(); };
   const newChat = () => { haptic("select"); startNewChat(); setInput(""); boxRef.current?.focus(); };
   const openChat = (c: SavedChat) => { replaceConv({ chatId: c.id, turns: fromSaved(c.turns) }); setHistory(false); stick.current = true; void recoverChat(); };
@@ -307,7 +312,7 @@ export function Ask() {
     <main className="chat2" ref={mainRef}>
       <header className="chat2__bar">
         <button type="button" className="chat2__new" aria-label="Your chats" disabled={browser} title={browser ? "Your chats are kept with your Telegram account" : undefined} onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
-        <button type="button" className="chat2__heading" onClick={() => { if (acct?.metered) { haptic("select"); setPlans(true); } }}><b>Ask CyberJudah</b><small>{acct?.browser ? `${model?.name ?? "Free model"} · ${acct.browserDaily ?? 10} a day here` : model?.free && acct?.metered && !acct.unlimited ? `${model.name} · free` : meterLine(acct, model?.cost)}</small></button>
+        <button type="button" className="chat2__heading" onClick={() => { if (acct?.metered) { haptic("select"); setPlans(true); } }}><b>Ask CyberJudah</b><small>{meterLine(acct)}</small></button>
         <button type="button" className="chat2__new" aria-label="New chat" disabled={!turns.length} onClick={newChat}><Icon name="compose" size={21} /></button>
       </header>
 
@@ -327,13 +332,14 @@ export function Ask() {
         <div className="chat2__turns">
           {turns.map((t, i) => t.role === "user"
             ? <div key={`${chatId}-${i}`} className="msg msg--me"><div className="msg__bubble">{t.content}</div></div>
-            : <AssistantTurn key={`${chatId}-${i}`} t={t} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} chatId={chatId} onRetry={() => send(lastUser, true)} onFollow={(q) => send(q)} onPlans={() => setPlans(true)} onModel={openPicker} />)}
+            : <AssistantTurn key={`${chatId}-${i}`} t={t} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} chatId={chatId} onRetry={() => send(lastUser, true)} onFollow={(q) => send(q)} onPlans={() => setPlans(true)} onModel={openPicker} onHistory={() => setHistoryOpen(true)} acct={acct} onUseModel={(id) => { chooseModel(id); setModelId(id); haptic("select"); send(lastUser, true); }} onAccept={(m, mc) => { acceptCap(m, mc); haptic("success"); send(lastUser, true); }} />)}
           <div ref={endRef} className="chat2__end" />
         </div>
       )}
 
       {picking ? <ModelSheet models={acct?.models ?? null} onRetry={() => void loadAccount()} current={model?.id} onClose={() => setPicking(false)} onPick={(id) => { chooseModel(id); setModelId(id); setPicking(false); haptic("select"); }} /> : null}
-      {plans && acct ? <PlansSheet acct={acct} onClose={() => setPlans(false)} onPaid={() => { setPlans(false); void pollAccount(acct, setAcct); }} /> : null}
+      {plans && acct ? <CreditsSheet acct={acct} onClose={() => setPlans(false)} onHistory={() => { setPlans(false); setHistoryOpen(true); }} onChanged={() => void loadAccount()} onPaid={() => { setPlans(false); void pollAccount(acct, setAcct); }} /> : null}
+      {historyOpen ? <UsageSheet models={acct?.models} onClose={() => setHistoryOpen(false)} /> : null}
       {history ? <ChatsSheet current={chatId} onClose={() => setHistory(false)} onOpen={openChat} onDeleted={(id) => { if (id === conv.chatId) startNewChat(); }} /> : null}
       <form ref={formRef} className="composer2" onSubmit={(e) => { e.preventDefault(); send(input); }}>
         <div className="composer2__box">
@@ -364,7 +370,7 @@ function Waiting({ question, status }: { question: string; status?: string }) {
 
 /** Failures that need a sentence, not the troubleshooter. */
 const PLAIN_ERRORS: Record<string, string> = {
-  limit: "That is a hundred questions today. The count starts again tomorrow.",
+  limit: "That is as many questions as one person can ask in a day. Ask again tomorrow.",
   "too-short": "Ask a fuller question: a few words at least.",
   stopped: "Stopped here. The answer may still finish and be kept in Your chats.",
   refused: "CyberJudah can't answer that one. Ask about the Scripture, the teachings or the app.",
@@ -374,11 +380,10 @@ const PLAIN_ERRORS: Record<string, string> = {
   network: "The connection dropped before the answer came. Try again.",
   interrupted: "This answer was interrupted before it was saved. Try again.",
   signin: "Open CyberJudah from Telegram to ask questions: your answers are saved to your Telegram account.",
-  "browser-limit": "That is today's questions in this browser. They start again tomorrow, or open CyberJudah in Telegram to keep asking.",
   "no-device": "This browser could not be set up to ask just now. Try again in a minute.",
 };
 
-function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onPlans, onModel }: { t: Turn; question: string; last: boolean; busy: boolean; chatId: string | null; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void; onModel: () => void }) {
+function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onPlans, onModel, onHistory, acct, onUseModel, onAccept }: { t: Turn; question: string; last: boolean; busy: boolean; chatId: string | null; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void; onModel: () => void; onHistory: () => void; acct: AskAccount | null; onUseModel: (id: string) => void; onAccept: (model: string, mc: number) => void }) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const sources = t.sources ?? [];
@@ -419,18 +424,15 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
           </div>
           <p className="consent__foot">You can withdraw this at any time in Settings → Privacy. <a href="/privacy" onClick={(e) => { e.preventDefault(); navigate("/privacy"); }}>Privacy policy</a></p>
         </div>
-      ) : t.error === "allowance" && !t.content ? (
-        <div className="paywall">
-          <b>You have used today's free answers</b>
-          <p>Subscribe for a month of in-depth answers, or top up with Stars. Your free answers come back at {resetTime()}.</p>
-          <button type="button" className="paywall__go" onClick={onPlans}>See the plans</button>
-        </div>
+      ) : t.error === "confirm" && t.meter && !t.content ? (
+        <CostCard m={t.meter} acct={acct} last={last} onAccept={() => onAccept(t.meter!.model, t.meter!.max_mc ?? 0)} onModel={onModel} />
+      ) : t.error === "credits" && !t.content ? (
+        <ShortCard m={t.meter} acct={acct} last={last} onPlans={onPlans} onRetry={onRetry} onUseModel={onUseModel} />
       ) : t.error && !t.content ? (
         t.error in PLAIN_ERRORS ? (
           <div className="msg__error" role="alert">
             <p>{PLAIN_ERRORS[t.error]}</p>
-            {t.error === "browser-limit" ? <OpenInTelegram className="msg__action" /> : null}
-            {last && t.error !== "limit" && t.error !== "signin" && t.error !== "browser-limit" ? <button type="button" className="msg__action" onClick={onRetry}><Icon name="retry" size={16} />Try again</button> : null}
+            {last && t.error !== "limit" && t.error !== "signin" ? <button type="button" className="msg__action" onClick={onRetry}><Icon name="retry" size={16} />Try again</button> : null}
           </div>
         ) : <Trouble error={new ApiError(t.error === "session" ? 401 : Number(t.error?.split(":")[1]) || 503, "/api/ask", t.error === "session" ? "stale" : t.error)} what="ask" q={question} onRetry={last ? onRetry : undefined} />
       ) : (
@@ -461,9 +463,9 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
               {t.followups.map((q) => <button key={q} type="button" className="followup" onClick={() => onFollow(q)}><Icon name="arrowUp" size={14} /><span>{q}</span></button>)}
             </div>
           ) : null}
-          {t.limited ? <p className="msg__cut" role="status"><Icon name="info" size={14} />Today's in-depth answers are used, so this is a shorter answer from the library, at no charge. In-depth answers come back at {resetTime()}. <button type="button" className="msg__link" onClick={onPlans}>See the plans</button></p> : null}
           {t.backup ? <p className="msg__cut" role="status"><Icon name="info" size={14} />The main model was busy, so the backup model wrote this shorter answer. You were not charged for it. Retry for a full answer.</p> : null}
           {t.cut ? <p className="msg__cut" role="status"><Icon name="retry" size={14} />The answer was cut off before it finished.</p> : null}
+          {t.used !== undefined && !t.thinking ? <p className="msg__usage">Used {fmtCredits(t.used)} {t.used === MC ? "credit" : "credits"} · <button type="button" className="msg__link" onClick={onHistory}>Usage</button></p> : null}
           {!last || !busy ? (
             <div className="msg__actions">
               <button type="button" className="msg__action" onClick={copy} aria-label="Copy the answer"><Icon name={copied ? "check" : "copy"} size={16} />{copied ? "Copied" : "Copy"}</button>
@@ -521,25 +523,35 @@ function ActionCard({ action, chatId }: { action: Action; chatId: string | null 
   );
 }
 
-type Balance = { free: number; plan: number; planOn: boolean; planUntil: number | null; planAllowance: number; credits: number; total: number };
-type AskModel = { id: string; name: string; provider: string; what: string; cost: number; free?: boolean };
-type AskAccount = { browser?: boolean; browserDaily?: number; metered: boolean; unlimited: boolean; balance: Balance; perQuestion: number; freeDaily: number; plan: { stars: number; units: number }; packs: { stars: number; units: number }[]; models?: AskModel[]; model?: string };
-const answers = (units: number, per: number) => Math.max(0, Math.floor(units / Math.max(per, 1)));
-/** The line under Ask's title: how much is left, in answers, the way an AI app shows it. */
-function meterLine(a: AskAccount | null, cost = 1): string {
-  if (!a || !a.metered) return "Answers from the teachings";
-  if (a.unlimited) return "Unlimited · admin";
-  // A cheaper model makes the same allowance go further.
-  const n = answers(a.balance.total, a.perQuestion * cost);
-  if (a.balance.planOn) return `Monthly plan · about ${n} answers left`;
-  if (!n) return `In-depth answers back at ${resetTime()} · plans`;
-  return `About ${n} ${n === 1 ? "answer" : "answers"} left${a.balance.credits ? "" : " today"} · plans`;
+type Lot = { kind: string; remaining_mc: number; expires_at: number | null };
+type Wallet = { total_mc: number; free_mc: number; plan_mc: number; topup_mc: number; lots: Lot[]; plan: { renews_at: number | null; cancelled: boolean; credits_mc: number } | null };
+type AskModel = { id: string; name: string; provider: string; what: string; typical_mc: number; max_mc: number; free?: boolean };
+type Offer = { stars: number; mc: number };
+type AskAccount = { browser?: boolean; metered: boolean; unlimited: boolean; wallet: Wallet; free_daily_mc: number; confirm_above_mc: number; sale: { open: boolean; plan: Offer; packs: Offer[] } | null; models?: AskModel[]; model?: string };
+
+/** Limits the reader accepted for a model's dearer requests, in credits, kept on this device. */
+const CAPS = "cj:ai-limits";
+const readCaps = (): Record<string, number> => { try { return JSON.parse(localStorage.getItem(CAPS) ?? "{}") as Record<string, number>; } catch { return {}; } };
+const acceptedCap = (model: string): number | undefined => (model ? readCaps()[model] : undefined);
+const acceptCap = (model: string, mc: number) => { try { localStorage.setItem(CAPS, JSON.stringify({ ...readCaps(), [model]: Math.ceil(mc / MC) })); } catch { /* private mode */ } };
+
+const credits = (mc: number) => `${fmtCredits(mc)} ${mc === MC ? "credit" : "credits"}`;
+const day = (ms: number) => new Date(ms).toLocaleDateString([], { month: "long", day: "numeric" });
+/** The line under Ask's title: the balance in credits, never a count of answers. */
+function meterLine(a: AskAccount | null): string {
+  if (!a) return "Answers from the teachings";
+  if (a.unlimited) return "Admin · not charged";
+  if (!a.metered) return "Answers from the teachings";
+  const w = a.wallet;
+  return `${credits(w.total_mc)}${w.free_mc ? ` · ${fmtCredits(w.free_mc)} free today` : ""}`;
 }
-/** How an answer on this model compares with one on Claude Opus 5, for the picker. */
-const costLabel = (m: AskModel) => (m.free ? "Free" : m.cost >= 0.95 && m.cost <= 1.05 ? "×1" : m.cost < 0.1 ? `×${m.cost.toFixed(2)}` : `×${m.cost.toFixed(1)}`);
+const KIND: Record<string, string> = { daily: "Free today", plan: "Monthly plan", topup: "Top-up", adjust: "Added by CyberJudah" };
+/** When a lot ends, said plainly. */
+const ends = (l: Lot) => l.kind === "daily" ? `until ${resetTime()}` : l.expires_at ? `until ${day(l.expires_at)}` : "never expires";
+
 /**
  * The models a reader can answer with: the free one first, then every other by provider, with a
- * search; each with what it is, and how far the allowance goes on it next to Claude Opus 5.
+ * search; each with what it is and what an answer on it typically uses, in credits.
  */
 function ModelSheet({ models: list, current, onClose, onPick, onRetry }: { models: AskModel[] | null; current?: string; onClose: () => void; onPick: (id: string) => void; onRetry: () => void }) {
   const models = list ?? [];
@@ -551,15 +563,15 @@ function ModelSheet({ models: list, current, onClose, onPick, onRetry }: { model
   const row = (m: AskModel) => (
     <button key={m.id} type="button" role="radio" aria-checked={m.id === current} className={`models__row${m.id === current ? " is-on" : ""}`} onClick={() => onPick(m.id)}>
       <span><b>{m.name}</b><small>{m.what}</small></span>
-      <span className={`models__cost${m.free ? " is-free" : ""}`} title="Cost of an answer next to Claude Opus 5">{costLabel(m)}</span>
+      <span className={`models__cost${m.free ? " is-free" : ""}`} title="Credits a typical answer uses on this model">≈ {fmtCredits(m.typical_mc)}</span>
       {m.id === current ? <Icon name="check" size={18} /> : null}
     </button>
   );
   return (
-    <Sheet open onClose={onClose} height="full" title="Model" subTitle={`${models.length} models · charged at each model's own price`} className="chats-sheet">
+    <Sheet open onClose={onClose} height="full" title="Model" subTitle="Credits a typical answer uses on each" className="chats-sheet">
       <div className="models" role="radiogroup" aria-label="Model">
         <input className="models__search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search models or providers" aria-label="Search models" />
-        {shown.filter((m) => m.free).map((m) => <div key="free" className="models__group"><h3>Free, always</h3>{row(m)}</div>)}
+        {shown.filter((m) => m.free).map((m) => <div key="free" className="models__group"><h3>Lowest cost</h3>{row(m)}</div>)}
         {groups.map((g) => <div key={g} className="models__group"><h3>{g}</h3>{shown.filter((m) => !m.free && m.provider === g).map(row)}</div>)}
         {!list ? <p className="models__none" aria-busy="true">Loading the models…</p>
           : !models.length ? <p className="models__none">The models could not be loaded. <button type="button" className="msg__link" onClick={onRetry}>Try again</button></p>
@@ -568,48 +580,142 @@ function ModelSheet({ models: list, current, onClose, onPick, onRetry }: { model
     </Sheet>
   );
 }
-/** After paying, the credit lands when Telegram tells the bot; look again for a little while. */
+
+/** Before a dearer request: what it typically uses, the most it may use, and the reader's choice. */
+function CostCard({ m, acct, last, onAccept, onModel }: { m: MeterInfo; acct: AskAccount | null; last: boolean; onAccept: () => void; onModel: () => void }) {
+  return (
+    <div className="creditcard" role="group" aria-labelledby="cost-title">
+      <div className="creditcard__head"><span className="consent__icon" aria-hidden="true"><Icon name="spark" size={20} /></span><span><b id="cost-title">This may use up to {credits(m.max_mc ?? 0)}</b><small>{m.name} typically uses about {fmtCredits(m.typical_mc)} for an answer</small></span></div>
+      <p className="creditcard__text">Credits are used based on the model and work needed for each response. Longer answers and deeper research may use more credits. You are charged only what the answer uses, never more than this limit.{acct ? ` You have ${credits(acct.wallet.total_mc)}.` : ""}</p>
+      {last ? <div className="consent__actions">
+        <button type="button" className="btn consent__go" onClick={onAccept}>Allow up to {fmtCredits(m.max_mc ?? 0)} and ask</button>
+        <button type="button" className="consent__alt" onClick={onModel}>Choose another model</button>
+      </div> : null}
+      <p className="consent__foot">Allowed once for {m.name} on this device. Questions that may cost more ask again.</p>
+    </div>
+  );
+}
+
+/** Not enough credits for this request: what it needs, what is there, and the ways on. The question stays in the chat. */
+function ShortCard({ m, acct, last, onPlans, onRetry, onUseModel }: { m?: MeterInfo; acct: AskAccount | null; last: boolean; onPlans: () => void; onRetry: () => void; onUseModel: (id: string) => void }) {
+  const cheap = acct?.models?.find((x) => x.free && x.id !== m?.model);
+  const have = m?.available_mc ?? acct?.wallet.total_mc ?? 0;
+  const canCheap = !!cheap && have >= Math.max(MC, Math.ceil(cheap.typical_mc / 2));
+  return (
+    <div className="creditcard" role="group" aria-labelledby="short-title">
+      <div className="creditcard__head"><span className="consent__icon" aria-hidden="true"><Icon name="info" size={20} /></span><span><b id="short-title">Not enough credits for this answer</b><small>{m ? `${m.name} needs about ${credits(m.need_mc ?? m.typical_mc)} to begin` : "This answer needs more credits"} · you have {credits(have)}</small></span></div>
+      <p className="creditcard__text">Your question is kept here. Top up, then ask it again{acct?.free_daily_mc ? `, or wait for tomorrow's ${fmtCredits(acct.free_daily_mc)} free credits at ${resetTime()}` : ""}.</p>
+      {last ? <div className="consent__actions">
+        {acct?.browser ? <OpenInTelegram className="btn consent__go" label="Get more credits in Telegram" /> : <button type="button" className="btn consent__go" onClick={onPlans}>Top up</button>}
+        {canCheap ? <button type="button" className="consent__alt" onClick={() => onUseModel(cheap!.id)}>Ask with {cheap!.name} (about {fmtCredits(cheap!.typical_mc)})</button> : null}
+        <button type="button" className="consent__alt" onClick={onRetry}>Ask again</button>
+      </div> : null}
+    </div>
+  );
+}
+
+/** After paying, the credits land when Telegram tells the bot; look again for a little while. */
 async function pollAccount(before: AskAccount, set: (a: AskAccount) => void) {
   for (let i = 0; i < 8; i++) {
     await new Promise((r) => setTimeout(r, 1500));
     const a = await api<AskAccount>("/api/ask/account").catch(() => null);
-    if (a) { set(a); if (a.balance.total > before.balance.total || a.balance.planOn !== before.balance.planOn) return; }
+    if (a) { set(a); if (a.wallet.total_mc > before.wallet.total_mc || !!a.wallet.plan !== !!before.wallet.plan) return; }
   }
 }
 
-/** The plans: what is left now, the monthly subscription, and top-up packs, paid in Stars. */
-function PlansSheet({ acct, onClose, onPaid }: { acct: AskAccount; onClose: () => void; onPaid: () => void }) {
+/**
+ * Credits: the balance and the order it is spent in (soonest-expiring first), today's free
+ * credits, the plan's renewal, and the plan and top-ups with their exact credits and Stars.
+ */
+function CreditsSheet({ acct, onClose, onPaid, onHistory, onChanged }: { acct: AskAccount; onClose: () => void; onPaid: () => void; onHistory: () => void; onChanged: () => void }) {
   const [busy, setBusy] = useState<string | null>(null);
-  const per = acct.perQuestion, b = acct.balance;
+  const [why, setWhy] = useState("");
+  const w = acct.wallet, sale = acct.sale;
   const buy = async (item: string) => {
-    haptic("select"); setBusy(item);
+    haptic("select"); setBusy(item); setWhy("");
     try {
-      const r = await api<{ ok: boolean; link?: string }>("/api/ask/buy", { method: "POST", json: { item } });
+      const r = await api<{ ok: boolean; link?: string; error?: string }>("/api/ask/buy", { method: "POST", json: { item } });
       if (r.link) { const status = await openInvoice(r.link); if (status === "paid") { haptic("success"); onPaid(); } }
-    } catch { /* the invoice could not be made; the sheet stays open */ }
+    } catch (e) { setWhy(e instanceof ApiError && e.status === 409 ? "Credits are not on sale just yet." : "The invoice could not be made. Try again."); }
     finally { setBusy(null); }
   };
-  const until = b.planUntil ? new Date(b.planUntil).toLocaleDateString([], { month: "long", day: "numeric" }) : "";
+  const cancel = async () => {
+    if (!(await confirm("Cancel the monthly plan? Your credits this month stay until they expire, and it will not renew."))) return;
+    setBusy("cancel");
+    try { await api("/api/ask/plan/cancel", { method: "POST" }); haptic("success"); onChanged(); } catch { setWhy("The plan could not be cancelled here. Cancel it in Telegram's Stars settings."); } finally { setBusy(null); }
+  };
+  const perStar = (o: Offer) => o.mc / o.stars;
+  const bonus = sale && sale.packs.length ? Math.round((perStar(sale.plan) / Math.max(...sale.packs.map(perStar)) - 1) * 100) : 0;
   return (
-    <Sheet open onClose={onClose} height="full" title="Ask CyberJudah" subTitle="Paid with Telegram Stars" className="chats-sheet">
-      <div className="plans">
-        <div className="plans__now">
-          <b>About {answers(b.total, per)} answers left</b>
-          <small>{[b.free ? `${answers(b.free, per)} free today` : "", b.planOn ? `${answers(b.plan, per)} this month, until ${until}` : "", b.credits ? `${answers(b.credits, per)} in credit` : ""].filter(Boolean).join(" · ") || "Your free answers come back tomorrow"}</small>
-          <div className="plans__bar"><i style={{ width: `${Math.min(100, Math.round((b.total / Math.max(b.total + 1, (b.planOn ? b.planAllowance : acct.freeDaily) + b.credits)) * 100))}%` }} /></div>
-        </div>
-        <div className="plan plan--main">
-          <div><b>Monthly</b><small>About {answers(acct.plan.units, per)} in-depth answers every month. Renews until you cancel in Telegram.</small></div>
-          {b.planOn ? <span className="plan__on">Active</span> : <button type="button" className="plan__buy" disabled={!!busy} onClick={() => void buy("plan")}>{busy === "plan" ? "…" : `⭐ ${acct.plan.stars}`}<small>/month</small></button>}
-        </div>
-        <p className="plans__label">Top up</p>
-        {acct.packs.map((p) => (
-          <div key={p.stars} className="plan">
-            <div><b>About {answers(p.units, per)} answers</b><small>Credit that does not expire</small></div>
-            <button type="button" className="plan__buy plan__buy--quiet" disabled={!!busy} onClick={() => void buy(`pack:${p.stars}`)}>{busy === `pack:${p.stars}` ? "…" : `⭐ ${p.stars}`}</button>
-          </div>
-        ))}
-        <p className="hint">A deep question, with several searches of the library, uses more than a quick follow-up. Everyone gets {answers(acct.freeDaily, per)} free answers a day. Your chats, search, reading and PDFs stay free.</p>
+    <Sheet open onClose={onClose} height="full" title="Credits" subTitle="Paid with Telegram Stars" className="chats-sheet">
+      <div className="credits">
+        <section className="credits__balance" aria-label="Your balance">
+          <small>Available</small>
+          <b>{fmtCredits(w.total_mc)}<span> credits</span></b>
+          {w.lots.length ? (
+            <ol className="credits__lots" aria-label="Used in this order">
+              {w.lots.map((l, i) => <li key={i}><span>{KIND[l.kind] ?? "Credits"}</span><b>{fmtCredits(l.remaining_mc)}</b><small>{ends(l)}</small></li>)}
+            </ol>
+          ) : <p className="credits__none">No credits left today. {acct.free_daily_mc ? `${fmtCredits(acct.free_daily_mc)} free credits arrive at ${resetTime()}.` : ""}</p>}
+          <p className="credits__order">Credits that expire soonest are used first: today's free credits, then the month's plan, then top-ups.</p>
+          <button type="button" className="msg__link" onClick={onHistory}>Usage history</button>
+        </section>
+
+        <p className="credits__copy">Credits are used based on the model and work needed for each response. Longer answers and deeper research may use more credits.</p>
+        {acct.free_daily_mc ? <p className="credits__free"><Icon name="clock" size={16} />{fmtCredits(acct.free_daily_mc)} free credits every day, renewed at {resetTime()}. Unused free credits do not carry over.</p> : null}
+
+        {w.plan ? (
+          <section className="credits__plan" aria-label="Your monthly plan">
+            <div><b>Monthly plan {w.plan.cancelled ? "· cancelled" : "· active"}</b><small>{w.plan.renews_at ? (w.plan.cancelled ? `This month's credits stay until ${day(w.plan.renews_at)}; it will not renew.` : `Renews on ${day(w.plan.renews_at)} with ${fmtCredits(w.plan.credits_mc)} new credits. This month's unused credits expire then.`) : ""}</small></div>
+            {!w.plan.cancelled ? <button type="button" className="consent__alt" disabled={busy === "cancel"} onClick={() => void cancel()}>Cancel plan</button> : null}
+          </section>
+        ) : null}
+
+        {sale ? (
+          <>
+            <h3 className="credits__label">Monthly plan</h3>
+            <div className="offer offer--main">
+              <div><b>{fmtCredits(sale.plan.mc)} credits every month</b><small>{bonus > 0 ? `${bonus}% more credits per Star than top-ups. ` : ""}Renews monthly until you cancel. Each month's credits expire at the next renewal.</small></div>
+              {w.plan && !w.plan.cancelled ? <span className="offer__on">Active</span> : <button type="button" className="offer__buy" disabled={!!busy || !sale.open} onClick={() => void buy("plan")}>{busy === "plan" ? "…" : <>⭐ {sale.plan.stars}<small>/month</small></>}</button>}
+            </div>
+            <h3 className="credits__label">Top up</h3>
+            {sale.packs.map((p) => (
+              <div key={p.stars} className="offer">
+                <div><b>{fmtCredits(p.mc)} credits</b><small>Never expire</small></div>
+                <button type="button" className="offer__buy offer__buy--quiet" disabled={!!busy || !sale.open} onClick={() => void buy(`pack:${p.stars}`)}>{busy === `pack:${p.stars}` ? "…" : `⭐ ${p.stars}`}</button>
+              </div>
+            ))}
+            {!sale.open ? <p className="credits__closed" role="status">New plans and top-ups open soon. Your credits, free credits and any plan already running work as usual.</p> : null}
+          </>
+        ) : acct.browser ? <p className="credits__closed"><OpenInTelegram className="msg__link" label="Get more credits in Telegram" /></p> : null}
+        {why ? <p className="credits__closed" role="alert">{why}</p> : null}
+        <p className="hint">Your chats, search, reading and PDFs stay free. Stars purchases are handled by Telegram.</p>
+      </div>
+    </Sheet>
+  );
+}
+
+type HistoryItem = { at: number; kind: string; amount_mc: number; model?: string | null; status?: string; expires_at?: number | null; detail?: { stars?: number } };
+const HISTORY_LABEL: Record<string, string> = { usage: "Answer", daily_grant: "Free credits", purchase: "Purchase", renewal: "Plan renewal", migration: "Carried over", refund: "Refund", adjustment: "Adjustment", expire: "Expired" };
+/** What happened to the balance, newest first: each answer once, and every grant, purchase, renewal, refund and expiry. */
+function UsageSheet({ models, onClose }: { models?: AskModel[]; onClose: () => void }) {
+  const nameOf = (id: string) => models?.find((m) => m.id === id)?.name ?? id.replace(/^.*\//, "");
+  const [items, setItems] = useState<HistoryItem[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const load = () => { setFailed(false); void api<{ items: HistoryItem[] }>("/api/ask/history").then((r) => setItems(r.items ?? [])).catch(() => setFailed(true)); };
+  useEffect(load, []);
+  return (
+    <Sheet open onClose={onClose} height="full" title="Usage" subTitle="Credits used and added" className="chats-sheet">
+      <div className="usage">
+        {failed ? <p className="models__none">Your usage could not be loaded. <button type="button" className="msg__link" onClick={load}>Try again</button></p>
+          : !items ? <p className="models__none" aria-busy="true">Loading…</p>
+          : !items.length ? <p className="models__none">Nothing yet. Each answer and every credit added will be listed here.</p>
+          : <ul className="usage__list">{items.map((h, i) => (
+            <li key={i} className={h.amount_mc < 0 ? "is-out" : "is-in"}>
+              <span><b>{HISTORY_LABEL[h.kind] ?? h.kind}{h.kind === "usage" && h.model ? ` · ${nameOf(h.model)}` : ""}{h.detail?.stars ? ` · ⭐ ${h.detail.stars}` : ""}</b><small>{new Date(h.at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{h.kind === "usage" && h.status && h.status !== "ok" ? " · not charged" : ""}</small></span>
+              <span className="usage__amount">{h.amount_mc > 0 ? "+" : h.amount_mc < 0 ? "−" : ""}{fmtCredits(Math.abs(h.amount_mc))}</span>
+            </li>
+          ))}</ul>}
       </div>
     </Sheet>
   );

@@ -73,9 +73,9 @@ export async function deleteData(env: Env, uid: number): Promise<Deleted> {
     if (!count) { await env.SUBS.delete(`notereq:${video}`); continue; }
     await env.SUBS.put(`notereq:${video}`, JSON.stringify({ ...r, users, count }), { metadata: { ...(meta as object), count } });
   }
-  const billing = await deleteBilling(env, uid).catch(() => ({ credits: 0, planUntil: null }));
+  const billing = await deleteBilling(env, uid).catch(() => ({ credits: 0, planUntil: null, planCancelled: false }));
   await env.DB.prepare("DELETE FROM rate_counts WHERE key LIKE ?").bind(`%:${me}:%`).run().catch(() => null);
-  return { savedChats, readingReminder, dailyVerse, classNoteRequests: reqs.length, askCredits: billing.credits, askPlanUntil: billing.planUntil ? new Date(billing.planUntil).toISOString() : null };
+  return { savedChats, readingReminder, dailyVerse, classNoteRequests: reqs.length, askCredits: billing.credits, askPlanUntil: billing.planUntil && !billing.planCancelled ? new Date(billing.planUntil).toISOString() : null };
 }
 
 /** A confirmation for Delete my data, kept 10 minutes, so a deletion asked for in the bot is confirmed with one tap. */

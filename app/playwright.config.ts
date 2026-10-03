@@ -33,7 +33,7 @@ const vars = [
   // Ask's allowance is on, as it is meant to run, with a free day large enough that no other
   // test runs out; the allowance test uses a reader's day up itself.
   "ASK_BILLING:on",
-  "ASK_FREE_DAILY:100000000",
+  "ASK_FREE_DAILY_CREDITS:600", "WEBHOOK_SECRET:e2e-webhook-secret",
   // Records are filed under pseudonymous IDs (bot/src/privacy.mjs); the tests derive the same ones.
   "PRIVACY_KEY:e2e-privacy-key-not-secret",
 ].map((v) => `--var '${v}'`).join(" ");

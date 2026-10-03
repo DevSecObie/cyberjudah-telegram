@@ -12,6 +12,7 @@ import { publicView } from "./reminders.mjs";
 import { parseReference } from "./refs.mjs";
 import { modelOf, unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import { researchOpen } from "./agent-open";
+import { freeSpend, type Spend } from "./spend";
 
 /**
  * Ask CyberJudah with Claude doing its own research: it starts from the passages retrieval
@@ -98,6 +99,7 @@ export async function runAgent(
   ctx?: Exec,
   userId?: number,
   model: AskModel = modelOf(env.CLAUDE_MODEL || CLAUDE_DEFAULT),
+  spend: Spend = freeSpend(),
 ): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean }> {
   // Directly, through the AI Gateway, or to the tests' stand-in (providers.ts).
   const client = await claude(env);
@@ -197,7 +199,7 @@ export async function runAgent(
   // Every other model researches through Cloudflare, with the same tools and the same sources
   // (agent-open.ts); only Claude streams through the Messages API below.
   if (model.format !== "anthropic") {
-    const r = await researchOpen(env, model, `${SYSTEM}\n\n${RESEARCH}\n\n${APP}`, messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, run, emit, MAX_ROUNDS);
+    const r = await researchOpen(env, model, `${SYSTEM}\n\n${RESEARCH}\n\n${APP}`, messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, run, emit, MAX_ROUNDS, spend);
     return { ...r, passages, actions };
   }
 
@@ -209,15 +211,19 @@ export async function runAgent(
   // (a breakpoint on the system prompt), and the conversation so far cached as it grows (the
   // request's automatic breakpoint on its last block), so each research round re-reads it cheaply.
   const system: Anthropic.TextBlockParam[] = [{ type: "text", text: `${SYSTEM}\n\n${RESEARCH}\n\n${APP}`, cache_control: { type: "ephemeral" } }];
+  let lastInputUsd = 0;
   for (let round = 0; round < MAX_ROUNDS; round++) {
-    const last = round === MAX_ROUNDS - 1;
+    // The request's budget (the credits held for it): past 70% of it the research stops and the
+    // answer is written, in no more words than what is left pays for.
+    const last = round === MAX_ROUNDS - 1 || spend.over(0.7);
+    const room = spend.outputTokensLeft(model, lastInputUsd * 1.15);
     if (round === 0) emit({ status: "Studying the question" });
     let said = "";
     const stream = client.messages.stream({
       // The reader's chosen Claude model (shared/ask-models.mjs), with adaptive thinking and an
       // effort level only where the model takes them.
       model: model.native ?? model.id,
-      max_tokens: Math.min(12000, model.maxOutput ?? 12000),
+      max_tokens: Math.max(256, Math.min(12000, model.maxOutput ?? 12000, room)),
       ...(model.thinking ? { thinking: { type: "adaptive" as const } } : {}),
       ...(model.effort ? { output_config: { effort: "high" as const } } : {}),
       cache_control: { type: "ephemeral" },
@@ -238,12 +244,14 @@ export async function runAgent(
       continue;
     }
     units += unitsFor(message.usage, model); calls++;
+    spend.call(message.usage, model);
+    lastInputUsd = spend.inputUsd(message.usage, model);
     const uses = message.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
     // A refusal can cut a tool request off mid-input: no tool of that turn is run.
     if (message.stop_reason === "refusal") { text = said; refused = true; break; }
     // Anything but a request for a tool ends the turn. At the token cap the answer, or a tool
     // input, is unfinished: no tool is run on it, and the answer is marked as cut off.
-    if (message.stop_reason !== "tool_use" || !uses.length) { text = said; cut = message.stop_reason === "max_tokens"; break; }
+    if (message.stop_reason !== "tool_use" || !uses.length || last) { text = said; cut = message.stop_reason === "max_tokens"; break; }
     // Words written before a search are not the answer; the answer starts again after it.
     if (said) emit({ reset: true });
     messages.push({ role: "assistant", content: message.content });

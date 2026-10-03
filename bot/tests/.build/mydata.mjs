@@ -119,57 +119,159 @@ async function deleteAllChats(env, uid) {
   return list.length;
 }
 
-// src/billing.ts
+// src/telegram-api.ts
 import { Api } from "grammy";
 
-// src/billing.mjs
-var today = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
+// src/webpush.mjs
+var PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^android\.googleapis\.com$/, /^updates\.push\.services\.mozilla\.com$/, /^push\.services\.mozilla\.com$/, /(^|\.)push\.apple\.com$/, /\.notify\.windows\.com$/];
+function loopbackOrigin(origin) {
+  if (typeof origin !== "string" || !origin) return null;
+  try {
+    const u = new URL(origin);
+    return u.protocol === "http:" && (u.hostname === "127.0.0.1" || u.hostname === "localhost") && !u.username && !u.password ? u.origin : null;
+  } catch {
+    return null;
+  }
+}
+function validSubscription(sub, testOrigin) {
+  if (!sub || typeof sub !== "object" || typeof sub.endpoint !== "string" || sub.endpoint.length > 1024) return false;
+  let u;
+  try {
+    u = new URL(sub.endpoint);
+  } catch {
+    return false;
+  }
+  const loop = loopbackOrigin(testOrigin);
+  if (!(loop && u.origin === loop && !u.username && !u.password)) {
+    if (u.protocol !== "https:" || u.username || u.password || u.port) return false;
+    if (!PUSH_HOSTS.some((h) => h.test(u.hostname))) return false;
+  }
+  const k = sub.keys;
+  return !!k && typeof k.p256dh === "string" && typeof k.auth === "string" && /^[A-Za-z0-9_-]{20,200}=*$/.test(k.p256dh) && /^[A-Za-z0-9_-]{8,100}=*$/.test(k.auth);
+}
+var enc2 = new TextEncoder();
+function b64u(bytes) {
+  const b = typeof bytes === "string" ? enc2.encode(bytes) : bytes;
+  let s = "";
+  for (const x of b) s += String.fromCharCode(x);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
 
-// src/providers.ts
-import Anthropic from "@anthropic-ai/sdk";
+// src/telegram-api.ts
+var telegramApi = (env) => {
+  const root2 = loopbackOrigin(env.TELEGRAM_API_ROOT);
+  return new Api(env.BOT_TOKEN, root2 ? { apiRoot: root2 } : void 0);
+};
+
+// ../shared/credits.mjs
+var MC = 1e3;
+function spendOrder(lots, now = Date.now()) {
+  return lots.filter((l) => l.remaining_mc > 0 && (l.expires_at == null || l.expires_at > now)).sort((a, b) => (a.expires_at ?? Infinity) - (b.expires_at ?? Infinity) || a.created_at - b.created_at || a.id - b.id);
+}
+function walletOf(lots, now = Date.now()) {
+  const live = spendOrder(lots, now);
+  const by = (k) => live.filter((l) => l.kind === k).reduce((s, l) => s + l.remaining_mc, 0);
+  const total = live.reduce((s, l) => s + l.remaining_mc, 0);
+  return {
+    total_mc: total,
+    free_mc: by("daily"),
+    plan_mc: by("plan"),
+    topup_mc: live.filter((l) => l.kind !== "daily" && l.kind !== "plan").reduce((s, l) => s + l.remaining_mc, 0),
+    lots: live.map((l) => ({ kind: l.kind, remaining_mc: l.remaining_mc, expires_at: l.expires_at ?? null }))
+  };
+}
+
+// src/credits.ts
+var TABLES = [
+  `CREATE TABLE IF NOT EXISTS credit_lots (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, kind TEXT NOT NULL,
+    granted_mc INTEGER NOT NULL, remaining_mc INTEGER NOT NULL CHECK (remaining_mc >= 0), expires_at INTEGER,
+    source TEXT NOT NULL, created_at INTEGER NOT NULL, UNIQUE (user_id, source))`,
+  "CREATE INDEX IF NOT EXISTS credit_lots_owner ON credit_lots (user_id, expires_at)",
+  `CREATE TABLE IF NOT EXISTS credit_ledger (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, at INTEGER NOT NULL,
+    type TEXT NOT NULL, amount_mc INTEGER NOT NULL, lot_id INTEGER NOT NULL DEFAULT 0, ref TEXT NOT NULL, detail TEXT,
+    UNIQUE (user_id, type, ref, lot_id))`,
+  "CREATE INDEX IF NOT EXISTS credit_ledger_owner ON credit_ledger (user_id, at)",
+  `CREATE TABLE IF NOT EXISTS credit_holds (request_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, held_mc INTEGER NOT NULL,
+    alloc TEXT NOT NULL, state TEXT NOT NULL, model TEXT, created_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS credit_usage (request_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, at INTEGER NOT NULL, model TEXT,
+    status TEXT NOT NULL, held_mc INTEGER NOT NULL, charged_mc INTEGER NOT NULL, cost_usd REAL NOT NULL, absorbed_mc INTEGER NOT NULL DEFAULT 0, detail TEXT)`,
+  "CREATE INDEX IF NOT EXISTS credit_usage_owner ON credit_usage (user_id, at)",
+  `CREATE TABLE IF NOT EXISTS credit_meta (user_id TEXT PRIMARY KEY, migrated_at INTEGER, plan_charge TEXT, plan_tg INTEGER, plan_cancelled INTEGER NOT NULL DEFAULT 0)`
+];
+var ready = false;
+async function ensureCreditTables(env) {
+  if (ready) return;
+  await env.DB.batch(TABLES.map((sql) => env.DB.prepare(sql)));
+  ready = true;
+}
+var ownerOfUser = (env, uid) => pid(env, uid);
+async function lotsOf(env, owner) {
+  const r = await env.DB.prepare("SELECT id, kind, granted_mc, remaining_mc, expires_at, created_at, source FROM credit_lots WHERE user_id = ? AND remaining_mc > 0").bind(owner).all();
+  return r.results ?? [];
+}
+async function wallet(env, owner, now = Date.now()) {
+  await ensureCreditTables(env);
+  const w = walletOf(await lotsOf(env, owner), now);
+  const plan = await env.DB.prepare("SELECT granted_mc, expires_at FROM credit_lots WHERE user_id = ? AND kind = 'plan' AND expires_at > ? ORDER BY expires_at DESC LIMIT 1").bind(owner, now).first();
+  const meta2 = await env.DB.prepare("SELECT plan_cancelled FROM credit_meta WHERE user_id = ?").bind(owner).first();
+  return { ...w, plan: plan ? { renews_at: plan.expires_at, cancelled: !!meta2?.plan_cancelled, credits_mc: plan.granted_mc } : null };
+}
+async function markPlanCancelled(env, owner) {
+  await ensureCreditTables(env);
+  const m = await env.DB.prepare("SELECT plan_charge, plan_tg FROM credit_meta WHERE user_id = ?").bind(owner).first();
+  if (!m?.plan_charge || !m.plan_tg) return null;
+  await env.DB.prepare("UPDATE credit_meta SET plan_cancelled = 1 WHERE user_id = ?").bind(owner).run();
+  return { charge: m.plan_charge, tg: m.plan_tg };
+}
+async function history(env, owner, limit = 60) {
+  await ensureCreditTables(env);
+  const [use, led] = await Promise.all([
+    env.DB.prepare("SELECT at, model, status, charged_mc FROM credit_usage WHERE user_id = ? ORDER BY at DESC LIMIT ?").bind(owner, limit).all(),
+    env.DB.prepare(`SELECT l.at, l.type, SUM(l.amount_mc) AS amount_mc, MAX(c.expires_at) AS expires_at, MAX(l.detail) AS detail FROM credit_ledger l LEFT JOIN credit_lots c ON c.id = l.lot_id
+      WHERE l.user_id = ? AND l.type NOT IN ('hold', 'release', 'usage') GROUP BY l.type, l.ref ORDER BY l.at DESC LIMIT ?`).bind(owner, limit).all()
+  ]);
+  const items = [
+    ...(use.results ?? []).map((u) => ({ at: u.at, kind: "usage", amount_mc: -u.charged_mc, model: u.model, status: u.status })),
+    ...(led.results ?? []).filter((l) => l.amount_mc !== 0).map((l) => ({ at: l.at, kind: l.type, amount_mc: l.amount_mc, expires_at: l.expires_at, detail: l.detail ? JSON.parse(l.detail) : void 0 }))
+  ];
+  return items.sort((a, b) => b.at - a.at).slice(0, limit);
+}
+async function deleteCredits(env, owner) {
+  await ensureCreditTables(env);
+  const w = walletOf(await lotsOf(env, owner));
+  await env.DB.batch(["credit_lots", "credit_ledger", "credit_holds", "credit_usage", "credit_meta"].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE user_id = ?`).bind(owner)));
+  return { total_mc: w.total_mc };
+}
+async function creditsRecord(env, owner) {
+  await ensureCreditTables(env);
+  return { wallet: walletOf(await lotsOf(env, owner)), history: await history(env, owner, 500) };
+}
 
 // src/billing.ts
-var TABLES = [
-  `CREATE TABLE IF NOT EXISTS accounts (user_id TEXT PRIMARY KEY, day TEXT NOT NULL DEFAULT '',
-    free_used INTEGER NOT NULL DEFAULT 0, plan_until INTEGER NOT NULL DEFAULT 0,
-    plan_allowance INTEGER NOT NULL DEFAULT 0, plan_used INTEGER NOT NULL DEFAULT 0,
-    credits INTEGER NOT NULL DEFAULT 0, version INTEGER NOT NULL DEFAULT 1)`,
-  "CREATE TABLE IF NOT EXISTS payments (charge_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL, stars INTEGER NOT NULL, created_at INTEGER NOT NULL)",
-  "CREATE TABLE IF NOT EXISTS usage_daily (day TEXT PRIMARY KEY, questions INTEGER NOT NULL DEFAULT 0, units INTEGER NOT NULL DEFAULT 0)",
-  "CREATE TABLE IF NOT EXISTS usage_people (day TEXT NOT NULL, user_id TEXT NOT NULL, PRIMARY KEY (day, user_id))"
-];
-var tablesReady = false;
-async function ensureTables(env) {
-  if (tablesReady) return;
-  await env.DB.batch(TABLES.map((sql) => env.DB.prepare(sql)));
-  tablesReady = true;
+async function cancelPlan(env, uid) {
+  const plan = await markPlanCancelled(env, await ownerOfUser(env, uid));
+  if (!plan) return false;
+  await telegramApi(env).editUserStarSubscription(plan.tg, plan.charge, true);
+  return true;
 }
-var toAccount = (r) => ({
-  day: r.day,
-  freeUsed: r.free_used,
-  plan: r.plan_until > 0 ? { until: r.plan_until, allowance: r.plan_allowance, used: r.plan_used } : null,
-  credits: r.credits
-});
-var normalized = (a, now = Date.now()) => a.day === today(now) ? a : { ...a, day: today(now), freeUsed: 0 };
-var COLS = "user_id, day, free_used, plan_until, plan_allowance, plan_used, credits";
 async function deleteBilling(env, uid) {
-  await ensureTables(env);
   const id = await pid(env, uid);
-  const left = await env.DB.prepare("SELECT credits, plan_until FROM accounts WHERE user_id = ? OR user_id = ?").bind(id, String(uid)).first();
-  await env.DB.batch([
-    env.DB.prepare("DELETE FROM accounts WHERE user_id = ? OR user_id = ?").bind(id, String(uid)),
-    env.DB.prepare("DELETE FROM usage_people WHERE user_id = ? OR user_id = ?").bind(id, String(uid)),
-    env.DB.prepare("UPDATE payments SET user_id = 'deleted' WHERE user_id = ? OR user_id = ?").bind(id, String(uid))
-  ]);
+  const planUntil = (await wallet(env, id)).plan?.renews_at ?? null;
+  const planCancelled = planUntil ? await cancelPlan(env, uid).catch(() => false) : false;
+  const left = await deleteCredits(env, id);
+  const stmts = [env.DB.prepare("UPDATE payments SET user_id = 'deleted' WHERE user_id = ? OR user_id = ?").bind(id, String(uid))];
+  for (const t of ["accounts", "usage_people"]) {
+    if (await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").bind(t).first()) stmts.push(env.DB.prepare(`DELETE FROM ${t} WHERE user_id = ? OR user_id = ?`).bind(id, String(uid)));
+  }
+  await env.DB.batch(stmts).catch(() => null);
   await env.SUBS.delete(`acct:${uid}`).catch(() => null);
-  return { credits: left?.credits ?? 0, planUntil: left && left.plan_until > Date.now() ? left.plan_until : null };
+  return { credits: left.total_mc / MC, planUntil, planCancelled };
 }
 async function billingRecord(env, uid) {
-  await ensureTables(env);
   const id = await pid(env, uid);
-  const row = await env.DB.prepare(`SELECT ${COLS}, version FROM accounts WHERE user_id = ?`).bind(id).first();
-  const pays = await env.DB.prepare("SELECT kind, stars, created_at FROM payments WHERE user_id = ? ORDER BY created_at").bind(id).all();
-  return { account: row ? normalized(toAccount(row)) : null, payments: (pays.results ?? []).map((r) => ({ kind: r.kind, stars: r.stars, at: new Date(r.created_at).toISOString() })) };
+  const has = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'payments'").first();
+  const pays = has ? await env.DB.prepare("SELECT kind, stars, created_at FROM payments WHERE user_id = ? ORDER BY created_at").bind(id).all() : { results: [] };
+  return { credits: await creditsRecord(env, id), payments: (pays.results ?? []).map((r) => ({ kind: r.kind, stars: r.stars, at: new Date(r.created_at).toISOString() })) };
 }
 
 // src/remind.ts
@@ -177,10 +279,10 @@ import { Hono } from "hono";
 import { GrammyError as GrammyError2 } from "grammy";
 
 // src/initdata.mjs
-var enc2 = new TextEncoder();
+var enc3 = new TextEncoder();
 async function hmac(key2, data) {
   const k = await crypto.subtle.importKey("raw", key2, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  return new Uint8Array(await crypto.subtle.sign("HMAC", k, typeof data === "string" ? enc2.encode(data) : data));
+  return new Uint8Array(await crypto.subtle.sign("HMAC", k, typeof data === "string" ? enc3.encode(data) : data));
 }
 var hex = (bytes) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 function sameHex(a, b) {
@@ -203,7 +305,7 @@ async function validateInitData(initData, botToken, maxAgeSec = 86400, now = Dat
   const lines = [];
   for (const [k, v] of params) if (k !== "hash") lines.push(`${k}=${v}`);
   lines.sort();
-  const secret = await hmac(enc2.encode("WebAppData"), botToken);
+  const secret = await hmac(enc3.encode("WebAppData"), botToken);
   const expected = hex(await hmac(secret, lines.join("\n")));
   if (!sameHex(expected, hash)) return null;
   const auth_date = Number(params.get("auth_date"));
@@ -295,50 +397,6 @@ var escapeHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/
 // src/bot.ts
 import { Bot, InlineKeyboard, InputFile } from "grammy";
 
-// src/telegram-api.ts
-import { Api as Api2 } from "grammy";
-
-// src/webpush.mjs
-var PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^android\.googleapis\.com$/, /^updates\.push\.services\.mozilla\.com$/, /^push\.services\.mozilla\.com$/, /(^|\.)push\.apple\.com$/, /\.notify\.windows\.com$/];
-function loopbackOrigin(origin) {
-  if (typeof origin !== "string" || !origin) return null;
-  try {
-    const u = new URL(origin);
-    return u.protocol === "http:" && (u.hostname === "127.0.0.1" || u.hostname === "localhost") && !u.username && !u.password ? u.origin : null;
-  } catch {
-    return null;
-  }
-}
-function validSubscription(sub, testOrigin) {
-  if (!sub || typeof sub !== "object" || typeof sub.endpoint !== "string" || sub.endpoint.length > 1024) return false;
-  let u;
-  try {
-    u = new URL(sub.endpoint);
-  } catch {
-    return false;
-  }
-  const loop = loopbackOrigin(testOrigin);
-  if (!(loop && u.origin === loop && !u.username && !u.password)) {
-    if (u.protocol !== "https:" || u.username || u.password || u.port) return false;
-    if (!PUSH_HOSTS.some((h) => h.test(u.hostname))) return false;
-  }
-  const k = sub.keys;
-  return !!k && typeof k.p256dh === "string" && typeof k.auth === "string" && /^[A-Za-z0-9_-]{20,200}=*$/.test(k.p256dh) && /^[A-Za-z0-9_-]{8,100}=*$/.test(k.auth);
-}
-var enc3 = new TextEncoder();
-function b64u(bytes) {
-  const b = typeof bytes === "string" ? enc3.encode(bytes) : bytes;
-  let s = "";
-  for (const x of b) s += String.fromCharCode(x);
-  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-// src/telegram-api.ts
-var telegramApi = (env) => {
-  const root2 = loopbackOrigin(env.TELEGRAM_API_ROOT);
-  return new Api2(env.BOT_TOKEN, root2 ? { apiRoot: root2 } : void 0);
-};
-
 // src/health.ts
 var REMIND_MS = 6 * 3600 * 1e3;
 
@@ -403,7 +461,7 @@ var HELP = [
 ].join("\n");
 
 // src/daily.ts
-import { Api as Api3, GrammyError } from "grammy";
+import { Api as Api2, GrammyError } from "grammy";
 var SLOT_TTL = 3 * 86400;
 
 // src/reminders.mjs
@@ -549,11 +607,11 @@ function markDone(rec, books2, now = /* @__PURE__ */ new Date()) {
   return next;
 }
 function pause(rec, now = /* @__PURE__ */ new Date(), until = PAUSE_DAYS) {
-  const today2 = localNow(rec.tz, now).date;
+  const today = localNow(rec.tz, now).date;
   let end;
   if (until === "forever") end = PAUSE_FOREVER;
-  else if (typeof until === "string" && DATE.test(until) && until > today2 && until <= addDays(today2, 366)) end = until;
-  else end = addDays(today2, PAUSE_CHOICES.includes(until) ? until : PAUSE_DAYS);
+  else if (typeof until === "string" && DATE.test(until) && until > today && until <= addDays(today, 366)) end = until;
+  else end = addDays(today, PAUSE_CHOICES.includes(until) ? until : PAUSE_DAYS);
   return { ...rec, pausedUntil: end };
 }
 function ackPending(rec, dates) {
@@ -610,8 +668,8 @@ async function deviceOf(env, header) {
   if (!d) return null;
   const saved = await env.SUBS.get(`remdev:${d[1]}`, "json");
   if (!saved || !same(saved.h, await sha256(d[2]))) return null;
-  const today2 = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
-  if (saved.t !== today2) await env.SUBS.put(`remdev:${d[1]}`, JSON.stringify({ ...saved, t: today2 }), { expirationTtl: IDLE_TTL });
+  const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+  if (saved.t !== today) await env.SUBS.put(`remdev:${d[1]}`, JSON.stringify({ ...saved, t: today }), { expirationTtl: IDLE_TTL });
   return { dev: d[1], rid: saved.rid };
 }
 var forgetDevice = (env, dev) => env.SUBS.delete(`remdev:${dev}`);
@@ -894,9 +952,9 @@ async function deleteData(env, uid) {
     }
     await env.SUBS.put(`notereq:${video}`, JSON.stringify({ ...r, users, count }), { metadata: { ...meta2, count } });
   }
-  const billing = await deleteBilling(env, uid).catch(() => ({ credits: 0, planUntil: null }));
+  const billing = await deleteBilling(env, uid).catch(() => ({ credits: 0, planUntil: null, planCancelled: false }));
   await env.DB.prepare("DELETE FROM rate_counts WHERE key LIKE ?").bind(`%:${me}:%`).run().catch(() => null);
-  return { savedChats, readingReminder, dailyVerse, classNoteRequests: reqs.length, askCredits: billing.credits, askPlanUntil: billing.planUntil ? new Date(billing.planUntil).toISOString() : null };
+  return { savedChats, readingReminder, dailyVerse, classNoteRequests: reqs.length, askCredits: billing.credits, askPlanUntil: billing.planUntil && !billing.planCancelled ? new Date(billing.planUntil).toISOString() : null };
 }
 async function deletionToken(env, uid) {
   const token = crypto.randomUUID().replace(/-/g, "").slice(0, 16);

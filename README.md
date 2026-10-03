@@ -53,19 +53,21 @@ passages are embedded with Workers AI (bge-m3) into a Vectorize index by
 (`bot/src/agent.ts`): it searches the library again in its own words and reads the verses it
 will quote (tools `search_library` and `read_scripture`, up to five rounds), and the app shows
 each step as it happens. Without the key, Llama 3.3 70B on Workers AI answers from the best
-eight in one pass, a hundred questions a day per person. Every finished exchange is saved to
+eight in one pass. Every finished exchange is saved to
 the person (`bot/src/chats.ts`) and listed under Your chats.
 
-**Paying for Ask.** Like AI features in other apps: a free allowance each day, a monthly
-Telegram Stars subscription with a monthly allowance, and Stars top-up packs whose credit does
-not expire (`bot/src/billing.mjs`, `billing.ts`). Every answer is charged what it used, in
-units of Claude's tokens weighted as Anthropic bills them, so a deep question uses more than a
-follow-up; the app shows what is left as "about N answers". The prices are the `ASK_*` vars in
-wrangler.jsonc: set `ASK_USD_PER_MTOK` to the model's input price and `ASK_USD_PER_STAR` to
-what a Star brings in, and every plan and pack pays for itself at `ASK_MARGIN`. Admins
-(`ADMIN_IDS`) ask without limit; `/api/admin/usage` (and Settings, for admins) shows questions,
-units and cost per day. Charging starts when `ASK_BILLING` is `"on"`; until then every answer is
-measured and nobody is charged.
+**Paying for Ask.** Ask is paid for in credits (`shared/credits.mjs`, `bot/src/credits.ts`): one
+credit is $0.001 of what the answer actually cost, every model call at that model's price (with
+Cloudflare's Unified Billing fee where it applies) and every library search, counted once. A
+reader gets free credits each day (`ASK_FREE_DAILY_CREDITS`), a monthly Telegram Stars plan
+(`ASK_PLAN_STARS`, with `ASK_PLAN_BONUS` more credits per Star than a top-up) and top-ups
+(`ASK_PACKS`) whose credits never expire (`bot/src/billing.ts`). Before an answer the credits it
+may use are held; after it, what it used is charged and the rest released; a failed, refused or
+empty answer is charged nothing. Every movement is a row in `credit_ledger`, and the soonest
+expiring credits are spent first. Dearer requests ask first (`ASK_CONFIRM_ABOVE_CREDITS`).
+New sales stay closed until the pricing is confirmed (`ASK_PRICING_CONFIRMED`, and the margin
+check in `creditConfig`); `/api/admin/usage` lists what is missing. Admins (`ADMIN_IDS`) are not
+charged. Charging starts when `ASK_BILLING` is `"on"`.
 The same index gives the Search screen its "By meaning" mode.
 
 **Precepts lined up with the verse.** The library's engine reads the precepts a class

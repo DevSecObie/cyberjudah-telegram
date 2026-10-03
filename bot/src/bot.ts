@@ -1,3 +1,4 @@
+import { telegramClient } from "./telegram-api";
 import { Bot, InlineKeyboard, InputFile, type Context } from "grammy";
 import type { InlineQueryResultArticle, UserFromGetMe } from "grammy/types";
 import { tellAdmins } from "./health";
@@ -7,7 +8,8 @@ import { runSearch } from "./search";
 import { parseReference } from "./refs.mjs";
 import { verseOfDay } from "./verse-of-day.mjs";
 import { pathToStartParam, startParamToPath } from "../../shared/links.mjs";
-import { applyPayment, checkout, SUPPORT_STARS } from "./billing";
+import { applyPayment, applyRefund, checkout, SUPPORT_STARS } from "./billing";
+import { fmtCredits } from "../../shared/credits.mjs";
 import { linkDevice, reminderButton, reminderKeyboard, stopFor, telegramReturned } from "./remind";
 import { pid, seal } from "./privacy.mjs";
 import { deleteData, deletionToken, exportData, useDeletionToken, type Deleted } from "./mydata";
@@ -52,7 +54,7 @@ const HELP = [
 ].join("\n");
 
 export async function createBot(env: Env, origin: string, exec?: Exec): Promise<Bot> {
-  const bot = new Bot(env.BOT_TOKEN, { botInfo });
+  const bot = new Bot(env.BOT_TOKEN, { botInfo, client: telegramClient(env) });
   const open = (ctx: Context, param: string, text?: string) => openButton(env, origin, ctx.chat?.type, param, text);
 
   bot.command("start", async (ctx) => {
@@ -175,9 +177,17 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
   bot.on("message:successful_payment", async (ctx) => {
     const pay = ctx.message.successful_payment;
     const got = await applyPayment(env, ctx.from.id, pay);
-    if (got === "plan") return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. Your month of Ask CyberJudah is on; it renews itself each month until you cancel it in Telegram's settings.`, { parse_mode: "HTML", reply_markup: open(ctx, "ask", "Ask CyberJudah") });
-    if (got === "pack") return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. ${pay.total_amount} Stars of Ask CyberJudah added; the credit does not expire.`, { parse_mode: "HTML", reply_markup: open(ctx, "ask", "Ask CyberJudah") });
+    if (got?.kind === "plan") return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. ${fmtCredits(got.mc)} credits for Ask CyberJudah ${got.renewal ? "for the new month" : "are yours"}. The plan renews each month until you cancel it; each month's credits expire at the next renewal.`, { parse_mode: "HTML", reply_markup: open(ctx, "ask", "Ask CyberJudah") });
+    if (got?.kind === "pack") return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. ${fmtCredits(got.mc)} credits added to Ask CyberJudah. Top-up credits never expire.`, { parse_mode: "HTML", reply_markup: open(ctx, "ask", "Ask CyberJudah") });
     return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}: ${pay.total_amount} Stars received. Study to shew thyself approved.`, { parse_mode: "HTML" });
+  });
+
+  // A refund (by Telegram, or the admins'): that payment's unspent credits leave the balance.
+  bot.on("message", async (ctx, next) => {
+    const r = (ctx.message as { refunded_payment?: { telegram_payment_charge_id: string; currency: string } }).refunded_payment;
+    if (!r || r.currency !== "XTR") return next();
+    const out = await applyRefund(env, ctx.from.id, r.telegram_payment_charge_id).catch(() => null);
+    return ctx.reply(out ? `Your refund is through. ${fmtCredits(out.clawed_mc)} unused credits from that payment have been removed.` : "Your refund is through.");
   });
 
   // A keyboard-button launch (sendData) lands here: say what arrived so the person sees it worked.

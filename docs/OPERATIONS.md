@@ -126,10 +126,11 @@ you do not have.
   slot is finished first. Rough math: 10k subscribers ≈ 7 minutes, 100k ≈ 70 minutes,
   inside the hourly cron. Blocked users (403) are dropped from the list automatically.
 - **Ask CyberJudah**: the expensive path. Per-user daily quotas bound one person's cost
-  (100 asks, 50 new TTS generations); the free allowance (`ASK_FREE_DAILY`) bounds
-  everyone's. Re-tune the allowance from `/api/admin/usage` real averages after launch,
-  not from estimates. Billing balances and usage totals live in D1 (`accounts`, `payments`,
-  `usage_daily`, `usage_people`, with version-checked updates; PR #16), not KV.
+  (100 asks, 50 new TTS generations); the free daily credits (`ASK_FREE_DAILY_CREDITS`)
+  and the per-request ceiling (`ASK_MAX_REQUEST_CREDITS`) bound everyone's. Re-tune them
+  from `/api/admin/usage` real costs after launch, not from estimates. Balances live in D1
+  (`credit_lots`, `credit_ledger`, `credit_holds`, `credit_usage`, `payments`), held before
+  and settled after each answer, never below zero (a CHECK constraint), not in KV.
 - **Search**: D1 FTS is cheap; `/api/search` cache headers are the lever if read volume spikes.
 - **Quotas**: `takeQuota()` in D1 is atomic per user/day; `rate_counts` rows for old days
   are swept on use, so the table stays small.

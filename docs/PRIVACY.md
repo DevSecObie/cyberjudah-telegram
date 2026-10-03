@@ -38,7 +38,9 @@ record holding anything personal is sealed for its owner (AES-GCM, a key derived
 | Reading reminder | KV `remind:tg:<pid>` / `remind:dev:<id>`, sealed; readable metadata: on, hour, minute, zone, channels, pause date | Time, zone, chat ID or push subscriptions, plan position | Until turned off; a browser not linked to Telegram 180 days unused | Settings → Reading reminders, `/stop`, Delete my data |
 | Push lookup | KV `pushep:<sha256(endpoint)>` | The reminder's ID | 180 days | With the reminder |
 | Daily verse | KV `sub:<pid>`, sealed | Hour, offset, chat ID | Until `/daily` again | `/daily`, Delete my data, Telegram blocking the bot |
-| Ask allowance | D1 `accounts` (`user_id` = pid) | Today's use, plan, credit | Until empty and unused for 180 days (`pruneBilling`) | Delete my data |
+| Ask credits | D1 `credit_lots`, `credit_ledger`, `credit_meta` (`user_id` = pid) | Balance by kind and expiry, every credit added or used, plan renewal state | Until Delete my data (the record of what was paid for); expired lots are emptied with a ledger row | Delete my data |
+| Ask usage | D1 `credit_usage`, `credit_holds` (pid) | Per answer: model, how many model calls and searches, cost, credits held and charged; no question text | Holds: released within the hour if never settled (`sweepHolds`); usage: with the credits | Delete my data |
+| Old Ask allowance | D1 `accounts` (`user_id` = pid) | The pre-credits balance, kept as the record it was carried over from | Until Delete my data | Delete my data |
 | Stars payments | D1 `payments` | Telegram charge ID, kind, Stars, date; pid | Kept for refunds and accounts | Delete my data unlinks it (`user_id = 'deleted'`) |
 | Who asked on a day | D1 `usage_people` (pid) | pid, day | 30 days | Delete my data |
 | Daily limits | D1 `rate_counts` (`name:pid:day`) | A count | Swept daily | Delete my data |

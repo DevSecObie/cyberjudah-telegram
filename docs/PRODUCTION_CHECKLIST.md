@@ -93,9 +93,9 @@ The code is built for it, but know the levers:
   70 minutes, and the previous hour's unfinished slot is finished first, so nothing is
   skipped. Watch the `daily` log lines (`sent`/`dropped`/`failed`) after the first big day.
 - **Ask CyberJudah:** the expensive path. Per-user daily quotas (100 asks, 50 TTS) bound
-  one person's spend; the free allowance (`ASK_FREE_DAILY`, 120,000 units ≈ 2 average
-  answers) bounds everyone's. `/api/admin/usage` shows real averages — re-tune the
-  allowance from that data, not from guesses.
+  one person's spend; the free daily credits (`ASK_FREE_DAILY_CREDITS`, 600 = $0.60 of
+  cost) bound everyone's. `/api/admin/usage` shows real costs and what pricing is still
+  missing before sales open (`ASK_PRICING_CONFIRMED`, margin) — re-tune from that data.
 - **Search:** D1 FTS, cheap and cacheable. The `/api/search` cache headers are the lever
   if read volume spikes.
 - **What pages you:** the hourly self-check messages `ADMIN_IDS` on Telegram when D1,

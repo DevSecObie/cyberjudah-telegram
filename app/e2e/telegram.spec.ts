@@ -1613,7 +1613,7 @@ test("Ask: every failure says what happened, with a way on", async ({ page }) =>
   const cases: [number, unknown, RegExp][] = [
     [400, { error: "too-short" }, /fuller question/],
     [401, { error: "unauthorized", reason: "missing" }, /Open CyberJudah from Telegram/],
-    [429, { error: "limit" }, /hundred questions today/],
+    [429, { error: "limit" }, /as many questions as one person can ask/],
   ];
   for (const [status, body, text] of cases) {
     await page.unroute("**/api/ask");
