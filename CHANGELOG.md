@@ -26,6 +26,13 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
 ### Added
+- Ask CyberJudah is paid for in credits instead of question counts: each answer is charged what
+  it actually cost (the model's calls and the library searches), shown under the answer and in a
+  usage history. Free credits each day, a monthly Stars plan and top-ups that never expire; dearer
+  requests ask first, and a short balance keeps the question and offers a top-up. Failed answers
+  are not charged. The old allowance carries over in full. New sales open once pricing is confirmed.
+- The Timeline's event sheet opens as Bible Strong's iOS form sheet, with its period card, panel
+  and rounded corners; Ask's provider agreement is a clean card and the model picker is always offered.
 - The Bible Timeline moves as Bible Strong's does: a period opens on its title card before the
   canvas slides in, the line and year travel with the canvas past either end, the next period's
   card fades in behind, and back from an event, a verse or a case study returns to the same place.
