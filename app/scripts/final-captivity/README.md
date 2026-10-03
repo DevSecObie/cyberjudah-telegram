@@ -14,6 +14,7 @@ from them, and `check.mjs` must pass before anything here is published.
 | `events.json` | Published events. Every one passes `check.mjs`. |
 | `drafts.json` | The draft queue: events that are not yet supported (no teaching moment found, no historical source read, or a date or claim unresolved). Never shown in the app. |
 | `ledger.json` | The research ledger: every source, whether it was reviewed, is unreviewed or could not be reached, which events it supports, the gaps, and the date sources were reviewed through. |
+| `leaders.json` | The leaders of Israel United in Christ with a portrait: id, name, role, the photo's path under `app/public` (128, 256 and 512 px `.webp`) and its credit. An event about one of them names them in `leader`, and the Timeline shows that portrait on the bar and the event. |
 | `COVERAGE.md` | The coverage inventory by period, region, people and subject. |
 
 ## An event

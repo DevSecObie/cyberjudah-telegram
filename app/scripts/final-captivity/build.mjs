@@ -53,7 +53,7 @@ export function build({ timeline, periods, events }) {
       events: mine.map((e, i) => {
         const { slug, title, start, end, status, period, ...rest } = e; // eslint-disable-line no-unused-vars
         details[slug] = { ...rest, title, start, end, period };
-        return { id: ID_BASE + n++, slug, title, start, end, row: rows[i], type: "major", ...(e.date?.precision === "circa" ? { approx: true } : {}), fc: true, group: e.group };
+        return { id: ID_BASE + n++, slug, title, start, end, row: rows[i], type: "major", ...(e.date?.precision === "circa" ? { approx: true } : {}), fc: true, group: e.group, ...(e.leader ? { leader: e.leader } : {}) };
       }),
     };
   });

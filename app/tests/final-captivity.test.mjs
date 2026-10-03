@@ -87,3 +87,13 @@ test("bars that would overlap go on different rows", () => {
   assert.notEqual(rows[0], rows[1]);
   assert.equal(rows[2], rows[0]);
 });
+
+test("an event about a leader names one with a portrait; the bar carries it", () => {
+  const leaders = [{ id: "bishop-nathanyel", name: "Bishop Nathanyel", photo: "timeline/leaders/bishop-nathanyel" }];
+  assert.deepEqual(checkEvent({ ...good(), leader: "bishop-nathanyel" }, P, { leaders }), []);
+  assert.ok(checkEvent({ ...good(), leader: "someone-else" }, P, { leaders }).some((x) => /not in leaders.json/.test(x)));
+  const timeline = { source: "x", reigns: "y", sections: [] };
+  const out = build({ timeline, periods, events: [{ ...good(), leader: "bishop-nathanyel" }] });
+  assert.equal(out.timeline.sections[0].events[0].leader, "bishop-nathanyel");
+});
+

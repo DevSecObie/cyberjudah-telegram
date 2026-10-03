@@ -17,7 +17,7 @@ const BASE = import.meta.env.BASE_URL;
 export const eventBySlug = (slug: string | null | undefined): TimelineEvent | undefined => (slug ? BY_SLUG.get(slug) : undefined);
 
 /** An event's picture: the approved portrait of its person, at the size drawn (64px strip, the sheet, search). */
-export const portraitSrc = (e: TimelineEvent, size: 128 | 256) => (e.portrait ? `${BASE}people/${e.portrait}-${size}.webp` : null);
+export const portraitSrc = (e: TimelineEvent, size: 128 | 256) => (e.portrait ? `${BASE}people/${e.portrait}-${size}.webp` : e.leader ? `${BASE}timeline/leaders/${e.leader}-${size}.webp` : null);
 
 /** A People id (name-book-chapter-verse, as STEPBible's): the portrait's person has a page in People. */
 export const personOf = (e: TimelineEvent): string | null => (e.portrait && /-[a-z0-9]{2,3}-\d+-\d+$/.test(e.portrait) ? e.portrait : null);
