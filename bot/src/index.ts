@@ -21,8 +21,8 @@ import { dictionary } from "./dictionary";
 import { bs } from "./bs";
 import { buildCatalog, emptyCatalog, SLUGS, type PassageMediaMoment } from "./passage-media.mjs";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
-import { CHAT_ID, deleteChat, getChat, getPending, listChats, setActionState } from "./chats";
-import { closeRequest, getRequest, listRequests, requestNotes, validVideo } from "./requests";
+import { CHAT_ID, deleteChat, getChat, getPending, listChats, moveLegacy, setActionState } from "./chats";
+import { askedBy, closeRequest, getRequest, listRequests, requestNotes, validVideo } from "./requests";
 import { tellAdmins } from "./health";
 import { notePdf, pdfName } from "./pdf.mjs";
 import { billingOn, invoiceFor, prices, pruneBilling, standing, usageDay, SUPPORT_STARS } from "./billing";
@@ -30,6 +30,8 @@ import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 import { hasClaude, unifiedBilling } from "./providers";
 import { costFactor, MODELS, modelOf } from "../../shared/ask-models.mjs";
+import { pid, seal } from "./privacy.mjs";
+import { migratePrivacy } from "./privacy-migrate";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
@@ -88,7 +90,7 @@ app.get("/api/health", async (c) => {
 });
 app.get("/api/me", async (c) => {
   const { user } = c.get("tma");
-  const sub = await c.env.SUBS.get(`sub:${user!.id}`);
+  const sub = await c.env.SUBS.get(`sub:${await pid(c.env, user!.id)}`);
   return c.json({ user: { id: user!.id, first_name: user!.first_name, username: user!.username }, subscribed: Boolean(sub), premium: Boolean(user!.is_premium), admin: isAdmin(c.env, user!.id), canEdit: isAdmin(c.env, user!.id) && canEdit(c.env) });
 });
 
@@ -270,7 +272,7 @@ app.get("/api/requests/:video", async (c) => {
   const video = c.req.param("video");
   if (!validVideo(video)) return c.json({ ok: false, error: "bad-video" }, 400);
   const r = await getRequest(c.env, video);
-  return c.json({ ok: true, count: r?.count ?? 0, mine: !!r?.users.includes(c.get("tma").user!.id) });
+  return c.json({ ok: true, count: r?.count ?? 0, mine: await askedBy(c.env, r, c.get("tma").user!.id) });
 });
 app.post("/api/requests/:video", async (c) => {
   const video = c.req.param("video");
@@ -355,13 +357,14 @@ app.post("/api/subscribe", async (c) => {
   const { user } = c.get("tma");
   const body = await c.req.json<{ on?: boolean; hour?: number; tz?: number }>().catch(() => null);
   if (!body) return c.json({ error: "bad-json" }, 400);
-  const key = `sub:${user!.id}`;
+  const key = `sub:${await pid(c.env, user!.id)}`;
   if (!body.on) { await c.env.SUBS.delete(key); return c.json({ subscribed: false }); }
   const hour = Number.isInteger(body.hour) && body.hour! >= 0 && body.hour! <= 23 ? body.hour! : 8;
   const tz = Number.isInteger(body.tz) && Math.abs(body.tz!) <= 14 * 60 ? body.tz! : 0;
   // Private chat id equals the user id; the daily message goes there.
   const sub: Sub = { chatId: user!.id, hour, tz };
-  await c.env.SUBS.put(key, JSON.stringify(sub));
+  // Sealed at rest (privacy.mjs): the chat ID is read only to send the verse.
+  await c.env.SUBS.put(key, await seal(c.env, key, sub));
   return c.json({ subscribed: true });
 });
 
@@ -453,6 +456,8 @@ export default {
     ctx.waitUntil(selfCheck(env).then((r) => reportHealth(env, r)));
     // Old usage rows are pruned; the tables stay small.
     ctx.waitUntil(pruneBilling(env).catch((e) => console.error(JSON.stringify({ event: "prune_failed", message: (e as Error).message?.slice(0, 120) }))));
+    // Records still filed under Telegram IDs move to pseudonymous IDs (docs/PRIVACY.md), a bounded amount each hour.
+    ctx.waitUntil(migratePrivacy(env, moveLegacy).then((r) => { if (r.moved) console.log(JSON.stringify({ event: "privacy_migrated", moved: r.moved, done: r.done })); }).catch((e) => console.error(JSON.stringify({ event: "privacy_migrate_failed", message: (e as Error).message?.slice(0, 120) }))));
     // A few recordings' frames an hour, until the whole archive is in the bucket.
     ctx.waitUntil(warmFrames(env).then((r) => console.log(`frames: warmed ${r.warmed.length}, failed ${r.failed.length}`)));
   },

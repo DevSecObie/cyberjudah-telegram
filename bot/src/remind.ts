@@ -13,6 +13,7 @@ import {
   type Meta, type Portion, type Reminder,
 } from "./reminders.mjs";
 import { b64u, sendPush, validSubscription, type VapidKeys } from "./webpush.mjs";
+import { open, pid, seal } from "./privacy.mjs";
 
 /**
  * Reading reminders (rules in reminders.mjs). One record per reader in the SUBS namespace:
@@ -30,6 +31,8 @@ import { b64u, sendPush, validSubscription, type VapidKeys } from "./webpush.mjs
 
 const PREFIX = "remind:";
 const recKey = (rid: string) => `${PREFIX}${rid}`;
+/** A Telegram reader's reminder is filed under their pseudonymous ID (privacy.mjs); the chat ID the bot sends to is kept inside the record. */
+export const tgRid = async (env: Pick<Env, "PRIVACY_KEY" | "BOT_TOKEN">, uid: number) => `tg:${await pid(env, uid)}`;
 const LINK_TTL = 15 * 60;
 /**
  * A browser's credential, an unlinked browser's record and a push subscription's index are
@@ -45,12 +48,13 @@ async function sha256(s: string): Promise<string> {
 }
 const randomHex = (n: number) => [...crypto.getRandomValues(new Uint8Array(n))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
+/** Records are sealed at rest (privacy.mjs); only the listing metadata the cron filters on (meta) stays readable. */
 export async function loadReminder(env: Env, rid: string): Promise<Reminder | null> {
-  return env.SUBS.get<Reminder>(recKey(rid), "json");
+  return open<Reminder>(env, recKey(rid), await env.SUBS.get(recKey(rid)));
 }
 export async function saveReminder(env: Env, rid: string, rec: Reminder): Promise<void> {
   // A reader known through Telegram keeps their record; an unlinked browser's expires when unused.
-  await env.SUBS.put(recKey(rid), JSON.stringify(rec), { metadata: meta(rec), ...(rid.startsWith("dev:") ? { expirationTtl: IDLE_TTL } : {}) });
+  await env.SUBS.put(recKey(rid), await seal(env, recKey(rid), rec), { metadata: meta(rec), ...(rid.startsWith("dev:") ? { expirationTtl: IDLE_TTL } : {}) });
 }
 const putIndex = async (env: Env, endpoint: string, rid: string) => env.SUBS.put(`pushep:${await sha256(endpoint)}`, rid, { expirationTtl: IDLE_TTL });
 
@@ -97,7 +101,7 @@ async function resolveWho(c: Context<{ Bindings: Env }>): Promise<Who | null> {
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
   if (m) {
     const data = await validateInitData(m[1], c.env.BOT_TOKEN, 30 * 86400);
-    return data?.user ? { kind: "telegram", uid: data.user.id, rid: `tg:${data.user.id}` } : null;
+    return data?.user ? { kind: "telegram", uid: data.user.id, rid: await tgRid(c.env, data.user.id) } : null;
   }
   const d = /^([0-9a-f]{32})\.([A-Za-z0-9_-]{43})$/.exec(c.req.header("x-cj-device") ?? "");
   if (!d) return null;
@@ -173,7 +177,7 @@ export async function linkDevice(env: Env, code: string, uid: number): Promise<b
   await env.SUBS.delete(`remlink:${code}`);
   const cred = await env.SUBS.get<{ h: string; rid: string }>(`remdev:${dev}`, "json");
   if (!cred) return false;
-  const rid = `tg:${uid}`;
+  const rid = await tgRid(env, uid);
   const mine = cred.rid !== rid ? await loadReminder(env, cred.rid) : null;
   const theirs = await loadReminder(env, rid);
   let rec: Reminder = { ...(theirs?.on ? theirs : mine ?? theirs ?? blank()), chatId: uid };
@@ -191,20 +195,20 @@ const PAUSE_LABEL: Record<string, string> = { 1: "Paused until tomorrow.", 7: "P
 
 /** /stop in the bot's chat: reading reminders off, from the chat itself. */
 export async function stopFor(env: Env, uid: number): Promise<boolean> {
-  const rec = await loadReminder(env, `tg:${uid}`);
+  const rec = await loadReminder(env, await tgRid(env, uid));
   if (!rec?.on) return false;
-  await saveReminder(env, `tg:${uid}`, stop(rec));
+  await saveReminder(env, await tgRid(env, uid), stop(rec));
   return true;
 }
 /** The reader started the bot again after blocking it: Telegram reminders resume as they were. */
 export async function telegramReturned(env: Env, uid: number): Promise<void> {
-  const rec = await loadReminder(env, `tg:${uid}`);
-  if (rec?.tgBlocked) await saveReminder(env, `tg:${uid}`, telegramBack(rec));
+  const rec = await loadReminder(env, await tgRid(env, uid));
+  if (rec?.tgBlocked) await saveReminder(env, await tgRid(env, uid), telegramBack(rec));
 }
 
 /** The bot's Done / Pause / Stop buttons under a reminder. Pause asks how long first. */
 export async function reminderButton(env: Env, uid: number, action: "done" | "pause" | "stop", until?: number | "forever"): Promise<string> {
-  const rid = `tg:${uid}`;
+  const rid = await tgRid(env, uid);
   if (action === "done") return (await doneFor(env, rid)) ? "Marked done." : "This reminder is no longer on.";
   const rec = await loadReminder(env, rid);
   if (!rec) return "This reminder is no longer on.";
@@ -215,7 +219,7 @@ export async function reminderButton(env: Env, uid: number, action: "done" | "pa
 }
 /** The buttons under today's reminder: the usual row, or the pause lengths to choose from. */
 export async function reminderKeyboard(env: Env, uid: number, choosing: boolean): Promise<InlineKeyboard | null> {
-  const rec = await loadReminder(env, `tg:${uid}`);
+  const rec = await loadReminder(env, await tgRid(env, uid));
   const p = rec ? portion(rec, (await books(env)) ?? []) : null;
   if (!p) return null;
   if (!choosing) return telegramKeyboard(env, p);
@@ -448,7 +452,7 @@ async function runSlot(env: Env, key: string, now: Date, list: NonNullable<Await
   };
   const one = async (name: string) => {
     const rid = name.slice(PREFIX.length);
-    const rec = await env.SUBS.get<Reminder>(name, "json");
+    const rec = await open<Reminder>(env, name, await env.SUBS.get(name));
     const due = dueChannels(rec, now);
     if (!rec || !due.length) return;
     const p = portion(rec, list);

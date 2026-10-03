@@ -5,6 +5,7 @@ import { balance, emptyAccount, grantPack, grantPlan, payloadOf, pricing, readSu
 export { RESERVE_UNITS, SUPPORT_STARS };
 export type { Account, Balance, Pricing, Take };
 import { isAdmin } from "./edit";
+import { pid } from "./privacy.mjs";
 import { hasClaude } from "./providers";
 
 /**
@@ -50,11 +51,23 @@ const normalized = (a: Account, now = Date.now()): Account =>
 
 const COLS = "user_id, day, free_used, plan_until, plan_allowance, plan_used, credits";
 
-/** The account row, creating it on first sight. A leftover KV balance is adopted once, then the KV key is dropped. */
+/**
+ * The account row, creating it on first sight. Rows are filed under the person's pseudonymous
+ * ID (privacy.mjs), never their Telegram ID: a row (and its payments) still filed under the
+ * Telegram ID from before is moved over on first sight, and a leftover KV balance is adopted
+ * once, then the KV key is dropped.
+ */
 async function loadAccount(env: Env, uid: number): Promise<{ account: Account; version: number }> {
   await ensureTables(env);
-  const id = String(uid);
+  const id = await pid(env, uid);
   let row: Row | null = await env.DB.prepare(`SELECT ${COLS}, version FROM accounts WHERE user_id = ?`).bind(id).first<Row>();
+  if (!row) {
+    const moved = await env.DB.batch([
+      env.DB.prepare("UPDATE accounts SET user_id = ? WHERE user_id = ?").bind(id, String(uid)),
+      env.DB.prepare("UPDATE payments SET user_id = ? WHERE user_id = ?").bind(id, String(uid)),
+    ]);
+    if (Number(moved[0].meta.changes ?? 0) > 0) row = await env.DB.prepare(`SELECT ${COLS}, version FROM accounts WHERE user_id = ?`).bind(id).first<Row>();
+  }
   if (!row) {
     const kv = (await env.SUBS.get(`acct:${uid}`, "json")) as Account | null;
     const a = kv ?? emptyAccount();
@@ -82,7 +95,7 @@ async function transact(env: Env, uid: number, fn: (a: Account) => Account, trie
     const r = await env.DB.prepare(
       `UPDATE accounts SET day = ?, free_used = ?, plan_until = ?, plan_allowance = ?, plan_used = ?, credits = ?, version = version + 1
        WHERE user_id = ? AND version = ?`)
-      .bind(next.day, next.freeUsed, next.plan?.until ?? 0, next.plan?.allowance ?? 0, next.plan?.used ?? 0, next.credits, String(uid), version)
+      .bind(next.day, next.freeUsed, next.plan?.until ?? 0, next.plan?.allowance ?? 0, next.plan?.used ?? 0, next.credits, await pid(env, uid), version)
       .run();
     if (Number(r.meta.changes ?? 0) > 0) return next;
   }
@@ -150,7 +163,7 @@ export async function settleAsk(env: Env, uid: number, take: Take, actualUnits: 
   return balance(next, p);
 }
 
-/** The day's totals of questions and units, kept 120 days for the admins' pricing. */
+/** The day's totals of questions and units, kept 120 days for the admins' pricing; who asked that day (pseudonymous), 30 days. */
 async function recordUsage(env: Env, uid: number, units: number): Promise<void> {
   await ensureTables(env);
   const day = today();
@@ -158,18 +171,48 @@ async function recordUsage(env: Env, uid: number, units: number): Promise<void> 
   await env.DB.batch([
     env.DB.prepare(`INSERT INTO usage_daily (day, questions, units) VALUES (?, 1, ?)
       ON CONFLICT (day) DO UPDATE SET questions = questions + 1, units = units + excluded.units`).bind(day, u),
-    env.DB.prepare(`INSERT OR IGNORE INTO usage_people (day, user_id) VALUES (?, ?)`).bind(day, String(uid)),
+    env.DB.prepare(`INSERT OR IGNORE INTO usage_people (day, user_id) VALUES (?, ?)`).bind(day, await pid(env, uid)),
   ]);
 }
 
-/** Usage older than 120 days is pruned by the hourly cron. */
+/**
+ * Retention, run by the hourly cron (docs/PRIVACY.md): the day totals after 120 days, who asked
+ * on a day after 30, and an allowance record with nothing left in it (no credit, no running
+ * plan) after 180 days without use.
+ */
 export async function pruneBilling(env: Env): Promise<void> {
   await ensureTables(env);
-  const cutoff = today(Date.now() - 120 * 86400000);
   await env.DB.batch([
-    env.DB.prepare("DELETE FROM usage_daily WHERE day < ?").bind(cutoff),
-    env.DB.prepare("DELETE FROM usage_people WHERE day < ?").bind(cutoff),
+    env.DB.prepare("DELETE FROM usage_daily WHERE day < ?").bind(today(Date.now() - 120 * 86400000)),
+    env.DB.prepare("DELETE FROM usage_people WHERE day < ?").bind(today(Date.now() - 30 * 86400000)),
+    env.DB.prepare("DELETE FROM accounts WHERE credits <= 0 AND plan_until < ? AND day < ?").bind(Date.now(), today(Date.now() - 180 * 86400000)),
   ]);
+}
+
+/**
+ * Delete my data: the allowance record and who-asked rows go. A payment record keeps only the
+ * Telegram charge ID, kind, amount and date, no longer linked to the person: Telegram's refund
+ * process and the owner's accounts need those (docs/PRIVACY.md).
+ */
+export async function deleteBilling(env: Env, uid: number): Promise<{ credits: number; planUntil: number | null }> {
+  await ensureTables(env);
+  const id = await pid(env, uid);
+  const left = await env.DB.prepare("SELECT credits, plan_until FROM accounts WHERE user_id = ? OR user_id = ?").bind(id, String(uid)).first<{ credits: number; plan_until: number }>();
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM accounts WHERE user_id = ? OR user_id = ?").bind(id, String(uid)),
+    env.DB.prepare("DELETE FROM usage_people WHERE user_id = ? OR user_id = ?").bind(id, String(uid)),
+    env.DB.prepare("UPDATE payments SET user_id = 'deleted' WHERE user_id = ? OR user_id = ?").bind(id, String(uid)),
+  ]);
+  await env.SUBS.delete(`acct:${uid}`).catch(() => null);
+  return { credits: left?.credits ?? 0, planUntil: left && left.plan_until > Date.now() ? left.plan_until : null };
+}
+
+/** What is kept for this person, for "Download my data". */
+export async function billingRecord(env: Env, uid: number): Promise<{ account: Account; payments: { kind: string; stars: number; at: string }[] }> {
+  await ensureTables(env);
+  const id = await pid(env, uid);
+  const pays = await env.DB.prepare("SELECT kind, stars, created_at FROM payments WHERE user_id = ? ORDER BY created_at").bind(id).all<{ kind: string; stars: number; created_at: number }>();
+  return { account: await account(env, uid), payments: (pays.results ?? []).map((r) => ({ kind: r.kind, stars: r.stars, at: new Date(r.created_at).toISOString() })) };
 }
 
 /** One day's totals for the admins' usage page. */
@@ -214,7 +257,7 @@ export async function applyPayment(env: Env, from: number, pay: { invoice_payloa
   await ensureTables(env);
   const claimed = await env.DB.prepare(
     `INSERT OR IGNORE INTO payments (charge_id, user_id, kind, stars, created_at) VALUES (?, ?, ?, ?, ?)`)
-    .bind(pay.telegram_payment_charge_id, String(from), b.kind, b.stars, Date.now()).run();
+    .bind(pay.telegram_payment_charge_id, await pid(env, from), b.kind, b.stars, Date.now()).run();
   if (Number(claimed.meta.changes ?? 0) === 0) return b.kind;
   await transact(env, from, (a) => b.kind === "plan" ? grantPlan(a, p, (pay.subscription_expiration_date ?? 0) * 1000) : grantPack(a, b.stars, p));
   return b.kind;

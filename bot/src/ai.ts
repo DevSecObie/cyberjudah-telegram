@@ -5,6 +5,7 @@ import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, 
 import { runAgent, type AgentEvent } from "./agent";
 import { claude, claudeUnavailable, hasClaude, viaGateway } from "./providers";
 import { modelOf } from "../../shared/ask-models.mjs";
+import { pid } from "./privacy.mjs";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
 import { isAdmin } from "./edit";
 import { billingOn, charge, reserveAsk, settleAsk, standing, type Take } from "./billing";
@@ -88,7 +89,8 @@ const TTS_LIMIT = 50;
  */
 export async function takeQuota(env: Env, name: string, userId: number, limit: number): Promise<boolean> {
   const day = new Date().toISOString().slice(0, 10);
-  const key = `${name}:${userId}:${day}`;
+  // Counted under the person's pseudonymous ID, and swept the next day.
+  const key = `${name}:${await pid(env, userId)}:${day}`;
   const res = await env.DB.batch([
     env.DB.prepare("CREATE TABLE IF NOT EXISTS rate_counts (key TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)"),
     env.DB.prepare("INSERT INTO rate_counts (key, n) VALUES (?, 1) ON CONFLICT (key) DO UPDATE SET n = n + 1 RETURNING n").bind(key),

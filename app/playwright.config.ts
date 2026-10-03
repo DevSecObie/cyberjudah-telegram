@@ -34,6 +34,8 @@ const vars = [
   // test runs out; the allowance test uses a reader's day up itself.
   "ASK_BILLING:on",
   "ASK_FREE_DAILY:100000000",
+  // Records are filed under pseudonymous IDs (bot/src/privacy.mjs); the tests derive the same ones.
+  "PRIVACY_KEY:e2e-privacy-key-not-secret",
 ].map((v) => `--var '${v}'`).join(" ");
 
 /**

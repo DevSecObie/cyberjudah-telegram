@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import { STAND_IN, type Logged } from "./stand-ins";
 import type { ClaudeRequest } from "./claude";
+import { pid } from "../../bot/src/privacy.mjs";
 
 /**
  * Ask CyberJudah as the app's assistant, at 390×844, against the real local Worker: its own
@@ -194,8 +195,11 @@ test("with today's free answers used, Ask does not call Claude or charge, and sa
   await ask(page, "Who are the twelve tribes?");
   await expect(answer(page)).toContainText("A short answer to");
   // The reader's free day is used up, as if they had asked all day.
-  d1(`UPDATE accounts SET free_used = 100000000 WHERE user_id = '${RUN + 11}'`);
-  const before = JSON.parse(d1(`SELECT free_used, credits FROM accounts WHERE user_id = '${RUN + 11}'`))[0].results[0];
+  // Filed under the reader's pseudonymous ID, never the Telegram ID.
+  const id = await pid({ PRIVACY_KEY: "e2e-privacy-key-not-secret" }, RUN + 11);
+  expect(JSON.parse(d1(`SELECT COUNT(*) AS n FROM accounts WHERE user_id = '${RUN + 11}'`))[0].results[0].n).toBe(0);
+  d1(`UPDATE accounts SET free_used = 100000000 WHERE user_id = '${id}'`);
+  const before = JSON.parse(d1(`SELECT free_used, credits FROM accounts WHERE user_id = '${id}'`))[0].results[0];
   await page.reload();
   await expect(page.locator(".chat2")).toContainText("In-depth answers back at");
   const t0 = Date.now();
@@ -205,6 +209,6 @@ test("with today's free answers used, Ask does not call Claude or charge, and sa
   await expect(answer(page).locator(".paywall")).toContainText(/Your free answers come back at \d{1,2}:\d{2}/);
   await shot(page, "6-allowance");
   expect(await modelCalls(request, t0)).toHaveLength(0);
-  const after = JSON.parse(d1(`SELECT free_used, credits FROM accounts WHERE user_id = '${RUN + 11}'`))[0].results[0];
+  const after = JSON.parse(d1(`SELECT free_used, credits FROM accounts WHERE user_id = '${id}'`))[0].results[0];
   expect(after).toEqual(before);
 });

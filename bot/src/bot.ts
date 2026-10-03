@@ -8,6 +8,7 @@ import { verseOfDay } from "./verse-of-day.mjs";
 import { pathToStartParam, startParamToPath } from "../../shared/links.mjs";
 import { applyPayment, checkout, SUPPORT_STARS } from "./billing";
 import { linkDevice, reminderButton, reminderKeyboard, stopFor, telegramReturned } from "./remind";
+import { pid, seal } from "./privacy.mjs";
 
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 const MAX_INLINE = 50;
@@ -82,7 +83,7 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
 
   bot.command("daily", async (ctx) => {
     if (ctx.chat.type !== "private") return ctx.reply("The daily verse is sent in a private chat: message me directly and send /daily there.");
-    const key = `sub:${ctx.from!.id}`;
+    const key = `sub:${await pid(env, ctx.from!.id)}`;
     const had = await env.SUBS.get(key);
     if (had) {
       await env.SUBS.delete(key);
@@ -90,7 +91,7 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     }
     // The bot cannot know the person's time zone: 08:00 UTC until the app sets their hour.
     const sub: Sub = { chatId: ctx.chat.id, hour: 8, tz: 0 };
-    await env.SUBS.put(key, JSON.stringify(sub));
+    await env.SUBS.put(key, await seal(env, key, sub));
     await ctx.reply("The daily verse is on, every day at 08:00 UTC. Pick your own hour in the app's settings, or send /daily to stop.", { reply_markup: open(ctx, "settings", "Open settings") });
   });
 

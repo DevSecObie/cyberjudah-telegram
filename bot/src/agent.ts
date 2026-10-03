@@ -7,7 +7,7 @@ import { answerCandidates, APP, normalizeHistory, RESEARCH, SYSTEM, type Passage
 import { checkInput, describeReminder, findCases, findChats, findFeatures, findPeople, proposeReminder } from "./assistant.mjs";
 import { FEATURES } from "../../shared/app-features.mjs";
 import { listChats, type SavedAction } from "./chats";
-import { loadReminder } from "./remind";
+import { loadReminder, tgRid } from "./remind";
 import { publicView } from "./reminders.mjs";
 import { parseReference } from "./refs.mjs";
 import { modelOf, unitsFor, type AskModel } from "../../shared/ask-models.mjs";
@@ -174,7 +174,7 @@ export async function runAgent(
     if (name === "my_reminder") {
       if (!userId) return { content: "The person is not signed in.", error: true };
       emit({ status: "Looking at your reading reminder" });
-      const rec = await loadReminder(env, `tg:${userId}`);
+      const rec = await loadReminder(env, await tgRid(env, userId));
       return { content: `${describeReminder(rec ? publicView(rec) : null)} Settings: /settings/reminders` };
     }
     if (name === "propose_reminder_change") {
