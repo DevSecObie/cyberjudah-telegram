@@ -18,7 +18,9 @@
 #root .btn--plain { background: transparent; color: var(--accent); border-color: transparent; }
 /* A glass-style control uses only the tint of its existing navigation material. Outside these
    contexts it safely keeps the bordered recipe. No control adds a backdrop filter. */
-#root :is(.head, .bs-header, .srch__bar, .pv__bar, .pageactions) .btn--glass { background: var(--mat-selected); color: var(--text-1); border-color: var(--mat-edge); }
+#root :is(.head, .bs-header, .srch__bar, .pv__bar) .btn--glass { background: var(--mat-selected); color: var(--text-1); border-color: var(--mat-edge); }
+/* Detached actions need their own solid ground; the header and dock already spend the blur budget. */
+#root .pageactions .btn--glass { background: var(--mat-overlay); color: var(--text-1); border-color: var(--mat-edge); }
 #root .btn:hover:not(:disabled) { opacity: .85; }
 #root .btn--sm { min-height: var(--h-sm); padding-inline: var(--sp-3); font-size: var(--fs-footnote); }
 #root .btn--lg { min-height: var(--h-lg); }
@@ -157,7 +159,7 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgu
 #root .bs-picker { --r-outer: var(--r-lg); --inset: var(--sp-3); --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset))); }
 #root .bs-picker .bs-search { border-radius: var(--r-inner); }
 #root .bs-chip { min-height: var(--h-sm); height: auto; padding-block: var(--sp-2); border-radius: var(--r-pill); font-size: var(--fs-footnote); }
-#root .bs-chip[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+#root .bs-chip[aria-pressed="true"], #root .bs-ambient-tabs [aria-selected="true"] { background: var(--accent); color: var(--on-accent); }
 #root .srch__field { min-height: var(--h-lg); height: auto; }
 #root .srch__scope { min-height: var(--h-sm); padding-block: var(--sp-2); }
 /* The solid thumb stretches on press. It is a composited web cue, not a

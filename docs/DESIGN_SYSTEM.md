@@ -293,7 +293,7 @@ This table covers every authored CSS background and backdrop declaration in `app
 | **styles/controls.css · crash**<br>`#root .crash__btn`, `#root .crash__btn:not(.crash__btn--main)` | content | None | Content, control state, or decoration; never glass. |
 | **styles/controls.css · trouble**<br>`#root .trouble__act`, `#root .trouble__act:not(.trouble__act--primary)` | content | None | Content, control state, or decoration; never glass. |
 | **styles/controls.css · paywall**<br>`#root .paywall__go` | content | None | Content, control state, or decoration; never glass. |
-| **styles/controls.css · head**<br>`#root :is(.head, .bs-header, .srch__bar, .pv__bar, .pageactions) .btn--glass` | navigation | None | Control, selection, or edge fill; no additional glass. |
+| **styles/controls.css · head**<br>`#root :is(.head, .bs-header, .srch__bar, .pv__bar) .btn--glass`, `#root .pageactions .btn--glass` | navigation | None | Control, selection, or edge fill; no additional glass. |
 | **styles/controls.css · icon-btn**<br>`.icon-btn`, `.icon-btn:hover`, `.icon-btn:active`, `.icon-btn[aria-pressed="true"]` | content | None | Content, control state, or decoration; never glass. |
 | **styles/controls.css · more-btn**<br>`.more-btn`, `.more-btn:hover` | content | None | Content, control state, or decoration; never glass. |
 | **styles/controls.css · bookpage**<br>`#root .bookpage__more` | content | None | Content, control state, or decoration; never glass. |
@@ -317,7 +317,7 @@ This table covers every authored CSS background and backdrop declaration in `app
 | **styles/controls.css · answer**<br>`.answer__n` | content | None | Content, control state, or decoration; never glass. |
 | **styles/controls.css · progress**<br>`.progress`, `.progress i` | content | None | Content, control state, or decoration; never glass. |
 | **styles/controls.css · remind-date**<br>`.remind-date input` | content | None | Content, control state, or decoration; never glass. |
-| **styles/controls.css · bs-chip**<br>`#root .bs-chip[aria-pressed="true"]` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · bs-chip**<br>`#root .bs-chip[aria-pressed="true"]`, `#root .bs-ambient-tabs [aria-selected="true"]` | content | None | Content, control state, or decoration; never glass. |
 | **styles/controls.css · bs-switch**<br>`.bs-switch span` | content | None | Content, control state, or decoration; never glass. |
 | **styles/materials.css · glass**<br>`.glass`, `.glass--elevated` | navigation | `var(--mat-blur)`, `var(--mat-blur-strong)` | One shared material on the navigation surface; nested control fills have no filter. |
 | **styles/materials.css · surface**<br>`.surface` | content | None | Content, control state, or decoration; never glass. |
@@ -482,7 +482,7 @@ The OS reduced-transparency E2E uses Chromium CDP media emulation and verifies t
 | prominent | Main action, `--accent` fill and `--on-accent` ink. |
 | bordered | Secondary action, shared fill and control edge. |
 | plain | Text action without a resting background. |
-| glass | A selection tint **within an existing navigation material**, never another backdrop filter. Outside the approved navigation containers it falls back to bordered. |
+| glass | A selection tint **within an existing navigation material**, never another backdrop filter. Outside the approved navigation containers it falls back to bordered. Detached page actions keep a solid overlay ground to preserve readability and the blur budget. |
 
 Home actions, library page links/scan buttons, the picture-viewer reading action, note requests, photo editing, recovery actions, pagination and “show more” actions share these recipes. Tappable content cards, highlight swatches, media transport and category badges retain their semantic presentation. The media viewer scopes `--accent`/`--on-accent` to its dark media palette. Ordinary page actions remain capsules, and the main paywall CTA uses the extra-large size.
 
