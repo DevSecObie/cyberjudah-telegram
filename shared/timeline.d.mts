@@ -1,0 +1,23 @@
+export type TimelineCase = { slug: string; name: string; kind: "judgment" | "blessing" };
+export type TimelineEvent = { id: number; slug: string; title: string; start: number; end: number; row: number; type: "major" | "minor"; approx?: boolean; isFixed?: boolean; cases?: TimelineCase[]; reign?: { kingdom: string; from: number; to: number; approx?: boolean } };
+export type TimelineSection = { id: string; title: string; sectionTitle: string; subTitle: string; startYear: number; endYear: number; interval: number; color: string; events: TimelineEvent[] };
+export type TimelineData = { source: string; reigns: string; sections: TimelineSection[] };
+export const offsetTop: number;
+export const rows: number;
+export const rowHeight: number;
+export const rowGap: number;
+export const scrollViewHeight: number;
+export function rowToPx(row: number): number;
+export function lineOffset(viewportWidth: number): number;
+export function mapRange(current: number, from: [number, number], to: [number, number]): number;
+export function calculateLabel(start: number, end: number): string;
+export function geometry(section: Pick<TimelineSection, "startYear" | "endYear" | "interval">, viewportWidth: number, yearNow?: number): {
+  ratio: number; scrollViewWidth: number; width: number; height: number; offset: number;
+  yearsToPx(years: number): number; pxToYears(px: number): number; eventWidth(start: number, end: number, isFixed?: boolean): number;
+  yearAt(scrollLeft: number): string; progress(scrollLeft: number): number;
+};
+export function dateMarks(section: Pick<TimelineSection, "startYear" | "endYear" | "interval">): number[];
+export function flatten(sections: TimelineSection[]): (TimelineEvent & { sectionIndex: number })[];
+export function hasDetails(e: TimelineEvent): boolean;
+export function searchEvents(sections: TimelineSection[], query: string): (TimelineEvent & { sectionIndex: number })[];
+export function linkedEvents(sections: TimelineSection[], slug: string): (TimelineEvent & { sectionIndex: number })[];
