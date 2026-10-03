@@ -62,7 +62,7 @@
 #root .chip:hover { background: var(--fill-2); }
 #root .chip:active { transform: scale(.96); }
 #root .chip[aria-pressed="true"] { background: var(--text-1); color: var(--canvas); box-shadow: none; }
-.chip__n { margin-left: 6px; opacity: .7; font-weight: 500; font-variant-numeric: tabular-nums; }
+.chip__n { margin-left: 6px; font-weight: 500; font-variant-numeric: tabular-nums; }
 
 /* ── Segmented control (TelegramUI's, restyled) ───────────────────────────────────────────── */
 #root .seg { --tgui--segmented_control_active_bg: color-mix(in srgb, var(--text-1) 17%, var(--surface-1)); padding: 3px; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); overflow-x: auto; scrollbar-width: none; }
