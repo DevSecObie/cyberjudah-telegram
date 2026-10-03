@@ -814,3 +814,30 @@ for (const focus of ["field", "current Search control", "another control"] as co
     }
   });
 }
+
+// The native snapshot can arrive after the selector's parent effects have run.
+// The current book must scroll when the list actually mounts, including slow snapshots.
+test("menus: a delayed picker mount still brings the current book into view", async ({ page }) => {
+  await setup(page);
+  await page.route(`${DATA_ORIGIN}/api/kjv/books.json`, r => r.fulfill({ json: Array.from({ length: 41 }, (_, i) => ({
+    book: i === 40 ? "Genesis" : `Book fixture ${i + 1}`, slug: i === 40 ? "genesis" : `fixture-${i}`, chapters: 50, verses: 1533, testament: "Old Testament", url: "/bible/genesis", chapterIds: [1],
+  })) }));
+  await page.addInitScript(() => {
+    const original = document.startViewTransition?.bind(document);
+    document.startViewTransition = ((update: () => void | Promise<void>) => {
+      const gate = new Promise<void>(resolve => { (window as any).__releasePicker = resolve; });
+      const run = async () => { (window as any).__pickerSnapshotWaiting = true; await gate; await update(); };
+      if (original) return original(run);
+      const finished = run();
+      return { finished, ready: finished, updateCallbackDone: finished, skipTransition() {} };
+    }) as typeof document.startViewTransition;
+  });
+  await page.goto(`/read/genesis/1${LAUNCH}`); await page.locator("#verset-1").waitFor();
+  await page.getByRole("button", { name: /Choose book and chapter/ }).click();
+  await page.waitForFunction(() => (window as any).__pickerSnapshotWaiting);
+  // Let the parent's already-queued effects/timers finish before releasing the mount.
+  await page.evaluate(() => new Promise<void>(resolve => setTimeout(resolve, 0)));
+  await page.evaluate(() => (window as any).__releasePicker());
+  await expect(page.getByRole("dialog", { name: "Books", exact: true })).toBeVisible();
+  await expect(page.locator(".bs-bookrow[data-current]")).toBeInViewport();
+});

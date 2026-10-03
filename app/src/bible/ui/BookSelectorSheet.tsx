@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Book } from "@/api/data";
 import { expand, type Progress } from "@/lib/marks";
@@ -23,17 +23,15 @@ export function BookSelectorSheet({ open, onClose, books, current, onSelect, loa
   useEffect(() => { if (!open) { setQuery(""); setGridBook(null); setVerseSheet(null); setFilters(false); } }, [open]);
   // The book being read is in view when the list opens, as Bible Strong's list does.
   // Once per opening, as soon as the book list holds it (the books may still be loading).
-  const listRef = useRef<HTMLDivElement>(null);
   const shown = useRef(false);
   const hasCurrent = data.some((b) => b.slug === current.slug);
-  useEffect(() => {
-    if (!open) { shown.current = false; return; }
-    if (shown.current || gridBook || verseSheet || !hasCurrent) return;
-    const t = setTimeout(() => {
-      const row = listRef.current?.querySelector<HTMLElement>("[data-current]");
-      if (row) { row.scrollIntoView({ block: "center" }); shown.current = true; }
-    }, 0);
-    return () => clearTimeout(t);
+  useEffect(() => { if (!open) shown.current = false; }, [open]);
+  const listRef = useCallback((list: HTMLDivElement | null) => {
+    if (!open || shown.current || gridBook || verseSheet || !hasCurrent) return;
+    // Snapshot transitions can defer this mount beyond the parent's effects. Scroll from
+    // the committed list ref, including when the books arrive after the picker opens.
+    const row = list?.querySelector<HTMLElement>("[data-current]");
+    if (row) { row.scrollIntoView({ block: "center", behavior: "instant" }); shown.current = true; }
   }, [open, gridBook, verseSheet, layout, hasCurrent]);
 
   const pick = async (book: Book, chapter: number) => {

@@ -108,6 +108,8 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   in the Bible*. Regenerate the data with `node app/scripts/timeline-data.mjs <cases>`.
 
 ### Fixed
+- The book picker brings the current book into view after its animated panel mounts, including when the browser delays the opening snapshot.
+
 - Navigation materials share opaque accessibility fallbacks; menus avoid stacked glass, while content sheets and media controls keep their text legible.
 - Keep a reader's chosen keyboard focus when the Search screen finishes loading late, while retaining initial search-field focus on ordinary navigation.
 - Keep the audio reading’s return control visible when scrolling changes the Bible header before its pending position update.
