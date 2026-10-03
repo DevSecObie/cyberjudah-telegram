@@ -14,7 +14,7 @@ export function AmbientSheet({ open, onClose }: { open: boolean; onClose: () => 
       <div className="bs-ambient-tabs" role="tablist" aria-label="Ambient sounds">{["nature", "music"].map((kind) => <button key={kind} type="button" role="tab" aria-selected={category === kind} className="bs-chip" onClick={() => setCategory(kind)}>{kind === "nature" ? "Nature" : "Music"}</button>)}</div>
       {AMBIENT_TRACKS.filter((t) => t.category === category).map((t) => <div className="bs-ambient-row" key={t.id}>
         <button type="button" role="radio" aria-checked={state.choice === t.id} className="bs-fontrow" onClick={() => ambient.choose(t.id)}><span>{t.name}</span>{state.choice === t.id ? <Feather name="check" size={18} /> : null}</button>
-        <button type="button" className="bs-iconbtn" aria-label={`${state.preview === t.id ? "Stop preview" : "Preview"} ${t.name}`} onClick={() => ambient.preview(t.id)}><Feather name={state.preview === t.id ? "x" : "play"} size={18} /></button>
+        <button type="button" className="bs-iconbtn" aria-label={`${state.preview === t.id ? "Stop preview" : "Preview"} ${t.name}`} title={`${state.preview === t.id ? "Stop preview" : "Preview"} ${t.name}`} onClick={() => ambient.preview(t.id)}><Feather name={state.preview === t.id ? "x" : "play"} size={18} /></button>
       </div>)}
       {state.error ? <p className="bs-audio__notice" role="status">Ambient sound is unavailable. Your reading can continue.</p> : null}
     </div>

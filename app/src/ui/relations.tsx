@@ -28,7 +28,7 @@ export function RelationsText({ items, onClick }: { items: VerseRelationItem[]; 
         </button>
       ))}
       {hidden > 0 ? <button type="button" className="rel-more" onClick={(e) => { e.stopPropagation(); setExpanded(true); }}>+{hidden}</button> : null}
-      {expanded && items.length > 3 ? <button type="button" className="rel-more" aria-label="Collapse" onClick={(e) => { e.stopPropagation(); setExpanded(false); }}><Icon name="back" size={12} /></button> : null}
+      {expanded && items.length > 3 ? <button type="button" className="rel-more" aria-label="Collapse" title="Collapse" onClick={(e) => { e.stopPropagation(); setExpanded(false); }}><Icon name="back" size={12} /></button> : null}
     </span>
   );
 }
@@ -36,7 +36,7 @@ export function RelationsText({ items, onClick }: { items: VerseRelationItem[]; 
 /** The badge mode ("With icon"): a git-merge icon with the count, beside the verse number. */
 export function RelationsCount({ count, onClick }: { count: number; onClick: () => void }) {
   return (
-    <button type="button" className="rel-count" aria-label={`${count} ${count === 1 ? "precept" : "precepts"}`} onClick={(e) => { e.stopPropagation(); haptic("select"); onClick(); }}>
+    <button type="button" className="rel-count" aria-label={`${count} ${count === 1 ? "precept" : "precepts"}`} title={`${count} ${count === 1 ? "precept" : "precepts"}`} onClick={(e) => { e.stopPropagation(); haptic("select"); onClick(); }}>
       <PreceptsIcon /><i>{count}</i>
     </button>
   );

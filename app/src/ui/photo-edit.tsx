@@ -67,7 +67,12 @@ function Framer({ file, slot, label, shape, canRemove, onDone }: { file: File; s
     createImageBitmap(file).then((b) => { bmp = b; if (live) setImg(b); else b.close(); }, () => { if (live) { setError("That file is not a photo this phone can open."); setState("error"); } });
     return () => { live = false; bmp?.close(); };
   }, [file]);
-  useEffect(() => { if (frame.current) setFw(frame.current.clientWidth); }, [img]);
+  useEffect(() => {
+    const el = frame.current; if (!el) return;
+    const resize = () => setFw(el.clientWidth);
+    resize(); const observer = new ResizeObserver(resize); observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   // The photo covers the frame at zoom 1; it can be enlarged and moved but never leave a gap.
   const base = img ? Math.max(fw / img.width, fh / img.height) : 1;
   const scale = base * zoom;
@@ -128,10 +133,10 @@ function Framer({ file, slot, label, shape, canRemove, onDone }: { file: File; s
       </div>
       <label className="photo-zoom"><span>Zoom</span><input type="range" min={1} max={3} step={0.01} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} aria-label="Zoom" /></label>
       {state === "error" ? <p className="photo-error" role="alert">{error}</p> : null}
-      <div className="photo-actions">
+      <div className="photo-actions" role="group" aria-label="Photo actions">
         <button type="button" className="btn" disabled={!img || state === "saving"} onClick={() => void save()}>{state === "saving" ? "Saving…" : "Save"}</button>
-        {canRemove ? <button type="button" className="btn btn--quiet" disabled={state === "saving"} onClick={() => void remove()}>Remove photo</button> : null}
         <button type="button" className="btn btn--quiet" disabled={state === "saving"} onClick={onDone}>Cancel</button>
+        {canRemove ? <button type="button" className="btn btn--plain" data-destructive="" disabled={state === "saving"} onClick={() => void remove()}>Remove photo</button> : null}
       </div>
       <p className="hint photo-note">Everyone sees the new photo straight away. Remove photo brings back the app's own.</p>
     </Sheet>

@@ -74,7 +74,7 @@ export function FinalCaptivityDetail({ slug, reviewedThrough }: { slug: string; 
 
       {e.account?.length ? (
         <section className="tl-event__section fc-section" aria-labelledby={`${slug}-h`}>
-          <h3 id={`${slug}-h`}><span className="fc-kind">Documented history</span>What happened</h3>
+          <h3 id={`${slug}-h`}><span className="fc-kind">Documented History</span>What Happened</h3>
           {e.people?.length ? <p className="fc-people">{e.people.join(" · ")}</p> : null}
           {e.account.map((p, i) => <p key={i} className="fc-para">{p}</p>)}
         </section>
@@ -82,7 +82,7 @@ export function FinalCaptivityDetail({ slug, reviewedThrough }: { slug: string; 
 
       {e.teaching?.length ? (
         <section className="tl-event__section fc-section" aria-labelledby={`${slug}-t`}>
-          <h3 id={`${slug}-t`}><span className="fc-kind fc-kind--teaching">Quotes and sources</span>From the classes</h3>
+          <h3 id={`${slug}-t`}><span className="fc-kind fc-kind--teaching">Quotes and Sources</span>From the Classes</h3>
           {e.teaching.map((t, i) => (
             <article key={i} className="fc-teach">
               {t.quote ? <blockquote className="fc-quote">“{t.quote}”</blockquote> : null}
@@ -98,7 +98,7 @@ export function FinalCaptivityDetail({ slug, reviewedThrough }: { slug: string; 
 
       {refs.length ? (
         <section className="tl-event__section fc-section" aria-labelledby={`${slug}-s`}>
-          <h3 id={`${slug}-s`}><span className="fc-kind fc-kind--scripture">Scriptural application</span>Scriptures</h3>
+          <h3 id={`${slug}-s`}><span className="fc-kind fc-kind--scripture">Scriptural Application</span>Scriptures</h3>
           {refs.map((r) => r.at
             ? <ScriptureCard key={r.ref} at={r.at} label={r.ref}>{r.why ? <p className="fc-why">{r.why}</p> : null}</ScriptureCard>
             : <p key={r.ref} className="fc-para"><b>{r.ref}</b>{r.why ? `: ${r.why}` : ""}</p>)}

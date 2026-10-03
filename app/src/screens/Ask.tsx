@@ -306,13 +306,13 @@ export function Ask() {
   return (
     <main className="chat2" ref={mainRef}>
       <header className="chat2__bar">
-        <button type="button" className="chat2__new" aria-label="Your chats" disabled={!app} title={app ? undefined : "Your chats are kept with your Telegram account"} onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
+        <button type="button" className="chat2__new" aria-label="Your chats" disabled={!app} title={app ? "Your chats" : "Your chats are kept with your Telegram account"} onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
         {/* The model is chosen here, at the top, as in ChatGPT and Claude: the title, then the model and what is left. */}
-        <button type="button" className="chat2__heading" aria-label={model ? `Model: ${model.name}. Change` : "Ask CyberJudah"} disabled={!acct?.models?.length} onClick={() => { haptic("select"); setPicking(true); }}>
+        <button type="button" className="chat2__heading" aria-label={model ? `Model: ${model.name}. Change` : "Ask CyberJudah"} title={model ? `Model: ${model.name}. Change` : "Ask CyberJudah"} disabled={!acct?.models?.length} onClick={() => { haptic("select"); setPicking(true); }}>
           <b>Ask CyberJudah</b>
           <small>{model ? <>{model.name.replace(/^Claude /, "")}{model.free ? " · free" : ""}<span className="chat2__chev" aria-hidden="true"> ▾</span>{acct?.unlimited ? " · Unlimited" : acct?.metered && !model.free ? <> · {meterLine(acct)}</> : null}</> : meterLine(acct)}</small>
         </button>
-        <button type="button" className="chat2__new" aria-label="New chat" disabled={!turns.length} onClick={newChat}><Icon name="compose" size={21} /></button>
+        <button type="button" className="chat2__new" aria-label="New chat" title="New chat" disabled={!turns.length} onClick={newChat}><Icon name="compose" size={21} /></button>
       </header>
 
       {!turns.length ? (
@@ -347,10 +347,10 @@ export function Ask() {
         <div className="composer2__box">
           <textarea ref={boxRef} value={input} rows={1} placeholder={outside ? "Open in Telegram to ask" : turns.length ? "Ask a follow-up" : "Ask CyberJudah"} disabled={outside} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onFocus={() => typing(true)} onBlur={() => typing(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} />
           {busy
-            ? <button type="button" className="composer2__go composer2__go--stop" aria-label="Stop" onClick={stop}><span /></button>
+            ? <button type="button" className="composer2__go composer2__go--stop" aria-label="Stop" title="Stop" onClick={stop}><span /></button>
             // Pressing Send keeps the focus in the question: a blur would bring the tab bar back and
             // move the composer under the finger before the tap ends, and the tap would be lost.
-            : <button type="submit" className="composer2__go" aria-label="Send" disabled={!input.trim()} onPointerDown={(e) => e.preventDefault()}><Icon name="arrowUp" size={20} /></button>}
+            : <button type="submit" className="composer2__go" aria-label="Send" title="Send" disabled={!input.trim()} onPointerDown={(e) => e.preventDefault()}><Icon name="arrowUp" size={20} /></button>}
         </div>
         <p className="composer2__note">{acct?.metered && !acct.unlimited ? <><button type="button" className="composer2__model" onClick={() => { haptic("select"); setPlans(true); }}>{meterLine(acct)}<span aria-hidden="true"> ›</span></button> · </> : null}Answers can be wrong. Check them against the sources.</p>
       </form>
@@ -441,7 +441,7 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
           <div className="msg__text" onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />
           {t.actions?.length && !t.thinking ? (
             <div className="msg__actionsets">
-              <p className="msg__label">Waiting for you</p>
+              <p className="msg__label">Waiting for You</p>
               {t.actions.map((a) => <ActionCard key={a.id} action={a} chatId={chatId} />)}
             </div>
           ) : null}
@@ -469,8 +469,8 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
           {t.used !== undefined && !t.thinking ? <p className="msg__usage">{t.free ? "Free model · no charge" : `Cost ${fmtUsd(t.used)}`} · <button type="button" className="msg__link" onClick={onUsage}>Usage</button></p> : null}
           {!last || !busy ? (
             <div className="msg__actions">
-              <button type="button" className="msg__action" onClick={copy} aria-label="Copy the answer"><Icon name={copied ? "check" : "copy"} size={16} />{copied ? "Copied" : "Copy"}</button>
-              {last ? <button type="button" className="msg__action" onClick={onRetry} aria-label="Ask again"><Icon name="retry" size={16} />Retry</button> : null}
+              <button type="button" className="msg__action" onClick={copy} aria-label="Copy the answer" title="Copy the answer"><Icon name={copied ? "check" : "copy"} size={16} />{copied ? "Copied" : "Copy"}</button>
+              {last ? <button type="button" className="msg__action" onClick={onRetry} aria-label="Ask again" title="Ask again"><Icon name="retry" size={16} />Retry</button> : null}
             </div>
           ) : null}
         </>
@@ -568,7 +568,7 @@ function ModelSheet({ models: list, current, onClose, onPick, onRetry }: { model
     <Sheet open onClose={onClose} height="full" title="Model" subTitle="What a typical answer costs on each, at the model's own price" className="chats-sheet">
       <div className="models" role="radiogroup" aria-label="Model">
         <input className="models__search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search models or providers" aria-label="Search models" />
-        {shown.filter((m) => m.free).map((m) => <div key="free" className="models__group"><h3>Free, always</h3>{row(m)}</div>)}
+        {shown.filter((m) => m.free).map((m) => <div key="free" className="models__group"><h3>Free, Always</h3>{row(m)}</div>)}
         {groups.map((g) => <div key={g} className="models__group"><h3>{g}</h3>{shown.filter((m) => !m.free && m.provider === g).map(row)}</div>)}
         {!list ? <p className="models__none" aria-busy="true">Loading the models…</p>
           : !models.length ? <p className="models__none">The models could not be loaded. <button type="button" className="msg__link" onClick={onRetry}>Try again</button></p>
@@ -603,7 +603,7 @@ function ShortCard({ m, acct, last, onPlans, onRetry, onUseModel }: { m?: MeterI
       <p className="creditcard__text">Your question is kept here. Ask it with the free model, or top up and ask again.</p>
       {last ? <div className="consent__actions">
         {free && free.id !== m?.model ? <button type="button" className="btn consent__go" onClick={() => onUseModel(free.id)}>Ask with {free.name} (free)</button> : null}
-        <button type="button" className={free && free.id !== m?.model ? "consent__alt" : "btn consent__go"} onClick={onPlans}>Top up</button>
+        <button type="button" className={free && free.id !== m?.model ? "consent__alt" : "btn consent__go"} onClick={onPlans}>Top Up</button>
         <button type="button" className="consent__alt" onClick={onRetry}>Ask again</button>
       </div> : null}
     </div>
@@ -662,11 +662,11 @@ function BalanceSheet({ acct, onClose, onPaid, onUsage, onChanged }: { acct: Ask
 
         {sale ? (
           <>
-            <h3 className="credits__label">Top up</h3>
+            <h3 className="credits__label">Top Up</h3>
             {sale.pause ? <p className="credits__pause" role="status"><Icon name="clock" size={16} />{sale.pause.message}</p>
               : !sale.open ? <p className="credits__closed" role="status">Top-ups open soon. Your balance and the free model work as usual.</p>
               : <div className="credits__topups">{sale.topups.map((t) => (
-                <button key={t.stars} type="button" className="topup" disabled={!!busy} onClick={() => void buy(t)} aria-label={`Add ${fmtUsd(t.usd * MC_PER_USD)} for ${t.stars} Stars`}>
+                <button key={t.stars} type="button" className="topup" disabled={!!busy} onClick={() => void buy(t)} aria-label={`Add ${fmtUsd(t.usd * MC_PER_USD)} for ${t.stars} Stars`} title={`Add ${fmtUsd(t.usd * MC_PER_USD)} for ${t.stars} Stars`}>
                   <b>{fmtUsd(t.usd * MC_PER_USD)}</b><small>{busy === `pack:${t.stars}` ? "…" : `⭐ ${t.stars.toLocaleString("en-US")}`}</small>
                 </button>
               ))}</div>}
@@ -758,7 +758,7 @@ function ChatsSheet({ current, onClose, onOpen, onDeleted }: { current: string |
             <div key={c.id} className="chats__item">
               <div className="chats__row" data-current={c.id === current ? "" : undefined} aria-busy={row?.id === c.id && row.state !== "failed"}>
                 <button type="button" className="chats__open" onClick={() => void open(c)}><b>{c.title}</b><small>{row?.id === c.id && row.state === "opening" ? "Opening…" : row?.id === c.id && row.state === "deleting" ? "Deleting…" : `${when(c.updated)} · ${c.count} ${c.count === 1 ? "question" : "questions"}`}</small></button>
-                <button type="button" className="chats__del" aria-label={`Delete ${c.title}`} disabled={row?.id === c.id && row.state === "deleting"} onClick={() => void remove(c)}><Icon name="trash" size={18} /></button>
+                <button type="button" className="chats__del" aria-label={`Delete ${c.title}`} title={`Delete ${c.title}`} disabled={row?.id === c.id && row.state === "deleting"} onClick={() => void remove(c)}><Icon name="trash" size={18} /></button>
               </div>
               {row?.id === c.id && row.state === "failed" ? <p className="chats__why" role="alert">{row.why}</p> : null}
             </div>

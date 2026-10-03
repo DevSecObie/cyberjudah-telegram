@@ -43,7 +43,7 @@ export function BookmarkSheet({ open, onClose, reference, location, existing, bo
       ) : (
         <div className="bs-bmform">
           <div className="bs-bmform__row"><Ion name="bookmark" size={24} color={color} /><input className="bs-input" placeholder={defaultName} value={name} onChange={(e) => setName(e.target.value)} maxLength={40} aria-label="Bookmark name" /></div>
-          <div className="bs-coloredit__grid" role="radiogroup" aria-label="Color">{COLORS.map((c) => <button key={c} type="button" role="radio" aria-checked={color === c} aria-label={c} style={{ background: c, boxShadow: color === c ? "0 0 0 3px var(--bs-reverse), 0 0 0 5px var(--bs-primary)" : undefined }} onClick={() => setColor(c)} />)}</div>
+          <div className="bs-coloredit__grid" role="radiogroup" aria-label="Color">{COLORS.map((c) => <button key={c} type="button" role="radio" aria-checked={color === c} aria-label={c} title={c} style={{ background: c, boxShadow: color === c ? "0 0 0 3px var(--bs-reverse), 0 0 0 5px var(--bs-primary)" : undefined }} onClick={() => setColor(c)} />)}</div>
           <label className="bs-coloredit__hex">Color <input type="color" value={color} onChange={(e) => setColor(e.target.value)} /><span>{color}</span></label>
         </div>
       )}

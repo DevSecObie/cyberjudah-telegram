@@ -49,7 +49,7 @@ const BASE = import.meta.env.BASE_URL;
  * The others wait on a depiction the assembly has not settled (docs/TIMELINE_PARITY.md) and show
  * the period's colour in its place.
  */
-const PERIOD_PICTURES = new Set(["1", "2", "5", "6", "7", "8", "9", "10", "11", "12"]);
+const PERIOD_PICTURES = new Set(["1", "2", "4", "5", "6", "7", "8", "9", "10", "11", "12"]);
 
 /** An admin's cover or the existing approved period artwork; no image for unapproved periods. */
 function usePeriodPicture(s: TimelineSection) {
@@ -96,11 +96,11 @@ function Header({ title, onSearch, onMenu, color }: { title: string; onSearch?: 
   const navigate = useNavigate();
   return (
     <header className="tlh glass">
-      <button type="button" className="tlh__btn" aria-label="Back" onClick={() => { haptic("select"); navigate(-1); }}><Feather name="arrow-left" size={20} color="currentColor" /></button>
+      <button type="button" className="tlh__btn" aria-label="Back" title="Back" onClick={() => { haptic("select"); navigate(-1); }}><Feather name="arrow-left" size={20} color="currentColor" /></button>
       <h1 className="tlh__title" style={color ? { ["--tl-color" as string]: color } : undefined}>{title}</h1>
       <span className="tlh__actions">
-        {onSearch ? <button type="button" className="tlh__btn" aria-label="Search" onClick={onSearch}><Feather name="search" size={19} color="currentColor" /></button> : null}
-        {onMenu ? <button type="button" className="tlh__btn" aria-label="More" onClick={onMenu}><Feather name="more-vertical" size={18} color="currentColor" /></button> : null}
+        {onSearch ? <button type="button" className="tlh__btn" aria-label="Search" title="Search" onClick={onSearch}><Feather name="search" size={19} color="currentColor" /></button> : null}
+        {onMenu ? <button type="button" className="tlh__btn" aria-label="More" title="More" onClick={onMenu}><Feather name="more-vertical" size={18} color="currentColor" /></button> : null}
       </span>
     </header>
   );
@@ -116,7 +116,7 @@ function Panel({ title, onClose, children }: { title: string; onClose: () => voi
   return (
     <div className="sheet__scrim tlp__scrim" onClick={onClose}>
       <div className="sheet tlp" role="dialog" aria-modal="true" aria-label={title} data-sheet-open="" onClick={(e) => e.stopPropagation()}>
-        <div className="tlp__head"><b>{title}</b><button type="button" className="tlh__btn" aria-label="Close" onClick={onClose}><Feather name="x" size={18} color="currentColor" /></button></div>
+        <div className="tlp__head"><b>{title}</b><button type="button" className="tlh__btn" aria-label="Close" title="Close" onClick={onClose}><Feather name="x" size={18} color="currentColor" /></button></div>
         <div className="tlp__body">{children}</div>
       </div>
     </div>
@@ -163,7 +163,7 @@ function SectionCard({ s, direction }: { s: TimelineSection; direction?: "previo
       <span className="tl-card__side" aria-hidden="true">{direction === "previous" ? <Feather name="chevron-left" size={60} color="currentColor" /> : null}</span>
       <span className="tl-card__main">
         <span className="tl-card__age">{s.sectionTitle}</span>
-        <span className="tl-card__title">{s.title.toUpperCase()}</span>
+        <span className="tl-card__title">{s.title}</span>
         <span className="tl-card__sub">{s.subTitle}</span>
         <PeriodPicture s={s} className="tl-card__pic" />
         <i className="tl-card__bar" aria-hidden="true" />
@@ -301,22 +301,22 @@ export function TimelinePeriod() {
         {phase !== "ready" ? <div className="tl-behind tl-behind--current" aria-hidden="true"><SectionCard s={s} /></div> : null}
         <div ref={box} className="tl-scroll" onScroll={onScroll} tabIndex={0} aria-label={`${s.title}, ${s.subTitle}: the events by year. Scroll sideways along the years.`}>
           <div className="tl-world" data-from={fromNext ? "next" : "prev"} style={{ width: lead + g.width + (next ? vw : 0), height: g.height }}>
-            {prev ? <button type="button" className="tl-panel" style={{ left: 0, width: vw }} onClick={() => go(index - 1, "next")} aria-label={`Previous period: ${prev.title}`} /> : null}
+            {prev ? <button type="button" className="tl-panel" style={{ left: 0, width: vw }} onClick={() => go(index - 1, "next")} aria-label={`Previous period: ${prev.title}`} title={`Previous period: ${prev.title}`} /> : null}
             <div className="tl-canvas" style={{ left: lead, width: g.width, height: g.height }}>
               {s.events.map((e) => <Bar key={`${e.id}-${e.slug}`} e={e} g={g} onOpen={opened} />)}
               <div className="tl-datebar" style={{ width: g.width, paddingLeft: g.offset }} aria-hidden="true">
                 {marks.map((year, i) => <span key={year} style={{ left: g.offset + i * 100 }}>{year < 2020 ? Math.abs(year) : "Future"}</span>)}
               </div>
             </div>
-            {next ? <button type="button" className="tl-panel" style={{ left: lead + g.width, width: vw }} onClick={() => go(index + 1)} aria-label={`Next period: ${next.title}`} /> : null}
+            {next ? <button type="button" className="tl-panel" style={{ left: lead + g.width, width: vw }} onClick={() => go(index + 1)} aria-label={`Next period: ${next.title}`} title={`Next period: ${next.title}`} /> : null}
           </div>
         </div>
       </div>
       <i className="tl-line" style={{ left: g.offset, transform: past ? `translateX(${past}px)` : undefined }} aria-hidden="true" />
       <div className="tl-current" style={past ? { transform: `translateX(${past}px)` } : undefined}>
-        {prev ? <button type="button" className="tl-current__nav" style={{ left: 0, color: prev.color }} aria-label={`Previous period: ${prev.title}`} onClick={() => go(index - 1, "next")}><Feather name="chevrons-left" size={20} color="currentColor" /></button> : null}
+        {prev ? <button type="button" className="tl-current__nav" style={{ left: 0, color: prev.color }} aria-label={`Previous period: ${prev.title}`} title={`Previous period: ${prev.title}`} onClick={() => go(index - 1, "next")}><Feather name="chevrons-left" size={20} color="currentColor" /></button> : null}
         <output className="tl-current__year" style={{ left: g.offset - 50 }} aria-live="polite">{g.yearAt(Math.min(end, Math.max(0, left)))}</output>
-        {next ? <button type="button" className="tl-current__nav tl-current__nav--next" style={{ color: next.color }} aria-label={`Next period: ${next.title}`} onClick={() => go(index + 1)}><Feather name="chevrons-right" size={20} color="currentColor" /></button> : null}
+        {next ? <button type="button" className="tl-current__nav tl-current__nav--next" style={{ color: next.color }} aria-label={`Next period: ${next.title}`} title={`Next period: ${next.title}`} onClick={() => go(index + 1)}><Feather name="chevrons-right" size={20} color="currentColor" /></button> : null}
         <i className="tl-current__progress" style={{ width: `${g.progress(Math.min(end, Math.max(0, left)))}%` }} aria-hidden="true" />
       </div>
       {details ? <Panel title={s.sectionTitle} onClose={() => setDetails(false)}><PeriodDetails s={s} /></Panel> : null}
@@ -334,7 +334,7 @@ function PeriodDetails({ s }: { s: TimelineSection }) {
       <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.id)} />
       {withCases.length ? (
         <>
-          <h2 className="entity__eyebrow">Case studies in this period<span> · {withCases.reduce((n, e) => n + e.cases!.length, 0)}</span></h2>
+          <h2 className="entity__eyebrow">Case Studies in This Period<span> · {withCases.reduce((n, e) => n + e.cases!.length, 0)}</span></h2>
           <ul className="tl-details__list">{withCases.map((e) => <li key={e.slug}><Link to={`/timeline/event/${e.slug}`} onClick={() => haptic("select")}><b>{e.title}</b><span>{calculateLabel(e.start, e.end)}</span></Link></li>)}</ul>
         </>
       ) : <p className="hint">No case study is on an event of this period yet.</p>}
@@ -439,7 +439,7 @@ export function TimelineSearch() {
                   {recent.map((r) => (
                     <li key={r}>
                       <button type="button" data-result="" className="srch__recentbtn" onClick={() => choose(r)}><Icon name="clock" size={16} /><span>{r}</span></button>
-                      <button type="button" className="srch__forget" aria-label={`Remove ${r} from recent searches`} onClick={() => setRecent(recent.filter((x) => x !== r))}><Icon name="close" size={12} /></button>
+                      <button type="button" className="srch__forget" aria-label={`Remove ${r} from recent searches`} title={`Remove ${r} from recent searches`} onClick={() => setRecent(recent.filter((x) => x !== r))}><Icon name="close" size={12} /></button>
                     </li>
                   ))}
                 </ul>

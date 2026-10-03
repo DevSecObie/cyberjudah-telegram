@@ -1,0 +1,33 @@
+{
+  "browser": "153.0.8010.12",
+  "build": "production",
+  "cpuThrottle": 4,
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "measurements": [
+    {
+      "action": "dock-drag",
+      "samples": 129,
+      "medianMs": 16.7,
+      "p95Ms": 16.8,
+      "maxMs": 66.7,
+      "framesOver33ms": 1,
+      "layoutEvents": 3,
+      "layoutMs": 45.15
+    },
+    {
+      "action": "sheet-open",
+      "samples": 48,
+      "medianMs": 16.7,
+      "p95Ms": 33.3,
+      "maxMs": 83.3,
+      "framesOver33ms": 2,
+      "layoutEvents": 4,
+      "layoutMs": 28.32
+    }
+  ],
+  "measuredCommit": "b5fef06857497ef22520f5b610a2a54ea50cdf91",
+  "scope": "Production menu implementation before the picker mount correction; 4x CPU, cold sheet open and dock release into navigation. Long frames remain for section 10."
+}

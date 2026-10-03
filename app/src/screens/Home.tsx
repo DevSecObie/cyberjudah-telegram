@@ -228,7 +228,7 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
       <Card href="/study" className="plan-start"><span className="resume__icon"><Icon name="book" /></span><span><b>4 Chapters a Day</b><span>The daily reading, a note for every chapter</span></span><Icon name="chevron" size={18} /></Card>
       {sab ? <Card href="/sabbath" className="sabbath"><span className="sabbath__icon"><Icon name="sun" /></span><span><b>{sab.sabbath ? "Shabbat shalom" : `Sabbath in ${countdown(sab.next, now)}`}</b><span>{sab.label} · {sab.next.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span></span></Card> : <Card href="/sabbath" className="sabbath"><span className="sabbath__icon"><Icon name="sun" /></span><span><b>Sabbath</b><span>Sunset where you are, and the countdown</span></span></Card>}
 
-      <Section title="Latest teachings" action={<Link to="/classes">All classes</Link>}>
+      <Section title="Latest Teachings" action={<Link to="/classes">All classes</Link>}>
         <div className="feed">
           {rows.map((t) => (
             <Link key={t.url} to={teachingTo(t)} className="feed__card">

@@ -346,6 +346,7 @@ test("materials: unsupported-filter CSS branch yields opaque reader surfaces", a
   });
   expect(changed).toBeGreaterThan(0);
   await page.getByRole("button", { name: "Scripture options" }).click();
+  await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
   for (const material of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) expect(material).toMatchObject({ filter: "none", alpha: 255 });
 });
 
@@ -636,7 +637,12 @@ test("navigation: document, Bible and Timeline scrolls minimize down and expand 
     await expect(nav, path).toHaveAttribute("data-mini", "");
     const mini = (await nav.boundingBox())!;
     expect(mini.width).toBeGreaterThanOrEqual(44); expect(mini.height).toBeGreaterThanOrEqual(44);
+    // The first wheel is asynchronous, even with reduced CSS motion. Reverse after
+    // its real scroll reaches the requested position, then verify upward travel too.
+    await expect.poll(() => scroller.evaluate(el => el.scrollTop), path).toBeGreaterThanOrEqual(travel - 1);
+    const down = await scroller.evaluate(el => el.scrollTop);
     await page.mouse.wheel(0, -80);
+    await expect.poll(() => scroller.evaluate(el => el.scrollTop), path).toBeLessThan(down - 14);
     await expect(nav, path).not.toHaveAttribute("data-mini");
   }
   await page.goto(`/timeline/0${LAUNCH}`);
@@ -673,6 +679,125 @@ for (const preference of ["normal", "app", "contrast", "forced"] as const) {
   });
 }
 
+for (const mode of ["native", "fallback", "reduced"] as const) {
+  test(`menus: ${mode} keeps origin, keyboard actions and focus when opening and closing`, async ({ page }) => {
+    await setup(page);
+    if (mode === "reduced") await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.addInitScript(mode => {
+      const original = document.startViewTransition?.bind(document);
+      (window as any).__popoverTransitions = 0;
+      (window as any).__popoverFrames = [];
+      if (mode === "fallback") Object.defineProperty(document, "startViewTransition", { value: undefined });
+      else if (original) document.startViewTransition = (...args) => { (window as any).__popoverTransitions++; return original(...args); };
+      const animate = Element.prototype.animate;
+      Element.prototype.animate = function (frames, options) {
+        if (this.hasAttribute("data-popover")) (window as any).__popoverFrames.push(frames);
+        return animate.call(this, frames, options);
+      };
+    }, mode);
+    await page.goto(`/read/genesis/1${LAUNCH}`);
+    const trigger = page.getByRole("button", { name: "Scripture options" });
+    await trigger.click();
+    const menu = page.getByRole("menu", { name: "Passage options" });
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole("menuitem").first()).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(menu.getByRole("menuitem", { name: "Search the Scriptures" })).toBeFocused();
+    await page.keyboard.press("End");
+    await expect(menu.getByRole("menuitem", { name: "Open in new tab" })).toBeFocused();
+    for (const name of ["search", "share", "bookmark"]) await expect(menu.locator(`[data-icon="${name}"]`)).toHaveCount(1);
+    await expect.poll(() => menu.evaluate(el => el.style.transformOrigin)).not.toBe("");
+    expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".bs-dropdown")).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    const pickerTrigger = page.getByRole("button", { name: /Choose book and chapter/ });
+    await pickerTrigger.click();
+    const picker = page.getByRole("dialog", { name: "Books", exact: true });
+    await expect(picker).toBeVisible();
+    await picker.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(page.locator(".bs-picker")).toHaveCount(0);
+    await expect(pickerTrigger).toBeFocused();
+    const motion = await page.evaluate(() => ({ native: !!document.startViewTransition, calls: (window as any).__popoverTransitions, frames: (window as any).__popoverFrames }));
+    if (mode === "native" && motion.native) expect(motion.calls).toBeGreaterThanOrEqual(4);
+    else expect(motion.calls).toBe(0);
+    if (mode === "reduced") {
+      expect(motion.frames.length).toBeGreaterThanOrEqual(4);
+      expect(motion.frames.flat().every((frame: { transform: string }) => frame.transform === "none")).toBe(true);
+    }
+  });
+}
+
+test("menus: main routes expose named buttons and tooltips for icon-only controls", async ({ page }) => {
+  await setup(page);
+  for (const path of ["/", "/read/genesis/1", "/classes", "/books", "/timeline", "/people", "/ask", "/settings", "/bookmarks"]) {
+    await page.goto(`${path}${LAUNCH}`);
+    if (path.includes("/read/")) await page.locator("#verset-1").waitFor();
+    else await page.locator(".route").getByRole("heading").first().waitFor();
+    const buttons = page.locator("button:visible");
+    expect(await buttons.count(), path).toBeGreaterThan(0);
+    for (const button of await buttons.all()) {
+      await expect(button, path).toHaveAccessibleName(/\S/);
+      if (!(await button.innerText()).trim() && await button.locator("svg").count()) {
+        await expect(button, path).toHaveAttribute("aria-label", /\S/);
+        await expect(button, path).toHaveAttribute("title", /\S/);
+      }
+    }
+  }
+});
+
+test("menus: collapsed Bible header removes its hidden controls and restores whole groups", async ({ page }) => {
+  await setup(page); await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.clock.install();
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await page.locator("#verset-1").waitFor();
+  await page.clock.runFor(1000);
+  await page.locator("#verset-3").hover(); await page.mouse.wheel(0, 80);
+  await expect.poll(() => page.locator(".bs-scroll").evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+  await page.mouse.wheel(0, 500);
+  await expect(page.locator(".bs-header")).toHaveCSS("height", "20px");
+  await expect(page.locator(".bs-header button")).toHaveCount(0);
+  await expect(page.locator(".bs-header__summary")).toHaveText("Genesis 1 · KJV");
+  await expect.poll(() => page.locator(".bs-scroll").evaluate(el => el.scrollTop)).toBeGreaterThanOrEqual(579);
+  await page.clock.runFor(1000);
+  const down = await page.locator(".bs-scroll").evaluate(el => el.scrollTop);
+  await page.mouse.wheel(0, -80);
+  await expect.poll(() => page.locator(".bs-scroll").evaluate(el => el.scrollTop)).toBeLessThanOrEqual(down - 79);
+  await page.mouse.wheel(0, -300);
+  await expect(page.getByRole("group", { name: "Passage", exact: true })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Scripture actions", exact: true })).toBeVisible();
+});
+
+for (const reduced of [false, true]) {
+  test(`menus: navigation and group actions share one elevated surface (${reduced ? "solid" : "glass"})`, async ({ page }) => {
+    await setup(page, "dark", reduced);
+    await page.goto(`/settings${LAUNCH}`);
+    await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Menu", exact: true }).click();
+    const drawer = page.getByRole("dialog", { name: "More", exact: true });
+    await expect(drawer).toBeVisible();
+    const more = (await materials(page, [[".drawer--more"]]))[0];
+    if (reduced) expect(more).toMatchObject({ filter: "none", alpha: 255 });
+    else expect(more.filter).toContain("blur(");
+    expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
+    await page.keyboard.press("Escape");
+    await page.goto(`/tabs${LAUNCH}`);
+    const groups = page.getByRole("button", { name: /\. Groups$/ });
+    await groups.click();
+    const menu = page.getByRole("dialog", { name: "Groups", exact: true });
+    await expect(menu).toBeVisible();
+    const actions = (await materials(page, [[".sheet[data-actions]"]]))[0];
+    if (reduced) expect(actions).toMatchObject({ filter: "none", alpha: 255 });
+    else expect(actions.filter).toContain("blur(");
+    await expect(menu.locator(".sheet__item").last()).toHaveAttribute("data-destructive", "");
+    expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
+    await menu.getByRole("button", { name: "New group", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "New group", exact: true }).getByRole("textbox", { name: "Name" })).toBeFocused();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.locator(".sheet[data-popover]")).toHaveCount(0);
+    await expect(groups).toBeFocused();
+  });
+}
+
 for (const focus of ["field", "current Search control", "another control"] as const) {
   test(`search: a delayed mount respects focus on ${focus}`, async ({ page }) => {
     await setup(page);
@@ -698,4 +823,213 @@ for (const focus of ["field", "current Search control", "another control"] as co
       await expect(page).toHaveURL(/\/classes/);
     }
   });
+}
+
+for (const theme of ["default", "dark", "sepia"]) {
+  test(`sheets: ${theme} main routes fit arbitrary window widths`, async ({ page }) => {
+    await setup(page, theme);
+    for (const path of ["/", "/read/genesis/1", "/classes", "/books", "/timeline", "/people", "/ask", "/settings", "/bookmarks", "/search", "/tabs", "/plan", "/precepts", "/settings/reminders"]) {
+      await page.goto(`${path}${LAUNCH}`);
+      if (path.includes("/read/")) await page.locator("#verset-1").waitFor();
+      else if (path === "/tabs") await page.getByRole("toolbar", { name: "Tabs" }).waitFor();
+      else if (path === "/search") await page.getByRole("searchbox", { name: "Search CyberJudah" }).waitFor();
+      else await page.locator(".route").getByRole("heading").first().waitFor();
+      for (const width of [320, 390, 768, 1024, 1440, 1920]) {
+        await page.setViewportSize({ width, height: 844 });
+        await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth), `${path} at ${width}`).toBeLessThanOrEqual(width);
+        await expect.poll(() => page.locator(".route").evaluate(el => el.scrollWidth <= el.clientWidth + 1), `${path} at ${width}`).toBe(true);
+      }
+    }
+  });
+}
+
+for (const reduced of [false, true]) {
+  test(`sheets: half expands to full with safe insets and ${reduced ? "reduced" : "normal"} motion`, async ({ page }) => {
+    await setup(page);
+    if (reduced) await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK.replace(
+      'safeAreaInset: { top: 0, bottom: 0, left: 0, right: 0 }, contentSafeAreaInset: { top: 0, bottom: 0, left: 0, right: 0 }',
+      'safeAreaInset: { top: 24, bottom: 30, left: 14, right: 20 }, contentSafeAreaInset: { top: 0, bottom: 0, left: 0, right: 0 }',
+    ) }));
+    await page.addInitScript(() => {
+      (window as any).__sheetFrames = [];
+      const animate = Element.prototype.animate;
+      Element.prototype.animate = function (frames, options) {
+        if (this.classList.contains("bs-sheet")) (window as any).__sheetFrames.push(frames);
+        return animate.call(this, frames, options);
+      };
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/read/genesis/1${LAUNCH}`); await page.locator("#verset-1").click();
+    const selection = page.locator(".bs-selected");
+    await expect(selection).toBeVisible();
+    await selection.focus();
+    await expect(selection).toHaveCSS("border-top-left-radius", "36px");
+    await expect(selection).toHaveCSS("border-bottom-right-radius", "36px");
+    await expect(page.locator(".bs-scrim--clear")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(page.locator(".bs-scrim--clear")).toHaveCSS("pointer-events", "none");
+    await expect.poll(async () => Math.round((await selection.boundingBox())!.x)).toBe(22);
+    await expect.poll(async () => { const r = (await selection.boundingBox())!; return Math.round(844 - r.y - r.height); }).toBe(38);
+    const rect = (await selection.boundingBox())!;
+    expect(Math.round(390 - rect.x - rect.width)).toBe(28);
+    await page.getByRole("button", { name: "Tag", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "Edit tags", exact: true });
+    await expect(sheet).toHaveCSS("border-bottom-left-radius", "36px");
+    await expect(sheet).toHaveClass(/bs-sheet--half/);
+    await sheet.evaluate(async el => { await Promise.all(el.getAnimations().map(a => a.finished.catch(() => {}))); });
+    const handle = (await sheet.locator(".bs-sheet__handle").boundingBox())!;
+    await page.mouse.move(handle.x + handle.width / 2, handle.y + 2); await page.mouse.down();
+    await page.mouse.move(handle.x + handle.width / 2, handle.y - 100, { steps: 6 }); await page.mouse.up();
+    await expect(sheet).toHaveClass(/bs-sheet--full/);
+    await expect(sheet).toHaveCSS("border-bottom-left-radius", "0px");
+    await expect.poll(async () => Math.round((await sheet.boundingBox())!.width)).toBe(390);
+    await expect.poll(async () => Math.round((await sheet.boundingBox())!.x)).toBe(0);
+    const frames = await page.evaluate(() => (window as any).__sheetFrames);
+    expect(frames).toHaveLength(1);
+    expect(frames[0].every((f: object) => Object.keys(f).every(k => ["transform", "opacity", "offset", "easing", "composite"].includes(k)))).toBe(true);
+    if (reduced) expect(frames[0].every((f: { transform: string }) => f.transform === "none")).toBe(true);
+    expect((await materials(page, [[".bs-sheet--full"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
+    await sheet.getByRole("button", { name: "Collapse sheet", exact: true }).focus(); await page.keyboard.press("Enter");
+    await expect(sheet).toHaveClass(/bs-sheet--half/);
+    await expect(sheet.getByRole("button", { name: "Expand sheet", exact: true })).toBeFocused();
+    await sheet.getByRole("button", { name: "Expand sheet", exact: true }).click();
+    await expect(sheet).toHaveClass(/bs-sheet--full/);
+    await sheet.getByRole("button", { name: "Close", exact: true }).click(); await expect(sheet).toHaveCount(0);
+  });
+}
+
+for (const width of [390, 768, 1280]) {
+  test(`sheets: actions at ${width} anchor and keep the page usable on large screens`, async ({ page }) => {
+    await setup(page); await page.setViewportSize({ width, height: 844 });
+    await page.goto(`/tabs${LAUNCH}`);
+    const trigger = page.getByRole("button", { name: /\. Groups$/ }); await trigger.click();
+    const menu = page.getByRole("dialog", { name: "Groups", exact: true });
+    await expect(menu).toBeVisible(); await expect(menu).toHaveAttribute("aria-modal", String(width < 768));
+    if (width >= 768) {
+      await expect(page.locator("html")).not.toHaveAttribute("data-modal");
+      const from = (await trigger.boundingBox())!;
+      // This trigger is at the bottom, so the anchored menu opens immediately above it.
+      await expect.poll(async () => { const r = (await menu.boundingBox())!; return Math.abs(from.y - r.y - r.height - 8); }).toBeLessThanOrEqual(1);
+      await page.getByRole("button", { name: "Add a tab", exact: true }).click();
+      await expect(menu).toHaveCount(0); await expect(page).toHaveURL(/\/new/);
+      await expect(page.getByRole("heading", { name: "What would you like to explore?" })).toBeVisible();
+      await page.goto(`/tabs${LAUNCH}`);
+      await trigger.click(); await expect(menu).toBeVisible();
+      const outside = page.getByRole("button", { name: "Add a tab", exact: true });
+      await outside.focus(); await page.keyboard.press("Escape"); await expect(menu).toHaveCount(0);
+      await expect(outside).toBeFocused();
+    } else {
+      await expect(page.locator("html")).toHaveAttribute("data-modal", "");
+      await expect.poll(async () => Math.round((await menu.boundingBox())!.x)).toBe(8);
+      await page.keyboard.press("Escape"); await expect(menu).toHaveCount(0); await expect(trigger).toBeFocused();
+    }
+    await trigger.click(); await expect(menu).toBeVisible();
+    await page.setViewportSize({ width: width < 768 ? 1280 : 390, height: 844 });
+    await expect(menu).toHaveAttribute("aria-modal", String(width >= 768));
+    if (width >= 768) await expect(page.locator("html")).toHaveAttribute("data-modal", "");
+    else await expect(page.locator("html")).not.toHaveAttribute("data-modal");
+    await page.keyboard.press("Escape"); await expect(menu).toHaveCount(0);
+    await expect(page.locator("html")).not.toHaveAttribute("data-modal"); await expect(trigger).toBeFocused();
+  });
+}
+
+// The native snapshot can arrive after the selector's parent effects have run.
+// The current book must scroll when the list actually mounts, including slow snapshots.
+test("menus: a delayed picker mount still brings the current book into view", async ({ page }) => {
+  await setup(page);
+  await page.route(`${DATA_ORIGIN}/api/kjv/books.json`, r => r.fulfill({ json: Array.from({ length: 41 }, (_, i) => ({
+    book: i === 40 ? "Genesis" : `Book fixture ${i + 1}`, slug: i === 40 ? "genesis" : `fixture-${i}`, chapters: 50, verses: 1533, testament: "Old Testament", url: "/bible/genesis", chapterIds: [1],
+  })) }));
+  await page.addInitScript(() => {
+    const original = document.startViewTransition?.bind(document);
+    document.startViewTransition = ((update: () => void | Promise<void>) => {
+      const gate = new Promise<void>(resolve => { (window as any).__releasePicker = resolve; });
+      const run = async () => { (window as any).__pickerSnapshotWaiting = true; await gate; await update(); };
+      if (original) return original(run);
+      const finished = run();
+      return { finished, ready: finished, updateCallbackDone: finished, skipTransition() {} };
+    }) as typeof document.startViewTransition;
+  });
+  await page.goto(`/read/genesis/1${LAUNCH}`); await page.locator("#verset-1").waitFor();
+  await page.getByRole("button", { name: /Choose book and chapter/ }).click();
+  await page.waitForFunction(() => (window as any).__pickerSnapshotWaiting);
+  // Let the parent's already-queued effects/timers finish before releasing the mount.
+  await page.evaluate(() => new Promise<void>(resolve => setTimeout(resolve, 0)));
+  await page.evaluate(() => (window as any).__releasePicker());
+  await expect(page.getByRole("dialog", { name: "Books", exact: true })).toBeVisible();
+  await expect(page.locator(".bs-bookrow[data-current]")).toBeInViewport();
+});
+
+for (const theme of ["default", "dark", "sepia"]) {
+  test(`sheets: ${theme} photo framing and full forms fit resized windows`, async ({ page }) => {
+    await setup(page, theme);
+    await page.route("**/api/me", r => r.fulfill({ json: { admin: true, canEdit: true } }));
+    await page.route("**/api/photos", r => r.fulfill({ json: {} }));
+    await page.route("**/api/chats", r => r.fulfill({ json: { chats: [] } }));
+    await page.setViewportSize({ width: 320, height: 844 });
+    await page.goto(`/timeline/event/iuic-founded-2003${LAUNCH}`);
+    await page.getByRole("button", { name: "Change photo" }).click();
+    await page.locator(".photo-edit input[type=file]").setInputFiles({ name: "layout.png", mimeType: "image/png", buffer: await page.screenshot() });
+    const photo = page.getByRole("dialog", { name: "Leader's portrait" });
+    await expect(photo.getByRole("button", { name: "Save", exact: true })).toBeEnabled();
+    for (const width of [320, 1280, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      // At zoom 1 this portrait screenshot covers a square crop exactly across its width.
+      await expect.poll(() => photo.locator(".photo-frame").evaluate(el => Math.abs(el.clientWidth - el.querySelector("canvas")!.getBoundingClientRect().width))).toBeLessThanOrEqual(1);
+      expect(await photo.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+      const box = (await photo.boundingBox())!, frame = (await photo.locator(".photo-frame").boundingBox())!;
+      expect(frame.x - box.x).toBeGreaterThanOrEqual(20);
+      expect(box.x + box.width - frame.x - frame.width).toBeGreaterThanOrEqual(20);
+    }
+    await photo.getByRole("button", { name: "Close", exact: true }).click();
+    await page.goto(`/ask${LAUNCH}`); await page.getByRole("button", { name: "Your chats", exact: true }).click();
+    const chats = page.getByRole("dialog", { name: "Your chats", exact: true });
+    await expect(chats).toHaveCSS("border-top-left-radius", "36px"); await expect(chats).toHaveCSS("border-bottom-left-radius", "0px");
+    await chats.getByRole("button", { name: "Close", exact: true }).click();
+    await page.goto(`/read/genesis/1${LAUNCH}`); await page.getByRole("button", { name: "Scripture options" }).click();
+    await page.getByRole("menuitem", { name: "Font and settings", exact: true }).click();
+    const settings = page.getByRole("dialog", { name: "Font and settings", exact: true });
+    await expect(settings).toBeVisible(); await expect(settings).toHaveCSS("border-bottom-left-radius", "0px");
+    expect(await settings.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  });
+}
+
+for (const theme of ["default", "dark", "sepia"]) {
+  for (const scene of ["settings", "more", "books", "bookmarks", "reminders", "chats"]) {
+    test(`lists: ${theme} ${scene} keeps grouped rows reachable at large text`, async ({ page }) => {
+      await setup(page, theme);
+      await page.addInitScript(() => { (window as any).__cloud.bs_bm = JSON.stringify([{ id: "layout-bookmark", name: "Genesis 1", book: "genesis", chapter: 1, verse: 1, color: "#0984e3", date: 1 }]); });
+      await page.route(`${DATA_ORIGIN}/api/library/index.json`, r => r.fulfill({ json: [{ slug: "layout", title: "Library layout fixture", subtitle: "", author: "Test", year: 2026, pages: 12, volumes: 1, chapters: 1, figures: 0, cover: null, reads: 1, classes: 1 }] }));
+      await page.route("**/api/chats", r => r.fulfill({ json: { chats: [{ id: "layout-chat", title: "Reading layout", updated: "2026-10-01T12:00:00Z", count: 1 }] } }));
+      for (const [width, scale] of [[390, 100], [390, 200], [1280, 100], [1280, 200]]) {
+        await page.setViewportSize({ width, height: 844 });
+        const path = scene === "reminders" ? "/settings/reminders" : scene === "chats" ? "/ask" : `/${scene}`;
+        await page.goto(`${path}${LAUNCH}`);
+        await page.locator(".route").getByRole("heading").first().waitFor();
+        await page.addStyleTag({ content: `html { font-size: ${scale}% !important; }` });
+        if (scene === "chats") { await page.getByRole("button", { name: "Your chats", exact: true }).click(); await page.locator(".chats__open").waitFor();
+          await page.getByRole("dialog", { name: "Your chats", exact: true }).evaluate(async el => { await Promise.all(el.getAnimations({ subtree: true }).filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))); });
+        }
+        const selector = scene === "chats" ? ".chats__open, .chats__del" : scene === "more" ? ".mcard__row" : ".list .row, .list .toggle";
+        const rows = page.locator(selector); await expect(rows.first()).toBeVisible();
+        if (scene === "more" || scene === "chats") { const label = page.locator(scene === "more" ? ".mcard__label" : ".chats__open b").first(); expect(await label.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBe((scene === "more" ? 15 : 15.5) * scale / 100); }
+        for (const row of await rows.all()) {
+          const rect = (await row.boundingBox())!;
+          expect(rect.height, `${scene} at ${width}/${scale}`).toBeGreaterThanOrEqual(44);
+          expect(rect.width).toBeGreaterThanOrEqual(44);
+        }
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        const caps = await page.locator("h2, h3, .eyebrow, .mcard__head").evaluateAll(els => els.filter(el => getComputedStyle(el).textTransform === "uppercase").map(el => el.textContent));
+        expect(caps).toEqual([]);
+        if (["settings", "reminders"].includes(scene)) {
+          if (scene === "reminders") await expect(page.getByRole("group", { name: "Settings", exact: true })).toBeVisible();
+          const groups = page.locator("fieldset.form-section");
+          expect(await groups.count()).toBeGreaterThan(0);
+          if (scene === "settings") await expect(page.getByRole("group", { name: "Reading", exact: true })).toBeVisible();
+        }
+        if (scene === "more") await expect(page.getByRole("heading", { name: "Resources", exact: true })).toBeVisible();
+        if (scene === "chats") { await page.getByRole("dialog", { name: "Your chats", exact: true }).getByRole("button", { name: "Close", exact: true }).click(); await expect(page.getByRole("dialog", { name: "Your chats", exact: true })).toHaveCount(0); }
+      }
+    });
+  }
 }

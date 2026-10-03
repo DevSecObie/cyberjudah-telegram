@@ -107,24 +107,24 @@ export function PictureViewer({ figure, figures, book, onClose, onChange }: { fi
   return (
     <div className={`pv${entered ? " pv--in" : ""}${words === 1 ? " pv--words" : words === 2 ? " pv--full" : ""}`} role="dialog" aria-label={name} data-sheet-open>
       <div className="pv__bar">
-        <button type="button" className="pv__btn" aria-label="Close" onClick={onClose}><Icon name="back" size={20} /></button>
+        <button type="button" className="pv__btn" aria-label="Close" title="Close" onClick={onClose}><Icon name="back" size={20} /></button>
         <div className="pv__title"><b>{name}</b><small>{[KIND[figure.kind], where, list.length > 1 ? `${index + 1} of ${list.length}` : ""].filter(Boolean).join(" · ")}</small></div>
-        <button type="button" className="pv__btn" aria-label="Zoom out" disabled={scale <= 1} onClick={() => zoomTo(scale / 1.6)}>−</button>
-        <button type="button" className="pv__btn" aria-label="Zoom in" disabled={scale >= 5} onClick={() => zoomTo(scale * 1.6)}>+</button>
+        <button type="button" className="pv__btn" aria-label="Zoom out" title="Zoom out" disabled={scale <= 1} onClick={() => zoomTo(scale / 1.6)}>−</button>
+        <button type="button" className="pv__btn" aria-label="Zoom in" title="Zoom in" disabled={scale >= 5} onClick={() => zoomTo(scale * 1.6)}>+</button>
       </div>
       <div ref={stage} className="pv__stage" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onWheel={wheel} style={{ touchAction: "none" }}>
         <img key={figure.file} src={src(figure.url)} alt={name} draggable={false}
           style={{ transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`, transition: gesture.current ? "none" : "transform .28s cubic-bezier(.2,.8,.2,1)" }} />
         {list.length > 1 ? <>
-          <button type="button" className="pv__nav pv__nav--prev" aria-label="Previous picture" disabled={index === 0} onClick={() => go(-1)}><Icon name="chevron" size={22} /></button>
-          <button type="button" className="pv__nav pv__nav--next" aria-label="Next picture" disabled={index === list.length - 1} onClick={() => go(1)}><Icon name="chevron" size={22} /></button>
+          <button type="button" className="pv__nav pv__nav--prev" aria-label="Previous picture" title="Previous picture" disabled={index === 0} onClick={() => go(-1)}><Icon name="chevron" size={22} /></button>
+          <button type="button" className="pv__nav pv__nav--next" aria-label="Next picture" title="Next picture" disabled={index === list.length - 1} onClick={() => go(1)}><Icon name="chevron" size={22} /></button>
         </> : null}
         {scale > 1 ? <span className="pv__zoom">{Math.round(scale * 100)}%</span> : null}
       </div>
       <section className={`pv__panel${words ? " pv__panel--open" : ""}`} aria-label="What the classes said">
         <div className="pv__grab" role="button" tabIndex={0} aria-expanded={words > 0} aria-label={words === 1 ? "Drag up for the words full screen, down for the picture" : words === 2 ? "Drag down for the picture" : "Drag up for what was said"} onPointerDown={grabDown} onPointerUp={grabUp} onPointerCancel={grabUp} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setWords((w) => (w === 1 ? 0 : 1)); } }} style={{ touchAction: "none" }}>
           <span className="pv__grabbar" />
-          {words === 2 ? <button type="button" className="pv__mini" aria-label="Back to the picture" onClick={(e) => { e.stopPropagation(); haptic("select"); setWords(1); }} onPointerDown={(e) => e.stopPropagation()}><img src={src(figure.url)} alt="" /></button> : null}
+          {words === 2 ? <button type="button" className="pv__mini" aria-label="Back to the picture" title="Back to the picture" onClick={(e) => { e.stopPropagation(); haptic("select"); setWords(1); }} onPointerDown={(e) => e.stopPropagation()}><img src={src(figure.url)} alt="" /></button> : null}
           <span className="pv__grabtext">
             {figure.readings.length ? <><b>{figure.readings.length === 1 ? "What was said" : `What was said · ${figure.readings.length} classes`}</b><small>{words === 2 ? "Drag down for the picture" : words === 1 ? "Drag up for the words full screen, down for the picture" : "Drag up to read the classes' words"}</small></> : <><b>{figure.caption || KIND[figure.kind]}</b><small>No class has shown this picture yet</small></>}
           </span>
@@ -166,7 +166,7 @@ export function Said({ lines, at, onSeek, compact }: { lines: SaidLine[]; at: nu
     <div className={`said${compact ? " said--compact" : ""}`}>
       {runs.map((r) => (
         <p key={r.t} className="said__line" data-here={r.here ? "" : undefined}>
-          <button type="button" onClick={() => onSeek(r.t)} aria-label={`Play from ${timestamp(r.t)}`}>{timestamp(r.t)}</button>{r.text}
+          <button type="button" onClick={() => onSeek(r.t)} aria-label={`Play from ${timestamp(r.t)}`} title={`Play from ${timestamp(r.t)}`}>{timestamp(r.t)}</button>{r.text}
         </p>
       ))}
     </div>

@@ -33,9 +33,9 @@ export function NavEditor() {
               <li key={id} className="naved__row">
                 <span className="naved__icon"><Glyph item={item} /></span>
                 <span className="naved__label">{item.label}</span>
-                <button type="button" className="naved__btn" aria-label={`Move ${item.label} up`} disabled={i === 0} onClick={() => move(i, -1)}><Icon name="arrowUp" size={18} /></button>
-                <button type="button" className="naved__btn naved__btn--down" aria-label={`Move ${item.label} down`} disabled={i === ids.length - 1} onClick={() => move(i, 1)}><Icon name="arrowUp" size={18} /></button>
-                <button type="button" className="naved__btn naved__btn--remove" aria-label={`Remove ${item.label}`} disabled={ids.length === 1} onClick={() => remove(id)}><Icon name="trash" size={18} /></button>
+                <button type="button" className="naved__btn" aria-label={`Move ${item.label} up`} title={`Move ${item.label} up`} disabled={i === 0} onClick={() => move(i, -1)}><Icon name="arrowUp" size={18} /></button>
+                <button type="button" className="naved__btn naved__btn--down" aria-label={`Move ${item.label} down`} title={`Move ${item.label} down`} disabled={i === ids.length - 1} onClick={() => move(i, 1)}><Icon name="arrowUp" size={18} /></button>
+                <button type="button" className="naved__btn naved__btn--remove" aria-label={`Remove ${item.label}`} title={`Remove ${item.label}`} disabled={ids.length === 1} onClick={() => remove(id)}><Icon name="trash" size={18} /></button>
               </li>
             );
           })}
@@ -47,7 +47,7 @@ export function NavEditor() {
             <li key={item.id} className="naved__row">
               <span className="naved__icon"><Glyph item={item} /></span>
               <span className="naved__label">{item.label}</span>
-              <button type="button" className="naved__btn naved__btn--add" aria-label={`Add ${item.label}`} disabled={full} onClick={() => add(item.id)}><Icon name="plus" size={18} /></button>
+              <button type="button" className="naved__btn naved__btn--add" aria-label={`Add ${item.label}`} title={`Add ${item.label}`} disabled={full} onClick={() => add(item.id)}><Icon name="plus" size={18} /></button>
             </li>
           ))}
         </ul>

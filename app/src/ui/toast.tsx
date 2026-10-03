@@ -54,7 +54,7 @@ function ToastView({ toast, onDone }: { toast: Toast; onDone: () => void }) {
       onMouseEnter={hold} onMouseLeave={go} onFocus={hold} onBlur={go}>
       <span className="toast__icon" aria-hidden="true"><Icon name={icon} size={18} /></span>
       <span className="toast__text">{toast.text}</span>
-      <button type="button" className="toast__close" aria-label="Dismiss" onClick={onDone}><Icon name="close" size={16} /></button>
+      <button type="button" className="toast__close" aria-label="Dismiss" title="Dismiss" onClick={onDone}><Icon name="close" size={16} /></button>
       {toast.ms ? <span className="toast__timer" aria-hidden="true" style={{ ["--toast-ms" as string]: `${toast.ms}ms`, animationPlayState: paused ? "paused" : "running" }} /> : null}
     </div>
   );

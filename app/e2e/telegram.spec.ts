@@ -542,7 +542,7 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   await expect(page).toHaveURL(/endpoint=note%3Apsalms-23-1/);
   await expect(page.locator(".rel-row")).toContainText("CyberJudah");
   await page.getByRole("button", { name: "Menu", exact: true }).click();
-  await expect(page.locator(".mcard__head")).toHaveText(["YOURS", "RESOURCES", "THE LAW", "SETTINGS", "CYBERJUDAH"]);
+  await expect(page.locator(".mcard__head")).toHaveText(["Yours", "Resources", "The Law", "Settings", "CyberJudah"]);
 });
 
 test("Home is the front door: one field, search the classes or ask CyberJudah", async ({ page }) => {
@@ -771,7 +771,7 @@ test("a verse links to each class that read it, on YouTube at that moment", asyn
   // In this chapter (Bible Strong's ChapterEntities): the people named, as a stack of avatars at the end of the text.
   const stack = page.locator(".bs-entities__stack");
   await stack.scrollIntoViewIfNeeded();
-  await expect(page.locator(".bs-entities__title")).toHaveText("In this chapter");
+  await expect(page.locator(".bs-entities__title")).toHaveText("In This Chapter");
   await expect(stack).toHaveAttribute("aria-label", /^People in this chapter: Cain, /);
   await expect(stack.locator("[data-person-stack]")).toHaveCount(3);
   // A tap spreads everyone over the page; Escape puts them back; a person opens their page.
