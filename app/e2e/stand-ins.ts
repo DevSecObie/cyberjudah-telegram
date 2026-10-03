@@ -35,6 +35,7 @@ export default async function globalSetup() {
       if (bot) {
         const p = (body ?? {}) as { chat_id?: number; text?: string };
         if (bot[1] === "getMe") return json(200, { ok: true, result: { id: 100000001, is_bot: true, first_name: "CyberJudah", username: "CyberJudah_bot" } });
+        if (bot[1] === "createInvoiceLink") return json(200, { ok: true, result: `https://t.me/$e2e-invoice-${++messageId}` });
         if (bot[1] === "sendMessage") return json(200, { ok: true, result: { message_id: ++messageId, date: Math.floor(Date.now() / 1000), chat: { id: p.chat_id, type: "private" }, text: p.text } });
         return json(200, { ok: true, result: true });
       }

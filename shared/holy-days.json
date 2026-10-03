@@ -1,0 +1,76 @@
+{
+ "source": "https://israelunite.org/high-holy-days/calendar/",
+ "rule": "Top-ups pause from full dark the evening before each date to full dark that evening. Feast weeks: opening and closing days only.",
+ "days": [
+  {
+   "date": "2026-10-06",
+   "kind": "feast",
+   "name": "Day of Atonement"
+  },
+  {
+   "date": "2026-10-11",
+   "kind": "feast",
+   "name": "Feast of Tabernacles (opening day)"
+  },
+  {
+   "date": "2026-10-17",
+   "kind": "feast",
+   "name": "Feast of Tabernacles (closing day)"
+  },
+  {
+   "date": "2026-10-27",
+   "kind": "newmoon",
+   "name": "New Moon"
+  },
+  {
+   "date": "2026-11-25",
+   "kind": "newmoon",
+   "name": "New Moon"
+  },
+  {
+   "date": "2026-12-19",
+   "kind": "feast",
+   "name": "Feast of Dedication (opening day)"
+  },
+  {
+   "date": "2026-12-25",
+   "kind": "feast",
+   "name": "Feast of Dedication (closing day)"
+  },
+  {
+   "date": "2026-12-25",
+   "kind": "newmoon",
+   "name": "New Moon"
+  },
+  {
+   "date": "2027-01-23",
+   "kind": "newmoon",
+   "name": "New Moon"
+  },
+  {
+   "date": "2027-02-21",
+   "kind": "newmoon",
+   "name": "New Moon"
+  },
+  {
+   "date": "2027-03-04",
+   "kind": "feast",
+   "name": "Destruction of Nicanor"
+  },
+  {
+   "date": "2027-03-06",
+   "kind": "feast",
+   "name": "Purim"
+  },
+  {
+   "date": "2027-03-11",
+   "kind": "feast",
+   "name": "Destruction of Nicanor"
+  },
+  {
+   "date": "2027-03-13",
+   "kind": "feast",
+   "name": "Purim"
+  }
+ ]
+}

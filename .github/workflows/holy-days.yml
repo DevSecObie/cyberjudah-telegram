@@ -1,0 +1,53 @@
+name: holy-days
+
+# Weekly: reads the IUIC calendar (israelunite.org) into shared/holy-days.json, the feast days and
+# New Moons on which Ask CyberJudah sells no top-ups (bot/scripts/holy-days.mjs). Any change is
+# proposed as a pull request on bot/holy-days for the owner to approve; nothing is pushed to main.
+on:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: holy-days
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Read the calendar
+        run: node bot/scripts/holy-days.mjs --summary "$RUNNER_TEMP/changes.md"
+      - name: Propose the change
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- shared/holy-days.json; then echo "No change."; exit 0; fi
+          BRANCH=bot/holy-days
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add shared/holy-days.json
+          git commit -m "Holy days: update from the IUIC calendar"
+          git push --force-with-lease origin "$BRANCH"
+          {
+            echo "The weekly read of the IUIC calendar (https://israelunite.org/high-holy-days/calendar/) found these changes to the days Ask CyberJudah pauses top-ups (shared/holy-days.json):"
+            echo
+            cat "$RUNNER_TEMP/changes.md"
+            echo
+            echo "Approve and merge to apply them; close to ignore. Changelog: not applicable — calendar data refreshed by the weekly job."
+          } > "$RUNNER_TEMP/body.md"
+          if gh pr view "$BRANCH" --json state -q .state 2>/dev/null | grep -qx OPEN; then
+            gh pr edit "$BRANCH" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh pr create --base main --head "$BRANCH" --title "Holy days: update from the IUIC calendar" --body-file "$RUNNER_TEMP/body.md"
+          fi

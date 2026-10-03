@@ -33,7 +33,28 @@ const shot = async (page: Page, name: string) => {
   fs.mkdirSync(new URL("./review/ask/", import.meta.url), { recursive: true });
   await page.screenshot({ path: new URL(`./review/ask/${name}.png`, import.meta.url).pathname });
 };
+/** Launch data for an admin (ADMIN_IDS in playwright.config.ts), for the admin's own endpoints. */
+const adminData = () => {
+  const params: Record<string, string> = { query_id: "AAH", user: JSON.stringify({ id: 100000002, first_name: "Admin" }), auth_date: String(Math.floor(Date.now() / 1000)) };
+  const check = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join("\n");
+  const secret = crypto.createHmac("sha256", "WebAppData").update(BOT_TOKEN).digest();
+  return new URLSearchParams({ ...params, hash: crypto.createHmac("sha256", secret).update(check).digest("hex") }).toString();
+};
+const funded = new Set<number>();
 async function setup(page: Page) {
+  // Paid models are paid from the reader's balance (credits.spec.ts tests that): each reader here
+  // gets $5 from the admins once, as the app first loads their account, and has accepted the
+  // default paid model's limit once, so these tests exercise Ask beyond its spending prompt.
+  await page.addInitScript(() => { try { if (!localStorage.getItem("cj:ai-limits")) localStorage.setItem("cj:ai-limits", JSON.stringify({ "anthropic/claude-opus-5": 2_000_000, "anthropic/claude-sonnet-5": 2_000_000 })); } catch { /* none */ } });
+  await page.route("**/api/ask/account*", async (r) => {
+    const data = (r.request().headers().authorization ?? "").replace(/^tma /, "");
+    const id = Number(JSON.parse(new URLSearchParams(data).get("user") ?? "{}").id);
+    if (id && !funded.has(id)) {
+      funded.add(id);
+      await page.request.post("/api/admin/adjust", { headers: { authorization: `tma ${adminData()}` }, data: { user: id, usd: 5, ref: "e2e-fund", note: "e2e" } });
+    }
+    await r.continue();
+  });
   await page.route("https://telegram.org/**", (r) => r.fulfill({ contentType: "application/javascript", body: MOCK }));
   await page.route(/ytimg|youtube\.com|fonts\.g/, (r) => r.abort());
   if (DATA_ORIGIN !== "https://data.cyberjudah.io") await page.route("https://data.cyberjudah.io/**", (r) => r.continue({ url: r.request().url().replace("https://data.cyberjudah.io", DATA_ORIGIN) }));
@@ -206,31 +227,6 @@ test("Claude overloaded: Ask turns to the backup model, and with nothing to answ
 /** The local Worker's own D1 (the Ask accounts), as the Worker stores it. */
 const d1 = (sql: string) => execFileSync("npx", ["wrangler", "d1", "execute", "DB", "--local", "--persist-to", ".wrangler/e2e", "--json", "--command", sql], { cwd: new URL("../../bot/", import.meta.url).pathname, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 
-test("with today's free answers used, Ask does not call Claude or charge, and says when they come back", async ({ page, request }) => {
-  test.setTimeout(90_000);
-  await setup(page);
-  await page.goto(`/ask${launch(11)}`);
-  await ask(page, "Who are the twelve tribes?");
-  await expect(answer(page)).toContainText("A short answer to");
-  // The reader's free day is used up, as if they had asked all day.
-  // Filed under the reader's pseudonymous ID, never the Telegram ID.
-  const id = await pid({ PRIVACY_KEY: "e2e-privacy-key-not-secret" }, RUN + 11);
-  expect(JSON.parse(d1(`SELECT COUNT(*) AS n FROM accounts WHERE user_id = '${RUN + 11}'`))[0].results[0].n).toBe(0);
-  d1(`UPDATE accounts SET free_used = 100000000 WHERE user_id = '${id}'`);
-  const before = JSON.parse(d1(`SELECT free_used, credits FROM accounts WHERE user_id = '${id}'`))[0].results[0];
-  await page.reload();
-  await expect(page.locator(".chat2")).toContainText("In-depth answers back at");
-  const t0 = Date.now();
-  await ask(page, "Why keep the Passover?");
-  // Not stopped: it goes to the basic answer. The local Worker has no Workers AI or search index,
-  // so there is nothing to answer from, and the plans are offered with the time answers return.
-  await expect(answer(page).locator(".paywall")).toContainText(/Your free answers come back at \d{1,2}:\d{2}/);
-  await shot(page, "6-allowance");
-  expect(await modelCalls(request, t0)).toHaveLength(0);
-  const after = JSON.parse(d1(`SELECT free_used, credits FROM accounts WHERE user_id = '${id}'`))[0].results[0];
-  expect(after).toEqual(before);
-});
-
 test("privacy: nothing is sent to an AI provider until the reader agrees, and the agreement can be withdrawn", async ({ page, request }) => {
   await page.addInitScript(() => { (window as unknown as { __noConsent: boolean }).__noConsent = true; });
   await setup(page);
@@ -239,7 +235,9 @@ test("privacy: nothing is sent to an AI provider until the reader agrees, and th
   await ask(page, "Why keep the Passover?");
   const card = answer(page).locator(".consent");
   await expect(card).toContainText("Send your question to Anthropic?");
-  await expect(card).toContainText("Your name and Telegram ID are not sent");
+  await expect(card.locator(".consent__list li").nth(1)).toContainText("Not sent Your name and your Telegram ID.");
+  // Another provider can be chosen from the card itself.
+  await expect(card.getByRole("button", { name: "Choose another model" })).toBeVisible();
   await shot(page, "7-consent");
   expect(await modelCalls(request, t0)).toHaveLength(0);
   await card.getByRole("button", { name: "Agree and ask" }).click();
@@ -259,7 +257,7 @@ test("privacy: nothing is sent to an AI provider until the reader agrees, and th
   await expect(answer(page).locator(".consent")).toContainText("Send your question to Anthropic?");
 });
 
-test("privacy: Delete my data removes the reader's saved chats and allowance, and Download my data then shows nothing kept", async ({ page, request }) => {
+test("privacy: Delete my data removes the reader's saved chats and balance, and Download my data then shows nothing kept", async ({ page, request }) => {
   await setup(page);
   await page.goto(`/ask${launch(13)}`);
   await ask(page, "Who are the twelve tribes?");
@@ -275,9 +273,9 @@ test("privacy: Delete my data removes the reader's saved chats and allowance, an
   const after = await (await request.get("/api/privacy/export", { headers: auth })).json();
   expect([after.savedChats, after.readingReminder, after.dailyVerse, after.classNoteRequests]).toEqual([[], null, null, []]);
   expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith("cj:ask")))).toEqual([]);
-  // The stored allowance row is gone from D1 too.
+  // The balance, its history and holds are gone from D1 too.
   const id = await pid({ PRIVACY_KEY: "e2e-privacy-key-not-secret" }, RUN + 13);
-  expect(JSON.parse(d1(`SELECT COUNT(*) AS n FROM accounts WHERE user_id = '${id}'`))[0].results[0].n).toBe(0);
+  for (const t of ["credit_lots", "credit_ledger", "credit_usage", "credit_holds"]) expect(JSON.parse(d1(`SELECT COUNT(*) AS n FROM ${t} WHERE user_id = '${id}'`))[0].results[0].n).toBe(0);
 });
 
 test("the model is chosen at the top: an admin starts on Claude Opus 5.5, every other reader on Claude Sonnet", async ({ page, request }) => {
@@ -291,4 +289,9 @@ test("the model is chosen at the top: an admin starts on Claude Opus 5.5, every 
   await expect(heading).toContainText("Sonnet 5");
   await heading.click();
   await expect(page.getByRole("radiogroup", { name: "Model" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  const balance = page.locator(".composer2__model");
+  await expect(balance).toHaveAccessibleName("$5.00 left");
+  await balance.click();
+  await expect(page.getByRole("dialog", { name: "Balance" })).toBeVisible();
 });
