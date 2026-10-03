@@ -561,6 +561,118 @@ for (const preference of ["normal", "motion", "app", "forced"] as const) {
   });
 }
 
+for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "mauve", "night"]) {
+  test(`navigation: ${theme} reserves the remaining width and keeps every sidebar control reachable`, async ({ page }) => {
+    await setup(page, theme);
+    await page.setViewportSize({ width: 899, height: 844 });
+    await page.goto(`/settings${LAUNCH}`);
+    await expect(page.getByRole("switch", { name: "Justify the text", exact: true })).toBeVisible();
+    const nav = page.getByRole("navigation", { name: "Sections" });
+    await expect(nav).toBeVisible();
+    const labels = await nav.locator(".tab").evaluateAll(buttons => buttons.map(b => b.getAttribute("aria-label")));
+    const badge = await nav.locator(".tab__count").innerText();
+    await expect(nav).toHaveCSS("flex-direction", "row");
+    for (const width of [900, 1280]) {
+      await page.setViewportSize({ width, height: 800 });
+      await expect(nav).toHaveCSS("flex-direction", "column");
+      await expect(nav).not.toHaveAttribute("data-mini");
+      expect(await nav.locator(".tab").evaluateAll(buttons => buttons.map(b => b.getAttribute("aria-label")))).toEqual(labels);
+      await expect(nav.locator(".tab__count")).toHaveText(badge);
+      for (const button of await nav.getByRole("button").all()) {
+        expect(await button.evaluate(b => b.tabIndex)).toBe(0);
+        const box = (await button.boundingBox())!;
+        expect(box.width).toBeGreaterThanOrEqual(44); expect(box.height).toBeGreaterThanOrEqual(44);
+      }
+      const rail = (await nav.boundingBox())!, content = (await page.locator(".route > .screen").boundingBox())!;
+      expect(content.x).toBeGreaterThanOrEqual(rail.x + rail.width);
+      expect(content.x + content.width).toBeLessThanOrEqual(width);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(2);
+    }
+  });
+}
+
+test("navigation: resizing a minimized dock restores keyboard and first-click navigation", async ({ page }) => {
+  await setup(page);
+  await page.setViewportSize({ width: 899, height: 844 });
+  await page.goto(`/settings${LAUNCH}`);
+    await expect(page.getByRole("switch", { name: "Justify the text", exact: true })).toBeVisible();
+  const nav = page.getByRole("navigation", { name: "Sections" });
+  await page.getByRole("switch", { name: "Justify the text", exact: true }).hover();
+  await page.mouse.wheel(0, 300);
+  await expect(nav).toHaveAttribute("data-mini", "");
+  const mini = (await nav.boundingBox())!;
+  expect(mini.width).toBeGreaterThanOrEqual(44); expect(mini.height).toBeGreaterThanOrEqual(44);
+  await page.setViewportSize({ width: 900, height: 844 });
+  await expect(nav).not.toHaveAttribute("data-mini");
+  const classes = nav.getByRole("button", { name: "Classes", exact: true });
+  await expect(classes).not.toHaveAttribute("tabindex", "-1");
+  await classes.focus(); await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/classes/);
+  await page.goto(`/settings${LAUNCH}`);
+    await expect(page.getByRole("switch", { name: "Justify the text", exact: true })).toBeVisible();
+  await page.getByRole("switch", { name: "Justify the text", exact: true }).hover();
+  await page.mouse.wheel(0, 300);
+  await expect(nav).not.toHaveAttribute("data-mini");
+  await nav.getByRole("button", { name: "Bible", exact: true }).click();
+  await expect(page).toHaveURL(/\/read\//);
+});
+
+test("navigation: document, Bible and Timeline scrolls minimize down and expand up", async ({ page }) => {
+  await setup(page, "sepia");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const nav = page.getByRole("navigation", { name: "Sections" });
+  for (const [path, selector] of [["/settings", "html"], ["/read/genesis/1", ".bs-scroll"], ["/timeline", "html"], ["/timeline/0", ".tl-scroll"]]) {
+    await page.goto(`${path}${LAUNCH}`);
+    const scroller = page.locator(selector);
+    await expect(scroller).toBeVisible();
+    if (selector === "html") await expect(page.getByRole("heading", { name: path === "/settings" ? "Settings" : "The Bible Timeline", exact: true })).toBeVisible();
+    if (selector === ".bs-scroll") await expect(page.locator("#verset-1")).toBeVisible();
+    await scroller.hover({ position: { x: 250, y: 300 } });
+    const travel = await scroller.evaluate(el => Math.min(180, (el.scrollHeight - el.clientHeight) / 2));
+    expect(travel, path).toBeGreaterThan(48);
+    await page.mouse.wheel(0, travel);
+    await expect(nav, path).toHaveAttribute("data-mini", "");
+    const mini = (await nav.boundingBox())!;
+    expect(mini.width).toBeGreaterThanOrEqual(44); expect(mini.height).toBeGreaterThanOrEqual(44);
+    await page.mouse.wheel(0, -80);
+    await expect(nav, path).not.toHaveAttribute("data-mini");
+  }
+  await page.goto(`/timeline/0${LAUNCH}`);
+  const canvas = page.locator(".tl-scroll");
+  await canvas.hover();
+  await expect(nav).not.toHaveAttribute("data-mini");
+  const vertical = await canvas.evaluate(el => el.scrollTop);
+  await page.mouse.wheel(700, 0);
+  await expect.poll(() => canvas.evaluate(el => el.scrollLeft)).toBeGreaterThan(0);
+  expect(await canvas.evaluate(el => el.scrollTop)).toBe(vertical);
+  await expect(nav).not.toHaveAttribute("data-mini");
+});
+
+for (const preference of ["normal", "app", "contrast", "forced"] as const) {
+  test(`navigation: approved period art extends behind the sidebar without another backdrop (${preference})`, async ({ page }) => {
+    await setup(page, "default", preference === "app");
+    await page.route("**/api/photos", r => r.fulfill({ json: {} }));
+    await page.emulateMedia({ contrast: preference === "contrast" ? "more" : "no-preference", forcedColors: preference === "forced" ? "active" : "none" });
+    await page.setViewportSize({ width: 900, height: 800 });
+    await page.goto(`/timeline/0${LAUNCH}`);
+    const extension = page.locator(".rail-background");
+    await expect(extension).toHaveAttribute("aria-hidden", "true");
+    await expect(extension.locator("img")).toHaveAttribute("src", /timeline\/periods\/1\.webp$/);
+    if (preference === "normal") {
+      await expect(extension).toBeVisible();
+      expect(await extension.locator("img").evaluate(e => new DOMMatrix(getComputedStyle(e).transform).a)).toBe(-1);
+      const rail = (await page.locator("nav.tabs").boundingBox())!, content = (await page.locator(".tl-period").boundingBox())!;
+      expect(content.x).toBeGreaterThanOrEqual(rail.x + rail.width);
+    } else await expect(extension).toBeHidden();
+    expect(await extension.evaluate(e => getComputedStyle(e).backdropFilter || getComputedStyle(e).getPropertyValue("-webkit-backdrop-filter"))).toBe("none");
+    expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(2);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(extension).toBeHidden();
+  });
+}
+
 for (const focus of ["field", "current Search control", "another control"] as const) {
   test(`search: a delayed mount respects focus on ${focus}`, async ({ page }) => {
     await setup(page);

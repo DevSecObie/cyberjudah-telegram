@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPoi
 
 import { haptic } from "@/tg/sdk";
 import { Icon, Img, thumbOf, timestamp } from "@/ui/ui";
+import { BackgroundExtension } from "@/ui/BackgroundExtension";
 import { Frame } from "@/lib/frames";
 
 /** The embedded recording from a moment; a new start reloads the player there. */
@@ -16,6 +17,7 @@ const embed = (id: string, start: number) => `https://www.youtube-nocookie.com/e
 export function Player({ video, start, playing, onPlay, title, live, pip, onExpand }: { video: string; start: number; playing: boolean; onPlay: () => void; title: string; live?: boolean; pip?: boolean; onExpand?: () => void }) {
   return (
     <div className="player" data-pip={pip ? "" : undefined}>
+      {!pip && !playing ? <BackgroundExtension src={thumbOf(video, true)} /> : null}
       {pip ? <button type="button" className="player__expand" aria-label="Back to the full player" onClick={() => { haptic("select"); onExpand?.(); }}><Icon name="chevron" size={16} /></button> : null}
       <div className="player__box">
         {playing ? <iframe key={`${video}:${Math.floor(start)}`} src={embed(video, start)} title={title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen /> : (

@@ -496,7 +496,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-prologue__part p { margin: 0 0 16px; }
 
 /* Desktop: the reader stands beside the rail, never under it. */
-@media (min-width: 1100px) { #root .bs { left: var(--rail-space); } }
+@media (min-width: 900px) { #root .bs { left: var(--rail-space); } }
 
 /* Bible Strong's inline layout, cleaner: the class deck, tags and precepts sit on the text's line,
    centred on it, with even spacing, a flat chip and no heavy shadow, so they read as one quiet row. */
