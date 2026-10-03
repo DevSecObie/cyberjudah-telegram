@@ -6,7 +6,8 @@ import { calculateLabel, linkedEvents } from "@shared/timeline.mjs";
 import { data, type ResolvedRef } from "@/api/data";
 import { Feather } from "@/bible/icons";
 import { Sheet } from "@/bible/ui/Sheet";
-import { ALL, SECTIONS, personOf, portraitSrc, reignLabel } from "@/lib/timeline";
+import { ALL, FINAL_CAPTIVITY, SECTIONS, personOf, portraitSrc, reignLabel } from "@/lib/timeline";
+import { FinalCaptivityDetail } from "@/screens/TimelineFinalCaptivity";
 import { haptic } from "@/tg/sdk";
 import { refHref, refLabel, refOfPath, usePassage, type VerseRef } from "@/ui/scripture";
 import { useSheet as useSheetMenu } from "@/ui/sheet";
@@ -138,7 +139,9 @@ const EventDetail = memo(function EventDetail({ event: e, onOpen }: { event: Eve
         <p className="tl-event__date">{calculateLabel(e.start, e.end)}</p>
       </div>
 
-      {lead || article.length ? (
+      {e.fc ? <FinalCaptivityDetail slug={e.slug} reviewedThrough={FINAL_CAPTIVITY?.reviewedThrough} /> : null}
+
+      {e.fc ? null : lead || article.length ? (
         <section className="tl-event__section" aria-label="Description">
           <h3>Description</h3>
           {lead ? <p className="tl-event__lead">{lead}</p> : null}

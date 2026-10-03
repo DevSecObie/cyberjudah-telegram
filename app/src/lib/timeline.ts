@@ -8,6 +8,8 @@ import raw from "@/data/timeline.json";
  */
 const TL = raw as TimelineData;
 export const SECTIONS = TL.sections;
+/** The Final Captivity's age, and the date its sources were reviewed through (app/scripts/final-captivity). */
+export const FINAL_CAPTIVITY = TL.finalCaptivity;
 export const ALL = flatten(SECTIONS);
 const BY_SLUG = new Map(ALL.map((e) => [e.slug, e]));
 const BASE = import.meta.env.BASE_URL;

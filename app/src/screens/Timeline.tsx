@@ -12,7 +12,7 @@ import { SearchBar, useSettled } from "@/ui/search-bar";
 import { useWide } from "@/ui/detents";
 import { useSheet } from "@/ui/sheet";
 import { Icon } from "@/ui/ui";
-import { SECTIONS, portraitSrc, reducedMotion, reignLabel } from "@/lib/timeline";
+import { FINAL_CAPTIVITY, SECTIONS, portraitSrc, reducedMotion, reignLabel } from "@/lib/timeline";
 import { TimelineEventSheet, useEventSheet } from "./TimelineEvent";
 
 /**
@@ -119,6 +119,12 @@ function About() {
       <p>The pictures are ours, painted for CyberJudah under the assembly's depiction brief: each period's scene, and on an event the approved portrait of the person it is about. A period still waiting on direction shows its colour.</p>
       <p>A king's reign, where shown, is from <i>Who's Who in the Bible</i> (Joan Comay and Ronald Brownrigg), its chronology of the kings.</p>
       <p>An event opens to our case studies on it, with their scripture in the KJV. An event with no case study yet stays on the line, greyed, as Bible Strong shows an event without details.</p>
+      {FINAL_CAPTIVITY ? <>
+        <h3 className="tl-about__h">{FINAL_CAPTIVITY.age}</h3>
+        <p>The last age is ours: the captivity, displacement, persecution, resistance and achievements of the peoples the assembly identifies as the Israelites today, and the founding and growth of Israel United in Christ.</p>
+        <p>Each event keeps three things apart: the documented history, from the sources listed under it; the assembly's teaching, linked to the class or episode at the moment it was taught; and the Scriptures read with it. Where sources disagree, both are shown.</p>
+        <p>Sources reviewed through {new Date(`${FINAL_CAPTIVITY.reviewedThrough}T12:00:00Z`).toLocaleDateString([], { year: "numeric", month: "long", day: "numeric" })}.</p>
+      </> : null}
     </div>
   );
 }
@@ -352,6 +358,7 @@ export function TimelinePeriod() {
 
 /** SectionDetailsModal: the period's card with its picture; in place of their description, the case studies on its events. */
 function PeriodDetails({ s, onOpen }: { s: TimelineSection; onOpen: (slug: string) => void }) {
+  if (s.events.some((e) => e.fc)) return <FcPeriodDetails s={s} onOpen={onOpen} />;
   const withCases = s.events.filter((e) => e.cases?.length);
   return (
     <div className="tl-details">
@@ -362,6 +369,24 @@ function PeriodDetails({ s, onOpen }: { s: TimelineSection; onOpen: (slug: strin
           <ul className="tl-details__list">{withCases.map((e) => <li key={e.slug}><Link to={`?event=${encodeURIComponent(e.slug)}`} onClick={(ev) => { ev.preventDefault(); haptic("select"); onOpen(e.slug); }}><b>{e.title}</b><span>{calculateLabel(e.start, e.end)}</span></Link></li>)}</ul>
         </>
       ) : <p className="hint">No case study is on an event of this period yet.</p>}
+    </div>
+  );
+}
+
+/** A Final Captivity period's details: its events by group, in time order within each. */
+function FcPeriodDetails({ s, onOpen }: { s: TimelineSection; onOpen: (slug: string) => void }) {
+  const groups = new Map<string, TimelineEvent[]>();
+  for (const e of s.events) groups.set(e.group ?? "Events", [...(groups.get(e.group ?? "Events") ?? []), e]);
+  return (
+    <div className="tl-details">
+      <SectionCard s={s} />
+      {[...groups].map(([g, list]) => (
+        <section key={g}>
+          <h2 className="entity__eyebrow">{g}<span> · {list.length}</span></h2>
+          <ul className="tl-details__list">{list.map((e) => <li key={e.slug}><Link to={`?event=${encodeURIComponent(e.slug)}`} onClick={(ev) => { ev.preventDefault(); haptic("select"); onOpen(e.slug); }}><b>{e.title}</b><span>{calculateLabel(e.start, e.end)}</span></Link></li>)}</ul>
+        </section>
+      ))}
+      {FINAL_CAPTIVITY ? <p className="hint">Sources reviewed through {new Date(`${FINAL_CAPTIVITY.reviewedThrough}T12:00:00Z`).toLocaleDateString([], { year: "numeric", month: "long", day: "numeric" })}.</p> : null}
     </div>
   );
 }
