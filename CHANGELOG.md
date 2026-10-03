@@ -117,6 +117,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   a gentle selection response and tint that preserves contrast in every reader palette. Ordinary
   taps and canceled drags work reliably. Reduce Transparency also makes the Bible dock opaque,
   and Reduce Motion stops selection and icon scaling.
+- Privacy deletion reports incomplete cleanup when storage fails and can be retried; data exports no longer silently omit unavailable billing records.
 - Ask CyberJudah: an answer is finished and saved even if you leave mid-answer, and coming back
   (a refresh, the app reopened, the connection back) waits for it instead of calling it lost; an
   answer still arriving for a chat you left never appears in the next one; a question typed while
