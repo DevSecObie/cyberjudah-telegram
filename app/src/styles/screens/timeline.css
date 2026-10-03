@@ -180,4 +180,4 @@ a.tl-major:focus-visible, a.tl-minor:focus-visible { outline: 2px solid var(--ac
 /* The Final Captivity's event (screens/TimelineFinalCaptivity.tsx) on the event page: its section headings and summary. */
 .tl-event__section h3 { margin: 0 0 10px; font: 600 17px/1.3 var(--font-ui); color: var(--text-1); }
 .tl-event__lead { font-weight: 700; line-height: 1.55; }
-.tl-emblem__new { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 99px; background: var(--tl-color); color: #fff; font-size: 9px; font-weight: 700; vertical-align: 1px; }
+.tl-emblem__new { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 99px; background: var(--accent); color: var(--on-accent); font-size: 9px; font-weight: 700; vertical-align: 1px; }

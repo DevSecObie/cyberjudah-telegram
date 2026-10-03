@@ -53,7 +53,7 @@ export function Verse(p: VerseProps) {
   };
   const container: CSSProperties = {
     fontFamily: font, ...hl, padding: 4, WebkitBoxDecorationBreak: "clone", boxDecorationBreak: "clone",
-    borderBottom: p.isSelected ? `2px dashed ${c.default}` : "none", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none",
+    borderBottom: p.isSelected ? `2px dashed var(--bs-default)` : "none", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none",
     ...(p.isVerseToScroll ? { animation: "bs-zoom 0.5s ease 0s 3 normal none running" } : {}),
     // While verses are selected the selection's own dim (the wrapper's .3) is the only one, not
     // multiplied by the focus dim.
@@ -68,8 +68,8 @@ export function Verse(p: VerseProps) {
       <span style={container}>
         <span className="bs-num" style={{ fontSize: scaleFontSize(14, s.fontSizeScale) }}>{p.number} </span>
         {p.bookmark ? <BookmarkIcon color={p.bookmark.color} onClick={() => p.onOpenBookmark(p.bookmark!)} /> : null}
-        {p.relationCount && s.relationsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.relationCount} onClick={p.onOpenRelations} label={`${p.relationCount} ${p.relationCount === 1 ? "precept" : "precepts"}`}><Feather name="precepts" size={16} color={c.primary} /></CountBadge> : null}
-        {p.taggedItemsCount && s.tagsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.taggedItemsCount} onClick={p.onOpenTags} label={`${p.taggedItemsCount} tags`}><Feather name="tag" size={14} color={c.primary} /></CountBadge> : null}
+        {p.relationCount && s.relationsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.relationCount} onClick={p.onOpenRelations} label={`${p.relationCount} ${p.relationCount === 1 ? "precept" : "precepts"}`}><Feather name="precepts" size={16} color={"var(--bs-primary)"} /></CountBadge> : null}
+        {p.taggedItemsCount && s.tagsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.taggedItemsCount} onClick={p.onOpenTags} label={`${p.taggedItemsCount} tags`}><Feather name="tag" size={14} color={"var(--bs-primary)"} /></CountBadge> : null}
         <span className="bs-text" data-verse-key={p.verseKey} style={{ fontSize: getBibleTextFontSize(false, s.fontSizeScale), lineHeight: scaleLineHeight(32, s.lineHeight, s.fontSizeScale), whiteSpace: "pre-line" }}>{p.text}</span>
         {deck ? <MediaDeck items={p.moments!} placement="inline" palette={c} fontScale={s.fontSizeScale} reference={p.deck!.reference} from={`${p.deck!.from}?v=${p.number}`} disabled={p.isSelectedMode} /> : null}
       </span>
@@ -89,29 +89,29 @@ function BookmarkIcon({ color, onClick }: { color: string; onClick: () => void }
 }
 
 /** RelationsCount / TagsIndicator: a shadowed pill with the icon and a 12px grey count badge. */
-function CountBadge({ palette: c, theme, count, onClick, label, children }: { palette: Palette; theme: ThemeName; count: number; onClick: () => void; label: string; children: React.ReactNode }) {
+function CountBadge({ theme, count, onClick, label, children }: { palette: Palette; theme: ThemeName; count: number; onClick: () => void; label: string; children: React.ReactNode }) {
   return (
     <span data-ignore-verse-touch="" role="button" tabIndex={0} aria-label={label} className="bs-badge" onClick={(e) => { e.stopPropagation(); onClick(); }}
-      style={{ backgroundColor: c.reverse, boxShadow: isDarkTheme(theme) ? "0 0 10px 0 rgba(255, 255, 255, 0.1)" : "0 0 10px 0 rgba(0, 0, 0, 0.2)", borderRadius: 8, padding: "4px 8px 4px 8px", wordBreak: "break-word", marginRight: 4, marginLeft: 4, position: "relative", display: "inline-block", cursor: "pointer" }}>
+      style={{ backgroundColor: "var(--bs-reverse)", boxShadow: isDarkTheme(theme) ? "0 0 10px 0 rgba(255, 255, 255, 0.1)" : "0 0 10px 0 rgba(0, 0, 0, 0.2)", borderRadius: 8, padding: "4px 8px 4px 8px", wordBreak: "break-word", marginRight: 4, marginLeft: 4, position: "relative", display: "inline-block", cursor: "pointer" }}>
       {children}
-      <span style={{ background: c.grey, position: "absolute", width: 12, height: 12, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "arial", fontSize: 10, color: c.reverse, bottom: 0, right: 0 }}>{count}</span>
+      <span style={{ background: "var(--bs-grey)", position: "absolute", width: 12, height: 12, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "arial", fontSize: 10, color: "var(--bs-reverse)", bottom: 0, right: 0 }}>{count}</span>
     </span>
   );
 }
 
 /** VerseTags: the chip under the last verse of a highlight, a tag icon, the first tag, "+N". */
-function VerseTags({ tags, settings: s, palette: c, theme, onOpenTags, onOpenTag }: { tags: Tag[]; settings: BibleSettings; palette: Palette; theme: ThemeName; onOpenTags: () => void; onOpenTag: (id: string) => void }) {
+function VerseTags({ tags, settings: s, theme, onOpenTags, onOpenTag }: { tags: Tag[]; settings: BibleSettings; palette: Palette; theme: ThemeName; onOpenTags: () => void; onOpenTag: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
   if (!tags.length) return null;
   const limit = 1, more = tags.length > limit, shown = expanded ? tags : tags.slice(0, limit);
   const font = webFontFamily(s.fontFamily);
-  const small: CSSProperties = { fontFamily: font, padding: "0px 4px", borderRadius: 4, color: c.default, backgroundColor: c.lightGrey, fontSize: scaleFontSize(12, s.fontSizeScale), opacity: 0.5, cursor: "pointer", display: "inline-flex", userSelect: "none" };
+  const small: CSSProperties = { fontFamily: font, padding: "0px 4px", borderRadius: 4, color: "var(--bs-default)", backgroundColor: "var(--bs-light-grey)", fontSize: scaleFontSize(12, s.fontSizeScale), cursor: "pointer", display: "inline-flex", userSelect: "none" };
   return (
-    <span data-ignore-verse-touch="" className="bs-inline-item" style={{ fontFamily: font, userSelect: "none", color: c.default, fontSize: scaleFontSize(16, s.fontSizeScale), lineHeight: scaleFontSize(26, s.fontSizeScale), backgroundColor: c.reverse, boxShadow: isDarkTheme(theme) ? "0 0 10px 0 rgba(255, 255, 255, 0.1)" : "0 0 10px 0 rgba(0, 0, 0, 0.2)", borderRadius: 8, paddingInlineEnd: 8, paddingInlineStart: 4, paddingBlock: 4, wordBreak: "break-word", marginInline: 4 }}>
-      <span role="button" tabIndex={0} aria-label="Edit tags" style={{ borderInlineEnd: "1px solid rgba(0, 0, 0, 0.2)", paddingInline: 4, marginInlineEnd: 6, cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); onOpenTags(); }}><Feather name="tag" size={Math.round(14 + s.fontSizeScale * 1.4)} color={c.primary} /></span>
-      {shown.map((t) => <span key={t.id} role="button" tabIndex={0} style={{ fontFamily: font, padding: "0px 4px", borderRadius: 4, color: c.default, backgroundColor: c.lightGrey, fontSize: scaleFontSize(16, s.fontSizeScale), marginRight: 5, cursor: "pointer", userSelect: "none" }} onClick={(e) => { e.stopPropagation(); onOpenTag(t.id); }}>{t.name}</span>)}
+    <span data-ignore-verse-touch="" className="bs-inline-item" style={{ fontFamily: font, userSelect: "none", color: "var(--bs-default)", fontSize: scaleFontSize(16, s.fontSizeScale), lineHeight: scaleFontSize(26, s.fontSizeScale), backgroundColor: "var(--bs-reverse)", boxShadow: isDarkTheme(theme) ? "0 0 10px 0 rgba(255, 255, 255, 0.1)" : "0 0 10px 0 rgba(0, 0, 0, 0.2)", borderRadius: 8, paddingInlineEnd: 8, paddingInlineStart: 4, paddingBlock: 4, wordBreak: "break-word", marginInline: 4 }}>
+      <span role="button" tabIndex={0} aria-label="Edit tags" style={{ borderInlineEnd: "1px solid rgba(0, 0, 0, 0.2)", paddingInline: 4, marginInlineEnd: 6, cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); onOpenTags(); }}><Feather name="tag" size={Math.round(14 + s.fontSizeScale * 1.4)} color={"var(--bs-primary)"} /></span>
+      {shown.map((t) => <span key={t.id} role="button" tabIndex={0} style={{ fontFamily: font, padding: "0px 4px", borderRadius: 4, color: "var(--bs-default)", backgroundColor: "var(--bs-light-grey)", fontSize: scaleFontSize(16, s.fontSizeScale), marginRight: 5, cursor: "pointer", userSelect: "none" }} onClick={(e) => { e.stopPropagation(); onOpenTag(t.id); }}>{t.name}</span>)}
       {!expanded && more ? <span role="button" tabIndex={0} style={{ ...small, marginLeft: 5 }} onClick={(e) => { e.stopPropagation(); setExpanded(true); }}>+{tags.length - limit}</span> : null}
-      {expanded && more ? <span role="button" tabIndex={0} aria-label="Collapse" style={{ ...small, padding: "2px 4px" }} onClick={(e) => { e.stopPropagation(); setExpanded(false); }}><Feather name="chevron-left" size={Math.round(14 + s.fontSizeScale * 1.4)} color={c.default} /></span> : null}
+      {expanded && more ? <span role="button" tabIndex={0} aria-label="Collapse" style={{ ...small, padding: "2px 4px" }} onClick={(e) => { e.stopPropagation(); setExpanded(false); }}><Feather name="chevron-left" size={Math.round(14 + s.fontSizeScale * 1.4)} color={"var(--bs-default)"} /></span> : null}
     </span>
   );
 }

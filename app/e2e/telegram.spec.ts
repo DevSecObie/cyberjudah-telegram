@@ -166,7 +166,7 @@ test("the book pill opens Books; a chapter tile opens the chapter; the chevrons 
   await page.click(".bs-pill--book");
   await page.click(".bs-filterbtn");
   await page.click('.bs-filter__opts button >> text=Grid');
-  await expect(page.locator(".bs-bookshort >> text=Mat")).toHaveCSS("color", "rgb(194, 40, 57)");
+  await expect(page.locator(".bs-bookshort >> text=Mat")).toHaveCSS("color", "rgb(159, 33, 47)");
   await page.click(".bs-bookshort >> text=Mat");
   await expect(page.locator(".bs-picker__header b")).toHaveText("Matthew");
   await page.click('.bs-chaptertile[aria-label="Chapter 5"]');
