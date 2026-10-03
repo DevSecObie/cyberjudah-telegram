@@ -60,20 +60,26 @@ test("an event opens over the period as a sheet: its date, our case study, and i
   await expect(page.locator(".tl-scroll")).toBeVisible();
   const sheet = page.getByRole("dialog", { name: /^Cain/ });
   await expect(sheet).toHaveAttribute("aria-modal", "false");
-  await expect(sheet.locator(".tl-ev__title")).toHaveText("Cain");
-  await expect(sheet.locator(".tl-ev__date")).toContainText("3900-3200 BC (700)");
-  // Raised by the keyboard: the grabber is a slider (peek, expanded, full).
+  await expect(sheet.locator(".tl-event__title")).toHaveText("Cain");
+  await expect(sheet.locator(".tl-event__date")).toContainText("3900-3200 BC (700)");
+  // Bible Strong's form sheet: its header is the title and ⋮, with no ✕ on a phone.
+  await expect(sheet.locator(".bs-sheet__formtitle")).toHaveText("Cain");
+  await expect(sheet.getByRole("button", { name: "More" })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Close" })).toHaveCount(0);
+  // Raised by the keyboard: the grabber is a slider (their two detents, 0.45 and full).
   const grabber = sheet.getByRole("slider", { name: "Sheet height" });
   await expect(grabber).toHaveAttribute("aria-valuetext", "Peek");
+  await expect(grabber).toHaveAttribute("aria-valuemax", "2");
   await grabber.focus();
-  await page.keyboard.press("ArrowUp");
   await page.keyboard.press("ArrowUp");
   await expect(grabber).toHaveAttribute("aria-valuetext", "Full");
   await expect(sheet.getByRole("region", { name: "Case studies" }).getByRole("link", { name: /Cain/ })).toBeVisible();
-  const scripture = sheet.getByRole("region", { name: "Scripture" });
-  await expect(scripture.locator(".scard").first()).toContainText(/Genesis 4/);
+  await expect(sheet.getByRole("region", { name: "Description" })).not.toBeEmpty();
+  const verses = sheet.getByRole("region", { name: "Verses" });
+  await expect(verses.locator("a.tl-verse").first()).toContainText(/Genesis 4/);
   await shot(page, "3-event");
-  await scripture.getByRole("link", { name: /^Go to verse/ }).first().click();
+  // As theirs: the passage itself is the link to the Bible.
+  await verses.locator("a.tl-verse").first().click();
   await expect(page).toHaveURL(/\/read\/genesis\/4/);
 });
 
@@ -87,7 +93,7 @@ test("one sheet: another event tapped replaces it, a linked event is pushed, and
   await page.locator('a[data-slug="jehoshaphat"]').click();
   await expect(page).toHaveURL(/\?event=jehoshaphat$/);
   await expect(page.locator(".tl-sheet")).toHaveCount(1);
-  await expect(page.locator(".tl-ev__title")).toHaveText("Jehoshaphat");
+  await expect(page.locator(".tl-event__title")).toHaveText("Jehoshaphat");
   expect(await page.evaluate(() => history.length)).toBe(before + 1);
   // Escape closes it: back to the period alone, the focus on the event that was shown.
   await page.keyboard.press("Escape");
@@ -99,8 +105,8 @@ test("one sheet: another event tapped replaces it, a linked event is pushed, and
 test("an old event link lands on its period with the event's sheet open", async ({ page }) => {
   await page.goto("/timeline/event/solomon");
   await expect(page).toHaveURL(/\/timeline\/5\?event=solomon$/);
-  await expect(page.locator(".tl-ev__title")).toHaveText("Solomon");
-  await expect(page.locator(".tl-ev__pic")).toHaveAttribute("src", /people\/solomon-2sa-5-14-256\.webp$/);
+  await expect(page.locator(".tl-event__title")).toHaveText("Solomon");
+  await expect(page.locator(".tl-event__pic")).toHaveAttribute("src", /people\/solomon-2sa-5-14-256\.webp$/);
 });
 
 test("search finds the two kings Ahaziah, each with the reign Who's Who gives and the right case study", async ({ page }) => {
@@ -111,8 +117,8 @@ test("search finds the two kings Ahaziah, each with the reign Who's Who gives an
   await expect(page.getByRole("region", { name: "Events" }).locator(".srch__count")).toHaveText("2");
   await shot(page, "4-search");
   await rows.filter({ hasText: "853–852 BC, Israel" }).click();
-  await expect(page.getByRole("region", { name: "Reign" })).toContainText("853–852 BC, Israel");
-  await expect(page.getByRole("region", { name: "Reign" })).toContainText("Who's Who in the Bible");
+  await expect(page.getByRole("region", { name: "Description" })).toContainText("853–852 BC, Israel");
+  await expect(page.getByRole("region", { name: "Description" })).toContainText("Who's Who in the Bible");
   await expect(page.getByRole("region", { name: "Case studies" })).toContainText("Ahaziah of Israel");
   await expect(page.getByRole("region", { name: "Case studies" })).not.toContainText("Ahaziah of Judah");
 });
@@ -180,18 +186,17 @@ test.describe("as Bible Strong moves through it", () => {
     await expect(page).toHaveURL(/\/timeline\/5\?event=solomon$/);
     // Opening it moved nothing.
     expect(await scroll.evaluate((s) => [Math.round(s.scrollLeft), Math.round(s.scrollTop)])).toEqual(at);
-    await expect(page.locator(".tl-ev__pic")).toHaveAttribute("src", /people\/solomon-2sa-5-14-256\.webp$/);
+    await expect(page.locator(".tl-event__pic")).toHaveAttribute("src", /people\/solomon-2sa-5-14-256\.webp$/);
     await page.getByRole("slider", { name: "Sheet height" }).press("End").catch(() => undefined);
     await page.getByRole("slider", { name: "Sheet height" }).press("ArrowUp");
-    await page.getByRole("slider", { name: "Sheet height" }).press("ArrowUp");
-    await page.getByRole("link", { name: /^Go to verse: 1 Kings/ }).first().click();
+    await page.locator("a.tl-verse", { hasText: /^1 Kings/ }).first().click();
     await expect(page).toHaveURL(/\/read\/1-kings\//);
     await page.goBack();
     // The period again, the sheet open on Solomon, the canvas where it was.
     await expect(page).toHaveURL(/\/timeline\/5\?event=solomon$/);
-    await expect(page.locator(".tl-ev__title")).toHaveText("Solomon");
+    await expect(page.locator(".tl-event__title")).toHaveText("Solomon");
     await expect.poll(() => scroll.evaluate((s) => [Math.round(s.scrollLeft), Math.round(s.scrollTop)])).toEqual(at);
-    await page.getByRole("dialog", { name: /^Solomon/ }).getByRole("button", { name: "Close" }).click();
+    await page.keyboard.press("Escape");
     await expect(page).toHaveURL(/\/timeline\/5$/);
     // No entrance on coming back: the canvas is where it was, the year the same, Solomon focused.
     await expect(page.locator(".tl-period")).toHaveAttribute("data-phase", "ready");
@@ -227,7 +232,8 @@ test("pictures: each period's, a colour where a picture waits on direction, and 
   await expect.poll(() => pics.nth(0).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBe(640);
   await page.goto("/timeline/5");
   await expect(page.locator('a[data-slug="solomon"] .tl-major__pic img')).toHaveAttribute("src", /solomon-2sa-5-14-128\.webp$/);
-  await expect(page.locator('[data-slug="jonathan"] .tl-major__letter')).toHaveText("J");
+  // An event with no portrait yet shows its letter (Jonathan's, the earlier example, came in round 4).
+  await expect(page.locator(".tl-major .tl-major__letter").first()).toHaveText(/^[A-Z]$/);
 });
 
 test("search keeps its words: an event opens over the results, and closing it leaves them as they were", async ({ page }) => {
@@ -238,7 +244,7 @@ test("search keeps its words: an event opens over the results, and closing it le
   await expect(page.locator(".tl-search__list mark").first()).toHaveText(/solomon/i);
   await page.locator(".tl-search__list a").first().click();
   await expect(page).toHaveURL(/\/timeline\/search\?q=solomon&event=solomon$/);
-  await expect(page.locator(".tl-ev__title")).toHaveText("Solomon");
+  await expect(page.locator(".tl-event__title")).toHaveText("Solomon");
   await page.goBack();
   await expect(page).toHaveURL(/\/timeline\/search\?q=solomon$/);
   await expect(page.locator(".tl-sheet")).toHaveCount(0);

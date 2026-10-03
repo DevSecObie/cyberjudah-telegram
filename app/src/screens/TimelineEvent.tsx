@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router";
 
 import { calculateLabel, linkedEvents } from "@shared/timeline.mjs";
@@ -8,8 +8,9 @@ import { Feather } from "@/bible/icons";
 import { Sheet } from "@/bible/ui/Sheet";
 import { ALL, SECTIONS, personOf, portraitSrc, reignLabel } from "@/lib/timeline";
 import { haptic } from "@/tg/sdk";
-import { avatarKind, EntityAvatar } from "@/ui/avatar";
-import { ScriptureCard } from "@/ui/scripture";
+import { refHref, refLabel, refOfPath, usePassage, type VerseRef } from "@/ui/scripture";
+import { useSheet as useSheetMenu } from "@/ui/sheet";
+import { newTab } from "@/lib/tabs";
 import { Empty } from "@/ui/ui";
 
 /**
@@ -20,9 +21,8 @@ import { Empty } from "@/ui/ui";
  * unmounted: the period's canvas keeps its scroll, its year and its entrance state, and the
  * search keeps its words and results.
  *
- *   peek      the title, the date, the portrait and one line of context, the timeline above it
- *   expanded  the people, the reign and the scripture begin
- *   full      everything, scrolling: scripture with Go to verse, case studies, linked events
+ *   0.45  the picture, the title and the date, and the description beginning, the timeline above it
+ *   full  everything, scrolling: the description, the verses, case studies, people, linked events
  *
  * Opening an event from the timeline replaces the one shown (one sheet, never a stack); a linked
  * event opened inside the sheet is pushed, so Back returns to the event before it. Closing (a
@@ -30,9 +30,12 @@ import { Empty } from "@/ui/ui";
  */
 type Event = (typeof ALL)[number];
 const BY_SLUG = new Map<string, Event>(ALL.map((e) => [e.slug, e]));
-const DETENTS = [0.42, 0.72, 1];
+/** Bible Strong's event form sheet: sheetAllowedDetents [0.45, 1]. */
+const DETENTS = [0.45, 1];
 /** Verses shown of a long passage before "All n verses" (as a case study's scripture). */
 const SHOWN_VERSES = 3;
+/** Passages shown under Verses (theirs carry two or three); the rest are in the case studies below. */
+const SHOWN_PASSAGES = 4;
 
 type SheetState = { eventDepth?: number };
 
@@ -63,104 +66,132 @@ export function useEventSheet() {
 /**
  * The sheet. It stays mounted while the event changes (a linked event, another bar tapped), so it
  * keeps its height and only its content changes; `onCover` hears how much of the screen it covers
- * at each detent, so the page under it can make room.
+ * at each detent, so the page under it can make room. Bible Strong's form sheet: detents 0.45 and
+ * full, their header (the title at the left, ⋮ with "Open in a new tab"), floating over the period.
  */
 export function TimelineEventSheet({ event, onClose, onOpen, onCover }: { event: Event; onClose: () => void; onOpen: (slug: string) => void; onCover?: (px: number) => void }) {
   const onDetent = (i: number) => onCover?.(Math.round(window.innerHeight * DETENTS[i]));
   useEffect(() => () => onCover?.(0), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const menu = useSheetMenu();
+  const navigate = useNavigate();
+  const path = `/timeline/${event.sectionIndex}?event=${encodeURIComponent(event.slug)}`;
+  const more = async () => {
+    haptic("select");
+    const a = await menu.open({ items: [{ id: "tab", text: "Open in a new tab" }] });
+    if (a?.id === "tab") { newTab(path); navigate(path); }
+  };
   return (
-    <Sheet open onClose={onClose} detents={DETENTS} initialDetent={0} onDetent={onDetent} label={`${event.title}, ${calculateLabel(event.start, event.end)}`} className="tl-sheet">
+    <Sheet open form onClose={onClose} detents={DETENTS} initialDetent={0} onDetent={onDetent} label={`${event.title}, ${calculateLabel(event.start, event.end)}`} className="tl-sheet"
+      title={event.title} right={<button type="button" className="bs-iconbtn" aria-label="More" onClick={more}><Feather name="more-vertical" size={18} /></button>}>
       <EventDetail event={event} onOpen={onOpen} />
     </Sheet>
   );
 }
 
-/** An event's content, top first in the order the detents reveal it. */
+/**
+ * An event, as Bible Strong's EventDetails lays it out: the 150px picture, the title and date
+ * centred, Description (a bold line, then the text), Verses (the reference in grey, the first
+ * three verses, the whole passage a link to the Bible), then our case studies and the people, and
+ * Linked events as cards. The words are ours: the person's entry in People (STEPBible), the case
+ * study, the reign from Who's Who.
+ */
 const EventDetail = memo(function EventDetail({ event: e, onOpen }: { event: Event; onOpen: (slug: string) => void }) {
   const top = useRef<HTMLDivElement>(null);
   const s = SECTIONS[e.sectionIndex];
-  // The case studies are cached for the session (staleTime Infinity): reopening an event fetches nothing.
+  const own = personOf(e);
+  // The case studies and the person are cached for the session (staleTime Infinity): reopening an event fetches nothing.
   const cases = useQueries({ queries: (e.cases ?? []).map((c) => ({ queryKey: ["case", c.slug], queryFn: () => data.case(c.slug), staleTime: Infinity, retry: 1 })) });
-  const people = useQuery({ queryKey: ["people-index"], queryFn: data.people, staleTime: Infinity, enabled: !!e.cases?.length || !!personOf(e) });
-  const loading = cases.some((q) => q.isPending);
-  // A new event in the same sheet starts at its top, and its title is announced.
+  const person = useQuery({ queryKey: ["person", own], queryFn: () => data.person(own!), staleTime: Infinity, enabled: !!own, retry: 1 });
+  const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
+  const loading = cases.some((q) => q.isPending) || (!!own && person.isPending);
+  // A new event in the same sheet starts at its top.
   useEffect(() => { top.current?.closest(".bs-sheet__body")?.scrollTo({ top: 0 }); }, [e.slug]);
 
+  const bookName = (slug: string) => books.data?.find((b) => b.slug === slug)?.book ?? slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const first = cases[0]?.data;
+  const lead = person.data?.description || first?.summary || "";
+  const article = [
+    e.reign ? `Reigned ${reignLabel(e.reign)} (Who's Who in the Bible).` : "",
+    person.data?.description && first?.summary ? first.summary : "",
+  ].filter(Boolean);
+  // Verses: the case studies' scripture; for a person with none, where the person is first named.
   const refs: ResolvedRef[] = cases.flatMap((q) => (q.data?.refsResolved ?? []).filter((r) => r.slug && r.text.length));
   const seen = new Set<string>();
-  const verses = refs.filter((r) => (seen.has(r.label) ? false : (seen.add(r.label), true)));
-  const who = useMemo(() => {
+  const caseVerses = refs.filter((r) => (seen.has(r.label) ? false : (seen.add(r.label), true))).slice(0, SHOWN_PASSAGES);
+  const personVerses = caseVerses.length ? [] : (person.data?.verses ?? []).slice(0, 2).map(refOfPath).filter((r): r is VerseRef => !!r);
+  const people = useMemo(() => {
     const list = new Map<string, string>();
-    const own = personOf(e);
-    if (own) list.set(own, (people.data ?? []).find((p) => p.id === own)?.name ?? e.title);
-    for (const q of cases) for (const p of q.data?.people ?? []) if (!list.has(p.id)) list.set(p.id, p.name);
+    for (const q of cases) for (const p of q.data?.people ?? []) if (p.id !== own && !list.has(p.id)) list.set(p.id, p.name);
     return [...list].slice(0, 12);
-  }, [e, cases, people.data]);
-  const typeOf = useMemo(() => new Map((people.data ?? []).map((p) => [p.id, p.type])), [people.data]);
+  }, [cases, own]);
   const linked = useMemo(() => linkedEvents(SECTIONS, e.slug), [e.slug]);
-  const context = e.reign ? `Reign ${reignLabel(e.reign)}` : cases[0]?.data?.charge ?? (e.cases?.[0]?.name ?? "");
   const pic = portraitSrc(e, 256);
 
   return (
-    <div className="tl-ev" ref={top} style={{ ["--tl-color" as string]: s.color }}>
-      <header className="tl-ev__head" aria-live="polite">
-        {pic ? <img className="tl-ev__pic" src={pic} alt="" width={64} height={64} decoding="async" /> : <span className="tl-ev__pic tl-ev__pic--none" aria-hidden="true">{e.title.replace(/^(the|a|an)\s+/i, "").charAt(0)}</span>}
-        <div className="tl-ev__titles">
-          <h2 className="tl-ev__title">{e.title}</h2>
-          <p className="tl-ev__date">{calculateLabel(e.start, e.end)}<span aria-hidden="true"> · </span><span className="tl-ev__period">{s.title}</span></p>
-        </div>
-      </header>
-      {context ? <p className="tl-ev__context">{context}{e.reign ? <span className="tl-ev__src"> · Who's Who in the Bible</span> : null}</p> : null}
+    <div className="tl-event__body tl-event__body--sheet" ref={top} style={{ ["--tl-color" as string]: s.color }}>
+      {pic ? <img className="tl-event__pic" src={pic} alt="" width={150} height={150} decoding="async" /> : null}
+      <div className="tl-event__head">
+        <p className="tl-event__title">{e.title}</p>
+        <p className="tl-event__date">{calculateLabel(e.start, e.end)}</p>
+      </div>
 
-      {who.length ? (
-        <section className="tl-ev__section" aria-label="People">
-          <h3>People</h3>
-          <ul className="case__people">
-            {who.map(([id, name]) => <li key={id}><Link to={`/person/${id}`} className="case__person" onClick={() => haptic("select")}><EntityAvatar name={name} kind={avatarKind(typeOf.get(id))} size={32} /><span>{name}</span><Feather name="chevron-right" size={14} color="currentColor" /></Link></li>)}
-          </ul>
+      {lead || article.length ? (
+        <section className="tl-event__section" aria-label="Description">
+          <h3>Description</h3>
+          {lead ? <p className="tl-event__lead">{lead}</p> : null}
+          {article.map((t) => <p key={t} className="tl-event__article">{t}</p>)}
+        </section>
+      ) : loading ? <p className="hint" aria-busy="true">Loading…</p> : null}
+
+      {caseVerses.length || personVerses.length ? (
+        <section className="tl-event__section" aria-label="Verses">
+          <h3>Verses</h3>
+          {caseVerses.map((r) => (
+            <Link key={r.label} className="tl-verse" to={`/read/${r.slug}/${r.chapter}${r.verses ? `?v=${r.verses.replace(/\s+/g, "")}` : ""}`} onClick={() => haptic("select")}>
+              <span className="tl-verse__ref">{r.label}</span>
+              <span className="tl-verse__text">{r.text.slice(0, SHOWN_VERSES).map((v) => <span key={v.verse}>{r.text.length > 1 ? <sup>{v.verse}</sup> : null}{v.text} </span>)}{r.text.length > SHOWN_VERSES ? "…" : null}</span>
+            </Link>
+          ))}
+          {personVerses.map((r) => <PersonVerse key={`${r.slug}/${r.chapter}/${r.from}`} at={r} label={refLabel(r, bookName)} />)}
         </section>
       ) : null}
 
-      {verses.length ? (
-        <section className="tl-ev__section" aria-label="Scripture">
-          <h3>Scripture</h3>
-          <div className="tl-ev__verses">{verses.map((r) => <EventScripture key={r.label} r={r} />)}</div>
-        </section>
-      ) : loading && e.cases?.length ? <p className="hint" aria-busy="true">Loading the scripture…</p> : null}
-
       {e.cases?.length ? (
-        <section className="tl-ev__section" aria-label="Case studies">
+        <section className="tl-event__section" aria-label="Case studies">
           <h3>Case studies</h3>
-          <ul className="tl-ev__list">
-            {e.cases.map((c, i) => {
-              const k = cases[i]?.data;
-              return <li key={c.slug}><Link to={k?.url ?? "/cases"} className="tl-related" data-kind={c.kind} onClick={() => haptic("select")}><span><b>{c.name}</b>{k?.charge ? <small>{k.charge}</small> : null}</span><Feather name="chevron-right" size={20} color="currentColor" /></Link></li>;
-            })}
-          </ul>
+          {e.cases.map((c, i) => {
+            const k = cases[i]?.data;
+            return <Link key={c.slug} to={k?.url ?? "/cases"} className="tl-related" data-kind={c.kind} onClick={() => haptic("select")}><span><b>{c.name}</b>{k?.charge ? <small>{k.charge}</small> : null}</span><Feather name="chevron-right" size={22} color="currentColor" /></Link>;
+          })}
+        </section>
+      ) : null}
+
+      {own || people.length ? (
+        <section className="tl-event__section" aria-label="People">
+          <h3>People</h3>
+          {own ? <Link to={`/person/${own}`} className="tl-related" onClick={() => haptic("select")}><span><b>{person.data?.name ?? e.title}</b></span><Feather name="chevron-right" size={22} color="currentColor" /></Link> : null}
+          {people.map(([id, name]) => <Link key={id} to={`/person/${id}`} className="tl-related" onClick={() => haptic("select")}><span><b>{name}</b></span><Feather name="chevron-right" size={22} color="currentColor" /></Link>)}
         </section>
       ) : null}
 
       {linked.length ? (
-        <section className="tl-ev__section" aria-label="Linked events">
+        <section className="tl-event__section" aria-label="Linked events">
           <h3>Linked events</h3>
-          <ul className="tl-ev__list">
-            {linked.map((l) => <li key={l.slug}><button type="button" className="tl-related" onClick={() => { haptic("select"); onOpen(l.slug); }}><span><b>{l.title}</b><small>{calculateLabel(l.start, l.end)}{l.sectionIndex !== e.sectionIndex ? ` · ${SECTIONS[l.sectionIndex].title}` : ""}</small></span><Feather name="chevron-right" size={20} color="currentColor" /></button></li>)}
-          </ul>
+          {linked.map((l) => <button key={l.slug} type="button" className="tl-related" onClick={() => { haptic("select"); onOpen(l.slug); }}><span><b>{l.title}</b></span><Feather name="chevron-right" size={22} color="currentColor" /></button>)}
         </section>
       ) : null}
     </div>
   );
 });
 
-/** A passage as a scripture card: read here, then Go to verse on purpose (the first verses of a long one). */
-function EventScripture({ r }: { r: ResolvedRef }) {
-  const [all, setAll] = useState(false);
-  const at = { slug: r.slug!, chapter: r.chapter, from: r.text[0].verse, to: r.text[r.text.length - 1].verse };
-  const href = `/read/${r.slug}/${r.chapter}${r.verses ? `?v=${r.verses.replace(/\s+/g, "")}` : ""}`;
-  const long = r.text.length > SHOWN_VERSES;
+/** A verse the person is named in, as Bible Strong shows an event's verses: the reference in grey, the text, a link to the Bible. */
+function PersonVerse({ at, label }: { at: VerseRef; label: string }) {
+  const p = usePassage(at);
   return (
-    <ScriptureCard at={at} label={r.label} href={href} verses={long && !all ? r.text.slice(0, SHOWN_VERSES) : r.text}
-      extra={long ? <button type="button" className="scard__act" aria-expanded={all} onClick={() => { haptic("select"); setAll(!all); }}>{all ? "Fewer verses" : `All ${r.text.length} verses`}</button> : null} />
+    <Link className="tl-verse" to={refHref(at)} onClick={() => haptic("select")}>
+      <span className="tl-verse__ref">{label}</span>
+      <span className="tl-verse__text">{p.isPending ? "…" : p.verses.map((v) => v.text).join(" ")}</span>
+    </Link>
   );
 }
 

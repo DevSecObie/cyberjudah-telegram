@@ -23,13 +23,27 @@ type SheetProps = {
    * it is a side panel instead, as Bible Strong's web shows its event and study routes.
    */
   detents?: number[]; initialDetent?: number; onDetent?: (index: number) => void; detentNames?: string[];
+  /**
+   * Bible Strong's form-sheet header (common/Header in a formSheet): the title bold at the left, the
+   * right control (their ⋮ menu), a rule under it, and no ✕: the sheet is swiped away, or closed
+   * by Escape or Telegram's back button. The side panel keeps a close button.
+   */
+  form?: boolean;
 };
 
 export function Sheet(props: SheetProps) {
   return props.detents ? (props.open ? <DetentSheet {...props} detents={props.detents} /> : null) : <PlainSheet {...props} />;
 }
 
-function Header({ title, subTitle, hasBack, onBack, right, left, close }: Pick<SheetProps, "title" | "subTitle" | "hasBack" | "onBack" | "right" | "left"> & { close: () => void }) {
+function Header({ title, subTitle, hasBack, onBack, right, left, close, form, closable = true }: Pick<SheetProps, "title" | "subTitle" | "hasBack" | "onBack" | "right" | "left" | "form" | "closable"> & { close: () => void }) {
+  if (form) return (
+    <div className="bs-sheet__header bs-sheet__header--form">
+      {hasBack ? <button type="button" className="bs-iconbtn" aria-label="Back" onClick={onBack ?? close}><Feather name="arrow-left" size={20} /></button> : null}
+      <h2 className="bs-sheet__formtitle">{title}</h2>
+      {right}
+      {closable ? <button type="button" className="bs-iconbtn" aria-label="Close" onClick={close}><Feather name="x" size={18} /></button> : null}
+    </div>
+  );
   return (
     <div className="bs-sheet__header">
       <div className="bs-sheet__side">{hasBack ? <button type="button" className="bs-iconbtn" aria-label="Back" onClick={onBack ?? close}><Feather name="arrow-left" size={20} /></button> : left}</div>
@@ -46,7 +60,7 @@ function Header({ title, subTitle, hasBack, onBack, right, left, close }: Pick<S
  * The grabber is a slider for the keyboard (arrow keys move between the detents); a tap on it does
  * nothing. On a wide window it is a side panel, with no drag.
  */
-function DetentSheet({ onClose, detents, initialDetent = 0, onDetent, detentNames, title, subTitle, hasBack, onBack, right, left, children, footer, className, label }: SheetProps & { detents: number[] }) {
+function DetentSheet({ onClose, detents, initialDetent = 0, onDetent, detentNames, title, subTitle, hasBack, onBack, right, left, children, footer, className, label, form }: SheetProps & { detents: number[] }) {
   const wide = useWide();
   const box = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -67,11 +81,11 @@ function DetentSheet({ onClose, detents, initialDetent = 0, onDetent, detentName
   };
   return (
     <div className="sheet__scrim bs-scrim bs-scrim--clear bs-scrim--detents" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
-      <div ref={box} className={`bs-sheet ${wide ? "bs-sheet--panel" : "bs-sheet--detents"}${className ? ` ${className}` : ""}`} role="dialog" aria-modal="false" aria-label={label ?? (typeof title === "string" ? title : "Sheet")} data-sheet-open=""
+      <div ref={box} className={`bs-sheet ${wide ? "bs-sheet--panel" : "bs-sheet--detents"}${form ? " bs-sheet--form" : ""}${className ? ` ${className}` : ""}`} role="dialog" aria-modal="false" aria-label={label ?? (typeof title === "string" ? title : "Sheet")} data-sheet-open=""
         data-closing={closing ? "" : undefined} onAnimationEnd={(e) => { if (closing && e.target === box.current) closed.current(); }}>
         <div ref={grab} className="bs-sheet__grab">
           {wide ? null : <div className="bs-sheet__handle bs-sheet__handle--slider" role="slider" tabIndex={0} aria-label="Sheet height" aria-valuemin={1} aria-valuemax={detents.length} aria-valuenow={at + 1} aria-valuetext={names[at]} onKeyDown={onKey} />}
-          {title !== undefined ? <Header {...{ title, subTitle, hasBack, onBack, right, left }} close={close} /> : <button type="button" className="bs-iconbtn bs-sheet__close bs-sheet__close--float" aria-label="Close" onClick={close}><Feather name="x" size={18} /></button>}
+          {title !== undefined ? <Header {...{ title, subTitle, hasBack, onBack, right, left, form }} closable={!form || wide} close={close} /> : <button type="button" className="bs-iconbtn bs-sheet__close bs-sheet__close--float" aria-label="Close" onClick={close}><Feather name="x" size={18} /></button>}
         </div>
         <div ref={body} className="bs-sheet__body">{children}</div>
         {footer ? <div className="bs-sheet__footer">{footer}</div> : null}

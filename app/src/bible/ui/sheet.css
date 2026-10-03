@@ -64,3 +64,16 @@
 @keyframes bs-panel-out { to { transform: translateX(100%); } }
 @media (prefers-reduced-motion: reduce) { .bs-sheet--panel, .bs-sheet--panel[data-closing] { animation: none; } }
 .bs-sheet { background: var(--mat-overlay); border: .5px solid var(--mat-edge); border-bottom: 0; box-shadow: var(--mat-highlight), 0 -12px 40px rgba(0, 0, 0, .2); }
+/* Bible Strong's form sheet on iOS 26: it floats, inset from the screen's edges, with the large
+   continuous corners of the device; its header is their page header (common/Header): the title
+   bold at the left at 14px, 54px tall, a rule under it. */
+.bs-sheet--form.bs-sheet--detents { left: 8px; right: 8px; bottom: 8px; width: auto; max-width: 640px; border-radius: 34px; overflow: hidden; }
+.bs-sheet__header--form { gap: 2px; min-height: 54px; padding: 0 8px 0 20px; border-bottom: 1px solid var(--hairline); }
+.bs-sheet__header--form .bs-iconbtn:first-child { margin-left: -12px; }
+.bs-sheet__formtitle { flex: 1; min-width: 0; margin: 0; font: 700 14px/1.3 var(--font-ui); color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Their grabber (the system's): a light pill 5pt from the top, over the header rather than above it. */
+.bs-sheet--form .bs-sheet__handle--slider { position: absolute; top: -2px; left: 50%; width: 36px; height: 5px; margin: 0 0 0 -42px; border-radius: 9px; background-color: color-mix(in srgb, var(--text-1) 32%, transparent); z-index: 1; }
+.bs-sheet--form .bs-sheet__handle--slider:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.bs-sheet--form .bs-sheet__header--form { padding-top: 6px; }
+/* The focus is moved to the sheet itself when it opens (for screen readers); it is not a control, so no ring. */
+#root .bs-sheet--form:focus, #root .bs-sheet--form:focus-visible { outline: none; }

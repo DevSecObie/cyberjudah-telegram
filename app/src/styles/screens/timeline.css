@@ -158,3 +158,11 @@ a.tl-major:focus-visible, a.tl-minor:focus-visible { outline: 2px solid var(--ac
 a.tl-major[aria-current="true"], a.tl-minor[aria-current="true"] { box-shadow: 0 0 0 2px var(--tl-color), 0 4px 14px rgba(0, 0, 0, .18); }
 .tl-world { transition: height .2s var(--ease, ease); }
 @media (prefers-reduced-motion: reduce) { .tl-scroll { scroll-behavior: auto; } .tl-period .tl-world { animation: none !important; opacity: 1 !important; } }
+/* The event in its sheet: Bible Strong's EventDetails (py 10; sections px 20; "Description" in the
+   title face, then the bold line and the text at scale -1, 20px apart). */
+.tl-event__body--sheet { padding-bottom: calc(24px + var(--safe-bottom, 0px)); color: var(--text-1); }
+.tl-event__section h3 { margin: 0 0 10px; font: 600 17px/1.3 var(--font-ui); color: var(--text-1); }
+.tl-event__lead { font-weight: 700; line-height: 1.55; }
+.tl-event__section p.tl-event__article { margin-top: 20px; line-height: 1.55; }
+button.tl-related { width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer; }
+.tl-event__section .tl-related b { font-weight: 400; font-size: 16px; }
