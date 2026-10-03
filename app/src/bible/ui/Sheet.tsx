@@ -4,6 +4,7 @@ import { sheetOpened } from "@/tg/hooks";
 import { useModal } from "@/ui/modal";
 
 import { Feather } from "../icons";
+import "./sheet.css";
 
 /**
  * Bible Strong's bottom sheet (common/sheet): a handle, an optional header with a centred
