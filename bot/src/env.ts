@@ -24,8 +24,12 @@ export type Env = {
   ANTHROPIC_BASE_URL?: string;
   /** The Claude model Ask CyberJudah answers with (claude-opus-5 when unset). */
   CLAUDE_MODEL?: string;
-  /** Ask's pricing (wrangler.jsonc vars): see billing.mjs. */
-  ASK_USD_PER_MTOK?: string; ASK_USD_PER_STAR?: string; ASK_MARGIN?: string; ASK_FREE_DAILY?: string; ASK_PLAN_STARS?: string; ASK_PACKS?: string; ASK_BILLING?: string; ASK_BASIC_DAILY?: string; ASK_FREE_MODEL?: string;
+  /** Ask's pay-as-you-go balance (shared/credits.mjs creditConfig documents each). */
+  ASK_USD_PER_STAR?: string; ASK_MARGIN?: string; ASK_TOPUPS_USD?: string; ASK_UNIFIED_BILLING_FEE?: string; ASK_CONFIRM_ABOVE_USD?: string; ASK_MAX_REQUEST_USD?: string;
+  ASK_EMBED_USD_PER_MTOK?: string; ASK_RERANK_USD_PER_MTOK?: string; ASK_VECTOR_USD_PER_MDIMS?: string;
+  ASK_BILLING?: string; ASK_FREE_MODEL?: string;
+  /** End-to-end tests only: "on" lets a request name its moment (x-e2e-now), to test the Sabbath pause on any day. Never set in wrangler.jsonc. */
+  E2E_CLOCK?: string;
   /** Telegram user ids (comma-separated) allowed to edit notes from the app. They also receive the hourly health-check pages. */
   ADMIN_IDS?: string;
   /** D1 storage alert threshold in bytes (default 8 GB); the hourly self-check pages when the search database passes it. */
