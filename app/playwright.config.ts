@@ -53,7 +53,7 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
-  reporter: [["list"]],
+  reporter: process.env.CI ? [["list"], ["github"]] : [["list"]],
   globalSetup: liveBaseURL ? undefined : "./e2e/stand-ins.ts",
   use: { baseURL: liveBaseURL || "http://127.0.0.1:8787", trace: "retain-on-failure", screenshot: "only-on-failure", viewport: { width: 390, height: 780 } },
   projects: [
