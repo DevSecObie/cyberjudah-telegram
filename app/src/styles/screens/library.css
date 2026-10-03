@@ -46,7 +46,7 @@
 .pv--full { grid-template-rows: auto 0fr 1fr; }
 .pv--full .pv__stage { visibility: hidden; }
 /* The bar is the viewer's one piece of glass. */
-.pv__bar { z-index: 2; display: flex; align-items: center; gap: 6px; padding: calc(var(--safe-top) + var(--sp-2)) 10px var(--sp-2); background: var(--mat-nav); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur); border-bottom: .5px solid var(--media-fill); }
+.pv__bar { position: relative; z-index: 2; display: flex; align-items: center; gap: 6px; padding: calc(var(--safe-top) + var(--sp-2)) 10px var(--sp-2); border-bottom: .5px solid var(--media-fill); }
 .pv__title { flex: 1; min-width: 0; display: grid; }
 .pv__title b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 15px/1.25 var(--font-ui); }
 .pv__title small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 var(--fs-caption) var(--font-ui); color: var(--media-muted); }

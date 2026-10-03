@@ -164,21 +164,34 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgu
 #root .bs-chip[aria-pressed="true"], #root .bs-ambient-tabs [aria-selected="true"] { background: var(--accent); color: var(--on-accent); }
 #root .srch__field { min-height: var(--h-lg); height: auto; }
 #root .srch__scope { min-height: var(--h-sm); padding-block: var(--sp-2); }
-/* The solid thumb stretches on press. It is a composited web cue, not a
-   refractive material on content. Both switches retain their checked/keyboard semantics. */
-.toggle:active .switch::after { transform: scaleX(1.18); }
-.toggle[aria-checked="true"]:active .switch::after { transform: translateX(20px) scaleX(1.18); }
-.bs-switchrow:active .bs-switch span { transform: scaleX(1.18); }
-.bs-switchrow:active .bs-switch[data-on] span { transform: translateX(14px) scaleX(1.18); }
-@media (prefers-reduced-motion: reduce) {
-  .toggle:active .switch::after { transform: none; }
-  .toggle[aria-checked="true"]:active .switch::after { transform: translateX(20px); }
-  .bs-switchrow:active .bs-switch span { transform: none; }
-  .bs-switchrow:active .bs-switch[data-on] span { transform: translateX(14px); }
+/* Pressed knobs borrow the light rim and lift of the navigation selection. Their
+   fill changes immediately; only transform springs, with no extra backdrop filter. */
+.switch::after, .bs-switch span { transition: transform var(--dur-2) var(--ease-spring); }
+:is(.toggle, .bs-switchrow):active:not(:disabled) { --knob-fill: color-mix(in srgb, var(--switch-thumb) var(--control-lift-density), transparent); --knob-shadow: var(--control-lift-shadow); }
+.toggle:active:not(:disabled) .switch::after, .bs-switchrow:active:not(:disabled) .bs-switch span {
+  background: var(--knob-fill); box-shadow: var(--knob-shadow);
+  transform: scale(var(--control-lift-scale));
 }
+.toggle[aria-checked="true"]:active:not(:disabled) .switch::after { transform: translateX(20px) scale(var(--control-lift-scale)); }
+.bs-switchrow:active:not(:disabled) .bs-switch[data-on] span { transform: translateX(14px) scale(var(--control-lift-scale)); }
+/* Keep the native range element's value, focus, keyboard and touch behavior. */
+input[type="range"] { appearance: none; -webkit-appearance: none; min-width: 0; min-height: var(--touch); background: transparent; cursor: pointer; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: var(--r-pill); background: var(--control-edge); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: var(--r-pill); background: var(--control-edge); }
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none; -webkit-appearance: none; width: 22px; height: 22px; margin-top: -9px; border: 1px solid var(--control-edge); border-radius: var(--r-pill);
+  background: var(--knob-fill, var(--switch-thumb)); box-shadow: var(--knob-shadow, var(--switch-shadow)); transform: scale(var(--knob-scale, 1)); transition: transform var(--dur-2) var(--ease-spring);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px; height: 20px; border: 1px solid var(--control-edge); border-radius: var(--r-pill);
+  background: var(--knob-fill, var(--switch-thumb)); box-shadow: var(--knob-shadow, var(--switch-shadow)); transform: scale(var(--knob-scale, 1)); transition: transform var(--dur-2) var(--ease-spring);
+}
+input[type="range"]:active:not(:disabled) { --knob-scale: var(--control-lift-scale); --knob-fill: color-mix(in srgb, var(--switch-thumb) var(--control-lift-density), transparent); --knob-shadow: var(--control-lift-shadow); }
+input[type="range"]:disabled { opacity: var(--disabled-opacity); cursor: default; }
 @media (forced-colors: active) {
   #root .btn, #root .chip, #root .seg, .switch, .bs-switch { border: 1px solid ButtonText; }
-  .switch::after, .bs-switch span { background: ButtonText; }
+  .switch::after, .bs-switch span { background: CanvasText !important; box-shadow: none !important; }
+  input[type="range"] { --knob-fill: ButtonFace !important; --knob-shadow: none !important; --control-edge: ButtonText; }
 }
 
 #root :is(.sheet, .bs-sheet) .card { --r-outer: var(--sheet-card-radius); border-radius: var(--r-outer); }

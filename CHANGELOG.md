@@ -109,7 +109,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 
 ### Changed
 
-- Unify Liquid Glass control styles, capsule sizing, nested radii and accessible large-text behavior, including enlarged segmented labels and touch scrolling for overflowing navigation rails.
+- Unify Liquid Glass control styles, capsule sizing, nested radii and accessible large-text behavior, including lifted knobs, shared header fades, enlarged segmented labels and touch scrolling for overflowing navigation rails.
 - Ask CyberJudah: the model is chosen at the top, under the title (tap it to change), and the
   allowance moves to the line under the question box. An admin starts on Claude Opus 5.5
   (`CLAUDE_MODEL_ADMIN`) and every other reader on Claude Sonnet 5 (`CLAUDE_MODEL`); a model a

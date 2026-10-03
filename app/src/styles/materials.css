@@ -49,11 +49,20 @@
 .screen > .head { margin: 0 calc(-1 * var(--gutter)); padding: calc(var(--sp-2) + var(--safe-top)) var(--gutter) var(--sp-2); }
 .screen > .head .title { font-size: var(--fs-title1); }
 .screen > .head::before, .srch__bar::before, .chat2__bar::before, .reader__bar::before {
-  content: ""; position: absolute; z-index: -1; top: 0; bottom: -14px; left: 50%; width: 100vw; margin-left: -50vw; pointer-events: none;
+  content: ""; position: absolute; z-index: -1; top: 0; bottom: calc(-1 * var(--mat-scroll-edge-depth)); left: 50%; width: 100vw; margin-left: -50vw; pointer-events: none;
   background: var(--mat-nav);
   -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
   -webkit-mask-image: var(--mat-scroll-edge); mask-image: var(--mat-scroll-edge);
 }
+/* One scroll-edge mask for every header material, including lazy-loaded screens. */
+:is(.bs-header, .tlh, .pv__bar)::before {
+  content: ""; position: absolute; inset: 0 0 calc(-1 * var(--mat-scroll-edge-depth)); z-index: -1; pointer-events: none;
+  background: var(--mat-nav); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
+}
+:is(.screen > .head, .srch__bar, .chat2__bar, .reader__bar, .bs-header, .tlh, .pv__bar)::before {
+  -webkit-mask-image: var(--mat-scroll-edge); mask-image: var(--mat-scroll-edge);
+}
+.tlh.glass, .pv__bar { isolation: isolate; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* A hairline where the glass meets the page, drawn inside the fade so it reads as an edge. */
 .screen > .head::after, .srch__bar::after, .chat2__bar::after, .reader__bar::after {
   content: ""; position: absolute; z-index: -1; bottom: 0; left: 50%; width: 100vw; margin-left: -50vw; height: .5px; pointer-events: none;
@@ -79,6 +88,8 @@
    fill on this surface, never a second backdrop filter over the labels. */
 .tabs::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  top: calc(-1 * var(--mat-scroll-edge-depth));
+  -webkit-mask-image: var(--mat-scroll-edge-up); mask-image: var(--mat-scroll-edge-up);
   background: var(--dock-tint-override, var(--mat-nav));
   -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
 }
@@ -86,7 +97,7 @@
    on desktop where part of the rail remains visible; only the header and sheet then blur. */
 html:has(.bs-selected) .tabs::before { background: var(--dock-base-override, var(--mat-base)); -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* Full-screen media already covers the app's navigation. Do not keep hidden filters running. */
-html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__bar)::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
+html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__bar, .tlh)::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* A specular edge brightens during a press without distorting the text or sampling a
    second backdrop. The highlight fades into the material, not into a coloured fringe. */
 .tabs::after {
@@ -118,8 +129,9 @@ html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__ba
 }
 .tabs[data-lift] .tabs__pill {
   will-change: transform;
-  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(calc(var(--pill-sx, 1) * 1.06), calc(var(--pill-sy, 1) * 1.04));
-  box-shadow: inset 0 1px 0 color-mix(in srgb, white 28%, transparent), 0 3px 8px rgb(0 0 0 / .1);
+  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(calc(var(--pill-sx, 1) * var(--control-lift-scale)), calc(var(--pill-sy, 1) * var(--control-lift-scale)));
+  background: color-mix(in srgb, var(--dock-base-override, var(--mat-base)) 82%, var(--dock-ink-override, var(--text-1)));
+  box-shadow: var(--control-lift-shadow);
   transition: transform var(--dur-2) var(--ease-spring), opacity var(--dur-2) ease;
 }
 .tabs[data-drag] .tabs__pill { transition: opacity var(--dur-2) ease; }
@@ -154,7 +166,7 @@ html[data-transparency="reduced"] .tabs::after { display: none; }
 @media (forced-colors: active) {
   .tabs::before { background: Canvas; -webkit-backdrop-filter: none; backdrop-filter: none; }
   .tabs::after { display: none; }
-  .tabs__pill { background: Highlight; forced-color-adjust: none; box-shadow: none; }
+  .tabs__pill, .tabs[data-lift] .tabs__pill { background: Highlight; forced-color-adjust: none; box-shadow: none; }
   .tabs .tab[data-on] { color: HighlightText; forced-color-adjust: none; }
 }
 .tabs[data-pill="none"] .tabs__pill { opacity: 0; }

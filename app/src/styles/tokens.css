@@ -62,7 +62,9 @@
   --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent);
   --mat-elevated: color-mix(in srgb, var(--surface-1) var(--mat-elevated-density), transparent);
   --mat-overlay: var(--surface-1);
-  --mat-scroll-edge: linear-gradient(#000 calc(100% - 14px), transparent);
+  --mat-scroll-edge-depth: 14px;
+  --mat-scroll-edge: linear-gradient(#000 calc(100% - var(--mat-scroll-edge-depth)), transparent);
+  --mat-scroll-edge-up: linear-gradient(transparent, #000 var(--mat-scroll-edge-depth));
   --mat-blur: blur(16px) saturate(170%);
   --mat-blur-strong: blur(22px) saturate(180%);
   --mat-edge: color-mix(in srgb, #ffffff 12%, transparent);
@@ -93,6 +95,8 @@
   --h-sm: max(44px, 2.25rem); --h-md: max(44px, 2.75rem); --h-lg: max(52px, 3.25rem); --h-xl: max(60px, 3.75rem);
   --control-pad: 18px; --control-font: .9375rem; --control-inset: 3px;
   --switch-thumb: #fff; --switch-shadow: 0 2px 6px rgb(0 0 0 / .25);
+  --control-lift-density: 92%; --control-lift-scale: 1.2;
+  --control-lift-shadow: inset 1px 1px 1px rgb(255 255 255 / .85), inset -1px -1px 1px rgb(255 255 255 / .55), 0 4px 10px rgb(0 0 0 / .24);
   --w-read: 640px; --w-wide: 760px; --w-max: 1120px;
 
   /* Type. */
@@ -189,17 +193,17 @@ html[data-palette="default"], html[data-palette="sepia"] { --mat-density: 80%; }
 
 /* Less transparency: the system setting, or the app's own switch (Settings → Reduce transparency). */
 @media (prefers-reduced-transparency: reduce) {
-  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; }
+  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; --mat-scroll-edge-up: none; --mat-scroll-edge-depth: 0px; }
 }
-html[data-transparency="reduced"] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; }
+html[data-transparency="reduced"] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; --mat-scroll-edge-up: none; --mat-scroll-edge-depth: 0px; }
 
 /* No backdrop filter at all: a solid ground keeps text readable. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; }
+  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; --mat-scroll-edge-up: none; --mat-scroll-edge-depth: 0px; }
 }
 
 @media (prefers-contrast: more), (forced-colors: active) {
-  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; }
+  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; --mat-scroll-edge-up: none; --mat-scroll-edge-depth: 0px; }
 }
 
 /* More contrast: firmer edges, brighter secondary text, opaque materials. */
@@ -208,3 +212,10 @@ html[data-transparency="reduced"] { --mat-density: 100%; --mat-elevated-density:
   html[data-theme="light"] { --text-3: #3d3932; --text-4: #46423a; --hairline: #9f978a; --control-edge: #4f4a41; --mat-edge: color-mix(in srgb, #000000 35%, transparent); --mat-nav: var(--mat-base); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); }
   html[data-theme="sepia"] { --text-3: #4a3c26; --text-4: #54452d; --hairline: #a3916b; --control-edge: #54452d; --mat-edge: color-mix(in srgb, #1f170c 35%, transparent); --mat-nav: var(--mat-base); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); }
 }
+
+/* Lift uses the existing surface's ink/tint, with no additional backdrop sampling. */
+html[data-transparency="reduced"] { --control-lift-density: 100%; }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+  :root { --control-lift-density: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { :root { --control-lift-scale: 1; } }

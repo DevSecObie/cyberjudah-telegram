@@ -273,7 +273,7 @@ for (const theme of ["default", "dark", "sepia"]) {
       expect((await materials(page, [[".head", "::before"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
       await page.locator(".book__figure").click();
       await expect(page.locator(".pv")).toBeVisible();
-      expect((await materials(page, [[".pv__bar"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
+      expect((await materials(page, [[".pv__bar", "::before"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
       await expect.poll(() => filteredSurfaces(page)).toEqual([]);
     });
   }
@@ -318,7 +318,7 @@ test("materials: content stays unfiltered at 200% shared text size with reduced 
   expect((await materials(page, [[".book__figure"]]))[0].filter).toBe("none");
   await page.locator(".book__figure").click();
   await expect(page.locator(".pv__bar")).toBeVisible();
-  await expect.poll(() => filteredSurfaces(page)).toEqual(["pv__bar"]);
+  await expect.poll(() => filteredSurfaces(page)).toEqual(["pv__bar::before"]);
   await page.locator(".pv").getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.locator(".pv")).toHaveCount(0);
 });
@@ -379,6 +379,13 @@ for (const theme of ["default", "dark", "sepia"]) {
         const before = await toggle.getAttribute("aria-checked");
         await page.keyboard.press("Space");
         await expect(toggle).toHaveAttribute("aria-checked", String(before !== "true"));
+        const knob = toggle.locator(".switch");
+        const restShadow = await knob.evaluate(e => getComputedStyle(e, "::after").boxShadow);
+        await toggle.hover(); await page.mouse.down();
+        await expect.poll(() => knob.evaluate(e => new DOMMatrix(getComputedStyle(e, "::after").transform).a)).toBe(preference === "motion" ? 1 : 1.2);
+        if (preference !== "forced") expect(await knob.evaluate(e => getComputedStyle(e, "::after").boxShadow)).not.toBe(restShadow);
+        if (["system", "app", "contrast", "forced"].includes(preference)) expect((await materials(page, [[".switch", "::after"]]))[0].alpha).toBe(255);
+        await page.mouse.up();
         const label = (await toggle.locator("b").boundingBox())!, thumb = (await toggle.locator(".switch").boundingBox())!;
         expect(label.x + label.width).toBeLessThanOrEqual(thumb.x);
         const dock = page.locator("nav.tabs");
@@ -494,6 +501,62 @@ for (const theme of ["default", "dark", "sepia"]) {
     });
     expect(contrast).toBeGreaterThanOrEqual(4.5);
     await save.focus(); await page.keyboard.press("Enter");
+    await expect(sheet).toHaveCount(0);
+  });
+}
+
+
+for (const reduced of [false, true]) {
+  test(`controls: every active bar shares a material-only scroll fade (reduced=${reduced})`, async ({ page }) => {
+    await setup(page, "default", reduced);
+    for (const [path, selector] of [["/settings", ".screen > .head"], ["/search", ".srch__bar"], ["/ask", ".chat2__bar"], ["/read/genesis/1", ".bs-header"], ["/timeline", ".tlh"]]) {
+      await page.goto(`${path}${LAUNCH}`);
+      await expect(page.locator(selector)).toBeVisible();
+      for (const bar of [selector, ".tabs"]) {
+        const masks = await page.locator(bar).evaluate(e => ({ material: getComputedStyle(e, "::before").maskImage, content: getComputedStyle(e).maskImage }));
+        expect(masks.content).toBe("none");
+        if (reduced) expect(masks.material).toBe("none"); else expect(masks.material).toContain("linear-gradient");
+      }
+      expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(2);
+    }
+    await page.goto(`/books/materials${LAUNCH}`);
+    await page.locator(".book__figure").click();
+    const viewer = page.locator(".pv__bar");
+    await expect(viewer).toBeVisible();
+    const masks = await viewer.evaluate(e => [getComputedStyle(e).maskImage, getComputedStyle(e, "::before").maskImage]);
+    expect(masks[0]).toBe("none");
+    if (reduced) expect(masks[1]).toBe("none"); else expect(masks[1]).toContain("linear-gradient");
+    expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(1);
+  });
+}
+
+for (const preference of ["normal", "motion", "app", "forced"] as const) {
+  test(`controls: native range drag and keyboard still adjust photo zoom (${preference})`, async ({ page }) => {
+    await setup(page, "default", preference === "app");
+    await page.emulateMedia({ reducedMotion: preference === "motion" ? "reduce" : "no-preference", forcedColors: preference === "forced" ? "active" : "none" });
+    await page.route("**/api/me", r => r.fulfill({ json: { admin: true, canEdit: true } }));
+    await page.route("**/api/photos", r => r.fulfill({ json: {} }));
+    await page.goto(`/timeline/event/iuic-founded-2003${LAUNCH}`);
+    await page.getByRole("button", { name: "Change photo" }).click();
+    await page.locator(".photo-edit input[type=file]").setInputFiles({ name: "layout.png", mimeType: "image/png", buffer: await page.screenshot() });
+    const sheet = page.getByRole("dialog", { name: "Leader's portrait" });
+    const slider = sheet.getByRole("slider", { name: "Zoom" });
+    await expect(slider).toBeVisible();
+    const b = (await slider.boundingBox())!;
+    expect(b.height).toBeGreaterThanOrEqual(44);
+    await slider.focus(); await page.keyboard.press("ArrowRight");
+    await expect(slider).toHaveValue("1.01");
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down();
+    await page.mouse.move(b.x + b.width * .8, b.y + b.height / 2, { steps: 8 });
+    expect(Number(await slider.inputValue())).toBeGreaterThan(2);
+    await page.mouse.up();
+    const afterDrag = Number(await slider.inputValue());
+    await page.keyboard.press("ArrowLeft");
+    expect(Number(await slider.inputValue())).toBeCloseTo(afterDrag - .01);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(await slider.evaluate(e => getComputedStyle(e).backdropFilter || getComputedStyle(e).getPropertyValue("-webkit-backdrop-filter"))).toBe("none");
+    // Cancel: this visual check never uploads a portrait.
+    await sheet.getByRole("button", { name: "Close", exact: true }).click();
     await expect(sheet).toHaveCount(0);
   });
 }

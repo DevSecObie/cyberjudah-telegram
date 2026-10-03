@@ -411,7 +411,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 }
 .bs[data-dark] { --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent); }
 .bs-header { isolation: isolate; background: none; border-bottom: .5px solid var(--mat-edge); }
-.bs-header::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: var(--mat-nav); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur); }
+/* Header material and scroll edge are shared in materials.css. */
 .bs-dropdown, .bs-picker { background: var(--mat-elevated); -webkit-backdrop-filter: var(--mat-blur-strong); backdrop-filter: var(--mat-blur-strong); border: .5px solid var(--mat-edge); border-radius: var(--r-lg); box-shadow: var(--mat-highlight), var(--shadow-3); }
 .bs-dropdown { top: calc(100% + 6px); }
 .bs-dropdown__item + .bs-dropdown__item { border-top: .5px solid color-mix(in srgb, var(--bs-default) 10%, transparent); }
