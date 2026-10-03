@@ -131,7 +131,8 @@ const EventDetail = memo(function EventDetail({ event: e, onOpen }: { event: Eve
 
   return (
     <div className="tl-event__body tl-event__body--sheet" ref={top} style={{ ["--tl-color" as string]: s.color }}>
-      {pic
+      {/* A Final Captivity event without a picture opens on its summary, not a letter. */}
+      {e.fc && !pic ? null : pic
         ? <img className="tl-event__pic" src={pic} alt="" width={150} height={150} decoding="async" onLoad={(ev) => { ev.currentTarget.dataset.loaded = ""; }} />
         : <span className="tl-event__pic tl-event__pic--none" aria-hidden="true">{e.title.replace(/^(the|a|an)\s+/i, "").charAt(0).toUpperCase()}</span>}
       <div className="tl-event__head">

@@ -34,6 +34,8 @@ export const useFinalCaptivity = () => useQuery({
 const PRECISION: Record<string, string> = { circa: "Approximate date", decade: "Dated to the decade", range: "Over a span of years", year: "Dated to the year", month: "Dated to the month", day: "" };
 const KIND: Record<string, string> = { class: "Class", history: "Our Hidden History", site: "israelunite.org", note: "Class note" };
 const REF = /^(.+?) (\d+)(?::(\d+)(?:-(\d+))?)?$/;
+/** "2026-08-27" as the reader's date; anything else as written. */
+const day = (d?: string) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(`${d}T12:00:00Z`).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" }) : d);
 const external = (url: string) => (ev: React.MouseEvent) => { ev.preventDefault(); haptic("select"); openLink(url); };
 
 export function FinalCaptivityDetail({ slug, reviewedThrough }: { slug: string; reviewedThrough?: string }) {
@@ -87,7 +89,7 @@ export function FinalCaptivityDetail({ slug, reviewedThrough }: { slug: string; 
               {t.quote ? <blockquote className="fc-quote">“{t.quote}”</blockquote> : null}
               <a className="fc-cite" href={t.source.url} onClick={external(t.source.url)}>
                 <Feather name={t.source.kind === "site" ? "globe" : "play-circle"} size={18} color="currentColor" />
-                <span><b>{t.source.title}</b><small>{[KIND[t.source.kind], t.teacher, t.source.date, t.source.ts ? `at ${t.source.ts}` : ""].filter(Boolean).join(" · ")}</small></span>
+                <span><b>{t.source.title}</b><small>{[KIND[t.source.kind], t.teacher, day(t.source.date), t.source.ts ? `at ${t.source.ts}` : ""].filter(Boolean).join(" · ")}</small></span>
                 <Feather name="external-link" size={16} color="currentColor" />
               </a>
             </article>

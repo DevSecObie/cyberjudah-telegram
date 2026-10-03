@@ -1,1 +1,1896 @@
-{ "reviewedThrough": "2026-10-03", "sources": [], "gaps": [] }
+{
+ "reviewedThrough": "2026-10-03",
+ "sources": [
+  {
+   "kind": "class",
+   "ref": "--ETQxas6ls",
+   "title": "(IUIC Raleigh) Juneteenth C.F.T.S (undated)",
+   "status": "reviewed",
+   "note": "0:59–3:30 read: street interviews; not used",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "03AkMhO8uq0",
+   "title": "Sabbath Morning Class: Messengers Of The Nation (2020-07-04)",
+   "status": "reviewed",
+   "note": "58:28–1:07:30 and 1:11:59–1:15:10 read: Vesey from Before the Mayflower, Hosea 6:1, Hebrews 11:24-25, Wisdom 5:1, Gabriel",
+   "events": [
+    "denmark-vesey-1822",
+    "gabriels-conspiracy-1800"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "1-buC7kTua8",
+   "title": "Niger In Africa: God's Jew-El Scattered Part 2 (2022-12-03)",
+   "status": "reviewed",
+   "note": "2:00:57–2:06:30 read: Nanny, Tacky, Accompong",
+   "events": [
+    "nanny-of-the-maroons"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "37NBSWy3MVk",
+   "title": "Traumatizing Knees Of Pressure!! Leviticus 26 (2021-05-08)",
+   "status": "reviewed",
+   "note": "1:05:00–1:08:50 read: Emmett Till as Leviticus 26:16 terror",
+   "events": [
+    "emmett-till-1955"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "38RwOD1G_LI",
+   "title": "Decadence, hatred and judgement the blackout of truth (2022-06-25)",
+   "status": "unreviewed",
+   "note": "search hit only: Amherst smallpox letter",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "5EJRDPC08GQ",
+   "title": "Oppression Has Made Us Weak & Lazy (2013-05-26)",
+   "status": "reviewed",
+   "note": "33:00–35:45 read: Judah rises, the tribes follow",
+   "events": [
+    "young-lords-brown-berets"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "6DeSTG7f-Is",
+   "title": "The Israelites: Trusting In Oppression (2013-09-21)",
+   "status": "reviewed",
+   "note": "41:20–44:20 read: VRA and literacy tests",
+   "events": [
+    "voting-rights-act-1965"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "6da3wCZl9fc",
+   "title": "Prophecy Fulfilled In The Midst Of War (premiered 2026-04-13)",
+   "status": "reviewed",
+   "note": "Read 5:58–11:16: Jews of Spain in Portugal, children baptized and sent to São Tomé with Álvaro de Caminha, Zechariah 2:6–7, Psalm 137:7–8.",
+   "events": [
+    "sao-tome-jewish-children-1493",
+    "spain-expels-the-jews-1492"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "7LQSdQJgsRw",
+   "title": "RAVENING WOLVES SHOW: Episode 78 - Terror is Coming To Babylon (2023-12-25)",
+   "status": "unreviewed",
+   "note": "Search snippet: Nicholas V 'instituted slavery in 1441'.",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "7eibXgwt3W0",
+   "title": "THE DISTURBING TRUTH (undated)",
+   "status": "reviewed",
+   "note": "2:13:20–2:16:28 read: 1975 Torah School, photos of the elders; date used in a disagreement only",
+   "events": [
+    "the-awakening-1969-abba-bivens"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "8vnEFt0HGxc",
+   "title": "#IUIC | FROM CHAOS TO COMMANDER IN CHIEF (undated)",
+   "status": "reviewed",
+   "note": "1:16:10–1:19:55 read: MOVE bombing article",
+   "events": [
+    "move-bombing-1985"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "9VmUFuCsVXw",
+   "title": "The Underbelly of the Beast (2023-07-08)",
+   "status": "reviewed",
+   "note": "Read 1:15:39–1:20:28: Balboa, Cortés, Pizarro, smallpox, Deuteronomy 28:61.",
+   "events": [
+    "conquest-of-mexico-1519-1521",
+    "conquest-of-peru-1532-1533",
+    "crack-and-dark-alliance",
+    "trail-of-tears-1838"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "BFrjXlrAjLo",
+   "title": "THE POWER HOUR PLUS: A Great Awakening Has Begun (RE-RUN) (2023-01-05)",
+   "status": "reviewed",
+   "note": "Read 1:43:27–1:50:23: libertos, Las Casas 1512/1517, 1527 revolt and maroons in Puerto Rico. (The original airing Eoixe1uD1PQ is undated and has the same reading.)",
+   "events": [
+    "first-africans-americas-asiento-1518",
+    "puerto-rico-revolt-1527"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "Bfzryt55h38",
+   "title": "Wisdom Crieth Out: 1/29/23",
+   "status": "reviewed",
+   "note": "1:50:20–1:52:10 read: Montgomery boycott with Zephaniah 2:1; date from title",
+   "events": [
+    "montgomery-bus-boycott"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "BjIzWM_gPwE",
+   "title": "SATAN'S MINISTERS EXPOSED (2023-01-08)",
+   "status": "reviewed",
+   "note": "Read 2:44:28–2:51:07: ranking of conquistadors; Alvarado, Cuauhtémoc, Pizarro, Columbus.",
+   "events": [
+    "conquest-of-mexico-1519-1521",
+    "conquest-of-peru-1532-1533"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "BngapvOJvzc",
+   "title": "THE BIBLE : THE BOOK OF OUR FATHERS | Then Shall His Mind Change (Part 2) (streamed 2022-02-11)",
+   "status": "reviewed",
+   "note": "Read 1:18:29–1:22:30: Short Account, Habakkuk 1:10, Luke 1:68, 71.",
+   "events": [
+    "las-casas-short-account-1552"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "D_9BCkvT7H4",
+   "title": "ESCP 2.0 | The Scapegoat And The Return Of The Red Summer (2026-09-14)",
+   "status": "reviewed",
+   "note": "1:28:50–1:31:30 read: Brown, CRA, VRA did not dismantle Jim Crow; Genesis 43:32",
+   "events": [
+    "brown-v-board-1954"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "EZrimWO-2-o",
+   "title": "Gathering The Troops In Defiance Of Terrorism (2023-05-20)",
+   "status": "reviewed",
+   "note": "1:20:27–1:24:10 read: 13th Amendment ratification; not used (overlaps uZ05p6AqU8M)",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "E_BLmb22vV0",
+   "title": "SABBATH EVENING CLASS: Let the Fire Burn (2020-11-21)",
+   "status": "reviewed",
+   "note": "1:51:20–1:55:55 read: MOVE",
+   "events": [
+    "move-bombing-1985"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "Er0qSFB8Mz4",
+   "title": "Gad A Troop Shall Overcome (2025-11-09, date from YouTube)",
+   "status": "reviewed",
+   "note": "1:05:49–1:13:45 read: Indian Removal Act, Trail of Tears, Psalm 55:20-21",
+   "events": [
+    "indian-removal-act-1830",
+    "trail-of-tears-1838"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "FArgAFxUyDo",
+   "title": "The Black Church And The Fall Of America (2023-02-12)",
+   "status": "reviewed",
+   "note": "Read 2:12:30–2:18:30 and 2:20:28–2:27:00: Zurara/Gonçalves 1441, Nicholas V bulls 1452/1455, Alexander VI 1493 with Isaiah 10:1, encomienda mention.",
+   "events": [
+    "portuguese-captives-1441",
+    "papal-bulls-1452-1455",
+    "inter-caetera-1493"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "FSymeiJmmB0",
+   "title": "ESCP 2.0 | Don't Listen To Christians, Edomites, or Black Women (undated)",
+   "status": "reviewed",
+   "note": "26:00–28:20 read: 1969 Bivens; crouched down in the 70s/80s by drugs and incarceration (not cited: undated)",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "GGhGQ3agZdA",
+   "title": "The “Holiday Season” is a Commercial Venture (2021-12-09, date from YouTube)",
+   "status": "reviewed",
+   "note": "1:05:59–1:11:50 read: 1811 German Coast uprising",
+   "events": [
+    "german-coast-uprising-1811"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "HQwNyXObaeM",
+   "title": "Secrets Of History: The Two Promised Lands Chapter 6 (2020-10-11, date from YouTube)",
+   "status": "reviewed",
+   "note": "42:57–45:20 read: enslaved Blacks on the removals, slave-holding mixed bloods",
+   "events": [
+    "trail-of-tears-1838"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "Iux2iP0ok6I",
+   "title": "PASSOVER: A CELEBRATION OF DELIVERANCE FROM OPPRESSION (2023-04-23)",
+   "status": "reviewed",
+   "note": "1:43:30–1:46:55 and 1:59:30–2:01:50 read: AIM, Deuteronomy 28:68, Young Lords, Brown Berets",
+   "events": [
+    "alcatraz-and-wounded-knee"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "KsTXzp3-Bto",
+   "title": "Quest 8 - Searching & Seeking For Israel",
+   "status": "unreviewed",
+   "note": "Snippet: Zumbi dos Palmares (1655–1695), next period.",
+   "events": [
+    "palmares-founding-c1605"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "KvvceUDQHs8",
+   "title": "SABBATH EVENING CLASS: Revelation 13 - The Feet Of A Bear (2021-11-21)",
+   "status": "reviewed",
+   "note": "54:30–56:55 and 1:01:50–1:05:35 read: SPLC article, 1969, Sirach 48",
+   "events": [
+    "the-awakening-1969-abba-bivens"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "LeDD4syXbtc",
+   "title": "Negroes: The Illusion of Freedom (2024-08-25)",
+   "status": "reviewed",
+   "note": "2:16:29–2:20:20 read: 13th Amendment clause",
+   "events": [
+    "thirteenth-amendment-1865"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "M6DcIdpGQCs",
+   "title": "Sabbath Evening Class: Following Unworthy Leaders (2022-05-15)",
+   "status": "reviewed",
+   "note": "1:10:50–1:14:30 read: Bishop Nathanyel at the House of David",
+   "events": [
+    "the-1990s-splits"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "MEFXUynZeKc",
+   "title": "THE BIBLE : BOOK OF OUR FATHERS | Freedom From Fear & Bondage (Part 5) (streamed 2022-11-04)",
+   "status": "reviewed",
+   "note": "Read 2:01:19–2:06:02: Las Casas on Hispaniola. Host's name garbled ('bishop youngsta'), so no teacher recorded.",
+   "events": [
+    "las-casas-short-account-1552"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "N-pTbZFcNOI",
+   "title": "OUR HIDDEN HISTORY RADIO SHOW-DARK AGES: THE BEGINNING CHAPTER 1 (undated)",
+   "status": "unreviewed",
+   "note": "search hit only: Tubman called Moses",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "N01EBFNIIqw",
+   "title": "The Israelites: The Leaders that gave their lives for THEIR people (2017-06-22)",
+   "status": "reviewed",
+   "note": "26:20–29:10 read",
+   "events": [
+    "fred-hampton-cointelpro-1969"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "NEF3_MQlDBA",
+   "title": "Let's Talk Truth | The Truth About COINTELPRO (2023-08-25)",
+   "status": "reviewed",
+   "note": "1:11:40–1:16:05 and 1:21:40–1:25:25 read: Hampton, scriptures on secret plots; Malcolm X and the Wood letter",
+   "events": [
+    "fred-hampton-cointelpro-1969",
+    "malcolm-x-assassinated-1965"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "NjksoTpGwEQ",
+   "title": "The Reality Is We Lost Our Morality",
+   "status": "reviewed",
+   "note": "Search hit for 'hawkins' is a modern news story; not relevant.",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "OlktdWuQUXY",
+   "title": "Crazy Religous Negroes (2012-11-03)",
+   "status": "reviewed",
+   "note": "58:00–1:03:40 read: Yahweh ben Yahweh",
+   "events": [
+    "yahweh-ben-yahweh"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "Qd8NC9s9670",
+   "title": "THE RETURN OF JIM CROW (2026-05-02)",
+   "status": "reviewed",
+   "note": "53:00–56:20 read: covenant with death = 1964",
+   "events": [
+    "civil-rights-act-1964"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "R0Vc-Kf6M_8",
+   "title": "The Enemy Strikes First And Now it's Our Turn!! (streamed 2025-06-07)",
+   "status": "reviewed",
+   "note": "Read 22:28–27:23: Elmina 1482 and the other European forts.",
+   "events": [
+    "elmina-castle-1482"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "RLHyTdsND4I",
+   "title": "The Israelites: Black Citizens A Right To Vote (undated)",
+   "status": "reviewed",
+   "note": "1:00–4:30 read",
+   "events": [
+    "voting-rights-act-1965"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "RgWFyw06hv8",
+   "title": "If They Bethink Themselves (2023-07-22)",
+   "status": "reviewed",
+   "note": "1:46:28–1:50:40 read: New England slave codes, Jeremiah 22:13",
+   "events": [
+    "virginia-condition-of-the-mother-1662"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "TKF8wJBziw4",
+   "title": "The Israelites: Ebola & Sin (2014-10-08)",
+   "status": "reviewed",
+   "note": "13:30–16:20 read: claim the men were injected",
+   "events": [
+    "tuskegee-study-exposed-1972"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "UWI2pcKI1hA",
+   "title": "False New Year: Doctrine Slayer - True Past Curses & Trauma (2026-01-01)",
+   "status": "reviewed",
+   "note": "Read 36:39–41:26: Gonçalves 1442, 1455 exports to Lisbon, John II's expulsion to St Thomas, 'black Portuguese'.",
+   "events": [
+    "sao-tome-jewish-children-1493"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "VInxUsHiO2g",
+   "title": "DEFLECTION IS DECEPTION BUT THE ELECT WON'T BE DECEIVED (2021-04-27)",
+   "status": "reviewed",
+   "note": "1:01:50–1:04:25 read: Brown Berets, Issachar",
+   "events": [
+    "young-lords-brown-berets"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "VS6wYFxlwcU",
+   "title": "The Archenemy Doctrine Of Christianity (2023-03-18)",
+   "status": "reviewed",
+   "note": "2:30:18–2:37:10 read: Adair title page and contents",
+   "events": [
+    "adair-history-of-the-american-indians-1775"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "VdFTH-cHnyg",
+   "title": "Armor Of God Radio Show: Juneteenth 2022 (2022-08-28, date from YouTube)",
+   "status": "reviewed",
+   "note": "4:53–9:10 read: Lincoln's motives, Juneteenth vs Tulsa",
+   "events": [
+    "emancipation-proclamation-1863",
+    "juneteenth-1865"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "WKwGsI57VmI",
+   "title": "Traumatizing Knees Of Pressure!! Leviticus 26 (2021-05-01)",
+   "status": "reviewed",
+   "note": "45:15–48:30 read: Rodney King vs Emmett Till, the whole system",
+   "events": [
+    "rodney-king-1991"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "WSJJCCPHEoE",
+   "title": "They Were Trying To Tell Us (2022-11-05)",
+   "status": "reviewed",
+   "note": "1:55:28–2:04:10 read: Dred Scott v. Sandford",
+   "events": [
+    "dred-scott-1857"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "YRKZ18wNt8M",
+   "title": "POPE NICHOLAS & THE MOORS OF SPAIN (2025-12-28)",
+   "status": "unreviewed",
+   "note": "Strong candidate for the 1441/Nicholas V teaching; not read.",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "Y_BtqnIoAj0",
+   "title": "#IUIC | SABBATH AFTERNOON CLASS: Jacobs Trouble - The Rise & Affliction Of God's People",
+   "status": "unreviewed",
+   "note": "Search snippet only: Deuteronomy 28:68 as the Israelites taken as a nation on cargo slave ships (frame).",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "_zsUH-L9K9M",
+   "title": "Where did the Luv Go? (2022-09-10)",
+   "status": "reviewed",
+   "note": "20:29–24:10 read: Baruch 2:30, servant status to hereditary slavery, domestic trade",
+   "events": [
+    "virginia-condition-of-the-mother-1662"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "aIGUL3xi6Sw",
+   "title": "The Israelites: A Brief History of Black America (2016-03-15)",
+   "status": "reviewed",
+   "note": "43:28–49:50 read: Nat Turner, Jeremiah 1:5",
+   "events": [
+    "nat-turner-1831"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "bcDnpqS5WMA",
+   "title": "VENGEANCE: THE RETURN OF CHRIST (2022-12-26)",
+   "status": "reviewed",
+   "note": "Read 3:05:27–3:14:49: 1441 not 1619, Nicholas V, Black Pete. Panel includes Deacon Malachi and Captain Gideon, but the speaker at this moment is not named, so no teacher recorded.",
+   "events": [
+    "portuguese-captives-1441"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "c7lQfUKi7nE",
+   "title": "Fixx Ya Face Fridays!!! Fire and Desire: The Wages of Sin. (2020-08-21)",
+   "status": "reviewed",
+   "note": "48:20–52:00 read",
+   "events": [
+    "tuskegee-study-exposed-1972"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "cku89r9aewE",
+   "title": "The Defiant Ones In Ordered Discipline Brick & Sword (Part 2) (2023-06-25)",
+   "status": "reviewed",
+   "note": "2:36:49–2:46:10 read: Clotilda broadcast and commentary",
+   "events": [
+    "clotilda-1860"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "cvZF6nREScM",
+   "title": "#IUIC | Bishop Nathanyel Explaining The #Christian #Faith (streamed 2020-10-03, date from YouTube page)",
+   "status": "reviewed",
+   "note": "Read 2:26:58–2:37:56: black Jews of Guinea, sugar colonies, the king who sold the Jews for slaves, children baptized, Nicholas V bulls and 'black gentiles'.",
+   "events": [
+    "papal-bulls-1452-1455",
+    "sao-tome-jewish-children-1493"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "dIXLkU5BxtM",
+   "title": "The History Of Cape Verde (premiered 2024-09-16)",
+   "status": "reviewed",
+   "note": "Read 0:17–8:57: Deuteronomy 28:64, 68, 48 applied to Cape Verde; Jews as new Christians. Teacher introduces himself as 'captain g' (name unclear), so no teacher recorded.",
+   "events": [
+    "cape-verde-ribeira-grande-1462"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "dl4N1Mf0i2s",
+   "title": "The Vessels Of Romans 9 Illumination (2024-12-07)",
+   "status": "reviewed",
+   "note": "59:20–1:01:45 read: crime bill of '94",
+   "events": [
+    "drug-laws-1986-and-crime-bill-1994"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "hgF0VF-5XxA",
+   "title": "The Israelites: The 8 Deadly Atrocities Committed Against Puerto Rico (2017-07-29)",
+   "status": "reviewed",
+   "note": "Read 47:28–52:57: Columbus's Taíno shipment to Seville, Deuteronomy 28:68. Captain Isaac reads the text; the teacher is not named.",
+   "events": [
+    "columbus-taino-captives-1495",
+    "puerto-rico-sterilizations"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "jBz9or2gtoY",
+   "title": "Sellouts & Traitors Of Their People (2022-11-09)",
+   "status": "unreviewed",
+   "note": "Snippet only: a news report that the Wood letter is fake; not read, not cited",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "kXj1EbGu9Q8",
+   "title": "The Israelites: Race, Colonialism & The Golden Coach (2017-11-03)",
+   "status": "reviewed",
+   "note": "Read 1:01:28–1:04:40: Dutch trade from Elmina to Brazil 1637–1648 (next period), priests on slave ships, Hawkins and the 'good ship Jesus'.",
+   "events": [
+    "john-hawkins-slave-voyages-1562"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "klNHxqN-aK4",
+   "title": "The History Of The Israelites (2026-08-27)",
+   "status": "reviewed",
+   "note": "6:14–9:50 read: narrated timeline (Kimpa Vita, Gabriel, Turner, later forerunners)",
+   "events": [
+    "ben-ammi-liberia-dimona",
+    "gabriels-conspiracy-1800",
+    "kimpa-vita-1706"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "lLhmy-FkxmY",
+   "title": "ESCAPE THANKSKILLING : OH GOD & MY LORD (2025-11-28)",
+   "status": "reviewed",
+   "note": "26:50–30:50 read: Masha 1973, the Seven, Rosicrucians",
+   "events": [
+    "masha-yaiqab-and-the-seven"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "lM9ftpXIPo0",
+   "title": "Escape New Years | Armageddon: Chain Of Events (2025-01-01)",
+   "status": "reviewed",
+   "note": "2:48:30–2:51:10 read: Bivens 1969, the elders, split and House of David",
+   "events": [
+    "masha-yaiqab-and-the-seven",
+    "the-1990s-splits"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "mxSm7WuTnEI",
+   "title": "LET'S TALK TRUTH || The Cult Origins of Caucasian Christianity (streamed 2023-10-06)",
+   "status": "reviewed",
+   "note": "Read 1:19:37–1:25:54: Lagos 1444, 235 captives, Order of Christ, Zurara's description, Obadiah 1:12.",
+   "events": [
+    "lagos-captives-1444"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "ofhIzdjcWSw",
+   "title": "Is Juneteenth Our Independence? WGAI (2021-06-27, date from YouTube premiere)",
+   "status": "reviewed",
+   "note": "1:17–4:30 read: John 8:32, emancipated but not free",
+   "events": [
+    "juneteenth-1865"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "oq0l6dUtMCA",
+   "title": "#IUIC | Sabbath Morning Class: I Am God I Change Not: Race Grace and Salvation (2022-07-16)",
+   "status": "reviewed",
+   "note": "Read 1:16:28–1:21:12: caravels, February 1495 shipment, Cuneo, Deuteronomy 28:68.",
+   "events": [
+    "columbus-taino-captives-1495"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "pwXqDCCpemM",
+   "title": "SABBATH NOON CLASS: Grieve Not The Holy Spirit (2022-05-07)",
+   "status": "reviewed",
+   "note": "13:00–15:30 read: 1619 + 350 = 1969 (same teaching; not cited)",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "rBA7bzLESi0",
+   "title": "Liberals: Hijacking Civil Rights (2023-04-08)",
+   "status": "reviewed",
+   "note": "1:53:00–1:58:55 read: burning house, Revelation 18; 2:06:27 mentions Pepper civil suit (not read in full)",
+   "events": [
+    "mlk-assassinated-1968"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "rSamhAY3wio",
+   "title": "Sons of Jacob: A Shadow of Things to Come (2025-01-25)",
+   "status": "reviewed",
+   "note": "24:28–32:10 read: 1619, Ndongo, White Lion, Anthony and Isabella",
+   "events": [
+    "point-comfort-1619"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "rcolnGe4-Y8",
+   "title": "Ravening Wolves Episode 54 - The Haiti Crisis (2022-10-23)",
+   "status": "reviewed",
+   "note": "1:16:57–1:30:10 read: Malachi 2:3-9 Levi = Haitians, Toussaint, the indemnity",
+   "events": [
+    "haitian-revolution"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "rk64zJ4gnKc",
+   "title": "The Israelites: Part 1 - Bishop Nathanyel Blazes The Airwaves on Patient Saints Radio!! (2015-08-06)",
+   "status": "reviewed",
+   "note": "43:30–46:30 read: Revelation 11:11",
+   "events": [
+    "the-awakening-1969-abba-bivens"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "stGojnrSmJA",
+   "title": "The End Of PAX Americana (2026-07-30)",
+   "status": "unreviewed",
+   "note": "Same CIA list at 1:43:14 (snippet only)",
+   "events": [
+    "other-cia-coups-latin-america"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "tfH_TDX9BLc",
+   "title": "Is Thanksgiving a day to Celebrate as the Israelites? (2020-11-09)",
+   "status": "reviewed",
+   "note": "0:00–1:40 read: a played clip naming Sand Creek; draft only",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "tmB8z0qSYo4",
+   "title": "DESTROYED BY FAMILIAR HANDS (2026-01-10)",
+   "status": "reviewed",
+   "note": "1:15:50–1:20:10 read: CIA coups list",
+   "events": [
+    "guatemala-1954-and-us-coups"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "tul8q5mZqTo",
+   "title": "The Black Jews Of San Tome (premiered 2024-08-06)",
+   "status": "reviewed",
+   "note": "Read 0:00–5:20: 1441 not 1619; John II expelled the Jews to St Thomas. Teacher introduces himself as 'captain gah' (spelling unclear), so no teacher recorded.",
+   "events": [
+    "portuguese-captives-1441"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "uRy_-Q4-co4",
+   "title": "Noon Sabbath: The Dragon's Poetry (2019-10-05, date from channel listing)",
+   "status": "reviewed",
+   "note": "4:49–8:40 read: Fugitive Slave Act",
+   "events": [
+    "fugitive-slave-act-1850"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "uZ05p6AqU8M",
+   "title": "America's Slaves Are Not Free (2023-05-20)",
+   "status": "reviewed",
+   "note": "52:26–1:09:30 read: Emancipation Proclamation, 13th Amendment, Deuteronomy 28:48",
+   "events": [
+    "emancipation-proclamation-1863",
+    "thirteenth-amendment-1865"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "urPuezXK3c8",
+   "title": "Hatred (2023-11-04)",
+   "status": "reviewed",
+   "note": "1:49:39 read: a viewer's question names Kimpa as burned at the stake; the answer does not take up Kimpa, so not used",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "w0YagF9DSjQ",
+   "title": "HAMMER TIME | Terror In Haiti (undated)",
+   "status": "reviewed",
+   "note": "29:57–32:20 read: a played documentary on Hispaniola 1697–1844; not used (undated, mostly played clip)",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "yaepTSdYhtg",
+   "title": "THE POWER HOUR: Interview w/ Johanna Fernandez (Young Lords) (undated)",
+   "status": "unreviewed",
+   "note": "Most hits on Young Lords; a guest interview, not read",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "zQ8sefmty1I",
+   "title": "The Ancient Origin of Apartheid (2024-10-13)",
+   "status": "reviewed",
+   "note": "1:25:47–1:30:30 read: Adair 1775, 23 arguments, Yahwah, Gad",
+   "events": [
+    "adair-history-of-the-american-indians-1775"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "zrbhkgTcHWk",
+   "title": "#IUIC | 31 Days of Camp | Day 7 Lost Sons of God",
+   "status": "unreviewed",
+   "note": "Search snippet only: Deuteronomy 28:68 applied to slave ships (frame).",
+   "events": []
+  },
+  {
+   "kind": "history",
+   "ref": "1SBbipshR2E",
+   "title": "OUR HIDDEN HISTORY | SLAVE SHIPS FOR DUMMIES EP 145 (2024-09-15)",
+   "status": "unreviewed",
+   "note": "Snippet on Brazil's sugar and tobacco economy; not read in full.",
+   "events": [
+    "brazil-sugar-colonies-1530s"
+   ]
+  },
+  {
+   "kind": "history",
+   "ref": "2ip9YpKoOkU",
+   "title": "OUR HIDDEN HISTORY | SLAVE SHIP DESTINATIONS PART 5 EP 157 (2024-12-29)",
+   "status": "reviewed",
+   "note": "Read 30:59–37:11: Gaspar Yanga.",
+   "events": [
+    "yanga-maroons-1570"
+   ]
+  },
+  {
+   "kind": "history",
+   "ref": "3SHWoLzNsPA",
+   "title": "OUR HIDDEN HISTORY | BIBLE CONSPIRACIES : REVISED VERSIONS EP 197 (2026-05-03)",
+   "status": "reviewed",
+   "note": "Read 2:05:21–2:09:35: Elizabeth I and Hawkins 1564; James I and Charles I charters (next period).",
+   "events": [
+    "john-hawkins-slave-voyages-1562"
+   ]
+  },
+  {
+   "kind": "history",
+   "ref": "3xO_jKzkOqY",
+   "title": "OUR HIDDEN HISTORY | THE TRANSLATORS OF OLD WITH TRANSLATIONS EP 196 (2026-04-26)",
+   "status": "reviewed",
+   "note": "2:14:58–2:19:40 read: 1619 + 350 years = 1969, Daniel 7:25",
+   "events": [
+    "point-comfort-1619"
+   ]
+  },
+  {
+   "kind": "history",
+   "ref": "EwwDXVmX4o8",
+   "title": "OUR HIDDEN HISTORY | THE ROBBERS OF LANDS AND PEOPLE PART 3 EP 162 (2025-02-09)",
+   "status": "reviewed",
+   "note": "Read 1:10:38–1:12:52: Treaty of Tordesillas, Brazil to Portugal.",
+   "events": [
+    "inter-caetera-1493"
+   ]
+  },
+  {
+   "kind": "history",
+   "ref": "OltgRD_Bexg",
+   "title": "OHH - The Spanish Inquisition Chapter 31 EPISODE 34 (2021-05-11)",
+   "status": "reviewed",
+   "note": "1:14:18–1:18:00 read: 1619 Africans not slaves; enslavement from 1640",
+   "events": [
+    "point-comfort-1619"
+   ]
+  },
+  {
+   "kind": "history",
+   "ref": "YJZoKk_MZD8",
+   "title": "OUR HIDDEN HISTORY | SLAVE SHIPS FOR DUMMIES PART 3 EP 147 (2024-10-06)",
+   "status": "reviewed",
+   "note": "1:38:49–1:42:40 read: Stono Rebellion",
+   "events": [
+    "stono-rebellion-1739"
+   ]
+  },
+  {
+   "kind": "history",
+   "ref": "iRSZ1SPOWKE",
+   "title": "OHH-ECHOES OF ROME: THE THIRD PERSECUTION AND THE CYRENIAN REVOLT PART 3 EP 125 (2024-02-04)",
+   "status": "reviewed",
+   "note": "2:04:59–2:07:40 read: Stono only named in passing (Kongo/Angola), mainly Dominica maroons 1760s–1834; not used",
+   "events": []
+  },
+  {
+   "kind": "history",
+   "ref": "rJqsHuUqInA",
+   "title": "OHH - Rise Of Rome Esau Chapter 26 EPISODE 31 (2021-04-03)",
+   "status": "reviewed",
+   "note": "Read 2:22:29–2:30:03: slaves to Hispaniola 1502–1518, 1619 emphasis, Juan Garrido.",
+   "events": [
+    "amistad-1839",
+    "first-africans-americas-asiento-1518"
+   ]
+  },
+  {
+   "kind": "history",
+   "ref": "vjsEfU-6lZM",
+   "title": "OUR HIDDEN HISTORY | E/W INDIA COMPANY EP 159 (2025-01-12)",
+   "status": "reviewed",
+   "note": "Read 1:42:49–1:46:11: Tordesillas, Spanish sugar plantations on Hispaniola by 1502, 80% of Hispaniola's 250,000 inhabitants gone by about 1550. Not used: figures not confirmed in a source read.",
+   "events": []
+  },
+  {
+   "kind": "history",
+   "ref": "yPfk3nm3mHo",
+   "title": "OUR HIDDEN HISTORY | SLAVE SHIPS FOR DUMMIES PART 6 EP 150 (2024-11-03)",
+   "status": "reviewed",
+   "note": "9:28–14:40 read: Amistad lithograph and mutiny",
+   "events": [
+    "amistad-1839"
+   ]
+  },
+  {
+   "kind": "site",
+   "ref": "https://israelunite.org/history/",
+   "title": "IUIC History page (Brief Israelite History: Timeline)",
+   "status": "reviewed",
+   "note": "Kimpa Vita, Gabriel Prosser, Denmark Vesey, Nat Turner, Revelation 11:11 (350 years)",
+   "events": [
+    "ben-ammi-liberia-dimona",
+    "denmark-vesey-1822",
+    "gabriels-conspiracy-1800",
+    "kimpa-vita-1706",
+    "masha-yaiqab-and-the-seven",
+    "nat-turner-1831",
+    "point-comfort-1619",
+    "shirley-chisholm-1969",
+    "the-1990s-splits",
+    "the-awakening-1969-abba-bivens",
+    "yahweh-ben-yahweh"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://archive.org/details/historyofamerica00adairich",
+   "title": "Adair, The History of the American Indians (1775), cyberjudah library copy",
+   "status": "reviewed",
+   "note": "title, publisher and pp. 12–57 read",
+   "events": [
+    "adair-history-of-the-american-indians-1775"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/%C3%81lvaro_Caminha",
+   "title": "Álvaro Caminha (Wikipedia)",
+   "status": "reviewed",
+   "note": "Governor from 29 July 1493; Jewish refugees' children.",
+   "events": [
+    "sao-tome-jewish-children-1493"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/1811_German_Coast_uprising",
+   "title": "1811 German Coast uprising (Wikipedia)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "german-coast-uprising-1811"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/1954_Guatemalan_coup_d%27%C3%A9tat",
+   "title": "Wikipedia: 1954 Guatemalan coup d'état",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "guatemala-1954-and-us-coups"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/1985_MOVE_bombing",
+   "title": "Wikipedia: 1985 MOVE bombing",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "move-bombing-1985"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/1992_Los_Angeles_riots",
+   "title": "Wikipedia: 1992 Los Angeles riots",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "rodney-king-1991"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/African_Hebrew_Israelites_of_Jerusalem",
+   "title": "Wikipedia: African Hebrew Israelites of Jerusalem",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "ben-ammi-liberia-dimona"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Afro-Puerto_Ricans",
+   "title": "Afro-Puerto Ricans (Wikipedia)",
+   "status": "reviewed",
+   "note": "Las Casas 1512, 1517 permission, 1527 revolt.",
+   "events": [
+    "first-africans-americas-asiento-1518",
+    "puerto-rico-revolt-1527"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Ant%C3%A3o_Gon%C3%A7alves",
+   "title": "Antão Gonçalves (Wikipedia)",
+   "status": "reviewed",
+   "note": "1441 and 1442 voyages.",
+   "events": [
+    "portuguese-captives-1441"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Anti-Drug_Abuse_Act_of_1986",
+   "title": "Wikipedia: Anti-Drug Abuse Act of 1986",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "drug-laws-1986-and-crime-bill-1994"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Asiento_de_Negros",
+   "title": "Asiento de Negros (Wikipedia)",
+   "status": "reviewed",
+   "note": "First asiento August 1518.",
+   "events": [
+    "first-africans-americas-asiento-1518"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Assassination_of_Malcolm_X",
+   "title": "Wikipedia: Assassination of Malcolm X",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "malcolm-x-assassinated-1965"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Assassination_of_Martin_Luther_King_Jr.",
+   "title": "Wikipedia: Assassination of Martin Luther King Jr.",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "mlk-assassinated-1968"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Atahualpa",
+   "title": "Atahualpa (Wikipedia)",
+   "status": "reviewed",
+   "note": "Executed 26 July 1533.",
+   "events": [
+    "conquest-of-peru-1532-1533"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Atlantic_slave_trade",
+   "title": "Atlantic slave trade (Wikipedia)",
+   "status": "reviewed",
+   "note": "Direct São Tomé–Hispaniola shipments from 1525.",
+   "events": [
+    "first-africans-americas-asiento-1518"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Bartolom%C3%A9_de_las_Casas",
+   "title": "Bartolomé de las Casas (Wikipedia)",
+   "status": "reviewed",
+   "note": "Life, African slavery advocacy and repentance, Short Account.",
+   "events": [
+    "first-africans-americas-asiento-1518",
+    "las-casas-short-account-1552"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Black_Hebrew_Israelites",
+   "title": "Wikipedia: Black Hebrew Israelites",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "the-awakening-1969-abba-bivens",
+    "ben-ammi-liberia-dimona"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Brown_Berets",
+   "title": "Wikipedia: Brown Berets",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "young-lords-brown-berets"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Christopher_Columbus",
+   "title": "Christopher Columbus (Wikipedia)",
+   "status": "reviewed",
+   "note": "February 1495 slave raid.",
+   "events": [
+    "columbus-taino-captives-1495"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Cidade_Velha",
+   "title": "Cidade Velha (Wikipedia)",
+   "status": "reviewed",
+   "note": "Founded 1462.",
+   "events": [
+    "cape-verde-ribeira-grande-1462"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Clotilda_(slave_ship)",
+   "title": "Clotilda (slave ship) (Wikipedia)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "clotilda-1860"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Cuauht%C3%A9moc",
+   "title": "Cuauhtémoc (Wikipedia)",
+   "status": "reviewed",
+   "note": "Torture by fire.",
+   "events": [
+    "conquest-of-mexico-1519-1521"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Denmark_Vesey",
+   "title": "Denmark Vesey (Wikipedia)",
+   "status": "reviewed",
+   "note": "read; gives 35 and 41 hanged in different places",
+   "events": [
+    "denmark-vesey-1822"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Discovery_doctrine",
+   "title": "Discovery doctrine (Wikipedia)",
+   "status": "reviewed",
+   "note": "2023 Vatican repudiation (background only).",
+   "events": []
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Dum_Diversas",
+   "title": "Dum Diversas (Wikipedia)",
+   "status": "reviewed",
+   "note": "18 June 1452.",
+   "events": [
+    "papal-bulls-1452-1455"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Elmina_Castle",
+   "title": "Elmina Castle (Wikipedia)",
+   "status": "reviewed",
+   "note": "1482.",
+   "events": [
+    "elmina-castle-1482"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Emmett_Till",
+   "title": "Wikipedia: Emmett Till",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "emmett-till-1955"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Fall_of_Tenochtitlan",
+   "title": "Fall of Tenochtitlan (Wikipedia)",
+   "status": "reviewed",
+   "note": "13 August 1521; torture of Cuauhtémoc.",
+   "events": [
+    "conquest-of-mexico-1519-1521"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Fred_Hampton",
+   "title": "Wikipedia: Fred Hampton",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "fred-hampton-cointelpro-1969"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Fugitive_Slave_Act_of_1850",
+   "title": "Fugitive Slave Act of 1850 (Wikipedia)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "fugitive-slave-act-1850"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Gaspar_Yanga",
+   "title": "Gaspar Yanga (Wikipedia)",
+   "status": "reviewed",
+   "note": "Maroon colony c. 1570–1618/1641.",
+   "events": [
+    "yanga-maroons-1570"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Haitian_Revolution",
+   "title": "Haitian Revolution (Wikipedia)",
+   "status": "reviewed",
+   "note": "read (dates, Bois Caïman, Toussaint, indemnity)",
+   "events": [
+    "haitian-revolution"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/History_of_the_Jews_in_S%C3%A3o_Tom%C3%A9_and_Pr%C3%ADncipe",
+   "title": "History of the Jews in São Tomé and Príncipe (Wikipedia)",
+   "status": "reviewed",
+   "note": "1496, ~2,000 children, 600 alive after a year.",
+   "events": [
+    "sao-tome-jewish-children-1493"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Indian_Removal_Act",
+   "title": "Indian Removal Act (Wikipedia)",
+   "status": "reviewed",
+   "note": "read (infobox)",
+   "events": [
+    "indian-removal-act-1830"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Inter_caetera",
+   "title": "Inter caetera (Wikipedia)",
+   "status": "reviewed",
+   "note": "4 May 1493; provisions.",
+   "events": [
+    "inter-caetera-1493"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Israelite_School_of_Universal_Practical_Knowledge",
+   "title": "Wikipedia: Israelite School of Universal Practical Knowledge",
+   "status": "unreviewed",
+   "note": "fetched; covers the present-day ISUPK only, nothing on the 1960s–90s history",
+   "events": []
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/James_Adair_(historian)",
+   "title": "James Adair (historian) (Wikipedia)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "adair-history-of-the-american-indians-1775"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/John_Hawkins_(naval_commander)",
+   "title": "John Hawkins (Wikipedia)",
+   "status": "reviewed",
+   "note": "Slave voyages 1562–1568.",
+   "events": [
+    "john-hawkins-slave-voyages-1562"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Juan_Garrido",
+   "title": "Juan Garrido (Wikipedia)",
+   "status": "reviewed",
+   "note": "Arrival 1502 or 1503.",
+   "events": [
+    "first-africans-americas-asiento-1518"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Kimpa_Vita",
+   "title": "Kimpa Vita (Wikipedia)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "kimpa-vita-1706"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/La_Amistad",
+   "title": "La Amistad / United States v. The Amistad (Wikipedia)",
+   "status": "reviewed",
+   "note": "searched for 'ladino' (no match, so the class's 'Latinos' reading is left as a disagreement); US v. The Amistad gave the decision date 9 March 1841",
+   "events": [
+    "amistad-1839"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Lagos,_Portugal",
+   "title": "Lagos, Portugal (Wikipedia)",
+   "status": "reviewed",
+   "note": "Slave market of 1444.",
+   "events": [
+    "lagos-captives-1444"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Lan%C3%A7arote_de_Freitas",
+   "title": "Lançarote de Freitas (Wikipedia)",
+   "status": "reviewed",
+   "note": "1444 raid, 235 captives, 8 August 1444.",
+   "events": [
+    "lagos-captives-1444"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Maroons",
+   "title": "Maroons (Wikipedia)",
+   "status": "reviewed",
+   "note": "Etymology.",
+   "events": [
+    "yanga-maroons-1570"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Massacre_in_the_Great_Temple_of_Tenochtitlan",
+   "title": "Massacre in the Great Temple of Tenochtitlan (Wikipedia)",
+   "status": "reviewed",
+   "note": "22 May 1520.",
+   "events": [
+    "conquest-of-mexico-1519-1521"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Montgomery_bus_boycott",
+   "title": "Wikipedia: Montgomery bus boycott",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "montgomery-bus-boycott"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Nat_Turner%27s_slave_rebellion",
+   "title": "Nat Turner's Rebellion (Wikipedia)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "nat-turner-1831"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Occupation_of_Alcatraz",
+   "title": "Wikipedia: Occupation of Alcatraz",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "alcatraz-and-wounded-knee"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Pope_Nicholas_V",
+   "title": "Pope Nicholas V (Wikipedia)",
+   "status": "reviewed",
+   "note": "Papacy 1447–1455.",
+   "events": [
+    "papal-bulls-1452-1455"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Queen_Nanny",
+   "title": "Nanny of the Maroons (Wikipedia)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "nanny-of-the-maroons"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Rodney_King",
+   "title": "Wikipedia: Rodney King",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "rodney-king-1991"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Romanus_Pontifex",
+   "title": "Romanus Pontifex (Wikipedia)",
+   "status": "reviewed",
+   "note": "January 1455.",
+   "events": [
+    "papal-bulls-1452-1455"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Shirley_Chisholm",
+   "title": "Wikipedia: Shirley Chisholm",
+   "status": "unreviewed",
+   "note": "fetched, not read for the date",
+   "events": [
+    "shirley-chisholm-1969"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Spanish_conquest_of_the_Aztec_Empire",
+   "title": "Spanish conquest of the Aztec Empire (Wikipedia)",
+   "status": "reviewed",
+   "note": "Smallpox 1520, 5–8 million.",
+   "events": [
+    "conquest-of-mexico-1519-1521"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Spanish_conquest_of_the_Inca_Empire",
+   "title": "Spanish conquest of the Inca Empire (Wikipedia)",
+   "status": "reviewed",
+   "note": "Cajamarca 1532.",
+   "events": [
+    "conquest-of-peru-1532-1533"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Sterilization_of_Latinas",
+   "title": "Wikipedia: Sterilization of Latinas",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "puerto-rico-sterilizations"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Stono_Rebellion",
+   "title": "Stono Rebellion (Wikipedia)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "stono-rebellion-1739"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Treaty_of_Tordesillas",
+   "title": "Treaty of Tordesillas (Wikipedia)",
+   "status": "reviewed",
+   "note": "7 June 1494.",
+   "events": [
+    "inter-caetera-1493"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Tuskegee_Syphilis_Study",
+   "title": "Wikipedia: Tuskegee Syphilis Study",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "tuskegee-study-exposed-1972"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Violent_Crime_Control_and_Law_Enforcement_Act",
+   "title": "Wikipedia: Violent Crime Control and Law Enforcement Act",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "drug-laws-1986-and-crime-bill-1994"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Wounded_Knee_Occupation",
+   "title": "Wikipedia: Wounded Knee Occupation",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "alcatraz-and-wounded-knee"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Yahweh_ben_Yahweh",
+   "title": "Wikipedia: Yahweh ben Yahweh",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "yahweh-ben-yahweh"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Young_Lords",
+   "title": "Wikipedia: Young Lords",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "young-lords-brown-berets"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://encyclopediavirginia.org/entries/africans-virginias-first/",
+   "title": "Virginia's First Africans (Encyclopedia Virginia, via Wayback)",
+   "status": "reviewed",
+   "note": "read in full",
+   "events": [
+    "point-comfort-1619"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://encyclopediavirginia.org/entries/gabriels-conspiracy-1800/",
+   "title": "Gabriel's Conspiracy (1800) (Encyclopedia Virginia, via Wayback)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "gabriels-conspiracy-1800"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://encyclopediavirginia.org/entries/revolt-nat-turners-1831/",
+   "title": "Nat Turner's Revolt (1831) (Encyclopedia Virginia)",
+   "status": "inaccessible",
+   "note": "inaccessible: captcha directly, Wayback unreachable",
+   "events": []
+  },
+  {
+   "kind": "web",
+   "ref": "https://encyclopediavirginia.org/primary-documents/negro-womens-children-to-serve-according-to-the-condition-of-the-mother-1662/",
+   "title": "Negro womens children... (1662) (Encyclopedia Virginia, via Wayback)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "virginia-condition-of-the-mother-1662"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://history.state.gov/historicaldocuments/frus1969-76v21/ch1",
+   "title": "https://history.state.gov/historicaldocuments/frus1969-76v21/ch1",
+   "status": "inaccessible",
+   "note": "no snapshot reachable (Chile)",
+   "events": []
+  },
+  {
+   "kind": "web",
+   "ref": "https://history.state.gov/milestones/1953-1960/guatemala",
+   "title": "https://history.state.gov/milestones/1953-1960/guatemala",
+   "status": "inaccessible",
+   "note": "no snapshot reachable",
+   "events": []
+  },
+  {
+   "kind": "web",
+   "ref": "https://ldhi.library.cofc.edu/exhibits/show/africanpassageslowcountryadapt/sectionii_introduction/pope_nicholas_v_and_the_portugu",
+   "title": "Lowcountry Digital History Initiative, 'Pope Nicholas V and the Portuguese Slave Trade' (likely the article read in several classes)",
+   "status": "inaccessible",
+   "note": "Host refused by the proxy and no Wayback snapshot of this page.",
+   "events": []
+  },
+  {
+   "kind": "web",
+   "ref": "https://oig.justice.gov/sites/default/files/archive/special/9712/ch01p1.htm",
+   "title": "DOJ OIG: CIA-Contra-Crack report, ch. 1 (via Wayback)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "crack-and-dark-alliance"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://press.vatican.va/content/salastampa/en/bollettino/pubblico/2023/03/30/230330b.html",
+   "title": "Vatican joint statement on the 'Doctrine of Discovery' (2023), via Wayback",
+   "status": "reviewed",
+   "note": "Full statement read.",
+   "events": [
+    "papal-bulls-1452-1455",
+    "inter-caetera-1493"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://vault.fbi.gov/cointel-pro",
+   "title": "FBI Vault: COINTELPRO (via Wayback)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "fred-hampton-cointelpro-1969"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://whc.unesco.org/en/list/1310/",
+   "title": "UNESCO: Cidade Velha (via Wayback)",
+   "status": "reviewed",
+   "note": "First European colonial outpost in the tropics.",
+   "events": [
+    "cape-verde-ribeira-grande-1462"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://whc.unesco.org/en/list/34/",
+   "title": "UNESCO: Forts and Castles of Ghana (via Wayback)",
+   "status": "reviewed",
+   "note": "1482–1786.",
+   "events": [
+    "elmina-castle-1482"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.archives.gov/education/lessons/amistad",
+   "title": "The Amistad Case (National Archives)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "amistad-1839"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.archives.gov/milestone-documents/13th-amendment",
+   "title": "13th Amendment (National Archives)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "thirteenth-amendment-1865"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.archives.gov/milestone-documents/brown-v-board-of-education",
+   "title": "NARA: Brown v. Board",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "brown-v-board-1954"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.archives.gov/milestone-documents/civil-rights-act",
+   "title": "NARA: Civil Rights Act",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "civil-rights-act-1964"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.archives.gov/milestone-documents/dred-scott-v-sandford",
+   "title": "Dred Scott v. Sandford (National Archives)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "dred-scott-1857"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.archives.gov/milestone-documents/emancipation-proclamation",
+   "title": "Emancipation Proclamation (National Archives)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "emancipation-proclamation-1863"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.archives.gov/milestone-documents/voting-rights-act",
+   "title": "NARA: Voting Rights Act",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "voting-rights-act-1965"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.archives.gov/news/articles/juneteenth-original-document",
+   "title": "National Archives Safeguards Original ‘Juneteenth’ General Order",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "juneteenth-1865"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.cdc.gov/tuskegee/about/index.html",
+   "title": "CDC: Tuskegee (via Wayback)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "tuskegee-study-exposed-1972"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.gutenberg.org/cache/epub/35738/pg35738.txt",
+   "title": "Zurara, Chronicle of the Discovery and Conquest of Guinea, vol. I (Beazley & Prestage, 1896)",
+   "status": "reviewed",
+   "note": "Chapters XII, XXIV–XXVI and the editors' introduction.",
+   "events": [
+    "portuguese-captives-1441",
+    "lagos-captives-1444"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.jewishvirtuallibrary.org/sao-tome",
+   "title": "Jewish Virtual Library: São Tomé",
+   "status": "inaccessible",
+   "note": "Snapshot returned only site navigation.",
+   "events": []
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.justice.gov/usao-sdny/pr/leaders-israelite-church-god-jesus-christ-charged-tax-fraud-scheme",
+   "title": "https://www.justice.gov/usao-sdny/pr/leaders-israelite-church-god-jesus-christ-charged-tax-fraud-scheme",
+   "status": "inaccessible",
+   "note": "no snapshot reachable (2018 ICGJC tax case; next period)",
+   "events": []
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.loc.gov/classroom-materials/immigration/native-american/removing-native-americans-from-their-land/",
+   "title": "Removing Native Americans from their Land (Library of Congress, via Wayback)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "indian-removal-act-1830",
+    "trail-of-tears-1838"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.metmuseum.org/toah/hd/pwmn_4/hd_pwmn_4.htm",
+   "title": "Women Leaders in African History: Dona Beatriz (Met, via Wayback)",
+   "status": "reviewed",
+   "note": "read; names the king Pedro II",
+   "events": [
+    "kimpa-vita-1706"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.nps.gov/trte/learn/historyculture/index.htm",
+   "title": "Trail of Tears NHT History & Culture (NPS)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "indian-removal-act-1830",
+    "trail-of-tears-1838"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.nytimes.com/2007/05/09/us/09yahweh.html",
+   "title": "NYT obituary of Yahweh ben Yahweh (via Wayback)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "yahweh-ben-yahweh"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.splcenter.org/fighting-hate/intelligence-report/2015/history-hebrew-israelism",
+   "title": "SPLC: History of Hebrew Israelism (via Wayback)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "the-awakening-1969-abba-bivens",
+    "masha-yaiqab-and-the-seven",
+    "the-1990s-splits"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.ussc.gov/research/congressional-reports/1995-report-congress-cocaine-and-federal-sentencing-policy",
+   "title": "USSC 1995 cocaine report page (via Wayback)",
+   "status": "reviewed",
+   "note": "read",
+   "events": [
+    "drug-laws-1986-and-crime-bill-1994"
+   ]
+  }
+ ],
+ "gaps": [
+  "into-the-ships: check.mjs (and its GROUPS list) is not in the scratchpad copy of final-captivity; groups used here are the coverage.json categories ('African captivity', 'Transatlantic trade', 'Resistance', 'Caribbean and Latin America'). Owner to map them to GROUPS.",
+  "into-the-ships: Deuteronomy 28:68 ('into Egypt again with ships') is the frame the classes use for the whole period; it is attached to the events where the class read it at that moment (Lagos 1444, Cape Verde, Columbus 1495). Owner to decide whether the age/period needs its own framing entry; strong frame moments not yet read in full: zrbhkgTcHWk 37:30, Y_BtqnIoAj0 31:49, 48pQprpa818 1:41:41, id6ZzVlZb98 19:32.",
+  "into-the-ships: Teachers: Bishop Nathanyel is named only by the title of cvZF6nREScM. Two short Cape Verde/São Tomé videos are taught by a captain whose name is captioned 'captain g' / 'captain gah' (perhaps Captain Gad); left out. MEFXUynZeKc's host is captioned 'bishop youngsta'; left out. Owner may confirm.",
+  "into-the-ships: Dates for undated recordings (cvZF6nREScM, dIXLkU5BxtM, mxSm7WuTnEI, R0Vc-Kf6M_8, MEFXUynZeKc, BngapvOJvzc, tul8q5mZqTo, 6da3wCZl9fc) were taken from the YouTube watch pages ('Streamed live on' / 'Premiered').",
+  "into-the-ships: The article several classes read, 'Pope Nicholas V and the Portuguese Slave Trade' (Lowcountry Digital History Initiative, College of Charleston), could not be reached; it would be the best institutional source for the 1441 and 1452/1455 events.",
+  "into-the-ships: São Tomé: the two sources read disagree (1493 under John II vs 1496 under Manuel I). A primary or scholarly source (Valentim Fernandes, Samuel Usque, or the Encyclopaedia Judaica) should settle it.",
+  "into-the-ships: Not finished: Palmares founding (draft), Brazil's sugar colonies (draft), the Alhambra Decree of 1492 (draft), the encomienda as its own event, the 1521 Hispaniola slave revolt, Afonso I of Kongo's 1526 letters, the Requerimiento, and the Spanish/Portuguese Inquisition in the Americas (the OHH 'Spanish Inquisition' chapters 30–33 are rich and unread for this period).",
+  "into-the-ships: Vatican's 2023 repudiation of the doctrine of discovery is taught in KaTXQUM4CNM and FSymeiJmmB0 ('now in 2023 you disown something that happened in the 1400s'); belongs to a later period but could be cross-linked.",
+  "into-the-ships: image: Zurara's chronicle frontispiece/Prince Henry portrait from the 'Panels of São Vicente' (Wikimedia Commons, public domain).",
+  "into-the-ships: image: Elmina Castle engraving, e.g. 17th-century Dutch view of São Jorge da Mina (Wikimedia Commons, public domain).",
+  "into-the-ships: image: Theodor de Bry engravings illustrating Las Casas's Brevísima relación (1598) (Wikimedia Commons, public domain) — note they depict atrocities; editorial decision needed.",
+  "into-the-ships: image: Inter caetera manuscript (Archivo General de Indias) on Wikimedia Commons, public domain.",
+  "into-the-ships: image: 16th-century map of Ribeira Grande, Cape Verde, or the 'Jesus of Lübeck' in the Anthony Roll (Pepys Library), Wikimedia Commons, public domain.",
+  "house-of-bondage: Virginia's 1705 slave code: no class moment found that names it; the 1662 event carries the slave codes generally.",
+  "house-of-bondage: Sand Creek (1864): only a played outside clip found; needs a class moment and an NPS source (draft).",
+  "house-of-bondage: Underground Railroad / Tubman / Douglass: many passing mentions (Douglass is also called Esau in Li6vkNXZkfw 27:11 and f1oZDUQdMCQ 24:39, a view the owner may want recorded); no full teaching moment read yet (draft).",
+  "house-of-bondage: Brazil and Palmares; Spanish colonies in this period; Tacky's Revolt 1760 (taught in 1-buC7kTua8 2:04:02, could become its own event); Dominica maroons 1760s–1834 (iRSZ1SPOWKE 2:04:59).",
+  "house-of-bondage: Smallpox: the Amherst letter (1763) is taught in 38RwOD1G_LI 1:24:34 (draft); the smallpox-blankets teaching in general needs a documented source.",
+  "house-of-bondage: The 'Five Civilized Tribes' holding slaves and the Dawes rolls (HQwNyXObaeM 58:54, Iux2iP0ok6I 1:16:53); the Dawes rolls belong to the next period.",
+  "house-of-bondage: Owner decision: Kimpa Vita's baby. IUIC's history page says she was burned 'with her baby in hand'; Thornton (via Wikipedia) says her son was spared and named Jerónimo. Both kept in disagreements.",
+  "house-of-bondage: Owner decision: Kimpa Vita and Adair are placed in group 'Forerunners'; Nanny and Haiti in 'Resistance' rather than 'Caribbean and Latin America'.",
+  "house-of-bondage: Owner decision: several recordings had no date in the corpus; dates were taken from YouTube (premiere/stream/publish) for GGhGQ3agZdA, ofhIzdjcWSw, Er0qSFB8Mz4, rcolnGe4-Y8, VdFTH-cHnyg, HQwNyXObaeM, and from the channel listing for uRy_-Q4-co4. VdFTH-cHnyg ('Juneteenth 2022') was published 2022-08-28, after the June broadcast.",
+  "house-of-bondage: No recording named its teacher at the moments used, so 'teacher' is left out throughout.",
+  "house-of-bondage: image: Hening's Statutes at Large vol. 2 p. 170 (1662 act), Encyclopedia Virginia primary-document page.",
+  "house-of-bondage: image: Title page of Adair, The History of the American Indians (1775), archive.org historyofamerica00adairich (public domain).",
+  "house-of-bondage: image: 'Death of Capt. Ferrer, the Captain of the Amistad, July, 1839', lithograph in J. W. Barber, A History of the Amistad Captives (1840), shown in yPfk3nm3mHo; find on Library of Congress / Wikimedia Commons.",
+  "house-of-bondage: image: General Order No. 3 (National Archives, RG 393) and the Emancipation Proclamation and 13th Amendment joint resolution (National Archives catalog).",
+  "house-of-bondage: image: Nanny on the Jamaican $500 note is not public domain; look instead for an archival map of the Blue Mountains maroon settlements.",
+  "civil-rights-awakening: Independent documentation for IUIC's account of the 1990s: Lahab's excommunication (1994), the Rosicrucian offers, the 1995 split, the founding of the House of David (1996) and the ICGJC at 1941 Madison Avenue. Only IUIC's page, the classes and the SPLC's general statements were found. Michael T. Miller, Black Hebrew Israelites (Cambridge UP, 2024) is cited by Wikipedia and may cover it; not read.",
+  "civil-rights-awakening: Abba Bivens: no independent source gives his dates, the Torah School of Knowledge name, or the circumstances of his death. The classes give 1969 and one gives 1975; IUIC's page gives 1960.",
+  "civil-rights-awakening: Owner's decision: whether to show the SPLC/ADL characterisations of other Hebrew Israelite groups at all. They were left out; only dated facts from the SPLC were used, attributed.",
+  "civil-rights-awakening: Owner's decision: the Revelation 11:11 frame (350 years, 1619 to c.1969) is recorded as teaching inside the Bivens event; it could instead be its own 'prophecy frame' marker if check.mjs is given a group for it.",
+  "civil-rights-awakening: The other U.S.-backed coups the classes list (Brazil 1964, Chile 1973, Uruguay 1973, Argentina 1976, El Salvador 1979, Nicaragua 1981, Panama 1989) need their own sources; history.state.gov was unreachable.",
+  "civil-rights-awakening: The DOJ Inspector General's own conclusions on the CIA-Contra-crack allegations (later chapters of the 1997 report) and the CIA Inspector General's 1998 report were not read.",
+  "civil-rights-awakening: Malcolm X: the class jBz9or2gtoY (2022-11-09) plays a report that the Wood letter was called a fake by the officer's daughter; seen only as a search snippet, not cited. Read it and consider adding it to the disagreement.",
+  "civil-rights-awakening: Not yet done: Selma/Bloody Sunday 1965, the 16th Street Church bombing 1963, Little Rock 1957, Medgar Evers 1963 (all named in classes); Abner Louima 1997 and Amadou Diallo 1999; the Moynihan Report 1965 (GeMwnpTzAcY, 2020-06-20 @2:23:46); school desegregation's effect on Black teachers (7ov8Jj25YFQ @1:26:02).",
+  "civil-rights-awakening: Achievements in this period: the classes on 'forgotten Black inventors' (85YCbSQhEeg, DpWh65LlfyI) were not read; no dated achievement in 1954–2003 was completed. Shirley Chisholm is a draft.",
+  "civil-rights-awakening: Many recordings are undated in the corpus (e.g. RLHyTdsND4I, 8vnEFt0HGxc, 7eibXgwt3W0, FSymeiJmmB0, oYL407iEClc); dates for D_9BCkvT7H4, NEF3_MQlDBA, rk64zJ4gnKc, OlktdWuQUXY, E_BLmb22vV0 and c7lQfUKi7nE were taken from YouTube metadata; Bfzryt55h38's from its title.",
+  "civil-rights-awakening: image: Brown v. Board opinion, first page — National Archives catalog (Record Group 267), linked from https://www.archives.gov/milestone-documents/brown-v-board-of-education",
+  "civil-rights-awakening: image: Civil Rights Act of 1964 enrolled act — National Archives, https://www.archives.gov/milestone-documents/civil-rights-act",
+  "civil-rights-awakening: image: Voting Rights Act of 1965 enrolled act — National Archives, https://www.archives.gov/milestone-documents/voting-rights-act",
+  "civil-rights-awakening: image: Rosa Parks on a Montgomery bus, December 20, 1956 (UPI) — check rights on the Wikipedia/Commons file page linked from https://en.wikipedia.org/wiki/Montgomery_bus_boycott",
+  "civil-rights-awakening: image: Tuskegee study records — National Archives, Southeastern Region patient files, linked from the CDC page"
+ ]
+}

@@ -63,6 +63,8 @@ test("a disagreement keeps both views", () => {
 
 test("quotes are matched by their words, as the captions write them", () => {
   assert.equal(words("“Not 1619 — it started 1441!”"), "not 1619 it started 1441");
+  // Captions run a reference's numbers together: "deuteronomy 2868".
+  assert.equal(words("Deuteronomy 28:68"), words("deuteronomy 2868"));
 });
 
 test("the build adds the age after the Reformation and keeps details out of the bars", () => {

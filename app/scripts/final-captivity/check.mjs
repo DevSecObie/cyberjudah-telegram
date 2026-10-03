@@ -32,17 +32,19 @@ export const parseRef = (r) => { const m = REF.exec(String(r).trim()); return m 
 const TS = /^(?:(\d+):)?([0-5]?\d):([0-5]\d)$/;
 export const seconds = (ts) => { const m = TS.exec(String(ts)); return m ? (+(m[1] ?? 0)) * 3600 + +m[2] * 60 + +m[3] : null; };
 /** Words only, lower case: how a quote is matched against auto-captions. */
-export const words = (s) => String(s).toLowerCase().replace(/[’']/g, "'").replace(/[^a-z0-9' ]+/g, " ").replace(/\s+/g, " ").trim();
+export const words = (s) => String(s).toLowerCase().replace(/[’']/g, "'").replace(/[^a-z0-9' ]+/g, " ").replace(/\s+/g, " ").trim().replace(/(\d) (?=\d)/g, "$1");
 
 /** Problems with one event (and the slugs seen so far), as strings. `corpus` is optional. */
 export function checkEvent(e, periods, { corpus, draft = false } = {}) {
   const p = [];
   const at = `${e.slug ?? "(no slug)"}`;
   const need = (k) => { if (e[k] == null || e[k] === "" || (Array.isArray(e[k]) && !e[k].length)) p.push(`${at}: missing ${k}`); };
-  ["slug", "title", "start", "end", "date", "period", "group", "summary"].forEach(need);
+  // A draft needs only what places it; the rest is what it is waiting for.
+  (draft ? ["slug", "title", "period"] : ["slug", "title", "start", "end", "date", "period", "group", "summary"]).forEach(need);
   if (e.slug && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(e.slug)) p.push(`${at}: slug must be lower-case words joined by hyphens`);
   const period = periods.find((x) => x.id === e.period);
   if (!period) p.push(`${at}: unknown period ${e.period}`);
+  if (draft && e.start == null) return p;
   if (!Number.isInteger(e.start) || !Number.isInteger(e.end) || e.end < e.start) p.push(`${at}: start/end must be whole years, end ≥ start`);
   else if (period && (e.start < period.startYear || e.end > period.endYear)) p.push(`${at}: ${e.start}–${e.end} is outside ${period.title} (${period.startYear}–${period.endYear})`);
   if (e.date && (!e.date.text || !PRECISION.includes(e.date.precision))) p.push(`${at}: date needs text and a precision (${PRECISION.join(", ")})`);
