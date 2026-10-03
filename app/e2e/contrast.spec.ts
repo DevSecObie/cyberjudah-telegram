@@ -20,9 +20,28 @@ for (const theme of ["default", "dark", "sepia", "nature", "sunset", "black", "m
       else if (path === "/tabs") await page.getByRole("toolbar", { name: "Tabs" }).waitFor();
       else if (path === "/search") await page.getByRole("searchbox", { name: "Search CyberJudah" }).waitFor();
       else await page.locator(".route").getByRole("heading").first().waitFor();
+      await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
       await page.evaluate(async () => { await Promise.all(document.getAnimations().filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))); });
-      const result = await page.evaluate(auditContrast); report.push({ path, ...result });
-      expect.soft(result.failures, `${theme} ${increased} ${path}`).toEqual([]);
+      const canvasColor = await page.evaluate(() => {
+        const probe = document.createElement("span"); probe.style.color = "var(--canvas)"; document.body.append(probe);
+        const color = getComputedStyle(probe).color; probe.remove(); return color;
+      });
+      await expect(page.locator("body")).toHaveCSS("background-color", canvasColor);
+      if (path.includes("/read/")) {
+        const ink = await page.locator(".bs").evaluate(el => {
+          const probe = document.createElement("span"); probe.style.color = "var(--bs-default)"; el.append(probe);
+          const color = getComputedStyle(probe).color; probe.remove(); return color;
+        });
+        await expect(page.locator("#verset-1 .bs-text")).toHaveCSS("color", ink);
+      }
+      // WebKit can retain pre-palette descendant styles after the root changes. Require
+      // the rendered palette to settle; every sample keeps the same contrast thresholds.
+      let result = await page.evaluate(auditContrast);
+      await expect(async () => {
+        result = await page.evaluate(auditContrast);
+        expect(result.failures, `${theme} ${increased} ${path}`).toEqual([]);
+      }).toPass({ timeout: 5000, intervals: [100, 250, 500] });
+      report.push({ path, ...result });
       expect(result.pairs).toBeGreaterThanOrEqual(76);
     }
     const file = info.outputPath("contrast-report.json"); fs.writeFileSync(file, JSON.stringify({ theme, increased, routes: report }, null, 2));
