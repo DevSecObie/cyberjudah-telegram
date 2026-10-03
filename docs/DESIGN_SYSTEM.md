@@ -19,9 +19,9 @@ Apple references used by this design system:
 | --- | --- |
 | Liquid Glass is the functional layer for navigation and controls, floating above content. | Only the header bar and the dock are frosted at rest (`.glass`, the `::before` of `.head`, `.srch__bar`, `.chat2__bar`, `.bs-header`, `.tabs`). |
 | Don't use it in the content layer; use standard materials there. | Cards, lists, feeds, scripture and messages are tinted surfaces (`--surface-1`, `--surface-2`) with a fine edge, and no filter. |
-| Never glass on glass; use fills and tints on top of glass. | Controls inside the dock and bars use fills (`--fill-*`) and a selected pill, never a second blur. |
+| Avoid layering glass on glass; use fills and tints within one surface. | Controls inside the dock and bars use fills (`--fill-*`) and a selected pill, never a second blur. |
 | Use it sparingly. | The budget: no more than two frosted surfaces visible at rest. A menu or picker may make a third while it is open. |
-| Regular variant for text-heavy components; clear only over rich media with dimming. | Every glass here is the "regular" kind, with a dense tint. Nothing uses a clear variant. |
+| Regular variant for text-heavy components; clear over rich media, with dimming when needed. | The CSS material approximates the regular variant with a legible tint. It does not implement Apple’s native regular or clear variants. |
 | Scroll edge effects keep bars legible over scrolling content. | Header glass runs past the bar and fades out over 14px (a mask), with a hairline at the edge. |
 | Concentric shapes. | Radii nest (`--r-*`): pill controls inside a pill dock, 22–28px sheets, 18px cards. |
 | Sheets are rounder, inset, and more opaque at full height. | Sheets are near-opaque (`--mat-overlay`) over a 60% scrim. They are inset and centred from 680px up. |
@@ -33,6 +33,7 @@ Project choices, not Apple's numbers:
 - The ~200ms dock transition.
 - A restrained press/drag response (up to 6% icon growth), with the labels always above the material.
 - The blur radii: 16px on phones, 22px from 900px up.
+- The palette-based tint densities (80% or 92%); Apple’s native regular material instead adapts background luminosity dynamically.
 - The two-surface budget.
 - The notification timing: 3.5s, with a visible progress line; errors stay until dismissed.
 
@@ -166,9 +167,32 @@ vertical dragging. The CI workflow installs WebKit as well as Chromium and runs 
 suite in both engines. A Chromium-only device-input test covers implicit touch-capture transfer.
 This does not replace checking an actual iPhone inside Telegram.
 
-The current Apple documentation could not be fetched during this correction: the cloud network
-policy denied `developer.apple.com`. The implementation uses the guidance already recorded
-above; a fresh review against Apple's live documentation remains pending. The required host
-addition has been saved in the environment configuration draft. CSS material and pointer
-feedback are a web adaptation, not Apple's native lensing, automatic backdrop analysis or
-system-managed morphing.
+## Apple documentation review — October 3, 2026
+
+Reviewed Apple's current [Liquid Glass overview](https://developer.apple.com/documentation/technologyoverviews/liquid-glass),
+[adoption guide](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass),
+[Materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials), and
+[custom-view implementation guide](https://developer.apple.com/documentation/swiftui/applying-liquid-glass-to-custom-views)
+after access to `developer.apple.com` became available.
+
+The review supports the dock correction: keep glass in the navigation layer above content,
+avoid layering glass effects, preserve label contrast, and test custom controls with reduced
+motion, reduced transparency and increased contrast. Apple's regular variant is appropriate
+where text needs protection from the background; its highly translucent clear variant is meant
+for controls over visually rich media. This text-heavy reader uses a regular-style CSS material.
+
+The native implementation has capabilities this web adaptation does not reproduce. Apple's
+standard SwiftUI, UIKit and AppKit components adopt the material when built with current SDKs.
+For custom SwiftUI controls, `glassEffect(_:in:)` renders behind the content, `.interactive()`
+adds touch and pointer responses, and `GlassEffectContainer` coordinates merging and morphing
+shapes. The material reflects surrounding light and color and adjusts background luminosity.
+These APIs are not available to the React DOM app inside Telegram or a browser; rebuilding its
+JavaScript does not enable them. Apple's advice to remove custom backgrounds is directed at
+native components that already receive the system material.
+
+Our single backdrop, palette tint, specular edge and bounded pointer feedback follow the design
+principles, but remain CSS approximations. The screenshot is not Apple's native Liquid Glass
+renderer, and WebKit test coverage does not establish visual parity with it. Exact native
+material rendering would require native controls in an Apple client. No further production
+code change was warranted by this documentation review; physical iOS Telegram and macOS Safari
+verification remains outstanding.
