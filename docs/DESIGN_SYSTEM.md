@@ -613,6 +613,10 @@ Browser tests cover legacy/missing/Search-only preferences without storage migra
 
 Existing visual assertions change for the minimized dock's two controls/105px width, Search remaining visible, and the editor's fixed Search entry/order/count. Behavioral checks for saved custom choices, navigation, expansion and focus remain.
 
+Touch release completes a stationary tap on its original button and suppresses only its compatibility click. This keeps Search immediately usable after a captured drag in Chromium, which can omit that click. Dragging, cancellation, long press and keyboard activation retain their paths. The existing real-touch regression passes unchanged; a new toggle check guards against double activation.
+
+Production Chromium 153 at 4× CPU, 390×844 (`glass-08/profile.json`): dock median/p95/max 16.7/16.8/33.4 ms, first sheet 16.7/33.3/66.6 ms. This sample does not establish a universal 16 ms budget; section 10 measures the remaining mount costs. Firefox media emulation can update `matchMedia` while retaining old stylesheet rules until navigation. Its Search preference checks load each preference before asserting the same fallbacks and 200% layout; Chromium and WebKit additionally exercise live changes.
+
 ## Section 09: app icon layers and appearances
 
 [Adopting Liquid Glass](https://developer.apple.com/documentation/technologyoverviews/adopting-liquid-glass#App-icons) asks for layered icons and system-applied masking. `design/icon/cyberjudah-layers.svg` preserves the existing blue cybernetic/golden natural lion with simpler vector shapes and separate background, mane/circuitry and face groups. Three 1024px PNG layers accompany the editable paths. Full-bleed light/dark exports contain no rounded-square mask, outer shadow, blur or gloss. The app's existing content logo and BotFather avatar are outside this change.
@@ -622,6 +626,8 @@ The web manifest now uses local 192/512px files with explicit sizes and purposes
 The review page in `design/icon/preview.html` shows 16/32/64px sizes, illustrative rounded/circular masks and a measured PWA safe zone. The before/after images under `app/e2e/review/glass-09/` are artwork previews, not screenshots of a native installed app. Apple's current [design resources](https://developer.apple.com/design/resources/) link the iOS 27 icon templates; the template CDN returned HTTP 403 in this environment, so these previews do not claim an official Apple-grid check.
 
 **Icon Composer, future iOS app:** import the three exported layers into [Icon Composer](https://developer.apple.com/icon-composer/) on macOS, review the current Apple grid and default/dark/clear/tinted appearances, and let the system add lighting and masking. Icon Composer is unavailable on this Linux host. Native dynamic layers and appearance selection have no web-manifest equivalent; the sources are prepared, with this native preview left as a documented platform follow-up. No CSS glass effect is baked into the icon.
+
+Section 09 production Chromium 153 at 4× CPU, 390×844 (`glass-09/profile.json`): dock median/p95/max 16.7/16.8/50 ms; first sheet 16.7/83.4/166.7 ms. Icons do not alter navigation code. These variable cold-open costs are retained for the platform/performance review, not reported as meeting the 16 ms target.
 
 ## Section 10: grouped materials and platform performance
 
