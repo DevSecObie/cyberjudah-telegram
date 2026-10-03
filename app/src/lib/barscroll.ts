@@ -12,22 +12,37 @@ let mini = false;
 const listeners = new Set<() => void>();
 const set = (v: boolean) => { if (mini === v) return; mini = v; for (const l of listeners) l(); };
 export const expandBar = () => set(false);
-export const useBarMini = () => useSyncExternalStore((l) => { listeners.add(l); return () => listeners.delete(l); }, () => mini, () => false);
+const SIDEBAR = "(min-width: 900px)";
+const subscribeMini = (listener: () => void) => {
+  listeners.add(listener);
+  const sidebar = matchMedia(SIDEBAR);
+  const resize = () => { set(false); listener(); };
+  sidebar.addEventListener("change", resize);
+  return () => { listeners.delete(listener); sidebar.removeEventListener("change", resize); };
+};
+// The same rendered buttons stay directly clickable and keyboard reachable in the sidebar.
+export const useBarMini = () => useSyncExternalStore(subscribeMini, () => mini && !matchMedia(SIDEBAR).matches, () => false);
 
 export function useBarScroll(route: string) {
   useEffect(() => { set(false); }, [route]);
   useEffect(() => {
     const last = new WeakMap<Element, number>();
-    let travel = 0, frame = 0, pending: Element | null = null, inputAt = 0;
+    let travel = 0, frame = 0, pending: Element | null = null, inputAt = -Infinity, previous: Element | null = null;
+    const sidebar = matchMedia(SIDEBAR);
     const evaluate = () => {
       frame = 0;
       const el = pending; pending = null; if (!el) return;
+      if (sidebar.matches) { travel = 0; set(false); return; }
+      if (el !== previous) { travel = 0; previous = el; }
       const top = el.scrollTop;
       let before = last.get(el);
       last.set(el, top);
+      // Restoring a route’s scroll position is not a reading gesture. Record its
+      // baseline, but wait for actual input before minimizing the dock.
+      if (performance.now() - inputAt > 1500) { travel = 0; return; }
       // A scroller seen for the first time: right after a touch, wheel or key it started at its
       // top; otherwise the app moved it (a chapter opening at its verse), which is not reading.
-      if (before === undefined) { if (performance.now() - inputAt > 1500) return; before = 0; }
+      if (before === undefined) before = 0;
       if (top === before) return;
       const room = el.scrollHeight - el.clientHeight;
       if (room <= EDGE * 2 || top <= EDGE || room - top <= EDGE) { travel = 0; set(false); return; }
@@ -55,5 +70,5 @@ export function useBarScroll(route: string) {
       for (const s of seeds) document.removeEventListener(s, seed, { capture: true });
       document.removeEventListener("scroll", onScroll, { capture: true }); cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [route]);
 }

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPoi
 
 import { haptic } from "@/tg/sdk";
 import { Icon, Img, thumbOf, timestamp } from "@/ui/ui";
+import { BackgroundExtension } from "@/ui/BackgroundExtension";
 import { Frame } from "@/lib/frames";
 
 /** The embedded recording from a moment; a new start reloads the player there. */
@@ -16,6 +17,7 @@ const embed = (id: string, start: number) => `https://www.youtube-nocookie.com/e
 export function Player({ video, start, playing, onPlay, title, live, pip, onExpand }: { video: string; start: number; playing: boolean; onPlay: () => void; title: string; live?: boolean; pip?: boolean; onExpand?: () => void }) {
   return (
     <div className="player" data-pip={pip ? "" : undefined}>
+      {!pip && !playing ? <BackgroundExtension src={thumbOf(video, true)} /> : null}
       {pip ? <button type="button" className="player__expand" aria-label="Back to the full player" onClick={() => { haptic("select"); onExpand?.(); }}><Icon name="chevron" size={16} /></button> : null}
       <div className="player__box">
         {playing ? <iframe key={`${video}:${Math.floor(start)}`} src={embed(video, start)} title={title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen /> : (
@@ -95,7 +97,7 @@ export function NotesSheet({ open, onClose, full = false, onFull, title = "Class
     else if (dy > 90 && !full) { haptic("select"); onClose(); }
   };
   const docked = full ? safeTop : top;
-  const style = drag !== null ? { top: Math.max(safeTop, docked + drag), transition: "none" } : { top: docked };
+  const style = drag !== null ? { top: docked, transform: `translateY(${Math.max(safeTop - docked, drag)}px)`, transition: "none", willChange: "transform" } : { top: docked };
   return (
     <section className="nsheet" data-open={open ? "" : undefined} data-full={full ? "" : undefined} aria-hidden={!open} style={style} role="dialog" aria-label={title}>
       <header className="nsheet__head" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{ touchAction: "none" }}>

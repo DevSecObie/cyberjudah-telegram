@@ -5,31 +5,37 @@
    ───────────────────────────────────────────────────────────────────────────────────────────── */
 
 /* ── Buttons ──────────────────────────────────────────────────────────────────────────────── */
-.btn, #root .empty__act, #root .crash__btn, #root .trouble__act, #root .paywall__go {
-  display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2);
-  min-height: var(--h-md); padding: 0 18px; border: 0; border-radius: var(--r-pill);
-  background: var(--accent); color: var(--on-accent); font: 600 15px/1.2 var(--font-ui); text-decoration: none; cursor: pointer;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 24%, transparent);
-  transition: transform var(--dur-1) var(--ease), filter var(--dur-2) ease, opacity var(--dur-2) ease;
+/* Legacy recovery hooks share the prominent recipe; new controls use Button.tsx. */
+#root .btn, #root .empty__act, #root .crash__btn, #root .trouble__act, #root .paywall__go {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); box-sizing: border-box;
+  min-height: var(--h-md); max-width: 100%; padding: var(--sp-2) var(--control-pad); border: 1px solid transparent; border-radius: var(--r-pill);
+  background: var(--accent); color: var(--on-accent); font: 600 var(--control-font)/1.3 var(--font-ui); text-decoration: none; text-align: center; overflow-wrap: anywhere; cursor: pointer;
+  transition: transform var(--dur-1) var(--ease), opacity var(--dur-2) ease;
 }
-.btn:hover, #root .empty__act:hover, #root .crash__btn:hover, #root .paywall__go:hover { filter: brightness(1.06); }
-.btn:active, #root .empty__act:active, #root .crash__btn:active, #root .trouble__act:active, #root .paywall__go:active { transform: scale(.97); }
-.btn:disabled, #root .crash__btn:disabled, #root .trouble__act:disabled { opacity: var(--disabled-opacity); cursor: default; transform: none; filter: none; }
-#root .empty button.empty__act, #root .empty a.empty__act { color: var(--on-accent); }
-.btn--quiet, #root .crash__btn:not(.crash__btn--main), #root .trouble__act:not(.trouble__act--primary) { background: var(--fill-1); color: var(--text-1); box-shadow: inset 0 0 0 .5px var(--hairline); }
-.btn--quiet:hover, #root .crash__btn:not(.crash__btn--main):hover, #root .trouble__act:not(.trouble__act--primary):hover { background: var(--fill-2); filter: none; }
-.btn--row { display: flex; gap: 10px; }
+#root .btn:active, #root :is(.empty__act, .crash__btn, .trouble__act, .paywall__go):active { transform: scale(.97); }
+#root .btn:disabled, #root :is(.crash__btn, .trouble__act):disabled { opacity: var(--disabled-opacity); cursor: default; transform: none; }
+#root .btn--bordered, #root .btn--quiet, #root .btn--glass, #root .crash__btn:not(.crash__btn--main), #root .trouble__act:not(.trouble__act--primary) { background: var(--fill-1); color: var(--text-1); border-color: var(--control-edge); }
+#root .btn--plain { background: transparent; color: var(--accent); border-color: transparent; }
+/* A glass-style control uses only the tint of its existing navigation material. Outside these
+   contexts it safely keeps the bordered recipe. No control adds a backdrop filter. */
+#root :is(.head, .bs-header, .srch__bar, .pv__bar) .btn--glass { background: var(--mat-selected); color: var(--text-1); border-color: var(--mat-edge); }
+/* Detached actions need their own solid ground; the header and dock already spend the blur budget. */
+#root .pageactions .btn--glass { background: var(--mat-overlay); color: var(--text-1); border-color: var(--mat-edge); }
+#root .btn:hover:not(:disabled) { opacity: .85; }
+#root .btn--sm { min-height: var(--h-sm); padding-inline: var(--sp-3); font-size: var(--fs-footnote); }
+#root .btn--lg { min-height: var(--h-lg); }
+#root .btn--xl, #root .paywall__go { min-height: var(--h-xl); font-size: var(--fs-body); }
+#root .btn--stretched { width: 100%; }
+.btn--row { display: flex; flex-wrap: wrap; gap: 10px; }
 .btn--row .btn { flex: 1; }
 #root .empty__act { margin-top: var(--sp-3); }
-#root .trouble__act { min-height: 40px; padding: 0 14px; font-size: var(--fs-sub); }
-/* The primary recovery action keeps the accent's own ink, whatever a screen sets for buttons in general (4.5:1 or better). */
-#root .trouble .trouble__act--primary { background: var(--accent); color: var(--on-accent); }
+#root .empty button.empty__act, #root .empty a.empty__act, #root .trouble .trouble__act--primary { color: var(--on-accent); }
 
 /* An icon button: a round 44px target on a quiet fill. */
 .icon-btn {
   flex: none; display: inline-grid; place-items: center; min-width: var(--touch); height: var(--touch); padding: 0 10px;
   border: 0; border-radius: var(--r-pill); background: var(--fill-1); color: var(--text-1) !important; cursor: pointer;
-  font: 600 15px var(--font-ui) !important; transition: background-color var(--dur-1) ease, transform var(--dur-1) var(--ease);
+  font: 600 var(--control-font) var(--font-ui) !important; transition: transform var(--dur-1) var(--ease);
 }
 .icon-btn:hover { background: var(--fill-2); }
 .icon-btn:active { transform: scale(.94); background: var(--fill-3); }
@@ -37,7 +43,7 @@
 .icon-btn:disabled { opacity: var(--disabled-opacity); cursor: default; }
 
 /* Text actions ("Show more", "See all"): the accent, a full-height target, no box. */
-.more-btn { display: block; width: 100%; min-height: var(--h-md); border: 0; border-top: .5px solid var(--hairline); background: none; color: var(--accent); font: 600 15px var(--font-ui); cursor: pointer; }
+.more-btn { display: block; width: 100%; min-height: var(--h-md); border: 0; border-top: .5px solid var(--hairline); background: none; color: var(--accent); font: 600 var(--control-font) var(--font-ui); cursor: pointer; }
 .more-btn:hover { background: var(--state-hover); }
 #root .bookpage__more, #root .section__more, #root .bs-word__more { min-height: var(--touch); border: 0; background: none; padding: 0; color: var(--accent); font: 600 var(--fs-sub) var(--font-ui); cursor: pointer; }
 .section__head a, .section__head .link { font: 600 var(--fs-sub) var(--font-ui); color: var(--accent); }
@@ -47,10 +53,10 @@
 .chips { display: flex; gap: var(--sp-2); overflow-x: auto; scrollbar-width: none; margin: 0 calc(-1 * var(--gutter)); padding: 2px var(--gutter); }
 .chips::-webkit-scrollbar { display: none; }
 #root .chip {
-  flex: none; display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border: 0; border-radius: var(--r-pill);
+  flex: none; display: inline-flex; align-items: center; min-height: var(--h-sm); padding: var(--sp-2) 14px; border: 0; border-radius: var(--r-pill);
   background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); color: var(--text-1);
   font: 600 var(--fs-sub)/1 var(--font-ui); white-space: nowrap; cursor: pointer;
-  transition: background-color var(--dur-2) ease, color var(--dur-2) ease, transform var(--dur-1) var(--ease);
+  transition: transform var(--dur-1) var(--ease);
 }
 #root .chip * { color: inherit; }
 #root .chip:hover { background: var(--fill-2); }
@@ -62,7 +68,9 @@
 #root .seg { --tgui--segmented_control_active_bg: color-mix(in srgb, var(--text-1) 17%, var(--surface-1)); padding: 3px; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); overflow-x: auto; scrollbar-width: none; }
 html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgui--segmented_control_active_bg: var(--surface-1); background: var(--fill-2); }
 #root .seg::-webkit-scrollbar { display: none; }
-#root .seg button { min-height: 38px; padding: 0 var(--sp-2); border-radius: var(--r-pill); color: var(--text-2); font: 500 var(--fs-footnote) var(--font-ui); }
+#root .seg button { min-height: var(--h-sm); padding: var(--sp-2); border-radius: var(--r-pill); color: var(--text-2); font: 500 var(--fs-footnote) var(--font-ui); }
+/* TelegramUI's Caption otherwise fixes the visible text at 13px inside the growing button. */
+#root .seg button > span { font: inherit; white-space: normal; overflow-wrap: anywhere; }
 /* Selected: the lighter capsule, the primary ink and a heavier weight (never colour alone). */
 #root .seg button[aria-selected="true"] { color: var(--text-1); font-weight: 700; }
 
@@ -75,7 +83,7 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgu
 .input, .sheet__form textarea, .edit input, .tagadd input, .edit__text {
   box-sizing: border-box; width: 100%; min-height: var(--h-md); padding: 10px 12px;
   border: 1px solid var(--control-edge); border-radius: var(--r-md); background: var(--surface-2); color: var(--text-1);
-  font: 400 var(--fs-body)/1.45 var(--font-ui); outline: none; transition: border-color var(--dur-2) ease, box-shadow var(--dur-2) ease;
+  font: 400 var(--fs-body)/1.45 var(--font-ui); outline: none; transition: none;
 }
 .sheet__form textarea { resize: vertical; }
 .input::placeholder, .sheet__form textarea::placeholder, .edit input::placeholder, .tagadd input::placeholder, .edit__text::placeholder { color: var(--text-4); }
@@ -89,8 +97,8 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgu
 .toggle + .toggle::before, .toggle + .row::before, .row + .toggle::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; border-top: .5px solid var(--hairline); pointer-events: none; }
 .toggle b { display: block; font: 500 var(--fs-body)/1.3 var(--font-ui); color: var(--text-1); }
 .toggle small { display: block; margin-top: 2px; font-size: var(--fs-footnote); color: var(--text-3); }
-.switch { flex: none; position: relative; width: 51px; height: 31px; border-radius: var(--r-pill); background: var(--fill-3); box-shadow: inset 0 0 0 1px var(--control-edge); transition: background-color var(--dur-2) ease, box-shadow var(--dur-2) ease; }
-.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); transition: transform var(--dur-2) var(--ease-spring); }
+.switch { flex: none; position: relative; width: 51px; height: 31px; border-radius: var(--r-pill); background: var(--fill-3); box-shadow: inset 0 0 0 1px var(--control-edge); transition: none; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: var(--switch-thumb); box-shadow: var(--switch-shadow); transition: transform var(--dur-2) var(--ease-spring); }
 .toggle[aria-checked="true"] .switch { background: var(--accent); box-shadow: none; }
 .toggle[aria-checked="true"] .switch::after { transform: translateX(20px); }
 .toggle:disabled { opacity: var(--disabled-opacity); cursor: default; }
@@ -139,3 +147,51 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgu
 .remind-date { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; margin-top: 8px; }
 .remind-date label { font-weight: 500; color: var(--text-1); }
 .remind-date input { min-height: 40px; padding: 0 10px; border-radius: var(--r-sm, 10px); border: .5px solid var(--hairline); background: var(--fill-1); color: var(--text-1); font: inherit; }
+/* Nested contours: compute locally so each container's own radius and inset are used.
+   Primary/secondary action capsules keep their fully rounded silhouette (Apple's default);
+   close-fitting icon controls, wells and content cards use the inset contour. */
+.sheet, .bs-sheet { --r-outer: var(--r-2xl); --inset: var(--sp-4); --sheet-card-radius: max(var(--r-min), calc(var(--r-outer) - var(--inset))); --r-inner: var(--sheet-card-radius); }
+#root :is(.sheet, .bs-sheet) :is(.sheet__items, .bs-preview, .photo-frame) { border-radius: var(--r-inner); }
+.card, .head, .srch__bar { --r-outer: var(--r-xl); --inset: var(--sp-2); --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset))); }
+#root :is(.card, .head) .icon-btn, #root .srch__field { border-radius: var(--r-inner); }
+#root .seg { --r-outer: calc(var(--h-sm) / 2 + var(--control-inset)); --inset: var(--control-inset); --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset))); padding: var(--inset); border-radius: var(--r-outer); }
+#root .seg button { border-radius: var(--r-inner); height: auto; white-space: normal; }
+#root .bs-dropdown { --r-outer: var(--r-lg); --inset: 6px; --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset))); padding: var(--inset); border-radius: var(--r-outer); max-width: calc(100vw - var(--safe-left) - var(--safe-right) - 24px); max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - var(--dock-h) - 90px); overflow-y: auto; }
+#root .bs-dropdown__item { border-radius: var(--r-inner); padding: var(--sp-2) 10px; font-size: var(--control-font); }
+#root .bs-picker { --r-outer: var(--r-lg); --inset: var(--sp-3); --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset))); }
+#root .bs-picker .bs-search { border-radius: var(--r-inner); }
+#root .bs-chip { min-height: var(--h-sm); height: auto; padding-block: var(--sp-2); border-radius: var(--r-pill); font-size: var(--fs-footnote); }
+#root .bs-chip[aria-pressed="true"], #root .bs-ambient-tabs [aria-selected="true"] { background: var(--accent); color: var(--on-accent); }
+#root .srch__field { min-height: var(--h-lg); height: auto; }
+#root .srch__scope { min-height: var(--h-sm); padding-block: var(--sp-2); }
+/* Pressed knobs borrow the light rim and lift of the navigation selection. Their
+   fill changes immediately; only transform springs, with no extra backdrop filter. */
+.switch::after, .bs-switch span { transition: transform var(--dur-2) var(--ease-spring); }
+:is(.toggle, .bs-switchrow):active:not(:disabled) { --knob-fill: color-mix(in srgb, var(--switch-thumb) var(--control-lift-density), transparent); --knob-shadow: var(--control-lift-shadow); }
+.toggle:active:not(:disabled) .switch::after, .bs-switchrow:active:not(:disabled) .bs-switch span {
+  background: var(--knob-fill); box-shadow: var(--knob-shadow);
+  transform: scale(var(--control-lift-scale));
+}
+.toggle[aria-checked="true"]:active:not(:disabled) .switch::after { transform: translateX(20px) scale(var(--control-lift-scale)); }
+.bs-switchrow:active:not(:disabled) .bs-switch[data-on] span { transform: translateX(14px) scale(var(--control-lift-scale)); }
+/* Keep the native range element's value, focus, keyboard and touch behavior. */
+input[type="range"] { appearance: none; -webkit-appearance: none; min-width: 0; min-height: var(--touch); background: transparent; cursor: pointer; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: var(--r-pill); background: var(--control-edge); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: var(--r-pill); background: var(--control-edge); }
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none; -webkit-appearance: none; width: 22px; height: 22px; margin-top: -9px; border: 1px solid var(--control-edge); border-radius: var(--r-pill);
+  background: var(--knob-fill, var(--switch-thumb)); box-shadow: var(--knob-shadow, var(--switch-shadow)); transform: scale(var(--knob-scale, 1)); transition: transform var(--dur-2) var(--ease-spring);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px; height: 20px; border: 1px solid var(--control-edge); border-radius: var(--r-pill);
+  background: var(--knob-fill, var(--switch-thumb)); box-shadow: var(--knob-shadow, var(--switch-shadow)); transform: scale(var(--knob-scale, 1)); transition: transform var(--dur-2) var(--ease-spring);
+}
+input[type="range"]:active:not(:disabled) { --knob-scale: var(--control-lift-scale); --knob-fill: color-mix(in srgb, var(--switch-thumb) var(--control-lift-density), transparent); --knob-shadow: var(--control-lift-shadow); }
+input[type="range"]:disabled { opacity: var(--disabled-opacity); cursor: default; }
+@media (forced-colors: active) {
+  #root .btn, #root .chip, #root .seg, .switch, .bs-switch { border: 1px solid ButtonText; }
+  .switch::after, .bs-switch span { background: CanvasText !important; box-shadow: none !important; }
+  input[type="range"] { --knob-fill: ButtonFace !important; --knob-shadow: none !important; --control-edge: ButtonText; }
+}
+
+#root :is(.sheet, .bs-sheet) .card { --r-outer: var(--sheet-card-radius); border-radius: var(--r-outer); }

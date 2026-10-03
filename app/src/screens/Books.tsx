@@ -172,7 +172,7 @@ export function BookChapterScreen() {
             <article id={`pg-${p.page}`} className={`bookpage${p.page === at ? " bookpage--at" : ""}`}>
               <header className="bookpage__head">
                 <span>Page {p.page}</span>
-                <button type="button" className="bookpage__scan" aria-pressed={scans.has(p.img)} onClick={() => toggle(p.img)}>{scans.has(p.img) ? "Text" : "Original page"}</button>
+                <button type="button" className="btn btn--bordered btn--sm bookpage__scan" aria-pressed={scans.has(p.img)} onClick={() => toggle(p.img)}>{scans.has(p.img) ? "Text" : "Original page"}</button>
               </header>
               {p.reads.length ? (
                 <div className="bookpage__reads">

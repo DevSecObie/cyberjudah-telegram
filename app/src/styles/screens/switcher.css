@@ -18,7 +18,7 @@
 /* The switcher: two cards a row, each a tinted surface (no filter: there are many of them). */
 .switcher { min-height: 100dvh; padding: calc(var(--safe-top) + var(--sp-5)) var(--sp-5) calc(var(--dock-space) + 40px); touch-action: pan-y; }
 .switcher__grid { display: grid; gap: var(--sp-5); justify-content: start; }
-.tabcard { position: relative; overflow: hidden; border-radius: var(--r-xl); background: var(--surface-1); box-shadow: var(--card-edge), inset 0 1px 0 var(--rim-highlight), var(--shadow-2); transition: transform var(--dur-2) var(--ease), box-shadow var(--dur-2) ease; }
+.tabcard { position: relative; overflow: hidden; border-radius: var(--r-xl); background: var(--surface-1); box-shadow: var(--card-edge), inset 0 1px 0 var(--rim-highlight), var(--shadow-2); transition: transform var(--dur-2) var(--ease); }
 .tabcard:active { transform: scale(.97); }
 .tabcard[data-current] { box-shadow: var(--card-edge), inset 0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent), var(--shadow-2); }
 #root .tabcard__open { position: absolute; inset: 0; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }

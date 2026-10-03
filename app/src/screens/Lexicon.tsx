@@ -67,7 +67,7 @@ export function Lexicon() {
       {idx.isPending ? <Skeleton rows={8} /> : idx.isError ? <Empty title="The lexicon did not load" action={{ label: "Retry", onClick: () => void idx.refetch() }} /> : !hits.length ? <Empty title={`Nothing called “${debounced}” in the ${lang === "hebrew" ? "Hebrew" : "Greek"}`}>Try the number, the transliteration (ʼâb, agapē) or a word from the meaning.</Empty> : (
         <Section title={debounced ? `${hits.length.toLocaleString()} ${hits.length === 1 ? "word" : "words"}` : "Most used"}>
           <List>{hits.slice(0, limit).map((r) => <StrongRow key={r.n} row={r} />)}</List>
-          {hits.length > limit ? <button type="button" className="more-btn" onClick={() => setLimit((n) => n + 100)}>More · {(hits.length - limit).toLocaleString()} left</button> : null}
+          {hits.length > limit ? <button type="button" className="btn btn--plain more-btn" onClick={() => setLimit((n) => n + 100)}>More · {(hits.length - limit).toLocaleString()} left</button> : null}
         </Section>
       )}
       <p className="hint">Strong's Exhaustive Concordance (1890), public domain; the Hebrew and Greek behind every King James word in the 66 books, and the Greek of the Apocrypha from the Septuagint.</p>

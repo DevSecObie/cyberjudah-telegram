@@ -52,7 +52,7 @@ export function Verse(p: VerseProps) {
     ...(p.fadePosition ? { pointerEvents: "none", filter: "blur(4px)" } : {}),
   };
   const container: CSSProperties = {
-    fontFamily: font, transition: "background 0.3s ease, color 0.3s ease", ...hl, padding: 4, WebkitBoxDecorationBreak: "clone", boxDecorationBreak: "clone",
+    fontFamily: font, ...hl, padding: 4, WebkitBoxDecorationBreak: "clone", boxDecorationBreak: "clone",
     borderBottom: p.isSelected ? `2px dashed ${c.default}` : "none", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none",
     ...(p.isVerseToScroll ? { animation: "bs-zoom 0.5s ease 0s 3 normal none running" } : {}),
     // While verses are selected the selection's own dim (the wrapper's .3) is the only one, not

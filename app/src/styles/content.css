@@ -23,7 +23,7 @@
 /* ── Grouped lists (TelegramUI's Section and Cell) ───────────────────────────────────────── */
 #root .list { overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
 #root .list > * { background: transparent; }
-.row { box-sizing: border-box; width: 100%; text-align: left; cursor: pointer; transition: background-color var(--dur-1) ease; }
+.row { box-sizing: border-box; width: 100%; text-align: left; cursor: pointer; transition: none; }
 #root button.row { appearance: none; -webkit-appearance: none; margin: 0; border: 0; border-radius: 0; background: transparent; font: inherit; }
 #root .row:hover { background: var(--state-hover); }
 #root .row:active { background: var(--state-press); }
@@ -112,7 +112,7 @@
 .mcard { margin: 0 var(--sp-5) var(--sp-4); border-radius: var(--r-lg); background: var(--surface-2); overflow: hidden; box-shadow: var(--card-edge); }
 .screen .mcard, .drawer .screen .mcard { margin-inline: 0; }
 .mcard__head { display: flex; align-items: center; gap: var(--sp-2); margin: 0; padding: 12px var(--sp-4) 6px; color: var(--text-3); font: 700 var(--fs-caption) var(--font-ui); letter-spacing: .02em; }
-#root .mcard__row, .mcard__row { display: flex; align-items: center; gap: var(--sp-3); width: 100%; box-sizing: border-box; min-height: var(--h-lg); padding: 6px var(--sp-3); border: 0; background: none; color: var(--text-1); font: 400 15px var(--font-ui); text-align: left; text-decoration: none; cursor: pointer; transition: background-color var(--dur-1) ease; }
+#root .mcard__row, .mcard__row { display: flex; align-items: center; gap: var(--sp-3); width: 100%; box-sizing: border-box; min-height: var(--h-lg); padding: 6px var(--sp-3); border: 0; background: none; color: var(--text-1); font: 400 15px var(--font-ui); text-align: left; text-decoration: none; cursor: pointer; transition: none; }
 #root .mcard__row:hover { background: var(--state-hover); }
 #root .mcard__row:active { background: var(--state-press); }
 .mcard__row + .mcard__row { border-top: .5px solid var(--hairline); }

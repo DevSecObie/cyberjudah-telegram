@@ -121,8 +121,8 @@ export function NoteScreen() {
         <span key={bs[0].slug} className="readfrom">
           <Link to={`/books/${bs[0].slug}/p/${bs[0].vol}-${bs[0].page}`} className="taught__book">{bs[0].title}</Link>
           {[...new Map(bs.map((b) => [`${b.vol}-${b.page}`, b])).values()].map((b) => video
-            ? <button key={`${b.vol}-${b.page}`} type="button" className="readfrom__page" onClick={() => seek(b.t)}>{bs.some((x) => x.vol !== b.vol) || b.vol > 1 ? `vol. ${b.vol} ` : ""}p. {b.page} · {b.ts}</button>
-            : <Link key={`${b.vol}-${b.page}`} to={`/books/${b.slug}/p/${b.vol}-${b.page}`} className="readfrom__page">{b.vol > 1 ? `vol. ${b.vol} ` : ""}p. {b.page}</Link>)}
+            ? <button key={`${b.vol}-${b.page}`} type="button" className="btn btn--bordered btn--sm readfrom__page" onClick={() => seek(b.t)}>{bs.some((x) => x.vol !== b.vol) || b.vol > 1 ? `vol. ${b.vol} ` : ""}p. {b.page} · {b.ts}</button>
+            : <Link key={`${b.vol}-${b.page}`} to={`/books/${b.slug}/p/${b.vol}-${b.page}`} className="btn btn--bordered btn--sm readfrom__page">{b.vol > 1 ? `vol. ${b.vol} ` : ""}p. {b.page}</Link>)}
         </span>
       ))}
     </div>

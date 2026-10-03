@@ -4,8 +4,6 @@
 .bs-sheet.photo-sheet { --bs-reverse: var(--surface-1); --bs-default: var(--text-1); --bs-tertiary: var(--text-3); --bs-border: var(--hairline); --bs-light-grey: var(--fill-1); background: var(--surface-1); color: var(--text-1); }
 .photo-sheet .bs-sheet__titles b { color: var(--text-1); }
 .photo-edit { display: flex; justify-content: center; margin: 10px 0 0; }
-.photo-edit__btn { min-height: 36px; padding: 0 14px; border: 0; border-radius: 99px; background: var(--fill-1); color: var(--accent); font: 600 13px/1 var(--font-ui); cursor: pointer; }
-.photo-edit__btn:active { opacity: .7; }
 .photo-sheet .bs-sheet__body { padding: 16px 20px 24px; }
 .photo-frame { position: relative; width: min(100%, 360px); margin: 0 auto; overflow: hidden; border-radius: 16px; background: var(--fill-1); touch-action: none; cursor: grab; display: grid; place-items: center; }
 .photo-frame canvas { position: absolute; top: 0; left: 0; max-width: none; user-select: none; -webkit-user-select: none; pointer-events: none; }

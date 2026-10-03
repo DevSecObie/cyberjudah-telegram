@@ -22,7 +22,6 @@
 .bookread .bookpage { padding: 14px 0 18px; border-top: .5px solid var(--hairline); scroll-margin-top: calc(var(--header-h) + var(--safe-top)); }
 .bookpage--at { padding-inline: 10px !important; border-radius: var(--r-md); background: linear-gradient(var(--surface-1), transparent 160px); }
 .bookpage__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-2); font: 700 var(--fs-caption) var(--font-ui); letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); }
-#root .bookpage__scan { min-height: 32px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: var(--fill-1); color: var(--accent); font: 600 var(--fs-caption) var(--font-ui); text-transform: none; cursor: pointer; }
 .bookpage__reads { display: grid; gap: 6px; margin-bottom: 10px; }
 .bookpage__read { overflow: hidden; border-radius: var(--r-md); background: var(--surface-1); box-shadow: var(--card-edge); }
 #root .bookpage__readhead { display: flex; align-items: center; gap: var(--sp-2); width: 100%; min-height: var(--touch); padding: 0 10px; border: 0; background: none; color: var(--text-2); font: 400 var(--fs-footnote)/1.35 var(--font-ui); text-align: left; cursor: pointer; }
@@ -39,16 +38,15 @@
 .bookpage__fig img { display: block; width: 100%; height: auto; }
 .bookpage__fig small { display: block; padding: 6px 10px; font: 400 var(--fs-caption) var(--font-ui); color: var(--text-3); }
 .readfrom { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-#root .readfrom__page { display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border: 0; border-radius: var(--r-pill); background: var(--fill-1); color: var(--accent); font: 600 var(--fs-caption) var(--font-ui); text-decoration: none; cursor: pointer; }
 
 /* ── Picture viewer: a picture full screen, the classes' words beneath. Dark in every theme. ── */
-.pv { --mat-base: var(--media-canvas); --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent); position: fixed; inset: 0; z-index: var(--z-dock); display: grid; grid-template-rows: auto 1fr auto; background: var(--media-canvas); color: var(--media-ink); opacity: 0; transition: opacity var(--dur-3) ease; }
+.pv { --accent: var(--media-accent); --on-accent: var(--media-on-accent); --mat-base: var(--media-canvas); --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent); position: fixed; inset: 0; z-index: var(--z-dock); display: grid; grid-template-rows: auto 1fr auto; background: var(--media-canvas); color: var(--media-ink); opacity: 0; transition: opacity var(--dur-3) ease; }
 .pv--in { opacity: 1; }
 .pv--words { grid-template-rows: auto minmax(34vh, 1fr) minmax(0, 52vh); }
 .pv--full { grid-template-rows: auto 0fr 1fr; }
 .pv--full .pv__stage { visibility: hidden; }
 /* The bar is the viewer's one piece of glass. */
-.pv__bar { z-index: 2; display: flex; align-items: center; gap: 6px; padding: calc(var(--safe-top) + var(--sp-2)) 10px var(--sp-2); background: var(--mat-nav); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur); border-bottom: .5px solid var(--media-fill); }
+.pv__bar { position: relative; z-index: 2; display: flex; align-items: center; gap: 6px; padding: calc(var(--safe-top) + var(--sp-2)) 10px var(--sp-2); border-bottom: .5px solid var(--media-fill); }
 .pv__title { flex: 1; min-width: 0; display: grid; }
 .pv__title b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 15px/1.25 var(--font-ui); }
 .pv__title small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 var(--fs-caption) var(--font-ui); color: var(--media-muted); }
@@ -79,7 +77,6 @@
 .pv__classhead b { font: 600 var(--fs-sub)/1.3 var(--font-ui); }
 .pv__classhead small { font: 400 var(--fs-caption) var(--font-ui); color: var(--media-muted); }
 .pv__frame { overflow: hidden; border-radius: var(--r-sm); }
-#root .pv__play { justify-self: start; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; margin-top: 2px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: #ffd27a; color: #1a1400; font: 600 var(--fs-caption) var(--font-ui); cursor: pointer; }
 .pv .said__line { color: #e8e8ec; }
 .pv .said__line[data-here] { color: var(--media-ink); background: var(--media-fill); }
 #root .pv .said__line button { background: rgba(255, 255, 255, .12); color: #ffd27a; }
