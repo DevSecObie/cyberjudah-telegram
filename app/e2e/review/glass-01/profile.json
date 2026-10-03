@@ -1,0 +1,30 @@
+{
+  "browser": "151.0.7922.173",
+  "cpuThrottle": 4,
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "measurements": [
+    {
+      "action": "dock-drag",
+      "samples": 129,
+      "medianMs": 16.7,
+      "p95Ms": 16.8,
+      "maxMs": 33.4,
+      "framesOver33ms": 1,
+      "layoutEvents": 1,
+      "layoutMs": 3.94
+    },
+    {
+      "action": "sheet-open",
+      "samples": 29,
+      "medianMs": 16.7,
+      "p95Ms": 283.3,
+      "maxMs": 316.7,
+      "framesOver33ms": 5,
+      "layoutEvents": 4,
+      "layoutMs": 50.44
+    }
+  ]
+}

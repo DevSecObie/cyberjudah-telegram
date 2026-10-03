@@ -3,7 +3,7 @@
 The app's look and feel. It follows the layering Apple describes for Liquid Glass and applies it to
 a web app with CSS. Apple's Liquid Glass is a native material (lensing, adaptive tint, motion-aware
 highlights) that SwiftUI, UIKit and AppKit render. Our materials approximate its hierarchy and feel
-with one `backdrop-filter` per navigation surface, palette-aware tint, a rim and a press-position highlight. They are not Apple's rendering.
+with one `backdrop-filter` per navigation surface, palette-aware tint, a rim and a press highlight. They are not Apple's rendering.
 
 Apple references used by this design system:
 
@@ -17,15 +17,15 @@ Apple references used by this design system:
 
 | Apple's guidance | Here |
 | --- | --- |
-| Liquid Glass is the functional layer for navigation and controls, floating above content. | Only the header bar and the dock are frosted at rest (`.glass`, the `::before` of `.head`, `.srch__bar`, `.chat2__bar`, `.bs-header`, `.tabs`). |
+| Liquid Glass is the functional layer for navigation and controls, floating above content. | Only the header bar and the dock are frosted at rest (`.glass`, the `::before` of `.head`, `.srch__bar`, `.chat2__bar`, `.bs-header::before`, `.tabs`). |
 | Don't use it in the content layer; use standard materials there. | Cards, lists, feeds, scripture and messages are tinted surfaces (`--surface-1`, `--surface-2`) with a fine edge, and no filter. |
 | Avoid layering glass on glass; use fills and tints within one surface. | Controls inside the dock and bars use fills (`--fill-*`) and a selected pill, never a second blur. |
 | Use it sparingly. | The budget: no more than two frosted surfaces visible at rest. A menu or picker may make a third while it is open. |
 | Regular variant for text-heavy components; clear over rich media, with dimming when needed. | The CSS material approximates the regular variant with a legible tint. It does not implement Apple’s native regular or clear variants. |
 | Scroll edge effects keep bars legible over scrolling content. | Header glass runs past the bar and fades out over 14px (a mask), with a hairline at the edge. |
 | Concentric shapes. | Radii nest (`--r-*`): pill controls inside a pill dock, 22–28px sheets, 18px cards. |
-| Sheets are rounder, inset, and more opaque at full height. | Sheets are near-opaque (`--mat-overlay`) over a 60% scrim. They are inset and centred from 680px up. |
-| Reduce transparency, increase contrast, reduce motion. | All three follow the system setting. Reduce transparency also has an app switch: **Settings → Reduce transparency**. |
+| Sheets are rounder, inset, and more opaque at full height. | Content sheets are opaque (`--mat-overlay`) over a dimming scrim. They are inset and centred from 680px up. |
+| Reduce transparency, increase contrast, reduce motion. | All three follow the system setting; missing backdrop support and forced colors also disable filtering. Reduce transparency also has an app switch: **Settings → Reduce transparency**. |
 | Selection by more than colour. | The dock's current section has a filled pill and a bolder label; increased contrast adds an outline. Segments and chips change fill, weight and ink. |
 
 Project choices, not Apple's numbers:
@@ -145,7 +145,7 @@ The dock now follows the single-material hierarchy above on both Chromium and We
 Chromium-only SVG displacement filter was drawn **above the icons and labels**, bending their
 shapes and adding coloured fringes. It also put a second filter on a glass surface. That filter
 and its canvas map are removed. The regular material lives on the dock's `::before`; the filled
-selection sits below the controls. A specular rim follows a press without sampling another
+selection sits below the controls. A specular rim brightens during a press without sampling another
 backdrop or changing the label pixels.
 
 Pressing the current section gently lifts its selection. Dragging follows the pointer directly,
@@ -196,3 +196,286 @@ renderer, and WebKit test coverage does not establish visual parity with it. Exa
 material rendering would require native controls in an Apple client. No further production
 code change was warranted by this documentation review; physical iOS Telegram and macOS Safari
 verification remains outstanding.
+
+## Section 01: material inventory
+
+This table covers every authored CSS background and backdrop declaration in `app/src`, including control states and content fills. Related selectors share one row; entries from conditional rules are included, and the normal-material entries inherit the solid accessibility overrides described below. This deliberately includes content backgrounds so a new glass effect cannot disappear from the audit merely by being classified as content. Prefixes and repeated declarations are consolidated; this is a source inventory, not a count of rendered filters.
+
+| Element(s), grouped by stylesheet and component | Layer | Filter | Justification |
+| --- | --- | --- | --- |
+| **bible/bible.css · rel-inline**<br>`.bs .rel-inline` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · rel-tag**<br>`.bs .rel-tag` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · rel-more**<br>`.bs .rel-more` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-header**<br>`.bs-header`, `.bs-header__verses`, `.bs-header__ribbon`, `.bs-header::before` | navigation | `var(--mat-blur)` | One shared material on the navigation surface; nested control fills have no filter. |
+| **bible/bible.css · bs-pill**<br>`.bs-pill`, `.bs-pill__bg` | navigation | None | Control, selection, or edge fill; no additional glass. |
+| **bible/bible.css · bs-iconbtn**<br>`.bs-iconbtn` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-menu**<br>`.bs-menu__item`, `.bs-menu__item:active` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-context**<br>`.bs-context`, `.bs-context__main`, `.bs-context__exit`, `.bs-context__exit span` | navigation | None | Control, selection, or edge fill; no additional glass. |
+| **bible/bible.css · bs-chapterbtn**<br>`.bs-chapterbtn`, `#root .bs-chapterbtn` | navigation | None | Control, selection, or edge fill; no additional glass. |
+| **bible/bible.css · bs-playpill**<br>`.bs-playpill` | navigation | None | Control, selection, or edge fill; no additional glass. |
+| **bible/bible.css · bs-audio**<br>`.bs-audio`, `.bs-audio__mode`, `.bs-audio__ctl`, `.bs-audio__play` | navigation | None | Control, selection, or edge fill; no additional glass. |
+| **bible/bible.css · bs-chip**<br>`.bs-chip`, `.bs-chip[aria-pressed="true"]`, `#root .bs-chip--select` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-scrim**<br>`.bs-scrim`, `.bs-scrim--clear`, `.bs-scrim--clear > .bs-sheet.bs-selected` | overlay / floating navigation | `var(--mat-blur-strong)` | Only the floating selection sheet filters; modal scrims merely dim and ordinary sheets stay opaque. |
+| **bible/bible.css · bs-sheet**<br>`.bs-sheet`, `.bs-sheet__handle`, `.bs-sheet__close` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
+| **bible/bible.css · bs-btn**<br>`.bs-btn`, `.bs-btn--reverse` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-input**<br>`.bs-input` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-colors**<br>`.bs-colors__cell`, `.bs-colors__check::before` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-action**<br>`.bs-action` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-tabsfooter**<br>`.bs-tabsfooter`, `.bs-tabsfooter__indicator`, `.bs-tabsfooter__tab` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-params**<br>`.bs-params__row` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-touchicon**<br>`.bs-touchicon` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-themecircle**<br>`.bs-themecircle` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-fontrow**<br>`.bs-fontrow` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-switchrow**<br>`.bs-switchrow` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-switch**<br>`.bs-switch`, `.bs-switch span`, `.bs-switch[data-on]` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-preview**<br>`.bs-preview` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-palette**<br>`.bs-palette__row`, `.bs-palette__plus` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-coloredit**<br>`.bs-coloredit__hex input`, `.bs-coloredit__types button` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-filterbtn**<br>`.bs-filterbtn` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-filter**<br>`.bs-filter__opts button`, `.bs-filter__opts button[aria-checked="true"]` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-bookrow**<br>`.bs-bookrow` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-chaptertile**<br>`.bs-chaptertile`, `.bs-chaptertile[data-read]` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-bookshort**<br>`.bs-bookshort` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-versetile**<br>`.bs-versetile` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-versionrow**<br>`.bs-versionrow` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-bmitem**<br>`.bs-bmitem` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-search**<br>`.bs-search`, `.bs-search input`, `.bs-search__field`, `.bs-search__field input`, `.bs-search__go`, `.bs-search__hit`, `.bs-search__hit mark`, `.bs-search__hit span mark` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-tagrow**<br>`.bs-tagrow`, `.bs-tagrow:active` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-checkbox**<br>`.bs-checkbox[data-checked]` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-noteeditor**<br>`.bs-noteeditor__title`, `.bs-noteeditor__desc` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-resrow**<br>`.bs-resrow` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-precept**<br>`.bs-precept__kind` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-topic**<br>`.bs-topic__ref` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-link**<br>`.bs-link` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-resources**<br>`.bs-resources__xrefs .xref__chip`, `.bs-resources__xrefs .xref__text` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-resourcetabs**<br>`.bs-resourcetabs button` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-error**<br>`.bs-error__icon` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · why**<br>`.why__item`, `.why__ref`, `.why__kind` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · why-sheet**<br>`.why-sheet .why .why__src`, `.why-sheet .why .why__more` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-bookbar**<br>`.bs-bookbar`, `.bs-bookbar i` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-markread**<br>`.bs-markread`, `.bs-markread[aria-pressed="true"]`, `.bs-markread[aria-pressed="true"] .bs-markread__dot` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-comment**<br>`.bs-comment`, `.bs-comment__class`, `.bs-comment__watch` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-readin**<br>`.bs-readin__row`, `.bs-readin__ts`, `.bs-readin__more` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-words**<br>`#root .bs-words__w` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-word**<br>`.bs-word__head`, `.bs-word__chip`, `#root .bs-word__bookhead`, `.bs-word__book--open .bs-word__bookhead`, `#root .bs-word__book li button`, `#root .bs-word__book li button[data-here]`, `.bs-word__text mark`, `#root .bs-word__more` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-compare**<br>`.bs-compare__verse`, `.bs-compare__lanes`, `.bs-compare__lanes button`, `.bs-compare__lanes button[aria-selected="true"]`, `.bs-compare__item`, `.bs-compare__ref`, `.bs-compare__copy` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-greek**<br>`.bs-greek__text` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-entities**<br>`.bs-entities__title::before`, `.bs-entities__title::after`, `#root button.bs-entities__stack` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-people**<br>`#root button.bs-people__item`, `button.bs-people__item` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-deck**<br>`.bs-deck__card` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-gallery**<br>`.bs-gallery`, `#root .bs-gallery__btn`, `.bs-gallery__btn`, `.bs-gallery__pic`, `.bs-gallery__badge`, `.bs-gallery__close`, `.bs-gallery[data-open]` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
+| **bible/bible.css · bs-player**<br>`.bs-player__box` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-dropdown**<br>`.bs-dropdown`, `#root .bs-dropdown__item`, `.bs-dropdown__item`, `.bs-dropdown__item:active` | elevated | `var(--mat-blur-strong)` | One shared material on the navigation surface; nested control fills have no filter. |
+| **bible/bible.css · bs-picker**<br>`.bs-picker`, `.bs-picker .bs-versetile`, `.bs-picker .bs-versetile:active` | elevated | `var(--mat-blur-strong)` | One shared material on the navigation surface; nested control fills have no filter. |
+| **bible/bible.css · bs-picker-scrim**<br>`.bs-picker-scrim` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
+| **bible/bible.css · bs-text**<br>`.bs [data-reading] .bs-text` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-follow**<br>`.bs .bs-follow` | navigation | None | Control, selection, or edge fill; no additional glass. |
+| **bible/bible.css · bs-ambient-tabs**<br>`.bs-ambient-tabs [aria-selected="true"]` | content | None | Content, control state, or decoration; never glass. |
+| **bible/bible.css · bs-selected**<br>`.bs-selected .bs-sheet__handle`, `.bs-selected .bs-action__box`, `.bs-selected .bs-tabsfooter`, `.bs-selected .bs-tabsfooter__indicator` | content | None | Content, control state, or decoration; never glass. |
+| **bible/ui/sheet.css · bs-iconbtn**<br>`.bs-iconbtn` | content | None | Content, control state, or decoration; never glass. |
+| **bible/ui/sheet.css · bs-scrim**<br>`.bs-scrim`, `.bs-scrim--clear` | overlay | None | Modal scrims dim the page; their content sheets stay opaque. |
+| **bible/ui/sheet.css · bs-sheet**<br>`.bs-sheet`, `.bs-sheet__handle`, `.bs-sheet__close`, `.bs-sheet.chats-sheet`, `.bs-sheet.edit-sheet` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
+| **bible/ui/sheet.css · bs-btn**<br>`.bs-btn`, `.bs-btn--reverse` | content | None | Content, control state, or decoration; never glass. |
+| **bible/ui/sheet.css · bs-switchrow**<br>`.bs-switchrow` | content | None | Content, control state, or decoration; never glass. |
+| **bible/ui/sheet.css · bs-switch**<br>`.bs-switch`, `.bs-switch span`, `.bs-switch[data-on]` | content | None | Content, control state, or decoration; never glass. |
+| **bible/ui/sheet.css · bs-checkbox**<br>`.bs-checkbox[data-checked]` | content | None | Content, control state, or decoration; never glass. |
+| **styles/base.css · html**<br>`html` | content | None | Content, control state, or decoration; never glass. |
+| **styles/base.css · body**<br>`body` | content | None | Content, control state, or decoration; never glass. |
+| **styles/base.css · body::before**<br>`body::before` | content | None | Content, control state, or decoration; never glass. |
+| **styles/base.css · ::selection**<br>`::selection` | content | None | Content, control state, or decoration; never glass. |
+| **styles/base.css · link**<br>`.link` | content | None | Content, control state, or decoration; never glass. |
+| **styles/base.css · mark**<br>`mark` | content | None | Content, control state, or decoration; never glass. |
+| **styles/content.css · card**<br>`.card`, `.card--btn:hover`, `a.card:hover`, `.card--glow` | content | None | Content, control state, or decoration; never glass. |
+| **styles/content.css · list**<br>`#root .list`, `#root .list > *` | content | None | Content, control state, or decoration; never glass. |
+| **styles/content.css · row**<br>`#root button.row`, `#root .row:hover`, `#root .row:active`, `.row__thumb`, `.row__icon` | content | None | Content, control state, or decoration; never glass. |
+| **styles/content.css · skel**<br>`.skel` | content | None | Content, control state, or decoration; never glass. |
+| **styles/content.css · trouble**<br>`.trouble`, `.trouble__badge` | content | None | Content, control state, or decoration; never glass. |
+| **styles/content.css · tile**<br>`.tile__img` | content | None | Content, control state, or decoration; never glass. |
+| **styles/content.css · grid**<br>`.grid a` | content | None | Content, control state, or decoration; never glass. |
+| **styles/content.css · avatar**<br>`.avatar` | content | None | Content, control state, or decoration; never glass. |
+| **styles/content.css · scard**<br>`.scard`, `#root .scard__fail button`, `#root .scard__go:hover`, `#root button.scard__act` | content | None | Content, control state, or decoration; never glass. |
+| **styles/content.css · mcard**<br>`.mcard`, `#root .mcard__row`, `.mcard__row`, `#root .mcard__row:hover`, `#root .mcard__row:active` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · btn**<br>`.btn`, `.btn--quiet`, `.btn--quiet:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · empty**<br>`#root .empty__act` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · crash**<br>`#root .crash__btn`, `#root .crash__btn:not(.crash__btn--main)`, `#root .crash__btn:not(.crash__btn--main):hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · trouble**<br>`#root .trouble__act`, `#root .trouble__act:not(.trouble__act--primary)`, `#root .trouble__act:not(.trouble__act--primary):hover`, `#root .trouble .trouble__act--primary` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · paywall**<br>`#root .paywall__go` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · icon-btn**<br>`.icon-btn`, `.icon-btn:hover`, `.icon-btn:active`, `.icon-btn[aria-pressed="true"]` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · more-btn**<br>`.more-btn`, `.more-btn:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · bookpage**<br>`#root .bookpage__more` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · section**<br>`#root .section__more` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · bs-word**<br>`#root .bs-word__more` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · chip**<br>`#root .chip`, `#root .chip:hover`, `#root .chip[aria-pressed="true"]` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · seg**<br>`#root .seg`, `html[data-theme="light"] #root .seg`, `html[data-theme="sepia"] #root .seg` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · field**<br>`.field__clear` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · hero**<br>`.hero__clear` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · input**<br>`.input` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · sheet**<br>`.sheet__form textarea` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
+| **styles/controls.css · edit**<br>`.edit input`, `.edit__text` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · tagadd**<br>`.tagadd input` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · toggle**<br>`.toggle`, `.toggle:hover`, `.toggle[aria-checked="true"] .switch` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · switch**<br>`.switch`, `.switch::after` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · letters**<br>`.letters button`, `.letters button:hover`, `.letters button[aria-pressed="true"]` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · pill**<br>`.pill`, `.pill--hot`, `.pill--ok` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · soon**<br>`.soon` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · tag**<br>`.tag` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · cite**<br>`.cite` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · answer**<br>`.answer__n` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · progress**<br>`.progress`, `.progress i` | content | None | Content, control state, or decoration; never glass. |
+| **styles/controls.css · remind-date**<br>`.remind-date input` | content | None | Content, control state, or decoration; never glass. |
+| **styles/materials.css · glass**<br>`.glass`, `.glass--elevated` | navigation | `var(--mat-blur)`, `var(--mat-blur-strong)` | One shared material on the navigation surface; nested control fills have no filter. |
+| **styles/materials.css · surface**<br>`.surface` | content | None | Content, control state, or decoration; never glass. |
+| **styles/materials.css · screen**<br>`.screen > .head::before`, `.screen > .head::after` | navigation | `var(--mat-blur)` | One shared material on the navigation surface; nested control fills have no filter. |
+| **styles/materials.css · srch**<br>`.srch__bar::before`, `.srch__bar::after` | navigation | `var(--mat-blur)` | One shared material on the navigation surface; nested control fills have no filter. |
+| **styles/materials.css · chat2**<br>`.chat2__bar::before`, `.chat2__bar::after` | navigation | `var(--mat-blur)` | One shared material on the navigation surface; nested control fills have no filter. |
+| **styles/materials.css · reader**<br>`.reader__bar::before`, `.reader__bar::after` | navigation | `var(--mat-blur)` | One shared material on the navigation surface; nested control fills have no filter. |
+| **styles/materials.css · tabs**<br>`.tabs`, `.tabs::before`, `.tabs::after`, `.tabs .tab`, `.tabs__pill`, `html[data-transparency="reduced"] .tabs::before`, `.tabs .tab__count[style*="--group"]` | navigation | `var(--mat-blur)` | One shared material on the navigation surface; nested control fills have no filter. |
+| **styles/materials.css · bs-selected**<br>`html:has(.bs-selected) .tabs::before` | content | None | Content, control state, or decoration; never glass. |
+| **styles/materials.css · pv**<br>`html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__bar)::before` | navigation | None | Disable covered app navigation filters while full-screen media is present. |
+| **styles/materials.css · switcherbar**<br>`#root .switcherbar__add`, `#root .switcherbar__ok`, `#root .switcherbar__group` | navigation | None | Control, selection, or edge fill; no additional glass. |
+| **styles/materials.css · pageaction**<br>`#root .pageaction`, `#root .pageaction--quiet` | navigation | None | Control, selection, or edge fill; no additional glass. |
+| **styles/materials.css · drawer**<br>`.drawer`, `.drawer__fade`, `.drawer__head`, `#root button.drawer__back`, `.drawer__back`, `#root button.drawer__x`, `.drawer__x`, `.drawer:not([data-open])` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
+| **styles/materials.css · drawer-scrim**<br>`.drawer-scrim`, `.drawer-scrim[data-open]` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
+| **styles/materials.css · sheet**<br>`.sheet__scrim`, `.sheet`, `.sheet__grip`, `.sheet__items`, `.sheet__item`, `.sheet__item:hover`, `.sheet__item:active`, `.sheet__icon`, `.sheet__cancel` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
+| **styles/materials.css · nsheet**<br>`.nsheet`, `.nsheet__grip`, `.nsheet__close` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
+| **styles/materials.css · toast**<br>`.toast`, `#root .toast__close`, `.toast__timer` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
+| **styles/materials.css · lock**<br>`.lock` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
+| **styles/screens/ask.css · chat2**<br>`.chat2__heading`, `.chat2__new`, `.chat2__new:not(:disabled):hover`, `.chat2__new:not(:disabled):active`, `.chat2__mark`, `img.chat2__mark`, `.chat2__outside` | navigation | None | Control, selection, or edge fill; no additional glass. |
+| **styles/screens/ask.css · starter**<br>`.starter`, `.starter:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/ask.css · msg**<br>`.msg__bubble`, `.msg__avatar`, `img.msg__avatar`, `.msg__text blockquote`, `.msg__text :not(pre) > code`, `.msg__text pre`, `#root .msg__text .cite`, `#root .msg__text .cite:hover`, `.msg__action`, `.msg__action:hover`, `.msg__action:active`, `.msg__error`, `.msg__text a.applink` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/ask.css · answer**<br>`.answer__dots i` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/ask.css · srccard**<br>`#root .srccard .cite`, `.srccard`, `.srccard:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/ask.css · research**<br>`.research`, `.research__head` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/ask.css · followup**<br>`.followup`, `.followup:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/ask.css · composer2**<br>`.composer2`, `.composer2__box`, `.composer2 textarea`, `.composer2__go`, `.composer2__go:disabled`, `.composer2__go--stop`, `.composer2__go--stop span` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/ask.css · chats**<br>`.chats__row[data-current]`, `.chats__open`, `.chats__open:hover`, `.chats__del`, `.chats__del:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/ask.css · plans**<br>`.plans__now`, `.plans__bar`, `.plans__bar i` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/ask.css · plan**<br>`.plan`, `.plan__buy`, `.plan__buy--quiet`, `.plan__on` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/ask.css · paywall**<br>`.paywall` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/ask.css · actioncard**<br>`.actioncard`, `.actioncard .linkish` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/ask.css · models**<br>`.models__row`, `.models__search` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/classes.css · cfeed**<br>`#root .cfeed__filters .cfeed__pick`, `#root .cfeed__filters .cfeed__pick:hover`, `#root .cfeed__filters .cfeed__pick[data-on]`, `#root .cfeed__filters .cfeed__reset`, `#root .cfeed__more .cfeed__morebtn` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/classes.css · post**<br>`.post__mark`, `#root .post .post__icon`, `#root .post .post__icon:hover`, `.post__media`, `#root .post .post__poster`, `.post__noimg`, `.post__playicon`, `.post__poster:hover .post__playicon`, `.post__poster:focus-visible .post__playicon`, `#root .post .post__act`, `#root .post .post__act:hover`, `#root .post .post__act[aria-pressed="true"]`, `#root .post .post__act[aria-expanded="true"]`, `.post__scripture`, `#root .post .post__ref`, `#root .post .post__more` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · hero**<br>`.hero` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · today-card**<br>`.today-card`, `.today-card header a:hover`, `#root .today-card footer button` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · stats**<br>`.stats__cell` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · stat**<br>`.stat div` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · continue**<br>`.continue__icon` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · resume**<br>`.resume__item`, `.resume__icon`, `.resume__bar`, `.resume__bar i` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · streak**<br>`.streak`, `.streak__bar`, `.streak__bar i` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · sabbath**<br>`.sabbath__icon` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · live-card**<br>`.live-card`, `.live-card__dot`, `.live-card--soon .live-card__dot` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · shelf-card**<br>`.shelf-card`, `.shelf-card:hover`, `.shelf-card__icon`, `.shelf-card--law .shelf-card__icon` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · door**<br>`.door__btn`, `.door__btn:hover`, `.door__btn--ask` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · widget**<br>`.widget__label`, `#root .widget__foot`, `#root .widget__shuffle` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · tools**<br>`#root .tools__btn`, `#root .tools__btn:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · whatsnew**<br>`.whatsnew__card` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · feature**<br>`.feature`, `.feature__img` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · feed**<br>`.feed__card:hover`, `.feed__card .feed__thumb`, `.feed__card--skel .feed__thumb`, `.feed__img`, `.feed__kind`, `.feed__books em` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · shero**<br>`.shero__field`, `.shero__field input`, `.shero__clear`, `.shero__go` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · live**<br>`.live`, `.live__row:hover`, `.live__row:active`, `.live__all`, `.live__spoken`, `.live__ask`, `.live mark` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/home.css · fold**<br>`.fold`, `.fold:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/law.css · laws**<br>`.laws__list` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/law.css · lawlink**<br>`#root .lawlink:hover`, `#root .lawlink:active`, `.lawlink__code` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/law.css · lawsec**<br>`#root .lawsec__top .lawsec__share`, `#root .lawsec__top .lawsec__share:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/law.css · case**<br>`#root button.case__share`, `#root button.case__share:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/law.css · lawcard**<br>`.lawcard`, `#root .lawcard__refs .lawcard__ref`, `#root .lawcard__refs .lawcard__ref:hover`, `#root .lawcard__refs .lawcard__ref[aria-selected="true"]`, `#root .lawcard__refs .lawcard__ref--more`, `#root .lawcard__foot .lawcard__all`, `#root .lawcard__foot .lawcard__go`, `#root .lawcard__foot .lawcard__go:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/library.css · book**<br>`.book__figure`, `.book__figure:hover`, `.book__figure img`, `.book__read`, `.book__readpage a` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/library.css · bookpage**<br>`.bookpage--at`, `#root .bookpage__scan`, `.bookpage__read`, `#root .bookpage__readhead`, `#root .bookpage__readhead:hover`, `.bookpage__watch`, `.bookpage__img`, `#root .bookpage__fig` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/library.css · readfrom**<br>`#root .readfrom__page` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/library.css · pv**<br>`.pv`, `.pv__bar`, `#root .pv__btn`, `.pv__stage`, `#root .pv__nav`, `.pv__zoom`, `.pv__panel`, `#root .pv__grab`, `#root .pv__mini`, `.pv__grabbar`, `.pv__class`, `#root .pv__play`, `.pv .said__line[data-here]`, `#root .pv .said__line button` | navigation / content | `var(--mat-blur)` | Only the media bar filters. Its dark semantic palette preserves white controls in every app theme. |
+| **styles/screens/library.css · lex**<br>`.lex .bs-word__head` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/library.css · lex-day**<br>`.lex-day` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/library.css · thread**<br>`.thread::before`, `#root .thread__head`, `.thread__dot`, `.thread__stop--open .thread__dot`, `.thread__class`, `.thread__class:hover`, `.thread__ts`, `#root .thread__more button` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · backto**<br>`.backto` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · player**<br>`.player`, `.player__box`, `#root .player__expand` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · watch**<br>`.watch`, `.watch span` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · notes-open**<br>`.notes-open`, `#root .notes-open__main`, `#root .notes-open__main:hover`, `#root .notes-open__at` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · note**<br>`.note blockquote`, `.note .note-opens`, `.note a.note-opens__ref`, `.note a.note-opens__ref:hover`, `.note .moment__at`, `.note .shown__at`, `.note--seek [data-at]:hover`, `.note--seek [data-at]:active` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · frame**<br>`.frame` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · transcript**<br>`.transcript p[data-found]`, `.transcript button` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · tx**<br>`.tx__chunk[data-here]`, `.tx__chunk button` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · said**<br>`.said__line[data-here]`, `#root .said__line button` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · spoken**<br>`.spoken__notes` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · taught**<br>`.taught__book` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · upnext**<br>`.upnext__card`, `.upnext__card:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · request-notes**<br>`#root button.request-notes`, `#root button.request-notes[data-done]` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · notes-wanted**<br>`.notes-wanted` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · nreq**<br>`.nreq`, `#root button.nreq__main`, `#root button.nreq__btn`, `#root button.nreq__btn--quiet` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/notes.css · edit**<br>`.edit__footer` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/people.css · entity**<br>`#root .entity__code`, `#root .entity__code:hover`, `#root button.entity__more`, `#root .entity__source button` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/people.css · fg**<br>`.fg`, `#root button.fg__node`, `.fg__back`, `.fg__chip`, `#root button.fg__page`, `#root button.fg__hist`, `#root button.fg__page:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/people.css · cases**<br>`.cases__list` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/people.css · caserow**<br>`#root .caserow:hover`, `#root .caserow:active`, `.caserow__dot`, `[data-kind="blessing"] .caserow__dot` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/people.css · ccard**<br>`.ccard__meta i`, `.ccard[data-kind="blessing"] .ccard__meta i`, `#root .ccard`, `#root .ccard:hover`, `#root .ccard:active` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/people.css · case**<br>`.case__verdict i`, `.case__verdict[data-kind="blessing"] i`, `.case__verdict`, `.case__verdict[data-kind="blessing"]`, `.case__charge`, `#root .case__person`, `#root .case__person:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · chapters**<br>`.chapters a`, `.chapters a:hover`, `.chapters a[data-last]` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · v**<br>`.v[aria-pressed="true"]`, `.v[data-reading]`, `.v--hl`, `.v[data-bm]::after`, `.v[data-hl="y"]`, `.v[data-hl="g"]`, `.v[data-hl="b"]`, `.v[data-hl="p"]`, `.v[data-hl="o"]`, `.v[data-hl="v"]` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · vnote**<br>`.vnote` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · steps**<br>`.steps a`, `.steps a[data-main]` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · xref**<br>`.xref__chip`, `.xref__chip[aria-expanded="true"]`, `.xref__text` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · listen**<br>`.listen`, `.listen__rate button`, `.listen__rate button[aria-pressed="true"]` | navigation | None | Control, selection, or edge fill; no additional glass. |
+| **styles/screens/reading.css · rel-inline**<br>`.rel-inline` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · rel-tag**<br>`.rel-tag` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · rel-more**<br>`.rel-more` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · rel-count**<br>`.rel-count`, `.rel-count i` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · rel-row**<br>`.rel-row__body` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · rel-result**<br>`.rel-result`, `.rel-result:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · rel-seemore**<br>`.rel-seemore` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · plan-row**<br>`.plan-row`, `.plan-row[data-read] i` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · daystrip**<br>`.daystrip__day`, `.daystrip__day[aria-selected="true"]` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/reading.css · catchup**<br>`.catchup` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/search.css · srch**<br>`.srch__field`, `.srch__field[data-focus]`, `#root .srch__field input`, `#root button.srch__clear`, `#root button.srch__cancel`, `#root button.srch__scope`, `#root button.srch__scope:hover`, `#root button.srch__scope[aria-selected="true"]`, `.srch__count`, `.srch__list`, `#root .srch__hit:hover`, `#root .srch__hit:focus-visible`, `.srch__kind`, `.srch__kind[data-kind="verse"]`, `.srch__kind[data-kind="law"]`, `.srch__kind[data-kind="precept"]`, `.srch__kind[data-kind="case"]`, `.srch__kind[data-kind="study"]`, `.srch__kind[data-kind="encyclopedia"]`, `.srch__kind[data-kind="book"]`, `.srch__results mark`, `#root button.srch__ref`, `.srch__refIcon`, `.srch__recent`, `#root button.srch__recentbtn`, `#root button.srch__recentbtn:hover`, `#root button.srch__forget`, `#root .srch__try button:not([class*="tgui-"])`, `#root .srch__try button:not([class*="tgui-"]):hover`, `#root button.srch__all` | navigation | None | Control, selection, or edge fill; no additional glass. |
+| **styles/screens/search.css · rec**<br>`.rec__thumb`, `.rec__time`, `.rec__title button`, `.rec mark` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/search.css · recs**<br>`.recs--compact`, `.recs--compact .rec:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/switcher.css · nt-search**<br>`#root .nt-search`, `#root .nt-search:hover` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/switcher.css · nt-item**<br>`.nt-item`, `.nt-item:hover`, `.nt-item__icon` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/switcher.css · nt-hero**<br>`.nt-hero`, `.nt-hero__icon` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/switcher.css · tabcard**<br>`.tabcard`, `#root .tabcard__open`, `.tabcard__icon`, `#root .tabcard__close`, `.tabcard__close span` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/switcher.css · naved**<br>`.naved__preview`, `.naved`, `.naved__btn`, `.naved__btn:not(:disabled):hover`, `.naved__btn:not(:disabled):active`, `.naved__reset` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tlh**<br>`#root .tlh__btn` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-item**<br>`.tl-item__pic` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-pic**<br>`.tl-pic--none` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-emblem**<br>`.tl-emblem--card`, `.tl-emblem__bar`, `.tl-emblem__new` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-card**<br>`.tl-card__bar` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-period**<br>`.tl-period` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-behind**<br>`.tl-behind` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-canvas**<br>`.tl-canvas` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-panel**<br>`#root .tl-panel` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-major**<br>`.tl-major`, `.tl-major__letter` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-minor**<br>`.tl-minor`, `.tl-minor__title` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-datebar**<br>`.tl-datebar` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-line**<br>`.tl-line` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-current**<br>`.tl-current__year`, `#root .tl-current__nav`, `.tl-current__progress` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-details**<br>`.tl-details__list a` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-search**<br>`.tl-search__pic` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-event**<br>`.tl-event__period` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · tl-related**<br>`.tl-related` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · fc-chip**<br>`.fc-chip` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · fc-teach**<br>`.fc-teach` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · fc-cite**<br>`.fc-cite:active` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · fc-differ**<br>`.fc-differ` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · fc-figure**<br>`.fc-figure img` | content | None | Content, control state, or decoration; never glass. |
+| **styles/screens/timeline.css · fc-badge**<br>`.fc-badge--archival`, `.fc-badge--generated` | content | None | Content, control state, or decoration; never glass. |
+| **ui/photo-edit.css · bs-sheet**<br>`.bs-sheet.photo-sheet` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
+| **ui/photo-edit.css · photo-edit**<br>`.photo-edit__btn` | content | None | Content, control state, or decoration; never glass. |
+| **ui/photo-edit.css · photo-frame**<br>`.photo-frame` | overlay | None | Content/controls use solid surfaces; scrims dim the page without filtering it. |
+
+Inline backgrounds also belong to this inventory: Bible highlight swatches and theme editors (`SelectedVersesSheet`, `ParamsSheet`, and `Editors`) show the actual user-selected color; `Verse` tags and `ChapterPeople` gallery controls use the reader palette; `MediaDeck` controls use their media palette; timeline markers show category/state. These are content or control fills with **no backdrop filter**, not independent materials. The Bible root supplies the opaque reader canvas. Dynamic dock tint/selection variables are accounted for in the dock row above. None of these inline styles creates a backdrop filter.
+
+### Recipes, fallbacks, and scope
+
+- The header and dock are the two regular navigation materials. The Bible header material is on `::before`, so its options menu has no filtered ancestor; the menu opens below the header edge. Menus and pickers use the shared elevated recipe.
+- The floating selection sheet uses the elevated recipe. Its underlying dock becomes solid while the sheet is present, preventing glass on glass and keeping the header-plus-sheet budget at two. Full-screen picture viewing disables covered app-navigation filters.
+- `--mat-overlay` is now opaque. Content sheets, notification text, the composer, editor footer, and unfrosted floating controls therefore never inherit a translucent content ground. Ask/editor/photo sheets retain their explicit opaque palettes.
+- `--mat-density` and `--mat-elevated-density` become 100%, both blur tokens become `none`, and the scroll-edge mask is removed for OS/app reduced transparency, increased contrast, forced colors, and missing backdrop support. Reader and media scopes inherit those density/filter decisions while supplying their own base color.
+- TelegramUI 2.1.13 consumes `--tgui--surface_primary` in `Form/Chip` and `Layout/Tabbar`. This app uses the Chip wrapper and a custom dock; Cell and Section use other surface tokens. The primary fallback now maps to opaque `--surface-1`.
+- Media navigation uses `--media-canvas`, `--media-surface`, `--media-ink`, `--media-muted`, `--media-edge`, and `--media-fill`. It stays dark in every reading theme. It does not claim to implement Apple’s native clear material.
+- Shared type tokens use `rem`, so the root 200% text setting really enlarges shared text. Local control shapes and sizes are the next section’s work.
+- Dock drag geometry is measured at pointer-down, then reused for feedback. Resizing cancels the gesture safely. The dock and media viewer no longer animate layout dimensions; the dock’s `will-change` exists only during a press/drag.
+
+### Documentation mapping and browser limits
+
+Section 01 addresses the adoption guide’s reduction of custom backgrounds, sparing material use, and display/accessibility review. The accompanying HIG [Color](https://developer.apple.com/design/human-interface-guidelines/color), [Layout](https://developer.apple.com/design/human-interface-guidelines/layout), [Tab bars](https://developer.apple.com/design/human-interface-guidelines/tab-bars), [Sheets](https://developer.apple.com/design/human-interface-guidelines/sheets), [Menus](https://developer.apple.com/design/human-interface-guidelines/menus), [Toolbars](https://developer.apple.com/design/human-interface-guidelines/toolbars), [Search fields](https://developer.apple.com/design/human-interface-guidelines/search-fields), [Lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables), and [Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility) guidance preserves readable surfaces, existing destinations, semantic controls, and accessible alternatives. No route or stored setting changes are part of this section.
+
+The OS reduced-transparency E2E uses Chromium CDP media emulation and verifies the actual media query plus computed CSS. Playwright does not expose that OS preference for WebKit; the in-app setting is exercised there instead. The unsupported-filter test activates the app’s real CSS fallback blocks in their original cascade positions; it verifies the fallback recipe, not an old browser. Native optical adaptation and connected glass morphing remain unavailable in this CSS implementation. No SVG backdrop distortion is used.
