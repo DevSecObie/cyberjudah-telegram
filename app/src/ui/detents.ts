@@ -20,8 +20,8 @@ import { haptic } from "@/tg/sdk";
  *    throw well past it, dismisses.
  *  - It moves on a spring (Bible Strong's: stiffness 360, damping 34, mass 0.8) that carries the
  *    release velocity; with reduced motion, a short ease with no overshoot instead.
- *  - Nothing renders per frame: the transform is written to the element, and React hears only
- *    when a detent is reached.
+ *  - Nothing renders per frame: the transform (and how much the page behind is dimmed) is written
+ *    to the elements, and React hears only when a detent is reached.
  */
 export type DetentsOptions = {
   /** Fractions of the available height, ascending; the last should be 1 (full). */
@@ -68,7 +68,14 @@ export function useDetents(sheet: RefObject<HTMLElement | null>, body: RefObject
       el.style.height = `${height}px`;
     };
     const yOf = (i: number) => height - Math.round(height * o.current.detents[i]);
-    const write = (v: number) => { y = v; el.style.transform = `translate3d(0, ${v}px, 0)`; };
+    // How far above its smallest detent the sheet is (0..1): what is behind dims with it, as iOS
+    // dims the page under a sheet past its largest undimmed detent.
+    const scrim = el.parentElement;
+    const write = (v: number) => {
+      y = v; el.style.transform = `translate3d(0, ${v}px, 0)`;
+      const lo = yOf(0), hi = yOf(o.current.detents.length - 1);
+      scrim?.style.setProperty("--sheet-dim", lo > hi ? Math.min(1, Math.max(0, (lo - v) / (lo - hi))).toFixed(3) : "0");
+    };
     const settled = (i: number) => {
       const was = index;
       index = i;

@@ -85,11 +85,13 @@ function DetentSheet({ onClose, detents, initialDetent = 0, onDetent, detentName
         data-closing={closing ? "" : undefined} onAnimationEnd={(e) => { if (closing && e.target === box.current) closed.current(); }}>
         <div ref={grab} className="bs-sheet__grab">
           {wide ? null : <div className="bs-sheet__handle bs-sheet__handle--slider" role="slider" tabIndex={0} aria-label="Sheet height" aria-valuemin={1} aria-valuemax={detents.length} aria-valuenow={at + 1} aria-valuetext={names[at]} onKeyDown={onKey} />}
-          {title !== undefined ? <Header {...{ title, subTitle, hasBack, onBack, right, left, form }} closable={!form || wide} close={close} /> : <button type="button" className="bs-iconbtn bs-sheet__close bs-sheet__close--float" aria-label="Close" onClick={close}><Feather name="x" size={18} /></button>}
+          {title !== undefined ? <Header {...{ title, subTitle, hasBack, onBack, right, left, form }} closable={!form} close={close} /> : <button type="button" className="bs-iconbtn bs-sheet__close bs-sheet__close--float" aria-label="Close" onClick={close}><Feather name="x" size={18} /></button>}
         </div>
         <div ref={body} className="bs-sheet__body">{children}</div>
         {footer ? <div className="bs-sheet__footer">{footer}</div> : null}
       </div>
+      {/* Their web panel closes by a tab on its left edge (ModalRouteFrame.web: 32×36, 62px down, a chevron). */}
+      {wide && form ? <button type="button" className="bs-panel-tab" aria-label="Close" onClick={close} data-closing={closing ? "" : undefined}><Feather name="chevron-right" size={18} /></button> : null}
     </div>
   );
 }

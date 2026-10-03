@@ -58,7 +58,8 @@
 .bs-sheet__handle--slider { width: 36px; height: 5px; padding: 7px 24px 6px; margin: 2px auto 0; background-clip: content-box; box-sizing: content-box; border-radius: 9px; }
 .bs-sheet__handle--slider:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 0; }
 /* Wide windows: a panel at the right, the page beside it still in use (Bible Strong's web workspace panel). */
-.bs-sheet--panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(440px, 45vw); max-width: none; max-height: none; border-radius: var(--r-2xl) 0 0 var(--r-2xl); border-bottom: .5px solid var(--mat-edge); padding-top: var(--safe-top, 0px); transition: none; animation: bs-panel-in .26s cubic-bezier(.2, 0, 0, 1); box-shadow: var(--mat-highlight), -12px 0 40px rgba(0, 0, 0, .22); }
+:root { --panel-w: min(500px, 45vw); }
+.bs-sheet--panel { position: fixed; top: 0; right: 0; bottom: 0; width: var(--panel-w); max-width: none; max-height: none; border-radius: var(--r-2xl) 0 0 var(--r-2xl); border-bottom: .5px solid var(--mat-edge); padding-top: var(--safe-top, 0px); transition: none; animation: bs-panel-in .26s cubic-bezier(.2, 0, 0, 1); box-shadow: var(--mat-highlight), -12px 0 40px rgba(0, 0, 0, .22); }
 .bs-sheet--panel[data-closing] { animation: bs-panel-out .2s cubic-bezier(.4, 0, 1, 1) forwards; }
 @keyframes bs-panel-in { from { transform: translateX(100%); } }
 @keyframes bs-panel-out { to { transform: translateX(100%); } }
@@ -67,7 +68,7 @@
 /* Bible Strong's form sheet on iOS 26: it floats, inset from the screen's edges, with the large
    continuous corners of the device; its header is their page header (common/Header): the title
    bold at the left at 14px, 54px tall, a rule under it. */
-.bs-sheet--form.bs-sheet--detents { left: 8px; right: 8px; bottom: 8px; width: auto; max-width: 640px; border-radius: 34px; overflow: hidden; }
+.bs-sheet--form.bs-sheet--detents { left: 8px; right: 8px; bottom: 8px; width: auto; max-width: 640px; border-radius: 38px; overflow: hidden; }
 .bs-sheet__header--form { gap: 2px; min-height: 54px; padding: 0 8px 0 20px; border-bottom: 1px solid var(--hairline); }
 .bs-sheet__header--form .bs-iconbtn:first-child { margin-left: -12px; }
 .bs-sheet__formtitle { flex: 1; min-width: 0; margin: 0; font: 700 14px/1.3 var(--font-ui); color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -77,3 +78,21 @@
 .bs-sheet--form .bs-sheet__header--form { padding-top: 6px; }
 /* The focus is moved to the sheet itself when it opens (for screen readers); it is not a control, so no ring. */
 #root .bs-sheet--form:focus, #root .bs-sheet--form:focus-visible { outline: none; }
+/* The app's focus ring sets a small radius on whatever has focus (base.css, #root :focus-visible):
+   the sheet and the panel take focus when they open, so their corners are restated at that weight. */
+#root .bs-sheet--form.bs-sheet--detents, #root .bs-sheet--form.bs-sheet--detents:focus-visible { border-radius: 38px; }
+/* The panel on a wide window is theirs exactly (navigation/ModalRouteFrame.web.tsx): the full
+   height at the right, min(500, 45%) wide, square, a 1px rule at its left, no shadow; closed by the
+   chevron tab on its edge rather than an ✕. */
+.bs-sheet--form.bs-sheet--panel { top: 0; right: 0; bottom: 0; border: 0; border-left: 1px solid var(--hairline); padding-top: var(--safe-top, 0px); overflow: hidden; box-shadow: none; }
+#root .bs-sheet--form.bs-sheet--panel, #root .bs-sheet--form.bs-sheet--panel:focus-visible { border-radius: 0; }
+.bs-panel-tab { position: fixed; top: calc(62px + var(--safe-top, 0px)); right: var(--panel-w); z-index: 1; width: 32px; height: 36px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 8px 0 0 8px; background: var(--bs-reverse, var(--surface-1)); color: var(--text-1); box-shadow: 0 2px 8px rgba(0, 0, 0, .15); pointer-events: auto; cursor: pointer; animation: bs-tab-in .26s cubic-bezier(.2, 0, 0, 1); }
+.bs-panel-tab[data-closing] { opacity: 0; transition: opacity .12s; }
+@keyframes bs-tab-in { from { opacity: 0; transform: translateX(var(--panel-w)); } }
+@media (prefers-reduced-motion: reduce) { .bs-panel-tab { animation: none; } }
+/* What is behind dims as the sheet rises past its smallest detent (detents.ts writes --sheet-dim, 0..1). */
+.sheet__scrim.bs-scrim--detents { background: rgba(0, 0, 0, calc(var(--sheet-dim, 0) * .32)); }
+.bs-sheet--form.bs-sheet--detents { box-shadow: var(--mat-highlight), 0 -2px 10px rgba(0, 0, 0, .08), 0 -18px 48px rgba(0, 0, 0, .22); }
+/* The form sheet covers the tab bar, as theirs does on iOS: the dock steps away while it is up. */
+.tabs { transition: opacity .2s ease, transform .28s cubic-bezier(.2, 0, 0, 1); }
+html:has(.bs-sheet--form.bs-sheet--detents) .tabs { opacity: 0; transform: translateY(24px); pointer-events: none; }

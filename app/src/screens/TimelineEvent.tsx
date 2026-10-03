@@ -83,7 +83,8 @@ export function TimelineEventSheet({ event, onClose, onOpen, onCover }: { event:
   return (
     <Sheet open form onClose={onClose} detents={DETENTS} initialDetent={0} onDetent={onDetent} label={`${event.title}, ${calculateLabel(event.start, event.end)}`} className="tl-sheet"
       title={event.title} right={<button type="button" className="bs-iconbtn" aria-label="More" onClick={more}><Feather name="more-vertical" size={18} /></button>}>
-      <EventDetail event={event} onOpen={onOpen} />
+      {/* Keyed by the event: another event cross-fades in, at its top. */}
+      <EventDetail key={event.slug} event={event} onOpen={onOpen} />
     </Sheet>
   );
 }
@@ -129,7 +130,9 @@ const EventDetail = memo(function EventDetail({ event: e, onOpen }: { event: Eve
 
   return (
     <div className="tl-event__body tl-event__body--sheet" ref={top} style={{ ["--tl-color" as string]: s.color }}>
-      {pic ? <img className="tl-event__pic" src={pic} alt="" width={150} height={150} decoding="async" /> : null}
+      {pic
+        ? <img className="tl-event__pic" src={pic} alt="" width={150} height={150} decoding="async" onLoad={(ev) => { ev.currentTarget.dataset.loaded = ""; }} />
+        : <span className="tl-event__pic tl-event__pic--none" aria-hidden="true">{e.title.replace(/^(the|a|an)\s+/i, "").charAt(0).toUpperCase()}</span>}
       <div className="tl-event__head">
         <p className="tl-event__title">{e.title}</p>
         <p className="tl-event__date">{calculateLabel(e.start, e.end)}</p>

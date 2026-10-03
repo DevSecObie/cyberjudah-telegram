@@ -166,3 +166,47 @@ a.tl-major[aria-current="true"], a.tl-minor[aria-current="true"] { box-shadow: 0
 .tl-event__section p.tl-event__article { margin-top: 20px; line-height: 1.55; }
 button.tl-related { width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer; }
 .tl-event__section .tl-related b { font-weight: 400; font-size: 16px; }
+
+/* ---- Premium motion: the period, the event panel, the sheet's content ---- */
+/* A period opens as their page sheet does on a phone: a card rising over what was before it, its
+   top corners rounded, a sliver of the dark behind above it. Swiping on to the next period slides
+   across instead (data-rise is not set), and coming back to a period puts it in place at once. */
+@media (max-width: 767px) {
+  .tl-period { margin-top: calc(var(--safe-top, 0px) + 10px); height: calc(100dvh - var(--dock-space) - var(--safe-top, 0px) - 10px); border-radius: 38px 38px 0 0; box-shadow: 0 0 0 .5px var(--hairline), 0 -6px 24px rgba(0, 0, 0, .18); }
+  .tl-period .tlh { padding-top: 0; border-radius: 38px 38px 0 0; }
+  html:has(.tl-period), body:has(.tl-period) { overflow: hidden; }
+  .tl-behind-card { position: fixed; top: 0; left: 0; right: 0; height: calc(var(--safe-top, 0px) + 60px); background: #000; z-index: 0; }
+  .tl-period { z-index: 1; }
+  .tl-period[data-rise] { animation: tl-rise .5s cubic-bezier(.32, .72, 0, 1) both; }
+}
+@keyframes tl-rise { from { transform: translate3d(0, 100%, 0); } }
+.tl-behind-card { display: none; }
+@media (max-width: 767px) { .tl-behind-card { display: block; } .tl-behind-card:has(+ .tl-period[data-rise]) { animation: tl-behind .5s cubic-bezier(.32, .72, 0, 1) both; } }
+/* While the card rises, what it rises over is the dark behind it, which closes to the strip at the top. */
+@keyframes tl-behind { from { height: 100dvh; } }
+/* A wide window: the event's panel at the right, and the period narrows beside it (their marginRight, 240ms). */
+.tl-period { transition: padding-right .24s cubic-bezier(.2, 0, 0, 1); }
+.tl-period[data-panel] { padding-right: var(--panel-w); }
+.tl-period .tl-current { transition: right .24s cubic-bezier(.2, 0, 0, 1); }
+.tl-period[data-panel] .tl-current { right: var(--panel-w); }
+/* A bar answers the finger before the sheet comes. */
+a.tl-major, a.tl-minor { transition: filter .14s ease, box-shadow .2s ease; -webkit-tap-highlight-color: transparent; }
+a.tl-major:active, a.tl-minor:active { filter: brightness(.93) saturate(1.05); }
+/* Another event in the sheet: its content rises in; its picture fades in as it arrives. */
+.tl-event__body--sheet { animation: tl-ev-in .26s cubic-bezier(.2, 0, 0, 1) both; }
+@keyframes tl-ev-in { from { opacity: 0; transform: translate3d(0, 8px, 0); } }
+.tl-event__body--sheet img.tl-event__pic { opacity: 0; transform: scale(.98); transition: opacity .3s ease, transform .4s cubic-bezier(.2, 0, 0, 1); background: var(--fill-1); }
+.tl-event__body--sheet img.tl-event__pic[data-loaded] { opacity: 1; transform: none; }
+/* No picture yet: a tile in the period's colour with the initial, so the sheet keeps its shape. */
+.tl-event__pic--none { display: grid; place-items: center; background: linear-gradient(160deg, color-mix(in srgb, var(--tl-color) 38%, var(--surface-1)), color-mix(in srgb, var(--tl-color) 14%, var(--surface-1))); color: color-mix(in srgb, var(--tl-color) 60%, var(--text-1)); font: 600 64px/1 var(--font-ui); box-shadow: inset 0 0 0 .5px var(--hairline); }
+/* The cards in the sheet answer a press. */
+.tl-event__section .tl-related { transition: transform .16s cubic-bezier(.2, 0, 0, 1), box-shadow .2s ease; }
+.tl-event__section .tl-related:active { transform: scale(.985); }
+.tl-verse { border-radius: 10px; transition: background-color .15s ease; }
+.tl-verse:active { background: var(--fill-1); }
+@media (prefers-reduced-motion: reduce) {
+  .tl-period[data-rise], .tl-event__body--sheet { animation: none; }
+  .tl-period, .tl-period .tl-current, .tl-event__body--sheet img.tl-event__pic { transition: none; }
+}
+/* Rounder pictures in the sheet, continuous where the browser can draw it. */
+.tl-event__body--sheet .tl-event__pic { border-radius: 10px; } /* theirs: 150×150, radius 10 */

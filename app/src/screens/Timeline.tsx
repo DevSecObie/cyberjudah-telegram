@@ -9,6 +9,7 @@ import { useBackButton, useStored } from "@/tg/hooks";
 import { haptic, hideKeyboard } from "@/tg/sdk";
 import { Lit } from "@/ui/search-hero";
 import { SearchBar, useSettled } from "@/ui/search-bar";
+import { useWide } from "@/ui/detents";
 import { useSheet } from "@/ui/sheet";
 import { Icon } from "@/ui/ui";
 import { SECTIONS, portraitSrc, reducedMotion, reignLabel } from "@/lib/timeline";
@@ -48,6 +49,8 @@ function PeriodPicture({ s, className, eager }: { s: TimelineSection; className:
 
 /** Where a period's canvas was, and which event was opened from it, for this visit (the history entry). */
 type Place = { x: number; y: number; focus?: string };
+// Keyed by the history entry and the period: a fresh load's entry is always "default", so the
+// period's number keeps one period's place from being put back into another.
 const placeKey = (key: string) => `visit:${key}:timeline`;
 const readPlace = (key: string): Place | undefined => { try { const v = sessionStorage.getItem(placeKey(key)); return v ? JSON.parse(v) as Place : undefined; } catch { return undefined; } };
 const writePlace = (key: string, p: Place) => { try { sessionStorage.setItem(placeKey(key), JSON.stringify(p)); } catch { /* private mode */ } };
@@ -177,13 +180,18 @@ export function TimelinePeriod() {
   useBackButton(false);
   const { n = "0" } = useParams();
   const [params] = useSearchParams();
-  const { key } = useLocation();
+  const { key, state: navState } = useLocation();
+  // A wide window shows the event as a panel at the right, and the period gives it room (theirs: marginRight).
+  const wide = useWide();
+  // Entered from the neighbouring period (a swipe past the end): no rise, the canvas slides across instead.
+  const [between] = useState(() => !!(navState as { between?: boolean } | null)?.between);
   const navigate = useNavigate();
   // The event open over the canvas (?event=), as a sheet: the canvas stays mounted under it.
   const sheet = useEventSheet();
   const [cover, setCover] = useState(0);
   const index = Math.min(Math.max(Number(n) || 0, 0), SECTIONS.length - 1);
   const s = SECTIONS[index];
+  const visit = `${key}:${index}`;
   const prev = SECTIONS[index - 1], next = SECTIONS[index + 1];
   const box = useRef<HTMLDivElement>(null);
   const [vw, setVw] = useState(() => (typeof window === "undefined" ? 390 : Math.min(window.innerWidth, 1400)));
@@ -195,14 +203,21 @@ export function TimelinePeriod() {
   const menu = useMenu(() => setDetails(true), `/timeline/${index}`);
   const fromNext = params.get("from") === "next";
   // A visit already made (coming back to it) is put back; a new one enters.
-  const [kept] = useState(() => readPlace(key));
+  const [kept] = useState(() => readPlace(visit));
   const [phase, setPhase] = useState<"card" | "slide" | "ready">(() => (kept || reducedMotion() || sheet.slug ? "ready" : "card"));
 
+  // The canvas's width: the window's, less the event panel beside it on a wide window.
   useEffect(() => {
-    const on = () => setVw(box.current?.clientWidth || Math.min(window.innerWidth, 1400));
-    on(); addEventListener("resize", on);
-    return () => removeEventListener("resize", on);
+    const el = box.current;
+    if (!el) return;
+    const on = () => setVw(el.clientWidth || Math.min(window.innerWidth, 1400));
+    on();
+    const ro = new ResizeObserver(on);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
+  // The period is one screen: the page itself starts at its top (the list it came from may have been scrolled).
+  useLayoutEffect(() => { window.scrollTo(0, 0); }, [index]);
   // Where the canvas starts: where it was on this visit; else, entering from the next period, at
   // the end (their entrance 0); otherwise at the start.
   useLayoutEffect(() => {
@@ -225,14 +240,14 @@ export function TimelinePeriod() {
     return () => window.clearTimeout(t);
   }, [phase]);
 
-  const go = useCallback((to: number, from?: "next") => { haptic("select"); navigate(`/timeline/${to}${from ? "?from=next" : ""}`, { replace: true }); }, [navigate]);
+  const go = useCallback((to: number, from?: "next") => { haptic("select"); navigate(`/timeline/${to}${from ? "?from=next" : ""}`, { replace: true, state: { between: true } }); }, [navigate]);
   const save = useRef(0);
   const onScroll = () => {
     const el = box.current;
     if (!el) return;
     setLeft(el.scrollLeft - lead);
     cancelAnimationFrame(save.current);
-    save.current = requestAnimationFrame(() => writePlace(key, { ...readPlace(key), x: Math.round(el.scrollLeft), y: Math.round(el.scrollTop) }));
+    save.current = requestAnimationFrame(() => writePlace(visit, { ...readPlace(visit), x: Math.round(el.scrollLeft), y: Math.round(el.scrollTop) }));
   };
   // Released well into a neighbour's panel (more than 100px, their threshold): open it.
   const onScrollEnd = () => {
@@ -253,15 +268,15 @@ export function TimelinePeriod() {
   openRef.current = sheet.open;
   const opened = useCallback((slug: string) => {
     const el = box.current;
-    writePlace(key, { x: Math.round(el?.scrollLeft ?? 0), y: Math.round(el?.scrollTop ?? 0), focus: slug });
+    writePlace(visit, { x: Math.round(el?.scrollLeft ?? 0), y: Math.round(el?.scrollTop ?? 0), focus: slug });
     openRef.current(slug);
-  }, [key]);
+  }, [visit]);
   // Each event shown is a history entry of this same screen: the place goes with it, so Back, or
   // coming back from a verse or a person, finds the canvas where it was.
   useEffect(() => {
     const el = box.current;
-    if (el) writePlace(key, { x: Math.round(el.scrollLeft), y: Math.round(el.scrollTop), focus: sheet.slug ?? readPlace(key)?.focus });
-  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (el) writePlace(visit, { x: Math.round(el.scrollLeft), y: Math.round(el.scrollTop), focus: sheet.slug ?? readPlace(visit)?.focus });
+  }, [visit]); // eslint-disable-line react-hooks/exhaustive-deps
   // Closing the sheet puts the focus back on the event it showed, as the old page's back did.
   const shown = useRef(sheet.slug);
   useEffect(() => {
@@ -269,18 +284,28 @@ export function TimelinePeriod() {
     shown.current = sheet.slug;
     if (was && !sheet.slug) box.current?.querySelector<HTMLElement>(`[data-slug="${CSS.escape(was)}"]`)?.focus({ preventScroll: true });
   }, [sheet.slug]);
-  // An event of this period opened from the sheet (a linked event, a link) is brought into view
-  // if it is not already: under the line, above the sheet. A bar tapped is in view, so nothing moves.
+  // The event shown is kept in sight above the sheet: one opened from a link, a linked event, or a
+  // bar the sheet rose over is brought into the space between the header and the sheet, once the
+  // sheet has settled. A bar in view is left where it is. At the full sheet nothing is in sight, so nothing moves.
   useEffect(() => {
     const e = sheet.event, el = box.current;
-    if (!e || !el || e.sectionIndex !== index) return;
+    // (An event drawn in two periods, as Samuel in the Judges and the United Kingdom, is found by its bar in this one.)
+    if (!e || !el || cover > window.innerHeight * 0.6) return;
     const bar = el.querySelector<HTMLElement>(`[data-slug="${CSS.escape(e.slug)}"]`);
     if (!bar) return;
     const r = bar.getBoundingClientRect(), v = el.getBoundingClientRect();
-    const seen = r.right > v.left + 24 && r.left < v.right - 24 && r.bottom > v.top && r.top < v.bottom - Math.max(cover, 0);
+    const bottom = Math.min(v.bottom, window.innerHeight - cover); // where the sheet begins
+    const seen = r.right > v.left + 24 && r.left < v.right - 24 && r.top > v.top && r.bottom < bottom - 8;
     if (seen) return;
-    el.scrollTo({ left: lead + g.yearsToPx(e.start), top: Math.max(0, rowToPx(e.row) - 24), behavior: reducedMotion() ? "auto" : "smooth" });
-  }, [sheet.slug]); // eslint-disable-line react-hooks/exhaustive-deps
+    const room = bottom - v.top;
+    const top = Math.max(0, el.scrollTop + (r.top - v.top) - Math.max(24, (room - r.height) / 2));
+    // Sideways: the bar's start just past the year line, unless it is already in the left part of
+    // the view; never past either end of the period (a scroll there would turn to its neighbour).
+    const startX = r.left - v.left; // where the bar begins, in the view
+    const placed = startX > g.offset - 40 && startX < v.width * 0.6;
+    const x = placed ? el.scrollLeft : Math.min(lead + end, Math.max(lead, el.scrollLeft + startX - g.offset - 16));
+    el.scrollTo({ left: x, top, behavior: reducedMotion() ? "auto" : "smooth" });
+  }, [sheet.slug, cover]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const marks = dateMarks(s);
   // Past either end, the line and the year go with the canvas, and the neighbour's card shows through.
@@ -289,7 +314,10 @@ export function TimelinePeriod() {
   const nextShown = next ? Math.min(1, Math.max(0, (left - end) / vw)) : 0;
   const color = { ["--tl-color" as string]: s.color } as CSSProperties;
   return (
-    <main className="tl-period" style={color} data-phase={phase}>
+    <>
+    {/* What is behind the period's card at the top (iOS draws the presenting screen there, dimmed to black). */}
+    <i className="tl-behind-card" aria-hidden="true" />
+    <main className="tl-period" style={color} data-phase={phase} data-rise={phase === "card" && !between ? "" : undefined} data-panel={wide && sheet.event ? "" : undefined}>
       <Header title={s.title} color={s.color} onSearch={() => navigate("/timeline/search")} onMenu={menu} />
       <div className="tl-stage">
         {prev ? <div className="tl-behind" style={{ opacity: prevShown }} aria-hidden="true"><SectionCard s={prev} direction="previous" /></div> : null}
@@ -318,6 +346,7 @@ export function TimelinePeriod() {
       {details ? <Panel title={s.sectionTitle} onClose={() => setDetails(false)}><PeriodDetails s={s} onOpen={(slug) => { setDetails(false); opened(slug); }} /></Panel> : null}
       {sheet.event ? <TimelineEventSheet event={sheet.event} onClose={sheet.close} onOpen={(slug) => sheet.open(slug, "push")} onCover={setCover} /> : null}
     </main>
+    </>
   );
 }
 
