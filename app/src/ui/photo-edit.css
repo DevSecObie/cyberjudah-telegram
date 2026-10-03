@@ -1,0 +1,17 @@
+/* An admin's photo editor (photo-edit.tsx): the button under a picture, and the framing sheet.
+   Loaded with the component, so it looks the same on any screen; the sheet maps the --bs-* colours
+   to the app's own and is opaque, so the page under it does not read through. */
+.bs-sheet.photo-sheet { --bs-reverse: var(--surface-1); --bs-default: var(--text-1); --bs-tertiary: var(--text-3); --bs-border: var(--hairline); --bs-light-grey: var(--fill-1); background: var(--surface-1); color: var(--text-1); }
+.photo-sheet .bs-sheet__titles b { color: var(--text-1); }
+.photo-edit { display: flex; justify-content: center; margin: 10px 0 0; }
+.photo-edit__btn { min-height: 36px; padding: 0 14px; border: 0; border-radius: 99px; background: var(--fill-1); color: var(--accent); font: 600 13px/1 var(--font-ui); cursor: pointer; }
+.photo-edit__btn:active { opacity: .7; }
+.photo-sheet .bs-sheet__body { padding: 16px 20px 24px; }
+.photo-frame { position: relative; width: min(100%, 360px); margin: 0 auto; overflow: hidden; border-radius: 16px; background: var(--fill-1); touch-action: none; cursor: grab; display: grid; place-items: center; }
+.photo-frame img { position: absolute; top: 0; left: 0; max-width: none; user-select: none; -webkit-user-select: none; pointer-events: none; }
+.photo-zoom { display: flex; align-items: center; gap: 12px; width: min(100%, 360px); margin: 16px auto 0; font-size: 14px; color: var(--text-2); }
+.photo-zoom input { flex: 1; }
+.photo-actions { display: grid; gap: 10px; width: min(100%, 360px); margin: 18px auto 0; }
+.photo-error { margin: 12px 0 0; text-align: center; color: var(--danger, #d64545); }
+.photo-note { width: min(100%, 360px); margin: 14px auto 0 !important; text-align: center; }
+#root .photo-actions .btn:not(.btn--quiet) { color: var(--on-accent); }

@@ -18,6 +18,7 @@ import { SearchBar, useSettled } from "@/ui/search-bar";
 import { useSheet } from "@/ui/sheet";
 import { Empty, Icon } from "@/ui/ui";
 import { FinalCaptivityDetail } from "./TimelineFinalCaptivity";
+import { PhotoEdit, usePhotos } from "@/ui/photo-edit";
 
 /**
  * Bible Strong's Bible Timeline (strong/apps/expo/src/features/timeline), ported to the web:
@@ -51,14 +52,19 @@ const PERIOD_PICTURES = new Set(["1", "2", "5", "6", "7", "8", "9", "10", "11", 
 
 /** A period's picture, or its colour where the picture waits on direction. Decorative: the title is beside it. */
 function PeriodPicture({ s, className, eager }: { s: TimelineSection; className: string; eager?: boolean }) {
-  return PERIOD_PICTURES.has(s.id)
-    ? <img className={className} src={`${BASE}timeline/periods/${s.id}.webp`} alt="" width={640} height={800} loading={eager ? "eager" : "lazy"} decoding="async" draggable={false} />
+  // A cover an admin set in the app comes first (ui/photo-edit.tsx).
+  const set = usePhotos().data?.[`period:${s.id}`];
+  return set || PERIOD_PICTURES.has(s.id)
+    ? <img className={className} src={set ?? `${BASE}timeline/periods/${s.id}.webp`} alt="" width={640} height={800} loading={eager ? "eager" : "lazy"} decoding="async" draggable={false} />
     : <span className={`${className} tl-pic--none`} style={{ ["--tl-color" as string]: s.color }} aria-hidden="true" />;
 }
 
 /** An event's picture: the approved portrait of its person, at the size drawn (64px strip, 150px detail, search). */
 /** An event's picture: the approved People portrait of its person, or the portrait of the IUIC leader it is about (app/scripts/final-captivity/leaders.json). */
-const portraitSrc = (e: TimelineEvent, size: 128 | 256) => (e.portrait ? `${BASE}people/${e.portrait}-${size}.webp` : e.leader ? `${BASE}timeline/leaders/${e.leader}-${size}.webp` : null);
+const portraitSrc = (e: TimelineEvent, size: 128 | 256, photos?: Record<string, string>) =>
+  // A photo an admin set in the app comes first (ui/photo-edit.tsx): the event's own, then its leader's.
+  photos?.[`event:${e.slug}`] ?? (e.leader ? photos?.[`leader:${e.leader}`] : undefined)
+  ?? (e.portrait ? `${BASE}people/${e.portrait}-${size}.webp` : e.leader ? `${BASE}timeline/leaders/${e.leader}-${size}.webp` : null);
 
 /** Where a period's canvas was, and which event was opened from it, for this visit (the history entry). */
 type Place = { x: number; y: number; focus?: string };
@@ -317,6 +323,7 @@ function PeriodDetails({ s }: { s: TimelineSection }) {
   return (
     <div className="tl-details">
       <SectionCard s={s} />
+      <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.id)} />
       {withCases.length ? (
         <>
           <h2 className="entity__eyebrow">Case studies in this period<span> · {withCases.reduce((n, e) => n + e.cases!.length, 0)}</span></h2>
@@ -334,6 +341,7 @@ function FcPeriodDetails({ s }: { s: TimelineSection }) {
   return (
     <div className="tl-details">
       <SectionCard s={s} />
+      <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.id)} />
       <p className="hint">More events are being added to this period as each one is checked against the classes and the sources.</p>
       {[...groups].map(([g, list]) => (
         <section key={g}>
@@ -356,7 +364,7 @@ function Bar({ e, g, onOpen }: { e: TimelineEvent; g: ReturnType<typeof geometry
   const open = hasDetails(e);
   const label = calculateLabel(e.start, e.end);
   const style: CSSProperties = { top: rowToPx(e.row), left: g.yearsToPx(e.start) + g.offset };
-  const pic = portraitSrc(e, 128);
+  const pic = portraitSrc(e, 128, usePhotos().data);
   const inner = e.type === "minor"
     ? <><span className="tl-minor__title">{e.title}</span><span className="tl-minor__date">{label}</span></>
     : <>
@@ -392,6 +400,7 @@ export function TimelineSearch() {
   const settled = useSettled(input, 250);
   const term = input.trim() === q.trim() ? q : settled;
   const found = useMemo(() => searchEvents(SECTIONS, term), [term]);
+  const photos = usePhotos().data;
   // Typing keeps the words in the address (replaced, not stacked), so coming back finds them.
   useEffect(() => {
     if (term.trim() === q.trim()) return;
@@ -439,7 +448,7 @@ export function TimelineSearch() {
             <div className="srch__head"><h2>Events<span className="srch__count">{found.length}</span></h2></div>
             <ul className="srch__list srch__list--full tl-search__list">
               {found.map((e) => {
-                const pic = portraitSrc(e, 128);
+                const pic = portraitSrc(e, 128, photos);
                 const sub = [e.reign ? `Reign ${reignLabel(e.reign)}` : "", (e.cases ?? []).map((c) => c.name).join(" · ")].filter(Boolean).join(" · ");
                 return (
                   <li key={e.slug}>
@@ -481,6 +490,7 @@ export function TimelineEventScreen() {
   const menu = useMenu(() => setAbout(true), `/timeline/event/${slug}`);
   const e = ALL.find((x) => x.slug === slug);
   const cases = useQueries({ queries: (e?.cases ?? []).map((c) => ({ queryKey: ["case", c.slug], queryFn: () => data.case(c.slug), staleTime: Infinity, retry: 1 })) });
+  const photos = usePhotos();
   // Back from a verse or a case study, the page is where it was once its verses are in.
   useKeptScroll(!cases.some((q) => q.isPending));
   if (!e) return (
@@ -492,12 +502,14 @@ export function TimelineEventScreen() {
   const verses = refs.filter((r) => (seen.has(r.label) ? false : (seen.add(r.label), true)));
   const linked = linkedEvents(SECTIONS, e.slug);
   const loading = cases.some((q) => q.isPending);
-  const pic = portraitSrc(e, 256);
+  const pic = portraitSrc(e, 256, photos.data);
   return (
     <main className="tl-event" style={{ ["--tl-color" as string]: s.color }}>
       <Header title={e.title} onMenu={menu} />
       <div className="tl-event__body">
         {pic ? <img className="tl-event__pic" src={pic} alt="" width={150} height={150} decoding="async" /> : null}
+        {/* An admin sets the picture here: a leader's portrait (on every event about them), else this event's own. */}
+        <PhotoEdit slot={e.leader ? `leader:${e.leader}` : `event:${e.slug}`} label={e.leader ? "Leader's portrait" : "Event photo"} hasPhoto={!!pic} />
         <div className="tl-event__head">
           <p className="tl-event__title">{e.title}</p>
           <p className="tl-event__date">{calculateLabel(e.start, e.end)}</p>
