@@ -64,6 +64,7 @@
   "hebron-exo-6-18",
   "helon-num-1-9",
   "heman-1ch-6-33",
+  "herod-mat-14-1",
   "herod-mat-2-1",
   "heth-gen-10-15",
   "hori-gen-14-6",
@@ -151,5 +152,25 @@
  "notOn": {
   "lamech": "The timeline's Lamech (3080-2303 BC, 777 years, Genesis 5:31) is Noah's father; the approved portrait lamech-gen-4-18 is Lamech of Cain's line"
  },
- "note": "2 October 2026: the approved portraits of Abraham, Isaac, Jacob, Sarah, Lot and Laban are reused wherever they appear (docs/AVATARS.md section 9)."
+ "note": "2 October 2026: the approved portraits of Abraham, Isaac, Jacob, Sarah, Lot and Laban are reused wherever they appear (docs/AVATARS.md section 9).",
+ "events": {
+  "noah": "noah-gen-5-29",
+  "samson": "samson-jdg-13-24",
+  "elijah": "elijah-1ki-17-1",
+  "gideon": "gideon-jdg-6-11",
+  "eli": "eli-1sa-1-3",
+  "jonathan": "jonathan-1sa-13-2",
+  "rehoboam": "rehoboam-1ki-11-43",
+  "hezekiah": "hezekiah-2ki-16-20",
+  "josiah": "josiah-1ki-13-2",
+  "jeremiah": "jeremiah-2ch-35-25",
+  "daniel": "daniel-ezk-14-14",
+  "uzziah": "uzziah-2ki-14-21",
+  "herod-antipas": "herod-mat-14-1",
+  "julius-caesar": "julius-caesar",
+  "augustus-caesar": "augustus-luk-2-1",
+  "roman-reign-of-constantine-the-great": "constantine",
+  "pope-leo-x": "leo-x"
+ },
+ "eventsNote": "Events whose title names more than one person, or a figure outside the People index: event slug to portrait. Edomite and Roman figures are public-domain artworks (docs/AVATARS.md 9.5), not Higgsfield."
 }
