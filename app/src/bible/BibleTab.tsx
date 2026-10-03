@@ -63,9 +63,10 @@ export function BibleTab() {
     const root = document.documentElement.style;
     const dark = isDarkTheme(theme);
     const dock: Record<string, string> = {
-      "--dock-tint-override": `color-mix(in srgb, ${palette.reverse} 78%, transparent)`,
+      "--dock-base-override": palette.reverse,
+      "--dock-tint-override": `color-mix(in srgb, ${palette.reverse} var(--mat-density), transparent)`,
       "--dock-ink-override": palette.default,
-      "--dock-selected-override": dark ? "color-mix(in srgb, #ffffff 14%, transparent)" : "color-mix(in srgb, #ffffff 92%, transparent)",
+      "--dock-selected-override": `color-mix(in srgb, ${palette.default} ${dark ? 14 : 9}%, transparent)`,
       "--dock-edge-override": dark ? "color-mix(in srgb, #ffffff 12%, transparent)" : "color-mix(in srgb, #000000 9%, transparent)",
     };
     for (const [k, v] of Object.entries(dock)) root.setProperty(k, v);

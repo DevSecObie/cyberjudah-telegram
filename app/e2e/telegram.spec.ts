@@ -327,8 +327,10 @@ test("liquid glass: pressing the current section lifts its pill, dragging carrie
   await expect(dock).toHaveAttribute("data-lift", "");
   for (let i = 1; i <= 8; i++) await page.mouse.move(from!.x + from!.width / 2 + ((to!.x - from!.x) * i) / 8, from!.y + from!.height / 2);
   await expect(dock).toHaveAttribute("data-drag", "");
-  // The icon under the lens swells.
-  expect(Number(await dock.locator(".tab", { hasText: "Classes" }).evaluate((b) => b.style.getPropertyValue("--mag")))).toBeGreaterThan(1.1);
+  // Feedback is present but restrained, so icons stay inside their navigation targets.
+  const magnification = Number(await dock.locator(".tab", { hasText: "Classes" }).evaluate((b) => b.style.getPropertyValue("--mag")));
+  expect(magnification).toBeGreaterThan(1);
+  expect(magnification).toBeLessThanOrEqual(1.06);
   if (process.env.SHOTS) await dock.screenshot({ path: `${process.env.SHOTS}/liquid-drag.png` });
   await page.mouse.up();
   await expect(page).toHaveURL(/\/classes/);
