@@ -355,7 +355,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-deck__card { grid-area: 1 / 1; place-self: center; display: block; box-sizing: border-box; overflow: hidden; border: 2px solid; background: rgba(128, 128, 128, .22); box-shadow: 0 2px 7px rgba(0, 0, 0, .22); transform-origin: center; }
 .bs-deck__card img, .bs-gallery__pic img, .bs-player__box img { display: block; width: 100%; height: 100%; object-fit: cover; transition: opacity 160ms ease; }
 
-/* The gallery over the page: the page colour at half strength, blurred; two columns of 16:9 cards. */
+/* Gallery content uses an opaque page surface; navigation owns the glass material. */
 .bs-gallery { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; overflow: hidden; overscroll-behavior: contain; -webkit-user-select: none; user-select: none;
   background: color-mix(in srgb, var(--deck-bg) 0%, transparent);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -422,7 +422,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 /* The gallery dims the page instead of blurring it: a full-screen filter, animated, is the one
    effect the budget rules out. */
 .bs-gallery { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-.bs-gallery[data-open] { background: color-mix(in srgb, var(--deck-bg) 92%, transparent); }
+.bs-gallery[data-open] { background: var(--deck-bg); }
 
 /* Header selectors use the same glass material as the existing sheets. */
 .bs-picker-scrim { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-start; justify-content: center; padding: calc(var(--safe-top, 0px) + 62px) 12px 12px; background: transparent; }

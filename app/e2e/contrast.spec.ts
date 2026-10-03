@@ -74,6 +74,10 @@ for (const theme of ["default", "dark", "sepia", "nature", "sunset", "black", "m
     await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
     await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
     const check = async () => {
+      if (await page.locator(".bs-gallery").count()) {
+        const canvas = await page.locator("body").evaluate(el => getComputedStyle(el).backgroundColor);
+        await expect(page.locator(".bs-gallery")).toHaveCSS("background-color", canvas);
+      }
       await page.evaluate(async () => { await Promise.all(document.getAnimations().filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))); });
       await expect(async () => {
         const result = await page.evaluate(auditContrast, { includePanels: true });
