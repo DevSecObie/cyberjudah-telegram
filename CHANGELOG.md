@@ -95,6 +95,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   in the Bible*. Regenerate the data with `node app/scripts/timeline-data.mjs <cases>`.
 
 ### Fixed
+- Navigation materials share opaque accessibility fallbacks; menus avoid stacked glass, while content sheets and media controls keep their text legible.
 - The glass dock keeps its labels crisp in every browser, with one material behind the controls,
   a gentle selection response and tint that preserves contrast in every reader palette. Ordinary
   taps and canceled drags work reliably. Reduce Transparency also makes the Bible dock opaque,

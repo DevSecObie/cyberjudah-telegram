@@ -7,7 +7,7 @@
      content     .surface / cards: tinted, edged, no backdrop filter
      navigation  .glass: the header bar and the dock, the only two frosted layers on a screen
      elevated    menus and popovers: a denser glass, transient
-     overlay     sheets, drawers and dialogs: near-opaque over a dimming scrim, no blur of their own
+     overlay     sheets, drawers and dialogs: opaque over a dimming scrim, no blur of their own
 
    Budget: at most two backdrop filters are visible at rest (the header and the dock); a transient
    menu may make three. Repeated items never carry a filter, and nothing animates a blur.
@@ -52,7 +52,7 @@
   content: ""; position: absolute; z-index: -1; top: 0; bottom: -14px; left: 50%; width: 100vw; margin-left: -50vw; pointer-events: none;
   background: var(--mat-nav);
   -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
-  -webkit-mask-image: linear-gradient(#000 calc(100% - 14px), transparent); mask-image: linear-gradient(#000 calc(100% - 14px), transparent);
+  -webkit-mask-image: var(--mat-scroll-edge); mask-image: var(--mat-scroll-edge);
 }
 /* A hairline where the glass meets the page, drawn inside the fade so it reads as an edge. */
 .screen > .head::after, .srch__bar::after, .chat2__bar::after, .reader__bar::after {
@@ -72,7 +72,7 @@
   border: .5px solid var(--dock-edge-override, var(--mat-edge));
   box-shadow: var(--mat-highlight), var(--mat-shadow);
   touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
-  transition: transform var(--dur-4) var(--drawer-ease), width var(--dur-3) var(--ease), height var(--dur-3) var(--ease), border-radius var(--dur-3) var(--ease);
+  transition: transform var(--dur-4) var(--drawer-ease);
 }
 /* One regular material behind the controls, in Safari as well as Chromium. The selection is a
    fill on this surface, never a second backdrop filter over the labels. */
@@ -81,6 +81,11 @@
   background: var(--dock-tint-override, var(--mat-nav));
   -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
 }
+/* A floating selection sheet can cover the dock. Keep its underlying surface solid, including
+   on desktop where part of the rail remains visible; only the header and sheet then blur. */
+html:has(.bs-selected) .tabs::before { background: var(--dock-base-override, var(--mat-base)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* Full-screen media already covers the app's navigation. Do not keep hidden filters running. */
+html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__bar)::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* A specular edge responds to the press position without distorting the text or sampling a
    second backdrop. The highlight fades into the material, not into a coloured fringe. */
 .tabs::after {
@@ -94,7 +99,6 @@
   position: relative; z-index: 1; flex: 1 1 0; min-width: var(--touch); height: 48px; padding: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   border: 0; border-radius: 24px; background: none; color: var(--dock-ink-override, var(--text-2)); cursor: pointer;
-  transition: color var(--dur-2) ease;
 }
 .tab__glyph { display: grid; place-items: center; height: 26px; transition: transform var(--dur-1) var(--ease); }
 .tabs .tab:active .tab__glyph { transform: scale(.88); }
@@ -109,9 +113,10 @@
   background: var(--dock-selected-override, var(--mat-selected));
   box-shadow: inset 0 1px 0 color-mix(in srgb, white 14%, transparent), 0 1px 3px rgb(0 0 0 / .06);
   scale: var(--pill-sx, 1) var(--pill-sy, 1);
-  transition: transform var(--dur-3) var(--ease-spring), width var(--dur-3) var(--ease-spring), height var(--dur-3) var(--ease-spring), opacity var(--dur-2) ease;
+  transition: transform var(--dur-3) var(--ease-spring), opacity var(--dur-2) ease;
 }
 .tabs[data-lift] .tabs__pill {
+  will-change: transform;
   transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(1.06, 1.04);
   box-shadow: inset 0 1px 0 color-mix(in srgb, white 28%, transparent), 0 3px 8px rgb(0 0 0 / .1);
   transition: transform var(--dur-2) var(--ease-spring), scale var(--dur-1) ease, opacity var(--dur-2) ease;
