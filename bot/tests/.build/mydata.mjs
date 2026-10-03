@@ -581,25 +581,15 @@ function publicView(rec) {
   };
 }
 
-// src/remind.ts
-var PREFIX = "remind:";
-var recKey = (rid) => `${PREFIX}${rid}`;
-var tgRid = async (env, uid) => `tg:${await pid(env, uid)}`;
-var LINK_TTL = 15 * 60;
+// src/device.ts
 var IDLE_TTL = 180 * 86400;
 var CREATE_PER_DAY = 100;
+var CREDENTIAL = /^([0-9a-f]{32})\.([A-Za-z0-9_-]{43})$/;
 async function sha256(s) {
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 var randomHex = (n) => [...crypto.getRandomValues(new Uint8Array(n))].map((b) => b.toString(16).padStart(2, "0")).join("");
-async function loadReminder(env, rid) {
-  return open(env, recKey(rid), await env.SUBS.get(recKey(rid)));
-}
-async function saveReminder(env, rid, rec) {
-  await env.SUBS.put(recKey(rid), await seal(env, recKey(rid), rec), { metadata: meta(rec), ...rid.startsWith("dev:") ? { expirationTtl: IDLE_TTL } : {} });
-}
-var putIndex = async (env, endpoint, rid) => env.SUBS.put(`pushep:${await sha256(endpoint)}`, rid, { expirationTtl: IDLE_TTL });
 function same(a, b) {
   if (a.length !== b.length) return false;
   let d = 0;
@@ -614,8 +604,42 @@ async function overLimit(env, key2) {
     return false;
   }
 }
-var tooMany = (c) => c.json({ ok: false, error: "rate-limited" }, 429, { "retry-after": "60" });
 var clientIp = (c) => c.req.header("cf-connecting-ip") ?? "unknown";
+async function deviceOf(env, header) {
+  const d = CREDENTIAL.exec(header ?? "");
+  if (!d) return null;
+  const saved = await env.SUBS.get(`remdev:${d[1]}`, "json");
+  if (!saved || !same(saved.h, await sha256(d[2]))) return null;
+  const today2 = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+  if (saved.t !== today2) await env.SUBS.put(`remdev:${d[1]}`, JSON.stringify({ ...saved, t: today2 }), { expirationTtl: IDLE_TTL });
+  return { dev: d[1], rid: saved.rid };
+}
+var forgetDevice = (env, dev) => env.SUBS.delete(`remdev:${dev}`);
+async function issueDevice(env, ip) {
+  if (await overLimit(env, `create:${ip}`)) return { ok: false, error: "rate-limited" };
+  const dayKey = `remcreate:${await sha256(ip)}:${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}`;
+  const made = Number(await env.SUBS.get(dayKey)) || 0;
+  if (made >= CREATE_PER_DAY) return { ok: false, error: "rate-limited" };
+  await env.SUBS.put(dayKey, String(made + 1), { expirationTtl: 2 * 86400 });
+  const id = randomHex(16), secret = b64u(crypto.getRandomValues(new Uint8Array(32)));
+  const device = { dev: id, rid: `dev:${id}` };
+  await env.SUBS.put(`remdev:${id}`, JSON.stringify({ h: await sha256(secret), rid: device.rid, t: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10) }), { expirationTtl: IDLE_TTL });
+  return { ok: true, device, credential: `${id}.${secret}` };
+}
+
+// src/remind.ts
+var PREFIX = "remind:";
+var recKey = (rid) => `${PREFIX}${rid}`;
+var tgRid = async (env, uid) => `tg:${await pid(env, uid)}`;
+var LINK_TTL = 15 * 60;
+async function loadReminder(env, rid) {
+  return open(env, recKey(rid), await env.SUBS.get(recKey(rid)));
+}
+async function saveReminder(env, rid, rec) {
+  await env.SUBS.put(recKey(rid), await seal(env, recKey(rid), rec), { metadata: meta(rec), ...rid.startsWith("dev:") ? { expirationTtl: IDLE_TTL } : {} });
+}
+var putIndex = async (env, endpoint, rid) => env.SUBS.put(`pushep:${await sha256(endpoint)}`, rid, { expirationTtl: IDLE_TTL });
+var tooMany = (c) => c.json({ ok: false, error: "rate-limited" }, 429, { "retry-after": "60" });
 var pushable = (env, sub) => validSubscription(sub, env.PUSH_TEST_ORIGIN);
 function vapidKeys(env) {
   return env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT ? { publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY, subject: env.VAPID_SUBJECT } : null;
@@ -635,13 +659,8 @@ async function resolveWho(c) {
     const data = await validateInitData(m[1], c.env.BOT_TOKEN, 30 * 86400);
     return data?.user ? { kind: "telegram", uid: data.user.id, rid: await tgRid(c.env, data.user.id) } : null;
   }
-  const d = /^([0-9a-f]{32})\.([A-Za-z0-9_-]{43})$/.exec(c.req.header("x-cj-device") ?? "");
-  if (!d) return null;
-  const saved = await c.env.SUBS.get(`remdev:${d[1]}`, "json");
-  if (!saved || !same(saved.h, await sha256(d[2]))) return null;
-  const today2 = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
-  if (saved.t !== today2) await c.env.SUBS.put(`remdev:${d[1]}`, JSON.stringify({ ...saved, t: today2 }), { expirationTtl: IDLE_TTL });
-  return { kind: "device", dev: d[1], rid: saved.rid };
+  const d = await deviceOf(c.env, c.req.header("x-cj-device"));
+  return d ? { kind: "device", ...d } : null;
 }
 function telegramMessage(p) {
   return p.kind === "plan" ? `<b>Today's reading</b>
@@ -711,16 +730,10 @@ reminders.put("/", async (c) => {
   let device;
   if (!w) {
     if (c.req.header("authorization") || c.req.header("x-cj-device")) return c.json({ ok: false, error: "unauthorized" }, 401);
-    const ip = clientIp(c);
-    if (await overLimit(c.env, `create:${ip}`)) return tooMany(c);
-    const dayKey = `remcreate:${await sha256(ip)}:${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}`;
-    const made = Number(await c.env.SUBS.get(dayKey)) || 0;
-    if (made >= CREATE_PER_DAY) return c.json({ ok: false, error: "rate-limited" }, 429, { "retry-after": "3600" });
-    await c.env.SUBS.put(dayKey, String(made + 1), { expirationTtl: 2 * 86400 });
-    const id = randomHex(16), secret = b64u(crypto.getRandomValues(new Uint8Array(32)));
-    await c.env.SUBS.put(`remdev:${id}`, JSON.stringify({ h: await sha256(secret), rid: `dev:${id}`, t: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10) }), { expirationTtl: IDLE_TTL });
-    w = { kind: "device", dev: id, rid: `dev:${id}` };
-    device = `${id}.${secret}`;
+    const made = await issueDevice(c.env, clientIp(c));
+    if (!made.ok) return tooMany(c);
+    w = { kind: "device", ...made.device };
+    device = made.credential;
   }
   const now = /* @__PURE__ */ new Date();
   let rec = await loadReminder(c.env, w.rid) ?? blank();
@@ -753,7 +766,7 @@ reminders.delete("/", async (c) => {
   } else if (rec && typeof body?.endpoint === "string" && body.endpoint.length <= 1024) {
     await saveReminder(c.env, w.rid, await removePushFrom(c.env, rec, body.endpoint));
   }
-  if (w.kind === "device") await c.env.SUBS.delete(`remdev:${w.dev}`);
+  if (w.kind === "device") await forgetDevice(c.env, w.dev);
   return c.json({ ok: true });
 });
 reminders.post("/done", async (c) => {

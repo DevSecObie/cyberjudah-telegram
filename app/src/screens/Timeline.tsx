@@ -1,13 +1,7 @@
-import { useQueries } from "@tanstack/react-query";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { Link, useLocation, useNavigate, useNavigationType, useParams, useSearchParams } from "react-router";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as RMouseEvent, type ReactNode } from "react";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
-import {
-  calculateLabel, dateMarks, flatten, geometry, hasDetails, linkedEvents, rowToPx, searchEvents,
-  type TimelineData, type TimelineEvent, type TimelineSection,
-} from "@shared/timeline.mjs";
-import raw from "@/data/timeline.json";
-import { data, type ResolvedRef } from "@/api/data";
+import { calculateLabel, dateMarks, geometry, hasDetails, rowToPx, searchEvents, type TimelineEvent, type TimelineSection } from "@shared/timeline.mjs";
 import { Feather } from "@/bible/icons";
 import { newTab } from "@/lib/tabs";
 import { useKeptScroll } from "@/lib/place";
@@ -16,7 +10,9 @@ import { haptic, hideKeyboard } from "@/tg/sdk";
 import { Lit } from "@/ui/search-hero";
 import { SearchBar, useSettled } from "@/ui/search-bar";
 import { useSheet } from "@/ui/sheet";
-import { Empty, Icon } from "@/ui/ui";
+import { Icon } from "@/ui/ui";
+import { SECTIONS, portraitSrc, reducedMotion, reignLabel } from "@/lib/timeline";
+import { TimelineEventSheet, useEventSheet } from "./TimelineEvent";
 
 /**
  * Bible Strong's Bible Timeline (strong/apps/expo/src/features/timeline), ported to the web:
@@ -33,9 +29,6 @@ import { Empty, Icon } from "@/ui/ui";
  * of the person it is about (docs/TIMELINE_PARITY.md lists them, and the periods still waiting).
  * docs/TIMELINE_PARITY.md is the checklist of their behaviour, item by item.
  */
-const TL = raw as TimelineData;
-const SECTIONS = TL.sections;
-const ALL = flatten(SECTIONS);
 const BASE = import.meta.env.BASE_URL;
 
 /**
@@ -52,15 +45,12 @@ function PeriodPicture({ s, className, eager }: { s: TimelineSection; className:
     : <span className={`${className} tl-pic--none`} style={{ ["--tl-color" as string]: s.color }} aria-hidden="true" />;
 }
 
-/** An event's picture: the approved portrait of its person, at the size drawn (64px strip, 150px detail, search). */
-const portraitSrc = (e: TimelineEvent, size: 128 | 256) => (e.portrait ? `${BASE}people/${e.portrait}-${size}.webp` : null);
 
 /** Where a period's canvas was, and which event was opened from it, for this visit (the history entry). */
 type Place = { x: number; y: number; focus?: string };
 const placeKey = (key: string) => `visit:${key}:timeline`;
 const readPlace = (key: string): Place | undefined => { try { const v = sessionStorage.getItem(placeKey(key)); return v ? JSON.parse(v) as Place : undefined; } catch { return undefined; } };
 const writePlace = (key: string, p: Place) => { try { sessionStorage.setItem(placeKey(key), JSON.stringify(p)); } catch { /* private mode */ } };
-const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** The menu at the right of a header (their ContextualMenu): Details, Open in a new tab. */
 function useMenu(onDetails: () => void, path: string) {
@@ -189,6 +179,9 @@ export function TimelinePeriod() {
   const [params] = useSearchParams();
   const { key } = useLocation();
   const navigate = useNavigate();
+  // The event open over the canvas (?event=), as a sheet: the canvas stays mounted under it.
+  const sheet = useEventSheet();
+  const [cover, setCover] = useState(0);
   const index = Math.min(Math.max(Number(n) || 0, 0), SECTIONS.length - 1);
   const s = SECTIONS[index];
   const prev = SECTIONS[index - 1], next = SECTIONS[index + 1];
@@ -203,7 +196,7 @@ export function TimelinePeriod() {
   const fromNext = params.get("from") === "next";
   // A visit already made (coming back to it) is put back; a new one enters.
   const [kept] = useState(() => readPlace(key));
-  const [phase, setPhase] = useState<"card" | "slide" | "ready">(() => (kept || reducedMotion() ? "ready" : "card"));
+  const [phase, setPhase] = useState<"card" | "slide" | "ready">(() => (kept || reducedMotion() || sheet.slug ? "ready" : "card"));
 
   useEffect(() => {
     const on = () => setVw(box.current?.clientWidth || Math.min(window.innerWidth, 1400));
@@ -255,11 +248,39 @@ export function TimelinePeriod() {
     el.addEventListener("scrollend", onScrollEnd);
     return () => el.removeEventListener("scrollend", onScrollEnd);
   });
-  /** Opening an event: remember the place and the event, so coming back finds both. */
-  const opened = (slug: string) => {
+  /** Opening an event: remember the place and the event, so coming back finds both; then show it over the canvas. */
+  const openRef = useRef(sheet.open);
+  openRef.current = sheet.open;
+  const opened = useCallback((slug: string) => {
     const el = box.current;
     writePlace(key, { x: Math.round(el?.scrollLeft ?? 0), y: Math.round(el?.scrollTop ?? 0), focus: slug });
-  };
+    openRef.current(slug);
+  }, [key]);
+  // Each event shown is a history entry of this same screen: the place goes with it, so Back, or
+  // coming back from a verse or a person, finds the canvas where it was.
+  useEffect(() => {
+    const el = box.current;
+    if (el) writePlace(key, { x: Math.round(el.scrollLeft), y: Math.round(el.scrollTop), focus: sheet.slug ?? readPlace(key)?.focus });
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Closing the sheet puts the focus back on the event it showed, as the old page's back did.
+  const shown = useRef(sheet.slug);
+  useEffect(() => {
+    const was = shown.current;
+    shown.current = sheet.slug;
+    if (was && !sheet.slug) box.current?.querySelector<HTMLElement>(`[data-slug="${CSS.escape(was)}"]`)?.focus({ preventScroll: true });
+  }, [sheet.slug]);
+  // An event of this period opened from the sheet (a linked event, a link) is brought into view
+  // if it is not already: under the line, above the sheet. A bar tapped is in view, so nothing moves.
+  useEffect(() => {
+    const e = sheet.event, el = box.current;
+    if (!e || !el || e.sectionIndex !== index) return;
+    const bar = el.querySelector<HTMLElement>(`[data-slug="${CSS.escape(e.slug)}"]`);
+    if (!bar) return;
+    const r = bar.getBoundingClientRect(), v = el.getBoundingClientRect();
+    const seen = r.right > v.left + 24 && r.left < v.right - 24 && r.bottom > v.top && r.top < v.bottom - Math.max(cover, 0);
+    if (seen) return;
+    el.scrollTo({ left: lead + g.yearsToPx(e.start), top: Math.max(0, rowToPx(e.row) - 24), behavior: reducedMotion() ? "auto" : "smooth" });
+  }, [sheet.slug]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const marks = dateMarks(s);
   // Past either end, the line and the year go with the canvas, and the neighbour's card shows through.
@@ -275,10 +296,10 @@ export function TimelinePeriod() {
         {next ? <div className="tl-behind" style={{ opacity: nextShown }} aria-hidden="true"><SectionCard s={next} direction="next" /></div> : null}
         {phase !== "ready" ? <div className="tl-behind tl-behind--current" aria-hidden="true"><SectionCard s={s} /></div> : null}
         <div ref={box} className="tl-scroll" onScroll={onScroll} tabIndex={0} aria-label={`${s.title}, ${s.subTitle}: the events by year. Scroll sideways along the years.`}>
-          <div className="tl-world" data-from={fromNext ? "next" : "prev"} style={{ width: lead + g.width + (next ? vw : 0), height: g.height }}>
+          <div className="tl-world" data-from={fromNext ? "next" : "prev"} style={{ width: lead + g.width + (next ? vw : 0), height: g.height + cover }}>
             {prev ? <button type="button" className="tl-panel" style={{ left: 0, width: vw }} onClick={() => go(index - 1, "next")} aria-label={`Previous period: ${prev.title}`} /> : null}
             <div className="tl-canvas" style={{ left: lead, width: g.width, height: g.height }}>
-              {s.events.map((e) => <Bar key={`${e.id}-${e.slug}`} e={e} g={g} onOpen={opened} />)}
+              {s.events.map((e) => <Bar key={`${e.id}-${e.slug}`} e={e} g={g} onOpen={opened} selected={e.slug === sheet.slug} />)}
               <div className="tl-datebar" style={{ width: g.width, paddingLeft: g.offset }} aria-hidden="true">
                 {marks.map((year, i) => <span key={year} style={{ left: g.offset + i * 100 }}>{year < 2020 ? Math.abs(year) : "Future"}</span>)}
               </div>
@@ -294,13 +315,14 @@ export function TimelinePeriod() {
         {next ? <button type="button" className="tl-current__nav tl-current__nav--next" style={{ color: next.color }} aria-label={`Next period: ${next.title}`} onClick={() => go(index + 1)}><Feather name="chevrons-right" size={20} color="currentColor" /></button> : null}
         <i className="tl-current__progress" style={{ width: `${g.progress(Math.min(end, Math.max(0, left)))}%` }} aria-hidden="true" />
       </div>
-      {details ? <Panel title={s.sectionTitle} onClose={() => setDetails(false)}><PeriodDetails s={s} /></Panel> : null}
+      {details ? <Panel title={s.sectionTitle} onClose={() => setDetails(false)}><PeriodDetails s={s} onOpen={(slug) => { setDetails(false); opened(slug); }} /></Panel> : null}
+      {sheet.event ? <TimelineEventSheet event={sheet.event} onClose={sheet.close} onOpen={(slug) => sheet.open(slug, "push")} onCover={setCover} /> : null}
     </main>
   );
 }
 
 /** SectionDetailsModal: the period's card with its picture; in place of their description, the case studies on its events. */
-function PeriodDetails({ s }: { s: TimelineSection }) {
+function PeriodDetails({ s, onOpen }: { s: TimelineSection; onOpen: (slug: string) => void }) {
   const withCases = s.events.filter((e) => e.cases?.length);
   return (
     <div className="tl-details">
@@ -308,7 +330,7 @@ function PeriodDetails({ s }: { s: TimelineSection }) {
       {withCases.length ? (
         <>
           <h2 className="entity__eyebrow">Case studies in this period<span> · {withCases.reduce((n, e) => n + e.cases!.length, 0)}</span></h2>
-          <ul className="tl-details__list">{withCases.map((e) => <li key={e.slug}><Link to={`/timeline/event/${e.slug}`} onClick={() => haptic("select")}><b>{e.title}</b><span>{calculateLabel(e.start, e.end)}</span></Link></li>)}</ul>
+          <ul className="tl-details__list">{withCases.map((e) => <li key={e.slug}><Link to={`?event=${encodeURIComponent(e.slug)}`} onClick={(ev) => { ev.preventDefault(); haptic("select"); onOpen(e.slug); }}><b>{e.title}</b><span>{calculateLabel(e.start, e.end)}</span></Link></li>)}</ul>
         </>
       ) : <p className="hint">No case study is on an event of this period yet.</p>}
     </div>
@@ -321,7 +343,7 @@ function PeriodDetails({ s }: { s: TimelineSection }) {
  * minor one is a 25px pill. An event with nothing to open is dimmed and does not open, as theirs
  * without details.
  */
-function Bar({ e, g, onOpen }: { e: TimelineEvent; g: ReturnType<typeof geometry>; onOpen: (slug: string) => void }) {
+const Bar = memo(function Bar({ e, g, onOpen, selected }: { e: TimelineEvent; g: ReturnType<typeof geometry>; onOpen: (slug: string) => void; selected: boolean }) {
   const open = hasDetails(e);
   const label = calculateLabel(e.start, e.end);
   const style: CSSProperties = { top: rowToPx(e.row), left: g.yearsToPx(e.start) + g.offset };
@@ -334,12 +356,14 @@ function Bar({ e, g, onOpen }: { e: TimelineEvent; g: ReturnType<typeof geometry
       </>;
   const cls = e.type === "minor" ? "tl-minor" : "tl-major";
   if (e.type !== "minor") style.width = g.eventWidth(e.start, e.end, e.isFixed);
+  // A link to the event over this period (?event=), opened in place: the sheet, not a new page.
+  const tap = (ev: RMouseEvent) => { if (ev.metaKey || ev.ctrlKey || ev.shiftKey) return; ev.preventDefault(); haptic("select"); onOpen(e.slug); };
   return open
-    ? <Link to={`/timeline/event/${e.slug}`} className={cls} style={style} data-slug={e.slug} data-cases={e.cases?.length || undefined}
+    ? <Link to={`?event=${encodeURIComponent(e.slug)}`} className={cls} style={style} data-slug={e.slug} data-cases={e.cases?.length || undefined} aria-current={selected ? "true" : undefined}
         // A tap does not move the canvas: focus from a pointer would scroll the bar into view first.
-        onMouseDown={(ev) => ev.preventDefault()} onClick={() => { haptic("select"); onOpen(e.slug); }}>{inner}</Link>
+        onMouseDown={(ev) => ev.preventDefault()} onClick={tap}>{inner}</Link>
     : <span className={cls} style={style} data-off="">{inner}</span>;
-}
+});
 
 /** Events to try, among those that open, for the empty search. */
 const TRY = ["Solomon", "Moses", "Ahaziah", "Esther", "853", "Cain"];
@@ -357,6 +381,8 @@ export function TimelineSearch() {
   const [input, setInput] = useState(q);
   const [recent, setRecent] = useStored<string[]>("tl-recent", []);
   const results = useRef<HTMLDivElement>(null);
+  // A result opens over the search (?event=), so its words and results stay as they were.
+  const sheet = useEventSheet();
   useEffect(() => { setInput(q); }, [q]);
   const settled = useSettled(input, 250);
   const term = input.trim() === q.trim() ? q : settled;
@@ -364,7 +390,7 @@ export function TimelineSearch() {
   // Typing keeps the words in the address (replaced, not stacked), so coming back finds them.
   useEffect(() => {
     if (term.trim() === q.trim()) return;
-    setParams(term.trim() ? { q: term.trim() } : {}, { replace: true });
+    setParams((p) => { const n = new URLSearchParams(p); if (term.trim()) n.set("q", term.trim()); else n.delete("q"); return n; }, { replace: true });
   }, [term]); // eslint-disable-line react-hooks/exhaustive-deps
   useKeptScroll(true);
   const submit = (text = input) => {
@@ -412,7 +438,8 @@ export function TimelineSearch() {
                 const sub = [e.reign ? `Reign ${reignLabel(e.reign)}` : "", (e.cases ?? []).map((c) => c.name).join(" · ")].filter(Boolean).join(" · ");
                 return (
                   <li key={e.slug}>
-                    <Link to={`/timeline/event/${e.slug}`} data-result="" className="srch__hit" onClick={() => haptic("select")}>
+                    <Link to={`?${new URLSearchParams({ ...(q ? { q } : {}), event: e.slug })}`} data-result="" className="srch__hit" aria-current={sheet.slug === e.slug ? "true" : undefined}
+                      onClick={(ev) => { if (ev.metaKey || ev.ctrlKey || ev.shiftKey) return; ev.preventDefault(); haptic("select"); sheet.open(e.slug); }}>
                       {pic ? <img className="tl-search__pic" src={pic} alt="" width={70} height={70} loading="lazy" decoding="async" /> : <span className="srch__kind" data-kind="history"><Icon name="history" size={18} /></span>}
                       <span className="srch__body">
                         <span className="srch__title"><Lit text={`${e.title} (${calculateLabel(e.start, e.end)})`} needle={typed} /></span>
@@ -432,91 +459,7 @@ export function TimelineSearch() {
           </div>
         )}
       </div>
-    </main>
-  );
-}
-
-const reignLabel = (r: NonNullable<TimelineEvent["reign"]>) => `${r.approx ? "c. " : ""}${r.from === r.to ? r.from : `${r.from}–${r.to}`} BC, ${r.kingdom === "United" ? "the united kingdom" : r.kingdom}`;
-
-/**
- * EventScreen and EventDetails: the title and date; in place of their description, the
- * reign from Who's Who and our case studies; the verses of those case studies (the first
- * three of each passage, as theirs, opening the Bible at it); and the events linked to it.
- */
-export function TimelineEventScreen() {
-  useBackButton(false);
-  const { slug = "" } = useParams();
-  const [about, setAbout] = useState(false);
-  const menu = useMenu(() => setAbout(true), `/timeline/event/${slug}`);
-  const e = ALL.find((x) => x.slug === slug);
-  const cases = useQueries({ queries: (e?.cases ?? []).map((c) => ({ queryKey: ["case", c.slug], queryFn: () => data.case(c.slug), staleTime: Infinity, retry: 1 })) });
-  // Back from a verse or a case study, the page is where it was once its verses are in.
-  useKeptScroll(!cases.some((q) => q.isPending));
-  if (!e) return (
-    <main className="tl-event"><Header title="Bible timeline" /><Empty title="This event is no longer available.">Go back to <Link to="/timeline">the timeline</Link>.</Empty></main>
-  );
-  const s = SECTIONS[e.sectionIndex];
-  const refs: ResolvedRef[] = cases.flatMap((q) => (q.data?.refsResolved ?? []).filter((r) => r.slug && r.text.length));
-  const seen = new Set<string>();
-  const verses = refs.filter((r) => (seen.has(r.label) ? false : (seen.add(r.label), true)));
-  const linked = linkedEvents(SECTIONS, e.slug);
-  const loading = cases.some((q) => q.isPending);
-  const pic = portraitSrc(e, 256);
-  return (
-    <main className="tl-event" style={{ ["--tl-color" as string]: s.color }}>
-      <Header title={e.title} onMenu={menu} />
-      <div className="tl-event__body">
-        {pic ? <img className="tl-event__pic" src={pic} alt="" width={150} height={150} decoding="async" /> : null}
-        <div className="tl-event__head">
-          <p className="tl-event__title">{e.title}</p>
-          <p className="tl-event__date">{calculateLabel(e.start, e.end)}</p>
-          <Link className="tl-event__period" to={`/timeline/${e.sectionIndex}`}>{s.title} · {s.subTitle}</Link>
-        </div>
-
-        {e.reign ? (
-          <section className="tl-event__section" aria-label="Reign">
-            <h2>Reign</h2>
-            <p>{reignLabel(e.reign)} <span className="tl-event__src">Who's Who in the Bible</span></p>
-          </section>
-        ) : null}
-
-        {e.cases?.length ? (
-          <section className="tl-event__section" aria-label="Case studies">
-            <h2>Case studies</h2>
-            <ul className="tl-event__cases">
-              {e.cases.map((c, i) => {
-                const k = cases[i]?.data;
-                return (
-                  <li key={c.slug}><Link to={k?.url ?? `/cases`} className="tl-related" data-kind={c.kind} onClick={() => haptic("select")}>
-                    <span><b>{c.name}</b>{k?.charge ? <small>{k.charge}</small> : null}</span>
-                    <Feather name="chevron-right" size={22} color="currentColor" />
-                  </Link></li>
-                );
-              })}
-            </ul>
-          </section>
-        ) : null}
-
-        {verses.length ? (
-          <section className="tl-event__section" aria-label="Verses">
-            <h2>Verses</h2>
-            {verses.map((r) => (
-              <Link key={r.label} className="tl-verse" to={`/read/${r.slug}/${r.chapter}${r.verses ? `?v=${r.verses.replace(/\s+/g, "")}` : ""}`} onClick={() => haptic("select")}>
-                <span className="tl-verse__ref">{r.label}</span>
-                <span className="tl-verse__text">{r.text.slice(0, 3).map((v) => <span key={v.verse}><sup>{v.verse}</sup> {v.text} </span>)}{r.text.length > 3 ? "…" : null}</span>
-              </Link>
-            ))}
-          </section>
-        ) : loading && e.cases?.length ? <p className="hint" aria-busy="true">Loading the verses…</p> : null}
-
-        {linked.length ? (
-          <section className="tl-event__section" aria-label="Linked events">
-            <h2>Linked events</h2>
-            {linked.map((l) => <Link key={l.slug} to={`/timeline/event/${l.slug}`} className="tl-related" onClick={() => haptic("select")}><span><b>{l.title}</b><small>{calculateLabel(l.start, l.end)}</small></span><Feather name="chevron-right" size={22} color="currentColor" /></Link>)}
-          </section>
-        ) : null}
-      </div>
-      {about ? <Panel title="Details" onClose={() => setAbout(false)}><About /></Panel> : null}
+      {sheet.event ? <TimelineEventSheet event={sheet.event} onClose={sheet.close} onOpen={(slug) => sheet.open(slug, "push")} /> : null}
     </main>
   );
 }

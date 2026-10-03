@@ -12,7 +12,8 @@ import {
   addPush, claim, release, pause, portion, telegramBack, publicView, pushOutcome, removePush, stop, telegramGone, validTz, PAUSE_CHOICES,
   type Meta, type Portion, type Reminder,
 } from "./reminders.mjs";
-import { b64u, sendPush, validSubscription, type VapidKeys } from "./webpush.mjs";
+import { sendPush, validSubscription, type VapidKeys } from "./webpush.mjs";
+import { clientIp, deviceOf, forgetDevice, issueDevice, overLimit, randomHex, repointDevice, sha256, IDLE_TTL } from "./device";
 import { open, pid, seal } from "./privacy.mjs";
 
 /**
@@ -34,19 +35,6 @@ const recKey = (rid: string) => `${PREFIX}${rid}`;
 /** A Telegram reader's reminder is filed under their pseudonymous ID (privacy.mjs); the chat ID the bot sends to is kept inside the record. */
 export const tgRid = async (env: Pick<Env, "PRIVACY_KEY" | "BOT_TOKEN">, uid: number) => `tg:${await pid(env, uid)}`;
 const LINK_TTL = 15 * 60;
-/**
- * A browser's credential, an unlinked browser's record and a push subscription's index are
- * forgotten after 180 days unused (sliding: each use or delivery starts the time again).
- */
-const IDLE_TTL = 180 * 86400;
-/** New browser credentials one address may make in a day (beside the per-minute rate limit). */
-const CREATE_PER_DAY = 100;
-
-async function sha256(s: string): Promise<string> {
-  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-const randomHex = (n: number) => [...crypto.getRandomValues(new Uint8Array(n))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
 /** Records are sealed at rest (privacy.mjs); only the listing metadata the cron filters on (meta) stays readable. */
 export async function loadReminder(env: Env, rid: string): Promise<Reminder | null> {
@@ -58,14 +46,6 @@ export async function saveReminder(env: Env, rid: string, rec: Reminder): Promis
 }
 const putIndex = async (env: Env, endpoint: string, rid: string) => env.SUBS.put(`pushep:${await sha256(endpoint)}`, rid, { expirationTtl: IDLE_TTL });
 
-/** Equal strings, compared in constant time (the credential check). */
-function same(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let d = 0;
-  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return d === 0;
-}
-
 /**
  * Abuse protection (OWASP API4): every reminder call is rate limited per caller, by the
  * Workers Rate Limiting binding. The key is the caller's identity (Telegram user, browser
@@ -73,12 +53,7 @@ function same(a: string, b: string): boolean {
  * by address. The binding counts per Cloudflare location, so it bounds abuse rather than
  * counting exactly. Without the binding (a local run), nothing is limited.
  */
-async function overLimit(env: Env, key: string): Promise<boolean> {
-  if (!env.REMIND_LIMIT) return false;
-  try { return !(await env.REMIND_LIMIT.limit({ key })).success; } catch { return false; }
-}
 const tooMany = (c: Context<{ Bindings: Env }>) => c.json({ ok: false, error: "rate-limited" }, 429, { "retry-after": "60" });
-const clientIp = (c: Context<{ Bindings: Env }>) => c.req.header("cf-connecting-ip") ?? "unknown";
 
 /** A push subscription the Worker will post to: a browser push service, or in tests the loopback one (PUSH_TEST_ORIGIN). */
 const pushable = (env: Env, sub: unknown) => validSubscription(sub, env.PUSH_TEST_ORIGIN);
@@ -103,14 +78,8 @@ async function resolveWho(c: Context<{ Bindings: Env }>): Promise<Who | null> {
     const data = await validateInitData(m[1], c.env.BOT_TOKEN, 30 * 86400);
     return data?.user ? { kind: "telegram", uid: data.user.id, rid: await tgRid(c.env, data.user.id) } : null;
   }
-  const d = /^([0-9a-f]{32})\.([A-Za-z0-9_-]{43})$/.exec(c.req.header("x-cj-device") ?? "");
-  if (!d) return null;
-  const saved = await c.env.SUBS.get<{ h: string; rid: string; t?: string }>(`remdev:${d[1]}`, "json");
-  if (!saved || !same(saved.h, await sha256(d[2]))) return null;
-  // Used today: the 180 days start again (written at most once a day).
-  const today = new Date().toISOString().slice(0, 10);
-  if (saved.t !== today) await c.env.SUBS.put(`remdev:${d[1]}`, JSON.stringify({ ...saved, t: today }), { expirationTtl: IDLE_TTL });
-  return { kind: "device", dev: d[1], rid: saved.rid };
+  const d = await deviceOf(c.env, c.req.header("x-cj-device"));
+  return d ? { kind: "device", ...d } : null;
 }
 
 /** Today's reminder in Telegram: the reading, and Open / Done / Pause / Stop. Never verse text. */
@@ -187,7 +156,7 @@ export async function linkDevice(env: Env, code: string, uid: number): Promise<b
     await env.SUBS.delete(recKey(cred.rid));
   }
   await saveReminder(env, rid, rec);
-  await env.SUBS.put(`remdev:${dev}`, JSON.stringify({ ...cred, rid }), { expirationTtl: IDLE_TTL });
+  await repointDevice(env, dev, rid);
   return true;
 }
 
@@ -261,17 +230,11 @@ reminders.put("/", async (c) => {
   let device: string | undefined;
   if (!w) {
     if (c.req.header("authorization") || c.req.header("x-cj-device")) return c.json({ ok: false, error: "unauthorized" }, 401);
-    // A new credential: limited per address per minute, and capped per address per day.
-    const ip = clientIp(c);
-    if (await overLimit(c.env, `create:${ip}`)) return tooMany(c);
-    const dayKey = `remcreate:${await sha256(ip)}:${new Date().toISOString().slice(0, 10)}`;
-    const made = Number(await c.env.SUBS.get(dayKey)) || 0;
-    if (made >= CREATE_PER_DAY) return c.json({ ok: false, error: "rate-limited" }, 429, { "retry-after": "3600" });
-    await c.env.SUBS.put(dayKey, String(made + 1), { expirationTtl: 2 * 86400 });
-    const id = randomHex(16), secret = b64u(crypto.getRandomValues(new Uint8Array(32)));
-    await c.env.SUBS.put(`remdev:${id}`, JSON.stringify({ h: await sha256(secret), rid: `dev:${id}`, t: new Date().toISOString().slice(0, 10) }), { expirationTtl: IDLE_TTL });
-    w = { kind: "device", dev: id, rid: `dev:${id}` };
-    device = `${id}.${secret}`;
+    // A new credential, limited per address (device.ts).
+    const made = await issueDevice(c.env, clientIp(c));
+    if (!made.ok) return tooMany(c);
+    w = { kind: "device", ...made.device };
+    device = made.credential;
   }
   const now = new Date();
   let rec = (await loadReminder(c.env, w.rid)) ?? blank();
@@ -312,7 +275,7 @@ reminders.delete("/", async (c) => {
   } else if (rec && typeof body?.endpoint === "string" && body.endpoint.length <= 1024) {
     await saveReminder(c.env, w.rid, await removePushFrom(c.env, rec, body.endpoint));
   }
-  if (w.kind === "device") await c.env.SUBS.delete(`remdev:${w.dev}`);
+  if (w.kind === "device") await forgetDevice(c.env, w.dev);
   return c.json({ ok: true });
 });
 

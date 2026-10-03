@@ -1,4 +1,4 @@
-import { app, api, ApiError } from "@/tg/sdk";
+import { api, app, deviceCredential, dropDevice, keepDevice } from "@/tg/sdk";
 
 /**
  * Reading reminders, the app's side (the rules are in bot/src/reminders.mjs). Inside
@@ -16,25 +16,13 @@ export type ReminderView = {
 };
 export type Content = { plan: { day: number; perDay: number } | null; last: { slug: string; chapter: number } | null };
 
-const DEVICE = "cj:remind-device";
-const device = (): string | null => { try { return localStorage.getItem(DEVICE); } catch { return null; } };
-const keepDevice = (d: string) => { try { localStorage.setItem(DEVICE, d); } catch { /* private mode: asked again next time */ } };
-/** Whether this browser has a reminder record (so the app syncs it on open). */
-export const hasDevice = () => !!device();
+/** Whether this browser has a credential (so the app syncs its reminder on open). */
+export const hasDevice = () => !!deviceCredential();
 
 export const timeZone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch { return "UTC"; } };
 
-async function call<T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
-  if (app) return api<T>(path, init);
-  const headers = new Headers(init?.headers);
-  const d = device();
-  if (d) headers.set("x-cj-device", d);
-  let body = init?.body;
-  if (init?.json !== undefined) { headers.set("content-type", "application/json"); body = JSON.stringify(init.json); }
-  const res = await fetch(path, { ...init, headers, body });
-  if (!res.ok) throw new ApiError(res.status, path);
-  return (await res.json()) as T;
-}
+/** Telegram launch data, else this browser's credential (tg/sdk authHeaders). */
+const call = api;
 
 export const getReminder = () => call<ReminderView>(`/api/reminders?tz=${encodeURIComponent(timeZone())}`);
 export type Settings = Partial<{ on: boolean; hour: number; minute: number; tz: string; channels: Partial<Channels>; paused: boolean; pauseDays: number; pauseUntil: string }>;
@@ -50,7 +38,7 @@ export const linkLink = () => call<{ ok: boolean; link: string }>("/api/reminder
 /** Forget: this browser's credential and subscription (or, in Telegram, the whole reminder). */
 export async function forgetReminder(endpoint: string | null): Promise<void> {
   await call<{ ok: boolean }>("/api/reminders", { method: "DELETE", json: { endpoint } });
-  try { localStorage.removeItem(DEVICE); } catch { /* nothing kept */ }
+  dropDevice();
 }
 
 /** Where push stands in this environment, for the settings screen's explanations. */

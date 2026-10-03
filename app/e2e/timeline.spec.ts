@@ -52,19 +52,55 @@ test("a period: events by year on the canvas, the date bar, and the year under t
   await expect(page.getByRole("heading", { name: "Noah & The Flood" })).toBeVisible();
 });
 
-test("an event opens to its date, our case study and its verses in the KJV", async ({ page }) => {
+test("an event opens over the period as a sheet: its date, our case study, and its scripture with Go to verse", async ({ page }) => {
   await page.goto("/timeline/0");
   await page.locator("a.tl-major", { hasText: "Cain" }).click();
-  await expect(page).toHaveURL(/\/timeline\/event\/cain$/);
-  await expect(page.locator(".tl-event__title")).toHaveText("Cain");
-  await expect(page.locator(".tl-event__date")).toHaveText("3900-3200 BC (700)");
-  const cases = page.getByRole("region", { name: "Case studies" });
-  await expect(cases.getByRole("link", { name: /Cain/ })).toBeVisible();
-  const verses = page.getByRole("region", { name: "Verses" });
-  await expect(verses.locator(".tl-verse").first()).toContainText(/Genesis 4/);
+  // Not a new page: the event is a parameter of the period, and the canvas is still there under it.
+  await expect(page).toHaveURL(/\/timeline\/0\?event=cain$/);
+  await expect(page.locator(".tl-scroll")).toBeVisible();
+  const sheet = page.getByRole("dialog", { name: /^Cain/ });
+  await expect(sheet).toHaveAttribute("aria-modal", "false");
+  await expect(sheet.locator(".tl-ev__title")).toHaveText("Cain");
+  await expect(sheet.locator(".tl-ev__date")).toContainText("3900-3200 BC (700)");
+  // Raised by the keyboard: the grabber is a slider (peek, expanded, full).
+  const grabber = sheet.getByRole("slider", { name: "Sheet height" });
+  await expect(grabber).toHaveAttribute("aria-valuetext", "Peek");
+  await grabber.focus();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("ArrowUp");
+  await expect(grabber).toHaveAttribute("aria-valuetext", "Full");
+  await expect(sheet.getByRole("region", { name: "Case studies" }).getByRole("link", { name: /Cain/ })).toBeVisible();
+  const scripture = sheet.getByRole("region", { name: "Scripture" });
+  await expect(scripture.locator(".scard").first()).toContainText(/Genesis 4/);
   await shot(page, "3-event");
-  await verses.locator(".tl-verse").first().click();
+  await scripture.getByRole("link", { name: /^Go to verse/ }).first().click();
   await expect(page).toHaveURL(/\/read\/genesis\/4/);
+});
+
+test("one sheet: another event tapped replaces it, a linked event is pushed, and closing walks back to the period", async ({ page }) => {
+  await page.goto("/timeline/6");
+  const before = await page.evaluate(() => history.length);
+  await page.locator('a[data-slug="ahab"]').click();
+  await expect(page).toHaveURL(/\?event=ahab$/);
+  await expect(page.locator('a[data-slug="ahab"]')).toHaveAttribute("aria-current", "true");
+  // Another event on the canvas while the sheet is open: shown in the same sheet, no new history.
+  await page.locator('a[data-slug="jehoshaphat"]').click();
+  await expect(page).toHaveURL(/\?event=jehoshaphat$/);
+  await expect(page.locator(".tl-sheet")).toHaveCount(1);
+  await expect(page.locator(".tl-ev__title")).toHaveText("Jehoshaphat");
+  expect(await page.evaluate(() => history.length)).toBe(before + 1);
+  // Escape closes it: back to the period alone, the focus on the event that was shown.
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/\/timeline\/6$/);
+  await expect(page.locator(".tl-sheet")).toHaveCount(0);
+  await expect(page.locator('a[data-slug="jehoshaphat"]')).toBeFocused();
+});
+
+test("an old event link lands on its period with the event's sheet open", async ({ page }) => {
+  await page.goto("/timeline/event/solomon");
+  await expect(page).toHaveURL(/\/timeline\/5\?event=solomon$/);
+  await expect(page.locator(".tl-ev__title")).toHaveText("Solomon");
+  await expect(page.locator(".tl-ev__pic")).toHaveAttribute("src", /people\/solomon-2sa-5-14-256\.webp$/);
 });
 
 test("search finds the two kings Ahaziah, each with the reign Who's Who gives and the right case study", async ({ page }) => {
@@ -124,7 +160,7 @@ test.describe("as Bible Strong moves through it", () => {
     await expect(page.locator(".tl-behind--current")).toHaveCount(0);
   });
 
-  test("back from an event, a verse and back again returns to the same place in the period, the event focused", async ({ page }) => {
+  test("an event's sheet over the period: a verse and back, then closing, leave the canvas exactly where it was", async ({ page }) => {
     await page.goto("/timeline");
     await page.locator('a[href$="/timeline/5"]').click();
     await expect(page.locator(".tl-period")).toHaveAttribute("data-phase", "ready", { timeout: 5000 });
@@ -141,13 +177,21 @@ test.describe("as Bible Strong moves through it", () => {
     let year = await yearNow();
     for (let last = ""; last !== year; ) { last = year!; await page.waitForTimeout(150); year = await yearNow(); }
     await page.locator('a[data-slug="solomon"]').click();
-    await expect(page).toHaveURL(/\/timeline\/event\/solomon$/);
-    await expect(page.locator(".tl-event__pic")).toHaveAttribute("src", /people\/solomon-2sa-5-14-256\.webp$/);
-    await page.locator("a.tl-verse").first().click();
+    await expect(page).toHaveURL(/\/timeline\/5\?event=solomon$/);
+    // Opening it moved nothing.
+    expect(await scroll.evaluate((s) => [Math.round(s.scrollLeft), Math.round(s.scrollTop)])).toEqual(at);
+    await expect(page.locator(".tl-ev__pic")).toHaveAttribute("src", /people\/solomon-2sa-5-14-256\.webp$/);
+    await page.getByRole("slider", { name: "Sheet height" }).press("End").catch(() => undefined);
+    await page.getByRole("slider", { name: "Sheet height" }).press("ArrowUp");
+    await page.getByRole("slider", { name: "Sheet height" }).press("ArrowUp");
+    await page.getByRole("link", { name: /^Go to verse: 1 Kings/ }).first().click();
     await expect(page).toHaveURL(/\/read\/1-kings\//);
     await page.goBack();
-    await expect(page).toHaveURL(/\/timeline\/event\/solomon$/);
-    await page.goBack();
+    // The period again, the sheet open on Solomon, the canvas where it was.
+    await expect(page).toHaveURL(/\/timeline\/5\?event=solomon$/);
+    await expect(page.locator(".tl-ev__title")).toHaveText("Solomon");
+    await expect.poll(() => scroll.evaluate((s) => [Math.round(s.scrollLeft), Math.round(s.scrollTop)])).toEqual(at);
+    await page.getByRole("dialog", { name: /^Solomon/ }).getByRole("button", { name: "Close" }).click();
     await expect(page).toHaveURL(/\/timeline\/5$/);
     // No entrance on coming back: the canvas is where it was, the year the same, Solomon focused.
     await expect(page.locator(".tl-period")).toHaveAttribute("data-phase", "ready");
@@ -186,15 +230,18 @@ test("pictures: each period's, a colour where a picture waits on direction, and 
   await expect(page.locator('[data-slug="jonathan"] .tl-major__letter')).toHaveText("J");
 });
 
-test("search keeps its words: in the address, and on coming back from an event", async ({ page }) => {
+test("search keeps its words: an event opens over the results, and closing it leaves them as they were", async ({ page }) => {
   await page.goto("/timeline/search");
   await page.getByRole("searchbox").fill("solomon");
   await expect(page).toHaveURL(/\/timeline\/search\?q=solomon$/);
   await expect(page.locator(".tl-search__list a")).toHaveCount(1);
   await expect(page.locator(".tl-search__list mark").first()).toHaveText(/solomon/i);
   await page.locator(".tl-search__list a").first().click();
-  await expect(page).toHaveURL(/\/timeline\/event\/solomon$/);
+  await expect(page).toHaveURL(/\/timeline\/search\?q=solomon&event=solomon$/);
+  await expect(page.locator(".tl-ev__title")).toHaveText("Solomon");
   await page.goBack();
+  await expect(page).toHaveURL(/\/timeline\/search\?q=solomon$/);
+  await expect(page.locator(".tl-sheet")).toHaveCount(0);
   await expect(page.getByRole("searchbox")).toHaveValue("solomon");
   await expect(page.locator(".tl-search__list a")).toHaveCount(1);
   // The keyboard, as in the main search: down into the results, Escape back to the field.

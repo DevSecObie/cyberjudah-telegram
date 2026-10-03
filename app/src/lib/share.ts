@@ -1,9 +1,26 @@
-import { appLink, pathToStartParam } from "@shared/links.mjs";
+import { appLink, pathToStartParam, sitePathOf } from "@shared/links.mjs";
 import { SITE_URL } from "@/api/data";
 import { api, features, shareMessage, shareToStory, shareUrl, switchInline } from "@/tg/sdk";
 
-/** The Mini App's direct link from @BotFather; VITE_APP_URL overrides it for a fork. */
-export const APP_URL: string = (import.meta.env.VITE_APP_URL as string | undefined) || "https://t.me/CyberJudah_bot/cybr";
+const MINI_APP = "https://t.me/CyberJudah_bot/cybr";
+const configured = import.meta.env.VITE_APP_URL as string | undefined;
+/**
+ * The Mini App's direct link from @BotFather; VITE_APP_URL overrides it for a fork. Only a t.me
+ * link is taken: a web address here would send shared links to Telegram's in-app browser, where
+ * there is no launch data (bot/wrangler.jsonc APP_URL explains the loop that made).
+ */
+export const APP_URL: string = configured && /^https:\/\/t\.me\/[A-Za-z0-9_]+\/[A-Za-z0-9_]+$/.test(configured) ? configured : MINI_APP;
+
+/**
+ * The t.me link that opens this app screen in the Mini App, destination kept: the screen's
+ * path and query become the start param the launch routes back to (shared/links.mjs).
+ */
+export function telegramLinkFor(pathname: string, search = ""): string {
+  const site = sitePathOf(pathname);
+  const verses = new URLSearchParams(search).get("v") ?? undefined;
+  const param = pathToStartParam(site !== "/" ? site : pathname, verses);
+  return param ? `${APP_URL}?startapp=${param}` : APP_URL;
+}
 
 /**
  * Sharing, best first: a prepared inline message through the bot (a rich card with an

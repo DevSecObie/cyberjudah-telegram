@@ -10,7 +10,8 @@ import { runSearch } from "./search";
 import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./teachings";
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
-import { ask, askStream, freeModel, similar, speakVerse } from "./ai";
+import { ask, askStream, browserDaily, freeModel, similar, speakVerse } from "./ai";
+import { clientIp, deviceOf, issueDevice, type Device } from "./device";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -34,7 +35,12 @@ import { pid, seal } from "./privacy.mjs";
 import { migratePrivacy } from "./privacy-migrate";
 import { deleteData, exportData } from "./mydata";
 
-type App = { Bindings: Env; Variables: { tma: InitData } };
+type App = { Bindings: Env; Variables: { tma: InitData; device?: Device } };
+/**
+ * The calls a browser may make with its device credential (device.ts) instead of Telegram launch
+ * data: Ask on the free model and its allowance. Everything else is a Telegram reader's.
+ */
+const BROWSER_ROUTES = new Set(["POST /api/ask", "GET /api/ask/account"]);
 const app = new Hono<App>();
 // Public Bible Strong resource feed; independent of Telegram authentication.
 app.route("/bs", bs);
@@ -54,6 +60,7 @@ app.use("/api/*", async (c, next) => {
   if (c.req.method === "GET" && c.req.path.startsWith("/api/pdf/")) return next();
   // Reading reminders authenticate themselves: Telegram launch data, a browser's device credential, or (for the service worker) its push endpoint.
   if (c.req.path === "/api/reminders" || c.req.path.startsWith("/api/reminders/") || c.req.path.startsWith("/api/push/")) return next();
+  if (c.req.method === "POST" && c.req.path === "/api/device") return next();
   if (c.req.path === "/api/verse-of-day" || c.req.path === "/api/health" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
   // Thirty days: Telegram keeps a Mini App open in the background for weeks, and its launch
@@ -61,6 +68,10 @@ app.use("/api/*", async (c, next) => {
   // and Ask into "not answering" for a reader who never closed the app. The signature still
   // proves who is asking; the age check only bounds a replay.
   const data = m ? await validateInitData(m[1], c.env.BOT_TOKEN, LAUNCH_DATA_MAX_AGE) : null;
+  if (!data?.user && !m && BROWSER_ROUTES.has(`${c.req.method} ${c.req.path}`)) {
+    const device = await deviceOf(c.env, c.req.header("x-cj-device"));
+    if (device) { c.set("device", device); return next(); }
+  }
   if (!data?.user) {
     const stale = m ? !!(await validateInitData(m[1], c.env.BOT_TOKEN, 10 * 365 * 86400))?.user : false;
     return c.json({ error: "unauthorized", reason: stale ? "stale" : m ? "invalid" : "missing" }, 401);
@@ -176,12 +187,22 @@ app.get("/api/transcript/:video", async (c) => {
 
 // The AI: a question answered from the teachings with citations, search by meaning, and
 // the reading voices (a verse at a time, cached).
+// A browser's credential (device.ts), for Ask outside Telegram. Limited per address.
+app.post("/api/device", async (c) => {
+  const made = await issueDevice(c.env, clientIp(c));
+  if (!made.ok) return c.json({ ok: false, error: made.error }, 429, { "retry-after": "60" });
+  return c.json({ ok: true, device: made.credential }, 200, { "cache-control": "no-store" });
+});
+
 app.post("/api/ask", async (c) => {
+  const device = c.get("device");
   const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown }>().catch(() => null);
   // The AI providers this reader has agreed may receive their questions (docs/PRIVACY.md).
   const consent = Array.isArray(body?.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
   // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
   const history = normalizeHistory(body?.history, 8);
+  // A browser asks on the free model, streamed, its conversation kept in the browser (askStream).
+  if (device) return askStream(c.env, String(body?.q ?? ""), 0, c.executionCtx, history, undefined, false, undefined, consent, device.dev);
   if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent);
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
@@ -241,6 +262,10 @@ app.get("/api/pdf/*", async (c) => {
 
 // Ask CyberJudah's allowance: what is left, what the plan and the packs give, and buying them with Stars.
 app.get("/api/ask/account", async (c) => {
+  if (c.get("device")) {
+    const f = freeModel(c.env);
+    return c.json({ ok: true, browser: true, metered: false, unlimited: false, balance: 0, perQuestion: 0, freeDaily: 0, browserDaily: browserDaily(c.env), plan: null, packs: [], models: [{ id: f.id, name: f.name, provider: f.provider, what: f.what, cost: 0, free: true }], model: f.id });
+  }
   const uid = c.get("tma").user!.id;
   const p = prices(c.env);
   const st = await standing(c.env, uid);

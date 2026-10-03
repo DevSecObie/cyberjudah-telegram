@@ -87,10 +87,10 @@ const TTS_LIMIT = 50;
  * KV read-modify-write can. One table for every capped thing; rows from earlier days are
  * swept on the way through.
  */
-export async function takeQuota(env: Env, name: string, userId: number, limit: number): Promise<boolean> {
+export async function takeQuota(env: Env, name: string, userId: number | `dev:${string}`, limit: number): Promise<boolean> {
   const day = new Date().toISOString().slice(0, 10);
-  // Counted under the person's pseudonymous ID, and swept the next day.
-  const key = `${name}:${await pid(env, userId)}:${day}`;
+  // Counted under the person's pseudonymous ID (a browser's random device id is one already), and swept the next day.
+  const key = `${name}:${typeof userId === "number" ? await pid(env, userId) : userId}:${day}`;
   const res = await env.DB.batch([
     env.DB.prepare("CREATE TABLE IF NOT EXISTS rate_counts (key TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)"),
     env.DB.prepare("INSERT INTO rate_counts (key, n) VALUES (?, 1) ON CONFLICT (key) DO UPDATE SET n = n + 1 RETURNING n").bind(key),
@@ -117,6 +117,12 @@ async function basicAllowed(env: Env, userId: number): Promise<boolean> {
   const n = Number(env.ASK_BASIC_DAILY);
   return takeQuota(env, "ask-basic", userId, Number.isInteger(n) && n >= 0 ? n : 25);
 }
+
+/**
+ * Ask in a browser (no Telegram account): the free model only, ASK_BROWSER_DAILY answers a day
+ * per browser (10 unless set). Claude, plans and saved chats stay with Telegram accounts.
+ */
+export const browserDaily = (env: Env) => { const n = Number(env.ASK_BROWSER_DAILY); return Number.isInteger(n) && n >= 0 ? n : 10; };
 
 /** A question answered in one piece (the bot and older clients); a hundred a day per person. */
 export async function ask(env: Env, q: string, userId: number, ctx?: Exec, history: Turn[] = [], consent: string[] = []): Promise<Answer> {
@@ -214,9 +220,12 @@ const sourcesOf = (answer: string, passages: Passage[]) => {
  * The same, streamed: one JSON line with the passages first, then a line per piece of the
  * answer as the model writes it, then a line with the sources it cited.
  */
-export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string, replaceLast = false, modelId?: string, consent: string[] = []): Promise<Response> {
-  // The reader's choice of model, or the setup's own (CLAUDE_MODEL) when none or an unknown one is sent.
-  let model = modelOf(modelId, env.CLAUDE_MODEL || CLAUDE_DEFAULT);
+export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string, replaceLast = false, modelId?: string, consent: string[] = [], browser?: string): Promise<Response> {
+  // The reader's choice of model, or the setup's own (CLAUDE_MODEL) when none or an unknown one is
+  // sent. A browser (no Telegram account, `browser` is its device id) always gets the free model.
+  let model = browser ? freeModel(env) : modelOf(modelId, env.CLAUDE_MODEL || CLAUDE_DEFAULT);
+  // A browser's conversation stays in the browser: nothing is saved under an account it does not have.
+  if (browser) chatId = undefined;
   // The free model (ASK_FREE_MODEL) is never charged: chosen, or once the allowance is used up.
   const free = freeModel(env);
   let gratis = model.id === free.id;
@@ -236,7 +245,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // researches with the same tools and is not charged, as the large AI apps fall back to a
   // lighter model at their limit, up to ASK_BASIC_DAILY a day; then the plans are offered.
   let limited = false;
-  if (metered && !isAdmin(env, userId)) {
+  if (browser) {
+    if (!(await takeQuota(env, "ask-browser", `dev:${browser}`, browserDaily(env)))) return new Response(line({ error: "limit", browser: true }), { status: 429, headers: { "content-type": "application/x-ndjson" } });
+  } else if (metered && !isAdmin(env, userId)) {
     const r = gratis ? null : await reserveAsk(env, userId);
     if (r?.ok) take = r.take;
     else if (await basicAllowed(env, userId)) {
@@ -261,6 +272,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const settle = async (units: number) => {
     if (settled) return null;
     settled = true;
+    if (browser) return null;
     return metered && take ? await settleAsk(env, userId, take, units).catch(() => null) : await charge(env, userId, units).catch(() => null);
   };
   // While it is being answered, the conversation says so, for a refresh or another device to wait on.
@@ -284,7 +296,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             // Claude researches first (searches and verses, reported as it goes), then writes.
             const steps: string[] = [];
             let ran: Awaited<ReturnType<typeof runAgent>> | null = null;
-            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model); }
+            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, browser ? undefined : userId, model); }
             catch (e) {
               // Claude cannot answer now (overloaded, rate limited, down, or its key refused): the
               // backup model answers from the passages already found, and the reader is not charged.

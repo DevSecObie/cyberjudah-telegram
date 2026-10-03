@@ -31,7 +31,7 @@ const Privacy = lazy(() => import("@/screens/Privacy").then((m) => ({ default: m
 const Timeline = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.Timeline })));
 const TimelinePeriod = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.TimelinePeriod })));
 const TimelineSearch = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.TimelineSearch })));
-const TimelineEventScreen = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.TimelineEventScreen })));
+const TimelineEventRedirect = lazy(() => import("@/screens/TimelineEvent").then((m) => ({ default: m.TimelineEventRedirect })));
 const Credits = lazy(() => import("@/screens/Credits").then((m) => ({ default: m.Credits })));
 const Plan = lazy(() => import("@/screens/Plan").then((m) => ({ default: m.Plan })));
 const History = lazy(() => import("@/screens/History").then((m) => ({ default: m.History })));
@@ -77,10 +77,11 @@ export function App() {
   const navigate = useNavigate();
   useSettingsButton();
 
-  // A launch with a start param (a shared verse, a class) lands on that screen, once.
+  // A launch with a start param (a shared verse, a class) lands on that screen, once per param: a
+  // reload keeps the reader where they went since, but a new link in the same tab still lands.
   useEffect(() => {
     if (!startParam) return;
-    try { if (sessionStorage.getItem("launched")) return; sessionStorage.setItem("launched", "1"); } catch { /* ignore */ }
+    try { if (sessionStorage.getItem("launched") === startParam) return; sessionStorage.setItem("launched", startParam); } catch { /* ignore */ }
     const to = launchPath(startParam);
     if (to !== "/") navigate(to, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,7 +146,7 @@ export function App() {
         <Route path="/precepts/:slug" element={<PreceptScreen />} />
         <Route path="/timeline" element={<Timeline />} />
         <Route path="/timeline/search" element={<TimelineSearch />} />
-        <Route path="/timeline/event/:slug" element={<TimelineEventScreen />} />
+        <Route path="/timeline/event/:slug" element={<TimelineEventRedirect />} />
         <Route path="/timeline/:n" element={<TimelinePeriod />} />
         <Route path="/cases" element={<Cases />} />
         <Route path="/cases/:era/:slug" element={<CaseScreen />} />

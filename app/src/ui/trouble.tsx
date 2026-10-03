@@ -3,8 +3,8 @@ import { useNavigate } from "react-router";
 
 import { SITE_URL } from "@/api/data";
 import { ApiError } from "@/tg/sdk";
-import { app, haptic, openLink } from "@/tg/sdk";
-import { APP_URL } from "@/lib/share";
+import { app, haptic, isTelegramWebApp, openLink } from "@/tg/sdk";
+import { OpenInTelegram } from "@/ui/open-in-telegram";
 import { Icon, type IconName } from "@/ui/ui";
 
 /**
@@ -19,8 +19,9 @@ type Action = { label: string; icon: IconName; onClick: () => void; primary?: bo
 export type Diagnosis = { kind: "telegram" | "session" | "offline" | "resting" | "limit" | "unknown"; status?: number };
 export function diagnose(e: unknown): Diagnosis {
   if (e instanceof ApiError) {
-    // No launch data at all is a browser outside Telegram, not a session that aged out.
-    if (e.status === 401) return { kind: !app || e.reason === "missing" ? "telegram" : "session", status: 401 };
+    // No launch data in a browser: this part runs through Telegram. Inside Telegram it can only be
+    // a launch that came without (or with aged) launch data: reopening fixes it, Telegram is not reopened.
+    if (e.status === 401) return { kind: isTelegramWebApp ? "session" : "telegram", status: 401 };
     if (e.status === 429) return { kind: "limit", status: 429 };
     if (e.status >= 500 || e.status === 503) return { kind: "resting", status: e.status };
     return { kind: "unknown", status: e.status };
@@ -52,7 +53,7 @@ export function Trouble({ error, what, q, onRetry }: { error: unknown; what: "se
     : `The server did not complete the request${d.status ? ` (${d.status})` : ""}. It may be a passing fault or a part of the service resting.`;
 
   const actions: Action[] = [];
-  if (d.kind === "telegram") actions.push({ label: "Open in Telegram", icon: "link", onClick: () => openLink(APP_URL), primary: true });
+  if (d.kind === "telegram") { /* OpenInTelegram, below: it keeps this screen as the destination */ }
   else if (d.kind === "session") actions.push({ label: "Close and reopen CyberJudah", icon: "retry", onClick: reopen, primary: true });
   else if (onRetry) actions.push({ label: "Try again", icon: "retry", onClick: () => { haptic("select"); onRetry(); }, primary: d.kind !== "offline" });
   if (q) {
@@ -64,7 +65,7 @@ export function Trouble({ error, what, q, onRetry }: { error: unknown; what: "se
     <div className="trouble" role="alert">
       <div className="trouble__head"><span className="trouble__badge"><Icon name={d.kind === "offline" ? "clock" : "spark"} size={16} /></span><b>{title}</b></div>
       <p className="trouble__why">{why}</p>
-      <div className="trouble__actions">{actions.map((a) => <button key={a.label} type="button" className={`trouble__act${a.primary ? " trouble__act--primary" : ""}`} onClick={a.onClick}><Icon name={a.icon} size={15} />{a.label}</button>)}</div>
+      <div className="trouble__actions">{d.kind === "telegram" ? <OpenInTelegram className="trouble__act trouble__act--primary" /> : null}{actions.map((a) => <button key={a.label} type="button" className={`trouble__act${a.primary ? " trouble__act--primary" : ""}`} onClick={a.onClick}><Icon name={a.icon} size={15} />{a.label}</button>)}</div>
     </div>
   );
 }

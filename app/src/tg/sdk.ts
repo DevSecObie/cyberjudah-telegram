@@ -13,11 +13,36 @@ export const app: WebApp | null = (() => {
 })();
 
 export const inTelegram = app !== null;
+
+/**
+ * Where CyberJudah is running, decided once here and nowhere else (screens read `environment` or
+ * `isTelegramWebApp`, never window.Telegram):
+ *
+ *   mini-app           launched by Telegram as the Mini App, with signed launch data (`app`)
+ *   mini-app-unsigned  inside a Telegram client (it reports a platform) but given no launch data,
+ *                      as a keyboard button opens it: still Telegram, so never sent to Telegram again
+ *   deep-link          a browser that arrived by a Telegram-style link (?startapp=, ?tgWebAppStartParam=)
+ *   browser            a browser tab
+ *
+ * telegram-web-app.js defines window.Telegram.WebApp on every page, so its presence proves
+ * nothing; a platform other than "unknown" does.
+ */
+export type Environment = "mini-app" | "mini-app-unsigned" | "deep-link" | "browser";
+export const environment: Environment = (() => {
+  if (app) return "mini-app";
+  const w = typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
+  if (w && w.platform && w.platform !== "unknown") return "mini-app-unsigned";
+  const q = typeof location !== "undefined" ? new URLSearchParams(location.search) : null;
+  return q?.has("startapp") || q?.has("tgWebAppStartParam") ? "deep-link" : "browser";
+})();
+/** Running inside Telegram's Mini App container: an "Open in Telegram" action must never show here. */
+export const isTelegramWebApp = environment === "mini-app" || environment === "mini-app-unsigned";
 export const has = (v: string) => app?.isVersionAtLeast(v) ?? false;
 export const platform = app?.platform ?? "web";
 export const isMobile = platform === "ios" || platform === "android";
 export const user = app?.initDataUnsafe.user ?? null;
-export const startParam = app?.initDataUnsafe.start_param ?? new URLSearchParams(location.search).get("tgWebAppStartParam") ?? undefined;
+/** Where a launch should land: Telegram's start param, or the same carried on a web link (?startapp= as t.me writes it). */
+export const startParam = app?.initDataUnsafe.start_param ?? (() => { const q = new URLSearchParams(location.search); return q.get("tgWebAppStartParam") ?? q.get("startapp") ?? undefined; })();
 
 /** Feature availability, for the Settings screen and for choosing a fallback. */
 export const features = {
@@ -133,10 +158,36 @@ export const hideKeyboard = () => { if (features.hideKeyboard) app!.hideKeyboard
 export class ApiError extends Error {
   constructor(public status: number, public path: string, public reason?: string) { super(`${status} ${path}${reason ? ` (${reason})` : ""}`); }
 }
-/** The bot backend, authenticated with the launch data. */
+/**
+ * A browser's identity for the API when there is no Telegram launch data (bot/src/device.ts): an
+ * id and secret the Worker hands out once, kept on this device. Reading reminders and Ask in a
+ * browser use the same one. (The key keeps its first name so existing browsers keep theirs.)
+ */
+const DEVICE = "cj:remind-device";
+export const deviceCredential = (): string | null => { try { return localStorage.getItem(DEVICE); } catch { return null; } };
+export const keepDevice = (d: string) => { try { localStorage.setItem(DEVICE, d); } catch { /* private mode: asked again next time */ } };
+export const dropDevice = () => { try { localStorage.removeItem(DEVICE); } catch { /* nothing kept */ } };
+let issuing: Promise<string | null> | null = null;
+/** This browser's credential, asked for once if it has none (null when the Worker refuses, e.g. rate limited). */
+export function ensureDevice(): Promise<string | null> {
+  const have = deviceCredential();
+  if (app || have) return Promise.resolve(have);
+  issuing ??= fetch("/api/device", { method: "POST" })
+    .then(async (r) => { const j = r.ok ? ((await r.json()) as { device?: string }) : null; if (j?.device) keepDevice(j.device); return j?.device ?? null; })
+    .catch(() => null)
+    .finally(() => { issuing = null; });
+  return issuing;
+}
+/** Who is calling: Telegram's signed launch data, else this browser's credential, else nobody. */
+export function authHeaders(headers = new Headers()): Headers {
+  if (app) headers.set("Authorization", `tma ${app.initData}`);
+  else { const d = deviceCredential(); if (d) headers.set("x-cj-device", d); }
+  return headers;
+}
+
+/** The bot backend, authenticated with the launch data (or, in a browser, its device credential). */
 export async function api<T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
-  const headers = new Headers(init?.headers);
-  headers.set("Authorization", `tma ${app?.initData ?? ""}`);
+  const headers = authHeaders(new Headers(init?.headers));
   let body = init?.body;
   if (init?.json !== undefined) { headers.set("content-type", "application/json"); body = JSON.stringify(init.json); }
   const res = await fetch(path, { ...init, headers, body });

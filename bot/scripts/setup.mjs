@@ -6,15 +6,17 @@
  *
  *   BOT_TOKEN=... WEBHOOK_SECRET=... WORKER_URL=https://cyberjudah-telegram.<account>.workers.dev node scripts/setup.mjs
  */
-const { BOT_TOKEN, WEBHOOK_SECRET, WORKER_URL, APP_URL } = process.env;
+const { BOT_TOKEN, WEBHOOK_SECRET, WORKER_URL, WEB_APP_URL } = process.env;
 if (!BOT_TOKEN || !WORKER_URL) {
   console.error("BOT_TOKEN and WORKER_URL are required; WEBHOOK_SECRET should match the Worker's secret.");
   process.exit(1);
 }
 const origin = WORKER_URL.replace(/\/+$/, "");
-// The menu button opens the Mini App: cyberjudah.io/app in production (APP_URL), or the
-// Worker's own root when APP_URL is unset (local/staging setups that serve the SPA at /).
-const appUrl = (APP_URL || `${origin}/`).replace(/\/+$/, "") || `${origin}/`;
+// The menu button opens the Mini App at a web address (a web_app button needs one): WEB_APP_URL
+// (cyberjudah.io/app), or the Worker's own root when unset (local and staging setups serve the SPA
+// at /). Not APP_URL: that is the t.me link the bot's link buttons use (wrangler.jsonc).
+const appUrl = (WEB_APP_URL || `${origin}/`).replace(/\/+$/, "") || `${origin}/`;
+if (/^https:\/\/t\.me\//.test(appUrl)) { console.error("WEB_APP_URL must be the app's web address, not a t.me link."); process.exit(1); }
 
 async function call(method, body) {
   const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {

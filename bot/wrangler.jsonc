@@ -80,8 +80,13 @@
   "vars": {
     "DATA_ORIGIN": "https://data.cyberjudah.io",
     "SITE_URL": "https://cyberjudah.io",
-    // The Mini App's direct link from @BotFather (/newapp). Shared links and buttons open the app.
-    "APP_URL": "https://cyberjudah.io/app",
+    // The Mini App's direct link from @BotFather (/newapp). Every link button, inline result and
+    // shared card opens it, so Telegram launches the Mini App with its signed launch data. It must
+    // be the t.me link, never the web address (cyberjudah.io/app): a URL button to a web address
+    // opens Telegram's in-app browser without launch data, where the app could only offer to open
+    // Telegram again (tests/wrangler.test.mjs holds this). The menu button's web address is
+    // WEB_APP_URL in scripts/setup.mjs.
+    "APP_URL": "https://t.me/CyberJudah_bot/cybr",
     // Ask CyberJudah's model when the ANTHROPIC_API_KEY secret is set (claude-sonnet-5 is the
     // cheaper choice; claude-opus-5 the strongest). Without the key, Llama 3.3 70B on Workers AI.
     "CLAUDE_MODEL": "claude-opus-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",

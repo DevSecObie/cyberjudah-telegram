@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 import { data } from "@/api/data";
 import { chaptersRead, dayKey, markRead, usePlan, useProgress } from "@/lib/marks";
@@ -20,6 +20,7 @@ import { Card, Empty, Screen, Section, Skeleton } from "@/ui/ui";
 export function Plan() {
   useBackButton(false);
   const sheet = useSheet();
+  const navigate = useNavigate();
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const [plan, setPlan] = usePlan();
   const [progress, setProgress] = useProgress();
@@ -35,7 +36,8 @@ export function Plan() {
       ...(next ? [{ id: "read", text: `Read ${next.book} ${next.chapter}`, hint: `${sched.owed} ${sched.owed === 1 ? "chapter" : "chapters"} to catch up` }] : []),
       { id: "realign", text: "Start the schedule from today", hint: `Day ${plan.day + 1} becomes today; nothing read is lost` },
     ] });
-    if (a?.id === "read" && next) location.assign(`/read/${next.slug}/${next.chapter}`);
+    // Through the router: a full page load would skip the /app base and leave the Mini App.
+    if (a?.id === "read" && next) navigate(`/read/${next.slug}/${next.chapter}`);
     if (a?.id === "realign") { setPlan(realign(plan)); haptic("success"); }
   };
 

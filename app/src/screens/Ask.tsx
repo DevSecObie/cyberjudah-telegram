@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router";
 
 import { fmtDate } from "@/api/data";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
-import { api, ApiError, app, confirm, haptic, hideKeyboard, openInvoice, openLink, requestWriteAccess, user } from "@/tg/sdk";
+import { api, ApiError, app, authHeaders, confirm, ensureDevice, isTelegramWebApp, haptic, hideKeyboard, openInvoice, requestWriteAccess, user } from "@/tg/sdk";
 import { saveReminder, timeLabel, timeZone, type Settings as ReminderSettings } from "@/lib/reminders";
 import { useContent } from "./Reminders";
 import { safeLinks } from "@/lib/safe-links";
@@ -12,8 +12,8 @@ import { resetTime } from "@/lib/reset-time";
 import { chosenModel, chooseModel } from "@/lib/ask-model";
 import { agree, consented } from "@/lib/ai-consent";
 import { spinnerLine } from "@/lib/spinner";
-import { APP_URL } from "@/lib/share";
 import { Trouble } from "@/ui/trouble";
+import { OpenInTelegram } from "@/ui/open-in-telegram";
 import { Sheet } from "@/bible/ui/Sheet";
 import { Icon, timestamp } from "@/ui/ui";
 import { KIND_LABEL, hitPath, teachingPath } from "@/ui/search-hero";
@@ -70,10 +70,10 @@ const replaceConv = (next: { turns: Turn[]; chatId: string | null }) => { convAb
 /** Patch the last turn of conversation `gen` only (the answer being written); a replaced conversation is left alone. */
 const patchLast = (gen: number, fn: (t: Turn) => Turn) => { if (conv.gen === gen) setConv((c) => ({ turns: c.turns.map((t, i) => (i === c.turns.length - 1 ? fn(t) : t)) })); };
 
-type AskFail = { error?: string; reason?: string; provider?: string; model?: string };
+type AskFail = { error?: string; reason?: string; provider?: string; model?: string; browser?: boolean };
 /** What went wrong, from the status and the server's own words. */
 const failure = (status: number, body: AskFail | null): string =>
-  status === 428 && body?.error === "consent" ? "consent" : status === 402 ? "allowance" : status === 429 ? "limit" : status === 400 && body?.error === "too-short" ? "too-short"
+  status === 428 && body?.error === "consent" ? "consent" : status === 402 ? "allowance" : status === 429 ? (body?.browser ? "browser-limit" : "limit") : status === 400 && body?.error === "too-short" ? "too-short"
     : status === 401 ? (body?.reason === "missing" ? "signin" : "session") : `unavailable:${status}`;
 /** No line from the server for this long (it sends one every 15 seconds while it works): the connection is gone. */
 const STALL_MS = 45_000;
@@ -101,7 +101,9 @@ async function runQuestion(q: string, opts: { retry?: boolean; onAccount?: () =>
   let finished = false, stalled = false, heard = Date.now();
   const watch = setInterval(() => { if (Date.now() - heard > STALL_MS) { stalled = true; ctl.abort(); } }, 5000);
   try {
-    const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, stream: true, chat: id, retry: !!opts.retry, consent: consented(), ...(chosenModel() ? { model: chosenModel() } : {}) }) });
+    // Outside Telegram the browser asks with its own credential (tg/sdk ensureDevice), made on its first question.
+    if (!app && !(await ensureDevice())) { patch((t) => ({ ...t, thinking: false, error: navigator.onLine === false ? "offline" : "no-device" })); return; }
+    const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: authHeaders(new Headers({ "content-type": "application/json" })), body: JSON.stringify({ q, history, stream: true, chat: id, retry: !!opts.retry, consent: consented(), ...(chosenModel() ? { model: chosenModel() } : {}) }) });
     heard = Date.now();
     if (!res.ok || !res.body) {
       const body = await res.text().then((t) => { try { return JSON.parse(t.split("\n")[0]) as AskFail; } catch { return null; } }).catch(() => null);
@@ -162,6 +164,8 @@ let recovering = false;
  */
 async function recoverChat() {
   const last = conv.turns[conv.turns.length - 1];
+  // A browser's conversation is not saved on the server (it has no account there): nothing to fetch back.
+  if (!app) return;
   const open = last && (last.role === "user" || (last.role === "assistant" && ((last.error && RECOVERABLE.has(last.error)) || last.cut)));
   if (recovering || conv.busy || !conv.chatId || !open) return;
   const id = conv.chatId, gen = conv.gen;
@@ -223,7 +227,8 @@ export function Ask() {
   const [modelId, setModelId] = useState(chosenModel);
   const [acct, setAcct] = useState<AskAccount | null>(null);
   const loadAccount = () => api<AskAccount>("/api/ask/account").then(setAcct).catch(() => undefined);
-  useEffect(() => { void loadAccount(); }, []);
+  // A browser gets its credential on opening Ask, so the allowance line and the first question are ready.
+  useEffect(() => { void (app ? loadAccount() : ensureDevice().then((d) => (d ? loadAccount() : undefined))); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const model = acct?.models?.find((m) => m.id === modelId) ?? acct?.models?.find((m) => m.id === acct.model);
   const [input, setInput] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -280,7 +285,7 @@ export function Ask() {
     if (asked.current || linked) return;
     asked.current = true;
     // While an answer is still coming the question waits in the composer, rather than being dropped.
-    if (first) { setParams({}, { replace: true }); if (!app || conv.busy) setInput(first); else { startNewChat(); send(first); } }
+    if (first) { setParams({}, { replace: true }); if (conv.busy) setInput(first); else { startNewChat(); send(first); } }
     else void recoverChat();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Coming back to the app, or back online: an answer the server finished meanwhile is fetched.
@@ -291,14 +296,15 @@ export function Ask() {
     return () => { document.removeEventListener("visibilitychange", again); window.removeEventListener("online", again); };
   }, []);
 
-  // Outside Telegram there is no launch data to sign a question with: say so before anything is typed.
-  const outside = !app;
+  // Outside Telegram (a browser, or Telegram's own browser without launch data) Ask answers with the
+  // free model under the browser's credential, and the conversation stays on this device.
+  const browser = !app;
   const lastUser = [...turns].reverse().find((t) => t.role === "user")?.content ?? "";
   return (
     <main className="chat2" ref={mainRef}>
       <header className="chat2__bar">
-        <button type="button" className="chat2__new" aria-label="Your chats" disabled={!app} title={app ? undefined : "Your chats are kept with your Telegram account"} onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
-        <button type="button" className="chat2__heading" onClick={() => { if (acct?.metered) { haptic("select"); setPlans(true); } }}><b>Ask CyberJudah</b><small>{model?.free && acct?.metered && !acct.unlimited ? `${model.name} · free` : meterLine(acct, model?.cost)}</small></button>
+        <button type="button" className="chat2__new" aria-label="Your chats" disabled={browser} title={browser ? "Your chats are kept with your Telegram account" : undefined} onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
+        <button type="button" className="chat2__heading" onClick={() => { if (acct?.metered) { haptic("select"); setPlans(true); } }}><b>Ask CyberJudah</b><small>{acct?.browser ? `${model?.name ?? "Free model"} · ${acct.browserDaily ?? 10} a day here` : model?.free && acct?.metered && !acct.unlimited ? `${model.name} · free` : meterLine(acct, model?.cost)}</small></button>
         <button type="button" className="chat2__new" aria-label="New chat" disabled={!turns.length} onClick={newChat}><Icon name="compose" size={21} /></button>
       </header>
 
@@ -307,14 +313,11 @@ export function Ask() {
           <img className="chat2__mark" src={assetUrl("brand/cyber-lion.webp")} alt="" width={72} height={72} />
           <h1>What would you like to learn?</h1>
           <p>Ask about anything that was taught. Every answer comes from the classes, the notes, the law and the Scripture, and shows where it came from.</p>
-          {outside ? (
-            <div className="chat2__outside" role="note">
-              <p><b>Ask CyberJudah answers inside Telegram.</b> Telegram signs each question, which is how your free questions and plan are kept. In this browser the Bible, the classes and the rest of the library still work.</p>
-              <button type="button" className="btn" onClick={() => openLink(APP_URL)}><Icon name="link" size={16} />Open in Telegram</button>
-            </div>
+          {browser && !isTelegramWebApp ? (
+            <p className="chat2__outside" role="note">In this browser Ask answers with the free model, a few questions a day, and keeps the conversation on this device. <OpenInTelegram className="msg__link" label="In Telegram it answers in depth and saves your chats" /></p>
           ) : null}
           <div className="chat2__starters">
-            {EXAMPLES.map(([q, sub]) => <button key={q} type="button" className="starter" disabled={outside} onClick={() => send(q)}><b>{q}</b><small>{sub}</small></button>)}
+            {EXAMPLES.map(([q, sub]) => <button key={q} type="button" className="starter" onClick={() => send(q)}><b>{q}</b><small>{sub}</small></button>)}
           </div>
         </section>
       ) : (
@@ -331,7 +334,7 @@ export function Ask() {
       {history ? <ChatsSheet current={chatId} onClose={() => setHistory(false)} onOpen={openChat} onDeleted={(id) => { if (id === conv.chatId) startNewChat(); }} /> : null}
       <form ref={formRef} className="composer2" onSubmit={(e) => { e.preventDefault(); send(input); }}>
         <div className="composer2__box">
-          <textarea ref={boxRef} value={input} rows={1} placeholder={outside ? "Open in Telegram to ask" : turns.length ? "Ask a follow-up" : "Ask CyberJudah"} disabled={outside} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onFocus={() => typing(true)} onBlur={() => typing(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} />
+          <textarea ref={boxRef} value={input} rows={1} placeholder={turns.length ? "Ask a follow-up" : "Ask CyberJudah"} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onFocus={() => typing(true)} onBlur={() => typing(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} />
           {busy
             ? <button type="button" className="composer2__go composer2__go--stop" aria-label="Stop" onClick={stop}><span /></button>
             // Pressing Send keeps the focus in the question: a blur would bring the tab bar back and
@@ -368,6 +371,8 @@ const PLAIN_ERRORS: Record<string, string> = {
   network: "The connection dropped before the answer came. Try again.",
   interrupted: "This answer was interrupted before it was saved. Try again.",
   signin: "Open CyberJudah from Telegram to ask questions: your answers are saved to your Telegram account.",
+  "browser-limit": "That is today's questions in this browser. They start again tomorrow, or open CyberJudah in Telegram to keep asking.",
+  "no-device": "This browser could not be set up to ask just now. Try again in a minute.",
 };
 
 function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onPlans }: { t: Turn; question: string; last: boolean; busy: boolean; chatId: string | null; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void }) {
@@ -397,7 +402,7 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
       ) : t.error === "consent" && t.consent && !t.content ? (
         <div className="paywall consent" role="group" aria-label="Your agreement">
           <b>Send your question to {t.consent.provider}?</b>
-          <p>{t.consent.model} is run by {t.consent.provider}. To answer, CyberJudah sends it your question, the earlier questions in this chat, and passages from the library. Your name and Telegram ID are not sent. Your chats are saved for you, encrypted, for 180 days unless you delete them.</p>
+          <p>{t.consent.model} is run by {t.consent.provider}. To answer, CyberJudah sends it your question, the earlier questions in this chat, and passages from the library. {app ? "Your name and Telegram ID are not sent. Your chats are saved for you, encrypted, for 180 days unless you delete them." : "Nothing that identifies you is sent, and the conversation stays on this device."}</p>
           <div className="consent__actions">
             <button type="button" className="paywall__go" onClick={() => { agree(t.consent!.provider); haptic("success"); onRetry(); }}>Agree and ask</button>
             <a className="consent__more" href="/privacy" onClick={(e) => { e.preventDefault(); navigate("/privacy"); }}>Privacy policy</a>
@@ -414,7 +419,8 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
         t.error in PLAIN_ERRORS ? (
           <div className="msg__error" role="alert">
             <p>{PLAIN_ERRORS[t.error]}</p>
-            {last && t.error !== "limit" && t.error !== "signin" ? <button type="button" className="msg__action" onClick={onRetry}><Icon name="retry" size={16} />Try again</button> : null}
+            {t.error === "browser-limit" ? <OpenInTelegram className="msg__action" /> : null}
+            {last && t.error !== "limit" && t.error !== "signin" && t.error !== "browser-limit" ? <button type="button" className="msg__action" onClick={onRetry}><Icon name="retry" size={16} />Try again</button> : null}
           </div>
         ) : <Trouble error={new ApiError(t.error === "session" ? 401 : Number(t.error?.split(":")[1]) || 503, "/api/ask", t.error === "session" ? "stale" : t.error)} what="ask" q={question} onRetry={last ? onRetry : undefined} />
       ) : (
@@ -507,7 +513,7 @@ function ActionCard({ action, chatId }: { action: Action; chatId: string | null 
 
 type Balance = { free: number; plan: number; planOn: boolean; planUntil: number | null; planAllowance: number; credits: number; total: number };
 type AskModel = { id: string; name: string; provider: string; what: string; cost: number; free?: boolean };
-type AskAccount = { metered: boolean; unlimited: boolean; balance: Balance; perQuestion: number; freeDaily: number; plan: { stars: number; units: number }; packs: { stars: number; units: number }[]; models?: AskModel[]; model?: string };
+type AskAccount = { browser?: boolean; browserDaily?: number; metered: boolean; unlimited: boolean; balance: Balance; perQuestion: number; freeDaily: number; plan: { stars: number; units: number }; packs: { stars: number; units: number }[]; models?: AskModel[]; model?: string };
 const answers = (units: number, per: number) => Math.max(0, Math.floor(units / Math.max(per, 1)));
 /** The line under Ask's title: how much is left, in answers, the way an AI app shows it. */
 function meterLine(a: AskAccount | null, cost = 1): string {
