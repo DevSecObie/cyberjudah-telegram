@@ -56,16 +56,40 @@ each step as it happens. Without the key, Llama 3.3 70B on Workers AI answers fr
 eight in one pass, a hundred questions a day per person. Every finished exchange is saved to
 the person (`bot/src/chats.ts`) and listed under Your chats.
 
-**Paying for Ask.** Like AI features in other apps: a free allowance each day, a monthly
-Telegram Stars subscription with a monthly allowance, and Stars top-up packs whose credit does
-not expire (`bot/src/billing.mjs`, `billing.ts`). Every answer is charged what it used, in
-units of Claude's tokens weighted as Anthropic bills them, so a deep question uses more than a
-follow-up; the app shows what is left as "about N answers". The prices are the `ASK_*` vars in
-wrangler.jsonc: set `ASK_USD_PER_MTOK` to the model's input price and `ASK_USD_PER_STAR` to
-what a Star brings in, and every plan and pack pays for itself at `ASK_MARGIN`. Admins
-(`ADMIN_IDS`) ask without limit; `/api/admin/usage` (and Settings, for admins) shows questions,
-units and cost per day. Charging starts when `ASK_BILLING` is `"on"`; until then every answer is
-measured and nobody is charged.
+**Paying for Ask.** Pay as you go, like an AI API, at cost: CyberJudah makes no profit. Each
+reader has a balance in dollars ("$4.82 left"), and each answer shows what it cost ("$0.05",
+"<$0.01"): every model call at that model's own price, with Cloudflare's Unified Billing fee
+where it applies, and the library searches at Cloudflare's rates (`shared/credits.mjs`,
+`bot/src/spend.ts`, `bot/src/credits.ts`). Before an answer the most it may cost is held from
+the balance and the rest is released when it is done; failed, refused and empty answers cost
+nothing. The free model (`ASK_FREE_MODEL`) is free for everyone; there is no plan and no free
+daily allowance for paid models, and with too little balance Ask offers the free model and a
+top-up. Top-ups of $1, $5 and $20 are sold in Telegram Stars (`bot/src/billing.ts`): a top-up
+costs `ceil(dollars / ASK_USD_PER_STAR)` Stars and adds exactly what those Stars pay out.
+Admins (`ADMIN_IDS`) are not charged; `/api/admin/usage` shows each day's cost and charges.
+
+No top-up is sold from full dark ("no blue in the sky": the sun 18° below the horizon) on the
+evening before a Sabbath, feast day or New Moon to full dark at its end, in the reader's own
+time zone (`shared/holy-days.mjs`; the zone's place comes from the tz database,
+`shared/zone-coords.json`, built by `bot/scripts/zone-coords.mjs`). A balance already held can
+be used. The feast days and New Moons are the IUIC calendar's, in `shared/holy-days.json`; the
+weekly `holy-days` workflow (`bot/scripts/holy-days.mjs`) reads israelunite.org and proposes
+any change as a pull request for the owner to approve. Readers can opt in to a Telegram
+reminder at midday the day before, sent only if their balance is under $1.
+
+Settings (`bot/wrangler.jsonc` vars, the same in both environments):
+
+| Setting | Value | What it is |
+| --- | --- | --- |
+| `ASK_BILLING` | `"on"` | Paid models use the balance; off, a 100-a-day cap for everyone |
+| `ASK_USD_PER_STAR` | `"0.013"` | What one Star pays out after Telegram's share |
+| `ASK_MARGIN` | `"1"` | At cost: no profit |
+| `ASK_TOPUPS_USD` | `"1,5,20"` | The top-ups on sale, in dollars |
+| `ASK_UNIFIED_BILLING_FEE` | `"0.05"` | Cloudflare's fee on Unified Billing models |
+| `ASK_CONFIRM_ABOVE_USD` | `"0.25"` | A request that may cost more asks first |
+| `ASK_MAX_REQUEST_USD` | `"1.50"` | The most one request may cost |
+| `ASK_FREE_MODEL` | `"@cf/zai-org/glm-5.3-flash"` | The free model |
+
 The same index gives the Search screen its "By meaning" mode.
 
 **Precepts lined up with the verse.** The library's engine reads the precepts a class

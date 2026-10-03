@@ -61,11 +61,10 @@ own KV namespace.
 `/api/admin/usage` and the old 100-a-day cap applies, but nothing charges. Before turning
 it on with a large audience:
 
-- Re-check `ASK_USD_PER_MTOK` against Anthropic's current input-token price for the
-  configured `CLAUDE_MODEL`, and `ASK_USD_PER_STAR` against what a Star nets after
-  Telegram's cut. The margin math is in `wrangler.jsonc`; if either price moved, the
-  plans stop paying for themselves.
-- Run a paid end-to-end on staging: buy the smallest Star pack, confirm the balance,
+- Re-check `ASK_USD_PER_STAR` against what a Star nets after Telegram's cut: top-ups add
+  exactly that per Star (no margin), so if the payout moved, update it. The models' prices
+  come from `shared/ask-models.json` (rebuild it when Cloudflare's catalog changes).
+- Run a paid end-to-end on staging: buy the $1 top-up, confirm the balance,
   ask until it deducts, confirm the meter in the app matches.
 - The billing balances live in D1 as of Sep 30 (atomic, version-checked updates;
   payments idempotent per Telegram charge id; usage totals in D1 too). The KV race is
@@ -92,10 +91,9 @@ The code is built for it, but know the levers:
   10,000 subscribers take about 7 minutes inside the hourly cron; 100,000 take about
   70 minutes, and the previous hour's unfinished slot is finished first, so nothing is
   skipped. Watch the `daily` log lines (`sent`/`dropped`/`failed`) after the first big day.
-- **Ask CyberJudah:** the expensive path. Per-user daily quotas (100 asks, 50 TTS) bound
-  one person's spend; the free allowance (`ASK_FREE_DAILY`, 120,000 units ≈ 2 average
-  answers) bounds everyone's. `/api/admin/usage` shows real averages — re-tune the
-  allowance from that data, not from guesses.
+- **Ask CyberJudah:** the expensive path. Paid models are paid from each reader's balance at
+  cost; the free model is bounded by the per-user daily quota (100 asks, 50 TTS).
+  `/api/admin/usage` shows each day's real cost and charges.
 - **Search:** D1 FTS, cheap and cacheable. The `/api/search` cache headers are the lever
   if read volume spikes.
 - **What pages you:** the hourly self-check messages `ADMIN_IDS` on Telegram when D1,

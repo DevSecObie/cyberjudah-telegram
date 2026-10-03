@@ -30,10 +30,12 @@ const vars = [
   // Ask runs its real agent loop against a scripted stand-in of the Claude Messages API (e2e/claude.ts).
   "ANTHROPIC_API_KEY:e2e-not-a-real-key",
   `ANTHROPIC_BASE_URL:${STAND_IN}/anthropic`,
-  // Ask's allowance is on, as it is meant to run, with a free day large enough that no other
-  // test runs out; the allowance test uses a reader's day up itself.
+  // Ask's balance is on, as it is meant to run (readers are given a balance by the admins in the
+  // specs); the specs may name the moment a request is made (x-e2e-now) to test the Sabbath pause.
   "ASK_BILLING:on",
-  "ASK_FREE_DAILY:100000000",
+  "E2E_CLOCK:on",
+  // The bot's webhook, for payments and refunds as Telegram delivers them (credits.spec.ts).
+  "WEBHOOK_SECRET:e2e-webhook-secret",
   // Records are filed under pseudonymous IDs (bot/src/privacy.mjs); the tests derive the same ones.
   "PRIVACY_KEY:e2e-privacy-key-not-secret",
 ].map((v) => `--var '${v}'`).join(" ");

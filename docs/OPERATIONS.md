@@ -125,11 +125,11 @@ you do not have.
   per hourly slot in KV, so an interrupted run resumes; the previous hour's unfinished
   slot is finished first. Rough math: 10k subscribers ≈ 7 minutes, 100k ≈ 70 minutes,
   inside the hourly cron. Blocked users (403) are dropped from the list automatically.
-- **Ask CyberJudah**: the expensive path. Per-user daily quotas bound one person's cost
-  (100 asks, 50 new TTS generations); the free allowance (`ASK_FREE_DAILY`) bounds
-  everyone's. Re-tune the allowance from `/api/admin/usage` real averages after launch,
-  not from estimates. Billing balances and usage totals live in D1 (`accounts`, `payments`,
-  `usage_daily`, `usage_people`, with version-checked updates; PR #16), not KV.
+- **Ask CyberJudah**: the expensive path. Every paid model is paid from the reader's own
+  balance, at cost, so its spend is bounded by what readers top up; the free model is bounded
+  by the per-user daily quota (100 asks; 50 new TTS generations). Balances, holds, the ledger
+  and each answer's cost live in D1 (`credit_lots`, `credit_ledger`, `credit_holds`,
+  `credit_usage`, `payments`); `/api/admin/usage` shows each day's cost and charges.
 - **Search**: D1 FTS is cheap; `/api/search` cache headers are the lever if read volume spikes.
 - **Quotas**: `takeQuota()` in D1 is atomic per user/day; `rate_counts` rows for old days
   are swept on use, so the table stays small.
@@ -196,11 +196,12 @@ refuses to run without it, and it must never change) and the bot's Privacy Polic
 
 ## Ask's models
 
-Readers pick the model in Ask (the name under the question box).
+Readers pick the model in Ask’s header. The dollar balance under the question box opens the top-up sheet.
 - **The list** is `shared/ask-models.json`, built by `node bot/scripts/ask-models.mjs <cloudflare-docs>/src/content <commit>` from Cloudflare's catalog (`catalog-models` for third-party models, `workers-ai-models` for Cloudflare-hosted ones). It holds every text model with a published price. Rebuild it to pick up new models or prices.
 - **Claude** models go through the Anthropic SDK (`agent.ts`). Every other model goes through the AI binding and the gateway (`agent-open.ts`): chat completions, the Responses API or the Messages format, with the same tools, or no tools for models without function calling.
-- **Pricing:** each answer is charged at the price of the model that wrote it (`unitsFor`).
-- **The free model** (`ASK_FREE_MODEL`, GLM 5.3 Flash) is never charged. It is open to everyone, up to `ASK_BASIC_DAILY` a day, and takes over when a reader's paid answers run out.
+- **Pricing:** each answer is charged exactly what it cost, at the price of the model that wrote it, with Unified Billing's fee where it applies and the library searches at Cloudflare's rates (`shared/credits.mjs`, `bot/src/spend.ts`). No margin.
+- **The free model** (`ASK_FREE_MODEL`, GLM 5.3 Flash) is never charged. It is open to everyone (within the 100-a-day quota), and is offered when a reader's balance is too low for the model chosen.
+- **Top-ups** ($1, $5, $20 in Stars) pause from full dark before each Sabbath, feast day and New Moon to full dark at its end, in the reader's time zone (`shared/holy-days.mjs`). The feast days and New Moons are in `shared/holy-days.json`, refreshed from the IUIC calendar by the weekly `holy-days` workflow as a pull request to approve.
 - **Failures:** if any model fails or Cloudflare refuses it (out of credits, for example), the answer falls back to the backup as before.
 
 ## Backups and recovery
