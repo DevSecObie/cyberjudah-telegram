@@ -439,19 +439,19 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
    sheets are near-opaque overlays; the ⋮ menu and the pickers are the elevated glass, briefly. */
 .bs {
   --mat-base: var(--bs-reverse);
-  --mat-nav: color-mix(in srgb, var(--bs-reverse) 78%, transparent);
-  --mat-elevated: color-mix(in srgb, var(--bs-reverse) 94%, transparent);
-  --mat-overlay: color-mix(in srgb, var(--bs-reverse) 95%, transparent);
+  --mat-nav: color-mix(in srgb, var(--bs-reverse) var(--mat-density), transparent);
+  --mat-elevated: color-mix(in srgb, var(--bs-reverse) var(--mat-elevated-density), transparent);
+  --mat-overlay: var(--bs-reverse);
   --mat-edge: color-mix(in srgb, var(--bs-default) 13%, transparent);
   --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 30%, transparent);
   --text-1: var(--bs-default); --text-3: var(--bs-tertiary);
 }
 .bs[data-dark] { --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent); }
-html[data-transparency="reduced"] .bs { --mat-nav: var(--bs-reverse); --mat-elevated: var(--bs-reverse); --mat-overlay: var(--bs-reverse); }
-@media (prefers-reduced-transparency: reduce) { html:not([data-transparency="full"]) .bs { --mat-nav: var(--bs-reverse); --mat-elevated: var(--bs-reverse); --mat-overlay: var(--bs-reverse); } }
-.bs-header { background: var(--mat-nav); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur); border-bottom: .5px solid var(--mat-edge); }
+.bs-header { isolation: isolate; background: none; border-bottom: .5px solid var(--mat-edge); }
+.bs-header::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: var(--mat-nav); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur); }
 .bs-sheet { background: var(--mat-overlay); border: .5px solid var(--mat-edge); border-bottom: 0; box-shadow: var(--mat-highlight), 0 -12px 40px rgba(0, 0, 0, .2); }
 .bs-dropdown, .bs-picker { background: var(--mat-elevated); -webkit-backdrop-filter: var(--mat-blur-strong); backdrop-filter: var(--mat-blur-strong); border: .5px solid var(--mat-edge); border-radius: var(--r-lg); box-shadow: var(--mat-highlight), var(--shadow-3); }
+.bs-dropdown { top: calc(100% + 6px); }
 .bs-dropdown__item + .bs-dropdown__item { border-top: .5px solid color-mix(in srgb, var(--bs-default) 10%, transparent); }
 #root .bs-chapterbtn, .bs-chapterbtn, .bs-playpill { background: var(--mat-overlay) !important; border: .5px solid var(--mat-edge) !important; box-shadow: var(--mat-highlight), 0 6px 18px rgba(0, 0, 0, .18); }
 .bs-chapterbtn:active, .bs-playbtn:active { transform: scale(.94); }
@@ -459,7 +459,7 @@ html[data-transparency="reduced"] .bs { --mat-nav: var(--bs-reverse); --mat-elev
 .bs-gallery__close { background: var(--mat-overlay); border: .5px solid var(--mat-edge) !important; box-shadow: var(--mat-highlight), 0 4px 14px rgba(0, 0, 0, .22) !important; }
 /* The gallery dims the page instead of blurring it: a full-screen filter, animated, is the one
    effect the budget rules out. */
-.bs-gallery { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; transition: background-color var(--dur-3) ease; }
+.bs-gallery { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 .bs-gallery[data-open] { background: color-mix(in srgb, var(--deck-bg) 92%, transparent); }
 
 /* Header selectors use the same glass material as the existing sheets. */
@@ -553,25 +553,17 @@ html[data-transparency="reduced"] .bs { --mat-nav: var(--bs-reverse); --mat-elev
    never animated), so the Scripture behind never competes. The selected colour also carries a
    check, not its ring alone. */
 .bs-selected {
-  --sel-surface: color-mix(in srgb, var(--bs-reverse) 92%, transparent);
-  --sel-hairline: color-mix(in srgb, #000 12%, transparent);
   --sel-tile: var(--bs-light-grey);
   --sel-accent: var(--bs-primary);
-}
-.bs[data-dark] .bs-selected {
-  --sel-surface: color-mix(in srgb, color-mix(in srgb, var(--bs-reverse) 70%, #1c1f22) 92%, transparent);
-  --sel-hairline: color-mix(in srgb, #9cc4e4 26%, transparent);
-  --sel-tile: var(--bs-light-grey);
-  --sel-accent: rgb(14, 211, 185);
 }
 .bs-scrim--clear > .bs-sheet.bs-selected {
   box-sizing: border-box; width: calc(100% - 16px); max-width: 640px;
   margin: 0 auto calc(8px + max(0px, var(--safe-bottom, 0px) - 26px));
   padding: 0 0 calc(10px + min(var(--safe-bottom, 0px), 26px));
-  border-radius: 38px; border: 1px solid var(--sel-hairline);
-  background: var(--sel-surface);
-  -webkit-backdrop-filter: blur(20px) saturate(120%); backdrop-filter: blur(20px) saturate(120%);
-  box-shadow: 0 10px 36px rgba(0, 0, 0, .3);
+  border-radius: 38px; border: 1px solid var(--mat-edge);
+  background: var(--mat-elevated);
+  -webkit-backdrop-filter: var(--mat-blur-strong); backdrop-filter: var(--mat-blur-strong);
+  box-shadow: var(--mat-highlight), var(--shadow-3);
   animation-duration: .2s;
 }
 .bs-selected .bs-sheet__handle { width: 36px; height: 5px; border-radius: 3px; margin: 6px auto 0; background: color-mix(in srgb, var(--bs-default) 45%, transparent); }
@@ -618,8 +610,6 @@ html[data-transparency="reduced"] .bs { --mat-nav: var(--bs-reverse); --mat-elev
 .bs-selected .bs-tabsfooter__tab::after { content: ""; position: absolute; inset: -5px 0; }
 
 /* Reduced transparency: the same sheet, opaque. Reduced motion: no slide, no spring. */
-html[data-transparency="reduced"] .bs-scrim--clear > .bs-sheet.bs-selected { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bs-reverse); }
-@media (prefers-reduced-transparency: reduce) { html:not([data-transparency="full"]) .bs-scrim--clear > .bs-sheet.bs-selected { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bs-reverse); } }
 @media (prefers-reduced-motion: reduce) {
   .bs-scrim--clear > .bs-sheet.bs-selected { animation: none; }
   .bs-selected .bs-pages__track, .bs-selected .bs-tabsfooter__indicator, .bs-selected .bs-action__box { transition: none; }

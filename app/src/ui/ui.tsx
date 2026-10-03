@@ -96,7 +96,7 @@ export function TabBar() {
   // The selection responds to a press and follows a drag. Keep the material behind the labels:
   // distorting the text through a second lens makes navigation harder to read on Chromium and
   // cannot be rendered by Safari. The same interaction runs on every browser.
-  const lens = useRef<{ x0: number; y0: number; px: number; py: number; t: number; at: number; moved: boolean; col: boolean } | null>(null);
+  const lens = useRef<{ x0: number; y0: number; px: number; py: number; t: number; at: number; moved: boolean; col: boolean; tabs: { el: HTMLElement; start: number; size: number }[] } | null>(null);
   const eatClick = useRef(false);
   const pointer = useRef<number | null>(null);
   const placePill = useRef<(() => void) | null>(null);
@@ -112,8 +112,8 @@ export function TabBar() {
       // prevents the selected button from opening its drawer or scrolling back to the top.
       try { nav.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
     }
-    const all = tabsOf(nav), first = all[0], last = all[all.length - 1];
-    const lo = L.col ? first.offsetTop : first.offsetLeft, hi = L.col ? last.offsetTop : last.offsetLeft;
+    const all = L.tabs, first = all[0], last = all[all.length - 1];
+    const lo = first.start, hi = last.start;
     // Past either end the lens gives a little and resists, like glass held by surface tension.
     let pos = (L.col ? L.py : L.px) + d;
     if (pos < lo) pos = lo - Math.sqrt(lo - pos) * 2; else if (pos > hi) pos = hi + Math.sqrt(pos - hi) * 2;
@@ -125,11 +125,11 @@ export function TabBar() {
     nav.style.setProperty("--pill-sx", String(L.col ? 1 - k * .6 : 1 + k));
     nav.style.setProperty("--pill-sy", String(L.col ? 1 + k : 1 - k * .6));
     // The icons under the lens swell; the nearest one is where it will land.
-    const size = L.col ? first.offsetHeight : first.offsetWidth, mid = pos + size / 2;
+    const size = first.size, mid = pos + size / 2;
     let near = 0, best = Infinity;
     all.forEach((b, i) => {
-      const c = (L.col ? b.offsetTop + b.offsetHeight / 2 : b.offsetLeft + b.offsetWidth / 2), dist = Math.abs(c - mid);
-      b.style.setProperty("--mag", String(1 + .06 * Math.max(0, 1 - dist / size)));
+      const dist = Math.abs(b.start + b.size / 2 - mid);
+      b.el.style.setProperty("--mag", String(1 + .06 * Math.max(0, 1 - dist / size)));
       if (dist < best) { best = dist; near = i; }
     });
     if (nav.dataset.near !== String(near)) { if (nav.dataset.near !== undefined) haptic("select"); nav.dataset.near = String(near); }
@@ -157,32 +157,24 @@ export function TabBar() {
     lensEnd(false, false);
     const id = pointer.current; pointer.current = null;
     if (id !== null && bar.current?.hasPointerCapture(id)) bar.current.releasePointerCapture(id);
-    bar.current?.style.removeProperty("--glass-x");
-    bar.current?.style.removeProperty("--glass-y");
-  };
-  const lightAt = (e: React.PointerEvent) => {
-    const nav = bar.current; if (!nav) return;
-    const rect = nav.getBoundingClientRect();
-    nav.style.setProperty("--glass-x", `${Math.max(0, Math.min(rect.width, e.clientX - rect.left))}px`);
-    nav.style.setProperty("--glass-y", `${Math.max(0, Math.min(rect.height, e.clientY - rect.top))}px`);
   };
   const hold = {
     onPointerDown: (e: React.PointerEvent) => {
       if (!e.isPrimary || e.button !== 0 || pointer.current !== null) return;
       pointer.current = e.pointerId;
       long.current = false; eatClick.current = false; swipe.current = { x: e.clientX, y: e.clientY };
-      lightAt(e);
       press.current = window.setTimeout(() => { long.current = true; lensEnd(false, false); haptic("heavy"); setDrawer(null); navigate("/settings/bar"); }, 600);
       const nav = bar.current, on = (e.target as HTMLElement).closest<HTMLElement>(".tab[data-on]");
       if (nav && on && !mini) {
         const col = getComputedStyle(nav).flexDirection === "column";
-        lens.current = { x0: e.clientX, y0: e.clientY, px: on.offsetLeft, py: on.offsetTop, t: performance.now(), at: col ? on.offsetTop : on.offsetLeft, moved: false, col };
+        // Read all gesture geometry before pointer-move feedback begins.
+        const geometry = tabsOf(nav).map(el => ({ el, start: col ? el.offsetTop : el.offsetLeft, size: col ? el.offsetHeight : el.offsetWidth }));
+        lens.current = { x0: e.clientX, y0: e.clientY, px: on.offsetLeft, py: on.offsetTop, t: performance.now(), at: col ? on.offsetTop : on.offsetLeft, moved: false, col, tabs: geometry };
         nav.dataset.lift = ""; haptic("tap");
       }
     },
     onPointerMove: (e: React.PointerEvent) => {
       if (pointer.current !== e.pointerId) return;
-      lightAt(e);
       const s = swipe.current;
       if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) window.clearTimeout(press.current);
       lensMove(e);
@@ -193,8 +185,6 @@ export function TabBar() {
       if (pointer.current !== e.pointerId) return;
       pointer.current = null;
       window.clearTimeout(press.current);
-      bar.current?.style.removeProperty("--glass-x");
-      bar.current?.style.removeProperty("--glass-y");
       if (lens.current) { swipe.current = null; lensEnd(!long.current); return; }
       const s = swipe.current; swipe.current = null; if (!s || long.current) return;
       const dx = e.clientX - s.x, dy = e.clientY - s.y;
@@ -231,7 +221,7 @@ export function TabBar() {
     };
     placePill.current = place;
     place();
-    const ro = new ResizeObserver(place); ro.observe(nav);
+    const ro = new ResizeObserver(() => { if (lens.current) cancelPress(); place(); }); ro.observe(nav);
     for (const b of nav.querySelectorAll(".tab")) ro.observe(b);
     return () => { ro.disconnect(); placePill.current = null; };
   });

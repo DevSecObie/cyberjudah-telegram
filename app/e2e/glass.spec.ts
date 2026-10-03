@@ -8,6 +8,35 @@ const DATA_ORIGIN = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io"
 // Material and pointer tests don't require live library data or a signed-in account.
 const LAUNCH = "#tgWebAppData=query_id%3Dglass-review&tgWebAppVersion=9.1&tgWebAppPlatform=ios";
 
+/** Read the material itself, including its pseudo-element, rather than an unrelated wrapper. */
+async function materials(page: Page, selectors: [string, string?][]) {
+  return page.evaluate(selectors => selectors.map(([selector, pseudo]) => {
+    const element = document.querySelector(selector)!;
+    const style = getComputedStyle(element, pseudo);
+    const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
+    const context = canvas.getContext("2d")!;
+    context.fillStyle = style.backgroundColor; context.fillRect(0, 0, 1, 1);
+    return { selector, filter: style.backdropFilter || style.getPropertyValue("-webkit-backdrop-filter"), alpha: context.getImageData(0, 0, 1, 1).data[3] };
+  }), selectors);
+}
+
+/** Conservative budget: includes intersecting surfaces even if another panel covers them. */
+async function filteredSurfaces(page: Page) {
+  return page.evaluate(() => [...document.querySelectorAll("body *")].flatMap(element => {
+    const box = element.getBoundingClientRect();
+    if (!box.width || !box.height || box.bottom <= 0 || box.top >= innerHeight || box.right <= 0 || box.left >= innerWidth) return [];
+    for (let ancestor: Element | null = element; ancestor; ancestor = ancestor.parentElement) {
+      const s = getComputedStyle(ancestor);
+      if (s.visibility === "hidden" || s.display === "none" || s.opacity === "0") return [];
+    }
+    return [undefined, "::before", "::after"].flatMap(pseudo => {
+      const s = getComputedStyle(element, pseudo);
+      const filter = s.backdropFilter || s.getPropertyValue("-webkit-backdrop-filter");
+      return filter && filter !== "none" && (!pseudo || !["none", "normal"].includes(s.content)) ? [`${element.className}${pseudo ?? ""}`] : [];
+    });
+  }));
+}
+
 async function setup(page: Page, theme = "default", reduced = false) {
   await page.addInitScript(({ theme, reduced }) => {
     (window as unknown as { __cloud: Record<string, string> }).__cloud = {
@@ -25,6 +54,10 @@ async function setup(page: Page, theme = "default", reduced = false) {
       verses: Array.from({ length: 31 }, (_, i) => ({ verse: i + 1, text: `Reading layout fixture ${i + 1}. Long content lets the navigation float above the page while scrolling.` })),
     } });
     if (path === "/api/concordance/genesis/1.json") return r.fulfill({ json: { book: "Genesis", chapter: 1, cited_by: [] } });
+    if (path === "/api/library/materials/book.json") return r.fulfill({ json: {
+      slug: "materials", title: "Material test book", subtitle: "", author: "Test", year: 2026, publisher: "", license: "Test fixture", source: "", items: [], scan: "", chapters: [], reads: [],
+      figures: [{ kind: "figure", title: "Test picture", caption: "", vol: 1, page: 1, img: 1, file: "fixture.png", width: 1, height: 1, chapter: 0, reads: 0, readings: [], url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZlSAAAAAASUVORK5CYII=" }],
+    } });
     return r.fulfill({ status: 404, body: "" });
   });
 }
@@ -197,6 +230,118 @@ test("glass: transferring touch capture from the button to the dock does not can
   await dock.getByRole("button", { name: "Search", exact: true }).tap();
   await expect(page).toHaveURL(/\/search/);
   await session.detach();
+});
+
+for (const theme of ["default", "dark", "sepia"]) {
+  for (const mode of ["system", "app", "contrast", "forced"] as const) {
+    test(`materials: ${theme} ${mode} keeps headers, dock, menus and selection opaque`, async ({ page, browserName }) => {
+      test.skip(mode === "system" && browserName !== "chromium", "Playwright only exposes this OS preference through Chromium CDP");
+      if (mode === "system") {
+        const cdp = await page.context().newCDPSession(page);
+        await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-transparency", value: "reduce" }] });
+      }
+      if (mode === "contrast") await page.emulateMedia({ contrast: "more" });
+      if (mode === "forced") await page.emulateMedia({ forcedColors: "active" });
+      await setup(page, theme, mode === "app");
+      for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
+        await page.setViewportSize(viewport);
+        await page.goto(`/read/genesis/1${LAUNCH}`);
+        await expect(page.locator("#verset-1")).toBeVisible();
+        if (mode === "system") expect(await page.evaluate(() => matchMedia("(prefers-reduced-transparency: reduce)").matches)).toBe(true);
+        await page.getByRole("button", { name: "Scripture options" }).click();
+        await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
+        for (const material of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) {
+          expect(material.filter, material.selector).toBe("none");
+          expect(material.alpha, material.selector).toBe(255);
+        }
+        await page.keyboard.press("Escape");
+        await page.locator("#verset-1").click();
+        await expect(page.locator(".bs-selected")).toBeVisible();
+        expect((await materials(page, [[".bs-selected"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
+        await expect.poll(() => filteredSurfaces(page)).toEqual([]);
+        // Selection is saved with the reader tab; clear it before checking the next viewport.
+        await page.locator("#verset-1").click();
+        await expect(page.locator(".bs-selected")).toHaveCount(0);
+      }
+      await page.goto(`/books/materials${LAUNCH}`);
+      await expect(page.locator(".book__figure")).toBeVisible();
+      expect((await materials(page, [[".head", "::before"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
+      await page.locator(".book__figure").click();
+      await expect(page.locator(".pv")).toBeVisible();
+      expect((await materials(page, [[".pv__bar"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
+      await expect.poll(() => filteredSurfaces(page)).toEqual([]);
+    });
+  }
+}
+
+test("materials: header, menu and selection stay within budget without stacked glass", async ({ page }) => {
+  await setup(page);
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
+  await page.getByRole("button", { name: "Scripture options" }).click();
+  const menu = page.getByRole("menu", { name: "Passage options" });
+  await expect(menu).toBeVisible();
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(3);
+  expect(await menu.evaluate(element => {
+    for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+      const style = getComputedStyle(parent);
+      const filter = style.backdropFilter || style.getPropertyValue("-webkit-backdrop-filter");
+      if (filter && filter !== "none") return false;
+    }
+    return true;
+  })).toBe(true);
+  const header = (await page.locator(".bs-header").boundingBox())!;
+  expect((await menu.boundingBox())!.y).toBeGreaterThanOrEqual(header.y + header.height);
+  await page.keyboard.press("Escape");
+  await page.locator("#verset-1").click();
+  await expect(page.locator(".bs-selected")).toBeVisible();
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
+});
+
+test("materials: content stays unfiltered at 200% shared text size with reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await setup(page);
+  await page.goto(`/books/materials${LAUNCH}`);
+  await expect(page.locator(".book__figure")).toBeVisible();
+  const title = page.locator(".head .title");
+  const normal = await title.evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+  await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
+  await expect.poll(() => title.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBe(normal * 2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
+  expect((await materials(page, [[".book__figure"]]))[0].filter).toBe("none");
+  await page.locator(".book__figure").click();
+  await expect(page.locator(".pv__bar")).toBeVisible();
+  await expect.poll(() => filteredSurfaces(page)).toEqual(["pv__bar"]);
+  await page.locator(".pv").getByRole("button", { name: "Close", exact: true }).click();
+  await expect(page.locator(".pv")).toHaveCount(0);
+});
+
+test("materials: unsupported-filter CSS branch yields opaque reader surfaces", async ({ page }) => {
+  await setup(page, "sepia");
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  // CSS support cannot be disabled by Playwright. Activate the real fallback blocks in place,
+  // preserving their cascade order, so this verifies their declarations rather than a test copy.
+  const changed = await page.evaluate(() => {
+    let changed = 0;
+    for (const sheet of document.styleSheets) {
+      let rules: CSSRuleList;
+      try { rules = sheet.cssRules; } catch { continue; }
+      for (let i = rules.length - 1; i >= 0; i--) {
+        const rule = rules[i];
+        if (rule instanceof CSSSupportsRule && rule.conditionText.startsWith("not") && rule.conditionText.includes("backdrop-filter")) {
+          const body = [...rule.cssRules].map(r => r.cssText).join("\n");
+          sheet.deleteRule(i); sheet.insertRule(`@media all { ${body} }`, i); changed++;
+        }
+      }
+    }
+    return changed;
+  });
+  expect(changed).toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Scripture options" }).click();
+  for (const material of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) expect(material).toMatchObject({ filter: "none", alpha: 255 });
 });
 
 for (const focus of ["field", "current Search control", "another control"] as const) {
