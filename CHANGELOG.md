@@ -26,6 +26,9 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
 ### Added
+- Admins can change a photo from the app: a leader's portrait, a Timeline period's cover or an
+  event's picture. Choose a photo, drag and zoom it in the frame, Save; everyone sees it straight
+  away, and Remove photo brings back the app's own.
 - The Bible Timeline's last age, **The Final Captivity**: five periods from the first ships (1441)
   to Israel United in Christ today, 161 events so far, more being added as each is checked. Each
   event keeps apart the documented history (with its sources), quotes from the classes (each linked to the
@@ -92,6 +95,10 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   in the Bible*. Regenerate the data with `node app/scripts/timeline-data.mjs <cases>`.
 
 ### Fixed
+- The glass dock keeps its labels crisp in every browser, with one material behind the controls,
+  a gentle selection response and tint that preserves contrast in every reader palette. Ordinary
+  taps and canceled drags work reliably. Reduce Transparency also makes the Bible dock opaque,
+  and Reduce Motion stops selection and icon scaling.
 - Ask CyberJudah: an answer is finished and saved even if you leave mid-answer, and coming back
   (a refresh, the app reopened, the connection back) waits for it instead of calling it lost; an
   answer still arriving for a chat you left never appears in the next one; a question typed while
@@ -109,7 +116,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 |---|---|---|---|---|---|
 | Search may fail during each production deploy while the search index is re-imported | Maintainer (deploy pipeline) | None yet | Search errors for the length of the import (not measured) | None | Decide whether to skip the import when the index is unchanged |
 | Precept-pass fixes requested with `@codex` never arrived (Codex was not connected until 2026-10-02) | Repository owner | cyberjudah [#14](https://github.com/DevSecObie/cyberjudah/pull/14), [#15](https://github.com/DevSecObie/cyberjudah/pull/15) | Two passes cannot merge | The owner applies the listed fixes | Fixes re-requested on 2026-10-02; review the new commits, then merge |
-| Liquid Glass refraction (the lens bend on the dock) is Chromium-only | Front end | None | Cosmetic: iPhone (Telegram's WebKit view, Safari, Chrome on iOS) and Firefox get frosted glass without the bend | None needed | Keep it a progressive enhancement; see the selection-sheet review |
+| Native Liquid Glass rendering is unavailable inside the web app | Front end | [Design system](docs/DESIGN_SYSTEM.md#dock-material-and-interaction-correction) | The dock uses a consistent CSS material; native lensing and system morphing require a native client | Web material with accessible fallbacks | Verify the updated dock on physical iOS Telegram and macOS Safari |
 | Bible Strong features not yet in the app | Product owner | [issue #47] | Listed in the issue | Not applicable | Classify each item |
 
 ## Production history (retrospective, untagged)

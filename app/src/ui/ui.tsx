@@ -1,4 +1,4 @@
-import { Children, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Children, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
 
@@ -9,7 +9,6 @@ import { adjacentTab, askTabPath, bibleTabPath, searchTabPath, useTabs } from "@
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { expandBar, useBarMini, useBarScroll } from "@/lib/barscroll";
 import { SwitcherBar } from "@/screens/Tabs";
-import { LensFilters, refracts } from "./refraction";
 import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
 
 export type IconName = "home" | "search" | "play" | "book" | "book-open" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "precepts" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus" | "close" | "image" | "alert" | "info";
@@ -87,23 +86,31 @@ export function TabBar() {
   const press = useRef<number | undefined>(undefined);
   const swipe = useRef<{ x: number; y: number } | null>(null);
   const long = useRef(false);
-  const go = (to: string) => { if (long.current) return; haptic("select"); setDrawer(null); if (to === pathname) window.scrollTo({ top: 0, behavior: "smooth" }); else navigate(to, { replace: true }); };
+  const go = (to: string) => { if (long.current) return; haptic("select"); setDrawer(null); if (to === pathname) window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); else navigate(to, { replace: true }); };
   // Home and the menu are drawers, as in Bible Strong; the same button closes its own drawer.
   const toggle = (side: DrawerSide) => { if (long.current) return; haptic("select"); setDrawer(drawer === side ? null : side); };
   // A long press edits the bar; a horizontal swipe along it moves to the next or previous open tab
   // (Bible Strong's useTabBarSwipeGesture).
   //
-  // Liquid glass: pressing the current section lifts its pill into a clear lens that follows the
-  // finger along the bar, swelling the icons it passes over and stretching with its speed; let go
-  // and it settles on the nearest section, which opens.
+  // The selection responds to a press and follows a drag. Keep the material behind the labels:
+  // distorting the text through a second lens makes navigation harder to read on Chromium and
+  // cannot be rendered by Safari. The same interaction runs on every browser.
   const lens = useRef<{ x0: number; y0: number; px: number; py: number; t: number; at: number; moved: boolean; col: boolean } | null>(null);
   const eatClick = useRef(false);
+  const pointer = useRef<number | null>(null);
+  const placePill = useRef<(() => void) | null>(null);
+  useEffect(() => () => { window.clearTimeout(press.current); }, []);
   const tabsOf = (nav: HTMLElement) => [...nav.querySelectorAll<HTMLElement>(".tab")].filter((b) => b.offsetWidth > 0);
   const lensMove = (e: React.PointerEvent) => {
     const L = lens.current, nav = bar.current; if (!L || !nav) return false;
     const d = L.col ? e.clientY - L.y0 : e.clientX - L.x0;
     if (!L.moved && Math.abs(d) < 6) return true;
-    if (!L.moved) { L.moved = true; window.clearTimeout(press.current); nav.dataset.drag = ""; }
+    if (!L.moved) {
+      L.moved = true; window.clearTimeout(press.current); nav.dataset.drag = "";
+      // Capture only an actual drag. Capturing a tap here retargets its click to the nav and
+      // prevents the selected button from opening its drawer or scrolling back to the top.
+      try { nav.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
+    }
     const all = tabsOf(nav), first = all[0], last = all[all.length - 1];
     const lo = L.col ? first.offsetTop : first.offsetLeft, hi = L.col ? last.offsetTop : last.offsetLeft;
     // Past either end the lens gives a little and resists, like glass held by surface tension.
@@ -113,7 +120,7 @@ export function TabBar() {
     // It stretches along its path with speed and thins across it.
     const now = performance.now(), v = Math.abs(pos - L.at) / Math.max(8, now - L.t);
     L.at = pos; L.t = now;
-    const k = Math.min(.28, v * .22);
+    const k = Math.min(.08, v * .08);
     nav.style.setProperty("--pill-sx", String(L.col ? 1 - k * .6 : 1 + k));
     nav.style.setProperty("--pill-sy", String(L.col ? 1 + k : 1 - k * .6));
     // The icons under the lens swell; the nearest one is where it will land.
@@ -121,47 +128,72 @@ export function TabBar() {
     let near = 0, best = Infinity;
     all.forEach((b, i) => {
       const c = (L.col ? b.offsetTop + b.offsetHeight / 2 : b.offsetLeft + b.offsetWidth / 2), dist = Math.abs(c - mid);
-      b.style.setProperty("--mag", String(1 + .24 * Math.max(0, 1 - dist / size)));
+      b.style.setProperty("--mag", String(1 + .06 * Math.max(0, 1 - dist / size)));
       if (dist < best) { best = dist; near = i; }
     });
     if (nav.dataset.near !== String(near)) { if (nav.dataset.near !== undefined) haptic("select"); nav.dataset.near = String(near); }
     return true;
   };
-  const lensEnd = (open: boolean) => {
+  const lensEnd = (open: boolean, suppressClick = true) => {
     const L = lens.current, nav = bar.current; lens.current = null; if (!L || !nav) return;
     const all = tabsOf(nav), near = Number(nav.dataset.near ?? -1);
     for (const b of all) b.style.removeProperty("--mag");
     nav.style.removeProperty("--pill-sx"); nav.style.removeProperty("--pill-sy");
     delete nav.dataset.drag; delete nav.dataset.near; delete nav.dataset.lift;
+    placePill.current?.();
     if (!L.moved) return;
     // The click the browser sends at the end of the drag is the drag's, not a tap: swallow that one.
-    eatClick.current = true;
+    eatClick.current = suppressClick;
     const it = open && near >= 0 ? items[near] : null;
     // Opening the section moves the pill there; otherwise it springs back to where it was.
     if (it && current !== it.id) { long.current = false; it.onClick(); }
-    nav.style.setProperty(L.col ? "--pill-y" : "--pill-x", `${L.col ? L.py : L.px}px`);
     const pill = nav.querySelector<HTMLElement>(".tabs__pill");
     if (pill) { delete pill.dataset.flow; void pill.offsetWidth; pill.dataset.flow = ""; }
   };
+  const cancelPress = () => {
+    window.clearTimeout(press.current);
+    swipe.current = null;
+    lensEnd(false, false);
+    const id = pointer.current; pointer.current = null;
+    if (id !== null && bar.current?.hasPointerCapture(id)) bar.current.releasePointerCapture(id);
+    bar.current?.style.removeProperty("--glass-x");
+    bar.current?.style.removeProperty("--glass-y");
+  };
+  const lightAt = (e: React.PointerEvent) => {
+    const nav = bar.current; if (!nav) return;
+    const rect = nav.getBoundingClientRect();
+    nav.style.setProperty("--glass-x", `${Math.max(0, Math.min(rect.width, e.clientX - rect.left))}px`);
+    nav.style.setProperty("--glass-y", `${Math.max(0, Math.min(rect.height, e.clientY - rect.top))}px`);
+  };
   const hold = {
     onPointerDown: (e: React.PointerEvent) => {
+      if (!e.isPrimary || e.button !== 0 || pointer.current !== null) return;
+      pointer.current = e.pointerId;
       long.current = false; eatClick.current = false; swipe.current = { x: e.clientX, y: e.clientY };
-      press.current = window.setTimeout(() => { long.current = true; lensEnd(false); haptic("heavy"); setDrawer(null); navigate("/settings/bar"); }, 600);
+      lightAt(e);
+      press.current = window.setTimeout(() => { long.current = true; lensEnd(false, false); haptic("heavy"); setDrawer(null); navigate("/settings/bar"); }, 600);
       const nav = bar.current, on = (e.target as HTMLElement).closest<HTMLElement>(".tab[data-on]");
-      if (nav && on && !mini && e.isPrimary) {
+      if (nav && on && !mini) {
         const col = getComputedStyle(nav).flexDirection === "column";
         lens.current = { x0: e.clientX, y0: e.clientY, px: on.offsetLeft, py: on.offsetTop, t: performance.now(), at: col ? on.offsetTop : on.offsetLeft, moved: false, col };
         nav.dataset.lift = ""; haptic("tap");
-        try { nav.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
       }
     },
     onPointerMove: (e: React.PointerEvent) => {
-      if (lensMove(e)) return;
-      const s = swipe.current; if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) window.clearTimeout(press.current);
+      if (pointer.current !== e.pointerId) return;
+      lightAt(e);
+      const s = swipe.current;
+      if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) window.clearTimeout(press.current);
+      lensMove(e);
     },
-    onPointerCancel: () => { window.clearTimeout(press.current); lensEnd(false); },
+    onPointerCancel: (e: React.PointerEvent) => { if (pointer.current === e.pointerId) cancelPress(); },
+    onLostPointerCapture: (e: React.PointerEvent) => { if (e.target === e.currentTarget && pointer.current === e.pointerId && !bar.current?.hasPointerCapture(e.pointerId)) cancelPress(); },
     onPointerUp: (e: React.PointerEvent) => {
+      if (pointer.current !== e.pointerId) return;
+      pointer.current = null;
       window.clearTimeout(press.current);
+      bar.current?.style.removeProperty("--glass-x");
+      bar.current?.style.removeProperty("--glass-y");
       if (lens.current) { swipe.current = null; lensEnd(!long.current); return; }
       const s = swipe.current; swipe.current = null; if (!s || long.current) return;
       const dx = e.clientX - s.x, dy = e.clientY - s.y;
@@ -169,7 +201,7 @@ export function TabBar() {
       const to = adjacentTab(dx < 0 ? 1 : -1);
       if (to) { long.current = true; window.setTimeout(() => { long.current = false; }, 50); haptic("select"); setDrawer(null); navigate(to, { replace: true }); }
     },
-    onPointerLeave: () => window.clearTimeout(press.current),
+    onPointerLeave: (e: React.PointerEvent) => { if (pointer.current === e.pointerId && !bar.current?.hasPointerCapture(e.pointerId)) cancelPress(); },
     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
   };
   // The bar follows the reading: a small capsule while scrolling down, the full bar otherwise.
@@ -177,13 +209,12 @@ export function TabBar() {
   // Ask keeps the full bar: its composer sits on it, as a chat app keeps its input in place.
   const mini = useBarMini() && !drawer && pathname !== "/ask";
   const bar = useRef<HTMLElement>(null);
-  // The lens's size, for the refraction map drawn to fit it.
-  const [lensSize, setLensSize] = useState({ w: 0, h: 0 });
   // The current section sits on a pill that slides to it (across the dock on phones, down the
   // rail on desktops). Every section keeps its slot, so only the pill moves.
   useLayoutEffect(() => {
     const nav = bar.current; if (!nav) return;
     const place = () => {
+      if (lens.current) return; // A data refresh or resize must not pull a held selection away.
       const on = nav.querySelector<HTMLElement>(".tab[data-on]");
       const shown = !!on && on.offsetWidth > 0;
       // Moving to another section, the pill flows there (pill-flow in materials.css).
@@ -196,12 +227,12 @@ export function TabBar() {
       nav.style.setProperty("--pill-w", `${shown ? on!.offsetWidth : 0}px`);
       nav.style.setProperty("--pill-h", `${shown ? on!.offsetHeight : 0}px`);
       nav.dataset.pill = shown ? "" : "none";
-      if (shown && (on!.offsetWidth !== lensSize.w || on!.offsetHeight !== lensSize.h)) setLensSize({ w: on!.offsetWidth, h: on!.offsetHeight });
     };
+    placePill.current = place;
     place();
     const ro = new ResizeObserver(place); ro.observe(nav);
     for (const b of nav.querySelectorAll(".tab")) ro.observe(b);
-    return () => ro.disconnect();
+    return () => { ro.disconnect(); placePill.current = null; };
   });
   // While the switcher is open the bar becomes its controls, as in Bible Strong.
   if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /></nav>;
@@ -216,9 +247,8 @@ export function TabBar() {
     { id: "more", label: "Menu", aria: "Menu", glyph: <Icon name="more" size={24} />, onClick: () => toggle("more") },
   ];
   return (
-    <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} data-refract={refracts && lensSize.w ? "" : undefined} {...hold}
-      onClickCapture={(e) => { if (eatClick.current) { eatClick.current = false; e.stopPropagation(); e.preventDefault(); return; } if (mini) { e.stopPropagation(); e.preventDefault(); haptic("select"); expandBar(); } }}>
-      <LensFilters w={lensSize.w} h={lensSize.h} />
+    <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} {...hold}
+      onClickCapture={(e) => { if (eatClick.current) { eatClick.current = false; if (e.detail > 0) { e.stopPropagation(); e.preventDefault(); return; } } if (mini) { e.stopPropagation(); e.preventDefault(); haptic("select"); expandBar(); } }}>
       <span className="tabs__pill" aria-hidden="true" onAnimationEnd={(e) => { delete e.currentTarget.dataset.flow; }} />
       {items.map((it) => {
         const on = current === it.id;
