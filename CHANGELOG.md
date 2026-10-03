@@ -26,6 +26,9 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
 ### Added
+- Admins can change a photo from the app: a leader's portrait, a Timeline period's cover or an
+  event's picture. Choose a photo, drag and zoom it in the frame, Save; everyone sees it straight
+  away, and Remove photo brings back the app's own.
 - The Bible Timeline's last age, **The Final Captivity**: five periods from the first ships (1441)
   to Israel United in Christ today, 97 events so far, more being added as each is checked. Each
   event keeps apart the documented history (with its sources), the assembly's teaching (linked to the
