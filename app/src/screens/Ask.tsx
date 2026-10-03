@@ -226,7 +226,10 @@ export function Ask() {
   const [picking, setPicking] = useState(false);
   const [modelId, setModelId] = useState(chosenModel);
   const [acct, setAcct] = useState<AskAccount | null>(null);
-  const loadAccount = () => api<AskAccount>("/api/ask/account").then(setAcct).catch(() => undefined);
+  const [acctFailed, setAcctFailed] = useState(false);
+  const loadAccount = () => { setAcctFailed(false); return api<AskAccount>("/api/ask/account").then(setAcct).catch(() => setAcctFailed(true)); };
+  /** The model picker opens whatever state the account is in: it loads the list if it has not come yet. */
+  const openPicker = () => { haptic("select"); if (!acct || acctFailed) void loadAccount(); setPicking(true); };
   // A browser gets its credential on opening Ask, so the allowance line and the first question are ready.
   useEffect(() => { void (app ? loadAccount() : ensureDevice().then((d) => (d ? loadAccount() : undefined))); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const model = acct?.models?.find((m) => m.id === modelId) ?? acct?.models?.find((m) => m.id === acct.model);
@@ -324,12 +327,12 @@ export function Ask() {
         <div className="chat2__turns">
           {turns.map((t, i) => t.role === "user"
             ? <div key={`${chatId}-${i}`} className="msg msg--me"><div className="msg__bubble">{t.content}</div></div>
-            : <AssistantTurn key={`${chatId}-${i}`} t={t} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} chatId={chatId} onRetry={() => send(lastUser, true)} onFollow={(q) => send(q)} onPlans={() => setPlans(true)} />)}
+            : <AssistantTurn key={`${chatId}-${i}`} t={t} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} chatId={chatId} onRetry={() => send(lastUser, true)} onFollow={(q) => send(q)} onPlans={() => setPlans(true)} onModel={openPicker} />)}
           <div ref={endRef} className="chat2__end" />
         </div>
       )}
 
-      {picking && acct?.models?.length ? <ModelSheet models={acct.models} current={model?.id} onClose={() => setPicking(false)} onPick={(id) => { chooseModel(id); setModelId(id); setPicking(false); haptic("select"); }} /> : null}
+      {picking ? <ModelSheet models={acct?.models ?? null} onRetry={() => void loadAccount()} current={model?.id} onClose={() => setPicking(false)} onPick={(id) => { chooseModel(id); setModelId(id); setPicking(false); haptic("select"); }} /> : null}
       {plans && acct ? <PlansSheet acct={acct} onClose={() => setPlans(false)} onPaid={() => { setPlans(false); void pollAccount(acct, setAcct); }} /> : null}
       {history ? <ChatsSheet current={chatId} onClose={() => setHistory(false)} onOpen={openChat} onDeleted={(id) => { if (id === conv.chatId) startNewChat(); }} /> : null}
       <form ref={formRef} className="composer2" onSubmit={(e) => { e.preventDefault(); send(input); }}>
@@ -341,7 +344,7 @@ export function Ask() {
             // move the composer under the finger before the tap ends, and the tap would be lost.
             : <button type="submit" className="composer2__go" aria-label="Send" disabled={!input.trim()} onPointerDown={(e) => e.preventDefault()}><Icon name="arrowUp" size={20} /></button>}
         </div>
-        <p className="composer2__note">{model ? <><button type="button" className="composer2__model" aria-label={`Model: ${model.name}. Change`} onClick={() => setPicking(true)}>{model.name.replace(/^Claude /, "")}{model.free ? " · free" : ""}<span aria-hidden="true"> ▾</span></button> · </> : null}Answers can be wrong. Check them against the sources.</p>
+        <p className="composer2__note"><button type="button" className="composer2__model" aria-label={`Model: ${model?.name ?? "the default"}. Change`} onClick={openPicker}>{model ? model.name.replace(/^Claude /, "") : "Model"}<span aria-hidden="true"> ▾</span></button> · Answers can be wrong. Check them against the sources.</p>
       </form>
     </main>
   );
@@ -375,7 +378,7 @@ const PLAIN_ERRORS: Record<string, string> = {
   "no-device": "This browser could not be set up to ask just now. Try again in a minute.",
 };
 
-function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onPlans }: { t: Turn; question: string; last: boolean; busy: boolean; chatId: string | null; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void }) {
+function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onPlans, onModel }: { t: Turn; question: string; last: boolean; busy: boolean; chatId: string | null; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void; onModel: () => void }) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const sources = t.sources ?? [];
@@ -400,14 +403,21 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
       {t.thinking ? (
         <div className="msg__thinking" role="status"><span className="answer__dots" aria-hidden="true"><i /><i /><i /></span><Waiting question={question} status={t.status} /></div>
       ) : t.error === "consent" && t.consent && !t.content ? (
-        <div className="paywall consent" role="group" aria-label="Your agreement">
-          <b>Send your question to {t.consent.provider}?</b>
-          <p>{t.consent.model} is run by {t.consent.provider}. To answer, CyberJudah sends it your question, the earlier questions in this chat, and passages from the library. {app ? "Your name and Telegram ID are not sent. Your chats are saved for you, encrypted, for 180 days unless you delete them." : "Nothing that identifies you is sent, and the conversation stays on this device."}</p>
-          <div className="consent__actions">
-            <button type="button" className="paywall__go" onClick={() => { agree(t.consent!.provider); haptic("success"); onRetry(); }}>Agree and ask</button>
-            <a className="consent__more" href="/privacy" onClick={(e) => { e.preventDefault(); navigate("/privacy"); }}>Privacy policy</a>
+        <div className="consent" role="group" aria-labelledby="consent-title">
+          <div className="consent__head">
+            <span className="consent__icon" aria-hidden="true"><Icon name="shield" size={20} /></span>
+            <span><b id="consent-title">Send your question to {t.consent.provider}?</b><small>{t.consent.model} is run by {t.consent.provider}</small></span>
           </div>
-          <small>You can withdraw this at any time in Settings → Privacy. Choose another model to use a different provider.</small>
+          <ul className="consent__list">
+            <li><Icon name="arrowUp" size={16} /><span><b>Sent</b> Your question, the earlier questions in this chat, and passages from the library.</span></li>
+            <li><Icon name="close" size={16} /><span><b>Not sent</b> {app ? "Your name and your Telegram ID." : "Anything that identifies you."}</span></li>
+            <li><Icon name="clock" size={16} /><span><b>Kept</b> {app ? "Your chats, encrypted, for 180 days unless you delete them." : "Nothing: this conversation stays on this device."}</span></li>
+          </ul>
+          <div className="consent__actions">
+            <button type="button" className="btn consent__go" onClick={() => { agree(t.consent!.provider); haptic("success"); onRetry(); }}>Agree and ask</button>
+            <button type="button" className="consent__alt" onClick={onModel}>Choose another model</button>
+          </div>
+          <p className="consent__foot">You can withdraw this at any time in Settings → Privacy. <a href="/privacy" onClick={(e) => { e.preventDefault(); navigate("/privacy"); }}>Privacy policy</a></p>
         </div>
       ) : t.error === "allowance" && !t.content ? (
         <div className="paywall">
@@ -531,7 +541,8 @@ const costLabel = (m: AskModel) => (m.free ? "Free" : m.cost >= 0.95 && m.cost <
  * The models a reader can answer with: the free one first, then every other by provider, with a
  * search; each with what it is, and how far the allowance goes on it next to Claude Opus 5.
  */
-function ModelSheet({ models, current, onClose, onPick }: { models: AskModel[]; current?: string; onClose: () => void; onPick: (id: string) => void }) {
+function ModelSheet({ models: list, current, onClose, onPick, onRetry }: { models: AskModel[] | null; current?: string; onClose: () => void; onPick: (id: string) => void; onRetry: () => void }) {
+  const models = list ?? [];
   const [q, setQ] = useState("");
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const hit = (m: AskModel) => words.every((w) => `${m.name} ${m.provider} ${m.id}`.toLowerCase().includes(w));
@@ -550,7 +561,9 @@ function ModelSheet({ models, current, onClose, onPick }: { models: AskModel[]; 
         <input className="models__search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search models or providers" aria-label="Search models" />
         {shown.filter((m) => m.free).map((m) => <div key="free" className="models__group"><h3>Free, always</h3>{row(m)}</div>)}
         {groups.map((g) => <div key={g} className="models__group"><h3>{g}</h3>{shown.filter((m) => !m.free && m.provider === g).map(row)}</div>)}
-        {shown.length ? null : <p className="models__none">No model matches.</p>}
+        {!list ? <p className="models__none" aria-busy="true">Loading the models…</p>
+          : !models.length ? <p className="models__none">The models could not be loaded. <button type="button" className="msg__link" onClick={onRetry}>Try again</button></p>
+          : shown.length ? null : <p className="models__none">No model matches.</p>}
       </div>
     </Sheet>
   );

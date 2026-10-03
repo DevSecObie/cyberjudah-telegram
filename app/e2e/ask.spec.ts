@@ -221,7 +221,10 @@ test("privacy: nothing is sent to an AI provider until the reader agrees, and th
   await ask(page, "Why keep the Passover?");
   const card = answer(page).locator(".consent");
   await expect(card).toContainText("Send your question to Anthropic?");
-  await expect(card).toContainText("Your name and Telegram ID are not sent");
+  await expect(card.locator(".consent__list li").nth(1)).toContainText("Not sent Your name and your Telegram ID.");
+  // Another provider can be chosen from the card itself.
+  await expect(card.getByRole("button", { name: "Choose another model" })).toBeVisible();
+  await page.waitForTimeout(600); // the card's entrance
   await shot(page, "7-consent");
   expect(await modelCalls(request, t0)).toHaveLength(0);
   await card.getByRole("button", { name: "Agree and ask" }).click();
