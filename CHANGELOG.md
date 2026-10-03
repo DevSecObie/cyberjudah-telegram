@@ -26,6 +26,11 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
 ### Added
+- The Bible Timeline moves as Bible Strong's does: a period opens on its title card before the
+  canvas slides in, the line and year travel with the canvas past either end, the next period's
+  card fades in behind, and back from an event, a verse or a case study returns to the same place.
+  Its periods and events now have pictures: our own period paintings and the approved People
+  portraits. Its search works like the main search, and keeps its words when you come back.
 - Ask CyberJudah as the app's assistant: it answers questions about the app from the app's own
   list of screens, with links that open in place; finds people and case studies; finds and reopens
   your saved chats; reads your reading reminder; and proposes changes to it as a card you Confirm
