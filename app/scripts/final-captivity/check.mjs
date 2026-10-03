@@ -76,7 +76,7 @@ export function checkEvent(e, periods, { corpus, draft = false } = {}) {
       const sec = seconds(s.ts);
       if (sec == null) p.push(`${at}: teaching source needs ts as m:ss or h:mm:ss`);
       if (!/^[\w-]{11}$/.test(s.id ?? "")) p.push(`${at}: teaching source id must be the YouTube video id`);
-      else if (sec != null && !new RegExp(`^https://youtu\\.be/${s.id.replace(/[-]/g, "\\-")}\\?t=${sec}$`).test(s.url)) p.push(`${at}: url must be https://youtu.be/${s.id}?t=${sec} (the moment)`);
+      else if (sec != null && s.url !== `https://youtu.be/${s.id}?t=${sec}`) p.push(`${at}: url must be https://youtu.be/${s.id}?t=${sec} (the moment)`);
       const rec = corpus?.recording?.(s.id);
       if (corpus?.recording && !rec) p.push(`${at}: recording ${s.id} is not in the corpus`);
       if (rec && sec != null && rec.duration && sec > rec.duration) p.push(`${at}: ${s.ts} is past the end of ${s.id}`);
