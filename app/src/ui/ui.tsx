@@ -52,6 +52,7 @@ export function TabBar() {
   const eatClick = useRef(false);
   const pointer = useRef<number | null>(null);
   const touchTarget = useRef<HTMLButtonElement | null>(null);
+  const touchClick = useRef<HTMLButtonElement | null>(null);
   const placePill = useRef<(() => void) | null>(null);
   useEffect(() => () => { window.clearTimeout(press.current); }, []);
   const tabsOf = (nav: HTMLElement) => [...nav.querySelectorAll<HTMLElement>(".tab")].filter((b) => b.offsetWidth > 0);
@@ -110,7 +111,7 @@ export function TabBar() {
   };
   const cancelPress = () => {
     window.clearTimeout(press.current);
-    swipe.current = null;
+    swipe.current = null; touchTarget.current = null; touchClick.current = null;
     lensEnd(false, false);
     const id = pointer.current; pointer.current = null;
     if (id !== null && bar.current?.hasPointerCapture(id)) bar.current.releasePointerCapture(id);
@@ -118,7 +119,7 @@ export function TabBar() {
   const hold = {
     onPointerDown: (e: React.PointerEvent) => {
       if (!e.isPrimary || e.button !== 0 || pointer.current !== null) return;
-      pointer.current = e.pointerId;
+      pointer.current = e.pointerId; touchClick.current = null;
       touchTarget.current = e.pointerType === "touch" ? (e.target as Element).closest<HTMLButtonElement>("button.tab") : null;
       long.current = false; eatClick.current = false; swipe.current = { x: e.clientX, y: e.clientY };
       press.current = window.setTimeout(() => { long.current = true; lensEnd(false, false); haptic("heavy"); setDrawer(null); navigate("/settings/bar"); }, 600);
@@ -151,11 +152,11 @@ export function TabBar() {
       if (lens.current?.moved) { swipe.current = null; touchTarget.current = null; lensEnd(!long.current); return; }
       if (lens.current) lensEnd(false, false);
       const s = swipe.current; swipe.current = null; if (!s || long.current) return;
-      // Complete a stationary touch on its original button. Chromium can suppress the
-      // compatibility click immediately after a captured drag; keyboard clicks stay native.
+      // Finish stationary taps at touchend, where the compatibility click can be canceled.
+      // Opening a drawer at pointerup can otherwise retarget that click to its new scrim.
       const target = touchTarget.current; touchTarget.current = null;
       if (target?.isConnected && Math.hypot(e.clientX - s.x, e.clientY - s.y) < 10 && (e.target as Element).closest("button.tab") === target) {
-        target.click(); eatClick.current = true; return;
+        touchClick.current = target; return;
       }
       if (bar.current?.hasAttribute("data-scrollable")) return;
       const dx = e.clientX - s.x, dy = e.clientY - s.y;
@@ -171,6 +172,18 @@ export function TabBar() {
   // Ask keeps the full bar: its composer sits on it, as a chat app keeps its input in place.
   const mini = useBarMini() && !drawer && pathname !== "/ask";
   const bar = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = bar.current; if (!nav) return;
+    const finishTouch = (event: TouchEvent) => {
+      const target = touchClick.current; touchClick.current = null;
+      if (!target?.isConnected || !event.cancelable || event.touches.length) return;
+      // Only a completed button tap cancels the compatibility mouse events. Native pans
+      // keep their touchend, and mouse/keyboard activation follows its normal click path.
+      event.preventDefault(); target.click();
+    };
+    nav.addEventListener("touchend", finishTouch, { passive: false });
+    return () => { touchClick.current = null; nav.removeEventListener("touchend", finishTouch); };
+  }, [pathname]);
   useLayoutEffect(() => {
     const nav = bar.current, on = nav?.querySelector<HTMLElement>(".tabs__main .tab[data-on]");
     const group = nav?.querySelector<HTMLElement>(".tabs__main");
