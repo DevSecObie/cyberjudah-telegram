@@ -1,0 +1,33 @@
+{
+  "browser": "153.0.8010.12",
+  "build": "production",
+  "cpuThrottle": 4,
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "measurements": [
+    {
+      "action": "dock-drag",
+      "samples": 145,
+      "medianMs": 16.7,
+      "p95Ms": 16.8,
+      "maxMs": 66.6,
+      "framesOver33ms": 1,
+      "layoutEvents": 3,
+      "layoutMs": 30.91
+    },
+    {
+      "action": "sheet-open",
+      "samples": 49,
+      "medianMs": 16.7,
+      "p95Ms": 33.4,
+      "maxMs": 66.6,
+      "framesOver33ms": 1,
+      "layoutEvents": 4,
+      "layoutMs": 26.66
+    }
+  ],
+  "measuredCommit": "3f85a9f",
+  "scope": "Production build of section 06 before history-only integration and visual assertion corrections. Runtime source is identical to 465ba46. Dock sample includes drag release and route navigation; sheet sample includes first mount. 60Hz frame intervals have a nominal 16.7ms period; longer work remains tracked in section 10."
+}
