@@ -48,6 +48,11 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
     await expect(page.locator("#verset-1")).toBeVisible();
     const dock = page.getByRole("navigation", { name: "Sections" });
     await expect(page.locator("html")).toHaveAttribute("data-palette", theme);
+    // Palette changes can start color transitions; sample the settled theme without
+    // changing the contrast threshold.
+    await dock.evaluate(async nav => {
+      await Promise.all(nav.getAnimations({ subtree: true }).filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {})));
+    });
     const material = await dock.evaluate(nav => {
       const get = (el: Element, pseudo?: string) => getComputedStyle(el, pseudo);
       const layers = [...nav.querySelectorAll("*")].map(el => ({ filter: get(el).filter, backdrop: get(el).backdropFilter || get(el).getPropertyValue("-webkit-backdrop-filter") }));

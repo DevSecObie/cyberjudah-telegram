@@ -147,7 +147,8 @@ test("inside Telegram: Telegram is offered, push is greyed with the reason, the 
   await page.getByRole("button", { name: "Until I resume", exact: true }).click();
   await expect(page.getByRole("button", { name: /Paused/ })).toContainText("Until you resume · tap to resume");
   await page.getByRole("button", { name: /Paused/ }).click();
-  await page.getByRole("button", { name: /^Pause/ }).click();
+  // Wait for the saved resume state: /^Pause/ also matches the old "Paused" row.
+  await page.getByRole("button", { name: /^Pause\b/ }).click();
   await page.getByRole("button", { name: "For a week", exact: true }).click();
   await expect(page.getByRole("button", { name: /Paused/ })).toContainText(/Until \d{4}-\d{2}-\d{2} · tap to resume/);
   await sw.click();
