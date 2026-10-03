@@ -1,3 +1,4 @@
+import { telegramClient } from "./telegram-api";
 import { Bot, InlineKeyboard, InputFile, type Context } from "grammy";
 import type { InlineQueryResultArticle, UserFromGetMe } from "grammy/types";
 import { tellAdmins } from "./health";
@@ -7,7 +8,8 @@ import { runSearch } from "./search";
 import { parseReference } from "./refs.mjs";
 import { verseOfDay } from "./verse-of-day.mjs";
 import { pathToStartParam, startParamToPath } from "../../shared/links.mjs";
-import { applyPayment, checkout, SUPPORT_STARS } from "./billing";
+import { applyPayment, applyRefund, checkout, SUPPORT_STARS } from "./billing";
+import { fmtUsd } from "../../shared/credits.mjs";
 import { linkDevice, reminderButton, reminderKeyboard, stopFor, telegramReturned } from "./remind";
 import { pid, seal } from "./privacy.mjs";
 import { deleteData, deletionToken, exportData, useDeletionToken, type Deleted } from "./mydata";
@@ -52,7 +54,7 @@ const HELP = [
 ].join("\n");
 
 export async function createBot(env: Env, origin: string, exec?: Exec): Promise<Bot> {
-  const bot = new Bot(env.BOT_TOKEN, { botInfo });
+  const bot = new Bot(env.BOT_TOKEN, { botInfo, client: telegramClient(env) });
   const open = (ctx: Context, param: string, text?: string) => openButton(env, origin, ctx.chat?.type, param, text);
 
   bot.command("start", async (ctx) => {
@@ -174,17 +176,28 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     return ctx.answerCallbackQuery({ text });
   });
 
-  // Stars are taken only for a real item at its real price, bought by the person paying.
+  // Stars are taken only for a real item at its real price, bought by the person paying, and no
+  // top-up during a Sabbath, feast day or New Moon where they are (billing.ts checkout).
   bot.on("pre_checkout_query", (ctx) => {
     const q = ctx.preCheckoutQuery;
-    return checkout(env, q.invoice_payload, q.currency, q.total_amount, q.from.id) ? ctx.answerPreCheckoutQuery(true) : ctx.answerPreCheckoutQuery(false, { error_message: "This item or price has changed. Open Ask CyberJudah and try again." });
+    const r = checkout(env, q.invoice_payload, q.currency, q.total_amount, q.from.id);
+    return r.ok ? ctx.answerPreCheckoutQuery(true) : ctx.answerPreCheckoutQuery(false, { error_message: r.message });
   });
   bot.on("message:successful_payment", async (ctx) => {
     const pay = ctx.message.successful_payment;
     const got = await applyPayment(env, ctx.from.id, pay);
-    if (got === "plan") return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. Your month of Ask CyberJudah is on; it renews itself each month until you cancel it in Telegram's settings.`, { parse_mode: "HTML", reply_markup: open(ctx, "ask", "Ask CyberJudah") });
-    if (got === "pack") return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. ${pay.total_amount} Stars of Ask CyberJudah added; the credit does not expire.`, { parse_mode: "HTML", reply_markup: open(ctx, "ask", "Ask CyberJudah") });
+    // A monthly plan bought before plans were withdrawn renewed: its Stars are added the same way, and it will not renew again.
+    if (got?.kind === "plan") return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. Ask CyberJudah no longer has a monthly plan, so this renewal's ${pay.total_amount} Stars were added to your balance as ${fmtUsd(got.mc, { floor: true })}, and the plan will not renew again. You pay only what your answers cost.`, { parse_mode: "HTML", reply_markup: open(ctx, "ask", "Ask CyberJudah") });
+    if (got?.kind === "pack") return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. ${fmtUsd(got.mc, { floor: true })} added to your Ask CyberJudah balance. It never expires, and each answer uses only what it costs.`, { parse_mode: "HTML", reply_markup: open(ctx, "ask", "Ask CyberJudah") });
     return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}: ${pay.total_amount} Stars received. Study to shew thyself approved.`, { parse_mode: "HTML" });
+  });
+
+  // A refund (by Telegram, or the admins'): what that payment added and is unspent leaves the balance.
+  bot.on("message", async (ctx, next) => {
+    const r = (ctx.message as { refunded_payment?: { telegram_payment_charge_id: string; currency: string } }).refunded_payment;
+    if (!r || r.currency !== "XTR") return next();
+    const out = await applyRefund(env, ctx.from.id, r.telegram_payment_charge_id).catch(() => null);
+    return ctx.reply(out ? `Your refund is through. The unused ${fmtUsd(out.clawed_mc)} from that payment has been taken off your Ask balance.` : "Your refund is through.");
   });
 
   // A keyboard-button launch (sendData) lands here: say what arrived so the person sees it worked.
@@ -290,7 +303,8 @@ export function deletedSummary(d: Deleted): string {
     d.readingReminder ? "your reading reminder" : "",
     d.dailyVerse ? "the daily verse" : "",
     d.classNoteRequests ? `${d.classNoteRequests} class-note ${d.classNoteRequests === 1 ? "request" : "requests"}` : "",
-    "your Ask allowance",
+    `your Ask balance${d.askBalanceUsd ? ` (${fmtUsd(Math.round(d.askBalanceUsd * 1e6), { floor: true })})` : ""}`,
+    d.topupReminder ? "your top-up reminder" : "",
   ].filter(Boolean);
-  return `Done. Deleted: ${parts.join(", ")}.${d.askPlanUntil ? " Your monthly plan's renewal is managed by Telegram: cancel it in Telegram's Stars settings so you are not charged again." : ""} Payment records keep only Telegram's charge reference, not who paid.`;
+  return `Done. Deleted: ${parts.join(", ")}. Payment records keep only Telegram's charge reference, not who paid.`;
 }

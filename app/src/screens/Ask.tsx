@@ -8,7 +8,7 @@ import { api, ApiError, app, confirm, haptic, hideKeyboard, openInvoice, openLin
 import { saveReminder, timeLabel, timeZone, type Settings as ReminderSettings } from "@/lib/reminders";
 import { useContent } from "./Reminders";
 import { safeLinks } from "@/lib/safe-links";
-import { resetTime } from "@/lib/reset-time";
+import { fmtUsd, MC_PER_USD } from "@shared/credits.mjs";
 import { chosenModel, chooseModel } from "@/lib/ask-model";
 import { agree, consented } from "@/lib/ai-consent";
 import { spinnerLine } from "@/lib/spinner";
@@ -26,7 +26,9 @@ export type Passage = { kind: string; title: string; url: string; sub?: string; 
 export type Source = Passage & { n: number };
 /** A change the assistant proposed; only the reader's Confirm carries it out (bot/src/assistant.mjs). */
 export type Action = { id: string; kind: "reminder"; summary: string; settings: ReminderSettings; state?: "applied" | "cancelled" };
-type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[]; actions?: Action[]; waiting?: boolean; backup?: boolean; limited?: boolean; consent?: { provider: string; model: string } };
+type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[]; actions?: Action[]; waiting?: boolean; backup?: boolean; consent?: { provider: string; model: string }; meter?: MeterInfo; used?: number; free?: boolean };
+/** What the server said about a request's cost: the most it may cost (asked first), or what the balance lacks and the free model on offer. */
+type MeterInfo = { model: string; name: string; typical_mc: number; max_mc?: number; available_mc?: number; need_mc?: number; free?: { id: string; name: string; provider: string } };
 /** The welcome screen's starters: a question and the line under it. */
 const EXAMPLES: [string, string][] = [
   ["Why do we keep the Passover?", "The feast, from the law to Christ"],
@@ -73,7 +75,7 @@ const patchLast = (gen: number, fn: (t: Turn) => Turn) => { if (conv.gen === gen
 type AskFail = { error?: string; reason?: string; provider?: string; model?: string };
 /** What went wrong, from the status and the server's own words. */
 const failure = (status: number, body: AskFail | null): string =>
-  status === 428 && body?.error === "consent" ? "consent" : status === 402 ? "allowance" : status === 429 ? "limit" : status === 400 && body?.error === "too-short" ? "too-short"
+  status === 428 && body?.error === "consent" ? "consent" : status === 409 && body?.error === "confirm" ? "confirm" : status === 402 ? "credits" : status === 429 ? "limit" : status === 400 && body?.error === "too-short" ? "too-short"
     : status === 401 ? (body?.reason === "missing" ? "signin" : "session") : `unavailable:${status}`;
 /** No line from the server for this long (it sends one every 15 seconds while it works): the connection is gone. */
 const STALL_MS = 45_000;
@@ -82,13 +84,14 @@ const STALL_MS = 45_000;
  * Ask a question: streamed in, saved to the account by the server as it completes. Returns
  * false when it was not sent (empty, or an answer is still coming), so the composer keeps the text.
  */
-function askQuestion(text: string, opts: { retry?: boolean; onAccount?: () => void; setBalance?: (b: Balance) => void } = {}): boolean {
+type AskOpts = { retry?: boolean; onAccount?: () => void; setWallet?: (w: Wallet) => void };
+function askQuestion(text: string, opts: AskOpts = {}): boolean {
   const q = text.trim();
   if (!q || conv.busy) return false;
   void runQuestion(q, opts);
   return true;
 }
-async function runQuestion(q: string, opts: { retry?: boolean; onAccount?: () => void; setBalance?: (b: Balance) => void }) {
+async function runQuestion(q: string, opts: AskOpts) {
   haptic("select"); hideKeyboard();
   const base = opts.retry ? conv.turns.slice(0, -2) : conv.turns;
   // The server shapes the history for the model (normalizeHistory); only settled turns are sent.
@@ -101,18 +104,18 @@ async function runQuestion(q: string, opts: { retry?: boolean; onAccount?: () =>
   let finished = false, stalled = false, heard = Date.now();
   const watch = setInterval(() => { if (Date.now() - heard > STALL_MS) { stalled = true; ctl.abort(); } }, 5000);
   try {
-    const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, stream: true, chat: id, retry: !!opts.retry, consent: consented(), ...(chosenModel() ? { model: chosenModel() } : {}) }) });
+    const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, stream: true, chat: id, retry: !!opts.retry, consent: consented(), request: newId(), ...(chosenModel() ? { model: chosenModel() } : {}), caps: readCaps() }) });
     heard = Date.now();
     if (!res.ok || !res.body) {
       const body = await res.text().then((t) => { try { return JSON.parse(t.split("\n")[0]) as AskFail; } catch { return null; } }).catch(() => null);
-      patch((t) => ({ ...t, thinking: false, error: failure(res.status, body), ...(body?.error === "consent" && body.provider ? { consent: { provider: body.provider, model: body.model ?? body.provider } } : {}) }));
+      patch((t) => ({ ...t, thinking: false, error: failure(res.status, body), ...(body?.error === "consent" && body.provider ? { consent: { provider: body.provider, model: body.model ?? body.provider } } : {}), ...(body?.error === "confirm" || body?.error === "credits" ? { meter: body as unknown as MeterInfo } : {}) }));
       if (res.status === 402) opts.onAccount?.();
       return;
     }
     const reader = res.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
     const handle = (l: string) => {
       if (!l.trim()) return;
-      let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[]; usage?: { units: number; balance: Balance }; action?: Action; actions?: Action[]; cut?: boolean; ping?: number; backup?: boolean; limited?: boolean };
+      let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[]; usage?: { charged_mc: number; balance?: Wallet; free?: boolean }; action?: Action; actions?: Action[]; cut?: boolean; ping?: number; backup?: boolean };
       try { msg = JSON.parse(l); } catch { return; }
       if (msg.passages) patch((t) => ({ ...t, passages: msg.passages }));
       // The research as it happens: each search, reading and look-up is a step under the answer's head.
@@ -120,8 +123,9 @@ async function runQuestion(q: string, opts: { retry?: boolean; onAccount?: () =>
       if (msg.action) patch((t) => ({ ...t, actions: [...(t.actions ?? []), msg.action!] }));
       if (msg.reset) patch((t) => ({ ...t, content: "", thinking: true }));
       if (msg.delta) patch((t) => ({ ...t, thinking: false, content: t.content + msg.delta }));
-      if (msg.usage) opts.setBalance?.(msg.usage.balance);
-      if (msg.done) { finished = true; haptic("success"); patch((t) => ({ ...t, thinking: false, cut: !!msg.cut, error: undefined, content: msg.answer || t.content, sources: msg.sources ?? [], followups: msg.followups ?? [], actions: msg.actions ?? t.actions, backup: !!msg.backup, limited: !!msg.limited })); }
+      // What the answer cost, under it, and the balance after it in the header.
+      if (msg.usage) { if (msg.usage.balance) opts.setWallet?.(msg.usage.balance); patch((t) => ({ ...t, used: msg.usage!.charged_mc, free: !!msg.usage!.free })); }
+      if (msg.done) { finished = true; haptic("success"); patch((t) => ({ ...t, thinking: false, cut: !!msg.cut, error: undefined, content: msg.answer || t.content, sources: msg.sources ?? [], followups: msg.followups ?? [], actions: msg.actions ?? t.actions, backup: !!msg.backup })); }
       // A failure after part of the answer keeps the part and says it was cut off.
       if (msg.error) { finished = true; patch((t) => (t.content ? { ...t, thinking: false, cut: true } : { ...t, thinking: false, error: msg.error })); }
     };
@@ -222,7 +226,11 @@ export function Ask() {
   const [picking, setPicking] = useState(false);
   const [modelId, setModelId] = useState(chosenModel);
   const [acct, setAcct] = useState<AskAccount | null>(null);
-  const loadAccount = () => api<AskAccount>("/api/ask/account").then(setAcct).catch(() => undefined);
+  const [acctFailed, setAcctFailed] = useState(false);
+  // The reader's time zone goes with it: top-ups pause for a Sabbath, feast day or New Moon where they are.
+  const loadAccount = () => { setAcctFailed(false); return api<AskAccount>(`/api/ask/account?tz=${encodeURIComponent(timeZone())}`).then(setAcct).catch(() => setAcctFailed(true)); };
+  /** The model picker opens whatever state the account is in: it loads the list if it has not come yet. */
+  const openPicker = () => { haptic("select"); if (!acct || acctFailed) void loadAccount(); setPicking(true); };
   useEffect(() => { void loadAccount(); }, []);
   const model = acct?.models?.find((m) => m.id === modelId) ?? acct?.models?.find((m) => m.id === acct.model);
   const [input, setInput] = useState("");
@@ -256,9 +264,10 @@ export function Ask() {
   // The composer grows with the question, up to a few lines.
   useLayoutEffect(() => { const b = boxRef.current; if (!b) return; b.style.height = "auto"; b.style.height = `${Math.min(b.scrollHeight, 160)}px`; }, [input]);
 
-  const setBalance = (b: Balance) => setAcct((a) => (a ? { ...a, balance: b } : a));
+  const setWallet = (w: Wallet) => setAcct((a) => (a ? { ...a, wallet: w } : a));
+  const [usageOpen, setUsageOpen] = useState(false);
   // The composer keeps what was typed unless the question went (an answer still coming holds it back).
-  const send = (text: string, retry = false) => { stick.current = true; if (askQuestion(text, { retry, onAccount: () => void loadAccount(), setBalance }) && text === input) setInput(""); };
+  const send = (text: string, retry = false) => { stick.current = true; if (askQuestion(text, { retry, onAccount: () => void loadAccount(), setWallet }) && text === input) setInput(""); };
   const stop = () => { haptic("select"); stopAsking(); };
   const newChat = () => { haptic("select"); startNewChat(); setInput(""); boxRef.current?.focus(); };
   const openChat = (c: SavedChat) => { replaceConv({ chatId: c.id, turns: fromSaved(c.turns) }); setHistory(false); stick.current = true; void recoverChat(); };
@@ -298,7 +307,11 @@ export function Ask() {
     <main className="chat2" ref={mainRef}>
       <header className="chat2__bar">
         <button type="button" className="chat2__new" aria-label="Your chats" disabled={!app} title={app ? undefined : "Your chats are kept with your Telegram account"} onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
-        <button type="button" className="chat2__heading" onClick={() => { if (acct?.metered) { haptic("select"); setPlans(true); } }}><b>Ask CyberJudah</b><small>{model?.free && acct?.metered && !acct.unlimited ? `${model.name} · free` : meterLine(acct, model?.cost)}</small></button>
+        {/* The model is chosen here, at the top, as in ChatGPT and Claude: the title, then the model and what is left. */}
+        <button type="button" className="chat2__heading" aria-label={model ? `Model: ${model.name}. Change` : "Ask CyberJudah"} disabled={!acct?.models?.length} onClick={() => { haptic("select"); setPicking(true); }}>
+          <b>Ask CyberJudah</b>
+          <small>{model ? <>{model.name.replace(/^Claude /, "")}{model.free ? " · free" : ""}<span className="chat2__chev" aria-hidden="true"> ▾</span>{acct?.unlimited ? " · Unlimited" : acct?.metered && !model.free ? <> · {meterLine(acct)}</> : null}</> : meterLine(acct)}</small>
+        </button>
         <button type="button" className="chat2__new" aria-label="New chat" disabled={!turns.length} onClick={newChat}><Icon name="compose" size={21} /></button>
       </header>
 
@@ -309,7 +322,7 @@ export function Ask() {
           <p>Ask about anything that was taught. Every answer comes from the classes, the notes, the law and the Scripture, and shows where it came from.</p>
           {outside ? (
             <div className="chat2__outside" role="note">
-              <p><b>Ask CyberJudah answers inside Telegram.</b> Telegram signs each question, which is how your free questions and plan are kept. In this browser the Bible, the classes and the rest of the library still work.</p>
+              <p><b>Ask CyberJudah answers inside Telegram.</b> Telegram signs each question, which is how your balance is kept. In this browser the Bible, the classes and the rest of the library still work.</p>
               <button type="button" className="btn" onClick={() => openLink(APP_URL)}><Icon name="link" size={16} />Open in Telegram</button>
             </div>
           ) : null}
@@ -321,13 +334,14 @@ export function Ask() {
         <div className="chat2__turns">
           {turns.map((t, i) => t.role === "user"
             ? <div key={`${chatId}-${i}`} className="msg msg--me"><div className="msg__bubble">{t.content}</div></div>
-            : <AssistantTurn key={`${chatId}-${i}`} t={t} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} chatId={chatId} onRetry={() => send(lastUser, true)} onFollow={(q) => send(q)} onPlans={() => setPlans(true)} />)}
+            : <AssistantTurn key={`${chatId}-${i}`} t={t} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} chatId={chatId} onRetry={() => send(lastUser, true)} onFollow={(q) => send(q)} onPlans={() => setPlans(true)} onModel={openPicker} onUsage={() => setUsageOpen(true)} acct={acct} onUseModel={(id) => { chooseModel(id); setModelId(id); haptic("select"); send(lastUser, true); }} onAccept={(m, mc) => { acceptCap(m, mc); haptic("success"); send(lastUser, true); }} />)}
           <div ref={endRef} className="chat2__end" />
         </div>
       )}
 
-      {picking && acct?.models?.length ? <ModelSheet models={acct.models} current={model?.id} onClose={() => setPicking(false)} onPick={(id) => { chooseModel(id); setModelId(id); setPicking(false); haptic("select"); }} /> : null}
-      {plans && acct ? <PlansSheet acct={acct} onClose={() => setPlans(false)} onPaid={() => { setPlans(false); void pollAccount(acct, setAcct); }} /> : null}
+      {picking ? <ModelSheet models={acct?.models ?? (acctFailed ? [] : null)} onRetry={() => void loadAccount()} current={model?.id} onClose={() => setPicking(false)} onPick={(id) => { chooseModel(id); setModelId(id); setPicking(false); haptic("select"); }} /> : null}
+      {plans && acct ? <BalanceSheet acct={acct} onClose={() => setPlans(false)} onUsage={() => { setPlans(false); setUsageOpen(true); }} onChanged={() => void loadAccount()} onPaid={() => { setPlans(false); void pollAccount(acct, setAcct); }} /> : null}
+      {usageOpen ? <UsageSheet models={acct?.models} onClose={() => setUsageOpen(false)} /> : null}
       {history ? <ChatsSheet current={chatId} onClose={() => setHistory(false)} onOpen={openChat} onDeleted={(id) => { if (id === conv.chatId) startNewChat(); }} /> : null}
       <form ref={formRef} className="composer2" onSubmit={(e) => { e.preventDefault(); send(input); }}>
         <div className="composer2__box">
@@ -338,7 +352,7 @@ export function Ask() {
             // move the composer under the finger before the tap ends, and the tap would be lost.
             : <button type="submit" className="composer2__go" aria-label="Send" disabled={!input.trim()} onPointerDown={(e) => e.preventDefault()}><Icon name="arrowUp" size={20} /></button>}
         </div>
-        <p className="composer2__note">{model ? <><button type="button" className="composer2__model" aria-label={`Model: ${model.name}. Change`} onClick={() => setPicking(true)}>{model.name.replace(/^Claude /, "")}{model.free ? " · free" : ""}<span aria-hidden="true"> ▾</span></button> · </> : null}Answers can be wrong. Check them against the sources.</p>
+        <p className="composer2__note">{acct?.metered && !acct.unlimited ? <><button type="button" className="composer2__model" onClick={() => { haptic("select"); setPlans(true); }}>{meterLine(acct)}<span aria-hidden="true"> ›</span></button> · </> : null}Answers can be wrong. Check them against the sources.</p>
       </form>
     </main>
   );
@@ -370,7 +384,7 @@ const PLAIN_ERRORS: Record<string, string> = {
   signin: "Open CyberJudah from Telegram to ask questions: your answers are saved to your Telegram account.",
 };
 
-function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onPlans }: { t: Turn; question: string; last: boolean; busy: boolean; chatId: string | null; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void }) {
+function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onPlans, onModel, onUsage, acct, onUseModel, onAccept }: { t: Turn; question: string; last: boolean; busy: boolean; chatId: string | null; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void; onModel: () => void; onUsage: () => void; acct: AskAccount | null; onUseModel: (id: string) => void; onAccept: (model: string, mc: number) => void }) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const sources = t.sources ?? [];
@@ -395,21 +409,26 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
       {t.thinking ? (
         <div className="msg__thinking" role="status"><span className="answer__dots" aria-hidden="true"><i /><i /><i /></span><Waiting question={question} status={t.status} /></div>
       ) : t.error === "consent" && t.consent && !t.content ? (
-        <div className="paywall consent" role="group" aria-label="Your agreement">
-          <b>Send your question to {t.consent.provider}?</b>
-          <p>{t.consent.model} is run by {t.consent.provider}. To answer, CyberJudah sends it your question, the earlier questions in this chat, and passages from the library. Your name and Telegram ID are not sent. Your chats are saved for you, encrypted, for 180 days unless you delete them.</p>
-          <div className="consent__actions">
-            <button type="button" className="paywall__go" onClick={() => { agree(t.consent!.provider); haptic("success"); onRetry(); }}>Agree and ask</button>
-            <a className="consent__more" href="/privacy" onClick={(e) => { e.preventDefault(); navigate("/privacy"); }}>Privacy policy</a>
+        <div className="consent" role="group" aria-labelledby="consent-title">
+          <div className="consent__head">
+            <span className="consent__icon" aria-hidden="true"><Icon name="shield" size={20} /></span>
+            <span><b id="consent-title">Send your question to {t.consent.provider}?</b><small>{t.consent.model} is run by {t.consent.provider}</small></span>
           </div>
-          <small>You can withdraw this at any time in Settings → Privacy. Choose another model to use a different provider.</small>
+          <ul className="consent__list">
+            <li><Icon name="arrowUp" size={16} /><span><b>Sent</b> Your question, the earlier questions in this chat, and passages from the library.</span></li>
+            <li><Icon name="close" size={16} /><span><b>Not sent</b> Your name and your Telegram ID.</span></li>
+            <li><Icon name="clock" size={16} /><span><b>Kept</b> Your chats, encrypted, for 180 days unless you delete them.</span></li>
+          </ul>
+          <div className="consent__actions">
+            <button type="button" className="btn consent__go" onClick={() => { agree(t.consent!.provider); haptic("success"); onRetry(); }}>Agree and ask</button>
+            <button type="button" className="consent__alt" onClick={onModel}>Choose another model</button>
+          </div>
+          <p className="consent__foot">You can withdraw this at any time in Settings → Privacy. <a href="/privacy" onClick={(e) => { e.preventDefault(); navigate("/privacy"); }}>Privacy policy</a></p>
         </div>
-      ) : t.error === "allowance" && !t.content ? (
-        <div className="paywall">
-          <b>You have used today's free answers</b>
-          <p>Subscribe for a month of in-depth answers, or top up with Stars. Your free answers come back at {resetTime()}.</p>
-          <button type="button" className="paywall__go" onClick={onPlans}>See the plans</button>
-        </div>
+      ) : t.error === "confirm" && t.meter && !t.content ? (
+        <CostCard m={t.meter} acct={acct} last={last} onAccept={() => onAccept(t.meter!.model, t.meter!.max_mc ?? 0)} onModel={onModel} />
+      ) : t.error === "credits" && !t.content ? (
+        <ShortCard m={t.meter} acct={acct} last={last} onPlans={onPlans} onRetry={onRetry} onUseModel={onUseModel} />
       ) : t.error && !t.content ? (
         t.error in PLAIN_ERRORS ? (
           <div className="msg__error" role="alert">
@@ -445,9 +464,9 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
               {t.followups.map((q) => <button key={q} type="button" className="followup" onClick={() => onFollow(q)}><Icon name="arrowUp" size={14} /><span>{q}</span></button>)}
             </div>
           ) : null}
-          {t.limited ? <p className="msg__cut" role="status"><Icon name="info" size={14} />Today's in-depth answers are used, so this is a shorter answer from the library, at no charge. In-depth answers come back at {resetTime()}. <button type="button" className="msg__link" onClick={onPlans}>See the plans</button></p> : null}
           {t.backup ? <p className="msg__cut" role="status"><Icon name="info" size={14} />The main model was busy, so the backup model wrote this shorter answer. You were not charged for it. Retry for a full answer.</p> : null}
           {t.cut ? <p className="msg__cut" role="status"><Icon name="retry" size={14} />The answer was cut off before it finished.</p> : null}
+          {t.used !== undefined && !t.thinking ? <p className="msg__usage">{t.free ? "Free model · no charge" : `Cost ${fmtUsd(t.used)}`} · <button type="button" className="msg__link" onClick={onUsage}>Usage</button></p> : null}
           {!last || !busy ? (
             <div className="msg__actions">
               <button type="button" className="msg__action" onClick={copy} aria-label="Copy the answer"><Icon name={copied ? "check" : "copy"} size={16} />{copied ? "Copied" : "Copy"}</button>
@@ -505,27 +524,34 @@ function ActionCard({ action, chatId }: { action: Action; chatId: string | null 
   );
 }
 
-type Balance = { free: number; plan: number; planOn: boolean; planUntil: number | null; planAllowance: number; credits: number; total: number };
-type AskModel = { id: string; name: string; provider: string; what: string; cost: number; free?: boolean };
-type AskAccount = { metered: boolean; unlimited: boolean; balance: Balance; perQuestion: number; freeDaily: number; plan: { stars: number; units: number }; packs: { stars: number; units: number }[]; models?: AskModel[]; model?: string };
-const answers = (units: number, per: number) => Math.max(0, Math.floor(units / Math.max(per, 1)));
-/** The line under Ask's title: how much is left, in answers, the way an AI app shows it. */
-function meterLine(a: AskAccount | null, cost = 1): string {
-  if (!a || !a.metered) return "Answers from the teachings";
-  if (a.unlimited) return "Unlimited · admin";
-  // A cheaper model makes the same allowance go further.
-  const n = answers(a.balance.total, a.perQuestion * cost);
-  if (a.balance.planOn) return `Monthly plan · about ${n} answers left`;
-  if (!n) return `In-depth answers back at ${resetTime()} · plans`;
-  return `About ${n} ${n === 1 ? "answer" : "answers"} left${a.balance.credits ? "" : " today"} · plans`;
+type Lot = { kind: string; remaining_mc: number; expires_at: number | null };
+/** The balance, in millionths of a dollar (shared/credits.mjs); shown only as dollars. */
+type Wallet = { total_mc: number; lots: Lot[] };
+type AskModel = { id: string; name: string; provider: string; what: string; typical_mc: number; max_mc: number; free?: boolean };
+type Topup = { usd: number; stars: number; mc: number };
+type Sale = { open: boolean; usd_per_star: number; topups: Topup[]; pause: { kind: string; until: number; message: string } | null };
+type AskAccount = { metered: boolean; unlimited: boolean; wallet?: Wallet; confirm_above_mc?: number; sale?: Sale; remind?: { on: boolean; tz: string | null }; models?: AskModel[]; model?: string };
+
+/** Limits the reader accepted for a model's dearer requests (balance units), kept on this device. */
+const CAPS = "cj:ai-limits";
+const readCaps = (): Record<string, number> => { try { return JSON.parse(localStorage.getItem(CAPS) ?? "{}") as Record<string, number>; } catch { return {}; } };
+const acceptCap = (model: string, mc: number) => { try { localStorage.setItem(CAPS, JSON.stringify({ ...readCaps(), [model]: Math.ceil(mc) })); } catch { /* private mode */ } };
+
+const left = (mc: number) => fmtUsd(mc, { floor: true });
+/** The balance label in the header and composer, in dollars. */
+function meterLine(a: AskAccount | null): string {
+  if (!a) return "Answers from the teachings";
+  if (a.unlimited) return "Admin · not charged";
+  if (!a.metered || !a.wallet) return "Answers from the teachings";
+  return `${left(a.wallet.total_mc)} left`;
 }
-/** How an answer on this model compares with one on Claude Opus 5, for the picker. */
-const costLabel = (m: AskModel) => (m.free ? "Free" : m.cost >= 0.95 && m.cost <= 1.05 ? "×1" : m.cost < 0.1 ? `×${m.cost.toFixed(2)}` : `×${m.cost.toFixed(1)}`);
+
 /**
  * The models a reader can answer with: the free one first, then every other by provider, with a
- * search; each with what it is, and how far the allowance goes on it next to Claude Opus 5.
+ * search; each with what it is and what an answer on it typically costs.
  */
-function ModelSheet({ models, current, onClose, onPick }: { models: AskModel[]; current?: string; onClose: () => void; onPick: (id: string) => void }) {
+function ModelSheet({ models: list, current, onClose, onPick, onRetry }: { models: AskModel[] | null; current?: string; onClose: () => void; onPick: (id: string) => void; onRetry: () => void }) {
+  const models = list ?? [];
   const [q, setQ] = useState("");
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const hit = (m: AskModel) => words.every((w) => `${m.name} ${m.provider} ${m.id}`.toLowerCase().includes(w));
@@ -534,63 +560,151 @@ function ModelSheet({ models, current, onClose, onPick }: { models: AskModel[]; 
   const row = (m: AskModel) => (
     <button key={m.id} type="button" role="radio" aria-checked={m.id === current} className={`models__row${m.id === current ? " is-on" : ""}`} onClick={() => onPick(m.id)}>
       <span><b>{m.name}</b><small>{m.what}</small></span>
-      <span className={`models__cost${m.free ? " is-free" : ""}`} title="Cost of an answer next to Claude Opus 5">{costLabel(m)}</span>
+      <span className={`models__cost${m.free ? " is-free" : ""}`} title="What a typical answer costs on this model">{m.free ? "Free" : `≈ ${fmtUsd(m.typical_mc)}`}</span>
       {m.id === current ? <Icon name="check" size={18} /> : null}
     </button>
   );
   return (
-    <Sheet open onClose={onClose} height="full" title="Model" subTitle={`${models.length} models · charged at each model's own price`} className="chats-sheet">
+    <Sheet open onClose={onClose} height="full" title="Model" subTitle="What a typical answer costs on each, at the model's own price" className="chats-sheet">
       <div className="models" role="radiogroup" aria-label="Model">
         <input className="models__search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search models or providers" aria-label="Search models" />
         {shown.filter((m) => m.free).map((m) => <div key="free" className="models__group"><h3>Free, always</h3>{row(m)}</div>)}
         {groups.map((g) => <div key={g} className="models__group"><h3>{g}</h3>{shown.filter((m) => !m.free && m.provider === g).map(row)}</div>)}
-        {shown.length ? null : <p className="models__none">No model matches.</p>}
+        {!list ? <p className="models__none" aria-busy="true">Loading the models…</p>
+          : !models.length ? <p className="models__none">The models could not be loaded. <button type="button" className="msg__link" onClick={onRetry}>Try again</button></p>
+          : shown.length ? null : <p className="models__none">No model matches.</p>}
       </div>
     </Sheet>
   );
 }
-/** After paying, the credit lands when Telegram tells the bot; look again for a little while. */
+
+/** Before a dearer request: what it typically costs, the most it may cost, and the reader's choice. */
+function CostCard({ m, acct, last, onAccept, onModel }: { m: MeterInfo; acct: AskAccount | null; last: boolean; onAccept: () => void; onModel: () => void }) {
+  return (
+    <div className="creditcard" role="group" aria-labelledby="cost-title">
+      <div className="creditcard__head"><span className="consent__icon" aria-hidden="true"><Icon name="spark" size={20} /></span><span><b id="cost-title">This answer may cost up to {fmtUsd(m.max_mc ?? 0)}</b><small>{m.name} typically costs about {fmtUsd(m.typical_mc)} an answer</small></span></div>
+      <p className="creditcard__text">You pay only what the answer actually costs, at {m.name}'s own price, and never more than this. Longer answers and deeper research cost more.{acct?.wallet ? ` You have ${left(acct.wallet.total_mc)}.` : ""}</p>
+      {last ? <div className="consent__actions">
+        <button type="button" className="btn consent__go" onClick={onAccept}>Allow up to {fmtUsd(m.max_mc ?? 0)} and ask</button>
+        <button type="button" className="consent__alt" onClick={onModel}>Choose another model</button>
+      </div> : null}
+      <p className="consent__foot">Allowed once for {m.name} on this device. Questions that may cost more ask again.</p>
+    </div>
+  );
+}
+
+/** Not enough balance for this model: what it needs, what is there, and the ways on (the free model, a top-up). The question stays in the chat. */
+function ShortCard({ m, acct, last, onPlans, onRetry, onUseModel }: { m?: MeterInfo; acct: AskAccount | null; last: boolean; onPlans: () => void; onRetry: () => void; onUseModel: (id: string) => void }) {
+  const free = m?.free ?? acct?.models?.find((x) => x.free);
+  const have = m?.available_mc ?? acct?.wallet?.total_mc ?? 0;
+  return (
+    <div className="creditcard" role="group" aria-labelledby="short-title">
+      <div className="creditcard__head"><span className="consent__icon" aria-hidden="true"><Icon name="info" size={20} /></span><span><b id="short-title">Not enough balance for this answer</b><small>{m ? `${m.name} needs about ${fmtUsd(m.need_mc ?? m.typical_mc)} to begin` : "This answer costs more than is left"} · you have {left(have)}</small></span></div>
+      <p className="creditcard__text">Your question is kept here. Ask it with the free model, or top up and ask again.</p>
+      {last ? <div className="consent__actions">
+        {free && free.id !== m?.model ? <button type="button" className="btn consent__go" onClick={() => onUseModel(free.id)}>Ask with {free.name} (free)</button> : null}
+        <button type="button" className={free && free.id !== m?.model ? "consent__alt" : "btn consent__go"} onClick={onPlans}>Top up</button>
+        <button type="button" className="consent__alt" onClick={onRetry}>Ask again</button>
+      </div> : null}
+    </div>
+  );
+}
+
+/** After paying, the balance grows when Telegram tells the bot; look again for a little while. */
 async function pollAccount(before: AskAccount, set: (a: AskAccount) => void) {
   for (let i = 0; i < 8; i++) {
     await new Promise((r) => setTimeout(r, 1500));
-    const a = await api<AskAccount>("/api/ask/account").catch(() => null);
-    if (a) { set(a); if (a.balance.total > before.balance.total || a.balance.planOn !== before.balance.planOn) return; }
+    const a = await api<AskAccount>(`/api/ask/account?tz=${encodeURIComponent(timeZone())}`).catch(() => null);
+    if (a) { set(a); if ((a.wallet?.total_mc ?? 0) > (before.wallet?.total_mc ?? 0)) return; }
   }
 }
 
-/** The plans: what is left now, the monthly subscription, and top-up packs, paid in Stars. */
-function PlansSheet({ acct, onClose, onPaid }: { acct: AskAccount; onClose: () => void; onPaid: () => void }) {
+/**
+ * The balance: what is left, in dollars; the top-ups ($1, $5, $20) with the Stars each costs, or
+ * during a Sabbath, feast day or New Moon where the reader is, when they open again; why a dollar
+ * costs the Stars it does; and the opt-in reminder to top up before those days.
+ */
+function BalanceSheet({ acct, onClose, onPaid, onUsage, onChanged }: { acct: AskAccount; onClose: () => void; onPaid: () => void; onUsage: () => void; onChanged: () => void }) {
   const [busy, setBusy] = useState<string | null>(null);
-  const per = acct.perQuestion, b = acct.balance;
-  const buy = async (item: string) => {
-    haptic("select"); setBusy(item);
+  const [why, setWhy] = useState("");
+  const [remind, setRemind] = useState(!!acct.remind?.on);
+  const total = acct.wallet?.total_mc ?? 0, sale = acct.sale;
+  const perDollar = sale ? (sale.topups.find((t) => t.usd === 1)?.stars ?? Math.ceil(1 / Math.max(sale.usd_per_star, 1e-6))) : 0;
+  const buy = async (t: Topup) => {
+    haptic("select"); setBusy(`pack:${t.stars}`); setWhy("");
     try {
-      const r = await api<{ ok: boolean; link?: string }>("/api/ask/buy", { method: "POST", json: { item } });
+      const r = await api<{ ok: boolean; link?: string }>("/api/ask/buy", { method: "POST", json: { item: `pack:${t.stars}`, tz: timeZone() } });
       if (r.link) { const status = await openInvoice(r.link); if (status === "paid") { haptic("success"); onPaid(); } }
-    } catch { /* the invoice could not be made; the sheet stays open */ }
+    } catch (e) {
+      // Paused meanwhile (it has just got dark): the account says until when.
+      if (e instanceof ApiError && e.status === 423) onChanged();
+      else setWhy(e instanceof ApiError && e.status === 409 ? "Top-ups are not on sale just yet." : "The invoice could not be made. Try again.");
+    } finally { setBusy(null); }
+  };
+  const toggleRemind = async (on: boolean) => {
+    haptic("select"); setWhy("");
+    // The reminder is a Telegram message from the bot, which only the reader can allow.
+    if (on && !(await requestWriteAccess())) { setWhy("Allow @CyberJudah_bot to message you first, then turn the reminder on."); return; }
+    setBusy("remind");
+    try { const r = await api<{ on: boolean }>("/api/ask/remind", { method: "POST", json: { on, tz: timeZone() } }); setRemind(r.on); }
+    catch { setWhy("The reminder did not save. Check the connection and try again."); }
     finally { setBusy(null); }
   };
-  const until = b.planUntil ? new Date(b.planUntil).toLocaleDateString([], { month: "long", day: "numeric" }) : "";
   return (
-    <Sheet open onClose={onClose} height="full" title="Ask CyberJudah" subTitle="Paid with Telegram Stars" className="chats-sheet">
-      <div className="plans">
-        <div className="plans__now">
-          <b>About {answers(b.total, per)} answers left</b>
-          <small>{[b.free ? `${answers(b.free, per)} free today` : "", b.planOn ? `${answers(b.plan, per)} this month, until ${until}` : "", b.credits ? `${answers(b.credits, per)} in credit` : ""].filter(Boolean).join(" · ") || "Your free answers come back tomorrow"}</small>
-          <div className="plans__bar"><i style={{ width: `${Math.min(100, Math.round((b.total / Math.max(b.total + 1, (b.planOn ? b.planAllowance : acct.freeDaily) + b.credits)) * 100))}%` }} /></div>
-        </div>
-        <div className="plan plan--main">
-          <div><b>Monthly</b><small>About {answers(acct.plan.units, per)} in-depth answers every month. Renews until you cancel in Telegram.</small></div>
-          {b.planOn ? <span className="plan__on">Active</span> : <button type="button" className="plan__buy" disabled={!!busy} onClick={() => void buy("plan")}>{busy === "plan" ? "…" : `⭐ ${acct.plan.stars}`}<small>/month</small></button>}
-        </div>
-        <p className="plans__label">Top up</p>
-        {acct.packs.map((p) => (
-          <div key={p.stars} className="plan">
-            <div><b>About {answers(p.units, per)} answers</b><small>Credit that does not expire</small></div>
-            <button type="button" className="plan__buy plan__buy--quiet" disabled={!!busy} onClick={() => void buy(`pack:${p.stars}`)}>{busy === `pack:${p.stars}` ? "…" : `⭐ ${p.stars}`}</button>
-          </div>
-        ))}
-        <p className="hint">A deep question, with several searches of the library, uses more than a quick follow-up. Everyone gets {answers(acct.freeDaily, per)} free answers a day. Your chats, search, reading and PDFs stay free.</p>
+    <Sheet open onClose={onClose} height="full" title="Balance" subTitle="Pay as you go, at cost" className="chats-sheet">
+      <div className="credits">
+        <section className="credits__balance" aria-label="Your balance">
+          <small>Balance</small>
+          <b>{left(total)}<span> left</span></b>
+          <p className="credits__order">Each answer costs what it took to write it, at the model's own price: longer answers and deeper research cost more. The free model is always free.</p>
+          <button type="button" className="msg__link" onClick={onUsage}>Usage history</button>
+        </section>
+
+        {sale ? (
+          <>
+            <h3 className="credits__label">Top up</h3>
+            {sale.pause ? <p className="credits__pause" role="status"><Icon name="clock" size={16} />{sale.pause.message}</p>
+              : !sale.open ? <p className="credits__closed" role="status">Top-ups open soon. Your balance and the free model work as usual.</p>
+              : <div className="credits__topups">{sale.topups.map((t) => (
+                <button key={t.stars} type="button" className="topup" disabled={!!busy} onClick={() => void buy(t)} aria-label={`Add ${fmtUsd(t.usd * MC_PER_USD)} for ${t.stars} Stars`}>
+                  <b>{fmtUsd(t.usd * MC_PER_USD)}</b><small>{busy === `pack:${t.stars}` ? "…" : `⭐ ${t.stars.toLocaleString("en-US")}`}</small>
+                </button>
+              ))}</div>}
+            <p className="credits__why">Telegram (and the app store, when you buy Stars) keeps a share of each Star, so $1 of balance costs about {perDollar} Stars. CyberJudah makes no profit: you pay only what your answers cost.</p>
+            <label className="credits__remind">
+              <input type="checkbox" checked={remind} disabled={busy === "remind"} onChange={(e) => void toggleRemind(e.target.checked)} />
+              <span><b>Remind me to top up before the Sabbath and feast days</b><small>A Telegram message at midday the day before, only if your balance is under $1. Top-ups pause from full dark the evening before until full dark at the day's end.</small></span>
+            </label>
+          </>
+        ) : null}
+        {why ? <p className="credits__closed" role="alert">{why}</p> : null}
+        <p className="hint">Your chats, search, reading and PDFs stay free. Stars purchases are handled by Telegram. Your balance never expires.</p>
+      </div>
+    </Sheet>
+  );
+}
+
+type HistoryItem = { at: number; kind: string; amount_mc: number; model?: string | null; status?: string; detail?: { stars?: number; renewal?: boolean } };
+const HISTORY_LABEL: Record<string, string> = { usage: "Answer", purchase: "Top-up", migration: "Carried over", refund: "Refund", adjustment: "Adjustment", expire: "Expired" };
+/** What happened to the balance, newest first: each answer once, and every top-up, refund and adjustment. */
+function UsageSheet({ models, onClose }: { models?: AskModel[]; onClose: () => void }) {
+  const nameOf = (id: string) => models?.find((m) => m.id === id)?.name ?? id.replace(/^.*\//, "");
+  const [items, setItems] = useState<HistoryItem[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const load = () => { setFailed(false); void api<{ items: HistoryItem[] }>("/api/ask/history").then((r) => setItems(r.items ?? [])).catch(() => setFailed(true)); };
+  useEffect(load, []);
+  return (
+    <Sheet open onClose={onClose} height="full" title="Usage" subTitle="What each answer cost, and what was added" className="chats-sheet">
+      <div className="usage">
+        {failed ? <p className="models__none">Your usage could not be loaded. <button type="button" className="msg__link" onClick={load}>Try again</button></p>
+          : !items ? <p className="models__none" aria-busy="true">Loading…</p>
+          : !items.length ? <p className="models__none">Nothing yet. Each answer you pay for and every top-up will be listed here.</p>
+          : <ul className="usage__list">{items.map((h, i) => (
+            <li key={i} className={h.amount_mc < 0 ? "is-out" : "is-in"}>
+              <span><b>{HISTORY_LABEL[h.kind] ?? h.kind}{h.kind === "usage" && h.model ? ` · ${nameOf(h.model)}` : ""}{h.detail?.stars ? ` · ⭐ ${h.detail.stars}` : ""}</b><small>{new Date(h.at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{h.kind === "usage" && h.status && h.status !== "ok" ? " · not charged" : ""}</small></span>
+              <span className="usage__amount">{h.amount_mc > 0 ? "+" : h.amount_mc < 0 ? "−" : ""}{fmtUsd(Math.abs(h.amount_mc))}</span>
+            </li>
+          ))}</ul>}
       </div>
     </Sheet>
   );

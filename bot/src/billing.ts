@@ -1,266 +1,143 @@
-import { Api } from "grammy";
+import { telegramApi } from "./telegram-api";
 
 import type { Env } from "./env";
-import { balance, emptyAccount, grantPack, grantPlan, payloadOf, pricing, readSupport, reserve, RESERVE_UNITS, settleTake, spend, SUPPORT_STARS, takeOf, today, validPayment, type Account, type Balance, type Pricing, type Take } from "./billing.mjs";
-export { RESERVE_UNITS, SUPPORT_STARS };
-export type { Account, Balance, Pricing, Take };
-import { isAdmin } from "./edit";
+import { payloadOf, readPayload, readSupport, SUPPORT_STARS, validPayment } from "./billing.mjs";
+export { SUPPORT_STARS };
+import { creditsConfig, creditsRecord, deleteCredits, grantPayment, ownerOfUser, refundPayment, sweepHolds } from "./credits";
+import { fmtUsd, mcOfStars, MC_PER_USD } from "../../shared/credits.mjs";
+import { pauseMessage, topupPause, zoneOf, type Pause } from "../../shared/holy-days.mjs";
 import { pid } from "./privacy.mjs";
-import { hasClaude } from "./providers";
 
 /**
- * The person's allowance for Ask CyberJudah, kept in D1's `accounts` table: today's free
- * use, the monthly plan paid in Stars, and the credit from top-up packs. Every balance
- * mutation is one optimistic-concurrency transaction (a version-checked UPDATE, retried on
- * contention), so concurrent requests cannot each read the same balance and all spend it
- * the way a KV read-modify-write can. `usage:<day>` sums the day's questions and units for
- * the admins to price by.
+ * Paying for Ask CyberJudah with Telegram Stars: top-ups of a few dollars, each adding to the
+ * reader's balance exactly what the owner receives for its Stars (shared/credits.mjs). The
+ * balance, its ledger and what each answer is charged are in credits.ts. This file is the edge
+ * with Telegram: invoices, the check before Stars are taken, adding a payment after, refunds.
+ *
+ * No top-up is sold from full dark before a Sabbath, feast day or New Moon to full dark at its
+ * end, where the reader is (shared/holy-days.mjs): no invoice is made, and a checkout already
+ * open is refused. A balance already held is used as on any day.
  */
-export const prices = (env: Env): Pricing => pricing(env as unknown as Record<string, unknown>);
-export const billingOn = (env: Env) => hasClaude(env) && env.ASK_BILLING === "on";
+export const billingOn = (env: Env) => env.ASK_BILLING === "on";
 
-const TABLES = [
-  `CREATE TABLE IF NOT EXISTS accounts (user_id TEXT PRIMARY KEY, day TEXT NOT NULL DEFAULT '',
-    free_used INTEGER NOT NULL DEFAULT 0, plan_until INTEGER NOT NULL DEFAULT 0,
-    plan_allowance INTEGER NOT NULL DEFAULT 0, plan_used INTEGER NOT NULL DEFAULT 0,
-    credits INTEGER NOT NULL DEFAULT 0, version INTEGER NOT NULL DEFAULT 1)`,
-  "CREATE TABLE IF NOT EXISTS payments (charge_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL, stars INTEGER NOT NULL, created_at INTEGER NOT NULL)",
-  "CREATE TABLE IF NOT EXISTS usage_daily (day TEXT PRIMARY KEY, questions INTEGER NOT NULL DEFAULT 0, units INTEGER NOT NULL DEFAULT 0)",
-  "CREATE TABLE IF NOT EXISTS usage_people (day TEXT NOT NULL, user_id TEXT NOT NULL, PRIMARY KEY (day, user_id))",
-];
-
-type Row = { user_id: string; day: string; free_used: number; plan_until: number; plan_allowance: number; plan_used: number; credits: number; version: number };
-
-/** Created once per isolate; every statement is IF NOT EXISTS, so concurrent first calls are harmless. */
-let tablesReady = false;
-async function ensureTables(env: Env): Promise<void> {
-  if (tablesReady) return;
-  await env.DB.batch(TABLES.map((sql) => env.DB.prepare(sql)));
-  tablesReady = true;
-}
-
-const toAccount = (r: Row): Account => ({
-  day: r.day, freeUsed: r.free_used,
-  plan: r.plan_until > 0 ? { until: r.plan_until, allowance: r.plan_allowance, used: r.plan_used } : null,
-  credits: r.credits,
-});
-
-/** The day's free allowance starts again each UTC day; normalize on read without writing. */
-const normalized = (a: Account, now = Date.now()): Account =>
-  a.day === today(now) ? a : { ...a, day: today(now), freeUsed: 0 };
-
-const COLS = "user_id, day, free_used, plan_until, plan_allowance, plan_used, credits";
-
+export type InvoiceResult = { ok: true; link: string } | { ok: false; reason: "closed"; missing: string[] } | { ok: false; reason: "pause"; pause: Pause; message: string };
 /**
- * The account row, creating it on first sight. Rows are filed under the person's pseudonymous
- * ID (privacy.mjs), never their Telegram ID: a row (and its payments) still filed under the
- * Telegram ID from before is moved over on first sight, and a leftover KV balance is adopted
- * once, then the KV key is dropped.
+ * An invoice link for a top-up (`pack:<stars>`, one of creditConfig's top-ups), unless pricing is
+ * incomplete or top-ups are paused where the reader is now. The reader's zone goes in the payload,
+ * so the check before payment can tell the same.
  */
-async function loadAccount(env: Env, uid: number): Promise<{ account: Account; version: number }> {
-  await ensureTables(env);
-  const id = await pid(env, uid);
-  let row: Row | null = await env.DB.prepare(`SELECT ${COLS}, version FROM accounts WHERE user_id = ?`).bind(id).first<Row>();
-  if (!row) {
-    const moved = await env.DB.batch([
-      env.DB.prepare("UPDATE accounts SET user_id = ? WHERE user_id = ?").bind(id, String(uid)),
-      env.DB.prepare("UPDATE payments SET user_id = ? WHERE user_id = ?").bind(id, String(uid)),
-    ]);
-    if (Number(moved[0].meta.changes ?? 0) > 0) row = await env.DB.prepare(`SELECT ${COLS}, version FROM accounts WHERE user_id = ?`).bind(id).first<Row>();
-  }
-  if (!row) {
-    const kv = (await env.SUBS.get(`acct:${uid}`, "json")) as Account | null;
-    const a = kv ?? emptyAccount();
-    row = await env.DB.prepare(
-      `INSERT INTO accounts (${COLS}) VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT (user_id) DO UPDATE SET user_id = excluded.user_id RETURNING ${COLS}, version`)
-      .bind(id, a.day, a.freeUsed, a.plan?.until ?? 0, a.plan?.allowance ?? 0, a.plan?.used ?? 0, a.credits)
-      .first<Row>();
-    if (kv) await env.SUBS.delete(`acct:${uid}`).catch(() => null);
-    row ??= await env.DB.prepare(`SELECT ${COLS}, version FROM accounts WHERE user_id = ?`).bind(id).first<Row>();
-  }
-  if (!row) throw new Error("account missing");
-  return { account: normalized(toAccount(row)), version: row.version };
-}
-
-/**
- * Run fn against the current account and write the result back only if nobody else changed
- * it meanwhile; retry a few times on contention. The fn stays pure (see billing.mjs), so a
- * retry simply recomputes against the newer account.
- */
-async function transact(env: Env, uid: number, fn: (a: Account) => Account, tries = 5): Promise<Account> {
-  for (let i = 0; i < tries; i++) {
-    const { account, version } = await loadAccount(env, uid);
-    const next = fn(account);
-    const r = await env.DB.prepare(
-      `UPDATE accounts SET day = ?, free_used = ?, plan_until = ?, plan_allowance = ?, plan_used = ?, credits = ?, version = version + 1
-       WHERE user_id = ? AND version = ?`)
-      .bind(next.day, next.freeUsed, next.plan?.until ?? 0, next.plan?.allowance ?? 0, next.plan?.used ?? 0, next.credits, await pid(env, uid), version)
-      .run();
-    if (Number(r.meta.changes ?? 0) > 0) return next;
-  }
-  throw new Error("billing contention");
-}
-
-export async function account(env: Env, uid: number): Promise<Account> {
-  return (await loadAccount(env, uid)).account;
-}
-
-/** The units an average answer uses lately, for showing a balance as "about N questions". */
-export async function averageUnits(env: Env): Promise<number> {
-  await ensureTables(env);
-  for (const day of [today(), today(Date.now() - 86400000)]) {
-    const d = await env.DB.prepare("SELECT questions, units FROM usage_daily WHERE day = ?").bind(day).first<{ questions: number; units: number }>();
-    if (d && d.questions >= 3) return Math.round(d.units / d.questions);
-  }
-  return 60000;
-}
-
-export type Standing = { ok: boolean; unlimited: boolean; balance: Balance; perQuestion: number };
-/** May this person ask now? Admins always may; everyone else while any allowance is left. */
-export async function standing(env: Env, uid: number): Promise<Standing> {
-  const p = prices(env);
-  const b = balance(await account(env, uid), p);
-  const unlimited = isAdmin(env, uid);
-  return { ok: unlimited || b.total > 0, unlimited, balance: b, perQuestion: await averageUnits(env) };
-}
-
-/** Charges an answer to the person and adds it to the day's totals. */
-export async function charge(env: Env, uid: number, units: number): Promise<Balance> {
-  const p = prices(env);
-  const deduct = billingOn(env) && !isAdmin(env, uid);
-  const next = deduct ? await transact(env, uid, (a) => spend(a, units, p)) : await account(env, uid);
-  await recordUsage(env, uid, units);
-  return balance(next, p);
-}
-
-/**
- * Reserve the minimum up front for a metered answer (Claude with billing on). The gate is
- * the reservation itself: no balance, no in-depth answer. The returned take (what came from
- * each pot) settles the request at the end against the actual units (nothing, if it failed
- * on our side), so questions sent at once cannot spend more than is left — and a concurrent
- * request cannot have its reservation clobbered by the other's settle.
- */
-export async function reserveAsk(env: Env, uid: number): Promise<{ ok: false; balance: Balance } | { ok: true; take: Take; balance: Balance }> {
-  const p = prices(env);
-  const before = await account(env, uid);
-  if (balance(before, p).total <= 0) return { ok: false, balance: balance(before, p) };
-  const { reserved } = reserve(before, p);
-  const take = takeOf(before, reserved);
-  const next = await transact(env, uid, () => reserved);
-  return { ok: true, take, balance: balance(next, p) };
-}
-
-/**
- * Settle a reservation: the actual units are charged against what the reservation took, so
- * metering stays exact, and the day's totals record what the answer used. Settle a failed
- * request for RESERVE_UNITS: the model was still paid for.
- */
-export async function settleAsk(env: Env, uid: number, take: Take, actualUnits: number): Promise<Balance> {
-  const p = prices(env);
-  const next = await transact(env, uid, (a) => settleTake(a, take, actualUnits, p));
-  await recordUsage(env, uid, actualUnits);
-  return balance(next, p);
-}
-
-/** The day's totals of questions and units, kept 120 days for the admins' pricing; who asked that day (pseudonymous), 30 days. */
-async function recordUsage(env: Env, uid: number, units: number): Promise<void> {
-  await ensureTables(env);
-  const day = today();
-  const u = Math.max(0, Math.round(units));
-  await env.DB.batch([
-    env.DB.prepare(`INSERT INTO usage_daily (day, questions, units) VALUES (?, 1, ?)
-      ON CONFLICT (day) DO UPDATE SET questions = questions + 1, units = units + excluded.units`).bind(day, u),
-    env.DB.prepare(`INSERT OR IGNORE INTO usage_people (day, user_id) VALUES (?, ?)`).bind(day, await pid(env, uid)),
-  ]);
-}
-
-/**
- * Retention, run by the hourly cron (docs/PRIVACY.md): the day totals after 120 days, who asked
- * on a day after 30, and an allowance record with nothing left in it (no credit, no running
- * plan) after 180 days without use.
- */
-export async function pruneBilling(env: Env): Promise<void> {
-  await ensureTables(env);
-  await env.DB.batch([
-    env.DB.prepare("DELETE FROM usage_daily WHERE day < ?").bind(today(Date.now() - 120 * 86400000)),
-    env.DB.prepare("DELETE FROM usage_people WHERE day < ?").bind(today(Date.now() - 30 * 86400000)),
-    env.DB.prepare("DELETE FROM accounts WHERE credits <= 0 AND plan_until < ? AND day < ?").bind(Date.now(), today(Date.now() - 180 * 86400000)),
-  ]);
-}
-
-/**
- * Delete my data: the allowance record and who-asked rows go. A payment record keeps only the
- * Telegram charge ID, kind, amount and date, no longer linked to the person: Telegram's refund
- * process and the owner's accounts need those (docs/PRIVACY.md).
- */
-export async function deleteBilling(env: Env, uid: number): Promise<{ credits: number; planUntil: number | null }> {
-  await ensureTables(env);
-  const id = await pid(env, uid);
-  const left = await env.DB.prepare("SELECT credits, plan_until FROM accounts WHERE user_id = ? OR user_id = ?").bind(id, String(uid)).first<{ credits: number; plan_until: number }>();
-  await env.DB.batch([
-    env.DB.prepare("DELETE FROM accounts WHERE user_id = ? OR user_id = ?").bind(id, String(uid)),
-    env.DB.prepare("DELETE FROM usage_people WHERE user_id = ? OR user_id = ?").bind(id, String(uid)),
-    env.DB.prepare("UPDATE payments SET user_id = 'deleted' WHERE user_id = ? OR user_id = ?").bind(id, String(uid)),
-  ]);
-  await env.SUBS.delete(`acct:${uid}`);
-  return { credits: left?.credits ?? 0, planUntil: left && left.plan_until > Date.now() ? left.plan_until : null };
-}
-
-/** What is kept for this person, for "Download my data". */
-/** What is kept for this person, for "Download my data". Read only: it never creates a record. */
-export async function billingRecord(env: Env, uid: number): Promise<{ account: Account | null; payments: { kind: string; stars: number; at: string }[] }> {
-  await ensureTables(env);
-  const id = await pid(env, uid);
-  const row = await env.DB.prepare(`SELECT ${COLS}, version FROM accounts WHERE user_id = ?`).bind(id).first<Row>();
-  const pays = await env.DB.prepare("SELECT kind, stars, created_at FROM payments WHERE user_id = ? ORDER BY created_at").bind(id).all<{ kind: string; stars: number; created_at: number }>();
-  return { account: row ? normalized(toAccount(row)) : null, payments: (pays.results ?? []).map((r) => ({ kind: r.kind, stars: r.stars, at: new Date(r.created_at).toISOString() })) };
-}
-
-/** One day's totals for the admins' usage page. */
-export async function usageDay(env: Env, day: string): Promise<{ questions: number; units: number; people: number }> {
-  await ensureTables(env);
-  const d = await env.DB.prepare("SELECT questions, units FROM usage_daily WHERE day = ?").bind(day).first<{ questions: number; units: number }>();
-  const p = await env.DB.prepare("SELECT COUNT(*) AS n FROM usage_people WHERE day = ?").bind(day).first<{ n: number }>();
-  return { questions: d?.questions ?? 0, units: d?.units ?? 0, people: p?.n ?? 0 };
-}
-
-/** An invoice link for the monthly plan (a Stars subscription that renews itself) or a pack. */
-export async function invoiceFor(env: Env, uid: number, item: string): Promise<string> {
-  const p = prices(env);
-  const api = new Api(env.BOT_TOKEN);
-  if (item === "plan") {
-    return api.createInvoiceLink("Ask CyberJudah · monthly", `A month of Ask CyberJudah: about ${Math.round(p.plan.units / 60000)} in-depth answers from the library, renewed each month until you cancel.`, payloadOf("plan", uid, p.plan.stars), "", "XTR", [{ label: "Monthly", amount: p.plan.stars }], { subscription_period: 2592000 });
-  }
+export async function invoiceFor(env: Env, uid: number, item: string, tz: string, now = Date.now()): Promise<InvoiceResult> {
+  const c = creditsConfig(env);
+  if (c.missing.length) return { ok: false, reason: "closed", missing: c.missing };
+  const pause = topupPause(now, tz);
+  if (pause) return { ok: false, reason: "pause", pause, message: pauseMessage(pause) };
   const stars = Number(/^pack:(\d+)$/.exec(item)?.[1]);
-  const pack = p.packs.find((x) => x.stars === stars);
-  if (!pack) throw new Error("No such pack");
-  return api.createInvoiceLink("Ask CyberJudah · top-up", `About ${Math.round(pack.units / 60000)} in-depth answers from the library. The credit does not expire.`, payloadOf("pack", uid, pack.stars), "", "XTR", [{ label: "Top-up", amount: pack.stars }]);
+  const t = c.topups.find((x) => x.stars === stars);
+  if (!t) throw new Error("No such top-up");
+  const link = await telegramApi(env).createInvoiceLink(
+    `Ask CyberJudah · ${fmtUsd(t.usd * MC_PER_USD)} top-up`,
+    `Adds ${fmtUsd(t.mc, { floor: true })} to your Ask CyberJudah balance: what CyberJudah receives for ${t.stars} Stars after Telegram's share. Answers are charged only what they cost; CyberJudah makes no profit. Your balance never expires.`,
+    payloadOf("pack", uid, t.stars, zoneOf(tz)), "", "XTR", [{ label: "Top-up", amount: t.stars }],
+  );
+  return { ok: true, link };
 }
 
-/** Before Telegram takes the Stars: is this a real item at its real price, for this person? */
-export function checkout(env: Env, payload: string, currency: string, amount: number, from: number): boolean {
+/**
+ * Before Telegram takes the Stars: is this a real top-up at its real price, for this person, and
+ * not during a Sabbath, feast day or New Moon where they are? `message` is what Telegram shows
+ * the reader when it is refused.
+ */
+export function checkout(env: Env, payload: string, currency: string, amount: number, from: number, now = Date.now()): { ok: true } | { ok: false; message: string } {
+  const changed = { ok: false as const, message: "This item or price has changed. Open Ask CyberJudah and try again." };
   // Support is a fixed tier at its face value, for the giver: the invoice was made by the
   // bot, but the shape, the amount and the buyer are checked anyway.
   const s = readSupport(payload);
-  if (s) return currency === "XTR" && s.uid === from && s.stars === amount && SUPPORT_STARS.includes(s.stars);
-  const b = validPayment(payload, currency, amount, prices(env));
-  return !!b && b.uid === from;
+  if (s) return currency === "XTR" && s.uid === from && s.stars === amount && SUPPORT_STARS.includes(s.stars) ? { ok: true } : changed;
+  const c = creditsConfig(env);
+  if (c.missing.length) return changed;
+  const b = validPayment(payload, currency, amount, c);
+  if (!b || b.uid !== from) return changed;
+  const pause = topupPause(now, b.tz);
+  if (pause) return { ok: false, message: `${pauseMessage(pause)}. Your balance can still be used meanwhile.` };
+  return { ok: true };
+}
+
+type Paid = { invoice_payload: string; currency: string; total_amount: number; telegram_payment_charge_id: string; is_recurring?: boolean };
+/**
+ * After payment: the Stars are added to the balance once per Telegram charge, at what the owner
+ * receives for them (credits.ts grantPayment). The Stars are already taken by now, so a payment is
+ * honoured by what was actually paid even if the prices changed meanwhile; only its shape,
+ * currency, amount and buyer must be right.
+ *
+ * A monthly plan bought before plans were withdrawn can still renew: its Stars are added to the
+ * balance the same way, and the subscription is cancelled with Telegram so it does not renew again.
+ */
+export async function applyPayment(env: Env, from: number, pay: Paid): Promise<{ kind: "plan" | "pack"; mc: number } | null> {
+  const b = readPayload(pay.invoice_payload);
+  if (!b || b.uid !== from || pay.currency !== "XTR" || pay.total_amount !== b.stars) return null;
+  const c = creditsConfig(env);
+  const mc = mcOfStars(b.stars, c.usdPerStar, c.margin);
+  await grantPayment(env, await ownerOfUser(env, from), { charge: pay.telegram_payment_charge_id, kind: b.kind, stars: b.stars, mc });
+  if (b.kind === "plan") {
+    await telegramApi(env).editUserStarSubscription(from, pay.telegram_payment_charge_id, true)
+      .catch((e: Error) => console.error(JSON.stringify({ event: "plan_cancel_failed", message: e.message?.slice(0, 160) })));
+  }
+  return { kind: b.kind, mc };
+}
+
+/** Telegram refunded a payment (Telegram's refunded_payment, or the admins through refundStarPayment): what it added and is still unspent leaves the balance. */
+export async function applyRefund(env: Env, from: number, charge: string) {
+  return refundPayment(env, await ownerOfUser(env, from), charge);
+}
+
+/** An admin's refund: the Stars go back through Telegram, then what that payment added and is unspent leaves the balance. */
+export async function refundStars(env: Env, user: number, charge: string) {
+  await telegramApi(env).refundStarPayment(user, charge);
+  return applyRefund(env, user, charge);
 }
 
 /**
- * After payment: the plan or the credit granted, once per Telegram charge. The charge id
- * is claimed atomically — two deliveries of the same payment cannot both grant.
+ * Hourly (docs/PRIVACY.md): holds a request never settled are released (not charged); the old
+ * allowance's day totals go after 120 days, who asked on a day after 30. The old `accounts` rows
+ * are kept as they were: they are the record the balance was carried over from.
  */
-export async function applyPayment(env: Env, from: number, pay: { invoice_payload: string; currency: string; total_amount: number; telegram_payment_charge_id: string; subscription_expiration_date?: number }): Promise<"plan" | "pack" | null> {
-  const p = prices(env);
-  const b = validPayment(pay.invoice_payload, pay.currency, pay.total_amount, p);
-  if (!b || b.uid !== from) return null;
-  await ensureTables(env);
-  const claimed = await env.DB.prepare(
-    `INSERT OR IGNORE INTO payments (charge_id, user_id, kind, stars, created_at) VALUES (?, ?, ?, ?, ?)`)
-    .bind(pay.telegram_payment_charge_id, await pid(env, from), b.kind, b.stars, Date.now()).run();
-  if (Number(claimed.meta.changes ?? 0) === 0) return b.kind;
-  await transact(env, from, (a) => b.kind === "plan" ? grantPlan(a, p, (pay.subscription_expiration_date ?? 0) * 1000) : grantPack(a, b.stars, p));
-  return b.kind;
+export async function pruneBilling(env: Env): Promise<void> {
+  await sweepHolds(env);
+  const has = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'usage_daily'").first();
+  if (!has) return;
+  const day = (n: number) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM usage_daily WHERE day < ?").bind(day(120)),
+    env.DB.prepare("DELETE FROM usage_people WHERE day < ?").bind(day(30)),
+  ]);
+}
+
+/**
+ * Delete my data: the balance, its history and the old allowance record go. A payment record
+ * keeps only the Telegram charge ID, kind, amount and date, no longer linked to the person:
+ * Telegram's refund process and the owner's accounts need those (docs/PRIVACY.md).
+ */
+export async function deleteBilling(env: Env, uid: number): Promise<{ balanceUsd: number }> {
+  const id = await pid(env, uid);
+  const left = await deleteCredits(env, id);
+  const stmts: D1PreparedStatement[] = [];
+  // The payments table may not exist before the first payment. Absence is harmless;
+  // a failed lookup or cleanup must reach the caller rather than report success.
+  if (await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'payments'").first()) {
+    stmts.push(env.DB.prepare("UPDATE payments SET user_id = 'deleted' WHERE user_id = ? OR user_id = ?").bind(id, String(uid)));
+  }
+  for (const t of ["accounts", "usage_people"]) {
+    if (await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").bind(t).first()) stmts.push(env.DB.prepare(`DELETE FROM ${t} WHERE user_id = ? OR user_id = ?`).bind(id, String(uid)));
+  }
+  if (stmts.length) await env.DB.batch(stmts);
+  await env.SUBS.delete(`acct:${uid}`);
+  return { balanceUsd: left.total_mc / MC_PER_USD };
+}
+
+/** What is kept for this person, for "Download my data". Read only. */
+export async function billingRecord(env: Env, uid: number) {
+  const id = await pid(env, uid);
+  const has = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'payments'").first();
+  const pays = has ? await env.DB.prepare("SELECT kind, stars, created_at FROM payments WHERE user_id = ? ORDER BY created_at").bind(id).all<{ kind: string; stars: number; created_at: number }>() : { results: [] };
+  return { balance: await creditsRecord(env, id), payments: (pays.results ?? []).map((r) => ({ kind: r.kind, stars: r.stars, at: new Date(r.created_at).toISOString() })) };
 }

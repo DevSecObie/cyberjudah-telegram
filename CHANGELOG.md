@@ -26,6 +26,19 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
 ### Added
+- Ask CyberJudah is pay as you go, at cost, with the balance in dollars: "$4.82 left" at the
+  top, and under each answer what it cost ("$0.05", or "<$0.01"), at the model's own price.
+  CyberJudah makes no profit. Top-ups of $1, $5 and $20 are bought with Telegram Stars; the
+  sheet shows each one's Stars and why a dollar costs about 77 of them (Telegram's and the app
+  store's share). A usage history lists each answer and top-up. Dearer models ask before an
+  answer that may cost more than $0.25, and with too little balance Ask offers the free model,
+  which stays free for everyone.
+- No top-ups on the Sabbath, feast days and New Moons: from full dark the evening before to full
+  dark at the day's end, wherever the reader is, the top-up buttons say when they open again,
+  and Telegram's checkout is refused. A balance already held can still be used. The feast days
+  and New Moons come from the IUIC calendar, refreshed weekly as a pull request to approve.
+- An opt-in reminder to top up before the Sabbath and feast days: a Telegram message at midday
+  the day before, only when the balance is under $1.
 - Admins can change a photo from the app: a leader's portrait, a Timeline period's cover or an
   event's picture. Choose a photo, drag and zoom it in the frame, Save; everyone sees it straight
   away, and Remove photo brings back the app's own.
@@ -108,6 +121,13 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   is unavailable, Ask answers from the keyword search.
 
 ### Changed
+- The monthly Ask plan, its bonus and the free daily allowance for paid models are gone. Any
+  credit or plan allowance left carries over to the balance at its exact worth; a plan that
+  renews adds its Stars to the balance and is then cancelled.
+- Ask CyberJudah: the model is chosen at the top, under the title (tap it to change), and the
+  allowance moves to the line under the question box. An admin starts on Claude Opus 5.5
+  (`CLAUDE_MODEL_ADMIN`) and every other reader on Claude Sonnet 5 (`CLAUDE_MODEL`); a model a
+  reader picks is kept as before.
 - This changelog, the incident log ([docs/INCIDENTS.md](docs/INCIDENTS.md)) and the release rules;
   a pull-request check asks every change for a changelog line or a reason it needs none ([#77]).
 

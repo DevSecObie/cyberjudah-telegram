@@ -1,6 +1,7 @@
 import type { Env } from "./env";
 import { deleteAllChats, getChat, listChats } from "./chats";
 import { billingRecord, deleteBilling } from "./billing";
+import { forgetTopupReminder, getTopupReminder } from "./topup-remind";
 import { forgetReminder, loadReminder, tgRid } from "./remind";
 import { publicView } from "./reminders.mjs";
 import { open, pid, seal } from "./privacy.mjs";
@@ -21,6 +22,7 @@ export type MyData = {
   readingReminder: unknown;
   dailyVerse: { hour: number; tzOffsetMinutes: number } | null;
   ask: unknown;
+  askTopupReminder: unknown;
   classNoteRequests: string[];
 };
 
@@ -53,11 +55,12 @@ export async function exportData(env: Env, uid: number): Promise<MyData> {
     readingReminder: rec ? publicView(rec) : null,
     dailyVerse: sub ? { hour: sub.hour, tzOffsetMinutes: sub.tz } : null,
     ask: await billingRecord(env, uid),
+    askTopupReminder: await getTopupReminder(env, uid),
     classNoteRequests: (await noteRequestsOf(env, uid)).map((x) => x.video),
   };
 }
 
-export type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse: boolean; classNoteRequests: number; askCredits: number; askPlanUntil: string | null };
+export type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse: boolean; classNoteRequests: number; askBalanceUsd: number; topupReminder: boolean };
 
 export async function deleteData(env: Env, uid: number): Promise<Deleted> {
   const me = await pid(env, uid);
@@ -76,12 +79,13 @@ export async function deleteData(env: Env, uid: number): Promise<Deleted> {
   // These stores cannot be deleted in one transaction. A failed step must reject so the
   // caller reports incomplete deletion; repeating the operation safely finishes it.
   const billing = await deleteBilling(env, uid);
+  const topupReminder = await forgetTopupReminder(env, uid);
   await env.DB.batch([
     // Readers who have never used Ask may not have a rate table yet.
     env.DB.prepare("CREATE TABLE IF NOT EXISTS rate_counts (key TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)"),
     env.DB.prepare("DELETE FROM rate_counts WHERE key LIKE ?").bind(`%:${me}:%`),
   ]);
-  return { savedChats, readingReminder, dailyVerse, classNoteRequests: reqs.length, askCredits: billing.credits, askPlanUntil: billing.planUntil ? new Date(billing.planUntil).toISOString() : null };
+  return { savedChats, readingReminder, dailyVerse, classNoteRequests: reqs.length, askBalanceUsd: billing.balanceUsd, topupReminder };
 }
 
 /** A confirmation for Delete my data, kept 10 minutes, so a deletion asked for in the bot is confirmed with one tap. */
