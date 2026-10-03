@@ -125,6 +125,8 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   is unavailable, Ask answers from the keyword search.
 
 ### Changed
+- Auto and half sheets float inside the safe edges with shared rounded corners; full sheets expand to the phone edges. On larger screens, action lists open beside their control and leave the page usable.
+
 - Unify menu action icons and toolbar groups, add desktop tooltips and keyboard menu navigation, and animate popovers from their controls with accessible fallbacks.
 - Adapt the dock into a sidebar from 900px, reserve content width, and keep navigation reachable after scrolling or resizing, including native document scrolling in WebKit.
 

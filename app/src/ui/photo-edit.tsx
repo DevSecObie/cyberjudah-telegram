@@ -67,7 +67,12 @@ function Framer({ file, slot, label, shape, canRemove, onDone }: { file: File; s
     createImageBitmap(file).then((b) => { bmp = b; if (live) setImg(b); else b.close(); }, () => { if (live) { setError("That file is not a photo this phone can open."); setState("error"); } });
     return () => { live = false; bmp?.close(); };
   }, [file]);
-  useEffect(() => { if (frame.current) setFw(frame.current.clientWidth); }, [img]);
+  useEffect(() => {
+    const el = frame.current; if (!el) return;
+    const resize = () => setFw(el.clientWidth);
+    resize(); const observer = new ResizeObserver(resize); observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   // The photo covers the frame at zoom 1; it can be enlarged and moved but never leave a gap.
   const base = img ? Math.max(fw / img.width, fh / img.height) : 1;
   const scale = base * zoom;
