@@ -10,6 +10,7 @@ import { pickOfDay, pickRandom } from "@/lib/ofday";
 import { haptic } from "@/tg/sdk";
 import { store } from "@/tg/store";
 import { Icon, type IconName } from "@/ui/ui";
+import { readableColor } from "@/ui/palette";
 import { strongOfDay, useStrongsIndex } from "./Lexicon";
 
 /**
@@ -22,11 +23,11 @@ import { strongOfDay, useStrongsIndex } from "./Lexicon";
 export function Widget({ label, title, sub, to, resource, resourceTo, icon, colors, loading, onShuffle }: { label: string; title?: string; sub?: string; to: string; resource: string; resourceTo: string; icon: IconName; colors: [string, string]; loading?: boolean; onShuffle?: () => void }) {
   const navigate = useNavigate();
   return (
-    <div className="widget" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}>
+    <div className="widget" style={{ background: `linear-gradient(135deg, ${readableColor(colors[0], [[255, 255, 255]])}, ${readableColor(colors[1], [[255, 255, 255]])})` }}>
       {onShuffle ? <button type="button" className="widget__shuffle" aria-label="Another one" title="Another one" onClick={(e) => { e.stopPropagation(); haptic("select"); onShuffle(); }}><Icon name="retry" size={16} /></button> : null}
       <Link to={to} className="widget__body" onClick={() => haptic("select")} aria-busy={loading || undefined}>
         <span className="widget__label">{label}</span>
-        {loading ? <span className="widget__title" style={{ opacity: 0.6 }}>…</span> : <><b className="widget__title">{title}</b>{sub ? <span className="widget__sub">{sub}</span> : null}</>}
+        {loading ? <span className="widget__title">…</span> : <><b className="widget__title">{title}</b>{sub ? <span className="widget__sub">{sub}</span> : null}</>}
       </Link>
       <button type="button" className="widget__foot" onClick={() => { haptic("select"); navigate(resourceTo); }}><Icon name={icon} size={16} /> {resource}</button>
     </div>
