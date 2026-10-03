@@ -50,7 +50,7 @@ test("Download my data: everything kept about the reader, readable, in one file"
 test("Delete my data: every record about the reader goes, and other readers' are untouched", async () => {
   const env = await reader();
   const d = await deleteData(env, 77);
-  assert.deepEqual({ ...d, askCredits: 0 }, { savedChats: 1, readingReminder: true, dailyVerse: true, classNoteRequests: 1, askCredits: 0, askPlanUntil: null });
+  assert.deepEqual(d, { savedChats: 1, readingReminder: true, dailyVerse: true, classNoteRequests: 1, askBalanceUsd: 0, topupReminder: false });
   const me = await pid(env, 77);
   const left = [...env.SUBS.m.keys()].filter((k) => !k.startsWith("chatgone:"));
   assert.deepEqual(left, ["notereq:AAAAAAAAAAA"], "only the class request remains, for the other reader");

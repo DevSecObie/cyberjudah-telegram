@@ -11,11 +11,12 @@ import { expandBar, useBarMini, useBarScroll } from "@/lib/barscroll";
 import { SwitcherBar } from "@/screens/Tabs";
 import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
 
-export type IconName = "home" | "search" | "play" | "book" | "book-open" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "precepts" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus" | "close" | "image" | "alert" | "info";
+export type IconName = "home" | "search" | "play" | "book" | "book-open" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "precepts" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus" | "close" | "image" | "alert" | "info" | "shield";
 export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
   const p: Record<IconName, ReactNode> = {
     image: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8" cy="8" r="1.5" /><path d="m21 15-5-5L5 21" /></>,
     home: <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />,
+    shield: <><path d="M12 3 5 6v5.5c0 4.4 2.9 7.9 7 9.5 4.1-1.6 7-5.1 7-9.5V6z" /><path d="m9 12 2 2 4-4" /></>,
     search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4.2-4.2" /></>,
     play: <><rect x="3" y="5" width="18" height="14" rx="3" /><path d="m10 9 5 3-5 3z" /></>,
     "book-open": <><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></>,

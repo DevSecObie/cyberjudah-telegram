@@ -3,13 +3,14 @@ import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
-import { claude, claudeUnavailable, hasClaude, viaGateway } from "./providers";
+import { claude, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
 import { modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid } from "./privacy.mjs";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
 import { isAdmin } from "./edit";
-import { billingOn, charge, reserveAsk, settleAsk, standing, type Take } from "./billing";
-import type { Account } from "./billing.mjs";
+import { creditsConfig, hold, ownerOfUser, prepare, settle, typicalMc, wallet, type Wallet } from "./credits";
+import { estimateMc, MC_USD, mcOfUsd, viaUnifiedBilling } from "../../shared/credits.mjs";
+import { freeSpend, makeSpend, type Spend } from "./spend";
 
 /**
  * The AI features, all through Workers AI and the Vectorize index of the teachings:
@@ -35,7 +36,7 @@ const passageOf = (m: { metadata?: Record<string, unknown>; score: number }): Pa
  * The passages for a question: the twenty closest in meaning from the index and the best
  * keyword matches from the library search, together, reranked by whether they answer it.
  */
-export async function retrieve(env: Env, text: string, topK = 12): Promise<(Passage & { score: number })[]> {
+export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend): Promise<(Passage & { score: number })[]> {
   const [vectorRes, keywordRes] = await Promise.all([
     // Search by meaning falls back to the keyword search alone if Workers AI or Vectorize fails,
     // so a question is still answered (and Claude can still research) rather than failing whole.
@@ -49,6 +50,8 @@ export async function retrieve(env: Env, text: string, topK = 12): Promise<(Pass
   const keyed: (Passage & { score: number })[] = keywordRes?.ok ? keywordRes.hits.filter((h) => h.text && h.text.split(/\s+/).length >= 20).map((h) => ({ kind: h.kind, title: h.title, url: h.url, sub: h.sub, text: h.text!.slice(0, 1400), score: 0.5 })) : [];
   const seen = new Set(close.map((p) => `${p.kind}|${p.url}|${p.sub ?? ""}`));
   const all = [...close, ...keyed.filter((p) => !seen.has(`${p.kind}|${p.url}|${p.sub ?? ""}`))];
+  // What this search cost: the question embedded, one vector query, and what the reranker read.
+  spend?.search({ query: text, contexts: all.length > 1 ? all.map((p) => `${p.title}\n${p.text}`.slice(0, 2000)) : [] });
   return rerank(env, text, all, topK);
 }
 
@@ -106,52 +109,106 @@ async function allowed(env: Env, userId: number): Promise<boolean> {
 }
 
 /**
- * The free model: never charged, open to every reader, and the one Ask goes on with once the paid
- * answers are used up. ASK_FREE_MODEL names it; by default the strongest low-cost model in
+ * The free model: never charged, open to every reader, and offered whenever the balance is too low
+ * for the model chosen. ASK_FREE_MODEL names it; by default the strongest low-cost model in
  * Cloudflare's catalog that researches with tools (GLM 5.3 Flash, Workers AI).
  */
 export const freeModel = (env: Env) => modelOf(env.ASK_FREE_MODEL || "@cf/zai-org/glm-5.3-flash", "@cf/zai-org/glm-5.3-flash");
 
-/** Free answers: ASK_BASIC_DAILY a day per person (25 unless set). */
-async function basicAllowed(env: Env, userId: number): Promise<boolean> {
-  const n = Number(env.ASK_BASIC_DAILY);
-  return takeQuota(env, "ask-basic", userId, Number.isInteger(n) && n >= 0 ? n : 25);
+/** Ask is paid from the reader's balance (credits.ts) when ASK_BILLING is "on"; otherwise each person has the abuse limit above. */
+export const creditsOn = (env: Env) => env.ASK_BILLING === "on";
+
+/**
+ * One request's cost: who pays, what was held for it, and what it has cost so far. Before the
+ * request starts, the most it may cost on this model is worked out and that much is held from the
+ * balance. A request whose most is above ASK_CONFIRM_ABOVE_USD is held only up to a limit the
+ * reader accepted (the app asks first). The free model and the admins are not charged: they get
+ * a meter that measures and keeps to the same budget, and holds nothing.
+ */
+export type Meter = { owner: string; request: string; held: number; spend: Spend; model: AskModel; free: boolean };
+type MeterStart = { ok: true; meter: Meter } | { ok: false; status: number; body: Record<string, unknown> };
+export type MeterOpts = { request?: string; maxMc?: number; caps?: Record<string, number> };
+export async function startMeter(env: Env, uid: number, model: AskModel, opts: MeterOpts = {}): Promise<MeterStart> {
+  const cfg = creditsConfig(env);
+  const owner = await ownerOfUser(env, uid);
+  await prepare(env, owner, { uid });
+  const viaCf = unifiedBilling(env);
+  const fee = viaUnifiedBilling(model, viaCf) ? cfg.unifiedFee : 0;
+  const est = estimateMc(model, cfg, { claudeViaCloudflare: viaCf });
+  const request = opts.request && /^[a-z0-9-]{8,64}$/i.test(opts.request) ? opts.request : crypto.randomUUID();
+  const free = freeModel(env);
+  if (model.id === free.id || isAdmin(env, uid)) return { ok: true, meter: { owner, request, held: 0, spend: makeSpend({ fee, budgetUsd: est.maxMc * MC_USD, rates: cfg.research }), model, free: true } };
+  const typical = (await typicalMc(env, model.id).catch(() => null)) ?? est.typicalMc;
+  const limit = opts.maxMc ?? opts.caps?.[model.id];
+  const accepted = limit && limit > 0 ? Math.round(limit) : null;
+  if (accepted === null && est.maxMc > cfg.confirmAboveMc) return { ok: false, status: 409, body: { error: "confirm", model: model.id, name: model.name, typical_mc: typical, max_mc: est.maxMc } };
+  const cap = Math.min(est.maxMc, accepted ?? est.maxMc);
+  // Enough to begin: half a typical answer (at least a tenth of a cent); with less it would be cut off.
+  const minMc = Math.min(cap, Math.max(1000, Math.ceil(typical / 2)));
+  const h = await hold(env, owner, request, cap, minMc, model.id);
+  // Not enough: the free model is offered, and a top-up.
+  if (!h.ok) return { ok: false, status: 402, body: { error: "credits", model: model.id, name: model.name, available_mc: h.available_mc, need_mc: minMc, typical_mc: typical, free: { id: free.id, name: free.name, provider: free.provider } } };
+  return { ok: true, meter: { owner, request, held: h.held_mc, spend: makeSpend({ fee, budgetUsd: h.held_mc * MC_USD, rates: cfg.research }), model, free: false } };
 }
 
-/** A question answered in one piece (the bot and older clients); a hundred a day per person. */
+/**
+ * Settle a request: charged what it actually cost, at most what was held (the limit the reader
+ * accepted); a failed, refused or empty answer is not charged at all. What it cost beyond the
+ * charge is recorded as written off. Returns the charge and the new balance, or null when nothing
+ * was settled (the free model, an admin).
+ */
+export async function finishMeter(env: Env, m: Meter, status: "ok" | "failed" | "refused" | "empty" | "backup"): Promise<{ charged_mc: number; balance: Wallet } | null> {
+  const cost = m.spend.total();
+  const actual = mcOfUsd(cost);
+  const charged = status === "ok" && !m.free ? Math.min(actual, m.held) : 0;
+  const detail = { calls: m.spend.calls, searches: m.spend.searches, model_usd: Math.round(m.spend.modelUsd * 1e6) / 1e6, research_usd: Math.round(m.spend.researchUsd * 1e6) / 1e6 };
+  console.log(JSON.stringify({ event: "ask_usage", model: m.model.id, status, cost_usd: Math.round(cost * 1e6) / 1e6, charged_mc: charged, held_mc: m.held, free: m.free, ...detail }));
+  if (m.free) return null;
+  const r = await settle(env, m.owner, m.request, { actualMc: charged, costUsd: cost, status, model: m.model.id, detail, absorbedMc: actual - charged }).catch((e: Error) => { console.error(JSON.stringify({ event: "credits_settle_failed", message: e.message?.slice(0, 160) })); return null; });
+  return r ? { charged_mc: r.charged_mc, balance: await wallet(env, m.owner) } : null;
+}
+
+/**
+ * Whether this person may ask now, and on what: with billing on, the balance decides for paid
+ * models (startMeter) and the free model is open to all, within the daily cap against abuse
+ * (admins aside); with billing off, the cap alone.
+ */
+async function begin(env: Env, uid: number, model: AskModel, opts: MeterOpts): Promise<{ ok: true; meter: Meter | null } | { ok: false; status: number; body: Record<string, unknown> }> {
+  if (!creditsOn(env)) return (await allowed(env, uid)) ? { ok: true, meter: null } : { ok: false, status: 429, body: { error: "limit" } };
+  const r = await startMeter(env, uid, model, opts);
+  if (!r.ok) return r;
+  if (r.meter.free && !isAdmin(env, uid) && !(await allowed(env, uid))) return { ok: false, status: 429, body: { error: "limit" } };
+  return r;
+}
+
+/** A question answered in one piece (the bot and older clients). It cannot ask first, so it is held to ASK_CONFIRM_ABOVE_USD at most. */
 export async function ask(env: Env, q: string, userId: number, ctx?: Exec, history: Turn[] = [], consent: string[] = []): Promise<Answer> {
   const t0 = Date.now();
   const question = q.trim().slice(0, 400);
   if (question.length < 2) return { ok: false, reason: "too-short" };
+  const model = modelOf(env.CLAUDE_MODEL || CLAUDE_DEFAULT);
   // The one-piece answer uses the setup's own model: agreed to, as in askStream.
-  if (hasClaude(env) && !consent.includes(modelOf(env.CLAUDE_MODEL || CLAUDE_DEFAULT).provider)) return { ok: false, reason: "consent" };
-  // A metered answer reserves its minimum up front, so questions sent at once cannot spend more
-  // than is left, and settles the exact units at the end (nothing, if it failed on our side).
-  const metered = billingOn(env) && hasClaude(env);
-  let take: Take | null = null;
-  if (metered && !isAdmin(env, userId)) {
-    const r = await reserveAsk(env, userId);
-    if (!r.ok) return { ok: false, reason: "allowance" };
-    take = r.take;
-  } else if (billingOn(env) ? !(await standing(env, userId)).ok : !(await allowed(env, userId))) {
-    return { ok: false, reason: billingOn(env) ? "allowance" : "limit" };
-  }
+  if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
+  const r = await begin(env, userId, model, { maxMc: creditsConfig(env).confirmAboveMc });
+  if (!r.ok) return { ok: false, reason: r.status === 429 ? "limit" : "credits" };
+  const meter = r.meter;
+  const spend = meter?.spend ?? freeSpend();
   try {
-    const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
-    if (hasClaude(env)) {
-      const { text, passages, units } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), () => undefined, ctx);
-      if (metered && take) await settleAsk(env, userId, take, units);
-      else await charge(env, userId, units);
+    const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12, spend), 8);
+    if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
+      const { text, passages } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), () => undefined, ctx, undefined, model, spend);
       const { answer } = splitFollowups(text);
+      if (meter) await finishMeter(env, meter, answer.trim() ? "ok" : "empty");
       return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
     }
+    if (meter) await finishMeter(env, meter, "backup");
     const passages = first;
     if (!passages.length) return { ok: true, q: question, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], ms: Date.now() - t0 };
     const { answer } = splitFollowups(await answerOnce(env, buildPrompt(question, passages, history)));
     return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
   } catch (e) {
-    // An answer that failed on our side is not charged: the reservation goes back.
-    if (metered && take) await settleAsk(env, userId, take, 0).catch(() => null);
+    // An answer that failed is not charged: the hold goes back.
+    if (meter) await finishMeter(env, meter, "failed");
     console.error(JSON.stringify({ event: "ask_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 200) }));
     return { ok: false, reason: "unavailable" };
   }
@@ -219,54 +276,33 @@ const sourcesOf = (answer: string, passages: Passage[]) => {
  * The same, streamed: one JSON line with the passages first, then a line per piece of the
  * answer as the model writes it, then a line with the sources it cited.
  */
-export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string, replaceLast = false, modelId?: string, consent: string[] = []): Promise<Response> {
-  // The reader's choice of model, or their default (defaultModelId) when none or an unknown one is sent.
-  let model = modelOf(modelId, defaultModelId(env, userId));
-  // The free model (ASK_FREE_MODEL) is never charged: chosen, or once the allowance is used up.
-  const free = freeModel(env);
-  let gratis = model.id === free.id;
+export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string, replaceLast = false, modelId?: string, consent: string[] = [], opts: MeterOpts = {}): Promise<Response> {
+  // The reader's choice of model, or their configured account default.
+  const model = modelOf(modelId, defaultModelId(env, userId));
   const question = q.trim().slice(0, 400);
   const line = (o: unknown) => `${JSON.stringify(o)}\n`;
-  if (question.length < 2) return new Response(line({ error: "too-short" }), { status: 400, headers: { "content-type": "application/x-ndjson" } });
-  // A metered answer reserves its minimum up front and settles the exact units at the end (see ask).
-  // Leaving mid-answer does not cancel it (waitUntil), so it is still settled once.
+  const reply = (status: number, o: unknown) => new Response(line(o), { status, headers: { "content-type": "application/x-ndjson" } });
+  if (question.length < 2) return reply(400, { error: "too-short" });
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
-  const needsConsent = (m: AskModel) => !consent.includes(m.provider) && new Response(line({ error: "consent", provider: m.provider, model: m.name }), { status: 428, headers: { "content-type": "application/x-ndjson" } });
-  const refused0 = needsConsent(model);
-  if (refused0) return refused0;
-  const metered = billingOn(env) && hasClaude(env);
-  let take: Take | null = null;
-  // With the paid answers used up, Ask does not stop: it goes on with the free model, which
-  // researches with the same tools and is not charged, as the large AI apps fall back to a
-  // lighter model at their limit, up to ASK_BASIC_DAILY a day; then the plans are offered.
-  let limited = false;
-  if (metered && !isAdmin(env, userId)) {
-    const r = gratis ? null : await reserveAsk(env, userId);
-    if (r?.ok) take = r.take;
-    else if (await basicAllowed(env, userId)) {
-      // The free model may be another provider: agreed to as well, or asked for first (nothing was reserved).
-      const refused1 = needsConsent(free);
-      if (refused1) return refused1;
-      limited = !gratis; model = free; gratis = true;
-    }
-    else return new Response(line({ error: "allowance", ...(r ? { balance: r.balance } : {}) }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
-  } else if (billingOn(env)) {
-    const st = await standing(env, userId);
-    if (!st.ok) return new Response(line({ error: "allowance", balance: st.balance }), { status: 402, headers: { "content-type": "application/x-ndjson" } });
-  } else if (!(await allowed(env, userId))) {
-    return new Response(line({ error: "limit" }), { status: 429, headers: { "content-type": "application/x-ndjson" } });
-  }
+  if (!consent.includes(model.provider)) return reply(428, { error: "consent", provider: model.provider, model: model.name });
+  // The balance: held before anything is spent, settled once at the end with what the answer
+  // actually cost (finishMeter). Leaving mid-answer does not cancel it (waitUntil), so it is still
+  // settled once. Too little for this model: Ask says so and offers the free model and a top-up.
+  const started = await begin(env, userId, model, opts);
+  if (!started.ok) return reply(started.status, started.body);
+  const meter = started.meter;
+  const spend = meter?.spend ?? freeSpend();
   const encoder = new TextEncoder();
   // The reader can leave at any moment (Stop, another screen, the app closed). From then on
   // nothing more is sent, but the answer is still finished, saved and charged exactly once:
   // the work runs under waitUntil, not inside the response, so leaving does not cancel it.
   let open = true;
   let settled = false;
-  const settle = async (units: number) => {
-    if (settled) return null;
+  const finish = async (status: Parameters<typeof finishMeter>[2]) => {
+    if (settled || !meter) return null;
     settled = true;
-    return metered && take ? await settleAsk(env, userId, take, units).catch(() => null) : await charge(env, userId, units).catch(() => null);
+    return finishMeter(env, meter, status);
   };
   // While it is being answered, the conversation says so, for a refresh or another device to wait on.
   if (chatId) await markPending(env, userId, chatId, question).catch(() => undefined);
@@ -282,37 +318,38 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
       };
       const job = (async () => {
         try {
-          const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12), 8);
-          let backup = limited;
+          const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12, spend), 8);
+          let backup = false;
           // Claude needs its own access (hasClaude); every other model goes through the AI Gateway.
           if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
             // Claude researches first (searches and verses, reported as it goes), then writes.
             const steps: string[] = [];
             let ran: Awaited<ReturnType<typeof runAgent>> | null = null;
-            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model); }
+            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model, spend); }
             catch (e) {
               // Claude cannot answer now (overloaded, rate limited, down, or its key refused): the
               // backup model answers from the passages already found, and the reader is not charged.
               if (!claudeUnavailable(e)) throw e;
               console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
-              await settle(0);
+              await finish("backup");
               send({ reset: true });
               send({ status: "Answering with the backup model" });
               backup = true;
             }
             if (ran) {
-              const { text, passages, units, calls, actions, cut, refused } = ran;
+              const { text, passages, actions, cut, refused } = ran;
               const { answer, followups } = splitFollowups(text);
-              const left = await settle(gratis ? 0 : units);
-              console.log(JSON.stringify({ event: "ask_usage", units, calls, searches: steps.length, actions: actions.length, cut }));
-              // Claude declined the question (stop_reason "refusal"): said so, never shown as an answer.
-              if (refused && !answer.trim()) { send({ error: "refused" }); return; }
-              if (!answer.trim()) { send({ error: "empty" }); return; }
+              // Claude declined the question (stop_reason "refusal"): said so, never shown as an answer, not charged.
+              if (refused && !answer.trim()) { await finish("refused"); send({ error: "refused" }); return; }
+              if (!answer.trim()) { await finish("empty"); send({ error: "empty" }); return; }
+              const used = await finish("ok");
               const sources = sourcesOf(answer, passages);
               // Saved first: whatever happens to the connection after this, the answer is kept.
               await keep(answer, sources, followups, steps, actions, cut);
-              send({ done: true, answer, followups, sources, actions, ...(cut ? { cut: true } : {}), ...(limited ? { limited: true } : {}) });
-              if (left && billingOn(env)) send({ usage: { units, balance: left } });
+              send({ done: true, answer, followups, sources, actions, ...(cut ? { cut: true } : {}) });
+              // What the answer cost, and the balance after it; the free model and admins pay nothing.
+              if (used) send({ usage: { charged_mc: used.charged_mc, balance: used.balance } });
+              else if (meter?.free && creditsOn(env)) send({ usage: { charged_mc: 0, free: true } });
               return;
             }
           }
@@ -320,7 +357,6 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
           // The backup cannot research: with nothing found to answer from, it says Claude is busy
           // rather than that the library has nothing (which only the research could tell).
-          if (!passages.length && limited) { send({ error: "allowance" }); return; }
           if (!passages.length && backup) { send({ error: "busy" }); return; }
           if (!passages.length) {
             const answer = "The search did not find enough reliable material in the library to answer that question.";
@@ -333,13 +369,17 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           if (!clean.trim()) { send({ error: "empty" }); return; }
           const sources = sourcesOf(clean, passages);
           await keep(clean, sources, followups);
-          send({ done: true, answer: clean, followups, sources, ...(limited ? { limited: true } : backup ? { backup: true } : {}) });
+          // The backup (or a setup without the model's access) wrote this from the passages: not charged.
+          await finish("backup");
+          send({ done: true, answer: clean, followups, sources, ...(backup ? { backup: true } : {}) });
         } catch (e) {
-          // An answer that failed on our side is not charged: the reservation goes back.
-          await settle(0);
+          // An answer that failed is not charged: the hold goes back.
+          await finish("failed");
           console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
           send({ error: "unavailable" });
         } finally {
+          // Whatever way it ended, the hold is settled once: an answer that got no further is not charged.
+          await finish("failed");
           clearInterval(beat);
           if (chatId) await clearPending(env, userId, chatId).catch(() => undefined);
         }
