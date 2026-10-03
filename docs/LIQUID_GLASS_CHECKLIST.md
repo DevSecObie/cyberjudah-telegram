@@ -58,6 +58,20 @@ This is the web adaptation of Apple's [Adopting Liquid Glass](https://developer.
 
 ## Evidence and practical limits
 
+### Bible Strong reference
+
+The reader reference is [smontlouis/bible-strong at `dd02775`](https://github.com/smontlouis/bible-strong/tree/dd02775f82d69401d61f5e37cd63258aa1010d0a), checked against upstream on October 3, 2026. Of 65 relevant files in this repository's `strong/` snapshot, 62 match the upstream Git blobs; the three differing verse/media/action files were read directly from that pinned upstream revision for this review.
+
+| Reference behavior | CyberJudah adaptation |
+| --- | --- |
+| `SelectedVersesModal`: native tabbed action groups and highlight strip | Preserve the compact selection sheet and its Annotate/Study/Share controls. Upstream's separate web implementation expands all groups to a 900px row; that is not the existing Telegram phone interaction. |
+| `BibleOptionsMenu` and `ContextualPanel`: actions anchored to the invoking control, separate presentation from feature state | Shared menu/popover hosts retain existing Scripture actions, keyboard focus and dismissal. Routes and reader state remain owned by their current features. |
+| Web panels forward the active palette onto body portals | People/gallery portals use CyberJudah's root theme tokens, including increased contrast. |
+| `Verse` fades unselected context to 30%; gallery captions also use opacity | Semantic ink preserves readable context and captions at AA contrast. The selected verse still has its underline. This intentional adaptation follows the accessibility requirement in the Liquid Glass brief. |
+| Media/people overlays animate an extra backdrop blur | Content galleries are opaque; shared navigation materials carry glass. Blur is never animated or added to content. |
+
+The reference's home navigation and controls are being compared separately following the owner's request. That interaction review will retain CyberJudah's content and visual system; these reader/material checks do not claim complete application feature parity.
+
 Each section's PR maps the relevant Apple guidance to its implementation and records visual assertion changes, browser checks and performance samples. Actual before/after review images are under [`app/e2e/review/`](../app/e2e/review/), grouped as `glass-01` through `glass-10`. Section 09 images are explicitly labeled artwork previews, not installed-native-app screenshots. The [design system](DESIGN_SYSTEM.md) records the material inventory, tokens, button/control states, concentric radii, sheet sizes, title case, contrast rules and sidebar breakpoint.
 
 The contrast audit checks rendered text and semantic foreground/background pairs at unchanged AA thresholds, including black/white behind glass. Final interaction review also covers selected-verse context, the version picker, chapter people and class-gallery captions; it waits for opening animations before sampling. Opacity dimming is replaced by readable semantic text colors, and gallery content is opaque. Selection underlines and authored highlights retain their meaning. Image-backed content and reader-authored annotation colors need contextual review; the automated result does not certify arbitrary imagery or user colors.
