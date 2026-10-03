@@ -131,7 +131,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 
 - Local app icons now include layered lion artwork, full-bleed light/dark squares, PWA maskable safe-zone exports and a monochrome variant.
 
-- Search stays last in its own round dock control without rewriting saved button choices; the phone search field follows the keyboard viewport above the dock.
+- Search stays last in its own round dock control without rewriting saved button choices; the phone search field follows the keyboard viewport above the dock, and touch actions activate once after scrolling or dragging.
 - Increased contrast now has explicit light, dark and sepia palettes, including Bible controls; secondary text, status colors and Home widgets keep readable contrast on their surfaces.
 - Lists and settings use roomier grouped rows with shared rounded corners. Section headings keep normal title case, and related settings have accessible form groups.
 - The Bible Timeline shows 45 more portraits (83 in all): picture rounds 2–4 (Solomon recropped, the
