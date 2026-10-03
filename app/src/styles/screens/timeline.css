@@ -1,0 +1,106 @@
+/* The Bible Timeline, after Bible Strong's (strong/.../features/timeline), in the app's glass.
+   Geometry is theirs: 24 rows of 30px + 10px from 50px down, 100px a date mark, major events
+   60px tall with a 140px title block, minor ones 25px pills, the line at 40% of the screen,
+   the year in a 100 x 30 tab under it. Each period carries its own colour (--tl-color). */
+
+.tlh { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; height: 54px; padding-top: var(--safe-top); border-bottom: .5px solid var(--hairline); }
+.tlh__title { flex: 1; margin: 0; text-align: center; font: 600 15px/1.2 var(--font-ui); color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tlh__actions { display: flex; }
+#root .tlh__btn { display: grid; place-items: center; width: 44px; height: 54px; border: 0; background: none; color: var(--text-1); cursor: pointer; }
+.tlh__btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -6px; border-radius: 10px; }
+
+/* The periods (TimelineItem), each as its emblem. */
+.tl-home, .tl-search, .tl-event { min-height: 100dvh; padding-bottom: calc(var(--dock-space) + 16px); }
+.tl-items { list-style: none; margin: 0; padding: 20px 20px 0; display: grid; gap: 30px; justify-items: center; }
+.tl-items > li { width: min(100%, 360px); }
+.tl-item { display: block; text-decoration: none; color: inherit; width: 100%; }
+.tl-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 12px; }
+.tl-emblem { display: flex; flex-direction: column; justify-content: space-between; gap: 8px; color: var(--text-1); }
+.tl-emblem--card { height: 180px; padding: 20px; border-radius: 10px; background: var(--surface-1); box-shadow: var(--card-edge, 0 0 0 .5px var(--hairline)), 0 2px 7px rgba(89, 131, 240, .1); }
+.tl-emblem__age { font: 12px/1.3 var(--font-ui); color: var(--text-2); }
+.tl-emblem__title { font: 600 18px/1.25 var(--font-ui); }
+.tl-emblem__sub { padding: 3px 0; border-top: 2px solid var(--text-1); border-bottom: 2px solid var(--text-1); text-align: center; font: 10px/1.4 var(--font-ui); }
+.tl-emblem__bar { align-self: center; width: calc(100% - 80px); height: 10px; border-radius: 10px; background: var(--tl-color); }
+.tl-emblem--panel { align-items: center; text-align: center; gap: 10px; max-width: 360px; }
+.tl-emblem--panel .tl-emblem__age { font-size: 20px; }
+.tl-emblem--panel .tl-emblem__title { font-size: 30px; padding: 10px 0; }
+.tl-emblem--panel .tl-emblem__sub { font-size: 14px; }
+.tl-emblem--panel .tl-emblem__bar { width: 50px; margin-top: 40px; }
+
+/* A period (TimelineSection): the canvas fills the screen above the dock. */
+.tl-period { position: relative; display: flex; flex-direction: column; height: calc(100dvh - var(--dock-space)); overflow: hidden; }
+.tl-scroll { position: relative; flex: 1; overflow: auto; overscroll-behavior: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.tl-scroll::-webkit-scrollbar { display: none; }
+.tl-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tl-world { position: relative; }
+.tl-canvas { position: absolute; top: 0; background: var(--fill-1); box-shadow: 0 2px 7px rgba(89, 131, 240, .1); }
+.tl-panel { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; gap: 12px; border: 0; background: var(--bg, transparent); color: var(--text-1); cursor: pointer; }
+
+/* Events (TimelineEvent). */
+.tl-major, .tl-minor { position: absolute; display: flex; border-radius: 20px; background: var(--surface-1); color: var(--text-1); text-decoration: none; box-shadow: 0 0 0 .5px var(--hairline), 0 2px 7px rgba(89, 131, 240, .1); }
+.tl-major { height: 60px; }
+.tl-major__desc { position: sticky; left: 0; width: 140px; padding: 6px 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+.tl-major__title { font: 12px/1.2 var(--font-ui); text-align: center; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tl-major__desc i { align-self: stretch; border-bottom: 1px solid var(--hairline); }
+.tl-major__date { font: 10px/1.2 var(--font-ui); text-align: center; color: var(--text-2); }
+.tl-minor { height: 25px; white-space: nowrap; }
+.tl-minor__title { display: flex; align-items: center; padding: 0 10px; border-radius: 10px 0 0 10px; background: var(--text-3); color: #fff; font: 10px/1 var(--font-ui); }
+.tl-minor__date { display: flex; align-items: center; padding: 0 10px; font: 8px/1 var(--font-ui); color: var(--text-2); }
+.tl-major[data-off], .tl-minor[data-off] { opacity: .6; }
+/* An event with our case studies on it: the period's colour along its edge. */
+.tl-major[data-cases], .tl-minor[data-cases] { box-shadow: inset 3px 0 0 var(--tl-color), 0 0 0 .5px var(--hairline), 0 2px 7px rgba(89, 131, 240, .1); }
+a.tl-major:focus-visible, a.tl-minor:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* The date bar (Datebar): stays at the bottom while the canvas scrolls up and down. */
+.tl-datebar { position: sticky; top: calc(100% - 25px); height: 25px; margin-top: -25px; background: var(--surface-1); box-shadow: 0 2px 7px rgba(89, 131, 240, .1); pointer-events: none; }
+.tl-datebar span { position: absolute; bottom: 3px; width: 100px; margin-left: -50px; text-align: center; font: 700 10px/1 var(--font-ui); color: var(--tl-color); }
+
+/* The line (Line) and the year under it (CurrentYear). */
+.tl-line { position: absolute; top: 54px; bottom: 0; width: 1px; background: var(--tl-color); opacity: .3; pointer-events: none; }
+.tl-current { position: absolute; left: 0; right: 0; bottom: 0; height: 40px; pointer-events: none; }
+.tl-current__year { position: absolute; bottom: 0; width: 100px; height: 30px; display: grid; place-items: center; border-radius: 5px 5px 0 0; background: var(--tl-color); color: #fff; font: 700 13px/1 var(--font-ui); }
+#root .tl-current__nav { position: absolute; bottom: 0; width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 5px 5px 0 0; background: var(--surface-1); box-shadow: 0 2px 7px rgba(89, 131, 240, .1); pointer-events: auto; cursor: pointer; }
+.tl-current__nav--next { right: 0; }
+.tl-current__progress { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--tl-color); }
+
+/* Panels (SectionDetailsModal, the home's details). */
+.tlp { padding: 0 0 16px; }
+.tlp__head { display: flex; align-items: center; justify-content: space-between; padding: 6px 6px 6px 18px; font: 600 15px/1.3 var(--font-ui); }
+.tlp__head .tlh__btn { height: 44px; }
+.tlp__body { padding: 0 20px; overflow: auto; }
+.tl-details { display: grid; justify-items: center; gap: 18px; padding: 10px 0 8px; }
+.tl-details .entity__eyebrow { justify-self: stretch; }
+.tl-details__list { list-style: none; margin: 0; padding: 0; justify-self: stretch; display: grid; gap: 8px; }
+.tl-details__list a { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--fill-1); color: var(--text-1); text-decoration: none; }
+.tl-details__list span { color: var(--text-2); font-size: var(--fs-footnote); white-space: nowrap; }
+.tl-about p { margin: 0 0 12px; color: var(--text-2); line-height: 1.5; }
+
+/* Search (TimelineSearchScreen). */
+.tl-search__field { padding: 12px 16px; }
+.tl-search__count { margin: 0; padding: 10px 16px; font: 16px/1.3 var(--font-ui); color: var(--text-3); }
+.tl-search__list { list-style: none; margin: 0; padding: 0; }
+.tl-search__list li + li { border-top: .5px solid var(--hairline); }
+.tl-search__list a { display: grid; gap: 4px; padding: 14px 16px; color: var(--text-1); text-decoration: none; }
+.tl-search__list b { font: 600 15px/1.3 var(--font-ui); }
+.tl-search__list span { font-size: var(--fs-footnote); color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* An event (EventDetails). */
+.tl-event__body { max-width: var(--w-read); margin: 0 auto; padding: 10px 0; }
+.tl-event__head { margin: 30px 0; padding: 0 20px; text-align: center; }
+.tl-event__title { margin: 0; font: 600 26px/1.25 var(--font-ui); color: var(--text-1); }
+.tl-event__date { margin: 6px 0 0; font-size: var(--fs-footnote); color: var(--text-3); }
+.tl-event__period { display: inline-block; margin-top: 10px; padding: 4px 10px; border-radius: 99px; background: color-mix(in srgb, var(--tl-color) 14%, transparent); color: var(--text-1); font-size: 12px; text-decoration: none; }
+.tl-event__section { padding: 0 20px 20px; }
+.tl-event__section h2 { margin: 0 0 10px; font: 600 17px/1.3 var(--font-ui); color: var(--text-1); }
+.tl-event__section p { margin: 0; color: var(--text-1); }
+.tl-event__src { margin-left: 6px; font-size: 12px; color: var(--text-3); font-style: italic; }
+.tl-event__cases { list-style: none; margin: 0; padding: 0; }
+.tl-related { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 18px 20px; border-radius: 20px; background: var(--surface-1); color: var(--text-1); text-decoration: none; box-shadow: 0 0 0 .5px var(--hairline), 0 2px 7px rgba(89, 131, 240, .1); }
+.tl-related > span { flex: 1; display: grid; gap: 4px; }
+.tl-related small { color: var(--text-2); font-size: var(--fs-footnote); }
+.tl-related svg { color: var(--accent); flex: none; }
+.tl-verse { display: block; padding-bottom: 20px; color: var(--text-1); text-decoration: none; }
+.tl-verse__ref { display: block; font: 600 13px/1.3 var(--font-ui); color: var(--text-3); }
+.tl-verse__text { display: block; margin-top: 4px; font: 15px/1.6 var(--font-read, Georgia, serif); }
+.tl-verse sup { font-size: .65em; color: var(--text-3); }
+@media (prefers-reduced-motion: reduce) { .tl-scroll { scroll-behavior: auto; } }

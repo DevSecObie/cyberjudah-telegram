@@ -25,6 +25,10 @@ const Ask = lazy(() => import("@/screens/Ask").then((m) => ({ default: m.Ask }))
 const BibleTab = lazy(() => import("@/bible/BibleTab").then((m) => ({ default: m.BibleTab })));
 const More = lazy(() => import("@/screens/More").then((m) => ({ default: m.More })));
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
+const Timeline = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.Timeline })));
+const TimelinePeriod = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.TimelinePeriod })));
+const TimelineSearch = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.TimelineSearch })));
+const TimelineEventScreen = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.TimelineEventScreen })));
 const Credits = lazy(() => import("@/screens/Credits").then((m) => ({ default: m.Credits })));
 const Plan = lazy(() => import("@/screens/Plan").then((m) => ({ default: m.Plan })));
 const History = lazy(() => import("@/screens/History").then((m) => ({ default: m.History })));
@@ -134,6 +138,10 @@ export function App() {
         <Route path="/law/:part" element={<LawIndex />} />
         <Route path="/precepts" element={<Precepts />} />
         <Route path="/precepts/:slug" element={<PreceptScreen />} />
+        <Route path="/timeline" element={<Timeline />} />
+        <Route path="/timeline/search" element={<TimelineSearch />} />
+        <Route path="/timeline/event/:slug" element={<TimelineEventScreen />} />
+        <Route path="/timeline/:n" element={<TimelinePeriod />} />
         <Route path="/cases" element={<Cases />} />
         <Route path="/cases/:era/:slug" element={<CaseScreen />} />
         <Route path="/topics" element={<Topics />} />

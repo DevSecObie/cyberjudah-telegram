@@ -25,6 +25,15 @@ request that introduced this file ([#77]).
 Merged to `main` and not yet in a tagged release. Production currently runs `861242f`
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
+### Added
+- The Bible Timeline ([issue #47], item 2), ported from Bible Strong's: its periods, each event
+  placed by year on its canvas, the date bar, the line with the year under it, the periods
+  either side, search, and event pages. The years are Bible Strong's (their history only: their
+  descriptions, articles, pictures and prophetic interpretation, including the "Revelation
+  Prophecies" period and 20 prophecy events, are left out). Events open to our case studies on
+  them (by exact name only), their verses in the KJV, and for 25 kings the reign from *Who's Who
+  in the Bible*. Regenerate the data with `node app/scripts/timeline-data.mjs <cases>`.
+
 ### Changed
 - This changelog, the incident log ([docs/INCIDENTS.md](docs/INCIDENTS.md)) and the release rules;
   a pull-request check asks every change for a changelog line or a reason it needs none ([#77]).
