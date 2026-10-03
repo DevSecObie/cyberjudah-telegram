@@ -203,7 +203,7 @@ export async function deleteBilling(env: Env, uid: number): Promise<{ credits: n
     env.DB.prepare("DELETE FROM usage_people WHERE user_id = ? OR user_id = ?").bind(id, String(uid)),
     env.DB.prepare("UPDATE payments SET user_id = 'deleted' WHERE user_id = ? OR user_id = ?").bind(id, String(uid)),
   ]);
-  await env.SUBS.delete(`acct:${uid}`).catch(() => null);
+  await env.SUBS.delete(`acct:${uid}`);
   return { credits: left?.credits ?? 0, planUntil: left && left.plan_until > Date.now() ? left.plan_until : null };
 }
 

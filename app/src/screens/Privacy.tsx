@@ -38,7 +38,7 @@ export function Privacy() {
       // The Ask conversation kept on this device for the reader goes too.
       try { for (const k of Object.keys(localStorage)) if (k.startsWith("cj:ask")) localStorage.removeItem(k); } catch { /* nothing kept */ }
       haptic("success"); setStatus(r.summary);
-    } catch { setStatus("That did not work, and nothing was deleted. Please try again."); }
+    } catch { setStatus("Deletion could not finish. Some data may already have been removed. Please try again."); }
     finally { setBusy(""); }
   };
 

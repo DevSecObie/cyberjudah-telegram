@@ -22,7 +22,11 @@ const kv = () => {
 };
 /** D1 that accepts every statement and holds no allowance rows (the allowance is covered in billing tests). */
 const sql = [];
-const d1 = { prepare: (q) => ({ bind: (...a) => ({ first: async () => null, run: async () => { sql.push([q, a]); return { meta: { changes: 0 } }; }, all: async () => ({ results: [] }) }) }), batch: async (s) => s.map(() => ({ meta: { changes: 0 } })) };
+const d1 = {
+  prepare: (q) => ({ query: q, args: [], bind(...a) { this.args = a; return this; }, first: async () => null,
+    async run() { sql.push([q, this.args]); return { meta: { changes: 0 } }; }, all: async () => ({ results: [] }) }),
+  batch: async (s) => Promise.all(s.map(statement => statement.run())),
+};
 const reminder = { on: true, hour: 7, minute: 0, tz: "UTC", channels: { telegram: true }, chatId: 77, pushes: [], pending: [], from: "2026-10-01" };
 
 async function reader() {
@@ -70,4 +74,36 @@ test("the bot's Delete everything button works once, for the reader who asked, w
   assert.equal(await useDeletionToken(env, t2, 77), true);
   assert.equal(await useDeletionToken(env, t2, 77), false, "only once");
   assert.equal(await useDeletionToken(env, "not-a-token", 77), false);
+});
+
+for (const store of ["billing", "rate counters", "legacy allowance"]) {
+  test(`Delete my data: a failed ${store} deletion rejects and can be retried`, async () => {
+    const env = await reader(), remove = env.SUBS.delete;
+    await env.SUBS.put("acct:77", JSON.stringify({ credits: 42 }));
+    const failed = new Error("storage unavailable");
+    if (store === "legacy allowance") env.SUBS.delete = async k => { if (k === "acct:77") throw failed; return remove(k); };
+    else env.DB = { ...d1, batch: async statements => {
+      const target = store === "billing" ? "DELETE FROM accounts" : "DELETE FROM rate_counts";
+      if (statements.some(s => s.query.startsWith(target))) throw failed;
+      return d1.batch(statements);
+    } };
+    await assert.rejects(deleteData(env, 77), failed, "never acknowledge an incomplete deletion");
+    // Earlier stores may already have been removed. Retrying must not remove a second
+    // reader's request or subtract their vote again.
+    env.DB = d1; env.SUBS.delete = remove;
+    await deleteData(env, 77);
+    assert.equal(await env.SUBS.get("acct:77"), null);
+    const request = await env.SUBS.get("notereq:AAAAAAAAAAA", "json");
+    assert.deepEqual([request.count, request.users], [1, [await pid(env, 78)]]);
+    const after = await exportData(env, 77);
+    assert.deepEqual([after.savedChats, after.readingReminder, after.dailyVerse, after.classNoteRequests], [[], null, null, []]);
+  });
+}
+
+test("Download my data: a failed billing read rejects instead of exporting an incomplete copy", async () => {
+  const env = await reader();
+  env.DB = { ...d1, prepare: q => ({ ...d1.prepare(q), first: async () => { throw new Error("billing unavailable"); } }) };
+  await assert.rejects(exportData(env, 77), /billing unavailable/);
+  env.DB = d1;
+  assert.deepEqual((await exportData(env, 77)).ask, { account: null, payments: [] });
 });

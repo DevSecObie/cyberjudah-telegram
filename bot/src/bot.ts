@@ -113,7 +113,9 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     ctx.reply("What CyberJudah keeps about you, why, for how long, and who else sees it: read the privacy policy. Send /mydata for a copy of everything kept, or /deletemydata to delete it all. Questions: privacy@cyberjudah.io", { reply_markup: open(ctx, "privacy", "Privacy policy") }));
   bot.command("mydata", async (ctx) => {
     if (ctx.chat.type !== "private" || !ctx.from) return ctx.reply("Send /mydata in a private chat with me.");
-    const data = await exportData(env, ctx.from.id);
+    let data;
+    try { data = await exportData(env, ctx.from.id); }
+    catch { return ctx.reply("Your data could not be collected completely. Send /mydata to try again."); }
     const date = data.generated.slice(0, 10);
     await ctx.replyWithDocument(new InputFile(new TextEncoder().encode(JSON.stringify(data, null, 2)), `cyberjudah-my-data-${date}.json`), { caption: `Everything CyberJudah keeps about you, ${date}.` });
   });
@@ -127,7 +129,12 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
   bot.callbackQuery(/^privacydel:([a-f0-9]{16}|no)$/, async (ctx) => {
     if (ctx.match[1] === "no" || !ctx.from) { await ctx.answerCallbackQuery({ text: "Nothing was deleted." }); return ctx.editMessageText("Nothing was deleted."); }
     if (!(await useDeletionToken(env, ctx.match[1], ctx.from.id))) return ctx.answerCallbackQuery({ text: "That button has expired. Send /deletemydata again." });
-    const d = await deleteData(env, ctx.from.id);
+    let d: Deleted;
+    try { d = await deleteData(env, ctx.from.id); }
+    catch {
+      await ctx.answerCallbackQuery();
+      return ctx.editMessageText("Deletion could not finish. Some data may already have been removed. Send /deletemydata to try again.");
+    }
     await ctx.answerCallbackQuery();
     return ctx.editMessageText(deletedSummary(d));
   });

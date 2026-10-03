@@ -95,6 +95,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   in the Bible*. Regenerate the data with `node app/scripts/timeline-data.mjs <cases>`.
 
 ### Fixed
+- Privacy deletion reports incomplete cleanup when storage fails and can be retried; data exports no longer silently omit unavailable billing records.
 - The glass dock keeps its labels crisp in every browser, with one material behind the controls,
   a gentle selection response and tint that preserves contrast in every reader palette. Ordinary
   taps and canceled drags work reliably. Reduce Transparency also makes the Bible dock opaque,
