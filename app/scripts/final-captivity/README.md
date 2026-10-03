@@ -32,7 +32,7 @@ from them, and `check.mjs` must pass before anything here is published.
   "people": ["…"],                               // named people, as the sources name them
   "summary": "…",                                // one or two sentences of documented history
   "account": ["…"],                              // documented history, paragraph by paragraph
-  "teaching": [{                                 // the assembly's teaching, attributed
+  "teaching": [{                                 // quotes from the classes, attributed
     "points": ["…"],                             // what the class taught, in the class's own sense
     "quote": "…",                                // optional: words spoken, exactly as in the recording
     "teacher": "…",                              // only when the recording names the teacher

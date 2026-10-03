@@ -219,9 +219,10 @@ test("The Final Captivity: a period's events by category, and an event's history
   await expect(page.locator(".tl-event__title")).toHaveText("Kimpa Vita burned in Kongo");
   await expect(page.getByRole("region", { name: "Summary" })).toBeVisible();
   await expect(page.locator(".fc-kind").first()).toHaveText("Documented history");
-  // The teaching is linked to the moment it was taught.
+  // Each class moment is a source linked to the second it was said; no paraphrase is shown.
   const cite = page.locator(".fc-cite").first();
   await expect(cite).toHaveAttribute("href", /^https:\/\/(youtu\.be\/[\w-]{11}\?t=\d+|israelunite\.org\/)/);
+  await expect(page.locator(".fc-teach .fc-para")).toHaveCount(0);
   // Both accounts of her child are shown.
   await expect(page.locator(".fc-differ").first()).toContainText("baby");
   await expect(page.locator(".fc-sources li").first()).toBeVisible();

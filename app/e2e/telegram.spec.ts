@@ -901,6 +901,8 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     await page.setViewportSize(viewport);
     await page.goto(`/people${LAUNCH}`);
     await page.fill("#people-q", "abraham");
+    // Filtering is debounced; wait for its result before the list changes under a click.
+    await expect(page.getByRole("heading", { name: "1 person", exact: true })).toBeVisible();
     await page.locator(".row", { hasText: "Abraham" }).first().click();
     await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
     // The summary card: what they are, the name, their Strong's number (to the word study), who they were.
@@ -1203,26 +1205,31 @@ test("Classes: one recording plays at a time, a preview reads on, the scripture 
   await expect(page.locator("article.post iframe")).toHaveCount(0);
   await a.getByRole("button", { name: "Watch" }).click();
   await expect(a.locator("iframe")).toHaveCount(1);
+  // Bring the next control into view before click's stability checks run.
+  await b.getByRole("button", { name: "Watch" }).scrollIntoViewIfNeeded();
   await b.getByRole("button", { name: "Watch" }).click();
   await expect(b.locator("iframe")).toHaveCount(1);
   await expect(a.locator("iframe")).toHaveCount(0);
   await b.getByRole("button", { name: "Stop" }).click();
   await expect(page.locator("article.post iframe")).toHaveCount(0);
-  // The preview is cut at three lines with Read more; read on, the full notes are a tap away.
-  const intro = a.locator(".post__intro");
+  // The preview is cut at three lines with Read more; read on, the full notes are a tap away. The
+  // newest class may not have its notes yet (they are written after it airs), so this uses the
+  // first class in the feed that has them.
+  const c = posts.filter({ has: page.locator(".post__intro") }).first();
+  const intro = c.locator(".post__intro");
   const short = await intro.evaluate((e) => e.clientHeight);
-  await a.getByRole("button", { name: "Read more" }).click();
+  await c.getByRole("button", { name: "Read more" }).click();
   await expect(intro).toHaveAttribute("data-open", "");
   expect(await intro.evaluate((e) => e.clientHeight)).toBeGreaterThan(short);
-  await expect(a.getByRole("link", { name: "Read the full notes" })).toHaveAttribute("href", /^\/note\//);
+  await expect(c.getByRole("link", { name: "Read the full notes" })).toHaveAttribute("href", /^\/note\//);
   // The chapters the class opened, in order, each to the reader.
-  await a.getByRole("button", { name: /^Scripture/ }).click();
-  const ref = a.locator(".post__ref").first();
+  await c.getByRole("button", { name: /^Scripture/ }).click();
+  const ref = c.locator(".post__ref").first();
   await expect(ref).toHaveAttribute("href", /^\/read\/[a-z0-9-]+\/\d+$/);
   // Saved to the bookmarks, and unsaved.
-  await a.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(a.getByRole("button", { name: "Remove from saved" })).toHaveAttribute("aria-pressed", "true");
-  await a.getByRole("button", { name: "Remove from saved" }).click();
+  await c.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(c.getByRole("button", { name: "Remove from saved" })).toHaveAttribute("aria-pressed", "true");
+  await c.getByRole("button", { name: "Remove from saved" }).click();
   // More posts come as the feed nears its end, none twice.
   await page.locator(".cfeed__more").scrollIntoViewIfNeeded();
   await expect.poll(() => posts.count()).toBeGreaterThan(12);

@@ -301,13 +301,23 @@ test("API: a browser's subscription is renewed in place, and Forget removes the 
 });
 
 test("API: each caller is rate limited, with Retry-After", async ({ request }) => {
-  const { device } = await (await request.put("/api/reminders", { data: { settings: { tz: "UTC" } } })).json();
+  const made = await request.put("/api/reminders", { data: { settings: { tz: "UTC" } } });
+  expect(made.status()).toBe(200);
+  const { device } = await made.json();
+  expect(typeof device).toBe("string");
   const headers = { "x-cj-device": device };
+  // The local binding resets on the minute. Leave room for the whole burst in one
+  // window: splitting 40 requests across a reset may correctly limit neither half.
+  const remaining = 60_000 - Date.now() % 60_000;
+  if (remaining < 15_000) await new Promise((resolve) => setTimeout(resolve, remaining + 50));
+  const window = Math.floor(Date.now() / 60_000);
   let limited = null as null | { status: number; retry: string | undefined };
   for (let i = 0; i < 40 && !limited; i++) {
     const r = await request.get("/api/reminders?tz=UTC", { headers });
     if (r.status() === 429) limited = { status: 429, retry: r.headers()["retry-after"] };
+    else expect(r.status()).toBe(200);
   }
+  expect(Math.floor(Date.now() / 60_000), "the burst must stay in one rate-limit window").toBe(window);
   expect(limited).toEqual({ status: 429, retry: "60" });
 });
 
