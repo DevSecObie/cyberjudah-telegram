@@ -218,7 +218,7 @@ test("The Final Captivity: a period's events by category, and an event's history
   await page.goto("/timeline/event/kimpa-vita-1706");
   await expect(page.locator(".tl-event__title")).toHaveText("Kimpa Vita burned in Kongo");
   await expect(page.getByRole("region", { name: "Summary" })).toBeVisible();
-  await expect(page.locator(".fc-kind").first()).toHaveText("Documented history");
+  await expect(page.locator(".fc-kind").first()).toHaveText("Documented History");
   // Each class moment is a source linked to the second it was said; no paraphrase is shown.
   const cite = page.locator(".fc-cite").first();
   await expect(cite).toHaveAttribute("href", /^https:\/\/(youtu\.be\/[\w-]{11}\?t=\d+|israelunite\.org\/)/);

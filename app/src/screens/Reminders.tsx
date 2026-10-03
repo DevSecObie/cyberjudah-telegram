@@ -12,7 +12,7 @@ import {
 import { useBackButton, useStored } from "@/tg/hooks";
 import { alert, app, confirm, haptic, openLink, requestWriteAccess } from "@/tg/sdk";
 import { useSheet } from "@/ui/sheet";
-import { Icon, List, Row, Screen, Section } from "@/ui/ui";
+import { Icon, List, Row, Screen, FormSection as Section } from "@/ui/ui";
 
 /**
  * Reading reminders, after Bible Strong's reminder settings (ReminderSettings.tsx): a switch,
@@ -226,7 +226,7 @@ export function Reminders() {
         ) : null}
         <p className="hint">{about}</p>
       </Section>
-      <Section title="Where to remind you">
+      <Section title="Where to Remind You">
         <div role="radiogroup" aria-label="Where to remind you" className="remind-choices list">
           <Choice title="Telegram" checked={delivery === "telegram"} disabled={!view || busy} onPick={() => void choose("telegram")}>{botWhy}</Choice>
           <Choice title="Push notification" checked={delivery === "push"} disabled={!view || busy || (!pushOk && !herePushed)} onPick={() => void choose("push")}>{pushWhy}</Choice>

@@ -771,7 +771,7 @@ test("a verse links to each class that read it, on YouTube at that moment", asyn
   // In this chapter (Bible Strong's ChapterEntities): the people named, as a stack of avatars at the end of the text.
   const stack = page.locator(".bs-entities__stack");
   await stack.scrollIntoViewIfNeeded();
-  await expect(page.locator(".bs-entities__title")).toHaveText("In this chapter");
+  await expect(page.locator(".bs-entities__title")).toHaveText("In This Chapter");
   await expect(stack).toHaveAttribute("aria-label", /^People in this chapter: Cain, /);
   await expect(stack.locator("[data-person-stack]")).toHaveCount(3);
   // A tap spreads everyone over the page; Escape puts them back; a person opens their page.

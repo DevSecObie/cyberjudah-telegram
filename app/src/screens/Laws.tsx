@@ -165,16 +165,16 @@ export function LawSectionScreen() {
       </ol>
 
       {cases.length ? (
-        <section className="entity__section" aria-label="Cases under this law">
-          <h2 className="entity__eyebrow">Cases under this law<span> · {cases.length}</span></h2>
+        <section className="entity__section" aria-label="Cases Under This Law">
+          <h2 className="entity__eyebrow">Cases Under This Law<span> · {cases.length}</span></h2>
           <div className="entity__cards">{cases.slice(0, casesShown).map((c) => <CaseCard key={c.slug} to={c.url} name={c.name} preview={c.charge} kind={c.verdict === "blessed" ? "blessing" : "judgment"} meta={c.verdict.charAt(0).toUpperCase() + c.verdict.slice(1)} />)}</div>
           {casesShown < cases.length ? <button type="button" className="entity__more" onClick={() => { haptic("select"); setCasesShown(cases.length); }}>Show all {cases.length}<span> · {cases.length - casesShown} more</span></button> : null}
         </section>
       ) : null}
 
       {seeAlso.length ? (
-        <section className="entity__section" aria-label="Related laws">
-          <h2 className="entity__eyebrow">Related laws</h2>
+        <section className="entity__section" aria-label="Related Laws">
+          <h2 className="entity__eyebrow">Related Laws</h2>
           <ul className="laws__list">
             {seeAlso.map((x) => (
               <li key={x.id}><Link to={x.url!} className="lawlink" onClick={() => haptic("select")}><span className="lawlink__code">{x.id}</span><span className="lawlink__body"><b>{x.title}</b></span><Feather name="chevron-right" size={18} color="currentColor" /></Link></li>

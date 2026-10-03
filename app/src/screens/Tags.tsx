@@ -80,7 +80,7 @@ export function TagScreen() {
         <button type="submit" className="icon-btn" disabled={!name.trim() || name.trim() === tag.name} aria-label="Rename" title="Rename"><Icon name="check" size={18} /></button>
         <button type="button" className="icon-btn" onClick={() => void remove()} aria-label="Delete tag" title="Delete tag"><Icon name="trash" size={18} /></button>
       </form>
-      <Section title="Carries this tag">
+      <Section title="Carries This Tag">
         <List>
           <Row href={`/bookmarks?tab=highlights&tag=${id}`} icon="bookmark" title="Highlights" meta={<small>{hl[id] ?? 0}</small>} />
           <Row href={`/bookmarks?tab=notes&tag=${id}`} icon="note" title="Notes" meta={<small>{nt[id] ?? 0}</small>} />
