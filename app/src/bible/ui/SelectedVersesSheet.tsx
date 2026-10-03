@@ -56,7 +56,7 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
   };
 
   return (
-    <Sheet open={p.open} onClose={p.onDismiss} backdrop={false} closable={false} label={p.reference ? `Selected: ${p.reference}` : "Selected verses"} className="bs-selected">
+    <Sheet open={p.open} onClose={p.onDismiss} backdrop={false} closable={false} actions label={p.reference ? `Selected: ${p.reference}` : "Selected verses"} className="bs-selected">
       <div className="bs-selected__inner">
         <ColorCirclesBar colors={p.colors} selected={p.selectedColor} onSelect={(k) => (p.selectedColor === k ? p.onRemoveHighlight() : p.onAddHighlight(k))} onLongPress={p.onEditColor} onAdd={p.onAddColor} />
         <div ref={ref} className="bs-pages" onTouchStart={(e) => onStart(e.touches[0].clientX, (e.target as Element).closest(".bs-actions"))} onTouchEnd={(e) => onEnd(e.changedTouches[0].clientX)}>

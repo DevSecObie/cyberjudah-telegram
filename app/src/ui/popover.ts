@@ -7,6 +7,10 @@ document.addEventListener("pointerdown", e => {
   if (element) pressed = { element, at: performance.now() };
 }, true);
 
+export function popoverTrigger() {
+  return pressed && performance.now() - pressed.at < 300 ? pressed.element : document.activeElement?.closest<HTMLElement>("button, [role=button]") ?? null;
+}
+
 /** Keep a controlled popover mounted for its exit, including Escape and outside dismissal. */
 export function usePopover(open: boolean, ref: RefObject<HTMLElement | null>) {
   const [present, setPresent] = useState(false);
@@ -18,7 +22,7 @@ export function usePopover(open: boolean, ref: RefObject<HTMLElement | null>) {
     let transition: ViewTransition | undefined;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (open) {
-      trigger.current = pressed && performance.now() - pressed.at < 300 ? pressed.element : document.activeElement?.closest<HTMLElement>("button, [role=button]") ?? null;
+      trigger.current = popoverTrigger();
       trigger.current?.focus({ preventScroll: true });
     }
     const source = trigger.current;

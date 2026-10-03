@@ -1,7 +1,6 @@
 /* An admin's photo editor (photo-edit.tsx): the button under a picture, and the framing sheet.
    Loaded with the component, so it looks the same on any screen; the sheet maps the --bs-* colours
    to the app's own and is opaque, so the page under it does not read through. */
-.bs-sheet.photo-sheet { --bs-reverse: var(--surface-1); --bs-default: var(--text-1); --bs-tertiary: var(--text-3); --bs-border: var(--hairline); --bs-light-grey: var(--fill-1); background: var(--surface-1); color: var(--text-1); }
 .photo-sheet .bs-sheet__titles b { color: var(--text-1); }
 .photo-edit { display: flex; justify-content: center; margin: 10px 0 0; }
 .photo-sheet .bs-sheet__body { padding: 16px 20px 24px; }

@@ -48,5 +48,5 @@ export function useModal(ref: RefObject<HTMLElement | null>, open: boolean, onCl
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, lock, trap]);
 }
