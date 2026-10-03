@@ -19,15 +19,35 @@ const mix = (a: RGB, b: RGB, t: number): RGB => [0, 1, 2].map((i) => a[i] * t + 
 const lum = (c: RGB) => { const [r, g, b] = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
 export const contrast = (a: RGB, b: RGB) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 
-/** The ink mixed furthest toward the page that still meets `ratio` on every ground. */
+/** Keep the hue where possible, moving toward the endpoint that works on every surface. */
+export function readableColor(value: string, grounds: RGB[], ratio = 4.6): string {
+  const source = parseColor(value);
+  const score = (color: RGB) => Math.min(...grounds.map(g => contrast(color, g)));
+  const ends: RGB[] = [[0, 0, 0], [255, 255, 255]];
+  const end = score(ends[0]) > score(ends[1]) ? ends[0] : ends[1];
+  for (let step = 0; step <= 100; step++) {
+    const candidate = parseColor(toHex(mix(end, source, step / 100)));
+    if (score(candidate) >= ratio) return toHex(candidate);
+  }
+  return toHex(end);
+}
+
+/** UI ink must also read on inset/pressed surfaces and glass over either extreme backdrop. */
+export function paletteGrounds(p: Palette, dark: boolean): RGB[] {
+  const page = parseColor(p.reverse), card = parseColor(p.lightGrey), ink = parseColor(p.default);
+  const surfaces = [page, card, parseColor(p.border)];
+  return [...surfaces, ...surfaces.map(g => mix(ink, g, dark ? .15 : .12)),
+    ...[[0, 0, 0], [255, 255, 255]].flatMap(back => [mix(page, back as RGB, .8), mix(card, back as RGB, .93)])];
+}
+
+/** Secondary ink stays quiet only as far as every actual ground permits. */
 function inkAt(ink: RGB, page: RGB, grounds: RGB[], ratio: number): string {
-  for (let t = 0.5; t < 1; t += 0.02) { const c = mix(ink, page, t); if (grounds.every((g) => contrast(c, g) >= ratio)) return toHex(c); }
-  return toHex(ink);
+  return readableColor(toHex(mix(ink, page, .5)), grounds, ratio);
 }
 
 export function appVars(p: Palette, dark: boolean): Record<string, string> {
   const ink = parseColor(p.default), page = parseColor(p.reverse), card = parseColor(p.lightGrey);
-  const grounds = [page, card];
+  const grounds = paletteGrounds(p, dark);
   return {
     "--canvas": toHex(page),
     "--canvas-glow": `color-mix(in srgb, ${p.primary} ${dark ? 9 : 7}%, transparent)`,
@@ -36,14 +56,19 @@ export function appVars(p: Palette, dark: boolean): Record<string, string> {
     "--fill-1": `color-mix(in srgb, ${toHex(ink)} ${dark ? 6 : 5}%, transparent)`,
     "--fill-2": `color-mix(in srgb, ${toHex(ink)} ${dark ? 10 : 8}%, transparent)`,
     "--fill-3": `color-mix(in srgb, ${toHex(ink)} ${dark ? 15 : 12}%, transparent)`,
-    "--text-1": toHex(ink),
+    "--text-1": readableColor(toHex(ink), grounds),
     "--text-2": inkAt(ink, page, grounds, 7),
     "--text-3": inkAt(ink, page, grounds, 4.6),
     "--text-4": inkAt(ink, page, grounds, 4.5),
     "--text-inverse": toHex(page),
-    "--accent": p.primary,
+    "--accent": readableColor(p.primary, grounds),
     "--on-accent": dark ? "#00161c" : "#ffffff",
     "--hairline": toHex(parseColor(p.border)),
-    "--control-edge": inkAt(ink, page, grounds, 3),
+    "--control-edge": inkAt(ink, page, grounds, 3.1),
+    "--palette-canvas": toHex(page), "--palette-card": toHex(card), "--palette-inset": toHex(parseColor(p.border)),
+    ...Object.fromEntries(Object.entries(dark
+      ? { danger: "#ff5c93", success: "#3ddc97", warning: "#fbbf24", gold: "#d9b45c", violet: "#b9a2ff", sky: "#7cb8ff" }
+      : { danger: "#b8124f", success: "#0a6e4c", warning: "#8a5a00", gold: "#7d5f17", violet: "#6a48c9", sky: "#1f5fb8" })
+      .map(([key, value]) => [`--${key}`, readableColor(value, grounds)])),
   };
 }
