@@ -92,6 +92,9 @@ export function Chapter(p: ChapterProps) {
     const onScroll = () => { if (followRef.current) return; if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(() => setReadingAway(awayOf(reading))); };
     sc.addEventListener("touchmove", free, { passive: true }); sc.addEventListener("wheel", free, { passive: true }); window.addEventListener("keydown", keys);
     sc.addEventListener("scroll", onScroll, { passive: true });
+    // A header change can cancel the previous effect’s queued position check.
+    // Sample again so an off-screen reading keeps its return control.
+    onScroll();
     return () => { sc.removeEventListener("touchmove", free); sc.removeEventListener("wheel", free); window.removeEventListener("keydown", keys); sc.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
   }, [reading, p.headerHeight]); // eslint-disable-line react-hooks/exhaustive-deps
 
