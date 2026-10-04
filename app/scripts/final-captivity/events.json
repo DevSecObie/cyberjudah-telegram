@@ -1744,6 +1744,131 @@
   ]
  },
  {
+  "slug": "spanish-conquest-of-guatemala-1524",
+  "title": "Pedro de Alvarado conquers the Maya of Guatemala and Cuzcatlán",
+  "start": 1524,
+  "end": 1528,
+  "date": {
+   "text": "1524–1528 (Qʼumarkaj burned March 1524)",
+   "precision": "range"
+  },
+  "period": "into-the-ships",
+  "group": "Native dispossession",
+  "place": "Guatemalan Highlands and western El Salvador",
+  "region": "Central America",
+  "peoples": [
+   "Native"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "Pedro de Alvarado",
+   "Hernán Cortés",
+   "Oxib-Keh",
+   "Beleheb-Tzy",
+   "Tecun Uman",
+   "Atlácatl"
+  ],
+  "summary": "Sent by Hernán Cortés, Pedro de Alvarado invaded the Maya kingdoms of Guatemala in 1524, burned the Kʼicheʼ kings alive and their capital Qʼumarkaj, and campaigned against the Pipil of Cuzcatlán in present-day El Salvador until 1528.",
+  "account": [
+   "Cortés despatched Pedro de Alvarado with 180 cavalry, 300 infantry, crossbows, muskets, 4 cannons and thousands of allied warriors from Tlaxcala, Cholula and other cities of central Mexico; they arrived in Soconusco in 1523. A Kʼicheʼ army was defeated in the Quetzaltenango valley in February 1524 and many Kʼicheʼ nobles were among the dead; local tradition places the death of the prince Tecun Uman in these battles.",
+   "In March 1524 Alvarado entered Qʼumarkaj, the Kʼicheʼ capital, at the invitation of its remaining lords. He seized the king Oxib-Keh and the king-elect Beleheb-Tzy in his camp, had the captured lords burnt to death, and then burned the entire city. He then demanded gold in tribute from the Kaqchikel, and by 1526 rebellions had engulfed the highlands. Bartolomé de las Casas charged him with further atrocities in the conquest of the Maya kingdoms.",
+   "The same year Alvarado led an expedition against the Pipil province of Cuzcatlán but retreated to Guatemala by July 1524. San Salvador, founded in 1525, was destroyed in a native rising in 1526; Alvarado campaigned again in 1526 and 1528, and the uprising ended in 1528 when the Spanish stormed the native stronghold at the Peñol de Cinacantan. The conquest of Guatemala's other peoples went on until the Petén fell in 1697. Disease, chiefly smallpox and measles, is counted at 1,600,000 dead between 1525 and 1550, and an estimated 33–50% of the highland population perished."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "What happened to Guatemala is Job 9:24: the earth was given into the hand of the wicked. It was Pedro the conquistador; Cortés, Pizarro and Pedro, all the conquistadors who came from 1492, are the wicked of that verse, and it was the Spaniard, not the Chinese or the Arab, who covered the faces of the judges and changed the face of Christ, and who put the churches all over this country.",
+     "The conquest is biblical: Deuteronomy 28:48 says Israel would serve the enemies the Lord sent against it, in hunger, thirst and nakedness, with a yoke of iron on its neck, and 28:49 says a nation from far, swift as the eagle: the eagle of Spain and now of the United States."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "6vZNCH9tXuA",
+     "title": "El espíritu de satanas está en las iglesias de Guatemala",
+     "date": "2024-07-30",
+     "ts": "1:23",
+     "url": "https://youtu.be/6vZNCH9tXuA?t=83"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "Job 9:24",
+    "why": "The earth given into the hand of the wicked who cover the faces of the judges: the conquistadors who took Guatemala and changed the image of Christ."
+   },
+   {
+    "ref": "Deuteronomy 28:48-49",
+    "why": "Serving the enemies the Lord sent, with a yoke of iron, under a nation from far as swift as the eagle: Spain's conquest of the Latinos."
+   }
+  ],
+  "sources": [
+   {
+    "title": "Spanish conquest of Guatemala",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Spanish_conquest_of_Guatemala",
+    "accessed": "2026-10-04",
+    "supports": "Alvarado's force; Soconusco 1523; Quetzaltenango February 1524; Qʼumarkaj burned and its lords burnt alive, March 1524; gold tribute; rebellions by 1526; Las Casas; 1,600,000 dead 1525–1550; 33–50% of the highlands; Petén to 1697"
+   },
+   {
+    "title": "Spanish conquest of El Salvador",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Spanish_conquest_of_El_Salvador",
+    "accessed": "2026-10-04",
+    "supports": "Alvarado against Cuzcatlán 1524; San Salvador founded 1525, destroyed 1526; campaigns of 1526 and 1528; Peñol de Cinacantan 1528"
+   }
+  ],
+  "uncertainty": "The bar runs 1524–1528 (the highland and Cuzcatlán campaigns); the Spanish did not finish conquering Guatemala until 1697.",
+  "status": "published"
+ },
+ {
+  "slug": "conquest-of-nicaragua-and-indian-slave-trade-1524",
+  "title": "The conquest of Nicaragua and the shipping of its natives as slaves",
+  "start": 1524,
+  "end": 1531,
+  "date": {
+   "text": "1523–1531",
+   "precision": "range"
+  },
+  "period": "into-the-ships",
+  "group": "Native dispossession",
+  "place": "Pacific Nicaragua; León and Granada",
+  "region": "Central America",
+  "peoples": [
+   "Native"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "Pedrarias Dávila",
+   "Francisco Hernández de Córdoba",
+   "Hernando de Soto"
+  ],
+  "summary": "Under orders of Pedrarias Dávila, Francisco Hernández de Córdoba invaded Nicaragua from Panama in 1523–1524; from 1524 prisoners of war were shipped to Panama as slaves, and within a century the native population, estimated at 825,000 at contact, had been nearly exterminated.",
+  "account": [
+   "Francisco Hernández de Córdoba set out from Panama for Nicaragua in mid-October 1523 under orders of Pedrarias Dávila, the governor of Castilla del Oro, with over 200 men, including Hernando de Soto, and approximately 16 African slaves. In 1524 he founded León and Granada. Spanish records show that as early as 1524 prisoners of war were being shipped to Panama as slaves. Pedrarias himself governed Nicaragua from 1528 until his death at León Viejo in 1531.",
+   "The population of Nicaragua at the time of contact is estimated at 825,000. The first century after Spanish contact saw the demographic collapse of the native populations, resulting principally from Old World diseases and their exportation as slaves, and also from war and mistreatment; within a century of the conquest the native inhabitants of the Pacific region had been nearly exterminated."
+  ],
+  "sources": [
+   {
+    "title": "Spanish conquest of Nicaragua",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Spanish_conquest_of_Nicaragua",
+    "accessed": "2026-10-04",
+    "supports": "1523 expedition from Panama; 16 African slaves; León and Granada 1524; prisoners shipped to Panama as slaves from 1524; 825,000 at contact; near extermination within a century"
+   },
+   {
+    "title": "Pedrarias Dávila",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Pedrarias_D%C3%A1vila",
+    "accessed": "2026-10-04",
+    "supports": "governor of Castilla del Oro 1514–1526 and of Nicaragua 1528–1531; died at León Viejo 6 March 1531"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "afonso-kongo-letter-1526",
   "title": "Afonso I of Kongo protests the slave trade",
   "start": 1526,
@@ -2271,6 +2396,97 @@
   ]
  },
  {
+  "slug": "lempira-and-the-lenca-rising-1537",
+  "title": "Lempira and the Lenca rising in Honduras",
+  "start": 1537,
+  "end": 1537,
+  "date": {
+   "text": "1537",
+   "precision": "year"
+  },
+  "period": "into-the-ships",
+  "group": "Resistance",
+  "place": "Peñol de Cerquín, western Honduras",
+  "region": "Central America",
+  "peoples": [
+   "Native"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "Lempira",
+   "Francisco de Montejo",
+   "Alonso de Cáceres",
+   "Rodrigo Ruiz"
+  ],
+  "summary": "In 1537 the Lenca war captain Lempira united Lenca towns against Francisco de Montejo's conquest of Honduras and held the Peñol de Cerquín for months before the Spaniards killed him; he is regarded by the people as a warrior hero whom the conquistadors feared.",
+  "account": [
+   "Based at the hill of Cerquín, Lempira organized resistance against the Spanish in 1537, gathering an army of almost 30,000 soldiers from 200 villages; other groups in the valleys of Comayagua and Olancho also took up arms. Spanish attempts to stop him, led by Francisco de Montejo and Alonso de Cáceres, were unsuccessful until later in 1537.",
+   "Accounts of his death differ. Antonio de Herrera's history (1626) says the Spaniards lured him out to talk and a concealed soldier shot him with an arquebus, after which the Lenca surrendered; this is the version taught in Honduran schools. A 1558 document in the Archivo General de Indias, the service record of Rodrigo Ruiz, gives a different account: Ruiz's own story of killing Lempira."
+  ],
+  "sources": [
+   {
+    "title": "Lempira (Lenca ruler)",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Lempira_(Lenca_ruler)",
+    "accessed": "2026-10-04",
+    "supports": "1537 rising; almost 30,000 soldiers from 200 villages; Comayagua and Olancho; Montejo and Cáceres; Herrera's account of his killing; the 1558 Rodrigo Ruiz document"
+   }
+  ],
+  "disagreements": [
+   {
+    "point": "How Lempira died",
+    "views": [
+     "Herrera (1626): lured out to parley and shot by a concealed arquebusier.",
+     "Rodrigo Ruiz's service record (1558): a different account, in which Ruiz tells of killing Lempira himself."
+    ]
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "mixton-war-1540-1542",
+  "title": "The Mixtón War",
+  "start": 1540,
+  "end": 1542,
+  "date": {
+   "text": "1540–1542",
+   "precision": "range"
+  },
+  "period": "into-the-ships",
+  "group": "Resistance",
+  "place": "Nueva Galicia (Jalisco and Zacatecas)",
+  "region": "Mexico",
+  "peoples": [
+   "Native"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "Francisco Tenamaztle",
+   "Nuño Beltrán de Guzmán",
+   "Antonio de Mendoza",
+   "Pedro de Alvarado"
+  ],
+  "summary": "In 1540–1542 the Caxcanes and their allies rose to drive the Spanish out of northwestern Mexico, after a decade in which Nuño de Guzmán had killed, tortured and enslaved thousands; Pedro de Alvarado died in the war, and Viceroy Mendoza crushed the revolt.",
+  "account": [
+   "In 1529 Nuño Beltrán de Guzmán marched from Mexico City with 300–400 Spaniards and 5,000 to 8,000 Aztec and Tlaxcalan allies through Nayarit, Jalisco, Durango, Sinaloa and Zacatecas. Over six years he killed, tortured and enslaved thousands of natives; his policy was to \"terrorize the natives with often unprovoked killing, torture, and enslavement\", and the Spanish tried to force the natives into servitude through the encomienda.",
+   "In spring 1540 the Caxcanes struck back. The spark was apparently the arrest of eighteen native leaders and the hanging of nine of them; many fled the encomiendas to the hill fortress of Mixtón in Zacatecas. Led by Francisco Tenamaztle, the rising was put down by Viceroy Antonio de Mendoza with Tlaxcalan and Mexica allies by 1542; Pedro de Alvarado was killed in the campaign."
+  ],
+  "sources": [
+   {
+    "title": "Mixtón War",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Mixt%C3%B3n_War",
+    "accessed": "2026-10-04",
+    "supports": "1540–1542; Caxcanes; Guzmán's 1529 march and its numbers; the hangings; Mixtón hill; Tenamaztle; Mendoza; Alvarado killed"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "las-casas-short-account-1552",
   "title": "Las Casas's Short Account of the Destruction of the Indies",
   "start": 1542,
@@ -2351,6 +2567,46 @@
   "status": "published"
  },
  {
+  "slug": "cocoliztli-epidemics-1545-1576",
+  "title": "The cocoliztli epidemics of 1545 and 1576",
+  "start": 1545,
+  "end": 1580,
+  "date": {
+   "text": "1545; 1576–1580",
+   "precision": "range"
+  },
+  "period": "into-the-ships",
+  "group": "Other atrocities",
+  "place": "Mexican highlands, New Spain",
+  "region": "Mexico",
+  "peoples": [
+   "Native"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "Gonzalo de Ortiz",
+   "Toribio de Benavente Motolinia"
+  ],
+  "summary": "Waves of a hemorrhagic fever the Aztecs called cocoliztli, 'pestilence', killed an estimated 5 to 15 million people in sixteenth-century New Spain; it fell most heavily on the Indigenous people.",
+  "account": [
+   "The cocoliztli epidemic, an illness of high fevers and bleeding, caused 5–15 million deaths in New Spain during the 16th century and is often called the worst epidemic in Mexico's history. Its largest outbreaks were in 1545 and 1576; a second large outbreak in 1576 lasted until about 1580 and caused approximately two million deaths. Spanish accounts cite 13 cocoliztli epidemics between 1545 and 1642.",
+   "Researchers disagree on the cause: genomic studies point to Salmonella enterica Paratyphi C, while others propose an Indigenous viral hemorrhagic fever worsened by drought and by the poor living conditions of the Indigenous peoples after the conquest. The encomendero Gonzalo de Ortiz wrote that God sent such sickness on the Indians that three out of every four perished; the modern consensus is that Indigenous people were the most affected."
+  ],
+  "sources": [
+   {
+    "title": "Cocoliztli epidemics",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Cocoliztli_epidemics",
+    "accessed": "2026-10-04",
+    "supports": "5–15 million deaths; 1545 and 1576 outbreaks; 1576–1580 about two million; 13 epidemics 1545–1642; theories of cause; Ortiz's three in four; Indigenous most affected"
+   }
+  ],
+  "uncertainty": "The cause of cocoliztli is not settled.",
+  "status": "published"
+ },
+ {
   "slug": "esmeraldas-maroons-1599",
   "title": "The maroon governors of Esmeraldas",
   "start": 1550,
@@ -2419,6 +2675,81 @@
   "tribes": [
    "Asher"
   ]
+ },
+ {
+  "slug": "chichimeca-war-1550-1600",
+  "title": "The Chichimeca War",
+  "start": 1550,
+  "end": 1600,
+  "date": {
+   "text": "1550–1600",
+   "precision": "range"
+  },
+  "period": "into-the-ships",
+  "group": "Resistance",
+  "place": "La Gran Chichimeca (the Bajío and Zacatecas)",
+  "region": "Mexico",
+  "peoples": [
+   "Native"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "summary": "After silver was found at Zacatecas in 1546, Spanish slave raids and roads across their lands brought the Chichimeca nations to fifty years of war, the longest and most expensive campaign the Spanish Empire waged against Indigenous people there; it ended in negotiated peace.",
+  "account": [
+   "On September 8, 1546 natives near the Cerro de la Bufa showed the Spaniard Juan de Tolosa silver-rich ore, and mining towns spread across La Gran Chichimeca. Spanish soldiers began raiding native territory to take slaves for the mines, and new roads were built across Chichimeca lands.",
+   "The war, fought in present-day Zacatecas, Guanajuato, Aguascalientes, Jalisco, Querétaro and San Luis Potosí from 1550 to 1600, continued the Mixtón rising. It is recorded as the longest and most expensive campaign of the Spanish Empire against Indigenous people in Aridoamerica, and was settled by peace treaties that led to the integration of the native peoples into New Spain."
+  ],
+  "sources": [
+   {
+    "title": "Chichimeca War",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Chichimeca_War",
+    "accessed": "2026-10-04",
+    "supports": "1550–1600; the 1546 silver strike; slave raids for the mines; the states involved; longest and most expensive campaign; peace treaties"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "bayano-wars-panama-1552",
+  "title": "Bayano and the maroons of Panama",
+  "start": 1552,
+  "end": 1580,
+  "date": {
+   "text": "1552 – 1570s",
+   "precision": "range"
+  },
+  "period": "into-the-ships",
+  "group": "Resistance",
+  "place": "Bayano (Vallano) and Nombre de Dios, Panama",
+  "region": "Central America",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "Bayano",
+   "Francis Drake"
+  ],
+  "summary": "In 1552 Bayano, an enslaved Mandinka man, led a revolt in Panama and founded free maroon villages; the cimarrons held out against Spain and in the 1570s allied with Francis Drake.",
+  "account": [
+   "The cimarrons of Panama were enslaved Africans who escaped from their Spanish enslavers and lived together as maroons. Bayano, a Mandinka man enslaved and taken to Panama in 1552, led a rebellion that year, known as the Bayano Wars; he and his followers escaped to found villages in the lowlands. The viceroy, unable to subdue them, offered terms recognizing their freedom if they admitted no newcomers and returned runaways.",
+   "Their principal settlement was at Vallano (Bayano), 30 leagues below Nombre de Dios; in the 1570s the Spanish estimated the district had 1,700 fighting men. They raided Spanish settlements, and in the 1570s allied with Francis Drake, who described them in 1572 as \"a black people which about eighty years past fled from the Spaniards their masters, by reason of their cruelty, and are since grown to a nation, under two kings of their own.\""
+  ],
+  "sources": [
+   {
+    "title": "Cimarron people (Panama)",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Cimarron_people_(Panama)",
+    "accessed": "2026-10-04",
+    "supports": "Bayano enslaved and revolting in 1552; terms offered; Vallano settlement; 1,700 fighting men in the 1570s; alliance with Drake and his 1572 description"
+   }
+  ],
+  "uncertainty": "The Wikipedia article is tagged as containing original research; the dates of the Bayano Wars' end are not given there.",
+  "status": "published"
  },
  {
   "slug": "titulo-de-totonicapan-1554",
@@ -2638,6 +2969,66 @@
      "The Our Hidden History episode speaks of Elizabeth I as one of 'our people' on the throne in a time of darkness.",
      "The sources read do not address her ancestry."
     ]
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "landa-auto-de-fe-mani-1562",
+  "title": "Diego de Landa burns the Maya books at Maní",
+  "start": 1562,
+  "end": 1562,
+  "date": {
+   "text": "July 12, 1562",
+   "precision": "day"
+  },
+  "period": "into-the-ships",
+  "group": "Identity and erasure",
+  "place": "Maní, Yucatán",
+  "region": "Mexico",
+  "peoples": [
+   "Native"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "Diego de Landa"
+  ],
+  "summary": "On July 12, 1562 the Franciscan Diego de Landa ended an inquisition against Maya converts at Maní with an auto de fe in which Maya codices, 27 books by his own count, and about 5,000 images were burned.",
+  "account": [
+   "Diego de Landa arrived in Yucatán in 1549 among the first Franciscans sent after the Spanish conquest. Hearing that baptised Maya still worshipped idols, he ordered an inquisition in Maní ending in an auto de fe on July 12, 1562, at which a disputed number of Maya codices, according to Landa 27 books, and approximately 5,000 cult images were burned.",
+   "Landa later wrote the Relación de las cosas de Yucatán (around 1566), the chief early account of Maya religion, language and writing. The Mayanist William Gates wrote that nearly all that is known of the Maya comes from Landa, and that \"he burned ninety-nine times as much knowledge of Maya history and sciences\" as he preserved."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Friar Diego de Landa's own book, Yucatan Before and After the Conquest, records that the people of Yucatán, like the Mexicans, had signs and prophecies of the coming of the Spaniards and the end of their power and religion: at Maní a priest named Ah Cabal told them they would soon be ruled by a foreign race that would preach a God and the virtue of a wood, a tree lifted up.",
+     "What the so-called Mexicans, Aztecs and Mayans understood was prophesied in Deuteronomy 28:49-52: what was once prophecy became history."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "oq0l6dUtMCA",
+     "title": "#IUIC | Sabbath Morning Class: I Am God I Change Not: Race Grace and Salvation",
+     "date": "2022-07-16",
+     "ts": "1:03:58",
+     "url": "https://youtu.be/oq0l6dUtMCA?t=3838"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "Deuteronomy 28:49-52",
+    "why": "The foreign nation from far that would besiege Israel in all its gates: the conquest of Yucatán that the Maya themselves foretold."
+   }
+  ],
+  "sources": [
+   {
+    "title": "Diego de Landa",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Diego_de_Landa",
+    "accessed": "2026-10-04",
+    "supports": "arrival 1549; Maní inquisition and auto de fe of 12 July 1562; 27 books and about 5,000 images; the Relación c. 1566; Gates's verdict"
    }
   ],
   "status": "published"
@@ -2953,6 +3344,58 @@
     "views": [
      "The atlas read in class: Luanda was established by the Portuguese in 1575.",
      "The source read: founded on 25 January 1576."
+    ]
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "african-slave-trade-to-new-spain-1580-1640",
+  "title": "The African slave trade to New Spain",
+  "start": 1580,
+  "end": 1620,
+  "date": {
+   "text": "chiefly 1580–1640",
+   "precision": "range"
+  },
+  "period": "into-the-ships",
+  "group": "Transatlantic trade",
+  "place": "Veracruz and New Spain",
+  "region": "Mexico",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "summary": "Under Spanish asientos with Portuguese traders, enslaved Africans were shipped to New Spain through Veracruz, above all between 1580 and 1640; estimates run from over 100,000 to 200,000 captives.",
+  "account": [
+   "Demand for enslaved Africans in New Spain was greatest between 1580 and 1640, as the Indigenous population fell to new diseases. Charles V issued growing numbers of asientos, contracts between the Crown and private slavers, who dealt with the Portuguese who controlled the African market; Mexico had important slave ports. In the 17th century most captives probably came from West-Central Africa, chiefly modern Angola. In 1640 the regular slave trade to colonial Mexico ended.",
+   "Enslaved Africans worked in sugar production, mining, textile workshops and households; religious institutions, including the Jesuit estates and urban convents, also owned slaves. Parts of the fort of San Juan de Ulúa were built by enslaved West Africans and Indigenous Mexicans. By the end of the 18th century more than 370,000 persons of African descent lived in Mexico, about 10% of the population. Runaways formed palenques in the mountains of Veracruz."
+  ],
+  "sources": [
+   {
+    "title": "Afro-Mexicans",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Afro-Mexicans",
+    "accessed": "2026-10-04",
+    "supports": "1580–1640 demand; asientos and Portuguese traders; West-Central Africa; trade ended 1640; Curtin's estimate of 200,000; over 100,000 between 1521 and 1646; sugar, mining, Jesuit estates; San Juan de Ulúa; 370,000 by the end of the 18th century"
+   },
+   {
+    "title": "Slavery in New Spain",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Slavery_in_New_Spain",
+    "accessed": "2026-10-04",
+    "supports": "Portuguese and English as the largest traders; maroons of Orizaba, Xalapa and Córdoba"
+   }
+  ],
+  "uncertainty": "The bar ends at 1620 (the end of this period); the regular trade continued to 1640.",
+  "disagreements": [
+   {
+    "point": "How many Africans were brought to New Spain",
+    "views": [
+     "Philip D. Curtin's census (cited in Afro-Mexicans, Wikipedia): an estimated 200,000.",
+     "Afro-Mexicans (Wikipedia), on the Portuguese asiento: over 100,000 captives between 1521 and 1646."
     ]
    }
   ],
@@ -3747,6 +4190,95 @@
   "status": "published"
  },
  {
+  "slug": "casta-system-new-spain",
+  "title": "The casta system and the casta paintings",
+  "start": 1700,
+  "end": 1800,
+  "date": {
+   "text": "18th century",
+   "precision": "circa"
+  },
+  "period": "house-of-bondage",
+  "group": "Identity and erasure",
+  "place": "New Spain",
+  "region": "Mexico",
+  "peoples": [
+   "Black",
+   "Native",
+   "Hispanic"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "José de Alcíbar"
+  ],
+  "summary": "In eighteenth-century New Spain, 'casta paintings' named and ranked the children of Spanish, Indian and African unions, with Spaniards at the top; blackness was placed lowest.",
+  "account": [
+   "Casta, 'lineage', was used in colonial Spanish America as a racial and social identifier. A great many terms were used in 18th-century casta paintings for people of mixed Spanish, Indian and African ancestry; modern historians use the 'society of castes' to describe a hierarchy based on race with Spaniards at the apex, though archival research shows the system was more fluid than the paintings imply, and the paintings may have been an elite attempt to fix racial divisions.",
+   "Blacks were classed with the 'Republic of Spaniards' rather than the 'Republic of Indians'; free Blacks paid tribute to the crown as Indians did and, unlike Indians, were subject to the Inquisition. In Mexico, much of the African-descended population was later absorbed into the mestizo, mulatto and Indigenous populations."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "The casta chart shows how the Spaniard divided the people: español with India gives mestizo; the black woman with the white man gives mulatto; on down to chino and lobo. A huge caste system divided everything into categories depending on what your mother and father were."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "LF8ie-u_dRQ",
+     "title": "Sealing The 144K - Revelation 7",
+     "date": "2020-02-01",
+     "ts": "1:47:30",
+     "url": "https://youtu.be/LF8ie-u_dRQ?t=6450"
+    }
+   },
+   {
+    "points": [
+     "Reading the casta paintings: the morisco was a Moor, a black man; the lobo, a black man with a native woman, means wolf, the maroon, the mountain people who escaped to the mountains; the child of mulatto and Spaniard came out dark. The castas record our people, black and native, mixed and renamed."
+    ],
+    "source": {
+     "kind": "history",
+     "id": "E1et-61vPIE",
+     "title": "OUR HIDDEN HISTORY | SLAVE SHIP DESTINATIONS PART 2 EP 153",
+     "date": "2024-11-24",
+     "ts": "1:36:35",
+     "url": "https://youtu.be/E1et-61vPIE?t=5795"
+    }
+   },
+   {
+    "points": [
+     "The Spaniards had a racist caste system that put blackness at the lowest status, so that it became painful to say \"soy negro\"; everything bad was made black. If it were not for the Bible we would have nothing."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "ti3uQkabt4Q",
+     "title": "#IUIC | FCN : Where Truth Speaks!!",
+     "date": "2022-02-17",
+     "ts": "1:04:38",
+     "url": "https://youtu.be/ti3uQkabt4Q?t=3878"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Casta",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Casta",
+    "accessed": "2026-10-04",
+    "supports": "meaning of casta; the 18th-century casta paintings; Spaniards at the apex; fluidity and the paintings' purpose"
+   },
+   {
+    "title": "Afro-Mexicans",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Afro-Mexicans",
+    "accessed": "2026-10-04",
+    "supports": "Republic of Spaniards; tribute; Inquisition jurisdiction; José de Alcíbar's casta painting; absorption into other groups"
+   }
+  ],
+  "uncertainty": "Casta paintings date from the 18th century; the bar spans 1700–1800.",
+  "status": "published"
+ },
+ {
   "slug": "kimpa-vita-1706",
   "title": "Kimpa Vita burned in Kongo",
   "start": 1704,
@@ -4283,6 +4815,75 @@
   ]
  },
  {
+  "slug": "garifuna-deportation-1797",
+  "title": "The Black Caribs deported from Saint Vincent to Roatán",
+  "start": 1795,
+  "end": 1797,
+  "date": {
+   "text": "1795–1797; landed on Roatán April 12, 1797",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Native dispossession",
+  "place": "Saint Vincent; Roatán, Honduras",
+  "region": "Caribbean and Central America",
+  "peoples": [
+   "Black",
+   "Native"
+  ],
+  "tribes": [
+   "Zebulon",
+   "Benjamin"
+  ],
+  "people": [
+   "Joseph Chatoyer"
+  ],
+  "summary": "After the Second Carib War the British deported the Black Caribs of Saint Vincent; more than 5,000 were deported and about 2,500 survived to land on Roatán in Honduras on April 12, 1797, founding the Garifuna of Central America.",
+  "account": [
+   "The Garifuna descend from Indigenous Arawak and Kalinago people and Afro-Caribbean people. On Saint Vincent, which Britain took in 1763, the Black Caribs fought the First Carib War and, from March 1795, the Second; their chief Joseph Chatoyer was killed on 14 March 1795, and the Caribs surrendered in 1796.",
+   "In 1797 the British chose the Caribs with African features for deportation, as the supposed cause of the revolt, while those with more Amerindian traits were allowed to stay. More than 5,000 Black Caribs were deported, first toward Jamaica and then to Roatán, but when they landed on Roatán on April 12, 1797 only about 2,500 had survived. From Honduras they spread along the Caribbean coast to Belize, Guatemala and Nicaragua, where they became known as the Garifuna."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "At Sandy Bay on Saint Vincent, on the windward side, stands the plaque to Joseph Chatoyer, the first Carib chief, killed in the Second Carib War against the British in 1795: the first national hero of the native, the Garifuna, and the slaves that were brought over.",
+     "Even the sand of the island is taken: that is Deuteronomy 28:33, the fruit of thy land and all thy labours eaten up by a nation thou knowest not, and thou shalt be only oppressed and crushed alway."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "4kVqDhArPuc",
+     "title": "ESCP 2.0 | The Age Of Deception Christianity And Social Media",
+     "date": "2025-11-24",
+     "ts": "1:19:33",
+     "url": "https://youtu.be/4kVqDhArPuc?t=4773"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "Deuteronomy 28:33",
+    "why": "The fruit of the land and all the labours eaten by a nation not known: the Carib lands of Saint Vincent taken and the people crushed."
+   }
+  ],
+  "sources": [
+   {
+    "title": "Garifuna",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Garifuna",
+    "accessed": "2026-10-04",
+    "supports": "origins; British control 1763; deportation of 1797 by African features; more than 5,000 deported; about 2,500 landed on Roatán on April 12, 1797; spread to Belize, Guatemala and Nicaragua"
+   },
+   {
+    "title": "Second Carib War",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Second_Carib_War",
+    "accessed": "2026-10-04",
+    "supports": "1795–1797; uprising of 9 March 1795; Chatoyer killed 14 March 1795; French support; surrender 1796"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "gabriels-conspiracy-1800",
   "title": "Gabriel’s conspiracy in Richmond",
   "start": 1800,
@@ -4438,6 +5039,92 @@
    }
   ],
   "uncertainty": "The confederacy’s beginning is dated by Tenskwatawa’s first visions (1805).",
+  "status": "published"
+ },
+ {
+  "slug": "mexican-war-of-independence-1810-1821",
+  "title": "The Mexican War of Independence",
+  "start": 1810,
+  "end": 1821,
+  "date": {
+   "text": "September 16, 1810 – September 27, 1821",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Resistance",
+  "place": "New Spain",
+  "region": "Mexico",
+  "peoples": [
+   "Hispanic",
+   "Native",
+   "Black"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "Miguel Hidalgo y Costilla",
+   "José María Morelos",
+   "Vicente Guerrero",
+   "Agustín de Iturbide",
+   "Mariano Matamoros"
+  ],
+  "summary": "Begun with Miguel Hidalgo's Cry of Dolores on September 16, 1810 and carried on by José María Morelos and Vicente Guerrero, both of African ancestry, the war ended Spanish rule in 1821.",
+  "account": [
+   "Father Miguel Hidalgo y Costilla issued the Cry of Dolores on 16 September 1810; he was captured and executed in July 1811. Father José María Morelos led the second phase and was captured and executed in 1815. The insurgency became a guerrilla war under Vicente Guerrero. On 23 February 1812, at the Battle of Izúcar in Puebla, insurgents under Mariano Matamoros forced the royalists to retreat; there the young Guerrero first distinguished himself.",
+   "In 1821 the royalist commander Agustín de Iturbide allied with Guerrero under the Plan of Iguala; their combined army brought down royal government, and the Declaration of Independence of the Mexican Empire was drafted in Mexico City on September 28, 1821. Afro-Mexicans such as Vicente Guerrero and José María Morelos played crucial roles in the independence movement; Guerrero's terms were total independence and citizenship without caste distinction."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Google records the Battle of Issachar: the Battle of Izúcar de Matamoros, a battle of the war of Mexican independence on the 23rd of February 1812, fought by the Mexican rebels against the royalists loyal to the Spanish crown. The so-called Mexicans' own history carries the tribe's name, Issachar; we can prove what we teach."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "752ESdqJThU",
+     "title": "Unshakable Faith In The Darkest Hours",
+     "date": "2023-03-05",
+     "ts": "25:58",
+     "url": "https://youtu.be/752ESdqJThU?t=1558"
+    }
+   },
+   {
+    "points": [
+     "Pivotal figures who got the Spanish off Mexico's back were black: José María Morelos, half Indigenous and half African, beat the Spanish about 22 times in battle before he was captured and killed; Vicente Guerrero, the second president, was a military leader too. A lot of black folks fought for Mexico's freedom, and they have been in Veracruz and Oaxaca all along."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "SM4ek4h0BJk",
+     "title": "#IUIC | PATIENT SAINTS RADIO: August 7, 2022",
+     "date": "2022-08-07",
+     "ts": "14:42",
+     "url": "https://youtu.be/SM4ek4h0BJk?t=882"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Mexican War of Independence",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Mexican_War_of_Independence",
+    "accessed": "2026-10-04",
+    "supports": "16 September 1810 – 27 September 1821; Hidalgo, Morelos, Guerrero, Iturbide; Plan of Iguala; declaration of 28 September 1821; Afro-Mexican leaders"
+   },
+   {
+    "title": "Battle of Izúcar",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Battle_of_Iz%C3%BAcar",
+    "accessed": "2026-10-04",
+    "supports": "23 February 1812; Matamoros; royalists retreat; Guerrero distinguished"
+   },
+   {
+    "title": "Vicente Guerrero",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Vicente_Guerrero",
+    "accessed": "2026-10-04",
+    "supports": "joined Morelos 1810; guerrilla war 1816–1821; terms of citizenship without caste distinction"
+   }
+  ],
   "status": "published"
  },
  {
@@ -4683,6 +5370,43 @@
   "status": "published"
  },
  {
+  "slug": "central-american-independence-and-abolition-1821-1824",
+  "title": "Central America's independence and the abolition of slavery",
+  "start": 1821,
+  "end": 1824,
+  "date": {
+   "text": "September 15, 1821; slavery abolished April 17, 1824",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Abolition",
+  "place": "Guatemala, El Salvador, Honduras, Nicaragua and Costa Rica",
+  "region": "Central America",
+  "peoples": [
+   "Native",
+   "Black",
+   "Hispanic"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "summary": "Central America declared independence from Spain on 15 September 1821 and, after a brief union with Mexico, formed the Federal Republic of Central America, which abolished slavery by federal decree on 17 April 1824.",
+  "account": [
+   "The provinces of Central America became independent of the Spanish Empire on 15 September 1821 and of the First Mexican Empire on 1 July 1823. The Federal Republic of Central America, joining Guatemala, El Salvador, Honduras, Nicaragua and Costa Rica, adopted its constitution on 22 November 1824; it had 1,287,491 people in 1824 and dissolved in 1839.",
+   "Slavery was abolished on 17 April 1824 by federal decree. Indigenous slaves had built and maintained Central America's roads, and their construction and upkeep nearly ended with abolition. Indigenous tribute had been abolished in 1811; in El Salvador in 1833 the Indigenous laborer Anastasio Aquino led 2,000 followers in rebellion after killings of Indigenous people, and was executed that July."
+  ],
+  "sources": [
+   {
+    "title": "Federal Republic of Central America",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Federal_Republic_of_Central_America",
+    "accessed": "2026-10-04",
+    "supports": "independence 15 September 1821 and 1 July 1823; constitution 22 November 1824; population 1824; dissolution 1839; abolition by federal decree 17 April 1824; Indigenous slaves and the roads; tribute abolished 1811; Aquino's rebellion 1833"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "denmark-vesey-1822",
   "title": "Denmark Vesey’s plan in Charleston",
   "start": 1822,
@@ -4824,6 +5548,75 @@
     "url": "https://en.wikipedia.org/wiki/Worcester_v._Georgia",
     "accessed": "2026-10-04",
     "supports": "March 3, 1832 ruling; tribal sovereignty; Jackson’s letter; apocryphal quotation; Treaty of New Echota December 29, 1835; Breyer’s remark"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "mexico-abolishes-slavery-1829",
+  "title": "Vicente Guerrero abolishes slavery in Mexico",
+  "start": 1829,
+  "end": 1829,
+  "date": {
+   "text": "September 16, 1829",
+   "precision": "day"
+  },
+  "period": "house-of-bondage",
+  "group": "Abolition",
+  "place": "Mexico",
+  "region": "Mexico",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "Vicente Guerrero"
+  ],
+  "summary": "On 16 September 1829 the government of Vicente Guerrero, Mexico's first president of African ancestry, proclaimed the abolition of slavery across almost all the nation; under pressure from Texan settlers he exempted Texas that December.",
+  "account": [
+   "The slave trade had been banned by the Spanish authorities in 1818, a ban confirmed by the Mexican government in 1824, and a few states had already abolished slavery. Guerrero, who became president on 1 April 1829, proclaimed abolition across almost all of Mexico on 16 September 1829. Slavery by then barely existed except in Coahuila y Tejas, where slave owners from the United States had settled; in response to pressure from Texan settlers Guerrero exempted Texas on 2 December 1829.",
+   "In 1830 Anglo-Texans evaded the law by declaring their slaves \"indentured servants for life\"; in 1832 at Anahuac a Mexican officer enforced abolition and refused to hand over two escaped slaves. Guerrero was overthrown and executed by firing squad at Cuilapan, Oaxaca, on 14 February 1831."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Vicente Guerrero, the second president of Mexico, was the brother that ended slavery in Mexico. Mexico became a free country, which is why black people escaping slavery in Texas went into Mexico; when the slave masters came to retrieve them, the Mexican army ran them back to Texas, and many black folks joined the Mexican army."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "SM4ek4h0BJk",
+     "title": "#IUIC | PATIENT SAINTS RADIO: August 7, 2022",
+     "date": "2022-08-07",
+     "ts": "15:25",
+     "url": "https://youtu.be/SM4ek4h0BJk?t=925"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Vicente Guerrero",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Vicente_Guerrero",
+    "accessed": "2026-10-04",
+    "supports": "president 1 April – 17 December 1829; abolition proclaimed 16 September 1829; earlier bans of 1818 and 1824; Texas exempted 2 December 1829; executed 14 February 1831 at Cuilapan"
+   },
+   {
+    "title": "Abolition of slavery in Mexico (timeline)",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Abolition_of_slavery_in_Mexico",
+    "accessed": "2026-10-04",
+    "supports": "1829: last slaves freed as the first president of partial African ancestry is elected; 1830 'indentured servants for life'; 1832 Anahuac"
+   }
+  ],
+  "disagreements": [
+   {
+    "point": "When Guerrero ended slavery",
+    "views": [
+     "#IUIC | PATIENT SAINTS RADIO (2022-08-07): Guerrero ended slavery in Mexico in 1810.",
+     "Vicente Guerrero (Wikipedia): abolition was proclaimed by his administration on 16 September 1829."
+    ]
    }
   ],
   "status": "published"
@@ -5058,6 +5851,60 @@
   "status": "published"
  },
  {
+  "slug": "texas-revolution-1835-1836",
+  "title": "The Texas Revolution and the slaveholders' Texas",
+  "start": 1835,
+  "end": 1836,
+  "date": {
+   "text": "October 2, 1835 – April 21, 1836",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Native dispossession",
+  "place": "Coahuila y Tejas",
+  "region": "Mexico and the United States",
+  "peoples": [
+   "Hispanic",
+   "Black"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "Antonio López de Santa Anna"
+  ],
+  "summary": "In 1835–1836 Anglo-American settlers in Mexican Texas, many of them slaveholders unsettled by Mexico's abolition of slavery, rebelled and broke Texas away from Mexico; the United States annexed it in 1845.",
+  "account": [
+   "The Texas Revolution (October 2, 1835 – April 21, 1836) was a rebellion of Anglo-American immigrants and Hispanic Tejanos against the centralist government of Mexico. Mexico had abolished slavery in 1829 with an exemption for Texas that was never made constitutional, leaving many slave owners unsatisfied; though slavery is not named in the Texas Declaration of Independence, owning human beings as property was of great importance to many settlers. Mexico believed the United States had instigated the revolt with annexation in view.",
+   "Santa Anna's army retook San Antonio de Béxar at the Battle of the Alamo, killing almost all the defenders, but Texas broke from Mexico as the Republic of Texas and was annexed by the United States about a decade later."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Babylon the great comes and takes your land: that is what happened to California, to Texas and to New Mexico; America said, that's us, we're going to fight y'all at the Alamo. Many Latinos visit the Alamo as if it were a great thing, but the Alamo is where you got destroyed. Why celebrate the murder of your ancestors?"
+    ],
+    "source": {
+     "kind": "class",
+     "id": "xrELWAKwKqM",
+     "title": "A Peculiar People",
+     "date": "2025-12-30",
+     "ts": "1:45:05",
+     "url": "https://youtu.be/xrELWAKwKqM?t=6305"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Texas Revolution",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Texas_Revolution",
+    "accessed": "2026-10-04",
+    "supports": "dates; Texians and Tejanos; slavery and the 1829 abolition; Mexican belief in U.S. instigation; the Alamo; Republic of Texas and later annexation"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "trail-of-tears-1838",
   "title": "The Trail of Tears",
   "start": 1838,
@@ -5251,6 +6098,178 @@
     ]
    }
   ],
+  "status": "published"
+ },
+ {
+  "slug": "mexican-american-war-1846-1848",
+  "title": "The Mexican–American War and the Treaty of Guadalupe Hidalgo",
+  "start": 1846,
+  "end": 1848,
+  "date": {
+   "text": "April 25, 1846 – February 2, 1848",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Native dispossession",
+  "place": "Mexico and its northern territories",
+  "region": "Mexico and the United States",
+  "peoples": [
+   "Hispanic",
+   "Native"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "Nicholas Trist",
+   "Antonio López de Santa Anna",
+   "Winfield Scott"
+  ],
+  "summary": "After annexing Texas, the United States invaded Mexico in 1846, took Mexico City in 1847, and by the Treaty of Guadalupe Hidalgo took 55 percent of Mexico's territory for $15 million.",
+  "account": [
+   "The Mexican–American War (April 25, 1846 – February 2, 1848) was an invasion of Mexico by the United States. It followed the 1845 American annexation of Texas, which Mexico still considered its territory. Winfield Scott's army entered Mexico City after its fall in September 1847.",
+   "The Treaty of Guadalupe Hidalgo required Mexico to cede 55 percent of its territory, including present-day California, Nevada and Utah, most of Arizona and parts of New Mexico, Colorado and Wyoming, and to relinquish all claims to Texas with the Rio Grande as the border. The United States paid $15 million. Mexicans in the annexed lands could move south or receive American citizenship; the Gadsden Purchase of 1853 took more of southern Arizona and New Mexico."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Among America's wars against our people: the Mexican-American War of 1846 to 1848, in which America took Texas from the so-called Mexicans, the tribe of Issachar. Texas once belonged to the tribe of Issachar."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "bTIDQaB-zgE",
+     "title": "Gods Memorial: The Smoke of Her Torment",
+     "date": "2023-05-30",
+     "ts": "18:17",
+     "url": "https://youtu.be/bTIDQaB-zgE?t=1097"
+    }
+   },
+   {
+    "points": [
+     "California, Texas and New Mexico were taken the way Babylon takes land: the Chaldeans possess lands that are not theirs."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "xrELWAKwKqM",
+     "title": "A Peculiar People",
+     "date": "2025-12-30",
+     "ts": "1:45:27",
+     "url": "https://youtu.be/xrELWAKwKqM?t=6327"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Mexican–American War",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Mexican%E2%80%93American_War",
+    "accessed": "2026-10-04",
+    "supports": "dates; an invasion of Mexico by the United States; annexation of Texas 1845; fall of Mexico City"
+   },
+   {
+    "title": "Treaty of Guadalupe Hidalgo",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Treaty_of_Guadalupe_Hidalgo",
+    "accessed": "2026-10-04",
+    "supports": "55 percent ceded; the states named; Texas and the Rio Grande; $15 million; citizenship; Senate vote 38–16; Gadsden Purchase 1853"
+   }
+  ],
+  "disagreements": [
+   {
+    "point": "What the war took",
+    "views": [
+     "Gods Memorial (2023-05-30): in the 1846–1848 war America took Texas from Mexico.",
+     "Wikipedia: Texas broke from Mexico in 1836 and was annexed in 1845; the war's treaty made Mexico give up its claim to Texas and cede 55 percent of its territory, including California and the Southwest."
+    ]
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "caste-war-of-yucatan-1847",
+  "title": "The Caste War of Yucatán and the Maya sold to Cuba",
+  "start": 1847,
+  "end": 1861,
+  "date": {
+   "text": "1847–1901 (formal end 1915); La Unión sank September 1861",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Resistance",
+  "place": "Yucatán Peninsula; Chan Santa Cruz; Sisal",
+  "region": "Mexico",
+  "peoples": [
+   "Native"
+  ],
+  "tribes": [
+   "Issachar",
+   "Zebulon"
+  ],
+  "people": [
+   "Cecilio Chi",
+   "Jacinto Pat",
+   "Manuel Antonio Ay"
+  ],
+  "summary": "In 1847 the Maya of Yucatán rose against the Hispanic Yucatecos who had taken their lands; the Maya state of Chan Santa Cruz held out for decades, while the Yucatán government sold Maya prisoners into slavery in Cuba aboard ships such as La Unión.",
+  "account": [
+   "The Caste War began in 1847 with the revolt of the Indigenous Maya of Yucatán against the Hispanic Yucatecos. After independence, Yucatecan laws had encouraged the taking of Maya communal land for henequen and sugar plantations, forcing many Maya to work as indebted laborers on haciendas. The Maya state of Chan Santa Cruz, trading with British Honduras (Belize), was recognized by Britain; Maya fleeing the war settled in British Honduras and the Petén. The Mexican army occupied Chan Santa Cruz in 1901, the formal end came in 1915, and the population of Yucatán was halved through war, disease or migration; the total dead is given as 364,000.",
+   "During the war the Yucatán government sold Maya prisoners into slavery, and the peninsula became a platform for the Cuban slave trade. The paddle steamer La Unión carried enslaved Maya from Mexico to Cuba from 1855 to 1861; in September 1861 she sank near Sisal when her boiler exploded. The wreck was found in 2017."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Mexican archaeologists identified the first Mayan slave ship ever discovered, La Unión, off the Yucatán Peninsula: it carried captured Mayans who were sold into slavery. How do you get around that? The so-called Natives fit Deuteronomy 28 exactly: the stranger gets up above thee very high, and all these curses pursue thee till thou be destroyed."
+    ],
+    "source": {
+     "kind": "history",
+     "id": "GoQpk12OwN4",
+     "title": "OHH - Secrets Of History: The Two Promised Lands Chapter 6 EPISODE 9",
+     "date": "2020-11-11",
+     "ts": "1:07:05",
+     "url": "https://youtu.be/GoQpk12OwN4?t=4025"
+    }
+   },
+   {
+    "points": [
+     "The Mayan slave ship is our people from Guatemala to Panama. La Unión carried about 25 to 30 Mayans every month to Cuba to work the sugar-cane fields between 1855 and 1861, during the Caste War; each was sold for 25 pesos and resold in Havana for as much as 160 pesos for men and 120 for women. They were sold into slavery, so Deuteronomy 28:68 applies to them as well."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "752ESdqJThU",
+     "title": "Unshakable Faith In The Darkest Hours",
+     "date": "2023-03-05",
+     "ts": "37:00",
+     "url": "https://youtu.be/752ESdqJThU?t=2220"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "Deuteronomy 28:43-45",
+    "why": "The stranger rising above, and the curses pursuing till destruction: the Maya made debt laborers in their own land and sold away."
+   },
+   {
+    "ref": "Deuteronomy 28:68",
+    "why": "Brought into bondage again with ships and sold: the Maya shipped to Cuba on La Unión."
+   }
+  ],
+  "sources": [
+   {
+    "title": "Caste War of Yucatán",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Caste_War_of_Yucat%C3%A1n",
+    "accessed": "2026-10-04",
+    "supports": "1847 revolt; land alienation, henequen and debt labor; Chan Santa Cruz; British Honduras; refugees to Belize and Petén; 1901 and 1915; population halved; 364,000 dead; Maya sold into slavery and the Cuban slave trade"
+   },
+   {
+    "title": "La Unión (ship)",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/La_Uni%C3%B3n_(ship)",
+    "accessed": "2026-10-04",
+    "supports": "1855–1861 transport of enslaved Maya to Cuba; sank near Sisal in September 1861; wreck found 2017"
+   }
+  ],
+  "uncertainty": "The bar runs to 1861, the end of La Unión's voyages, within this period; the war went on until 1901 (formally 1915). Tribes: Yucatán is Mexico (Issachar); the class calls the Maya Zebulon, and Maya refugees settled in British Honduras.",
   "status": "published"
  },
  {
@@ -5500,6 +6519,48 @@
     "url": "https://en.wikipedia.org/wiki/Seminole_Tribe_of_Florida",
     "accessed": "2026-10-04",
     "supports": "the modern Florida Seminole and Miccosukee descend from these survivors"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "william-walker-in-nicaragua-1855-1857",
+  "title": "William Walker seizes Nicaragua and relegalizes slavery",
+  "start": 1855,
+  "end": 1860,
+  "date": {
+   "text": "1855–1857; executed September 12, 1860",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Slavery",
+  "place": "Nicaragua; Trujillo, Honduras",
+  "region": "Central America",
+  "peoples": [
+   "Native",
+   "Black",
+   "Hispanic"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "William Walker",
+   "Franklin Pierce",
+   "Cornelius Vanderbilt"
+  ],
+  "summary": "The American filibuster William Walker took over Nicaragua in 1855–1856, made himself president, and relegalized slavery to build a society of dominant whites and subordinate Black and Indigenous laborers; he was driven out in 1857 and shot in Honduras in 1860.",
+  "account": [
+   "William Walker, an American journalist and mercenary, led unauthorized expeditions to found colonies in Mexico and Central America. After failing to take Baja California and Sonora in 1853–54, he went to Nicaragua in 1855 as leader of a mercenary army hired by the Democratic Party in its civil war, took control of the government, and in July 1856 made himself president. U.S. President Franklin Pierce recognized his regime.",
+   "As ruler of Nicaragua Walker relegalized slavery, aiming at a society of dominant White people and subordinate Black and Indigenous laborers, though he never succeeded in implementing it. He threatened the neighbouring republics and antagonized Cornelius Vanderbilt; he left office on 1 May 1857, and was executed by firing squad at Trujillo, Honduras, on September 12, 1860."
+  ],
+  "sources": [
+   {
+    "title": "William Walker (filibuster)",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/William_Walker_(filibuster)",
+    "accessed": "2026-10-04",
+    "supports": "Sonora 1853–54; Nicaragua 1855; president July 12, 1856 – May 1, 1857; Pierce's recognition; relegalized slavery and its aim; Vanderbilt; executed at Trujillo on September 12, 1860"
    }
   ],
   "status": "published"
@@ -8649,6 +9710,46 @@
   ]
  },
  {
+  "slug": "yaqui-deportations-1900-1911",
+  "title": "The deportation of the Yaqui to Yucatán",
+  "start": 1900,
+  "end": 1911,
+  "date": {
+   "text": "1900–1911 (deportation decided 1903)",
+   "precision": "range"
+  },
+  "period": "jim-crow",
+  "group": "Native dispossession",
+  "place": "Sonora; Yucatán and Oaxaca",
+  "region": "Mexico",
+  "peoples": [
+   "Native"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "Porfirio Díaz",
+   "Rafael Izábal"
+  ],
+  "summary": "Under Porfirio Díaz, Mexico deported Yaqui people from Sonora to Yucatán and Oaxaca; 15,000 to 60,000 Yaquis perished in the deportations between 1900 and 1911.",
+  "account": [
+   "The Yaqui Wars ran, with intervals, from 1533 to 1929, the last conflicts of the Mexican Indian Wars with the Caste War. By 1903 the decision was made to deport both peaceful and rebellious Yaqui to Yucatán and Oaxaca. From 1904 to 1909 the governor of Sonora, Rafael Izábal, led \"organized manhunts\" in which about 8,000 to 15,000 Yaquis were taken prisoner and \"virtually enslaved\".",
+   "15,000 to 60,000 Yaquis perished in the deportations between 1900 and 1911. After the Revolution broke out in 1910, Yaqui warriors joined the rebel armies and began resettling the Río Yaqui; promises of compensation were forgotten, and generals such as Álvaro Obregón set up estates on Yaqui land."
+  ],
+  "sources": [
+   {
+    "title": "Yaqui Wars",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Yaqui_Wars",
+    "accessed": "2026-10-04",
+    "supports": "1533–1929; deportation decided by 1903 to Yucatán and Oaxaca; Izábal's manhunts 1904–1909 and 8,000–15,000 prisoners; 15,000 to 60,000 perished 1900–1911; the Revolution and Obregón's estates"
+   }
+  ],
+  "uncertainty": "The manhunt figures are marked 'citation needed' in the source.",
+  "status": "published"
+ },
+ {
   "slug": "jewish-encyclopedia-chazars-1903",
   "title": "The Jewish Encyclopedia on the Chazars",
   "start": 1903,
@@ -8739,6 +9840,76 @@
     ]
    }
   ],
+  "status": "published"
+ },
+ {
+  "slug": "panama-canal-and-the-silver-roll-1904-1914",
+  "title": "The Panama Canal and the 'silver roll'",
+  "start": 1904,
+  "end": 1914,
+  "date": {
+   "text": "1904 – August 15, 1914",
+   "precision": "range"
+  },
+  "period": "jim-crow",
+  "group": "Reconstruction and Jim Crow",
+  "place": "Panama Canal Zone",
+  "region": "Central America",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Zebulon",
+   "Benjamin"
+  ],
+  "people": [
+   "George Washington Goethals",
+   "John Stevens",
+   "William Howard Taft"
+  ],
+  "summary": "The United States built the Panama Canal (1904–1914) chiefly with West Indian laborers paid on a segregated 'silver roll'; about 5,600 workers died in the American construction, the great majority West Indians, against about 350 Americans.",
+  "account": [
+   "France began the canal in 1881 with a labor force of about 40,000 by 1888, nine-tenths of them Afro-Caribbean workers from the West Indies; an estimated 22,000 men died before the French effort failed in 1889. The United States took over in 1904 and opened the canal on 15 August 1914.",
+   "Skilled workers and managers, almost all from the United States, were paid in gold on the 'gold roll'; the great majority of laborers were West Indians paid in local silver on the 'silver roll', and housing, transport, health care and even post offices were segregated by roll. Between 1905 and 1908 the system was tightened to enforce racial segregation; skilled West Indians were demoted to the silver roll and the gold roll was limited to U.S. and Panamanian citizens. About 5,600 workers died from disease and accidents during the U.S. construction; the great majority were West Indian laborers, particularly from Barbados, and about 350 were Americans. The U.S. controlled the canal and its Zone until the Torrijos–Carter Treaties; Panama took full control in 1999."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Genesis 49:13: Zebulun shall dwell at the haven of the sea and be for an haven of ships. That is the Panama Canal, the haven of ships right under Mexico, in Central America: in the last days the tribe of Zebulon would be a haven for ships, the shortest route between the Atlantic and the Pacific."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "752ESdqJThU",
+     "title": "Unshakable Faith In The Darkest Hours",
+     "date": "2023-03-05",
+     "ts": "27:06",
+     "url": "https://youtu.be/752ESdqJThU?t=1626"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "Genesis 49:13",
+    "why": "Zebulun at the haven of the sea, a haven for ships: the Panama Canal in Zebulon's land."
+   }
+  ],
+  "sources": [
+   {
+    "title": "Panama Canal",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Panama_Canal",
+    "accessed": "2026-10-04",
+    "supports": "French effort from 1881; 40,000 workers, nine-tenths West Indian; 22,000 dead; U.S. 1904; opened 15 August 1914; about 5,600 died, mostly West Indians, especially Barbadians; about 350 Americans; Torrijos–Carter Treaties; 1999"
+   },
+   {
+    "title": "Gold roll",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Gold_roll",
+    "accessed": "2026-10-04",
+    "supports": "gold and silver rolls; West Indian laborers on silver; segregation of housing, recreation, transport, health and post offices; tightened 1905–1908; Taft's order"
+   }
+  ],
+  "uncertainty": "Tribes: the canal is in Panama (Zebulon); most of the laborers who died were West Indians (Benjamin).",
   "status": "published"
  },
  {
@@ -9052,6 +10223,105 @@
   ]
  },
  {
+  "slug": "nicaragua-zelaya-ousted-and-us-occupation-1909-1933",
+  "title": "Zelaya overthrown and the U.S. occupation of Nicaragua",
+  "start": 1909,
+  "end": 1933,
+  "date": {
+   "text": "1909; occupation August 4, 1912 – January 2, 1933",
+   "precision": "range"
+  },
+  "period": "jim-crow",
+  "group": "Caribbean and Latin America",
+  "place": "Nicaragua",
+  "region": "Central America",
+  "peoples": [
+   "Hispanic",
+   "Native"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "José Santos Zelaya",
+   "Philander Knox",
+   "Augusto César Sandino",
+   "Anastasio Somoza García"
+  ],
+  "summary": "In 1909 the United States helped overthrow Nicaragua's president José Santos Zelaya; U.S. Marines occupied Nicaragua from 1912 to 1933, fought Augusto César Sandino's guerrillas from 1927, and left behind the National Guard whose commander Somoza killed Sandino and founded a dynasty.",
+  "account": [
+   "Zelaya, a Liberal who had retaken the Mosquito Coast in 1894, pursued national sovereignty against foreign investors. U.S. Secretary of State Philander Knox set out to overthrow him, sabotaging a loan Nicaragua sought in Britain in 1908. In 1909 Zelaya was ousted in a rebellion aided by the U.S. government and Nicaraguan conservatives, and the civil war that followed ended with the U.S. occupation.",
+   "The occupation lasted from August 4, 1912 to January 2, 1933, part of the Banana Wars, and aimed to stop any nation but the United States from building a Nicaraguan canal. From 1927 to 1933 Augusto César Sandino led a rebellion against it, drawing the Marines into an undeclared guerrilla war. In 1934 Sandino was executed by the National Guard of Anastasio Somoza García, who seized power and founded a family dictatorship that ruled for more than 40 years."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "In Nicaragua a new president vowed to regulate the powerful American companies; the United States smeared him, sent ships to both coasts and massed Marines in Panama until he stepped down, and put in a leader it liked: the first of many interventions. That is Micah 2:2, they covet fields and take them by violence, and oppress a man and his house, even a man and his heritage.",
+     "The Nicaraguan people are the brothers and sisters of the northern kingdom, God's people: Psalms 83, the enemies take crafty counsel against thy hidden ones to cut them off from being a nation, and say, let us take to ourselves the houses of God in possession."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "QHB5Q_QEyNI",
+     "title": "Gods Avengers Vs Gods Enemies",
+     "date": "2023-06-17",
+     "ts": "21:45",
+     "url": "https://youtu.be/QHB5Q_QEyNI?t=1305"
+    }
+   },
+   {
+    "points": [
+     "Since 1890 the United States has intervened militarily in Latin America 56 times: nine times in Panama, eight in Nicaragua, eight in Honduras, three in Guatemala, twice in Mexico and twice in El Salvador. It began with the banana wars, when the people tried to nationalize their agriculture and America intervened for the corporations."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "36emQd9wjts",
+     "title": "Raising Cain: The Son of Perdition, Merchants, and Captive Nations",
+     "date": "2026-01-18",
+     "ts": "2:57:52",
+     "url": "https://youtu.be/36emQd9wjts?t=10672"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "Micah 2:2",
+    "why": "They covet fields and take them by violence, oppressing a man and his heritage: the U.S. pressure that removed Nicaragua's president."
+   },
+   {
+    "ref": "Psalms 83:2-4",
+    "why": "Crafty counsel against God's hidden ones to cut them off from being a nation: the northern kingdom in Nicaragua."
+   },
+   {
+    "ref": "Psalms 83:12",
+    "why": "Let us take to ourselves the houses of God in possession."
+   }
+  ],
+  "sources": [
+   {
+    "title": "United States occupation of Nicaragua",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/United_States_occupation_of_Nicaragua",
+    "accessed": "2026-10-04",
+    "supports": "dates of occupation; Banana Wars; canal motive; Knox's plan to overthrow Zelaya; the 1908 loan"
+   },
+   {
+    "title": "José Santos Zelaya",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Jos%C3%A9_Santos_Zelaya",
+    "accessed": "2026-10-04",
+    "supports": "1909 ouster aided by the U.S.; 1894 Mosquito Coast; civil war to 1912"
+   },
+   {
+    "title": "Augusto César Sandino",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Augusto_C%C3%A9sar_Sandino",
+    "accessed": "2026-10-04",
+    "supports": "rebellion 1927–1933; executed 1934 by Somoza's National Guard; the Somoza dynasty"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "great-migration-and-redlining",
   "title": "The Great Migration met with redlining",
   "start": 1910,
@@ -9192,6 +10462,142 @@
   "tribes": [
    "Issachar"
   ]
+ },
+ {
+  "slug": "mexican-revolution-1910-1920",
+  "title": "The Mexican Revolution",
+  "start": 1910,
+  "end": 1920,
+  "date": {
+   "text": "November 20, 1910 – December 1, 1920",
+   "precision": "range"
+  },
+  "period": "jim-crow",
+  "group": "Caribbean and Latin America",
+  "place": "Mexico",
+  "region": "Mexico",
+  "peoples": [
+   "Hispanic",
+   "Native"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "Porfirio Díaz",
+   "Francisco I. Madero",
+   "Emiliano Zapata",
+   "Pancho Villa",
+   "Victoriano Huerta",
+   "Venustiano Carranza"
+  ],
+  "summary": "From 1910 to 1920 Mexico was torn by revolution against the long rule of Porfirio Díaz; perhaps 1.5 million people died and nearly 200,000 fled abroad, chiefly to the United States.",
+  "account": [
+   "The Revolution ran from 20 November 1910 to 1 December 1920. Francisco I. Madero, jailed by Díaz in the 1910 election, called for an armed rising; Díaz fell in 1911. Emiliano Zapata rose in Morelos for land reform; in February 1913 generals of the old regime overthrew Madero, who was assassinated on the orders of Victoriano Huerta, and the Constitutionalists under Venustiano Carranza fought on. The victors drafted the present Constitution of Mexico; foreign powers, the United States above all, were deeply involved.",
+   "The death toll is hard to calculate: perhaps 1.5 million people died, and nearly 200,000 refugees fled abroad, especially to the United States. Mexican immigration to the United States rose five-fold between 1910 and 1920."
+  ],
+  "sources": [
+   {
+    "title": "Mexican Revolution",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Mexican_Revolution",
+    "accessed": "2026-10-04",
+    "supports": "dates; Madero, Zapata, Huerta, Carranza; the Constitution; U.S. involvement; perhaps 1.5 million dead; nearly 200,000 refugees; five-fold rise in immigration"
+   }
+  ],
+  "uncertainty": "Death toll estimates vary greatly.",
+  "status": "published"
+ },
+ {
+  "slug": "honduras-1911-zemurray-invasion",
+  "title": "Sam Zemurray's private invasion of Honduras",
+  "start": 1910,
+  "end": 1912,
+  "date": {
+   "text": "1910–1911; Bonilla inaugurated February 1, 1912",
+   "precision": "range"
+  },
+  "period": "jim-crow",
+  "group": "Caribbean and Latin America",
+  "place": "Honduras; New Orleans",
+  "region": "Central America",
+  "peoples": [
+   "Hispanic"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "Samuel Zemurray",
+   "Lee Christmas",
+   "Manuel Bonilla",
+   "Miguel Dávila",
+   "Philander Knox"
+  ],
+  "summary": "To protect his Cuyamel Fruit Company, the banana magnate Sam Zemurray sent mercenaries from New Orleans on a former U.S. Navy ship to overthrow Honduras's president and install Manuel Bonilla, who rewarded him with tax and land concessions.",
+  "account": [
+   "In 1910 Honduras was rescheduling its debt to Britain under a deal arranged by U.S. Secretary of State Philander Knox that would put agents of J. P. Morgan in the customs houses. Fearing the taxes would ruin his business, Samuel Zemurray, 'Sam the Banana Man', plotted to overthrow President Miguel Dávila. The mercenary Lee Christmas recruited about 100 mercenaries in New Orleans; they sailed to Honduras on a former U.S. Navy vessel, the Hornet, to install the exiled former president Manuel Bonilla.",
+   "Gaining rebels from the local population, the coup succeeded, and Bonilla was inaugurated on February 1, 1912. He rewarded Zemurray with very favourable tax and land concessions for the Cuyamel Fruit Company. Zemurray later became president of the United Fruit Company."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "In Honduras a banana businessman named Sam the banana man bought a surplus Navy ship, loaded it with weapons, sailed from New Orleans and invaded the country with a private army; the U.S. stood back and then ordered a ceasefire that forced the president out. This is the northern kingdom, the Hispanics: Deuteronomy 28:47-49, serving thine enemies in hunger and thirst, under a nation from far, from the end of the earth, whose tongue thou shalt not understand.",
+     "The banana man came and stole the bananas out of your backyard; now you buy them from the banana man."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "QHB5Q_QEyNI",
+     "title": "Gods Avengers Vs Gods Enemies",
+     "date": "2023-06-17",
+     "ts": "31:20",
+     "url": "https://youtu.be/QHB5Q_QEyNI?t=1880"
+    }
+   },
+   {
+    "points": [
+     "The banana man's president gave him land, tax-free imports and refunded the costs of the coup out of public Honduran money: the banana man overthrew the government and made Honduras pay for it. Deuteronomy 28:51: he shall eat the fruit of thy land until thou be destroyed."
+    ],
+    "quote": "This banana man literally overthrew the government and made Honduras pay for it",
+    "source": {
+     "kind": "class",
+     "id": "QHB5Q_QEyNI",
+     "title": "Gods Avengers Vs Gods Enemies",
+     "date": "2023-06-17",
+     "ts": "38:59",
+     "url": "https://youtu.be/QHB5Q_QEyNI?t=2339"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "Deuteronomy 28:47-49",
+    "why": "Serving the enemies the Lord sends, a nation from far whose tongue is not understood: the New Orleans mercenaries and the banana companies."
+   },
+   {
+    "ref": "Deuteronomy 28:51",
+    "why": "Eating the fruit of the land until destruction: the banana concessions taken from Honduras."
+   }
+  ],
+  "sources": [
+   {
+    "title": "Samuel Zemurray",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Samuel_Zemurray",
+    "accessed": "2026-10-04",
+    "supports": "the debt deal and Knox; the plot against Dávila; Lee Christmas and about 100 mercenaries from New Orleans; the USS Hornet; Bonilla inaugurated February 1, 1912; concessions to Cuyamel; later president of United Fruit"
+   }
+  ],
+  "disagreements": [
+   {
+    "point": "Who paid for the coup",
+    "views": [
+     "Gods Avengers Vs Gods Enemies (2023-06-17), from the video it played: Bonilla refunded Zemurray's coup expenses with public Honduran money.",
+     "Samuel Zemurray (Wikipedia): Bonilla rewarded Zemurray with very favourable tax and land concessions; a refund of costs is not stated."
+    ]
+   }
+  ],
+  "status": "published"
  },
  {
   "slug": "fishberg-the-jews-1911",
@@ -9907,6 +11313,96 @@
   "tribes": [
    "Ephraim"
   ]
+ },
+ {
+  "slug": "bath-riots-el-paso-1917",
+  "title": "The El Paso disinfections and the Bath Riots",
+  "start": 1917,
+  "end": 1917,
+  "date": {
+   "text": "January 28–30, 1917",
+   "precision": "range"
+  },
+  "period": "jim-crow",
+  "group": "Reconstruction and Jim Crow",
+  "place": "Santa Fe Street Bridge, El Paso – Ciudad Juárez",
+  "region": "United States–Mexico border",
+  "peoples": [
+   "Hispanic"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "Carmelita Torres",
+   "Tom Lea Jr."
+  ],
+  "summary": "In January 1917 Carmelita Torres led a revolt at the El Paso border against the forced kerosene 'de-lousing' baths imposed on Mexicans crossing into the United States; the disinfection of Mexicans at the border went on for forty years.",
+  "account": [
+   "El Paso's mayor Thomas Calloway Lea Jr. demanded a quarantine against \"dirty lousey destitute Mexicans\" he said would bring typhus; the Public Health Service officer admitted there was little danger but proposed de-lousing plants, and officials began sanitizing Mexican immigrants at a disinfecting station, a policy that soon spread to Laredo. When lice were found, a man's hair was clipped; a woman's was doused in vinegar and kerosene.",
+   "On January 28, 1917 Carmelita Torres refused the procedure amid reports that bathing women were photographed nude and fears that the kerosene baths could catch fire. She persuaded other riders to join her, and the riots lasted until January 30. The disinfections of Mexicans at the U.S. border continued for forty years."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "The U.S. practice on the so-called Mexicans at El Paso inspired the Nazi scientists: the holocaust before the holocaust. Mexicans were forced into vinegar and kerosene baths, heads shaved and clothing burned; hundreds of homes were destroyed, and in the El Paso jail 27 prisoners, most of them Mexican or Mexican American, burned to death when someone lit a match. They had Jim Crow for Judah and 'Juan Crow' for the Hispanics: the same people, treated the same way.",
+     "2 Esdras 11:42: since the conquistadors came, they have afflicted the meek and hurt the peaceable, and destroyed the dwellings of them that brought forth fruit."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "a8QiL_WDQRY",
+     "title": "#IUIC | WISDOM CRIETH OUT RADIO SHOW: 02-27-2022",
+     "date": "2022-02-27",
+     "ts": "1:07:35",
+     "url": "https://youtu.be/a8QiL_WDQRY?t=4055"
+    }
+   },
+   {
+    "points": [
+     "What started with 200 protesters grew to a crowd of two thousand; women lay on the trolley tracks and shut the border for two days. Carmelita Torres stood up against the humiliation of the women, and then she vanished: every leader who speaks up for the oppression of the people is made an example of. After the riots more than a hundred thousand Mexicans were de-loused at the border in 1917 alone, and later the U.S. used Zyklon B to fumigate clothing at the border."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "PcMNuiuYH84",
+     "title": "#IUIC | WISDOM CRIETH OUT RADIO SHOW: 02-27-2022",
+     "date": "2022-02-27",
+     "ts": "2:27",
+     "url": "https://youtu.be/PcMNuiuYH84?t=147"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "2 Esdras 11:42",
+    "why": "The eagle that afflicted the meek and hurt the peaceable: the treatment of the so-called Mexicans at the border."
+   }
+  ],
+  "sources": [
+   {
+    "title": "1917 Bath riots",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/1917_Bath_riots",
+    "accessed": "2026-10-04",
+    "supports": "January 28–30, 1917; Carmelita Torres; de-lousing baths and vaccination; nude photographs; kerosene; Mayor Lea's telegram; the Public Health officer; the hair and kerosene procedure; forty years of disinfections"
+   },
+   {
+    "title": "Carmelita Torres",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Carmelita_Torres",
+    "accessed": "2026-10-04",
+    "supports": "the leader of the riots"
+   }
+  ],
+  "disagreements": [
+   {
+    "point": "The jail fire and the numbers",
+    "views": [
+     "WISDOM CRIETH OUT (2022-02-27), from the documentary it played: 27 prisoners, most of them Mexican, burned to death in a kerosene bath fire at the El Paso jail; more than 100,000 Mexicans were de-loused in 1917; Zyklon B was later used at the border.",
+     "1917 Bath riots (Wikipedia, as read): describes Lea's campaign and the kerosene procedure but gives none of these figures; they were not checked in a documentary source."
+    ]
+   }
+  ],
+  "status": "published"
  },
  {
   "slug": "mary-turner-lynching-1918",
@@ -11006,6 +12502,46 @@
   ]
  },
  {
+  "slug": "la-matanza-el-salvador-1932",
+  "title": "La Matanza: the massacre of 1932 in El Salvador",
+  "start": 1932,
+  "end": 1932,
+  "date": {
+   "text": "January 22–25, 1932, and the killings that followed",
+   "precision": "range"
+  },
+  "period": "jim-crow",
+  "group": "Other atrocities",
+  "place": "Western El Salvador",
+  "region": "Central America",
+  "peoples": [
+   "Native"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "Farabundo Martí",
+   "Feliciano Ama",
+   "Maximiliano Hernández Martínez"
+  ],
+  "summary": "After a Communist and Indigenous Pipil rising in western El Salvador in January 1932, the military government of Maximiliano Hernández Martínez killed between 10,000 and 40,000 people.",
+  "account": [
+   "On 22 January 1932 members of the Communist Party of El Salvador and Pipil peasants rose against the military government amid social unrest and the cancellation of the 1932 election results. Led by Farabundo Martí and Feliciano Ama, the rebels took several towns in western El Salvador, killing an estimated 2,000 people.",
+   "General Maximiliano Hernández Martínez, who had taken power in the 1931 coup, declared martial law. After the revolt was put down, large-scale government killings in western El Salvador took 10,000 to 40,000 lives; Martí and Ama were among the leaders executed."
+  ],
+  "sources": [
+   {
+    "title": "La Matanza",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/La_Matanza",
+    "accessed": "2026-10-04",
+    "supports": "22–25 January 1932; PCES and Pipil peasants; Martí and Ama; 2,000 killed by the rebels; Hernández Martínez and martial law; 10,000 to 40,000 killed; leaders executed"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "indian-reorganization-act-1934",
   "title": "The Indian Reorganization Act",
   "start": 1934,
@@ -11321,6 +12857,81 @@
   ]
  },
  {
+  "slug": "bracero-program-1942-1964",
+  "title": "The Bracero Program",
+  "start": 1942,
+  "end": 1955,
+  "date": {
+   "text": "August 4, 1942 – 1964",
+   "precision": "range"
+  },
+  "period": "jim-crow",
+  "group": "Caribbean and Latin America",
+  "place": "United States; Guanajuato, Jalisco and Michoacán",
+  "region": "Mexico and the United States",
+  "peoples": [
+   "Hispanic"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "summary": "From 1942 to 1964 the United States and Mexico ran the Bracero Program, the largest guest-worker program in U.S. history, issuing about 4.6 to 5 million contracts to Mexican farm and railroad laborers, many of whom never received the savings deducted from their pay.",
+  "account": [
+   "The program began on August 4, 1942 with the Mexican Farm Labor Agreement and lasted 22 years, offering employment contracts to 4.6 million (elsewhere in the source, 5 million) braceros in 24 U.S. states. Braceros were promised adequate housing, food and sanitation and a minimum wage of 30 cents an hour, and protection from discrimination; bribery was a common way to get a contract.",
+   "Ten percent of their pay was deducted, from 1942 to 1948, for savings accounts they were legally guaranteed on returning to Mexico; many field-working braceros never received their savings, and their struggles and lawsuits for it went on into the 2000s."
+  ],
+  "sources": [
+   {
+    "title": "Bracero program",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Bracero_program",
+    "accessed": "2026-10-04",
+    "supports": "1942–1964; August 4, 1942 agreement; 4.6 million and 5 million contracts; 24 states; promised conditions and 30 cents an hour; bribery; 10 percent deductions 1942–1948 never repaid to many; lawsuits"
+   }
+  ],
+  "uncertainty": "The program ran to 1964; the bar ends in 1955, the end of this period.",
+  "status": "published"
+ },
+ {
+  "slug": "zoot-suit-riots-1943",
+  "title": "The Zoot Suit Riots",
+  "start": 1943,
+  "end": 1943,
+  "date": {
+   "text": "June 3–8, 1943",
+   "precision": "range"
+  },
+  "period": "jim-crow",
+  "group": "Reconstruction and Jim Crow",
+  "place": "Los Angeles, California",
+  "region": "United States",
+  "peoples": [
+   "Hispanic",
+   "Black"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "José Díaz"
+  ],
+  "summary": "For six days in June 1943, American servicemen and white Angelenos attacked and stripped young Mexican Americans in zoot suits in Los Angeles, after the Sleepy Lagoon murder trial.",
+  "account": [
+   "The Zoot Suit Riots took place June 3–8, 1943 in Los Angeles. Servicemen stationed in Southern California and white residents attacked and stripped youths who wore zoot suits, ostensibly as unpatriotic in wartime rationing. Most of the mobs targeted Mexican American youth, but they also attacked African American and Filipino American youths and children.",
+   "The riots followed the Sleepy Lagoon murder trial after the death of José Díaz; similar violence against Latinos broke out in Chicago, San Diego, Oakland, Evansville, Philadelphia and New York City. The zoot suiters' defiance later inspired the Chicano Movement."
+  ],
+  "sources": [
+   {
+    "title": "Zoot Suit Riots",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Zoot_Suit_Riots",
+    "accessed": "2026-10-04",
+    "supports": "June 3–8, 1943; servicemen and white mobs; Mexican American, African American and Filipino American victims; Sleepy Lagoon; other cities; Chicano Movement"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "gi-bill-1944",
   "title": "The G.I. Bill and black veterans",
   "start": 1944,
@@ -11508,6 +13119,88 @@
   "tribes": [
    "Judah"
   ]
+ },
+ {
+  "slug": "school-of-the-americas-1946",
+  "title": "The School of the Americas",
+  "start": 1946,
+  "end": 1955,
+  "date": {
+   "text": "Founded 1946; in the Panama Canal Zone to 1984; renamed 2001",
+   "precision": "range"
+  },
+  "period": "jim-crow",
+  "group": "Caribbean and Latin America",
+  "place": "Panama Canal Zone; Fort Benning, Georgia",
+  "region": "Central America and the United States",
+  "peoples": [
+   "Hispanic",
+   "Native"
+  ],
+  "tribes": [
+   "Zebulon",
+   "Issachar"
+  ],
+  "people": [
+   "Manuel Noriega",
+   "Efraín Ríos Montt",
+   "Roberto D'Aubuisson"
+  ],
+  "summary": "Founded by the U.S. Army in 1946 and housed in the Panama Canal Zone until 1984, the School of the Americas trained more than 60,000 Latin American military and police personnel by 2000; its 'Hall of Fame' honoured Manuel Noriega.",
+  "account": [
+   "The Western Hemisphere Institute for Security Cooperation, formerly the School of the Americas, is a U.S. Department of Defense school now at Fort Benning, Georgia. It was founded in 1946; by 2000 more than 60,000 Latin American military, law-enforcement and security personnel had attended. It was in the Panama Canal Zone until 21 September 1984, when it was expelled under the Panama Canal Treaty after Panamanian complaints that its graduates engaged in repressive and antidemocratic behaviour; it reopened at Fort Benning in December 1984.",
+   "Its 'Hall of Fame' of accomplished alumni included Bolivia's dictator Hugo Banzer Suárez, the 'drug lord and dictator Manuel Noriega', and the Guatemalan general Manuel Antonio Callejas y Callejas. In the 1980s Mexico, El Salvador and Colombia made up seventy-two percent of its cadets. It was renamed by the 2001 National Defense Authorization Act."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "In 1946 they formalized it in a training program: 1 Maccabees 8:13, whom they would help to a kingdom, those reign, and whom again they would, they displace. The School of the Americas showed them how to be the corrupt dictators they were trained to become, the ungodly wretches who turned against their own people; some, like Noriega, tried to straddle the line, and then the narrative was changed on them.",
+     "The migration 'problem' and the third-world disturbance in our countries come from the School of the Americas and America's interventions: Micah 2:1-2."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "36emQd9wjts",
+     "title": "Raising Cain: The Son of Perdition, Merchants, and Captive Nations",
+     "date": "2026-01-18",
+     "ts": "2:59:16",
+     "url": "https://youtu.be/36emQd9wjts?t=10756"
+    }
+   },
+   {
+    "points": [
+     "Graduates include Efraín Ríos Montt, the Guatemalan dictator convicted of genocide against the Maya Ixil, and Roberto D'Aubuisson, the Salvadoran death-squad leader who ordered the assassination of Archbishop Óscar Romero and massacres of civilians: this was policy, planned, funded and sanctioned."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "36emQd9wjts",
+     "title": "Raising Cain: The Son of Perdition, Merchants, and Captive Nations",
+     "date": "2026-01-18",
+     "ts": "3:03:58",
+     "url": "https://youtu.be/36emQd9wjts?t=11038"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "1 Maccabees 8:13",
+    "why": "Whom they would help to a kingdom, those reign; whom they would, they displace: Rome's pattern repeated in the dictators trained by the United States."
+   },
+   {
+    "ref": "Micah 2:1-2",
+    "why": "They devise iniquity and covet fields and take them by violence: the interventions behind the flight from Central America."
+   }
+  ],
+  "sources": [
+   {
+    "title": "Western Hemisphere Institute for Security Cooperation",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Western_Hemisphere_Institute_for_Security_Cooperation",
+    "accessed": "2026-10-04",
+    "supports": "founded 1946; 60,000 by 2000; Panama Canal Zone to 21 September 1984; reasons for expulsion; Fort Benning; Hall of Fame; Mexico, El Salvador and Colombia 72% of 1980s cadets; renamed 2001"
+   }
+  ],
+  "uncertainty": "The school still exists under a new name; the bar runs 1946–1955 within this period. That Ríos Montt and D'Aubuisson were graduates was taught from a clip and is not in the source read.",
+  "status": "published"
  },
  {
   "slug": "state-of-israel-1948",
@@ -11954,6 +13647,46 @@
   ]
  },
  {
+  "slug": "operation-wetback-1954",
+  "title": "Operation Wetback",
+  "start": 1954,
+  "end": 1955,
+  "date": {
+   "text": "June 1954 – 1955",
+   "precision": "range"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Native dispossession",
+  "place": "U.S.–Mexico border states",
+  "region": "United States",
+  "peoples": [
+   "Hispanic"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "Dwight D. Eisenhower",
+   "Joseph May Swing",
+   "Herbert Brownell"
+  ],
+  "summary": "In June 1954 the Eisenhower administration launched 'Operation Wetback', using military-style tactics to remove Mexican immigrants; some U.S. citizens and legal residents were deported too.",
+  "account": [
+   "Operation Wetback was created by Joseph May Swing, a retired army lieutenant general who headed the Immigration and Naturalization Service, and implemented in June 1954 by Attorney General Herbert Brownell. It used military-style tactics to remove Mexican immigrants; though aimed at those without papers, some American citizens and legal Mexican immigrants were also deported.",
+   "Department of Homeland Security statistics show 17,695 'removals' and 232,769 'returns' in the 1955 fiscal year (July 1, 1954 – June 30, 1955). The operation was a response to pressure from farmers and business interests, while legal Mexican labour continued under the Bracero Program."
+  ],
+  "sources": [
+   {
+    "title": "Operation Wetback",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Operation_Wetback",
+    "accessed": "2026-10-04",
+    "supports": "Eisenhower, Swing and Brownell; June 1954; military-style tactics; citizens deported; 17,695 removals and 232,769 returns in FY1955; farmers' pressure; the Bracero Program"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "emmett-till-1955",
   "title": "The lynching of Emmett Till",
   "start": 1955,
@@ -12241,6 +13974,80 @@
   "status": "published"
  },
  {
+  "slug": "guatemalan-civil-war-and-maya-genocide-1960-1996",
+  "title": "The Guatemalan civil war and the genocide of the Maya",
+  "start": 1960,
+  "end": 1996,
+  "date": {
+   "text": "1960–1996; peak 1981–1983",
+   "precision": "range"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Other atrocities",
+  "place": "Guatemala; Río Negro; the Ixil region",
+  "region": "Central America",
+  "peoples": [
+   "Native"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "Efraín Ríos Montt"
+  ],
+  "summary": "In the civil war that followed the 1954 coup, U.S.-backed military governments killed an estimated 200,000 Guatemalans; the army carried out at least 626 massacres of Maya villages, and 83% of the victims documented by the UN-sponsored truth commission were Maya.",
+  "account": [
+   "Massacres, forced disappearances, torture and summary executions had been widespread since 1965, a longstanding policy of the U.S.-backed military regimes that took power after the 1954 coup; the military conflated Maya identity with communist subversion. The systematic terror against the Maya began around 1975 and peaked in the early 1980s: the army carried out at least 626 massacres and acknowledged destroying 440 Maya villages between 1981 and 1983. In the Río Negro massacres, more than 440 Maya Achi were killed in Río Negro alone, and up to 5,000 lives were taken in 1980–1982 in a region cleared for the World Bank–financed Chixoy dam.",
+   "An estimated 200,000 Guatemalans were killed, including at least 40,000 disappeared. The UN-sponsored Commission for Historical Clarification found that 92% of civilian executions were by government forces; of 42,275 victims it documented, 83% were Maya and 17% Ladino, and 48% of deaths occurred in 1982 alone. The former dictator Efraín Ríos Montt (1982–1983) was convicted in 2013 of ordering the deaths of 1,771 Ixil, but the sentence was overturned and his retrial was unfinished when he died in 2018."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "This is global robbery. After the very brutal overthrow of Guatemala's government in 1954, civil war and police repression took the lives of at least 200,000 Guatemalan civilians, all because the United Fruit Company objected to modest proposals for land reform."
+    ],
+    "teacher": "Bishop Nathanyel",
+    "source": {
+     "kind": "class",
+     "id": "AFiE1wxb1NA",
+     "title": "Bishop Nathanyel | Revelation 6 The 4 Horsemen",
+     "date": "2023-12-30",
+     "ts": "1:16:26",
+     "url": "https://youtu.be/AFiE1wxb1NA?t=4586"
+    }
+   },
+   {
+    "points": [
+     "Efraín Ríos Montt, the Guatemalan dictator convicted of genocide against the Maya Ixil people, was a graduate of the School of the Americas, where the U.S. trained Latin American militaries in counterinsurgency, psychological warfare and interrogation to use on their own people."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "36emQd9wjts",
+     "title": "Raising Cain: The Son of Perdition, Merchants, and Captive Nations",
+     "date": "2026-01-18",
+     "ts": "3:05:00",
+     "url": "https://youtu.be/36emQd9wjts?t=11100"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Guatemalan genocide",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Guatemalan_genocide",
+    "accessed": "2026-10-04",
+    "supports": "U.S.-backed regimes after 1954; terror from 1965 and against the Maya from about 1975; 626 massacres; 440 villages 1981–1983; 200,000 killed; 40,000 disappeared; CEH figures (92%, 42,275, 83% Maya, 48% in 1982); Ríos Montt's 2013 conviction for 1,771 Ixil deaths, overturned; death 2018"
+   },
+   {
+    "title": "Río Negro massacres",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/R%C3%ADo_Negro_massacres",
+    "accessed": "2026-10-04",
+    "supports": "Chixoy dam financed by the World Bank and IDB; more than 440 Maya Achi killed at Río Negro; up to 5,000 lives 1980–1982"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "civil-rights-act-1964",
   "title": "The Civil Rights Act of 1964",
   "start": 1964,
@@ -12450,6 +14257,41 @@
   "tribes": [
    "Judah"
   ]
+ },
+ {
+  "slug": "delano-grape-strike-1965-1970",
+  "title": "The Delano grape strike and the United Farm Workers",
+  "start": 1965,
+  "end": 1970,
+  "date": {
+   "text": "September 8, 1965 – July 1970",
+   "precision": "range"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Civil rights",
+  "place": "Delano, California",
+  "region": "United States",
+  "peoples": [
+   "Hispanic"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "summary": "In 1965 Filipino and Mexican farm workers struck California's table-grape growers; their five-year strike and boycott created the United Farm Workers and won contracts covering more than 10,000 workers in 1970.",
+  "account": [
+   "The strike was begun on September 8, 1965 by the Filipino Agricultural Workers Organizing Committee against table-grape growers in Delano, California; a week later the predominantly Mexican National Farmworkers Association joined. In August 1966 the two merged into the United Farm Workers Organizing Committee.",
+   "The strike lasted five years, carried on by consumer boycotts, marches, community organizing and nonviolent resistance. In July 1970 it ended in a victory for the farm workers, largely through the boycott of non-union grapes, with a collective bargaining agreement affecting more than 10,000 farm workers."
+  ],
+  "sources": [
+   {
+    "title": "Delano grape strike",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Delano_grape_strike",
+    "accessed": "2026-10-04",
+    "supports": "September 8, 1965; AWOC and NFWA; merger August 1966; five years; boycott; July 1970 agreement covering more than 10,000 workers"
+   }
+  ],
+  "status": "published"
  },
  {
   "slug": "ben-ammi-liberia-dimona",
@@ -12814,6 +14656,50 @@
   "tribes": [
    "Judah"
   ]
+ },
+ {
+  "slug": "tlatelolco-massacre-1968",
+  "title": "The Tlatelolco massacre",
+  "start": 1968,
+  "end": 1968,
+  "date": {
+   "text": "October 2, 1968",
+   "precision": "day"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Other atrocities",
+  "place": "Plaza de las Tres Culturas, Tlatelolco, Mexico City",
+  "region": "Mexico",
+  "peoples": [
+   "Hispanic"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "summary": "On October 2, 1968, ten days before the Mexico City Olympics, the Mexican armed forces opened fire on unarmed student protesters at Tlatelolco; estimates of the dead run from 44 documented to 300–400.",
+  "account": [
+   "The massacre followed the large demonstrations of the Mexican Movement of 1968 and is counted part of the Mexican Dirty War, in which the U.S.-backed Institutional Revolutionary Party (PRI) government violently repressed opposition. On October 2, 1968 the armed forces fired on unarmed civilians protesting the coming Olympics in the Plaza de las Tres Culturas. The government claimed the troops had been provoked; documents released since 2000 suggest the government used snipers.",
+   "The death toll is disputed: the analyst Kate Doyle documented 44 deaths from U.S. national security archives, but estimates run from 300 to 400, and eyewitnesses reported hundreds dead. The head of the Federal Directorate of Security reported 1,345 arrests."
+  ],
+  "sources": [
+   {
+    "title": "Tlatelolco massacre",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Tlatelolco_massacre",
+    "accessed": "2026-10-04",
+    "supports": "October 2, 1968; Movement of 1968; Dirty War; PRI; snipers; 44 documented; 300–400 estimated; 1,345 arrested"
+   }
+  ],
+  "disagreements": [
+   {
+    "point": "How many were killed",
+    "views": [
+     "Kate Doyle, from U.S. national security archives: 44 documented deaths.",
+     "Other estimates: 300 to 400; eyewitnesses reported hundreds."
+    ]
+   }
+  ],
+  "status": "published"
  },
  {
   "slug": "alcatraz-and-wounded-knee",
@@ -13334,6 +15220,160 @@
   "status": "published"
  },
  {
+  "slug": "nicaraguan-revolution-and-contra-war-1979-1990",
+  "title": "The Nicaraguan Revolution and the Contra war",
+  "start": 1979,
+  "end": 1990,
+  "date": {
+   "text": "July 1979; Contra war 1981–1990",
+   "precision": "range"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Caribbean and Latin America",
+  "place": "Nicaragua",
+  "region": "Central America",
+  "peoples": [
+   "Hispanic",
+   "Native"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "Anastasio Somoza Debayle"
+  ],
+  "summary": "The Sandinistas overthrew the Somoza dictatorship in July 1979; the United States then financed, trained and armed the Contras against them, a war that killed 32,000–43,000 people between 1981 and 1990.",
+  "account": [
+   "In July 1979 the Sandinista National Liberation Front took Managua and Anastasio Somoza Debayle fled; the 1978–1979 offensive cost 10,000–50,000 lives. Dissidents and former National Guardsmen formed the Contras in 1980; in 1981 the CIA and Argentine intelligence united several groups into the Nicaraguan Democratic Force (FDN).",
+   "In 1982 the Boland Amendment ended U.S. aid to the Contras, but the Reagan administration kept funding them illegally, which became the Iran–Contra affair. The Contras' tactics featured terrorism and human rights violations against civilians; the Global Terrorism Database counts more than 1,300 Contra terrorist attacks. Before the International Court of Justice, the evidence of a close U.S.–Contra relationship was found overwhelming. The war of 1981–1990 killed 32,000–43,000 people; more than 600,000 were left homeless and 150,000 refugees fled to Costa Rica, Honduras and the United States."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "In Nicaragua the CIA funded and directed Contra death squads against the people's movement, murdering 50,000-plus. Around '81 they were selling cocaine in the United States to fund it: killing our people here with the drugs, and with the same money destroying our brothers and sisters down there in Nicaragua."
+    ],
+    "source": {
+     "kind": "history",
+     "id": "ffxKEbSLscQ",
+     "title": "OUR HIDDEN HISTORY | TRANSITION OF POWER : SPECIAL EDITION VENEZUELA EP 189",
+     "date": "2026-01-04",
+     "ts": "1:08:10",
+     "url": "https://youtu.be/ffxKEbSLscQ?t=4090"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Nicaraguan Revolution",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Nicaraguan_Revolution",
+    "accessed": "2026-10-04",
+    "supports": "1979 overthrow; 1981–1990 Contra war; casualty figures (10,000–50,000; 32,000–43,000); 600,000 homeless; 150,000 refugees"
+   },
+   {
+    "title": "Contras",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Contras",
+    "accessed": "2026-10-04",
+    "supports": "formation 1980; FDN 1981 with the CIA; Boland Amendment 1982; Iran–Contra; terrorism and abuses; 1,300 attacks; ICJ findings"
+   }
+  ],
+  "uncertainty": "The cocaine funding is the subject of the existing event crack-and-dark-alliance.",
+  "disagreements": [
+   {
+    "point": "How many the Contra war killed",
+    "views": [
+     "Our Hidden History EP 189 (2026-01-04), reading a list: 50,000-plus murdered.",
+     "Nicaraguan Revolution (Wikipedia, PRIO data): 32,000–43,000 killed in 1981–1990."
+    ]
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "salvadoran-civil-war-1979-1992",
+  "title": "The Salvadoran civil war: Romero and El Mozote",
+  "start": 1979,
+  "end": 1992,
+  "date": {
+   "text": "October 15, 1979 – January 16, 1992",
+   "precision": "range"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Other atrocities",
+  "place": "El Salvador; El Mozote, Morazán",
+  "region": "Central America",
+  "peoples": [
+   "Hispanic",
+   "Native"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "Óscar Romero",
+   "Roberto D'Aubuisson",
+   "Domingo Monterrosa"
+  ],
+  "summary": "In El Salvador's twelve-year civil war the U.S.-backed government fought the FMLN; more than 75,000 were killed, Archbishop Óscar Romero was shot at Mass in 1980, and at El Mozote in December 1981 a U.S.-trained army battalion killed more than 811 civilians.",
+  "account": [
+   "A coup on 15 October 1979 and the killing of protesters began the war between the U.S.-backed government and the Farabundo Martí National Liberation Front; it ended with the Chapultepec Peace Accords on 16 January 1992. The UN reports more than 75,000 killed and about 8,000 disappeared; kidnapping, torture and murder of suspected FMLN sympathizers by state forces and paramilitary death squads were pervasive.",
+   "Archbishop Óscar Romero, who spoke against the violence, was shot dead while celebrating Mass on 24 March 1980; the UN Truth Commission concluded that Major Roberto D'Aubuisson, a death-squad leader, ordered it. On December 11 and 12, 1981 the army's Atlácatl Battalion, trained by U.S. military advisers and led by Domingo Monterrosa, killed more than 811 civilians in and around El Mozote, a village known for its neutrality. El Salvador's government apologized in December 2011."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "A CIA memorandum of 15 February 1980 on rightist terrorism in El Salvador admits that the involvement of security-force personnel and members of the economic elite in the vigilante groups was widely accepted and substantiated by its own reporting; the White Warriors Union, formed in 1977, began with the clergy, murdering a Jesuit priest, then teachers and peasants. What happens in El Salvador is what happens throughout Africa every few years."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "zQ8sefmty1I",
+     "title": "The Ancient Origin of Apartheid",
+     "date": "2024-10-13",
+     "ts": "2:04:45",
+     "url": "https://youtu.be/zQ8sefmty1I?t=7485"
+    }
+   },
+   {
+    "points": [
+     "Roberto D'Aubuisson, the Salvadoran death-squad leader who ordered the assassination of Archbishop Óscar Romero and massacres of civilians, was trained at the School of the Americas."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "36emQd9wjts",
+     "title": "Raising Cain: The Son of Perdition, Merchants, and Captive Nations",
+     "date": "2026-01-18",
+     "ts": "3:05:00",
+     "url": "https://youtu.be/36emQd9wjts?t=11100"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Salvadoran Civil War",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Salvadoran_Civil_War",
+    "accessed": "2026-10-04",
+    "supports": "15 October 1979 to 16 January 1992; U.S. backing; FMLN; more than 75,000 killed; about 8,000 disappeared; death squads"
+   },
+   {
+    "title": "Óscar Romero",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/%C3%93scar_Romero",
+    "accessed": "2026-10-04",
+    "supports": "shot at Mass on 24 March 1980; Truth Commission and D'Aubuisson; canonized 2018"
+   },
+   {
+    "title": "El Mozote massacre",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/El_Mozote_massacre",
+    "accessed": "2026-10-04",
+    "supports": "December 11–12, 1981; more than 811 civilians; Atlácatl Battalion trained by U.S. advisers; Monterrosa; neutrality; 2011 apology"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "crack-and-dark-alliance",
   "title": "Crack cocaine and the 'Dark Alliance' controversy",
   "start": 1981,
@@ -13565,6 +15605,91 @@
   ]
  },
  {
+  "slug": "us-invasion-of-panama-1989",
+  "title": "The U.S. invasion of Panama",
+  "start": 1989,
+  "end": 1990,
+  "date": {
+   "text": "December 20, 1989 – January 1990",
+   "precision": "range"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Caribbean and Latin America",
+  "place": "Panama City (El Chorrillo) and the Canal Zone",
+  "region": "Central America",
+  "peoples": [
+   "Hispanic",
+   "Black"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "Manuel Noriega",
+   "George H. W. Bush",
+   "Guillermo Endara"
+  ],
+  "summary": "On December 20, 1989 the United States invaded Panama to depose its ruler Manuel Noriega, a longtime U.S. intelligence asset; Panamanian civilian deaths are counted from 202 by the U.S. military to 2,000–3,000 by other estimates.",
+  "account": [
+   "Noriega, who had longstanding ties to U.S. intelligence agencies, became Panama's de facto dictator in the early 1980s; in 1988 he was indicted in the United States on drug charges, and in 1989 he annulled elections apparently won by Guillermo Endara. After Panama's assembly declared a state of war and a U.S. Marine officer was shot at a roadblock, President George H. W. Bush ordered Operation Just Cause.",
+   "The invasion began on December 20, 1989; the Panama Defense Forces were overwhelmed and dissolved, and Endara was sworn in. Noriega surrendered on January 3, 1990 and was taken to the United States for trial. The U.S. lost 23 killed; 314 Panamanian soldiers were killed. Civilian deaths are disputed: 202 according to the U.S. military, 300 by Americas Watch, 500 by the United Nations, and 2,000–3,000 by other estimates."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "America trained Manuel Noriega, a CIA agent; when he would not follow American policy, the Bush administration sent in the military, destroyed the Panamanian military and killed thousands and thousands of our people, after the propaganda that he was a drug dealer. Then they told Panama its military could not protect the canal, so the rights went to the United States; the contract was supposed to expire in 1999. Watch The Panama Deception."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "752ESdqJThU",
+     "title": "Unshakable Faith In The Darkest Hours",
+     "date": "2023-03-05",
+     "ts": "27:49",
+     "url": "https://youtu.be/752ESdqJThU?t=1669"
+    }
+   },
+   {
+    "points": [
+     "The Pentagon used Panama, December 20th 1989 to January 1990, as a testing ground for its new weapons, the stealth fighter, the Apache helicopter and laser-guided missiles, before the Gulf War: what tribe is Panama? Zebulon."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "powU4vAS7TI",
+     "title": "The Israelites: Christianity Is Worse Than Radical Islam",
+     "date": "2015-03-27",
+     "ts": "1:29:27",
+     "url": "https://youtu.be/powU4vAS7TI?t=5367"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "United States invasion of Panama",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/United_States_invasion_of_Panama",
+    "accessed": "2026-10-04",
+    "supports": "Noriega's U.S. ties; 1988 indictment; 1989 elections; state of war; December 20, 1989; PDF dissolved; Endara; surrender January 3, 1990; casualty figures"
+   }
+  ],
+  "disagreements": [
+   {
+    "point": "Panamanian civilian deaths",
+    "views": [
+     "The classes: 'thousands and thousands' (2023-03-05); 'killing 2,000 plus' (Our Hidden History EP 189, 2026-01-04).",
+     "United States invasion of Panama (Wikipedia): 202 (U.S. military), 300 (Americas Watch), 500 (United Nations), 2,000–3,000 (other estimates)."
+    ]
+   },
+   {
+    "point": "The canal after the invasion",
+    "views": [
+     "Unshakable Faith In The Darkest Hours (2023-03-05): after destroying Panama's military the United States kept the rights to the canal.",
+     "Panama Canal (Wikipedia): the Panamanian government took control of the canal in 1999 under the Torrijos–Carter Treaties."
+    ]
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "nagpra-1990",
   "title": "The Native American Graves Protection and Repatriation Act",
   "start": 1990,
@@ -13741,6 +15866,84 @@
   ],
   "uncertainty": "These events are told by IUIC's history page and the classes; no other documented source was used. The later history of the Israelite Church of God in Jesus Christ is not part of this Timeline.",
   "period": "civil-rights-awakening",
+  "status": "published"
+ },
+ {
+  "slug": "zapatista-uprising-1994",
+  "title": "The Zapatista uprising",
+  "start": 1994,
+  "end": 1994,
+  "date": {
+   "text": "January 1, 1994",
+   "precision": "day"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Resistance",
+  "place": "Chiapas, Mexico",
+  "region": "Mexico",
+  "peoples": [
+   "Native"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "Subcomandante Marcos"
+  ],
+  "summary": "On January 1, 1994, the day NAFTA took effect, the Zapatista Army of National Liberation, made up mostly of rural Maya of Chiapas, declared war on the Mexican government.",
+  "account": [
+   "The EZLN went public on January 1, 1994, issuing its First Declaration from the Lacandon Jungle on the day the North American Free Trade Agreement came into effect; it amounted to a declaration of war on a government it considered illegitimate, chosen, it said, because peaceful protest had achieved nothing.",
+   "Its main body is mostly rural Indigenous people, the Maya peoples of Chiapas, seeking Indigenous control over local resources, especially land. After the Mexican armed forces countered the uprising, the EZLN abstained from military offensives and turned to civil resistance; since 1994 it has been nominally at war with the Mexican state."
+  ],
+  "sources": [
+   {
+    "title": "Zapatista Army of National Liberation",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Zapatista_Army_of_National_Liberation",
+    "accessed": "2026-10-04",
+    "supports": "January 1, 1994; NAFTA; First Declaration; Maya of Chiapas; land and resources; civil resistance; nominal war since 1994"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "hurricane-mitch-1998",
+  "title": "Hurricane Mitch",
+  "start": 1998,
+  "end": 1998,
+  "date": {
+   "text": "October 22 – November 9, 1998",
+   "precision": "range"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Other atrocities",
+  "place": "Honduras, Nicaragua and Central America",
+  "region": "Central America",
+  "peoples": [
+   "Hispanic",
+   "Native",
+   "Black"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "Carlos Roberto Flores"
+  ],
+  "summary": "Hurricane Mitch killed 11,374 people in Central America in 1998, the deadliest hurricane in the region's history; Honduras suffered over half the deaths and up to 1.5 million homeless.",
+  "account": [
+   "Mitch formed in the western Caribbean on October 22, 1998, reached Category 5, and struck Honduras before roving through Central America; it dissipated on November 9. It caused 11,374 fatalities in Central America, the deadliest hurricane in Central American history and the second-deadliest Atlantic hurricane on record.",
+   "Honduras suffered over half the deaths. About 35,000 houses were wrecked and 50,000 damaged, leaving up to 1.5 million people homeless, about 20 percent of the population; President Carlos Roberto Flores estimated Mitch set back 50 years of development."
+  ],
+  "sources": [
+   {
+    "title": "Hurricane Mitch",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Hurricane_Mitch",
+    "accessed": "2026-10-04",
+    "supports": "11,374 fatalities; deadliest in Central American history; dates; Honduras over half the deaths; houses; 1.5 million homeless; 50 years of development"
+   }
+  ],
   "status": "published"
  },
  {
@@ -13948,6 +16151,131 @@
     "url": "https://en.wikipedia.org/wiki/Cobell_v._Salazar",
     "accessed": "2026-10-04",
     "supports": "1996 suit by Elouise Cobell; the trust; class size claims; settled 2009 for $3.4 billion, $1.4 billion and $2 billion; scholarship fund"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "honduras-coup-2009",
+  "title": "The 2009 coup in Honduras",
+  "start": 2009,
+  "end": 2009,
+  "date": {
+   "text": "June 28, 2009",
+   "precision": "day"
+  },
+  "period": "unto-this-day",
+  "group": "Caribbean and Latin America",
+  "place": "Tegucigalpa, Honduras",
+  "region": "Central America",
+  "peoples": [
+   "Hispanic"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "Manuel Zelaya",
+   "Roberto Micheletti"
+  ],
+  "summary": "On June 28, 2009 the Honduran army seized President Manuel Zelaya and flew him into exile in Costa Rica; the UN, the OAS and the EU condemned it as a military coup.",
+  "account": [
+   "Zelaya had sought a non-binding poll on convening an assembly to write a new constitution, and defied court orders to stop it. On June 28, 2009 soldiers stormed the presidential residence, detained him and halted the poll; rather than trying him, the army flew him to Costa Rica. Congress removed him and appointed Roberto Micheletti. It was the first coup in Honduras since 1978.",
+   "The United Nations, the Organization of American States and the European Union condemned Zelaya's removal as a military coup, and on 5 July 2009 the OAS voted unanimously to suspend Honduras."
+  ],
+  "sources": [
+   {
+    "title": "2009 Honduran coup d'état",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/2009_Honduran_coup_d%27%C3%A9tat",
+    "accessed": "2026-10-04",
+    "supports": "June 28, 2009; the poll; arrest and exile to Costa Rica; Micheletti; first coup since 1978; UN, OAS and EU condemnation; OAS suspension 5 July 2009"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "ayotzinapa-43-students-2014",
+  "title": "The disappearance of the 43 Ayotzinapa students",
+  "start": 2014,
+  "end": 2014,
+  "date": {
+   "text": "September 26, 2014",
+   "precision": "day"
+  },
+  "period": "unto-this-day",
+  "group": "Other atrocities",
+  "place": "Iguala, Guerrero, Mexico",
+  "region": "Mexico",
+  "peoples": [
+   "Hispanic",
+   "Native"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "summary": "On September 26, 2014, forty-three students of the Ayotzinapa Rural Teachers' College were abducted by police in Iguala, Guerrero, in collusion with organized crime, with later evidence implicating the army; only three have been identified.",
+  "account": [
+   "The students were travelling to commemorate the anniversary of the 1968 Tlatelolco massacre when local police from Iguala and Cocula set up roadblocks, fired on their buses and took them, allegedly in collusion with organized crime; later evidence implicated the Mexican Army.",
+   "Officials have concluded that there is no indication the students are alive, but as of 2025 only three students' remains had been identified. Tens of thousands have gone missing in the Mexican drug war; official obstacles to independent investigation provoked protests that led to the resignation of the governor of Guerrero."
+  ],
+  "sources": [
+   {
+    "title": "2014 Iguala mass kidnapping",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/2014_Iguala_mass_kidnapping",
+    "accessed": "2026-10-04",
+    "supports": "September 26, 2014; 43 students; Iguala and Cocula police; organized crime; Army implicated; Tlatelolco commemoration; three identified as of 2025; tens of thousands missing; governor's resignation"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "afro-mexicans-counted-2015-2020",
+  "title": "Afro-Mexicans counted for the first time",
+  "start": 2015,
+  "end": 2020,
+  "date": {
+   "text": "2015 inter-census survey; 2020 census",
+   "precision": "range"
+  },
+  "period": "unto-this-day",
+  "group": "Identity and erasure",
+  "place": "Mexico; Costa Chica of Guerrero and Oaxaca; Veracruz",
+  "region": "Mexico",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "summary": "Mexico's 2015 inter-census survey was the first that let Afro-Mexicans identify themselves as such; in the 2020 census 2,576,213 people, 2.04% of the population, identified as Afro-descendant.",
+  "account": [
+   "Mexico's national identity after the Revolution emphasized its Indigenous and Spanish heritage and excluded African history; not until 1992 did the government officially recognize African culture as one of the three major influences on Mexican culture. The 2015 Inter-census Estimate was the first time Afro-Mexicans could identify themselves as such, asking: \"Based on your culture, history, and traditions, do you consider yourself Black, meaning Afro-Mexican or Afro-descendant?\"",
+   "In the 2020 census 2,576,213 Mexicans, 2.04% of the population, self-identified as Afro-descendants, concentrated in the Costa Chica of Guerrero and Oaxaca and in Veracruz. In 2015, 64.9% of Afro-Mexicans also identified as Indigenous."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Black Mexicans are only now starting to get public recognition after centuries of being ignored: Mexico underplayed the roles and contributions of black people and kept them out of the textbooks, and out of everything."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "ti3uQkabt4Q",
+     "title": "#IUIC | FCN : Where Truth Speaks!!",
+     "date": "2022-02-17",
+     "ts": "1:03:37",
+     "url": "https://youtu.be/ti3uQkabt4Q?t=3817"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Afro-Mexicans",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Afro-Mexicans",
+    "accessed": "2026-10-04",
+    "supports": "erasure after the Revolution; 1992 recognition; 2015 census question; 2020 census 2,576,213 and 2.04%; regions; 64.9% also Indigenous"
    }
   ],
   "status": "published"
@@ -14474,6 +16802,67 @@
   "status": "published"
  },
  {
+  "slug": "family-separation-2017-2018",
+  "title": "Children separated from their parents at the border",
+  "start": 2017,
+  "end": 2019,
+  "date": {
+   "text": "summer 2017 – 2019; 'zero tolerance' April–June 2018",
+   "precision": "range"
+  },
+  "period": "unto-this-day",
+  "group": "Other atrocities",
+  "place": "U.S.–Mexico border",
+  "region": "United States",
+  "peoples": [
+   "Hispanic",
+   "Native"
+  ],
+  "tribes": [
+   "Zebulon",
+   "Issachar"
+  ],
+  "people": [
+   "Donald Trump"
+  ],
+  "summary": "Under its 'zero tolerance' policy the first Trump administration separated more than 5,500 migrant children, infants among them, from their parents at the U.S.–Mexico border; many of the families were fleeing El Salvador, Guatemala and Honduras.",
+  "account": [
+   "Separations began in the summer of 2017, before the 'zero tolerance' policy was announced in April 2018; it was applied across the whole border from April to June 2018, and about 1,100 more families were separated between June 2018 and the end of 2019. In total more than 5,500 children, including infants, were separated; the adults were prosecuted and held in federal jails or deported. Some families seeking asylum at official crossings were also separated.",
+   "The influx of the time included growing numbers of women and children fleeing violence, gang recruitment and sexual trafficking in the Northern Triangle of El Salvador, Guatemala and Honduras. Children were held without adult caretakers; a 14-year-old girl from Guatemala holding two little girls told visitors, \"I need comfort, too. I am bigger than they are, but I am a child, too.\""
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Children in cages, with aluminium-foil blankets, a water bottle and a snack: Deuteronomy 28:49-50, a nation of fierce countenance which shall not regard the person of the old nor show favour to the young. They do not look at us as human."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "FKW34InojdQ",
+     "title": "ESCAPING THE PLANTATION 2.0: WAR CRIMES AND UPROARS OF THE PEOPLE",
+     "date": "2024-03-04",
+     "ts": "1:00:08",
+     "url": "https://youtu.be/FKW34InojdQ?t=3608"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "Deuteronomy 28:49-50",
+    "why": "A nation of fierce countenance that shows no favour to the young: children of the northern kingdom caged at the border."
+   }
+  ],
+  "sources": [
+   {
+    "title": "Trump administration family separation policy",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Trump_administration_family_separation_policy",
+    "accessed": "2026-10-04",
+    "supports": "2017–2018; zero tolerance April–June 2018; 1,100 families after June 2018; more than 5,500 children; asylum seekers; Northern Triangle; the Guatemalan girl's words"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "splc-hatewatch-iuic-liberia-2018",
   "title": "SPLC Hatewatch writes against IUIC’s mission to Liberia",
   "start": 2018,
@@ -14642,6 +17031,45 @@
    }
   ],
   "uncertainty": "The coroner could not establish the manner of death. Joy Morgan’s family and former members are quoted only as the BBC and Wikipedia report them.",
+  "status": "published"
+ },
+ {
+  "slug": "central-american-migrant-caravans-2018",
+  "title": "The Central American migrant caravans",
+  "start": 2018,
+  "end": 2018,
+  "date": {
+   "text": "Spring and October 2018",
+   "precision": "range"
+  },
+  "period": "unto-this-day",
+  "group": "Caribbean and Latin America",
+  "place": "Honduras, Guatemala and Mexico to the U.S. border",
+  "region": "Central America and Mexico",
+  "peoples": [
+   "Hispanic",
+   "Native"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "Bartolo Fuentes"
+  ],
+  "summary": "In 2018 caravans of migrants from Honduras, Guatemala, El Salvador and Nicaragua walked toward the United States to seek asylum, fleeing violence, poverty and repression; the October caravan numbered around 5,000 at the Guatemala–Mexico border.",
+  "account": [
+   "Migrant caravans travel from Central America to the U.S.–Mexico border to seek asylum; the best known set off during Holy Week in 2017 and 2018 from the Northern Triangle. On 12 October 2018 migrants from Honduras, Guatemala, Nicaragua and El Salvador gathered at San Pedro Sula, Honduras, and set out the next day to flee violence, poverty and political repression; it began with about 160 people and soon had over 500.",
+   "Entering Tecún Umán on 18 October 2018 the caravan numbered around 5,000. That day President Donald Trump threatened to deploy the military and close the border and to cut aid to countries that let the caravans pass, and Mexico flew Federal Police to the Guatemala–Mexico border."
+  ],
+  "sources": [
+   {
+    "title": "Central American migrant caravans",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Central_American_migrant_caravans",
+    "accessed": "2026-10-04",
+    "supports": "Northern Triangle; Holy Week 2017 and 2018; San Pedro Sula 12 October 2018; 160 to 500; around 5,000 at Tecún Umán on 18 October; Trump's threats; Mexican Federal Police"
+   }
+  ],
   "status": "published"
  },
  {
@@ -14990,6 +17418,60 @@
    }
   ],
   "uncertainty": "The New York Post article is described only as it was read in the class of January 5, 2020; it was not read directly.",
+  "status": "published"
+ },
+ {
+  "slug": "el-paso-walmart-shooting-2019",
+  "title": "The El Paso Walmart massacre",
+  "start": 2019,
+  "end": 2019,
+  "date": {
+   "text": "August 3, 2019",
+   "precision": "day"
+  },
+  "period": "unto-this-day",
+  "group": "Other atrocities",
+  "place": "El Paso, Texas",
+  "region": "United States",
+  "peoples": [
+   "Hispanic"
+  ],
+  "tribes": [
+   "Issachar"
+  ],
+  "people": [
+   "Patrick Crusius"
+  ],
+  "summary": "On August 3, 2019 a gunman who had posted an anti-Hispanic manifesto against a 'Hispanic invasion' drove 650 miles to a Walmart in El Paso and shot 45 people, killing 23.",
+  "account": [
+   "On August 3, 2019 Patrick Crusius, 21, shot 45 people at a Walmart in El Paso, Texas, killing 23. He had driven 650 miles from Allen, Texas, and shortly before the attack posted a manifesto with white nationalist and anti-immigrant themes, citing the Great Replacement conspiracy theory and a 'Hispanic invasion'.",
+   "In 2023 he pleaded guilty to 90 federal murder and hate-crime charges and was sentenced to 90 consecutive life sentences."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "He drove hundreds of miles to a Walmart in El Paso with the explicit mission to kill Latinos, and 23 people died: he was not brainwashed; he did the thing he wanted to do."
+    ],
+    "quote": "I drove hundreds of miles to a Walmart in El Paso in El Paso with the explicit mission to kill Latinos",
+    "source": {
+     "kind": "class",
+     "id": "i-8rTURx0X4",
+     "title": "# IUIC | ARMOR OF GOD RADIO: Mass Shootings",
+     "date": "2023-02-12",
+     "ts": "49:57",
+     "url": "https://youtu.be/i-8rTURx0X4?t=2997"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "2019 El Paso Walmart shooting",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/2019_El_Paso_Walmart_shooting",
+    "accessed": "2026-10-04",
+    "supports": "August 3, 2019; 45 shot, 23 killed; 650-mile drive; manifesto, Great Replacement and 'Hispanic invasion'; 2023 guilty plea and 90 life sentences"
+   }
+  ],
   "status": "published"
  },
  {
@@ -15436,6 +17918,75 @@
   "status": "published"
  },
  {
+  "slug": "el-salvador-gang-crackdown-2022",
+  "title": "El Salvador's state of exception and CECOT",
+  "start": 2022,
+  "end": 2026,
+  "date": {
+   "text": "From March 27, 2022",
+   "precision": "range"
+  },
+  "period": "unto-this-day",
+  "group": "Caribbean and Latin America",
+  "place": "El Salvador",
+  "region": "Central America",
+  "peoples": [
+   "Hispanic"
+  ],
+  "tribes": [
+   "Zebulon"
+  ],
+  "people": [
+   "Nayib Bukele"
+  ],
+  "summary": "Since March 2022 El Salvador under Nayib Bukele has suspended constitutional rights in a state of emergency and arrested over 93,000 people accused of gang ties, giving it the world's highest incarceration rate; from 2025 the United States sent deportees to its CECOT mega-prison.",
+  "account": [
+   "After gang killings of 87 people on 25–27 March 2022, the government declared a state of emergency suspending several constitutional rights; it has since been extended 55 times. Over 93,162 people accused of gang affiliation have been arrested, and by 2023 El Salvador had the highest incarceration rate in the world, about two percent of its adults. In January 2023 it opened the Terrorism Confinement Center (CECOT), with capacity for 40,000 prisoners. Homicides fell; human rights groups called the arrests arbitrary.",
+   "The second Trump administration used the Alien Enemies Act to deport immigrants with limited or no due process to be imprisoned in El Salvador, which federal judges and the Supreme Court halted."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "When El Salvador agreed to put migrants in its mega-prison, the U.S. paved the way for it to develop nuclear power: that was the deal. Eventually it will be us they throw into places like that and throw away the key. Bukele is not our people; whatever he has done against crime, there is a dynamic: the Monroe Doctrine is alive and well."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "0R72YoWSDOM",
+     "title": "The Hidden Religion of America: Hellenism in Disguise",
+     "date": "2025-02-22",
+     "ts": "2:34:20",
+     "url": "https://youtu.be/0R72YoWSDOM?t=9260"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Salvadoran gang crackdown",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Salvadoran_gang_crackdown",
+    "accessed": "2026-10-04",
+    "supports": "27 March 2022; 87 killed; suspension of rights; 55 extensions; 93,162 arrested; highest incarceration rate; two percent of adults; CECOT for 40,000; homicide figures; human rights concerns"
+   },
+   {
+    "title": "Deportation in the second Trump administration",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Deportation_in_the_second_Trump_administration",
+    "accessed": "2026-10-04",
+    "supports": "Alien Enemies Act deportations to imprisonment in El Salvador; halted by the courts"
+   }
+  ],
+  "disagreements": [
+   {
+    "point": "The CECOT deal",
+    "views": [
+     "The Hidden Religion of America (2025-02-22), reading an article: the U.S. paved the way for nuclear power in return for El Salvador taking migrants into its mega-prison.",
+     "The Wikipedia articles read do not mention a nuclear arrangement."
+    ]
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "haaland-v-brackeen-2023",
   "title": "Haaland v. Brackeen upholds the Indian Child Welfare Act",
   "start": 2023,
@@ -15470,6 +18021,89 @@
     "url": "https://en.wikipedia.org/wiki/Haaland_v._Brackeen",
     "accessed": "2026-10-04",
     "supports": "argued November 9, 2022; decided June 15, 2023; 7–2; Barrett for the majority; Thomas and Alito dissenting"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "mass-deportations-2025",
+  "title": "The mass deportations of 2025–2026",
+  "start": 2025,
+  "end": 2026,
+  "date": {
+   "text": "From January 2025",
+   "precision": "range"
+  },
+  "period": "unto-this-day",
+  "group": "Caribbean and Latin America",
+  "place": "United States",
+  "region": "United States",
+  "peoples": [
+   "Hispanic",
+   "Black"
+  ],
+  "tribes": [
+   "Issachar",
+   "Zebulon"
+  ],
+  "people": [
+   "Donald Trump"
+  ],
+  "summary": "From January 2025 the second Trump administration pursued mass deportation; ICE alone deported nearly 200,000 people in seven months, deportees were sent to countries deemed too dangerous to visit, and killings of people by immigration agents set off national protests in 2026.",
+  "account": [
+   "37,660 people were deported in the administration's first month; on August 28, 2025 CNN reported that ICE alone had deported nearly 200,000 people in seven months. The Alien Enemies Act was used to deport immigrants with limited or no due process; several U.S. citizens were detained and deported, and more than 21,000 people, at least 600 of them children, were deported to countries the State Department deemed too dangerous to visit.",
+   "As early as April 2025 most Americans polled thought the deportations had gone 'too far'. In early 2026 national protests escalated after immigration agents killed two American citizens, Renée Good and Alex Pretti; in July 2026 an ICE agent shot and killed Lorenzo Salgado Araujo in Houston."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Mass deportations by Donald Trump are Deuteronomy 28:29: thou shalt be only oppressed and spoiled evermore, and no man shall save thee; we cannot even travel land to land, though these lands were given to the Israelites. Only the black Messiah can save us.",
+     "1 Kings 8:46: if they sin against thee and thou be angry with them and deliver them to the enemy: the Most High is angry with us, and that is why he allows America to mass-deport us."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "YCX7a5tgeM0",
+     "title": "Border War: Trump’s Deportations Set To Rock Latin America",
+     "date": "2025-02-03",
+     "ts": "15:26",
+     "url": "https://youtu.be/YCX7a5tgeM0?t=926"
+    }
+   },
+   {
+    "points": [
+     "What Trump does is what Claudius did: Acts 18:2, Claudius commanded all Jews to depart from Rome; Aquila and Priscilla were deported. That is mass deportation. The immigration raids are not raiding Europeans; they are going after black and Hispanic communities."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "V9oc-I5QZjQ",
+     "title": "CIVIL WAR & THE SON OF PERDITION",
+     "date": "2026-01-24",
+     "ts": "27:58",
+     "url": "https://youtu.be/V9oc-I5QZjQ?t=1678"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "Deuteronomy 28:29",
+    "why": "Only oppressed and spoiled evermore, and no man to save: the mass deportation of the northern kingdom."
+   },
+   {
+    "ref": "1 Kings 8:46",
+    "why": "Delivered to the enemy for sin: why the Most High allows the deportations."
+   },
+   {
+    "ref": "Acts 18:2",
+    "why": "Claudius's expulsion of the Jews from Rome, the pattern of today's deportations."
+   }
+  ],
+  "sources": [
+   {
+    "title": "Deportation in the second Trump administration",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Deportation_in_the_second_Trump_administration",
+    "accessed": "2026-10-04",
+    "supports": "37,660 in the first month; nearly 200,000 by ICE in seven months (CNN, August 28, 2025); Alien Enemies Act; citizens deported; 21,000 to dangerous countries incl. 600 children; polls; 2026 killings and protests; Lorenzo Salgado Araujo"
    }
   ],
   "status": "published"

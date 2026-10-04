@@ -748,5 +748,25 @@
   "summary": "Cited by CDAMM as ADL, “Extremist Sects Within the Black Hebrew Israelite Movement,” August 7, 2020.",
   "needs": "the ADL page itself (adl.org blocked; no Wayback copy reachable this session)",
   "status": "draft"
+ },
+ {
+  "slug": "mexico-city-conspiracy-1612",
+  "title": "The alleged African conspiracy of 1612 in Mexico City",
+  "period": "into-the-ships",
+  "tribes": [
+   "Issachar"
+  ],
+  "status": "draft",
+  "needs": "A documented source (no Wikipedia article was found and no class taught it); the commonly cited execution of about 35 Africans must be confirmed before publication."
+ },
+ {
+  "slug": "afro-mexican-constitutional-recognition-2019",
+  "title": "Mexico's constitution recognizes Afro-Mexican peoples",
+  "period": "unto-this-day",
+  "tribes": [
+   "Issachar"
+  ],
+  "status": "draft",
+  "needs": "A source read for the 2019 amendment to Article 2 (the Afro-Mexicans article read gives only the 1992 cultural recognition and the 2015 and 2020 census counts)."
  }
 ]
