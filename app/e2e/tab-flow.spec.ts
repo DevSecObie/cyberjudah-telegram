@@ -62,6 +62,7 @@ for (const mode of ["normal", "fallback", "reduced", "rejected"]) {
     await expect(page.locator(".tabcard")).toHaveCount(8);
     await page.getByRole("button", { name: "Open the selected tab", exact: true }).click();
     await expect(page.locator("html")).not.toHaveAttribute("data-tab-motion");
+    await expect(page.locator("head style").filter({ hasText: /--tab-from:\s*translate/ })).toHaveCount(0);
     await expect(page).toHaveURL(/\/read\/genesis\/1/);
     // Firefox can retain a fractional CSS pixel after the transformed viewport settles.
     await expect.poll(() => page.locator(".bs-scroll").evaluate(e => Math.abs(e.scrollTop - 740))).toBeLessThanOrEqual(1);

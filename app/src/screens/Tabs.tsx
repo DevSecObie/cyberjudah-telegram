@@ -158,7 +158,10 @@ export function Tabs() {
   const container = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     const element = container.current!;
-    const measure = () => setSize(cardSize(element.clientWidth));
+    const measure = () => {
+      const next = cardSize(element.clientWidth);
+      setSize(previous => previous.w === next.w && previous.h === next.h && previous.perRow === next.perRow ? previous : next);
+    };
     const observer = new ResizeObserver(measure); observer.observe(element); measure();
     window.addEventListener("resize", measure);
     return () => { observer.disconnect(); window.removeEventListener("resize", measure); };

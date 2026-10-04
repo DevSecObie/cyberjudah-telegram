@@ -77,6 +77,7 @@ export function moveTab(update: () => void | false, mode: Mode, id = currentTab(
   let canceled = false, usingFallback = false, changed: void | false;
   let commitPromise: Promise<void> | undefined;
   let transition: ViewTransition | undefined, animation: Animation | undefined;
+  let geometry: HTMLStyleElement | undefined;
   const named = new Set<HTMLElement>();
   const name = (element: HTMLElement | null, value: string) => {
     if (!element) return;
@@ -86,7 +87,7 @@ export function moveTab(update: () => void | false, mode: Mode, id = currentTab(
   const clean = () => {
     if (cancelMotion !== cancel) return;
     clearNames(); delete root.dataset.tabMotion;
-    root.style.removeProperty("--tab-from"); root.style.removeProperty("--tab-to");
+    geometry?.remove();
     cancelMotion = undefined;
   };
   const cancel = () => { canceled = true; transition?.skipTransition(); animation?.cancel(); clean(); };
@@ -132,8 +133,11 @@ export function moveTab(update: () => void | false, mode: Mode, id = currentTab(
       const to = next === root ? { x: 0, y: 0, width: innerWidth, height: innerHeight } : next?.getBoundingClientRect();
       if (!next || !to?.width || !to.height) return;
       name(next, "tab-surface"); name(document.querySelector("nav.tabs"), "tab-controls");
-      root.style.setProperty("--tab-from", `translate(${from.x}px, ${from.y}px) scale(${from.width / to.width}, ${from.height / to.height})`);
-      root.style.setProperty("--tab-to", `translate(${to.x}px, ${to.y}px)`);
+      // Geometry belongs to the snapshot alone. Inherited root variables invalidate the
+      // entire reader/switcher subtree just as the browser is preparing its animation.
+      geometry = document.createElement("style");
+      geometry.textContent = `::view-transition-group(tab-surface) { --tab-from: translate(${from.x}px, ${from.y}px) scale(${from.width / to.width}, ${from.height / to.height}); --tab-to: translate(${to.x}px, ${to.y}px); }`;
+      document.head.append(geometry);
     });
     void transition.ready.catch(() => { usingFallback = true; return commit().then(fallback); });
     void transition.finished.catch(() => {}).then(() => { if (!usingFallback) clean(); });
