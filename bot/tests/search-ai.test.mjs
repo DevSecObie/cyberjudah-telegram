@@ -1,0 +1,52 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { build } from "esbuild";
+import { DatabaseSync } from "node:sqlite";
+
+// ai.ts is bundled for Node first (as Workers bundles it).
+const out = new URL("./.build/search-ai.mjs", import.meta.url).pathname;
+await build({ stdin: { contents: 'export * from "./src/ai.ts"; export { ensureCreditTables } from "./src/credits.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
+const { answerSearch, freeSpendToday } = await import(out);
+
+/** A D1 close enough for the meter and spend tables, backed by real SQLite. */
+const d1 = () => {
+  const db = new DatabaseSync(":memory:");
+  const execBound = (q, args) => {
+    const returning = /RETURNING/i.test(q);
+    return {
+      first: async () => db.prepare(q).get(...args) ?? null,
+      all: async () => ({ results: db.prepare(q).all(...args) }),
+      run: async () => {
+        const stmt = db.prepare(q);
+        if (returning) { const results = stmt.all(...args); return { results, meta: { changes: results.length } }; }
+        const r = stmt.run(...args);
+        return { results: [], meta: { changes: Number(r.changes ?? 0) } };
+      },
+    };
+  };
+  const unbound = (q) => execBound(q, []);
+  return {
+    prepare: (q) => ({ bind: (...a) => execBound(q, a), first: unbound(q).first, all: unbound(q).all, run: unbound(q).run }),
+    batch: async (stmts) => Promise.all(stmts.map((s) => s.run())),
+  };
+};
+// No AI or Vectorize bindings: retrieval finds nothing, so no model is ever called.
+const kv = () => ({ get: async () => null, put: async () => undefined, delete: async () => undefined });
+const env = () => ({ DB: d1(), PRIVACY_KEY: "test-key", SUBS: kv() });
+
+test("a too-short question is rejected before anything runs", async () => {
+  const r = await answerSearch(env(), "x");
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, "too-short");
+});
+
+test("with nothing in the library it says so, on the default free model", async () => {
+  const e = env();
+  const r = await answerSearch(e, "melchizedek");
+  assert.equal(r.ok, true);
+  assert.match(r.answer, /not find enough reliable material/);
+  assert.deepEqual(r.sources, []);
+  assert.equal(r.model, "@cf/meta/llama-3.1-8b-instruct-fp8");
+  const spent = await freeSpendToday(e);
+  assert.ok(spent > 0 && spent < 0.001, `the nominal research cost is metered for the breaker (got $${spent})`);
+});

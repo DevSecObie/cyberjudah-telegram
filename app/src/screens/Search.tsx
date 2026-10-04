@@ -1,14 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { useRecentSearches } from "@/lib/marks";
 import { showOf } from "@/lib/series";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
-import { api, ApiError, haptic, hideKeyboard } from "@/tg/sdk";
+import { api, ApiError, haptic, hideKeyboard, openLink } from "@/tg/sdk";
 import { Button, Chip, Icon, Img, Skeleton, timestamp, type IconName } from "@/ui/ui";
 import { fmtDate } from "@/api/data";
 import { FEED_NAME, KIND_LABEL, Lit, Marked, hitPath, teachingPath, useTeachingsSearch, type Hit, type SearchResult, type TeachingHit } from "@/ui/search-hero";
+import { answerHtml, passageLabel, passagePath, type Source } from "./Ask";
+import { linkRefsInHtml, useBookSlugs } from "@/ui/reftext";
 import { thumbOf } from "@/ui/ui";
 import { frameStyle, useBoard } from "@/lib/frames";
 import { Trouble } from "@/ui/trouble";
@@ -151,7 +153,7 @@ export function Search() {
             <Spoken q={term} res={spoken} page={page} onPage={(p) => set({ page: p ? String(p) : undefined })} />
           </>
         ) : scope === "top" ? (
-          <Top term={term} refPath={ref} taught={taught.data} library={library} spoken={spoken} hits={hits} counts={counts} onScope={(s) => set({ in: s, page: undefined }, true)} onOpenRef={() => ref && navigate(ref)} />
+          <Top term={term} aiQ={q} refPath={ref} taught={taught.data} library={library} spoken={spoken} hits={hits} counts={counts} onScope={(s) => set({ in: s, page: undefined }, true)} onOpenRef={() => ref && navigate(ref)} />
         ) : (
           <Library scope={scope} library={library} hits={hits.filter((h) => SCOPE_KINDS[scope].includes(h.kind))} q={term} />
         )}
@@ -189,8 +191,65 @@ function Start({ recent, onPick, onForget, onClear }: { recent: string[]; onPick
 type LibraryQuery = ReturnType<typeof useLibrary>;
 type SpokenQuery = ReturnType<typeof useTeachingsSearch>;
 
+type SearchAi = { ok: boolean; answer?: string; sources?: Source[]; model?: string; error?: string };
+
+/**
+ * The AI answer block: one free-tier answer over the library for the submitted search, above the
+ * keyword results. It fires once per submitted search (not while typing), fails silent so the
+ * keyword results always remain, and each citation chip opens its source.
+ */
+function AiAnswer({ q }: { q: string }) {
+  const navigate = useNavigate();
+  const slugs = useBookSlugs();
+  const res = useQuery({
+    queryKey: ["search-ai", q],
+    enabled: q.trim().length >= 2,
+    staleTime: 120_000,
+    retry: false,
+    queryFn: () => api<SearchAi>(`/api/search/answer?q=${encodeURIComponent(q.trim())}`),
+  });
+  const data = res.data;
+  const html = useMemo(() => (data?.ok && data.answer ? linkRefsInHtml(answerHtml(data.answer, data.sources ?? []), slugs) : ""), [data, slugs]);
+  if (q.trim().length < 2) return null;
+  if (res.isPending) {
+    return (
+      <section className="srch__group srch__ai" aria-label="AI answer">
+        <div className="srch__head"><h2><Icon name="spark" size={16} />AI answer</h2></div>
+        <Skeleton rows={3} />
+      </section>
+    );
+  }
+  if (res.isError || !data?.ok || !data.answer) return null;
+  const sources = data.sources ?? [];
+  const open = (s: Source) => { haptic("select"); if (s.kind === "web" && /^https:\/\//.test(s.url)) openLink(s.url); else navigate(passagePath(s)); };
+  const onClick = (e: MouseEvent<HTMLDivElement>) => {
+    const ref = (e.target as HTMLElement).closest<HTMLAnchorElement>("a.reflink, a.applink");
+    if (ref) { e.preventDefault(); haptic("select"); navigate(ref.getAttribute("href")!.replace(/&amp;/g, "&")); return; }
+    const c = (e.target as HTMLElement).closest<HTMLElement>("[data-n]");
+    const s = c && sources.find((x) => x.n === Number(c.dataset.n));
+    if (s) { e.preventDefault(); open(s); }
+  };
+  return (
+    <section className="srch__group srch__ai" aria-label="AI answer">
+      <div className="srch__head"><h2><Icon name="spark" size={16} />AI answer</h2><span className="srch__count">free</span></div>
+      <div className="msg__text" onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />
+      {sources.length ? (
+        <div className="srcrail">
+          {sources.map((s) => (
+            <button key={s.n} type="button" className="srccard" onClick={() => open(s)}>
+              <span className="srccard__top"><b className="cite">{s.n}</b><small>{passageLabel(s)}</small></span>
+              <span className="srccard__title">{s.title}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <p className="hint">From the library, answered by the free model. It can be wrong — check the sources.</p>
+    </section>
+  );
+}
+
 /** Top: a reference first, then what was said in class, then each kind of library result, three of each. */
-function Top({ term, refPath, taught, library, spoken, hits, counts, onScope, onOpenRef }: { term: string; refPath: string | null; taught?: { hits: TeachingHit[]; total: number }; library: LibraryQuery; spoken: SpokenQuery; hits: Hit[]; counts: Record<string, number>; onScope: (s: Scope) => void; onOpenRef: () => void }) {
+function Top({ term, aiQ, refPath, taught, library, spoken, hits, counts, onScope, onOpenRef }: { term: string; aiQ: string; refPath: string | null; taught?: { hits: TeachingHit[]; total: number }; library: LibraryQuery; spoken: SpokenQuery; hits: Hit[]; counts: Record<string, number>; onScope: (s: Scope) => void; onOpenRef: () => void }) {
   const groups = useMemo(() => TOP_ORDER.map((k) => [k, hits.filter((h) => h.kind === k)] as const).filter(([, list]) => list.length), [hits]);
   // A reference: the classes that taught it. Words: where they were said.
   const moments = taught?.hits.length ? taught.hits.slice(0, 3) : spoken.data?.ok ? spoken.data.hits.slice(0, 3) : [];
@@ -203,6 +262,7 @@ function Top({ term, refPath, taught, library, spoken, hits, counts, onScope, on
   const scopeOf = (k: string): Scope => (Object.entries(SCOPE_KINDS).find(([, ks]) => ks.includes(k))?.[0] ?? "notes") as Scope;
   return (
     <>
+      <AiAnswer q={aiQ} />
       {refPath ? (
         <button type="button" data-result="" className="srch__ref" onClick={onOpenRef}>
           <span className="srch__refIcon"><Icon name="book" size={22} /></span>

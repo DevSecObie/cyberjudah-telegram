@@ -14,7 +14,7 @@ import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./t
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
 import { readSources, saveSources } from "./cms-sources";
-import { ask, askStream, creditsOn, defaultModelId, freeModels, similar, speakVerse, sweepRateCounts, takeQuotaKey } from "./ai";
+import { answerSearch, ask, askStream, creditsOn, defaultModelId, freeModels, freePaused, similar, speakVerse, sweepRateCounts, takeQuotaKey } from "./ai";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -187,6 +187,24 @@ app.get("/api/search", async (c) => {
     const limit = Math.min(Math.max(Number(c.req.query("limit")) || 8, 1), 100);
     const res = await runSearch(c.env.DB, q, only, limit, false, c.req.query("live") === "1");
     return c.json(res, res.ok ? 200 : 503);
+  });
+});
+
+// The search screen's AI answer block: one free-tier answer over the library, no sign-in needed.
+// Each answer is a single Workers AI call on the free tier; the per-IP quota and the owner's
+// daily breaker bound it, and identical questions share a cached answer for two minutes.
+app.get("/api/search/answer", async (c) => {
+  return edgeCached(c, 120, async () => {
+    const q = c.req.query("q") ?? "";
+    if (q.trim().length < 2) return c.json({ ok: false, error: "too-short" }, 400);
+    const ip = c.req.header("cf-connecting-ip")?.slice(0, 45) ?? "unknown";
+    const day = new Date().toISOString().slice(0, 10);
+    const ipLimit = Math.max(1, Math.floor(Number(c.env.SEARCH_AI_IP_DAILY_LIMIT ?? 100)));
+    if (!(await takeQuotaKey(c.env, `search_ai:${ip}:${day}`, ipLimit))) return c.json({ ok: false, error: "limit" }, 429);
+    if (await freePaused(c.env)) return c.json({ ok: false, error: "free-paused" }, 429);
+    const r = await answerSearch(c.env, q);
+    if (!r.ok) return c.json({ ok: false, error: r.reason }, r.reason === "too-short" ? 400 : 503);
+    return c.json(r);
   });
 });
 
