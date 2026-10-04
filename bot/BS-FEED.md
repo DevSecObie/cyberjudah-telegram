@@ -6,9 +6,12 @@ independent of Telegram authentication. All content comes from CyberJudah's data
 (`DATA_ORIGIN`, normally `https://data.cyberjudah.io`) or its existing bundled Easton
 file. There is no Bible Strong content or fallback to a Bible Strong server.
 
-The interface is pinned to `smontlouis/bible-strong` commit
-`61cf39c8c4a65220212dbac9536794e43ae8207e`. The test-only Effect contracts and their
-GPL-3.0 license live in `tests/upstream/`. `npm test` from `bot/` runs the existing
+The interface targets the `strong/` fork of `smontlouis/bible-strong` at upstream
+commit `d7e9fb5` (see [`strong/README.md`](../strong/README.md)). The test-only
+Effect contract fixtures remain pinned to
+`61cf39c8c4a65220212dbac9536794e43ae8207e`, as recorded in
+[`tests/upstream/source.json`](tests/upstream/source.json); they and their GPL-3.0
+license live in `tests/upstream/`. `npm test` from `bot/` runs the existing
 suite and installs/runs the separately locked contract test dependencies inside
 `bot/tests`, keeping the root workspace lockfile untouched.
 

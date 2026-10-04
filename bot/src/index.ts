@@ -478,8 +478,12 @@ app.post("/api/privacy/export/send", async (c) => {
 app.post("/api/privacy/delete", async (c) => {
   const body = await c.req.json<{ confirm?: unknown }>().catch(() => null);
   if (body?.confirm !== "delete") return c.json({ ok: false, error: "Confirm with { confirm: \"delete\" }." }, 400);
-  const d = await deleteData(c.env, c.get("tma").user!.id);
-  return c.json({ ok: true, deleted: d, summary: deletedSummary(d) });
+  try {
+    const d = await deleteData(c.env, c.get("tma").user!.id);
+    return c.json({ ok: true, deleted: d, summary: deletedSummary(d) });
+  } catch {
+    return c.json({ ok: false, error: "Deletion could not finish. Some data may already have been removed. Please try again." }, 503);
+  }
 });
 
 app.post("/api/subscribe", async (c) => {

@@ -1,5 +1,7 @@
 # Privacy
 
+Deletion succeeds only after every store has confirmed cleanup. If a store fails, the app and bot report incomplete deletion and invite a retry; some earlier steps may already have finished. Repeating deletion completes the remaining work. Data exports also fail rather than silently omit unavailable billing or top-up reminder records.
+
 What CyberJudah keeps about people, why, for how long, who else handles it, and where the code
 enforces each of these. The policy readers see is the Privacy screen (`app/src/screens/Privacy.tsx`,
 `/privacy`, `/privacy` in the bot); this document is the operator's side of it. A change to one is
