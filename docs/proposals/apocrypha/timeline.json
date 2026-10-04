@@ -1,0 +1,71 @@
+{
+  "proposedTitle": "Between the Testaments",
+  "placement": "After The Exile, before Life of Christ",
+  "events": [
+    {
+      "slug": "return-with-zorobabel",
+      "title": "The return with Zorobabel",
+      "summary": "The returning people came with Zorobabel; he and Jesus the son of Josedec made ready the altar.",
+      "date": {"text": "No absolute date stated for the return", "precision": "unknown", "calendar": null, "sourceRef": null},
+      "scriptureRefs": ["1-esdras/5/8", "1-esdras/5/48", "1-esdras/5/56"],
+      "people": ["zerubbabel-1ch-3-19"],
+      "moments": [],
+      "reviewNote": "The rebuilding is dated to the second year and second month after coming to the temple (1 Esdras 5:56); do not date the return itself from that statement. This return overlaps The Exile. Esdras’s later return (1 Esdras 8:1–3) must be a separate event. No verified class excerpt selected yet.",
+      "start": null,
+      "end": null,
+      "status": "proposal"
+    },
+    {
+      "slug": "alexander-and-the-greek-kingdom",
+      "title": "Alexander and the Greek kingdom",
+      "summary": "Alexander, son of Philip, smote Darius and reigned over Greece; his servants bore rule after his death.",
+      "date": {"text": "No absolute date stated in the cited passage", "precision": "unknown", "calendar": null, "sourceRef": null},
+      "scriptureRefs": ["1-maccabees/1/1", "1-maccabees/1/7", "1-maccabees/1/8", "1-maccabees/1/9"],
+      "people": [],
+      "moments": [0],
+      "reviewNote": "The passage gives a reign length, not a BCE year. No calendar conversion proposed.",
+      "start": null,
+      "end": null,
+      "status": "proposal"
+    },
+    {
+      "slug": "desolation-of-the-altar",
+      "title": "The desolation of the altar",
+      "summary": "The abomination of desolation was set upon the altar, and idol altars were built throughout the cities of Juda.",
+      "date": {"text": "15 Casleu, year 145", "precision": "day", "calendar": "year numbering in 1 Maccabees", "sourceRef": "1-maccabees/1/54"},
+      "scriptureRefs": ["1-maccabees/1/10", "1-maccabees/1/54", "1-maccabees/1/59"],
+      "people": [],
+      "moments": [1],
+      "reviewNote": "Day precision applies to the source calendar only. The sacrifice on the idol altar is the 25th, not the 15th.",
+      "start": null,
+      "end": null,
+      "status": "proposal"
+    },
+    {
+      "slug": "mattathias-at-modin",
+      "title": "Mattathias at Modin",
+      "summary": "Mattathias refused to forsake the law and called those zealous of the law to follow him.",
+      "date": {"text": "In those days; no absolute date stated", "precision": "unknown", "calendar": null, "sourceRef": "1-maccabees/2/1"},
+      "scriptureRefs": ["1-maccabees/2/1", "1-maccabees/2/19", "1-maccabees/2/20", "1-maccabees/2/21", "1-maccabees/2/22", "1-maccabees/2/27"],
+      "people": ["mattathias-1ma-2-1"],
+      "moments": [2],
+      "reviewNote": "Sequence follows the narrative; do not assign a year from a neighbouring event.",
+      "start": null,
+      "end": null,
+      "status": "proposal"
+    },
+    {
+      "slug": "cleansing-and-dedication-of-the-sanctuary",
+      "title": "The cleansing and dedication of the sanctuary",
+      "summary": "Judas and his brethren went to cleanse and dedicate the sanctuary; the congregation ordained eight days of dedication each year.",
+      "date": {"text": "25 Casleu, year 148", "precision": "day", "calendar": "year numbering in 1 Maccabees", "sourceRef": "1-maccabees/4/52"},
+      "scriptureRefs": ["1-maccabees/4/36", "1-maccabees/4/52", "1-maccabees/4/53", "1-maccabees/4/54", "1-maccabees/4/59"],
+      "people": ["judas-maccabeus-1ma-2-4"],
+      "moments": [3],
+      "reviewNote": "No BCE conversion; the class recording’s upload date and teacher are not supplied in the corpus.",
+      "start": null,
+      "end": null,
+      "status": "proposal"
+    }
+  ]
+}
