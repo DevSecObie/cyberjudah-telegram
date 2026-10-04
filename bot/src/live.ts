@@ -25,7 +25,7 @@ export async function liveNow(env: Env, ctx?: Exec): Promise<LiveNow> {
   const res = new Response(JSON.stringify(out), { headers: { "content-type": "application/json", "cache-control": `public, max-age=${TTL}` } });
   const put = cache.put(key, res.clone());
   if (ctx) ctx.waitUntil(put); else await put;
-  return body;
+  return out;
 }
 
 async function check(channel: string): Promise<LiveNow> {

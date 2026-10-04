@@ -13,7 +13,7 @@ async function setup(page: Page, status: () => boolean | undefined, theme = "dar
   }, theme);
   await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
   await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
-  await page.route("**/api/**", r => r.fulfill({ status: 404, body: "" }));
+  await page.route(/^https?:\/\/[^/]+\/api\//, r => r.fulfill({ status: 404, body: "" }));
   await page.route("**/search/classes.json", r => r.fulfill({ json: [] }));
   await page.route("**/search/captains.json", r => r.fulfill({ json: [] }));
   await page.route("**/api/history/index.json", r => r.fulfill({ json: [] }));
@@ -28,7 +28,7 @@ for (const [width, height, theme] of [[390, 844, "light"], [1280, 800, "dark"]] 
     const notice = page.getByRole("status").filter({ hasText: "New uploads may be delayed" });
     await expect(notice).toBeVisible();
     await expect(page.locator("article.post")).toContainText(saved.title);
-    await expect(page.locator("article.post")).toContainText("Notes coming soon");
+    await expect(page.locator("article.post")).toContainText("Notes for this class are coming soon. You can watch it now.");
     const dismiss = page.getByRole("button", { name: "Dismiss upload notice" });
     const size = await dismiss.boundingBox();
     expect(size!.width).toBeGreaterThanOrEqual(44);
@@ -58,7 +58,12 @@ test("a recovered feed clears dismissal so a later outage is announced again", a
   const refresh = async () => {
     await page.clock.fastForward(11 * 60_000);
     const response = page.waitForResponse(r => r.url().endsWith("/api/recent"));
-    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await page.evaluate(() => {
+      for (const value of ["hidden", "visible"]) {
+        Object.defineProperty(document, "visibilityState", { configurable: true, value });
+        document.dispatchEvent(new Event("visibilitychange"));
+      }
+    });
     await response;
   };
   healthy = true;
