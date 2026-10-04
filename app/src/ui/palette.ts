@@ -32,6 +32,19 @@ export function readableColor(value: string, grounds: RGB[], ratio = 4.6): strin
   return toHex(end);
 }
 
+/** Reuse expensive contrast calculations across renders, keyed by actual palette values. */
+export function memoizePalette<T extends unknown[]>(compute: (...args: T) => Record<string, string>) {
+  const cache = new Map<string, Record<string, string>>();
+  return (...args: T): Record<string, string> => {
+    const key = JSON.stringify(args), saved = cache.get(key);
+    if (saved) return saved;
+    const vars = Object.freeze(compute(...args));
+    if (cache.size >= 24) cache.delete(cache.keys().next().value!);
+    cache.set(key, vars);
+    return vars;
+  };
+}
+
 /** UI ink must also read on inset/pressed surfaces and glass over either extreme backdrop. */
 export function paletteGrounds(p: Palette, dark: boolean): RGB[] {
   const page = parseColor(p.reverse), card = parseColor(p.lightGrey), ink = parseColor(p.default);
@@ -45,7 +58,7 @@ function inkAt(ink: RGB, page: RGB, grounds: RGB[], ratio: number): string {
   return readableColor(toHex(mix(ink, page, .5)), grounds, ratio);
 }
 
-export function appVars(p: Palette, dark: boolean): Record<string, string> {
+export const appVars = memoizePalette((p: Palette, dark: boolean): Record<string, string> => {
   const ink = parseColor(p.default), page = parseColor(p.reverse), card = parseColor(p.lightGrey);
   const grounds = paletteGrounds(p, dark);
   return {
@@ -71,4 +84,4 @@ export function appVars(p: Palette, dark: boolean): Record<string, string> {
       : { danger: "#b8124f", success: "#0a6e4c", warning: "#8a5a00", gold: "#7d5f17", violet: "#6a48c9", sky: "#1f5fb8" })
       .map(([key, value]) => [`--${key}`, readableColor(value, grounds)])),
   };
-}
+});
