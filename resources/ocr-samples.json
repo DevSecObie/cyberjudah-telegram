@@ -1,0 +1,312 @@
+{
+  "assessed": "2026-10-04",
+  "selection": "One median dense-text page (at least 1500 characters, page > 1) per volume; one legible prose excerpt per selected page. Not a random or whole-page accuracy estimate; foreign scripts, tables and marginal layouts were not systematically measured.",
+  "samples": [
+    {
+      "resource": "jewish-encyclopedia",
+      "volume": 1,
+      "page": 359,
+      "image": 408,
+      "url": "https://archive.org/download/cu31924091768188/page/n408_w1200.jpg",
+      "start": 553,
+      "end": 859,
+      "transcription": "Herod must have realized that he had committed a grave error; for, upon learning of the step Alexandra had taken, he installed the sixteen-year-old Aristobulus in the high-priesthood (B.C. 35), stating that his reason for not having done so in the first place was the extreme youth of his brother-in-law.",
+      "source": {
+        "path": "data/library/jewish-encyclopedia/pages-v1.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v1.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "b5dbe1c40469d1f9368cd758e9231924ba270a4fe912e1da540575a0b0606b9c"
+      },
+      "scanSha256": "b31928da23b3579781b1f92a9b1aba082496466c4fc3ffb61a7b502a0f092d92",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "jewish-encyclopedia",
+      "volume": 2,
+      "page": 345,
+      "image": 386,
+      "url": "https://archive.org/download/cu31924091768196/page/n386_w1200.jpg",
+      "start": 16,
+      "end": 235,
+      "transcription": "money (Ex. xxi. 28). (c) Where the master kills his slave, the offense is punishable only when the latter dies at once, and then probably not by the death-penalty, as some of the rabbinical writers thought (Ex. xxi. 23).",
+      "source": {
+        "path": "data/library/jewish-encyclopedia/pages-v2.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v2.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "01eb8fcf6894a1cefe998bedc9d7cba4dfda3c4c2e6ee0673f4fbc94c204b7ce"
+      },
+      "scanSha256": "8a7e1a4b22169493746288f2e647340e49574e75d9eec3324cc0c71ec5915826",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "jewish-encyclopedia",
+      "volume": 3,
+      "page": 339,
+      "image": 372,
+      "url": "https://archive.org/download/jewishencycloped0003isid/page/n372_w1200.jpg",
+      "start": 442,
+      "end": 568,
+      "transcription": "Tobia Cohen also deserves mention among Jewish botanists because he illustrated a variety of the orchid in his work (p. 143a).",
+      "source": {
+        "path": "data/library/jewish-encyclopedia/pages-v3.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v3.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "343f076ec1c52d360d1a757439bc10e351bb57269cb711c2ac10f19b8b066066"
+      },
+      "scanSha256": "5cd038402352f243400888147cce1cd9afa2ccd0b37db68fb294f39882393ecd",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "jewish-encyclopedia",
+      "volume": 4,
+      "page": 345,
+      "image": 380,
+      "url": "https://archive.org/download/cu31924091768212/page/n380_w1200.jpg",
+      "start": 120,
+      "end": 381,
+      "transcription": "A few days previous to the overthrow of the Commune at Marseilles, Crémieux had imperiled his own life by protecting the lives of the imprisoned friends of Thiers. The victors established a martial tribunal, whose sentences sent many hundreds to death or exile.",
+      "source": {
+        "path": "data/library/jewish-encyclopedia/pages-v4.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v4.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "179d9d78eb31142ba36391a6f75b357f5b5c7268e3a6076208c4acaaf5e2d2a0"
+      },
+      "scanSha256": "4c49755ded367f05a9bd1b5662ede490e74f4d9373ebec472d3cd2a16806df85",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "jewish-encyclopedia",
+      "volume": 5,
+      "page": 346,
+      "image": 377,
+      "url": "https://archive.org/download/cu31924091768220/page/n377_w1200.jpg",
+      "start": 88,
+      "end": 500,
+      "transcription": "FARO: Capital of the Portuguese province of Algarve. It was the seat of the district rabbi, or chief justice, appointed by the chief rabbi. Faro had Jewish inhabitants at an early date. They are mentioned in the municipal laws of Alfonso III. after the capture of Algarve. Alfonso IV. made the Jews of the locality sign a document in which they agreed to pay punctually the protection-money levied on them.",
+      "source": {
+        "path": "data/library/jewish-encyclopedia/pages-v5.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v5.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "db4a28b521cfdc9d0d18cb83fbf6106853d3310b43d5868d3cb81052d052d7d5"
+      },
+      "scanSha256": "e37f721106afda7f44e0c4c2849ce8526b5c2374248553d1e3d5f59f41796461",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "jewish-encyclopedia",
+      "volume": 6,
+      "page": 342,
+      "image": 375,
+      "url": "https://archive.org/download/cu31924091768238/page/n375_w1200.jpg",
+      "start": 393,
+      "end": 763,
+      "transcription": "They accused Heller and the elders of the commission before the civil authorities of having spared the rich and laid the burden of the tax on the poorer people. Emperor Ferdinand II. addressed a severe censure to Heller, warning him not to repeat such proceedings. Heller’s enemies, not satisfied, accused him before the emperor of having written against Christianity.",
+      "source": {
+        "path": "data/library/jewish-encyclopedia/pages-v6.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v6.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "78dd826a16ce535dbaa13f99dfcb40ca6e4dc8d8f8633fb8f8c9b4dae3b9aca2"
+      },
+      "scanSha256": "8985f8c1cdce724cf251665ec89d68936a1004086abd4913878e2f9557f04b46",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "jewish-encyclopedia",
+      "volume": 7,
+      "page": 342,
+      "image": 365,
+      "url": "https://archive.org/download/cu31924091768246/page/n365_w1200.jpg",
+      "start": 257,
+      "end": 455,
+      "transcription": "Pinsker (\"Likkute Kadmoniyyot,\" p. 5) supposes that the scholar of Jerusalem mentioned by Abraham ibn Ezra at the beginning of his \"Moznayim\" as author of eight grammatical works was Judah b. Eli.",
+      "source": {
+        "path": "data/library/jewish-encyclopedia/pages-v7.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v7.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "c33ad5309ee4c1abc5bb64d81a5f4f1de5bacc7be7abf32e1db788a140322972"
+      },
+      "scanSha256": "1e810e62fc365fed6680116725211b6e300b7addd2453357255c113f8173eb7f",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "jewish-encyclopedia",
+      "volume": 8,
+      "page": 347,
+      "image": 376,
+      "url": "https://archive.org/download/cu31924091768253/page/n376_w1200.jpg",
+      "start": 37,
+      "end": 450,
+      "transcription": "The groom also is brought with songs from the sea; girls go to meet him in festive train, with dishes of confectionery, and with a branch hung with silken kerchiefs and coins. Arrived at home, he is kissed on the forehead by all the women; then, after having been blessed by his relatives, he is led with music to the court of the synagogue, where, under the ḥuppah, the rabbi with two pupils awaits the pair.",
+      "source": {
+        "path": "data/library/jewish-encyclopedia/pages-v8.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v8.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "2bac829e3a6c817fa7f69891a86e27d545d2596037e11ab1c893fcdf8c0d01ac"
+      },
+      "scanSha256": "3b8d3edea692a30e37fdcf31786d2022c99cb5311e4a68c83d2cb4dc911caccc",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "jewish-encyclopedia",
+      "volume": 9,
+      "page": 332,
+      "image": 361,
+      "url": "https://archive.org/download/cu31924091768261/page/n361_w1200.jpg",
+      "start": 45,
+      "end": 243,
+      "transcription": "the Century,\" and London, 1896, under that of \"The Malady of the Century\"); \"Gefühlskomödie,\" a novel, Breslau, 1891 (Eng. version, New York, 1895, and London, 1896); \"Seelenanalysen,\" Berlin, 1892",
+      "source": {
+        "path": "data/library/jewish-encyclopedia/pages-v9.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v9.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "e8cdad4750186a8ec9c62da136319b940fd3e3b8dd20cea1664b126a4fe0ea6e"
+      },
+      "scanSha256": "e5706f50fc74888ad542db8183945ad9bd30acd72d2d9d1a1e79b785b28496d0",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "jewish-encyclopedia",
+      "volume": 10,
+      "page": 345,
+      "image": 376,
+      "url": "https://archive.org/download/cu31924091768279/page/n376_w1200.jpg",
+      "start": 577,
+      "end": 843,
+      "transcription": "The early Jewish conception was that the sacrifice of the red heifer was an expiatory rite to atone for the sin of the golden calf. The color of the heifer, as well as the scarlet thrown upon the fire, represents sin (comp. \"your sins be as scarlet\"; Isa. i. 18).",
+      "source": {
+        "path": "data/library/jewish-encyclopedia/pages-v10.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v10.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "13e5a00dbbc915b79330e5053aef64d5777097dda2d8c16f0a40ed77d52b1f63"
+      },
+      "scanSha256": "48fd31ee09deaa394019ad70a61cd4ec17cfea58fedadbe926585eea808019de",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "jewish-encyclopedia",
+      "volume": 11,
+      "page": 339,
+      "image": 372,
+      "url": "https://archive.org/download/jewishencycloped0011isid/page/n372_w1200.jpg",
+      "start": 457,
+      "end": 712,
+      "transcription": "The general financial troubles caused by the Thirty Years’ war proved favorable to the Silesian Jews, and in 1630 the authorities of Breslau even requested Jews to settle in that city, after a similar request had been made in the preceding year in Glogau.",
+      "source": {
+        "path": "data/library/jewish-encyclopedia/pages-v11.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v11.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "1be202603f4d22e4b5e52e83c4afa09d07a4f0e68392d5ea7074a4205f4ea633"
+      },
+      "scanSha256": "09ebed9087212bf789461bf5ccb37fd97fe633468406938ef507d0c7bdc5b172",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "jewish-encyclopedia",
+      "volume": 12,
+      "page": 378,
+      "image": 421,
+      "url": "https://archive.org/download/cu31924091768295/page/n421_w1200.jpg",
+      "start": 363,
+      "end": 619,
+      "transcription": "It has been observed that American Jews, even when immigrants, are taller than the average of the Jewish population of the countries whence they come, the average for New York city being 164.5 cm. as against 162.0 cm. for Russia and Galicia (see Stature).",
+      "source": {
+        "path": "data/library/jewish-encyclopedia/pages-v12.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v12.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "5733275031925465b3b6f97c297e0669f3e0f3582c8c3aba612fc5ff8191d01f"
+      },
+      "scanSha256": "f110a74c091da4abfad47aaa9ab1a02f8bc9d7d8328aab62400ab5c54899c1b0",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "josephus",
+      "volume": 1,
+      "page": 491,
+      "image": 498,
+      "url": "https://archive.org/download/completeworksoff05jose/page/n498_w1200.jpg",
+      "start": 40,
+      "end": 399,
+      "transcription": "head, and that was to distress his brethren, and not at all to yield to them the pre-eminence, but to keep close to his father, who was already alienated from them by the calumnies he had heard about them, and ready to be wrought upon in any way his zeal against them should advise him to pursue, that he might be continually more and more severe against them.",
+      "source": {
+        "path": "data/library/josephus/pages.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/josephus/pages.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "2a76fa51329ed766f735c3c147b3f92d96a9487400fc47b46d2724bd835ff508"
+      },
+      "scanSha256": "799fdb232e956fd9a97aa546450b603a0efbee53a21e9b3795aa23aec8eacd24",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "smiths-dictionary-of-the-bible",
+      "volume": 1,
+      "page": 450,
+      "image": 467,
+      "url": "https://archive.org/download/1889dictionaryofb01smituoft/page/n467_w1200.jpg",
+      "start": 12,
+      "end": 524,
+      "transcription": "It is most reasonable to suppose the Noachian colonists to have begun to spread about three centuries after the Flood. If the Division at Peleg’s birth be really the same as the Dispersion after the building of the Tower, this supposed interval would not be necessarily to be lengthened, for the text of the account of the building of the Tower does not absolutely prove that all Noah’s descendants were concerned in it, and therefore some may have previously taken their departure from the primeval settlement.",
+      "source": {
+        "path": "data/library/smiths-dictionary-of-the-bible/pages-v1.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/smiths-dictionary-of-the-bible/pages-v1.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "a1f6f7b99696ff7250f50663f54e0da97d22e40d77e4101c752afbee8bec7863"
+      },
+      "scanSha256": "a69e4587c8bb0fb5405d081c06e74c2a18fd6bf8cecf468772f76adc1363601d",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "smiths-dictionary-of-the-bible",
+      "volume": 2,
+      "page": 1346,
+      "image": 467,
+      "url": "https://archive.org/download/1889dictionaryofb02smituoft/page/n467_w1200.jpg",
+      "start": 0,
+      "end": 336,
+      "transcription": "an ancient Jewish tradition, recorded in the Targum on 2 Sam. xxi. 19, he was a weaver of the vails of the sanctuary, but as there is no contradiction, so there is no corroboration of this in the Bible, and it is possible that it was suggested by the occurrence of the word orgim, \"weavers,\" in connection with a member of his family.",
+      "source": {
+        "path": "data/library/smiths-dictionary-of-the-bible/pages-v2.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/smiths-dictionary-of-the-bible/pages-v2.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "b56cd541312f4f52672d99ac34273297fa89470f13ae048fcc934b0c7e87a498"
+      },
+      "scanSha256": "207722ebfa79db3df2e82c0748f2b0111c86cce05a6da7836dcde51bb2cb876d",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "smiths-dictionary-of-the-bible",
+      "volume": 3,
+      "page": 2242,
+      "image": 465,
+      "url": "https://archive.org/download/1889dictionaryofb03smituoft/page/n465_w1200.jpg",
+      "start": 146,
+      "end": 553,
+      "transcription": "Thus we see the force of the words of Eliphaz the Temanite: \"He shall cast off his flower like the olive\" (Job xv. 33). It is needless to add that the locust was a formidable enemy of the olive (Amos iv. 9). It happened not unfrequently that hopes were disappointed, and that \"the labor of the olive failed\" (Hab. iii. 17). As to the growth of the tree, it thrives best in warm and sunny situations.",
+      "source": {
+        "path": "data/library/smiths-dictionary-of-the-bible/pages-v3.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/smiths-dictionary-of-the-bible/pages-v3.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "269f7f06000da305508be32e0ab4d3a3aed636512b2ab9bc07bc3856573ea70c"
+      },
+      "scanSha256": "de3cf1720dca4675fb78bd05581cdec50004004386cb6ea7cee3c20a72646465",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    },
+    {
+      "resource": "smiths-dictionary-of-the-bible",
+      "volume": 4,
+      "page": 3179,
+      "image": 494,
+      "url": "https://archive.org/download/1889dictionaryofb04smituoft/page/n494_w1200.jpg",
+      "start": 17,
+      "end": 330,
+      "transcription": "For even now the countries in Europe, or on the shores of the Mediterranean Sea where tin is found are very few: and in reference to ancient times, it would be difficult to name any such countries except Iberia or Spain, Lusitania, which was somewhat less in extent than Portugal, and Cornwall in Great Britain.",
+      "source": {
+        "path": "data/library/smiths-dictionary-of-the-bible/pages-v4.json",
+        "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/smiths-dictionary-of-the-bible/pages-v4.json",
+        "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+        "sha256": "543e46e8d202c2c81f985d859101a965fc689f709451ad0e43812fd8f312a1c6"
+      },
+      "scanSha256": "afe84899f1137ab2131bdf2ba54f9edfc843c707b30a22165480f4e9692c1783",
+      "method": "Visual transcription of the linked scan excerpt; case, whitespace and typographic quote variants normalized for comparison. Not a correction to bundled source text."
+    }
+  ]
+}

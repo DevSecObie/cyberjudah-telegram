@@ -1,3 +1,82 @@
+# Approved resource bundles
+
+Phase 2 packages four separate resources: Strong’s, Josephus/Whiston (Scranton
+1905), all twelve Jewish Encyclopedia volumes (1901–1906), and Smith’s (Houghton
+Mifflin 1889). [Owner decisions and licence evidence](../docs/resources.md) and
+[OCR inspection/limitations](../docs/BIBLE_RESOURCES_OCR.md) accompany the build.
+Easton’s and other existing datasets are unchanged. No other bundle is approved.
+
+## Reproduce and verify (Node 24)
+
+```sh
+npm ci --no-audit --no-fund
+node --test resources/*.test.mjs
+node resources/build-bundles.mjs --out /tmp/resource-bundles-01 --cache /tmp/resource-sources
+node resources/ocr-report.mjs /tmp/resource-sources /tmp/resource-bundles-01/ocr-report.json
+node resources/publish.mjs --bundle /tmp/resource-bundles-01
+```
+
+Choose a new output directory on every run. `--offline` on the builder requires
+all source bytes to be in the cache. Every read checks the lockfile SHA-256,
+including cached files. Inputs are pinned to immutable repository commits; source
+file URLs, revisions and hashes also travel in the manifests. Scanned-page hashes
+and checked transcription excerpts are included as provenance, not resource text.
+No timestamps, machine paths or random data enter the bundle identity.
+
+CI builds the real bundles and uploads `approved-resource-bundles-<commit>`.
+The artifact contains `objects/`, a candidate `catalog.json`, `inventory.json`,
+conversion/OCR reports, the source lockfile and checked scan excerpts. Rebuilding
+from the same pins produces identical object bytes. Strong’s retains its exact
+reader attribution and upstream header notices; `CC-BY-SA-unversioned` is allowed
+only for that separate lexicon. No licence version is inferred.
+
+## Lookup contract
+
+Data shards are bounded NDJSON. Each key hashes to one of sixteen SHA-256 first-hex
+buckets (`sha256-nibble-v1`). The manifest checksums each index bucket and data
+shard. Index rows map record keys to listed data shard paths. Publication verifies
+complete one-to-one coverage; lookups read one bucket and one data shard. Existing
+non-indexed manifests retain their legacy behavior. This resolves Phase 1’s Ask
+migration blocker.
+
+Strong’s records are `entry/H430`, `index`, and
+`occurrences/H430/<occurrence-revision>/1` onwards; there is no page zero. Existing
+entry fields and occurrence ordering are preserved. Optional `scripture` contains
+link annotations for definition/derivation/KJV fields, without rewriting text.
+Book records are `book`, `pages`, `page/<volume>/<scan-image>` and `search/<word>`.
+Search postings expose up to the first 40 matching pages plus the actual match
+count. They are a bounded candidate search, not exhaustive phrase search. Page
+records retain exact source text, scan links and scripture annotation offsets.
+
+`GET /api/resources/:id/:release/record?key=...` returns `{release,data}` from the
+approved pinned release. Installers download checksummed data shards to IndexedDB;
+they do not need a second local copy of the server index.
+
+## Admin publication — manual only
+
+The default `publish.mjs` command above only verifies local files. An admin with
+their own normal Wrangler/Cloudflare credentials and current Telegram admin init
+data in `RESOURCE_ADMIN_INIT_DATA` can run one command after reviewing the reports:
+
+```sh
+node resources/publish.mjs --bundle /path/to/artifact --execute --bucket YOUR_BUCKET --api https://YOUR_APP_HOST
+```
+
+Do not put credential values in arguments, files committed to Git, or logs. The
+script verifies every artifact hash, mapping and content-derived release identity,
+reads the current catalog/ETag, uploads release objects (manifests last), then
+calls authenticated `PUT /api/resources/catalog` with `If-Match`. It preserves
+unrelated entries and advances the current revision. A failed upload never makes
+a catalog PUT; a conflicting publication leaves the prior catalog authoritative.
+Retry against the new current ETag. Never write approval markers or the current
+catalog pointer directly. Uploading a new release does not delete installed older
+releases, which remain available for rollback and pinned citations.
+
+No remote upload, merge or deployment is performed by the build or CI workflow.
+R2 is the sole app resource CDN. The upload script is for the admin’s later use.
+
+---
+
 # Local resource fixtures
 
 This directory contains a deterministic **local test fixture builder**, not Bible,

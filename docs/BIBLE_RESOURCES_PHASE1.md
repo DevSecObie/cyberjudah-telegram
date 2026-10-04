@@ -74,7 +74,7 @@ real dataset, so existing Ask tools and their current source adapters remain
 unchanged; there is no second production copy. A future resource migration must
 include both consumers and a test comparing returned release and record bytes.
 
-**Ask migration blocker:** version 1 manifests do not yet map record keys to shard
+**Phase 1 Ask migration blocker (resolved by the [Phase 2 index](../resources/README.md#lookup-contract)):** the original version 1 manifests do not map record keys to shard
 paths. `readResourceRecord` currently scans and validates shards until it finds
 the key, making a missing key or a record in the last shard require the full
 release. Do not migrate Ask to this adapter until the manifest includes a

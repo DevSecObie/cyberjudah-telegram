@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "./env";
 import { isAdmin } from "./edit";
-import { CatalogSchema, ManifestSchema, MAX_CATALOG_BYTES, MAX_MANIFEST_BYTES, ResourceId, ReleaseId, parseShard, releasePrefix, sha256, type Catalog, type Manifest } from "../../shared/resources";
+import { CatalogSchema, ManifestSchema, MAX_CATALOG_BYTES, MAX_MANIFEST_BYTES, ResourceId, ReleaseId, RecordKey, parseIndex, recordBucket, parseShard, releasePrefix, sha256, type Catalog, type Manifest } from "../../shared/resources";
 
 const CURRENT = "resources/catalog/current.json";
 const jsonBytes = (data: unknown) => new TextEncoder().encode(JSON.stringify(data));
@@ -34,9 +34,20 @@ export async function readResourceManifest(env: Pick<Env, "AUDIO">, id: string, 
   return (await verifiedManifest(env, id, release))?.manifest ?? null;
 }
 export async function readResourceRecord(env: Pick<Env, "AUDIO">, id: string, recordKey: string, release?: string): Promise<{ release: string; data: unknown } | null> {
+  const bucketId = await recordBucket(recordKey);
   const manifest = await readResourceManifest(env, id, release);
   if (!manifest) return null;
-  for (const part of manifest.parts) {
+  let parts = manifest.parts;
+  if (manifest.index) {
+    const bucket = manifest.index.buckets.find((p) => p.bucket === bucketId);
+    if (!bucket) return null;
+    const object = await env.AUDIO.get(`${releasePrefix(id, manifest.release)}${bucket.path}`);
+    if (!object || object.size !== bucket.bytes) throw new Error("Incomplete resource index");
+    const path = (await parseIndex(new Uint8Array(await object.arrayBuffer()), bucket, manifest)).get(recordKey);
+    if (!path) return null;
+    parts = manifest.parts.filter((p) => p.path === path);
+  }
+  for (const part of parts) {
     const object = await env.AUDIO.get(`${releasePrefix(id, manifest.release)}${part.path}`);
     if (!object || object.size !== part.bytes) throw new Error("Incomplete resource release");
     const records = await parseShard(new Uint8Array(await object.arrayBuffer()), part, manifest.kind);
@@ -55,19 +66,29 @@ resources.get("/catalog", async (c) => {
   if (etag !== "*") { c.header("etag", etag); if (c.req.header("if-none-match") === etag) return c.body(null, 304); }
   return c.json(catalog);
 });
+resources.get("/:id/:release/record", async (c) => {
+  const key = c.req.query("key"), id = c.req.param("id"), release = c.req.param("release");
+  if (!ResourceId.safeParse(id).success || !ReleaseId.safeParse(release).success || !RecordKey.safeParse(key).success) return c.json({ error: "Invalid resource lookup" }, 400);
+  const row = await readResourceRecord(c.env, id, key!, release);
+  if (!row) return c.json({ error: "Record not found" }, 404);
+  c.header("cache-control", "public, max-age=31536000, immutable");
+  return c.json(row);
+});
 resources.get("/:id/:release/:file", async (c) => {
   const id = c.req.param("id"), release = c.req.param("release"), file = c.req.param("file");
   if (!ResourceId.safeParse(id).success || !ReleaseId.safeParse(release).success) return c.json({ error: "Not found" }, 404);
   const verified = await verifiedManifest(c.env, id, release);
   if (!verified) return c.json({ error: "Not found" }, 404);
-  const { manifest } = verified, part = manifest.parts.find((p) => p.path === file);
-  if (file !== "manifest.json" && !part) return c.json({ error: "Not found" }, 404);
+  const { manifest } = verified, part = manifest.parts.find((p) => p.path === file), index = manifest.index?.buckets.find((p) => p.path === file);
+  if (file !== "manifest.json" && !part && !index) return c.json({ error: "Not found" }, 404);
   let data = verified.bytes;
-  if (part) {
+  const descriptor = part ?? index;
+  if (descriptor) {
     const object = await c.env.AUDIO.get(`${releasePrefix(id, release)}${file}`);
-    if (!object || object.size !== part.bytes) return c.json({ error: "Incomplete resource release" }, 503);
+    if (!object || object.size !== descriptor.bytes) return c.json({ error: "Incomplete resource release" }, 503);
     data = new Uint8Array(await object.arrayBuffer());
-    await parseShard(data, part, manifest.kind);
+    if (index) await parseIndex(data, index, manifest);
+    else await parseShard(data, part!, manifest.kind);
   }
   return new Response(data, { headers: { "content-type": file.endsWith(".ndjson") ? "application/x-ndjson; charset=utf-8" : "application/json; charset=utf-8", "cache-control": "public, max-age=31536000, immutable", etag: `"${await sha256(data)}"`, "x-content-type-options": "nosniff" } });
 });
@@ -100,12 +121,18 @@ resources.put("/catalog", async (c) => {
     if (await sha256(data) !== entry.manifestSha256) return c.json({ error: "Manifest checksum mismatch" }, 400);
     const m = ManifestSchema.parse(JSON.parse(new TextDecoder().decode(data)));
     if (m.id !== entry.id || m.release !== entry.release) return c.json({ error: "Manifest identity mismatch" }, 400);
-    const keys = new Set<string>();
+    const keys = new Set<string>(), indexed = new Map<string, string>();
+    for (const bucket of m.index?.buckets ?? []) {
+      const object = await c.env.AUDIO.get(`${base}${bucket.path}`);
+      if (!object || object.size !== bucket.bytes) return c.json({ error: "Incomplete resource index" }, 400);
+      for (const [key, path] of await parseIndex(new Uint8Array(await object.arrayBuffer()), bucket, m)) indexed.set(key, path);
+    }
     for (const part of m.parts) {
       const object = await c.env.AUDIO.get(`${base}${part.path}`);
       if (!object || object.size !== part.bytes) return c.json({ error: "Incomplete resource" }, 400);
-      for (const row of await parseShard(new Uint8Array(await object.arrayBuffer()), part, m.kind)) { if (keys.has(row.key)) return c.json({ error: "Duplicate resource record" }, 400); keys.add(row.key); }
+      for (const row of await parseShard(new Uint8Array(await object.arrayBuffer()), part, m.kind)) { if (keys.has(row.key)) return c.json({ error: "Duplicate resource record" }, 400); keys.add(row.key); if (m.index && indexed.get(row.key) !== part.path) return c.json({ error: "Resource index does not match records" }, 400); }
     }
+    if (m.index && indexed.size !== keys.size) return c.json({ error: "Resource index contains missing records" }, 400);
     const saved = await c.env.AUDIO.put(marker, JSON.stringify({ manifestSha256: entry.manifestSha256 }), { onlyIf: { etagDoesNotMatch: "*" } });
     if (!saved && (await (await c.env.AUDIO.get(marker))?.json<{ manifestSha256: string }>())?.manifestSha256 !== entry.manifestSha256) return c.json({ error: "Release approval changed" }, 409);
   }

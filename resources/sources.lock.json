@@ -1,0 +1,1066 @@
+{
+  "schemaVersion": 1,
+  "checked": "2026-10-04",
+  "bible": [
+    {
+      "path": "data/bible/1-chronicles.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/1-chronicles.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "fc4b7ea5ccf5fd1c8400fd949bd7f3d91d687087c28797e453a98948061da70c"
+    },
+    {
+      "path": "data/bible/1-corinthians.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/1-corinthians.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "227bd563607ab30d752afe49082d204872bf6490671aa986464c4608616bf2af"
+    },
+    {
+      "path": "data/bible/1-esdras.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/1-esdras.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "7b2ce4a2c3f20a0f18f30fdd951d7864d4bdadc4a00367aa4ef13d4249a54a7d"
+    },
+    {
+      "path": "data/bible/1-john.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/1-john.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "597ffd2ca4b03b5dd9b5f2215f351b81726a656191553d44e5ec096363535602"
+    },
+    {
+      "path": "data/bible/1-kings.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/1-kings.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "484fbff1bfb4fee6d2279cc36cd2a8065b9f25cbfffe2199a41b88f555f36f75"
+    },
+    {
+      "path": "data/bible/1-maccabees.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/1-maccabees.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "097446eef69f9c019124695d9588af27c31a84d02014167a197e594930c6f55d"
+    },
+    {
+      "path": "data/bible/1-peter.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/1-peter.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "eb276546913f0daf68becd9051d22ba62edf4f22f449452ff9b861781b581a23"
+    },
+    {
+      "path": "data/bible/1-samuel.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/1-samuel.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "884bc2cd39c2add4c852b24a20b323b17fced1079866a32dbeee1b9b88cf1124"
+    },
+    {
+      "path": "data/bible/1-thessalonians.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/1-thessalonians.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "533722ed4ba0a98c2801f567adeb42209337cc3fa7193b3116abf435827217cc"
+    },
+    {
+      "path": "data/bible/1-timothy.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/1-timothy.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "202b4dd31767cebd0a3f32e4449a60f8fe5d8d1fd44b248bb36973ddd175c415"
+    },
+    {
+      "path": "data/bible/2-chronicles.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/2-chronicles.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "42152d9cc38a6aad7e412577e23d5f9b05bcd4c0d33d36e65913498bd4ca88de"
+    },
+    {
+      "path": "data/bible/2-corinthians.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/2-corinthians.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "beb7b11b6a45793dcba44e4c21751e649e1386540a446977d51d80b546ca14d7"
+    },
+    {
+      "path": "data/bible/2-esdras.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/2-esdras.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "dc82861680dd5394c8aa16f00b1a51f4779cbe421573dcba8df51324ab43a510"
+    },
+    {
+      "path": "data/bible/2-john.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/2-john.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "fc8d56e7bf809bdfba6b3470536093663b8a0aa14587a3723fcc9fa451dcacca"
+    },
+    {
+      "path": "data/bible/2-kings.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/2-kings.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "b424ade55cfc560aec1aff3d73e10a26a06e4ad2e09c31578ae8e2c3b64ef798"
+    },
+    {
+      "path": "data/bible/2-maccabees.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/2-maccabees.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "8d5a6ed8e2534ed26fa95c88596721f6ec78d97f62a9582f8447e14d174223dd"
+    },
+    {
+      "path": "data/bible/2-peter.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/2-peter.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "9f2cd647f14ea82bf77e0da6842892ac57161b46d6d862375e1c3fa662af1837"
+    },
+    {
+      "path": "data/bible/2-samuel.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/2-samuel.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "5aef8030584443f95df97afcee2d6349562552251a7f881a556a8ab40e243ac6"
+    },
+    {
+      "path": "data/bible/2-thessalonians.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/2-thessalonians.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "0a8252d211cf95379b2e984345bc3727565572b8be0bf359db2a3d5273da5543"
+    },
+    {
+      "path": "data/bible/2-timothy.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/2-timothy.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "c318b38603f511caed6fd1b9d3c4aefacd7ced69a0be01ef39266492a7f9c937"
+    },
+    {
+      "path": "data/bible/3-john.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/3-john.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "00ab2378ecedfe65e83c616b5e00c616e607260d29a133560c8cccc272dbba3d"
+    },
+    {
+      "path": "data/bible/acts.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/acts.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "2308a70ae45714dee4362f09206b392e52ca258823e3582e03ca2dce450ee907"
+    },
+    {
+      "path": "data/bible/amos.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/amos.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "c473bfd8f4bfa24d5d7b7520fe96e92245b36319d77162d3fc592b0f1f21a075"
+    },
+    {
+      "path": "data/bible/baruch.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/baruch.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "132f30463d8fd3caef65eb905c503ea8b34232ae75dcffcb88bae3bff12b3d97"
+    },
+    {
+      "path": "data/bible/bel-and-the-dragon.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/bel-and-the-dragon.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "2066b078a8696171041a4bb5c1e99c1c827a1cea9cbd58d35e84b02c80df0eaf"
+    },
+    {
+      "path": "data/bible/colossians.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/colossians.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "cea98d30036769d2cb96b427a05b1fdadcb21d94d8048cda3a74b335d6bfe948"
+    },
+    {
+      "path": "data/bible/daniel.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/daniel.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "d0af1ff5755955db431b308a7b893d43a7437a8fe71108cdcb7a99660498c00c"
+    },
+    {
+      "path": "data/bible/deuteronomy.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/deuteronomy.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "e26ad49a5aa43417d6bbe4e4e3f1d0c9f1980b2220150eea1779ec9cb2fe6d2c"
+    },
+    {
+      "path": "data/bible/ecclesiastes.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/ecclesiastes.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "2c628ae99e818b483638ca9644d5994bc0282079d23e45ce1512444b63d98bcf"
+    },
+    {
+      "path": "data/bible/ephesians.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/ephesians.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "b5ca75760503cf518024c0d77f1cdc664bf4329330d72dad689deb851e69a680"
+    },
+    {
+      "path": "data/bible/epistle-of-jeremiah.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/epistle-of-jeremiah.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "45e437ded181fd2be7947e3e937540a4b4cb94e61b4a32a3f63e57c8eed84fab"
+    },
+    {
+      "path": "data/bible/esther-greek.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/esther-greek.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "9633067ed180e3643cdcd0abc761cda6ae5bc712763315be680adc1f1db48427"
+    },
+    {
+      "path": "data/bible/esther.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/esther.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "6fbc352b84862b02ebc1107315e3b4f0c9219722176420994da95dd114d2ea8a"
+    },
+    {
+      "path": "data/bible/exodus.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/exodus.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "3118a9faa107a1addc5eaed3dbfc496b332015796bab5da4e5103277a0dd7089"
+    },
+    {
+      "path": "data/bible/ezekiel.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/ezekiel.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "2ee73d257f2d2594a8fced39283bd51001d072cc3a92f6ae7a939e2b53455f80"
+    },
+    {
+      "path": "data/bible/ezra.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/ezra.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "1e6b41c031f68f9f68c7e3332e5b516162e8d4e84109ed9f368c5042c0c57d82"
+    },
+    {
+      "path": "data/bible/galatians.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/galatians.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "0dcccacbb052c691638687380642dc565820b66aa459ce91ce5c4140346f159d"
+    },
+    {
+      "path": "data/bible/genesis.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/genesis.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "82a306c052dee69050a95190f54c7d4b130fe41d49772639610faa613e5eaa38"
+    },
+    {
+      "path": "data/bible/habakkuk.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/habakkuk.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "a5c0936f2bdde3ead068e34b522b7605c59feef9513a9faab77e230322db3e8b"
+    },
+    {
+      "path": "data/bible/haggai.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/haggai.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "747f81363b5f754c1d3cf629c2269f59a53142c22fdf6caf9d4d405072ac4a45"
+    },
+    {
+      "path": "data/bible/hebrews.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/hebrews.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "0ec0cbd3c7dee84459c5af7ef8739f32a690b5e8fdc6b368e32ead866363b6e8"
+    },
+    {
+      "path": "data/bible/hosea.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/hosea.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "524dd94ab335041328703f798ded8d7c6aa598edbf6d734de52cf200fd967c71"
+    },
+    {
+      "path": "data/bible/index.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/index.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "de61ac1680ef9a7a23b72f74345349fe3f412564c3fa181a382f6d69931a0b93"
+    },
+    {
+      "path": "data/bible/isaiah.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/isaiah.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "a6097d1911d790122b827318df76a381a53105a39585f1edfd7b8a67e23b6be4"
+    },
+    {
+      "path": "data/bible/james.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/james.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "0c8d720bead1c2244ab54a3ae7553b547a69a7ec3c8ab011225634b37b9beb32"
+    },
+    {
+      "path": "data/bible/jeremiah.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/jeremiah.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "e3ef9c783e5d4c97700b243e6ac187ce7bf89954d02940207e67a6abc12da797"
+    },
+    {
+      "path": "data/bible/job.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/job.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "f1e8c3c019a494dbd520c4151346e2ac3b23db6c9ce89e939d622ee13f9896fc"
+    },
+    {
+      "path": "data/bible/joel.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/joel.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "7f4e6c647c8930aaa909812e0b3f4fd839c2ceeb20424a8a9d2f17ae22f30726"
+    },
+    {
+      "path": "data/bible/john.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/john.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "eacd52dc24a682618466acc60967295771160e49241e097b38b61f3cbbeaf9c2"
+    },
+    {
+      "path": "data/bible/jonah.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/jonah.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "a6fc6ba0119d45aa1f4687f112041457a3bc1629fe86b531a9cdc85e8d8e19c1"
+    },
+    {
+      "path": "data/bible/joshua.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/joshua.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "660f412ead3362873ca0bc3fcea7fdcc9d7bfd37db7f14f1e8b1e64e167dd9cf"
+    },
+    {
+      "path": "data/bible/jude.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/jude.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "805d32d6d39ecfff8ac096af83b3d4e09740f1e208a1a5a558bc0dfa1b1db4a8"
+    },
+    {
+      "path": "data/bible/judges.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/judges.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "03bdbe846a96123418e6345055ac22daa129a6514a93f043430d2d5192abe126"
+    },
+    {
+      "path": "data/bible/judith.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/judith.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "a8da2431fdb13fc2e7ef97cb2f8937735fb25e45c3797ff0728ada413bd42a1e"
+    },
+    {
+      "path": "data/bible/lamentations.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/lamentations.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "3d51eb3d5752e846484adf717ab6f5b4f93528ee6d022e973f7994c4224490d1"
+    },
+    {
+      "path": "data/bible/leviticus.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/leviticus.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "638220cf41de808536e7baeb83a55ef937000ff248d4cebb8e9932af8cd59a91"
+    },
+    {
+      "path": "data/bible/luke.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/luke.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "36765c7ae2c7f0b05958ff1d69e272fa61fe508e085f6ae6ccfece825437f6fb"
+    },
+    {
+      "path": "data/bible/malachi.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/malachi.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "a69f5517ea520036811f62e60a5fab96942e00f661590f538160edcba1e1d795"
+    },
+    {
+      "path": "data/bible/mark.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/mark.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "081320e7fccaf82ab317f7636a5b5c844f4b5dc47ca1b53227937f553b15b842"
+    },
+    {
+      "path": "data/bible/matthew.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/matthew.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "bf08e8b6102494424375759b6779b32ccaa5628c576e1d1d179e12875e5fc210"
+    },
+    {
+      "path": "data/bible/micah.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/micah.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "6713a3370b64f2711bd753d8d1f9e07bce02519cba02bfa9750b22fdd7b5a756"
+    },
+    {
+      "path": "data/bible/nahum.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/nahum.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "978a41d9e8e8e87823bec65dc60de98fa8e5e36c48ec82bc80158b56f1b87805"
+    },
+    {
+      "path": "data/bible/nehemiah.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/nehemiah.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "d6e05c7973c24f6247f6cdd451bbac3c32e1f21439f756100727cee0570d3a09"
+    },
+    {
+      "path": "data/bible/numbers.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/numbers.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "f30a0dbeb745e58bcb8526d920703aed82e353122b210bdbb101ef16833d1c92"
+    },
+    {
+      "path": "data/bible/obadiah.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/obadiah.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "5a3f050de69d72be7fe59daaea24cdb2a6cd33f15308820caf3b2ea4a8de6fc4"
+    },
+    {
+      "path": "data/bible/philemon.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/philemon.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "1ad055334328a1ca7911f78ad302bbfc7ea10618e26b272978f8f41767c66b8a"
+    },
+    {
+      "path": "data/bible/philippians.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/philippians.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "a9efe8f86b883136b237b8090df001b66ac0a22e11886d2a0f953450dbcba9fe"
+    },
+    {
+      "path": "data/bible/prayer-of-manasseh.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/prayer-of-manasseh.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "ae276f028586104e51ddbe819c8020f88c23bf4b584bad8665bfc9eeb870097f"
+    },
+    {
+      "path": "data/bible/proverbs.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/proverbs.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "211c65b9a6a1d95828626edcca69ed88d4a9a238a28ab00217082f65cfa16ae5"
+    },
+    {
+      "path": "data/bible/psalms.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/psalms.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "e5f66a23f099f6629cbbeeeaf66adde217cc4d841838df794fa9ce9d4b862787"
+    },
+    {
+      "path": "data/bible/revelation.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/revelation.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "c54578766557d40e7f58d2446705a7fc4f55624590d28ee1b771a549e9d38d18"
+    },
+    {
+      "path": "data/bible/romans.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/romans.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "0427c69104fb46858f22707f63fc68f5e16fef06401a614fd6d0b43f914b44f2"
+    },
+    {
+      "path": "data/bible/ruth.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/ruth.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "00e2395a6911d67f096ac969c0a201e731222d20d2d74269209aceb08565bbb2"
+    },
+    {
+      "path": "data/bible/sirach.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/sirach.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "55bc46f85076e43076219ecd3f6a4e1ad250b11b3beba4dde59bc8a8a409f4d1"
+    },
+    {
+      "path": "data/bible/song-of-solomon.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/song-of-solomon.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "28c259d38e28a7991df6d7c13ffbb66fce31da694d423e26d4d57b4b826e4ae1"
+    },
+    {
+      "path": "data/bible/song-of-the-three-children.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/song-of-the-three-children.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "9f8248772fbceb4d778cddc1b1c63f0bb701feb0dd79b2ec36357a0030f71b59"
+    },
+    {
+      "path": "data/bible/susanna.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/susanna.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "f38ed8d43e93e9773a5d2efb5394d71ca633d3d3c4aaa55f8512e3f359a42e22"
+    },
+    {
+      "path": "data/bible/titus.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/titus.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "273e18065dbb5b59d72ff2a38aa04f4b370ffd38428e1fbd69c0bd0c335eb659"
+    },
+    {
+      "path": "data/bible/tobit.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/tobit.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "4158ff333b3a2b2aa32e9f5f64a462e2e46893c8525eb499e09417c8e9e87229"
+    },
+    {
+      "path": "data/bible/wisdom-of-solomon.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/wisdom-of-solomon.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "390c7275a5e5f23476ebba52b81e106404e807bc342f26bfe90202852c573449"
+    },
+    {
+      "path": "data/bible/zechariah.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/zechariah.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "397c39203bb8075655f9a9b0d9e3de5d97cf7e5f40da6ffbc7afafa4af6f29e5"
+    },
+    {
+      "path": "data/bible/zephaniah.json",
+      "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/bible/zephaniah.json",
+      "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+      "sha256": "e9cf7d59f560f6699d5c36d012b76e1042461841e5baae22cc8f35e93dc70cd7"
+    }
+  ],
+  "resources": [
+    {
+      "id": "strongs",
+      "inputs": [
+        {
+          "path": "data/strongs/greek.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/greek.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "e4225e7a21e7af9ddde48b97605e5d1cce3ec78c1188b1788e36399c3bbc35cd"
+        },
+        {
+          "path": "data/strongs/hebrew.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/hebrew.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "5122bb4822e9b137c0703e8fc347339f4b33214c501d7c413a024ee196e78c2c"
+        },
+        {
+          "path": "data/strongs/sources.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/sources.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "7db1015140a4cb3fcb129f1ca015443b8359a3aba13685438dbb108815bd5564"
+        },
+        {
+          "path": "data/strongs/tags/1-chronicles.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/1-chronicles.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "5e1b94738cd6094307c885e680fde73283e26450fd4c18c7590291ca2420e8ca"
+        },
+        {
+          "path": "data/strongs/tags/1-corinthians.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/1-corinthians.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "c40966a38c9a99138cd621e5883c7d6e606e891674b577f5b77fa69a6ca2db32"
+        },
+        {
+          "path": "data/strongs/tags/1-john.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/1-john.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "ad1cb9d352df4ac0bc5b41489457ce31b8d531a544c2881b361f538ddc1811cf"
+        },
+        {
+          "path": "data/strongs/tags/1-kings.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/1-kings.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "6d74a7c5d4518d2a07d8fb80fd5ced0d294120574232c589b7528d44ae9b9724"
+        },
+        {
+          "path": "data/strongs/tags/1-peter.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/1-peter.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "738a9b09a0ddbb0ef2ad2df3f1d4316e2c67dd2523fc4fce94c6c1c433912d1d"
+        },
+        {
+          "path": "data/strongs/tags/1-samuel.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/1-samuel.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "5b94a8ae2a56377c4ca1d1afdf182915877b5bab2a406a5259a764655f5a7f46"
+        },
+        {
+          "path": "data/strongs/tags/1-thessalonians.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/1-thessalonians.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "cd787839664fcb703377b55c88256ab6245963df9cca59c79f5f44045289814e"
+        },
+        {
+          "path": "data/strongs/tags/1-timothy.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/1-timothy.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "1a2227bd40eef2207231875c00d3f74059e16bf92a146a758d29957c690bd6b4"
+        },
+        {
+          "path": "data/strongs/tags/2-chronicles.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/2-chronicles.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "d05077752a6da47211448c2a40aa96ccb509e8e79e10b0d1269c94aa92d8ede5"
+        },
+        {
+          "path": "data/strongs/tags/2-corinthians.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/2-corinthians.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "81493827eda5c8612fb00b3559294158eb7d1c442885ba5f2c38ebcf3c6c49e7"
+        },
+        {
+          "path": "data/strongs/tags/2-john.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/2-john.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "314a0900ff1c7955ee05452f665710ab01ff598996d729df28b082e3861303a6"
+        },
+        {
+          "path": "data/strongs/tags/2-kings.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/2-kings.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "26575e350bd86aa46c53d94b4d4ffb2bea3b8aa290a80730f70ac51bff67d62e"
+        },
+        {
+          "path": "data/strongs/tags/2-peter.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/2-peter.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "528597ad89873a09305a1542e6b600aa6baf95d4dae2600629feb0a4614fe0c4"
+        },
+        {
+          "path": "data/strongs/tags/2-samuel.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/2-samuel.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "85d1cbd47cb4974cf058e2d64b502e0c1ee40de87890c95f47bc659648645fa8"
+        },
+        {
+          "path": "data/strongs/tags/2-thessalonians.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/2-thessalonians.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "05a94a9c58d56a02dfa377a25d7e1082060ccff2370b6b8727233a638ab03a02"
+        },
+        {
+          "path": "data/strongs/tags/2-timothy.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/2-timothy.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "0e8184f156fe9c5e383e282f1c93f89ffd6211058afcb984a89fdb8725159464"
+        },
+        {
+          "path": "data/strongs/tags/3-john.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/3-john.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "80a3df5d183f68951a82d9acce2628edfd4185ab02b15a66319503b544748f2f"
+        },
+        {
+          "path": "data/strongs/tags/acts.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/acts.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "f37cabf448b2bd612c2851277a7258e423e062c4d2b5da813a198160f7e2137d"
+        },
+        {
+          "path": "data/strongs/tags/amos.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/amos.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "9abb887d0fa795ce56ce557e37cfb5554055f1b25a676974f8e09bec22482ff1"
+        },
+        {
+          "path": "data/strongs/tags/colossians.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/colossians.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "f77c6e21eabddbd5ee536329d961f4531e6df8b9260c141dd5e81cb9e1a4b15a"
+        },
+        {
+          "path": "data/strongs/tags/daniel.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/daniel.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "2bd671bcf1fb0913d538f0d629feab06bbb5c99fcbac8f0cef722edcbb987e56"
+        },
+        {
+          "path": "data/strongs/tags/deuteronomy.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/deuteronomy.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "52063e3d4667f5bb54d7e602d0b394cfb17db4a8f6fc2006c8843a704a889921"
+        },
+        {
+          "path": "data/strongs/tags/ecclesiastes.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/ecclesiastes.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "b2ee502f6e70ceda50360262a56479569193cbec33e6ccacbb936a0c35ec1b50"
+        },
+        {
+          "path": "data/strongs/tags/ephesians.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/ephesians.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "db4cd8b184a65b3c8ebe9817666c785f1d6b1ec3887fb288ae353911fd203c29"
+        },
+        {
+          "path": "data/strongs/tags/esther.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/esther.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "2f76ee007a69e37b66a8ee71e0c248a8e8bce794d0133e754aaeee5640823adb"
+        },
+        {
+          "path": "data/strongs/tags/exodus.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/exodus.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "ad3f5ab44c96537882263a5f0946d30fe667dfa3d700296ed0c7b834e34b9727"
+        },
+        {
+          "path": "data/strongs/tags/ezekiel.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/ezekiel.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "a166d27a382b25678de91927e66a02e5f8b1a237f85893951a224ea4a539d5b8"
+        },
+        {
+          "path": "data/strongs/tags/ezra.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/ezra.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "78b170b2282586332a7330cc522c2876c37cbfa213628ad0d5e9f5b938168393"
+        },
+        {
+          "path": "data/strongs/tags/galatians.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/galatians.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "fbc7361e6055a5620a1fb7999ac5633f192c41b74cae8bf27a1028a93e287032"
+        },
+        {
+          "path": "data/strongs/tags/genesis.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/genesis.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "eb8d37e28d3700f3c6d5df9a582e51a8307097c83553ec6f2ecfa69a62128fa1"
+        },
+        {
+          "path": "data/strongs/tags/habakkuk.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/habakkuk.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "06dab6b805870ecf1ac958207c18540c3ae25f28b0d7cee788930247ff4b80ce"
+        },
+        {
+          "path": "data/strongs/tags/haggai.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/haggai.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "adfc40f80291eedfe67f58bad62d6945f5a881d7b8eeff566e777c36403c1049"
+        },
+        {
+          "path": "data/strongs/tags/hebrews.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/hebrews.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "8d4a857cc29f95e90ec9757502f23fc6e2e1abcc96afbdcb0af4b3fa2b5969bd"
+        },
+        {
+          "path": "data/strongs/tags/hosea.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/hosea.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "c262187dac4b5e02cca241f3bda8ea1d54322df69fd5a57ba0184c9ef8eb4980"
+        },
+        {
+          "path": "data/strongs/tags/isaiah.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/isaiah.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "71f35b70d37fc8b2371e56cfd6828827422d8b57e4f7edf6ad2bb3c5181fb344"
+        },
+        {
+          "path": "data/strongs/tags/james.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/james.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "70f6b75b8c573aac41d4dac95a27610b77e6e6924e2ed96e06d7b0c3e59f5a76"
+        },
+        {
+          "path": "data/strongs/tags/jeremiah.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/jeremiah.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "35041931b2c3933399c619a8f4affc0dd4d6af9519700ee6b46ea4e01623bf51"
+        },
+        {
+          "path": "data/strongs/tags/job.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/job.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "5f1b4a9d5de428cd578f35ce26148746cb8e540b7606ce22ceacc8652ffa39fb"
+        },
+        {
+          "path": "data/strongs/tags/joel.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/joel.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "d6b92eb32ed10fa0d108394f8f4961a666e72f66f845fbf3a887ed7c54c9cc9c"
+        },
+        {
+          "path": "data/strongs/tags/john.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/john.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "93525b0c0fcbb269ee91e241922a9ebf6cc7e6bf3d293d91a15a4982d1ef2deb"
+        },
+        {
+          "path": "data/strongs/tags/jonah.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/jonah.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "5a33c34134c2be252fe26eabd7023c341a65eff9682d31efd0fe25e6f4b20d64"
+        },
+        {
+          "path": "data/strongs/tags/joshua.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/joshua.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "8dcd499251e5fd971660543eda45c90755e221a87c4844cc2164acc88d6d15ea"
+        },
+        {
+          "path": "data/strongs/tags/jude.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/jude.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "0ae2e1b578de8cb75d1651f184f7d55f79c7309316c6a1b3e4ee20bc81535aaf"
+        },
+        {
+          "path": "data/strongs/tags/judges.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/judges.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "412bf0b68ac6b119e2b0acd9cd69240ef7fdbf9cdd581e8898722818ec272cc1"
+        },
+        {
+          "path": "data/strongs/tags/lamentations.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/lamentations.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "09e2d43b5a30fe938318598ca69651395af9f9a9e81022fadeeba6945931a989"
+        },
+        {
+          "path": "data/strongs/tags/leviticus.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/leviticus.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "785848d846525ce890cc48b69fc780aafe2449a5ff2cb879f02c32f30d454b94"
+        },
+        {
+          "path": "data/strongs/tags/luke.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/luke.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "1c88db1aee57f29fe772f3f4f7cecd2382d5adc0dcb367667f5dfabf84141f15"
+        },
+        {
+          "path": "data/strongs/tags/malachi.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/malachi.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "96887690651e7cbc60cb26d4ad66591488a0a780c0b89b501b7b521788532f15"
+        },
+        {
+          "path": "data/strongs/tags/mark.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/mark.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "17df919d73cc5bcd04bc48a831677068254e33812ebaa9e59ad6e41edc746040"
+        },
+        {
+          "path": "data/strongs/tags/matthew.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/matthew.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "3c9c328c63914a164d3703a8f09cffeb9ddff1882849bcac61d11fef93664344"
+        },
+        {
+          "path": "data/strongs/tags/micah.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/micah.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "689b06ccb35f7ea81fa2643a6ee60863cf87fe303fdbb938aadef555945222ba"
+        },
+        {
+          "path": "data/strongs/tags/nahum.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/nahum.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "e69dac121bc758ae2d3478886e7a9be4c7529400c65d0cf650af117a8af88fc3"
+        },
+        {
+          "path": "data/strongs/tags/nehemiah.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/nehemiah.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "d0e6bf37edf57fb1a51d7f41befab0e27d09c85c9c35fa541371d9e7452003f1"
+        },
+        {
+          "path": "data/strongs/tags/numbers.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/numbers.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "00fbe8591001899df9c6d7441340dbe193db69871b0e36194e3ac79bc38a2e09"
+        },
+        {
+          "path": "data/strongs/tags/obadiah.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/obadiah.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "4fa674e4ec145c356a885495f40d91c41b6485c839e2ae4432352c2c9ce94dcc"
+        },
+        {
+          "path": "data/strongs/tags/philemon.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/philemon.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "ee1ab63381d623c0de37ac6f0a72da7a4236fafc095a72a8f800f3c16cacf0cf"
+        },
+        {
+          "path": "data/strongs/tags/philippians.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/philippians.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "ef4dc33e2122ad70fe9558ef1cc6ac8273929598774569ed69cfcadd76e64ad8"
+        },
+        {
+          "path": "data/strongs/tags/proverbs.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/proverbs.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "1e548e74fe0927e874c8aa4d93b7aa9afe427911a131b5ae1b35d6b94c76f52b"
+        },
+        {
+          "path": "data/strongs/tags/psalms.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/psalms.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "81249a96fd48cb5a98677eba4e94c5550bc73e2c1abef5e70d62028be1e9ef67"
+        },
+        {
+          "path": "data/strongs/tags/revelation.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/revelation.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "9444d657db3f35700221a2fa57d837e2674b5340aaa68ef76624569d0f52ad41"
+        },
+        {
+          "path": "data/strongs/tags/romans.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/romans.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "7f6d322c02f26d580c9855923d70832f4ee1ac5a282e29ec7040b8928271a49b"
+        },
+        {
+          "path": "data/strongs/tags/ruth.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/ruth.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "7fb0a57bdbf472d3ca635a3feaecf4b336e49b88a33e63ea93ac3f0f52dcc0d5"
+        },
+        {
+          "path": "data/strongs/tags/song-of-solomon.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/song-of-solomon.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "3d7175364a0eea1504229756100d46aad39a9340da5dc5a2168a276656eb4537"
+        },
+        {
+          "path": "data/strongs/tags/titus.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/titus.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "99ef3f3d320986ba899d14ebbbbcd3895d16cd3082a1a579158ac1c634255b26"
+        },
+        {
+          "path": "data/strongs/tags/zechariah.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/zechariah.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "0800b51f5e138f8405eeb80899b487c54162d0e61fe43fe3d948ff2f80e1467e"
+        },
+        {
+          "path": "data/strongs/tags/zephaniah.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/strongs/tags/zephaniah.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "404ef5bc56e5dd456bb9f39d526af7cb0d5f3f06e5d348ce2251a5d9a942eba4"
+        },
+        {
+          "path": "upstream/hebrew/strongs-hebrew-dictionary.js",
+          "url": "https://raw.githubusercontent.com/openscriptures/strongs/0acd2f251c2d35ff8db2dece4e0593979d3ac223/hebrew/strongs-hebrew-dictionary.js",
+          "revision": "0acd2f251c2d35ff8db2dece4e0593979d3ac223",
+          "sha256": "5ce6aeed551c709f49bcfa341cadf2f34bc7599b85d9de9e6ac2ecbf60fc3739"
+        },
+        {
+          "path": "upstream/greek/strongs-greek-dictionary.js",
+          "url": "https://raw.githubusercontent.com/openscriptures/strongs/0acd2f251c2d35ff8db2dece4e0593979d3ac223/greek/strongs-greek-dictionary.js",
+          "revision": "0acd2f251c2d35ff8db2dece4e0593979d3ac223",
+          "sha256": "7624ee738ae47e80f1a352223e28a26d011c9cd4898822cee52f47a010c04efd"
+        }
+      ]
+    },
+    {
+      "id": "josephus",
+      "inputs": [
+        {
+          "path": "data/library/josephus/book.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/josephus/book.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "12d0b285a5c2db721edd20915bbff256805ee4ee20ce9cc16adf3ddf27ae5381"
+        },
+        {
+          "path": "data/library/josephus/pages.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/josephus/pages.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "2a76fa51329ed766f735c3c147b3f92d96a9487400fc47b46d2724bd835ff508"
+        }
+      ]
+    },
+    {
+      "id": "jewish-encyclopedia",
+      "inputs": [
+        {
+          "path": "data/library/jewish-encyclopedia/book.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/book.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "544a89af8ad28340f304a5e2a532077713c4c583c64dcf10121490ef44266ae6"
+        },
+        {
+          "path": "data/library/jewish-encyclopedia/pages-v1.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v1.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "b5dbe1c40469d1f9368cd758e9231924ba270a4fe912e1da540575a0b0606b9c"
+        },
+        {
+          "path": "data/library/jewish-encyclopedia/pages-v10.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v10.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "13e5a00dbbc915b79330e5053aef64d5777097dda2d8c16f0a40ed77d52b1f63"
+        },
+        {
+          "path": "data/library/jewish-encyclopedia/pages-v11.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v11.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "1be202603f4d22e4b5e52e83c4afa09d07a4f0e68392d5ea7074a4205f4ea633"
+        },
+        {
+          "path": "data/library/jewish-encyclopedia/pages-v12.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v12.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "5733275031925465b3b6f97c297e0669f3e0f3582c8c3aba612fc5ff8191d01f"
+        },
+        {
+          "path": "data/library/jewish-encyclopedia/pages-v2.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v2.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "01eb8fcf6894a1cefe998bedc9d7cba4dfda3c4c2e6ee0673f4fbc94c204b7ce"
+        },
+        {
+          "path": "data/library/jewish-encyclopedia/pages-v3.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v3.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "343f076ec1c52d360d1a757439bc10e351bb57269cb711c2ac10f19b8b066066"
+        },
+        {
+          "path": "data/library/jewish-encyclopedia/pages-v4.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v4.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "179d9d78eb31142ba36391a6f75b357f5b5c7268e3a6076208c4acaaf5e2d2a0"
+        },
+        {
+          "path": "data/library/jewish-encyclopedia/pages-v5.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v5.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "db4a28b521cfdc9d0d18cb83fbf6106853d3310b43d5868d3cb81052d052d7d5"
+        },
+        {
+          "path": "data/library/jewish-encyclopedia/pages-v6.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v6.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "78dd826a16ce535dbaa13f99dfcb40ca6e4dc8d8f8633fb8f8c9b4dae3b9aca2"
+        },
+        {
+          "path": "data/library/jewish-encyclopedia/pages-v7.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v7.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "c33ad5309ee4c1abc5bb64d81a5f4f1de5bacc7be7abf32e1db788a140322972"
+        },
+        {
+          "path": "data/library/jewish-encyclopedia/pages-v8.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v8.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "2bac829e3a6c817fa7f69891a86e27d545d2596037e11ab1c893fcdf8c0d01ac"
+        },
+        {
+          "path": "data/library/jewish-encyclopedia/pages-v9.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/jewish-encyclopedia/pages-v9.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "e8cdad4750186a8ec9c62da136319b940fd3e3b8dd20cea1664b126a4fe0ea6e"
+        }
+      ]
+    },
+    {
+      "id": "smiths-dictionary-of-the-bible",
+      "inputs": [
+        {
+          "path": "data/library/smiths-dictionary-of-the-bible/book.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/smiths-dictionary-of-the-bible/book.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "e21e6f699730968c7a43744045f67f9c78622f6424c54f0014b9b6fe32ce1583"
+        },
+        {
+          "path": "data/library/smiths-dictionary-of-the-bible/pages-v1.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/smiths-dictionary-of-the-bible/pages-v1.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "a1f6f7b99696ff7250f50663f54e0da97d22e40d77e4101c752afbee8bec7863"
+        },
+        {
+          "path": "data/library/smiths-dictionary-of-the-bible/pages-v2.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/smiths-dictionary-of-the-bible/pages-v2.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "b56cd541312f4f52672d99ac34273297fa89470f13ae048fcc934b0c7e87a498"
+        },
+        {
+          "path": "data/library/smiths-dictionary-of-the-bible/pages-v3.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/smiths-dictionary-of-the-bible/pages-v3.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "269f7f06000da305508be32e0ab4d3a3aed636512b2ab9bc07bc3856573ea70c"
+        },
+        {
+          "path": "data/library/smiths-dictionary-of-the-bible/pages-v4.json",
+          "url": "https://raw.githubusercontent.com/DevSecObie/cyberjudah/f83224a50a2623f7e68a2fe3558703124d62d9fb/data/library/smiths-dictionary-of-the-bible/pages-v4.json",
+          "revision": "f83224a50a2623f7e68a2fe3558703124d62d9fb",
+          "sha256": "543e46e8d202c2c81f985d859101a965fc689f709451ad0e43812fd8f312a1c6"
+        }
+      ]
+    }
+  ]
+}
