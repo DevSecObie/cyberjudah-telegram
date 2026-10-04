@@ -133,6 +133,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   is unavailable, Ask answers from the keyword search.
 
 ### Changed
+- Keep reader context readable and gallery panels opaque across themes; document the Liquid Glass adoption review.
 
 - Reduced repeated palette calculations and dock style updates; browser checks now cover glass budgets and large-text label containment in Chromium, WebKit and Firefox.
 
