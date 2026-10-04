@@ -232,6 +232,9 @@ test("The Final Captivity: a period's events by category, and an event's history
   await page.goto(`/timeline/${index}`);
   await expect(page.getByRole("heading", { name: "The House of Bondage" })).toBeVisible();
   await shot(page, "fc-2-period");
+  // An event names the tribes of the twelve it concerns.
+  await page.goto("/timeline/event/sand-creek-massacre-1864");
+  await expect(page.locator(".fc-tribes")).toContainText("Gad");
   // An event about a leader shows the leader's portrait.
   await page.goto("/timeline/event/iuic-founded-2003");
   await expect(page.locator("img.tl-event__pic")).toHaveAttribute("src", /timeline\/leaders\/bishop-nathanyel-256\.webp$/);

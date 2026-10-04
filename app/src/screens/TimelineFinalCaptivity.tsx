@@ -18,8 +18,8 @@ type Source = { title: string; author?: string; publisher?: string; year?: strin
 type Teaching = { points?: string[]; quote?: string; teacher?: string; source: { kind: "class" | "history" | "site" | "note"; id?: string; title: string; date?: string; ts?: string; url: string } };
 export type FcDetail = {
   title: string; start: number; end: number; period: string;
-  date: { text: string; precision: string }; group: string; place?: string; region?: string; peoples?: string[]; people?: string[];
-  summary: string; account?: string[]; teaching?: Teaching[]; scriptures?: { ref: string; why?: string }[]; sources?: Source[];
+  date: { text: string; precision: string }; group: string; place?: string; region?: string; peoples?: string[]; tribes?: string[]; people?: string[];
+  summary: string; account?: string[]; teaching?: Teaching[]; scriptures?: { ref: string; why?: string }[]; answer?: { ref: string; why?: string }[]; sources?: Source[];
   uncertainty?: string; disagreements?: { point: string; views: string[] }[];
   image?: { src: string; kind: "archival" | "generated"; caption: string; credit?: string; license?: string; sourceUrl?: string };
 };
@@ -42,12 +42,16 @@ export function FinalCaptivityDetail({ slug, reviewedThrough }: { slug: string; 
   const all = useFinalCaptivity();
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const e = all.data?.[slug];
-  const refs = useMemo(() => (e?.scriptures ?? []).map((s) => {
+  const place = useMemo(() => (list: { ref: string; why?: string }[] = []) => list.map((s) => {
     const m = REF.exec(s.ref);
     const slugOf = (name: string) => books.data?.find((b) => b.book.toLowerCase() === name.toLowerCase())?.slug ?? name.toLowerCase().replace(/\s+/g, "-");
     const at: VerseRef | null = m ? { slug: slugOf(m[1]), chapter: +m[2], from: m[3] ? +m[3] : 1, to: m[4] ? +m[4] : m[3] ? +m[3] : 1 } : null;
     return { ...s, at };
-  }), [e, books.data]);
+  }), [books.data]);
+  const refs = useMemo(() => place(e?.scriptures), [place, e]);
+  // An outside charge is answered from the KJV and the Apocrypha, the way the scriptures answered
+  // what was said of Christ: the charge stands in the history, the answer under it.
+  const answer = useMemo(() => place(e?.answer), [place, e]);
 
   if (all.isPending) return <p className="hint" aria-busy="true">Loading…</p>;
   if (!e) return <p className="hint" role="status">This event could not be loaded. <button type="button" className="msg__link" onClick={() => void all.refetch()}>Try again</button></p>;
@@ -75,6 +79,7 @@ export function FinalCaptivityDetail({ slug, reviewedThrough }: { slug: string; 
       {e.account?.length ? (
         <section className="tl-event__section fc-section" aria-labelledby={`${slug}-h`}>
           <h3 id={`${slug}-h`}><span className="fc-kind">Documented History</span>What Happened</h3>
+          {e.tribes?.length ? <p className="fc-tribes">{e.tribes.join(" · ")}</p> : null}
           {e.people?.length ? <p className="fc-people">{e.people.join(" · ")}</p> : null}
           {e.account.map((p, i) => <p key={i} className="fc-para">{p}</p>)}
         </section>
@@ -100,6 +105,15 @@ export function FinalCaptivityDetail({ slug, reviewedThrough }: { slug: string; 
         <section className="tl-event__section fc-section" aria-labelledby={`${slug}-s`}>
           <h3 id={`${slug}-s`}><span className="fc-kind fc-kind--scripture">Scriptural Application</span>Scriptures</h3>
           {refs.map((r) => r.at
+            ? <ScriptureCard key={r.ref} at={r.at} label={r.ref}>{r.why ? <p className="fc-why">{r.why}</p> : null}</ScriptureCard>
+            : <p key={r.ref} className="fc-para"><b>{r.ref}</b>{r.why ? `: ${r.why}` : ""}</p>)}
+        </section>
+      ) : null}
+
+      {answer.length ? (
+        <section className="tl-event__section fc-section" aria-labelledby={`${slug}-a`}>
+          <h3 id={`${slug}-a`}><span className="fc-kind fc-kind--scripture">The answer</span>What the scriptures say</h3>
+          {answer.map((r) => r.at
             ? <ScriptureCard key={r.ref} at={r.at} label={r.ref}>{r.why ? <p className="fc-why">{r.why}</p> : null}</ScriptureCard>
             : <p key={r.ref} className="fc-para"><b>{r.ref}</b>{r.why ? `: ${r.why}` : ""}</p>)}
         </section>

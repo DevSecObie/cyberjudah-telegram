@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -20,12 +20,23 @@ export function WordStudy({ number, books, here, onRead, enabled = true }: { num
   const [allBooks, setAllBooks] = useState(false);
   const [openBook, setOpenBook] = useState<string | null>(null);
   const e = q.data;
+  const revision = e?.occurrencePages?.revision;
+  const more = useInfiniteQuery({
+    queryKey: ["strongs-pages", number, revision],
+    enabled: false,
+    initialPageParam: e?.occurrencePages?.nextPage ?? 1,
+    queryFn: ({ pageParam }) => data.strongsPage(number, revision!, pageParam),
+    getNextPageParam: (last) => last.nextPage ?? undefined,
+    staleTime: Infinity,
+  });
+  const occurrences = useMemo(() => [...(e?.occurrences ?? []), ...(more.data?.pages.flatMap((p) => p.occurrences) ?? [])], [e, more.data]);
+  const hasMore = !!revision && (more.data ? more.hasNextPage : e?.occurrencePages?.nextPage != null);
   const bookName = (slug: string) => books.find((b) => b.slug === slug)?.book ?? slug;
   const byBook = useMemo(() => {
     const out: { slug: string; rows: StrongsEntry["occurrences"] }[] = [];
-    for (const o of e?.occurrences ?? []) { const g = out[out.length - 1]; if (g && g.slug === o.slug) g.rows.push(o); else out.push({ slug: o.slug, rows: [o] }); }
+    for (const o of occurrences) { const g = out[out.length - 1]; if (g && g.slug === o.slug) g.rows.push(o); else out.push({ slug: o.slug, rows: [o] }); }
     return out;
-  }, [e]);
+  }, [occurrences]);
   const shownBooks = allBooks ? byBook : byBook.slice(0, 8);
   const read = (o: { slug: string; chapter: number; verse: number }) => { haptic("select"); onRead?.(); navigate(`/read/${o.slug}/${o.chapter}?v=${o.verse}`); };
   const mark = (text: string, words: string[]) => {
@@ -57,7 +68,7 @@ export function WordStudy({ number, books, here, onRead, enabled = true }: { num
             </section>
           ) : null}
           <section className="bs-word__sec">
-            <h3>Every verse{e.verses > e.occurrences.length ? ` (first ${e.occurrences.length} of ${e.verses.toLocaleString()})` : ""}</h3>
+            <h3>Every verse{e.verses > occurrences.length ? ` (first ${occurrences.length} of ${e.verses.toLocaleString()})` : ""}</h3>
             <div className="bs-word__books">
               {shownBooks.map((g) => {
                 const isOpen = openBook === g.slug || (byBook.length === 1);
@@ -81,6 +92,8 @@ export function WordStudy({ number, books, here, onRead, enabled = true }: { num
               })}
             </div>
             {!allBooks && byBook.length > 8 ? <button type="button" className="bs-word__more" onClick={() => setAllBooks(true)}>All {byBook.length} books</button> : null}
+            {hasMore ? <button type="button" className="bs-word__more" disabled={more.isFetching} onClick={() => { setAllBooks(true); void more.fetchNextPage(); }}>{more.isFetching ? "Loading verses…" : more.isError ? "Retry loading verses" : "Load more verses"}</button> : null}
+            {more.isError ? <p role="status">The next verses could not be loaded. Your current results are still here.</p> : null}
           </section>
           <p className="bs-word__src">{e.source}</p>
         </div>

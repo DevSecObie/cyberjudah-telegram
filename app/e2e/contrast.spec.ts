@@ -36,9 +36,9 @@ for (const theme of ["default", "dark", "sepia", "nature", "sunset", "black", "m
       }
       // WebKit can retain pre-palette descendant styles after the root changes. Require
       // the rendered palette to settle; every sample keeps the same contrast thresholds.
-      let result = await page.evaluate(auditContrast);
+      let result = await page.evaluate(auditContrast, {});
       await expect(async () => {
-        result = await page.evaluate(auditContrast);
+        result = await page.evaluate(auditContrast, {});
         expect(result.failures, `${theme} ${increased} ${path}`).toEqual([]);
       }).toPass({ timeout: 5000, intervals: [100, 250, 500] });
       report.push({ path, ...result });
@@ -65,3 +65,53 @@ test("contrast: the live OS preference overrides saved ink and restores it witho
   expect(await page.evaluate(() => (window as any).__cloud.bs)).toBe(stored);
   expect(await page.locator(".bs").evaluate(el => getComputedStyle(el).getPropertyValue("--bs-color1").trim())).toBe("#123456");
 });
+
+for (const theme of ["default", "dark", "sepia", "nature", "sunset", "black", "mauve", "night"]) for (const increased of [false, true]) {
+  test(`contrast: ${theme} ${increased ? "increased" : "standard"} reader interactions keep context and panels readable`, async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.emulateMedia({ contrast: increased ? "more" : "no-preference", reducedMotion: "reduce" });
+    await page.addInitScript(theme => { (window as any).__cloud = { bs: JSON.stringify({ preferredColorScheme: ["dark", "black", "mauve", "night"].includes(theme) ? "dark" : "light", preferredLightTheme: theme, preferredDarkTheme: theme }) }; }, theme);
+    await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
+    await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
+    const check = async () => {
+      if (await page.locator(".bs-gallery").count()) {
+        const canvas = await page.locator("body").evaluate(el => getComputedStyle(el).backgroundColor);
+        await expect(page.locator(".bs-gallery")).toHaveCSS("background-color", canvas);
+      }
+      await page.evaluate(async () => { await Promise.all(document.getAnimations().filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))); });
+      await expect(async () => {
+        const result = await page.evaluate(auditContrast, { includePanels: true });
+        expect(result.textNodes).toBeGreaterThan(20);
+        expect(result.failures).toEqual([]);
+      }).toPass({ timeout: 5000, intervals: [100, 250, 500] });
+    };
+    await page.goto(`/read/genesis/1${LAUNCH}`);
+    await expect(page.locator("html")).toHaveAttribute("data-palette", theme);
+    await page.locator("#verset-1").click();
+    await expect(page.locator(".bs-selected")).toBeVisible();
+    await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
+    await expect(page.locator("#verset-2")).not.toHaveAttribute("data-selected");
+    await check();
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".bs-selected")).toHaveCount(0);
+    await page.locator(".bs-pill--version").click();
+    await expect(page.locator(".bs-versionrow__id")).toHaveText("KJV");
+    await check();
+    await page.keyboard.press("Escape");
+    await page.goto(`/read/genesis/4${LAUNCH}`);
+    await page.locator(".bs-entities__stack").click();
+    await expect(page.getByRole("dialog", { name: "People in this chapter" })).toBeVisible();
+    await expect(page.locator(".bs-people__text small").first()).toContainText("verse");
+    await check();
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".bs-gallery")).toHaveCount(0);
+    await page.goto(`/read/genesis/1${LAUNCH}`);
+    const deck = page.locator("#verset-28 .bs-deck");
+    // Scrolling this distant verse can collapse the header. Let the subsequent click
+    // check the button's settled position after that scroll, especially in WebKit.
+    await deck.scrollIntoViewIfNeeded();
+    await deck.click();
+    await expect(page.locator(".bs-gallery__text small").first()).toContainText(/Bishop|Deacon/);
+    await check();
+  });
+}

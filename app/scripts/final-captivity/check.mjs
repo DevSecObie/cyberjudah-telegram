@@ -23,6 +23,12 @@ export const GROUPS = [
   "Civil rights", "Other atrocities", "Achievements", "Identity and erasure", "Forerunners", "Israel United in Christ",
 ];
 export const PEOPLES = ["Black", "Hispanic", "Native"];
+/** The twelve tribes as the assembly's chart places them today; an event names the ones it concerns. */
+export const TRIBES = {
+  Judah: "the so-called African Americans", Benjamin: "the West Indians", Levi: "the Haitians", Simeon: "the Dominicans",
+  Zebulon: "Guatemala to Panama", Ephraim: "the Puerto Ricans", Manasseh: "the Cubans", Gad: "the North American Indians",
+  Reuben: "the Seminole Indians", Naphtali: "Argentina and Chile", Asher: "Colombia to Uruguay", Issachar: "the Mexicans",
+};
 const PRECISION = ["day", "month", "year", "circa", "range", "decade"];
 const KINDS = ["class", "history", "site", "note"];
 /** Book names as the app writes them (AGENTS.md), with the Apocrypha. */
@@ -50,11 +56,12 @@ export function checkEvent(e, periods, { corpus, draft = false, leaders = null }
   if (e.date && (!e.date.text || !PRECISION.includes(e.date.precision))) p.push(`${at}: date needs text and a precision (${PRECISION.join(", ")})`);
   if (e.group && !GROUPS.includes(e.group)) p.push(`${at}: unknown group "${e.group}"`);
   for (const x of e.peoples ?? []) if (!PEOPLES.includes(x)) p.push(`${at}: unknown people "${x}"`);
-  for (const s of e.scriptures ?? []) {
+  for (const s of [...(e.scriptures ?? []), ...(e.answer ?? [])]) {
     const r = parseRef(s.ref);
     if (!r) p.push(`${at}: scripture "${s.ref}" is not a reference in the app's book names`);
     else if (corpus?.verse && !corpus.verse(r)) p.push(`${at}: scripture "${s.ref}" is not in the KJV`);
   }
+  for (const t of e.tribes ?? []) if (!Object.hasOwn(TRIBES, t)) p.push(`${at}: tribe "${t}" is not one of the twelve (${Object.keys(TRIBES).join(", ")})`);
   if (e.leader && leaders && !leaders.some((l) => l.id === e.leader)) p.push(`${at}: leader "${e.leader}" is not in leaders.json`);
   if (e.image) {
     const i = e.image;
@@ -66,7 +73,9 @@ export function checkEvent(e, periods, { corpus, draft = false, leaders = null }
   if (draft) return p;
 
   if (e.status !== "published") p.push(`${at}: status must be "published" (drafts go in drafts.json)`);
-  ["account", "teaching", "sources"].forEach(need);
+  // The documented history and its sources are required; the classes' teaching is shown wherever
+  // a class taught the event, and an event may stand on its sources alone.
+  ["account", "sources"].forEach(need);
   for (const t of e.teaching ?? []) {
     const s = t.source ?? {};
     if (!KINDS.includes(s.kind)) p.push(`${at}: teaching source kind must be one of ${KINDS.join(", ")}`);

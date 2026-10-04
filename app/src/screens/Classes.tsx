@@ -33,8 +33,10 @@ export function Classes() {
   const [q, setQ] = useVisitState("q", "");
   const [shown, setShown] = useVisitState("shown", PAGE);
   const [playing, setPlaying] = useState<string | null>(null);
+  const [feedNoticeOff, setFeedNoticeOff] = useState(false);
   const query = useDeferredValue(q.trim().toLowerCase());
   const res = useTeachings();
+  useEffect(() => { if (res.feedOk !== false) setFeedNoticeOff(false); }, [res.feedOk]);
   useKeptScroll(!!res.data);
   const set = (next: Record<string, string | undefined>) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries({ feed, teacher, year, series, ...next })) if (v && v !== "all") p.set(k, v); setParams(p, { replace: true }); setShown(PAGE); setPlaying(null); };
   const all = useMemo(() => {
@@ -83,6 +85,13 @@ export function Classes() {
           {filtered ? <button type="button" className="cfeed__reset" onClick={() => { haptic("select"); reset(); }}>Reset</button> : null}
         </div>
       </div>
+      {res.feedOk === false && !feedNoticeOff ? (
+        <div className="cfeed__notice" role="status">
+          <Icon name="alert" size={16} />
+          <p>New uploads may be delayed while YouTube is having trouble. Classes already listed are still available.</p>
+          <button type="button" className="cfeed__noticex" aria-label="Dismiss upload notice" onClick={() => { haptic("select"); setFeedNoticeOff(true); }}><Icon name="close" size={14} /></button>
+        </div>
+      ) : null}
       {res.isPending ? <FeedSkeleton /> : res.isError ? (
         <Empty title="The classes did not load" action={{ label: "Try again", onClick: () => void res.refetch() }}>Check your connection.</Empty>
       ) : !rows.length ? (

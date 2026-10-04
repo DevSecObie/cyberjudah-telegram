@@ -17,6 +17,10 @@ export async function cachedResponse(url: string): Promise<Response | undefined>
 export async function saveBook(book: Book, onProgress?: (done: number, total: number) => void): Promise<boolean> {
   if (!available) return false;
   const cache = await caches.open(CACHE);
+  // A saved chapter also needs the book catalog when the app starts without a network.
+  const indexUrl = `${DATA_ORIGIN}/api/kjv/books.json`;
+  try { const r = await fetch(indexUrl); if (!r.ok) return false; await cache.put(indexUrl, r); }
+  catch { if (!(await cache.match(indexUrl))) return false; }
   const urls = book.chapterIds.map((c) => `${DATA_ORIGIN}/api/kjv/${book.slug}/${c}.json`);
   let complete = true, done = 0;
   for (let i = 0; i < urls.length; i += 6) {
@@ -79,3 +83,11 @@ export async function savedBooks(): Promise<string[]> {
 }
 
 export const offlineSupported = available;
+
+/** Add missing metadata to legacy downloads on the next online launch. Never remove
+ * or relabel old chapter responses as checksummed bundle records. */
+export async function preserveLegacyBooks() {
+  if (!available || !(await savedBooks()).length) return;
+  const url = `${DATA_ORIGIN}/api/kjv/books.json`;
+  try { const response = await fetch(url); if (response.ok) await (await caches.open(CACHE)).put(url, response); } catch { /* existing cached text remains available */ }
+}

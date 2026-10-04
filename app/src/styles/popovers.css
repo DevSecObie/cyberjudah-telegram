@@ -14,6 +14,7 @@
 .bs-picker-scrim:has([data-popover]) { animation: none; }
 
 /* Snapshot groups keep fixed geometry; only their transform and opacity animate. */
+:root { view-transition-name: none; }
 ::view-transition-group(action-popover) { transform-origin: 0 0; animation: popover-morph var(--dur-2) var(--ease-spring) both; }
 ::view-transition-old(action-popover), ::view-transition-new(action-popover) { width: 100%; height: 100%; object-fit: fill; }
 ::view-transition-old(action-popover) { animation: popover-fade-out var(--dur-2) ease both; mix-blend-mode: normal; }

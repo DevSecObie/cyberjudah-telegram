@@ -10,6 +10,7 @@ import { runSearch } from "./search";
 import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./teachings";
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
+import { approvedSources, DEFAULT_SOURCES, HOST } from "./ask-tools";
 import { ask, askStream, creditsOn, defaultModelId, freeModel, similar, speakVerse } from "./ai";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
@@ -18,6 +19,7 @@ import { push, reminderCounts, reminders, sendReminders } from "./remind";
 import { reportHealth, selfCheck } from "./health";
 import { bookLabel } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
+import { resources } from "./resources";
 import { bs } from "./bs";
 import { buildCatalog, emptyCatalog, SLUGS, type PassageMediaMoment } from "./passage-media.mjs";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
@@ -62,6 +64,7 @@ app.use("/api/*", async (c, next) => {
   if (c.req.path === "/api/reminders" || c.req.path.startsWith("/api/reminders/") || c.req.path.startsWith("/api/push/")) return next();
   // The photos an admin sets are public pictures like the app's own: readers fetch them without signing in.
   if (c.req.method === "GET" && (c.req.path === "/api/photos" || c.req.path.startsWith("/api/photos/file/"))) return next();
+  if (c.req.method === "GET" && c.req.path.startsWith("/api/resources/")) return next();
   if (c.req.path === "/api/verse-of-day" || c.req.path === "/api/health" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
   // Thirty days: Telegram keeps a Mini App open in the background for weeks, and its launch
@@ -144,6 +147,20 @@ app.delete("/api/admin/photos", async (c) => {
   return res.ok ? c.json(res) : c.json({ ok: false, error: res.error }, res.status);
 });
 
+// The outside sources Ask may read (ask-tools.ts): an admin sees and sets the whitelist.
+app.get("/api/admin/ask-sources", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false, error: "Only an admin can see this." }, 403);
+  return c.json({ ok: true, hosts: await approvedSources(c.env), defaults: DEFAULT_SOURCES });
+});
+app.put("/api/admin/ask-sources", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false, error: "Only an admin can change this." }, 403);
+  const body = await c.req.json<{ hosts?: unknown }>().catch(() => null);
+  const hosts = Array.isArray(body?.hosts) ? [...new Set(body!.hosts.map((h) => String(h).trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "")))] : null;
+  if (!hosts || hosts.length > 100 || !hosts.every((h) => HOST.test(h))) return c.json({ ok: false, error: "Give a list of up to 100 site names, like wikipedia.org." }, 400);
+  await c.env.SUBS.put("ask:sources", JSON.stringify(hosts));
+  return c.json({ ok: true, hosts });
+});
+
 app.get("/api/search", async (c) => {
   const q = (c.req.query("q") ?? "").slice(0, 200);
   const only = c.req.query("only") || undefined;
@@ -161,7 +178,7 @@ app.get("/api/teachings", async (c) => {
 // Whether a class is on the air right now (the channel's live stream), for the Home screen.
 app.get("/api/live", async (c) => c.json(await liveNow(c.env, c.executionCtx)));
 // The channel's newest recordings, so a class is listed before its notes are written.
-app.get("/api/recent", async (c) => c.json({ videos: await recentVideos(c.env, c.executionCtx) }));
+app.get("/api/recent", async (c) => { const r = await recentVideos(c.env, c.executionCtx); return c.json({ videos: r.videos, feedOk: r.ok }); });
 app.get("/api/taught/:slug/:chapter", async (c) => {
   const slug = c.req.param("slug"), chapter = Number(c.req.param("chapter"));
   if (!/^[a-z0-9-]{1,40}$/.test(slug) || !(chapter >= 1 && chapter <= 200)) return c.json({ ok: false, reason: "bad-reference" }, 400);
@@ -497,6 +514,7 @@ app.post("/api/invoice", async (c) => {
 
 // The dictionary is public: nothing personal in a lookup, and the cache can serve everyone.
 app.route("/api/dictionary", dictionary);
+app.route("/api/resources", resources);
 
 app.get("/api/verse-of-day", async (c) => {
   const v = await todaysVerse(c.env, c.executionCtx);

@@ -57,11 +57,14 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   reporter: process.env.CI ? [["list"], ["github"]] : [["list"]],
   globalSetup: liveBaseURL ? undefined : "./e2e/stand-ins.ts",
-  use: { baseURL: liveBaseURL || "http://127.0.0.1:8787", trace: "retain-on-failure", screenshot: "only-on-failure", viewport: { width: 390, height: 780 } },
+  // Network stand-ins must not be bypassed by a service worker. Offline/reminder
+  // specs explicitly allow the real worker and exercise it without those mocks.
+  use: { baseURL: liveBaseURL || "http://127.0.0.1:8787", serviceWorkers: "block", trace: "retain-on-failure", screenshot: "only-on-failure", viewport: { width: 390, height: 780 } },
   projects: [
     { name: "chromium", use: { browserName: "chromium", channel: "chromium", ...(process.env.CHROMIUM_PATH ? { launchOptions: { executablePath: process.env.CHROMIUM_PATH } } : {}) } },
     // The glass material and pointer behavior must also work in the engine used by Safari/iOS.
-    { name: "webkit", testMatch: ["glass.spec.ts", "contrast.spec.ts"], use: { browserName: "webkit" } },
+    { name: "webkit", testMatch: ["glass.spec.ts", "contrast.spec.ts", "search-placement.spec.ts", "icons.spec.ts", "material-budget.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts"], use: { browserName: "webkit" } },
+    { name: "firefox", testMatch: ["glass.spec.ts", "material-budget.spec.ts", "search-placement.spec.ts", "icons.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts"], use: { browserName: "firefox" } },
   ],
   webServer: liveBaseURL ? undefined : {
     command: `npm run build && bash ../bot/scripts/prepare-assets.sh && cd ../bot && rm -rf .wrangler/e2e && npx wrangler dev --local --port 8787 --persist-to .wrangler/e2e --test-scheduled ${vars}`,
