@@ -128,10 +128,12 @@ async function allowed(env: Env, userId: number): Promise<boolean> {
 
 /**
  * The free model: never charged, open to every reader, and offered whenever the balance is too low
- * for the model chosen. ASK_FREE_MODEL names it; by default the strongest low-cost model in
- * Cloudflare's catalog that researches with tools (GLM 5.3 Flash, Workers AI).
+ * for the model chosen. ASK_FREE_MODEL names it; by default Llama 3.1 8B, which sits inside
+ * Cloudflare's free neuron lane (10,000 neurons/day/account at no charge) and answers in one
+ * call from the retrieved passages (format "plain": no tool rounds). GLM 5.3 Flash was dropped:
+ * Cloudflare moved it out of the free lane, so it billed from the first call.
  */
-export const freeModel = (env: Env) => modelOf(env.ASK_FREE_MODEL || "@cf/zai-org/glm-5.3-flash", "@cf/zai-org/glm-5.3-flash");
+export const freeModel = (env: Env) => modelOf(env.ASK_FREE_MODEL || "@cf/meta/llama-3.1-8b-instruct-fp8", "@cf/meta/llama-3.1-8b-instruct-fp8");
 
 /** Ask is paid from the reader's balance (credits.ts) when ASK_BILLING is "on"; otherwise each person has the abuse limit above. */
 export const creditsOn = (env: Env) => env.ASK_BILLING === "on";
@@ -156,11 +158,15 @@ const freeMaxRounds = (env: Env) => Math.max(1, Math.floor(Number(env.ASK_FREE_M
 const freeMaxUsd = (env: Env) => Math.max(0.001, Number(env.ASK_FREE_MAX_USD ?? 0.05));
 
 /**
- * The owner's free-tier spend is capped per UTC day (ASK_FREE_DAILY_USD_CAP, $100): past it,
- * the free model pauses until tomorrow. A per-account answer cap cannot stop N accounts ×
- * 100 free answers each; only a global cap bounds that loss.
+ * The owner's free-tier spend is capped per UTC day at the free-allocation value
+ * (ASK_FREE_DAILY_USD_CAP, $0.11 = 10,000 free neurons/day at $0.011/1k): past it, the free
+ * model pauses until tomorrow. The free model sits inside Cloudflare's free neuron lane, so
+ * in practice the cap is never reached — but if a model ever leaves the lane, or another
+ * part of the account exhausts the allocation, free answers pause instead of billing.
+ * A per-account answer cap cannot stop N accounts × 100 free answers each; only a global
+ * cap bounds that loss.
  */
-const freeCapUsd = (env: Env) => Math.max(1, Number(env.ASK_FREE_DAILY_USD_CAP ?? 100));
+const freeCapUsd = (env: Env) => Math.max(0.01, Number(env.ASK_FREE_DAILY_USD_CAP ?? 0.11));
 const freeDay = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
 
 export async function freeSpendToday(env: Env, now = Date.now()): Promise<number> {
