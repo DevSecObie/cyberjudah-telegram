@@ -112,20 +112,20 @@ export function parseChannelVideos(html, now = Date.now()) {
   const data = initialData(html);
   const tabs = data?.contents?.twoColumnBrowseResultsRenderer?.tabs;
   if (!Array.isArray(tabs)) return [];
-  const selected = tabs.find((tab) => tab.tabRenderer?.selected)?.tabRenderer?.content;
+  const selected = tabs.find((tab) => tab?.tabRenderer?.selected)?.tabRenderer?.content;
   const out = new Map();
   /** @param {any} text */
-  const label = (text) => text?.simpleText ?? text?.runs?.map((/** @type {{text: string}} */ r) => r.text).join("") ?? "";
+  const label = (text) => typeof text?.simpleText === "string" ? text.simpleText : Array.isArray(text?.runs) ? text.runs.map((/** @type {any} */ r) => typeof r?.text === "string" ? r.text : "").join("") : "";
   /** @param {any} node */
   const walk = (node) => {
     if (!node || typeof node !== "object") return;
     const card = node.videoRenderer ?? node.gridVideoRenderer;
     if (card) {
-      if (card.upcomingEventData || card.badges?.some((/** @type {any} */ b) => /LIVE_NOW|UPCOMING/.test(b.metadataBadgeRenderer?.style ?? "")) ||
-          card.thumbnailOverlays?.some((/** @type {any} */ o) => /LIVE|UPCOMING/.test(o.thumbnailOverlayTimeStatusRenderer?.style ?? ""))) return;
+      if (card.upcomingEventData || (Array.isArray(card.badges) && card.badges.some((/** @type {any} */ b) => /LIVE_NOW|UPCOMING/.test(b?.metadataBadgeRenderer?.style ?? ""))) ||
+          (Array.isArray(card.thumbnailOverlays) && card.thumbnailOverlays.some((/** @type {any} */ o) => /LIVE|UPCOMING/.test(o?.thumbnailOverlayTimeStatusRenderer?.style ?? "")))) return;
       const video = card.videoId, title = cleanTitle(label(card.title));
       const published = cardDate(label(card.publishedTimeText), now);
-      if (/^[\w-]{11}$/.test(video ?? "") && title && published) {
+      if (typeof video === "string" && /^[\w-]{11}$/.test(video) && title && published) {
         const count = label(card.viewCountText).replace(/,/g, "");
         const views = /^(\d+) views?$/.exec(count);
         out.set(video, { video, title, published, views: views ? Number(views[1]) : null });

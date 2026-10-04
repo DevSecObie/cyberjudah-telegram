@@ -39,6 +39,13 @@ test("channel fallback skips scheduled/live streams, Shorts, invalid dates and i
   for (const html of ["", "<html>Consent required</html>", "var ytInitialData = {bad};", "var ytInitialData = {};"]) assert.deepEqual(parseChannelVideos(html, NOW), []);
 });
 
+test("unexpected channel-card fields do not break the outage fallback", () => {
+  const cards = [null, video(A, { title: { simpleText: {} } }), video(A, { title: { runs: {} } }), video(12345678901),
+    video(B, { badges: [null], thumbnailOverlays: [null], title: { runs: [null, { text: "A valid class" }] } })];
+  assert.deepEqual(parseChannelVideos(page(cards), NOW).map((v) => [v.video, v.title]), [[B, "A valid class"]]);
+  assert.deepEqual(parseChannelVideos('var ytInitialData = {"contents":{"twoColumnBrowseResultsRenderer":{"tabs":[null]}}};', NOW), []);
+});
+
 /** Exercise the Worker entry point with real parsers, edge-cache semantics and KV snapshots. */
 function worker(t, response, saved = null) {
   const calls = [], edge = new Map(), writes = [];
