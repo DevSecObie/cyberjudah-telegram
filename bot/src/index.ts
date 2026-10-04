@@ -10,6 +10,7 @@ import { runSearch } from "./search";
 import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./teachings";
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
+import { approvedSources, DEFAULT_SOURCES, HOST } from "./ask-tools";
 import { ask, askStream, creditsOn, defaultModelId, freeModel, similar, speakVerse } from "./ai";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
@@ -142,6 +143,20 @@ app.delete("/api/admin/photos", async (c) => {
   const { user } = c.get("tma");
   const res = await removePhoto(c.env, user!, c.req.query("slot") ?? "");
   return res.ok ? c.json(res) : c.json({ ok: false, error: res.error }, res.status);
+});
+
+// The outside sources Ask may read (ask-tools.ts): an admin sees and sets the whitelist.
+app.get("/api/admin/ask-sources", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false, error: "Only an admin can see this." }, 403);
+  return c.json({ ok: true, hosts: await approvedSources(c.env), defaults: DEFAULT_SOURCES });
+});
+app.put("/api/admin/ask-sources", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false, error: "Only an admin can change this." }, 403);
+  const body = await c.req.json<{ hosts?: unknown }>().catch(() => null);
+  const hosts = Array.isArray(body?.hosts) ? [...new Set(body!.hosts.map((h) => String(h).trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "")))] : null;
+  if (!hosts || hosts.length > 100 || !hosts.every((h) => HOST.test(h))) return c.json({ ok: false, error: "Give a list of up to 100 site names, like wikipedia.org." }, 400);
+  await c.env.SUBS.put("ask:sources", JSON.stringify(hosts));
+  return c.json({ ok: true, hosts });
 });
 
 app.get("/api/search", async (c) => {

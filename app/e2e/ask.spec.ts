@@ -84,7 +84,7 @@ test("an app question is answered from the app's own list of screens, with a lin
     expect(c.system?.[0].cache_control).toEqual({ type: "ephemeral" });
     expect(c.cache_control).toEqual({ type: "ephemeral" });
     expect(c.tools?.every((t) => t.eager_input_streaming === true)).toBe(true);
-    expect(c.tools?.map((t) => t.name)).toEqual(["search_library", "app_help", "find_in_app", "my_saved_chats", "my_reminder", "propose_reminder_change", "read_scripture"]);
+    expect(c.tools?.map((t) => t.name)).toEqual(["search_library", "app_help", "find_in_app", "my_saved_chats", "my_reminder", "propose_reminder_change", "read_scripture", "look_up_word", "person", "verse_study", "law", "precepts", "outside_source", "timeline"]);
   }
   // The tool result the model was given is the Worker's own feature list.
   const result = JSON.stringify(calls[1].messages.at(-1));
@@ -294,4 +294,52 @@ test("the model is chosen at the top: an admin starts on Claude Opus 5.5, every 
   await expect(balance).toHaveAccessibleName("$5.00 left");
   await balance.click();
   await expect(page.getByRole("dialog", { name: "Balance" })).toBeVisible();
+});
+
+test("Ask answers from the whole app: People, the Timeline, the dictionaries, the law, the precepts and a verse's study, with a picture from the app", async ({ page, request }) => {
+  await setup(page);
+  await page.goto(`/ask${launch(61)}`);
+  const since = Date.now();
+  await ask(page, "Everything about Abraham");
+  const a = answer(page);
+  await expect(a.locator('a[href^="/person/abraham"]').first()).toBeVisible({ timeout: 30_000 });
+  await expect(a.locator('a[href^="/timeline/event/"]').first()).toBeVisible();
+  await expect(a.locator('a[href^="/dictionary/"]').first()).toBeVisible();
+  await expect(a.locator('a[href^="/law/"]').first()).toBeVisible();
+  await expect(a.locator('a[href^="/precepts/"]').first()).toBeVisible();
+  // The picture the tools named, from the app itself.
+  const pic = a.locator("img.msg__pic").first();
+  await expect(pic).toHaveAttribute("src", /\/people\/abraham-gen-11-26-256\.webp$/);
+  await expect.poll(() => pic.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+  // Every tool ran on the server and returned real data.
+  const results = (await modelCalls(request, since)).flatMap((c) => c.messages).flatMap((m) => (typeof m.content === "string" ? [] : m.content)).filter((b: { type: string }) => b.type === "tool_result");
+  const said = results.map((r: { content?: unknown }) => String(typeof r.content === "string" ? r.content : JSON.stringify(r.content))).join("\n");
+  expect(said).toMatch(/Abraham: .*Father: Terah/);
+  expect(said).toMatch(/Easton's Bible Dictionary: Abraham/);
+  expect(said).toMatch(/The Law, .*Sabbath/i);
+  expect(said).toMatch(/Precepts: Adultery/);
+});
+
+test("outside sources: only the owner's approved sites; an admin sets the whitelist", async ({ page, request }) => {
+  const auth = (n: number) => ({ authorization: `tma ${initData(n)}` });
+  const admin = 100000002 - RUN;
+  // The whitelist: an admin sees and sets it; a reader cannot; nonsense is refused.
+  expect((await request.get("/api/admin/ask-sources", { headers: auth(71) })).status()).toBe(403);
+  const start = await (await request.get("/api/admin/ask-sources", { headers: auth(admin) })).json();
+  expect(start.hosts).toContain("wikipedia.org");
+  expect(start.hosts).toContain("israelunite.org");
+  expect((await request.put("/api/admin/ask-sources", { headers: auth(71), data: { hosts: ["wikipedia.org"] } })).status()).toBe(403);
+  expect((await request.put("/api/admin/ask-sources", { headers: auth(admin), data: { hosts: ["not a host"] } })).status()).toBe(400);
+  const set = await (await request.put("/api/admin/ask-sources", { headers: auth(admin), data: { hosts: ["https://www.Wikipedia.org/", "israelunite.org"] } })).json();
+  expect(set.hosts).toEqual(["wikipedia.org", "israelunite.org"]);
+  // A site off the list is never read.
+  await setup(page);
+  await page.goto(`/ask${launch(72)}`);
+  const since = Date.now();
+  await ask(page, "Read outside https://evil.example/page");
+  await expect(answer(page)).toContainText(/not an approved source/, { timeout: 30_000 });
+  const said = JSON.stringify((await modelCalls(request, since)).at(-1)?.messages.at(-1));
+  expect(said).toContain("evil.example is not an approved source");
+  // Back to the starting list.
+  await request.put("/api/admin/ask-sources", { headers: auth(admin), data: { hosts: start.defaults } });
 });
