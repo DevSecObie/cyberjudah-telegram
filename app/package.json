@@ -14,10 +14,12 @@
     "@tanstack/react-query": "^5.101.2",
     "@telegram-apps/telegram-ui": "^2.1.13",
     "dompurify": "^3.4.16",
+    "idb": "^8.0.3",
     "marked": "^16.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router": "^7.9.0"
+    "react-router": "^7.9.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

@@ -19,6 +19,7 @@ import { push, reminderCounts, reminders, sendReminders } from "./remind";
 import { reportHealth, selfCheck } from "./health";
 import { bookLabel } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
+import { resources } from "./resources";
 import { bs } from "./bs";
 import { buildCatalog, emptyCatalog, SLUGS, type PassageMediaMoment } from "./passage-media.mjs";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
@@ -63,6 +64,7 @@ app.use("/api/*", async (c, next) => {
   if (c.req.path === "/api/reminders" || c.req.path.startsWith("/api/reminders/") || c.req.path.startsWith("/api/push/")) return next();
   // The photos an admin sets are public pictures like the app's own: readers fetch them without signing in.
   if (c.req.method === "GET" && (c.req.path === "/api/photos" || c.req.path.startsWith("/api/photos/file/"))) return next();
+  if (c.req.method === "GET" && c.req.path.startsWith("/api/resources/")) return next();
   if (c.req.path === "/api/verse-of-day" || c.req.path === "/api/health" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
   // Thirty days: Telegram keeps a Mini App open in the background for weeks, and its launch
@@ -508,6 +510,7 @@ app.post("/api/invoice", async (c) => {
 
 // The dictionary is public: nothing personal in a lookup, and the cache can serve everyone.
 app.route("/api/dictionary", dictionary);
+app.route("/api/resources", resources);
 
 app.get("/api/verse-of-day", async (c) => {
   const v = await todaysVerse(c.env, c.executionCtx);
