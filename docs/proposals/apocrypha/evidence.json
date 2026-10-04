@@ -1,0 +1,122 @@
+{
+  "repository": "DevSecObie/cyberjudah",
+  "commit": "ee09d540382dfc8c64be363a95af1b5017fe2737",
+  "people": [
+    {
+      "id": "mattathias-1ma-2-1",
+      "reuseExisting": false,
+      "books": ["1-maccabees", "2-maccabees"],
+      "forms": ["Mattathias"],
+      "descriptionRefs": ["1-maccabees/2/1", "1-maccabees/2/2", "1-maccabees/2/4"],
+      "excludedMatches": {"1-maccabees/11/70": "Mattathias son of Absalom.", "1-maccabees/16/14": "Mattathias son of Simon.", "2-maccabees/14/19": "An envoy of Nicanor; not the deceased father of Judas."}
+    },
+    {
+      "id": "judas-maccabeus-1ma-2-4",
+      "reuseExisting": false,
+      "books": ["1-maccabees", "2-maccabees"],
+      "forms": ["Judas Maccabeus", "Judas", "Maccabeus"],
+      "descriptionRefs": ["1-maccabees/2/1", "1-maccabees/2/2", "1-maccabees/2/4", "1-maccabees/3/1"],
+      "excludedMatches": {"1-maccabees/11/70": "Judas son of Calphi.", "1-maccabees/16/2": "Judas son of Simon.", "1-maccabees/16/9": "Judas brother of John, son of Simon.", "1-maccabees/16/14": "Judas son of Simon.", "2-maccabees/1/10": "Identity unresolved in this sample; do not silently equate the letter’s Judas with Maccabeus."}
+    },
+    {
+      "id": "tobit-tob-1-1",
+      "reuseExisting": false,
+      "books": ["tobit"],
+      "forms": ["Tobit"],
+      "descriptionRefs": ["tobit/1/1", "tobit/1/9"],
+      "excludedMatches": {}
+    },
+    {
+      "id": "tobias-tob-1-9",
+      "reuseExisting": false,
+      "books": ["tobit"],
+      "forms": ["Tobias"],
+      "descriptionRefs": ["tobit/1/9"],
+      "excludedMatches": {}
+    },
+    {
+      "id": "raphael-tob-3-17",
+      "reuseExisting": false,
+      "books": ["tobit"],
+      "forms": ["Raphael", "Azarias"],
+      "descriptionRefs": ["tobit/3/17", "tobit/5/12", "tobit/12/15"],
+      "excludedMatches": {}
+    },
+    {
+      "id": "judith-jdt-8-1",
+      "reuseExisting": false,
+      "books": ["judith"],
+      "forms": ["Judith"],
+      "descriptionRefs": ["judith/8/1", "judith/8/2", "judith/8/4"],
+      "excludedMatches": {}
+    },
+    {
+      "id": "holofernes-jdt-2-4",
+      "reuseExisting": false,
+      "books": ["judith"],
+      "forms": ["Holofernes"],
+      "descriptionRefs": ["judith/2/4"],
+      "excludedMatches": {}
+    },
+    {
+      "id": "achior-jdt-5-5",
+      "reuseExisting": false,
+      "books": ["judith"],
+      "forms": ["Achior"],
+      "descriptionRefs": ["judith/5/5"],
+      "excludedMatches": {}
+    },
+    {
+      "id": "ezra-ezr-7-1",
+      "reuseExisting": true,
+      "books": ["1-esdras", "2-esdras"],
+      "forms": ["Ezra", "Esdras"],
+      "descriptionRefs": ["ezra/7/1", "ezra/7/6", "1-esdras/8/1", "1-esdras/8/3", "1-esdras/8/8", "2-esdras/1/1"],
+      "excludedMatches": {}
+    },
+    {
+      "id": "zerubbabel-1ch-3-19",
+      "reuseExisting": true,
+      "books": ["1-esdras", "sirach"],
+      "forms": ["Zerubbabel", "Sheshbazzar", "Zorobabel"],
+      "descriptionRefs": ["1-esdras/6/2", "1-esdras/6/27", "ezra/3/2"],
+      "excludedMatches": {}
+    }
+  ],
+  "scripture": {"1-esdras/5/48": "Then stood up Jesus the son of Josedec, and his brethren the priests and Zorobabel the son of Salathiel, and his brethren, and made ready the altar of the God of Israel,", "1-esdras/5/56": "And in the second year and second month after his coming to the temple of God at Jerusalem began Zorobabel the son of Salathiel, and Jesus the son of Josedec, and their brethren, and the priests, and the Levites, and all they that were come unto Jerusalem out of the captivity:", "1-esdras/5/8": "And they returned unto Jerusalem, and to the other parts of Jewry, every man to his own city, who came with Zorobabel, with Jesus, Nehemias, and Zacharias, and Reesaias, Enenius, Mardocheus. Beelsarus, Aspharasus, Reelius, Roimus, and Baana, their guides.", "1-esdras/6/2": "Then stood up Zorobabel the son of Salatiel, and Jesus the son of Josedec, and began to build the house of the Lord at Jerusalem, the prophets of the Lord being with them, and helping them.", "1-esdras/6/27": "And also he commanded that Sisinnes the governor of Syria and Phenice, and Sathrabuzanes, and their companions, and those which were appointed rulers in Syria and Phenice, should be careful not to meddle with the place, but suffer Zorobabel, the servant of the Lord, and governor of Judea, and the elders of the Jews, to build the house of the Lord in that place.", "1-esdras/8/1": "And after these things, when Artexerxes the king of the Persians reigned came Esdras the son of Saraias, the son of Ezerias, the son of Helchiah, the son of Salum,", "1-esdras/8/3": "This Esdras went up from Babylon, as a scribe, being very ready in the law of Moses, that was given by the God of Israel.", "1-esdras/8/8": "Now the copy of the commission, which was written from Artexerxes the king, and came to Esdras the priest and reader of the law of the Lord, is this that followeth;", "1-maccabees/1/1": "And it happened, after that Alexander son of Philip, the Macedonian, who came out of the land of Chettiim, had smitten Darius king of the Persians and Medes, that he reigned in his stead, the first over Greece,", "1-maccabees/1/10": "And there came out of them a wicked root Antiochus surnamed Epiphanes, son of Antiochus the king, who had been an hostage at Rome, and he reigned in the hundred and thirty and seventh year of the kingdom of the Greeks.", "1-maccabees/1/54": "Now the fifteenth day of the month Casleu, in the hundred forty and fifth year, they set up the abomination of desolation upon the altar, and builded idol altars throughout the cities of Juda on every side;", "1-maccabees/1/59": "Now the five and twentieth day of the month they did sacrifice upon the idol altar, which was upon the altar of God.", "1-maccabees/1/7": "So Alexander reigned twelves years, and then died.", "1-maccabees/1/8": "And his servants bare rule every one in his place.", "1-maccabees/1/9": "And after his death they all put crowns upon themselves; so did their sons after them many years: and evils were multiplied in the earth.", "1-maccabees/2/1": "In those days arose Mattathias the son of John, the son of Simeon, a priest of the sons of Joarib, from Jerusalem, and dwelt in Modin.", "1-maccabees/2/19": "Then Mattathias answered and spake with a loud voice, Though all the nations that are under the king’s dominion obey him, and fall away every one from the religion of their fathers, and give consent to his commandments:", "1-maccabees/2/2": "And he had five sons, Joannan, called Caddis:", "1-maccabees/2/20": "Yet will I and my sons and my brethren walk in the covenant of our fathers.", "1-maccabees/2/21": "God forbid that we should forsake the law and the ordinances.", "1-maccabees/2/22": "We will not hearken to the king’s words, to go from our religion, either on the right hand, or the left.", "1-maccabees/2/27": "And Mattathias cried throughout the city with a loud voice, saying, Whosoever is zealous of the law, and maintaineth the covenant, let him follow me.", "1-maccabees/2/4": "Judas, who was called Maccabeus:", "1-maccabees/3/1": "Then his son Judas, called Maccabeus, rose up in his stead.", "1-maccabees/4/36": "Then said Judas and his brethren, Behold, our enemies are discomfited: let us go up to cleanse and dedicate the sanctuary.", "1-maccabees/4/52": "Now on the five and twentieth day of the ninth month, which is called the month Casleu, in the hundred forty and eighth year, they rose up betimes in the morning,", "1-maccabees/4/53": "And offered sacrifice according to the law upon the new altar of burnt offerings, which they had made.", "1-maccabees/4/54": "Look, at what time and what day the heathen had profaned it, even in that was it dedicated with songs, and citherns, and harps, and cymbals.", "1-maccabees/4/59": "Moreover Judas and his brethren with the whole congregation of Israel ordained, that the days of the dedication of the altar should be kept in their season from year to year by the space of eight days, from the five and twentieth day of the month Casleu, with mirth and gladness.", "2-esdras/1/1": "The second book of the prophet Esdras, the son of Saraias, the son of Azarias, the son of Helchias, the son of Sadamias, the son of Sadoc, the son of Achitob,", "ezra/3/2": "Then stood up Jeshua the son of Jozadak, and his brethren the priests, and Zerubbabel the son of Shealtiel, and his brethren, and builded the altar of the God of Israel, to offer burnt offerings thereon, as it is written in the law of Moses the man of God.", "ezra/7/1": "Now after these things, in the reign of Artaxerxes king of Persia, Ezra the son of Seraiah, the son of Azariah, the son of Hilkiah,", "ezra/7/6": "This Ezra went up from Babylon; and he was a ready scribe in the law of Moses, which the Lord God of Israel had given: and the king granted him all his request, according to the hand of the Lord his God upon him.", "judith/2/4": "And when he had ended his counsel, Nabuchodonosor king of the Assyrians called Holofernes the chief captain of his army, which was next unto him, and said unto him.", "judith/5/5": "Then said Achior, the captain of all the sons of Ammon, Let my lord now hear a word from the mouth of thy servant, and I will declare unto thee the truth concerning this people, which dwelleth near thee, and inhabiteth the hill countries: and there shall no lie come out of the mouth of thy servant.", "judith/8/1": "Now at that time Judith heard thereof, which was the daughter of Merari, the son of Ox, the son of Joseph, the son of Ozel, the son of Elcia, the son of Ananias, the son of Gedeon, the son of Raphaim, the son of Acitho, the son of Eliu, the son of Eliab, the son of Nathanael, the son of Samael, the son of Salasadal, the son of Israel.", "judith/8/2": "And Manasses was her husband, of her tribe and kindred, who died in the barley harvest.", "judith/8/4": "So Judith was a widow in her house three years and four months.", "tobit/1/1": "The book of the words of Tobit, son of Tobiel, the son of Ananiel, the son of Aduel, the son of Gabael, of the seed of Asael, of the tribe of Nephthali;", "tobit/1/9": "Furthermore, when I was come to the age of a man, I married Anna of mine own kindred, and of her I begat Tobias.", "tobit/12/15": "I am Raphael, one of the seven holy angels, which present the prayers of the saints, and which go in and out before the glory of the Holy One.", "tobit/3/17": "And Raphael was sent to heal them both, that is, to scale away the whiteness of Tobit’s eyes, and to give Sara the daughter of Raguel for a wife to Tobias the son of Tobit; and to bind Asmodeus the evil spirit; because she belonged to Tobias by right of inheritance. The selfsame time came Tobit home, and entered into his house, and Sara the daughter of Raguel came down from her upper chamber.", "tobit/5/12": "Then he said, I am Azarias, the son of Ananias the great, and of thy brethren."},
+  "moments": [
+    {
+      "quote": "Alexander had everything united as one. These guys, they could not unite. They divided up the kingdom.",
+      "teacher": "",
+      "source": {"kind": "class", "id": "EUL_omVPaWc", "title": "PROPHESY FROM PAIN TO PEACE", "date": "2026-03-15", "ts": "27:05", "url": "https://youtu.be/EUL_omVPaWc?t=1625"},
+      "transcript": "blog/transcripts/EUL_omVPaWc.json",
+      "segmentRange": [1625.92, 1633.08],
+      "noteUrl": "/classes/2026/2026-03-15-prophesy-from-pain-to-peace"
+    },
+    {
+      "quote": "so not only did they defile the temple they put Idols throughout the cities of Judah that's what the Greeks did",
+      "teacher": "",
+      "source": {"kind": "class", "id": "08GsJvxEFmg", "title": "Who & What is the Abomination of Desolation", "date": "2022-12-04", "ts": "1:16:12", "url": "https://youtu.be/08GsJvxEFmg?t=4572"},
+      "transcript": "blog/transcripts/08GsJvxEFmg.json",
+      "segmentRange": [4572.66, 4578.12],
+      "noteUrl": "https://youtu.be/08GsJvxEFmg?t=4572"
+    },
+    {
+      "quote": "what kind of You know what kind of anger it took for him to to defy what everybody else was doing?",
+      "teacher": "Bishop",
+      "source": {"kind": "class", "id": "QczbDHIehUU", "title": "THE BEAUTY IN CIVILITY THE COST OF IMMORALITY", "date": "2025-12-13", "ts": "1:55:54", "url": "https://youtu.be/QczbDHIehUU?t=6954"},
+      "transcript": "blog/transcripts/QczbDHIehUU.json",
+      "segmentRange": [6954.92, 6958.88],
+      "noteUrl": "https://youtu.be/QczbDHIehUU?t=6954",
+      "teacherSource": "data/precepts/classes/QczbDHIehUU.json"
+    },
+    {
+      "quote": "right so they ordained the feast of dedication or hanukkah to be kept in their season",
+      "teacher": "",
+      "source": {"kind": "class", "id": "M5qAlri2gi8", "title": "The Israelites: Is The Apocrypha Biblical on WGAI 560 AM Radio", "date": "", "ts": "52:15", "url": "https://youtu.be/M5qAlri2gi8?t=3135"},
+      "transcript": "blog/transcripts/M5qAlri2gi8.json",
+      "segmentRange": [3135.84, 3143.04],
+      "noteUrl": "https://youtu.be/M5qAlri2gi8?t=3135"
+    }
+  ]
+}
