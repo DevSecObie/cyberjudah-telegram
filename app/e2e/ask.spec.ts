@@ -190,6 +190,15 @@ test("leaving mid-answer: the server finishes and saves it, and the app waits fo
   await page.getByRole("textbox", { name: "Your question" }).fill("And then?");
   await page.getByRole("textbox", { name: "Your question" }).press("Enter");
   await expect(page.getByRole("textbox", { name: "Your question" })).toHaveValue("And then?");
+  // The typing indicator appears before resource pins load and the request is sent.
+  // Establish that the Worker accepted this question before testing mid-answer recovery.
+  const chat = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).chatId as string, `cj:ask:${RUN + 8}`);
+  await expect.poll(async () => {
+    const response = await page.request.get(`/api/chats/${chat}`, { headers: { authorization: `tma ${initData(8)}` } });
+    if (response.status() === 404) return null;
+    expect(response.ok()).toBe(true);
+    return (await response.json()).pending?.q;
+  }).toBe("Answer this slowly");
   // The app is closed and opened again mid-answer.
   await page.reload();
   await expect(answer(page)).toContainText("Still answering");
