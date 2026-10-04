@@ -30,6 +30,11 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 - The YouTube-outage fallback now reads the channel page's current card layout (`lockupViewModel`): YouTube changed its markup after the #122 hotfix shipped, so the fallback silently found nothing. Classes again appear as "Notes coming soon" while the RSS feed is down.
 
 ### Added
+- The Final Captivity, the twelve tribes: 41 events of the North American Indians (Gad) and the
+  Seminoles (Reuben), from the Pequot War (1637) to today, from Wikipedia, the National Park
+  Service and the classes. Each event names the tribes it concerns; an event may stand on its
+  documented sources alone; an outside charge can be answered from the KJV and the Apocrypha
+  ("What the scriptures say"); and a new period, Unto This Day (2003 to today).
 - Ask CyberJudah answers from the whole app: Easton's Bible Dictionary and Strong's, a person's
   whole entry in People (family, tribe, picture), a verse's study (the classes and notes that read
   it, its precepts, cross-references), the Law handbook, the precept topics and the Timeline (with

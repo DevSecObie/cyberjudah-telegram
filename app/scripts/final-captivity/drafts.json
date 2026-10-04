@@ -219,39 +219,6 @@
   "needs": "Recording undated; most class mentions are passing. Read a fuller teaching moment (e.g. GGhGQ3agZdA 1:23:09 on planned escapes) and a documented source (NPS Underground Railroad / Harriet Tubman NHP); years here are placeholders."
  },
  {
-  "slug": "sand-creek-massacre-1864",
-  "title": "The Sand Creek massacre",
-  "start": 1864,
-  "end": 1864,
-  "date": {
-   "text": "November 1864",
-   "precision": "month"
-  },
-  "period": "house-of-bondage",
-  "group": "Native dispossession",
-  "peoples": [
-   "Native"
-  ],
-  "summary": "Cheyenne and Arapaho people, mostly women, children and elders, were slaughtered at Sand Creek, Colorado (as said in the recording; not yet checked against a documented source).",
-  "teaching": [
-   {
-    "points": [
-     "Hundreds of Cheyenne and Arapaho were slaughtered at Sand Creek, primarily women, children and elders, alongside the Pequot massacre of 1637 and Wounded Knee."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "tfH_TDX9BLc",
-     "title": "Is #Thanksgiving a day to Celebrate as the Israelites?",
-     "date": "2020-11-09",
-     "ts": "0:37",
-     "url": "https://youtu.be/tfH_TDX9BLc?t=37"
-    }
-   }
-  ],
-  "status": "draft",
-  "needs": "The only moments found (tfH_TDX9BLc 0:37 and MtljMsRavVY 57:57) are a clip of an outside speaker played in class, not the class’s own teaching; a class moment that teaches Sand Creek and a documented source (e.g. NPS Sand Creek Massacre NHS) must be read. Date in this draft is from general knowledge and must be checked."
- },
- {
   "slug": "leo-frank-and-jim-conley-1913",
   "title": "The Leo Frank case and Jim Conley",
   "start": 1913,
