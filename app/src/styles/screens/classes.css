@@ -19,6 +19,10 @@
 #root .cfeed__filters .cfeed__pick:disabled { opacity: var(--disabled-opacity); cursor: default; }
 #root .cfeed__filters .cfeed__reset { min-height: 36px; padding: 0 6px; border: 0; background: none; font: 600 var(--fs-sub) var(--font-ui); color: var(--accent); cursor: pointer; }
 .cfeed__count { margin: -8px 0 0; font: 500 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
+.cfeed__notice { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 0; padding: 10px 12px; border-radius: var(--r-md); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); color: var(--text-2); }
+.cfeed__notice > svg { flex: none; margin-top: 1px; }
+.cfeed__notice p { flex: 1; margin: 0; font: 500 var(--fs-footnote)/1.45 var(--font-ui); }
+.cfeed__noticex { flex: none; display: grid; place-items: center; width: 28px; height: 28px; margin: -4px -6px -4px 0; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--text-3); cursor: pointer; }
 .cfeed { display: grid; gap: 30px; }
 .cfeed__more { display: grid; justify-items: center; padding: var(--sp-2) 0 4px; }
 #root .cfeed__more .cfeed__morebtn { min-height: var(--touch); padding: 0 var(--sp-5); border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); font: 600 var(--fs-sub) var(--font-ui); color: var(--text-1); cursor: pointer; }

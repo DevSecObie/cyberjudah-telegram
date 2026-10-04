@@ -39,6 +39,26 @@ test("channel fallback skips scheduled/live streams, Shorts, invalid dates and i
   for (const html of ["", "<html>Consent required</html>", "var ytInitialData = {bad};", "var ytInitialData = {};"]) assert.deepEqual(parseChannelVideos(html, NOW), []);
 });
 
+test("channel fallback reads YouTube's current lockupViewModel card layout", () => {
+  const lockup = (id = A, extra = {}) => ({ lockupViewModel: {
+    contentId: id, contentType: "LOCKUP_CONTENT_TYPE_VIDEO",
+    contentImage: { thumbnailViewModel: { overlays: [] } },
+    metadata: { lockupMetadataViewModel: { title: { content: "THE NEW LAYOUT CLASS" },
+      metadata: { contentMetadataViewModel: { metadataRows: [{ metadataParts: [
+        { text: { content: "19K" }, accessibilityLabel: "19 thousand views" },
+        { text: { content: "1mo ago" }, accessibilityLabel: "1 month ago" },
+      ] }] } } } }, ...extra,
+  } });
+  const found = parseChannelVideos(page([lockup()]), NOW);
+  assert.deepEqual(found, [{ video: A, title: "The New Layout Class", published: "2026-09-04T12:00:00.000Z", views: 19000 }]);
+  const skipped = parseChannelVideos(page([
+    lockup(A, { contentType: "LOCKUP_CONTENT_TYPE_SHORT" }),
+    lockup("invalid"),
+    { lockupViewModel: { contentId: B, contentType: "LOCKUP_CONTENT_TYPE_VIDEO", metadata: {} } },
+  ]), NOW);
+  assert.deepEqual(skipped, []);
+});
+
 test("unexpected channel-card fields do not break the outage fallback", () => {
   const cards = [null, video(A, { title: { simpleText: {} } }), video(A, { title: { runs: {} } }), video(12345678901),
     video(B, { badges: [null], thumbnailOverlays: [null], title: { runs: [null, { text: "A valid class" }] } })];
@@ -67,7 +87,8 @@ function worker(t, response, saved = null) {
 test("healthy RSS stays primary, persists last-good results and serves the edge cache", async (t) => {
   const w = worker(t, () => new Response(rss));
   const first = await recentVideos(w.env);
-  assert.deepEqual(first.map((v) => v.video), [A]);
+  assert.equal(first.ok, true);
+  assert.deepEqual(first.videos.map((v) => v.video), [A]);
   assert.deepEqual(await recentVideos(w.env), first);
   assert.equal(w.calls.length, 1);
   assert.match(w.calls[0], /feeds\/videos.xml\?channel_id=UCtest$/);
@@ -86,7 +107,8 @@ for (const failure of ["404", "network", "empty", "malformed", "timeout"]) {
       return new Response(page([video(url.includes("/streams") ? B : A)]));
     });
     const found = await recentVideos(w.env);
-    assert.deepEqual(new Set(found.map((v) => v.video)), new Set([A, B]));
+    assert.equal(found.ok, false);
+    assert.deepEqual(new Set(found.videos.map((v) => v.video)), new Set([A, B]));
     assert.equal(w.calls.length, 3);
     assert.equal(w.writes.length, 1);
   });
@@ -94,25 +116,30 @@ for (const failure of ["404", "network", "empty", "malformed", "timeout"]) {
 
 test("total upstream outage retains last-good classes and retries soon without extending their lifetime", async (t) => {
   const w = worker(t, () => new Response("unavailable", { status: 404 }), { checked: Date.now() - 86400_000, videos: [retained] });
-  assert.deepEqual(await recentVideos(w.env), [retained]);
+  const kept = await recentVideos(w.env);
+  assert.equal(kept.ok, false);
+  assert.deepEqual(kept.videos, [retained]);
   assert.equal(w.writes.length, 0);
   assert.equal([...w.edge.values()][0].headers.get("cache-control"), "public, max-age=60");
   w.edge.clear(); // Another edge has no Cache API entry but reads the shared KV snapshot.
-  assert.deepEqual(await recentVideos(w.env), [retained]);
+  assert.deepEqual((await recentVideos(w.env)).videos, [retained]);
 });
 
 test("a partial channel outage merges known classes with new uploads and prefers fresh duplicates", async (t) => {
   const w = worker(t, (url) => url.includes("/videos?") ? new Response(page([video(A, { title: { simpleText: "Updated title" } })])) : new Response("", { status: 404 }),
     { checked: Date.now(), videos: [retained, { ...retained, video: A, title: "Old title" }] });
   const found = await recentVideos(w.env);
-  assert.equal(found.length, 2);
-  assert.equal(found.find((v) => v.video === A).title, "Updated title");
-  assert.ok(found.some((v) => v.video === B));
+  assert.equal(found.ok, false);
+  assert.equal(found.videos.length, 2);
+  assert.equal(found.videos.find((v) => v.video === A).title, "Updated title");
+  assert.ok(found.videos.some((v) => v.video === B));
 });
 
 test("cold/expired cache and failed sources retry in one minute without saving an empty result", async (t) => {
   const w = worker(t, () => new Response("<html>Consent required</html>"), { checked: Date.now() - 8 * 86400_000, videos: [retained] });
-  assert.deepEqual(await recentVideos(w.env), []);
+  const empty = await recentVideos(w.env);
+  assert.equal(empty.ok, false);
+  assert.deepEqual(empty.videos, []);
   assert.equal(w.writes.length, 0);
   assert.equal([...w.edge.values()][0].headers.get("cache-control"), "public, max-age=60");
 });
@@ -121,5 +148,7 @@ test("KV failure does not discard successful fallback recordings", async (t) => 
   const w = worker(t, (url) => new Response(url.includes("feeds/") ? "" : page()));
   w.env.SUBS.get = async () => { throw new Error("KV unavailable"); };
   w.env.SUBS.put = async () => { throw new Error("KV unavailable"); };
-  assert.deepEqual((await recentVideos(w.env)).map((v) => v.video), [A]);
+  const res = await recentVideos(w.env);
+  assert.equal(res.ok, false);
+  assert.deepEqual(res.videos.map((v) => v.video), [A]);
 });
