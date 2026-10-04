@@ -907,7 +907,11 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Levi",
+   "Simeon"
+  ]
  },
  {
   "slug": "inter-caetera-1493",
@@ -1203,7 +1207,11 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Levi",
+   "Simeon"
+  ]
  },
  {
   "slug": "portugal-forced-conversion-1497",
@@ -1406,7 +1414,11 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Levi",
+   "Simeon"
+  ]
  },
  {
   "slug": "encomienda-new-laws-1503-1545",
@@ -1546,7 +1558,10 @@
     "supports": "Crossing to Cuba with four hundred, the 1511 Velázquez expedition, guerrilla war, capture, burning at Yara on 2 February 1512, Las Casas's account, 'first national hero'."
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Manasseh"
+  ]
  },
  {
   "slug": "taino-rebellion-puerto-rico-1511",
@@ -1623,7 +1638,10 @@
    }
   ],
   "uncertainty": "The baptism of the cacique of Utuado as 'Don Alonso Manso' was read in class from a monument inscription and is not in the source read.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Ephraim"
+  ]
  },
  {
   "slug": "conquest-of-mexico-1519-1521",
@@ -1720,7 +1738,10 @@
    }
   ],
   "uncertainty": "A video shown in class says nearly 90 percent of the native peoples of the Americas were wiped out by disease 'in a matter of only a few years'; the sources read give the 1520 smallpox toll (5–8 million) but not that percentage or timescale.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Issachar"
+  ]
  },
  {
   "slug": "afonso-kongo-letter-1526",
@@ -1826,7 +1847,10 @@
     "supports": "The 1527 revolt, maroons with surviving Taínos, more than twenty revolts by 1873."
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Ephraim"
+  ]
  },
  {
   "slug": "estevanico-1528-1539",
@@ -1880,7 +1904,10 @@
     "supports": "Origin in Azemmour, 'negro alárabe', sale in 1522, Narváez expedition 1528, escape 1534, 2,000-mile journey, Sinaloa July 1536, Cíbola 1539 and death, 'first person of African and Arab descent'."
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Issachar"
+  ]
  },
  {
   "slug": "inquisition-new-spain-1528-1596",
@@ -1959,7 +1986,10 @@
    }
   ],
   "uncertainty": "The class read that the 1596 auto de fe had 45 Jews and that a daughter of Francisca Núñez de Carvajal was executed in 1601; the sources read give nine burned in 1596 and do not mention the 1601 execution.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Issachar"
+  ]
  },
  {
   "slug": "brazil-sugar-african-slavery",
@@ -2096,7 +2126,10 @@
     "supports": "Dates of the apparitions (9–12 December 1531 O.S.), Juan Diego, Tepeyac basilica, titles, feast day 12 December."
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Issachar"
+  ]
  },
  {
   "slug": "portuguese-inquisition-1536",
@@ -2232,7 +2265,10 @@
     "supports": "Ransom, trial, baptism and garroting; died 26 July 1533."
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Asher"
+  ]
  },
  {
   "slug": "las-casas-short-account-1552",
@@ -2379,7 +2415,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Asher"
+  ]
  },
  {
   "slug": "titulo-de-totonicapan-1554",
@@ -2450,7 +2489,10 @@
     "supports": "Date c.1554, K'iche' language, Chonay's 1834 translation, the Genesis opening, the Ten Tribes statement, 'descendants of Israel', signatures in 1554."
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Zebulon"
+  ]
  },
  {
   "slug": "galvarino-1557",
@@ -2505,7 +2547,10 @@
     "supports": "Lagunillas, the 150 prisoners, the amputations, his return to fight, Millarapue (3,000 killed, over 800 captured), execution, death c. 30 November 1557."
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Naphtali"
+  ]
  },
  {
   "slug": "john-hawkins-slave-voyages-1562",
@@ -2848,7 +2893,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Issachar"
+  ]
  },
  {
   "slug": "luanda-founded-1576",
@@ -3129,7 +3177,10 @@
    }
   ],
   "uncertainty": "The 1612 charter and the 1618 'Great Charter' were read in class; the sources read mention the 1606 and 1609 charters.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Gad"
+  ]
  },
  {
   "slug": "squanto-kidnapped-1614",
@@ -3199,7 +3250,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Gad"
+  ]
  },
  {
   "slug": "point-comfort-1619",
@@ -3323,7 +3377,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "pequot-war-and-mystic-massacre-1637",
@@ -3493,7 +3550,10 @@
    }
   ],
   "uncertainty": "The classes found teach hereditary slavery and the slave codes in general; none found names the 1662 act itself. The 1705 Virginia code was not found taught.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "carolina-indian-slave-trade-and-yamasee-war",
@@ -3840,7 +3900,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Benjamin"
+  ]
  },
  {
   "slug": "stono-rebellion-1739",
@@ -3893,7 +3956,10 @@
    }
   ],
   "uncertainty": "Casualty figures are as the source gives them; accounts of the leader’s name (Jemmy or Cato) differ.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "fort-pitt-smallpox-blankets-1763",
@@ -4126,7 +4192,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Gad"
+  ]
  },
  {
   "slug": "haitian-revolution",
@@ -4208,7 +4277,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Levi"
+  ]
  },
  {
   "slug": "gabriels-conspiracy-1800",
@@ -4290,7 +4362,10 @@
    }
   ],
   "uncertainty": "The surname Prosser (his enslaver’s) is used by the classes and IUIC’s page; Encyclopedia Virginia calls him Gabriel. His birth year is given in class and on IUIC’s page as about 1775.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "tecumseh-confederacy-1805-1813",
@@ -4416,7 +4491,10 @@
    }
   ],
   "uncertainty": "The numbers who marched are given as ranges by the source.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "creek-war-and-horseshoe-bend-1814",
@@ -4691,7 +4769,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "marshall-court-indian-cases-1823-1832",
@@ -4817,7 +4898,11 @@
     "supports": "the Act’s requirement to give up lands for territory west of the Mississippi; resistance"
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Gad",
+   "Reuben"
+  ]
  },
  {
   "slug": "nat-turner-1831",
@@ -4885,7 +4970,10 @@
    }
   ],
   "uncertainty": "Encyclopedia Virginia’s entry on the revolt could not be reached.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "second-seminole-war-1835-1842",
@@ -5076,7 +5164,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Gad"
+  ]
  },
  {
   "slug": "amistad-1839",
@@ -5348,7 +5439,10 @@
    }
   ],
   "uncertainty": "The class recording’s date (2019-10-05) is from the channel listing.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "third-seminole-war-1855-1858",
@@ -5461,7 +5555,10 @@
     "supports": "the date, Taney’s majority opinion, the holdings on citizenship, the right to sue and slavery in the territories, its overturning by the 13th and 14th amendments"
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "clotilda-1860",
@@ -5526,7 +5623,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "dakota-war-and-mankato-hanging-1862",
@@ -5675,7 +5775,10 @@
     "supports": "the date and words, the preliminary proclamation, its limits as a military measure, almost 200,000 Black soldiers and sailors"
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "juneteenth-1865",
@@ -5747,7 +5850,10 @@
    }
   ],
   "uncertainty": "The WGAI recording is dated by its YouTube premiere (2021-06-27); in it Juneteenth has just become a federal holiday “this week”.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "thirteenth-amendment-1865",
@@ -5815,7 +5921,10 @@
     "supports": "dates of passage and ratification, the House vote, the text of section 1"
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "long-walk-of-the-navajo-1864",
@@ -5993,7 +6102,10 @@
    }
   ],
   "uncertainty": "The classes showed an 1867 illustration of a free black man sold to pay his fine in Monticello, Florida; that picture and its caption were not checked against a source.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "convict-leasing",
@@ -6067,7 +6179,10 @@
    }
   ],
   "uncertainty": "The class read that Alabama was the last state to outlaw the practice, in 1928; the version of the source read for this event does not give that date. Leasing continued in other forms until 1941.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "forty-acres-and-the-freedmans-bank-1865",
@@ -6182,7 +6297,10 @@
    }
   ],
   "uncertainty": "Exactly when individual Field Order No. 15 lands were returned is not given in the sources read; the reversal is dated to 1865.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "ku-klux-klan-founded-1865",
@@ -6273,7 +6391,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "sharecropping",
@@ -6372,7 +6493,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "buffalo-soldiers-1866",
@@ -6463,7 +6587,11 @@
    }
   ],
   "uncertainty": "The three class recordings are undated in the metadata.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah",
+   "Gad"
+  ]
  },
  {
   "slug": "opelousas-and-colfax-massacres-1868-1873",
@@ -6535,7 +6663,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "reconstruction-amendments-1868-1870",
@@ -6633,7 +6764,10 @@
    }
   ],
   "uncertainty": "Three of the class recordings are undated in the metadata.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "robert-smalls-in-congress-1875",
@@ -6719,7 +6853,10 @@
    }
   ],
   "uncertainty": "Both Robert Smalls classes are undated in the recordings' metadata.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "seminole-negro-indian-scouts-1870-1914",
@@ -6933,7 +7070,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "puerto-rico-abolition-1873",
@@ -6992,7 +7132,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Ephraim"
+  ]
  },
  {
   "slug": "little-bighorn-and-the-black-hills-1876",
@@ -7129,7 +7272,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "compromise-of-1877-and-jim-crow-laws",
@@ -7202,7 +7348,10 @@
    }
   ],
   "uncertainty": "Jim Crow ran past this period's end (1955); the bar stops at 1955.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "nez-perce-war-1877",
@@ -7329,7 +7478,10 @@
    }
   ],
   "uncertainty": "Enrollment figures differ within the source (over 7,800 enrolled; over 10,000 attended). The class clip at Destruction Of The Indies (undated) cites further national figures from other works that were not checked.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Gad"
+  ]
  },
  {
   "slug": "berlin-conference-1884",
@@ -7479,7 +7631,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "congo-free-state-1885-1908",
@@ -7663,7 +7818,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Gad"
+  ]
  },
  {
   "slug": "prophet-cherry-church-of-god",
@@ -7756,7 +7914,10 @@
    }
   ],
   "uncertainty": "The 1886 date rests on secondary works quoted by Wikipedia and conflicts with his given birth year (c. 1875).",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "dawes-act-1887",
@@ -7826,7 +7987,10 @@
    }
   ],
   "uncertainty": "The Pine Ridge class is undated in the recordings' metadata.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Gad"
+  ]
  },
  {
   "slug": "mound-bayou-1887",
@@ -7905,7 +8069,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "brazil-abolition-and-whitening-1888",
@@ -8073,7 +8240,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Gad"
+  ]
  },
  {
   "slug": "ida-b-wells-and-the-lynching-era",
@@ -8156,7 +8326,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "plessy-v-ferguson-1896",
@@ -8238,7 +8411,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "william-saunders-crowdy-1896",
@@ -8331,7 +8507,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "us-invades-puerto-rico-1898",
@@ -8388,7 +8567,10 @@
    }
   ],
   "uncertainty": "The forced sterilization the class connects to this relationship belongs to later decades (the class cites figures for 1974 and 1981) and is not dated in this event.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Ephraim"
+  ]
  },
  {
   "slug": "wilmington-coup-1898",
@@ -8461,7 +8643,10 @@
    }
   ],
   "uncertainty": "Both class recordings are undated in the metadata.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "jewish-encyclopedia-chazars-1903",
@@ -8672,7 +8857,10 @@
    }
   ],
   "uncertainty": "The number of dead is not settled: 36 officially recorded; estimates up to about 300.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "bulhoek-massacre-1921",
@@ -8858,7 +9046,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "great-migration-and-redlining",
@@ -8935,7 +9126,10 @@
    }
   ],
   "uncertainty": "The classes speak of the whole migration (six to seven million); the source gives about six million for 1910–1970, of whom 1.6 million moved before 1940. Both class recordings for this event: one undated (Woe), one dated 2022-08-06.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "la-matanza-1910-1920",
@@ -8994,7 +9188,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Issachar"
+  ]
  },
  {
   "slug": "fishberg-the-jews-1911",
@@ -9127,7 +9324,10 @@
    }
   ],
   "uncertainty": "One class recording is undated in the metadata.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "marcus-garvey-unia",
@@ -9232,7 +9432,11 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah",
+   "Benjamin"
+  ]
  },
  {
   "slug": "birth-of-a-nation-1915",
@@ -9285,7 +9489,10 @@
    }
   ],
   "uncertainty": "The class recording is undated in the metadata.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "haiti-occupation-1915-1934",
@@ -9366,7 +9573,10 @@
    }
   ],
   "uncertainty": "The class recordings are undated in the metadata.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Levi"
+  ]
  },
  {
   "slug": "garrett-morgan-1916",
@@ -9432,7 +9642,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "balfour-declaration-1917",
@@ -9557,7 +9770,10 @@
     "supports": "Definition, 332nd Fighter Group and 477th Bombardment Group, first black flying group, combat record"
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "east-st-louis-massacre-1917",
@@ -9620,7 +9836,10 @@
    }
   ],
   "uncertainty": "One class recording is undated in the metadata.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "jones-shafroth-act-1917",
@@ -9684,7 +9903,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Ephraim"
+  ]
  },
  {
   "slug": "mary-turner-lynching-1918",
@@ -9762,7 +9984,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "osage-murders-1918-1931",
@@ -9977,7 +10202,10 @@
    }
   ],
   "uncertainty": "Matthew's birthplace is disputed (Saint Kitts in his naturalization records; Lagos in his own later account). No class moment found speaks of Ford's 1930 journey to Ethiopia; that part rests on the IUIC history page and the documented source.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "red-summer-and-elaine-1919",
@@ -10070,7 +10298,10 @@
    }
   ],
   "uncertainty": "Death tolls at Elaine vary: eyewitness estimates of 50 to more than 100, later estimates in the hundreds.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "jones-act-1920",
@@ -10121,7 +10352,10 @@
     "supports": "Date, sponsor, Section 27 requirements, effect on Puerto Rico and the critics' view"
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Ephraim"
+  ]
  },
  {
   "slug": "rosewood-massacre-1923",
@@ -10196,7 +10430,10 @@
    }
   ],
   "uncertainty": "The compensation-bill sentence is from the same source; the year 1994 is given there as the year the bill was considered.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "indian-citizenship-act-1924",
@@ -10275,7 +10512,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Gad"
+  ]
  },
  {
   "slug": "racial-integrity-act-1924",
@@ -10337,7 +10577,11 @@
    }
   ],
   "uncertainty": "The class recording is undated in the metadata.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah",
+   "Gad"
+  ]
  },
  {
   "slug": "mexican-repatriation-1929-1939",
@@ -10399,7 +10643,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Issachar"
+  ]
  },
  {
   "slug": "marion-lynching-and-strange-fruit-1930",
@@ -10491,7 +10738,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "rhoads-letter-puerto-rico-1931",
@@ -10572,7 +10822,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Ephraim"
+  ]
  },
  {
   "slug": "scottsboro-boys-1931",
@@ -10637,7 +10890,10 @@
    }
   ],
   "uncertainty": "The class recording is undated in the metadata.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "tuskegee-syphilis-study-1932",
@@ -10744,7 +11000,10 @@
    }
   ],
   "uncertainty": "The study ran until 1972, past this period; the event's bar ends at the period's close. Both class recordings are undated in the metadata.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "indian-reorganization-act-1934",
@@ -10841,7 +11100,10 @@
    }
   ],
   "uncertainty": "The class recording is undated in the metadata; it appears in the classes feed under an Our Hidden History title.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "parsley-massacre-1937",
@@ -10909,7 +11171,11 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Levi",
+   "Simeon"
+  ]
  },
  {
   "slug": "frederick-mckinley-jones-refrigeration",
@@ -10961,7 +11227,10 @@
    }
   ],
   "uncertainty": "The class recording is undated in the metadata; the class's 1921 date for the snowmobile is not in the source read.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "negro-project-1939",
@@ -11046,7 +11315,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "gi-bill-1944",
@@ -11120,7 +11392,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "lena-baker-1945",
@@ -11172,7 +11447,10 @@
     "supports": "Dates, Cuthbert, Ernest Knight, the assault, only woman electrocuted in Georgia, 2005 pardon"
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "isaac-woodard-1946",
@@ -11226,7 +11504,10 @@
    }
   ],
   "uncertainty": "The class recording is undated in the metadata.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "state-of-israel-1948",
@@ -11368,7 +11649,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Ephraim"
+  ]
  },
  {
   "slug": "henrietta-lacks-1951",
@@ -11430,7 +11714,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "termination-and-relocation-1953",
@@ -11544,7 +11831,10 @@
   ],
   "uncertainty": "The date in the class's reading is 1954 and matches the record. The class moment covers Brown, the 1964 Act and the 1965 Act together.",
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "guatemala-1954-and-us-coups",
@@ -11596,7 +11886,10 @@
   ],
   "uncertainty": "Only the Guatemala coup is sourced here. The other countries and years come from a video list the class played; each needs its own source before it becomes an event (see gaps).",
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Zebulon"
+  ]
  },
  {
   "slug": "puerto-rico-sterilizations",
@@ -11655,7 +11948,10 @@
   ],
   "uncertainty": "Bars set to the dated figures in the source (1954–1965); the policy ran from the 1930s to the 1970s. The Rhoads letter (1931) belongs to the Jim Crow period and is not sourced here.",
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Ephraim"
+  ]
  },
  {
   "slug": "emmett-till-1955",
@@ -11719,7 +12015,10 @@
   ],
   "uncertainty": "The class's video gives the recovery date as August 31, 1955 and describes a 75-pound cotton-gin fan tied with barbed wire; the source read gives the recovery as three days after the abduction and does not give the weight.",
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "montgomery-bus-boycott",
@@ -11779,7 +12078,10 @@
   ],
   "uncertainty": "The recording's date is taken from its title (1/29/23).",
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "seminole-tribe-of-florida-recognized-1957",
@@ -11999,7 +12301,10 @@
   ],
   "uncertainty": "None on the date. The 'burning house' words are attributed to King by the class and in the video it played; this file does not verify them.",
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "malcolm-x-assassinated-1965",
@@ -12063,7 +12368,10 @@
   ],
   "uncertainty": "The Wood letter's claims are presented in the class through a Democracy Now! broadcast; they have not been checked against court findings here.",
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "voting-rights-act-1965",
@@ -12138,7 +12446,10 @@
   ],
   "uncertainty": "The second recording is undated in the corpus.",
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "ben-ammi-liberia-dimona",
@@ -12228,7 +12539,10 @@
    }
   ],
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "fred-hampton-cointelpro-1969",
@@ -12334,7 +12648,10 @@
    }
   ],
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "young-lords-brown-berets",
@@ -12411,7 +12728,11 @@
   ],
   "uncertainty": "The class's guest, Dr. David Sanchez (founder of the Brown Berets), was interviewed on The Power Hour; the attendance figure he gave is not in the sources read and is left out. The tribal identifications (Puerto Ricans as Ephraim, Mexicans as Issachar) are from the classes.",
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Ephraim",
+   "Issachar"
+  ]
  },
  {
   "slug": "mlk-assassinated-1968",
@@ -12489,7 +12810,10 @@
    }
   ],
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "alcatraz-and-wounded-knee",
@@ -12559,7 +12883,10 @@
   ],
   "uncertainty": "The class names Leonard Peltier and AIM generally; it does not discuss the Alcatraz or Wounded Knee occupations by name in the moment read. Another class (oI5OTXgJEU8) records IUIC Denver marching to Wounded Knee with AIM in remembrance of 1890 (outside this period).",
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Gad"
+  ]
  },
  {
   "slug": "masha-yaiqab-and-the-seven",
@@ -12737,7 +13064,10 @@
    }
   ],
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "indian-self-determination-act-1975",
@@ -12920,7 +13250,10 @@
   ],
   "uncertainty": "Stated as court-record facts only. The New York Times obituary does not give a cause of death; Wikipedia says he was ill with prostate cancer in 2006.",
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "seminole-bingo-and-indian-gaming-1979",
@@ -13075,7 +13408,10 @@
   ],
   "uncertainty": "Only the introduction of the OIG report was read; its own findings should be read before the owner decides how to word this.",
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "move-bombing-1985",
@@ -13141,7 +13477,10 @@
   ],
   "uncertainty": "The class's article says the device was laced with Tovex and C4; the source read says 'two explosive devices'. The second recording is undated in the corpus.",
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "drug-laws-1986-and-crime-bill-1994",
@@ -13220,7 +13559,10 @@
    }
   ],
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "nagpra-1990",
@@ -13317,7 +13659,10 @@
    }
   ],
   "period": "civil-rights-awakening",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Judah"
+  ]
  },
  {
   "slug": "the-1990s-splits",
