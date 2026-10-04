@@ -136,6 +136,14 @@ ETags, corruption rejection and pinned historical reads. Browser tests exercise
 real IndexedDB across reloads, rollback, deactivation, interrupted installation,
 and a production offline relaunch after removing network stand-ins.
 
+Network-mocked suites block service workers so intercepted requests cannot bypass
+their stand-ins. Reminder tests and the offline cold-launch test explicitly allow
+the real worker. IndexedDB and Strong's cases run in Chromium, Firefox and WebKit.
+The offline navigation case runs in Chromium and Firefox; Linux Playwright WebKit
+also fails an independent minimal responding service worker with an internal
+navigation error when its offline switch is used. Only that Linux WebKit case is
+skipped; Safari/macOS offline verification remains a platform-specific follow-up.
+
 The companion engine change keeps legacy first-page responses and emits every
 remaining Strong's occurrence in revision-pinned pages. The app works with the
 old engine response until that separately reviewed source change is published.

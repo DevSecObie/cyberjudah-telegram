@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { STAND_IN, type Logged } from "./stand-ins";
 import { open, pid, seal } from "../../bot/src/privacy.mjs";
+test.use({ serviceWorkers: "allow" });
 const KEYS = { PRIVACY_KEY: "e2e-privacy-key-not-secret" };
 
 /**
