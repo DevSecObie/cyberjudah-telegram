@@ -42,20 +42,25 @@ async function check(channel: string): Promise<LiveNow> {
 }
 
 /**
+ * The channel's newest recordings, from its public RSS feed, so a class is in the app the
+ * hour it is uploaded, before its captions and notes exist.
  * Keep classes visible before their notes exist, even during a YouTube RSS outage.
  * Channel pages are a fallback; KV preserves seven days of last-good results across edges.
+ * `ok` is false when YouTube did not serve the RSS feed, so the app can say so instead of
+ * silently showing nothing new.
  */
-export async function recentVideos(env: Env, ctx?: Exec): Promise<RecentVideo[]> {
+export async function recentVideos(env: Env, ctx?: Exec): Promise<{ videos: RecentVideo[]; ok: boolean }> {
   const channel = env.LIVE_CHANNEL || CHANNEL;
-  // A new key also bypasses empty ten-minute entries left by the previous implementation.
-  const key = `https://cyberjudah-telegram.internal/recent/v2/${channel}`;
+  // A new key also bypasses entries left by the previous implementation, whose body shape differs.
+  const key = `https://cyberjudah-telegram.internal/recent/v3/${channel}`;
   const savedKey = `recent:v2:${channel}`;
   const cache = caches.default;
   const hit = await cache.match(key).catch(() => undefined);
-  if (hit) return hit.json<RecentVideo[]>();
+  if (hit) return hit.json<{ videos: RecentVideo[]; ok: boolean }>();
   const now = Date.now();
   let out = parseFeed(await recentSource(`feeds/videos.xml?channel_id=${channel}`));
-  let fresh = out.length > 0;
+  const ok = out.length > 0;
+  let fresh = ok;
   if (!fresh) {
     const pages = await Promise.all(["videos", "streams"].map(async (tab) => parseChannelVideos(await recentSource(`channel/${channel}/${tab}?hl=en`), now)));
     out = pages.flat();
@@ -66,16 +71,17 @@ export async function recentVideos(env: Env, ctx?: Exec): Promise<RecentVideo[]>
     out = [...new Map(out.map((v) => [v.video, v])).values()]
       .sort((a, b) => b.published.localeCompare(a.published)).slice(0, 15);
   }
-  const body = JSON.stringify(out);
+  const body = { videos: out, ok };
   // Failed refreshes retry after one minute and never replace/extend the last-good snapshot.
-  const res = new Response(body, { headers: { "content-type": "application/json", "cache-control": `public, max-age=${fresh ? 600 : 60}` } });
+  const res = new Response(JSON.stringify(body), { headers: { "content-type": "application/json", "cache-control": `public, max-age=${fresh ? 600 : 60}` } });
   const put = Promise.all([
     cache.put(key, res).catch(() => undefined),
     ...(fresh ? [env.SUBS.put(savedKey, JSON.stringify({ checked: now, videos: out }), { expirationTtl: 7 * 86400 }).catch(() => undefined)] : []),
   ]);
   if (ctx) ctx.waitUntil(put); else await put;
-  return out;
+  return body;
 }
+
 
 /** Bound each source so a stalled RSS request still reaches the fallback. */
 async function recentSource(path: string): Promise<string> {

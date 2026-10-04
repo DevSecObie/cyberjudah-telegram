@@ -29,6 +29,9 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 - The YouTube-outage fallback now reads the channel page's current card layout (`lockupViewModel`): YouTube changed its markup after the #122 hotfix shipped, so the fallback silently found nothing. Classes again appear as "Notes coming soon" while the RSS feed is down.
 
 ### Added
+- When YouTube's feed is having trouble, the Classes screen says so: a dismissible notice
+  explains that new uploads aren't reaching the app, instead of silently showing nothing new.
+  Everything already in the app keeps working; the notice clears itself when the feed recovers.
 - Ask CyberJudah is pay as you go, at cost, with the balance in dollars: "$4.82 left" at the
   top, and under each answer what it cost ("$0.05", or "<$0.01"), at the model's own price.
   CyberJudah makes no profit. Top-ups of $1, $5 and $20 are bought with Telegram Stars; the
