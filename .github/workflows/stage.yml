@@ -1,6 +1,7 @@
 name: stage
 
-# Every pull request against main gets deployed to the staging worker, so the bot, the app
+# Ready pull requests against main get deployed to the staging worker; drafts run checks only.
+# This exercises the bot, the app
 # and the hourly jobs are exercised against staging resources before anything reaches
 # production. Production (deploy.yml) still only runs on pushes to main.
 
@@ -36,6 +37,8 @@ jobs:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
 
   stage:
+    # Drafts are reviewable without publishing their code or resource changes.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
     needs: check
     runs-on: ubuntu-latest
     steps:
