@@ -29,6 +29,9 @@ from them, and `check.mjs` must pass before anything here is published.
   "group": "Transatlantic trade",                // one of GROUPS in check.mjs
   "place": "…", "region": "…",
   "peoples": ["Black"],                          // Black | Hispanic | Native (the assembly's terms)
+  "tribes": ["Judah"],
+  "answer": [{ "ref": "Acts 24:5", "why": "…" }],  // optional: where the history records an outside charge
+                                                 // against the people or the assembly, the KJV/Apocrypha's answer                           // optional: which of the twelve (TRIBES in check.mjs) it concerns
   "people": ["…"],                               // named people, as the sources name them
   "summary": "…",                                // one or two sentences of documented history
   "account": ["…"],                              // documented history, paragraph by paragraph
@@ -65,7 +68,7 @@ documentary photograph of an atrocity, never presented as evidence). See docs/AV
   `disagreements`, each said plainly. Neither is corrected silently.
 - The teacher's meaning is kept. Quotes are word for word from the recording; strong language
   stays as said; a bleeped word is left out.
-- An event without a teaching moment, or without a documented source, stays in `drafts.json`.
+- An event without a documented source stays in `drafts.json`. The classes' teaching is added wherever a class taught the event; an event may stand on its documented sources alone.
 - **Israel United in Christ (owner's direction, 2026-10-03):** the period covers the leaders and the
   organization only: its founding, leaders, schools and camps, publications, broadcasts, missions at
   home and overseas, and ministries. Outside characterisations of IUIC (designations, labels and

@@ -23,10 +23,15 @@ test("the committed data passes its own check", () => {
 
 test("a complete event passes; each missing part is named", () => {
   assert.deepEqual(checkEvent(good(), P), []);
-  const e = good(); delete e.teaching; e.sources = [];
-  const p = checkEvent(e, P);
-  assert.ok(p.some((x) => /missing teaching/.test(x)));
-  assert.ok(p.some((x) => /missing sources/.test(x)));
+  const e = good(); e.sources = [];
+  assert.ok(checkEvent(e, P).some((x) => /missing sources/.test(x)));
+});
+
+test("an event may stand on its documented sources alone; tribes are the twelve of the chart", () => {
+  const e = good(); delete e.teaching;
+  assert.deepEqual(checkEvent(e, P), []);
+  assert.deepEqual(checkEvent({ ...good(), tribes: ["Judah", "Gad"] }, P), []);
+  assert.ok(checkEvent({ ...good(), tribes: ["Judea"] }, P).some((x) => /tribe "Judea"/.test(x)));
 });
 
 test("years must sit inside the period; dates need a precision", () => {
