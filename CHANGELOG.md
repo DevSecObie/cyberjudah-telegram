@@ -25,6 +25,9 @@ request that introduced this file ([#77]).
 Merged to `main` and not yet in a tagged release. Production currently runs `861242f`
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
+### Fixed
+- The YouTube-outage fallback now reads the channel page's current card layout (`lockupViewModel`): YouTube changed its markup after the #122 hotfix shipped, so the fallback silently found nothing. Classes again appear as "Notes coming soon" while the RSS feed is down.
+
 ### Added
 - When YouTube's feed is having trouble, the Classes screen says so: a dismissible notice
   explains that new uploads aren't reaching the app, instead of silently showing nothing new.
