@@ -17,3 +17,4 @@ Everything done in this run of work, as linked notes.
 - [[Ask Sheet Fix]]: the "Your chats" sheet (PR #94, merged)
 - [[Sabbath Top-up Reminder]]: noted for later
 - [[Open Questions]]: decisions the owner still has to make
+- [[Handoff 2026-10-04]]: where everything stands, 4 October
