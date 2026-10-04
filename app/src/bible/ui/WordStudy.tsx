@@ -1,3 +1,5 @@
+import { useResourceRelease } from "@/resources/hooks";
+import { ReferenceText } from "@/resources/ReferenceText";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
@@ -6,7 +8,10 @@ import { data, type Book, type StrongsEntry } from "@/api/data";
 import { haptic } from "@/tg/sdk";
 
 /** The Strong's entry behind a number, kept for the session. */
-export const useStrongs = (number: string, enabled = true) => useQuery({ queryKey: ["strongs", number], enabled: enabled && !!number, queryFn: () => data.strongs(number), staleTime: Infinity });
+export const useStrongs = (number: string, enabled = true, explicit?: string | null) => {
+  const release = useResourceRelease("strongs", explicit);
+  return useQuery({ queryKey: ["strongs", number, release], enabled: enabled && !!number && release !== undefined, queryFn: () => data.strongs(number, release), staleTime: Infinity });
+};
 
 /**
  * A Strong's word study: the Hebrew or Greek word behind a King James word, its number,
@@ -14,18 +19,18 @@ export const useStrongs = (number: string, enabled = true) => useQuery({ queryKe
  * verse it stands behind (the concordance), book by book, each opening in the reader. The body
  * shared by the reader's word sheet and the Lexicon screen.
  */
-export function WordStudy({ number, books, here, onRead, enabled = true }: { number: string; books: Book[]; here?: { slug: string; chapter: number; verse: number }; onRead?: () => void; enabled?: boolean }) {
+export function WordStudy({ number, books, here, onRead, enabled = true, release }: { number: string; books: Book[]; here?: { slug: string; chapter: number; verse: number }; onRead?: () => void; enabled?: boolean; release?: string | null }) {
   const navigate = useNavigate();
-  const q = useStrongs(number, enabled);
+  const q = useStrongs(number, enabled, release);
   const [allBooks, setAllBooks] = useState(false);
   const [openBook, setOpenBook] = useState<string | null>(null);
   const e = q.data;
   const revision = e?.occurrencePages?.revision;
   const more = useInfiniteQuery({
-    queryKey: ["strongs-pages", number, revision],
+    queryKey: ["strongs-pages", number, e?.resourceRelease, revision],
     enabled: false,
     initialPageParam: e?.occurrencePages?.nextPage ?? 1,
-    queryFn: ({ pageParam }) => data.strongsPage(number, revision!, pageParam),
+    queryFn: ({ pageParam }) => data.strongsPage(number, revision!, pageParam, e?.resourceRelease),
     getNextPageParam: (last) => last.nextPage ?? undefined,
     staleTime: Infinity,
   });
@@ -58,9 +63,9 @@ export function WordStudy({ number, books, here, onRead, enabled = true }: { num
               <small>Strong's {e.number} · {e.language} · {e.count.toLocaleString()} {e.count === 1 ? "time" : "times"} in {e.verses.toLocaleString()} {e.verses === 1 ? "verse" : "verses"}</small>
             </div>
           </header>
-          {e.def ? <section className="bs-word__sec"><h3>Meaning</h3><p>{e.def}</p></section> : null}
-          {e.derivation ? <section className="bs-word__sec"><h3>Derivation</h3><p>{e.derivation}</p></section> : null}
-          {e.kjv ? <section className="bs-word__sec"><h3>The King James Renders It</h3><p>{e.kjv}</p></section> : null}
+          {e.def ? <section className="bs-word__sec"><h3>Meaning</h3><p><ReferenceText text={e.def} links={e.scripture?.def} onRead={onRead} /></p></section> : null}
+          {e.derivation ? <section className="bs-word__sec"><h3>Derivation</h3><p><ReferenceText text={e.derivation} links={e.scripture?.derivation} onRead={onRead} /></p></section> : null}
+          {e.kjv ? <section className="bs-word__sec"><h3>The King James Renders It</h3><p><ReferenceText text={e.kjv} links={e.scripture?.kjv} onRead={onRead} /></p></section> : null}
           {e.words.length ? (
             <section className="bs-word__sec">
               <h3>Most often as</h3>

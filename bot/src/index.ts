@@ -1,3 +1,4 @@
+import { ResourcePinsSchema } from "../../shared/resources";
 import { recordings, recordingAudio } from "./recordings";
 import { Hono } from "hono";
 import { Api, webhookCallback } from "grammy";
@@ -217,17 +218,19 @@ app.get("/api/transcript/:video", async (c) => {
 // The AI: a question answered from the teachings with citations, search by meaning, and
 // the reading voices (a verse at a time, cached).
 app.post("/api/ask", async (c) => {
-  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown; request?: string; caps?: Record<string, unknown> }>().catch(() => null);
+  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown; request?: string; caps?: Record<string, unknown>; resources?: unknown }>().catch(() => null);
   // The request's id (a retry of the same request holds once), and the most the reader accepted a
   // request may cost on each model (balance units, mc): the server takes the one for the model it resolves.
   const caps = body?.caps && typeof body.caps === "object" ? Object.fromEntries(Object.entries(body.caps).filter(([k, v]) => k.length < 120 && typeof v === "number" && Number.isFinite(v) && v > 0).slice(0, 200)) as Record<string, number> : undefined;
-  const meterOpts = { request: typeof body?.request === "string" ? body.request : undefined, caps };
+  const resourcePins = body?.resources === undefined ? undefined : ResourcePinsSchema.safeParse(body.resources);
+  if (resourcePins && !resourcePins.success) return c.json({ error: "Invalid resource releases" }, 400);
+  const meterOpts = { resources: resourcePins?.data, request: typeof body?.request === "string" ? body.request : undefined, caps };
   // The AI providers this reader has agreed may receive their questions (docs/PRIVACY.md).
   const consent = Array.isArray(body?.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
   // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
   const history = normalizeHistory(body?.history, 8);
   if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent, meterOpts);
-  const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent);
+  const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent, resourcePins?.data);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
   return c.json(res, res.ok ? 200 : res.reason === "limit" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" ? 400 : 503);
 });

@@ -1,3 +1,4 @@
+import { resourcePins } from "@/resources/client";
 import { marked } from "marked";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router";
@@ -104,7 +105,8 @@ async function runQuestion(q: string, opts: AskOpts) {
   let finished = false, stalled = false, heard = Date.now();
   const watch = setInterval(() => { if (Date.now() - heard > STALL_MS) { stalled = true; ctl.abort(); } }, 5000);
   try {
-    const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, stream: true, chat: id, retry: !!opts.retry, consent: consented(), request: newId(), ...(chosenModel() ? { model: chosenModel() } : {}), caps: readCaps() }) });
+    const resources = await resourcePins();
+    const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, resources, stream: true, chat: id, retry: !!opts.retry, consent: consented(), request: newId(), ...(chosenModel() ? { model: chosenModel() } : {}), caps: readCaps() }) });
     heard = Date.now();
     if (!res.ok || !res.body) {
       const body = await res.text().then((t) => { try { return JSON.parse(t.split("\n")[0]) as AskFail; } catch { return null; } }).catch(() => null);
