@@ -64,3 +64,10 @@ Remaining: complete #120 and privacy local integration, sample quiet tab/dock/sh
 - Runtime policy discovery now reports a restricted allowlist including api.github.com and data.cyberjudah.io, with no configured secrets. YouTube and cyberjudah.io are not allowed; the latter returned an explicit proxy 403. No network-policy bypass was attempted. The reusable onboarding configuration remains a saved draft.
 
 Current-head CI is rerunning for #118/#119/#120/#122. Remaining review limits: measured slow frames, physical Telegram devices and native Icon Composer/official-grid checks. No self-merge, main push, force push, rebase or worktree.
+
+2026-10-04, 01:49 UTC — navigation closeout:
+
+- Current heads #118 `51c80ba`, #119 `403d824` and #120 `1b9d17b` all pass Chromium, WebKit, Firefox, the required aggregate, typecheck/unit/build checks and security checks. #120's browser job durations were 18m39s, 13m39s and 9m34s respectively. The final recording was inspected: the same passage returns, and Add expands its own new card. Repository/PR comments checked during closeout had no new action requests.
+- The owner merged #118 as `e7d01a602b018174ae19615023f90fa802442274` at 01:47:54 UTC. #119 remains stacked on the reviewed performance branch, and #120 on #119. Draft status preserves the explicit timing and physical-device limits; no self-merge or production deployment was performed.
+- #122 at `bf305d6` has passing check/security/changelog/staging checks; its browser CI is still running. Local hotfix evidence is 170 unit + 22 contract tests and typecheck passing. Live feed/production validation remains blocked by the environment's domain allowlist.
+- All navigation source/evidence changes are committed and pushed, and the workspace is clean.
