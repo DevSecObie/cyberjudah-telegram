@@ -1,3 +1,4 @@
+import type { ResourcePins } from "../../shared/resources";
 import { chapter } from "./data";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
@@ -127,7 +128,7 @@ export const creditsOn = (env: Env) => env.ASK_BILLING === "on";
  */
 export type Meter = { owner: string; request: string; held: number; spend: Spend; model: AskModel; free: boolean };
 type MeterStart = { ok: true; meter: Meter } | { ok: false; status: number; body: Record<string, unknown> };
-export type MeterOpts = { request?: string; maxMc?: number; caps?: Record<string, number> };
+export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number> };
 export async function startMeter(env: Env, uid: number, model: AskModel, opts: MeterOpts = {}): Promise<MeterStart> {
   const cfg = creditsConfig(env);
   const owner = await ownerOfUser(env, uid);
@@ -182,7 +183,7 @@ async function begin(env: Env, uid: number, model: AskModel, opts: MeterOpts): P
 }
 
 /** A question answered in one piece (the bot and older clients). It cannot ask first, so it is held to ASK_CONFIRM_ABOVE_USD at most. */
-export async function ask(env: Env, q: string, userId: number, ctx?: Exec, history: Turn[] = [], consent: string[] = []): Promise<Answer> {
+export async function ask(env: Env, q: string, userId: number, ctx?: Exec, history: Turn[] = [], consent: string[] = [], resources?: ResourcePins): Promise<Answer> {
   const t0 = Date.now();
   const question = q.trim().slice(0, 400);
   if (question.length < 2) return { ok: false, reason: "too-short" };
@@ -196,7 +197,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   try {
     const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12, spend), 8);
     if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
-      const { text, passages } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), () => undefined, ctx, undefined, model, spend);
+      const { text, passages } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), () => undefined, ctx, undefined, model, spend, resources);
       const { answer } = splitFollowups(text);
       if (meter) await finishMeter(env, meter, answer.trim() ? "ok" : "empty");
       return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
@@ -325,7 +326,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             // Claude researches first (searches and verses, reported as it goes), then writes.
             const steps: string[] = [];
             let ran: Awaited<ReturnType<typeof runAgent>> | null = null;
-            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model, spend); }
+            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model, spend, opts.resources); }
             catch (e) {
               // Claude cannot answer now (overloaded, rate limited, down, or its key refused): the
               // backup model answers from the passages already found, and the reader is not charged.

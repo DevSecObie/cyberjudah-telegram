@@ -1,3 +1,4 @@
+import { resourceRecord, resourceRelease } from "@/resources/client";
 /**
  * The CyberJudah data set, read straight from the data origin (engine/README.md in the
  * cyberjudah repo is the contract). Types cover the fields the app shows.
@@ -25,7 +26,7 @@ export type Book = { book: string; slug: string; chapters: number; verses: numbe
 /** A verse, and (for the 66 books) its words in spans, each span ending in a word Strong keyed to its Hebrew or Greek. */
 export type Verse = { verse: number; text: string; words?: [string, string[]][] };
 /** A Strong's number: the Hebrew or Greek word, its meaning, how the King James renders it, and every verse it stands behind. */
-export type StrongsEntry = { number: string; language: "Hebrew" | "Greek"; lemma: string; xlit: string; pron: string; derivation: string; def: string; kjv: string; count: number; verses: number; words: { word: string; count: number }[]; occurrences: { slug: string; book: string; chapter: number; verse: number; text: string; words: string[] }[]; source: string; occurrencePages?: { revision: string; pageSize: number; pages: number; nextPage: number | null } };
+export type StrongsEntry = { number: string; language: "Hebrew" | "Greek"; lemma: string; xlit: string; pron: string; derivation: string; def: string; kjv: string; count: number; verses: number; words: { word: string; count: number }[]; occurrences: { slug: string; book: string; chapter: number; verse: number; text: string; words: string[] }[]; source: string; resourceRelease?: string | null; scripture?: Partial<Record<"def" | "derivation" | "kjv", import("@/resources/ReferenceText").ScriptureLink[]>>; occurrencePages?: { revision: string; pageSize: number; pages: number; nextPage: number | null } };
 export type StrongsPage = { number: string; revision: string; page: number; total: number; occurrences: StrongsEntry["occurrences"]; nextPage: number | null };
 export type StrongsRow = { n: string; lemma: string; xlit: string; def: string; count: number };
 
@@ -110,14 +111,21 @@ export const data = {
   person: (id: string) => get<Person>(`/api/people/${id}.json`),
   people: () => get<PersonIndexRow[]>("/api/people/index.json"),
   library: () => get<LibraryRow[]>("/api/library/index.json"),
-  strongs: (n: string) => get<StrongsEntry>(`/api/strongs/${n}.json`),
-  strongsPage: async (n: string, revision: string, page: number): Promise<StrongsPage> => {
-    if (!/^[HG][1-9]\d*$/.test(n) || !/^[a-f0-9]{64}$/.test(revision) || !Number.isSafeInteger(page) || page < 0) throw new Error("Invalid concordance page");
-    const result = await get<StrongsPage>(`/api/strongs/${n}/occurrences/${revision}/${page}.json`);
+  strongs: async (n: string, pinned?: string | null): Promise<StrongsEntry> => {
+    const release = pinned === undefined ? await resourceRelease("strongs") : pinned;
+    const entry = release ? await resourceRecord<StrongsEntry>("strongs", `entry/${n}`, release) : await get<StrongsEntry>(`/api/strongs/${n}.json`);
+    return { ...entry, resourceRelease: release };
+  },
+  strongsPage: async (n: string, revision: string, page: number, release?: string | null): Promise<StrongsPage> => {
+    if (!/^[HG][1-9]\d*$/.test(n) || !/^[a-f0-9]{64}$/.test(revision) || !Number.isSafeInteger(page) || page < 1) throw new Error("Invalid concordance page");
+    const result = release ? await resourceRecord<StrongsPage>("strongs", `occurrences/${n}/${revision}/${page}`, release) : await get<StrongsPage>(`/api/strongs/${n}/occurrences/${revision}/${page}.json`);
     if (result.number !== n || result.revision !== revision || result.page !== page || !Array.isArray(result.occurrences) || (result.nextPage !== null && result.nextPage !== page + 1)) throw new Error("Concordance page identity mismatch");
     return result;
   },
-  strongsIndex: () => get<StrongsRow[]>("/api/strongs/index.json"),
+  strongsIndex: async (pinned?: string | null): Promise<StrongsRow[]> => {
+    const release = pinned === undefined ? await resourceRelease("strongs") : pinned;
+    return release ? resourceRecord<StrongsRow[]>("strongs", "index", release) : get<StrongsRow[]>("/api/strongs/index.json");
+  },
   libraryBook: (slug: string) => get<LibraryBook>(`/api/library/${slug}/book.json`),
   libraryChapter: (slug: string, k: number) => get<LibraryChapter>(`/api/library/${slug}/chapter/${k}.json`),
   chapter: (slug: string, ch: number) => get<Chapter>(`/api/kjv/${slug}/${ch}.json`),

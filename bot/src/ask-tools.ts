@@ -1,3 +1,5 @@
+import { APPROVED_RESOURCE_IDS, type ResourcePins } from "../../shared/resources";
+import { pinnedRecord, resourceLink, resourcePages, approvedEditionUrl } from "./resource-tools";
 import type Anthropic from "@anthropic-ai/sdk";
 
 import type { Env, Exec } from "./env";
@@ -42,8 +44,8 @@ export const MORE_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: "outside_source",
-    description: "Read an approved outside source: only the sites on the owner's whitelist (such as israelunite.org, Wikipedia, archive.org, Project Gutenberg, the Library of Congress). Give a query to search Wikipedia, or the address of a page on an approved site. Use it only after the app's own data and the classes, for history, places and people the app does not cover yet (the Apocrypha's people among them). Outside sources inform the history; they never overrule the Scripture or the classes. Cite what you use by its number.",
-    input_schema: { type: "object", properties: { query: { type: "string", description: "What to look up (searched on Wikipedia)." }, url: { type: "string", description: "Optional: the https address of a page on an approved site." } }, required: [] },
+    description: "To read the approved Josephus (Whiston 1905), Jewish Encyclopedia (1901–1906) or Smith’s (1889), give resource and query (or a page key returned by this tool). The server selects the same release as the reader. Otherwise read an approved outside source: only the sites on the owner's whitelist (such as israelunite.org, Wikipedia, archive.org, Project Gutenberg, the Library of Congress). Give a query to search Wikipedia, or the address of a page on an approved site. Use it only after the app's own data and the classes, for history, places and people the app does not cover yet (the Apocrypha's people among them). Outside sources inform the history; they never overrule the Scripture or the classes. Cite what you use by its number.",
+    input_schema: { type: "object", properties: { resource: { type: "string", enum: [...APPROVED_RESOURCE_IDS], description: "Approved bundled edition; never supply a release." }, key: { type: "string", description: "Optional page/volume/image key from an earlier result." }, query: { type: "string", description: "What to look up in the selected edition, or on Wikipedia without resource." }, url: { type: "string", description: "Optional: the https address of a page on an approved site." } }, required: [] },
   },
   {
     name: "timeline",
@@ -55,7 +57,7 @@ export const MORE_TOOLS: Anthropic.Tool[] = [
 type Line = (name: string, what: string, path: string) => string;
 /** Numbers a source for citation, as the library's passages are; null when the list is full. */
 export type AddSource = (p: Passage) => { n: number; fresh: boolean } | null;
-type Tool = (env: Env, input: Record<string, unknown>, ctx: Exec | undefined, emit: (e: { status: string }) => void, line: Line, add: AddSource) => Promise<{ content: string; error?: boolean }>;
+type Tool = (env: Env, input: Record<string, unknown>, ctx: Exec | undefined, emit: (e: { status: string }) => void, line: Line, add: AddSource, resources?: ResourcePins) => Promise<{ content: string; error?: boolean }>;
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const norm = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
@@ -79,24 +81,25 @@ async function picture(env: Env, path: string): Promise<string | null> {
 }
 
 type EastonEntry = { slug: string; term: string; definitions: string[] };
+type StrongsDefinition = { number: string; language: string; lemma: string; xlit: string; pron?: string; derivation?: string; def: string; kjv?: string };
 type StrongsRow = { n: string; lemma: string; xlit: string; def: string; count: number };
 
-const lookUpWord: Tool = async (env, input, ctx, emit, line) => {
+const lookUpWord: Tool = async (env, input, ctx, emit, line, add, resources = {}) => {
   const word = str(input.word, 60);
   if (!word) return { content: "Give a word, a name or a Strong's number.", error: true };
   emit({ status: `Looking up “${word}”` });
   const out: string[] = [];
   const num = /^[HG]\d{1,5}$/i.test(word) ? word.toUpperCase() : null;
   if (num) {
-    const s = await dataJson<{ number: string; language: string; lemma: string; xlit: string; pron?: string; derivation?: string; def: string; kjv?: string }>(env, `/api/strongs/${num}.json`, ctx).catch(() => null);
-    if (s) out.push(line(`Strong's ${s.number} (${s.language}) ${s.lemma} · ${s.xlit}${s.pron ? ` (${s.pron})` : ""}`, `${s.def}${s.derivation ? ` Derivation: ${s.derivation}` : ""}${s.kjv ? ` In the KJV: ${s.kjv}` : ""}`, `/strongs/${num}`));
+    const s = resources.strongs ? await pinnedRecord<StrongsDefinition>(env, resources, "strongs", `entry/${num}`) : await dataJson<{ number: string; language: string; lemma: string; xlit: string; pron?: string; derivation?: string; def: string; kjv?: string }>(env, `/api/strongs/${num}.json`, ctx).catch(() => null);
+    if (s) out.push(line(`Strong's ${s.number} (${s.language}) ${s.lemma} · ${s.xlit}${s.pron ? ` (${s.pron})` : ""}`, `${s.def}${s.derivation ? ` Derivation: ${s.derivation}` : ""}${s.kjv ? ` In the KJV: ${s.kjv}` : ""}`, resources.strongs ? resourceLink("strongs", resources.strongs, `entry/${num}`) : `/strongs/${num}`));
   } else {
     const e = eastonLookup(word) ?? (easton as EastonEntry[]).find((x) => norm(x.term) === norm(word)) ?? null;
     if (e) out.push(line(`Easton's Bible Dictionary: ${e.term}`, e.definitions.join(" ").slice(0, 2400), `/dictionary/${e.slug}`));
-    const idx = await dataJson<StrongsRow[]>(env, "/api/strongs/index.json", ctx).catch(() => null);
+    const idx = resources.strongs ? await pinnedRecord<StrongsRow[]>(env, resources, "strongs", "index") : await dataJson<StrongsRow[]>(env, "/api/strongs/index.json", ctx).catch(() => null);
     const w = norm(word);
     const hits = (idx ?? []).filter((r) => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, "")}\\b`).test(norm(r.def)) || norm(r.xlit) === w).sort((a, b) => b.count - a.count).slice(0, 5);
-    for (const r of hits) out.push(line(`Strong's ${r.n} ${r.lemma} · ${r.xlit}`, `${r.def} (${r.count} times in the KJV)`, `/strongs/${r.n}`));
+    for (const r of hits) out.push(line(`Strong's ${r.n} ${r.lemma} · ${r.xlit}`, `${r.def} (${r.count} times in the KJV)`, resources.strongs ? resourceLink("strongs", resources.strongs, `entry/${r.n}`) : `/strongs/${r.n}`));
   }
   return { content: out.length ? out.join("\n") : `Nothing in Easton's or Strong's for “${word}”.` };
 };
@@ -267,7 +270,25 @@ function excerpt(text: string, query: string, max: number) {
   return out || text.slice(0, max);
 }
 
-const outsideSource: Tool = async (env, input, _ctx, emit, _line, add) => {
+const outsideSource: Tool = async (env, input, _ctx, emit, _line, add, resources = {}) => {
+  const edition = approvedEditionUrl(str(input.url, 400));
+  const requested = str(input.resource, 80) || (edition && resources[edition.id] ? edition.id : "");
+  if (requested) {
+    if (!(APPROVED_RESOURCE_IDS as readonly string[]).includes(requested)) return { content: "That resource is not approved.", error: true };
+    const id = requested as keyof ResourcePins, release = resources[id];
+    if (!release) return { content: "This resource has not been selected or published for this reader. Existing outside-source URLs remain available.", error: true };
+    if (id === "strongs") return lookUpWord(env, { word: input.query }, _ctx, emit, _line, add, resources);
+    emit({ status: `Reading ${requested.replaceAll("-", " ")}` });
+    try {
+      const rows = await resourcePages(env, resources, id, str(input.query, 120), str(input.key, 100) || edition?.key);
+      const lines = rows.map(({ key, data }) => {
+        const text = excerpt(data.text, str(input.query, 120), 2600), url = resourceLink(id, release, key);
+        const citation = add({ kind: "book", title: data.title, url, sub: `Original edition · OCR · ${release}`, text: text.slice(0, 1400) });
+        return `${citation ? `[${citation.n}] ` : ""}${data.title} (${url})\n${text}`;
+      });
+      return { content: lines.length ? `${lines.join("\n\n")}\nOriginal-edition OCR may contain errors. Search is limited to candidate pages; use a returned page key for a specific page. Check the scan before relying on dates, names or verse numbers. These sources never overrule Scripture or the classes.` : "No candidate pages found in this selected edition. This bounded search is not an exhaustive finding." };
+    } catch { return { content: "The selected resource release could not be read. No other edition was substituted.", error: true }; }
+  }
   const list = await approvedSources(env);
   const query = str(input.query, 120), url = str(input.url, 400);
   const lines: string[] = [];
