@@ -8,7 +8,7 @@ const LAUNCH = "#tgWebAppData=query_id%3Dtab-flow&tgWebAppVersion=9.1&tgWebAppPl
 async function setup(page: Page, mode = "normal") {
   await page.emulateMedia({ reducedMotion: mode === "reduced" ? "reduce" : "no-preference" });
   await page.addInitScript(({ mode }) => {
-    const tabs = Array.from({ length: 8 }, (_, i) => ({ id: `tab-${i}`, path: i === 5 ? "/read/genesis/1" : `/classes?tab=${i}` }));
+    const tabs = Array.from({ length: 8 }, (_, i) => ({ id: `tab-${i}`, path: i === 5 ? "/read/genesis/1" : i === 0 ? "/timeline" : `/classes?tab=${i}` }));
     localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "one", groups: [{ id: "one", name: "My tabs", color: "#2dd4bf", current: "tab-5", tabs }] }));
     if (mode === "fallback") Object.defineProperty(document, "startViewTransition", { configurable: true, value: undefined });
     if (mode === "rejected") Object.defineProperty(document, "startViewTransition", { configurable: true, writable: true, value: (update: () => void) => {
@@ -82,6 +82,7 @@ for (const mode of ["normal", "fallback", "reduced", "rejected"]) {
 test("tab flow: Escape and Telegram Back resume the selected tab; closing a card preserves its neighbors", async ({ page }) => {
   await setup(page);
   await overview(page);
+  await expect(page.getByRole("button", { name: "Open Bible timeline", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/read\/genesis\/1/);
   await expect(page.locator("html")).not.toHaveAttribute("data-tab-motion");
