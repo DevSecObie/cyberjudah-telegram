@@ -27,6 +27,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 
 ### Added
 - Study resources can be installed, removed and rolled back for offline reading. The four approved editions preserve source notices, and Strong’s and Ask use the reader’s selected release.
+- Ask names its existing Strong’s API fallback when an installed release is unavailable; edition searches first match all query words before falling back to the rarest word.
 
 ### Fixed
 - The Home screen's featured class label now follows the calendar: a class dated in the current Sabbath-to-Sabbath week reads "This week's class", last week's reads "Last week's class", and older classes show just their date.

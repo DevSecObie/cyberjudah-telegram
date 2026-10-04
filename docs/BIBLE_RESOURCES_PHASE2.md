@@ -30,7 +30,10 @@ the session catalog. Query keys include the resource release, and continuation
 pages also retain the existing concordance revision. The first 600 results,
 continuation order and attribution remain unchanged. No page zero is requested.
 Before publication the legacy API remains available. Once a release is pinned,
-a failed read never substitutes another release or the legacy API.
+a failed reader request never substitutes another release or the legacy API.
+Ask's word lookup may fall back to the existing Strong’s API when its pinned
+lexicon cannot be read; the answer explicitly names that source. Book editions
+retain their pinned-release behavior.
 
 Book pages are readable at `/resources/:id/:release?key=page/volume/image`, with
 page navigation, printed-page lookup, bounded word search, original scan links
@@ -38,7 +41,9 @@ and KJV scripture annotations. Scan links open the source for comparison; scans
 are not downloaded as part of an offline text install. See the [OCR report](BIBLE_RESOURCES_OCR.md)
 before relying on quotations, names or dates. Unclear reference candidates stay
 plain text. Search exposes the first 40 postings for one word; Ask examines up to
-five candidate pages. Neither claims exhaustive phrase or whole-book coverage.
+five candidate pages. It intersects the available bounded postings for all query
+terms first, and uses the rarest available term only if their intersection is empty.
+Neither claims exhaustive phrase or whole-book coverage.
 
 ## Ask release contract
 

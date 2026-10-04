@@ -33,9 +33,12 @@ export async function resourcePages(env: Env, pins: ResourcePins, id: keyof Reso
   for (const word of words) {
     // A missing search term is normal; a missing approved release is not.
     const record = await readResourceRecord(env, id, `search/${word}`, pins[id]!);
-    if (record) postings.push(record.data as { keys: string[]; total: number });
+    postings.push(record ? record.data as { keys: string[]; total: number } : { keys: [], total: 0 });
   }
-  const keys = postings.sort((a, b) => a.total - b.total)[0]?.keys.slice(0, 5) ?? [];
+  const available = postings.filter((p) => p.keys.length).sort((a, b) => a.total - b.total);
+  const rarest = available[0]?.keys ?? [];
+  const intersection = rarest.filter((key) => postings.every((p) => p.keys.includes(key)));
+  const keys = (intersection.length ? intersection : rarest).slice(0, 5);
   const found = [];
   for (const key of keys) { const data = await pinnedRecord<ResourcePage>(env, pins, id, key); if (data) found.push({ key, data }); }
   return found;

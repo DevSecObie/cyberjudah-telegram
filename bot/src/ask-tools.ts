@@ -89,18 +89,31 @@ const lookUpWord: Tool = async (env, input, ctx, emit, line, add, resources = {}
   if (!word) return { content: "Give a word, a name or a Strong's number.", error: true };
   emit({ status: `Looking up “${word}”` });
   const out: string[] = [];
+  let strongsRelease = resources.strongs;
+  let fallback = false, fallbackRead = false;
+  const strongs = async <T>(key: string, path: string): Promise<T | null> => {
+    if (strongsRelease) {
+      try { return await pinnedRecord<T>(env, resources, "strongs", key); }
+      catch { fallback = true; strongsRelease = null; }
+    }
+    const data = await dataJson<T>(env, path, ctx).catch(() => null);
+    fallbackRead = data != null;
+    return data;
+  };
+  const strongsLink = (n: string) => strongsRelease ? resourceLink("strongs", strongsRelease, `entry/${n}`) : fallback ? `${env.DATA_ORIGIN}/api/strongs/${n}.json` : `/strongs/${n}`;
   const num = /^[HG]\d{1,5}$/i.test(word) ? word.toUpperCase() : null;
   if (num) {
-    const s = resources.strongs ? await pinnedRecord<StrongsDefinition>(env, resources, "strongs", `entry/${num}`) : await dataJson<{ number: string; language: string; lemma: string; xlit: string; pron?: string; derivation?: string; def: string; kjv?: string }>(env, `/api/strongs/${num}.json`, ctx).catch(() => null);
-    if (s) out.push(line(`Strong's ${s.number} (${s.language}) ${s.lemma} · ${s.xlit}${s.pron ? ` (${s.pron})` : ""}`, `${s.def}${s.derivation ? ` Derivation: ${s.derivation}` : ""}${s.kjv ? ` In the KJV: ${s.kjv}` : ""}`, resources.strongs ? resourceLink("strongs", resources.strongs, `entry/${num}`) : `/strongs/${num}`));
+    const s = await strongs<StrongsDefinition>(`entry/${num}`, `/api/strongs/${num}.json`);
+    if (s) out.push(line(`Strong's ${s.number} (${s.language}) ${s.lemma} · ${s.xlit}${s.pron ? ` (${s.pron})` : ""}`, `${s.def}${s.derivation ? ` Derivation: ${s.derivation}` : ""}${s.kjv ? ` In the KJV: ${s.kjv}` : ""}`, strongsLink(num)));
   } else {
     const e = eastonLookup(word) ?? (easton as EastonEntry[]).find((x) => norm(x.term) === norm(word)) ?? null;
     if (e) out.push(line(`Easton's Bible Dictionary: ${e.term}`, e.definitions.join(" ").slice(0, 2400), `/dictionary/${e.slug}`));
-    const idx = resources.strongs ? await pinnedRecord<StrongsRow[]>(env, resources, "strongs", "index") : await dataJson<StrongsRow[]>(env, "/api/strongs/index.json", ctx).catch(() => null);
+    const idx = await strongs<StrongsRow[]>("index", "/api/strongs/index.json");
     const w = norm(word);
     const hits = (idx ?? []).filter((r) => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, "")}\\b`).test(norm(r.def)) || norm(r.xlit) === w).sort((a, b) => b.count - a.count).slice(0, 5);
-    for (const r of hits) out.push(line(`Strong's ${r.n} ${r.lemma} · ${r.xlit}`, `${r.def} (${r.count} times in the KJV)`, resources.strongs ? resourceLink("strongs", resources.strongs, `entry/${r.n}`) : `/strongs/${r.n}`));
+    for (const r of hits) out.push(line(`Strong's ${r.n} ${r.lemma} · ${r.xlit}`, `${r.def} (${r.count} times in the KJV)`, strongsLink(r.n)));
   }
+  if (fallback) out.unshift(fallbackRead ? `The selected Strong's release could not be read. Source used: ${env.DATA_ORIGIN}/api/strongs/ (existing Strong's API fallback).` : "The selected Strong's release and the existing Strong's API could not be read. Strong's results are unavailable.");
   return { content: out.length ? out.join("\n") : `Nothing in Easton's or Strong's for “${word}”.` };
 };
 
