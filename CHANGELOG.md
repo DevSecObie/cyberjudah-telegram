@@ -26,6 +26,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
 ### Fixed
+- The Home screen's featured class label now follows the calendar: a class dated in the current Sabbath-to-Sabbath week reads "This week's class", last week's reads "Last week's class", and older classes show just their date.
 - The YouTube-outage fallback now reads the channel page's current card layout (`lockupViewModel`): YouTube changed its markup after the #122 hotfix shipped, so the fallback silently found nothing. Classes again appear as "Notes coming soon" while the RSS feed is down.
 
 ### Added
