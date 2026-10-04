@@ -2,7 +2,9 @@
 
 Research review — 3 October 2026, America/Los_Angeles.
 
-**There is substantial evidence for Black African people in the biblical world, Black Jewish communities, and African interpretations and representations of biblical history. The sources examined do not establish that all Israelites were Black, or that Alexander the Great and Seleucus were Black Edomites.** Those are separate claims requiring separate evidence. This review identifies useful supporting material, its limits, and contrary evidence rather than treating every reference to dark skin as the same kind of statement.
+**There is substantial evidence for Black African people in the biblical world, Black Jewish communities, and African interpretations and representations of biblical history. The sources examined do not establish that all Israelites were Black, or that Alexander the Great and Seleucus were Edomites.** Those are separate claims requiring separate evidence. This review identifies useful supporting material, its limits, and contrary evidence rather than treating every reference to dark skin as the same kind of statement.
+
+**Scope clarification:** the owner identifies Alexander and Seleucus as **white Edomites**, not Black. Their complexion and claimed Edomite ancestry are evaluated separately below.
 
 This is research for the People and Timeline work, not published person data or a portrait approval. “Black,” “Ethiopian,” “Cushite,” “Moor,” geographic origin, and ancestry are not interchangeable across centuries. Ancient descriptions of skin color can be meaningful without mapping precisely onto a present-day racial identity.
 
@@ -16,8 +18,8 @@ This is research for the People and Timeline work, not published person data or 
 | Medieval sources describe Black Jews | Benjamin of Tudela, *Itinerary*, Chulah, pp. 140–141 in Asher's translation | Explicitly supported as a medieval report about a particular community in India. It is not a census of ancient Israel or necessarily an eyewitness account. |
 | African biblical traditions existed in the Middle Ages | *Kebra Nagast*, Ethiopian Solomon–Sheba–Menyelek narrative | Supported as a medieval Ethiopian tradition of biblical ancestry and kingship; not independent contemporary evidence for Solomon's appearance. |
 | Christian art represented holy figures as Black | Walters Museum catalogue, Saint Maurice; specialist bibliography on the Black Magus | Supported for identified artworks and periods. The inspected Maurice painting is about 1515–1520, so it belongs to the Renaissance, not a casually extended “Middle Ages.” |
-| Alexander the Great was a Black Edomite | 1 Maccabees 1:1; Plutarch, *Alexander* 4; *Who's Who*, p. 405 | No reliable supporting identification found. Plutarch's description of a fair complexion is contrary evidence, although written centuries afterward. |
-| Seleucus was a Black Edomite | Appian, *Syrian Wars* 52–57; *Who's Who*, pp. 439–440 | No supporting identification found. Distinguish Seleucus I Nicator from Seleucus IV Philopator, the ruler in 2 Maccabees 3. |
+| Alexander the Great was a white Edomite | 1 Maccabees 1:1; Plutarch, *Alexander* 4; *Who's Who*, p. 405 | Plutarch supports a fair-complexion description. That does not by itself establish a modern racial identity or Edomite descent; no source examined establishes the latter. |
+| Seleucus was a white Edomite | Appian, *Syrian Wars* 52–57; *Who's Who*, pp. 439–440 | These passages do not establish his complexion or Edomite descent. Distinguish Seleucus I Nicator from Seleucus IV Philopator, the ruler in 2 Maccabees 3. |
 | These facts were deliberately hidden worldwide | Publication and transmission history of the sources examined | Not established by this research. Relevant material is openly discussed in reference books, university-press scholarship, museum publications, and historical texts. |
 
 ## 1. The exact *Who's Who in the Bible* used by the app
@@ -28,8 +30,8 @@ This is research for the People and Timeline work, not published person data or 
 | --- | --- | --- |
 | [Cush, p. 77, leaf 80](https://archive.org/details/whos-who-in-the-bible/page/n80/mode/1up) | Associates Cush with people south of Egypt and glosses the name as “black” | The geographical connection matters. Goldenberg, p. 17, treats the name's meaning as unknown; do not repeat the gloss as settled linguistics. |
 | [Phinehas, p. 315, leaf 318](https://archive.org/details/whos-who-in-the-bible/page/n318/mode/1up) | Gives the Egyptian name gloss **“negro”**; checked against the scan | A real and relevant entry. Compare Goldenberg, p. 39, on “the Nubian.” A name is not a conclusive ancestry record. |
-| [Alexander, p. 405, leaf 408](https://archive.org/details/whos-who-in-the-bible/page/n408/mode/1up) | Connects Alexander's successors with Seleucid/Maccabean history | No Black/Edomite identification in this entry. |
-| [Seleucus IV, pp. 439–440, starting leaf 442](https://archive.org/details/whos-who-in-the-bible/page/n442/mode/1up) | The adjacent coin caption identifies **Seleucus I** | Keep the two people distinct; neither is identified here as a Black Edomite. |
+| [Alexander, p. 405, leaf 408](https://archive.org/details/whos-who-in-the-bible/page/n408/mode/1up) | Connects Alexander's successors with Seleucid/Maccabean history | No complexion or Edomite-ancestry identification in this entry. |
+| [Seleucus IV, pp. 439–440, starting leaf 442](https://archive.org/details/whos-who-in-the-bible/page/n442/mode/1up) | The adjacent coin caption identifies **Seleucus I** | Keep the two people distinct; neither is identified here as an Edomite or assigned a complexion. |
 
 Two image captions deserve care: the Queen of Sheba image is identified as a **20th-century Ethiopian painting**, and the bronze statue above the Phinehas entry depicts **Pharaoh Neco**. The first cannot establish medieval depiction; the second is not Phinehas's portrait. Always check subject, object material, and date before drawing conclusions from an illustration.
 
@@ -94,7 +96,7 @@ Plutarch says that Apelles's painted Alexander was too dark and swarthy, then de
 
 > “of a fair colour, as they say”
 
-The next page describes ruddiness, especially on his breast and face. This is genuine contrary evidence to the proposed complexion claim. Plutarch wrote centuries after Alexander, and his report is not an exact color measurement; “fair” also should not be converted automatically into a modern political racial identity. Nevertheless, an honest source review must include the passage.
+The next page describes ruddiness, especially on his breast and face. This supports describing Alexander as **fair-complexioned according to Plutarch**, and is relevant to the owner's description of him as white. Plutarch wrote centuries after Alexander; the passage is not an exact color measurement or a self-identification in a modern racial category. It also says nothing about Edomite ancestry. The two claims therefore require separate findings.
 
 1 Maccabees 1:1 calls him **“Alexander son of Philip, the Macedonian”**. That establishes the text's identification, not a skin tone. Neither this passage nor the examined *Who's Who* entry supplies Edomite ancestry. A later Ethiopian, Persian, or European portrayal of Alexander would need to be identified as that culture's later portrayal before using it.
 
@@ -102,9 +104,9 @@ The next page describes ruddiness, especially on his breast and face. This is ge
 
 **Appian, *Roman History*, book XI, *Syrian Wars* 52–57; Horace White translation (1899), vol. I, pp. 312–316.** [Scanned edition](https://archive.org/details/romanhistoryofap01appi).
 
-Appian places Seleucus I's rise in the succession to Alexander and the Macedonian commanders' division of power. Section 57 says Seleucus named cities Antioch after his father and Laodicea after his mother. It contains no identification of him as Black or Edomite. Absence in one source does not establish his exact complexion; it does mean this source cannot responsibly be cited as supporting the proposed claim.
+Appian places Seleucus I's rise in the succession to Alexander and the Macedonian commanders' division of power. Section 57 says Seleucus named cities Antioch after his father and Laodicea after his mother. It does not specify his complexion or identify him as an Edomite. His place among Macedonian commanders does not supply either missing fact. This passage alone therefore cannot establish the combined white-Edomite claim.
 
-For **Seleucus IV**, use the separate *Who's Who* entry and 2 Maccabees 3–4. Do not merge the ruler in that narrative with the dynasty's founder. No examined source establishes the requested ancestry/complexion for either ruler.
+For **Seleucus IV**, use the separate *Who's Who* entry and 2 Maccabees 3–4. Do not merge the ruler in that narrative with the dynasty's founder. The examined passages do not supply a complexion description for either Seleucus, or establish either ruler's Edomite descent.
 
 **“Edom,” *The Jewish Encyclopedia*, vol. V, pp. 40–41**, distinguishes ancient Edom/Idumea from the later use of Edom for Rome and Christianity. [P. 41, scan leaf 72](https://archive.org/details/cu31924091768220/page/n72/mode/1up). It records the symbolic use by rabbinic authors and medieval poets. That is a documented interpretive tradition; the article does not give a historical genealogy making Macedonian rulers descendants of Esau.
 
@@ -116,7 +118,7 @@ Genesis 36:1 identifies Esau with Edom. Genesis 25:25 and 25:30 contain the red/
 
 This is worth retaining in the research because it actually advances related claims. On **p. 15**, after a genealogy of Shem's descendants, Lewis calls them black and attributes the statement to an unnamed Greek historian. On **pp. 246–249**, he uses accounts of Black Jews in India in his argument about Israel's dispersal. These are concrete passages to examine, not merely a book title that sounds supportive.
 
-Their evidentiary status must be accurate: Lewis is a nineteenth-century author making a historical argument, not a witness to ancient Israel. The unnamed historian on p. 15 needs to be traced before treating the assertion as corroborated ancient testimony. His classification also differs from other interpretations: **p. 24** calls Esau's descendants “the Red People” and equates Edomites with Indians, while **p. 369** calls Alexander Egyptian. The book therefore cannot be treated as a consistent, independent proof of the specific Black-Edomite-Macedonian claim.
+Their evidentiary status must be accurate: Lewis is a nineteenth-century author making a historical argument, not a witness to ancient Israel. The unnamed historian on p. 15 needs to be traced before treating the assertion as corroborated ancient testimony. His classification also differs from other interpretations: **p. 24** calls Esau's descendants “the Red People” and equates Edomites with Indians, while **p. 369** calls Alexander Egyptian. The book therefore cannot be treated as a consistent, independent proof of the specific white-Edomite identification of the Macedonian rulers.
 
 Use it as **“R. B. Lewis argued in 1844…”**, with exact references. Test each assertion against its underlying source. Its age and public-domain status do not themselves establish accuracy, just as a newer publication's prestige does not remove the need to inspect its evidence.
 
@@ -137,6 +139,6 @@ Prepared Google Scholar queries, **not executed successfully**: [Goldenberg and 
 
 Keep the original Bible Strong Timeline layout and controls. Research does not require a new navigation system.
 
-For People, retain verse-based identity facts and person-specific citations. Ebed-melech's designation, Phinehas's name history, a medieval report about a Jewish community, and a painting's iconography are different facts and should be labelled accordingly. For Alexander, Seleucus, and the sample Apocrypha people, this research has not verified a blanket Black/Edomite descriptor; do not insert one as settled biography.
+For People, retain verse-based identity facts and person-specific citations. Ebed-melech's designation, Phinehas's name history, a medieval report about a Jewish community, and a painting's iconography are different facts and should be labelled accordingly. For Alexander, a source note may accurately attribute a fair-complexion description to Plutarch. Edomite ancestry for Alexander and Seleucus remains unverified in the examined historical sources, as do blanket racial descriptors for the sample Apocrypha people. Keep those findings separate in any proposed biography.
 
 Historical and artistic claims can have dated, attributed source notes. Teaching excerpts belong under the existing **From the classes / Quotes and sources** pattern, verbatim and linked to a verified moment. This research pass did not verify new class quotations and should not manufacture them to close a gap in historical evidence. New portraits remain subject to the owner's existing approval rule.
