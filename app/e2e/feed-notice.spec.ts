@@ -55,22 +55,16 @@ test("a recovered feed clears dismissal so a later outage is announced again", a
   await setup(page, () => healthy);
   await page.goto(`/classes${LAUNCH}`);
   await page.getByRole("button", { name: "Dismiss upload notice" }).click();
-  const refresh = async () => {
-    await page.clock.fastForward(11 * 60_000);
+  const refresh = async (interval: number) => {
     const response = page.waitForResponse(r => r.url().endsWith("/api/recent"));
-    await page.evaluate(() => {
-      for (const value of ["hidden", "visible"]) {
-        Object.defineProperty(document, "visibilityState", { configurable: true, value });
-        document.dispatchEvent(new Event("visibilitychange"));
-      }
-    });
+    await page.clock.fastForward(interval + 1);
     await response;
   };
   healthy = true;
-  await refresh();
+  await refresh(60_000);
   await expect(page.locator(".cfeed__notice")).toHaveCount(0);
   healthy = false;
-  await refresh();
+  await refresh(10 * 60_000);
   await expect(page.locator(".cfeed__notice")).toBeVisible();
   await expect(page.locator("article.post")).toContainText(saved.title);
 });

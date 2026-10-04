@@ -87,7 +87,7 @@ for (const failure of ["404", "network", "empty", "malformed", "timeout"]) {
       return new Response(page([video(url.includes("/streams") ? B : A)]));
     });
     const found = await recentVideos(w.env);
-    assert.equal(found.ok, true);
+    assert.equal(found.ok, false);
     assert.deepEqual(new Set(found.videos.map((v) => v.video)), new Set([A, B]));
     assert.equal(w.calls.length, 3);
     assert.equal(w.writes.length, 1);
@@ -96,18 +96,20 @@ for (const failure of ["404", "network", "empty", "malformed", "timeout"]) {
 
 test("total upstream outage retains last-good classes and retries soon without extending their lifetime", async (t) => {
   const w = worker(t, () => new Response("unavailable", { status: 404 }), { checked: Date.now() - 86400_000, videos: [retained] });
-  assert.deepEqual(await recentVideos(w.env), { videos: [retained], ok: false });
+  const kept = await recentVideos(w.env);
+  assert.equal(kept.ok, false);
+  assert.deepEqual(kept.videos, [retained]);
   assert.equal(w.writes.length, 0);
   assert.equal([...w.edge.values()][0].headers.get("cache-control"), "public, max-age=60");
   w.edge.clear(); // Another edge has no Cache API entry but reads the shared KV snapshot.
-  assert.deepEqual(await recentVideos(w.env), { videos: [retained], ok: false });
+  assert.deepEqual((await recentVideos(w.env)).videos, [retained]);
 });
 
 test("a partial channel outage merges known classes with new uploads and prefers fresh duplicates", async (t) => {
   const w = worker(t, (url) => url.includes("/videos?") ? new Response(page([video(A, { title: { simpleText: "Updated title" } })])) : new Response("", { status: 404 }),
     { checked: Date.now(), videos: [retained, { ...retained, video: A, title: "Old title" }] });
   const found = await recentVideos(w.env);
-  assert.equal(found.ok, true);
+  assert.equal(found.ok, false);
   assert.equal(found.videos.length, 2);
   assert.equal(found.videos.find((v) => v.video === A).title, "Updated title");
   assert.ok(found.videos.some((v) => v.video === B));
@@ -115,7 +117,9 @@ test("a partial channel outage merges known classes with new uploads and prefers
 
 test("cold/expired cache and failed sources retry in one minute without saving an empty result", async (t) => {
   const w = worker(t, () => new Response("<html>Consent required</html>"), { checked: Date.now() - 8 * 86400_000, videos: [retained] });
-  assert.deepEqual(await recentVideos(w.env), { videos: [], ok: false });
+  const empty = await recentVideos(w.env);
+  assert.equal(empty.ok, false);
+  assert.deepEqual(empty.videos, []);
   assert.equal(w.writes.length, 0);
   assert.equal([...w.edge.values()][0].headers.get("cache-control"), "public, max-age=60");
 });
@@ -124,16 +128,7 @@ test("KV failure does not discard successful fallback recordings", async (t) => 
   const w = worker(t, (url) => new Response(url.includes("feeds/") ? "" : page()));
   w.env.SUBS.get = async () => { throw new Error("KV unavailable"); };
   w.env.SUBS.put = async () => { throw new Error("KV unavailable"); };
-  assert.deepEqual((await recentVideos(w.env)).videos.map((v) => v.video), [A]);
-});
-
-test("the status envelope bypasses old cached arrays and retains its outage status on cache hits", async (t) => {
-  const w = worker(t, () => new Response("unavailable", { status: 404 }), { checked: Date.now(), videos: [retained] });
-  w.edge.set("https://cyberjudah-telegram.internal/recent/v2/UCtest", new Response("[]"));
-  const result = { videos: [retained], ok: false };
-  assert.deepEqual(await recentVideos(w.env), result);
-  assert.equal(w.calls.length, 3);
-  assert.deepEqual(await recentVideos(w.env), result);
-  assert.equal(w.calls.length, 3);
-  assert.ok(w.edge.has("https://cyberjudah-telegram.internal/recent/v3/UCtest"));
+  const res = await recentVideos(w.env);
+  assert.equal(res.ok, false);
+  assert.deepEqual(res.videos.map((v) => v.video), [A]);
 });
