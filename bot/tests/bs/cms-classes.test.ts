@@ -18,3 +18,12 @@ test('published metadata corrects transcript and search display without replacin
   assert.equal(changed.title,'Recorded title');assert.equal(changed.date,'2024-01-01');assert.equal(changed.matchedTitle,'Recorded title');assert.equal(changed.video,row.video);assert.deepEqual(changed.chunks,row.chunks);
   assert.deepEqual(applyClassCorrection(row,{}),row);
 });
+
+
+test('blank front matter fields do not consume the following field as their value',()=>{
+  const source='---\ntitle: Known title\nteacher:   \ndate:\nslug: keep-the-link\n---\nBody';
+  assert.equal(noteField(source,'teacher'),'');assert.equal(noteField(source,'date'),'');
+  const changed=updateClassNote(source,{video:'ABCDEFGHIJK',title:'Known title',teacher:'',date:'2024-01-01'});
+  assert.equal(noteField(changed,'date'),'2024-01-01');assert.equal(noteField(changed,'teacher'),'');
+  assert.ok(changed.includes('slug: keep-the-link'));
+});

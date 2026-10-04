@@ -31,7 +31,7 @@ export function updateClassNote(text: string, value: z.infer<typeof ClassMetadat
 }
 export function noteField(text: string, field: 'title'|'teacher'|'date') {
   const end = text.indexOf('\n---\n',4), front = text.startsWith('---\n') && end >= 0 ? text.slice(4,end) : '';
-  const v = new RegExp(`^${field}:\\s*(.*)$`,'m').exec(front)?.[1]?.trim() ?? '';
+  const v = new RegExp(`^${field}:[ \t]*(.*)$`,'m').exec(front)?.[1]?.trim() ?? '';
   if (v.startsWith('"')) { try { return String(JSON.parse(v)); } catch { throw new Error(`Unsupported ${field} in the note's front matter.`); } }
   return v.startsWith("'") && v.endsWith("'") ? v.slice(1,-1).replaceAll("''", "'") : v;
 }

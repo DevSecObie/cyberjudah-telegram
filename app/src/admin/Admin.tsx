@@ -73,7 +73,7 @@ function NotesAdmin() {
   const chosen = params.get('file');
   const source = useQuery({ queryKey: ['cms', 'note', chosen], enabled: !!chosen, queryFn: () => api<{ ok: boolean; text: string; sha: string; error?: string }>(`/api/notes/source?file=${encodeURIComponent(chosen!)}`) });
   const text = source.data?.text ?? '';
-  const value = (name: string) => new RegExp(`^${name}:\\s*["']?(.*?)["']?$`, 'm').exec(text)?.[1] ?? '';
+  const value = (name: string) => new RegExp(`^${name}:[ \t]*["']?(.*?)["']?$`, 'm').exec(text)?.[1] ?? '';
   const note: Note = { kind: 'class', title: value('title'), teacher: value('teacher'), file: chosen, body: text, url: '' };
   return <><h2>Classes and notes</h2><p>Open a class note’s Edit button, or select its source file below. Saving creates a review.</p><Field label="Source note file" value={file} onChange={setFile} /><button type="button" onClick={() => setParams({ file })}>Open note editor</button>{source.isError ? <p role="alert">{source.error.message}</p> : null}{source.data && !source.data.ok ? <p role="alert">{source.data.error}</p> : null}
     <Field label="Find a class note" value={query} onChange={setQuery} /><div className="cms-list">{notes.data?.filter(n => ['class', 'captains'].includes(n.kind) && n.title.toLowerCase().includes(query.toLowerCase())).slice(0, 80).map(n => <Link key={n.url} to={`/note${n.url}`}><b>{n.title}</b><small>{n.teacher}</small></Link>)}</div>
