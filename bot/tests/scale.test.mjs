@@ -7,7 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 // extensions (as Workers bundles them), so it is bundled for Node first.
 const out = new URL("./.build/scale.mjs", import.meta.url).pathname;
 await build({ stdin: { contents: 'export * from "./src/ai.ts"; export { ensureCreditTables } from "./src/credits.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
-const { takeQuota, takeQuotaKey, sweepRateCounts, freeSpendToday, freePaused } = await import(out);
+const { takeQuota, takeQuotaKey, sweepRateCounts, freeSpendToday, freePaused, freeModels, freeModel } = await import(out);
 
 /** A D1 close enough for quota and spend tables, backed by real SQLite. */
 const d1 = () => {
@@ -84,4 +84,18 @@ test("the IP backstop counts per address per day under its own limit", async () 
   for (let i = 0; i < 5; i++) assert.equal(await takeQuotaKey(e, key("9.9.9.9"), 5), true);
   assert.equal(await takeQuotaKey(e, key("9.9.9.9"), 5), false);
   assert.equal(await takeQuotaKey(e, key("8.8.8.8"), 5), true, "another address is unaffected");
+});
+
+test("the free tier offers every Workers AI text model, with Llama 3.1 8B the default", async () => {
+  const e = env();
+  const set = freeModels(e);
+  assert.ok(set.size > 1, "more than the one default model");
+  assert.ok(set.has("@cf/meta/llama-3.1-8b-instruct-fp8"), "the default is in the set");
+  assert.ok(set.has("@cf/zai-org/glm-5.3-flash"), "Flash is offered too: it draws from the same free neurons");
+  assert.ok(set.has("@cf/deepseek-ai/deepseek-r1-distill-qwen-32b"));
+  assert.ok(!set.has("anthropic/claude-sonnet-5"), "Claude is never free");
+  assert.ok(![...set].some((id) => id.startsWith("@cf/baai/")), "embeddings are not Ask models");
+  assert.equal(freeModel(e).id, "@cf/meta/llama-3.1-8b-instruct-fp8");
+  const narrowed = freeModels({ ...e, ASK_FREE_MODELS: "@cf/meta/llama-3.1-8b-instruct-fp8" });
+  assert.deepEqual([...narrowed], ["@cf/meta/llama-3.1-8b-instruct-fp8"], "ASK_FREE_MODELS can narrow the menu");
 });

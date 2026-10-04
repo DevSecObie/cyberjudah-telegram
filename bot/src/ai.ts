@@ -5,7 +5,7 @@ import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { claude, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
-import { modelOf, type AskModel } from "../../shared/ask-models.mjs";
+import { MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid } from "./privacy.mjs";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
 import { isAdmin } from "./edit";
@@ -127,11 +127,24 @@ async function allowed(env: Env, userId: number): Promise<boolean> {
 }
 
 /**
- * The free model: never charged, open to every reader, and offered whenever the balance is too low
- * for the model chosen. ASK_FREE_MODEL names it; by default Llama 3.1 8B, which sits inside
- * Cloudflare's free neuron lane (10,000 neurons/day/account at no charge) and answers in one
- * call from the retrieved passages (format "plain": no tool rounds). GLM 5.3 Flash was dropped:
- * Cloudflare moved it out of the free lane, so it billed from the first call.
+ * Every Workers AI text model is free-tier eligible: Cloudflare gives the account 10,000 free
+ * neurons a day shared across all of its models (then $0.011/1k neurons on Workers Paid), so
+ * there is no separate "free lane" of models to pick from — the whole text menu is offered.
+ * ASK_FREE_MODELS optionally narrows it (comma-separated model ids); ASK_FREE_MODEL names the
+ * default free model, Llama 3.1 8B, the cheapest per answer. A reader picks any of them in the
+ * app's model picker; the daily circuit breaker below is what keeps the owner's cost at $0.
+ */
+const FREE_FORMATS = new Set(["plain", "chat"]);
+export function freeModels(env: Env): Set<string> {
+  const pinned = String(env.ASK_FREE_MODELS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (pinned.length) return new Set(pinned);
+  return new Set(MODELS.filter((m) => m.id.startsWith("@cf/") && FREE_FORMATS.has(m.format)).map((m) => m.id));
+}
+
+/**
+ * The default free model: never charged, open to every reader, and offered whenever the balance
+ * is too low for the model chosen. It answers from the retrieved passages in one call
+ * (format "plain": no tool rounds); other free models may research up to ASK_FREE_MAX_ROUNDS.
  */
 export const freeModel = (env: Env) => modelOf(env.ASK_FREE_MODEL || "@cf/meta/llama-3.1-8b-instruct-fp8", "@cf/meta/llama-3.1-8b-instruct-fp8");
 
@@ -159,10 +172,9 @@ const freeMaxUsd = (env: Env) => Math.max(0.001, Number(env.ASK_FREE_MAX_USD ?? 
 
 /**
  * The owner's free-tier spend is capped per UTC day at the free-allocation value
- * (ASK_FREE_DAILY_USD_CAP, $0.11 = 10,000 free neurons/day at $0.011/1k): past it, the free
- * model pauses until tomorrow. The free model sits inside Cloudflare's free neuron lane, so
- * in practice the cap is never reached — but if a model ever leaves the lane, or another
- * part of the account exhausts the allocation, free answers pause instead of billing.
+ * (ASK_FREE_DAILY_USD_CAP, $0.11 = 10,000 free neurons/day at $0.011/1k): past it, free answers
+ * pause until tomorrow. Cloudflare's free neurons are shared across all Workers AI models, so
+ * the cap also covers the account's other AI usage — free answers pause instead of billing.
  * A per-account answer cap cannot stop N accounts × 100 free answers each; only a global
  * cap bounds that loss.
  */
@@ -197,12 +209,14 @@ export async function startMeter(env: Env, uid: number, model: AskModel, opts: M
   const est = estimateMc(model, cfg, { claudeViaCloudflare: viaCf });
   const request = opts.request && /^[a-z0-9-]{8,64}$/i.test(opts.request) ? opts.request : crypto.randomUUID();
   const free = freeModel(env);
+  const freeSet = freeModels(env);
   const admin = isAdmin(env, uid);
-  if (model.id === free.id || admin) {
-    const rounds = model.id === free.id && !admin ? freeMaxRounds(env) : 6;
-    const estFree = model.id === free.id && !admin ? estimateMc(model, cfg, { rounds }) : est;
-    const budget = model.id === free.id && !admin ? Math.min(estFree.maxMc * MC_USD, freeMaxUsd(env)) : est.maxMc * MC_USD;
-    return { ok: true, meter: { owner, request, held: 0, spend: makeSpend({ fee, budgetUsd: budget, rates: cfg.research }), model, free: true, admin, maxRounds: model.id === free.id && !admin ? rounds : undefined } };
+  const isFree = freeSet.has(model.id);
+  if (isFree || admin) {
+    const rounds = isFree && !admin ? freeMaxRounds(env) : 6;
+    const estFree = isFree && !admin ? estimateMc(model, cfg, { rounds }) : est;
+    const budget = isFree && !admin ? Math.min(estFree.maxMc * MC_USD, freeMaxUsd(env)) : est.maxMc * MC_USD;
+    return { ok: true, meter: { owner, request, held: 0, spend: makeSpend({ fee, budgetUsd: budget, rates: cfg.research }), model, free: true, admin, maxRounds: isFree && !admin ? rounds : undefined } };
   }
   const typical = (await typicalMc(env, model.id).catch(() => null)) ?? est.typicalMc;
   const limit = opts.maxMc ?? opts.caps?.[model.id];

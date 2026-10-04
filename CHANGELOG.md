@@ -29,6 +29,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 - Study resources can be installed, removed and rolled back for offline reading. The four approved editions preserve source notices, and Strong’s and Ask use the reader’s selected release.
 - Ask names its existing Strong’s API fallback when an installed release is unavailable; edition searches first match all query words before falling back to the rarest word.
 - Ask's free answers now run on Llama 3.1 8B inside Cloudflare's free tier, answering from the retrieved passages in one call, and pause for the day before they could ever cost the project anything.
+- Ask's free tier now offers every Workers AI text model (26), not just the default: Cloudflare's 10,000 free neurons a day are shared across all of its models, so a reader can pick any of them in the model picker and the daily breaker still keeps the project's cost at $0.
 
 ### Fixed
 - The Home screen's featured class label now follows the calendar: a class dated in the current Sabbath-to-Sabbath week reads "This week's class", last week's reads "Last week's class", and older classes show just their date.

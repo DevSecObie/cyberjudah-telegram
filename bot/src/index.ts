@@ -12,7 +12,7 @@ import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./t
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
 import { approvedSources, DEFAULT_SOURCES, HOST } from "./ask-tools";
-import { ask, askStream, creditsOn, defaultModelId, freeModel, similar, speakVerse, sweepRateCounts, takeQuotaKey } from "./ai";
+import { ask, askStream, creditsOn, defaultModelId, freeModels, similar, speakVerse, sweepRateCounts, takeQuotaKey } from "./ai";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -331,7 +331,7 @@ async function modelCosts(env: Env, models: AskModel[]) {
   const cfg = creditsConfig(env);
   return Promise.all(models.map(async (m) => {
     const est = estimateMc(m, cfg, { claudeViaCloudflare: unifiedBilling(env) });
-    return { id: m.id, name: m.name, provider: m.provider, what: m.what, typical_mc: (await typicalMc(env, m.id).catch(() => null)) ?? est.typicalMc, max_mc: est.maxMc, ...(m.id === freeModel(env).id ? { free: true } : {}) };
+    return { id: m.id, name: m.name, provider: m.provider, what: m.what, typical_mc: (await typicalMc(env, m.id).catch(() => null)) ?? est.typicalMc, max_mc: est.maxMc, ...(freeModels(env).has(m.id) ? { free: true } : {}) };
   }));
 }
 app.get("/api/ask/account", async (c) => {

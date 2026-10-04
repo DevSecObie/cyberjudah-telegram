@@ -110,18 +110,19 @@
     // end, in the reader's own time zone (shared/holy-days.mjs, shared/holy-days.json).
     "ASK_USD_PER_STAR": "0.013", "ASK_MARGIN": "1", "ASK_TOPUPS_USD": "1,5,20",
     "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
-    // "on": the free model (ASK_FREE_MODEL) is free for everyone (within the daily cap of 100
-    // questions against abuse), and every other model is paid from the reader's balance alone, with
-    // no free daily allowance. Admins (ADMIN_IDS) are not charged. Off: no balance, and the cap of
-    // 100 questions a day per person applies to every model.
+    // "on": every Workers AI text model (ASK_FREE_MODELS, default all 26) is free for everyone
+    // (within the daily cap of 100 questions against abuse), and every other model is paid from
+    // the reader's balance alone, with no free daily allowance. Admins (ADMIN_IDS) are not charged.
+    // Off: no balance, and the cap of 100 questions a day per person applies to every model.
     // The free tier answers at the owner's expense, so it is capped twice: ASK_FREE_MAX_ROUNDS
     // research rounds and ASK_FREE_MAX_USD dollars per answer, and ASK_FREE_DAILY_USD_CAP dollars
     // of owner spend per day past which free answers pause until tomorrow (429 free-paused).
-    // The cap sits at the free-allocation value ($0.11 = 10,000 free neurons/day): the free
-    // model (Llama 3.1 8B) is inside Cloudflare's free neuron lane, so the owner pays nothing.
+    // The cap sits at the free-allocation value ($0.11 = 10,000 free neurons/day, shared across
+    // all Workers AI models): inside it the owner pays nothing.
     // ASK_IP_DAILY_LIMIT is the Sybil backstop (Ask requests per IP per day); CREDIT_USAGE_RETENTION_DAYS
     // how long per-request telemetry is kept; CREDITS_CONTENTION_ALERT how many D1 write-contention
     // events in a day page the admins from the hourly health check.
+    // ASK_FREE_MODEL names the default free model (Llama 3.1 8B, cheapest per answer).
     "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8",
     "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "0.11",
     "ASK_IP_DAILY_LIMIT": "1000", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50"
