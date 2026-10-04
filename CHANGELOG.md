@@ -111,6 +111,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   in the Bible*. Regenerate the data with `node app/scripts/timeline-data.mjs <cases>`.
 
 ### Fixed
+- Upload notices refresh while the app is open, clear when the feed recovers, and can announce a later outage after dismissal. Their dismiss button has a full 44px touch target.
 - Keep uploaded classes marked “Notes coming soon” visible during YouTube RSS outages, using channel-page fallback and retained recent recordings.
 - The book picker brings the current book into view after its animated panel mounts, including when the browser delays the opening snapshot.
 
