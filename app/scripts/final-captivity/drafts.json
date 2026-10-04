@@ -699,5 +699,54 @@
   "sources": [],
   "needs": "A documented source; only class mentions found (93fP6cddXrs, -cEhJw1V02Y, 2026-05).",
   "status": "draft"
+ },
+ {
+  "slug": "barclays-center-rally-for-kyrie-irving-2022",
+  "title": "IUIC rallies outside the Barclays Center as Kyrie Irving returns",
+  "start": 2022,
+  "end": 2022,
+  "period": "unto-this-day",
+  "tribes": [
+   "Judah"
+  ],
+  "summary": "Search results (amNY, Times of Israel, Jewish Journal, JTA) report that IUIC members rallied outside the Barclays Center on November 20, 2022 when Irving returned from suspension, and that coverage called the flyers they handed out antisemitic.",
+  "teaching": [
+   {
+    "points": [
+     "We were there standing for the word of the Most High; we have never met Kyrie Irving and he is not a part of us."
+    ],
+    "teacher": "Bishop Nathanyel",
+    "source": {
+     "kind": "class",
+     "id": "6V3WRQYJd8Y",
+     "title": "Friday Night Raw: Haters, Traitors And Debaters",
+     "date": "2022-11-26",
+     "ts": "14:15",
+     "url": "https://youtu.be/6V3WRQYJd8Y?t=855"
+    }
+   }
+  ],
+  "needs": "a source read in full: amny.com, timesofisrael.com and the Wayback Machine were blocked or unreachable this session",
+  "status": "draft"
+ },
+ {
+  "slug": "iuic-2013-split",
+  "title": "The 2013 split",
+  "period": "israel-united-in-christ",
+  "needs": "no documented source was found for a 2013 split (IUIC’s history page records only the 1995 split; existing event the-1990s-splits); the owner should say which split is meant",
+  "status": "draft"
+ },
+ {
+  "slug": "adl-extremist-sects-backgrounder-2020",
+  "title": "The ADL’s backgrounder on extremist sects within the Black Hebrew Israelite movement",
+  "start": 2020,
+  "end": 2020,
+  "period": "unto-this-day",
+  "tribes": [
+   "Judah"
+  ],
+  "summary": "Cited by CDAMM as ADL, “Extremist Sects Within the Black Hebrew Israelite Movement,” August 7, 2020.",
+  "needs": "the ADL page itself (adl.org blocked; no Wayback copy reachable this session)",
+  "status": "draft"
  }
 ]
