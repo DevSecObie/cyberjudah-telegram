@@ -1,5 +1,5 @@
 import type { Env, Exec } from "./env";
-import { parseFeed, parseLive } from "./live.mjs";
+import { parseChannelVideos, parseFeed, parseLive } from "./live.mjs";
 export { parseLive };
 
 export type { LiveNow, RecentVideo } from "./live.mjs";
@@ -43,25 +43,53 @@ async function check(channel: string): Promise<LiveNow> {
 
 /**
  * The channel's newest recordings, from its public RSS feed, so a class is in the app the
- * hour it is uploaded, before its captions and notes exist. Cached ten minutes at the edge.
- * `ok` is false when YouTube did not serve the feed, so the app can say so instead of
+ * hour it is uploaded, before its captions and notes exist.
+ * Keep classes visible before their notes exist, even during a YouTube RSS outage.
+ * Channel pages are a fallback; KV preserves seven days of last-good results across edges.
+ * `ok` is false when YouTube did not serve the RSS feed, so the app can say so instead of
  * silently showing nothing new.
  */
 export async function recentVideos(env: Env, ctx?: Exec): Promise<{ videos: RecentVideo[]; ok: boolean }> {
   const channel = env.LIVE_CHANNEL || CHANNEL;
-  const key = `https://cyberjudah-telegram.internal/recent/v2/${channel}`;
+  // A new key also bypasses entries left by the previous implementation, whose body shape differs.
+  const key = `https://cyberjudah-telegram.internal/recent/v3/${channel}`;
+  const savedKey = `recent:v2:${channel}`;
   const cache = caches.default;
-  const hit = await cache.match(key);
+  const hit = await cache.match(key).catch(() => undefined);
   if (hit) return hit.json<{ videos: RecentVideo[]; ok: boolean }>();
-  let out: RecentVideo[] = [];
-  let ok = false;
-  try {
-    const res = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${channel}`, { headers: { "user-agent": UA } });
-    if (res.ok) { out = parseFeed(await res.text()); ok = true; }
-  } catch { /* the feed is a convenience; the notes list still loads */ }
+  const now = Date.now();
+  let out = parseFeed(await recentSource(`feeds/videos.xml?channel_id=${channel}`));
+  const ok = out.length > 0;
+  let fresh = ok;
+  if (!fresh) {
+    const pages = await Promise.all(["videos", "streams"].map(async (tab) => parseChannelVideos(await recentSource(`channel/${channel}/${tab}?hl=en`), now)));
+    out = pages.flat();
+    fresh = out.length > 0;
+    // Preserve known classes if either tab is unavailable; an outage must not erase them.
+    const saved = await env.SUBS.get<{ checked: number; videos: RecentVideo[] }>(savedKey, "json").catch(() => null);
+    if (saved && now - saved.checked < 7 * 86400_000 && Array.isArray(saved.videos)) out.unshift(...saved.videos);
+    out = [...new Map(out.map((v) => [v.video, v])).values()]
+      .sort((a, b) => b.published.localeCompare(a.published)).slice(0, 15);
+  }
   const body = { videos: out, ok };
-  const res = new Response(JSON.stringify(body), { headers: { "content-type": "application/json", "cache-control": "public, max-age=600" } });
-  const put = cache.put(key, res.clone());
+  // Failed refreshes retry after one minute and never replace/extend the last-good snapshot.
+  const res = new Response(JSON.stringify(body), { headers: { "content-type": "application/json", "cache-control": `public, max-age=${fresh ? 600 : 60}` } });
+  const put = Promise.all([
+    cache.put(key, res).catch(() => undefined),
+    ...(fresh ? [env.SUBS.put(savedKey, JSON.stringify({ checked: now, videos: out }), { expirationTtl: 7 * 86400 }).catch(() => undefined)] : []),
+  ]);
   if (ctx) ctx.waitUntil(put); else await put;
   return body;
+}
+
+
+/** Bound each source so a stalled RSS request still reaches the fallback. */
+async function recentSource(path: string): Promise<string> {
+  try {
+    const res = await fetch(`https://www.youtube.com/${path}`, {
+      headers: { "user-agent": UA, "accept-language": "en-US,en;q=0.9", cookie: "CONSENT=YES+1" },
+      signal: AbortSignal.timeout(5000),
+    });
+    return res.ok ? await res.text() : "";
+  } catch { return ""; }
 }
