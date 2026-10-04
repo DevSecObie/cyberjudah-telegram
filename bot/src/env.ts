@@ -30,6 +30,10 @@ export type Env = {
   ASK_USD_PER_STAR?: string; ASK_MARGIN?: string; ASK_TOPUPS_USD?: string; ASK_UNIFIED_BILLING_FEE?: string; ASK_CONFIRM_ABOVE_USD?: string; ASK_MAX_REQUEST_USD?: string;
   ASK_EMBED_USD_PER_MTOK?: string; ASK_RERANK_USD_PER_MTOK?: string; ASK_VECTOR_USD_PER_MDIMS?: string;
   ASK_BILLING?: string; ASK_FREE_MODEL?: string;
+  /** The free tier's per-answer guardrails: research rounds (3), hard per-answer ceiling in dollars (0.05), and the owner's global daily cap in dollars (100) past which free answers pause. */
+  ASK_FREE_MAX_ROUNDS?: string; ASK_FREE_MAX_USD?: string; ASK_FREE_DAILY_USD_CAP?: string;
+  /** Sybil backstop: Ask requests per IP per day (1000); per-request telemetry retention in days (180); daily D1 write-contention events before the health check pages (50). */
+  ASK_IP_DAILY_LIMIT?: string; CREDIT_USAGE_RETENTION_DAYS?: string; CREDITS_CONTENTION_ALERT?: string;
   /** End-to-end tests only: "on" lets a request name its moment (x-e2e-now), to test the Sabbath pause on any day. Never set in wrangler.jsonc. */
   E2E_CLOCK?: string;
   /** Telegram user ids (comma-separated) allowed to edit notes from the app. They also receive the hourly health-check pages. */

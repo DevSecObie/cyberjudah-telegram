@@ -3,7 +3,7 @@ import { recordings, recordingAudio } from "./recordings";
 import { Hono } from "hono";
 import { Api, webhookCallback } from "grammy";
 import type { InlineQueryResultArticle } from "grammy/types";
-import type { Env, Sub } from "./env";
+import type { Env, Exec, Sub } from "./env";
 import { LAUNCH_DATA_MAX_AGE, validateInitData, type InitData } from "./initdata.mjs";
 import { createBot, deletedSummary, todaysVerse } from "./bot";
 import { chapter, dataJson, escapeHtml, openLink } from "./data";
@@ -12,7 +12,7 @@ import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./t
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
 import { approvedSources, DEFAULT_SOURCES, HOST } from "./ask-tools";
-import { ask, askStream, creditsOn, defaultModelId, freeModel, similar, speakVerse } from "./ai";
+import { ask, askStream, creditsOn, defaultModelId, freeModel, similar, speakVerse, sweepRateCounts, takeQuotaKey } from "./ai";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -162,19 +162,40 @@ app.put("/api/admin/ask-sources", async (c) => {
   return c.json({ ok: true, hosts });
 });
 
+/**
+ * GETs whose answers are the same for every reader are cached briefly at the edge, so a
+ * surge of identical searches is one D1 read, not thousands. Only successful answers are
+ * kept; the URL (with its query) is the key.
+ */
+async function edgeCached(c: { req: { url: string }; executionCtx: Exec }, ttl: number, compute: () => Promise<Response>): Promise<Response> {
+  const cache = caches.default;
+  const hit = await cache.match(c.req.url).catch(() => undefined);
+  if (hit) return hit;
+  const res = await compute();
+  if (res.ok) {
+    res.headers.set("cache-control", `public, max-age=${ttl}`);
+    c.executionCtx.waitUntil(cache.put(c.req.url, res.clone()).catch(() => undefined));
+  }
+  return res;
+}
+
 app.get("/api/search", async (c) => {
-  const q = (c.req.query("q") ?? "").slice(0, 200);
-  const only = c.req.query("only") || undefined;
-  const limit = Math.min(Math.max(Number(c.req.query("limit")) || 8, 1), 100);
-  const res = await runSearch(c.env.DB, q, only, limit, false, c.req.query("live") === "1");
-  return c.json(res, res.ok ? 200 : 503);
+  return edgeCached(c, 120, async () => {
+    const q = (c.req.query("q") ?? "").slice(0, 200);
+    const only = c.req.query("only") || undefined;
+    const limit = Math.min(Math.max(Number(c.req.query("limit")) || 8, 1), 100);
+    const res = await runSearch(c.env.DB, q, only, limit, false, c.req.query("live") === "1");
+    return c.json(res, res.ok ? 200 : 503);
+  });
 });
 
 // The teachings search as the site has it (the spoken passages of every recording), where a
 // chapter was taught, and the captions around a moment of a recording.
 app.get("/api/teachings", async (c) => {
-  const res = await searchTeachings(c.env, c.req.query("q") ?? "", c.req.query("feed") ?? "", Math.min(1000, Math.max(0, Math.floor(Number(c.req.query("page")) || 0))));
-  return c.json(res, res.ok ? 200 : 503);
+  return edgeCached(c, 300, async () => {
+    const res = await searchTeachings(c.env, c.req.query("q") ?? "", c.req.query("feed") ?? "", Math.min(1000, Math.max(0, Math.floor(Number(c.req.query("page")) || 0))));
+    return c.json(res, res.ok ? 200 : 503);
+  });
 });
 // Whether a class is on the air right now (the channel's live stream), for the Home screen.
 app.get("/api/live", async (c) => c.json(await liveNow(c.env, c.executionCtx)));
@@ -218,6 +239,13 @@ app.get("/api/transcript/:video", async (c) => {
 // The AI: a question answered from the teachings with citations, search by meaning, and
 // the reading voices (a verse at a time, cached).
 app.post("/api/ask", async (c) => {
+  // A Sybil backstop: the per-account quota cannot see N Telegram accounts behind one IP.
+  // Generous (ASK_IP_DAILY_LIMIT, 1000/day) so carrier NAT is never felt; keys are swept daily
+  // with the other quotas, and only the count is kept, never linked to a person.
+  const ip = c.req.header("cf-connecting-ip")?.slice(0, 45);
+  if (ip && !(await takeQuotaKey(c.env, `ask_ip:${ip}:${new Date().toISOString().slice(0, 10)}`, Math.max(100, Number(c.env.ASK_IP_DAILY_LIMIT ?? 1000))))) {
+    return c.json({ error: "limit" }, 429);
+  }
   const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown; request?: string; caps?: Record<string, unknown>; resources?: unknown }>().catch(() => null);
   // The request's id (a retry of the same request holds once), and the most the reader accepted a
   // request may cost on each model (balance units, mc): the server takes the one for the model it resolves.
@@ -592,6 +620,8 @@ export default {
     ctx.waitUntil(selfCheck(env).then((r) => reportHealth(env, r)));
     // Old usage rows are pruned; the tables stay small.
     ctx.waitUntil(pruneBilling(env).catch((e) => console.error(JSON.stringify({ event: "prune_failed", message: (e as Error).message?.slice(0, 120) }))));
+    // Yesterday's quota rows are swept here, never on the request path (ai.ts).
+    ctx.waitUntil(sweepRateCounts(env).catch((e) => console.error(JSON.stringify({ event: "sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Records still filed under Telegram IDs move to pseudonymous IDs (docs/PRIVACY.md), a bounded amount each hour.
     ctx.waitUntil(migratePrivacy(env, moveLegacy).then((r) => { if (r.moved) console.log(JSON.stringify({ event: "privacy_migrated", moved: r.moved, done: r.done })); }).catch((e) => console.error(JSON.stringify({ event: "privacy_migrate_failed", message: (e as Error).message?.slice(0, 120) }))));
     // A few recordings' frames an hour, until the whole archive is in the bucket.
