@@ -1,7 +1,7 @@
 # Apocrypha People and Timeline: review sample
 
-**Proposal only — 3 October 2026 (America/Los_Angeles).** Ten people and five events for
-the owner to review before expansion. Nothing here is imported by the app or published by
+**Approved sample — 3 October 2026 (America/Los_Angeles).** The owner approved these ten
+people and five events for expansion, with Bible Strong’s original Timeline layout and controls. Nothing here is imported by the app or published by
 the content engine. No navigation, public data, teaching text, artwork or billing changes.
 
 The source is [DevSecObie/cyberjudah at ee09d540](https://github.com/DevSecObie/cyberjudah/tree/ee09d540382dfc8c64be363a95af1b5017fe2737).
@@ -51,7 +51,7 @@ No portraits or new images are proposed.
 
 ## Timeline
 
-Proposed period title: **Between the Testaments**, after **The Exile** and before
+Approved period title: **Between the Testaments**, after **The Exile** and before
 **Life of Christ**. The return under Zorobabel overlaps the preceding period and should
 be cross-linked, not presented as a second return. Esdras's later return is a separate
 event for the next batch.
@@ -67,16 +67,18 @@ event for the next batch.
 `start` and `end` intentionally remain null. “Day” precision means a day in the stated
 source calendar, not a Gregorian date. No BCE conversion or calendar equivalence is asserted.
 The current Timeline requires integer BCE/CE years for placement, search and labels;
-passing these objects to it would be invalid. Proposed solution: a narrative list within
-this period, preserving the source date labels until independently sourced calendar
-conversions are approved. A dated canvas can follow later where the evidence permits it.
+passing these objects to it would be invalid. **Keep Bible Strong’s original dated canvas,
+period navigation, search and event controls, with CyberJudah styling.** The owner did not
+approve a narrative-list replacement. Find and cite reliable absolute dates before plotting
+events, retain the source-calendar labels and precision in their details, and keep unresolved
+dates in research drafts. Never assign invented positions to undated events.
 
 The four attached class excerpts belong under **From the classes**, labelled **Quotes and
 sources**, with links to the recorded moments. Unknown teachers or upload dates stay blank.
 “Bishop” is the exact available title for one source; no name is invented. The return event
 has no selected, verified class excerpt yet and must remain a draft until that review finishes.
 Nicanor, Jonathan, Simon, the league with Rome and the martyrs of 2 Maccabees 6–7 follow
-after approval, in separate sourced batches.
+in separate sourced batches.
 
 ## Before publishing
 
@@ -89,8 +91,8 @@ after approval, in separate sourced batches.
 - Fix `Person.tsx`'s note-link assumption before exposing recording-only moments: it
   prepends `/note` even to external URLs. The Watch action already links to the recording.
   Do not invent a notes page or treat an unreviewed empty array as “No class has taught…”.
-- Approve the new period's presentation before changing routes, labels, date geometry or
-  the Final Captivity schema. Keep its existing content and labels intact.
+- Follow the approved original Bible Strong presentation. Keep the existing date geometry,
+  navigation and controls, and the Final Captivity content and labels intact.
 - Preserve all themes, 200% text, safe areas and accessibility preferences in the later UI
   PR; include phone/desktop light/dark before-and-after screenshots of that implementation.
 
@@ -105,8 +107,10 @@ limits. Human review still decides identity, description meaning and the period'
 Screenshots are not applicable to this data proposal: the running UI is unchanged. A
 preview with invented year positions would misrepresent the unresolved Timeline decision.
 
-## Questions
+## Owner decision
 
-Approve this ten-person/five-event shape and the title **Between the Testaments**, using
-a narrative list with source-calendar labels until dated placement can be substantiated?
-After approval, implementation and content expansion will be separate focused PRs.
+The sample and **Between the Testaments** title are approved for implementation and
+expansion in focused PRs. The owner requires the original layout and Bible Strong as the
+reference. Source-backed dates remain necessary; a narrative list is not the implementation
+plan. The subsequent historical-identity research request is a source review, not permission
+to publish unsupported ancestry or complexion claims as person facts.
