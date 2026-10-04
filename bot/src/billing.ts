@@ -120,12 +120,17 @@ export async function pruneBilling(env: Env): Promise<void> {
 export async function deleteBilling(env: Env, uid: number): Promise<{ balanceUsd: number }> {
   const id = await pid(env, uid);
   const left = await deleteCredits(env, id);
-  const stmts = [env.DB.prepare("UPDATE payments SET user_id = 'deleted' WHERE user_id = ? OR user_id = ?").bind(id, String(uid))];
+  const stmts: D1PreparedStatement[] = [];
+  // The payments table may not exist before the first payment. Absence is harmless;
+  // a failed lookup or cleanup must reach the caller rather than report success.
+  if (await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'payments'").first()) {
+    stmts.push(env.DB.prepare("UPDATE payments SET user_id = 'deleted' WHERE user_id = ? OR user_id = ?").bind(id, String(uid)));
+  }
   for (const t of ["accounts", "usage_people"]) {
     if (await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").bind(t).first()) stmts.push(env.DB.prepare(`DELETE FROM ${t} WHERE user_id = ? OR user_id = ?`).bind(id, String(uid)));
   }
-  await env.DB.batch(stmts).catch(() => null);
-  await env.SUBS.delete(`acct:${uid}`).catch(() => null);
+  if (stmts.length) await env.DB.batch(stmts);
+  await env.SUBS.delete(`acct:${uid}`);
   return { balanceUsd: left.total_mc / MC_PER_USD };
 }
 

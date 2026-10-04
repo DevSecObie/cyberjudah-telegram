@@ -296,6 +296,40 @@ test("the model is chosen at the top: an admin starts on Claude Opus 5.5, every 
   await expect(page.getByRole("dialog", { name: "Balance" })).toBeVisible();
 });
 
+test("privacy: a storage failure reports incomplete deletion and a retry finishes it", async ({ page, request }) => {
+  test.setTimeout(90_000);
+  await setup(page);
+  await page.goto(`/ask${launch(14)}`);
+  await ask(page, "Who are the twelve tribes?");
+  await expect(answer(page)).toContainText("A short answer to");
+  const id = await pid({ PRIVACY_KEY: "e2e-privacy-key-not-secret" }, RUN + 14);
+  const trigger = `privacy_failure_${RUN}`;
+  const charge = `privacy_test_${RUN}`;
+  // Fail payment anonymization in the real Worker after the credit records were removed.
+  d1(`CREATE TABLE IF NOT EXISTS payments (charge_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL, stars INTEGER NOT NULL, created_at INTEGER NOT NULL);
+    INSERT INTO payments (charge_id, user_id, kind, stars, created_at) VALUES ('${charge}', '${id}', 'pack', 100, 1);
+    CREATE TRIGGER ${trigger} BEFORE UPDATE OF user_id ON payments WHEN OLD.user_id = '${id}' BEGIN SELECT RAISE(ABORT, 'privacy-test-failure'); END;`);
+  await page.goto(`/privacy${launch(14)}`);
+  try {
+    const response = page.waitForResponse(r => new URL(r.url()).pathname === "/api/privacy/delete");
+    await page.getByText("Delete my data", { exact: true }).click();
+    const failed = await response;
+    expect(failed.status()).toBe(503);
+    expect(await failed.json()).toMatchObject({ ok: false });
+    await expect(page.getByRole("status")).toContainText("Some data may already have been removed");
+    expect(await page.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith("cj:ask")))).not.toEqual([]);
+    expect(JSON.parse(d1(`SELECT COUNT(*) AS n FROM credit_lots WHERE user_id = '${id}'`))[0].results[0].n).toBe(0);
+    expect(JSON.parse(d1(`SELECT user_id FROM payments WHERE charge_id = '${charge}'`))[0].results[0].user_id).toBe(id);
+    const partial = await (await request.get("/api/privacy/export", { headers: { authorization: `tma ${initData(14)}` } })).json();
+    expect(partial.savedChats).toEqual([]);
+  } finally { d1(`DROP TRIGGER IF EXISTS ${trigger}`); }
+  await page.getByText("Delete my data", { exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Done. Deleted:");
+  expect(JSON.parse(d1(`SELECT COUNT(*) AS n FROM credit_lots WHERE user_id = '${id}'`))[0].results[0].n).toBe(0);
+  expect(JSON.parse(d1(`SELECT user_id FROM payments WHERE charge_id = '${charge}'`))[0].results[0].user_id).toBe("deleted");
+  expect(await page.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith("cj:ask")))).toEqual([]);
+});
+
 test("Ask answers from the whole app: People, the Timeline, the dictionaries, the law, the precepts and a verse's study, with a picture from the app", async ({ page, request }) => {
   await setup(page);
   await page.goto(`/ask${launch(61)}`);
