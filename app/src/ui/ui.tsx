@@ -47,7 +47,7 @@ export function TabBar() {
       const target = typeof to === "function" ? to() : to;
       if (target === pathname) { window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); return false; }
       else navigate(target, { replace: true });
-    }, overview ? "overview" : pathname === "/tabs" ? "expand" : "slide");
+    }, overview ? "overview" : "slide");
   };
   // Home and the menu are drawers, as in Bible Strong; the same button closes its own drawer.
   const toggle = (side: DrawerSide) => { if (long.current) return; haptic("select"); setDrawer(drawer === side ? null : side); };

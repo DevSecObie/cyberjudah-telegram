@@ -8,7 +8,7 @@ const LAUNCH = "#tgWebAppData=query_id%3Dtab-flow&tgWebAppVersion=9.1&tgWebAppPl
 async function setup(page: Page, mode = "normal") {
   await page.emulateMedia({ reducedMotion: mode === "reduced" ? "reduce" : "no-preference" });
   await page.addInitScript(({ mode }) => {
-    const tabs = Array.from({ length: 8 }, (_, i) => ({ id: `tab-${i}`, path: i === 5 ? "/read/genesis/1" : i === 0 ? "/timeline" : `/classes?tab=${i}` }));
+    const tabs = Array.from({ length: 8 }, (_, i) => ({ id: `tab-${i}`, path: i === 5 ? "/read/genesis/1" : i === 0 ? "/timeline" : i === 1 ? "/search?q=kept" : `/classes?tab=${i}` }));
     localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "one", groups: [{ id: "one", name: "My tabs", color: "#2dd4bf", current: "tab-5", tabs }] }));
     if (mode === "fallback") Object.defineProperty(document, "startViewTransition", { configurable: true, value: undefined });
     if (mode === "rejected") Object.defineProperty(document, "startViewTransition", { configurable: true, writable: true, value: (update: () => void) => {
@@ -106,6 +106,21 @@ test("tab flow: Escape and Telegram Back resume the selected tab; closing a card
   expect(added.count).toBe(8);
   expect(added.current).not.toBe("tab-5");
   if (added.native) expect(added.source).toBe(added.current);
+});
+
+test("tab flow: Search slides into its own saved tab from the overview", async ({ page }) => {
+  await setup(page);
+  await overview(page);
+  await page.getByRole("navigation", { name: "Tabs", exact: true }).getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.getByRole("searchbox", { name: "Search CyberJudah" })).toHaveValue("kept");
+  await expect(page.locator("html")).not.toHaveAttribute("data-tab-motion");
+  const motion = await page.evaluate(() => {
+    const state = window as unknown as { __tabTransitions: number; __tabAnimations: Keyframe[][] };
+    return { native: state.__tabTransitions, supported: !!document.startViewTransition, entrance: state.__tabAnimations.flat().some(f => String(f.transform).includes("translate")) };
+  });
+  // Only opening the overview uses a card snapshot; Search has its separate slide entrance.
+  expect(motion.native).toBe(motion.supported ? 1 : 0);
+  expect(motion.entrance).toBe(true);
 });
 
 for (const width of [390, 768, 1280]) {
