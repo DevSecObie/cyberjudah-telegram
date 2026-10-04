@@ -54,8 +54,8 @@ export async function exportData(env: Env, uid: number): Promise<MyData> {
     savedChats: chats,
     readingReminder: rec ? publicView(rec) : null,
     dailyVerse: sub ? { hour: sub.hour, tzOffsetMinutes: sub.tz } : null,
-    ask: await billingRecord(env, uid).catch(() => null),
-    askTopupReminder: await getTopupReminder(env, uid).catch(() => null),
+    ask: await billingRecord(env, uid),
+    askTopupReminder: await getTopupReminder(env, uid),
     classNoteRequests: (await noteRequestsOf(env, uid)).map((x) => x.video),
   };
 }
@@ -76,9 +76,15 @@ export async function deleteData(env: Env, uid: number): Promise<Deleted> {
     if (!count) { await env.SUBS.delete(`notereq:${video}`); continue; }
     await env.SUBS.put(`notereq:${video}`, JSON.stringify({ ...r, users, count }), { metadata: { ...(meta as object), count } });
   }
-  const billing = await deleteBilling(env, uid).catch(() => ({ balanceUsd: 0 }));
-  const topupReminder = await forgetTopupReminder(env, uid).catch(() => false);
-  await env.DB.prepare("DELETE FROM rate_counts WHERE key LIKE ?").bind(`%:${me}:%`).run().catch(() => null);
+  // These stores cannot be deleted in one transaction. A failed step must reject so the
+  // caller reports incomplete deletion; repeating the operation safely finishes it.
+  const billing = await deleteBilling(env, uid);
+  const topupReminder = await forgetTopupReminder(env, uid);
+  await env.DB.batch([
+    // Readers who have never used Ask may not have a rate table yet.
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS rate_counts (key TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)"),
+    env.DB.prepare("DELETE FROM rate_counts WHERE key LIKE ?").bind(`%:${me}:%`),
+  ]);
   return { savedChats, readingReminder, dailyVerse, classNoteRequests: reqs.length, askBalanceUsd: billing.balanceUsd, topupReminder };
 }
 
