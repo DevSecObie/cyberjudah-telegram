@@ -39,6 +39,26 @@ test("channel fallback skips scheduled/live streams, Shorts, invalid dates and i
   for (const html of ["", "<html>Consent required</html>", "var ytInitialData = {bad};", "var ytInitialData = {};"]) assert.deepEqual(parseChannelVideos(html, NOW), []);
 });
 
+test("channel fallback reads YouTube's current lockupViewModel card layout", () => {
+  const lockup = (id = A, extra = {}) => ({ lockupViewModel: {
+    contentId: id, contentType: "LOCKUP_CONTENT_TYPE_VIDEO",
+    contentImage: { thumbnailViewModel: { overlays: [] } },
+    metadata: { lockupMetadataViewModel: { title: { content: "THE NEW LAYOUT CLASS" },
+      metadata: { contentMetadataViewModel: { metadataRows: [{ metadataParts: [
+        { text: { content: "19K" }, accessibilityLabel: "19 thousand views" },
+        { text: { content: "1mo ago" }, accessibilityLabel: "1 month ago" },
+      ] }] } } } }, ...extra,
+  } });
+  const found = parseChannelVideos(page([lockup()]), NOW);
+  assert.deepEqual(found, [{ video: A, title: "The New Layout Class", published: "2026-09-04T12:00:00.000Z", views: 19000 }]);
+  const skipped = parseChannelVideos(page([
+    lockup(A, { contentType: "LOCKUP_CONTENT_TYPE_SHORT" }),
+    lockup("invalid"),
+    { lockupViewModel: { contentId: B, contentType: "LOCKUP_CONTENT_TYPE_VIDEO", metadata: {} } },
+  ]), NOW);
+  assert.deepEqual(skipped, []);
+});
+
 test("unexpected channel-card fields do not break the outage fallback", () => {
   const cards = [null, video(A, { title: { simpleText: {} } }), video(A, { title: { runs: {} } }), video(12345678901),
     video(B, { badges: [null], thumbnailOverlays: [null], title: { runs: [null, { text: "A valid class" }] } })];
