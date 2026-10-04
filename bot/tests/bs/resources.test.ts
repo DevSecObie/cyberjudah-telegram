@@ -5,6 +5,7 @@ import worker from "../../src/index.ts";
 import { signInitData } from "../../src/initdata.mjs";
 import { CatalogSchema, ManifestSchema, TimelineSchema, parseShard, sha256 } from "../../../shared/resources.ts";
 import { readResourceRecord } from "../../src/resources.ts";
+import { buildBundle } from "../../../resources/bundle.mjs";
 import type { Env } from "../../src/env.ts";
 
 /** Conditional writes emulate R2's ETag contract; requests still run the real Worker/auth. */
@@ -88,6 +89,41 @@ test("approval reuse does not disable integrity checks when serving an approved 
   assert.equal((await publish(env, 2, [f.entry], initial.headers.get("etag")!)).status, 200);
   assert.equal((await request(env, "test-resource/v1/entries.ndjson")).status, 503);
   await assert.rejects(readResourceRecord(env, "test-resource", "entry", "v1"));
+});
+test("indexed HTTP and server reads use one shard, keep historical pins, and avoid unrelated damaged shards", async () => {
+  const { env, store } = setup(), base = await fixture();
+  const { release: _release, parts: _parts, ...meta } = base.manifest;
+  const built = await buildBundle(meta, [{ key: "first", data: "a".repeat(700_000) }, { key: "last", data: "b".repeat(700_000) }]);
+  assert.equal(built.manifest.parts.length, 2);
+  const prefix = `resources/test-resource/${built.entry.release}/`;
+  for (const [name, bytes] of built.files) await store.put(prefix + name, bytes);
+  const initial = await publish(env, 1, [built.entry]); assert.equal(initial.status, 200);
+  const newer = await fixture("v2"); await seed(store, newer);
+  assert.equal((await publish(env, 2, [newer.entry], initial.headers.get("etag")!)).status, 200);
+  store.files.set(prefix + built.manifest.parts[0].path, new TextEncoder().encode("damaged unrelated shard"));
+  store.reads.length = 0;
+  const row = await readResourceRecord(env, "test-resource", "last", built.entry.release);
+  assert.equal(row?.data, "b".repeat(700_000));
+  assert.deepEqual(store.reads.filter((key) => key.startsWith(prefix + "records-")), [prefix + built.manifest.parts[1].path]);
+  const response = await request(env, `test-resource/${built.entry.release}/record?key=last`);
+  assert.deepEqual(await response.json(), row);
+  store.reads.length = 0;
+  assert.equal(await readResourceRecord(env, "test-resource", "missing", built.entry.release), null);
+  assert.equal(store.reads.filter((key) => key.startsWith(prefix + "records-")).length, 0);
+});
+test("publication rejects an index whose keys point at the wrong shard even with valid checksums", async () => {
+  const { env, store } = setup(), base = await fixture();
+  const { release: _release, parts: _parts, ...meta } = base.manifest;
+  const built = await buildBundle(meta, [{ key: "first", data: "a".repeat(700_000) }, { key: "last", data: "b".repeat(700_000) }]);
+  for (const bucket of built.manifest.index.buckets) {
+    const text = new TextDecoder().decode(built.files.get(bucket.path)).replaceAll('"records-0000.ndjson"', '"records-0001.ndjson"');
+    const bytes = new TextEncoder().encode(text); bucket.sha256 = await sha256(bytes); bucket.bytes = bytes.length; built.files.set(bucket.path, bytes);
+  }
+  const bytes = new TextEncoder().encode(JSON.stringify(built.manifest));
+  built.files.set("manifest.json", bytes); built.entry.manifestSha256 = await sha256(bytes);
+  for (const [name, data] of built.files) await store.put(`resources/test-resource/${built.entry.release}/${name}`, data);
+  assert.equal((await publish(env, 1, [built.entry])).status, 400);
+  assert.ok(!store.files.has(`resources/approved/test-resource/${built.entry.release}.json`));
 });
 test("HTTP downloads and server resource reads share the pinned approved release after updates", async () => {
   const { env, store } = setup(), a = await fixture(); await seed(store, a);

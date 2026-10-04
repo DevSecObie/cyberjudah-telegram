@@ -30,6 +30,9 @@ const norm = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 /** The books.json row for a name as typed, or null. `books` is `${DATA_ORIGIN}/api/kjv/books.json`. */
 export function findBook(name, books) {
+  // Full names such as Isaiah must not lose their initial I as a Roman ordinal.
+  const full = books.find((b) => norm(b.book) === norm(String(name)));
+  if (full) return full;
   const m = String(name).trim().toLowerCase().match(/^(?:(1|2|3|i{1,3}|first|second|third)[\s.]*)?([a-z][a-z .'-]*)$/);
   if (!m) return null;
   const num = m[1] ? ORDINAL[m[1]] : "";

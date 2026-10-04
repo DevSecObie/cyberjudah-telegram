@@ -10,6 +10,8 @@ export const MAX_SHARD_BYTES = 2 * 1024 * 1024;
 export const MAX_MANIFEST_BYTES = 256 * 1024;
 export const MAX_CATALOG_BYTES = 512 * 1024;
 export const ResourceKind = z.enum(["bible", "lexicon", "dictionary", "reference", "timeline"]);
+export const APPROVED_RESOURCE_IDS = ["strongs", "josephus", "jewish-encyclopedia", "smiths-dictionary-of-the-bible"] as const;
+export const RecordKey = z.string().min(1).max(200).regex(/^[A-Za-z0-9/_-]+$/);
 export const ShardSchema = z.strictObject({
   path: z.string().regex(/^[a-z0-9][a-z0-9-]{0,95}\.ndjson$/),
   sha256: Sha256, bytes: z.int().positive().max(MAX_SHARD_BYTES),
@@ -19,14 +21,19 @@ export const ManifestSchema = z.strictObject({
   schemaVersion: z.literal(1), id: ResourceId, release: ReleaseId, kind: ResourceKind,
   title: z.string().min(1).max(200), language: z.string().min(2).max(35),
   text: z.literal("KJV").optional(), canon: z.literal("kjv-1611-apocrypha").optional(),
-  source: z.array(z.strictObject({ url: HttpsUrl, revision: z.string().min(1).max(200), sha256: Sha256 })).min(1).max(100),
-  license: z.array(z.strictObject({ id: z.enum(["public-domain", "CC-BY-4.0", "owner-content"]), url: HttpsUrl, attribution: z.string().min(1).max(4000), modifications: z.string().max(4000) })).min(1).max(100),
+  source: z.array(z.strictObject({ url: HttpsUrl, revision: z.string().min(1).max(200), sha256: Sha256 })).min(1).max(256),
+  license: z.array(z.strictObject({ id: z.enum(["public-domain", "CC-BY-4.0", "owner-content", "CC-BY-SA-unversioned"]), url: HttpsUrl, attribution: z.string().min(1).max(4000), modifications: z.string().max(4000) })).min(1).max(100),
   approval: z.strictObject({ reference: HttpsUrl, approvedBy: z.string().min(1).max(100) }),
   parts: z.array(ShardSchema).min(1).max(4096),
+  index: z.strictObject({ algorithm: z.literal("sha256-nibble-v1"), buckets: z.array(ShardSchema.extend({ bucket: z.string().regex(/^[a-f0-9]$/) })).min(1).max(16) }).optional(),
 }).superRefine((m, ctx) => {
   if (m.kind === "bible" && (m.text !== "KJV" || m.canon !== "kjv-1611-apocrypha")) ctx.addIssue({ code: "custom", message: "Only KJV with Apocrypha is approved", path: ["text"] });
   if (new Set(m.parts.map((p) => p.path)).size !== m.parts.length) ctx.addIssue({ code: "custom", message: "Duplicate shard path", path: ["parts"] });
   if (m.license.some((l) => l.id === "owner-content") && m.kind !== "timeline") ctx.addIssue({ code: "custom", message: "Owner content is reserved for the CyberJudah timeline", path: ["license"] });
+  if (m.license.some((l) => l.id.startsWith("CC-BY-SA-")) && (m.id !== "strongs" || m.kind !== "lexicon")) ctx.addIssue({ code: "custom", message: "Share-alike approval is limited to the Strong's lexicon", path: ["license"] });
+  const allPaths = [...m.parts, ...(m.index?.buckets ?? [])].map((p) => p.path);
+  if (new Set(allPaths).size !== allPaths.length) ctx.addIssue({ code: "custom", message: "Index and data paths must be unique", path: ["index"] });
+  if (m.index && new Set(m.index.buckets.map((p) => p.bucket)).size !== m.index.buckets.length) ctx.addIssue({ code: "custom", message: "Duplicate index bucket", path: ["index"] });
 });
 export const CatalogSchema = z.strictObject({
   schemaVersion: z.literal(1), revision: z.int().nonnegative(),
@@ -37,7 +44,7 @@ export const CatalogSchema = z.strictObject({
 export type Manifest = z.infer<typeof ManifestSchema>;
 export type Catalog = z.infer<typeof CatalogSchema>;
 export type ResourceRecord = { key: string; data: unknown };
-export const RecordSchema = z.strictObject({ key: z.string().min(1).max(200).regex(/^[A-Za-z0-9/_-]+$/), data: z.unknown() });
+export const RecordSchema = z.strictObject({ key: RecordKey, data: z.unknown() });
 
 // Payloads retain their existing fields. Contract parsing must not strip chronology,
 // quotations, source-calendar dates or proposed events without absolute dates.
@@ -75,6 +82,17 @@ export function releasePrefix(id: string, release: string): string { return `res
 export async function sha256(bytes: Uint8Array): Promise<string> {
   const hash = await crypto.subtle.digest("SHA-256", new Uint8Array(bytes));
   return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+export async function recordBucket(key: string): Promise<string> { return (await sha256(new TextEncoder().encode(RecordKey.parse(key)))).slice(0, 1); }
+/** One bounded index bucket resolves a key to exactly one checksummed data shard. */
+export async function parseIndex(bytes: Uint8Array, part: NonNullable<Manifest["index"]>["buckets"][number], manifest: Manifest): Promise<Map<string, string>> {
+  const rows = await parseShard(bytes, part, "reference"), paths = new Set(manifest.parts.map((p) => p.path));
+  const entries: [string, string][] = [];
+  for (const row of rows) {
+    if (typeof row.data !== "string" || !paths.has(row.data) || await recordBucket(row.key) !== part.bucket) throw new Error("Invalid resource index mapping");
+    entries.push([row.key, row.data]);
+  }
+  return new Map(entries);
 }
 /** NDJSON is UTF-8 with LF terminators. Hash the decoded HTTP representation. */
 export async function parseShard(bytes: Uint8Array, part: z.infer<typeof ShardSchema>, kind: Manifest["kind"]): Promise<ResourceRecord[]> {

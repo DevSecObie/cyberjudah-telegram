@@ -1,10 +1,19 @@
 # Study resource evidence and approval register
 
-Research date: 2026-10-04 UTC. This replaces the Phase 0 candidate list under the
-owner's adopted Phase 1 brief. **No entry is approved for installation by this
-report, and no dataset was imported.** KJV with the Apocrypha remains the only
-Bible text. Treasury of Scripture Knowledge is excluded. Nave's and Matthew
-Henry are excluded unless requested later. Interlinear/TAHOT/TAGNT work is paused.
+Owner decisions adopted 2026-10-04 (America/Los_Angeles). Phase 2 approves only
+Strong's as a separate share-alike lexicon, Josephus/Whiston in the Scranton 1905
+printing, all twelve volumes of the Jewish Encyclopedia (1901–1906), and Smith's
+1889 Houghton Mifflin printing. Approval is the owner's decision; it does not
+turn class captions or catalog metadata into a rightsholder's licence statement.
+KJV with the Apocrypha remains the only Bible text. Easton's stays unchanged;
+Brenton is on hold, reference-only if ever added. Webster 1828 and Britannica
+1911 are dropped; their modern websites remain link-only. Interlinear work stays
+paused. No remote R2 upload, merge or deployment is authorized for this work.
+
+Sources, commit IDs and SHA-256 hashes are in
+[`resources/sources.lock.json`](../resources/sources.lock.json). The converter
+preserves existing source text and records prior import normalization explicitly.
+See [OCR samples and limitations](BIBLE_RESOURCES_OCR.md) before using quotations.
 
 ## How evidence was checked
 
@@ -22,7 +31,7 @@ not verified class-use counts**. Most Easton hits were unrelated words/names.
 A refined contextual search found Nelson's despite the initial exact-name pattern
 missing it. These methods do not substantiate the approximate counts in the brief.
 
-## Candidates requiring individual owner approval
+## Approved bundles and retained evidence
 
 ### Josephus — Whiston translation
 
@@ -43,7 +52,8 @@ Class evidence:
 
 Status: work use supported; the captions alone do not prove both physical copies
 are the proposed 1905 printing. Confirm edition against recording frames before
-claiming an exact class-edition match. Owner approval pending.
+claiming an exact class-edition match. The owner approved this specific 1905
+printing for Phase 2; the caption limitation remains recorded.
 
 ### The Jewish Encyclopedia — 1901–1906 first edition
 
@@ -61,17 +71,27 @@ Class evidence:
 - [`1OFE8p0VnoQ` 27:57](https://www.youtube.com/watch?v=1OFE8p0VnoQ&t=1677s): page 20 is read concerning censorship.
 - [`0GhFdpcxERw` 110:46](https://www.youtube.com/watch?v=0GhFdpcxERw&t=6646s): the diaspora entry, page 449, is used.
 
-Status: work use supported; owner approval and complete volume provenance pending.
+Status: all twelve 1901–1906 volumes approved for Phase 2. Individual volume
+source files are pinned; approval does not certify the OCR as error-free.
 
-### Strong's — existing resource, source pagination fix only
+### Strong's — separate share-alike lexicon
 
 Historical work: James Strong, *Exhaustive Concordance*, **1890**, with Hebrew and
 Greek dictionaries. Current text source is
 [Open Scriptures](https://github.com/openscriptures/strongs); the existing
 [conversion](https://github.com/DevSecObie/cyberjudah/blob/main/scripts/strongs/build.py)
-identifies **CC BY-SA** for the digital transcription. The original print work's
-public-domain status does not erase that transcription notice. CC BY-SA is outside
-the new bundle allowlist; no replacement has been cleared or imported.
+identifies **CC BY-SA** for the digital transcription. The owner's follow-up decision
+explicitly permits `CC-BY-SA-unversioned` for this lexicon only. Register status:
+**version unstated by the rightsholder; recorded verbatim; to be updated if Open
+Scriptures states one**. Do not infer 3.0 or 4.0. The JSON headers at upstream
+commit `0acd2f251c2d35ff8db2dece4e0593979d3ac223` are quoted word for word in the
+manifest, including David Instone-Brewer and David Troidl's Hebrew credits and
+Ulrik Petersen's Greek credits. Each manifest licence URL points to its pinned
+upstream file; `source` records the commit and file SHA-256. The converted lexicon
+carries the same unversioned share-alike notice, remains separate from the other
+bundles, and describes the conversion in `modifications`. The reader-visible
+attribution line is unchanged. The XHTML file's GPL notice is not substituted
+for the JSON headers. [Upstream discussion](https://github.com/openscriptures/strongs/issues/11).
 
 Class evidence:
 
@@ -80,9 +100,10 @@ Class evidence:
 
 Other classes criticize Strong's; those criticisms were not counted as approval.
 Phase 1 preserves existing attribution and fixes selection/pagination, without
-adding definitions or inventing word alignments. New bundle approval is pending.
+adding definitions or inventing word alignments. Phase 2 repackages the existing
+data without changing the text, alignments, first page or continuation results.
 
-### Britannica — 1911 only
+### Britannica — 1911 bundle dropped; modern website link-only
 
 Proposed edition: *Encyclopaedia Britannica*, **11th edition, 1910–1911**. Candidate
 [volume 2 scan](https://archive.org/details/Encyclopaediabri02chisrich_201303), found
@@ -95,10 +116,10 @@ Evidence inspected:
 - [`0h8U1T4Vc64` 91:06](https://www.youtube.com/watch?v=0h8U1T4Vc64&t=5466s): Britannica material concerning Columbus.
 - [`LCl0ehoaInc` 69:02](https://www.youtube.com/watch?v=LCl0ehoaInc&t=4142s): a Britannica dictionary definition of “eye.”
 
-**Not eligible yet:** neither establishes use of the 1911 edition. These two links
+**Dropped by owner:** neither establishes use of the 1911 edition. These two links
 are evidence of the mismatch, not two verified uses of the proposed edition.
 
-### Webster — 1828 only, if class use is established
+### Webster — 1828 bundle dropped; modern website link-only
 
 Proposed edition: Noah Webster, *An American Dictionary of the English Language*,
 **1828**, two volumes. Candidate scans:
@@ -112,7 +133,7 @@ Evidence inspected:
 - [`NcQpeYx1KZM` 18:50](https://www.youtube.com/watch?v=NcQpeYx1KZM&t=1130s): captions say “Merriam Webster” and “1828” while defining “ghetto.” A site's “since 1828” branding is not proof that an entry is from the 1828 dictionary.
 - [`UJS8-8gATkE` 108:25](https://www.youtube.com/watch?v=UJS8-8gATkE&t=6505s): an online definition is called “1828,” but the speaker alternates between Oxford and Webster; edition identity is unresolved.
 
-**Not eligible yet:** do not present these ambiguous mentions as two confirmed
+**Dropped by owner:** do not present these ambiguous mentions as two confirmed
 uses of Webster's 1828 text or copy modern Merriam-Webster entries.
 
 ### Brenton's Septuagint — reference only, never replacement Bible text
@@ -128,7 +149,7 @@ Evidence inspected:
 - [`N8ApGt1a0ts` 113:54](https://www.youtube.com/watch?v=N8ApGt1a0ts&t=6834s): “Brenton Septuagint translation” is named while comparing Numbers 15:38.
 - [`bkW1A5IL0sQ` 6:39](https://www.youtube.com/watch?v=bkW1A5IL0sQ&t=399s): Septuagint Job 42:17 is read, but Brenton is not identified in the inspected passage.
 
-**Not eligible yet:** one explicit Brenton use, not two confirmed edition uses.
+**On hold by owner:** one explicit Brenton use, not two confirmed edition uses.
 General discussion of the Septuagint's history is not use of Brenton's English
 translation. It would be an approved reference resource only.
 
@@ -151,20 +172,20 @@ second class-use evidence and owner approval.
 
 ### Smith's Dictionary of the Bible
 
-Proposed edition to investigate: William Smith, Hackett/Abbot American edition,
-**1890** printing, matching the explicit class dates below. The existing library
-instead points to **1889**, four volumes, Houghton Mifflin:
-[volume 1 scan](https://archive.org/details/1889dictionaryofb01smituoft).
-Retrieved [metadata](https://archive.org/metadata/1889dictionaryofb01smituoft)
-confirms 1889, with Archive's evidence note: “no visible notice of copyright;
-stated date is 1889.” This historical edition is US public domain; it must not be
-silently labelled 1890. Exact 1890 source files remain to be located/verified.
+Approved edition: William Smith, Hackett/Abbot American edition, **1889**,
+four volumes, Houghton Mifflin, using the existing library's
+[volume 1 scan](https://archive.org/details/1889dictionaryofb01smituoft) and its
+three companion volumes. Label this bundle **1889**. The owner explicitly chose
+this printing; no alternative printing is being sought. Retrieved
+[metadata](https://archive.org/metadata/1889dictionaryofb01smituoft) states
+“no visible notice of copyright; stated date is 1889.” The class dates below
+remain historical evidence, not the name or year of the approved bundle.
 
 - [`Dt0hL9vHpZ8` 132:47](https://www.youtube.com/watch?v=Dt0hL9vHpZ8&t=7967s): full title and publication year 1890 are read before the Obadiah entry.
 - [`ND_RbWngH9I` 83:08](https://www.youtube.com/watch?v=ND_RbWngH9I&t=4988s): full title and 1890 are again identified before reading.
 
-Status: two class uses supported; resolve the printing mismatch, digital source
-and owner approval before creating a bundle.
+Status: the owner has resolved the edition choice in favor of 1889. All four
+source transcriptions are pinned; sampled OCR problems remain documented.
 
 ## Link-only resources
 
@@ -179,10 +200,11 @@ the recording and authorized publisher/website, not unauthorized copies.
 | Blue Letter Bible | [`119XxnwI6so` 29:06](https://www.youtube.com/watch?v=119XxnwI6so&t=1746s), translation statement read critically; [`FSymeiJmmB0` 49:23](https://www.youtube.com/watch?v=FSymeiJmmB0&t=2963s), website opened | Website use/criticism is not endorsement or a dataset license; link only |
 | Bible Hub | [`5FhMWXGhp-0` 73:52](https://www.youtube.com/watch?v=5FhMWXGhp-0&t=4432s), 1 Samuel 16:12 comparison; [`6C495CkHZIo` 107:37](https://www.youtube.com/watch?v=6C495CkHZIo&t=6457s), Acts 24:14 | Website with mixed-source rights; link only |
 
-## Publication gate
+## Publication
 
-Before any real bundle: owner approves the exact entry/edition; two qualifying
-class uses are verified; source files and license evidence are pinned by hash;
-conversion changes and attribution are recorded; any unresolved rights or edition
-mismatch is resolved. Historical public-domain reasoning above is US-specific,
-not a claim of unrestricted worldwide rights to every digital edition.
+CI builds the four separate bundles and attaches them as artifacts. The admin-run
+script verifies all hashes and indexes, uploads immutable release objects with
+the admin's credentials, then uses authenticated `PUT /api/resources/catalog`
+with the current ETag. It never directly writes the catalog pointer or approval
+markers. See [`resources/README.md`](../resources/README.md). R2 remains the sole
+resource CDN; the app does not fetch Bible text from third parties.
