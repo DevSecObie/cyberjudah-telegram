@@ -61,7 +61,7 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { browserName: "chromium", channel: "chromium", ...(process.env.CHROMIUM_PATH ? { launchOptions: { executablePath: process.env.CHROMIUM_PATH } } : {}) } },
     // The glass material and pointer behavior must also work in the engine used by Safari/iOS.
-    { name: "webkit", testMatch: ["glass.spec.ts", "contrast.spec.ts", "search-placement.spec.ts"], use: { browserName: "webkit" } },
+    { name: "webkit", testMatch: ["glass.spec.ts", "contrast.spec.ts", "search-placement.spec.ts", "icons.spec.ts"], use: { browserName: "webkit" } },
   ],
   webServer: liveBaseURL ? undefined : {
     command: `npm run build && bash ../bot/scripts/prepare-assets.sh && cd ../bot && rm -rf .wrangler/e2e && npx wrangler dev --local --port 8787 --persist-to .wrangler/e2e --test-scheduled ${vars}`,

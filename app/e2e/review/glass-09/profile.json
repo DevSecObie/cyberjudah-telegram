@@ -1,0 +1,33 @@
+{
+  "browser": "153.0.8010.12",
+  "build": "production",
+  "cpuThrottle": 4,
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "measurements": [
+    {
+      "action": "dock-drag",
+      "samples": 141,
+      "medianMs": 16.7,
+      "p95Ms": 16.8,
+      "maxMs": 50,
+      "framesOver33ms": 5,
+      "layoutEvents": 3,
+      "layoutMs": 41.7
+    },
+    {
+      "action": "sheet-open",
+      "samples": 44,
+      "medianMs": 16.7,
+      "p95Ms": 83.4,
+      "maxMs": 166.7,
+      "framesOver33ms": 6,
+      "layoutEvents": 4,
+      "layoutMs": 64.16
+    }
+  ],
+  "measuredCommit": "a42f888",
+  "note": "4x production sample; icon exports do not change runtime navigation. Cold open variability remains for section 10."
+}
