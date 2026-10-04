@@ -122,3 +122,28 @@ test.describe('offline installed lexicon', () => {
     await expect(reopened.locator('.bs-word')).toContainText('Synthetic occurrence 2');
   });
 });
+
+test('an update in another tab invalidates an inactive word study', async ({ page, context }) => {
+  await setup(page); await page.goto('/resources');
+  const card = page.locator('.resource-card').filter({ hasText: "Strong's synthetic fixture" });
+  await card.getByRole('button', { name: 'Install', exact: true }).click(); await expect(card).toContainText('Available offline');
+  await page.goto('/lexicon/H430'); await expect(page.locator('.bs-word')).toContainText('Original definition');
+  // Preserve this document/query cache while no resource component is mounted.
+  await page.evaluate(() => { history.pushState({}, '', '/settings'); dispatchEvent(new PopStateEvent('popstate')); });
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+  const other = await context.newPage(); const f = await setup(other); f.update();
+  await other.goto('/resources');
+  const updated = other.locator('.resource-card').filter({ hasText: "Strong's synthetic fixture" });
+  await updated.getByRole('button', { name: 'Install update', exact: true }).click(); await expect(updated).toContainText('Ready offline');
+  await page.evaluate(() => { history.pushState({}, '', '/lexicon/H430'); dispatchEvent(new PopStateEvent('popstate')); });
+  await expect(page.locator('.bs-word')).toContainText('Updated definition');
+  await other.close();
+});
+
+test('blocked cross-tab notifications cannot undo a completed install', async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(window, 'BroadcastChannel', { value: class { constructor() { throw new DOMException('Restricted by this browser', 'SecurityError'); } } }); });
+  await setup(page); await page.goto('/resources');
+  const card = page.locator('.resource-card').filter({ hasText: "Strong's synthetic fixture" });
+  await card.getByRole('button', { name: 'Install', exact: true }).click(); await expect(card).toContainText('Available offline');
+  await page.goto('/lexicon/H430'); await expect(page.locator('.bs-word')).toContainText('Original definition');
+});

@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { APPROVED_RESOURCE_IDS, type Catalog, type Manifest } from '@shared/resources';
 import { resourceCatalog, resourceManifest } from '@/resources/client';
-import { useResourceRelease } from '@/resources/hooks';
 import { installedResources, installResource, removeResource, rollbackResource } from '@/resources/storage';
 import { Sheet } from '@/bible/ui/Sheet';
 import { Empty, Screen } from '@/ui/ui';
@@ -15,7 +14,6 @@ const label = (id: string) => id === 'CC-BY-SA-unversioned' ? 'CC BY-SA · versi
 export function ResourceInstaller() {
   useBackButton(false);
   const client = useQueryClient();
-  useResourceRelease('strongs'); // Keep installed metadata current across tabs.
   const catalog = useQuery({ queryKey: ['resource-catalog'], queryFn: () => resourceCatalog() });
   const installed = useQuery({ queryKey: ['resource-installed'], queryFn: installedResources });
   const [refreshError, setRefreshError] = useState('');

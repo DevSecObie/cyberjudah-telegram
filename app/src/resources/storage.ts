@@ -15,7 +15,10 @@ const database = () => db ??= openDB<ResourcesDB>("cj-resources-v1", 1, { upgrad
   d.createObjectStore("records", { keyPath: ["releaseKey", "key"] }).createIndex("release", "releaseKey");
   d.createObjectStore("active", { keyPath: "id" });
 } });
-const notify = (id: string) => { window.dispatchEvent(new CustomEvent("resourcechange", { detail: id })); if (typeof BroadcastChannel !== "undefined") { const c = new BroadcastChannel("cj-resources"); c.postMessage(id); c.close(); } };
+const notify = (id: string) => {
+  window.dispatchEvent(new CustomEvent("resourcechange", { detail: id }));
+  try { if (typeof BroadcastChannel !== "undefined") { const c = new BroadcastChannel("cj-resources"); c.postMessage(id); c.close(); } } catch { /* Notification failure must never undo an activated release. */ }
+};
 async function bytes(url: string, limit: number, signal?: AbortSignal) {
   const r = await fetch(url, { signal, cache: "no-store" });
   if (!r.ok || !r.body) throw new Error(`Resource download failed (${r.status})`);
@@ -72,12 +75,13 @@ export async function installResource(catalogInput: Catalog, id: string, signal?
   if (current?.generation !== generation) { tx.abort(); await tx.done.catch(() => undefined); throw new Error("Installation was superseded"); }
   await tx.objectStore("releases").put({ key: releaseKey, id, release: entry.release, manifest, manifestSha256: entry.manifestSha256, ready: true });
   await tx.objectStore("active").put({ id, release: releaseKey, previous: current.release, generation });
-  await tx.done; notify(id);
+  await tx.done;
   } catch (error) {
     // This private namespace belongs only to this attempt; preserve active/prior releases.
     await discardRelease(releaseKey).catch(() => undefined);
     throw error;
   }
+  notify(id);
 }
 /** Reads pin a single ready release for the duration of the transaction. */
 export async function readResource<T>(id: string, recordKey: string, pinnedRelease?: string): Promise<{ release: string; data: T } | null> {

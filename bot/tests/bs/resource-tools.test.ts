@@ -47,6 +47,8 @@ test('unapproved releases never substitute the current release or fetch an outsi
   const { env, old } = await setup(); const pins = { ...old, josephus: 'missing' };
   const result = await MORE_RUN.outside_source(env, { resource: 'josephus', key: 'page/1/1' }, undefined, () => {}, line, () => null, pins);
   assert.equal(result.error, true); assert.match(result.content, /No other edition/);
+  const search = await MORE_RUN.outside_source(env, { resource: 'josephus', query: 'israel' }, undefined, () => {}, line, () => null, pins);
+  assert.equal(search.error, true); assert.match(search.content, /No other edition/);
   assert.equal(ResourcePinsSchema.safeParse({ easton: 'v1' }).success, false);
   assert.equal(ResourcePinsSchema.safeParse({ strongs: '../current' }).success, false);
   const defaultPins = await resolveResourcePins(env); assert.notDeepEqual(defaultPins, old);

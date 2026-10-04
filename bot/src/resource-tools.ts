@@ -1,6 +1,6 @@
 import { APPROVED_RESOURCE_IDS, ResourcePinsSchema, type ResourcePins } from '../../shared/resources';
 import type { Env } from './env';
-import { readCatalog, readResourceRecord } from './resources';
+import { readCatalog, readResourceRecord, readResourceManifest } from './resources';
 
 export async function resolveResourcePins(env: Pick<Env, 'AUDIO'>, requested?: ResourcePins): Promise<ResourcePins> {
   const input = ResourcePinsSchema.parse(requested ?? {});
@@ -26,6 +26,7 @@ export async function resourcePages(env: Env, pins: ResourcePins, id: keyof Reso
     const data = await pinnedRecord<ResourcePage>(env, pins, id, key);
     return data ? [{ key, data }] : [];
   }
+  if (!await readResourceManifest(env, id, pins[id]!)) throw new Error("The selected resource release is unavailable");
   const words = terms(query);
   if (!words.length) return [];
   const postings: { keys: string[]; total: number }[] = [];

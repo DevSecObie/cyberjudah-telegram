@@ -1,3 +1,4 @@
+import { useResourceSync } from "@/resources/hooks";
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
 
@@ -66,6 +67,7 @@ const TagScreen = lazy(() => import("@/screens/Tags").then((m) => ({ default: m.
 
 
 export function App() {
+  useResourceSync();
   const location = useLocation();
   // Bible Strong's tabs: where the app is becomes the current tab's place (lib/tabs.ts).
   const prevPath = useRef<string | null>(null);
