@@ -106,7 +106,11 @@ for (const theme of ["default", "dark", "sepia", "nature", "sunset", "black", "m
     await page.keyboard.press("Escape");
     await expect(page.locator(".bs-gallery")).toHaveCount(0);
     await page.goto(`/read/genesis/1${LAUNCH}`);
-    await page.locator("#verset-28 .bs-deck").click();
+    const deck = page.locator("#verset-28 .bs-deck");
+    // Scrolling this distant verse can collapse the header. Let the subsequent click
+    // check the button's settled position after that scroll, especially in WebKit.
+    await deck.scrollIntoViewIfNeeded();
+    await deck.click();
     await expect(page.locator(".bs-gallery__text small").first()).toContainText(/Bishop|Deacon/);
     await check();
   });
