@@ -12,6 +12,7 @@ import { SwitcherBar } from "@/screens/Tabs";
 import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
 
 import { Icon, type IconName } from "./icons";
+import { moveTab } from "./tab-motion";
 export { Icon, type IconName } from "./icons";
 
 /**
@@ -39,7 +40,15 @@ export function TabBar() {
   const press = useRef<number | undefined>(undefined);
   const swipe = useRef<{ x: number; y: number } | null>(null);
   const long = useRef(false);
-  const go = (to: string) => { if (long.current) return; haptic("select"); setDrawer(null); if (to === pathname) window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); else navigate(to, { replace: true }); };
+  const go = (to: string | (() => string), overview = false) => {
+    if (long.current) return;
+    haptic("select"); setDrawer(null);
+    moveTab(() => {
+      const target = typeof to === "function" ? to() : to;
+      if (target === pathname) { window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); return false; }
+      else navigate(target, { replace: true });
+    }, overview ? "overview" : "slide");
+  };
   // Home and the menu are drawers, as in Bible Strong; the same button closes its own drawer.
   const toggle = (side: DrawerSide) => { if (long.current) return; haptic("select"); setDrawer(drawer === side ? null : side); };
   // A long press edits the bar; a horizontal swipe along it moves to the next or previous open tab
@@ -162,8 +171,10 @@ export function TabBar() {
       if (bar.current?.hasAttribute("data-scrollable")) return;
       const dx = e.clientX - s.x, dy = e.clientY - s.y;
       if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-      const to = adjacentTab(dx < 0 ? 1 : -1);
-      if (to) { long.current = true; window.setTimeout(() => { long.current = false; }, 50); haptic("select"); setDrawer(null); navigate(to, { replace: true }); }
+      moveTab(() => {
+        const to = adjacentTab(dx < 0 ? 1 : -1); if (!to) return false;
+        long.current = true; window.setTimeout(() => { long.current = false; }, 50); haptic("select"); setDrawer(null); navigate(to, { replace: true });
+      }, "slide");
     },
     onPointerLeave: (e: React.PointerEvent) => { if (pointer.current === e.pointerId && !bar.current?.hasPointerCapture(e.pointerId)) cancelPress(); },
     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
@@ -233,17 +244,17 @@ export function TabBar() {
     return () => { ro.disconnect(); placePill.current = null; };
   });
   // While the switcher is open the bar becomes its controls, as in Bible Strong.
-  if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /><button type="button" className="tab tab--search" aria-label="Search" title="Search" onClick={() => go(searchTabPath())}><Icon name="search" size={22} /></button></nav>;
+  if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /><button type="button" className="tab tab--search" aria-label="Search" title="Search" onClick={() => go(searchTabPath)}><Icon name="search" size={22} /></button></nav>;
   const count = tabs.length > 100 ? ":)" : String(tabs.length);
   const items: { id: NavId | "more"; label: string; aria: string; glyph: ReactNode; onClick: () => void }[] = [
     ...ids.filter(id => id !== "search").map((id) => {
       const item = navItem(id);
       return { id, label: id === "tabs" ? "Tabs" : item.label, aria: id === "tabs" ? `Tabs, ${tabs.length} open` : item.label,
         glyph: item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={22} />,
-        onClick: () => id === "home" ? toggle("home") : go(navPath(id)) };
+        onClick: () => id === "home" ? toggle("home") : go(() => navPath(id), id === "tabs") };
     }),
     { id: "more", label: "Menu", aria: "Menu", glyph: <Icon name="more" size={24} />, onClick: () => toggle("more") },
-    { id: "search", label: "Search", aria: "Search", glyph: <Icon name="search" size={22} />, onClick: () => go(searchTabPath()) },
+    { id: "search", label: "Search", aria: "Search", glyph: <Icon name="search" size={22} />, onClick: () => go(searchTabPath) },
   ];
   const button = (it: typeof items[number]) => {
     const on = current === it.id;
