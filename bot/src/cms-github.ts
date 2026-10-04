@@ -97,7 +97,7 @@ export async function createChange(env: Env, plan: { repo: string; kind: CmsKind
 }
 type Pull = { state: string; merged: boolean; mergeable: boolean | null; mergeable_state: string; draft: boolean; head: { sha: string; ref: string; repo: { full_name: string } }; base: { ref: string } };
 type Check = { name: string; status: string; conclusion: string | null; app: { id: number }; output?: { title?: string; summary?: string } };
-const plain = (v: string) => v.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').slice(0, 600);
+const plain = (v: string) => v.replaceAll('<', '‹').replaceAll('>', '›').replace(/\s+/g, ' ').slice(0, 600);
 export async function refreshChange(env: Env, id: string) {
   const change = await getChange(env, id); change.canPublish = false;
   if (!change.pr) return change;

@@ -105,7 +105,7 @@ test('note quick fixes require a source SHA and reason and use only the content 
 });
 test('outside-source migration preserves legacy sites, labels defaults and saves to a PR with CAS', async () => {
   const initial = await (await request('admin/ask-sources')).json() as any;
-  assert.deepEqual(initial.hosts,['legacy.example.org']); assert.ok(initial.defaults.includes('archive.org'));
+  assert.deepEqual(initial.hosts,['legacy.example.org']); assert.ok(new Set(initial.defaults).has('archive.org'));
   assert.equal((await request('admin/ask-sources','PUT',{sha:initial.sha,hosts:['https://bad.invalid/path'],reason:'Source correction'})).status,400);
   assert.equal((await request('admin/ask-sources','PUT',{sha:'a'.repeat(40),hosts:['archive.org'],reason:'Source correction'})).status,409);
   const response = await request('admin/ask-sources','PUT',{sha:initial.sha,hosts:[...initial.hosts,'archive.org'],reason:'Add archive evidence'}); assert.equal(response.status,201,await response.clone().text());
