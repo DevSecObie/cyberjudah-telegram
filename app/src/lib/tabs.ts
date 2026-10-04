@@ -141,7 +141,7 @@ export const askTabPath = () => tabOfKind((p) => /^\/ask(\/|\?|$)/.test(p), "/as
 const KINDS: [RegExp, string, string][] = [
   [/^\/new/, "New tab", "compose"], [/^\/(bible|read)/, "Bible", "book-open"], [/^\/search/, "Search", "search"], [/^\/lexicon/, "Strong", "spark"],
   [/^\/dictionary/, "Dictionary", "type"], [/^\/topics/, "Topics", "tag"], [/^\/(person|people)/, "People", "star"], [/^\/(classes|note|watch)/, "Classes", "play"],
-  [/^\/history/, "Recently viewed", "history"], [/^\/books/, "Library", "layers"], [/^\/encyclopedia/, "Encyclopedia", "book"], [/^\/law/, "The Law", "law"],
+  [/^\/history/, "Recently viewed", "history"], [/^\/timeline/, "Bible timeline", "clock"], [/^\/books/, "Library", "layers"], [/^\/encyclopedia/, "Encyclopedia", "book"], [/^\/law/, "The Law", "law"],
   [/^\/precepts/, "Precepts", "quote"], [/^\/cases/, "Case studies", "folder"], [/^\/plan/, "Reading plan", "check"], [/^\/study/, "4 Chapters a Day", "book"],
   [/^\/(bookmarks|tags)/, "Kept", "bookmark"], [/^\/ask/, "Ask CyberJudah", "chat"], [/^\/relations/, "Your precepts", "precepts"], [/^\/sabbath/, "Sabbath", "sun"], [/^\/settings/, "Settings", "gear"],
 ];
