@@ -113,10 +113,10 @@ function PeopleOverlay({ people, source, palette: c, onClosed }: { people: Named
 
   return createPortal(
     <div ref={root} className="bs-gallery bs-gallery--people" data-open={shown ? "" : undefined} role="dialog" aria-modal="true" aria-label="People in this chapter" data-sheet-open=""
-      style={{ ["--deck-bg" as string]: c.reverse, ["--deck-ink" as string]: c.default, ["--deck-primary" as string]: c.primary, color: c.default }}
+      style={{ ["--deck-bg" as string]: "var(--canvas)", ["--deck-ink" as string]: "var(--text-1)", ["--deck-primary" as string]: "var(--accent)", color: "var(--text-1)" }}
       onClick={close}>
-      <button type="button" className="bs-gallery__close" aria-label="Close" title="Close" style={{ background: c.reverse, color: c.default }} onClick={(e) => { e.stopPropagation(); close(); }}>
-        <Feather name="x" size={24} color={c.default} />
+      <button type="button" className="bs-gallery__close" aria-label="Close" title="Close" style={{ background: "var(--canvas)", color: "var(--text-1)" }} onClick={(e) => { e.stopPropagation(); close(); }}>
+        <Feather name="x" size={24} color="var(--text-1)" />
       </button>
       <div className="bs-gallery__scroll">
         <div className={`bs-people${people.length <= 6 ? " bs-people--center" : ""}`}>

@@ -35,7 +35,7 @@ export function Verse(p: VerseProps) {
   const { settings: s, palette: c, theme } = p;
   const font = webFontFamily(s.fontFamily);
   const block = s.textDisplay === "block";
-  // ContainerText: the highlight wash, the dashed underline of a selection, the focus dim, the scroll blink.
+  // Keep context readable with semantic ink; selection also has a dashed underline.
   let hl: CSSProperties = { background: "transparent", borderRadius: 0 };
   if (p.highlightedColor) {
     const { hex, type } = highlightInfo(p.highlightedColor, s, c);
@@ -48,17 +48,14 @@ export function Verse(p: VerseProps) {
   const wrapper: CSSProperties = {
     display: block ? "block" : "inline", transition: "opacity 0.3s ease", position: "relative", zIndex: 1,
     ...(block ? { marginBottom: 5 } : {}),
-    ...(p.isSelectedMode && !p.isSelected ? { opacity: 0.3 } : {}),
+    ...(p.isSelectedMode && !p.isSelected ? { color: "var(--bs-tertiary)" } : {}),
     ...(p.fadePosition ? { pointerEvents: "none", filter: "blur(4px)" } : {}),
   };
   const container: CSSProperties = {
-    fontFamily: font, ...hl, padding: 4, WebkitBoxDecorationBreak: "clone", boxDecorationBreak: "clone",
+    fontFamily: font, ...(p.isFocused === false && !p.isSelectedMode ? { color: "var(--bs-tertiary)" } : {}), ...hl, padding: 4, WebkitBoxDecorationBreak: "clone", boxDecorationBreak: "clone",
     borderBottom: p.isSelected ? `2px dashed var(--bs-default)` : "none", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none",
     ...(p.isVerseToScroll ? { animation: "bs-zoom 0.5s ease 0s 3 normal none running" } : {}),
-    // While verses are selected the selection's own dim (the wrapper's .3) is the only one, not
-    // multiplied by the focus dim.
-    ...(p.isFocused === false && !p.isSelectedMode ? { opacity: 0.55 } : {}),
-    ...(p.isTouched ? { opacity: 0.7 } : {}),
+    ...(p.isTouched ? { backgroundColor: "var(--bs-light-grey)" } : {}),
   };
   const deck = !!(p.moments?.length && p.deck);
   const tags = !!(p.tagGroup?.tags.length && s.tagsDisplay === "inline");

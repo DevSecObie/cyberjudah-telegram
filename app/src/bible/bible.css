@@ -136,7 +136,7 @@
 .bs-loading { margin: 20px; text-align: center; color: var(--bs-grey); font-size: 14px; }
 .bs-versions { padding: 8px 0; }
 .bs-versionrow { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "id check" "name check" "note check"; align-items: center; column-gap: 12px; width: 100%; padding: 12px 20px; border: 0; border-left: 3px solid var(--bs-primary); background: none; text-align: left; cursor: pointer; color: var(--bs-primary); }
-.bs-versionrow__id { grid-area: id; font-size: 12px; font-weight: 700; opacity: .5; }
+.bs-versionrow__id { grid-area: id; font-size: 12px; font-weight: 700; color: var(--bs-tertiary); }
 .bs-versionrow__name { grid-area: name; font-size: 16px; }
 .bs-versionrow small { grid-area: note; font-size: 10px; color: var(--bs-tertiary); }
 .bs-versionrow svg { grid-area: check; }
@@ -345,7 +345,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-people__avatar { display: grid !important; margin: 0 auto 8px; border: 2px solid; box-shadow: 0 5px 16px rgba(0, 0, 0, .2); }
 .bs-people__text { display: block; animation: deck-rise .18s ease backwards; }
 .bs-people__text b { display: -webkit-box; overflow: hidden; font-size: 13px; line-height: 1.22; font-weight: 650; text-align: center; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.bs-people__text small { display: block; margin-top: 3px; font-size: 10px; line-height: 1.2; font-weight: 500; text-align: center; opacity: .55; }
+.bs-people__text small { display: block; margin-top: 3px; font-size: 10px; line-height: 1.2; font-weight: 500; text-align: center; color: var(--text-2); }
 
 /* The classes that taught a verse: Bible Strong's passage media (PassageMediaThumbnails,
    PassageMediaOverlay, PassageMediaPlayer) on our classes. The deck: up to three pictures fanned
@@ -355,7 +355,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-deck__card { grid-area: 1 / 1; place-self: center; display: block; box-sizing: border-box; overflow: hidden; border: 2px solid; background: rgba(128, 128, 128, .22); box-shadow: 0 2px 7px rgba(0, 0, 0, .22); transform-origin: center; }
 .bs-deck__card img, .bs-gallery__pic img, .bs-player__box img { display: block; width: 100%; height: 100%; object-fit: cover; transition: opacity 160ms ease; }
 
-/* The gallery over the page: the page colour at half strength, blurred; two columns of 16:9 cards. */
+/* Gallery content uses an opaque page surface; navigation owns the glass material. */
 .bs-gallery { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; overflow: hidden; overscroll-behavior: contain; -webkit-user-select: none; user-select: none;
   background: color-mix(in srgb, var(--deck-bg) 0%, transparent);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -377,8 +377,8 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-gallery__badge { position: absolute; right: 7px; bottom: 7px; padding: 3px 7px; border-radius: 999px; background: rgba(0, 0, 0, .72); color: #fff; font-size: 10px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .bs-gallery__text { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 2px 0; animation: deck-rise .18s ease backwards; }
 .bs-gallery__text b { display: -webkit-box; min-width: 0; overflow: hidden; font-size: 14px; font-weight: 700; line-height: 1.22; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.bs-gallery__text small { font-size: 12px; line-height: 1.25; opacity: .7; }
-.bs-gallery__text span { max-width: 100%; overflow: hidden; opacity: .7; font-size: 11px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.bs-gallery__text small { font-size: 12px; line-height: 1.25; color: var(--text-2); }
+.bs-gallery__text span { max-width: 100%; overflow: hidden; color: var(--text-2); font-size: 11px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 @keyframes deck-rise { from { opacity: 0; transform: translateY(4px); } }
 
 /* A class playing where its card was, at the moment it read the verse. */
@@ -422,7 +422,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 /* The gallery dims the page instead of blurring it: a full-screen filter, animated, is the one
    effect the budget rules out. */
 .bs-gallery { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-.bs-gallery[data-open] { background: color-mix(in srgb, var(--deck-bg) 92%, transparent); }
+.bs-gallery[data-open] { background: var(--deck-bg); }
 
 /* Header selectors use the same glass material as the existing sheets. */
 .bs-picker-scrim { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-start; justify-content: center; padding: calc(var(--safe-top, 0px) + 62px) 12px 12px; background: transparent; }
@@ -483,7 +483,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-resrow--person > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
 /* A gallery with many classes: its count, and the rest on request. */
-.bs-gallery__count { opacity: .6; font-weight: 600; }
+.bs-gallery__count { color: var(--text-2); font-weight: 600; }
 #root button.bs-gallery__more, button.bs-gallery__more { display: block; margin: 16px auto 0; padding: 10px 18px; border-radius: 20px; border: 1px solid; font: 600 14px system-ui, sans-serif; cursor: pointer; }
 
 /* A book's prologue before chapter 1: titles closed, the full text open. */
