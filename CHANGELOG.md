@@ -35,6 +35,11 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   it, its precepts, cross-references), the Law handbook, the precept topics and the Timeline (with
   the classes' own words and sources), each with its in-app link; and it can show the app's own
   pictures in an answer (only the app's, never another site's).
+- Ask CyberJudah can read approved outside sources (the owner's whitelist: israelunite.org,
+  Wikipedia, archive.org, Project Gutenberg, the Library of Congress and others, editable by an
+  admin), after the app and the classes, cited by number and opened in the browser; and it covers
+  the Apocrypha (its text, its verses' study, and its people through the dictionary and approved
+  sources until People has them).
 - When YouTube's feed is having trouble, the Classes screen says so: a dismissible notice
   explains that new uploads aren't reaching the app, instead of silently showing nothing new.
   Everything already in the app keeps working; the notice clears itself when the feed recovers.

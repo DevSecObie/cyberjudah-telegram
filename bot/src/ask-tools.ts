@@ -1,6 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 
 import type { Env, Exec } from "./env";
+import type { Passage } from "./ai.mjs";
 import { dataJson } from "./data";
 import { lookup as eastonLookup } from "./dictionary";
 import easton from "../data/easton.json";
@@ -40,6 +41,11 @@ export const MORE_TOOLS: Anthropic.Tool[] = [
     input_schema: { type: "object", properties: { topic: { type: "string", description: "The subject." } }, required: ["topic"] },
   },
   {
+    name: "outside_source",
+    description: "Read an approved outside source: only the sites on the owner's whitelist (such as israelunite.org, Wikipedia, archive.org, Project Gutenberg, the Library of Congress). Give a query to search Wikipedia, or the address of a page on an approved site. Use it only after the app's own data and the classes, for history, places and people the app does not cover yet (the Apocrypha's people among them). Outside sources inform the history; they never overrule the Scripture or the classes. Cite what you use by its number.",
+    input_schema: { type: "object", properties: { query: { type: "string", description: "What to look up (searched on Wikipedia)." }, url: { type: "string", description: "Optional: the https address of a page on an approved site." } }, required: [] },
+  },
+  {
     name: "timeline",
     description: "Search the app's Timeline: the Bible's history from creation through the kings, the captivities and the early church, and the Final Captivity (from the ships of 1441 to the twelve tribes today), each event with its dates, what happened, the classes' own words and their sources, and its picture where there is one. Give a name, a place, an event or a year. Call it for any question about when something happened or the history of the people.",
     input_schema: { type: "object", properties: { query: { type: "string", description: "A name, place, event or year." } }, required: ["query"] },
@@ -47,7 +53,9 @@ export const MORE_TOOLS: Anthropic.Tool[] = [
 ];
 
 type Line = (name: string, what: string, path: string) => string;
-type Tool = (env: Env, input: Record<string, unknown>, ctx: Exec | undefined, emit: (e: { status: string }) => void, line: Line) => Promise<{ content: string; error?: boolean }>;
+/** Numbers a source for citation, as the library's passages are; null when the list is full. */
+export type AddSource = (p: Passage) => { n: number; fresh: boolean } | null;
+type Tool = (env: Env, input: Record<string, unknown>, ctx: Exec | undefined, emit: (e: { status: string }) => void, line: Line, add: AddSource) => Promise<{ content: string; error?: boolean }>;
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const norm = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
@@ -110,7 +118,11 @@ const person: Tool = async (env, input, ctx, emit, line) => {
     }
     id = best[0]?.id ?? "";
   }
-  if (!id) return { content: `No one named ${name} in the app's People.` };
+  if (!id) {
+    // The Apocrypha's people (and some others) are not in People yet: the dictionary may know them.
+    const e = eastonLookup(name);
+    return { content: e ? `${name} is not in the app's People yet. ${line(`Easton's Bible Dictionary: ${e.term}`, e.definitions.join(" ").slice(0, 2000), `/dictionary/${e.slug}`)} If more is needed, use outside_source.` : `No one named ${name} in the app's People or the dictionary. Try search_library, then outside_source.` };
+  }
   const p = await dataJson<PersonFull>(env, `/api/people/${id}.json`, ctx).catch(() => null);
   if (!p) return { content: `${name}'s entry could not be read just now.`, error: true };
   const fam = (label: string, list?: PersonRef[]) => (list?.length ? `${label}: ${list.map((x) => x.name).join(", ")}.` : "");
@@ -229,3 +241,65 @@ const timelineTool: Tool = async (env, input, _ctx, emit, line) => {
 };
 
 export const MORE_RUN: Record<string, Tool> = { look_up_word: lookUpWord, person, verse_study: verseStudy, law, precepts, timeline: timelineTool };
+
+/**
+ * The outside sources Ask may read: the owner's whitelist (KV "ask:sources", set by an admin with
+ * PUT /api/admin/ask-sources), or this starting list. A site is allowed with its subdomains; only
+ * https, only GET, and the page is read as text, never run.
+ */
+export const DEFAULT_SOURCES = ["israelunite.org", "wikipedia.org", "archive.org", "gutenberg.org", "loc.gov", "archives.gov", "nps.gov", "si.edu", "blackpast.org", "slavevoyages.org", "jewishencyclopedia.com", "sacred-texts.com", "ccel.org"];
+export const HOST = /^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
+export async function approvedSources(env: Env): Promise<string[]> {
+  const kv = await env.SUBS.get("ask:sources", "json").catch(() => null);
+  return Array.isArray(kv) && kv.every((h) => typeof h === "string" && HOST.test(h)) ? (kv as string[]) : DEFAULT_SOURCES;
+}
+export const isApproved = (host: string, list: string[]) => list.some((d) => host === d || host.endsWith(`.${d}`));
+
+const ENT: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", mdash: "—", ndash: "–", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“" };
+const textOf = (html: string) => html.replace(/<(script|style|noscript|svg|nav|footer|header)\b[\s\S]*?<\/\1>/gi, " ").replace(/<br\s*\/?>|<\/(p|div|li|h[1-6]|tr)>/gi, "\n").replace(/<[^>]+>/g, " ").replace(/&(#\d+|#x[0-9a-f]+|\w+);/gi, (m, e: string) => (e[0] === "#" ? String.fromCodePoint(e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : +e.slice(1)) : ENT[e.toLowerCase()] ?? m)).replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n\n").trim();
+/** The paragraphs that answer the words asked, in page order, up to max characters. */
+function excerpt(text: string, query: string, max: number) {
+  const q = words(query);
+  const paras = text.split(/\n{1,2}/).map((p) => p.trim()).filter((p) => p.length > 60);
+  const picked = q.length ? paras.filter((p) => q.some((w) => norm(p).includes(w))) : paras;
+  let out = "";
+  for (const p of (picked.length ? picked : paras)) { if (out.length + p.length > max) break; out += (out ? "\n" : "") + p; }
+  return out || text.slice(0, max);
+}
+
+const outsideSource: Tool = async (env, input, _ctx, emit, _line, add) => {
+  const list = await approvedSources(env);
+  const query = str(input.query, 120), url = str(input.url, 400);
+  const lines: string[] = [];
+  const cite = (title: string, href: string, host: string, text: string) => {
+    const a = add({ kind: "web", title, url: href, sub: host, text: text.slice(0, 1400) });
+    lines.push(`${a ? `[${a.n}] ` : ""}${title} (${host}, ${href})\n${text}`);
+  };
+  if (url) {
+    let u: URL;
+    try { u = new URL(url); } catch { return { content: "That is not a web address.", error: true }; }
+    if (u.protocol !== "https:" || !isApproved(u.hostname, list)) return { content: `${u.hostname} is not an approved source. Approved: ${list.join(", ")}.`, error: true };
+    emit({ status: `Reading ${u.hostname}` });
+    const r = await fetch(u.toString(), { headers: { "user-agent": "CyberJudah/1.0 (+https://cyberjudah.io)", accept: "text/html,text/plain" }, redirect: "follow", signal: AbortSignal.timeout(8000) }).catch(() => null);
+    const final = r ? new URL(r.url || u.toString()) : null;
+    if (!r?.ok || !final || !isApproved(final.hostname, list)) return { content: `${u.hostname} could not be read just now.`, error: true };
+    const body = (await r.text()).slice(0, 1_500_000);
+    const title = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(body)?.[1]?.trim() ?? final.hostname;
+    cite(textOf(title), final.toString(), final.hostname, excerpt(textOf(body), query, 2600));
+  } else {
+    if (!query) return { content: "Give a query or an address.", error: true };
+    if (!isApproved("en.wikipedia.org", list)) return { content: `Wikipedia is not on the approved list. Give the address of a page on: ${list.join(", ")}.`, error: true };
+    emit({ status: `Looking up “${query}” in approved sources` });
+    const api = (p: string) => fetch(`https://en.wikipedia.org/w/api.php?format=json&formatversion=2&${p}`, { headers: { "user-agent": "CyberJudah/1.0 (+https://cyberjudah.io)" }, signal: AbortSignal.timeout(8000) }).then((r) => (r.ok ? r.json() : null)).catch(() => null) as Promise<Record<string, any> | null>;
+    const found = await api(`action=query&list=search&srlimit=2&srsearch=${encodeURIComponent(query)}`);
+    const titles: string[] = (found?.query?.search ?? []).map((x: { title: string }) => x.title);
+    if (!titles.length) return { content: `Nothing on Wikipedia for “${query}”.` };
+    const pages = await api(`action=query&prop=extracts&explaintext=1&exsectionformat=plain&titles=${encodeURIComponent(titles.join("|"))}`);
+    for (const p of pages?.query?.pages ?? []) {
+      if (!p.extract) continue;
+      cite(`${p.title} (Wikipedia)`, `https://en.wikipedia.org/wiki/${encodeURIComponent(String(p.title).replace(/ /g, "_"))}`, "en.wikipedia.org", excerpt(p.extract, query, 2400));
+    }
+  }
+  return { content: lines.length ? `${lines.join("\n\n")}\n\nThese are outside sources: use them for history and facts, cite them by number, and never set them above the Scripture or the classes.` : "Nothing found in the approved sources." };
+};
+MORE_RUN.outside_source = outsideSource;

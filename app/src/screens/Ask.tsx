@@ -392,7 +392,8 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
   // Scripture named in the answer opens in the reader, as a reference does anywhere in the app.
   const slugs = useBookSlugs();
   const html = useMemo(() => linkRefsInHtml(answerHtml(t.content, lookup), slugs), [t.content, lookup, slugs]);
-  const open = (s: Source) => { haptic("select"); navigate(passagePath(s)); };
+  // An approved outside source opens in the browser; everything else is a place in the app.
+  const open = (s: Source) => { haptic("select"); if (s.kind === "web" && /^https:\/\//.test(s.url)) openLink(s.url); else navigate(passagePath(s)); };
   const onClick = (e: MouseEvent<HTMLDivElement>) => {
     const ref = (e.target as HTMLElement).closest<HTMLAnchorElement>("a.reflink, a.applink");
     if (ref) { e.preventDefault(); haptic("select"); navigate(ref.getAttribute("href")!.replace(/&amp;/g, "&")); return; }

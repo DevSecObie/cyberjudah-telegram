@@ -191,7 +191,11 @@ export async function runAgent(
       return { content: `A card now sits under your answer: "${p.summary}" with Confirm and Cancel. Nothing has changed: it happens only if they tap Confirm. Do not say it is done.` };
     }
     const more = MORE_RUN[name];
-    if (more) return more(env, input, ctx, emit, line);
+    if (more) {
+      const r = await more(env, input, ctx, emit, line, add);
+      emit({ passages: [...passages] });
+      return r;
+    }
     return { content: `No tool named ${name}.`, error: true };
   };
 

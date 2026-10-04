@@ -42,6 +42,8 @@ export async function claude(req: ClaudeRequest, res: http.ServerResponse) {
     const how = /^How do I (.+?)\??$/i.exec(question);
     if (how) return { tools: [{ name: "app_help", input: { query: how[1] } }], stop: "tool_use" };
     if (/remind/i.test(question)) return { tools: [{ name: "my_reminder", input: {} }, { name: "propose_reminder_change", input: { on: true, hour: 6, minute: 30 } }], stop: "tool_use" };
+    const outside = /^Read outside (\S+)$/i.exec(question);
+    if (outside) return { tools: [{ name: "outside_source", input: { url: outside[1], query: "history" } }], stop: "tool_use" };
     const all = /^Everything about (.+?)\??$/i.exec(question);
     if (all) return { tools: [{ name: "person", input: { name: all[1] } }, { name: "timeline", input: { query: all[1] } }, { name: "look_up_word", input: { word: all[1] } }, { name: "law", input: { query: "sabbath" } }, { name: "precepts", input: { topic: "adultery" } }, { name: "verse_study", input: { reference: "Genesis 12:1" } }], stop: "tool_use" };
     if (/saved chats/i.test(question)) return { tools: [{ name: "my_saved_chats", input: { query: "" } }], stop: "tool_use" };
