@@ -29,8 +29,26 @@ export type RecentVideo = { video: string; title: string; published: string; vie
 const videoOfThumb = (thumb: string) => /(?:\/vi\/|\/img\/[a-z]+\/)([A-Za-z0-9_-]{11})(?=[/.])/.exec(thumb ?? "")?.[1] ?? null;
 /** Where a teaching opens: its notes, or the recording itself while the notes are still coming. */
 export const teachingTo = (t: Teaching) => (t.pending && t.video ? `/watch/${encodeURIComponent(t.video)}` : `/note${t.url}`);
-/** The channel's newest uploads, so a class is in the app before its notes are written. */
-export const useRecent = () => useQuery({ queryKey: ["recent"], queryFn: () => api<{ videos: RecentVideo[] }>("/api/recent").then((r) => r.videos), staleTime: 10 * 60_000, retry: false });
+/** The channel's newest uploads, so a class is in the app before its notes are written. `feedOk` reports RSS health; a channel fallback may still supply recordings. */
+export const useRecent = () => useQuery({ queryKey: ["recent"], queryFn: () => api<{ videos: RecentVideo[]; feedOk?: boolean }>("/api/recent"), staleTime: 10 * 60_000, refetchInterval: (q) => q.state.data?.feedOk === false ? 60_000 : 10 * 60_000, retry: false });
+// Weeks start on the Sabbath (Saturday). The featured class is labeled by the
+// calendar week its date falls in, so a stale feed never claims "this week".
+const weekLabel = (dateStr: string): string => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+  if (!m) return "";
+  const d = new Date(+m[1], +m[2] - 1, +m[3]);
+  const weekStart = (x: Date) => {
+    const t = new Date(x.getFullYear(), x.getMonth(), x.getDate());
+    t.setDate(t.getDate() - ((t.getDay() + 1) % 7)); // back to Saturday
+    return t;
+  };
+  const thisSat = weekStart(new Date());
+  const lastSat = new Date(thisSat);
+  lastSat.setDate(lastSat.getDate() - 7);
+  if (d >= thisSat) return "This week's class";
+  if (d >= lastSat) return "Last week's class";
+  return "";
+};
 export const KIND_NAME: Record<Teaching["kind"], string> = { class: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History" };
 /** What a teaching is shown as: the series its title names, else its collection. */
 export const teachingLabel = (t: Pick<Teaching, "kind" | "series">) => (t.series ? seriesLabel(t.series) : KIND_NAME[t.kind]);
@@ -56,7 +74,7 @@ export function useTeachings() {
   const data = useMemo(() => {
     if (!notes.data) return notes.data;
     const have = new Set(notes.data.map((t) => videoOfThumb(t.thumb)).filter(Boolean));
-    const extra = (recent.data ?? []).filter((v) => !have.has(v.video)).map<Teaching>((v) => ({ kind: "class", url: `/watch/${v.video}`, title: v.title, date: v.published.slice(0, 10), teacher: "", thumb: `https://img.youtube.com/vi/${v.video}/mqdefault.jpg`, topics: [], books: [], video: v.video, pending: true }));
+    const extra = (recent.data?.videos ?? []).filter((v) => !have.has(v.video)).map<Teaching>((v) => ({ kind: "class", url: `/watch/${v.video}`, title: v.title, date: v.published.slice(0, 10), teacher: "", thumb: `https://img.youtube.com/vi/${v.video}/mqdefault.jpg`, topics: [], books: [], video: v.video, pending: true }));
     const all = extra.length ? [...notes.data, ...extra].sort((a, b) => (b.date || "").localeCompare(a.date || "")) : notes.data;
     // A class taught as one of a run, or on one of the shows, carries that name, read from the titles.
     const series = seriesOf(all.filter((t) => t.kind === "class").map((t) => t.title));
@@ -66,7 +84,7 @@ export function useTeachings() {
       return s ? { ...t, series: s } : t;
     });
   }, [notes.data, recent.data]);
-  return { ...notes, data };
+  return { ...notes, data, feedOk: recent.data?.feedOk };
 }
 
 /** The Learn shelf: where the teaching is kept, each its own door (Bible Strong's learning cards). */
@@ -141,12 +159,12 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
       </div>
       <Link to={verse.data ? `/read/${verse.data.slug}/${verse.data.chapter}?v=${verse.data.verse}` : "/bible"} className="hero" onClick={() => haptic("select")}>
         <small>Today's Scripture</small>
-        {verse.data ? <><p className="hero__verse">{verse.data.text}</p><span className="hero__ref">{verse.data.ref}</span></> : <p className="hero__verse" style={{ opacity: 0.5 }}>Loading the day's verse…</p>}
+        {verse.data ? <><p className="hero__verse">{verse.data.text}</p><span className="hero__ref">{verse.data.ref}</span></> : <p className="hero__verse" style={{ color: "var(--text-3)" }}>Loading the day's verse…</p>}
       </Link>
       <SearchHero value={q} onChange={setQ} onSubmit={search} big />
       <div className="door">
-        <button type="button" className="door__btn" onClick={() => { if (q.trim()) search(q); else document.getElementById("q")?.focus(); }}><Icon name="search" size={18} /> Search</button>
-        <button type="button" className="door__btn door__btn--ask" onClick={() => { haptic("select"); navigate(q.trim() ? `/ask?q=${encodeURIComponent(q.trim())}` : "/ask"); }}><Icon name="note" size={18} /> Ask CyberJudah</button>
+        <button type="button" className="btn btn--bordered door__btn" onClick={() => { if (q.trim()) search(q); else document.getElementById("q")?.focus(); }}><Icon name="search" size={18} /> Search</button>
+        <button type="button" className="btn btn--bordered door__btn door__btn--ask" onClick={() => { haptic("select"); navigate(q.trim() ? `/ask?q=${encodeURIComponent(q.trim())}` : "/ask"); }}><Icon name="note" size={18} /> Ask CyberJudah</button>
       </div>
       <p className="hint hint--center">Search finds the moment a word, a name or a Scripture was said in a class. Ask answers your question from the teachings, with its sources.</p>
       </>}
@@ -190,7 +208,7 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
       {feed.isPending ? <Skeleton rows={1} thumb /> : latestClass ? (
         <Link to={teachingTo(latestClass)} className="feature">
           <span className="feature__img"><Img src={latestClass.thumb} eager /></span>
-          <span className="feature__body"><small>This week's class · {[fmtDate(latestClass.date), latestClass.teacher].filter(Boolean).join(" · ")}{latestClass.pending ? <span className="soon">Notes coming soon</span> : null}</small><b>{latestClass.title}</b>{latestClass.books.length ? <span className="feed__books">{latestClass.books.slice(0, 4).map((b) => <em key={b}>{b}</em>)}</span> : null}</span>
+          <span className="feature__body"><small>{[weekLabel(latestClass.date), fmtDate(latestClass.date), latestClass.teacher].filter(Boolean).join(" · ")}{latestClass.pending ? <span className="soon">Notes coming soon</span> : null}</small><b>{latestClass.title}</b>{latestClass.books.length ? <span className="feed__books">{latestClass.books.slice(0, 4).map((b) => <em key={b}>{b}</em>)}</span> : null}</span>
         </Link>
       ) : null}
       <div className="shelf-grid">
@@ -228,7 +246,7 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
       <Card href="/study" className="plan-start"><span className="resume__icon"><Icon name="book" /></span><span><b>4 Chapters a Day</b><span>The daily reading, a note for every chapter</span></span><Icon name="chevron" size={18} /></Card>
       {sab ? <Card href="/sabbath" className="sabbath"><span className="sabbath__icon"><Icon name="sun" /></span><span><b>{sab.sabbath ? "Shabbat shalom" : `Sabbath in ${countdown(sab.next, now)}`}</b><span>{sab.label} · {sab.next.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span></span></Card> : <Card href="/sabbath" className="sabbath"><span className="sabbath__icon"><Icon name="sun" /></span><span><b>Sabbath</b><span>Sunset where you are, and the countdown</span></span></Card>}
 
-      <Section title="Latest teachings" action={<Link to="/classes">All classes</Link>}>
+      <Section title="Latest Teachings" action={<Link to="/classes">All classes</Link>}>
         <div className="feed">
           {rows.map((t) => (
             <Link key={t.url} to={teachingTo(t)} className="feed__card">
@@ -241,8 +259,8 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
 
       <h2 className="shelf">Go further</h2>
       <div className="door">
-        <Link to="/more" className="door__btn" onClick={() => haptic("select")}><Icon name="more" size={18} /> Everything else</Link>
-        <button type="button" className="door__btn" onClick={() => void share({ kind: "app", title: "CyberJudah", text: "The KJV with the Apocrypha, and everything taught from it, in Telegram.", sitePath: "/" })}><Icon name="share" size={18} /> Share the app</button>
+        <Link to="/more" className="btn btn--bordered door__btn" onClick={() => haptic("select")}><Icon name="more" size={18} /> Everything else</Link>
+        <button type="button" className="btn btn--bordered door__btn" onClick={() => void share({ kind: "app", title: "CyberJudah", text: "The KJV with the Apocrypha, and everything taught from it, in Telegram.", sitePath: "/" })}><Icon name="share" size={18} /> Share the app</button>
       </div>
     </Screen>
   );

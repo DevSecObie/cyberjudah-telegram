@@ -18,7 +18,7 @@
 /* The switcher: two cards a row, each a tinted surface (no filter: there are many of them). */
 .switcher { min-height: 100dvh; padding: calc(var(--safe-top) + var(--sp-5)) var(--sp-5) calc(var(--dock-space) + 40px); touch-action: pan-y; }
 .switcher__grid { display: grid; gap: var(--sp-5); justify-content: start; }
-.tabcard { position: relative; overflow: hidden; border-radius: var(--r-xl); background: var(--surface-1); box-shadow: var(--card-edge), inset 0 1px 0 var(--rim-highlight), var(--shadow-2); transition: transform var(--dur-2) var(--ease), box-shadow var(--dur-2) ease; }
+.tabcard { position: relative; overflow: hidden; border-radius: var(--r-xl); background: var(--surface-1); box-shadow: var(--card-edge), inset 0 1px 0 var(--rim-highlight), var(--shadow-2); transition: transform var(--dur-2) var(--ease); }
 .tabcard:active { transform: scale(.97); }
 .tabcard[data-current] { box-shadow: var(--card-edge), inset 0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent), var(--shadow-2); }
 #root .tabcard__open { position: absolute; inset: 0; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
@@ -30,6 +30,22 @@
 .tabcard__preview { position: absolute; inset: 48px var(--sp-3) 0; overflow: hidden; opacity: .5; color: var(--text-2); text-align: left; -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent); mask-image: linear-gradient(to bottom, #000 55%, transparent); font: 400 var(--fs-caption)/1.65 var(--font-read); pointer-events: none; }
 .tabcard__preview > span { display: block; margin-top: 6px; }
 .groupdot { flex: none; display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+
+/* A tab contracts into its actual card and expands back; the glass controls stay separate. */
+html[data-tab-motion] .route, .route[data-tab-animated] { animation: none; }
+html[data-tab-motion] .tabcard:active { transform: none; }
+::view-transition-group(tab-surface) { transform-origin: 0 0; animation: tab-morph var(--dur-4) var(--ease-tab) both; }
+::view-transition-old(tab-surface), ::view-transition-new(tab-surface) { width: 100%; height: 100%; object-fit: fill; mix-blend-mode: normal; }
+::view-transition-old(tab-surface) { animation: tab-fade-out var(--dur-4) ease both; }
+::view-transition-new(tab-surface) { animation: fade-in var(--dur-4) ease both; }
+::view-transition-group(tab-controls) { animation: none; }
+::view-transition-old(tab-controls) { animation: tab-fade-out var(--dur-2) ease both; }
+::view-transition-new(tab-controls) { animation: fade-in var(--dur-2) ease both; }
+@keyframes tab-morph { from { transform: var(--tab-from); } to { transform: var(--tab-to); } }
+@keyframes tab-fade-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(tab-surface) { animation: none; }
+}
 
 /* The dock's editor. */
 .naved__preview { display: flex; justify-content: space-around; align-items: center; height: 52px; margin: 4px 0 18px; padding: 0 var(--sp-3); border-radius: var(--r-pill); background: var(--surface-1); box-shadow: var(--card-edge), inset 0 1px 0 var(--rim-highlight); color: var(--text-2); }

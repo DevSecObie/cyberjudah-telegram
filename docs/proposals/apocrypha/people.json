@@ -1,0 +1,208 @@
+[
+  {
+    "id": "mattathias-1ma-2-1",
+    "name": "Mattathias",
+    "names": ["Mattathias"],
+    "description": "A priest of the sons of Joarib, dwelling in Modin, and father of Judas",
+    "type": "Male",
+    "tribe": "",
+    "father": [],
+    "mother": [],
+    "siblings": [],
+    "partners": [],
+    "children": [
+      {"id": "judas-maccabeus-1ma-2-4", "name": "Judas Maccabeus"}
+    ],
+    "verses": ["1-maccabees/2/1", "1-maccabees/2/14", "1-maccabees/2/16", "1-maccabees/2/17", "1-maccabees/2/19", "1-maccabees/2/24", "1-maccabees/2/27", "1-maccabees/2/39", "1-maccabees/2/45", "1-maccabees/2/49", "1-maccabees/14/29"],
+    "taught": [
+      {
+        "verse": "1 Maccabees 2:19",
+        "url": "/bible/1-maccabees/2#v19",
+        "points": ["what kind of You know what kind of anger it took for him to to defy what everybody else was doing?"],
+        "note": {"label": "THE BEAUTY IN CIVILITY THE COST OF IMMORALITY", "url": "https://youtu.be/QczbDHIehUU?t=6954", "date": "2025-12-13", "teacher": "Bishop"},
+        "ts": "1:55:54",
+        "video": "QczbDHIehUU",
+        "t": 6954
+      }
+    ],
+    "source": {"name": "King James Version with Apocrypha", "license": "Public domain in the United States", "url": "https://github.com/DevSecObie/cyberjudah/tree/ee09d540382dfc8c64be363a95af1b5017fe2737/data/bible"}
+  },
+  {
+    "id": "judas-maccabeus-1ma-2-4",
+    "name": "Judas Maccabeus",
+    "names": ["Judas Maccabeus", "Judas", "Maccabeus"],
+    "description": "Son of Mattathias, called Maccabeus, who rose up in his father’s stead",
+    "type": "Male",
+    "tribe": "",
+    "father": [
+      {"id": "mattathias-1ma-2-1", "name": "Mattathias"}
+    ],
+    "mother": [],
+    "siblings": [],
+    "partners": [],
+    "children": [],
+    "verses": ["1-maccabees/2/4", "1-maccabees/2/66", "1-maccabees/3/1", "1-maccabees/3/11", "1-maccabees/3/12", "1-maccabees/3/13", "1-maccabees/3/14", "1-maccabees/3/16", "1-maccabees/3/17", "1-maccabees/3/18", "1-maccabees/3/25", "1-maccabees/3/26", "1-maccabees/3/42", "1-maccabees/3/55", "1-maccabees/3/58", "1-maccabees/4/3", "1-maccabees/4/5", "1-maccabees/4/6", "1-maccabees/4/8", "1-maccabees/4/13", "1-maccabees/4/16", "1-maccabees/4/19", "1-maccabees/4/21", "1-maccabees/4/23", "1-maccabees/4/29", "1-maccabees/4/35", "1-maccabees/4/36", "1-maccabees/4/41", "1-maccabees/4/59", "1-maccabees/5/3", "1-maccabees/5/10", "1-maccabees/5/16", "1-maccabees/5/17", "1-maccabees/5/20", "1-maccabees/5/24", "1-maccabees/5/28", "1-maccabees/5/31", "1-maccabees/5/34", "1-maccabees/5/35", "1-maccabees/5/38", "1-maccabees/5/39", "1-maccabees/5/40", "1-maccabees/5/42", "1-maccabees/5/44", "1-maccabees/5/45", "1-maccabees/5/48", "1-maccabees/5/49", "1-maccabees/5/53", "1-maccabees/5/55", "1-maccabees/5/61", "1-maccabees/5/63", "1-maccabees/5/65", "1-maccabees/5/68", "1-maccabees/6/19", "1-maccabees/6/32", "1-maccabees/6/42", "1-maccabees/7/6", "1-maccabees/7/10", "1-maccabees/7/23", "1-maccabees/7/25", "1-maccabees/7/27", "1-maccabees/7/29", "1-maccabees/7/30", "1-maccabees/7/31", "1-maccabees/7/35", "1-maccabees/7/40", "1-maccabees/8/1", "1-maccabees/8/17", "1-maccabees/8/20", "1-maccabees/9/5", "1-maccabees/9/7", "1-maccabees/9/10", "1-maccabees/9/13", "1-maccabees/9/14", "1-maccabees/9/16", "1-maccabees/9/18", "1-maccabees/9/19", "1-maccabees/9/22", "1-maccabees/9/23", "1-maccabees/9/26", "1-maccabees/9/28", "1-maccabees/9/29", "1-maccabees/9/31", "1-maccabees/13/8", "1-maccabees/14/18", "2-maccabees/2/14", "2-maccabees/2/19", "2-maccabees/5/27", "2-maccabees/8/1", "2-maccabees/8/5", "2-maccabees/8/12", "2-maccabees/8/16", "2-maccabees/10/1", "2-maccabees/10/16", "2-maccabees/10/19", "2-maccabees/10/21", "2-maccabees/10/25", "2-maccabees/10/30", "2-maccabees/10/33", "2-maccabees/10/35", "2-maccabees/11/6", "2-maccabees/11/7", "2-maccabees/11/15", "2-maccabees/12/5", "2-maccabees/12/11", "2-maccabees/12/12", "2-maccabees/12/14", "2-maccabees/12/15", "2-maccabees/12/19", "2-maccabees/12/20", "2-maccabees/12/21", "2-maccabees/12/22", "2-maccabees/12/23", "2-maccabees/12/26", "2-maccabees/12/27", "2-maccabees/12/28", "2-maccabees/12/36", "2-maccabees/12/38", "2-maccabees/12/39", "2-maccabees/12/42", "2-maccabees/13/1", "2-maccabees/13/10", "2-maccabees/13/12", "2-maccabees/13/13", "2-maccabees/13/20", "2-maccabees/13/22", "2-maccabees/13/24", "2-maccabees/14/1", "2-maccabees/14/6", "2-maccabees/14/10", "2-maccabees/14/11", "2-maccabees/14/13", "2-maccabees/14/14", "2-maccabees/14/17", "2-maccabees/14/18", "2-maccabees/14/24", "2-maccabees/14/26", "2-maccabees/14/27", "2-maccabees/14/30", "2-maccabees/14/31", "2-maccabees/14/33", "2-maccabees/15/1", "2-maccabees/15/6", "2-maccabees/15/7", "2-maccabees/15/15", "2-maccabees/15/17", "2-maccabees/15/21", "2-maccabees/15/26", "2-maccabees/15/30"],
+    "taught": [
+      {
+        "verse": "1 Maccabees 4:59",
+        "url": "/bible/1-maccabees/4#v59",
+        "points": ["right so they ordained the feast of dedication or hanukkah to be kept in their season"],
+        "note": {"label": "The Israelites: Is The Apocrypha Biblical on WGAI 560 AM Radio", "url": "https://youtu.be/M5qAlri2gi8?t=3135", "date": "", "teacher": ""},
+        "ts": "52:15",
+        "video": "M5qAlri2gi8",
+        "t": 3135
+      }
+    ],
+    "source": {"name": "King James Version with Apocrypha", "license": "Public domain in the United States", "url": "https://github.com/DevSecObie/cyberjudah/tree/ee09d540382dfc8c64be363a95af1b5017fe2737/data/bible"}
+  },
+  {
+    "id": "tobit-tob-1-1",
+    "name": "Tobit",
+    "names": ["Tobit"],
+    "description": "Son of Tobiel, of the tribe of Nephthali, and father of Tobias",
+    "type": "Male",
+    "tribe": "Tribe of Nephthali",
+    "father": [],
+    "mother": [],
+    "siblings": [],
+    "partners": [],
+    "children": [
+      {"id": "tobias-tob-1-9", "name": "Tobias"}
+    ],
+    "verses": ["tobit/1/1", "tobit/1/3", "tobit/3/17", "tobit/4/1", "tobit/5/10", "tobit/5/11", "tobit/5/13", "tobit/5/17", "tobit/5/20", "tobit/7/2", "tobit/7/4", "tobit/7/7", "tobit/10/1", "tobit/10/2", "tobit/10/6", "tobit/11/10", "tobit/11/16", "tobit/12/1", "tobit/13/1", "tobit/14/1", "tobit/14/13"],
+    "taught": [],
+    "source": {"name": "King James Version with Apocrypha", "license": "Public domain in the United States", "url": "https://github.com/DevSecObie/cyberjudah/tree/ee09d540382dfc8c64be363a95af1b5017fe2737/data/bible"}
+  },
+  {
+    "id": "tobias-tob-1-9",
+    "name": "Tobias",
+    "names": ["Tobias"],
+    "description": "Son of Tobit and Anna",
+    "type": "Male",
+    "tribe": "",
+    "father": [
+      {"id": "tobit-tob-1-1", "name": "Tobit"}
+    ],
+    "mother": [],
+    "siblings": [],
+    "partners": [],
+    "children": [],
+    "verses": ["tobit/1/9", "tobit/1/20", "tobit/2/1", "tobit/3/17", "tobit/4/2", "tobit/5/1", "tobit/5/7", "tobit/5/16", "tobit/6/17", "tobit/7/5", "tobit/7/8", "tobit/7/9", "tobit/7/11", "tobit/7/13", "tobit/8/1", "tobit/8/4", "tobit/8/5", "tobit/9/1", "tobit/9/6", "tobit/10/7", "tobit/10/9", "tobit/10/12", "tobit/11/1", "tobit/11/2", "tobit/11/7", "tobit/11/15", "tobit/11/17", "tobit/11/19", "tobit/12/1", "tobit/12/2", "tobit/14/12"],
+    "taught": [],
+    "source": {"name": "King James Version with Apocrypha", "license": "Public domain in the United States", "url": "https://github.com/DevSecObie/cyberjudah/tree/ee09d540382dfc8c64be363a95af1b5017fe2737/data/bible"}
+  },
+  {
+    "id": "raphael-tob-3-17",
+    "name": "Raphael",
+    "names": ["Raphael", "Azarias"],
+    "description": "One of the seven holy angels; sent to heal Tobit and give Sara to Tobias",
+    "type": "Angel",
+    "tribe": "",
+    "father": [],
+    "mother": [],
+    "siblings": [],
+    "partners": [],
+    "children": [],
+    "verses": ["tobit/3/17", "tobit/5/4", "tobit/5/12", "tobit/6/6", "tobit/6/13", "tobit/7/8", "tobit/8/2", "tobit/9/1", "tobit/9/2", "tobit/9/5", "tobit/11/2", "tobit/11/7", "tobit/12/15"],
+    "taught": [],
+    "source": {"name": "King James Version with Apocrypha", "license": "Public domain in the United States", "url": "https://github.com/DevSecObie/cyberjudah/tree/ee09d540382dfc8c64be363a95af1b5017fe2737/data/bible"}
+  },
+  {
+    "id": "judith-jdt-8-1",
+    "name": "Judith",
+    "names": ["Judith"],
+    "description": "Daughter of Merari and widow of Manasses",
+    "type": "Female",
+    "tribe": "",
+    "father": [],
+    "mother": [],
+    "siblings": [],
+    "partners": [],
+    "children": [],
+    "verses": ["judith/8/1", "judith/8/4", "judith/8/9", "judith/8/32", "judith/9/1", "judith/10/10", "judith/10/23", "judith/11/5", "judith/12/2", "judith/12/4", "judith/12/14", "judith/12/16", "judith/12/18", "judith/13/2", "judith/13/3", "judith/13/4", "judith/13/11", "judith/14/1", "judith/14/7", "judith/14/8", "judith/14/14", "judith/14/17", "judith/15/8", "judith/15/11", "judith/16/1", "judith/16/2", "judith/16/7", "judith/16/19", "judith/16/20", "judith/16/21", "judith/16/25"],
+    "taught": [],
+    "source": {"name": "King James Version with Apocrypha", "license": "Public domain in the United States", "url": "https://github.com/DevSecObie/cyberjudah/tree/ee09d540382dfc8c64be363a95af1b5017fe2737/data/bible"}
+  },
+  {
+    "id": "holofernes-jdt-2-4",
+    "name": "Holofernes",
+    "names": ["Holofernes"],
+    "description": "Chief captain of the army of Nabuchodonosor, king of the Assyrians",
+    "type": "Male",
+    "tribe": "",
+    "father": [],
+    "mother": [],
+    "siblings": [],
+    "partners": [],
+    "children": [],
+    "verses": ["judith/2/4", "judith/2/14", "judith/3/5", "judith/4/1", "judith/5/1", "judith/5/22", "judith/5/24", "judith/6/1", "judith/6/10", "judith/6/17", "judith/7/1", "judith/7/6", "judith/7/16", "judith/7/26", "judith/10/13", "judith/10/17", "judith/10/18", "judith/10/20", "judith/10/21", "judith/11/1", "judith/11/20", "judith/11/22", "judith/12/3", "judith/12/5", "judith/12/6", "judith/12/7", "judith/12/10", "judith/12/13", "judith/12/15", "judith/12/16", "judith/12/17", "judith/12/20", "judith/13/2", "judith/13/6", "judith/13/9", "judith/13/15", "judith/14/3", "judith/14/6", "judith/14/11", "judith/14/13", "judith/14/18", "judith/15/11", "judith/16/19"],
+    "taught": [],
+    "source": {"name": "King James Version with Apocrypha", "license": "Public domain in the United States", "url": "https://github.com/DevSecObie/cyberjudah/tree/ee09d540382dfc8c64be363a95af1b5017fe2737/data/bible"}
+  },
+  {
+    "id": "achior-jdt-5-5",
+    "name": "Achior",
+    "names": ["Achior"],
+    "description": "Captain of all the sons of Ammon",
+    "type": "Male",
+    "tribe": "",
+    "father": [],
+    "mother": [],
+    "siblings": [],
+    "partners": [],
+    "children": [],
+    "verses": ["judith/5/5", "judith/5/22", "judith/6/1", "judith/6/2", "judith/6/5", "judith/6/10", "judith/6/13", "judith/6/16", "judith/6/20", "judith/11/9", "judith/14/5", "judith/14/6", "judith/14/10"],
+    "taught": [],
+    "source": {"name": "King James Version with Apocrypha", "license": "Public domain in the United States", "url": "https://github.com/DevSecObie/cyberjudah/tree/ee09d540382dfc8c64be363a95af1b5017fe2737/data/bible"}
+  },
+  {
+    "id": "ezra-ezr-7-1",
+    "name": "Ezra",
+    "names": ["Ezra", "Esdras"],
+    "description": "Priest and scribe, ready in the law of Moses, who went up from Babylon",
+    "type": "Male",
+    "tribe": "Tribe of Levi",
+    "father": [
+      {"id": "seraiah-2ki-25-18", "name": "Seraiah"}
+    ],
+    "mother": [],
+    "siblings": [
+      {"id": "jehozadak-1ch-6-14", "name": "Jehozadak"}
+    ],
+    "partners": [],
+    "children": [],
+    "verses": ["ezra/7/1", "ezra/7/6", "ezra/7/10", "ezra/7/11", "ezra/7/12", "ezra/7/21", "ezra/7/25", "ezra/10/1", "ezra/10/2", "ezra/10/5", "ezra/10/6", "ezra/10/10", "ezra/10/16", "nehemiah/8/1", "nehemiah/8/2", "nehemiah/8/4", "nehemiah/8/5", "nehemiah/8/6", "nehemiah/8/9", "nehemiah/8/13", "nehemiah/12/26", "nehemiah/12/36", "1-esdras/8/1", "1-esdras/8/3", "1-esdras/8/7", "1-esdras/8/8", "1-esdras/8/9", "1-esdras/8/19", "1-esdras/8/23", "1-esdras/8/25", "1-esdras/8/91", "1-esdras/8/92", "1-esdras/8/96", "1-esdras/9/1", "1-esdras/9/7", "1-esdras/9/16", "1-esdras/9/39", "1-esdras/9/40", "1-esdras/9/42", "1-esdras/9/45", "1-esdras/9/46", "1-esdras/9/49", "2-esdras/1/1", "2-esdras/2/10", "2-esdras/2/33", "2-esdras/2/42", "2-esdras/6/10", "2-esdras/7/2", "2-esdras/7/25", "2-esdras/8/2", "2-esdras/8/19", "2-esdras/14/1", "2-esdras/14/38"],
+    "taught": [],
+    "source": {"name": "TIPNR, Translators Individualised Proper Names with all References, by Tyndale House Cambridge, STEPBible.org; added references from the KJV Apocrypha", "license": "CC BY 4.0 (existing record); KJV text: public domain in the United States", "url": "https://github.com/DevSecObie/cyberjudah/blob/ee09d540382dfc8c64be363a95af1b5017fe2737/data/people/people.json"}
+  },
+  {
+    "id": "zerubbabel-1ch-3-19",
+    "name": "Zerubbabel",
+    "names": ["Zerubbabel", "Sheshbazzar", "Zorobabel"],
+    "description": "Governor of Judea, who began to build the house of the Lord at Jerusalem",
+    "type": "Male",
+    "tribe": "Tribe of Judah",
+    "father": [
+      {"id": "pedaiah-1ch-3-18", "name": "Pedaiah"}
+    ],
+    "mother": [],
+    "siblings": [
+      {"id": "shimei-1ch-3-19", "name": "Shimei"}
+    ],
+    "partners": [],
+    "children": [
+      {"id": "meshullam-1ch-3-19", "name": "Meshullam"},
+      {"id": "hananiah-1ch-3-19", "name": "Hananiah"},
+      {"id": "shelomith-1ch-3-19", "name": "Shelomith"},
+      {"id": "hashubah-1ch-3-20", "name": "Hashubah"},
+      {"id": "ohel-1ch-3-20", "name": "Ohel"},
+      {"id": "berechiah-1ch-3-20", "name": "Berechiah"},
+      {"id": "hasadiah-1ch-3-20", "name": "Hasadiah"},
+      {"id": "jushab-hesed-1ch-3-20", "name": "Jushab-hesed"},
+      {"id": "abiud-mat-1-13", "name": "Abiud"}
+    ],
+    "verses": ["1-chronicles/3/19", "ezra/1/8", "ezra/1/11", "ezra/2/2", "ezra/3/2", "ezra/3/8", "ezra/4/2", "ezra/4/3", "ezra/5/2", "ezra/5/14", "ezra/5/16", "nehemiah/7/7", "nehemiah/12/1", "nehemiah/12/47", "haggai/1/1", "haggai/1/12", "haggai/1/14", "haggai/2/2", "haggai/2/4", "haggai/2/21", "haggai/2/23", "zechariah/4/6", "zechariah/4/7", "zechariah/4/9", "zechariah/4/10", "matthew/1/12", "matthew/1/13", "1-esdras/4/13", "1-esdras/5/5", "1-esdras/5/8", "1-esdras/5/48", "1-esdras/5/56", "1-esdras/5/68", "1-esdras/5/70", "1-esdras/6/2", "1-esdras/6/18", "1-esdras/6/27", "1-esdras/6/29", "sirach/49/11"],
+    "taught": [],
+    "source": {"name": "TIPNR, Translators Individualised Proper Names with all References, by Tyndale House Cambridge, STEPBible.org; added references from the KJV Apocrypha", "license": "CC BY 4.0 (existing record); KJV text: public domain in the United States", "url": "https://github.com/DevSecObie/cyberjudah/blob/ee09d540382dfc8c64be363a95af1b5017fe2737/data/people/people.json"}
+  }
+]

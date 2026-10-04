@@ -25,7 +25,50 @@ request that introduced this file ([#77]).
 Merged to `main` and not yet in a tagged release. Production currently runs `861242f`
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
+### Fixed
+- The Home screen's featured class label now follows the calendar: a class dated in the current Sabbath-to-Sabbath week reads "This week's class", last week's reads "Last week's class", and older classes show just their date.
+- The YouTube-outage fallback now reads the channel page's current card layout (`lockupViewModel`): YouTube changed its markup after the #122 hotfix shipped, so the fallback silently found nothing. Classes again appear as "Notes coming soon" while the RSS feed is down.
+
 ### Added
+- The Final Captivity, the twelve tribes: 41 events of the North American Indians (Gad) and the
+  Seminoles (Reuben), from the Pequot War (1637) to today, from Wikipedia, the National Park
+  Service and the classes. Each event names the tribes it concerns; an event may stand on its
+  documented sources alone; an outside charge can be answered from the KJV and the Apocrypha
+  ("What the scriptures say"); and a new period, Unto This Day (2003 to today).
+- Ask CyberJudah answers from the whole app: Easton's Bible Dictionary and Strong's, a person's
+  whole entry in People (family, tribe, picture), a verse's study (the classes and notes that read
+  it, its precepts, cross-references), the Law handbook, the precept topics and the Timeline (with
+  the classes' own words and sources), each with its in-app link; and it can show the app's own
+  pictures in an answer (only the app's, never another site's).
+- Ask CyberJudah can read approved outside sources (the owner's whitelist: israelunite.org,
+  Wikipedia, archive.org, Project Gutenberg, the Library of Congress and others, editable by an
+  admin), after the app and the classes, cited by number and opened in the browser; and it covers
+  the Apocrypha (its text, its verses' study, and its people through the dictionary and approved
+  sources until People has them).
+- When YouTube's feed is having trouble, the Classes screen says so: a dismissible notice
+  explains that new uploads aren't reaching the app, instead of silently showing nothing new.
+  Everything already in the app keeps working; the notice clears itself when the feed recovers.
+- Ask CyberJudah is pay as you go, at cost, with the balance in dollars: "$4.82 left" at the
+  top, and under each answer what it cost ("$0.05", or "<$0.01"), at the model's own price.
+  CyberJudah makes no profit. Top-ups of $1, $5 and $20 are bought with Telegram Stars; the
+  sheet shows each one's Stars and why a dollar costs about 77 of them (Telegram's and the app
+  store's share). A usage history lists each answer and top-up. Dearer models ask before an
+  answer that may cost more than $0.25, and with too little balance Ask offers the free model,
+  which stays free for everyone.
+- No top-ups on the Sabbath, feast days and New Moons: from full dark the evening before to full
+  dark at the day's end, wherever the reader is, the top-up buttons say when they open again,
+  and Telegram's checkout is refused. A balance already held can still be used. The feast days
+  and New Moons come from the IUIC calendar, refreshed weekly as a pull request to approve.
+- An opt-in reminder to top up before the Sabbath and feast days: a Telegram message at midday
+  the day before, only when the balance is under $1.
+- Admins can change a photo from the app: a leader's portrait, a Timeline period's cover or an
+  event's picture. Choose a photo, drag and zoom it in the frame, Save; everyone sees it straight
+  away, and Remove photo brings back the app's own.
+- The Bible Timeline's last age, **The Final Captivity**: five periods from the first ships (1441)
+  to Israel United in Christ today, 161 events so far, more being added as each is checked. Each
+  event keeps apart the documented history (with its sources), quotes from the classes (each linked to the
+  class or episode at the moment it was taught) and the Scriptures read with it; where sources
+  disagree, both are shown. Sources reviewed through 3 October 2026.
 - The Bible Timeline moves as Bible Strong's does: a period opens on its title card before the
   canvas slides in, the line and year travel with the canvas past either end, the next period's
   card fades in behind, and back from an event, a verse or a case study returns to the same place.
@@ -87,6 +130,17 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   in the Bible*. Regenerate the data with `node app/scripts/timeline-data.mjs <cases>`.
 
 ### Fixed
+- Upload notices refresh while the app is open, clear when the feed recovers, and can announce a later outage after dismissal. Their dismiss button has a full 44px touch target.
+- Keep uploaded classes marked “Notes coming soon” visible during YouTube RSS outages, using channel-page fallback and retained recent recordings.
+- The book picker brings the current book into view after its animated panel mounts, including when the browser delays the opening snapshot.
+
+- Navigation materials share opaque accessibility fallbacks; menus avoid stacked glass, while content sheets and media controls keep their text legible.
+- Keep a reader's chosen keyboard focus when the Search screen finishes loading late, while retaining initial search-field focus on ordinary navigation.
+- Keep the audio reading’s return control visible when scrolling changes the Bible header before its pending position update.
+- The glass dock keeps its labels crisp in every browser, with one material behind the controls,
+  a gentle selection response and tint that preserves contrast in every reader palette. Ordinary
+  taps and canceled drags work reliably. Reduce Transparency also makes the Bible dock opaque,
+  and Reduce Motion stops selection and icon scaling.
 - Ask CyberJudah: an answer is finished and saved even if you leave mid-answer, and coming back
   (a refresh, the app reopened, the connection back) waits for it instead of calling it lost; an
   answer still arriving for a chat you left never appears in the next one; a question typed while
@@ -95,6 +149,32 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   is unavailable, Ask answers from the keyword search.
 
 ### Changed
+- Tabs now collapse into their preview cards and expand back with consistent motion, preserve reading position, and return to the selected tab with Back; preview cards fit beside the desktop sidebar.
+- Keep reader context readable and gallery panels opaque across themes; document the Liquid Glass adoption review.
+
+- Reduced repeated palette calculations and dock style updates; browser checks now cover glass budgets and large-text label containment in Chromium, WebKit and Firefox.
+
+- Local app icons now include layered lion artwork, full-bleed light/dark squares, PWA maskable safe-zone exports and a monochrome variant.
+
+- Search stays last in its own round dock control without rewriting saved button choices; the phone search field follows the keyboard viewport above the dock, and touch actions activate once after scrolling or dragging.
+- Increased contrast now has explicit light, dark and sepia palettes, including Bible controls; secondary text, status colors and Home widgets keep readable contrast on their surfaces.
+- Lists and settings use roomier grouped rows with shared rounded corners. Section headings keep normal title case, and related settings have accessible form groups.
+- The Bible Timeline shows 45 more portraits (83 in all): picture rounds 2–4 (Solomon recropped, the
+  Red Sea, Bethel, Christ, prophets, kings, apostles, Reformation figures and Jacob), with their
+  sources in docs/AVATARS.md.
+- Auto and half sheets float inside the safe edges with shared rounded corners; full sheets expand to the phone edges. On larger screens, action lists open beside their control and leave the page usable.
+
+- Unify menu action icons and toolbar groups, add desktop tooltips and keyboard menu navigation, and animate popovers from their controls with accessible fallbacks.
+- Adapt the dock into a sidebar from 900px, reserve content width, and keep navigation reachable after scrolling or resizing, including native document scrolling in WebKit.
+
+- Unify Liquid Glass control styles, capsule sizing, nested radii and accessible large-text behavior, including lifted knobs, shared header fades, enlarged segmented labels and touch scrolling for overflowing navigation rails.
+- The monthly Ask plan, its bonus and the free daily allowance for paid models are gone. Any
+  credit or plan allowance left carries over to the balance at its exact worth; a plan that
+  renews adds its Stars to the balance and is then cancelled.
+- Ask CyberJudah: the model is chosen at the top, under the title (tap it to change), and the
+  allowance moves to the line under the question box. An admin starts on Claude Opus 5.5
+  (`CLAUDE_MODEL_ADMIN`) and every other reader on Claude Sonnet 5 (`CLAUDE_MODEL`); a model a
+  reader picks is kept as before.
 - This changelog, the incident log ([docs/INCIDENTS.md](docs/INCIDENTS.md)) and the release rules;
   a pull-request check asks every change for a changelog line or a reason it needs none ([#77]).
 
@@ -104,7 +184,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 |---|---|---|---|---|---|
 | Search may fail during each production deploy while the search index is re-imported | Maintainer (deploy pipeline) | None yet | Search errors for the length of the import (not measured) | None | Decide whether to skip the import when the index is unchanged |
 | Precept-pass fixes requested with `@codex` never arrived (Codex was not connected until 2026-10-02) | Repository owner | cyberjudah [#14](https://github.com/DevSecObie/cyberjudah/pull/14), [#15](https://github.com/DevSecObie/cyberjudah/pull/15) | Two passes cannot merge | The owner applies the listed fixes | Fixes re-requested on 2026-10-02; review the new commits, then merge |
-| Liquid Glass refraction (the lens bend on the dock) is Chromium-only | Front end | None | Cosmetic: iPhone (Telegram's WebKit view, Safari, Chrome on iOS) and Firefox get frosted glass without the bend | None needed | Keep it a progressive enhancement; see the selection-sheet review |
+| Native Liquid Glass rendering is unavailable inside the web app | Front end | [Design system](docs/DESIGN_SYSTEM.md#dock-material-and-interaction-correction) | The dock uses a consistent CSS material; native lensing and system morphing require a native client | Web material with accessible fallbacks | Verify the updated dock on physical iOS Telegram and macOS Safari |
 | Bible Strong features not yet in the app | Product owner | [issue #47] | Listed in the issue | Not applicable | Classify each item |
 
 ## Production history (retrospective, untagged)

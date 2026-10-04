@@ -56,7 +56,7 @@ export function Drawers() {
           <>
             <div className="drawer__scroll"><HomeBody drawer /></div>
             <div className="drawer__fade" aria-hidden="true" />
-            <button type="button" className="drawer__x" aria-label="Close Home" onClick={() => { haptic("select"); setDrawer(null); }}><Icon name="close" size={24} /></button>
+            <button type="button" className="drawer__x" aria-label="Close Home" title="Close Home" onClick={() => { haptic("select"); setDrawer(null); }}><Icon name="close" size={24} /></button>
           </>
         ) : null}
       </Panel>
@@ -64,7 +64,7 @@ export function Drawers() {
         {shown === "more" ? (
           <>
             <header className="drawer__head">
-              <button type="button" className="drawer__back" aria-label="Close the menu" onClick={() => { haptic("select"); setDrawer(null); }}><Icon name="back" size={22} /></button>
+              <button type="button" className="drawer__back" aria-label="Close the menu" title="Close the menu" onClick={() => { haptic("select"); setDrawer(null); }}><Icon name="back" size={22} /></button>
               <h2>More</h2>
             </header>
             <div className="drawer__scroll"><MoreBody /></div>

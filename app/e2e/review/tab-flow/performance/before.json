@@ -1,0 +1,92 @@
+{
+  "browser": "153.0.8010.12",
+  "build": "production",
+  "cpuThrottle": 4,
+  "measuredCommit": "3b7a6036ca0413f7cbc0e0a8c61fe5866cfeaeff",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "measurements": [
+    {
+      "action": "dock-drag",
+      "frames": {
+        "samples": 146,
+        "medianMs": 16.7,
+        "p95Ms": 33.4,
+        "maxMs": 100
+      },
+      "framesOver33ms": 7,
+      "mainThreadWork": {
+        "samples": 146,
+        "medianMs": 8.74,
+        "p95Ms": 32.73,
+        "maxMs": 112.74
+      },
+      "workIntervalsOver16ms": 30,
+      "taskEvents": 1103,
+      "layoutMs": 55.73,
+      "styleMs": 396.6
+    },
+    {
+      "action": "sheet-open",
+      "frames": {
+        "samples": 50,
+        "medianMs": 16.7,
+        "p95Ms": 50,
+        "maxMs": 100
+      },
+      "framesOver33ms": 3,
+      "mainThreadWork": {
+        "samples": 50,
+        "medianMs": 2.83,
+        "p95Ms": 42.5,
+        "maxMs": 115.14
+      },
+      "workIntervalsOver16ms": 5,
+      "taskEvents": 193,
+      "layoutMs": 29.93,
+      "styleMs": 67.72
+    },
+    {
+      "action": "tab-overview",
+      "frames": {
+        "samples": 47,
+        "medianMs": 16.7,
+        "p95Ms": 50,
+        "maxMs": 133.3
+      },
+      "framesOver33ms": 3,
+      "mainThreadWork": {
+        "samples": 48,
+        "medianMs": 4.85,
+        "p95Ms": 28.15,
+        "maxMs": 184.28
+      },
+      "workIntervalsOver16ms": 9,
+      "taskEvents": 214,
+      "layoutMs": 117.01,
+      "styleMs": 27.79
+    },
+    {
+      "action": "tab-return",
+      "frames": {
+        "samples": 42,
+        "medianMs": 16.7,
+        "p95Ms": 33.3,
+        "maxMs": 50
+      },
+      "framesOver33ms": 2,
+      "mainThreadWork": {
+        "samples": 43,
+        "medianMs": 2.98,
+        "p95Ms": 32.89,
+        "maxMs": 61.48
+      },
+      "workIntervalsOver16ms": 7,
+      "taskEvents": 226,
+      "layoutMs": 13.22,
+      "styleMs": 69.23
+    }
+  ]
+}

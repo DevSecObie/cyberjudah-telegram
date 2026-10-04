@@ -94,13 +94,13 @@ export function MediaDeck({ items, placement, palette: c, fontScale, sections, r
   return (
     <>
       <button ref={stack} type="button" className="bs-deck" data-ignore-verse-touch="" disabled={disabled} style={style}
-        aria-label={`${items.length === 1 ? "1 class" : `${items.length} classes`} taught this ${placement === "chapter" ? "chapter" : "verse"}`}
+        aria-label={`${items.length === 1 ? "1 class" : `${items.length} classes`} taught this ${placement === "chapter" ? "chapter" : "verse"}`} title={`${items.length === 1 ? "1 class" : `${items.length} classes`} taught this ${placement === "chapter" ? "chapter" : "verse"}`}
         onClick={(e) => { e.stopPropagation(); if (disabled) return; haptic("select"); setMode("gallery"); }}>
         {shown.map((m, i) => {
           const f = fan(i, shown.length);
           return (
             <span key={deckKey(m)} data-deck-card={deckKey(m)} data-rotate={f.r} className="bs-deck__card"
-              style={{ width: cardW, height: cardH, borderColor: c.reverse, borderRadius: inline ? 5 : 9, transform: `translateX(${f.x}px) rotate(${f.r}deg)`, zIndex: i + 1, visibility: mode === "closed" ? undefined : "hidden" }}>
+              style={{ width: cardW, height: cardH, borderColor: "var(--canvas)", borderRadius: inline ? 5 : 9, transform: `translateX(${f.x}px) rotate(${f.r}deg)`, zIndex: i + 1, visibility: mode === "closed" ? undefined : "hidden" }}>
               <DeckImage video={m.video} />
             </span>
           );
@@ -127,7 +127,7 @@ function DeckImage({ video, children, hidden }: { video: string; children?: Reac
   );
 }
 
-function DeckOverlay({ items, sections, source, palette: c, reference, from, mode, selected, onSelect, onClosed }: {
+function DeckOverlay({ items, sections, source, reference, from, mode, selected, onSelect, onClosed }: {
   items: ClassMoment[]; sections?: DeckSection[]; source: React.RefObject<HTMLButtonElement | null>; palette: Palette; reference: string; from: string;
   mode: "gallery" | "playing"; selected: ClassMoment | null; onSelect: (m: ClassMoment) => void; onClosed: () => void;
 }) {
@@ -209,8 +209,8 @@ function DeckOverlay({ items, sections, source, palette: c, reference, from, mod
 
   const card = (m: ClassMoment) => (
     <article key={deckKey(m)} className="bs-gallery__item" onClick={(e) => e.stopPropagation()}>
-      <button type="button" className="bs-gallery__btn" aria-label={`${m.label}, at ${m.ts}`} onClick={(e) => choose(m, e)}>
-        <span className="bs-gallery__pic" data-gallery-card={deckKey(m)} style={{ borderColor: c.reverse }}>
+      <button type="button" className="bs-gallery__btn" aria-label={`${m.label}, at ${m.ts}`} title={`${m.label}, at ${m.ts}`} onClick={(e) => choose(m, e)}>
+        <span className="bs-gallery__pic" data-gallery-card={deckKey(m)} style={{ borderColor: "var(--canvas)" }}>
           <DeckImage video={m.video}><span className="bs-gallery__badge">{m.ts}</span></DeckImage>
         </span>
       </button>
@@ -225,10 +225,10 @@ function DeckOverlay({ items, sections, source, palette: c, reference, from, mod
 
   return createPortal(
     <div ref={root} className="bs-gallery" data-open={shown ? "" : undefined} data-mode={mode} role="dialog" aria-modal="true" aria-label="Classes that taught this" data-sheet-open=""
-      style={{ ["--deck-bg" as string]: c.reverse, ["--deck-ink" as string]: c.default, ["--deck-primary" as string]: c.primary, color: c.default }}
+      style={{ ["--deck-bg" as string]: "var(--canvas)", ["--deck-ink" as string]: "var(--text-1)", ["--deck-primary" as string]: "var(--accent)", color: "var(--text-1)" }}
       onClick={close}>
-      <button type="button" className="bs-gallery__close" aria-label="Close" style={{ background: c.reverse, color: c.default }} onClick={(e) => { e.stopPropagation(); close(); }}>
-        <Feather name="x" size={24} color={c.default} />
+      <button type="button" className="bs-gallery__close" aria-label="Close" title="Close" style={{ background: "var(--canvas)", color: "var(--text-1)" }} onClick={(e) => { e.stopPropagation(); close(); }}>
+        <Feather name="x" size={24} color={"var(--text-1)"} />
       </button>
       {mode === "gallery" ? (
         <div className="bs-gallery__scroll">
@@ -239,7 +239,7 @@ function DeckOverlay({ items, sections, source, palette: c, reference, from, mod
                   {list.length > 1 ? <h2 style={{ animationDelay: `${80 + i * 60}ms` }}>{s.title}{s.items.length > 1 ? <span className="bs-gallery__count"> · {s.items.length}</span> : null}</h2> : null}
                   {grid(all.has(s.title) ? s.items : s.items.slice(0, SHOWN), false)}
                   {s.items.length > SHOWN && !all.has(s.title) ? (
-                    <button type="button" className="bs-gallery__more" style={{ background: c.reverse, color: c.default, borderColor: c.border }}
+                    <button type="button" className="bs-gallery__more" style={{ background: "var(--canvas)", color: "var(--text-1)", borderColor: "var(--control-edge)" }}
                       onClick={(e) => { e.stopPropagation(); haptic("select"); setAll((a) => new Set(a).add(s.title)); }}>Show all {s.items.length}</button>
                   ) : null}
                 </section>
@@ -248,23 +248,23 @@ function DeckOverlay({ items, sections, source, palette: c, reference, from, mod
           ) : <>
             {grid(all.has("") ? items : items.slice(0, SHOWN), items.length <= 4)}
             {items.length > SHOWN && !all.has("") ? (
-              <button type="button" className="bs-gallery__more" style={{ background: c.reverse, color: c.default, borderColor: c.border }}
+              <button type="button" className="bs-gallery__more" style={{ background: "var(--canvas)", color: "var(--text-1)", borderColor: "var(--control-edge)" }}
                 onClick={(e) => { e.stopPropagation(); haptic("select"); setAll((a) => new Set(a).add("")); }}>Show all {items.length}</button>
             ) : null}
           </>}
         </div>
       ) : selected ? (
         <div className="bs-player" onClick={(e) => e.stopPropagation()}>
-          <div className="bs-player__box" style={{ borderColor: c.reverse }}>
+          <div className="bs-player__box" style={{ borderColor: "var(--canvas)" }}>
             <DeckImage video={selected.video} hidden={ready} />
             <iframe src={embed(selected.video, selected.t)} title={selected.label} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"
               onLoad={() => window.setTimeout(() => setReady(true), 220)} style={{ opacity: ready ? 1 : 0 }} />
           </div>
           <div className="bs-player__actions">
             {selected.url
-              ? <button type="button" style={{ background: c.reverse, color: c.default, borderColor: c.border }} onClick={() => openNote(selected)}>Class notes</button>
-              : <RequestNotes video={selected.video} title={selected.label} style={{ background: c.reverse, color: c.default, borderColor: c.border }} />}
-            <button type="button" style={{ background: c.reverse, color: c.default, borderColor: c.border }} onClick={() => { haptic("select"); openLink(youtube(selected.video, selected.t)); }}>Open in YouTube</button>
+              ? <button type="button" style={{ background: "var(--canvas)", color: "var(--text-1)", borderColor: "var(--control-edge)" }} onClick={() => openNote(selected)}>Class notes</button>
+              : <RequestNotes video={selected.video} title={selected.label} style={{ background: "var(--canvas)", color: "var(--text-1)", borderColor: "var(--control-edge)" }} />}
+            <button type="button" style={{ background: "var(--canvas)", color: "var(--text-1)", borderColor: "var(--control-edge)" }} onClick={() => { haptic("select"); openLink(youtube(selected.video, selected.t)); }}>Open in YouTube</button>
           </div>
         </div>
       ) : null}

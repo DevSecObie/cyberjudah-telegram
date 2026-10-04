@@ -7,7 +7,7 @@
      content     .surface / cards: tinted, edged, no backdrop filter
      navigation  .glass: the header bar and the dock, the only two frosted layers on a screen
      elevated    menus and popovers: a denser glass, transient
-     overlay     sheets, drawers and dialogs: near-opaque over a dimming scrim, no blur of their own
+     overlay     content sheets, Home drawer and dialogs: opaque over a dimming scrim, no blur
 
    Budget: at most two backdrop filters are visible at rest (the header and the dock); a transient
    menu may make three. Repeated items never carry a filter, and nothing animates a blur.
@@ -34,7 +34,7 @@
 #root { overflow-x: clip; }
 .screen {
   box-sizing: border-box; max-width: var(--w-read); margin: 0 auto;
-  padding: calc(var(--sp-3) + var(--safe-top)) var(--gutter) var(--sp-6);
+  padding: calc(var(--sp-3) + var(--safe-top)) calc(var(--gutter) + var(--safe-right)) var(--sp-6) calc(var(--gutter) + var(--safe-left));
   display: flex; flex-direction: column; gap: 22px; min-width: 0;
 }
 .head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-3); min-width: 0; }
@@ -49,151 +49,146 @@
 .screen > .head { margin: 0 calc(-1 * var(--gutter)); padding: calc(var(--sp-2) + var(--safe-top)) var(--gutter) var(--sp-2); }
 .screen > .head .title { font-size: var(--fs-title1); }
 .screen > .head::before, .srch__bar::before, .chat2__bar::before, .reader__bar::before {
-  content: ""; position: absolute; z-index: -1; top: 0; bottom: -14px; left: 50%; width: 100vw; margin-left: -50vw; pointer-events: none;
+  content: ""; position: absolute; z-index: -1; top: 0; bottom: calc(-1 * var(--mat-scroll-edge-depth)); left: 50%; width: var(--content-width); margin-left: calc(var(--content-width) / -2); pointer-events: none;
   background: var(--mat-nav);
   -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
-  -webkit-mask-image: linear-gradient(#000 calc(100% - 14px), transparent); mask-image: linear-gradient(#000 calc(100% - 14px), transparent);
+  -webkit-mask-image: var(--mat-scroll-edge); mask-image: var(--mat-scroll-edge);
 }
+/* One scroll-edge mask for every header material, including lazy-loaded screens. */
+:is(.bs-header, .tlh, .pv__bar)::before {
+  content: ""; position: absolute; inset: 0 0 calc(-1 * var(--mat-scroll-edge-depth)); z-index: -1; pointer-events: none;
+  background: var(--mat-nav); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
+}
+:is(.screen > .head, .srch__bar, .chat2__bar, .reader__bar, .bs-header, .tlh, .pv__bar)::before {
+  -webkit-mask-image: var(--mat-scroll-edge); mask-image: var(--mat-scroll-edge);
+}
+.tlh.glass, .pv__bar { isolation: isolate; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* A hairline where the glass meets the page, drawn inside the fade so it reads as an edge. */
 .screen > .head::after, .srch__bar::after, .chat2__bar::after, .reader__bar::after {
-  content: ""; position: absolute; z-index: -1; bottom: 0; left: 50%; width: 100vw; margin-left: -50vw; height: .5px; pointer-events: none;
+  content: ""; position: absolute; z-index: -1; bottom: 0; left: 50%; width: var(--content-width); margin-left: calc(var(--content-width) / -2); height: .5px; pointer-events: none;
   background: var(--mat-edge);
 }
 
 /* ── The dock ────────────────────────────────────────────────────────────────────────────────
    A floating glass capsule. Every section keeps a fixed slot with its icon and name, so nothing
-   moves when the selection changes; the current one sits on a brighter pill with a soft glow
-   beneath it and a bolder name. Scrolling down shrinks it to the current section alone. */
+   moves when the selection changes; a filled selection and bolder name mark the current section. Scrolling down shrinks it to the current section alone. */
 .tabs {
-  position: fixed; z-index: var(--z-dock); left: 0; right: 0; bottom: calc(var(--dock-gap) + var(--safe-bottom));
-  box-sizing: border-box; width: min(calc(100% - 20px), 560px); height: var(--dock-h); margin: 0 auto; padding: 6px;
+  position: fixed; z-index: var(--z-dock); left: var(--safe-left); right: var(--safe-right); bottom: calc(var(--dock-gap) + var(--safe-bottom));
+  box-sizing: border-box; width: min(calc(100% - 20px - var(--safe-left) - var(--safe-right)), 560px); height: var(--dock-h); margin: 0 auto; padding: 6px;
   display: flex; align-items: center; gap: 0;
-  border-radius: calc(var(--dock-h) / 2);
-  background: var(--dock-tint-override, var(--mat-nav));
+  --r-outer: calc(var(--dock-h) / 2); --inset: 6px; --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset)));
+  border-radius: var(--r-outer);
+  background: transparent;
   border: .5px solid var(--dock-edge-override, var(--mat-edge));
   box-shadow: var(--mat-highlight), var(--mat-shadow);
   touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
-  transition: transform var(--dur-4) var(--drawer-ease), width var(--dur-3) var(--ease), height var(--dur-3) var(--ease), border-radius var(--dur-3) var(--ease);
+  transition: transform var(--dur-4) var(--drawer-ease);
 }
-/* The frost is its own layer, not the bar's: a blur on the bar itself would hide what lies
-   behind it from the lens inside it. */
+/* One regular material behind the controls, in Safari as well as Chromium. The selection is a
+   fill on this surface, never a second backdrop filter over the labels. */
 .tabs::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  top: calc(-1 * var(--mat-scroll-edge-depth));
+  -webkit-mask-image: var(--mat-scroll-edge-up); mask-image: var(--mat-scroll-edge-up);
+  background: var(--dock-tint-override, var(--mat-nav));
   -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
 }
-/* Where the lens can bend what is behind it (refraction.tsx, Chromium), it floats over the icons
-   as the glass does in iOS: the section beneath it seen through the drop, magnified at its middle,
-   curved and split into colour at its rim. Its tint thins so what it bends shows clearly. */
-.tabs[data-refract] .tabs__pill { z-index: 2; }
-/* Only inner shadows on the refracting lens: in Chromium an outer shadow shifts the filter's
-   coordinates and tears the refraction. */
-html:root .tabs[data-refract] .tabs__pill { box-shadow: inset 0 1px 1px color-mix(in srgb, #fff 60%, transparent), inset 0 -1px 1px color-mix(in srgb, #fff 16%, transparent), inset 0 -10px 16px -12px rgba(0, 0, 0, .35); }
-html:root .tabs[data-refract][data-lift] .tabs__pill { box-shadow: inset 0 1.5px 1px color-mix(in srgb, #fff 75%, transparent), inset 0 -1.5px 1px color-mix(in srgb, #fff 30%, transparent), inset 0 0 12px color-mix(in srgb, #fff 10%, transparent); }
-.tabs[data-refract] .tabs__pill,
-html[data-theme="light"] .tabs[data-refract] .tabs__pill { background: radial-gradient(120% 80% at 30% -10%, color-mix(in srgb, #fff 18%, transparent), transparent 60%); }
-.tabs[data-refract] .tab__glyph { scale: 1; }
-/* On a pale bar the lens keeps the page's own brightness, or it washes to white. */
-html:root[data-theme="light"] .tabs[data-refract] .tabs__pill { -webkit-backdrop-filter: url(#lens-rest) saturate(140%); backdrop-filter: url(#lens-rest) saturate(140%); }
-html:root[data-theme="light"] .tabs[data-refract][data-lift] .tabs__pill { -webkit-backdrop-filter: url(#lens-lift) saturate(150%) brightness(1.02); backdrop-filter: url(#lens-lift) saturate(150%) brightness(1.02); }
-/* The lens bends what lies behind it (refraction.tsx): a little at rest, fully when lifted. */
-.tabs[data-refract] .tabs__pill { -webkit-backdrop-filter: url(#lens-rest) saturate(160%) brightness(1.12); backdrop-filter: url(#lens-rest) saturate(160%) brightness(1.12); }
-html:root .tabs[data-refract][data-lift] .tabs__pill { -webkit-backdrop-filter: url(#lens-lift) saturate(180%) brightness(1.2); backdrop-filter: url(#lens-lift) saturate(180%) brightness(1.2); }
+/* A floating selection sheet can cover the dock. Keep its underlying surface solid, including
+   on desktop where part of the rail remains visible; only the header and sheet then blur. */
+html:has(.bs-selected) .tabs::before { background: var(--dock-base-override, var(--mat-base)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* Full-screen media already covers the app's navigation. Do not keep hidden filters running. */
+html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__bar, .tlh)::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* A specular edge brightens during a press without distorting the text or sampling a
+   second backdrop. The highlight fades into the material, not into a coloured fringe. */
+.tabs::after {
+  content: ""; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none;
+  padding: 1px; opacity: .5; transition: opacity var(--dur-1) ease;
+  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, white 65%, transparent), transparent 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
+}
+.tabs[data-lift]::after { opacity: 1; }
 .tabs .tab {
-  position: relative; z-index: 1; flex: 1 1 0; min-width: var(--touch); height: 48px; padding: 0;
+  position: relative; z-index: 1; flex: 1 1 0; min-width: var(--touch); height: calc(var(--dock-h) - 12px); padding: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  border: 0; border-radius: 24px; background: none; color: var(--dock-ink-override, var(--text-2)); cursor: pointer;
-  transition: color var(--dur-2) ease;
+  border: 0; border-radius: var(--r-inner); background: none; color: var(--dock-ink-override, var(--text-2)); cursor: pointer;
 }
 .tab__glyph { display: grid; place-items: center; height: 26px; transition: transform var(--dur-1) var(--ease); }
 .tabs .tab:active .tab__glyph { transform: scale(.88); }
-.tab__label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 10.5px/1.1 var(--font-ui); letter-spacing: -.01em; }
+.tab__label { max-width: 100%; overflow-wrap: anywhere; text-align: center; font: 500 .65625rem/1.1 var(--font-ui); letter-spacing: -.01em; }
 .tabs .tab[data-on] { color: var(--dock-ink-override, var(--text-1)); }
 .tabs .tab[data-on] .tab__label { font-weight: 700; }
-/* The pill under the current section, a drop of liquid glass: it lifts and saturates what lies
-   behind it, catches light along its top and at its rim, sits on a soft shadow, and stretches as
-   it flows to another section before settling. Its glow along the foot names the section. */
+/* Search shares the group's single material, with its own round control and fixed gap. */
+.tabs__main { display: flex; flex: 1 1 0; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.tabs .tab--search { flex: none; width: calc(var(--dock-h) - 12px); aspect-ratio: 1; margin-left: var(--sp-2); border-radius: 50%; background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--control-edge); }
+.tabs .tab--search .tab__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.tabs[data-search-current] .tabs__pill { border-radius: 50%; }
+.tabs .tab--search[data-on] { background: transparent; }
+/* Concentric selection inside the dock. It shares the dock's material and keeps all glyphs
+   and labels crisp. Transforms provide press/drag feedback; blur itself never animates. */
 .tabs__pill {
   position: absolute; z-index: 0; left: 0; top: 0; width: var(--pill-w, 44px); height: var(--pill-h, 48px);
-  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)); border-radius: 24px; pointer-events: none;
-  background:
-    radial-gradient(120% 80% at 30% -10%, color-mix(in srgb, #fff 30%, transparent), transparent 60%),
-    linear-gradient(180deg, color-mix(in srgb, #fff 14%, transparent), color-mix(in srgb, #fff 3%, transparent) 55%, color-mix(in srgb, #fff 9%, transparent)),
-    var(--dock-selected-override, color-mix(in srgb, var(--mat-selected) 60%, transparent));
-  -webkit-backdrop-filter: blur(2px) saturate(190%) brightness(1.18); backdrop-filter: blur(2px) saturate(190%) brightness(1.18);
-  box-shadow:
-    inset 0 1px 1px color-mix(in srgb, #fff 60%, transparent),
-    inset 0 -1px 1px color-mix(in srgb, #fff 16%, transparent),
-    inset 0 -10px 16px -12px rgba(0, 0, 0, .35),
-    0 8px 18px -8px rgba(0, 0, 0, .45);
-  transition: transform var(--dur-3) var(--ease-spring), width var(--dur-3) var(--ease-spring), opacity var(--dur-2) ease;
+  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(var(--pill-sx, 1), var(--pill-sy, 1)); border-radius: var(--r-inner); pointer-events: none;
+  background: var(--dock-selected-override, var(--mat-selected));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 14%, transparent), 0 1px 3px rgb(0 0 0 / .06);
+  transition: transform var(--dur-3) var(--ease-spring), opacity var(--dur-2) ease;
 }
-/* Its rim: light gathered at the upper left and lower right, as on a lens. */
-.tabs__pill::before {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
-  background: linear-gradient(135deg, color-mix(in srgb, #fff 75%, transparent), color-mix(in srgb, #fff 10%, transparent) 38%, color-mix(in srgb, #fff 6%, transparent) 62%, color-mix(in srgb, #fff 45%, transparent));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-}
-/* Held, it lifts into a clear lens: larger, lighter, a brighter rim and a deeper shadow, the
-   section's glow put away while it travels. Dragged, it follows the finger with no lag and
-   stretches with its speed (--pill-sx/--pill-sy, set as it moves); the icons it passes swell. */
-.tabs__pill { scale: var(--pill-sx, 1) var(--pill-sy, 1); }
 .tabs[data-lift] .tabs__pill {
-  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(1.22, 1.16);
-  background:
-    radial-gradient(120% 80% at 30% -10%, color-mix(in srgb, #fff 34%, transparent), transparent 60%),
-    linear-gradient(180deg, color-mix(in srgb, #fff 10%, transparent), transparent 55%, color-mix(in srgb, #fff 8%, transparent));
-  -webkit-backdrop-filter: blur(.5px) saturate(220%) brightness(1.28) contrast(1.06); backdrop-filter: blur(.5px) saturate(220%) brightness(1.28) contrast(1.06);
-  box-shadow:
-    inset 0 1.5px 1px color-mix(in srgb, #fff 75%, transparent),
-    inset 0 -1.5px 1px color-mix(in srgb, #fff 30%, transparent),
-    inset 0 0 12px color-mix(in srgb, #fff 10%, transparent),
-    0 14px 30px -10px rgba(0, 0, 0, .5);
-  transition: transform 260ms var(--ease-spring), scale 140ms ease, opacity var(--dur-2) ease;
+  will-change: transform;
+  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(calc(var(--pill-sx, 1) * var(--control-lift-scale)), calc(var(--pill-sy, 1) * var(--control-lift-scale)));
+  background: color-mix(in srgb, var(--dock-base-override, var(--mat-base)) 82%, var(--dock-ink-override, var(--text-1)));
+  box-shadow: var(--control-lift-shadow);
+  transition: transform var(--dur-2) var(--ease-spring), opacity var(--dur-2) ease;
 }
-.tabs[data-lift] .tabs__pill::after { opacity: 0; }
-.tabs__pill::after { transition: opacity var(--dur-2) ease; }
-.tabs[data-drag] .tabs__pill { transition: scale 140ms ease, opacity var(--dur-2) ease; }
+.tabs[data-drag] .tabs__pill { transition: opacity var(--dur-2) ease; }
 .tabs[data-drag] { cursor: grabbing; }
-.tabs .tab__glyph { scale: var(--mag, 1); transition: transform var(--dur-1) var(--ease), scale 140ms var(--ease); }
+.tabs__pill::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--rim-highlight); opacity: 0; pointer-events: none; }
+.tabs__pill[data-flow]::after { animation: pill-release var(--dur-3) var(--ease); }
+@keyframes pill-release { 0%, 100% { opacity: 0; } 40% { opacity: 1; } }
+.tabs .tab__glyph { transform: scale(var(--mag, 1)); transition: transform var(--dur-1) var(--ease); }
 .tabs[data-drag] .tab { color: var(--dock-ink-override, var(--text-1)); }
-html[data-theme="light"] .tabs[data-lift] .tabs__pill {
-  background:
-    radial-gradient(120% 80% at 30% -10%, #fff, transparent 60%),
-    linear-gradient(180deg, color-mix(in srgb, #fff 45%, transparent), color-mix(in srgb, #fff 8%, transparent) 60%, color-mix(in srgb, #fff 30%, transparent));
-  -webkit-backdrop-filter: blur(.5px) saturate(180%) brightness(1.06); backdrop-filter: blur(.5px) saturate(180%) brightness(1.06);
-  box-shadow: inset 0 1.5px 1px #fff, inset 0 -1.5px 1px color-mix(in srgb, #fff 60%, transparent), 0 12px 26px -10px rgba(40, 30, 10, .35);
+/* The reader's palette overrides must not bypass transparency/contrast preferences. */
+html[data-transparency="reduced"] .tabs::before { background: var(--dock-base-override, var(--mat-base)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+html[data-transparency="reduced"] .tabs::after { display: none; }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .tabs::before { background: var(--dock-base-override, var(--mat-base)); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .tabs::after { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .tabs[data-lift] .tabs__pill { transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)); } .tabs__pill { scale: none; } }
-/* Moving to another section, it stretches along the way and settles like a drop. */
-.tabs__pill[data-flow] { animation: pill-flow var(--dur-4) var(--ease); }
-@keyframes pill-flow { 0% { scale: 1 1; } 35% { scale: 1.16 .86; } 70% { scale: .97 1.04; } 100% { scale: 1 1; } }
-html[data-theme="light"] .tabs__pill {
-  background:
-    radial-gradient(120% 80% at 30% -10%, color-mix(in srgb, #fff 95%, transparent), transparent 60%),
-    linear-gradient(180deg, color-mix(in srgb, #fff 55%, transparent), color-mix(in srgb, #fff 10%, transparent) 60%, color-mix(in srgb, #fff 35%, transparent)),
-    var(--dock-selected-override-light, color-mix(in srgb, var(--text-1) 8%, transparent));
-  -webkit-backdrop-filter: blur(2px) saturate(170%) brightness(1.04); backdrop-filter: blur(2px) saturate(170%) brightness(1.04);
+@media (prefers-contrast: more) {
+  .tabs { border: 1px solid var(--dock-ink-override, var(--text-1)); }
+  .tabs__pill { outline: 2px solid var(--dock-ink-override, var(--text-1)); outline-offset: -2px; }
 }
-html[data-theme="light"] .tabs__pill::before { background: linear-gradient(135deg, #fff, color-mix(in srgb, var(--text-1) 6%, transparent) 40%, color-mix(in srgb, var(--text-1) 10%, transparent) 62%, color-mix(in srgb, var(--text-1) 22%, transparent)); }
-html[data-theme="light"] .tabs__pill { box-shadow: inset 0 1px 1px color-mix(in srgb, #fff 90%, transparent), inset 0 -1px 1px color-mix(in srgb, #fff 50%, transparent), inset 0 -10px 16px -12px rgba(0, 0, 0, .12), 0 6px 14px -8px rgba(40, 30, 10, .3); }
-html[data-transparency="reduced"] .tabs__pill { -webkit-backdrop-filter: none; backdrop-filter: none; }
-@media (prefers-reduced-transparency: reduce) { html:root .tabs .tabs__pill { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; } }
-html:root[data-transparency="reduced"] .tabs .tabs__pill { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-@media (prefers-reduced-motion: reduce) { .tabs__pill[data-flow] { animation: none; } }
-.tabs__pill::after {
-  content: ""; position: absolute; left: 32%; right: 32%; bottom: 3px; height: 2px; border-radius: 2px;
-  background: var(--accent); box-shadow: 0 0 10px 1px var(--mat-glow);
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .tabs::before { background: var(--dock-base-override, var(--mat-base)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tabs[data-lift] .tabs__pill { transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)); }
+  .tabs__pill, .tabs .tab__glyph { scale: none; }
+  .tabs .tab__glyph { transform: none; }
+  .tabs .tab:active .tab__glyph { transform: none; }
+  .tabs__pill[data-flow]::after { animation: none; }
+  .tabs::after { display: none; }
+}
+@media (forced-colors: active) {
+  .tabs::before { background: Canvas; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .tabs::after { display: none; }
+  .tabs__pill, .tabs[data-lift] .tabs__pill { background: Highlight; forced-color-adjust: none; box-shadow: none; }
+  .tabs .tab[data-on] { color: HighlightText; forced-color-adjust: none; }
 }
 .tabs[data-pill="none"] .tabs__pill { opacity: 0; }
 .tabs .tab__count { display: grid; place-items: center; box-sizing: border-box; min-width: 22px; height: 22px; padding: 0 4px; border: 1.75px solid currentColor; border-radius: 6px; font: 700 11.5px/1 var(--font-ui); font-variant-numeric: tabular-nums; }
 .tabs .tab__count[style*="--group"] { background: var(--group); border-color: var(--group); color: #fff; }
-/* Collapsed (phones, scrolling down): a small capsule holding only the current section. */
-@media (max-width: 1099px) {
-  .tabs[data-mini] { width: 48px; height: 48px; padding: 0; border-radius: 24px; cursor: pointer; }
+/* Collapsed phones keep the current section and the fixed trailing Search control. */
+@media (max-width: 899px) {
+  .tabs[data-scrollable] { touch-action: pan-x; }
+  .tabs[data-mini] { width: calc(97px + var(--sp-2)); height: 48px; padding: 0; border-radius: 24px; cursor: pointer; }
+  .tabs[data-mini][data-search-current] { width: 48px; }
+  .tabs[data-mini][data-search-current] .tabs__main { display: none; }
   .tabs[data-mini] .tabs__pill { opacity: 0; }
-  .tabs[data-mini] .tab:not([data-kept]) { display: none; }
+  .tabs[data-mini] .tab:not([data-kept]):not(.tab--search) { display: none; }
   .tabs[data-mini] .tab[data-kept] { flex: none; width: 48px; height: 48px; }
+  .tabs[data-mini] .tab--search { width: 48px; height: 48px; }
+  .tabs[data-mini][data-search-current] .tab--search { margin-left: 0; }
   .tabs[data-mini] .tab__label { display: none; }
 }
 html[data-typing] .tabs { display: none; }
@@ -202,23 +197,28 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 
 /* The switcher's controls take the dock's place and glass. */
 .tabs--switcher { padding: 0 8px; }
-.switcherbar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); width: 100%; min-height: 52px; }
+.switcherbar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex: 1; min-width: 0; min-height: 52px; }
 #root .switcherbar__add, #root .switcherbar__ok { display: grid; place-items: center; min-width: var(--touch); height: var(--touch); padding: 0 6px; border: 0; border-radius: var(--r-pill); background: none; color: var(--text-1); cursor: pointer; }
 #root button.switcherbar__ok { font: 700 15px var(--font-ui); }
 #root .switcherbar__group { display: inline-flex; align-items: center; gap: 4px; max-width: 50vw; min-height: var(--touch); padding: 0 14px; border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: none; color: var(--group, var(--text-1)); font: 500 14px var(--font-ui); cursor: pointer; }
 #root .switcherbar__group span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Desktop: the dock stands as a rail on the left, the page keeps its reading width beside it. */
-@media (min-width: 1100px) {
-  :root { --dock-space: 0px; --rail-space: 112px; }
+@media (min-width: 900px) {
+  :root { --dock-space: 0px; --rail-space: calc(112px + var(--safe-left)); }
   .tabs:not(.tabs--switcher) {
-    left: var(--sp-5); right: auto; top: 0; bottom: 0; margin: auto 0; width: 76px; height: fit-content; max-height: calc(100dvh - 40px);
-    flex-direction: column; padding: 8px 6px; gap: 4px; border-radius: 30px;
+    left: calc(var(--sp-5) + var(--safe-left)); right: auto; top: var(--safe-top); bottom: var(--safe-bottom); margin: auto 0; width: 76px; height: fit-content; max-height: calc(100dvh - 40px - var(--safe-top) - var(--safe-bottom));
+    flex-direction: column; padding: 8px 6px; gap: 4px; --r-outer: 30px; border-radius: var(--r-outer); overflow-y: auto; scrollbar-width: none;
   }
-  .tabs:not(.tabs--switcher) .tab { flex: none; width: 64px; height: 56px; border-radius: 20px; }
-  .tabs:not(.tabs--switcher) .tabs__pill { border-radius: 20px; }
-  .tabs:not(.tabs--switcher) .tab__label { font-size: 11px; }
+  .tabs:not(.tabs--switcher) .tab { flex: none; width: 64px; min-height: 56px; height: auto; padding-block: 6px; border-radius: var(--r-inner); }
+  .tabs__main { display: contents; }
+  .tabs:not(.tabs--switcher) .tab--search { width: 56px; height: 56px; border-radius: 50%; margin: var(--sp-2) 0 0; }
+  .tabs:not(.tabs--switcher) .tabs__pill { border-radius: var(--r-inner); }
+  .tabs:not(.tabs--switcher) .tab__label { font-size: .6875rem; }
+  .tabs[data-scrollable] { touch-action: pan-y; overscroll-behavior-y: contain; }
+  .tabs[data-scrollable]::before { bottom: auto; height: var(--rail-content-h); }
   #root [data-tabs] { padding-bottom: var(--sp-7); }
+  #shell .route { box-sizing: border-box; padding-left: var(--rail-space); }
 }
 
 /* ── Page actions: the screen's buttons, floating just above the dock ────────────────────── */
@@ -237,7 +237,7 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 .pageaction__spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
 html[data-actions] #root [data-tabs] { padding-bottom: calc(var(--dock-space) + var(--h-md) + var(--sp-7)); }
 html[data-typing] .pageactions { display: none; }
-@media (min-width: 1100px) { .pageactions { left: calc(var(--rail-space) + var(--gutter)); } }
+@media (min-width: 900px) { .pageactions { left: calc(var(--rail-space) + var(--gutter)); } }
 
 /* ── Drawers: Home and the menu, pushing the app aside ────────────────────────────────────── */
 :root { --drawer-w: min(95vw, 450px); --drawer-ease: cubic-bezier(.2, .9, .25, 1); }
@@ -261,7 +261,7 @@ html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[dat
 #root button.drawer__back, .drawer__back { display: grid; place-items: center; width: var(--touch); height: var(--touch); padding: 0; border: 0; border-radius: var(--r-pill); background: none; color: var(--text-1); cursor: pointer; }
 #root button.drawer__x, .drawer__x { position: absolute; left: 50%; bottom: calc(var(--sp-6) + var(--safe-bottom)); display: grid; place-items: center; width: 52px; height: 52px; margin-left: -26px; padding: 0;
   border-radius: var(--r-pill); border: .5px solid var(--mat-edge); background: var(--mat-overlay); color: var(--text-1); box-shadow: var(--mat-highlight), var(--shadow-2); cursor: pointer; }
-.drawer-scrim { position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 5); pointer-events: none; background: transparent; transition: background-color var(--dur-4) ease; }
+.drawer-scrim { position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 5); pointer-events: none; background: transparent; transition: none; }
 .drawer-scrim[data-open] { pointer-events: auto; background: var(--scrim-soft); }
 .drawer-scrim[data-side="home"] { left: var(--drawer-w); }
 .drawer-scrim[data-side="more"] { right: var(--drawer-w); }
@@ -272,20 +272,21 @@ html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[dat
 html[data-modal] { overflow: hidden; }
 .sheet__scrim { position: fixed; inset: 0; z-index: var(--z-sheet); display: flex; align-items: flex-end; justify-content: center; background: var(--scrim-modal); animation: fade-in var(--dur-2) ease-out; }
 .sheet {
-  box-sizing: border-box; width: 100%; max-width: 640px; max-height: calc(100dvh - var(--safe-top) - 24px); overflow-y: auto; overscroll-behavior: contain;
-  padding: var(--sp-2) var(--sp-4) calc(var(--sp-4) + var(--safe-bottom));
-  border-radius: var(--r-2xl) var(--r-2xl) 0 0; background: var(--mat-overlay); color: var(--text-2);
-  border: .5px solid var(--mat-edge); border-bottom: 0; box-shadow: var(--mat-highlight), var(--shadow-3);
-  animation: sheet-in var(--dur-3) var(--ease);
+  box-sizing: border-box; width: calc(100% - 2 * var(--sheet-gap) - var(--safe-left) - var(--safe-right)); max-width: 640px;
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 2 * var(--sheet-gap)); margin: 0 auto calc(var(--sheet-gap) + var(--safe-bottom)); overflow-y: auto; overscroll-behavior: contain;
+  margin-left: max(calc(var(--sheet-gap) + var(--safe-left)), calc((100% - 640px + var(--safe-left) - var(--safe-right)) / 2));
+  padding: var(--sp-2) var(--sp-5) var(--sp-4); --r-outer: var(--r-sheet); --inset: var(--sp-5); --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset)));
+  border-radius: var(--r-outer); background: var(--mat-overlay); color: var(--text-2);
+  border: 1px solid var(--mat-edge); box-shadow: var(--mat-highlight), var(--shadow-3); animation: sheet-in var(--dur-3) var(--ease);
 }
-@media (min-width: 680px) { .sheet__scrim { align-items: center; padding: var(--sp-6); } .sheet { border-radius: var(--r-2xl); border-bottom: .5px solid var(--mat-edge); animation: pop-in var(--dur-2) var(--ease); max-height: min(720px, calc(100dvh - 48px)); } }
+@media (min-width: 768px) { .sheet__scrim { align-items: center; } .sheet { max-height: min(720px, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 16px)); } }
 .sheet--tall { height: min(85dvh, 760px); display: flex; flex-direction: column; }
 .sheet__grip { width: 36px; height: 5px; border-radius: 3px; background: var(--fill-3); margin: 2px auto 12px; }
 .sheet__title { margin: 0 0 var(--sp-3); text-align: center; font: 600 var(--fs-body) var(--font-ui); color: var(--text-1); }
 .sheet__title small { display: block; margin-top: 2px; font: 400 var(--fs-caption) var(--font-ui); color: var(--text-3); }
 .sheet__colors { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; padding: var(--sp-1) 0 var(--sp-4); }
 .sheet__items { border-radius: var(--r-lg); background: var(--surface-2); overflow: hidden; }
-.sheet__item { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: var(--h-lg); padding: 10px 14px; border: 0; background: none; text-align: left; cursor: pointer; font: inherit; color: inherit; transition: background-color var(--dur-1) ease; }
+.sheet__item { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: var(--h-lg); padding: 10px 14px; border: 0; background: none; text-align: left; cursor: pointer; font: inherit; color: inherit; transition: none; }
 .sheet__item:hover { background: var(--state-hover); }
 .sheet__item:active { background: var(--state-press); }
 .sheet__item + .sheet__item { border-top: .5px solid var(--hairline); }
@@ -298,11 +299,11 @@ html[data-modal] { overflow: hidden; }
 .sheet__form label { font: 600 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
 
 /* ── Notes sheet: the class notes sliding up under a playing recording ─────────────────────── */
-.nsheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-dock); display: flex; flex-direction: column; background: var(--canvas); border-top: .5px solid var(--mat-edge); border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--shadow-3); transform: translateY(105%); transition: transform var(--dur-3) var(--ease), top var(--dur-3) var(--ease); visibility: hidden; }
+.nsheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-dock); display: flex; flex-direction: column; background: var(--canvas); border-top: .5px solid var(--mat-edge); border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--shadow-3); transform: translateY(105%); transition: transform var(--dur-3) var(--ease); visibility: hidden; }
 .nsheet[data-full] { z-index: 75; border-radius: 0; border-top-color: transparent; }
 .nsheet[data-open] { transform: translateY(0); visibility: visible; }
 /* Desktop: the notes sheet opens beside the rail, never under it, so its title and the rail stay clear. */
-@media (min-width: 1100px) { .nsheet:not([data-full]) { left: var(--rail-space); border-left: .5px solid var(--mat-edge); border-radius: var(--r-xl) 0 0 0; } }
+@media (min-width: 900px) { .nsheet:not([data-full]) { left: var(--rail-space); border-left: .5px solid var(--mat-edge); border-radius: var(--r-xl) 0 0 0; } }
 .nsheet__head { position: relative; flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: 16px var(--gutter) 10px; border-bottom: .5px solid var(--hairline); cursor: grab; user-select: none; -webkit-user-select: none; }
 .nsheet__head h2 { margin: 0; font: 600 var(--fs-body) var(--font-ui); color: var(--text-1); }
 .nsheet__head small { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; font: 400 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
@@ -340,3 +341,13 @@ html[data-actions] .toasts { bottom: calc(var(--dock-space) + var(--h-md) + var(
 /* Off-screen panels keep no filter running. */
 .drawer:not([data-open]) { -webkit-backdrop-filter: none; backdrop-filter: none; }
 @media (prefers-reduced-motion: reduce) { #shell .route, .tabs, .pageactions, .drawer, .drawer-scrim, .tabs__pill, .nsheet { transition: none; } .sheet, .sheet__scrim { animation: none; } }
+
+/* A decorative mirror of an existing hero's leading edge behind the sidebar. This
+   filters only its own image pixels; it never samples or distorts text underneath. */
+.rail-background { display: none; }
+@media (min-width: 900px) {
+  .rail-background { display: block; position: fixed; z-index: 0; inset: var(--safe-top) auto var(--safe-bottom) 0; width: var(--rail-space); overflow: hidden; pointer-events: none; }
+  .rail-background img { position: absolute; inset: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; object-position: left; transform: scaleX(-1); filter: blur(18px); opacity: .3; }
+}
+html[data-transparency="reduced"] .rail-background { display: none; }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) { .rail-background { display: none; } }

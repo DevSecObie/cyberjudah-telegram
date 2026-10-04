@@ -56,7 +56,7 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
   };
 
   return (
-    <Sheet open={p.open} onClose={p.onDismiss} backdrop={false} closable={false} label={p.reference ? `Selected: ${p.reference}` : "Selected verses"} className="bs-selected">
+    <Sheet open={p.open} onClose={p.onDismiss} backdrop={false} closable={false} actions label={p.reference ? `Selected: ${p.reference}` : "Selected verses"} className="bs-selected">
       <div className="bs-selected__inner">
         <ColorCirclesBar colors={p.colors} selected={p.selectedColor} onSelect={(k) => (p.selectedColor === k ? p.onRemoveHighlight() : p.onAddHighlight(k))} onLongPress={p.onEditColor} onAdd={p.onAddColor} />
         <div ref={ref} className="bs-pages" onTouchStart={(e) => onStart(e.touches[0].clientX, (e.target as Element).closest(".bs-actions"))} onTouchEnd={(e) => onEnd(e.changedTouches[0].clientX)}>
@@ -125,7 +125,7 @@ export function ColorCirclesBar({ colors, selected, onSelect, onLongPress, onAdd
   return (
     <div className="bs-colors" role="group" aria-label="Highlight colour">
       {colors.map((c, i) => (
-        <button key={c.key} type="button" className="bs-colors__cell" aria-label={`Highlight ${c.name || colourName(c.hex) || i + 1}${c.type === "textColor" ? " text" : c.type === "underline" ? " underline" : ""}`} aria-pressed={selected === c.key}
+        <button key={c.key} type="button" className="bs-colors__cell" aria-label={`Highlight ${c.name || colourName(c.hex) || i + 1}${c.type === "textColor" ? " text" : c.type === "underline" ? " underline" : ""}`} title={`Highlight ${c.name || colourName(c.hex) || i + 1}${c.type === "textColor" ? " text" : c.type === "underline" ? " underline" : ""}`} aria-pressed={selected === c.key}
           onPointerDown={() => start(c.key)} onPointerUp={end} onPointerLeave={end} onPointerCancel={end} onContextMenu={(e) => e.preventDefault()}
           onClick={() => { if (fired.current) { fired.current = false; return; } haptic("select"); onSelect(c.key); }}>
           <span className="bs-colors__swatch" data-on={selected === c.key ? "" : undefined}>
@@ -134,7 +134,7 @@ export function ColorCirclesBar({ colors, selected, onSelect, onLongPress, onAdd
           </span>
         </button>
       ))}
-      {onAdd ? <button type="button" className="bs-colors__cell" aria-label="More highlight colours" onClick={onAdd}><span className="bs-colors__swatch bs-colors__more"><Feather name="arrow-right-circle" size={18} color="currentColor" /></span></button> : null}
+      {onAdd ? <button type="button" className="bs-colors__cell" aria-label="More highlight colours" title="More highlight colours" onClick={onAdd}><span className="bs-colors__swatch bs-colors__more"><Feather name="arrow-right-circle" size={18} color="currentColor" /></span></button> : null}
     </div>
   );
 }
@@ -154,7 +154,7 @@ export function colourName(hex: string): string {
 /** HighlightTypeIndicator: a filled square for a background colour, an "A" for a text colour, an underlined "A". */
 export function HighlightTypeIndicator({ color, type, size = 30, isSelected }: { color: string; type: HighlightType; size?: number; isSelected?: boolean }) {
   const ring = isSelected ? "0 0 0 3px var(--bs-reverse), 0 0 0 5px var(--bs-primary)" : undefined;
-  if (type === "background") return <span style={{ display: "block", width: size, height: size, borderRadius: size / 3, backgroundColor: color, boxShadow: ring, transition: "box-shadow .3s" }} />;
+  if (type === "background") return <span style={{ display: "block", width: size, height: size, borderRadius: size / 3, backgroundColor: color, boxShadow: ring }} />;
   const box = { display: "grid", placeItems: "center", position: "relative" as const, width: size, height: size, borderRadius: size / 3, boxShadow: `inset 0 0 2px 0 rgba(0,0,0,.15)${isSelected ? `, 0 0 0 2px var(--bs-reverse), 0 0 0 4px var(--bs-primary)` : ""}` };
   if (type === "textColor") return <span style={box}><b style={{ fontSize: size * 0.85, color, lineHeight: 1 }}>A</b></span>;
   return <span style={box}><b style={{ fontSize: size * 0.85, color: "var(--bs-dark-grey)", opacity: 0.6, lineHeight: 1 }}>A</b><span style={{ position: "absolute", bottom: 0, left: size * 0.15, right: size * 0.15, height: size * 0.2, border: `${size * 0.05}px solid var(--bs-reverse)`, backgroundColor: color, borderRadius: size * 0.3 }} /></span>;

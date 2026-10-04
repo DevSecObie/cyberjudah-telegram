@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { data } from "@/api/data";
 import { useNavigate } from "react-router";
@@ -8,6 +8,7 @@ import { useSheet } from "@/ui/sheet";
 import { useBackButton } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { Icon, Screen, type IconName } from "@/ui/ui";
+import { moveTab, reflowTabs } from "@/ui/tab-motion";
 
 /** Bible Strong's New Tab page (TabScreen/NewTab/NewTabContent): every resource, by section, each opening in this tab. */
 type Item = [to: string, title: string, description: string, icon: IconName];
@@ -115,17 +116,22 @@ export function SwitcherBar() {
   const navigate = useNavigate();
   const { tabs, current, group } = useTabs();
   const openGroups = useGroupActions();
-  const go = (path: string) => { haptic("select"); navigate(path, { replace: true }); };
+  const go = (resolve: () => string) => { haptic("select"); moveTab(() => { navigate(resolve(), { replace: true }); }, "expand"); };
+  const add = () => {
+    reflowTabs(() => newTab());
+    document.querySelector(".tabcard[data-current]")?.scrollIntoView({ block: "nearest", behavior: "instant" });
+    go(() => "/new");
+  };
   const named = !isDefault(group);
   return (
     <div className="switcherbar" role="toolbar" aria-label="Tabs">
-      <button type="button" className="switcherbar__add" aria-label="Add a tab" onClick={() => go(newTab())}><Icon name="plus" size={24} /></button>
-      <button type="button" className="switcherbar__group" aria-label={`${groupLabel(group)}. Groups`} onClick={() => void openGroups()}
+      <button type="button" className="switcherbar__add" aria-label="Add a tab" title="Add a tab" onClick={add}><Icon name="plus" size={24} /></button>
+      <button type="button" className="switcherbar__group" aria-label={`${groupLabel(group)}. Groups`} title={`${groupLabel(group)}. Groups`} onClick={() => void openGroups()}
         style={named ? { ["--group" as string]: group.color } : undefined}>
         <span>{groupLabel(group)}</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
       </button>
-      <button type="button" className="switcherbar__ok" aria-label="Open the selected tab" onClick={() => go(tabs.find((t) => t.id === current)?.path ?? "/new")}>OK</button>
+      <button type="button" className="switcherbar__ok" aria-label="Open the selected tab" title="Open the selected tab" onClick={() => go(() => tabs.find((t) => t.id === current)?.path ?? "/new")}>OK</button>
     </div>
   );
 }
@@ -136,13 +142,30 @@ export function SwitcherBar() {
  * title bar (icon, title, ✕) over a round icon. A sideways swipe moves between groups.
  */
 export function Tabs() {
-  useBackButton(true);
   const navigate = useNavigate();
   const { tabs, current } = useTabs();
-  const go = (path: string) => { haptic("select"); navigate(path, { replace: true }); };
+  const go = (id: string) => { haptic("select"); moveTab(() => { navigate(selectTab(id), { replace: true }); }, "expand", id); };
+  useBackButton(false, () => { go(current); return true; });
+  useEffect(() => {
+    const back = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !document.querySelector("[data-sheet-open]")) { event.preventDefault(); go(current); }
+    };
+    window.addEventListener("keydown", back);
+    return () => window.removeEventListener("keydown", back);
+  }, [current, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
   // Card size: two per row with 20 px margins and gap; height from the screen's proportions x 0.7.
   const [size, setSize] = useState(() => cardSize());
-  useEffect(() => { const on = () => setSize(cardSize()); window.addEventListener("resize", on); return () => window.removeEventListener("resize", on); }, []);
+  const container = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const element = container.current!;
+    const measure = () => {
+      const next = cardSize(element.clientWidth);
+      setSize(previous => previous.w === next.w && previous.h === next.h && previous.perRow === next.perRow ? previous : next);
+    };
+    const observer = new ResizeObserver(measure); observer.observe(element); measure();
+    window.addEventListener("resize", measure);
+    return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
+  }, []);
 
   const start = useRef<{ x: number; y: number } | null>(null);
   const onStart = (e: React.TouchEvent) => { const t = e.touches[0]; start.current = { x: t.clientX, y: t.clientY }; };
@@ -155,19 +178,22 @@ export function Tabs() {
   };
 
   return (
-    <main className="switcher" onTouchStart={onStart} onTouchEnd={onEnd}>
+    <main ref={container} className="switcher" aria-label="Your tabs" onTouchStart={onStart} onTouchEnd={onEnd} onTouchCancel={() => { start.current = null; }}>
       <div className="switcher__grid" style={{ gridTemplateColumns: `repeat(${size.perRow}, ${size.w}px)` }}>
         {tabs.map((t) => {
           const { icon } = tabKind(t.path);
           const title = tabTitle(t.path);
           return (
-            <div key={t.id} className="tabcard" data-current={t.id === current ? "" : undefined} style={{ width: size.w, height: size.h }}>
-              <button type="button" className="tabcard__open" onClick={() => go(selectTab(t.id))} aria-label={`Open ${title}`}>
+            <div key={t.id} className="tabcard" data-tab-id={t.id} data-current={t.id === current ? "" : undefined} style={{ width: size.w, height: size.h }}>
+              <button type="button" className="tabcard__open" onClick={() => go(t.id)} aria-label={`Open ${title}`} title={`Open ${title}`}>
                 <TabPreview path={t.path} />
                 <span className="tabcard__icon"><Icon name={icon as IconName} size={30} /></span>
               </button>
               <span className="tabcard__title"><Icon name={icon as IconName} size={16} /><b>{title}</b></span>
-              <button type="button" className="tabcard__close" aria-label={`Close ${title}`} onClick={() => { haptic("select"); closeTab(t.id); }}>
+              <button type="button" className="tabcard__close" aria-label={`Close ${title}`} title={`Close ${title}`} onClick={() => {
+                haptic("select"); reflowTabs(() => closeTab(t.id));
+                document.querySelector<HTMLButtonElement>(".tabcard[data-current] .tabcard__open")?.focus({ preventScroll: true });
+              }}>
                 <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg></span>
               </button>
             </div>
@@ -177,8 +203,8 @@ export function Tabs() {
     </main>
   );
 }
-function cardSize() {
-  const W = window.innerWidth, H = window.innerHeight, perRow = W > 600 ? 4 : 2;
+function cardSize(width = window.innerWidth) {
+  const W = width, H = window.innerHeight, perRow = W > 600 ? 4 : 2;
   const w = Math.floor((W - 20 * 2 - (perRow - 1) * 20) / perRow);
   return { perRow, w, h: Math.round(((w * H) / W) * (W > 600 ? 1 : 0.7)) };
 }

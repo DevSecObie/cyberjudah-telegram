@@ -1,6 +1,6 @@
 /* ── Reading: the chapter grid, the plain reader, verses and what hangs off them ─────────────── */
 .chapters { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: var(--sp-2); padding: 4px 14px 14px; }
-.chapters a { display: grid; place-items: center; height: 46px; border-radius: var(--r-sm); background: var(--fill-1); font: 500 15px var(--font-ui); color: var(--text-1); font-variant-numeric: tabular-nums; transition: background-color var(--dur-1) ease, transform var(--dur-1) var(--ease); }
+.chapters a { display: grid; place-items: center; height: 46px; border-radius: var(--r-sm); background: var(--fill-1); font: 500 15px var(--font-ui); color: var(--text-1); font-variant-numeric: tabular-nums; transition: transform var(--dur-1) var(--ease); }
 .chapters a:hover { background: var(--fill-2); }
 .chapters a:active { transform: scale(.95); }
 .chapters a[data-last] { background: var(--accent); color: var(--on-accent); }
@@ -17,7 +17,7 @@ html[data-font="sans"] .verses, html[data-font="sans"] .note, html[data-font="sa
 html[data-spacing="airy"] .verses { line-height: 1.95; }
 html[data-spacing="tight"] .verses { line-height: 1.45; }
 html[data-justify="yes"] .verses { text-align: justify; hyphens: auto; }
-.v { display: block; margin: 0 -10px; padding: 4px 10px; border-radius: var(--r-sm); cursor: pointer; scroll-margin-top: 72px; transition: background-color var(--dur-2) ease; }
+.v { display: block; margin: 0 -10px; padding: 4px 10px; border-radius: var(--r-sm); cursor: pointer; scroll-margin-top: 72px; transition: none; }
 .v sup { margin-right: 5px; font: 600 .55em var(--font-ui); color: var(--accent); vertical-align: .5em; }
 .v[data-cited] sup { color: var(--danger); }
 .v[aria-pressed="true"] { background: var(--state-selected); box-shadow: inset 3px 0 0 var(--accent); }
@@ -92,7 +92,7 @@ html[data-tg="yes"] .steps { display: none; }
 .plan-row[data-read] i { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .daystrip { display: flex; gap: 6px; overflow-x: auto; margin: 0 -2px; padding: 2px 2px 6px; scrollbar-width: none; scroll-snap-type: x proximity; }
 .daystrip::-webkit-scrollbar { display: none; }
-.daystrip__day { flex: none; display: grid; place-content: center; gap: 2px; width: 46px; height: 60px; border: 0; border-radius: var(--r-md); background: var(--surface-1); box-shadow: var(--card-edge); color: var(--text-1); font-family: var(--font-ui); scroll-snap-align: center; cursor: pointer; transition: background-color var(--dur-2) ease, transform var(--dur-1) var(--ease); }
+.daystrip__day { flex: none; display: grid; place-content: center; gap: 2px; width: 46px; height: 60px; border: 0; border-radius: var(--r-md); background: var(--surface-1); box-shadow: var(--card-edge); color: var(--text-1); font-family: var(--font-ui); scroll-snap-align: center; cursor: pointer; transition: transform var(--dur-1) var(--ease); }
 .daystrip__day small { font-size: 11px; color: var(--text-3); }
 .daystrip__day b { font-size: var(--fs-body); font-variant-numeric: tabular-nums; }
 .daystrip__day[data-done] b { color: var(--accent); }

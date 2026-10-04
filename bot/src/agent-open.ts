@@ -3,6 +3,7 @@ import type { Env } from "./env";
 import { checkInput } from "./assistant.mjs";
 import { unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import type { AgentEvent } from "./agent";
+import type { Spend } from "./spend";
 
 /**
  * Ask's research with any model other than Claude, through Cloudflare's AI binding and the AI
@@ -35,6 +36,7 @@ export async function researchOpen(
   run: Run,
   emit: (e: AgentEvent) => void,
   maxRounds: number,
+  spend?: Spend,
 ): Promise<Result> {
   if (!env.AI_GATEWAY) throw unavailable(new Error("No AI Gateway is configured for this model"));
   const ai = env.AI as unknown as Ai;
@@ -63,7 +65,7 @@ export async function researchOpen(
   if (model.format === "plain") {
     const res = await call({ messages: [{ role: "system", content: `${system}\n\nYou have no tools here: answer from the passages given, and cite them by their numbers.` }, ...messages], ...length });
     const { text, usage, cut } = chatText(res);
-    units += unitsFor(usage, model); calls++;
+    units += unitsFor(usage, model); calls++; spend?.call(usage, model);
     if (text) emit({ delta: text });
     return { text, units, calls, cut, refused: false };
   }
@@ -72,9 +74,10 @@ export async function researchOpen(
     const defs = tools.map((t) => ({ type: "function", name: t.name, description: t.description, parameters: t.input_schema }));
     const input: unknown[] = messages.map((m) => ({ role: m.role, content: m.content }));
     for (let round = 0; round < maxRounds; round++) {
-      const last = round === maxRounds - 1;
+      // Past 70% of the request's budget the research stops and the answer is written (agent.ts).
+      const last = round === maxRounds - 1 || !!spend?.over(0.7);
       const res = await call({ instructions: system, input, tools: defs, ...(last ? { tool_choice: "none" } : {}) });
-      units += unitsFor(res.usage as Record<string, unknown>, model); calls++;
+      units += unitsFor(res.usage as Record<string, unknown>, model); calls++; spend?.call(res.usage as Record<string, unknown>, model);
       const output = Array.isArray(res.output) ? (res.output as Record<string, unknown>[]) : [];
       const uses = output.filter((o) => o.type === "function_call");
       const said = output.filter((o) => o.type === "message").flatMap((o) => (Array.isArray(o.content) ? (o.content as { type?: string; text?: string }[]) : [])).filter((c) => c.type === "output_text").map((c) => c.text ?? "").join("");
@@ -92,13 +95,13 @@ export async function researchOpen(
   if (model.format === "messages") {
     const convo: unknown[] = messages.map((m) => ({ role: m.role, content: m.content }));
     for (let round = 0; round < maxRounds; round++) {
-      const last = round === maxRounds - 1;
+      const last = round === maxRounds - 1 || !!spend?.over(0.7);
       const res = await call({ system, messages: convo, tools, max_tokens: 8000, ...(last ? { tool_choice: { type: "none" } } : {}) });
-      units += unitsFor(res.usage as Record<string, unknown>, model); calls++;
+      units += unitsFor(res.usage as Record<string, unknown>, model); calls++; spend?.call(res.usage as Record<string, unknown>, model);
       const content = Array.isArray(res.content) ? (res.content as Record<string, unknown>[]) : [];
       const said = content.filter((b) => b.type === "text").map((b) => String(b.text ?? "")).join("");
       const uses = content.filter((b) => b.type === "tool_use");
-      if (res.stop_reason !== "tool_use" || !uses.length) {
+      if (res.stop_reason !== "tool_use" || !uses.length || last) {
         if (said) emit({ delta: said });
         return { text: said, units, calls, cut: res.stop_reason === "max_tokens", refused: res.stop_reason === "refusal" };
       }
@@ -115,10 +118,10 @@ export async function researchOpen(
   const defs = tools.map((t) => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.input_schema } }));
   const convo: unknown[] = [{ role: "system", content: system }, ...messages];
   for (let round = 0; round < maxRounds; round++) {
-    const last = round === maxRounds - 1;
+    const last = round === maxRounds - 1 || !!spend?.over(0.7);
     const res = await call({ messages: convo, tools: defs, ...(last ? { tool_choice: "none" } : {}), ...length });
     const { text, usage, cut, toolCalls } = chatText(res);
-    units += unitsFor(usage, model); calls++;
+    units += unitsFor(usage, model); calls++; spend?.call(usage, model);
     if (!toolCalls.length || last) {
       if (text) emit({ delta: text });
       return { text, units, calls, cut, refused: false };

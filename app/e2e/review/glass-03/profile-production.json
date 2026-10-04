@@ -1,0 +1,33 @@
+{
+  "browser": "153.0.8010.12",
+  "build": "production",
+  "cpuThrottle": 4,
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "measurements": [
+    {
+      "action": "dock-drag",
+      "samples": 121,
+      "medianMs": 16.7,
+      "p95Ms": 16.8,
+      "maxMs": 50,
+      "framesOver33ms": 2,
+      "layoutEvents": 3,
+      "layoutMs": 35.21
+    },
+    {
+      "action": "sheet-open",
+      "samples": 50,
+      "medianMs": 16.7,
+      "p95Ms": 33.3,
+      "maxMs": 66.7,
+      "framesOver33ms": 1,
+      "layoutEvents": 4,
+      "layoutMs": 24.05
+    }
+  ],
+  "commit": "96384392977dac280f1ff006944ed2dd16610b80",
+  "scope": "Dock drag includes release and navigation; sheet opens on a fresh page."
+}

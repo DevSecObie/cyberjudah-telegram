@@ -9,7 +9,7 @@
 #root .cfeed__filters .cfeed__pick {
   display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 36px; padding: 0 var(--sp-3);
   border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--control-edge);
-  font: 500 var(--fs-sub)/1.2 var(--font-ui); color: var(--text-1); cursor: pointer; transition: background-color var(--dur-2) ease;
+  font: 500 var(--fs-sub)/1.2 var(--font-ui); color: var(--text-1); cursor: pointer; transition: none;
 }
 #root .cfeed__filters .cfeed__pick:hover { background: var(--fill-2); }
 #root .cfeed__filters .cfeed__pick span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -19,6 +19,10 @@
 #root .cfeed__filters .cfeed__pick:disabled { opacity: var(--disabled-opacity); cursor: default; }
 #root .cfeed__filters .cfeed__reset { min-height: 36px; padding: 0 6px; border: 0; background: none; font: 600 var(--fs-sub) var(--font-ui); color: var(--accent); cursor: pointer; }
 .cfeed__count { margin: -8px 0 0; font: 500 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
+.cfeed__notice { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 0; padding: 10px 12px; border-radius: var(--r-md); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); color: var(--text-2); }
+.cfeed__notice > svg { flex: none; margin-top: 1px; }
+.cfeed__notice p { flex: 1; margin: 0; font: 500 var(--fs-footnote)/1.45 var(--font-ui); }
+.cfeed__noticex { flex: none; display: grid; place-items: center; width: var(--touch); height: var(--touch); margin: -4px -6px -4px 0; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--text-3); cursor: pointer; }
 .cfeed { display: grid; gap: 30px; }
 .cfeed__more { display: grid; justify-items: center; padding: var(--sp-2) 0 4px; }
 #root .cfeed__more .cfeed__morebtn { min-height: var(--touch); padding: 0 var(--sp-5); border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); font: 600 var(--fs-sub) var(--font-ui); color: var(--text-1); cursor: pointer; }
@@ -36,7 +40,7 @@
 #root .post .post__series:hover { text-decoration: underline; text-underline-offset: 2px; }
 #root .post .post__series:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .post__tools { flex: none; display: flex; margin-left: auto; }
-#root .post .post__icon { display: grid; place-items: center; width: var(--touch); height: var(--touch); padding: 0; border: 0; border-radius: 50%; background: none; color: var(--text-1); cursor: pointer; transition: background-color var(--dur-1) ease; }
+#root .post .post__icon { display: grid; place-items: center; width: var(--touch); height: var(--touch); padding: 0; border: 0; border-radius: 50%; background: none; color: var(--text-1); cursor: pointer; transition: none; }
 #root .post .post__icon:hover { background: var(--state-hover); }
 #root .post .post__icon[aria-pressed="true"] { color: var(--accent); }
 /* The recording: full bleed on a phone, framed inside the column from a tablet up; always 16:9. */
@@ -49,19 +53,19 @@
 /* The play mark: a dark disc with a thin rim, no filter (there is one per post). */
 .post__playicon { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%;
   background: rgba(0, 0, 0, .62); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22), 0 6px 18px rgba(0, 0, 0, .35);
-  transition: transform var(--dur-2) var(--ease), background-color var(--dur-2) ease; }
+  transition: transform var(--dur-2) var(--ease); }
 .post__poster:hover .post__playicon, .post__poster:focus-visible .post__playicon { transform: scale(1.06); background: rgba(0, 0, 0, .75); }
 .post__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 0 2px; }
 #root .post .post__act { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px 0 11px; border: 0; border-radius: var(--r-pill);
   background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); font: 600 var(--fs-sub)/1 var(--font-ui); color: var(--text-1); text-decoration: none; cursor: pointer;
-  transition: background-color var(--dur-2) ease, color var(--dur-2) ease, transform var(--dur-1) var(--ease); }
+  transition: transform var(--dur-1) var(--ease); }
 #root .post .post__act:hover { background: var(--fill-2); }
 #root .post .post__act:active { transform: scale(.97); }
 #root .post .post__act small { font: 500 var(--fs-caption) var(--font-ui); color: var(--text-3); }
 #root .post .post__act[aria-pressed="true"], #root .post .post__act[aria-expanded="true"] { background: var(--text-1); color: var(--canvas); box-shadow: none; }
 #root .post .post__act[aria-pressed="true"] small, #root .post .post__act[aria-expanded="true"] small { color: inherit; opacity: .75; }
 .post__scripture { display: grid; gap: var(--sp-2); margin-top: var(--sp-2); padding: var(--sp-3); border-radius: var(--r-md); background: var(--surface-1); box-shadow: var(--card-edge); animation: rise-in var(--dur-2) var(--ease); }
-.post__scripture small { font: 700 11px var(--font-ui); letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); }
+.post__scripture small { font: 700 11px var(--font-ui); color: var(--text-3); }
 .post__scripture div { display: flex; flex-wrap: wrap; gap: 6px; }
 #root .post .post__ref { display: inline-flex; align-items: center; min-height: 32px; padding: 0 11px; border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent); font: 600 var(--fs-footnote) var(--font-ui); }
 .post__body { display: grid; gap: 4px; min-width: 0; padding-top: var(--sp-2); }

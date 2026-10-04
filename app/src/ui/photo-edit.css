@@ -1,0 +1,13 @@
+/* An admin's photo editor (photo-edit.tsx): the button under a picture, and the framing sheet.
+   Loaded with the component, so it looks the same on any screen; the shared sheet inherits the app palette and opaque content material, so the page under it does not read through. */
+.photo-sheet .bs-sheet__titles b { color: var(--text-1); }
+.photo-edit { display: flex; justify-content: center; margin: 10px 0 0; }
+.photo-sheet .bs-sheet__body { padding: 16px 20px 24px; }
+.photo-frame { position: relative; width: min(100%, 360px); margin: 0 auto; overflow: hidden; border-radius: 16px; background: var(--fill-1); touch-action: none; cursor: grab; display: grid; place-items: center; }
+.photo-frame canvas { position: absolute; top: 0; left: 0; max-width: none; user-select: none; -webkit-user-select: none; pointer-events: none; }
+.photo-zoom { display: flex; align-items: center; gap: 12px; width: min(100%, 360px); margin: 16px auto 0; font-size: 14px; color: var(--text-2); }
+.photo-zoom input { flex: 1; }
+.photo-actions { display: grid; gap: 10px; width: min(100%, 360px); margin: 18px auto 0; }
+.photo-error { margin: 12px 0 0; text-align: center; color: var(--danger, #d64545); }
+.photo-note { width: min(100%, 360px); margin: 14px auto 0 !important; text-align: center; }
+#root .photo-actions .btn:not(.btn--quiet):not(.btn--plain) { color: var(--on-accent); }

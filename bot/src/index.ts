@@ -10,7 +10,8 @@ import { runSearch } from "./search";
 import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./teachings";
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
-import { ask, askStream, freeModel, similar, speakVerse } from "./ai";
+import { approvedSources, DEFAULT_SOURCES, HOST } from "./ask-tools";
+import { ask, askStream, creditsOn, defaultModelId, freeModel, similar, speakVerse } from "./ai";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -18,6 +19,7 @@ import { push, reminderCounts, reminders, sendReminders } from "./remind";
 import { reportHealth, selfCheck } from "./health";
 import { bookLabel } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
+import { resources } from "./resources";
 import { bs } from "./bs";
 import { buildCatalog, emptyCatalog, SLUGS, type PassageMediaMoment } from "./passage-media.mjs";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
@@ -25,14 +27,20 @@ import { CHAT_ID, deleteChat, getChat, getPending, listChats, moveLegacy, setAct
 import { askedBy, closeRequest, getRequest, listRequests, requestNotes, validVideo } from "./requests";
 import { tellAdmins } from "./health";
 import { notePdf, pdfName } from "./pdf.mjs";
-import { billingOn, invoiceFor, prices, pruneBilling, standing, usageDay, SUPPORT_STARS } from "./billing";
+import { invoiceFor, pruneBilling, refundStars, SUPPORT_STARS } from "./billing";
+import { adjust, creditsConfig, history as creditHistory, ownerOfUser, prepare as prepareCredits, typicalMc, usageDayCredits, wallet as creditWallet } from "./credits";
+import { getTopupReminder, sendTopupReminders, setTopupReminder } from "./topup-remind";
+import { estimateMc, mcOfUsd } from "../../shared/credits.mjs";
+import { pauseMessage, topupPause, zoneOf } from "../../shared/holy-days.mjs";
 import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 import { hasClaude, unifiedBilling } from "./providers";
-import { costFactor, MODELS, modelOf } from "../../shared/ask-models.mjs";
+import { MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid, seal } from "./privacy.mjs";
 import { migratePrivacy } from "./privacy-migrate";
 import { deleteData, exportData } from "./mydata";
+import { photoFile, photoManifest, removePhoto, setPhoto } from "./photos";
+import { MAX_BYTES } from "./photos.mjs";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
@@ -54,6 +62,9 @@ app.use("/api/*", async (c, next) => {
   if (c.req.method === "GET" && c.req.path.startsWith("/api/pdf/")) return next();
   // Reading reminders authenticate themselves: Telegram launch data, a browser's device credential, or (for the service worker) its push endpoint.
   if (c.req.path === "/api/reminders" || c.req.path.startsWith("/api/reminders/") || c.req.path.startsWith("/api/push/")) return next();
+  // The photos an admin sets are public pictures like the app's own: readers fetch them without signing in.
+  if (c.req.method === "GET" && (c.req.path === "/api/photos" || c.req.path.startsWith("/api/photos/file/"))) return next();
+  if (c.req.method === "GET" && c.req.path.startsWith("/api/resources/")) return next();
   if (c.req.path === "/api/verse-of-day" || c.req.path === "/api/health" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
   // Thirty days: Telegram keeps a Mini App open in the background for weeks, and its launch
@@ -121,6 +132,35 @@ app.post("/api/notes/edit", async (c) => {
   }
 });
 
+// Photos an admin sets from the app (bot/src/photos.ts): the manifest, the files, and setting or removing one.
+app.get("/api/photos", async (c) => c.json(await photoManifest(c.env), 200, { "cache-control": "public, max-age=30" }));
+app.get("/api/photos/file/*", (c) => photoFile(c.env, c.req.path.slice("/api/photos/file/".length)));
+app.put("/api/admin/photos", async (c) => {
+  const { user } = c.get("tma");
+  if (Number(c.req.header("content-length") ?? 0) > MAX_BYTES) return c.json({ ok: false, error: "That photo is too large." }, 413);
+  const res = await setPhoto(c.env, user!, c.req.query("slot") ?? "", await c.req.arrayBuffer());
+  return res.ok ? c.json(res) : c.json({ ok: false, error: res.error }, res.status);
+});
+app.delete("/api/admin/photos", async (c) => {
+  const { user } = c.get("tma");
+  const res = await removePhoto(c.env, user!, c.req.query("slot") ?? "");
+  return res.ok ? c.json(res) : c.json({ ok: false, error: res.error }, res.status);
+});
+
+// The outside sources Ask may read (ask-tools.ts): an admin sees and sets the whitelist.
+app.get("/api/admin/ask-sources", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false, error: "Only an admin can see this." }, 403);
+  return c.json({ ok: true, hosts: await approvedSources(c.env), defaults: DEFAULT_SOURCES });
+});
+app.put("/api/admin/ask-sources", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false, error: "Only an admin can change this." }, 403);
+  const body = await c.req.json<{ hosts?: unknown }>().catch(() => null);
+  const hosts = Array.isArray(body?.hosts) ? [...new Set(body!.hosts.map((h) => String(h).trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "")))] : null;
+  if (!hosts || hosts.length > 100 || !hosts.every((h) => HOST.test(h))) return c.json({ ok: false, error: "Give a list of up to 100 site names, like wikipedia.org." }, 400);
+  await c.env.SUBS.put("ask:sources", JSON.stringify(hosts));
+  return c.json({ ok: true, hosts });
+});
+
 app.get("/api/search", async (c) => {
   const q = (c.req.query("q") ?? "").slice(0, 200);
   const only = c.req.query("only") || undefined;
@@ -138,7 +178,7 @@ app.get("/api/teachings", async (c) => {
 // Whether a class is on the air right now (the channel's live stream), for the Home screen.
 app.get("/api/live", async (c) => c.json(await liveNow(c.env, c.executionCtx)));
 // The channel's newest recordings, so a class is listed before its notes are written.
-app.get("/api/recent", async (c) => c.json({ videos: await recentVideos(c.env, c.executionCtx) }));
+app.get("/api/recent", async (c) => { const r = await recentVideos(c.env, c.executionCtx); return c.json({ videos: r.videos, feedOk: r.ok }); });
 app.get("/api/taught/:slug/:chapter", async (c) => {
   const slug = c.req.param("slug"), chapter = Number(c.req.param("chapter"));
   if (!/^[a-z0-9-]{1,40}$/.test(slug) || !(chapter >= 1 && chapter <= 200)) return c.json({ ok: false, reason: "bad-reference" }, 400);
@@ -177,15 +217,19 @@ app.get("/api/transcript/:video", async (c) => {
 // The AI: a question answered from the teachings with citations, search by meaning, and
 // the reading voices (a verse at a time, cached).
 app.post("/api/ask", async (c) => {
-  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown }>().catch(() => null);
+  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown; request?: string; caps?: Record<string, unknown> }>().catch(() => null);
+  // The request's id (a retry of the same request holds once), and the most the reader accepted a
+  // request may cost on each model (balance units, mc): the server takes the one for the model it resolves.
+  const caps = body?.caps && typeof body.caps === "object" ? Object.fromEntries(Object.entries(body.caps).filter(([k, v]) => k.length < 120 && typeof v === "number" && Number.isFinite(v) && v > 0).slice(0, 200)) as Record<string, number> : undefined;
+  const meterOpts = { request: typeof body?.request === "string" ? body.request : undefined, caps };
   // The AI providers this reader has agreed may receive their questions (docs/PRIVACY.md).
   const consent = Array.isArray(body?.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
   // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
   const history = normalizeHistory(body?.history, 8);
-  if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent);
+  if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent, meterOpts);
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
-  return c.json(res, res.ok ? 200 : res.reason === "limit" ? 429 : res.reason === "too-short" ? 400 : 503);
+  return c.json(res, res.ok ? 200 : res.reason === "limit" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" ? 400 : 503);
 });
 // A note as a PDF: a signed link the app hands to Telegram's downloader, or the file sent to the
 // person's chat with the bot. The link names the note and an expiry, signed with the bot token.
@@ -239,30 +283,91 @@ app.get("/api/pdf/*", async (c) => {
   return new Response(bytes, { headers: { "content-type": "application/pdf", "content-disposition": `attachment; filename="${pdfName(note)}"`, "cache-control": "private, max-age=600" } });
 });
 
-// Ask CyberJudah's allowance: what is left, what the plan and the packs give, and buying them with Stars.
+// Ask CyberJudah's pay-as-you-go balance: what is left (in dollars, by the app), the top-ups on sale
+// in Stars, whether they are paused for a Sabbath, feast day or New Moon where the reader is, what
+// each model typically and at most costs, the history, and buying (shared/credits.mjs, credits.ts,
+// billing.ts, shared/holy-days.mjs).
+/**
+ * Now, for the top-up pause. In the end-to-end tests only (E2E_CLOCK "on", never set in
+ * wrangler.jsonc), a request may name the moment it is asked at, so a Sabbath can be tested on any day.
+ */
+const clock = (c: { env: Env; req: { header: (n: string) => string | undefined } }) => {
+  const t = c.env.E2E_CLOCK === "on" ? Date.parse(c.req.header("x-e2e-now") ?? "") : NaN;
+  return Number.isFinite(t) ? t : Date.now();
+};
+const askModels = (env: Env) => MODELS.filter((m) => (m.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY));
+async function modelCosts(env: Env, models: AskModel[]) {
+  const cfg = creditsConfig(env);
+  return Promise.all(models.map(async (m) => {
+    const est = estimateMc(m, cfg, { claudeViaCloudflare: unifiedBilling(env) });
+    return { id: m.id, name: m.name, provider: m.provider, what: m.what, typical_mc: (await typicalMc(env, m.id).catch(() => null)) ?? est.typicalMc, max_mc: est.maxMc, ...(m.id === freeModel(env).id ? { free: true } : {}) };
+  }));
+}
 app.get("/api/ask/account", async (c) => {
   const uid = c.get("tma").user!.id;
-  const p = prices(c.env);
-  const st = await standing(c.env, uid);
-  return c.json({ ok: true, metered: billingOn(c.env), unlimited: st.unlimited, balance: st.balance, perQuestion: st.perQuestion, freeDaily: p.freeDaily, plan: p.plan, packs: p.packs, models: MODELS.filter((m) => (m.format === "anthropic" ? hasClaude(c.env) : !!c.env.AI_GATEWAY)).map(({ id, name, provider, what }) => ({ id, name, provider, what, cost: costFactor(modelOf(id)), ...(id === freeModel(c.env).id ? { free: true } : {}) })), model: modelOf(c.env.CLAUDE_MODEL).id });
+  const cfg = creditsConfig(c.env);
+  const owner = await ownerOfUser(c.env, uid);
+  if (creditsOn(c.env)) await prepareCredits(c.env, owner, { uid });
+  const tz = zoneOf(c.req.query("tz"));
+  const pause = topupPause(clock(c), tz);
+  return c.json({
+    ok: true, metered: creditsOn(c.env), unlimited: isAdmin(c.env, uid),
+    wallet: await creditWallet(c.env, owner),
+    confirm_above_mc: cfg.confirmAboveMc,
+    // Top-ups: each in dollars and the Stars it costs, at what a Star pays out (usd_per_star).
+    sale: { open: !cfg.missing.length, usd_per_star: cfg.usdPerStar, topups: cfg.topups, pause: pause ? { kind: pause.kind, until: pause.until, message: pauseMessage(pause) } : null },
+    remind: await getTopupReminder(c.env, uid).catch(() => ({ on: false, tz: null })),
+    models: await modelCosts(c.env, askModels(c.env)),
+    model: modelOf(defaultModelId(c.env, uid)).id,
+  });
 });
+app.get("/api/ask/history", async (c) => c.json({ ok: true, items: await creditHistory(c.env, await ownerOfUser(c.env, c.get("tma").user!.id), 60) }));
 app.post("/api/ask/buy", async (c) => {
-  const item = String(((await c.req.json<{ item?: string }>().catch(() => null)) ?? {}).item ?? "");
-  if (!/^(plan|pack:\d{1,6})$/.test(item)) return c.json({ ok: false, error: "Not an item." }, 400);
-  if (!billingOn(c.env)) return c.json({ ok: false, error: "Plans are not on sale yet." }, 409);
-  try { return c.json({ ok: true, link: await invoiceFor(c.env, c.get("tma").user!.id, item) }); }
-  catch (e) { console.error(JSON.stringify({ event: "ask_invoice_failed", message: (e as Error).message?.slice(0, 160) })); return c.json({ ok: false, error: "The invoice could not be made." }, 502); }
+  const b = (await c.req.json<{ item?: string; tz?: string }>().catch(() => null)) ?? {};
+  const item = String(b.item ?? "");
+  if (!/^pack:\d{1,6}$/.test(item)) return c.json({ ok: false, error: "Not an item." }, 400);
+  if (!creditsOn(c.env)) return c.json({ ok: false, error: "Top-ups are not on sale yet." }, 409);
+  try {
+    const r = await invoiceFor(c.env, c.get("tma").user!.id, item, zoneOf(b.tz), clock(c));
+    if (r.ok) return c.json({ ok: true, link: r.link });
+    // A Sabbath, feast day or New Moon where the reader is: no invoice is made.
+    if (r.reason === "pause") return c.json({ ok: false, error: "pause", reason: "pause", message: r.message, until: r.pause.until }, 423);
+    console.error(JSON.stringify({ event: "ask_sale_closed", missing: r.missing.length }));
+    return c.json({ ok: false, error: "Top-ups are not on sale just yet." }, 409);
+  } catch (e) { console.error(JSON.stringify({ event: "ask_invoice_failed", message: (e as Error).message?.slice(0, 160) })); return c.json({ ok: false, error: "The invoice could not be made." }, 502); }
 });
-// The admins' view of what Ask costs: questions and units a day, and what that comes to.
+// "Remind me to top up before the Sabbath and feast days" (topup-remind.ts): on or off, with the reader's zone.
+app.get("/api/ask/remind", async (c) => c.json({ ok: true, ...(await getTopupReminder(c.env, c.get("tma").user!.id)) }));
+app.post("/api/ask/remind", async (c) => {
+  const b = (await c.req.json<{ on?: boolean; tz?: string }>().catch(() => null)) ?? {};
+  return c.json({ ok: true, ...(await setTopupReminder(c.env, c.get("tma").user!.id, b.on === true, b.tz)) });
+});
+// The admins' view: what Ask cost and was charged each day, and the pricing and what it still lacks.
 app.get("/api/admin/usage", async (c) => {
   if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false }, 403);
-  const p = prices(c.env);
-  const days = await Promise.all(Array.from({ length: 14 }, (_, i) => new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)).map(async (day) => {
-    const d = await usageDay(c.env, day);
-    return { day, questions: d.questions, people: d.people, units: d.units, usd: Math.round((d.units / 1e6) * p.usdPerMtok * 100) / 100 };
-  }));
+  const cfg = creditsConfig(c.env);
+  const days = await Promise.all(Array.from({ length: 14 }, (_, i) => new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)).map(async (day) => ({ day, ...(await usageDayCredits(c.env, day)) })));
   const remindersByChannel = await reminderCounts(c.env).catch(() => null);
-  return c.json({ ok: true, usdPerMtok: p.usdPerMtok, usdPerStar: p.usdPerStar, margin: p.margin, days, reminders: remindersByChannel });
+  return c.json({ ok: true, pricing: { usdPerStar: cfg.usdPerStar, margin: cfg.margin, topups: cfg.topups, unifiedFee: cfg.unifiedFee, confirmAboveMc: cfg.confirmAboveMc, maxRequestMc: cfg.maxRequestMc, research: cfg.research, missing: cfg.missing }, days, reminders: remindersByChannel });
+});
+// An admin's refund: the Stars back through Telegram, and what that payment added and is unspent taken back.
+app.post("/api/admin/refund", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false }, 403);
+  const b = await c.req.json<{ user?: number; charge?: string }>().catch(() => null);
+  if (!b || !Number.isSafeInteger(b.user) || typeof b.charge !== "string" || !b.charge) return c.json({ ok: false, error: "user and charge" }, 400);
+  try { return c.json({ ok: true, result: await refundStars(c.env, b.user!, b.charge) }); }
+  catch (e) { return c.json({ ok: false, error: (e as Error).message?.slice(0, 160) }, 502); }
+});
+// An admin's adjustment to a reader's balance, in dollars (a correction, or a gift): added, or
+// taken (never below zero), once per `ref`, recorded in the reader's history.
+app.post("/api/admin/adjust", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false }, 403);
+  const b = await c.req.json<{ user?: number; usd?: number; ref?: string; note?: string }>().catch(() => null);
+  if (!b || !Number.isSafeInteger(b.user) || typeof b.usd !== "number" || !Number.isFinite(b.usd) || !b.usd || Math.abs(b.usd) > 1000 || typeof b.ref !== "string" || !/^[\w.:-]{1,64}$/.test(b.ref)) return c.json({ ok: false, error: "user, usd and ref" }, 400);
+  const owner = await ownerOfUser(c.env, b.user!);
+  await prepareCredits(c.env, owner, { uid: b.user! });
+  const mc = Math.sign(b.usd) * mcOfUsd(Math.abs(b.usd));
+  return c.json({ ok: true, moved_mc: await adjust(c.env, owner, mc, b.ref, String(b.note ?? "").slice(0, 200)), wallet: await creditWallet(c.env, owner) });
 });
 
 // The person's saved conversations with Ask CyberJudah: the list, one to reopen, one to delete.
@@ -405,6 +510,7 @@ app.post("/api/invoice", async (c) => {
 
 // The dictionary is public: nothing personal in a lookup, and the cache can serve everyone.
 app.route("/api/dictionary", dictionary);
+app.route("/api/resources", resources);
 
 app.get("/api/verse-of-day", async (c) => {
   const v = await todaysVerse(c.env, c.executionCtx);
@@ -470,6 +576,8 @@ export default {
   scheduled(event, env, ctx) {
     // Reading reminders every quarter hour, so each reader's own time is reached in every time zone (remind.ts).
     ctx.waitUntil(sendReminders(env, new Date(event.scheduledTime)).catch((e) => console.error(JSON.stringify({ event: "reminders_failed", message: (e as Error).message?.slice(0, 120) }))));
+    // The opt-in reminder to top up before a Sabbath, feast day or New Moon, at midday where each reader is (topup-remind.ts).
+    ctx.waitUntil(sendTopupReminders(env, event.scheduledTime).then((r) => { if (r.checked) console.log(JSON.stringify({ event: "topup_reminders", ...r })); }).catch((e) => console.error(JSON.stringify({ event: "topup_reminders_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Everything else runs on the hour only.
     if (event.cron !== "0 * * * *") return;
     ctx.waitUntil(sendDaily(env, new Date(event.scheduledTime)));

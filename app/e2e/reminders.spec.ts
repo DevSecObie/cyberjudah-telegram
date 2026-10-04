@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { STAND_IN, type Logged } from "./stand-ins";
 import { open, pid, seal } from "../../bot/src/privacy.mjs";
+test.use({ serviceWorkers: "allow" });
 const KEYS = { PRIVACY_KEY: "e2e-privacy-key-not-secret" };
 
 /**
@@ -147,7 +148,8 @@ test("inside Telegram: Telegram is offered, push is greyed with the reason, the 
   await page.getByRole("button", { name: "Until I resume", exact: true }).click();
   await expect(page.getByRole("button", { name: /Paused/ })).toContainText("Until you resume · tap to resume");
   await page.getByRole("button", { name: /Paused/ }).click();
-  await page.getByRole("button", { name: /^Pause/ }).click();
+  // Wait for the saved resume state: /^Pause/ also matches the old "Paused" row.
+  await page.getByRole("button", { name: /^Pause\b/ }).click();
   await page.getByRole("button", { name: "For a week", exact: true }).click();
   await expect(page.getByRole("button", { name: /Paused/ })).toContainText(/Until \d{4}-\d{2}-\d{2} · tap to resume/);
   await sw.click();
@@ -300,13 +302,23 @@ test("API: a browser's subscription is renewed in place, and Forget removes the 
 });
 
 test("API: each caller is rate limited, with Retry-After", async ({ request }) => {
-  const { device } = await (await request.put("/api/reminders", { data: { settings: { tz: "UTC" } } })).json();
+  const made = await request.put("/api/reminders", { data: { settings: { tz: "UTC" } } });
+  expect(made.status()).toBe(200);
+  const { device } = await made.json();
+  expect(typeof device).toBe("string");
   const headers = { "x-cj-device": device };
+  // The local binding resets on the minute. Leave room for the whole burst in one
+  // window: splitting 40 requests across a reset may correctly limit neither half.
+  const remaining = 60_000 - Date.now() % 60_000;
+  if (remaining < 15_000) await new Promise((resolve) => setTimeout(resolve, remaining + 50));
+  const window = Math.floor(Date.now() / 60_000);
   let limited = null as null | { status: number; retry: string | undefined };
   for (let i = 0; i < 40 && !limited; i++) {
     const r = await request.get("/api/reminders?tz=UTC", { headers });
     if (r.status() === 429) limited = { status: 429, retry: r.headers()["retry-after"] };
+    else expect(r.status()).toBe(200);
   }
+  expect(Math.floor(Date.now() / 60_000), "the burst must stay in one rate-limit window").toBe(window);
   expect(limited).toEqual({ status: 429, retry: "60" });
 });
 

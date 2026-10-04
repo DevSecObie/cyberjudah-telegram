@@ -14,9 +14,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  playwright:
+  browser-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit, firefox]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -24,17 +28,26 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e --workspace app
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run test:e2e --workspace app -- --project=${{ matrix.browser }}
         env:
           CI: "true"
       - name: Upload Playwright traces
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report-${{ github.run_id }}
+          name: playwright-report-${{ github.run_id }}-${{ matrix.browser }}
           path: |
             app/test-results
             app/playwright-report
           if-no-files-found: ignore
           retention-days: 7
+
+  # Preserve the required status name while each engine runs its own isolated Worker.
+  playwright:
+    if: always()
+    needs: browser-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: test "${{ needs.browser-tests.result }}" = success

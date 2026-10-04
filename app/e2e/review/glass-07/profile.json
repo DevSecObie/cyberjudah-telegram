@@ -1,0 +1,33 @@
+{
+  "browser": "153.0.8010.12",
+  "build": "production",
+  "cpuThrottle": 4,
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "measurements": [
+    {
+      "action": "dock-drag",
+      "samples": 128,
+      "medianMs": 16.7,
+      "p95Ms": 16.8,
+      "maxMs": 66.6,
+      "framesOver33ms": 2,
+      "layoutEvents": 3,
+      "layoutMs": 33.2
+    },
+    {
+      "action": "sheet-open",
+      "samples": 48,
+      "medianMs": 16.7,
+      "p95Ms": 33.4,
+      "maxMs": 83.3,
+      "framesOver33ms": 2,
+      "layoutEvents": 4,
+      "layoutMs": 30
+    }
+  ],
+  "measuredCommit": "1bb729215f7fc6f25448220a3b9d59505a8d5a60",
+  "scope": "Production section 07. Dock sample includes drag release/navigation; sheet includes first mount. 60Hz intervals have a nominal 16.7ms period; mount/navigation spikes remain tracked in section 10."
+}

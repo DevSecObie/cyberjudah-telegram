@@ -1,0 +1,38 @@
+/* Groups share their bar's one material. Their tint never adds another backdrop. */
+.toolbar-group { display: inline-flex; align-items: center; gap: var(--sp-1); border-radius: var(--r-pill); background: var(--fill-1); }
+.toolbar-group > :is(button, a) { background: transparent; }
+.bs-header__row { gap: var(--toolbar-gap); }
+.bs-pills.toolbar-group { padding: 0; gap: 0; background: var(--fill-1); }
+.bs-pills.toolbar-group .bs-pill__bg { display: none; }
+.bs-header__right.toolbar-group { margin-left: auto; }
+.bs-header__summary { font-size: .75rem; line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.head__actions.toolbar-group { width: fit-content; }
+.chat2__bar { column-gap: var(--toolbar-gap); }
+.sheet__item[data-destructive] :is(b, .sheet__icon), #root [data-destructive].btn { color: var(--danger); }
+.sheet__item[data-destructive] .sheet__icon { background: transparent; }
+.bs-dropdown[data-popover], .bs-picker[data-popover], .sheet[data-popover] { animation: none; }
+.bs-picker-scrim:has([data-popover]) { animation: none; }
+
+/* Snapshot groups keep fixed geometry; only their transform and opacity animate. */
+:root { view-transition-name: none; }
+::view-transition-group(action-popover) { transform-origin: 0 0; animation: popover-morph var(--dur-2) var(--ease-spring) both; }
+::view-transition-old(action-popover), ::view-transition-new(action-popover) { width: 100%; height: 100%; object-fit: fill; }
+::view-transition-old(action-popover) { animation: popover-fade-out var(--dur-2) ease both; mix-blend-mode: normal; }
+::view-transition-new(action-popover) { animation: fade-in var(--dur-2) ease both; mix-blend-mode: normal; }
+::view-transition-old(root) { display: none; }
+::view-transition-new(root) { animation: none; }
+@keyframes popover-morph { from { transform: var(--popover-from); } to { transform: var(--popover-to); } }
+@keyframes popover-fade-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(action-popover) { animation-name: fade-in; }
+}
+
+/* Command surfaces share the elevated recipe; their rows add no material of their own. */
+.drawer--more, .sheet[data-actions], .bs-sheet[data-actions] { background: var(--mat-elevated); -webkit-backdrop-filter: var(--mat-blur-strong); backdrop-filter: var(--mat-blur-strong); }
+.drawer--more .drawer__head, .sheet[data-actions] .sheet__items { background: transparent; }
+.drawer--more:not([data-open]) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* A desktop action menu occupies its own anchor, leaving the rest of the page usable. */
+.sheet__scrim[data-anchored] { inset: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left); display: block; background: transparent; pointer-events: none; animation: none; }
+.sheet__scrim[data-anchored] .sheet { position: absolute; pointer-events: auto; margin: 0; width: min(320px, calc(100% - 16px)); max-height: calc(100% - 16px); border-radius: var(--r-xl); }
+.sheet__scrim[data-anchored] .sheet__grip { display: none; }

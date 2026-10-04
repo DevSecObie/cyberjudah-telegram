@@ -34,7 +34,10 @@ test("the canvas is laid out with their constants: 100/interval px a year, 24 ro
 });
 
 test("the data keeps their history and leaves out their prophetic teaching", () => {
-  assert.equal(DATA.sections.length, 12);
+  // Bible Strong's twelve periods, then The Final Captivity's (app/scripts/final-captivity), last.
+  const theirs = DATA.sections.filter((s) => !String(s.id).startsWith("fc-"));
+  assert.equal(theirs.length, 12);
+  assert.ok(DATA.sections.slice(12).every((s) => s.sectionTitle === "The Final Captivity"));
   assert.ok(!DATA.sections.some((s) => s.title === "Revelation Prophecies"));
   const titles = DATA.sections.flatMap((s) => s.events.map((e) => e.title));
   for (const t of ["2300 Day Prophecy", "1260 Day Prophecy", "The Two Beasts of Revelation 13", "Church of Laodicea, Age of Judgment"]) assert.ok(!titles.includes(t), t);
@@ -88,4 +91,9 @@ test("an event's picture is only an approved portrait of its own person, and the
   // Noah's father is not Lamech of Cain's line; Abraham's approved portrait is reused (2 October 2026).
   assert.equal(all.find((e) => e.slug === "lamech").portrait, undefined);
   assert.equal(all.find((e) => e.slug === "abraham").portrait, "abraham-gen-11-26");
+  // An event mapped by hand (a shared name, or a figure outside People) still waits for approval.
+  assert.equal(all.find((e) => e.slug === "herod-antipas").portrait, "herod-mat-14-1");
+  for (const [slug, id] of Object.entries(approved.events ?? {})) {
+    if (!ids.has(id)) assert.equal(all.find((e) => e.slug === slug)?.portrait, undefined, `${slug} waits for ${id}`);
+  }
 });

@@ -14,6 +14,7 @@ import { ScreenBoundary } from "@/ui/boundary";
 import { ThemeApplier, useAppTheme } from "@/ui/theme";
 import { Home } from "@/screens/Home";
 import { NavEditor } from "@/screens/NavEditor";
+import { Tabs as TabsScreen, NewTab } from "@/screens/Tabs";
 const NoteRequests = lazy(() => import("@/screens/NoteRequests").then((m) => ({ default: m.NoteRequests })));
 // Every other screen loads on first visit, so the first paint stays small: one chunk per
 // screen module, shared by the routes that use it, cached by the browser afterwards.
@@ -58,8 +59,6 @@ const Encyclopedia = lazy(() => import("@/screens/Library").then((m) => ({ defau
 const Lexicon = lazy(() => import("@/screens/Lexicon").then((m) => ({ default: m.Lexicon })));
 const LexiconEntry = lazy(() => import("@/screens/Lexicon").then((m) => ({ default: m.LexiconEntry })));
 const People = lazy(() => import("@/screens/People").then((m) => ({ default: m.People })));
-const TabsScreen = lazy(() => import("@/screens/Tabs").then((m) => ({ default: m.Tabs })));
-const NewTab = lazy(() => import("@/screens/Tabs").then((m) => ({ default: m.NewTab })));
 const Tags = lazy(() => import("@/screens/Tags").then((m) => ({ default: m.Tags })));
 const TagScreen = lazy(() => import("@/screens/Tags").then((m) => ({ default: m.TagScreen })));
 
@@ -96,9 +95,9 @@ export function App() {
     <AppRoot className="cj" appearance={appearance} platform={app?.platform === "ios" || app?.platform === "macos" ? "ios" : "base"} id="shell" data-tabs={tabs ? "" : undefined}>
       <ThemeApplier />
       <Lock />
-      <div className="route" key={location.pathname.split("/").slice(0, 2).join("/")}>
+      <div className="route" data-location-key={location.key} key={location.pathname.split("/").slice(0, 2).join("/")}>
       <ScreenBoundary resetKey={location.pathname}>
-      <Suspense fallback={<Screen><Skeleton rows={8} /></Screen>}>
+      <Suspense fallback={<Screen className="route-loading"><Skeleton rows={8} /></Screen>}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/settings/credits" element={<Credits />} />
@@ -188,7 +187,7 @@ function Lock() {
         <img src={assetUrl("brand/cyber-lion.webp")} alt="" />
         <h1>CyberJudah</h1>
         <p>Unlock with your fingerprint or face.</p>
-        <Button size="l" onClick={() => app!.BiometricManager.authenticate({ reason: "Unlock CyberJudah" }, (ok) => { if (ok) setLocked(false); })}>Unlock</Button>
+        <Button size="xl" onClick={() => app!.BiometricManager.authenticate({ reason: "Unlock CyberJudah" }, (ok) => { if (ok) setLocked(false); })}>Unlock</Button>
       </div>
     </div>
   );

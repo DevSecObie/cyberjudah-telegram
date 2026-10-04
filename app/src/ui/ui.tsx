@@ -1,6 +1,6 @@
-import { Children, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Children, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Button, Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
+import { Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
 
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
@@ -9,62 +9,15 @@ import { adjacentTab, askTabPath, bibleTabPath, searchTabPath, useTabs } from "@
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { expandBar, useBarMini, useBarScroll } from "@/lib/barscroll";
 import { SwitcherBar } from "@/screens/Tabs";
-import { LensFilters, refracts } from "./refraction";
 import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
 
-export type IconName = "home" | "search" | "play" | "book" | "book-open" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "precepts" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus" | "close" | "image" | "alert" | "info";
-export function Icon({ name, size = 22 }: { name: IconName; size?: number }) {
-  const p: Record<IconName, ReactNode> = {
-    image: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8" cy="8" r="1.5" /><path d="m21 15-5-5L5 21" /></>,
-    home: <path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />,
-    search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4.2-4.2" /></>,
-    play: <><rect x="3" y="5" width="18" height="14" rx="3" /><path d="m10 9 5 3-5 3z" /></>,
-    "book-open": <><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></>,
-    book: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z" /><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5" /></>,
-    more: <><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></>,
-    chevron: <path d="m9 5 7 7-7 7" />,
-    back: <path d="m15 5-7 7 7 7" />,
-    share: <><path d="M12 3v13" /><path d="m7 8 5-5 5 5" /><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></>,
-    clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
-    bookmark: <path d="M6 3h12v18l-6-4-6 4z" />,
-    bookmarkFill: <path d="M6 3h12v18l-6-4-6 4z" fill="currentColor" />,
-    sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>,
-    star: <path d="m12 3 2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.5l-5.7 3 1.2-6.4L2.8 9.7l6.4-.8z" />,
-    check: <path d="m5 12 5 5 9-10" />,
-    copy: <><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></>,
-    qr: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><path d="M14 14h3v3h-3zM20 14v3M17 20h3M14 20h0" /></>,
-    bell: <><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z" /><path d="M10 21h4" /></>,
-    link: <><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5" /></>,
-    note: <><path d="M6 3h9l5 5v13H6z" /><path d="M14 3v6h6M9 13h7M9 17h7" /></>,
-    law: <><path d="M12 3v18M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z" /></>,
-    list: <><path d="M8 6h13M8 12h13M8 18h13" /><circle cx="4" cy="6" r="1" /><circle cx="4" cy="12" r="1" /><circle cx="4" cy="18" r="1" /></>,
-    precepts: <><rect x="2.5" y="3" width="8" height="11" rx="1.5" /><rect x="13.5" y="10" width="8" height="11" rx="1.5" /><path d="M5 7h3M5 10h3M16 14h3M16 17h3" /><path d="M10.5 8.5c3 0 4 1 4 1.5" /></>,
-    merge: <><circle cx="18" cy="18" r="3" /><circle cx="6" cy="6" r="3" /><path d="M6 21V9a9 9 0 0 0 9 9" /></>,
-    gear: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></>,
-    type: <><path d="M4 7V5h16v2M9 19h6M12 5v14" /></>,
-    layers: <><path d="m12 3 9 5-9 5-9-5z" /><path d="m3 13 9 5 9-5" /></>,
-    tag: <><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z" /><circle cx="8" cy="8" r="1.5" /></>,
-    quote: <><path d="M7 7h4v4c0 3-2 5-4 6M14 7h4v4c0 3-2 5-4 6" /></>,
-    compose: <><path d="M12 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" /><path d="M17.5 2.5a2.1 2.1 0 0 1 3 3L12 14l-4 1 1-4z" /></>,
-    spark: <path d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7z" fill="currentColor" stroke="none" />,
-    arrowUp: <><path d="M12 19V5" /><path d="m6 11 6-6 6 6" /></>,
-    download: <><path d="M12 4v11" /><path d="m7 10 5 5 5-5" /><path d="M5 20h14" /></>,
-    history: <><path d="M4 6h16M4 12h10M4 18h7" /><circle cx="18" cy="17" r="3" /><path d="M18 15.6V17l1 .8" /></>,
-    trash: <><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></>,
-    plus: <path d="M12 5v14M5 12h14" />,
-    close: <path d="M6 6l12 12M18 6 6 18" />,
-    alert: <><circle cx="12" cy="12" r="9" /><path d="M12 7.5v5.5M12 16.5v.01" /></>,
-    info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5.5M12 7.5v.01" /></>,
-    chat: <path d="M4 5h16v11H9l-5 4z" />,
-    retry: <><path d="M4 12a8 8 0 1 0 2.3-5.6" /><path d="M4 4v4h4" /></>,
-    folder: <path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />,
-  };
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{p[name]}</svg>;
-}
+import { Icon, type IconName } from "./icons";
+import { moveTab } from "./tab-motion";
+export { Icon, type IconName } from "./icons";
 
 /**
  * Bible Strong's bottom bar (app-switcher/BottomTabBar): a full-width row of icons, 48 high, no
- * labels. Here the reader picks and orders the buttons (lib/nav); the menu always ends the row.
+ * labels. Here the reader picks and orders the buttons (lib/nav); Menu and then Search end the row.
  * Search, the Bible and Ask go to their tab (or open one); the tabs button shows how many are
  * open and opens the switcher. A long press on the bar opens its editor.
  */
@@ -87,89 +40,143 @@ export function TabBar() {
   const press = useRef<number | undefined>(undefined);
   const swipe = useRef<{ x: number; y: number } | null>(null);
   const long = useRef(false);
-  const go = (to: string) => { if (long.current) return; haptic("select"); setDrawer(null); if (to === pathname) window.scrollTo({ top: 0, behavior: "smooth" }); else navigate(to, { replace: true }); };
+  const go = (to: string | (() => string), overview = false) => {
+    if (long.current) return;
+    haptic("select"); setDrawer(null);
+    moveTab(() => {
+      const target = typeof to === "function" ? to() : to;
+      if (target === pathname) { window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); return false; }
+      else navigate(target, { replace: true });
+    }, overview ? "overview" : "slide");
+  };
   // Home and the menu are drawers, as in Bible Strong; the same button closes its own drawer.
   const toggle = (side: DrawerSide) => { if (long.current) return; haptic("select"); setDrawer(drawer === side ? null : side); };
   // A long press edits the bar; a horizontal swipe along it moves to the next or previous open tab
   // (Bible Strong's useTabBarSwipeGesture).
   //
-  // Liquid glass: pressing the current section lifts its pill into a clear lens that follows the
-  // finger along the bar, swelling the icons it passes over and stretching with its speed; let go
-  // and it settles on the nearest section, which opens.
-  const lens = useRef<{ x0: number; y0: number; px: number; py: number; t: number; at: number; moved: boolean; col: boolean } | null>(null);
+  // The selection responds to a press and follows a drag. Keep the material behind the labels:
+  // distorting the text through a second lens makes navigation harder to read on Chromium and
+  // cannot be rendered by Safari. The same interaction runs on every browser.
+  const lens = useRef<{ x0: number; y0: number; px: number; py: number; t: number; at: number; moved: boolean; col: boolean; tabs: { el: HTMLElement; start: number; size: number }[] } | null>(null);
   const eatClick = useRef(false);
+  const pointer = useRef<number | null>(null);
+  const touchTarget = useRef<HTMLButtonElement | null>(null);
+  const touchClick = useRef<HTMLButtonElement | null>(null);
+  const placePill = useRef<(() => void) | null>(null);
+  useEffect(() => () => { window.clearTimeout(press.current); }, []);
   const tabsOf = (nav: HTMLElement) => [...nav.querySelectorAll<HTMLElement>(".tab")].filter((b) => b.offsetWidth > 0);
+  const geometryOf = (nav: HTMLElement, el: HTMLElement) => {
+    const outer = nav.getBoundingClientRect(), box = el.getBoundingClientRect();
+    return { x: box.left - outer.left - nav.clientLeft + nav.scrollLeft, y: box.top - outer.top - nav.clientTop + nav.scrollTop, width: box.width, height: box.height };
+  };
   const lensMove = (e: React.PointerEvent) => {
     const L = lens.current, nav = bar.current; if (!L || !nav) return false;
     const d = L.col ? e.clientY - L.y0 : e.clientX - L.x0;
     if (!L.moved && Math.abs(d) < 6) return true;
-    if (!L.moved) { L.moved = true; window.clearTimeout(press.current); nav.dataset.drag = ""; }
-    const all = tabsOf(nav), first = all[0], last = all[all.length - 1];
-    const lo = L.col ? first.offsetTop : first.offsetLeft, hi = L.col ? last.offsetTop : last.offsetLeft;
+    if (!L.moved) {
+      L.moved = true; window.clearTimeout(press.current); nav.dataset.drag = "";
+      // Capture only an actual drag. Capturing a tap here retargets its click to the nav and
+      // prevents the selected button from opening its drawer or scrolling back to the top.
+      try { nav.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
+    }
+    const all = L.tabs, first = all[0], last = all[all.length - 1];
+    const lo = first.start, hi = last.start;
     // Past either end the lens gives a little and resists, like glass held by surface tension.
     let pos = (L.col ? L.py : L.px) + d;
     if (pos < lo) pos = lo - Math.sqrt(lo - pos) * 2; else if (pos > hi) pos = hi + Math.sqrt(pos - hi) * 2;
-    nav.style.setProperty(L.col ? "--pill-y" : "--pill-x", `${pos}px`);
+    const pill = nav.querySelector<HTMLElement>(".tabs__pill")!;
+    pill.style.setProperty(L.col ? "--pill-y" : "--pill-x", `${pos}px`);
     // It stretches along its path with speed and thins across it.
     const now = performance.now(), v = Math.abs(pos - L.at) / Math.max(8, now - L.t);
     L.at = pos; L.t = now;
-    const k = Math.min(.28, v * .22);
-    nav.style.setProperty("--pill-sx", String(L.col ? 1 - k * .6 : 1 + k));
-    nav.style.setProperty("--pill-sy", String(L.col ? 1 + k : 1 - k * .6));
+    const k = Math.min(.08, v * .08);
+    pill.style.setProperty("--pill-sx", String(L.col ? 1 - k * .6 : 1 + k));
+    pill.style.setProperty("--pill-sy", String(L.col ? 1 + k : 1 - k * .6));
     // The icons under the lens swell; the nearest one is where it will land.
-    const size = L.col ? first.offsetHeight : first.offsetWidth, mid = pos + size / 2;
+    const size = first.size, mid = pos + size / 2;
     let near = 0, best = Infinity;
     all.forEach((b, i) => {
-      const c = (L.col ? b.offsetTop + b.offsetHeight / 2 : b.offsetLeft + b.offsetWidth / 2), dist = Math.abs(c - mid);
-      b.style.setProperty("--mag", String(1 + .24 * Math.max(0, 1 - dist / size)));
+      const dist = Math.abs(b.start + b.size / 2 - mid);
+      b.el.style.setProperty("--mag", String(1 + .06 * Math.max(0, 1 - dist / size)));
       if (dist < best) { best = dist; near = i; }
     });
     if (nav.dataset.near !== String(near)) { if (nav.dataset.near !== undefined) haptic("select"); nav.dataset.near = String(near); }
     return true;
   };
-  const lensEnd = (open: boolean) => {
+  const lensEnd = (open: boolean, suppressClick = true) => {
     const L = lens.current, nav = bar.current; lens.current = null; if (!L || !nav) return;
     const all = tabsOf(nav), near = Number(nav.dataset.near ?? -1);
     for (const b of all) b.style.removeProperty("--mag");
-    nav.style.removeProperty("--pill-sx"); nav.style.removeProperty("--pill-sy");
+    const pill = nav.querySelector<HTMLElement>(".tabs__pill");
+    pill?.style.removeProperty("--pill-sx"); pill?.style.removeProperty("--pill-sy");
     delete nav.dataset.drag; delete nav.dataset.near; delete nav.dataset.lift;
+    placePill.current?.();
     if (!L.moved) return;
     // The click the browser sends at the end of the drag is the drag's, not a tap: swallow that one.
-    eatClick.current = true;
-    const it = open && near >= 0 ? items[near] : null;
+    eatClick.current = suppressClick;
+    const it = open && near >= 0 ? items.find(it => it.id === L.tabs[near]?.el.dataset.nav) : null;
     // Opening the section moves the pill there; otherwise it springs back to where it was.
     if (it && current !== it.id) { long.current = false; it.onClick(); }
-    nav.style.setProperty(L.col ? "--pill-y" : "--pill-x", `${L.col ? L.py : L.px}px`);
-    const pill = nav.querySelector<HTMLElement>(".tabs__pill");
-    if (pill) { delete pill.dataset.flow; void pill.offsetWidth; pill.dataset.flow = ""; }
+    if (pill && !matchMedia("(prefers-reduced-motion: reduce)").matches) pill.dataset.flow = "";
+  };
+  const cancelPress = () => {
+    window.clearTimeout(press.current);
+    swipe.current = null; touchTarget.current = null; touchClick.current = null;
+    lensEnd(false, false);
+    const id = pointer.current; pointer.current = null;
+    if (id !== null && bar.current?.hasPointerCapture(id)) bar.current.releasePointerCapture(id);
   };
   const hold = {
     onPointerDown: (e: React.PointerEvent) => {
+      if (!e.isPrimary || e.button !== 0 || pointer.current !== null) return;
+      pointer.current = e.pointerId; touchClick.current = null;
+      touchTarget.current = e.pointerType === "touch" ? (e.target as Element).closest<HTMLButtonElement>("button.tab") : null;
       long.current = false; eatClick.current = false; swipe.current = { x: e.clientX, y: e.clientY };
-      press.current = window.setTimeout(() => { long.current = true; lensEnd(false); haptic("heavy"); setDrawer(null); navigate("/settings/bar"); }, 600);
+      press.current = window.setTimeout(() => { long.current = true; lensEnd(false, false); haptic("heavy"); setDrawer(null); navigate("/settings/bar"); }, 600);
       const nav = bar.current, on = (e.target as HTMLElement).closest<HTMLElement>(".tab[data-on]");
-      if (nav && on && !mini && e.isPrimary) {
+      const pill = nav?.querySelector<HTMLElement>(".tabs__pill");
+      if (pill) delete pill.dataset.flow;
+      // An overflowing rail belongs to native touch scrolling. Mouse dragging and the
+      // non-scrolling dock keep their selection gesture; taps and long presses still work.
+      if (nav && on && !mini && !(nav.hasAttribute("data-scrollable") && e.pointerType !== "mouse")) {
         const col = getComputedStyle(nav).flexDirection === "column";
-        lens.current = { x0: e.clientX, y0: e.clientY, px: on.offsetLeft, py: on.offsetTop, t: performance.now(), at: col ? on.offsetTop : on.offsetLeft, moved: false, col };
+        // Read all gesture geometry before pointer-move feedback begins.
+        const geometry = tabsOf(nav).map(el => { const b = geometryOf(nav, el); return { el, start: col ? b.y : b.x, size: col ? b.height : b.width }; });
+        const selected = geometryOf(nav, on);
+        lens.current = { x0: e.clientX, y0: e.clientY, px: selected.x, py: selected.y, t: performance.now(), at: col ? selected.y : selected.x, moved: false, col, tabs: geometry };
         nav.dataset.lift = ""; haptic("tap");
-        try { nav.setPointerCapture(e.pointerId); } catch { /* not capturable */ }
       }
     },
     onPointerMove: (e: React.PointerEvent) => {
-      if (lensMove(e)) return;
-      const s = swipe.current; if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) window.clearTimeout(press.current);
+      if (pointer.current !== e.pointerId) return;
+      const s = swipe.current;
+      if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) window.clearTimeout(press.current);
+      lensMove(e);
     },
-    onPointerCancel: () => { window.clearTimeout(press.current); lensEnd(false); },
+    onPointerCancel: (e: React.PointerEvent) => { if (pointer.current === e.pointerId) cancelPress(); },
+    onLostPointerCapture: (e: React.PointerEvent) => { if (e.target === e.currentTarget && pointer.current === e.pointerId && !bar.current?.hasPointerCapture(e.pointerId)) cancelPress(); },
     onPointerUp: (e: React.PointerEvent) => {
+      if (pointer.current !== e.pointerId) return;
+      pointer.current = null;
       window.clearTimeout(press.current);
-      if (lens.current) { swipe.current = null; lensEnd(!long.current); return; }
+      if (lens.current?.moved) { swipe.current = null; touchTarget.current = null; lensEnd(!long.current); return; }
+      if (lens.current) lensEnd(false, false);
       const s = swipe.current; swipe.current = null; if (!s || long.current) return;
+      // Finish stationary taps at touchend, where the compatibility click can be canceled.
+      // Opening a drawer at pointerup can otherwise retarget that click to its new scrim.
+      const target = touchTarget.current; touchTarget.current = null;
+      if (target?.isConnected && Math.hypot(e.clientX - s.x, e.clientY - s.y) < 10 && (e.target as Element).closest("button.tab") === target) {
+        touchClick.current = target; return;
+      }
+      if (bar.current?.hasAttribute("data-scrollable")) return;
       const dx = e.clientX - s.x, dy = e.clientY - s.y;
       if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-      const to = adjacentTab(dx < 0 ? 1 : -1);
-      if (to) { long.current = true; window.setTimeout(() => { long.current = false; }, 50); haptic("select"); setDrawer(null); navigate(to, { replace: true }); }
+      moveTab(() => {
+        const to = adjacentTab(dx < 0 ? 1 : -1); if (!to) return false;
+        long.current = true; window.setTimeout(() => { long.current = false; }, 50); haptic("select"); setDrawer(null); navigate(to, { replace: true });
+      }, "slide");
     },
-    onPointerLeave: () => window.clearTimeout(press.current),
+    onPointerLeave: (e: React.PointerEvent) => { if (pointer.current === e.pointerId && !bar.current?.hasPointerCapture(e.pointerId)) cancelPress(); },
     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
   };
   // The bar follows the reading: a small capsule while scrolling down, the full bar otherwise.
@@ -177,61 +184,92 @@ export function TabBar() {
   // Ask keeps the full bar: its composer sits on it, as a chat app keeps its input in place.
   const mini = useBarMini() && !drawer && pathname !== "/ask";
   const bar = useRef<HTMLElement>(null);
-  // The lens's size, for the refraction map drawn to fit it.
-  const [lensSize, setLensSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const nav = bar.current; if (!nav) return;
+    const finishTouch = (event: TouchEvent) => {
+      const target = touchClick.current; touchClick.current = null;
+      if (!target?.isConnected || !event.cancelable || event.touches.length) return;
+      // Only a completed button tap cancels the compatibility mouse events. Native pans
+      // keep their touchend, and mouse/keyboard activation follows its normal click path.
+      event.preventDefault(); target.click();
+    };
+    nav.addEventListener("touchend", finishTouch, { passive: false });
+    return () => { touchClick.current = null; nav.removeEventListener("touchend", finishTouch); };
+  }, [pathname]);
+  useLayoutEffect(() => {
+    const nav = bar.current, on = nav?.querySelector<HTMLElement>(".tabs__main .tab[data-on]");
+    const group = nav?.querySelector<HTMLElement>(".tabs__main");
+    if (on && group && getComputedStyle(group).display !== "contents") {
+      const item = on.getBoundingClientRect(), bounds = group.getBoundingClientRect();
+      if (item.left < bounds.left) group.scrollLeft -= bounds.left - item.left;
+      else if (item.right > bounds.right) group.scrollLeft += item.right - bounds.right;
+    }
+  }, [current, mini, ids.join()]);
   // The current section sits on a pill that slides to it (across the dock on phones, down the
   // rail on desktops). Every section keeps its slot, so only the pill moves.
   useLayoutEffect(() => {
     const nav = bar.current; if (!nav) return;
     const place = () => {
+      if (lens.current) return; // A data refresh or resize must not pull a held selection away.
       const on = nav.querySelector<HTMLElement>(".tab[data-on]");
-      const shown = !!on && on.offsetWidth > 0;
-      // Moving to another section, the pill flows there (pill-flow in materials.css).
-      const x = `${shown ? on!.offsetLeft : 0}px`, y = `${shown ? on!.offsetTop : 0}px`;
+      const style = getComputedStyle(nav), last = tabsOf(nav).at(-1), group = nav.querySelector<HTMLElement>(".tabs__main");
+      const selected = on ? geometryOf(nav, on) : null, end = last ? geometryOf(nav, last) : null;
+      const groupBounds = group?.getBoundingClientRect(), onBounds = on?.getBoundingClientRect();
+      const clipped = style.flexDirection !== "column" && on?.parentElement === group && groupBounds && onBounds && (onBounds.left < groupBounds.left - 1 || onBounds.right > groupBounds.right + 1);
+      const shown = !!on && on.offsetWidth > 0 && !clipped;
+      // Measure the controls, not scrollHeight: the material itself spans this height and
+      // must not keep an old overflow measurement alive after the viewport grows.
+      const contentHeight = end ? end.y + end.height + parseFloat(style.paddingBottom) : 0;
+      const scrollable = style.flexDirection === "column" ? contentHeight > nav.clientHeight + 1 : !!group && group.scrollWidth > group.clientWidth + 1;
+      // Translation and a release highlight settle independently, without forcing layout.
+      const x = `${shown ? selected!.x : 0}px`, y = `${shown ? selected!.y : 0}px`;
       const pill = nav.querySelector<HTMLElement>(".tabs__pill");
-      const was = nav.style.getPropertyValue("--pill-x"), wasY = nav.style.getPropertyValue("--pill-y");
-      if (pill && shown && was && (was !== x || wasY !== y)) { delete pill.dataset.flow; void pill.offsetWidth; pill.dataset.flow = ""; }
-      nav.style.setProperty("--pill-x", x);
-      nav.style.setProperty("--pill-y", y);
-      nav.style.setProperty("--pill-w", `${shown ? on!.offsetWidth : 0}px`);
-      nav.style.setProperty("--pill-h", `${shown ? on!.offsetHeight : 0}px`);
+      if (!pill) return;
+      const was = pill.style.getPropertyValue("--pill-x"), wasY = pill.style.getPropertyValue("--pill-y");
+      if (pill && shown && was && (was !== x || wasY !== y) && !matchMedia("(prefers-reduced-motion: reduce)").matches) pill.dataset.flow = "";
+      // Keep per-frame variables on the selection, so other labels don't inherit them.
+      // Read geometry before writing styles; a write followed by offsetWidth forces layout.
+      pill.style.setProperty("--pill-x", x);
+      pill.style.setProperty("--pill-y", y);
+      pill.style.setProperty("--pill-w", `${shown ? selected!.width : 0}px`);
+      pill.style.setProperty("--pill-h", `${shown ? selected!.height : 0}px`);
       nav.dataset.pill = shown ? "" : "none";
-      if (shown && (on!.offsetWidth !== lensSize.w || on!.offsetHeight !== lensSize.h)) setLensSize({ w: on!.offsetWidth, h: on!.offsetHeight });
+      nav.toggleAttribute("data-scrollable", scrollable);
+      nav.style.setProperty("--rail-content-h", `${contentHeight}px`);
     };
+    placePill.current = place;
     place();
-    const ro = new ResizeObserver(place); ro.observe(nav);
+    const ro = new ResizeObserver(() => { if (lens.current) cancelPress(); place(); }); ro.observe(nav);
     for (const b of nav.querySelectorAll(".tab")) ro.observe(b);
-    return () => ro.disconnect();
+    return () => { ro.disconnect(); placePill.current = null; };
   });
   // While the switcher is open the bar becomes its controls, as in Bible Strong.
-  if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /></nav>;
+  if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /><button type="button" className="tab tab--search" aria-label="Search" title="Search" onClick={() => go(searchTabPath)}><Icon name="search" size={22} /></button></nav>;
   const count = tabs.length > 100 ? ":)" : String(tabs.length);
   const items: { id: NavId | "more"; label: string; aria: string; glyph: ReactNode; onClick: () => void }[] = [
-    ...ids.map((id) => {
+    ...ids.filter(id => id !== "search").map((id) => {
       const item = navItem(id);
       return { id, label: id === "tabs" ? "Tabs" : item.label, aria: id === "tabs" ? `Tabs, ${tabs.length} open` : item.label,
         glyph: item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={22} />,
-        onClick: () => id === "home" ? toggle("home") : go(navPath(id)) };
+        onClick: () => id === "home" ? toggle("home") : go(() => navPath(id), id === "tabs") };
     }),
     { id: "more", label: "Menu", aria: "Menu", glyph: <Icon name="more" size={24} />, onClick: () => toggle("more") },
+    { id: "search", label: "Search", aria: "Search", glyph: <Icon name="search" size={22} />, onClick: () => go(searchTabPath) },
   ];
+  const button = (it: typeof items[number]) => {
+    const on = current === it.id;
+    const kept = mini && (on || (it.id === "more" && !items.some(x => x.id === current)));
+    return <button key={it.id} type="button" className={`tab${it.id === "search" ? " tab--search" : ""}`} data-nav={it.id} data-on={on ? "" : undefined} data-kept={kept ? "" : undefined} aria-current={on ? "page" : undefined}
+      aria-label={it.aria} title={it.aria} tabIndex={mini && !kept && it.id !== "search" ? -1 : undefined} onClick={it.onClick}>
+      <span className="tab__glyph">{it.glyph}</span><span className="tab__label" aria-hidden="true">{it.label}</span>
+    </button>;
+  };
   return (
-    <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} data-refract={refracts && lensSize.w ? "" : undefined} {...hold}
-      onClickCapture={(e) => { if (eatClick.current) { eatClick.current = false; e.stopPropagation(); e.preventDefault(); return; } if (mini) { e.stopPropagation(); e.preventDefault(); haptic("select"); expandBar(); } }}>
-      <LensFilters w={lensSize.w} h={lensSize.h} />
+    <nav ref={bar} className="tabs" aria-label="Sections" data-mini={mini ? "" : undefined} data-search-current={current === "search" ? "" : undefined} {...hold}
+      onClickCapture={(e) => { if (eatClick.current) { eatClick.current = false; if (e.detail > 0) { e.stopPropagation(); e.preventDefault(); return; } } if (mini) { expandBar(); if (!(e.target as HTMLElement).closest(".tab--search")) { e.stopPropagation(); e.preventDefault(); haptic("select"); } } }}>
       <span className="tabs__pill" aria-hidden="true" onAnimationEnd={(e) => { delete e.currentTarget.dataset.flow; }} />
-      {items.map((it) => {
-        const on = current === it.id;
-        // Collapsed, the capsule shows the current section, or the Menu where the screen is not one of them.
-        const kept = mini && (on || (it.id === "more" && !items.some((x) => x.id === current)));
-        return (
-          <button key={it.id} type="button" className="tab" data-on={on ? "" : undefined} data-kept={kept ? "" : undefined} aria-current={on ? "page" : undefined}
-            aria-label={it.aria} tabIndex={mini && !kept ? -1 : undefined} onClick={it.onClick}>
-            <span className="tab__glyph">{it.glyph}</span>
-            <span className="tab__label" aria-hidden="true">{it.label}</span>
-          </button>
-        );
-      })}
+      <div className="tabs__main" onScroll={() => placePill.current?.()}>{items.slice(0, -1).map(button)}</div>
+      {button(items[items.length - 1])}
     </nav>
   );
 }
@@ -248,7 +286,7 @@ export function PageActions() {
   }, [main, secondary]);
   if (!main && !secondary) return null;
   const button = (a: NonNullable<typeof main>, quiet: boolean) => (
-    <button type="button" className={`pageaction${quiet || a.quiet ? " pageaction--quiet" : ""}`} disabled={a.disabled || a.progress} aria-busy={a.progress || undefined} onClick={a.onClick}>
+    <button type="button" className={`btn ${quiet || a.quiet ? "btn--glass" : "btn--prominent"} pageaction${quiet || a.quiet ? " pageaction--quiet" : ""}`} disabled={a.disabled || a.progress} aria-busy={a.progress || undefined} onClick={a.onClick}>
       {a.progress ? <span className="pageaction__spin" aria-hidden="true" /> : null}{a.text}
     </button>
   );
@@ -309,11 +347,19 @@ export function Row({ href, onClick, title, sub, meta, thumb, trailing, icon, le
 /** A grouped list: TelegramUI's Section body, a divider between rows. */
 export function List({ children }: { children: ReactNode }) { return <TgSection className="list">{Children.toArray(children)}</TgSection>; }
 
+/** Autosaved settings still form a named group, without an artificial submit action. */
+export function FormSection({ title, action, children }: { title?: string; action?: ReactNode; children: ReactNode }) {
+  return <fieldset className="section form-section" aria-label={title ? undefined : "Settings"}>
+    {title ? <legend className="section__head form-section__legend"><h2>{title}</h2>{action}</legend> : null}
+    {children}
+  </fieldset>;
+}
+
 export function SearchField({ value, onChange, onSubmit, placeholder, autoFocus, id, trailing }: { value: string; onChange: (v: string) => void; onSubmit?: () => void; placeholder: string; autoFocus?: boolean; id: string; trailing?: ReactNode }) {
   return (
     <form className="field" role="search" onSubmit={(e) => { e.preventDefault(); (document.activeElement as HTMLElement | null)?.blur(); onSubmit?.(); }}>
       <Input id={id} type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" spellCheck={false} value={value} placeholder={placeholder} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} aria-label={placeholder}
-        before={<Icon name="search" size={18} />} after={value ? <button type="button" className="field__clear" aria-label="Clear" onClick={() => onChange("")}>×</button> : trailing} />
+        before={<Icon name="search" size={18} />} after={value ? <button type="button" className="field__clear" aria-label="Clear" title="Clear" onClick={() => onChange("")}>×</button> : trailing} />
     </form>
   );
 }
@@ -345,7 +391,7 @@ export function Empty({ title, children, action }: { title: string; children?: R
   );
 }
 
-export { Button };
+export { Button } from "./Button";
 
 export function Card({ children, glow, href, onClick, className }: { children: ReactNode; glow?: boolean; href?: string; onClick?: () => void; className?: string }) {
   const cls = `card${glow ? " card--glow" : ""}${className ? ` ${className}` : ""}`;

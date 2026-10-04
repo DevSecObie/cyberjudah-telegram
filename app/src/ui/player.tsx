@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPoi
 
 import { haptic } from "@/tg/sdk";
 import { Icon, Img, thumbOf, timestamp } from "@/ui/ui";
+import { BackgroundExtension } from "@/ui/BackgroundExtension";
 import { Frame } from "@/lib/frames";
 
 /** The embedded recording from a moment; a new start reloads the player there. */
@@ -16,10 +17,11 @@ const embed = (id: string, start: number) => `https://www.youtube-nocookie.com/e
 export function Player({ video, start, playing, onPlay, title, live, pip, onExpand }: { video: string; start: number; playing: boolean; onPlay: () => void; title: string; live?: boolean; pip?: boolean; onExpand?: () => void }) {
   return (
     <div className="player" data-pip={pip ? "" : undefined}>
-      {pip ? <button type="button" className="player__expand" aria-label="Back to the full player" onClick={() => { haptic("select"); onExpand?.(); }}><Icon name="chevron" size={16} /></button> : null}
+      {!pip && !playing ? <BackgroundExtension src={thumbOf(video, true)} /> : null}
+      {pip ? <button type="button" className="player__expand" aria-label="Back to the full player" title="Back to the full player" onClick={() => { haptic("select"); onExpand?.(); }}><Icon name="chevron" size={16} /></button> : null}
       <div className="player__box">
         {playing ? <iframe key={`${video}:${Math.floor(start)}`} src={embed(video, start)} title={title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen /> : (
-          <button type="button" className="watch" onClick={() => { haptic("select"); onPlay(); }} aria-label={start > 0 ? `Watch from ${timestamp(start)}` : "Watch the recording"}>
+          <button type="button" className="watch" onClick={() => { haptic("select"); onPlay(); }} aria-label={start > 0 ? `Watch from ${timestamp(start)}` : "Watch the recording"} title={start > 0 ? `Watch from ${timestamp(start)}` : "Watch the recording"}>
             <Img src={thumbOf(video, true)} eager />{start > 0 && !live ? <Frame video={video} t={start} className="player__frame" /> : null}<span><Icon name="play" size={18} /> {live ? "Watch live" : start > 0 ? `Watch from ${timestamp(start)}` : "Watch"}</span>
           </button>
         )}
@@ -95,13 +97,13 @@ export function NotesSheet({ open, onClose, full = false, onFull, title = "Class
     else if (dy > 90 && !full) { haptic("select"); onClose(); }
   };
   const docked = full ? safeTop : top;
-  const style = drag !== null ? { top: Math.max(safeTop, docked + drag), transition: "none" } : { top: docked };
+  const style = drag !== null ? { top: docked, transform: `translateY(${Math.max(safeTop - docked, drag)}px)`, transition: "none", willChange: "transform" } : { top: docked };
   return (
     <section className="nsheet" data-open={open ? "" : undefined} data-full={full ? "" : undefined} aria-hidden={!open} style={style} role="dialog" aria-label={title}>
       <header className="nsheet__head" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{ touchAction: "none" }}>
         <span className="nsheet__grip" aria-hidden="true" />
         <div><h2>{title}</h2>{sub ? <small>{sub}</small> : null}</div>
-        <span className="nsheet__actions">{action}<button type="button" className="nsheet__close" aria-label="Close the notes" onClick={() => { haptic("select"); onClose(); }}>×</button></span>
+        <span className="nsheet__actions">{action}<button type="button" className="nsheet__close" aria-label="Close the notes" title="Close the notes" onClick={() => { haptic("select"); onClose(); }}>×</button></span>
       </header>
       <div className="nsheet__body">{open ? children : null}</div>
     </section>

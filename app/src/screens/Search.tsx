@@ -129,7 +129,7 @@ export function Search() {
 
   return (
     <main className="screen srch">
-      <SearchBar id="q" value={input} onChange={setInput} onSubmit={() => submit()} onCancel={() => { setInput(""); if (q) setParams({}, { replace: true }); }}
+      <SearchBar keyboardDock id="q" value={input} onChange={setInput} onSubmit={() => submit()} onCancel={() => { setInput(""); if (q) setParams({}, { replace: true }); }}
         placeholder="Search CyberJudah" busy={busy} autoFocus={!q} results={results} controls="srch-results">
         {term.trim().length >= 2 ? (
           <div className="srch__scopes" role="tablist" aria-label="Search in">
@@ -171,7 +171,7 @@ function Start({ recent, onPick, onForget, onClear }: { recent: string[]; onPick
             {recent.map((r) => (
               <li key={r}>
                 <button type="button" data-result="" className="srch__recentbtn" onClick={() => onPick(r)}><Icon name="clock" size={16} /><span>{r}</span></button>
-                <button type="button" className="srch__forget" aria-label={`Remove ${r} from recent searches`} onClick={() => onForget(r)}><Icon name="close" size={12} /></button>
+                <button type="button" className="srch__forget" aria-label={`Remove ${r} from recent searches`} title={`Remove ${r} from recent searches`} onClick={() => onForget(r)}><Icon name="close" size={12} /></button>
               </li>
             ))}
           </ul>
@@ -279,8 +279,8 @@ function Spoken({ q, res, page, onPage }: { q: string; res: SpokenQuery; page: n
       <p className="hint">Moments {page * 20 + 1}–{page * 20 + r.hits.length} for “{q}”{page ? ` · Page ${page + 1}` : ""}</p>
       <div className="recs">{r.hits.map((h, i) => <Recording key={`${h.video}:${h.start}:${i}`} h={h} eager={i < 3} />)}</div>
       <div className="btn--row">
-        {page > 0 ? <Button mode="bezeled" size="m" stretched onClick={() => onPage(page - 1)}>Previous</Button> : null}
-        {r.more ? <Button mode="bezeled" size="m" stretched onClick={() => onPage(page + 1)}>Next</Button> : null}
+        {page > 0 ? <Button appearance="bordered" size="md" stretched onClick={() => onPage(page - 1)}>Previous</Button> : null}
+        {r.more ? <Button appearance="bordered" size="md" stretched onClick={() => onPage(page + 1)}>Next</Button> : null}
       </div>
     </>
   );

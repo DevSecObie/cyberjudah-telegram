@@ -84,7 +84,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
         ) : <p className="bs-loading">Strong's numbers cover the 66 books; this verse has none.</p>) : <>
           <p className="bs-words__hint">Tap a word for the Hebrew or Greek behind it, what it means, and every verse that uses it.</p>
           <div className="bs-words">{verseWords.map(([t, nums], i) => nums.length
-            ? <button key={i} type="button" className="bs-words__w" onClick={() => setWord(nums[0])}>{t}<small>{nums.join(" ")}</small></button>
+            ? <span key={i} className="bs-words__group">{[...new Set(nums)].map((n) => <button key={n} type="button" className="bs-words__w" aria-label={`${t} — ${n}`} onClick={() => setWord(n)}>{t}<small>{n}</small></button>)}</span>
             : <span key={i} className="bs-words__plain">{t}</span>)}</div>
           {word ? <WordSheet number={word} open onClose={() => { setWord(null); onClose(); }} onBack={() => setWord(null)} books={books} here={{ slug, chapter, verse }} /> : null}
         </>) : null}

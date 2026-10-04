@@ -12,7 +12,7 @@ import {
 import { useBackButton, useStored } from "@/tg/hooks";
 import { alert, app, confirm, haptic, openLink, requestWriteAccess } from "@/tg/sdk";
 import { useSheet } from "@/ui/sheet";
-import { Icon, List, Row, Screen, Section } from "@/ui/ui";
+import { Icon, List, Row, Screen, FormSection as Section } from "@/ui/ui";
 
 /**
  * Reading reminders, after Bible Strong's reminder settings (ReminderSettings.tsx): a switch,
@@ -226,7 +226,7 @@ export function Reminders() {
         ) : null}
         <p className="hint">{about}</p>
       </Section>
-      <Section title="Where to remind you">
+      <Section title="Where to Remind You">
         <div role="radiogroup" aria-label="Where to remind you" className="remind-choices list">
           <Choice title="Telegram" checked={delivery === "telegram"} disabled={!view || busy} onPick={() => void choose("telegram")}>{botWhy}</Choice>
           <Choice title="Push notification" checked={delivery === "push"} disabled={!view || busy || (!pushOk && !herePushed)} onPick={() => void choose("push")}>{pushWhy}</Choice>
@@ -306,7 +306,7 @@ export function ReminderSync() {
         <span className="toast__icon" aria-hidden="true"><Icon name="info" size={18} /></span>
         <span className="toast__text">{FALLBACK}</span>
         <button type="button" className="btn btn--quiet remind-toast__go" onClick={() => { setNotice(false); navigate("/settings/reminders"); }}>Turn on</button>
-        <button type="button" className="toast__close" aria-label="Dismiss" onClick={() => setNotice(false)}><Icon name="close" size={16} /></button>
+        <button type="button" className="toast__close" aria-label="Dismiss" title="Dismiss" onClick={() => setNotice(false)}><Icon name="close" size={16} /></button>
       </div>
     </div>
   );

@@ -54,7 +54,7 @@ export function SearchSheet({ open, initial = "", onClose, books, onGo }: { open
       <form className="bs-search__field" onSubmit={(e) => { e.preventDefault(); if (ref) go(ref.slug, ref.chapter, ref.verse); else if (bookOnly) go(bookOnly.slug, 1); else if (hits[0]) go(hits[0].slug, hits[0].chapter, hits[0].verse); }}>
         <Feather name="search" size={18} color="var(--bs-tertiary)" />
         <input ref={input} type="search" enterKeyHint="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="John 3:16, a name, or words in a verse" aria-label="Search the Scriptures" autoComplete="off" />
-        {q ? <button type="button" className="bs-iconbtn" aria-label="Clear" onClick={() => { setQ(""); input.current?.focus({ preventScroll: true }); }}><Feather name="x" size={16} /></button> : null}
+        {q ? <button type="button" className="bs-iconbtn" aria-label="Clear" title="Clear" onClick={() => { setQ(""); input.current?.focus({ preventScroll: true }); }}><Feather name="x" size={16} /></button> : null}
       </form>
       {!ref && !bookOnly && text.length >= 3 ? (
         <div className="bs-search__filters" role="group" aria-label="Search in">

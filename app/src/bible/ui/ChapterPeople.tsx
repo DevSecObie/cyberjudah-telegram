@@ -13,7 +13,7 @@ import { Feather } from "../icons";
 import type { Palette } from "../theme";
 
 /**
- * Bible Strong's ChapterEntities, at the end of the chapter: "In this chapter", with the people
+ * Bible Strong's ChapterEntities, at the end of the chapter: "In This Chapter", with the people
  * named in it as a small fanned stack of avatars beside the deck of classes that taught it. A tap
  * spreads the people over the page, each avatar flying from the stack to its place; a person
  * opens their page.
@@ -43,12 +43,12 @@ export function ChapterPeople({ slug, chapter, palette: c, resources }: { slug: 
   if (!people.length && !resources) return null;
   const shown = people.slice(0, MAX_STACKED);
   return (
-    <section className="bs-entities" aria-label="In this chapter">
-      <h2 className="bs-entities__title"><span>In this chapter</span></h2>
+    <section className="bs-entities" aria-label="In This Chapter">
+      <h2 className="bs-entities__title"><span>In This Chapter</span></h2>
       <div className="bs-entities__row">
         {shown.length ? (
           <button ref={stack} type="button" className="bs-entities__stack" data-ignore-verse-touch=""
-            aria-label={`People in this chapter: ${people.map(({ p }) => p.name).join(", ")}`}
+            aria-label={`People in this chapter: ${people.map(({ p }) => p.name).join(", ")}`} title={`People in this chapter: ${people.map(({ p }) => p.name).join(", ")}`}
             onClick={(e) => { e.stopPropagation(); haptic("select"); setOpen(true); }}>
             {shown.map(({ p, kind }, i) => {
               const f = fan(i, shown.length);
@@ -113,15 +113,15 @@ function PeopleOverlay({ people, source, palette: c, onClosed }: { people: Named
 
   return createPortal(
     <div ref={root} className="bs-gallery bs-gallery--people" data-open={shown ? "" : undefined} role="dialog" aria-modal="true" aria-label="People in this chapter" data-sheet-open=""
-      style={{ ["--deck-bg" as string]: c.reverse, ["--deck-ink" as string]: c.default, ["--deck-primary" as string]: c.primary, color: c.default }}
+      style={{ ["--deck-bg" as string]: "var(--canvas)", ["--deck-ink" as string]: "var(--text-1)", ["--deck-primary" as string]: "var(--accent)", color: "var(--text-1)" }}
       onClick={close}>
-      <button type="button" className="bs-gallery__close" aria-label="Close" style={{ background: c.reverse, color: c.default }} onClick={(e) => { e.stopPropagation(); close(); }}>
-        <Feather name="x" size={24} color={c.default} />
+      <button type="button" className="bs-gallery__close" aria-label="Close" title="Close" style={{ background: "var(--canvas)", color: "var(--text-1)" }} onClick={(e) => { e.stopPropagation(); close(); }}>
+        <Feather name="x" size={24} color="var(--text-1)" />
       </button>
       <div className="bs-gallery__scroll">
         <div className={`bs-people${people.length <= 6 ? " bs-people--center" : ""}`}>
           {people.map(({ p, n, kind }) => (
-            <button key={p.id} type="button" className="bs-people__item" aria-label={`Open ${p.name}`}
+            <button key={p.id} type="button" className="bs-people__item" aria-label={`Open ${p.name}`} title={`Open ${p.name}`}
               onClick={(e) => { e.stopPropagation(); haptic("select"); navigate(`/person/${p.id}`); }}>
               <EntityAvatar name={p.name} kind={kind} size={68} ink={inkOf(kind, c)} base={c.reverse} className="bs-people__avatar" data-person-card={p.id} style={{ borderColor: c.reverse }} />
               <span className="bs-people__text" style={{ animationDelay: `${delayOf(p.id) + 180}ms` }}>

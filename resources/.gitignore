@@ -1,0 +1,6 @@
+# Bundle bytes must be generated outside the checkout, never committed here.
+*.ndjson
+*.json
+generated/
+output/
+bundles/

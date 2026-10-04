@@ -26,8 +26,8 @@ export function NoteRequests() {
       {list.isPending ? <Skeleton rows={5} /> : list.isError ? <Empty title="The requests did not load" action={{ label: "Retry", onClick: () => void list.refetch() }} /> : !rows.length ? <Empty title="No requests yet">When readers ask for a class's notes, it shows here.</Empty> : (
         <>
           <div className="nreq__bar">
-            <button type="button" className="nreq__btn" onClick={() => copy(rows.slice(0, 5).map((r) => r.video).join(" "))}>Copy the top {Math.min(5, rows.length)} ids</button>
-            <button type="button" className="nreq__btn nreq__btn--quiet" onClick={() => { haptic("select"); openLink(WORKFLOW); }}>Open the workflow</button>
+            <button type="button" className="btn btn--prominent btn--sm nreq__btn" onClick={() => copy(rows.slice(0, 5).map((r) => r.video).join(" "))}>Copy the top {Math.min(5, rows.length)} ids</button>
+            <button type="button" className="btn btn--bordered btn--sm nreq__btn nreq__btn--quiet" onClick={() => { haptic("select"); openLink(WORKFLOW); }}>Open the workflow</button>
           </div>
           <Section title={`${rows.length} ${rows.length === 1 ? "class" : "classes"}`}>
             <ul className="nreq">
@@ -37,8 +37,8 @@ export function NoteRequests() {
                     <b>{r.title || r.video}</b>
                     <small>{r.count} {r.count === 1 ? "request" : "requests"}{r.last ? ` · last ${fmtDate(r.last.slice(0, 10))}` : ""} · {r.video}</small>
                   </button>
-                  <button type="button" className="nreq__btn nreq__btn--quiet" aria-label={`Copy the id of ${r.title || r.video}`} onClick={() => copy(r.video)}>Copy id</button>
-                  <button type="button" className="nreq__btn nreq__btn--quiet" aria-label={`Mark ${r.title || r.video} done`} disabled={close.isPending} onClick={() => { haptic("select"); close.mutate(r.video); }}>Done</button>
+                  <button type="button" className="btn btn--bordered btn--sm nreq__btn nreq__btn--quiet" aria-label={`Copy the id of ${r.title || r.video}`} title={`Copy the id of ${r.title || r.video}`} onClick={() => copy(r.video)}>Copy id</button>
+                  <button type="button" className="btn btn--bordered btn--sm nreq__btn nreq__btn--quiet" aria-label={`Mark ${r.title || r.video} done`} title={`Mark ${r.title || r.video} done`} disabled={close.isPending} onClick={() => { haptic("select"); close.mutate(r.video); }}>Done</button>
                 </li>
               ))}
             </ul>

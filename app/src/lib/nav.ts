@@ -3,8 +3,8 @@ import type { IconName } from "@/ui/ui";
 
 /**
  * What the bottom bar can hold. Bible Strong's bar is Home, Search, Bible, the tabs and the menu;
- * ours lets each reader choose and order up to MAX_NAV buttons, and the menu always closes the row
- * so every screen stays reachable.
+ * ours lets each reader choose and order up to MAX_NAV buttons. Menu follows those choices;
+ * Search is derived as a fixed trailing control without migrating the saved array.
  */
 export type NavId = "home" | "search" | "bible" | "classes" | "ask" | "tabs" | "library" | "plan" | "bookmarks" | "sabbath" | "precepts" | "law" | "people" | "lexicon" | "history";
 export type NavItem = { id: NavId; label: string; icon: IconName | "count"; path: string; match: RegExp };

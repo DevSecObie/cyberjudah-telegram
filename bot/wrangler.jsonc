@@ -68,10 +68,10 @@
         "DATA_ORIGIN": "https://data.cyberjudah.io",
         "SITE_URL": "https://cyberjudah.io",
         "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr",
-        "CLAUDE_MODEL": "claude-opus-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "cloudflare",
-        "ASK_USD_PER_MTOK": "5", "ASK_USD_PER_STAR": "0.013", "ASK_MARGIN": "1",
-        "ASK_FREE_DAILY": "120000", "ASK_PLAN_STARS": "750", "ASK_PACKS": "150,500,1500",
-        "ASK_BILLING": "on", "ASK_BASIC_DAILY": "25", "ASK_FREE_MODEL": "@cf/zai-org/glm-5.3-flash"
+        "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "cloudflare",
+        "ASK_USD_PER_STAR": "0.013", "ASK_MARGIN": "1", "ASK_TOPUPS_USD": "1,5,20",
+        "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
+        "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/zai-org/glm-5.3-flash"
       }
     }
   },
@@ -84,7 +84,7 @@
     "APP_URL": "https://cyberjudah.io/app",
     // Ask CyberJudah's model when the ANTHROPIC_API_KEY secret is set (claude-sonnet-5 is the
     // cheaper choice; claude-opus-5 the strongest). Without the key, Llama 3.3 70B on Workers AI.
-    "CLAUDE_MODEL": "claude-opus-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",
+    "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",
     // Cloudflare AI Gateway for Workers AI calls (logs, analytics, rate limits on the dashboard).
     // "default" is created by Cloudflare on the first request (providers.ts). Claude goes through it
     // too once the CF_AIG_TOKEN secret is set; until then Claude is called directly. If Claude
@@ -96,20 +96,22 @@
     // Anything else: the ANTHROPIC_API_KEY secret, billed by Anthropic. When the credits run
     // out, Ask answers with Workers AI (the backup) until they are topped up.
     "CLAUDE_BILLING": "cloudflare",
-    // Ask CyberJudah's allowance. Each answer is measured in units (Claude's tokens, output
-    // weighted five times input), and a Star buys ASK_USD_PER_STAR / ASK_USD_PER_MTOK * 1e6 /
-    // ASK_MARGIN units, so every plan and pack pays for what it allows. ASK_MARGIN is 1: no
-    // margin, a reader's Stars buy exactly the Claude use they pay for (the owner's choice). Check ASK_USD_PER_MTOK
-    // against Anthropic's price for the model's input tokens, and ASK_USD_PER_STAR against what
-    // a Star brings in after Telegram's cut. ASK_FREE_DAILY is units free per person per day
-    // (an average answer is about 60,000); /api/admin/usage shows the real averages.
-    "ASK_USD_PER_MTOK": "5", "ASK_USD_PER_STAR": "0.013", "ASK_MARGIN": "1",
-    "ASK_FREE_DAILY": "120000", "ASK_PLAN_STARS": "750", "ASK_PACKS": "150,500,1500",
-    // "on": each reader gets ASK_FREE_DAILY units of in-depth (Claude) answers a day, then
-    // up to ASK_BASIC_DAILY answers a day from the free model (ASK_FREE_MODEL, never charged, and
-    // open to every reader in the model picker) until the next UTC day, or pays
-    // in Stars (plan or packs). Admins (ADMIN_IDS) are not limited. Off, every answer is still
-    // measured for /api/admin/usage and the old cap of 100 a day applies.
-    "ASK_BILLING": "on", "ASK_BASIC_DAILY": "25", "ASK_FREE_MODEL": "@cf/zai-org/glm-5.3-flash"
+    // Ask CyberJudah's pay-as-you-go balance (shared/credits.mjs), shown in dollars. Readers pay
+    // exactly what their answers cost, with no profit: each model call at its model's own price
+    // (Cloudflare's catalog, shared/ask-models.json), Unified Billing's fee where it applies
+    // (ASK_UNIFIED_BILLING_FEE), and the library searches at Cloudflare's rates. ASK_MARGIN stays 1.
+    // Top-ups of ASK_TOPUPS_USD dollars are sold in Stars: ceil(dollars / ASK_USD_PER_STAR) Stars,
+    // and a payment of S Stars adds S × ASK_USD_PER_STAR, which is what a Star pays out after
+    // Telegram's share (NOT what a reader pays Telegram for a Star). A request that may cost more
+    // than ASK_CONFIRM_ABOVE_USD asks first; none may cost more than ASK_MAX_REQUEST_USD.
+    // No top-up is sold from full dark before a Sabbath, feast day or New Moon to full dark at its
+    // end, in the reader's own time zone (shared/holy-days.mjs, shared/holy-days.json).
+    "ASK_USD_PER_STAR": "0.013", "ASK_MARGIN": "1", "ASK_TOPUPS_USD": "1,5,20",
+    "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
+    // "on": the free model (ASK_FREE_MODEL) is free for everyone (within the daily cap of 100
+    // questions against abuse), and every other model is paid from the reader's balance alone, with
+    // no free daily allowance. Admins (ADMIN_IDS) are not charged. Off: no balance, and the cap of
+    // 100 questions a day per person applies to every model.
+    "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/zai-org/glm-5.3-flash"
   }
 }

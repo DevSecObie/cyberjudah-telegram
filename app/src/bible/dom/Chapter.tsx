@@ -92,6 +92,9 @@ export function Chapter(p: ChapterProps) {
     const onScroll = () => { if (followRef.current) return; if (raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(() => setReadingAway(awayOf(reading))); };
     sc.addEventListener("touchmove", free, { passive: true }); sc.addEventListener("wheel", free, { passive: true }); window.addEventListener("keydown", keys);
     sc.addEventListener("scroll", onScroll, { passive: true });
+    // A header change can cancel the previous effect’s queued position check.
+    // Sample again so an off-screen reading keeps its return control.
+    onScroll();
     return () => { sc.removeEventListener("touchmove", free); sc.removeEventListener("wheel", free); window.removeEventListener("keydown", keys); sc.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
   }, [reading, p.headerHeight]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -182,8 +185,8 @@ export function Chapter(p: ChapterProps) {
 
   return (
     <>
-    <div ref={scrollRef} className="bs-scroll" style={{ background: c.reverse, color: c.default }}>
-      <div className="bs-container" style={{ maxWidth: READING_TEXT_MAX_WIDTH + HORIZONTAL_PADDING * 2, padding: `${p.headerHeight + 10}px ${HORIZONTAL_PADDING}px 300px`, textAlign: s.alignContent, background: c.reverse, color: c.default }}>
+    <div ref={scrollRef} className="bs-scroll" style={{ background: "var(--bs-reverse)", color: "var(--bs-default)" }}>
+      <div className="bs-container" style={{ maxWidth: READING_TEXT_MAX_WIDTH + HORIZONTAL_PADDING * 2, padding: `${p.headerHeight + 10}px ${HORIZONTAL_PADDING}px 300px`, textAlign: s.alignContent, background: "var(--bs-reverse)", color: "var(--bs-default)" }}>
         {isContextFocused && focus?.length ? null : p.header}
         {p.verses.map((row) => {
           const n = row.verse;
@@ -205,12 +208,12 @@ export function Chapter(p: ChapterProps) {
         })}
         {p.footer}
       </div>
-      <button type="button" className="bs-return" aria-label="Return to the selected verse" onClick={() => scrollSelectedToMiddle()}
-        style={{ top: returnPos === "top" ? HEADER_HEIGHT + 12 : undefined, bottom: returnPos === "bottom" ? RETURN_BOTTOM_OFFSET + 16 : undefined, transform: `translateX(-50%) scale(${returnPos ? 1 : 0.95})`, opacity: returnPos ? 1 : 0, pointerEvents: returnPos ? "auto" : "none", border: `1px solid ${c.border}`, background: c.reverse, color: c.primary, boxShadow: isDarkTheme(theme) ? "0 8px 24px rgba(0, 0, 0, 0.45)" : "0 8px 24px rgba(0, 0, 0, 0.18)" }}>
-        <Feather name={returnPos === "top" ? "chevron-up" : "chevron-down"} size={24} color={c.primary} />
+      <button type="button" className="bs-return" aria-label="Return to the selected verse" title="Return to the selected verse" onClick={() => scrollSelectedToMiddle()}
+        style={{ top: returnPos === "top" ? HEADER_HEIGHT + 12 : undefined, bottom: returnPos === "bottom" ? RETURN_BOTTOM_OFFSET + 16 : undefined, transform: `translateX(-50%) scale(${returnPos ? 1 : 0.95})`, opacity: returnPos ? 1 : 0, pointerEvents: returnPos ? "auto" : "none", border: `1px solid var(--bs-border)`, background: "var(--bs-reverse)", color: "var(--bs-primary)", boxShadow: isDarkTheme(theme) ? "0 8px 24px rgba(0, 0, 0, 0.45)" : "0 8px 24px rgba(0, 0, 0, 0.18)" }}>
+        <Feather name={returnPos === "top" ? "chevron-up" : "chevron-down"} size={24} color={"var(--bs-primary)"} />
       </button>
     </div>
-      <button type="button" className="bs-follow" aria-label={reading != null ? `Back to verse ${reading}, now being read` : undefined} aria-hidden={readingAway ? undefined : true} tabIndex={readingAway ? 0 : -1} onClick={followReading}
+      <button type="button" className="bs-follow" aria-label={reading != null ? `Back to verse ${reading}, now being read` : undefined} title={reading != null ? `Back to verse ${reading}, now being read` : undefined} aria-hidden={readingAway ? undefined : true} tabIndex={readingAway ? 0 : -1} onClick={followReading}
         data-at={readingAway ?? undefined} style={{ top: p.headerHeight + 12 }}>
         <Feather name={readingAway === "top" ? "arrow-up" : "arrow-down"} size={16} color="currentColor" />
         <span>Back to verse {reading}</span>

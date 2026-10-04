@@ -57,9 +57,17 @@
 
   /* Materials (see materials.css). Tint is the colour the glass carries; the blur is the frost. */
   --mat-base: var(--canvas);
-  --mat-nav: color-mix(in srgb, var(--mat-base) 76%, transparent);
-  --mat-elevated: color-mix(in srgb, var(--surface-1) 93%, transparent);
-  --mat-overlay: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  --mat-density: 92%;
+  --mat-elevated-density: 93%;
+  --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent);
+  --mat-elevated: color-mix(in srgb, var(--surface-1) var(--mat-elevated-density), transparent);
+  --mat-overlay: var(--surface-1);
+  --toolbar-gap: 12px;
+  --group-radius: var(--r-xl); --group-inset: 16px; --group-row-height: 56px; --group-row-padding: 12px var(--group-inset);
+  --rail-space: 0px; --content-width: calc(100vw - var(--rail-space));
+  --mat-scroll-edge-depth: 14px;
+  --mat-scroll-edge: linear-gradient(#000 calc(100% - var(--mat-scroll-edge-depth)), transparent);
+  --mat-scroll-edge-up: linear-gradient(transparent, #000 var(--mat-scroll-edge-depth));
   --mat-blur: blur(16px) saturate(170%);
   --mat-blur-strong: blur(22px) saturate(180%);
   --mat-edge: color-mix(in srgb, #ffffff 12%, transparent);
@@ -68,27 +76,39 @@
   --mat-selected: color-mix(in srgb, var(--text-1) 13%, transparent);
   --mat-glow: color-mix(in srgb, var(--accent) 75%, transparent);
 
+  /* Full-screen media retains a dark context in every reading palette. */
+  --widget-ink: #ffffff; --widget-ground: var(--surface-1);
+  --media-accent: #ffd27a; --media-on-accent: #1a1400;
+  --media-canvas: #0a0b10; --media-surface: #13151d;
+  --media-ink: #fff; --media-muted: #c4c8d4;
+  --media-edge: rgb(255 255 255 / .14); --media-fill: rgb(255 255 255 / .1);
+
   /* Scrims. */
   --scrim-modal: rgba(0, 0, 0, .6);
   --scrim-soft: rgba(0, 0, 0, .32);
   --scrim-media: rgba(0, 0, 0, .35);
 
   /* Shape: radii nest (inner = outer − padding). */
+  --r-min: 4px; --r-floating: 38px; --r-sheet: 36px; --sheet-gap: 8px;
   --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 18px; --r-xl: 22px; --r-2xl: 28px; --r-pill: 999px;
 
   /* Space and size. */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 44px;
   --gutter: 16px;
   --touch: 44px;
-  --h-sm: 34px; --h-md: 44px; --h-lg: 52px;
+  --h-sm: max(44px, 2.25rem); --h-md: max(44px, 2.75rem); --h-lg: max(52px, 3.25rem); --h-xl: max(60px, 3.75rem);
+  --control-pad: 18px; --control-font: .9375rem; --control-inset: 3px;
+  --switch-thumb: #fff; --switch-shadow: 0 2px 6px rgb(0 0 0 / .25);
+  --control-lift-density: 92%; --control-lift-scale: 1.2;
+  --control-lift-shadow: inset 1px 1px 1px rgb(255 255 255 / .85), inset -1px -1px 1px rgb(255 255 255 / .55), 0 4px 10px rgb(0 0 0 / .24);
   --w-read: 640px; --w-wide: 760px; --w-max: 1120px;
 
   /* Type. */
   --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
   --font-read: "Newsreader", Georgia, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
-  --fs-caption: 12px; --fs-footnote: 13px; --fs-sub: 14.5px; --fs-body: 16px; --fs-callout: 17px;
-  --fs-title3: 19px; --fs-title2: 22px; --fs-title1: 28px; --fs-large: 32px;
+  --fs-caption: .75rem; --fs-footnote: .8125rem; --fs-sub: .90625rem; --fs-body: 1rem; --fs-callout: 1.0625rem;
+  --fs-title3: 1.1875rem; --fs-title2: 1.375rem; --fs-title1: 1.75rem; --fs-large: 2rem;
   --lh-tight: 1.2; --lh-snug: 1.35; --lh-body: 1.5; --lh-read: 1.65;
 
   /* Motion. Routine changes are quick; nothing runs longer than --dur-4. */
@@ -96,14 +116,15 @@
   --ease: cubic-bezier(.2, .8, .2, 1);
   --ease-spring: cubic-bezier(.2, 1.12, .32, 1);
   --ease-exit: cubic-bezier(.4, 0, 1, 1);
+  --ease-tab: cubic-bezier(.36, .77, .44, 1);
 
   /* Layers. */
   --z-sticky: 20; --z-actions: 55; --z-dock: 60; --z-drawer: 70; --z-pip: 80; --z-sheet: 90; --z-toast: 100; --z-lock: 110;
 
   /* Safe areas and the dock. --dock-space is the room content keeps clear at the bottom. */
-  --safe-top: 0px;
+  --safe-top: 0px; --safe-left: 0px; --safe-right: 0px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --dock-h: 60px;
+  --dock-h: max(60px, 3.75rem);
   --dock-gap: 10px;
   --dock-space: calc(var(--dock-h) + var(--dock-gap) + var(--safe-bottom));
   --header-h: 56px;
@@ -128,13 +149,11 @@ html[data-theme="light"] {
   --shadow-2: 0 8px 24px rgba(40, 30, 10, .10);
   --shadow-3: 0 18px 50px rgba(40, 30, 10, .18);
   --card-edge: inset 0 0 0 .5px rgba(40, 30, 10, .08);
-  --mat-nav: color-mix(in srgb, var(--mat-base) 78%, transparent);
-  --mat-elevated: color-mix(in srgb, var(--surface-1) 93%, transparent);
-  --mat-overlay: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent);
   --mat-edge: color-mix(in srgb, #000000 8%, transparent);
   --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 90%, transparent);
   --mat-shadow: 0 10px 30px rgba(40, 30, 10, .12), 0 1px 3px rgba(40, 30, 10, .08);
-  --mat-selected: color-mix(in srgb, var(--text-inverse) 92%, transparent);
+  --mat-selected: color-mix(in srgb, var(--text-1) 9%, transparent);
   --mat-glow: color-mix(in srgb, var(--accent) 55%, transparent);
   --scrim-modal: rgba(20, 16, 8, .5);
   --scrim-soft: rgba(20, 16, 8, .2);
@@ -158,17 +177,19 @@ html[data-theme="sepia"] {
   --shadow-2: 0 8px 24px rgba(60, 40, 10, .12);
   --shadow-3: 0 18px 50px rgba(60, 40, 10, .2);
   --card-edge: inset 0 0 0 .5px rgba(60, 40, 10, .1);
-  --mat-nav: color-mix(in srgb, var(--mat-base) 80%, transparent);
-  --mat-elevated: color-mix(in srgb, #fbf5e6 94%, transparent);
-  --mat-overlay: color-mix(in srgb, #fbf5e6 93%, transparent);
+  --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent);
   --mat-edge: color-mix(in srgb, #3b2f1e 10%, transparent);
   --mat-highlight: inset 0 1px 0 color-mix(in srgb, #fffaf0 85%, transparent);
   --mat-shadow: 0 10px 30px rgba(60, 40, 10, .14), 0 1px 3px rgba(60, 40, 10, .1);
-  --mat-selected: color-mix(in srgb, #fffaf0 90%, transparent);
+  --mat-selected: color-mix(in srgb, var(--text-1) 9%, transparent);
   --mat-glow: color-mix(in srgb, var(--accent) 55%, transparent);
   --scrim-modal: rgba(30, 20, 5, .5);
   --scrim-soft: rgba(30, 20, 5, .2);
 }
+
+/* Regular glass protects the ink even over black/white content. The darker ink of Paper and
+   Sepia allows a lighter material; other reader palettes need more tint for small labels. */
+html[data-palette="default"], html[data-palette="sepia"] { --mat-density: 80%; }
 
 /* Larger screens carry more of the page behind the glass; give the frost a little more depth there.
    Phones keep the lighter blur (cheaper, and the dock is small). */
@@ -177,18 +198,22 @@ html[data-theme="sepia"] {
 
 /* Less transparency: the system setting, or the app's own switch (Settings → Reduce transparency). */
 @media (prefers-reduced-transparency: reduce) {
-  :root:not([data-transparency="full"]) { --mat-nav: var(--mat-base); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); --mat-blur: none; --mat-blur-strong: none; }
+  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; --mat-scroll-edge-up: none; --mat-scroll-edge-depth: 0px; }
 }
-html[data-transparency="reduced"] { --mat-nav: var(--mat-base); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); --mat-blur: none; --mat-blur-strong: none; }
+html[data-transparency="reduced"] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; --mat-scroll-edge-up: none; --mat-scroll-edge-depth: 0px; }
 
 /* No backdrop filter at all: a solid ground keeps text readable. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root, html[data-theme] { --mat-nav: color-mix(in srgb, var(--mat-base) 96%, transparent); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); }
+  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; --mat-scroll-edge-up: none; --mat-scroll-edge-depth: 0px; }
 }
 
-/* More contrast: firmer edges, brighter secondary text, opaque materials. */
-@media (prefers-contrast: more) {
-  :root { --text-3: #c3d0e0; --text-4: #b3c1d4; --hairline: #50607e; --control-edge: #a6b4c9; --mat-edge: color-mix(in srgb, #ffffff 40%, transparent); --mat-nav: var(--mat-base); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); }
-  html[data-theme="light"] { --text-3: #3d3932; --text-4: #46423a; --hairline: #9f978a; --control-edge: #4f4a41; --mat-edge: color-mix(in srgb, #000000 35%, transparent); --mat-nav: var(--mat-base); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); }
-  html[data-theme="sepia"] { --text-3: #4a3c26; --text-4: #54452d; --hairline: #a3916b; --control-edge: #54452d; --mat-edge: color-mix(in srgb, #1f170c 35%, transparent); --mat-nav: var(--mat-base); --mat-elevated: var(--surface-1); --mat-overlay: var(--surface-1); }
+@media (prefers-contrast: more), (forced-colors: active) {
+  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; --mat-scroll-edge-up: none; --mat-scroll-edge-depth: 0px; }
 }
+
+/* Lift uses the existing surface's ink/tint, with no additional backdrop sampling. */
+html[data-transparency="reduced"] { --control-lift-density: 100%; }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+  :root { --control-lift-density: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { :root { --control-lift-scale: 1; } }

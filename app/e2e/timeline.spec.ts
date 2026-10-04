@@ -26,7 +26,11 @@ test("the periods, as Bible Strong lists them, without their prophecy period", a
   await page.goto("/timeline");
   await expect(page.getByRole("heading", { name: "The Bible Timeline" })).toBeVisible();
   const items = page.locator(".tl-item");
-  await expect(items).toHaveCount(12);
+  // Bible Strong's twelve, then The Final Captivity's periods (app/scripts/final-captivity), last.
+  const periods = JSON.parse(fs.readFileSync(new URL("../src/data/timeline.json", import.meta.url), "utf8")).sections.length;
+  expect(periods).toBeGreaterThan(12);
+  await expect(items).toHaveCount(periods);
+  await expect(items.last()).toContainText("The Final Captivity");
   await expect(items.first()).toContainText("Age of Patriarchs");
   await expect(items.first()).toContainText("First Generation");
   await expect(items.first()).toContainText("Creation–c.2500 BC");
@@ -118,7 +122,7 @@ test.describe("as Bible Strong moves through it", () => {
     await page.locator('a[href$="/timeline/5"]').click();
     const period = page.locator(".tl-period");
     await expect(period).toHaveAttribute("data-phase", "card");
-    await expect(page.locator(".tl-behind--current .tl-card__title")).toHaveText("UNITED KINGDOM");
+    await expect(page.locator(".tl-behind--current .tl-card__title")).toHaveText("United Kingdom");
     await expect(period).toHaveAttribute("data-phase", "slide", { timeout: 3000 });
     await expect(period).toHaveAttribute("data-phase", "ready", { timeout: 3000 });
     await expect(page.locator(".tl-behind--current")).toHaveCount(0);
@@ -168,7 +172,7 @@ test("pulling past the start: the line and year go with the canvas, the previous
   await scroll.evaluate((s) => { s.scrollLeft -= 80; });
   await expect(page.locator(".tl-line")).toHaveAttribute("style", /translateX\(80px\)/);
   await expect.poll(() => page.locator(".tl-behind").first().evaluate((el) => Number(getComputedStyle(el).opacity))).toBeGreaterThan(0.15);
-  await expect(page.locator(".tl-behind").first()).toContainText("THE JUDGES");
+  await expect(page.locator(".tl-behind").first()).toContainText("The Judges");
   await expect(page).toHaveURL(/\/timeline\/5$/);
   // Past it, letting go opens the period before, at its end.
   await scroll.evaluate((s) => { s.scrollLeft -= 120; s.dispatchEvent(new Event("scrollend")); });
@@ -183,7 +187,8 @@ test("pictures: each period's, a colour where a picture waits on direction, and 
   await expect.poll(() => pics.nth(0).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBe(640);
   await page.goto("/timeline/5");
   await expect(page.locator('a[data-slug="solomon"] .tl-major__pic img')).toHaveAttribute("src", /solomon-2sa-5-14-128\.webp$/);
-  await expect(page.locator('[data-slug="jonathan"] .tl-major__letter')).toHaveText("J");
+  // An event with no portrait yet shows its letter (Jonathan's, the earlier example, came in round 4).
+  await expect(page.locator(".tl-major .tl-major__letter").first()).toHaveText(/^[A-Z]$/);
 });
 
 test("search keeps its words: in the address, and on coming back from an event", async ({ page }) => {
@@ -206,3 +211,34 @@ test("search keeps its words: in the address, and on coming back from an event",
   await page.getByRole("searchbox").fill("zzzz");
   await expect(page.getByRole("status")).toContainText("No results for “zzzz”");
 });
+
+test("The Final Captivity: a period's events by category, and an event's history, teaching, sources and where they differ", async ({ page }) => {
+  const data = JSON.parse(fs.readFileSync(new URL("../src/data/timeline.json", import.meta.url), "utf8"));
+  const index = data.sections.findIndex((s: { id: string }) => s.id === "fc-house-of-bondage");
+  expect(index).toBeGreaterThan(11);
+  await page.goto("/timeline/event/kimpa-vita-1706");
+  await expect(page.locator(".tl-event__title")).toHaveText("Kimpa Vita burned in Kongo");
+  await expect(page.getByRole("region", { name: "Summary" })).toBeVisible();
+  await expect(page.locator(".fc-kind").first()).toHaveText("Documented History");
+  // Each class moment is a source linked to the second it was said; no paraphrase is shown.
+  const cite = page.locator(".fc-cite").first();
+  await expect(cite).toHaveAttribute("href", /^https:\/\/(youtu\.be\/[\w-]{11}\?t=\d+|israelunite\.org\/)/);
+  await expect(page.locator(".fc-teach .fc-para")).toHaveCount(0);
+  // Both accounts of her child are shown.
+  await expect(page.locator(".fc-differ").first()).toContainText("baby");
+  await expect(page.locator(".fc-sources li").first()).toBeVisible();
+  await expect(page.locator(".fc-reviewed")).toContainText("Sources reviewed through");
+  await shot(page, "fc-1-event");
+  await page.goto(`/timeline/${index}`);
+  await expect(page.getByRole("heading", { name: "The House of Bondage" })).toBeVisible();
+  await shot(page, "fc-2-period");
+  // An event names the tribes of the twelve it concerns.
+  await page.goto("/timeline/event/sand-creek-massacre-1864");
+  await expect(page.locator(".fc-tribes")).toContainText("Gad");
+  // An event about a leader shows the leader's portrait.
+  await page.goto("/timeline/event/iuic-founded-2003");
+  await expect(page.locator("img.tl-event__pic")).toHaveAttribute("src", /timeline\/leaders\/bishop-nathanyel-256\.webp$/);
+  await expect(page.locator("img.tl-event__pic")).toHaveJSProperty("complete", true);
+  await shot(page, "fc-3-leader");
+});
+

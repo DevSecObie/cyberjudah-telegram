@@ -92,6 +92,52 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
   });
 }
 
+test("the audio return control survives a header change before its animation frame", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 780 });
+  await setup(page);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.clock.install();
+  await page.goto("/read/psalms/119");
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
+  await next(page, 31);
+  await expect(reading(page)).toHaveAttribute("id", "verset-31");
+  // Advance the existing programmatic-scroll suppression window, without a wall-clock sleep.
+  await page.clock.runFor(1000);
+  const scroller = page.locator(".bs-scroll"), header = page.locator(".bs-header"), pill = page.locator(".bs-follow");
+  await scroller.hover(); await page.mouse.wheel(0, 2000);
+  await expect(header).toHaveCSS("height", "20px");
+  await expect(pill).toHaveAttribute("data-at", "top");
+  await pill.click();
+  await expect(pill).not.toHaveAttribute("data-at");
+  await page.clock.runFor(1000);
+
+  // A busy frame can leave React's header update ahead of the scroll callback. Hold
+  // callbacks until the header commits, including cancellation, then resume normally.
+  await page.evaluate(() => {
+    const frame = window.requestAnimationFrame, cancel = window.cancelAnimationFrame;
+    const pending = new Map<number, FrameRequestCallback>();
+    window.requestAnimationFrame = callback => { const id = frame(() => {}); pending.set(id, callback); return id; };
+    window.cancelAnimationFrame = id => { pending.delete(id); cancel(id); };
+    (window as unknown as { resumeFrames(): void }).resumeFrames = () => {
+      window.requestAnimationFrame = frame; window.cancelAnimationFrame = cancel;
+      for (const callback of pending.values()) frame(callback);
+      pending.clear();
+    };
+    const sc = document.querySelector(".bs-scroll")!;
+    // Input before native scrolling is the ordering that exposed the lost update.
+    sc.dispatchEvent(new WheelEvent("wheel", { deltaY: -6000, bubbles: true }));
+    sc.scrollTop = 0;
+  });
+  try { await expect(header).toHaveCSS("height", "54px"); }
+  finally { await page.evaluate(() => (window as unknown as { resumeFrames(): void }).resumeFrames()); }
+  await expect(pill).toHaveAttribute("data-at", "bottom");
+  await expect(pill).toHaveText("Back to verse 31");
+  await pill.click();
+  await expect.poll(() => place(page, 31)).toBeLessThan(0.6);
+  await expect(pill).not.toHaveAttribute("data-at");
+});
+
 test("a book's prologue stands before chapter 1, closed to its titles, and opens to its words", async ({ page }) => {
   await setup(page);
   // Sirach 1 as the data gives it, with the 1611's two prologues; later chapters have none.

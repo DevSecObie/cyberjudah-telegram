@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type RefObject } from "react";
 
 import { Icon } from "@/ui/ui";
+import { useSearchViewport } from "./use-search-viewport";
 
 /**
  * The main search's field (Search.tsx), for every search in the app to share: the magnifier (a
@@ -9,12 +10,19 @@ import { Icon } from "@/ui/ui";
  * the down arrow into the results (any element marked `data-result` inside `results`), the
  * arrows through them, Escape back to the field, and Escape again to clear it.
  */
-export function SearchBar({ id, value, onChange, onSubmit, onCancel, placeholder, busy, autoFocus, results, controls, children }: {
+export function SearchBar({ id, value, onChange, onSubmit, onCancel, placeholder, busy, autoFocus, results, controls, keyboardDock = false, children }: {
   id: string; value: string; onChange: (v: string) => void; onSubmit: () => void; onCancel: () => void;
-  placeholder: string; busy?: boolean; autoFocus?: boolean; results: RefObject<HTMLElement | null>; controls?: string; children?: ReactNode;
+  placeholder: string; busy?: boolean; autoFocus?: boolean; results: RefObject<HTMLElement | null>; controls?: string; keyboardDock?: boolean; children?: ReactNode;
 }) {
   const [focused, setFocused] = useState(false);
   const field = useRef<HTMLInputElement>(null);
+  const bar = useSearchViewport(keyboardDock);
+  const focusOnMount = useRef(autoFocus);
+  useEffect(() => {
+    // A lazy screen can arrive after the reader has focused another control.
+    const active = document.activeElement;
+    if (focusOnMount.current && (active === document.body || active?.matches('nav.tabs [aria-current="page"]'))) field.current?.focus({ preventScroll: true });
+  }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const typing = e.target instanceof HTMLElement && (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName));
@@ -41,14 +49,14 @@ export function SearchBar({ id, value, onChange, onSubmit, onCancel, placeholder
     if (e.key === "Escape") { e.preventDefault(); if (value) onChange(""); else field.current?.blur(); }
   };
   return (
-    <div className="srch__bar">
+    <div ref={bar} className={`srch__bar${keyboardDock ? " srch__bar--dock" : ""}`}>
       <form className="srch__form" role="search" onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
         <label className="srch__field" data-focus={focused ? "" : undefined}>
           <span className="srch__icon" aria-hidden="true">{busy ? <span className="srch__spin" /> : <Icon name="search" size={19} />}</span>
-          <input ref={field} id={id} type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" spellCheck={false} autoFocus={autoFocus}
+          <input ref={field} id={id} type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" spellCheck={false}
             placeholder={placeholder} aria-label={placeholder} aria-controls={controls}
             value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={onFieldKey} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
-          {value ? <button type="button" className="srch__clear" aria-label="Clear the search" onClick={() => { onChange(""); field.current?.focus(); }}><Icon name="close" size={14} /></button> : <kbd className="srch__kbd" aria-hidden="true">/</kbd>}
+          {value ? <button type="button" className="srch__clear" aria-label="Clear the search" title="Clear the search" onClick={() => { onChange(""); field.current?.focus(); }}><Icon name="close" size={14} /></button> : <kbd className="srch__kbd" aria-hidden="true">/</kbd>}
         </label>
         {focused || value ? <button type="button" className="srch__cancel" onMouseDown={(e) => e.preventDefault()} onClick={() => { field.current?.blur(); onCancel(); }}>Cancel</button> : null}
       </form>

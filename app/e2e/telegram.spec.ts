@@ -166,7 +166,7 @@ test("the book pill opens Books; a chapter tile opens the chapter; the chevrons 
   await page.click(".bs-pill--book");
   await page.click(".bs-filterbtn");
   await page.click('.bs-filter__opts button >> text=Grid');
-  await expect(page.locator(".bs-bookshort >> text=Mat")).toHaveCSS("color", "rgb(194, 40, 57)");
+  await expect(page.locator(".bs-bookshort >> text=Mat")).toHaveCSS("color", "rgb(237, 191, 196)");
   await page.click(".bs-bookshort >> text=Mat");
   await expect(page.locator(".bs-picker__header b")).toHaveText("Matthew");
   await page.click('.bs-chaptertile[aria-label="Chapter 5"]');
@@ -327,8 +327,10 @@ test("liquid glass: pressing the current section lifts its pill, dragging carrie
   await expect(dock).toHaveAttribute("data-lift", "");
   for (let i = 1; i <= 8; i++) await page.mouse.move(from!.x + from!.width / 2 + ((to!.x - from!.x) * i) / 8, from!.y + from!.height / 2);
   await expect(dock).toHaveAttribute("data-drag", "");
-  // The icon under the lens swells.
-  expect(Number(await dock.locator(".tab", { hasText: "Classes" }).evaluate((b) => b.style.getPropertyValue("--mag")))).toBeGreaterThan(1.1);
+  // Feedback is present but restrained, so icons stay inside their navigation targets.
+  const magnification = Number(await dock.locator(".tab", { hasText: "Classes" }).evaluate((b) => b.style.getPropertyValue("--mag")));
+  expect(magnification).toBeGreaterThan(1);
+  expect(magnification).toBeLessThanOrEqual(1.06);
   if (process.env.SHOTS) await dock.screenshot({ path: `${process.env.SHOTS}/liquid-drag.png` });
   await page.mouse.up();
   await expect(page).toHaveURL(/\/classes/);
@@ -540,7 +542,7 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   await expect(page).toHaveURL(/endpoint=note%3Apsalms-23-1/);
   await expect(page.locator(".rel-row")).toContainText("CyberJudah");
   await page.getByRole("button", { name: "Menu", exact: true }).click();
-  await expect(page.locator(".mcard__head")).toHaveText(["YOURS", "RESOURCES", "THE LAW", "SETTINGS", "CYBERJUDAH"]);
+  await expect(page.locator(".mcard__head")).toHaveText(["Yours", "Resources", "The Law", "Settings", "CyberJudah"]);
 });
 
 test("Home is the front door: one field, search the classes or ask CyberJudah", async ({ page }) => {
@@ -769,7 +771,7 @@ test("a verse links to each class that read it, on YouTube at that moment", asyn
   // In this chapter (Bible Strong's ChapterEntities): the people named, as a stack of avatars at the end of the text.
   const stack = page.locator(".bs-entities__stack");
   await stack.scrollIntoViewIfNeeded();
-  await expect(page.locator(".bs-entities__title")).toHaveText("In this chapter");
+  await expect(page.locator(".bs-entities__title")).toHaveText("In This Chapter");
   await expect(stack).toHaveAttribute("aria-label", /^People in this chapter: Cain, /);
   await expect(stack.locator("[data-person-stack]")).toHaveCount(3);
   // A tap spreads everyone over the page; Escape puts them back; a person opens their page.
@@ -899,6 +901,8 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     await page.setViewportSize(viewport);
     await page.goto(`/people${LAUNCH}`);
     await page.fill("#people-q", "abraham");
+    // Filtering is debounced; wait for its result before the list changes under a click.
+    await expect(page.getByRole("heading", { name: "1 person", exact: true })).toBeVisible();
     await page.locator(".row", { hasText: "Abraham" }).first().click();
     await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
     // The summary card: what they are, the name, their Strong's number (to the word study), who they were.
@@ -1043,19 +1047,21 @@ test("Case studies: a person's related case opens it, and the case links back; a
   await expect(page.getByRole("link", { name: "browse every case" })).toHaveAttribute("href", "/cases");
 });
 
-test("the collapsed bar is one glass circle around one icon: the section, or the Menu off the sections", async ({ page }) => {
+test("the collapsed bar keeps the section or Menu beside the fixed Search circle", async ({ page }) => {
   await page.goto(`/cases/02-patriarchal/abraham${LAUNCH}`);
   await expect(page.getByRole("heading", { level: 1, name: "Abraham" })).toBeVisible();
   const bar = page.locator("nav.tabs");
   await page.mouse.move(195, 400);
   for (let i = 0; i < 8 && !(await bar.getAttribute("data-mini")); i++) { await page.mouse.wheel(0, 300); await page.waitForTimeout(120); }
   await expect(bar).toHaveAttribute("data-mini", "");
-  await expect.poll(() => bar.evaluate((n) => { const r = n.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; })).toBe("48x48");
+  await expect.poll(() => bar.evaluate((n) => { const r = n.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; })).toBe("105x48");
   const kept = bar.locator(".tab[data-kept]");
   await expect(kept).toHaveCount(1);
   await expect(kept).toHaveAttribute("aria-label", "Menu");
   const box = await kept.boundingBox(), outer = await bar.boundingBox();
-  expect(Math.abs(box!.width - outer!.width)).toBeLessThan(2);
+  expect(box!.width).toBeGreaterThanOrEqual(44);
+  expect(outer!.width).toBeGreaterThan(box!.width);
+  await expect(bar.getByRole("button", { name: "Search", exact: true })).toBeVisible();
   await kept.click();
   await expect(bar).not.toHaveAttribute("data-mini");
 });
@@ -1182,6 +1188,17 @@ test("Classes: a class in a series is labelled by it, and the series opens in or
 });
 
 test("Classes: one recording plays at a time, a preview reads on, the scripture opens, and a class is saved", async ({ page }) => {
+  // Exercise a written class, not whichever new upload the live channel currently puts first.
+  const classes = Array.from({ length: 14 }, (_, i) => ({
+    title: `Class fixture ${i + 1}`, url: `/classes/fixture-${i + 1}`, date: "2026-01-01", year: "2026",
+    teacher: "Test teacher", thumb: "", books: ["Genesis"], videoId: String(i).padStart(11, "a"),
+    intro: "The class opens the Scriptures and reads the passage in its context. ".repeat(12),
+    opens: [{ label: "Genesis 1", slug: "genesis", chapter: 1 }],
+  }));
+  await page.route(`${DATA_ORIGIN}/search/classes.json`, r => r.fulfill({ json: classes }));
+  await page.route(`${DATA_ORIGIN}/search/captains.json`, r => r.fulfill({ json: [] }));
+  await page.route(`${DATA_ORIGIN}/api/history/index.json`, r => r.fulfill({ json: [] }));
+  await page.route("**/api/recent", r => r.fulfill({ json: { videos: [] } }));
   await page.goto(`/classes${LAUNCH}`);
   const posts = page.locator("article.post");
   await expect(posts).toHaveCount(12);
@@ -1190,26 +1207,31 @@ test("Classes: one recording plays at a time, a preview reads on, the scripture 
   await expect(page.locator("article.post iframe")).toHaveCount(0);
   await a.getByRole("button", { name: "Watch" }).click();
   await expect(a.locator("iframe")).toHaveCount(1);
+  // Bring the next control into view before click's stability checks run.
+  await b.getByRole("button", { name: "Watch" }).scrollIntoViewIfNeeded();
   await b.getByRole("button", { name: "Watch" }).click();
   await expect(b.locator("iframe")).toHaveCount(1);
   await expect(a.locator("iframe")).toHaveCount(0);
   await b.getByRole("button", { name: "Stop" }).click();
   await expect(page.locator("article.post iframe")).toHaveCount(0);
-  // The preview is cut at three lines with Read more; read on, the full notes are a tap away.
-  const intro = a.locator(".post__intro");
+  // The preview is cut at three lines with Read more; read on, the full notes are a tap away. The
+  // newest class may not have its notes yet (they are written after it airs), so this uses the
+  // first class in the feed that has them.
+  const c = posts.filter({ has: page.locator(".post__intro") }).first();
+  const intro = c.locator(".post__intro");
   const short = await intro.evaluate((e) => e.clientHeight);
-  await a.getByRole("button", { name: "Read more" }).click();
+  await c.getByRole("button", { name: "Read more" }).click();
   await expect(intro).toHaveAttribute("data-open", "");
   expect(await intro.evaluate((e) => e.clientHeight)).toBeGreaterThan(short);
-  await expect(a.getByRole("link", { name: "Read the full notes" })).toHaveAttribute("href", /^\/note\//);
+  await expect(c.getByRole("link", { name: "Read the full notes" })).toHaveAttribute("href", /^\/note\//);
   // The chapters the class opened, in order, each to the reader.
-  await a.getByRole("button", { name: /^Scripture/ }).click();
-  const ref = a.locator(".post__ref").first();
+  await c.getByRole("button", { name: /^Scripture/ }).click();
+  const ref = c.locator(".post__ref").first();
   await expect(ref).toHaveAttribute("href", /^\/read\/[a-z0-9-]+\/\d+$/);
   // Saved to the bookmarks, and unsaved.
-  await a.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(a.getByRole("button", { name: "Remove from saved" })).toHaveAttribute("aria-pressed", "true");
-  await a.getByRole("button", { name: "Remove from saved" }).click();
+  await c.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(c.getByRole("button", { name: "Remove from saved" })).toHaveAttribute("aria-pressed", "true");
+  await c.getByRole("button", { name: "Remove from saved" }).click();
   // More posts come as the feed nears its end, none twice.
   await page.locator(".cfeed__more").scrollIntoViewIfNeeded();
   await expect.poll(() => posts.count()).toBeGreaterThan(12);
@@ -1553,12 +1575,12 @@ test("the bottom bar sits above the Bible, and each reader chooses its buttons",
   await page.mouse.move(home.x + home.width / 2, home.y + home.height / 2);
   await page.mouse.down(); await page.waitForTimeout(750); await page.mouse.up();
   await expect(page).toHaveURL(/\/settings\/bar/);
-  await page.click('[aria-label="Remove Search"]');
+  await expect(page.getByRole("button", { name: "Remove Search", exact: true })).toHaveCount(0);
   await page.click('[aria-label="Add Library"]');
   await page.click('[aria-label="Move Library up"]');
-  await expect(page.locator(".tabs .tab")).toHaveCount(7);
+  await expect(page.locator(".tabs .tab")).toHaveCount(8);
   const labels = await page.locator(".tabs .tab").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  expect(labels).toEqual(["Home", "Bible", "Classes", "Ask", "Library", expect.stringMatching(/^Tabs/), "Menu"]);
+  expect(labels).toEqual(["Home", "Bible", "Classes", "Ask", "Library", expect.stringMatching(/^Tabs/), "Menu", "Search"]);
   // Scrolling the editor may have shrunk the bar to its capsule: a tap on it opens it first.
   if (await page.locator("nav.tabs[data-mini]").count()) await page.locator("nav.tabs .tab[data-on]").click();
   await page.click('.tab[aria-label="Library"]');
@@ -1794,11 +1816,11 @@ test("the bar follows the reading: a capsule while scrolling down, back on scrol
   await expect(bar.locator(".tab[data-on] .tab__label")).toHaveText("Bible");
   await expect(bar.locator(".tab[data-on] .tab__label")).toBeVisible();
   await expect(bar).not.toHaveAttribute("data-mini");
-  // Scrolling down into the chapter shrinks it to a capsule with just the Bible.
+  // Scrolling down into the chapter shrinks it to the Bible beside the fixed Search control.
   await page.mouse.move(195, 400);
   await page.mouse.wheel(0, 600);
   await expect(bar).toHaveAttribute("data-mini", "");
-  await expect(bar.getByRole("button", { name: "Search" })).toBeHidden();
+  await expect(bar.getByRole("button", { name: "Search" })).toBeVisible();
   // Scrolling back up brings it back.
   await page.mouse.wheel(0, -150);
   await expect(bar).not.toHaveAttribute("data-mini");

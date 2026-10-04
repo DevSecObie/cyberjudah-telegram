@@ -3,6 +3,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { haptic } from "@/tg/sdk";
 import { sheetOpened } from "@/tg/hooks";
 import { Feather, Ion, type FeatherName } from "../icons";
+import { useModal } from "@/ui/modal";
+import { usePopover } from "@/ui/popover";
 import { HeaderPicker } from "./HeaderPicker";
 import { HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGHT } from "../dom/Chapter";
 
@@ -25,7 +27,7 @@ export function Header({ bookLabel, version, onBook, onVersion, onVerses, select
   return (
     <header className="bs-header" style={{ height: isCollapsed ? HEADER_HEIGHT_MIN : HEADER_HEIGHT, minHeight: isCollapsed ? HEADER_HEIGHT_MIN : HEADER_HEIGHT }} data-selected={selectedReference ? "" : undefined}>
       <div className="bs-header__row">
-        {selectedReference ? (
+        {isCollapsed ? <b className="bs-header__summary">{bookLabel} · {version}</b> : selectedReference ? (
           <div className="bs-header__center"><b>{selectedReference}</b></div>
         ) : focusedReference ? (
           <>
@@ -34,39 +36,40 @@ export function Header({ bookLabel, version, onBook, onVersion, onVerses, select
           </>
         ) : (
           <>
-            <div className="bs-pills">
-              <button type="button" className="bs-pill bs-pill--book" aria-label={`Choose book and chapter. Current selection: ${bookLabel}`} onClick={() => { haptic("select"); onBook(); }}><span className="bs-pill__bg" style={fade} /><b style={lift}>{short}</b></button>
-              <button type="button" className="bs-pill bs-pill--version" aria-label={`Choose version. Current selection: ${version}`} onClick={() => { haptic("select"); onVersion(); }}><span className="bs-pill__bg" style={fade} /><b style={lift}>{version}</b></button>
+            <div className="bs-pills toolbar-group" role="group" aria-label="Passage">
+              <button type="button" className="bs-pill bs-pill--book" aria-label={`Choose book and chapter. Current selection: ${bookLabel}`} title={`Choose book and chapter. Current selection: ${bookLabel}`} onClick={() => { haptic("select"); onBook(); }}><span className="bs-pill__bg" style={fade} /><b style={lift}>{short}</b></button>
+              <button type="button" className="bs-pill bs-pill--version" aria-label={`Choose version. Current selection: ${version}`} title={`Choose version. Current selection: ${version}`} onClick={() => { haptic("select"); onVersion(); }}><span className="bs-pill__bg" style={fade} /><b style={lift}>{version}</b></button>
             </div>
-            <button type="button" className="bs-header__verses" aria-label="Choose a verse" style={fade} onClick={() => { haptic("select"); onVerses(); }}><Feather name="chevrons-down" size={20} style={{ opacity: 0.3 }} /></button>
-            <div className="bs-header__right">
+            <div className="bs-header__right toolbar-group" role="group" aria-label="Scripture actions">
+            <button type="button" className="bs-header__verses" aria-label="Choose a verse" title="Choose a verse" style={fade} onClick={() => { haptic("select"); onVerses(); }}><Feather name="chevrons-down" size={20} style={{ opacity: 0.3 }} /></button>
               <MenuButton style={fade} onClick={() => setMenuOpen(true)} />
-              {focusedReference ? <button type="button" className="bs-iconbtn" aria-label="Exit focus mode" onClick={onClearFocus}><Feather name="x" size={20} /></button> : null}
+              {focusedReference ? <button type="button" className="bs-iconbtn" aria-label="Exit focus mode" title="Exit focus mode" onClick={onClearFocus}><Feather name="x" size={20} /></button> : null}
             </div>
           </>
         )}
       </div>
-      {hasChapterBookmark && !selectedReference ? <button type="button" className="bs-header__ribbon" aria-label="Edit bookmark" onClick={onChapterBookmark}><Ion name="bookmark" size={24} color={chapterBookmarkColor} /></button> : null}
-      {menuOpen ? <OptionsMenu hasChapterBookmark={hasChapterBookmark} onClose={() => setMenuOpen(false)} onPick={(a) => { setMenuOpen(false); onMenu(a); }} /> : null}
+      {hasChapterBookmark && !selectedReference ? <button type="button" className="bs-header__ribbon" aria-label="Edit bookmark" title="Edit bookmark" onClick={onChapterBookmark}><Ion name="bookmark" size={24} color={chapterBookmarkColor} /></button> : null}
+      <OptionsMenu open={menuOpen} hasChapterBookmark={hasChapterBookmark} onClose={() => setMenuOpen(false)} onPick={(a) => { setMenuOpen(false); onMenu(a); }} />
     </header>
   );
 }
 function MenuButton({ onClick, style }: { onClick: () => void; style?: React.CSSProperties }) {
-  return <button type="button" className="bs-iconbtn" aria-label="Scripture options" style={style} onClick={() => { haptic("select"); onClick(); }}><Feather name="more-vertical" size={18} /></button>;
+  return <button type="button" className="bs-iconbtn" aria-label="Scripture options" title="Scripture options" style={style} onClick={() => { haptic("select"); onClick(); }}><Feather name="more-vertical" size={18} /></button>;
 }
 /**
  * Bible Strong's options menu (BibleOptionsMenu): a dropdown under the ⋮ button, not a sheet.
  * Its items, in its order, and the Scripture search, which Bible Strong keeps in its search tab.
  */
-function OptionsMenu({ hasChapterBookmark, onClose, onPick }: { hasChapterBookmark: boolean; onClose: () => void; onPick: (a: MenuAction) => void }) {
+function OptionsMenu({ open, hasChapterBookmark, onClose, onPick }: { open: boolean; hasChapterBookmark: boolean; onClose: () => void; onPick: (a: MenuAction) => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => sheetOpened(), []);
+  const present = usePopover(open, ref);
+  useModal(ref, open && present, onClose, { lock: false, trap: false });
+  useEffect(() => { if (open) return sheetOpened(); }, [open]);
   useEffect(() => {
     const el = ref.current; if (!el) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    el.addEventListener("cj:close", onClose); window.addEventListener("keydown", onKey);
-    return () => { el.removeEventListener("cj:close", onClose); window.removeEventListener("keydown", onKey); };
-  }, [onClose]);
+    el.addEventListener("cj:close", onClose);
+    return () => el.removeEventListener("cj:close", onClose);
+  }, [onClose, present]);
   const items: [MenuAction, string, FeatherName][] = [
     ["params", "Font and settings", "type"],
     ["search", "Search the Scriptures", "search"],
@@ -75,13 +78,21 @@ function OptionsMenu({ hasChapterBookmark, onClose, onPick }: { hasChapterBookma
     ["export", "Export…", "share-2"],
     ["newtab", "Open in new tab", "external-link"],
   ];
+  if (!present) return null;
   return (
     <>
       <div className="bs-dropdown__catch" onClick={onClose} />
-      <div ref={ref} className="bs-dropdown" role="menu" aria-label="Passage options" data-sheet-open="">
+      <div ref={ref} className="bs-dropdown" data-popover="" inert={!open} aria-hidden={!open} role="menu" aria-label="Passage options" data-sheet-open=""
+        onKeyDown={e => {
+          const items = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];
+          const i = items.indexOf(document.activeElement as HTMLButtonElement);
+          const next = e.key === "ArrowDown" ? (i + 1) % items.length : e.key === "ArrowUp" ? (i - 1 + items.length) % items.length : e.key === "Home" ? 0 : e.key === "End" ? items.length - 1 : -1;
+          if (next >= 0) { e.preventDefault(); items[next].focus(); }
+          else if (e.key === "Tab") onClose();
+        }}>
         <b className="bs-dropdown__title">Passage options</b>
         {items.map(([a, label, icon]) => (
-          <button key={a} type="button" role="menuitem" className="bs-dropdown__item" onClick={() => { haptic("select"); onPick(a); }}>
+          <button key={a} type="button" role="menuitem" data-autofocus={a === "params" ? "" : undefined} className="bs-dropdown__item" onClick={() => { haptic("select"); onPick(a); }}>
             <Feather name={icon} size={18} /><span>{label}</span>{["params", "bookmark", "export"].includes(a) ? <Feather name="chevron-right" size={16} /> : null}
           </button>
         ))}
@@ -95,7 +106,7 @@ export function PassageContextBar({ focused, collapsed, onExpand, onCollapse, on
   return (
     <div className="bs-context" aria-hidden={collapsed} style={{ top: HEADER_HEIGHT, height: PASSAGE_CONTEXT_HEADER_HEIGHT, opacity: collapsed ? 0 : 1, pointerEvents: collapsed ? "none" : "auto", transform: `translateY(${collapsed ? -(HEADER_HEIGHT - HEADER_HEIGHT_MIN + PASSAGE_CONTEXT_HEADER_HEIGHT) : 0}px)` }}>
       <button type="button" className="bs-context__main" aria-expanded={!focused} onClick={focused ? onExpand : onCollapse}>{focused ? "Read whole chapter" : "Back to the Scripture"}</button>
-      <button type="button" className="bs-context__exit" aria-label="Exit focus mode" onClick={onExit}><span><Feather name="x" size={15} color="var(--bs-primary)" /></span></button>
+      <button type="button" className="bs-context__exit" aria-label="Exit focus mode" title="Exit focus mode" onClick={onExit}><span><Feather name="x" size={15} color="var(--bs-primary)" /></span></button>
     </div>
   );
 }
@@ -106,7 +117,7 @@ export function VersionSheet({ open, onClose }: { open: boolean; onClose: () => 
   useEffect(() => { if (!open) { setQuery(""); setFilters(false); } }, [open]);
   const matches = "KJV King James Version English Apocrypha".toLowerCase().includes(query.trim().toLowerCase());
   return (
-    <HeaderPicker open={open} onClose={onClose} title="Version" right={<button type="button" className="bs-filterbtn" aria-label="Version filters" aria-expanded={filters} onClick={() => setFilters(!filters)}><Feather name="sliders" size={18} color="var(--bs-primary)" /></button>}>
+    <HeaderPicker open={open} onClose={onClose} title="Version" right={<button type="button" className="bs-filterbtn" aria-label="Version filters" title="Version filters" aria-expanded={filters} onClick={() => setFilters(!filters)}><Feather name="sliders" size={18} color="var(--bs-primary)" /></button>}>
       <label className="bs-search"><Feather name="search" size={18} /><input aria-label="Search versions" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
       {filters ? <p className="bs-tip">English · Public domain · Includes the Apocrypha</p> : null}
       <div className="bs-versions">
