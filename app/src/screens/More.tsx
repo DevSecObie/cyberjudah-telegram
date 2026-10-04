@@ -74,7 +74,6 @@ export function MoreBody() {
         { icon: "download", label: "Download the vault", color: C.green, onClick: () => downloadFile(`${DATA_ORIGIN}/downloads/vault.zip`, "cyberjudah-vault.zip") },
       ]} />
       <Card icon="star" title="CyberJudah" items={[
-        { icon: "chat", label: "Help", color: C.green, href: "/help" },
         { icon: "share", label: "Share the app", color: C.teal, onClick: () => void share({ kind: "app", title: "CyberJudah", text: "The KJV with the Apocrypha, and everything taught from it, in Telegram.", sitePath: "/" }) },
         { icon: "link", label: "Open the full website", color: C.blue, onClick: () => openLink(SITE_URL) },
         { icon: "link", label: "The notes on GitHub", color: C.slate, onClick: () => openLink("https://github.com/DevSecObie/cyberjudah") },
