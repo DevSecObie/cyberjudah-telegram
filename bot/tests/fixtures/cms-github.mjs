@@ -4,6 +4,7 @@ const hash = text => createHash('sha1').update(text).digest('hex');
 const root = new URL('../../../', import.meta.url);
 export class FakeGithub {
   /** @type {any[]} */ rules = [];
+  annotationOnly = false;
   calls = []; pulls = new Map(); refs = new Map(); commits = new Map(); checks = 'pending'; mergeable = true; extraFiles = []; wrongApp = false;
   constructor() {
     this.files = new Map();
@@ -52,7 +53,8 @@ export class FakeGithub {
       }
       return ok({ ...value, mergeable: this.mergeable, mergeable_state: this.mergeable ? 'clean' : 'blocked' });
     }
-    if (/^\/commits\/[a-f0-9]+\/check-runs$/.test(p)) return ok({ check_runs: ['check', 'CodeQL', 'codeql', 'dependency-review', 'playwright', 'cms-content', 'validate'].map(name => ({ name, app: { id: this.wrongApp ? 999 : 15368 }, status: this.checks === 'pending' ? 'in_progress' : 'completed', conclusion: this.checks === 'pending' ? null : this.checks, output: { summary: this.checks === 'failure' ? 'A quoted passage could not be found in the recording.' : '' } })) });
+    if (/^\/check-runs\/\d+\/annotations$/.test(p)) return ok([{annotation_level:'failure',message:'Process completed with exit code 1.'},{annotation_level:'failure',message:'The quote does not match the cited recording. Correct the quotation before publishing.'}]);
+    if (/^\/commits\/[a-f0-9]+\/check-runs$/.test(p)) return ok({ check_runs: ['check', 'CodeQL', 'codeql', 'dependency-review', 'playwright', 'cms-content', 'validate'].map((name,i) => ({ id:i+1,name, app: { id: this.wrongApp ? 999 : 15368 }, status: this.checks === 'pending' ? 'in_progress' : 'completed', conclusion: this.checks === 'pending' ? null : this.checks, output: { summary: this.checks === 'failure' && !this.annotationOnly ? 'A quoted passage could not be found in the recording.' : '' } })) });
     return { status: 404, body: { error: `Unimplemented fake route ${method} ${p}` } };
   }
   fetch = async (url, init = {}) => { const result = this.respond(String(url), init.method, init.body ? JSON.parse(init.body) : null, init.headers); return Response.json(result.body, { status: result.status }); };

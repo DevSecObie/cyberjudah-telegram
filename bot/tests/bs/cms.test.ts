@@ -146,3 +146,13 @@ test('resource changes require explicit confirmation, preserve CAS and record ou
   assert.deepEqual((await (await request('admin/cms/resources/releases')).json() as any).releases,[]);
   assert.equal(fake.calls.length,0,'Resource publication must not contact GitHub');
 });
+
+
+test('a failed Actions check with no summary shows its annotation in plain words',async()=>{
+  const change=await save();fake.checks='failure';fake.annotationOnly=true;
+  const response=await(await request(`admin/cms/changes/${change.id}`)).json() as any;
+  assert.equal(response.state,'Failed');assert.equal(response.canPublish,false);
+  assert.match(response.message,/The quote does not match the cited recording/);
+  assert.ok(!response.message.includes('Process completed with exit code'));
+  assert.ok(fake.calls.some(c=>/\/check-runs\/\d+\/annotations$/.test(c.route)));
+});

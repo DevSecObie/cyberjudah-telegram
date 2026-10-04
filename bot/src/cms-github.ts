@@ -96,7 +96,7 @@ export async function createChange(env: Env, plan: { repo: string; kind: CmsKind
   }
 }
 type Pull = { state: string; merged: boolean; mergeable: boolean | null; mergeable_state: string; draft: boolean; head: { sha: string; ref: string; repo: { full_name: string } }; base: { ref: string } };
-type Check = { name: string; status: string; conclusion: string | null; app: { id: number }; output?: { title?: string; summary?: string } };
+type Check = { id: number; name: string; status: string; conclusion: string | null; app: { id: number }; output?: { title?: string; summary?: string } };
 const plain = (v: string) => v.replaceAll('<', '‹').replaceAll('>', '›').replace(/\s+/g, ' ').slice(0, 600);
 export async function refreshChange(env: Env, id: string) {
   const change = await getChange(env, id); change.canPublish = false;
@@ -121,7 +121,19 @@ export async function refreshChange(env: Env, id: string) {
     }
     const failed = checks.find(c => c.status === 'completed' && !['success', 'skipped', 'neutral'].includes(c.conclusion ?? ''));
     const missing = [...names].filter(name => !checks.some(c => c.name === name && c.status === 'completed' && c.conclusion === 'success' && !(required?.checks ?? []).some(r => r.context === name && r.app_id != null && r.app_id !== c.app.id)));
-    if (failed) { change.state = 'Failed'; change.message = `${failed.name} failed. ${plain(failed.output?.summary || failed.output?.title || 'Open the review for the failing check and correct the content.')}`; }
+    if (failed) {
+      let detail = failed.output?.summary || failed.output?.title;
+      // GitHub Actions often leaves summary/title empty and reports the error only
+      // in annotations. Read the fixed API path, never an output-supplied URL.
+      if (!detail && Number.isSafeInteger(failed.id) && failed.id > 0) {
+        try {
+          const annotations = await git.json<{ annotation_level: string; message: string }[]>(`/check-runs/${failed.id}/annotations?per_page=100`);
+          const failures = annotations.filter(a => a.annotation_level === 'failure' && a.message);
+          detail = failures.find(a => !/^Process completed with exit code/.test(a.message))?.message || failures[0]?.message;
+        } catch { /* Keep the failure visible even when diagnostics are unavailable. */ }
+      }
+      change.state = 'Failed'; change.message = `${failed.name} failed. ${plain(detail || 'Open the review for the failing check and correct the content.')}`;
+    }
     else if (missing.length || checks.some(c => c.status !== 'completed')) { change.state = 'Checking'; change.message = `Waiting for ${missing.length ? missing.join(', ') : 'the remaining checks'}.`; }
     else { change.state = 'Passed'; change.canPublish = pull.mergeable === true && !pull.draft && ['clean', 'unstable', 'has_hooks'].includes(pull.mergeable_state); change.message = change.canPublish ? 'Checks passed. Publish merges this reviewed version.' : 'Checks passed. GitHub still requires a branch update, review or conflict resolution before publishing.'; }
   }
