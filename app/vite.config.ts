@@ -1,5 +1,22 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+
+/** A complete release of the shell, including lazy reader chunks, installed as one cache. */
+let assetBase = "/";
+const offlineShell: Plugin = {
+  name: "offline-shell", apply: "build",
+  configResolved(config) { assetBase = config.base; },
+  generateBundle: { order: "post", handler(_options, bundle) {
+    const paths = Object.keys(bundle).filter((p) => /\.(js|css|html)$/.test(p)).sort();
+    const revision = createHash("sha256");
+    for (const p of paths) { const entry = bundle[p]; revision.update(p); revision.update(entry.type === "chunk" ? entry.code : entry.source); }
+    const hash = revision.digest("hex");
+    this.emitFile({ type: "asset", fileName: "offline-shell.json", source: JSON.stringify({ revision: hash, base: assetBase, paths }) });
+    this.emitFile({ type: "asset", fileName: "sw.js", source: readFileSync(new URL("./public/sw.js", import.meta.url), "utf8").replace("__CJ_SHELL_REVISION__", hash).replace('"__CJ_ASSET_BASE__"', JSON.stringify(assetBase)) });
+  } },
+};
 
 /**
  * telegram-ui's Subheadline renders an <h6> by default, and Cell, Chip and Badge use it for
@@ -19,7 +36,7 @@ const plainSubheadline: Plugin = {
 };
 
 export default defineConfig({
-  plugins: [plainSubheadline, react()],
+  plugins: [plainSubheadline, react(), offlineShell],
   // The dev server pre-bundles telegram-ui with esbuild, so the same change is made there.
   optimizeDeps: {
     esbuildOptions: {
