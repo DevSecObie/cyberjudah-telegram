@@ -14,7 +14,7 @@ import { Icon } from "./ui";
  */
 export type Hit = { kind: string; title: string; url: string; sub: string; snippet: string; loose?: boolean };
 export type SearchResult = { ok: true; q: string; mode: "strict" | "loose" | "mixed"; counts: Record<string, number>; hits: Hit[] } | { ok: false; reason: string };
-export const KIND_LABEL: Record<string, string> = { class: "Sabbath classes", captains: "15 Min w/ Captains", history: "Our Hidden History", study: "Study notes", law: "Laws", precept: "Precepts", case: "Case studies", encyclopedia: "Encyclopedia", verse: "Scripture" };
+export const KIND_LABEL: Record<string, string> = { class: "Sabbath classes", captains: "15 Min w/ Captains", history: "Our Hidden History", study: "Study notes", law: "Laws", precept: "Precepts", case: "Case studies", encyclopedia: "Encyclopedia", verse: "Scripture", web: "Approved source" };
 /** Teaching first: what was taught, then the law, then the text itself. */
 export const KIND_ORDER = ["class", "captains", "history", "study", "law", "precept", "case", "encyclopedia", "verse"];
 export const PROMPTS = ["Passover", "Seattle", "Matthew 15:24", "the lost sheep", "\"most high\"", "usury", "Melchizedek"];

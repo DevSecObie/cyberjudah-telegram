@@ -35,6 +35,16 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   Service and the classes. Each event names the tribes it concerns; an event may stand on its
   documented sources alone; an outside charge can be answered from the KJV and the Apocrypha
   ("What the scriptures say"); and a new period, Unto This Day (2003 to today).
+- Ask CyberJudah answers from the whole app: Easton's Bible Dictionary and Strong's, a person's
+  whole entry in People (family, tribe, picture), a verse's study (the classes and notes that read
+  it, its precepts, cross-references), the Law handbook, the precept topics and the Timeline (with
+  the classes' own words and sources), each with its in-app link; and it can show the app's own
+  pictures in an answer (only the app's, never another site's).
+- Ask CyberJudah can read approved outside sources (the owner's whitelist: israelunite.org,
+  Wikipedia, archive.org, Project Gutenberg, the Library of Congress and others, editable by an
+  admin), after the app and the classes, cited by number and opened in the browser; and it covers
+  the Apocrypha (its text, its verses' study, and its people through the dictionary and approved
+  sources until People has them).
 - When YouTube's feed is having trouble, the Classes screen says so: a dismissible notice
   explains that new uploads aren't reaching the app, instead of silently showing nothing new.
   Everything already in the app keeps working; the notice clears itself when the feed recovers.
@@ -120,6 +130,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   in the Bible*. Regenerate the data with `node app/scripts/timeline-data.mjs <cases>`.
 
 ### Fixed
+- Upload notices refresh while the app is open, clear when the feed recovers, and can announce a later outage after dismissal. Their dismiss button has a full 44px touch target.
 - Keep uploaded classes marked “Notes coming soon” visible during YouTube RSS outages, using channel-page fallback and retained recent recordings.
 - The book picker brings the current book into view after its animated panel mounts, including when the browser delays the opening snapshot.
 
