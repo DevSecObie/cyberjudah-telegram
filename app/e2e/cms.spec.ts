@@ -95,3 +95,18 @@ test('People editor records a supplied summary and picture metadata without repl
  for(const [key,value]of Object.entries({src:'https://example.org/picture.jpg',caption:'An artist’s depiction',credit:'Artist',license:'CC0',sourceUrl:'https://example.org/source'}))await page.getByLabel(`Picture ${key}`,{exact:true}).fill(value);
  await page.getByLabel('Reason for this change').fill('Verified profile correction');await page.getByRole('button',{name:'Save for review',exact:true}).click();await expect(page.getByRole('status')).toContainText('Checking');expect(saved.value.father).toEqual(value.father);expect(saved.value.description).toBe('Owner supplied summary');expect(saved.value.image.credit).toBe('Artist');
 });
+
+test('Precepts editor preserves recorded references and leaves an unknown optional timestamp empty',async({page})=>{
+ const pass={video:'ABCDEFGHIJK',title:'Test pass',date:'2024-02-29',passages:[{opened:'Genesis 1:1-3',ts:'1:00',sense:[{at:'1',text:'Existing sense'}],precepts:[{ref:'John 1:1',at:'1',why:'Existing explanation'}]}]};let saved:any;
+ await page.route('**/api/admin/cms/precepts/ABCDEFGHIJK',r=>r.fulfill({json:{video:pass.video,sha:'c'.repeat(40),pass}}));
+ await page.route('**/api/admin/cms/precepts',r=>{saved=r.request().postDataJSON();return r.fulfill({status:201,json:{id:'test-precept-change'}});});
+ await page.route('**/api/admin/cms/changes/test-precept-change',r=>r.fulfill({json:{id:'test-precept-change',title:'Edit precept pass',state:'Checking',message:'Waiting for quote checks.',by:{name:'Test admin'},at:new Date().toISOString(),reason:'Correction verified from recording'}}));
+ await launch(page,'/settings/admin/precepts/ABCDEFGHIJK');
+ await expect(page.getByLabel('Passage 1 precept 1 reference')).toHaveAttribute('readonly','');
+ await expect(page.getByLabel('Passage 1 precept 1 timestamp (optional)')).toHaveValue('');
+ await page.getByLabel('Passage 1 sense 1 explanation').fill('Owner supplied correction');
+ await page.getByLabel('Passage 1 precept 1 why').fill('Owner supplied reason');
+ await page.getByLabel('Reason for this change').fill('Correction verified from recording');
+ await page.getByRole('button',{name:'Save for review',exact:true}).click();await expect(page.getByRole('status')).toContainText('Checking');
+ expect(saved.pass.passages[0].precepts[0]).toEqual({ref:'John 1:1',at:'1',why:'Owner supplied reason'});expect(saved.pass.passages[0].sense[0].text).toBe('Owner supplied correction');
+});

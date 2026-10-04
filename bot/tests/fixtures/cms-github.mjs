@@ -5,11 +5,13 @@ const root = new URL('../../../', import.meta.url);
 export class FakeGithub {
   /** @type {any[]} */ rules = [];
   annotationOnly = false; failSave = ''; losePullResponse = false;
+  omittedChecks = [];
   calls = []; pulls = new Map(); refs = new Map(); commits = new Map(); checks = 'pending'; mergeable = true; extraFiles = []; wrongApp = false;
   constructor() {
     this.files = new Map();
     for (const path of ['app/scripts/final-captivity/events.json', 'app/scripts/final-captivity/drafts.json', 'app/scripts/final-captivity/periods.json', 'app/scripts/final-captivity/leaders.json', 'bot/data/ask-sources.json']) this.files.set(path, readFileSync(new URL(path, root), 'utf8'));
     this.files.set('data/people/people.json', JSON.stringify({source:'Test fixture',license:'CC0',people:['test-person','test-parent'].map(id=>({id,name:id,type:'Male',description:'Synthetic summary',father:[],mother:[],siblings:[],partners:[],children:[],verses:[]}))}));
+    this.files.set('data/precepts/classes/ABCDEFGHIJK.json', JSON.stringify({video:'ABCDEFGHIJK',title:'Synthetic precept pass',date:'2024-02-29',passages:[{opened:'Genesis 1:1-3',ts:'1:00',sense:[{at:'1',text:'Fixture explanation'}],precepts:[{ref:'John 1:1',at:'1',why:'Fixture explanation'}]}]}));
     this.files.set('data/sources/class-teachers.tsv', 'video\tteacher\tdate\ttitle\n');
     this.files.set('blog/2026/test.md', '---\ntitle: Test class\ndate: 2026-01-01\nteacher: Test teacher\n---\n\nOriginal note.\n<div data-video-id="ABCDEFGHIJK"></div>\n');
     this.main = hash('main'); this.commits.set(this.main, new Map(this.files));
@@ -27,6 +29,7 @@ export class FakeGithub {
       const path = decodeURIComponent(p.slice('/contents/'.length));
       const ref = u.searchParams.get('ref') || body?.branch || this.main;
       const commit = this.refs.get(ref) || ref, files = this.commits.get(commit), text = files?.get(path);
+      if (method === 'GET' && path === 'data/precepts/classes') return ok([...files.keys()].filter(f=>f.startsWith(path+'/')).map(f=>({type:'file',name:f.slice(path.length+1)})));
       if (text == null) return { status: 404, body: {} };
       if (method === 'GET') return ok({ type: 'file', size: Buffer.byteLength(text), sha: hash(text), encoding: 'base64', content: Buffer.from(text).toString('base64') });
       if (method === 'PUT') {
@@ -60,7 +63,7 @@ export class FakeGithub {
       return ok({ ...value, mergeable: this.mergeable, mergeable_state: this.mergeable ? 'clean' : 'blocked' });
     }
     if (/^\/check-runs\/\d+\/annotations$/.test(p)) return ok([{annotation_level:'failure',message:'Process completed with exit code 1.'},{annotation_level:'failure',message:'The quote does not match the cited recording. Correct the quotation before publishing.'}]);
-    if (/^\/commits\/[a-f0-9]+\/check-runs$/.test(p)) return ok({ check_runs: ['check', 'CodeQL', 'codeql', 'dependency-review', 'playwright', 'cms-content', 'validate'].map((name,i) => ({ id:i+1,name, app: { id: this.wrongApp ? 999 : 15368 }, status: this.checks === 'pending' ? 'in_progress' : 'completed', conclusion: this.checks === 'pending' ? null : this.checks, output: { summary: this.checks === 'failure' && !this.annotationOnly ? 'A quoted passage could not be found in the recording.' : '' } })) });
+    if (/^\/commits\/[a-f0-9]+\/check-runs$/.test(p)) return ok({ check_runs: ['check', 'CodeQL', 'codeql', 'dependency-review', 'playwright', 'cms-content', 'validate'].filter(name=>!this.omittedChecks.includes(name)).map((name,i) => ({ id:i+1,name, app: { id: this.wrongApp ? 999 : 15368 }, status: this.checks === 'pending' ? 'in_progress' : 'completed', conclusion: this.checks === 'pending' ? null : this.checks, output: { summary: this.checks === 'failure' && !this.annotationOnly ? 'A quoted passage could not be found in the recording.' : '' } })) });
     return { status: 404, body: { error: `Unimplemented fake route ${method} ${p}` } };
   }
   fetch = async (url, init = {}) => { const result = this.respond(String(url), init.method, init.body ? JSON.parse(init.body) : null, init.headers); return Response.json(result.body, { status: result.status }); };

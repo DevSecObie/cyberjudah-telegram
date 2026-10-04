@@ -37,7 +37,7 @@ The content repository's data publishing workflow must use its `production` envi
 
 People now supports summaries, existing catalog relationships and credited HTTPS pictures. Matching relationship links are updated together; the server rejects new unknown ids, duplicate/self links and new ancestry cycles. Existing unresolved upstream links are preserved. The content picture reader must publish before photos appear on profiles and their relationship graph. The reader’s layout is unchanged.
 
-The Precepts editor follows separately.
+Precepts supports passage explanations (`sense`) and precept explanations, verse positions and optional playback timestamps. References, passage order and class metadata stay fixed. Empty optional timestamps keep the passage’s playback time; no timestamp is guessed. Each save changes exactly one pass. The Worker validates real KJV references, verse bounds, dates and timestamp order; content CI additionally checks transcript existence and exact scripture quotes. Both `validate` and `check` must pass. Merge the content Precepts reader/checker PR before enabling this editor.
 
 Only the two Timeline source JSON files are committed by its editor. `pretest` and `prebuild` regenerate the reader's `timeline.json` and `final-captivity.json` with the existing builder. Do not hand-edit or commit build outputs in CMS PRs.
 

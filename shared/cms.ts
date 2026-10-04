@@ -3,7 +3,7 @@ import bible from './cms-bible.mjs';
 import { checkEvent, GROUPS, PEOPLES, TRIBES } from './cms-timeline-rules.mjs';
 
 export { GROUPS, PEOPLES, TRIBES };
-export const CmsKind = z.enum(['timeline', 'note', 'sources', 'class', 'person']);
+export const CmsKind = z.enum(['timeline', 'note', 'sources', 'class', 'person', 'precept']);
 export type CmsKind = z.infer<typeof CmsKind>;
 export const CmsId = z.string().min(1).max(160).regex(/^[A-Za-z0-9][A-Za-z0-9._/-]*$/).refine(v => !v.includes('..'), 'Invalid content id');
 export const FileSha = z.string().regex(/^[a-f0-9]{40}$/);
@@ -15,9 +15,32 @@ export const CalendarDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v => 
   const d = new Date(`${v}T00:00:00Z`); return Number.isFinite(d.valueOf()) && d.toISOString().slice(0, 10) === v;
 }, 'Use a real calendar date');
 const aliases: Record<string, string> = {
-  ecclesiasticus: 'sirach', 'rest of esther': 'esther-greek', 'history of susanna': 'susanna',
-  'song of the three holy children': 'song-of-the-three-children', 'prayer of manasses': 'prayer-of-manasseh',
-  'epistle of jeremy': 'epistle-of-jeremiah', wisdom: 'wisdom-of-solomon', psalm: 'psalms', 'song of songs': 'song-of-solomon',
+  "ecclesiasticus": "sirach",
+  "sirach": "sirach",
+  "wisdom of sirach": "sirach",
+  "rest of esther": "esther-greek",
+  "the rest of esther": "esther-greek",
+  "additions to esther": "esther-greek",
+  "esther (greek)": "esther-greek",
+  "wisdom": "wisdom-of-solomon",
+  "the wisdom of solomon": "wisdom-of-solomon",
+  "song of the three holy children": "song-of-the-three-children",
+  "the song of the three holy children": "song-of-the-three-children",
+  "history of susanna": "susanna",
+  "the history of susanna": "susanna",
+  "prayer of manasses": "prayer-of-manasseh",
+  "the prayer of manasses": "prayer-of-manasseh",
+  "epistle of jeremy": "epistle-of-jeremiah",
+  "the epistle of jeremiah": "epistle-of-jeremiah",
+  "psalm": "psalms",
+  "song of songs": "song-of-solomon",
+  "canticles": "song-of-solomon",
+  "revelations": "revelation",
+  "the revelation": "revelation",
+  "i esdras": "1-esdras",
+  "ii esdras": "2-esdras",
+  "i maccabees": "1-maccabees",
+  "ii maccabees": "2-maccabees"
 };
 /** Only pinned KJV chapter lengths are included, not additional Bible text. */
 export function resolveScripture(value: string) {

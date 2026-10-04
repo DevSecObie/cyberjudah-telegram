@@ -35,7 +35,7 @@ async function save() { const data = await loaded(); const response = await requ
 const pick = (data: any) => ({ id: data.event.slug, action: 'edit', draft: data.draft, shas: data.shas, event: data.event, reason: 'Correct source wording' });
 
 test('every CMS route refuses unsigned and non-admin readers before touching GitHub', async () => {
-  for (const [path, method] of [['people','GET'],['people/test-person','GET'],['people','POST'],['classes','GET'],['classes/ABCDEFGHIJK','GET'],['classes','POST'],['timeline','GET'],['timeline/new','GET'],['timeline','POST'],['sources','GET'],['sources','POST'],['changes','GET'],['changes/00000000-0000-0000-0000-000000000000','GET'],['changes/00000000-0000-0000-0000-000000000000/publish','POST'],['resources','GET'],['resources','POST'],['resources/releases','GET']]) {
+  for (const [path, method] of [['precepts','GET'],['precepts/ABCDEFGHIJK','GET'],['precepts','POST'],['people','GET'],['people/test-person','GET'],['people','POST'],['classes','GET'],['classes/ABCDEFGHIJK','GET'],['classes','POST'],['timeline','GET'],['timeline/new','GET'],['timeline','POST'],['sources','GET'],['sources','POST'],['changes','GET'],['changes/00000000-0000-0000-0000-000000000000','GET'],['changes/00000000-0000-0000-0000-000000000000/publish','POST'],['resources','GET'],['resources','POST'],['resources/releases','GET']]) {
     assert.equal((await request(`admin/cms/${path}`, method, method === 'POST' ? {} : undefined, 7)).status, 403);
     assert.equal((await request(`admin/cms/${path}`, method, method === 'POST' ? {} : undefined, 0)).status, 401);
   }
@@ -337,4 +337,21 @@ test('a People summary correction preserves record order, formatting and unrelat
   assert.equal(response.status, 201, await response.clone().text());
   const change = await response.json() as any;
   assert.equal(fake.commits.get(change.head)!.get(path), text.replace('Synthetic summary', 'Verified correction'));
+});
+test('precept edits preserve references, enforce SHA and allowlist, and require the quote-check job before publishing',async()=>{
+ const list=await(await request('admin/cms/precepts')).json() as any;assert.deepEqual(list.passes,[{video:'ABCDEFGHIJK'}]);
+ const source=await(await request('admin/cms/precepts/ABCDEFGHIJK')).json() as any;
+ const body={...source,pass:structuredClone(source.pass),reason:'Correct using recording'};body.pass.passages[0].precepts[0].why='Owner supplied correction';body.pass.passages[0].precepts[0].ts='1:23';
+ assert.equal((await request('admin/cms/precepts','POST',{...body,sha:'0'.repeat(40)})).status,409);
+ const malformed=structuredClone(body);malformed.pass.passages[0].precepts[0].at='4';assert.equal((await request('admin/cms/precepts','POST',malformed)).status,400);
+ const changed=structuredClone(body);changed.pass.passages[0].precepts[0].ref='John 1:2';assert.equal((await request('admin/cms/precepts','POST',changed)).status,400);
+ assert.equal((await request('admin/cms/precepts','POST',{...body,path:'engine/build.mjs'})).status,400);
+ assert.ok(!allowedFile(CONTENT_REPO,'precept','data/precepts/classes/../outside.json'));assert.ok(!allowedFile(APP_REPO,'precept','data/precepts/classes/ABCDEFGHIJK.json'));
+ assert.ok(!fake.calls.some(c=>c.method==='PUT'));
+ const response=await request('admin/cms/precepts','POST',body);assert.equal(response.status,201,await response.clone().text());const c=await response.json() as any;
+ const writes=fake.calls.filter(c=>c.method==='PUT');assert.equal(writes.length,1);assert.ok(writes[0].route.endsWith('/data/precepts/classes/ABCDEFGHIJK.json'));assert.equal(writes[0].headers.authorization,'Bearer content-token-stays-here');assert.equal(JSON.parse(Buffer.from(writes[0].body.content,'base64').toString()).passages[0].precepts[0].ts,'1:23');
+ fake.checks='success';fake.omittedChecks=['check'];const route=`admin/cms/changes/${c.id}`;
+ assert.equal((await(await request(route)).json() as any).state,'Checking');assert.equal((await request(route+'/publish','POST',{head:c.head,confirm:'publish'})).status,409);
+ fake.omittedChecks=[];assert.equal((await(await request(route)).json() as any).state,'Passed');
+ assert.equal((await request(route+'/publish','POST',{head:c.head,confirm:'publish'})).status,200);
 });
