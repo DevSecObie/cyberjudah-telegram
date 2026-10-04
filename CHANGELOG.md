@@ -26,6 +26,11 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
 ### Added
+- The Final Captivity, the twelve tribes: 41 events of the North American Indians (Gad) and the
+  Seminoles (Reuben), from the Pequot War (1637) to today, from Wikipedia, the National Park
+  Service and the classes. Each event names the tribes it concerns; an event may stand on its
+  documented sources alone; an outside charge can be answered from the KJV and the Apocrypha
+  ("What the scriptures say"); and a new period, Unto This Day (2003 to today).
 - Ask CyberJudah is pay as you go, at cost, with the balance in dollars: "$4.82 left" at the
   top, and under each answer what it cost ("$0.05", or "<$0.01"), at the model's own price.
   CyberJudah makes no profit. Top-ups of $1, $5 and $20 are bought with Telegram Stars; the
