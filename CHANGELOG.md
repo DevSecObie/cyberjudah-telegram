@@ -25,7 +25,14 @@ request that introduced this file ([#77]).
 Merged to `main` and not yet in a tagged release. Production currently runs `861242f`
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
+### Fixed
+- The Home screen's featured class label now follows the calendar: a class dated in the current Sabbath-to-Sabbath week reads "This week's class", last week's reads "Last week's class", and older classes show just their date.
+- The YouTube-outage fallback now reads the channel page's current card layout (`lockupViewModel`): YouTube changed its markup after the #122 hotfix shipped, so the fallback silently found nothing. Classes again appear as "Notes coming soon" while the RSS feed is down.
+
 ### Added
+- When YouTube's feed is having trouble, the Classes screen says so: a dismissible notice
+  explains that new uploads aren't reaching the app, instead of silently showing nothing new.
+  Everything already in the app keeps working; the notice clears itself when the feed recovers.
 - Ask CyberJudah is pay as you go, at cost, with the balance in dollars: "$4.82 left" at the
   top, and under each answer what it cost ("$0.05", or "<$0.01"), at the model's own price.
   CyberJudah makes no profit. Top-ups of $1, $5 and $20 are bought with Telegram Stars; the
@@ -108,6 +115,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   in the Bible*. Regenerate the data with `node app/scripts/timeline-data.mjs <cases>`.
 
 ### Fixed
+- Keep uploaded classes marked “Notes coming soon” visible during YouTube RSS outages, using channel-page fallback and retained recent recordings.
 - The book picker brings the current book into view after its animated panel mounts, including when the browser delays the opening snapshot.
 
 - Navigation materials share opaque accessibility fallbacks; menus avoid stacked glass, while content sheets and media controls keep their text legible.

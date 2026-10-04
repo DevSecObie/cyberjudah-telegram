@@ -35,7 +35,7 @@ export function Watch() {
   const live = useLive(isLive);
   const r = res.data;
   const recent = useRecent();
-  const meta = recent.data?.find((v) => v.video === video);
+  const meta = recent.data?.videos?.find((v) => v.video === video);
   const teaching = useTeachings().data?.find((x) => x.video === video);
   const note = useQuery({ queryKey: ["note", r?.ok ? r.url : ""], queryFn: () => data.note(r!.ok ? r!.url : "/"), enabled: !!(r?.ok && r.url) });
   useBottomButtons(res.isPending ? null : { text: "Open in YouTube", onClick: () => openLink(youtube(video, isLive ? 0 : start)) }, null);
