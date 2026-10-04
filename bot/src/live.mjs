@@ -132,6 +132,49 @@ export function parseChannelVideos(html, now = Date.now()) {
       }
       return;
     }
+    // YouTube's current channel layout nests recordings in lockupViewModel instead of
+    // videoRenderer/gridVideoRenderer. Only regular videos; Shorts use another content type.
+    const lockup = node.lockupViewModel;
+    if (lockup && lockup.contentType === "LOCKUP_CONTENT_TYPE_VIDEO") {
+      const meta = lockup.metadata?.lockupMetadataViewModel;
+      const title = cleanTitle(typeof meta?.title?.content === "string" ? meta.title.content : "");
+      let published = null, views = null, skip = false;
+      const parts = meta?.metadata?.contentMetadataViewModel?.metadataRows?.[0]?.metadataParts;
+      if (Array.isArray(parts)) {
+        for (const part of parts) {
+          const text = part?.text;
+          const label = typeof part?.accessibilityLabel === "string" ? part.accessibilityLabel
+            : typeof text?.content === "string" ? text.content : "";
+          if (!label) continue;
+          if (/^\s*(LIVE|UPCOMING|PREMIER)/i.test(label)) { skip = true; break; }
+          if (!published) published = cardDate(label, now);
+          if (views === null) {
+            const count = /^([\d,.]+)\s+views?$/i.exec(label);
+            if (count) views = Number(count[1].replace(/,/g, ""));
+            else {
+              const words = /^([\d,.]+)\s+(thousand|million)\s+views?$/i.exec(label);
+              if (words) views = Math.round(Number(words[1].replace(/,/g, "")) * (words[2].toLowerCase() === "million" ? 1e6 : 1e3));
+            }
+          }
+        }
+      }
+      const overlays = lockup.contentImage?.thumbnailViewModel?.overlays;
+      if (Array.isArray(overlays)) {
+        for (const o of overlays) {
+          const badges = o?.thumbnailBottomOverlayViewModel?.badges ?? o?.thumbnailTopOverlayViewModel?.badges ?? [];
+          for (const b of badges) {
+            const t = b?.thumbnailBadgeViewModel?.text;
+            if (typeof t === "string" && /^\s*(LIVE|UPCOMING)/i.test(t)) { skip = true; break; }
+          }
+          if (skip) break;
+        }
+      }
+      const video = lockup.contentId;
+      if (!skip && typeof video === "string" && /^[\w-]{11}$/.test(video) && title && published) {
+        out.set(video, { video, title, published, views });
+      }
+      return;
+    }
     for (const child of Object.values(node)) walk(child);
   };
   walk(selected);
