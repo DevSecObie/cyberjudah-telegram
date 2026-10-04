@@ -166,7 +166,7 @@ test("the book pill opens Books; a chapter tile opens the chapter; the chevrons 
   await page.click(".bs-pill--book");
   await page.click(".bs-filterbtn");
   await page.click('.bs-filter__opts button >> text=Grid');
-  await expect(page.locator(".bs-bookshort >> text=Mat")).toHaveCSS("color", "rgb(159, 33, 47)");
+  await expect(page.locator(".bs-bookshort >> text=Mat")).toHaveCSS("color", "rgb(237, 191, 196)");
   await page.click(".bs-bookshort >> text=Mat");
   await expect(page.locator(".bs-picker__header b")).toHaveText("Matthew");
   await page.click('.bs-chaptertile[aria-label="Chapter 5"]');
@@ -1047,19 +1047,21 @@ test("Case studies: a person's related case opens it, and the case links back; a
   await expect(page.getByRole("link", { name: "browse every case" })).toHaveAttribute("href", "/cases");
 });
 
-test("the collapsed bar is one glass circle around one icon: the section, or the Menu off the sections", async ({ page }) => {
+test("the collapsed bar keeps the section or Menu beside the fixed Search circle", async ({ page }) => {
   await page.goto(`/cases/02-patriarchal/abraham${LAUNCH}`);
   await expect(page.getByRole("heading", { level: 1, name: "Abraham" })).toBeVisible();
   const bar = page.locator("nav.tabs");
   await page.mouse.move(195, 400);
   for (let i = 0; i < 8 && !(await bar.getAttribute("data-mini")); i++) { await page.mouse.wheel(0, 300); await page.waitForTimeout(120); }
   await expect(bar).toHaveAttribute("data-mini", "");
-  await expect.poll(() => bar.evaluate((n) => { const r = n.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; })).toBe("48x48");
+  await expect.poll(() => bar.evaluate((n) => { const r = n.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; })).toBe("105x48");
   const kept = bar.locator(".tab[data-kept]");
   await expect(kept).toHaveCount(1);
   await expect(kept).toHaveAttribute("aria-label", "Menu");
   const box = await kept.boundingBox(), outer = await bar.boundingBox();
-  expect(Math.abs(box!.width - outer!.width)).toBeLessThan(2);
+  expect(box!.width).toBeGreaterThanOrEqual(44);
+  expect(outer!.width).toBeGreaterThan(box!.width);
+  await expect(bar.getByRole("button", { name: "Search", exact: true })).toBeVisible();
   await kept.click();
   await expect(bar).not.toHaveAttribute("data-mini");
 });
@@ -1573,12 +1575,12 @@ test("the bottom bar sits above the Bible, and each reader chooses its buttons",
   await page.mouse.move(home.x + home.width / 2, home.y + home.height / 2);
   await page.mouse.down(); await page.waitForTimeout(750); await page.mouse.up();
   await expect(page).toHaveURL(/\/settings\/bar/);
-  await page.click('[aria-label="Remove Search"]');
+  await expect(page.getByRole("button", { name: "Remove Search", exact: true })).toHaveCount(0);
   await page.click('[aria-label="Add Library"]');
   await page.click('[aria-label="Move Library up"]');
-  await expect(page.locator(".tabs .tab")).toHaveCount(7);
+  await expect(page.locator(".tabs .tab")).toHaveCount(8);
   const labels = await page.locator(".tabs .tab").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  expect(labels).toEqual(["Home", "Bible", "Classes", "Ask", "Library", expect.stringMatching(/^Tabs/), "Menu"]);
+  expect(labels).toEqual(["Home", "Bible", "Classes", "Ask", "Library", expect.stringMatching(/^Tabs/), "Menu", "Search"]);
   // Scrolling the editor may have shrunk the bar to its capsule: a tap on it opens it first.
   if (await page.locator("nav.tabs[data-mini]").count()) await page.locator("nav.tabs .tab[data-on]").click();
   await page.click('.tab[aria-label="Library"]');
@@ -1814,11 +1816,11 @@ test("the bar follows the reading: a capsule while scrolling down, back on scrol
   await expect(bar.locator(".tab[data-on] .tab__label")).toHaveText("Bible");
   await expect(bar.locator(".tab[data-on] .tab__label")).toBeVisible();
   await expect(bar).not.toHaveAttribute("data-mini");
-  // Scrolling down into the chapter shrinks it to a capsule with just the Bible.
+  // Scrolling down into the chapter shrinks it to the Bible beside the fixed Search control.
   await page.mouse.move(195, 400);
   await page.mouse.wheel(0, 600);
   await expect(bar).toHaveAttribute("data-mini", "");
-  await expect(bar.getByRole("button", { name: "Search" })).toBeHidden();
+  await expect(bar.getByRole("button", { name: "Search" })).toBeVisible();
   // Scrolling back up brings it back.
   await page.mouse.wheel(0, -150);
   await expect(bar).not.toHaveAttribute("data-mini");

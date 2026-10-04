@@ -129,7 +129,7 @@ export function Search() {
 
   return (
     <main className="screen srch">
-      <SearchBar id="q" value={input} onChange={setInput} onSubmit={() => submit()} onCancel={() => { setInput(""); if (q) setParams({}, { replace: true }); }}
+      <SearchBar keyboardDock id="q" value={input} onChange={setInput} onSubmit={() => submit()} onCancel={() => { setInput(""); if (q) setParams({}, { replace: true }); }}
         placeholder="Search CyberJudah" busy={busy} autoFocus={!q} results={results} controls="srch-results">
         {term.trim().length >= 2 ? (
           <div className="srch__scopes" role="tablist" aria-label="Search in">

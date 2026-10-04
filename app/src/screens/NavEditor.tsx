@@ -11,19 +11,21 @@ const Glyph = ({ item }: { item: NavItem }) => item.icon === "count" ? <span cla
  */
 export function NavEditor() {
   useBackButton(true);
-  const [ids, setIds] = useNav();
+  const [storedIds, setIds] = useNav();
+  const ids = storedIds.filter(id => id !== "search");
   const full = ids.length >= MAX_NAV;
   const move = (i: number, by: -1 | 1) => { const next = [...ids]; [next[i], next[i + by]] = [next[i + by], next[i]]; haptic("select"); setIds(next); };
   const remove = (id: NavId) => { if (ids.length > 1) { haptic("select"); setIds(ids.filter((x) => x !== id)); } };
   const add = (id: NavId) => { if (!full) { haptic("select"); setIds([...ids, id]); } };
-  const rest = NAV_ITEMS.filter((i) => !ids.includes(i.id));
-  const isDefault = ids.join() === DEFAULT_NAV.join();
+  const rest = NAV_ITEMS.filter((i) => i.id !== "search" && !ids.includes(i.id));
+  const isDefault = ids.join() === DEFAULT_NAV.filter(id => id !== "search").join();
   return (
     <Screen title="Bottom bar" kicker="Settings">
-      <p className="hint">Choose up to {MAX_NAV} buttons and their order. The menu always sits at the end, so everything else stays one tap away. A long press on the bar brings you here.</p>
+      <p className="hint">Choose up to {MAX_NAV} buttons and their order. Menu follows your choices, and Search always sits last in its own round button. A long press on the bar brings you here.</p>
       <div className="naved__preview" aria-hidden="true">
         {ids.map((id) => <span key={id}><Glyph item={navItem(id)} /></span>)}
         <span><Icon name="more" size={24} /></span>
+        <span><Icon name="search" size={22} /></span>
       </div>
       <Section title={`In the bar · ${ids.length} of ${MAX_NAV}`}>
         <ul className="naved">
