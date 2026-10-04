@@ -118,6 +118,12 @@ html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__ba
 .tab__label { max-width: 100%; overflow-wrap: anywhere; text-align: center; font: 500 .65625rem/1.1 var(--font-ui); letter-spacing: -.01em; }
 .tabs .tab[data-on] { color: var(--dock-ink-override, var(--text-1)); }
 .tabs .tab[data-on] .tab__label { font-weight: 700; }
+/* Search shares the group's single material, with its own round control and fixed gap. */
+.tabs__main { display: flex; flex: 1 1 0; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.tabs .tab--search { flex: none; width: calc(var(--dock-h) - 12px); aspect-ratio: 1; margin-left: var(--sp-2); border-radius: 50%; background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--control-edge); }
+.tabs .tab--search .tab__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.tabs[data-search-current] .tabs__pill { border-radius: 50%; }
+.tabs .tab--search[data-on] { background: transparent; }
 /* Concentric selection inside the dock. It shares the dock's material and keeps all glyphs
    and labels crisp. Transforms provide press/drag feedback; blur itself never animates. */
 .tabs__pill {
@@ -172,12 +178,17 @@ html[data-transparency="reduced"] .tabs::after { display: none; }
 .tabs[data-pill="none"] .tabs__pill { opacity: 0; }
 .tabs .tab__count { display: grid; place-items: center; box-sizing: border-box; min-width: 22px; height: 22px; padding: 0 4px; border: 1.75px solid currentColor; border-radius: 6px; font: 700 11.5px/1 var(--font-ui); font-variant-numeric: tabular-nums; }
 .tabs .tab__count[style*="--group"] { background: var(--group); border-color: var(--group); color: #fff; }
-/* Collapsed (phones, scrolling down): a small capsule holding only the current section. */
+/* Collapsed phones keep the current section and the fixed trailing Search control. */
 @media (max-width: 899px) {
-  .tabs[data-mini] { width: 48px; height: 48px; padding: 0; border-radius: 24px; cursor: pointer; }
+  .tabs[data-scrollable] { touch-action: pan-x; }
+  .tabs[data-mini] { width: calc(97px + var(--sp-2)); height: 48px; padding: 0; border-radius: 24px; cursor: pointer; }
+  .tabs[data-mini][data-search-current] { width: 48px; }
+  .tabs[data-mini][data-search-current] .tabs__main { display: none; }
   .tabs[data-mini] .tabs__pill { opacity: 0; }
-  .tabs[data-mini] .tab:not([data-kept]) { display: none; }
+  .tabs[data-mini] .tab:not([data-kept]):not(.tab--search) { display: none; }
   .tabs[data-mini] .tab[data-kept] { flex: none; width: 48px; height: 48px; }
+  .tabs[data-mini] .tab--search { width: 48px; height: 48px; }
+  .tabs[data-mini][data-search-current] .tab--search { margin-left: 0; }
   .tabs[data-mini] .tab__label { display: none; }
 }
 html[data-typing] .tabs { display: none; }
@@ -186,7 +197,7 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 
 /* The switcher's controls take the dock's place and glass. */
 .tabs--switcher { padding: 0 8px; }
-.switcherbar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); width: 100%; min-height: 52px; }
+.switcherbar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex: 1; min-width: 0; min-height: 52px; }
 #root .switcherbar__add, #root .switcherbar__ok { display: grid; place-items: center; min-width: var(--touch); height: var(--touch); padding: 0 6px; border: 0; border-radius: var(--r-pill); background: none; color: var(--text-1); cursor: pointer; }
 #root button.switcherbar__ok { font: 700 15px var(--font-ui); }
 #root .switcherbar__group { display: inline-flex; align-items: center; gap: 4px; max-width: 50vw; min-height: var(--touch); padding: 0 14px; border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: none; color: var(--group, var(--text-1)); font: 500 14px var(--font-ui); cursor: pointer; }
@@ -200,6 +211,8 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
     flex-direction: column; padding: 8px 6px; gap: 4px; --r-outer: 30px; border-radius: var(--r-outer); overflow-y: auto; scrollbar-width: none;
   }
   .tabs:not(.tabs--switcher) .tab { flex: none; width: 64px; min-height: 56px; height: auto; padding-block: 6px; border-radius: var(--r-inner); }
+  .tabs__main { display: contents; }
+  .tabs:not(.tabs--switcher) .tab--search { width: 56px; height: 56px; border-radius: 50%; margin: var(--sp-2) 0 0; }
   .tabs:not(.tabs--switcher) .tabs__pill { border-radius: var(--r-inner); }
   .tabs:not(.tabs--switcher) .tab__label { font-size: .6875rem; }
   .tabs[data-scrollable] { touch-action: pan-y; overscroll-behavior-y: contain; }

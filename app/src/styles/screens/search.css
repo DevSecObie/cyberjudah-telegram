@@ -4,6 +4,18 @@
    Results are grouped, each with its kind's icon, title, place and the matching words lit. */
 .srch { padding-top: 0 !important; max-width: var(--w-wide); }
 .srch__bar { margin: 0 calc(-1 * var(--gutter)) var(--sp-2); padding: calc(var(--sp-2) + var(--safe-top)) var(--gutter) 0; }
+@media (max-width: 899px) {
+  .srch { padding-top: calc(var(--safe-top) + var(--sp-4)) !important; padding-bottom: calc(var(--dock-space) + var(--search-bar-height, 64px) + var(--sp-4)) !important; }
+  .srch__bar--dock { position: fixed; top: auto; bottom: 0; left: var(--safe-left); right: var(--safe-right); margin: 0; padding: var(--sp-2) var(--gutter); transform: translateY(calc(-1 * var(--dock-space) + var(--search-lift, 0px))); transition: transform var(--dur-2) var(--ease); }
+  .srch__bar--dock[data-keyboard] { transform: translateY(calc(var(--search-lift, 0px) - var(--safe-bottom))); }
+  .srch__bar--dock .srch__form { flex-wrap: wrap; justify-content: flex-end; }
+  .srch__bar--dock .srch__field { flex-basis: 12rem; }
+  .srch__bar--dock .srch__kbd { display: none; }
+  .srch__bar--dock::before { top: calc(-1 * var(--mat-scroll-edge-depth)); bottom: 0; width: 100%; -webkit-mask-image: var(--mat-scroll-edge-up); mask-image: var(--mat-scroll-edge-up); margin-left: -50%; }
+  .srch__bar--dock::after { display: none; }
+  html[data-search-keyboard] .tabs { visibility: hidden; pointer-events: none; }
+}
+@media (prefers-reduced-motion: reduce) { .srch__bar--dock { transition: none; } }
 .srch__form { display: flex; align-items: center; gap: 10px; }
 .srch__field { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--sp-2); height: 46px; padding: 0 var(--sp-2) 0 14px; border-radius: var(--r-pill); cursor: text;
   background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--control-edge); transition: none; }

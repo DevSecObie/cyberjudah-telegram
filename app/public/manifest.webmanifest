@@ -7,5 +7,11 @@
   "display": "standalone",
   "background_color": "#05070f",
   "theme_color": "#05070f",
-  "icons": [{ "src": "https://cyberjudah.io/assets/brand/cyber-lion.png", "type": "image/png", "purpose": "any" }]
+  "icons": [
+    { "src": "./icons/light-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/light-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icons/monochrome-512.png", "sizes": "512x512", "type": "image/png", "purpose": "monochrome" }
+  ]
 }

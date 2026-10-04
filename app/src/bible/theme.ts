@@ -1,4 +1,4 @@
-import { paletteGrounds, readableColor } from "../ui/palette";
+import { memoizePalette, paletteGrounds, readableColor } from "../ui/palette";
 
 /**
  * Bible Strong's colour palettes, verbatim (apps/expo/src/themes/*Colors.ts), and the
@@ -55,12 +55,12 @@ export function contrastText(hex: string, dark: boolean): string | undefined {
 }
 
 /** CSS custom properties for a palette, `--bs-<token>`, applied on the Bible tab's root. */
-export function cssVars(p: Palette): Record<string, string> {
+export const cssVars = memoizePalette((p: Palette): Record<string, string> => {
   const dark = PALETTES.dark.default === p.default || [PALETTES.black.default, PALETTES.mauve.default, PALETTES.night.default].includes(p.default);
   const grounds = paletteGrounds(p, dark);
   const inks = new Set(["default", "grey", "darkGrey", "primary", "secondary", "tertiary", "quart", "quint", "success"]);
   return Object.fromEntries(Object.entries(p).map(([k, v]) => [`--bs-${k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`, inks.has(k) ? readableColor(v, grounds) : v]));
-}
+});
 /** The app's accent on the reader's dark pages, a deep teal on its light ones: one accent through the whole app. */
 export const ACCENT: Record<ThemeName, { primary: string; lightPrimary: string }> = {
   default: { primary: "#0b7f8f", lightPrimary: "rgba(11,127,143,0.12)" }, sepia: { primary: "#0b7f8f", lightPrimary: "rgba(11,127,143,0.12)" },

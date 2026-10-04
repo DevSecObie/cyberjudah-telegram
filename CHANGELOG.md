@@ -25,12 +25,19 @@ request that introduced this file ([#77]).
 Merged to `main` and not yet in a tagged release. Production currently runs `861242f`
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
+### Fixed
+- The Home screen's featured class label now follows the calendar: a class dated in the current Sabbath-to-Sabbath week reads "This week's class", last week's reads "Last week's class", and older classes show just their date.
+- The YouTube-outage fallback now reads the channel page's current card layout (`lockupViewModel`): YouTube changed its markup after the #122 hotfix shipped, so the fallback silently found nothing. Classes again appear as "Notes coming soon" while the RSS feed is down.
+
 ### Added
 - The Final Captivity, the twelve tribes: 41 events of the North American Indians (Gad) and the
   Seminoles (Reuben), from the Pequot War (1637) to today, from Wikipedia, the National Park
   Service and the classes. Each event names the tribes it concerns; an event may stand on its
   documented sources alone; an outside charge can be answered from the KJV and the Apocrypha
   ("What the scriptures say"); and a new period, Unto This Day (2003 to today).
+- When YouTube's feed is having trouble, the Classes screen says so: a dismissible notice
+  explains that new uploads aren't reaching the app, instead of silently showing nothing new.
+  Everything already in the app keeps working; the notice clears itself when the feed recovers.
 - Ask CyberJudah is pay as you go, at cost, with the balance in dollars: "$4.82 left" at the
   top, and under each answer what it cost ("$0.05", or "<$0.01"), at the model's own price.
   CyberJudah makes no profit. Top-ups of $1, $5 and $20 are bought with Telegram Stars; the
@@ -113,6 +120,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   in the Bible*. Regenerate the data with `node app/scripts/timeline-data.mjs <cases>`.
 
 ### Fixed
+- Keep uploaded classes marked “Notes coming soon” visible during YouTube RSS outages, using channel-page fallback and retained recent recordings.
 - The book picker brings the current book into view after its animated panel mounts, including when the browser delays the opening snapshot.
 
 - Navigation materials share opaque accessibility fallbacks; menus avoid stacked glass, while content sheets and media controls keep their text legible.
@@ -130,6 +138,13 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   is unavailable, Ask answers from the keyword search.
 
 ### Changed
+- Keep reader context readable and gallery panels opaque across themes; document the Liquid Glass adoption review.
+
+- Reduced repeated palette calculations and dock style updates; browser checks now cover glass budgets and large-text label containment in Chromium, WebKit and Firefox.
+
+- Local app icons now include layered lion artwork, full-bleed light/dark squares, PWA maskable safe-zone exports and a monochrome variant.
+
+- Search stays last in its own round dock control without rewriting saved button choices; the phone search field follows the keyboard viewport above the dock, and touch actions activate once after scrolling or dragging.
 - Increased contrast now has explicit light, dark and sepia palettes, including Bible controls; secondary text, status colors and Home widgets keep readable contrast on their surfaces.
 - Lists and settings use roomier grouped rows with shared rounded corners. Section headings keep normal title case, and related settings have accessible form groups.
 - The Bible Timeline shows 45 more portraits (83 in all): picture rounds 2–4 (Solomon recropped, the

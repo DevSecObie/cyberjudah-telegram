@@ -161,7 +161,7 @@ app.get("/api/teachings", async (c) => {
 // Whether a class is on the air right now (the channel's live stream), for the Home screen.
 app.get("/api/live", async (c) => c.json(await liveNow(c.env, c.executionCtx)));
 // The channel's newest recordings, so a class is listed before its notes are written.
-app.get("/api/recent", async (c) => c.json({ videos: await recentVideos(c.env, c.executionCtx) }));
+app.get("/api/recent", async (c) => { const r = await recentVideos(c.env, c.executionCtx); return c.json({ videos: r.videos, feedOk: r.ok }); });
 app.get("/api/taught/:slug/:chapter", async (c) => {
   const slug = c.req.param("slug"), chapter = Number(c.req.param("chapter"));
   if (!/^[a-z0-9-]{1,40}$/.test(slug) || !(chapter >= 1 && chapter <= 200)) return c.json({ ok: false, reason: "bad-reference" }, 400);
