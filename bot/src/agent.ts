@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { books, chapter, dataJson } from "./data";
 import { claude } from "./providers";
 import type { Env, Exec } from "./env";
+import { MORE_RUN, MORE_TOOLS } from "./ask-tools";
 import { answerCandidates, APP, normalizeHistory, RESEARCH, SYSTEM, type Passage, type Turn } from "./ai.mjs";
 import { checkInput, describeReminder, findCases, findChats, findFeatures, findPeople, proposeReminder } from "./assistant.mjs";
 import { FEATURES } from "../../shared/app-features.mjs";
@@ -75,6 +76,7 @@ const TOOL_DEFS: Anthropic.Tool[] = [
     description: "Read the exact King James text (the Apocrypha included) of a reference: a chapter (\"Sirach 43\"), a verse (\"Exodus 12:14\") or a range (\"Deuteronomy 16:1-8\"). Returns the verses, numbered for citation. Call it for every verse you will quote that is not already in the passages: quote Scripture only from what this returns or from the passages.",
     input_schema: { type: "object", properties: { reference: { type: "string", description: "Book, chapter and optional verse or range." } }, required: ["reference"] },
   },
+  ...MORE_TOOLS,
 ];
 
 /**
@@ -188,6 +190,8 @@ export async function runAgent(
       emit({ action });
       return { content: `A card now sits under your answer: "${p.summary}" with Confirm and Cancel. Nothing has changed: it happens only if they tap Confirm. Do not say it is done.` };
     }
+    const more = MORE_RUN[name];
+    if (more) return more(env, input, ctx, emit, line);
     return { content: `No tool named ${name}.`, error: true };
   };
 

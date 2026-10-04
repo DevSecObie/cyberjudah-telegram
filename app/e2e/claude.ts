@@ -35,12 +35,15 @@ export async function claude(req: ClaudeRequest, res: http.ServerResponse) {
       const said = results.map((r) => (typeof r.content === "string" ? r.content : JSON.stringify(r.content))).join("\n");
       const links = [...said.matchAll(/^(.*?): .*? Link: (\S+)$/gm)].map((m) => `- [${m[1].replace(/^(Person|Case study): /, "")}](${m[2]})`);
       if (/remind/i.test(question) && !/^How do I/i.test(question)) return { text: "I've put a card below to turn your reading reminder on at 6:30. It happens only when you tap Confirm.", stop: "end_turn" };
-      return { text: links.length ? `Here is what I found:\n\n${links.join("\n")}` : `I found nothing for that. ${said.slice(0, 120)}`, stop: "end_turn" };
+      const pics = [...said.matchAll(/Picture: (\/\S+)/g)].map((m) => `![A picture](${m[1]})`);
+      return { text: links.length ? `Here is what I found:\n\n${links.join("\n")}${pics.length ? `\n\n${pics.slice(0, 1).join("\n")}` : ""}` : `I found nothing for that. ${said.slice(0, 120)}`, stop: "end_turn" };
     }
     if (/refuse/i.test(question)) return { stop: "refusal" };
     const how = /^How do I (.+?)\??$/i.exec(question);
     if (how) return { tools: [{ name: "app_help", input: { query: how[1] } }], stop: "tool_use" };
     if (/remind/i.test(question)) return { tools: [{ name: "my_reminder", input: {} }, { name: "propose_reminder_change", input: { on: true, hour: 6, minute: 30 } }], stop: "tool_use" };
+    const all = /^Everything about (.+?)\??$/i.exec(question);
+    if (all) return { tools: [{ name: "person", input: { name: all[1] } }, { name: "timeline", input: { query: all[1] } }, { name: "look_up_word", input: { word: all[1] } }, { name: "law", input: { query: "sabbath" } }, { name: "precepts", input: { topic: "adultery" } }, { name: "verse_study", input: { reference: "Genesis 12:1" } }], stop: "tool_use" };
     if (/saved chats/i.test(question)) return { tools: [{ name: "my_saved_chats", input: { query: "" } }], stop: "tool_use" };
     if (/dangerous/i.test(question)) return { text: "See [this](javascript:alert(document.domain)) or [that](https://evil.example/x) or [Reading reminders](/settings/reminders).", stop: "end_turn" };
     return { text: `A short answer to: ${question}`, stop: "end_turn" };

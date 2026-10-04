@@ -7,7 +7,7 @@ import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { api, ApiError, app, confirm, haptic, hideKeyboard, openInvoice, openLink, requestWriteAccess, user } from "@/tg/sdk";
 import { saveReminder, timeLabel, timeZone, type Settings as ReminderSettings } from "@/lib/reminders";
 import { useContent } from "./Reminders";
-import { safeLinks } from "@/lib/safe-links";
+import { safeImages, safeLinks } from "@/lib/safe-links";
 import { fmtUsd, MC_PER_USD } from "@shared/credits.mjs";
 import { chosenModel, chooseModel } from "@/lib/ask-model";
 import { agree, consented } from "@/lib/ai-consent";
@@ -801,6 +801,6 @@ export function answerHtml(text: string, sources: Source[]): string {
   const known = new Set(sources.map((s) => s.n));
   const marked_ = escapeHtml(text.replace(/\n?[ \t]*\**Follow-ups:[\s\S]*$/i, "").replace(/\s*\[\d{0,2}$/, ""))
     .replace(/\s*\[(\d{1,2}(?:\s*,\s*\d{1,2})*)\]/g, (_m, list: string) => list.split(/\s*,\s*/).map((n) => (known.has(Number(n)) ? ` CJCITE${n}CJ` : "")).join(""));
-  const html = safeLinks(marked.parse(marked_, { gfm: true, breaks: false, async: false }) as string);
+  const html = safeImages(safeLinks(marked.parse(marked_, { gfm: true, breaks: false, async: false }) as string), assetUrl);
   return html.replace(/ ?CJCITE(\d{1,2})CJ/g, (_m, n: string) => `<button type="button" class="cite" data-n="${n}" aria-label="Source ${n}">${n}</button>`);
 }

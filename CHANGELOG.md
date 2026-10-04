@@ -30,6 +30,11 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 - The YouTube-outage fallback now reads the channel page's current card layout (`lockupViewModel`): YouTube changed its markup after the #122 hotfix shipped, so the fallback silently found nothing. Classes again appear as "Notes coming soon" while the RSS feed is down.
 
 ### Added
+- Ask CyberJudah answers from the whole app: Easton's Bible Dictionary and Strong's, a person's
+  whole entry in People (family, tribe, picture), a verse's study (the classes and notes that read
+  it, its precepts, cross-references), the Law handbook, the precept topics and the Timeline (with
+  the classes' own words and sources), each with its in-app link; and it can show the app's own
+  pictures in an answer (only the app's, never another site's).
 - When YouTube's feed is having trouble, the Classes screen says so: a dismissible notice
   explains that new uploads aren't reaching the app, instead of silently showing nothing new.
   Everything already in the app keeps working; the notice clears itself when the feed recovers.
