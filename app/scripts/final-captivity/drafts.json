@@ -768,5 +768,52 @@
   ],
   "status": "draft",
   "needs": "A source read for the 2019 amendment to Article 2 (the Afro-Mexicans article read gives only the 1992 cultural recognition and the 2015 and 2020 census counts)."
+ },
+ {
+  "slug": "comuneros-of-new-granada-1781",
+  "title": "The Comuneros revolt of New Granada",
+  "period": "house-of-bondage",
+  "tribes": [
+   "Asher"
+  ],
+  "status": "draft",
+  "needs": "A documented source: the Wikipedia article could not be fetched (rate-limited) and no other source was read.",
+  "start": 1781,
+  "end": 1781
+ },
+ {
+  "slug": "war-of-the-pacific-1879-1883",
+  "title": "The War of the Pacific (Chile against Peru and Bolivia)",
+  "period": "jim-crow",
+  "tribes": [
+   "Naphtali",
+   "Asher"
+  ],
+  "status": "draft",
+  "needs": "Reading of the source (Wikipedia 'War of the Pacific' was fetched but not read for figures) and a decision whether an inter-state war of Chile on Peru and Bolivia belongs on the tribes' timeline.",
+  "start": 1879,
+  "end": 1883
+ },
+ {
+  "slug": "peru-protests-2022-2023",
+  "title": "The killing of Aymara and Quechua protesters in Peru, 2022–2023",
+  "period": "unto-this-day",
+  "tribes": [
+   "Asher"
+  ],
+  "status": "draft",
+  "needs": "A source read for dates and the death toll (Wikipedia '2022–2023 Peruvian protests' could not be fetched).",
+  "start": 2022,
+  "end": 2023
+ },
+ {
+  "slug": "abolition-in-uruguay-and-bolivia",
+  "title": "The end of slavery in Uruguay and Bolivia",
+  "period": "house-of-bondage",
+  "tribes": [
+   "Asher"
+  ],
+  "status": "draft",
+  "needs": "Dated abolition laws for Uruguay and Bolivia: the Afro-Uruguayans and Afro-Bolivians articles read did not give them plainly."
  }
 ]
