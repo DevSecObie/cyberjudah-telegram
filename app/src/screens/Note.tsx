@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Navigate, useLocation } from "react-router";
+import { Navigate, useLocation, useNavigate } from "react-router";
 
 import { data, fmtDate, when, type HistoryEpisode } from "@/api/data";
 import { toggleBookmark, useBookmarks, useLastNote } from "@/lib/marks";
@@ -14,7 +14,6 @@ import { useSheet } from "@/ui/sheet";
 import { NoteBody, noteLede } from "@/ui/note-body";
 import { noteFirstMoment } from "@/ui/note-body";
 import { NotesOpener, NotesSheet, Player } from "@/ui/player";
-import { NoteEditSheet } from "@/ui/note-edit";
 import { Empty, Icon, Skeleton, timestamp, youtube } from "@/ui/ui";
 import { TranscriptExcerpt, useTranscriptAround } from "./Watch";
 
@@ -27,6 +26,7 @@ const KIND: Record<string, string> = { class: "Sabbath class", captains: "15 Min
  */
 export function NoteScreen() {
   const location = useLocation();
+  const navigate = useNavigate();
   const sheet = useSheet();
   const path = location.pathname.replace(/^\/note/, "") || "/";
   const note = useQuery({ queryKey: ["note", path], queryFn: () => data.note(path) });
@@ -54,9 +54,7 @@ export function NoteScreen() {
   const [full, setFull] = useState(false);
   const [notes, setNotes] = useState(at === null || !!location.hash);
   // Admins edit a note in place: the teacher, the title, a spelling. /api/me says who may.
-  const who = useQuery({ queryKey: ["me"], queryFn: () => api<{ canEdit?: boolean }>("/api/me"), staleTime: 600_000, retry: false });
-  const [editing, setEditing] = useState(false);
-  const saved = (changed: string[], commit: string) => { setEditing(false); void alert(`Saved: ${changed.join("; ")}. The app shows it once the library rebuilds, in a few minutes.`); void commit; };
+  const who = useQuery({ queryKey: ["me"], queryFn: () => api<{ admin?: boolean }>("/api/me"), staleTime: 600_000, retry: false });
   useBackButton(false, () => { if (notes && video && at !== null) { setNotes(false); return true; } });
   const seek = (t: number) => { setStart(t); setPlaying(true); setNotes(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
@@ -107,7 +105,7 @@ export function NoteScreen() {
       <h1>{n.title}</h1>
       <div className="head__actions toolbar-group" role="group" aria-label="Note actions">
         {pdfButton}
-        {who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" title="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="compose" size={18} /></button> : null}
+        {who.data?.admin && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" title="Edit this note" onClick={() => { haptic("select"); navigate(`/settings/admin/notes?file=${encodeURIComponent(n.file!)}`); }}><Icon name="compose" size={18} /></button> : null}
         <button type="button" className="icon-btn" aria-pressed={kept} aria-label={kept ? "Remove bookmark" : "Bookmark"} title={kept ? "Remove bookmark" : "Bookmark"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: path, kind: "note", title: n.title, text: [label(n.kind), fmtDate(n.date)].filter(Boolean).join(" · "), href: path })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={18} /></button>
       </div>
     </header>
@@ -143,8 +141,7 @@ export function NoteScreen() {
       {readFrom}
       {isHistory && episode.data?.turns?.length ? <Transcript ep={episode.data} find={params.get("find") ?? ""} onSeek={seek} /> : null}
       {upnext}
-      <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={n.title} action={<>{pdfButton}{who.data?.canEdit && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" title="Edit this note" onClick={() => { haptic("select"); setEditing(true); }}><Icon name="compose" size={18} /></button> : null}</>}><NoteBody md={n.body} video={video} onSeek={seek} series={me?.series ? teachingLabel(me) : undefined} /></NotesSheet>
-      {editing ? <NoteEditSheet open onClose={() => setEditing(false)} note={n} onSaved={saved} /> : null}
+      <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={n.title} action={<>{pdfButton}{who.data?.admin && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" title="Edit this note" onClick={() => { haptic("select"); navigate(`/settings/admin/notes?file=${encodeURIComponent(n.file!)}`); }}><Icon name="compose" size={18} /></button> : null}</>}><NoteBody md={n.body} video={video} onSeek={seek} series={me?.series ? teachingLabel(me) : undefined} /></NotesSheet>
     </main>
   );
   return (
@@ -154,7 +151,6 @@ export function NoteScreen() {
       {readFrom}
       <NoteBody md={n.body} series={me?.series ? teachingLabel(me) : undefined} />
       {upnext}
-      {editing ? <NoteEditSheet open onClose={() => setEditing(false)} note={n} onSaved={saved} /> : null}
     </main>
   );
 }

@@ -135,6 +135,7 @@ export function Settings() {
         <div className="btn--row">{[50, 100, 500].map((n) => <button key={n} type="button" className="btn btn--quiet" disabled={!app} onClick={() => void support(n)}>⭐ {n}</button>)}</div>
         <p className="hint">Telegram Stars go toward hosting the library. The text and the notes stay free.{app ? "" : " Stars are given inside Telegram."}</p>
       </Section>
+      {me?.admin ? <Section title="Content"><List><Row title="Admin" sub="Edit content, check reviews and publish approved changes" onClick={() => navigate("/settings/admin")} /></List></Section> : null}
       {me?.admin ? <AskUsage /> : null}
       {me?.admin ? <Section title="Notes"><List><Row title="Requested notes" sub="Classes readers asked notes for, the most asked first" onClick={() => navigate("/settings/requests")} /></List></Section> : null}
       <Section title="This App">

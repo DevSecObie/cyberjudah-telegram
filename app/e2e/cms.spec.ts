@@ -1,0 +1,51 @@
+import { test, expect, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { signInitData } from '../../bot/src/initdata.mjs';
+import { STAND_IN } from './stand-ins';
+const mock = readFileSync(new URL('./telegram-mock.js',import.meta.url),'utf8');
+const events = JSON.parse(readFileSync(new URL('../scripts/final-captivity/events.json',import.meta.url),'utf8'));
+const event = events[0];
+const sign = (id: number) => signInitData({ auth_date:String(Math.floor(Date.now()/1000)), user:{id,first_name:'CMS test'} },process.env.BOT_TOKEN!);
+async function launch(page: Page, path: string, admin = true) {
+  await page.route('https://telegram.org/**',r => r.fulfill({contentType:'application/javascript',body:mock}));
+  await page.route(/youtube\.com|ytimg\.com|fonts\.g/,r => r.abort());
+  const init = await sign(admin ? 100000002 : 100000003);
+  await page.goto(`${path}#tgWebAppData=${encodeURIComponent(init)}&tgWebAppVersion=9.1&tgWebAppPlatform=ios`);
+}
+test.skip(!!process.env.PLAYWRIGHT_BASE_URL,'CMS runs only against the local fake GitHub API');
+test('an admin edits a Timeline event, follows checks and explicitly publishes the reviewed version', async ({page,request}) => {
+  await request.post(`${STAND_IN}/__cms/reset`);
+  const loaded = await request.get('/api/admin/cms/timeline', { headers: { authorization: `tma ${await sign(100000002)}` } });
+  expect(loaded.status(), await loaded.text()).toBe(200);
+  await launch(page,'/settings');
+  await page.getByText('Admin',{exact:true}).click();
+  await page.getByRole('link',{name:'Timeline Events, drafts, sources and pictures'}).click();
+  await page.getByRole('link',{name:`${event.title} Published`}).click();
+  await expect(page.getByRole('dialog',{name:'Edit Timeline event'})).toBeVisible();
+  await page.getByLabel('Title',{exact:true}).fill(`${event.title} — source correction`);
+  await page.getByLabel('Reason for this change').fill('Correct the title using the cited source.');
+  if (process.env.CMS_SHOT_DIR) await page.screenshot({path:`${process.env.CMS_SHOT_DIR}/timeline-editor.png`});
+  await page.getByRole('button',{name:'Save for review',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('Checking');
+  await expect(page.getByRole('button',{name:'Publish',exact:true})).toBeDisabled();
+  await request.post(`${STAND_IN}/__cms/checks`,{data:{state:'success'}});
+  await expect(page.getByRole('status')).toContainText('Passed');
+  await page.getByRole('button',{name:'Publish',exact:true}).click();
+  const sheet = page.getByRole('dialog',{name:'Publish change'});
+  await expect(sheet).toBeVisible();
+  const before = await (await request.get(`${STAND_IN}/__cms/calls`)).json();
+  expect(before.some((c: {route:string})=>c.route.endsWith('/merge'))).toBe(false);
+  await sheet.getByRole('button',{name:'Confirm publish'}).click();
+  await expect(page.getByRole('status')).toContainText('Published');
+  const calls = await (await request.get(`${STAND_IN}/__cms/calls`)).json();
+  const merge = calls.find((c: {route:string})=>c.route.endsWith('/merge')); expect(merge.body.merge_method).toBe('squash');
+  expect(calls.filter((c: {method:string;route:string})=>c.method === 'PUT' && c.route.includes('/contents/')).every((c: {body:{branch:string}})=>c.body.branch.startsWith('cms/'))).toBe(true);
+});
+test('a non-admin sees no Admin or content Edit action and the server rejects direct access',async({page,request})=>{
+  await launch(page,'/settings',false);
+  await expect(page.getByText('Admin',{exact:true})).toHaveCount(0);
+  await launch(page,`/timeline/event/${event.slug}`,false);
+  await expect(page.getByRole('link',{name:'Edit',exact:true})).toHaveCount(0);
+  const response = await request.post('/api/admin/cms/timeline',{headers:{authorization:`tma ${await sign(100000003)}`},data:{}}); expect(response.status()).toBe(403);
+  await launch(page,'/settings/admin',false); await expect(page.getByText('This area is available to admins only.')).toBeVisible();
+});

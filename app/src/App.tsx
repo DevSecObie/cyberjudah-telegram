@@ -28,6 +28,7 @@ const BibleTab = lazy(() => import("@/bible/BibleTab").then((m) => ({ default: m
 const More = lazy(() => import("@/screens/More").then((m) => ({ default: m.More })));
 const ResourceInstaller = lazy(() => import("@/screens/ResourceInstaller").then((m) => ({ default: m.ResourceInstaller })));
 const ResourceReader = lazy(() => import("@/screens/ResourceReader").then((m) => ({ default: m.ResourceReader })));
+const Admin = lazy(() => import("@/admin/Admin").then(m => ({ default: m.Admin })));
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
 const Reminders = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.Reminders })));
 const ReminderSync = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.ReminderSync })));
@@ -104,6 +105,7 @@ export function App() {
       <Suspense fallback={<Screen className="route-loading"><Skeleton rows={8} /></Screen>}>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/settings/admin/*" element={<Admin />} />
         <Route path="/settings/credits" element={<Credits />} />
         <Route path="/settings/reminders" element={<Reminders />} />
         <Route path="/privacy" element={<Privacy />} />

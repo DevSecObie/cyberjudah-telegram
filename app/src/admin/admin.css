@@ -1,0 +1,23 @@
+.cms { max-width: 800px; margin-inline: auto; }
+.cms-list { display: grid; gap: 8px; margin-block: 16px; }
+.cms-list > a, .cms-list > div, .cms-list > button { display: flex; gap: 12px; justify-content: space-between; align-items: center; padding: 14px 16px; border: 1px solid var(--bs-border); border-radius: 16px; background: var(--bs-light-grey); color: var(--bs-default); text-decoration: none; text-align: start; }
+.cms-list > a { flex-direction: column; align-items: start; gap: 4px; }
+.cms-list small { display: block; color: var(--bs-grey); }
+.cms-form { padding: 16px; display: grid; gap: 14px; }
+.cms-field { display: grid; gap: 6px; margin-block: 10px; }
+.cms-field > span, .cms-group > legend { font-weight: 650; }
+.cms-field input, .cms-field textarea, .cms-field select { box-sizing: border-box; width: 100%; min-height: 44px; border: 1px solid var(--bs-border); border-radius: 12px; padding: 10px 12px; background: var(--bs-reverse); color: var(--bs-default); font: inherit; }
+.cms-field textarea { resize: vertical; }
+.cms-field input[readonly] { opacity: .75; }
+.cms-group { min-width: 0; padding: 12px; margin-block: 12px; border: 1px solid var(--bs-border); border-radius: 14px; }
+.cms-disclosure { border-block-start: 1px solid var(--bs-border); padding-block: 10px; }
+.cms-disclosure > summary { min-height: 44px; display: list-item; align-content: center; font-weight: 650; cursor: pointer; }
+.cms-options { display: flex; gap: 12px 20px; flex-wrap: wrap; }
+.cms-options label { display: flex; align-items: center; gap: 6px; min-height: 44px; }
+.cms-actions { display: flex; gap: 10px; padding: 12px; flex-wrap: wrap; }
+.cms-status { padding: 16px; border: 1px solid var(--bs-border); border-radius: 16px; }
+.cms-error { white-space: pre-wrap; }
+.cms-edit { display: inline-flex; padding: 8px 12px; min-height: 32px; align-items: center; font-size: .875rem; }
+
+.cms button:not(.btn), .cms-form button:not(.btn) { min-height: 44px; border: 1px solid var(--bs-border); border-radius: 12px; padding: 8px 12px; background: var(--bs-reverse); color: var(--bs-default); font: inherit; cursor: pointer; }
+.cms button:disabled, .cms-form button:disabled { opacity: .5; cursor: default; }

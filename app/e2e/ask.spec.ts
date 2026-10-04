@@ -354,7 +354,7 @@ test("Ask answers from the whole app: People, the Timeline, the dictionaries, th
   expect(said).toMatch(/Precepts: Adultery/);
 });
 
-test("outside sources: only the owner's approved sites; an admin sets the whitelist", async ({ page, request }) => {
+test("outside sources: only approved sites; an admin proposes a whitelist review", async ({ page, request }) => {
   const auth = (n: number) => ({ authorization: `tma ${initData(n)}` });
   const admin = 100000002 - RUN;
   // The whitelist: an admin sees and sets it; a reader cannot; nonsense is refused.
@@ -364,8 +364,10 @@ test("outside sources: only the owner's approved sites; an admin sets the whitel
   expect(start.hosts).toContain("israelunite.org");
   expect((await request.put("/api/admin/ask-sources", { headers: auth(71), data: { hosts: ["wikipedia.org"] } })).status()).toBe(403);
   expect((await request.put("/api/admin/ask-sources", { headers: auth(admin), data: { hosts: ["not a host"] } })).status()).toBe(400);
-  const set = await (await request.put("/api/admin/ask-sources", { headers: auth(admin), data: { hosts: ["https://www.Wikipedia.org/", "israelunite.org"] } })).json();
-  expect(set.hosts).toEqual(["wikipedia.org", "israelunite.org"]);
+  const set = await (await request.put("/api/admin/ask-sources", { headers: auth(admin), data: { sha: start.sha, hosts: ["wikipedia.org", "israelunite.org"], reason: "Limit outside sources for review" } })).json();
+  expect(set.state).toBe("Checking");
+  expect(set.url).toMatch(/github\.com\/DevSecObie\/cyberjudah-telegram\/pull\//);
+  expect((await (await request.get("/api/admin/ask-sources", { headers: auth(admin) })).json()).hosts).toEqual(start.hosts);
   // A site off the list is never read.
   await setup(page);
   await page.goto(`/ask${launch(72)}`);
@@ -374,6 +376,4 @@ test("outside sources: only the owner's approved sites; an admin sets the whitel
   await expect(answer(page)).toContainText(/not an approved source/, { timeout: 30_000 });
   const said = JSON.stringify((await modelCalls(request, since)).at(-1)?.messages.at(-1));
   expect(said).toContain("evil.example is not an approved source");
-  // Back to the starting list.
-  await request.put("/api/admin/ask-sources", { headers: auth(admin), data: { hosts: start.defaults } });
 });

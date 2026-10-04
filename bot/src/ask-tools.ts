@@ -1,3 +1,4 @@
+import { approvedSources } from "./source-policy";
 import { APPROVED_RESOURCE_IDS, type ResourcePins } from "../../shared/resources";
 import { pinnedRecord, resourceLink, resourcePages, approvedEditionUrl } from "./resource-tools";
 import type Anthropic from "@anthropic-ai/sdk";
@@ -263,12 +264,7 @@ export const MORE_RUN: Record<string, Tool> = { look_up_word: lookUpWord, person
  * PUT /api/admin/ask-sources), or this starting list. A site is allowed with its subdomains; only
  * https, only GET, and the page is read as text, never run.
  */
-export const DEFAULT_SOURCES = ["israelunite.org", "wikipedia.org", "archive.org", "gutenberg.org", "loc.gov", "archives.gov", "nps.gov", "si.edu", "blackpast.org", "slavevoyages.org", "jewishencyclopedia.com", "sacred-texts.com", "ccel.org"];
-export const HOST = /^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
-export async function approvedSources(env: Env): Promise<string[]> {
-  const kv = await env.SUBS.get("ask:sources", "json").catch(() => null);
-  return Array.isArray(kv) && kv.every((h) => typeof h === "string" && HOST.test(h)) ? (kv as string[]) : DEFAULT_SOURCES;
-}
+export { DEFAULT_SOURCES, HOST, approvedSources } from "./source-policy";
 export const isApproved = (host: string, list: string[]) => list.some((d) => host === d || host.endsWith(`.${d}`));
 
 const ENT: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", mdash: "—", ndash: "–", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“" };
