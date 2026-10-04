@@ -1,3 +1,4 @@
+import { CmsEditLink } from "@/admin/EditLink";
 import { useQuery } from "@tanstack/react-query";
 import { RequestNotes } from "@/ui/request-notes";
 import { useEffect, useState } from "react";
@@ -69,6 +70,7 @@ export function Watch() {
       <header className="note-head">
         <p className="kicker">{[teaching ? teachingLabel(teaching) : showOf(r.title) ?? KIND_NAME[r.kind as keyof typeof KIND_NAME] ?? "Recording", fmtDate(r.date)].filter(Boolean).join(" · ")}</p>
         <h1>{r.title}</h1>
+        {r.kind !== "history" ? <CmsEditLink kind="classes" id={video} label="Edit class details" /> : null}
       </header>
       {r.url ? <NotesOpener lede={note.data ? noteLede(note.data.body) : undefined} onOpen={() => setNotes(true)} /> : <NotesWanted video={video} title={r.title} />}
       <TranscriptExcerpt video={video} t={t} chunks={r.chunks} onSeek={seek} />

@@ -1,4 +1,5 @@
 import { rewriteJson } from "../../shared/cms-json";
+import { cmsClasses } from "./cms-classes";
 import { cmsResources } from "./cms-resources";
 import { readSources, saveSources } from "./cms-sources";
 import { Hono } from 'hono';
@@ -81,3 +82,5 @@ cms.post('/changes/:id/publish', async c => {
 });
 
 cms.route('/resources', cmsResources);
+
+cms.route('/classes', cmsClasses);

@@ -12,12 +12,16 @@ import { rewriteJson } from '../../../shared/cms-json.ts';
 import { CalendarDate, NoteSave, SourceList, resolveScripture, timelineSchema } from '../../../shared/cms.ts';
 let fake: FakeGithub, env: Env, db: DatabaseSync;
 const originalFetch = globalThis.fetch;
+const originalCaches = globalThis.caches;
+const classRows = [{video:'ABCDEFGHIJK',title:'Test class',teacher:'Test teacher',date:'2026-01-01',file:'blog/2026/test.md',url:'/classes/test'},{video:'LMNOPQRSTUV',title:'Undated class',teacher:'',date:'',file:null,url:null}];
 beforeEach(() => {
-  fake = new FakeGithub(); globalThis.fetch = fake.fetch as typeof fetch; db = new DatabaseSync(':memory:');
+  fake = new FakeGithub();
+  globalThis.caches = { default: { match:async()=>undefined, put:async()=>undefined } } as unknown as CacheStorage;
+  globalThis.fetch = ((url: string, init:RequestInit) => String(url).startsWith('https://data.invalid/') ? Promise.resolve(Response.json(classRows)) : fake.fetch(url,init)) as typeof fetch; db = new DatabaseSync(':memory:');
   const d1 = { prepare(sql: string) { const statement = db.prepare(sql); let args: (string | number)[] = []; return { bind(...a: (string | number)[]) { args = a; return this; }, async run() { return statement.run(...args); }, async first() { return statement.get(...args) ?? null; }, async all() { return { results: statement.all(...args) }; } }; } };
-  env = { DB: d1, BOT_TOKEN: 'cms-tests', ADMIN_IDS: '42', APP_REPO_TOKEN: 'app-token-stays-here', CYBERJUDAH_TOKEN: 'content-token-stays-here', SUBS: { get: async () => ['legacy.example.org'] } } as unknown as Env;
+  env = { DB: d1, DATA_ORIGIN:'https://data.invalid', BOT_TOKEN: 'cms-tests', ADMIN_IDS: '42', APP_REPO_TOKEN: 'app-token-stays-here', CYBERJUDAH_TOKEN: 'content-token-stays-here', SUBS: { get: async () => ['legacy.example.org'] } } as unknown as Env;
 });
-afterEach(() => { globalThis.fetch = originalFetch; db.close(); });
+afterEach(() => { globalThis.fetch = originalFetch; globalThis.caches = originalCaches; db.close(); });
 async function request(path: string, method = 'GET', body?: unknown, user = 42) {
   const headers: Record<string,string> = { 'content-type': 'application/json' };
   if (user) headers.authorization = `tma ${await signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: { id: user, first_name: 'Test admin' } }, env.BOT_TOKEN)}`;
@@ -31,7 +35,7 @@ async function save() { const data = await loaded(); const response = await requ
 const pick = (data: any) => ({ id: data.event.slug, action: 'edit', draft: data.draft, shas: data.shas, event: data.event, reason: 'Correct source wording' });
 
 test('every CMS route refuses unsigned and non-admin readers before touching GitHub', async () => {
-  for (const [path, method] of [['timeline','GET'],['timeline/new','GET'],['timeline','POST'],['sources','GET'],['sources','POST'],['changes','GET'],['changes/00000000-0000-0000-0000-000000000000','GET'],['changes/00000000-0000-0000-0000-000000000000/publish','POST'],['resources','GET'],['resources','POST'],['resources/releases','GET']]) {
+  for (const [path, method] of [['classes','GET'],['classes/ABCDEFGHIJK','GET'],['classes','POST'],['timeline','GET'],['timeline/new','GET'],['timeline','POST'],['sources','GET'],['sources','POST'],['changes','GET'],['changes/00000000-0000-0000-0000-000000000000','GET'],['changes/00000000-0000-0000-0000-000000000000/publish','POST'],['resources','GET'],['resources','POST'],['resources/releases','GET']]) {
     assert.equal((await request(`admin/cms/${path}`, method, method === 'POST' ? {} : undefined, 7)).status, 403);
     assert.equal((await request(`admin/cms/${path}`, method, method === 'POST' ? {} : undefined, 0)).status, 401);
   }
@@ -264,4 +268,31 @@ test('a newer rerun replaces stale check results only for the same GitHub App', 
   newer = 'pending'; assert.equal((await (await request(route)).json() as any).state, 'Checking');
   newer = 'failure'; assert.equal((await (await request(route)).json() as any).state, 'Failed');
   newer = 'success'; appId = 999; assert.equal((await (await request(route)).json() as any).state, 'Failed');
+});
+test('class metadata updates the correction table and linked note together without changing URLs or note text',async()=>{
+  const source=await (await request('admin/cms/classes/ABCDEFGHIJK')).json() as any;
+  assert.equal(source.value.title,'Test class');assert.equal(source.note.file,'blog/2026/test.md');
+  const value={...source.value,title:'Corrected class',teacher:'Recorded teacher',date:'2024-02-29'};
+  const response=await request('admin/cms/classes','POST',{...source,value,reason:'Correct from recording details'});assert.equal(response.status,201,await response.clone().text());
+  const writes=fake.calls.filter(c=>c.method==='PUT');assert.equal(writes.length,2);
+  const texts=writes.map(c=>Buffer.from(c.body.content,'base64').toString());
+  assert.ok(texts.some(t=>t.includes('ABCDEFGHIJK\tRecorded teacher\t2024-02-29\tCorrected class')));
+  assert.ok(texts.some(t=>t.includes('date: "2024-02-29"')&&t.includes('Original note.')));
+  assert.equal(new Set(writes.map(c=>c.body.branch)).size,1);
+});
+test('undated class dates are never supplied automatically and malformed or stale metadata is refused',async()=>{
+  const source=await (await request('admin/cms/classes/LMNOPQRSTUV')).json() as any;assert.equal(source.value.date,'');assert.equal(source.note,null);
+  assert.equal((await request('admin/cms/classes','POST',{...source,value:{...source.value,date:'2025-02-29'},reason:'Source date'})).status,400);
+  assert.equal((await request('admin/cms/classes','POST',{...source,tableSha:'0'.repeat(40),value:{...source.value,date:'2024-01-01'},reason:'Source date'})).status,409);
+  assert.equal((await request('admin/cms/classes','POST',{...source,note:{file:'.github/workflows/quality.yml',sha:'a'.repeat(40)},reason:'Source date'})).status,409);
+  assert.ok(!fake.calls.some(c=>c.method==='PUT'));
+  const r=await request('admin/cms/classes','POST',{...source,value:{...source.value,date:'2024-01-01'},reason:'Date verified from recording'});assert.equal(r.status,201);
+  assert.equal(fake.calls.filter(c=>c.method==='PUT').length,1);
+});
+test('a later note text edit also updates an existing class correction',async()=>{
+  const table='data/sources/class-teachers.tsv';fake.commits.get(fake.main).set(table,'video\tteacher\tdate\ttitle\nABCDEFGHIJK\tTest teacher\t2026-01-01\tTest class\n');
+  const file='blog/2026/test.md',source=await (await request(`notes/source?file=${file}`)).json() as any;
+  const response=await request('notes/edit','POST',{file,sha:source.sha,title:'New note title',reason:'Correct note title'});assert.equal(response.status,200,await response.clone().text());
+  const writes=fake.calls.filter(c=>c.method==='PUT');assert.equal(writes.length,2);
+  assert.ok(writes.some(c=>c.route.endsWith(table)&&Buffer.from(c.body.content,'base64').toString().includes('New note title')));
 });

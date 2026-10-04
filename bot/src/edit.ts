@@ -1,7 +1,8 @@
+import { ClassMetadata, parseClassTable, writeClassTable, noteField } from "../../shared/cms-classes";
 import type { Env } from './env';
 import { applyEdit, isAdminId, NOTE_FILE, type NoteEdit } from './edit.mjs';
 import { NoteSave } from '../../shared/cms';
-import { CONTENT_REPO, Github, CmsError, createChange, type CmsActor } from './cms-github';
+import { CONTENT_REPO, CLASS_FILE, Github, CmsError, createChange, type CmsActor } from './cms-github';
 export type { NoteEdit };
 export const isAdmin = (env: Env, userId: number) => isAdminId(env.ADMIN_IDS, userId);
 export const canEdit = (env: Env) => Boolean(env.CYBERJUDAH_TOKEN);
@@ -26,6 +27,21 @@ export async function commitEdit(env: Env, edit: NoteEdit, by: CmsActor) {
   catch (e) { throw new CmsError(e instanceof Error ? e.message : "The note edit is invalid."); }
   if (applied.text === source.text) throw new CmsError('There is no content change to save.');
   const title = /^title:\s*"?(.*?)"?\s*$/m.exec(applied.text)?.[1] ?? edit.file;
-  const change = await createChange(env, { repo: CONTENT_REPO, kind: 'note', subject: edit.file, title: `Edit note: ${title}`, reason: parsed.data.reason, base: main.commit.sha, files: [{ ...source, text: applied.text }] }, by);
+  const files = [{ ...source, text: applied.text }];
+  const video = /data-video-id="([\w-]{11})"/.exec(source.text)?.[1];
+  if (video) {
+    let table;
+    try { table = await git.file(CLASS_FILE, main.commit.sha); }
+    catch(e) { if (!(e instanceof CmsError) || e.status !== 404) throw e; }
+    if (table) {
+      const rows = parseClassTable(table.text), prior = rows.get(video);
+      if (prior) {
+        const next = { ...prior };
+        for (const key of ['title','teacher','date'] as const) if (noteField(source.text,key) !== noteField(applied.text,key)) next[key] = noteField(applied.text,key);
+        if (JSON.stringify(next) !== JSON.stringify(prior)) { const metadata = ClassMetadata.safeParse(next); if (!metadata.success) throw new CmsError(metadata.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('\n')); rows.set(video,metadata.data); files.push({...table,text:writeClassTable(rows)}); }
+      }
+    }
+  }
+  const change = await createChange(env, { repo: CONTENT_REPO, kind: 'note', subject: edit.file, title: `Edit note: ${title}`, reason: parsed.data.reason, base: main.commit.sha, files }, by);
   return { ok: true as const, commit: change.url!, changed: applied.summary, change };
 }

@@ -31,7 +31,11 @@ D1 `DB` stores the audit trail in `cms_changes` (created automatically): editor 
 - Resources: list the live catalog, publish an uploaded release or roll back to a previously approved release. These are explicitly immediate after confirmation, without a PR. The existing R2 checksum validation and ETag compare-and-swap are reused. Uploads and required R2 credentials are described in [resources/README.md](../resources/README.md).
 - Photos: links to the existing photo editor; its existing immediate-save behavior remains.
 
-Dedicated class metadata, People and Precepts editors follow in separate PRs.
+Classes now includes title, teacher and date forms, a filter for undated recordings and links to full notes. A save changes `data/sources/class-teachers.tsv` and the linked note's front matter in one PR. Content reader support must merge first; missing reader data returns a setup message. Existing text edits also update any existing metadata correction so a note correction cannot be masked by an older table row. Displayed transcript/search metadata uses the published corrections while the search index awaits rebuild; search ranking itself still uses that index.
+
+The content repository's data publishing workflow must use its `production` environment with required reviewers before content publication is enabled. Configure this in **both** repositories. The Classes reader PR adds the content workflow's environment gate.
+
+People and Precepts editors follow separately.
 
 Only the two Timeline source JSON files are committed by its editor. `pretest` and `prebuild` regenerate the reader's `timeline.json` and `final-captivity.json` with the existing builder. Do not hand-edit or commit build outputs in CMS PRs.
 

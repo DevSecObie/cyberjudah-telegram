@@ -68,3 +68,19 @@ test('the #140 answer event loads and an untouched form submits every original v
   await expect(page.getByRole('alert')).toContainText('There is no content change to save.');
   expect(submitted).toEqual(fixture);
 });
+
+test('class editor keeps an unknown date blank and submits only the admin-entered correction',async({page})=>{
+  const source={value:{video:'LMNOPQRSTUV',title:'Undated recording',teacher:'',date:''},tableSha:'a'.repeat(40),note:null};
+  let saved:Record<string,any>|undefined;
+  await page.route('**/api/admin/cms/classes/LMNOPQRSTUV',r=>r.fulfill({json:source}));
+  await page.route('**/api/admin/cms/classes',r=>{saved=r.request().postDataJSON();return r.fulfill({status:201,json:{id:'test-class-change'}});});
+  await page.route('**/api/admin/cms/changes/test-class-change',r=>r.fulfill({json:{id:'test-class-change',title:'Edit class details',state:'Checking',message:'Waiting for repository checks.',by:{name:'Test admin'},at:new Date().toISOString(),reason:'Date verified from recording'}}));
+  await launch(page,'/settings/admin/classes/LMNOPQRSTUV');
+  await expect(page.getByLabel('Class date')).toHaveValue('');
+  await expect(page.getByLabel('Teacher',{exact:true})).toHaveValue('');
+  await page.getByLabel('Class date').fill('2024-02-29');
+  await page.getByLabel('Reason for this change').fill('Date verified from recording');
+  await page.getByRole('button',{name:'Save for review',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('Checking');
+  expect(saved?.value).toEqual({...source.value,date:'2024-02-29'});expect(saved?.tableSha).toBe(source.tableSha);expect(saved?.note).toBeNull();
+});
