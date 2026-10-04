@@ -61,8 +61,8 @@ export type ClassMoment = { verses: string; label: string; url: string; date: st
 /** A class's own breakdown of a verse it opened: its points on that verse, and the moment it was read. */
 export type VerseComment = { verses: string; passage: string; points: string[]; note: { label: string; url: string; date: string; teacher: string }; ts: string; video: string | null; t: number };
 /** A person named in the Bible (STEPBible TIPNR, CC BY 4.0), with what the classes taught where they come up. */
-export type PersonRef = { id: string; name: string };
-export type Person = { id: string; name: string; names: string[]; description: string; type: string; tribe: string; father: PersonRef[]; mother: PersonRef[]; siblings: PersonRef[]; partners: PersonRef[]; children: PersonRef[]; verses: string[]; taught: { verse: string; url: string; points: string[]; note: { label: string; url: string; date: string; teacher: string }; ts: string; video: string | null; t: number }[]; source: { name: string; license: string; url: string }; cases?: PersonCase[] };
+export type PersonRef = { id: string; name: string; image?: Person["image"] };
+export type Person = { image?: { src: string; caption: string; credit: string; license: string; sourceUrl: string }; id: string; name: string; names: string[]; description: string; type: string; tribe: string; father: PersonRef[]; mother: PersonRef[]; siblings: PersonRef[]; partners: PersonRef[]; children: PersonRef[]; verses: string[]; taught: { verse: string; url: string; points: string[]; note: { label: string; url: string; date: string; teacher: string }; ts: string; video: string | null; t: number }[]; source: { name: string; license: string; url: string }; cases?: PersonCase[] };
 /** A case study that names a person: its title says who, and they are named in its scripture. */
 export type PersonCase = { slug: string; name: string; url: string; era: string; kind: "judgment" | "blessing"; verdict: string; verdictLabel: string; charge: string; preview: string };
 export type PersonIndexRow = { id: string; name: string; names: string[]; description: string; verses: number; first: string; type?: string };

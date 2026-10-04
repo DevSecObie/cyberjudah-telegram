@@ -35,7 +35,9 @@ Classes now includes title, teacher and date forms, a filter for undated recordi
 
 The content repository's data publishing workflow must use its `production` environment with required reviewers before content publication is enabled. Configure this in **both** repositories. The Classes reader PR adds the content workflow's environment gate.
 
-People and Precepts editors follow separately.
+People now supports summaries, existing catalog relationships and credited HTTPS pictures. Matching relationship links are updated together; the server rejects new unknown ids, duplicate/self links and new ancestry cycles. Existing unresolved upstream links are preserved. The content picture reader must publish before photos appear on profiles and their relationship graph. The reader’s layout is unchanged.
+
+The Precepts editor follows separately.
 
 Only the two Timeline source JSON files are committed by its editor. `pretest` and `prebuild` regenerate the reader's `timeline.json` and `final-captivity.json` with the existing builder. Do not hand-edit or commit build outputs in CMS PRs.
 

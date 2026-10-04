@@ -21,10 +21,10 @@ export function avatarKind(type?: string): AvatarKind {
 const initial = (name: string) => (name.replace(/^(the|a|an)\s+/i, "").match(/[A-Za-z]/)?.[0] ?? "?").toUpperCase();
 
 /** `ink` and `base` set the colours where the page's own tokens don't reach (the Bible's portals). */
-export function EntityAvatar({ name, kind, size = 52, ink, base, className, style, ...rest }: {
-  name: string; kind: AvatarKind; size?: number; ink?: string; base?: string; className?: string; style?: CSSProperties;
+export function EntityAvatar({ name, kind, src: picture, size = 52, ink, base, className, style, ...rest }: {
+  name: string; kind: AvatarKind; src?: string; size?: number; ink?: string; base?: string; className?: string; style?: CSSProperties;
 } & Record<`data-${string}`, string | undefined>) {
-  const src = AVATAR_IMAGES[kind];
+  const src = picture || AVATAR_IMAGES[kind];
   const vars = { ...(ink ? { ["--av-ink" as string]: ink } : {}), ...(base ? { ["--av-base" as string]: base } : {}) };
   return (
     <span className={`avatar${className ? ` ${className}` : ""}`} data-kind={kind} aria-hidden="true" {...rest}

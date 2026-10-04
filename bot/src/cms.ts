@@ -1,4 +1,5 @@
 import { rewriteJson } from "../../shared/cms-json";
+import { cmsPeople } from "./cms-people";
 import { cmsClasses } from "./cms-classes";
 import { cmsResources } from "./cms-resources";
 import { readSources, saveSources } from "./cms-sources";
@@ -84,3 +85,5 @@ cms.post('/changes/:id/publish', async c => {
 cms.route('/resources', cmsResources);
 
 cms.route('/classes', cmsClasses);
+
+cms.route('/people', cmsPeople);

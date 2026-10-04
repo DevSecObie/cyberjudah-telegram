@@ -84,3 +84,14 @@ test('class editor keeps an unknown date blank and submits only the admin-entere
   await expect(page.getByRole('status')).toContainText('Checking');
   expect(saved?.value).toEqual({...source.value,date:'2024-02-29'});expect(saved?.tableSha).toBe(source.tableSha);expect(saved?.note).toBeNull();
 });
+
+test('People editor records a supplied summary and picture metadata without replacing relationships',async({page})=>{
+ const value={description:'Original summary',father:['test-parent'],mother:[],siblings:[],partners:[],children:[],image:null};let saved:any;
+ await page.route('**/api/admin/cms/people/test-person',r=>r.fulfill({json:{id:'test-person',name:'Test person',sha:'b'.repeat(40),value,people:[{id:'test-person',name:'Test person'},{id:'test-parent',name:'Test parent'}]}}));
+ await page.route('**/api/admin/cms/people',r=>{saved=r.request().postDataJSON();return r.fulfill({status:201,json:{id:'test-person-change'}});});
+ await page.route('**/api/admin/cms/changes/test-person-change',r=>r.fulfill({json:{id:'test-person-change',title:'Edit person',state:'Checking',message:'Waiting for repository checks.',by:{name:'Test admin'},at:new Date().toISOString(),reason:'Verified profile correction'}}));
+ await launch(page,'/settings/admin/people/test-person');await page.getByLabel('Summary',{exact:true}).fill('Owner supplied summary');
+ await page.getByText('Picture',{exact:true}).click();await page.getByRole('button',{name:'Add picture',exact:true}).click();
+ for(const [key,value]of Object.entries({src:'https://example.org/picture.jpg',caption:'An artist’s depiction',credit:'Artist',license:'CC0',sourceUrl:'https://example.org/source'}))await page.getByLabel(`Picture ${key}`,{exact:true}).fill(value);
+ await page.getByLabel('Reason for this change').fill('Verified profile correction');await page.getByRole('button',{name:'Save for review',exact:true}).click();await expect(page.getByRole('status')).toContainText('Checking');expect(saved.value.father).toEqual(value.father);expect(saved.value.description).toBe('Owner supplied summary');expect(saved.value.image.credit).toBe('Artist');
+});

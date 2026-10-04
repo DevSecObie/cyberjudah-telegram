@@ -9,6 +9,7 @@ export class FakeGithub {
   constructor() {
     this.files = new Map();
     for (const path of ['app/scripts/final-captivity/events.json', 'app/scripts/final-captivity/drafts.json', 'app/scripts/final-captivity/periods.json', 'app/scripts/final-captivity/leaders.json', 'bot/data/ask-sources.json']) this.files.set(path, readFileSync(new URL(path, root), 'utf8'));
+    this.files.set('data/people/people.json', JSON.stringify({source:'Test fixture',license:'CC0',people:['test-person','test-parent'].map(id=>({id,name:id,type:'Male',description:'Synthetic summary',father:[],mother:[],siblings:[],partners:[],children:[],verses:[]}))}));
     this.files.set('data/sources/class-teachers.tsv', 'video\tteacher\tdate\ttitle\n');
     this.files.set('blog/2026/test.md', '---\ntitle: Test class\ndate: 2026-01-01\nteacher: Test teacher\n---\n\nOriginal note.\n<div data-video-id="ABCDEFGHIJK"></div>\n');
     this.main = hash('main'); this.commits.set(this.main, new Map(this.files));
