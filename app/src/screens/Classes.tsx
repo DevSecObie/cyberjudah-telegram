@@ -33,6 +33,7 @@ export function Classes() {
   const [q, setQ] = useVisitState("q", "");
   const [shown, setShown] = useVisitState("shown", PAGE);
   const [playing, setPlaying] = useState<string | null>(null);
+  const [feedNoticeOff, setFeedNoticeOff] = useState(false);
   const query = useDeferredValue(q.trim().toLowerCase());
   const res = useTeachings();
   useKeptScroll(!!res.data);
@@ -83,6 +84,13 @@ export function Classes() {
           {filtered ? <button type="button" className="cfeed__reset" onClick={() => { haptic("select"); reset(); }}>Reset</button> : null}
         </div>
       </div>
+      {res.feedOk === false && !feedNoticeOff ? (
+        <div className="cfeed__notice" role="status">
+          <Icon name="alert" size={16} />
+          <p>New uploads aren’t reaching the app right now — YouTube’s feed is having trouble. Everything already here still works.</p>
+          <button type="button" className="cfeed__noticex" aria-label="Dismiss" onClick={() => { haptic("select"); setFeedNoticeOff(true); }}><Icon name="close" size={14} /></button>
+        </div>
+      ) : null}
       {res.isPending ? <FeedSkeleton /> : res.isError ? (
         <Empty title="The classes did not load" action={{ label: "Try again", onClick: () => void res.refetch() }}>Check your connection.</Empty>
       ) : !rows.length ? (

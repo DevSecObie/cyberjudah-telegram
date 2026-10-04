@@ -26,6 +26,9 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
 ### Added
+- When YouTube's feed is having trouble, the Classes screen says so: a dismissible notice
+  explains that new uploads aren't reaching the app, instead of silently showing nothing new.
+  Everything already in the app keeps working; the notice clears itself when the feed recovers.
 - Ask CyberJudah is pay as you go, at cost, with the balance in dollars: "$4.82 left" at the
   top, and under each answer what it cost ("$0.05", or "<$0.01"), at the model's own price.
   CyberJudah makes no profit. Top-ups of $1, $5 and $20 are bought with Telegram Stars; the

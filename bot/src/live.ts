@@ -44,20 +44,24 @@ async function check(channel: string): Promise<LiveNow> {
 /**
  * The channel's newest recordings, from its public RSS feed, so a class is in the app the
  * hour it is uploaded, before its captions and notes exist. Cached ten minutes at the edge.
+ * `ok` is false when YouTube did not serve the feed, so the app can say so instead of
+ * silently showing nothing new.
  */
-export async function recentVideos(env: Env, ctx?: Exec): Promise<RecentVideo[]> {
+export async function recentVideos(env: Env, ctx?: Exec): Promise<{ videos: RecentVideo[]; ok: boolean }> {
   const channel = env.LIVE_CHANNEL || CHANNEL;
-  const key = `https://cyberjudah-telegram.internal/recent/${channel}`;
+  const key = `https://cyberjudah-telegram.internal/recent/v2/${channel}`;
   const cache = caches.default;
   const hit = await cache.match(key);
-  if (hit) return hit.json<RecentVideo[]>();
+  if (hit) return hit.json<{ videos: RecentVideo[]; ok: boolean }>();
   let out: RecentVideo[] = [];
+  let ok = false;
   try {
     const res = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${channel}`, { headers: { "user-agent": UA } });
-    if (res.ok) out = parseFeed(await res.text());
+    if (res.ok) { out = parseFeed(await res.text()); ok = true; }
   } catch { /* the feed is a convenience; the notes list still loads */ }
-  const res = new Response(JSON.stringify(out), { headers: { "content-type": "application/json", "cache-control": "public, max-age=600" } });
+  const body = { videos: out, ok };
+  const res = new Response(JSON.stringify(body), { headers: { "content-type": "application/json", "cache-control": "public, max-age=600" } });
   const put = cache.put(key, res.clone());
   if (ctx) ctx.waitUntil(put); else await put;
-  return out;
+  return body;
 }
