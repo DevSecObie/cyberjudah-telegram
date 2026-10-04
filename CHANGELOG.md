@@ -25,6 +25,9 @@ request that introduced this file ([#77]).
 Merged to `main` and not yet in a tagged release. Production currently runs `861242f`
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
+### Fixed
+- The Home screen's featured class label now follows the calendar: a class dated in the current Sabbath-to-Sabbath week reads "This week's class", last week's reads "Last week's class", and older classes show just their date.
+
 ### Added
 - Ask CyberJudah is pay as you go, at cost, with the balance in dollars: "$4.82 left" at the
   top, and under each answer what it cost ("$0.05", or "<$0.01"), at the model's own price.
