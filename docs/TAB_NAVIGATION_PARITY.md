@@ -19,7 +19,7 @@ The native reference uses a 500ms timing curve `(.36, .77, .44, 1)`. CyberJudah 
 
 The browser captures only the transition itself. No screenshot, message content or user state is stored as a preview. Existing public Scripture previews and CyberJudah resource labels remain. Timeline now has its proper title and clock icon instead of the generic “Page” label. In-memory scroll positions are bounded and disappear when the page reloads.
 
-The switcher and New Tab module already load with their shared toolbar. Importing their screens directly avoids an unnecessary Suspense/loading-frame detour. Navigation waits for the router's committed destination before measuring the transition target. The gallery/reader contrast rules and all theme, safe-area and reduced-transparency recipes remain shared with the Liquid Glass work.
+The switcher and New Tab module already load with their shared toolbar. Importing their screens directly avoids an unnecessary Suspense/loading-frame detour. Navigation waits for the router's committed destination before measuring the transition target. Animation geometry is scoped to the snapshot rather than inherited across the page, and unchanged size measurements do not render the preview grid again. The gallery/reader contrast rules and all theme, safe-area and reduced-transparency recipes remain shared with the Liquid Glass work.
 
 ## Verification
 

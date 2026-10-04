@@ -1,0 +1,52 @@
+{
+  "browser": "153.0.8010.12",
+  "build": "production",
+  "cpuThrottle": 4,
+  "measuredCommit": "fb38a1776f41f8ecafe5e3ff0e373a1d17997d35",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "measurements": [
+    {
+      "action": "tab-overview",
+      "frames": {
+        "samples": 37,
+        "medianMs": 16.7,
+        "p95Ms": 16.8,
+        "maxMs": 200
+      },
+      "framesOver33ms": 1,
+      "mainThreadWork": {
+        "samples": 37,
+        "medianMs": 2.88,
+        "p95Ms": 37.27,
+        "maxMs": 189.92
+      },
+      "workIntervalsOver16ms": 4,
+      "taskEvents": 286,
+      "layoutMs": 47.24,
+      "styleMs": 94.96
+    },
+    {
+      "action": "tab-return",
+      "frames": {
+        "samples": 34,
+        "medianMs": 16.7,
+        "p95Ms": 66.7,
+        "maxMs": 150
+      },
+      "framesOver33ms": 3,
+      "mainThreadWork": {
+        "samples": 35,
+        "medianMs": 3.32,
+        "p95Ms": 97.12,
+        "maxMs": 137.54
+      },
+      "workIntervalsOver16ms": 5,
+      "taskEvents": 254,
+      "layoutMs": 12.78,
+      "styleMs": 143.73
+    }
+  ]
+}
