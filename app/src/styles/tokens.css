@@ -116,6 +116,7 @@
   --ease: cubic-bezier(.2, .8, .2, 1);
   --ease-spring: cubic-bezier(.2, 1.12, .32, 1);
   --ease-exit: cubic-bezier(.4, 0, 1, 1);
+  --ease-tab: cubic-bezier(.36, .77, .44, 1);
 
   /* Layers. */
   --z-sticky: 20; --z-actions: 55; --z-dock: 60; --z-drawer: 70; --z-pip: 80; --z-sheet: 90; --z-toast: 100; --z-lock: 110;

@@ -70,7 +70,7 @@ The reader reference is [smontlouis/bible-strong at `dd02775`](https://github.co
 | `Verse` fades unselected context to 30%; gallery captions also use opacity | Semantic ink preserves readable context and captions at AA contrast. The selected verse still has its underline. This intentional adaptation follows the accessibility requirement in the Liquid Glass brief. |
 | Media/people overlays animate an extra backdrop blur | Content galleries are opaque; shared navigation materials carry glass. Blur is never animated or added to content. |
 
-The reference's home navigation and controls are being compared separately following the owner's request. That interaction review will retain CyberJudah's content and visual system; these reader/material checks do not claim complete application feature parity.
+The owner's follow-up on tab navigation is documented in [Tab navigation and Bible Strong](TAB_NAVIGATION_PARITY.md): connected collapse/expand motion, reading-position preservation, selected-tab Back behavior and responsive preview geometry retain CyberJudah's content and visual system. These targeted reader/material/navigation checks do not claim complete application feature parity.
 
 Each section's PR maps the relevant Apple guidance to its implementation and records visual assertion changes, browser checks and performance samples. Actual before/after review images are under [`app/e2e/review/`](../app/e2e/review/), grouped as `glass-01` through `glass-10`. Section 09 images are explicitly labeled artwork previews, not installed-native-app screenshots. The [design system](DESIGN_SYSTEM.md) records the material inventory, tokens, button/control states, concentric radii, sheet sizes, title case, contrast rules and sidebar breakpoint.
 
