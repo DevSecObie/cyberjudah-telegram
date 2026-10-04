@@ -36,6 +36,7 @@ export function Classes() {
   const [feedNoticeOff, setFeedNoticeOff] = useState(false);
   const query = useDeferredValue(q.trim().toLowerCase());
   const res = useTeachings();
+  useEffect(() => { if (res.feedOk !== false) setFeedNoticeOff(false); }, [res.feedOk]);
   useKeptScroll(!!res.data);
   const set = (next: Record<string, string | undefined>) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries({ feed, teacher, year, series, ...next })) if (v && v !== "all") p.set(k, v); setParams(p, { replace: true }); setShown(PAGE); setPlaying(null); };
   const all = useMemo(() => {
@@ -87,8 +88,8 @@ export function Classes() {
       {res.feedOk === false && !feedNoticeOff ? (
         <div className="cfeed__notice" role="status">
           <Icon name="alert" size={16} />
-          <p>New uploads aren’t reaching the app right now — YouTube’s feed is having trouble. Everything already here still works.</p>
-          <button type="button" className="cfeed__noticex" aria-label="Dismiss" onClick={() => { haptic("select"); setFeedNoticeOff(true); }}><Icon name="close" size={14} /></button>
+          <p>New uploads may be delayed while YouTube is having trouble. Classes already listed are still available.</p>
+          <button type="button" className="cfeed__noticex" aria-label="Dismiss upload notice" onClick={() => { haptic("select"); setFeedNoticeOff(true); }}><Icon name="close" size={14} /></button>
         </div>
       ) : null}
       {res.isPending ? <FeedSkeleton /> : res.isError ? (

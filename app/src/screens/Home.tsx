@@ -29,7 +29,7 @@ export type RecentVideo = { video: string; title: string; published: string; vie
 const videoOfThumb = (thumb: string) => /(?:\/vi\/|\/img\/[a-z]+\/)([A-Za-z0-9_-]{11})(?=[/.])/.exec(thumb ?? "")?.[1] ?? null;
 /** Where a teaching opens: its notes, or the recording itself while the notes are still coming. */
 export const teachingTo = (t: Teaching) => (t.pending && t.video ? `/watch/${encodeURIComponent(t.video)}` : `/note${t.url}`);
-/** The channel's newest uploads, so a class is in the app before its notes are written. `feedOk` is false when YouTube did not serve the feed. */
+/** The channel's newest uploads, so a class is in the app before its notes are written. `feedOk` is false when no source supplied fresh recordings. */
 export const useRecent = () => useQuery({ queryKey: ["recent"], queryFn: () => api<{ videos: RecentVideo[]; feedOk?: boolean }>("/api/recent"), staleTime: 10 * 60_000, retry: false });
 export const KIND_NAME: Record<Teaching["kind"], string> = { class: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History" };
 /** What a teaching is shown as: the series its title names, else its collection. */

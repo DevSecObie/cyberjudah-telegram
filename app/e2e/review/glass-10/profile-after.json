@@ -1,0 +1,92 @@
+{
+  "browser": "153.0.8010.12",
+  "build": "production",
+  "cpuThrottle": 4,
+  "measuredCommit": "2ec3fb5281753d0b073be5cb4dbae0fd95434300",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "measurements": [
+    {
+      "action": "dock-drag",
+      "frames": {
+        "samples": 121,
+        "medianMs": 16.7,
+        "p95Ms": 16.7,
+        "maxMs": 50
+      },
+      "framesOver33ms": 1,
+      "mainThreadWork": {
+        "samples": 121,
+        "medianMs": 5.04,
+        "p95Ms": 19.86,
+        "maxMs": 47.73
+      },
+      "workIntervalsOver16ms": 7,
+      "taskEvents": 989,
+      "layoutMs": 27.72,
+      "styleMs": 177.3
+    },
+    {
+      "action": "sheet-open",
+      "frames": {
+        "samples": 48,
+        "medianMs": 16.7,
+        "p95Ms": 33.4,
+        "maxMs": 66.7
+      },
+      "framesOver33ms": 3,
+      "mainThreadWork": {
+        "samples": 49,
+        "medianMs": 2.6,
+        "p95Ms": 35.11,
+        "maxMs": 87.6
+      },
+      "workIntervalsOver16ms": 4,
+      "taskEvents": 224,
+      "layoutMs": 29.84,
+      "styleMs": 45.19
+    },
+    {
+      "action": "menu-morph",
+      "frames": {
+        "samples": 36,
+        "medianMs": 16.7,
+        "p95Ms": 50,
+        "maxMs": 166.7
+      },
+      "framesOver33ms": 2,
+      "mainThreadWork": {
+        "samples": 36,
+        "medianMs": 2.37,
+        "p95Ms": 63.98,
+        "maxMs": 95.65
+      },
+      "workIntervalsOver16ms": 5,
+      "taskEvents": 205,
+      "layoutMs": 15.93,
+      "styleMs": 80.65
+    },
+    {
+      "action": "reader-scroll",
+      "frames": {
+        "samples": 46,
+        "medianMs": 16.7,
+        "p95Ms": 16.8,
+        "maxMs": 50
+      },
+      "framesOver33ms": 1,
+      "mainThreadWork": {
+        "samples": 46,
+        "medianMs": 2.42,
+        "p95Ms": 21.92,
+        "maxMs": 57.25
+      },
+      "workIntervalsOver16ms": 3,
+      "taskEvents": 240,
+      "layoutMs": 9.03,
+      "styleMs": 42.16
+    }
+  ]
+}

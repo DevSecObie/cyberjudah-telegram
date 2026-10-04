@@ -111,6 +111,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   in the Bible*. Regenerate the data with `node app/scripts/timeline-data.mjs <cases>`.
 
 ### Fixed
+- Keep uploaded classes marked “Notes coming soon” visible during YouTube RSS outages, using channel-page fallback and retained recent recordings.
 - The book picker brings the current book into view after its animated panel mounts, including when the browser delays the opening snapshot.
 
 - Navigation materials share opaque accessibility fallbacks; menus avoid stacked glass, while content sheets and media controls keep their text legible.
@@ -128,6 +129,8 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   is unavailable, Ask answers from the keyword search.
 
 ### Changed
+
+- Reduced repeated palette calculations and dock style updates; browser checks now cover glass budgets and large-text label containment in Chromium, WebKit and Firefox.
 
 - Local app icons now include layered lion artwork, full-bleed light/dark squares, PWA maskable safe-zone exports and a monochrome variant.
 
