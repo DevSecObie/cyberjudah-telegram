@@ -75,6 +75,28 @@ test("an in-flight installation cannot resurrect a resource after deactivation",
   expect(await page.evaluate(() => window.__resources.readResource("test-resource", "entry"))).toBe(null);
 });
 
+test("a failed later shard never exposes partially imported records", async ({ page }) => {
+  await setup(page); await harness(page);
+  const first = fixture("v1", "complete resource"), next = fixture("v2", "staged value");
+  const second = JSON.stringify({ key: "later", data: { text: "second shard fixture" } }) + "\n";
+  const manifest = JSON.parse(next.manifest);
+  manifest.parts.push({ path: "later.ndjson", sha256: hash(second), bytes: Buffer.byteLength(second), records: 1 });
+  next.manifest = JSON.stringify(manifest);
+  next.catalog.resources[0].manifestSha256 = hash(next.manifest);
+  let firstShardServed = false;
+  await page.route("**/api/resources/test-resource/**", r => {
+    const url = r.request().url(), f = url.includes("/v1/") ? first : next;
+    if (url.endsWith("/v2/entries.ndjson")) firstShardServed = true;
+    return r.fulfill({ body: url.endsWith("manifest.json") ? f.manifest : url.endsWith("later.ndjson") ? "damaged second shard" : f.part });
+  });
+  await page.evaluate(c => window.__resources.installResource(c, "test-resource"), first.catalog);
+  expect(await page.evaluate(async c => { try { await window.__resources.installResource(c, "test-resource"); return false; } catch { return true; } }, next.catalog)).toBe(true);
+  expect(firstShardServed).toBe(true);
+  await page.reload(); await harness(page);
+  expect(await page.evaluate(() => window.__resources.readResource("test-resource", "entry"))).toEqual({ release: "v1", data: { text: "complete resource" } });
+  expect(await page.evaluate(() => window.__resources.readResource("test-resource", "later"))).toBe(null);
+});
+
 test("production shell relaunches offline and preserves a legacy downloaded chapter", async ({ page, context }) => {
   // Seed the actual old cache layout before application startup to exercise migration.
   await setup(page);

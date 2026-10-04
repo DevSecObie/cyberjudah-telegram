@@ -61,8 +61,8 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { browserName: "chromium", channel: "chromium", ...(process.env.CHROMIUM_PATH ? { launchOptions: { executablePath: process.env.CHROMIUM_PATH } } : {}) } },
     // The glass material and pointer behavior must also work in the engine used by Safari/iOS.
-    { name: "webkit", testMatch: ["glass.spec.ts", "contrast.spec.ts", "search-placement.spec.ts", "icons.spec.ts", "material-budget.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts"], use: { browserName: "webkit" } },
-    { name: "firefox", testMatch: ["glass.spec.ts", "material-budget.spec.ts", "search-placement.spec.ts", "icons.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts"], use: { browserName: "firefox" } },
+    { name: "webkit", testMatch: ["glass.spec.ts", "contrast.spec.ts", "search-placement.spec.ts", "icons.spec.ts", "material-budget.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "strongs-pages.spec.ts"], use: { browserName: "webkit" } },
+    { name: "firefox", testMatch: ["glass.spec.ts", "material-budget.spec.ts", "search-placement.spec.ts", "icons.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "strongs-pages.spec.ts"], use: { browserName: "firefox" } },
   ],
   webServer: liveBaseURL ? undefined : {
     command: `npm run build && bash ../bot/scripts/prepare-assets.sh && cd ../bot && rm -rf .wrangler/e2e && npx wrangler dev --local --port 8787 --persist-to .wrangler/e2e --test-scheduled ${vars}`,
