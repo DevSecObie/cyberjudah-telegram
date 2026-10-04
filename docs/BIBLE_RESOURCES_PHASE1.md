@@ -57,8 +57,11 @@ prior release after a catalog update.
   `ADMIN_IDS`; requires the previous ETag in `If-Match` (`*` only when empty),
   exactly the next catalog revision, and complete valid uploaded releases.
 
-Publication validates manifests, hashes, shard counts and cross-shard keys before
-conditionally replacing the current pointer with R2's ETag compare-and-swap.
+Publication validates manifests, hashes, shard counts and cross-shard keys for new
+releases before conditionally replacing the current pointer with R2's ETag
+compare-and-swap. Entries whose immutable approval marker already matches
+`manifestSha256` skip manifest and shard reads; a conflicting marker returns 409.
+Downloads and record reads still validate the bytes they serve.
 Racing publishers receive 409 and must reload. No GitHub credential is involved.
 A failed race may leave validated approval markers and a snapshot; these never
 change the current pointer. The future editor uses this same publication route.
@@ -70,6 +73,14 @@ release. Omitting a release resolves the current catalog. This phase migrates no
 real dataset, so existing Ask tools and their current source adapters remain
 unchanged; there is no second production copy. A future resource migration must
 include both consumers and a test comparing returned release and record bytes.
+
+**Ask migration blocker:** version 1 manifests do not yet map record keys to shard
+paths. `readResourceRecord` currently scans and validates shards until it finds
+the key, making a missing key or a record in the last shard require the full
+release. Do not migrate Ask to this adapter until the manifest includes a
+checksum-protected key-to-shard index (or an equivalently bounded lookup), the
+publisher verifies that every key maps to its actual shard, and tests prove that
+lookups read only the required shard while preserving pinned-release behavior.
 
 ## IndexedDB activation
 
@@ -114,7 +125,10 @@ Push, click and subscription-renewal handlers remain present.
 The next online launch adds the missing book index; new book saves include it.
 Legacy bytes are never relabelled as checksummed resource bundles. A first launch
 before the new shell has successfully installed still needs a network connection.
-Shell and resource caches are not purged in this phase.
+After a new production worker activates, it deletes every `cj-shell-*` cache
+except its own current revision before claiming clients. The previous shell stays
+available while the update waits for open readers to close. Legacy book/audio
+caches and resource storage are retained. The dev template does not purge shells.
 
 ## Timeline compatibility
 

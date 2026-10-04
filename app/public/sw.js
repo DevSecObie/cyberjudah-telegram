@@ -30,7 +30,13 @@ self.addEventListener("install", (e) => e.waitUntil((async () => {
   // Telegram owns its SDK lifecycle. Offline reading uses the app's web fallback.
   // The cache name is embedded in this worker, including after it is stopped/restarted.
 })()));
-self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
+self.addEventListener("activate", (e) => e.waitUntil((async () => {
+  if (SHELL_ENABLED) {
+    const names = await caches.keys();
+    await Promise.all(names.filter((name) => name.startsWith("cj-shell-") && name !== shellName).map((name) => caches.delete(name)));
+  }
+  await self.clients.claim();
+})()));
 self.addEventListener("fetch", (e) => {
   if (!SHELL_ENABLED) return;
   const url = new URL(e.request.url), scope = new URL(self.registration.scope);

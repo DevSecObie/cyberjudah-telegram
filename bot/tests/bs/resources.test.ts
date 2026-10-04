@@ -10,20 +10,21 @@ import type { Env } from "../../src/env.ts";
 /** Conditional writes emulate R2's ETag contract; requests still run the real Worker/auth. */
 function bucket() {
   const files = new Map<string, Uint8Array>();
+  const reads: string[] = [];
   const obj = async (key: string) => {
     const data = files.get(key); if (!data) return null;
     const etag = await sha256(data);
     return { key, size: data.length, etag, httpEtag: `"${etag}"`, body: new Response(data).body, arrayBuffer: async () => data.slice().buffer, json: async () => JSON.parse(new TextDecoder().decode(data)) };
   };
-  return { files, get: obj, async put(key: string, input: string | Uint8Array, options?: { onlyIf?: { etagMatches?: string; etagDoesNotMatch?: string } }) {
+  return { files, reads, get: async (key: string) => { reads.push(key); return obj(key); }, async put(key: string, input: string | Uint8Array, options?: { onlyIf?: { etagMatches?: string; etagDoesNotMatch?: string } }) {
     const before = await obj(key), condition = options?.onlyIf;
     if (condition?.etagDoesNotMatch === "*" && before || condition?.etagMatches && before?.etag !== condition.etagMatches) return null;
     files.set(key, typeof input === "string" ? new TextEncoder().encode(input) : new Uint8Array(input)); return obj(key);
   } };
 }
-const fixture = async (release = "v1", value = "local fixture") => {
+const fixture = async (release = "v1", value = "local fixture", id = "test-resource") => {
   const bytes = new TextEncoder().encode(JSON.stringify({ key: "entry", data: { text: value } }) + "\n");
-  const manifest = ManifestSchema.parse({ schemaVersion: 1, id: "test-resource", release, kind: "reference", title: "Local test fixture", language: "en", source: [{ url: "https://example.invalid/local-fixture", revision: "test", sha256: await sha256(bytes) }], license: [{ id: "public-domain", url: "https://example.invalid/local-fixture", attribution: "Synthetic test data only", modifications: "" }], approval: { reference: "https://example.invalid/local-fixture", approvedBy: "Local test only" }, parts: [{ path: "entries.ndjson", sha256: await sha256(bytes), bytes: bytes.length, records: 1 }] });
+  const manifest = ManifestSchema.parse({ schemaVersion: 1, id, release, kind: "reference", title: "Local test fixture", language: "en", source: [{ url: "https://example.invalid/local-fixture", revision: "test", sha256: await sha256(bytes) }], license: [{ id: "public-domain", url: "https://example.invalid/local-fixture", attribution: "Synthetic test data only", modifications: "" }], approval: { reference: "https://example.invalid/local-fixture", approvedBy: "Local test only" }, parts: [{ path: "entries.ndjson", sha256: await sha256(bytes), bytes: bytes.length, records: 1 }] });
   const manifestBytes = new TextEncoder().encode(JSON.stringify(manifest));
   return { bytes, manifest, manifestBytes, entry: { id: manifest.id, release, manifestSha256: await sha256(manifestBytes) } };
 };
@@ -34,8 +35,8 @@ async function request(env: Env, path: string, options: RequestInit = {}, user?:
   return worker.fetch(new Request(`https://worker.invalid/api/resources/${path}`, { ...options, headers }), env);
 }
 async function seed(store: ReturnType<typeof bucket>, f: Awaited<ReturnType<typeof fixture>>) {
-  await store.put(`resources/test-resource/${f.manifest.release}/manifest.json`, f.manifestBytes);
-  await store.put(`resources/test-resource/${f.manifest.release}/entries.ndjson`, f.bytes);
+  await store.put(`resources/${f.manifest.id}/${f.manifest.release}/manifest.json`, f.manifestBytes);
+  await store.put(`resources/${f.manifest.id}/${f.manifest.release}/entries.ndjson`, f.bytes);
 }
 const publish = (env: Env, revision: number, entries: unknown[], etag = "*", user = 42) => request(env, "catalog", { method: "PUT", headers: { "if-match": etag }, body: JSON.stringify({ schemaVersion: 1, revision, resources: entries }) }, user);
 
@@ -55,6 +56,38 @@ test("a damaged release cannot replace a readable published release", async () =
   store.files.set("resources/test-resource/v2/entries.ndjson", new TextEncoder().encode("broken"));
   assert.equal((await publish(env, 2, [next.entry], initial.headers.get("etag")!)).status, 400);
   assert.deepEqual(await readResourceRecord(env, "test-resource", "entry"), { release: "v1", data: { text: "local fixture" } });
+});
+test("publication reads shards only for new releases in a mixed catalog", async () => {
+  const { env, store } = setup(), existing = await fixture(); await seed(store, existing);
+  const initial = await publish(env, 1, [existing.entry]);
+  const added = await fixture("v1", "new resource fixture", "added-resource"); await seed(store, added);
+  store.reads.length = 0;
+  assert.equal((await publish(env, 2, [existing.entry, added.entry], initial.headers.get("etag")!)).status, 200);
+  assert.ok(store.reads.includes("resources/approved/test-resource/v1.json"));
+  assert.ok(!store.reads.some((key) => key.startsWith("resources/test-resource/v1/")));
+  assert.ok(store.reads.includes("resources/added-resource/v1/manifest.json"));
+  assert.ok(store.reads.includes("resources/added-resource/v1/entries.ndjson"));
+  assert.deepEqual(await (await store.get("resources/approved/added-resource/v1.json"))?.json(), { manifestSha256: added.entry.manifestSha256 });
+});
+test("a conflicting approval hash rejects publication without reading release files", async () => {
+  const { env, store } = setup(), f = await fixture(); await seed(store, f);
+  const initial = await publish(env, 1, [f.entry]);
+  store.reads.length = 0;
+  const changed = { ...f.entry, manifestSha256: "0".repeat(64) };
+  const response = await publish(env, 2, [changed], initial.headers.get("etag")!);
+  assert.equal(response.status, 409);
+  assert.deepEqual(await response.json(), { error: "A release cannot be overwritten" });
+  assert.ok(!store.reads.some((key) => key.startsWith("resources/test-resource/v1/")));
+  assert.equal((await (await request(env, "catalog")).json() as { revision: number }).revision, 1);
+});
+test("approval reuse does not disable integrity checks when serving an approved shard", async () => {
+  const { env, store } = setup(), f = await fixture(); await seed(store, f);
+  const initial = await publish(env, 1, [f.entry]);
+  const damaged = f.bytes.slice(); damaged[0] ^= 1;
+  store.files.set("resources/test-resource/v1/entries.ndjson", damaged);
+  assert.equal((await publish(env, 2, [f.entry], initial.headers.get("etag")!)).status, 200);
+  assert.equal((await request(env, "test-resource/v1/entries.ndjson")).status, 503);
+  await assert.rejects(readResourceRecord(env, "test-resource", "entry", "v1"));
 });
 test("HTTP downloads and server resource reads share the pinned approved release after updates", async () => {
   const { env, store } = setup(), a = await fixture(); await seed(store, a);

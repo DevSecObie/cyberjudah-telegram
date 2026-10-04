@@ -85,8 +85,15 @@ resources.put("/catalog", async (c) => {
   const parsed = CatalogSchema.safeParse(input); if (!parsed.success) return c.json({ error: "Invalid catalog" }, 400);
   const { catalog, etag } = await readCatalog(c.env);
   if (match !== etag || parsed.data.revision !== catalog.revision + 1) return c.json({ error: "Catalog changed; reload before publishing" }, 409);
-  // Validate the complete release before publishing it. No client can activate half an upload.
+  // Approved releases are immutable and already fully checked. Only new releases
+  // need shard validation; no client can activate half an upload.
   for (const entry of parsed.data.resources) {
+    const marker = `resources/approved/${entry.id}/${entry.release}.json`;
+    const approved = await c.env.AUDIO.get(marker);
+    if (approved) {
+      if ((await approved.json<{ manifestSha256: string }>()).manifestSha256 !== entry.manifestSha256) return c.json({ error: "A release cannot be overwritten" }, 409);
+      continue;
+    }
     const base = releasePrefix(entry.id, entry.release), file = await c.env.AUDIO.get(`${base}manifest.json`);
     if (!file || file.size > MAX_MANIFEST_BYTES) return c.json({ error: "Missing manifest" }, 400);
     const data = new Uint8Array(await file.arrayBuffer());
@@ -99,13 +106,8 @@ resources.put("/catalog", async (c) => {
       if (!object || object.size !== part.bytes) return c.json({ error: "Incomplete resource" }, 400);
       for (const row of await parseShard(new Uint8Array(await object.arrayBuffer()), part, m.kind)) { if (keys.has(row.key)) return c.json({ error: "Duplicate resource record" }, 400); keys.add(row.key); }
     }
-    const marker = `resources/approved/${entry.id}/${entry.release}.json`;
-    const approved = await c.env.AUDIO.get(marker);
-    if (approved && (await approved.json<{ manifestSha256: string }>()).manifestSha256 !== entry.manifestSha256) return c.json({ error: "A release cannot be overwritten" }, 409);
-    if (!approved) {
-      const saved = await c.env.AUDIO.put(marker, JSON.stringify({ manifestSha256: entry.manifestSha256 }), { onlyIf: { etagDoesNotMatch: "*" } });
-      if (!saved && (await (await c.env.AUDIO.get(marker))?.json<{ manifestSha256: string }>())?.manifestSha256 !== entry.manifestSha256) return c.json({ error: "Release approval changed" }, 409);
-    }
+    const saved = await c.env.AUDIO.put(marker, JSON.stringify({ manifestSha256: entry.manifestSha256 }), { onlyIf: { etagDoesNotMatch: "*" } });
+    if (!saved && (await (await c.env.AUDIO.get(marker))?.json<{ manifestSha256: string }>())?.manifestSha256 !== entry.manifestSha256) return c.json({ error: "Release approval changed" }, 409);
   }
   const body = jsonBytes(parsed.data), hash = await sha256(body);
   await c.env.AUDIO.put(`resources/catalog/${hash}.json`, body, { onlyIf: { etagDoesNotMatch: "*" } });
