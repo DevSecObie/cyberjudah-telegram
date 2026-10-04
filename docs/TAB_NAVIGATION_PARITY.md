@@ -7,7 +7,7 @@ Previously, opening Tabs replaced the page with the general route fade. Opening 
 | Bible Strong behavior | CyberJudah implementation |
 | --- | --- |
 | `useTabButtonPress` / `minimizeTab`: the active page contracts into its preview | The Tabs control transitions the visible page into the selected card, bringing that card into view. The dock changes to its existing Add / Groups / OK controls with Search retained. |
-| `expandTab`: a tapped preview grows into the active page | Card selection and OK use the same return transition. Add opens the existing New Tab page with the same motion. |
+| `expandTab`: a tapped preview grows into the active page | Card selection and OK use the same return transition. As in `useExpandNewTab`, Add first creates and reveals its new preview, then expands that card into the existing New Tab page. |
 | `slideToIndex`: moving among tabs uses one consistent movement | Dock navigation uses a short transform/opacity entrance. Saved tab paths, groups and custom dock choices retain their existing format. |
 | Separate active content from the tab grid | The reader's viewport position is retained per tab and path in bounded session memory. Returning to that tab restores its place; new input cancels restoration. |
 | Keep list/view controls coherent | Escape and Telegram Back resume the selected tab. Open action sheets still close first. Closing a tab leaves its neighbors intact, settles their positions and returns keyboard focus to the current card. |

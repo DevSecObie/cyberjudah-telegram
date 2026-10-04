@@ -15,8 +15,8 @@ async function setup(page: Page, mode = "normal") {
       const updateCallbackDone = Promise.resolve().then(update);
       return { updateCallbackDone, ready: Promise.reject(new Error("Snapshot unavailable")), finished: updateCallbackDone, skipTransition() {} };
     } });
-    const state = window as unknown as { __tabAnimations: Keyframe[][]; __tabTransitions: number; __tabReady: boolean[] };
-    state.__tabAnimations = []; state.__tabTransitions = 0; state.__tabReady = [];
+    const state = window as unknown as { __tabAnimations: Keyframe[][]; __tabTransitions: number; __tabReady: boolean[]; __tabSources: (string | null)[] };
+    state.__tabAnimations = []; state.__tabTransitions = 0; state.__tabReady = []; state.__tabSources = [];
     const animate = Element.prototype.animate;
     Element.prototype.animate = function (...args) {
       const animation = animate.apply(this, args);
@@ -27,6 +27,7 @@ async function setup(page: Page, mode = "normal") {
       const start = document.startViewTransition.bind(document);
       document.startViewTransition = (...args) => {
         state.__tabTransitions++;
+        state.__tabSources.push(document.querySelector<HTMLElement>('.tabcard[style*="tab-surface"]')?.dataset.tabId ?? null);
         const transition = start(...args);
         void transition.ready.then(() => state.__tabReady.push(true), () => state.__tabReady.push(false));
         return transition;
@@ -97,6 +98,14 @@ test("tab flow: Escape and Telegram Back resume the selected tab; closing a card
   await page.getByRole("button", { name: "Add a tab", exact: true }).click();
   await expect(page.locator(".nt-heading")).toBeVisible();
   await expect(page.locator("html")).not.toHaveAttribute("data-tab-motion");
+  const added = await page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem("cj:tabgroups")!);
+    const group = saved.groups.find((g: { id: string }) => g.id === saved.group);
+    return { current: group.current, count: group.tabs.length, source: (window as unknown as { __tabSources: (string | null)[] }).__tabSources.at(-1), native: !!document.startViewTransition };
+  });
+  expect(added.count).toBe(8);
+  expect(added.current).not.toBe("tab-5");
+  if (added.native) expect(added.source).toBe(added.current);
 });
 
 for (const width of [390, 768, 1280]) {

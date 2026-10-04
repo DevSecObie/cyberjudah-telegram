@@ -117,10 +117,15 @@ export function SwitcherBar() {
   const { tabs, current, group } = useTabs();
   const openGroups = useGroupActions();
   const go = (resolve: () => string) => { haptic("select"); moveTab(() => { navigate(resolve(), { replace: true }); }, "expand"); };
+  const add = () => {
+    reflowTabs(() => newTab());
+    document.querySelector(".tabcard[data-current]")?.scrollIntoView({ block: "nearest", behavior: "instant" });
+    go(() => "/new");
+  };
   const named = !isDefault(group);
   return (
     <div className="switcherbar" role="toolbar" aria-label="Tabs">
-      <button type="button" className="switcherbar__add" aria-label="Add a tab" title="Add a tab" onClick={() => go(() => newTab())}><Icon name="plus" size={24} /></button>
+      <button type="button" className="switcherbar__add" aria-label="Add a tab" title="Add a tab" onClick={add}><Icon name="plus" size={24} /></button>
       <button type="button" className="switcherbar__group" aria-label={`${groupLabel(group)}. Groups`} title={`${groupLabel(group)}. Groups`} onClick={() => void openGroups()}
         style={named ? { ["--group" as string]: group.color } : undefined}>
         <span>{groupLabel(group)}</span>
