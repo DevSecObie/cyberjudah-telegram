@@ -19,7 +19,7 @@ const basename = routerBasename(import.meta.env.BASE_URL, location.pathname);
 boot({ bg: "#05070f", header: "#05070f", bottomBar: "#05070f" });
 // Before the router reads the history: a back step must never leave the app for a blank page.
 installBackGuard();
-registerOfflineShell();
+registerOfflineShell(basename);
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 5 * 60_000, retry: 1, refetchOnWindowFocus: false } } });
 

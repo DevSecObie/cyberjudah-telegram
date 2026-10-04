@@ -101,6 +101,11 @@ reader. Navigation is network-first with cached HTML fallback; assets are
 cache-first. Cached redirected HTML is replayed as a fresh response so Chromium
 can navigate offline on hosts that redirect `index.html`.
 
+The manifest records the compiled asset base independently of the service worker's
+scope. Registration covers the actual reader URL and asset paths, so the same
+production `/app/` build also relaunches from the Worker's root alias. The Vite dev
+template leaves shell caching disabled while allowing reminder registration.
+
 Telegram's SDK keeps its own network lifecycle. Offline reading uses the app's
 existing web fallback. The service worker does not cache personal API responses.
 Push, click and subscription-renewal handlers remain present.
