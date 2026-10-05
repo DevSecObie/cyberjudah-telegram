@@ -1,3 +1,4 @@
+import { PeopleList, PeopleEditor } from './PeopleEditor';
 import { ClassList, ClassEditor } from './ClassEditor';
 import { useState } from 'react';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -27,7 +28,7 @@ export function Admin() {
     <Route path="classes" element={<ClassList />} /><Route path="classes/:id" element={<ClassEditor />} /><Route path="notes" element={<NotesAdmin />} />
     <Route path="photos" element={<PhotosAdmin />} />
     <Route path="changes" element={<Changes />} /><Route path="changes/:id" element={<ChangeStatus />} />
-    <Route path="people" element={<p>The People editor is the next content addition.</p>} /><Route path="precepts" element={<p>The Precepts editor is the next content addition.</p>} />
+    <Route path="people" element={<PeopleList />} /><Route path="people/:id" element={<PeopleEditor />} /><Route path="precepts" element={<p>The Precepts editor is the next content addition.</p>} />
   </Routes></div></Screen>;
 }
 function AdminHome() {

@@ -35,7 +35,7 @@ async function save() { const data = await loaded(); const response = await requ
 const pick = (data: any) => ({ id: data.event.slug, action: 'edit', draft: data.draft, shas: data.shas, event: data.event, reason: 'Correct source wording' });
 
 test('every CMS route refuses unsigned and non-admin readers before touching GitHub', async () => {
-  for (const [path, method] of [['classes','GET'],['classes/ABCDEFGHIJK','GET'],['classes','POST'],['timeline','GET'],['timeline/new','GET'],['timeline','POST'],['sources','GET'],['sources','POST'],['changes','GET'],['changes/00000000-0000-0000-0000-000000000000','GET'],['changes/00000000-0000-0000-0000-000000000000/publish','POST'],['resources','GET'],['resources','POST'],['resources/releases','GET']]) {
+  for (const [path, method] of [['people','GET'],['people/test-person','GET'],['people','POST'],['classes','GET'],['classes/ABCDEFGHIJK','GET'],['classes','POST'],['timeline','GET'],['timeline/new','GET'],['timeline','POST'],['sources','GET'],['sources','POST'],['changes','GET'],['changes/00000000-0000-0000-0000-000000000000','GET'],['changes/00000000-0000-0000-0000-000000000000/publish','POST'],['resources','GET'],['resources','POST'],['resources/releases','GET']]) {
     assert.equal((await request(`admin/cms/${path}`, method, method === 'POST' ? {} : undefined, 7)).status, 403);
     assert.equal((await request(`admin/cms/${path}`, method, method === 'POST' ? {} : undefined, 0)).status, 401);
   }
@@ -308,4 +308,33 @@ test('class route changes only the selected table row and the changed note field
   const change = await response.json() as any, files = fake.commits.get(change.head)!;
   assert.equal(files.get(table), text.replace('Test class', 'Corrected title'));
   assert.equal(files.get(note), before.replace('title: Test class', 'title: "Corrected title"'));
+});
+test('People routes reject stale and invalid edits, then save reciprocal relationships in one allowed source file',async()=>{
+ const source=await(await request('admin/cms/people/test-person')).json() as any;
+ const body={id:source.id,sha:source.sha,value:{...source.value,description:'Corrected summary',father:['test-parent']},reason:'Verified source relationship'};
+ assert.equal((await request('admin/cms/people','POST',{...body,sha:'0'.repeat(40)})).status,409);
+ assert.equal((await request('admin/cms/people','POST',{...body,value:{...body.value,father:['unknown-person']}})).status,400);
+ assert.equal((await request('admin/cms/people','POST',{...body,path:'engine/build.mjs'})).status,400);
+ const response=await request('admin/cms/people','POST',body);assert.equal(response.status,201,await response.clone().text());
+ const writes=fake.calls.filter(c=>c.method==='PUT');assert.equal(writes.length,1);assert.ok(writes[0].route.endsWith('/data/people/people.json'));
+ const doc=JSON.parse(Buffer.from(writes[0].body.content,'base64').toString());assert.deepEqual(doc.people[1].children,['test-person']);assert.equal(doc.source,'Test fixture');
+});
+
+test('large People sources use GitHub raw media safely, and redirects are never followed with credentials',async()=>{
+ const text=JSON.stringify({people:[],padding:'x'.repeat(1_100_000)}),calls:{url:string;init:RequestInit}[]=[];
+ globalThis.fetch=(async(url:RequestInfo|URL,init:RequestInit={})=>{calls.push({url:String(url),init});return new Headers(init.headers).get('accept')==='application/vnd.github.raw+json'?new Response(text):Response.json({sha:'a'.repeat(40),type:'file',size:text.length,encoding:'none',content:''});}) as typeof fetch;
+ const source=await new Github(env,CONTENT_REPO).file('data/people/people.json','b'.repeat(40));assert.equal(source.text,text);assert.equal(calls.length,2);assert.ok(calls.every(c=>c.url.startsWith('https://api.github.com/repos/DevSecObie/cyberjudah/')&&c.init.redirect==='manual'));
+ globalThis.fetch=(async(_url:RequestInfo|URL,init:RequestInit={})=>{assert.equal(init.redirect,'manual');return new Response(null,{status:302,headers:{location:'https://untrusted.invalid/'}});}) as typeof fetch;
+ await assert.rejects(new Github(env,CONTENT_REPO).file('data/people/people.json','b'.repeat(40)),/unavailable/);
+});
+
+test('a People summary correction preserves record order, formatting and unrelated fields', async () => {
+  const path = 'data/people/people.json';
+  const text = JSON.stringify(JSON.parse(fake.files.get(path)!), null, 2) + '\n';
+  fake.commits.get(fake.main).set(path, text);
+  const source = await (await request('admin/cms/people/test-person')).json() as any;
+  const response = await request('admin/cms/people', 'POST', { id: source.id, sha: source.sha, value: { ...source.value, description: 'Verified correction' }, reason: 'Correct this summary' });
+  assert.equal(response.status, 201, await response.clone().text());
+  const change = await response.json() as any;
+  assert.equal(fake.commits.get(change.head)!.get(path), text.replace('Synthetic summary', 'Verified correction'));
 });

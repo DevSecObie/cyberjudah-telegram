@@ -1,3 +1,4 @@
+import { CmsEditLink } from "@/admin/EditLink";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -51,13 +52,15 @@ export function Person() {
     <Screen className="entity">
       <header className="entity__summary">
         <div className="entity__id">
-          <EntityAvatar name={d.name} kind={kind} size={48} />
+          <EntityAvatar name={d.name} kind={kind} src={d.image?.src} size={48} />
           <div>
             <p className="entity__eyebrow">{eyebrow}</p>
             <h1 className="entity__name">{d.name}</h1>
             <StrongChips person={d} first={verses[0] ?? null} />
           </div>
         </div>
+        <CmsEditLink kind="people" id={d.id} />
+        {d.image ? <p className="hint">{d.image.caption} · {d.image.credit} · <a href={d.image.sourceUrl} target="_blank" rel="noopener noreferrer">{d.image.license}</a></p> : null}
         {d.description ? <p className="entity__desc">{d.description}.</p> : null}
         {d.names.length > 1 ? <p className="entity__aka">Also called {d.names.filter((n) => n !== d.name).join(", ")}</p> : null}
       </header>
