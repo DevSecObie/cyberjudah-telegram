@@ -22,6 +22,7 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- Small library updates behind the scenes (search caching, the bot's web framework, the Anthropic SDK), with no visible change.
 - Routine dependency updates now leave TypeScript, Vite, the Vite React plugin and the Workers types package out of the weekly batch, so a major version of one of those is upgraded on its own instead of bundled in with everything else.
 
 - Admins can correct precept explanations, verse positions and playback timestamps through the same review flow, while keeping recorded references intact.
