@@ -6,12 +6,13 @@ import type { CmsChange, CmsKind } from '../../shared/cms';
 export const APP_REPO = 'DevSecObie/cyberjudah-telegram';
 export const CONTENT_REPO = 'DevSecObie/cyberjudah';
 export const TIMELINE_FILES = { events: 'app/scripts/final-captivity/events.json', drafts: 'app/scripts/final-captivity/drafts.json' };
+export const CLASS_FILE = 'data/sources/class-teachers.tsv';
 export const SOURCES_FILE = 'bot/data/ask-sources.json';
 export class CmsError extends Error { constructor(message: string, public status: 400 | 403 | 404 | 409 | 503 = 400) { super(message); } }
 export function allowedFile(repo: string, kind: CmsChange['kind'], path: string): boolean {
   if (path.includes('..') || path.includes('\\') || path.startsWith('/')) return false;
   if (repo === APP_REPO) return kind === 'timeline' ? Object.values(TIMELINE_FILES).includes(path) : kind === 'sources' && path === SOURCES_FILE;
-  return repo === CONTENT_REPO && kind === 'note' && NOTE_FILE.test(path);
+  return repo === CONTENT_REPO && (kind === 'note' && (NOTE_FILE.test(path) || path === CLASS_FILE) || kind === 'class' && (path === CLASS_FILE || NOTE_FILE.test(path)));
 }
 const encoded = (path: string) => path.split('/').map(encodeURIComponent).join('/');
 export class Github {

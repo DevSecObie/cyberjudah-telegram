@@ -3,7 +3,7 @@ import bible from './cms-bible.mjs';
 import { checkEvent, GROUPS, PEOPLES, TRIBES } from './cms-timeline-rules.mjs';
 
 export { GROUPS, PEOPLES, TRIBES };
-export const CmsKind = z.enum(['timeline', 'note', 'sources']);
+export const CmsKind = z.enum(['timeline', 'note', 'sources', 'class']);
 export type CmsKind = z.infer<typeof CmsKind>;
 export const CmsId = z.string().min(1).max(160).regex(/^[A-Za-z0-9][A-Za-z0-9._/-]*$/).refine(v => !v.includes('..'), 'Invalid content id');
 export const FileSha = z.string().regex(/^[a-f0-9]{40}$/);

@@ -1,3 +1,4 @@
+import { CmsEditLink } from "@/admin/EditLink";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
@@ -105,7 +106,7 @@ export function NoteScreen() {
       <h1>{n.title}</h1>
       <div className="head__actions toolbar-group" role="group" aria-label="Note actions">
         {pdfButton}
-        {who.isSuccess && who.data?.admin && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" title="Edit this note" onClick={() => { haptic("select"); navigate(`/settings/admin/notes?file=${encodeURIComponent(n.file!)}`); }}><Icon name="compose" size={18} /></button> : null}
+        {video && ["class", "captains"].includes(n.kind) ? <CmsEditLink kind="classes" id={video} label="Edit class details" /> : null}{who.isSuccess && who.data?.admin && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" title="Edit this note" onClick={() => { haptic("select"); navigate(`/settings/admin/notes?file=${encodeURIComponent(n.file!)}`); }}><Icon name="compose" size={18} /></button> : null}
         <button type="button" className="icon-btn" aria-pressed={kept} aria-label={kept ? "Remove bookmark" : "Bookmark"} title={kept ? "Remove bookmark" : "Bookmark"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: path, kind: "note", title: n.title, text: [label(n.kind), fmtDate(n.date)].filter(Boolean).join(" · "), href: path })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={18} /></button>
       </div>
     </header>
@@ -141,7 +142,7 @@ export function NoteScreen() {
       {readFrom}
       {isHistory && episode.data?.turns?.length ? <Transcript ep={episode.data} find={params.get("find") ?? ""} onSeek={seek} /> : null}
       {upnext}
-      <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={n.title} action={<>{pdfButton}{who.isSuccess && who.data?.admin && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" title="Edit this note" onClick={() => { haptic("select"); navigate(`/settings/admin/notes?file=${encodeURIComponent(n.file!)}`); }}><Icon name="compose" size={18} /></button> : null}</>}><NoteBody md={n.body} video={video} onSeek={seek} series={me?.series ? teachingLabel(me) : undefined} /></NotesSheet>
+      <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={n.title} action={<>{pdfButton}{video && ["class", "captains"].includes(n.kind) ? <CmsEditLink kind="classes" id={video} label="Edit class details" /> : null}{who.isSuccess && who.data?.admin && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" title="Edit this note" onClick={() => { haptic("select"); navigate(`/settings/admin/notes?file=${encodeURIComponent(n.file!)}`); }}><Icon name="compose" size={18} /></button> : null}</>}><NoteBody md={n.body} video={video} onSeek={seek} series={me?.series ? teachingLabel(me) : undefined} /></NotesSheet>
     </main>
   );
   return (
