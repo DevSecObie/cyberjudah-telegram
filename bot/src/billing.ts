@@ -103,6 +103,10 @@ export async function refundStars(env: Env, user: number, charge: string) {
  */
 export async function pruneBilling(env: Env): Promise<void> {
   await sweepHolds(env);
+  // Per-request telemetry is kept CREDIT_USAGE_RETENTION_DAYS (180); the money trail
+  // (credit_ledger) is never pruned here. `at` is ms, and the new index keeps this cheap.
+  const keepMs = Math.max(30, Number(env.CREDIT_USAGE_RETENTION_DAYS ?? 180)) * 86400000;
+  await env.DB.prepare("DELETE FROM credit_usage WHERE at < ?").bind(Date.now() - keepMs).run().catch(() => null);
   const has = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'usage_daily'").first();
   if (!has) return;
   const day = (n: number) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);

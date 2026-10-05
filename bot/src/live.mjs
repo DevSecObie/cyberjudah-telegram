@@ -97,7 +97,9 @@ function cardDate(text, now) {
   // Also accept dated premiere cards, but never treat a missing date as a new upload.
   const dated = text.replace(/^(?:Streamed live on|Premiered)\s+/i, "");
   if (!/^(?:[A-Z][a-z]{2,8} \d{1,2}, \d{4}|\d{4}-\d{2}-\d{2})$/.test(dated)) return null;
-  const time = Date.parse(dated);
+  // These labels contain a calendar date, not a local time. Use UTC explicitly so
+  // the same card keeps its date on the Worker and on non-UTC development machines.
+  const time = Date.parse(/^\d{4}-/.test(dated) ? `${dated}T00:00:00Z` : `${dated} 00:00:00 GMT`);
   return Number.isFinite(time) && time <= now ? new Date(time).toISOString() : null;
 }
 
