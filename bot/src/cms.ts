@@ -1,4 +1,5 @@
 import { rewriteJson } from "../../shared/cms-json";
+import { cmsPrecepts } from "./cms-precepts";
 import { cmsPeople } from "./cms-people";
 import { cmsClasses } from "./cms-classes";
 import { cmsResources } from "./cms-resources";
@@ -87,3 +88,5 @@ cms.route('/resources', cmsResources);
 cms.route('/classes', cmsClasses);
 
 cms.route('/people', cmsPeople);
+
+cms.route('/precepts', cmsPrecepts);

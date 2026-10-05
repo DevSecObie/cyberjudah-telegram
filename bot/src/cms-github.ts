@@ -13,7 +13,7 @@ export class CmsError extends Error { constructor(message: string, public status
 export function allowedFile(repo: string, kind: CmsChange['kind'], path: string): boolean {
   if (path.includes('..') || path.includes('\\') || path.startsWith('/')) return false;
   if (repo === APP_REPO) return kind === 'timeline' ? Object.values(TIMELINE_FILES).includes(path) : kind === 'sources' && path === SOURCES_FILE;
-  return repo === CONTENT_REPO && (kind === 'person' && path === PEOPLE_FILE || kind === 'note' && (NOTE_FILE.test(path) || path === CLASS_FILE) || kind === 'class' && (path === CLASS_FILE || NOTE_FILE.test(path)));
+  return repo === CONTENT_REPO && (kind === 'precept' && /^data\/precepts\/classes\/[\w-]{11}\.json$/.test(path) || kind === 'person' && path === PEOPLE_FILE || kind === 'note' && (NOTE_FILE.test(path) || path === CLASS_FILE) || kind === 'class' && (path === CLASS_FILE || NOTE_FILE.test(path)));
 }
 const encoded = (path: string) => path.split('/').map(encodeURIComponent).join('/');
 export class Github {
@@ -154,7 +154,7 @@ export async function refreshChange(env: Env, id: string) {
     const rules = await git.json<{ type: string; parameters?: { required_status_checks?: { context: string; integration_id?: number }[] } }[]>('/rules/branches/main');
     const protectedChecks = branch.protection?.required_status_checks;
     const required = { contexts: protectedChecks?.contexts ?? [], checks: [...(protectedChecks?.checks ?? []), ...rules.filter(r => r.type === 'required_status_checks').flatMap(r => (r.parameters?.required_status_checks ?? []).map(s => ({ context: s.context, app_id: s.integration_id })))] };
-    const names = new Set([...(required?.contexts ?? []), ...(required?.checks ?? []).map(c => c.context), ...(change.repo === APP_REPO ? ['check', 'CodeQL', 'codeql', 'dependency-review', 'playwright', 'cms-content'] : ['validate'])]);
+    const names = new Set([...(required?.contexts ?? []), ...(required?.checks ?? []).map(c => c.context), ...(change.repo === APP_REPO ? ['check', 'CodeQL', 'codeql', 'dependency-review', 'playwright', 'cms-content'] : change.kind === 'precept' ? ['validate', 'check'] : ['validate'])]);
     const runs: Check[] = [];
     for (let page = 1; page <= 10; page++) {
       const result = await git.json<{ check_runs: Check[] }>(`/commits/${change.head}/check-runs?filter=latest&per_page=100&page=${page}`);

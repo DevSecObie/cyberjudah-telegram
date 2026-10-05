@@ -22,6 +22,8 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- Admins can correct precept explanations, verse positions and playback timestamps through the same review flow, while keeping recorded references intact.
+
 - Admins can review People summaries, reciprocal family relationships and credited pictures from the app. Published pictures appear in the existing profile and relationship graph.
 
 - Admins can correct class titles, teachers and dates, including undated recordings, through the shared review flow. Linked note front matter and metadata corrections stay in sync.
