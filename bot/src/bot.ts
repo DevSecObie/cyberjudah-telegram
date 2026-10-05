@@ -55,6 +55,19 @@ const HELP = [
 
 export async function createBot(env: Env, origin: string, exec?: Exec): Promise<Bot> {
   const bot = new Bot(env.BOT_TOKEN, { botInfo, client: telegramClient(env) });
+  // Telegram retries an update when the Worker is slow or answers badly; without dedup the
+  // retry runs every handler a second time (double /daily toggles, double invoices).
+  // Retries are sequential (Telegram waits for the first attempt's outcome), so a
+  // check-then-set in KV is enough; entries expire after a day.
+  bot.use(async (ctx, next) => {
+    const id = ctx.update.update_id;
+    if (typeof id === "number") {
+      const key = `webhook:${id}`;
+      if (await env.SUBS.get(key)) return;
+      await env.SUBS.put(key, "1", { expirationTtl: 86400 });
+    }
+    await next();
+  });
   const open = (ctx: Context, param: string, text?: string) => openButton(env, origin, ctx.chat?.type, param, text);
 
   bot.command("start", async (ctx) => {
