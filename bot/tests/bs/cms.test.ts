@@ -245,3 +245,23 @@ test('failed saves remove orphan branches but preserve a PR created before a los
   assert.equal(fake.refs.size, 1); assert.equal(fake.pulls.size, 1);
   const audit = await (await request('admin/cms/changes')).json() as any; assert.ok(audit.changes.some((c: any) => c.pr && c.url));
 });
+
+test('a newer rerun replaces stale check results only for the same GitHub App', async () => {
+  const change = await save(), route = `admin/cms/changes/${change.id}`;
+  fake.checks = 'success'; let newer: 'success' | 'failure' | 'pending' = 'success', appId = 15368;
+  globalThis.fetch = (async (url: RequestInfo | URL, init?: RequestInit) => {
+    const response = await fake.fetch(url, init);
+    if (!String(url).includes('/check-runs?')) return response;
+    const body = await response.json() as any;
+    body.check_runs = [
+      ...body.check_runs.filter((c: any) => c.name !== 'playwright'),
+      { id: 100, name: 'playwright', app: { id: 15368 }, status: 'completed', conclusion: 'cancelled' },
+      { id: 101, name: 'playwright', app: { id: appId }, status: newer === 'pending' ? 'in_progress' : 'completed', conclusion: newer === 'pending' ? null : newer },
+    ];
+    return Response.json(body);
+  }) as typeof fetch;
+  assert.equal((await (await request(route)).json() as any).state, 'Passed');
+  newer = 'pending'; assert.equal((await (await request(route)).json() as any).state, 'Checking');
+  newer = 'failure'; assert.equal((await (await request(route)).json() as any).state, 'Failed');
+  newer = 'success'; appId = 999; assert.equal((await (await request(route)).json() as any).state, 'Failed');
+});

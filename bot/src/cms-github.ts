@@ -153,12 +153,22 @@ export async function refreshChange(env: Env, id: string) {
     const protectedChecks = branch.protection?.required_status_checks;
     const required = { contexts: protectedChecks?.contexts ?? [], checks: [...(protectedChecks?.checks ?? []), ...rules.filter(r => r.type === 'required_status_checks').flatMap(r => (r.parameters?.required_status_checks ?? []).map(s => ({ context: s.context, app_id: s.integration_id })))] };
     const names = new Set([...(required?.contexts ?? []), ...(required?.checks ?? []).map(c => c.context), ...(change.repo === APP_REPO ? ['check', 'CodeQL', 'codeql', 'dependency-review', 'playwright', 'cms-content'] : ['validate'])]);
-    const checks: Check[] = [];
+    const runs: Check[] = [];
     for (let page = 1; page <= 10; page++) {
       const result = await git.json<{ check_runs: Check[] }>(`/commits/${change.head}/check-runs?filter=latest&per_page=100&page=${page}`);
-      checks.push(...result.check_runs); if (result.check_runs.length < 100) break;
+      runs.push(...result.check_runs); if (result.check_runs.length < 100) break;
       if (page === 10) throw new CmsError('There are too many check results to verify safely.', 503);
     }
+    // GitHub's filter=latest applies within suites; a restarted workflow can
+    // leave older cancelled/failed runs in another suite for this same commit.
+    // Names are status contexts. Keep the newest result per issuing GitHub App
+    // so a different integration cannot replace a required app's result.
+    const latest = new Map<string, Check>();
+    for (const run of runs) {
+      const key = `${run.app.id}:${run.name}`, prior = latest.get(key);
+      if (!prior || run.id > prior.id) latest.set(key, run);
+    }
+    const checks = [...latest.values()];
     const failed = checks.find(c => c.status === 'completed' && !['success', 'skipped', 'neutral'].includes(c.conclusion ?? ''));
     const missing = [...names].filter(name => !checks.some(c => c.name === name && c.status === 'completed' && c.conclusion === 'success' && !(required?.checks ?? []).some(r => r.context === name && r.app_id != null && r.app_id !== c.app.id)));
     if (failed) {
