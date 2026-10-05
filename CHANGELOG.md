@@ -23,6 +23,8 @@ request that introduced this file ([#77]).
 ## [Unreleased]
 
 - The Worker now serves donations ("Support CyberJudah"): `GET /api/donations` for the presets, amount bounds, the owner's giving link and the holy-days pause state, and `POST /api/invoice` for any amount within those bounds. A gift pauses the same way an Ask top-up does, from evening to evening on the Sabbath, feast days and New Moons, and is recorded once per Telegram charge in its own ledger, never added to the Ask balance.
+- Small library updates behind the scenes (search caching, the bot's web framework, the Anthropic SDK), with no visible change.
+- Routine dependency updates now leave TypeScript, Vite, the Vite React plugin and the Workers types package out of the weekly batch, so a major version of one of those is upgraded on its own instead of bundled in with everything else.
 
 - Admins can correct precept explanations, verse positions and playback timestamps through the same review flow, while keeping recorded references intact.
 
