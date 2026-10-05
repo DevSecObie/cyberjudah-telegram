@@ -22,6 +22,8 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- People show their portraits everywhere a person appears (the People list, a person's page, the family graph, the chapter's people, search, case studies), the same approved portraits as the Timeline; anyone without one keeps their letter.
+- More people have portraits on the Timeline: 37 newly approved, among them Christ, Joshua, Isaiah, Ezekiel, Nehemiah, Rachel, Leah and Rebekah, each drawn as the scriptures and the classes describe them.
 - Small library updates behind the scenes (search caching, the bot's web framework, the Anthropic SDK), with no visible change.
 - Routine dependency updates now leave TypeScript, Vite, the Vite React plugin and the Workers types package out of the weekly batch, so a major version of one of those is upgraded on its own instead of bundled in with everything else.
 
