@@ -2,6 +2,7 @@ import { CmsError } from "./cms-github";
 import { cms } from "./cms";
 import { ResourcePinsSchema } from "../../shared/resources";
 import { recordings, recordingAudio } from "./recordings";
+import { imageFile } from "./images";
 import { Hono } from "hono";
 import { Api, webhookCallback } from "grammy";
 import type { InlineQueryResultArticle } from "grammy/types";
@@ -67,6 +68,8 @@ app.use("/api/*", async (c, next) => {
   if (c.req.path === "/api/reminders" || c.req.path.startsWith("/api/reminders/") || c.req.path.startsWith("/api/push/")) return next();
   // The photos an admin sets are public pictures like the app's own: readers fetch them without signing in.
   if (c.req.method === "GET" && (c.req.path === "/api/photos" || c.req.path.startsWith("/api/photos/file/"))) return next();
+  // The app's pictures (portraits, Timeline paintings) are public files too.
+  if (c.req.method === "GET" && c.req.path.startsWith("/api/img/")) return next();
   if (c.req.method === "GET" && c.req.path.startsWith("/api/resources/")) return next();
   if (c.req.path === "/api/verse-of-day" || c.req.path === "/api/health" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
@@ -139,6 +142,8 @@ app.post("/api/notes/edit", async (c) => {
 // Photos an admin sets from the app (bot/src/photos.ts): the manifest, the files, and setting or removing one.
 app.get("/api/photos", async (c) => c.json(await photoManifest(c.env), 200, { "cache-control": "public, max-age=30" }));
 app.get("/api/photos/file/*", (c) => photoFile(c.env, c.req.path.slice("/api/photos/file/".length)));
+// The app's pictures in R2 (bot/src/images.ts): People portraits and the Timeline's paintings.
+app.get("/api/img/*", (c) => imageFile(c.env, c.req.path.slice("/api/img/".length), c.req.header("if-none-match")));
 app.put("/api/admin/photos", async (c) => {
   const { user } = c.get("tma");
   if (Number(c.req.header("content-length") ?? 0) > MAX_BYTES) return c.json({ ok: false, error: "That photo is too large." }, 413);

@@ -75,6 +75,13 @@ jobs:
           key: strong-yarn-${{ hashFiles('strong/yarn.lock') }}
       - name: Build the Bible Strong fork (staged at /app/strong)
         run: bash strong/build-web.sh
+      - name: Upload the app's pictures to R2
+        working-directory: bot
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # Portraits and Timeline paintings are served from R2 (/api/img/); only new or changed files go up.
+        run: node scripts/deploy-images.mjs
       - name: Deploy the worker
         id: deploy
         working-directory: bot
