@@ -181,19 +181,23 @@ test("with nothing in the balance a paid model is not called and the free model 
   await expect(card).toContainText("Not enough balance for this answer");
   await expect(card).toContainText("you have $0.00");
   await expect(card.getByRole("button", { name: "Top up" })).toBeVisible();
-  await expect(card.getByRole("button", { name: "Ask with glm-5.3-flash (free)" })).toBeVisible();
-  await shot(page, "4-not-enough");
-  expect(await modelCalls(request, t0)).toBe(0);
-  // The paid model is refused by the server too, with the free model named.
-  const free = (await account(request, 5)).models.find((m: { free?: boolean }) => m.free);
+  // The server names the configured fallback. Several models are free, so the first
+  // free entry in the catalog need not be the fallback offered on this card.
   const paidModel = await request.post("/api/ask", { headers: auth(5), data: { q: "And the Sabbath?", stream: true, model: OPUS, consent: ["Anthropic"], caps: { [OPUS]: 2_000_000 } } });
   expect(paidModel.status()).toBe(402);
-  expect(JSON.parse((await paidModel.text()).split("\n")[0]).free.id).toBe(free.id);
+  const { free } = JSON.parse((await paidModel.text()).split("\n")[0]);
+  expect(free).toMatchObject({ id: expect.any(String), name: expect.any(String), provider: expect.any(String) });
+  const catalogModel = (await account(request, 5)).models.find((m: { id: string }) => m.id === free.id);
+  expect(catalogModel).toMatchObject({ ...free, free: true });
+  const freeButton = card.getByRole("button", { name: `Ask with ${free.name} (free)`, exact: true });
+  await expect(freeButton).toBeVisible();
+  await shot(page, "4-not-enough");
+  expect(await modelCalls(request, t0)).toBe(0);
   // Choosing it from the card asks again with the free model. (Its answer is stood in for here:
   // the local Worker has no Workers AI to run it.)
   const sent: { model?: string }[] = [];
   await page.route("**/api/ask", (r) => { sent.push(r.request().postDataJSON()); return r.fulfill({ contentType: "application/x-ndjson", body: `${JSON.stringify({ done: true, answer: "Free answer.", sources: [] })}\n${JSON.stringify({ usage: { charged_mc: 0, free: true } })}\n` }); });
-  await card.getByRole("button", { name: "Ask with glm-5.3-flash (free)" }).click();
+  await freeButton.click();
   await expect(answer(page)).toContainText("Free answer.");
   await expect(answer(page).locator(".msg__usage")).toHaveText("Free model · no charge · Usage");
   expect(sent.at(-1)?.model).toBe(free.id);
@@ -204,5 +208,5 @@ test("with nothing in the balance a paid model is not called and the free model 
   const id = await owner(5);
   expect(d1(`SELECT COUNT(*) AS n FROM credit_usage WHERE user_id = '${id}'`)[0].n).toBe(0);
   expect((await books(5)).lots).toBe(0);
-  await expect(page.locator(".chat2__heading")).toContainText("glm-5.3-flash · free");
+  await expect(page.locator(".chat2__heading")).toContainText(`${free.name} · free`);
 });
