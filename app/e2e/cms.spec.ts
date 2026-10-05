@@ -1,0 +1,112 @@
+import { test, expect, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { signInitData } from '../../bot/src/initdata.mjs';
+import { STAND_IN } from './stand-ins';
+const mock = readFileSync(new URL('./telegram-mock.js',import.meta.url),'utf8');
+const events = JSON.parse(readFileSync(new URL('../scripts/final-captivity/events.json',import.meta.url),'utf8'));
+const event = events[0];
+const sign = (id: number) => signInitData({ auth_date:String(Math.floor(Date.now()/1000)), user:{id,first_name:'CMS test'} },process.env.BOT_TOKEN!);
+async function launch(page: Page, path: string, admin = true) {
+  await page.route('https://telegram.org/**',r => r.fulfill({contentType:'application/javascript',body:mock}));
+  await page.route(/youtube\.com|ytimg\.com|fonts\.g/,r => r.abort());
+  const init = await sign(admin ? 100000002 : 100000003);
+  await page.goto(`${path}#tgWebAppData=${encodeURIComponent(init)}&tgWebAppVersion=9.1&tgWebAppPlatform=ios`);
+}
+test.skip(!!process.env.PLAYWRIGHT_BASE_URL,'CMS runs only against the local fake GitHub API');
+test('an admin edits a Timeline event, follows checks and explicitly publishes the reviewed version', async ({page,request}) => {
+  await request.post(`${STAND_IN}/__cms/reset`);
+  const loaded = await request.get('/api/admin/cms/timeline', { headers: { authorization: `tma ${await sign(100000002)}` } });
+  expect(loaded.status(), await loaded.text()).toBe(200);
+  await launch(page,'/settings');
+  await page.getByText('Admin',{exact:true}).click();
+  await page.getByRole('link',{name:'Timeline Events, drafts, sources and pictures'}).click();
+  await page.getByRole('link',{name:`${event.title} Published`}).click();
+  await expect(page.getByRole('dialog',{name:'Edit Timeline event'})).toBeVisible();
+  await page.getByLabel('Title',{exact:true}).fill(`${event.title} — source correction`);
+  await page.getByLabel('Reason for this change').fill('Correct the title using the cited source.');
+  if (process.env.CMS_SHOT_DIR) await page.screenshot({path:`${process.env.CMS_SHOT_DIR}/timeline-editor.png`});
+  await page.getByRole('button',{name:'Save for review',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('Checking');
+  await expect(page.getByRole('button',{name:'Publish',exact:true})).toBeDisabled();
+  await request.post(`${STAND_IN}/__cms/checks`,{data:{state:'success'}});
+  await expect(page.getByRole('status')).toContainText('Passed');
+  await page.getByRole('button',{name:'Publish',exact:true}).click();
+  const sheet = page.getByRole('dialog',{name:'Publish change'});
+  await expect(sheet).toBeVisible();
+  const before = await (await request.get(`${STAND_IN}/__cms/calls`)).json();
+  expect(before.some((c: {route:string})=>c.route.endsWith('/merge'))).toBe(false);
+  await sheet.getByRole('button',{name:'Confirm publish'}).click();
+  await expect(page.getByRole('status')).toContainText('Published. Readers will see it after the next update is approved.');
+  const calls = await (await request.get(`${STAND_IN}/__cms/calls`)).json();
+  const merge = calls.find((c: {route:string})=>c.route.endsWith('/merge')); expect(merge.body.merge_method).toBe('squash');
+  expect(calls.filter((c: {method:string;route:string})=>c.method === 'PUT' && c.route.includes('/contents/')).every((c: {body:{branch:string}})=>c.body.branch.startsWith('cms/'))).toBe(true);
+});
+test('a non-admin sees no Admin or content Edit action and the server rejects direct access',async({page,request})=>{
+  const manifest = await (await request.get('/offline-shell.json')).json();
+  expect(manifest.paths.filter((p: string) => /\/(Admin|TimelineEditor|photo-editor|note-edit)[-.]/.test(p))).toEqual([]);
+  const scripts: string[] = []; page.on('request', r => { if (r.resourceType() === 'script') scripts.push(r.url()); });
+  await launch(page,'/settings',false);
+  await expect(page.getByText('Admin',{exact:true})).toHaveCount(0);
+  await launch(page,`/timeline/event/${event.slug}`,false);
+  await expect(page.getByRole('link',{name:'Edit',exact:true})).toHaveCount(0);
+  const response = await request.post('/api/admin/cms/timeline',{headers:{authorization:`tma ${await sign(100000003)}`},data:{}}); expect(response.status()).toBe(403);
+  await launch(page,'/settings/admin',false); await expect(page.getByText('This area is available to admins only.')).toBeVisible();
+  expect(scripts.filter(url => /\/(Admin|TimelineEditor|photo-editor|note-edit)[-.]/.test(url))).toEqual([]);
+});
+
+test('the #140 answer event loads and an untouched form submits every original value', async ({ page, request }) => {
+  const fixture = JSON.parse(readFileSync(new URL('../../bot/tests/fixtures/cms-timeline-140.json', import.meta.url), 'utf8'))[0];
+  const source = await (await request.get(`/api/admin/cms/timeline/${event.slug}`, { headers: { authorization: `tma ${await sign(100000002)}` } })).json();
+  await page.route(`**/api/admin/cms/timeline/${fixture.slug}`, r => r.fulfill({ json: { ...source, event: fixture } }));
+  let submitted: unknown;
+  await page.route('**/api/admin/cms/timeline', r => { submitted = r.request().postDataJSON().event; return r.fulfill({ status: 400, json: { error: 'There is no content change to save.' } }); });
+  await launch(page, `/settings/admin/timeline/${fixture.slug}`);
+  await expect(page.getByLabel('Answer 1 reference')).toHaveValue(fixture.answer[0].ref);
+  await expect(page.getByLabel('Teaching 1 quote')).toHaveValue(fixture.teaching[0].quote);
+  await page.getByLabel('Reason for this change').fill('Check the existing event values.');
+  await page.getByRole('button', { name: 'Save for review', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('There is no content change to save.');
+  expect(submitted).toEqual(fixture);
+});
+
+test('class editor keeps an unknown date blank and submits only the admin-entered correction',async({page})=>{
+  const source={value:{video:'LMNOPQRSTUV',title:'Undated recording',teacher:'',date:''},tableSha:'a'.repeat(40),note:null};
+  let saved:Record<string,any>|undefined;
+  await page.route('**/api/admin/cms/classes/LMNOPQRSTUV',r=>r.fulfill({json:source}));
+  await page.route('**/api/admin/cms/classes',r=>{saved=r.request().postDataJSON();return r.fulfill({status:201,json:{id:'test-class-change'}});});
+  await page.route('**/api/admin/cms/changes/test-class-change',r=>r.fulfill({json:{id:'test-class-change',title:'Edit class details',state:'Checking',message:'Waiting for repository checks.',by:{name:'Test admin'},at:new Date().toISOString(),reason:'Date verified from recording'}}));
+  await launch(page,'/settings/admin/classes/LMNOPQRSTUV');
+  await expect(page.getByLabel('Class date')).toHaveValue('');
+  await expect(page.getByLabel('Teacher',{exact:true})).toHaveValue('');
+  await page.getByLabel('Class date').fill('2024-02-29');
+  await page.getByLabel('Reason for this change').fill('Date verified from recording');
+  await page.getByRole('button',{name:'Save for review',exact:true}).click();
+  await expect(page.getByRole('status')).toContainText('Checking');
+  expect(saved?.value).toEqual({...source.value,date:'2024-02-29'});expect(saved?.tableSha).toBe(source.tableSha);expect(saved?.note).toBeNull();
+});
+
+test('People editor records a supplied summary and picture metadata without replacing relationships',async({page})=>{
+ const value={description:'Original summary',father:['test-parent'],mother:[],siblings:[],partners:[],children:[],image:null};let saved:any;
+ await page.route('**/api/admin/cms/people/test-person',r=>r.fulfill({json:{id:'test-person',name:'Test person',sha:'b'.repeat(40),value,people:[{id:'test-person',name:'Test person'},{id:'test-parent',name:'Test parent'}]}}));
+ await page.route('**/api/admin/cms/people',r=>{saved=r.request().postDataJSON();return r.fulfill({status:201,json:{id:'test-person-change'}});});
+ await page.route('**/api/admin/cms/changes/test-person-change',r=>r.fulfill({json:{id:'test-person-change',title:'Edit person',state:'Checking',message:'Waiting for repository checks.',by:{name:'Test admin'},at:new Date().toISOString(),reason:'Verified profile correction'}}));
+ await launch(page,'/settings/admin/people/test-person');await page.getByLabel('Summary',{exact:true}).fill('Owner supplied summary');
+ await page.getByText('Picture',{exact:true}).click();await page.getByRole('button',{name:'Add picture',exact:true}).click();
+ for(const [key,value]of Object.entries({src:'https://example.org/picture.jpg',caption:'An artist’s depiction',credit:'Artist',license:'CC0',sourceUrl:'https://example.org/source'}))await page.getByLabel(`Picture ${key}`,{exact:true}).fill(value);
+ await page.getByLabel('Reason for this change').fill('Verified profile correction');await page.getByRole('button',{name:'Save for review',exact:true}).click();await expect(page.getByRole('status')).toContainText('Checking');expect(saved.value.father).toEqual(value.father);expect(saved.value.description).toBe('Owner supplied summary');expect(saved.value.image.credit).toBe('Artist');
+});
+
+test('Precepts editor preserves recorded references and leaves an unknown optional timestamp empty',async({page})=>{
+ const pass={video:'ABCDEFGHIJK',title:'Test pass',date:'2024-02-29',passages:[{opened:'Genesis 1:1-3',ts:'1:00',sense:[{at:'1',text:'Existing sense'}],precepts:[{ref:'John 1:1',at:'1',why:'Existing explanation'}]}]};let saved:any;
+ await page.route('**/api/admin/cms/precepts/ABCDEFGHIJK',r=>r.fulfill({json:{video:pass.video,sha:'c'.repeat(40),pass}}));
+ await page.route('**/api/admin/cms/precepts',r=>{saved=r.request().postDataJSON();return r.fulfill({status:201,json:{id:'test-precept-change'}});});
+ await page.route('**/api/admin/cms/changes/test-precept-change',r=>r.fulfill({json:{id:'test-precept-change',title:'Edit precept pass',state:'Checking',message:'Waiting for quote checks.',by:{name:'Test admin'},at:new Date().toISOString(),reason:'Correction verified from recording'}}));
+ await launch(page,'/settings/admin/precepts/ABCDEFGHIJK');
+ await expect(page.getByLabel('Passage 1 precept 1 reference')).toHaveAttribute('readonly','');
+ await expect(page.getByLabel('Passage 1 precept 1 timestamp (optional)')).toHaveValue('');
+ await page.getByLabel('Passage 1 sense 1 explanation').fill('Owner supplied correction');
+ await page.getByLabel('Passage 1 precept 1 why').fill('Owner supplied reason');
+ await page.getByLabel('Reason for this change').fill('Correction verified from recording');
+ await page.getByRole('button',{name:'Save for review',exact:true}).click();await expect(page.getByRole('status')).toContainText('Checking');
+ expect(saved.pass.passages[0].precepts[0]).toEqual({ref:'John 1:1',at:'1',why:'Owner supplied reason'});expect(saved.pass.passages[0].sense[0].text).toBe('Owner supplied correction');
+});

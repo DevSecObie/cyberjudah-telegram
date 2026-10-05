@@ -37,8 +37,8 @@ jobs:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
 
   stage:
-    # Drafts are reviewable without publishing their code or resource changes.
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.draft == false
+    # CMS review branches require an owner workflow_dispatch to stage, even when ready.
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.draft == false && !startsWith(github.head_ref, 'cms/') && !startsWith(github.head_ref, 'codex/cms-'))
     needs: check
     runs-on: ubuntu-latest
     steps:

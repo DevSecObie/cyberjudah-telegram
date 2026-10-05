@@ -1,3 +1,4 @@
+import { CmsEditLink } from "@/admin/EditLink";
 import { useQueries } from "@tanstack/react-query";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useNavigationType, useParams, useSearchParams } from "react-router";
@@ -524,6 +525,7 @@ export function TimelineEventScreen() {
           <Link className="tl-event__period" to={`/timeline/${e.sectionIndex}`}>{s.title} · {s.subTitle}</Link>
         </div>
 
+        {e.fc ? <CmsEditLink kind="timeline" id={e.slug} /> : null}
         {e.fc ? <FinalCaptivityDetail slug={e.slug} reviewedThrough={FINAL_CAPTIVITY?.reviewedThrough} /> : null}
 
         {e.reign ? (

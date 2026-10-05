@@ -3,13 +3,26 @@ import react from "@vitejs/plugin-react";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
-/** A complete release of the shell, including lazy reader chunks, installed as one cache. */
+/** The reader shell includes lazy reader chunks; admin editors load only after authorization. */
 let assetBase = "/";
 const offlineShell: Plugin = {
   name: "offline-shell", apply: "build",
   configResolved(config) { assetBase = config.base; },
   generateBundle: { order: "post", handler(_options, bundle) {
-    const paths = Object.keys(bundle).filter((p) => /\.(js|css|html)$/.test(p)).sort();
+    const reader = new Set<string>(['index.html']);
+    const visit = (name: string) => {
+      if (reader.has(name)) return;
+      const chunk = bundle[name];
+      if (!chunk || chunk.type !== 'chunk') return;
+      // Do not let service-worker installation bypass the runtime admin gate.
+      if (/\/src\/(?:admin\/(?:Admin|TimelineEditor|ResourceAdmin|ClassEditor|PeopleEditor|PreceptEditor)|ui\/(?:photo-editor|note-edit))\./.test(chunk.facadeModuleId ?? '')) return;
+      reader.add(name);
+      const css = (chunk as typeof chunk & { viteMetadata?: { importedCss: Set<string> } }).viteMetadata?.importedCss;
+      css?.forEach(name => reader.add(name));
+      [...chunk.imports, ...chunk.dynamicImports].forEach(visit);
+    };
+    Object.values(bundle).forEach(chunk => { if (chunk.type === 'chunk' && chunk.isEntry) visit(chunk.fileName); });
+    const paths = [...reader].sort();
     const revision = createHash("sha256");
     for (const p of paths) { const entry = bundle[p]; revision.update(p); revision.update(entry.type === "chunk" ? entry.code : entry.source); }
     const hash = revision.digest("hex");

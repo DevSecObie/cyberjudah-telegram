@@ -15,7 +15,7 @@ import { avatarKind, EntityAvatar, type AvatarKind } from "@/ui/avatar";
  * middle.
  */
 type Relation = "father" | "mother" | "partner" | "sibling" | "offspring";
-type Rel = { relation: Relation; id: string; name: string };
+type Rel = { relation: Relation; id: string; name: string; image?: Person["image"] };
 type Step = { person: Person; via: Rel; position: number; page: number };
 
 const HEIGHT = 410, CENTER_Y = 188, CENTER = 82, NODE = 58, NODE_W = 92;
@@ -36,7 +36,7 @@ const VISUAL: Record<Relation, { icon: FeatherName; tone: string }> = {
 export function relationsOf(p: Person): Rel[] {
   const lists: Record<Relation, Person["father"]> = { father: p.father, mother: p.mother, partner: p.partners, sibling: p.siblings, offspring: p.children };
   const seen = new Set<string>(); const out: Rel[] = [];
-  for (const relation of PRIORITY) for (const r of lists[relation]) if (!seen.has(r.id) && r.id !== p.id) { seen.add(r.id); out.push({ relation, id: r.id, name: r.name }); }
+  for (const relation of PRIORITY) for (const r of lists[relation]) if (!seen.has(r.id) && r.id !== p.id) { seen.add(r.id); out.push({ relation, id: r.id, name: r.name, ...(r.image ? { image: r.image } : {}) }); }
   return out;
 }
 
@@ -126,18 +126,18 @@ export function FamilyGraph({ person, onOpenProfile }: { person: Person; onOpenP
         </svg>
         <div className="fg__scene" key={scene}>
           {prev && previousPosition != null ? (
-            <Satellite at={positionOf(previousPosition, width)} center={center} order={0} name={prev.person.name} kind={prevKind}
+            <Satellite at={positionOf(previousPosition, width)} center={center} order={0} name={prev.person.name} src={prev.person.image?.src} kind={prevKind}
               label={relationLabel(inverse(prev.via.relation, prevKind), prevKind)} relation={inverse(prev.via.relation, prevKind)} back onPress={back} />
           ) : null}
           {nodes.map(({ r, position }, i) => {
             const kind = kindOf(r.id, r.relation, active);
-            return <Satellite key={r.id} at={positionOf(position, width)} center={center} order={i + 1} name={r.name} kind={kind}
+            return <Satellite key={r.id} at={positionOf(position, width)} center={center} order={i + 1} name={r.name} src={r.image?.src} kind={kind}
               label={relationLabel(r.relation, kind)} relation={r.relation} loading={busy === r.id} onPress={() => void walk(r, position)} />;
           })}
           <div className="fg__center" style={{ left: center.x - CENTER / 2, top: center.y - CENTER / 2 }}>
             <button type="button" className="fg__node fg__node--center" disabled={!elsewhere} aria-label={elsewhere ? `View ${active.name}'s profile` : active.name} title={elsewhere ? `View ${active.name}'s profile` : active.name}
               onClick={() => { haptic("select"); onOpenProfile(active.id); }}>
-              <EntityAvatar name={active.name} kind={avatarKind(active.type) !== "other" ? avatarKind(active.type) : kindOf(active.id)} size={CENTER} />
+              <EntityAvatar name={active.name} src={active.image?.src} kind={avatarKind(active.type) !== "other" ? avatarKind(active.type) : kindOf(active.id)} size={CENTER} />
             </button>
             <div className="fg__label fg__label--center">
               <b>{active.name}</b>
@@ -162,14 +162,14 @@ function inverse(r: Relation, kind: AvatarKind): Relation {
   return r === "father" || r === "mother" ? "offspring" : r === "offspring" ? (kind === "female" ? "mother" : "father") : r;
 }
 
-function Satellite({ at, center, order, name, kind, label, relation, back, loading, onPress }: {
-  at: { x: number; y: number }; center: { x: number; y: number }; order: number; name: string; kind: AvatarKind; label: string; relation: Relation; back?: boolean; loading?: boolean; onPress: () => void;
+function Satellite({ at, center, order, name, src, kind, label, relation, back, loading, onPress }: {
+  at: { x: number; y: number }; center: { x: number; y: number }; order: number; name: string; src?: string; kind: AvatarKind; label: string; relation: Relation; back?: boolean; loading?: boolean; onPress: () => void;
 }) {
   const v = VISUAL[relation];
   return (
     <div className="fg__sat" style={{ left: at.x - NODE / 2, top: at.y - NODE / 2, ["--fg-dx" as string]: `${center.x - at.x}px`, ["--fg-dy" as string]: `${center.y - at.y}px`, animationDelay: `${order * 35}ms` }}>
       <button type="button" className="fg__node" aria-label={back ? `Back to ${name}` : `${label}, ${name}`} title={back ? `Back to ${name}` : `${label}, ${name}`} aria-busy={loading || undefined} onClick={onPress}>
-        <EntityAvatar name={name} kind={kind} size={NODE} />
+        <EntityAvatar name={name} src={src} kind={kind} size={NODE} />
         {back ? <span className="fg__back" aria-hidden="true"><Feather name="chevron-left" size={14} /></span> : null}
       </button>
       <div className="fg__label" style={{ width: NODE_W, marginLeft: (NODE - NODE_W) / 2 }}>

@@ -22,6 +22,14 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- Admins can correct precept explanations, verse positions and playback timestamps through the same review flow, while keeping recorded references intact.
+
+- Admins can review People summaries, reciprocal family relationships and credited pictures from the app. Published pictures appear in the existing profile and relationship graph.
+
+- Admins can correct class titles, teachers and dates, including undated recordings, through the shared review flow. Linked note front matter and metadata corrections stay in sync.
+
+- Admins can review Timeline and note corrections, outside-source changes and resource publications from Settings. Content saves open pull requests; publication requires passing checks and an explicit admin action.
+
 Merged to `main` and not yet in a tagged release. Production currently runs `861242f`
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 

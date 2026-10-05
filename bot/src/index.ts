@@ -1,3 +1,5 @@
+import { CmsError } from "./cms-github";
+import { cms } from "./cms";
 import { ResourcePinsSchema } from "../../shared/resources";
 import { recordings, recordingAudio } from "./recordings";
 import { Hono } from "hono";
@@ -11,7 +13,7 @@ import { runSearch } from "./search";
 import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./teachings";
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
-import { approvedSources, DEFAULT_SOURCES, HOST } from "./ask-tools";
+import { readSources, saveSources } from "./cms-sources";
 import { ask, askStream, creditsOn, defaultModelId, freeModel, similar, speakVerse } from "./ai";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
@@ -81,6 +83,7 @@ app.use("/api/*", async (c, next) => {
   await next();
 });
 
+app.route("/api/admin/cms", cms);
 app.route("/api/reminders", reminders);
 app.route("/api/push", push);
 
@@ -107,8 +110,7 @@ app.get("/api/me", async (c) => {
   return c.json({ user: { id: user!.id, first_name: user!.first_name, username: user!.username }, subscribed: Boolean(sub), premium: Boolean(user!.is_premium), admin: isAdmin(c.env, user!.id), canEdit: isAdmin(c.env, user!.id) && canEdit(c.env) });
 });
 
-// An admin's edit to a note (teacher, title, a spelling, or the text): one commit to the
-// cyberjudah repository; the site and the app pick it up on the next build.
+// An admin note edit opens a CMS pull request; only the admin Publish action merges it.
 // The note's markdown as it is in the repository, for editing the text itself.
 app.get("/api/notes/source", async (c) => {
   const { user } = c.get("tma");
@@ -123,9 +125,10 @@ app.post("/api/notes/edit", async (c) => {
   const edit = (await c.req.json().catch(() => null)) as NoteEdit | null;
   if (!edit?.file) return c.json({ ok: false, error: "No note given." }, 400);
   try {
-    const res = await commitEdit(c.env, edit, user!.username ? `@${user!.username}` : user!.first_name);
+    const res = await commitEdit(c.env, edit, { id: user!.id, name: user!.username ? `@${user!.username}` : user!.first_name });
     return c.json(res, res.ok ? 200 : 400);
   } catch (e) {
+    if (e instanceof CmsError) return c.json({ ok: false, error: e.message }, e.status);
     // Whatever goes wrong, the sheet gets a plain reason as JSON, never a bare error page —
     // and never the server's own error text.
     console.error(JSON.stringify({ event: "note_edit_failed", message: (e as Error).message?.slice(0, 200) }));
@@ -148,18 +151,16 @@ app.delete("/api/admin/photos", async (c) => {
   return res.ok ? c.json(res) : c.json({ ok: false, error: res.error }, res.status);
 });
 
-// The outside sources Ask may read (ask-tools.ts): an admin sees and sets the whitelist.
-app.get("/api/admin/ask-sources", async (c) => {
-  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false, error: "Only an admin can see this." }, 403);
-  return c.json({ ok: true, hosts: await approvedSources(c.env), defaults: DEFAULT_SOURCES });
+// Existing endpoints share the CMS review flow; no direct writes to the live whitelist.
+app.get("/api/admin/ask-sources", async c => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ error: "Only an admin can see this." }, 403);
+  try { return c.json(await readSources(c.env)); }
+  catch (e) { return c.json({ error: e instanceof CmsError ? e.message : "The outside-source list could not be loaded." }, e instanceof CmsError ? e.status : 503); }
 });
-app.put("/api/admin/ask-sources", async (c) => {
-  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false, error: "Only an admin can change this." }, 403);
-  const body = await c.req.json<{ hosts?: unknown }>().catch(() => null);
-  const hosts = Array.isArray(body?.hosts) ? [...new Set(body!.hosts.map((h) => String(h).trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "").replace(/^www\./, "")))] : null;
-  if (!hosts || hosts.length > 100 || !hosts.every((h) => HOST.test(h))) return c.json({ ok: false, error: "Give a list of up to 100 site names, like wikipedia.org." }, 400);
-  await c.env.SUBS.put("ask:sources", JSON.stringify(hosts));
-  return c.json({ ok: true, hosts });
+app.put("/api/admin/ask-sources", async c => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ error: "Only an admin can change this." }, 403);
+  try { const user = c.get("tma").user!; return c.json(await saveSources(c.env, await c.req.json(), { id: user.id, name: user.username ? `@${user.username}` : user.first_name }), 201); }
+  catch (e) { return c.json({ error: e instanceof Error ? e.message : "The list could not be saved." }, e instanceof CmsError ? e.status : 400); }
 });
 
 app.get("/api/search", async (c) => {
