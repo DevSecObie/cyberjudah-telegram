@@ -2,8 +2,11 @@
 
 The Timeline's last age: the captivity, displacement, persecution, resistance and achievements
 of the peoples the assembly identifies as the Israelites today (the so-called Blacks, Hispanics
-and Native Americans), and the founding and growth of Israel United in Christ. It follows the
+and Native Americans). It follows the
 Reformation period and is the final top-level age on the Timeline.
+
+IUIC does not have a separate Timeline period. Its existing events and drafts belong to
+“Redemption” alongside the rest of the modern history; their links, sources and teaching stay intact.
 
 These files are the source of truth. `app/scripts/timeline-data.mjs` builds the Timeline's bars
 from them, and `check.mjs` must pass before anything here is published.
@@ -69,7 +72,7 @@ documentary photograph of an atrocity, never presented as evidence). See docs/AV
 - The teacher's meaning is kept. Quotes are word for word from the recording; strong language
   stays as said; a bleeped word is left out.
 - An event without a documented source stays in `drafts.json`. The classes' teaching is added wherever a class taught the event; an event may stand on its documented sources alone.
-- **Israel United in Christ (owner's direction, 2026-10-03):** the period covers the leaders and the
+- **Israel United in Christ (owner's direction, 2026-10-03):** its historical entries cover the leaders and the
   organization only: its founding, leaders, schools and camps, publications, broadcasts, missions at
   home and overseas, and ministries. Outside characterisations of IUIC (designations, labels and
   accusations by critics, former members or third parties) are not recorded anywhere on the Timeline,

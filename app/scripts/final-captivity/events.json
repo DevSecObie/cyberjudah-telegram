@@ -20296,6 +20296,207 @@
   "status": "published"
  },
  {
+  "slug": "iuic-founded-2003",
+  "title": "Israel United in Christ is founded in New York",
+  "start": 2003,
+  "end": 2003,
+  "date": {
+   "text": "2003",
+   "precision": "year"
+  },
+  "period": "unto-this-day",
+  "group": "Israel United in Christ",
+  "place": "Coney Island, Brooklyn, New York",
+  "region": "North America",
+  "peoples": [
+   "Black",
+   "Hispanic",
+   "Native"
+  ],
+  "people": [
+   "Bishop Nathanyel (Nathanyel Ben Israel)",
+   "Bishop Kani",
+   "Barakshar",
+   "Bishop Yawasap"
+  ],
+  "summary": "Israel United in Christ (IUIC) was founded in 2003 in New York by Bishop Nathanyel, who was then living in Coney Island; its first classes met in his home before it opened its first “official” school in a small building in Brooklyn.",
+  "account": [
+   "IUIC’s official history says that in 2003 Bishop Nathanyel founded Israel United in Christ while living in Coney Island, New York. He then moved upstate, where he set up his basement to record biblically based educational videos and to keep teaching those who sought him out. As more members came, the basement became overcrowded, so he moved the classroom to a small building in Brooklyn, New York, where IUIC opened its very first “official” school. The same page says IUIC has grown since 2003, with schools operating across the country and internationally.",
+   "A 2026 scholarly entry by Michael T. Miller places the founding after the Israelite School of Universal Practical Knowledge split in late 1995 and the factions that followed it. It says Nathanyel was introduced to Black Hebrew Israelite teaching around 1990, and that IUIC was founded in 2003 by Nathanyel, Kani and Barakshar, quickly joined by Yawasap. Barakshar later left over whether his wife could teach women’s classes and formed Future World of Israel. The same entry gives an estimate of 10,000 members worldwide.",
+   "Press reports repeat the founding year. The Gleaner (Jamaica, 2017) was told by a member that IUIC was founded in 2003 and had 30 branches; the BBC (2019) reported that IUIC was founded in 2003 in New York and had around 40 churches, or “schools”, in the United States."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "The 20th anniversary marks IUIC as an entity from the time three elders, Bishop Nathanyel among them, came together with their families and resolved to move something. One of the three is no longer with IUIC.",
+     "It began with about ten brothers around two tables in Bishop Nathanyel’s basement, about thirty people in all with their families, when nobody knew who IUIC was.",
+     "What has grown from it is the work of the Most High: lives changed through repentance, the children’s program, the kitchens and food pantries, the Daughters of Sarah, the social media and the other departments. It stands as a statement of longevity."
+    ],
+    "quote": "I remember the ten brothers around two tables in Bishop Nathaniel's basement",
+    "source": {
+     "kind": "class",
+     "id": "D4kx8lxOCjk",
+     "title": "The Power Hour Plus: Preparing For Marriage: Do’s and Don’ts For A Healthy Marriage",
+     "date": "2023-03-01",
+     "ts": "19:00",
+     "url": "https://youtu.be/D4kx8lxOCjk?t=1140"
+    }
+   },
+   {
+    "points": [
+     "As Nicodemus said, no man can do the works Christ did unless God is with him. In the same way, unless the Lord was with the leadership there was no way to go from a basement in Coney Island to over 180 countries visited and hundreds of congregations around the world.",
+     "People keep saying IUIC is “Acts 5”; it is not. Other movements were around for a couple of weeks, but this organization is by God, and it is not going anywhere."
+    ],
+    "quote": "there's no way you can go from a basement in Coney Island to over 180 countries visited",
+    "source": {
+     "kind": "class",
+     "id": "aqfyQICjjUY",
+     "title": "The Evolution of Persecution",
+     "date": "2025-11-15",
+     "ts": "34:21",
+     "url": "https://youtu.be/aqfyQICjjUY?t=2061"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "John 3:2",
+    "why": "Nicodemus’ words, “no man can do these miracles that thou doest, except God be with him”, are applied to IUIC’s growth from a basement in Coney Island: it could not have happened unless God was with the leadership."
+   }
+  ],
+  "sources": [
+   {
+    "title": "History",
+    "publisher": "Israel United in Christ (israelunite.org)",
+    "year": "2025",
+    "url": "https://israelunite.org/history/",
+    "accessed": "2026-10-03",
+    "supports": "Founded 2003 by Bishop Nathanyel in Coney Island; upstate basement recording videos; small building in Brooklyn, the first “official” school; growth since 2003 with schools across the country and abroad."
+   },
+   {
+    "title": "Israel United in Christ",
+    "author": "Michael T. Miller",
+    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
+    "year": "2026",
+    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
+    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
+    "accessed": "2026-10-03",
+    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
+   },
+   {
+    "title": "Israel United In Christ offers a different perspective – Part I",
+    "author": "Paul H. Williams",
+    "publisher": "The Gleaner (Kingston, Jamaica)",
+    "year": "2017",
+    "url": "https://jamaica-gleaner.com/article/news/20170506/israel-united-christ-offers-different-perspective-part-i",
+    "via": "https://web.archive.org/web/20230306220108/https://jamaica-gleaner.com/article/news/20170506/israel-united-christ-offers-different-perspective-part-i",
+    "accessed": "2026-10-03",
+    "supports": "A member in Kingston said IUIC was founded in 2003 by Nethanyel Ben Israel in the United States, had 30 branches of “several thousand members” worldwide, and that Jamaican membership started in early 2015."
+   }
+  ],
+  "uncertainty": "The official history gives the year only. Where the first classes met is told differently: the official history says Bishop Nathanyel moved upstate and taught in his basement, while a member speaking at the 2015–2016 headquarters opening recalled that after Coney Island the classes moved to a basement on Long Island, then to Brooklyn, then to the Bronx. The sources do not say when in 2003 the founding took place.",
+  "disagreements": [
+   {
+    "point": "Who founded IUIC",
+    "views": [
+     "IUIC’s official history: Bishop Nathanyel founded IUIC; “The Most High used Bishop Nathanyel to establish Israel United in Christ” (Bishop Nathanyel page).",
+     "A class on IUIC’s 20th anniversary (2023): three elders, Bishop Nathanyel among them, came together with their families; one is no longer with IUIC."
+    ]
+   }
+  ],
+  "status": "published",
+  "leader": "bishop-nathanyel"
+ },
+ {
+  "slug": "iuic-orlando-second-school-2005",
+  "title": "IUIC opens its second school, in Orlando",
+  "start": 2005,
+  "end": 2005,
+  "date": {
+   "text": "2005",
+   "precision": "year"
+  },
+  "period": "unto-this-day",
+  "group": "Israel United in Christ",
+  "place": "Orlando, Florida",
+  "region": "North America",
+  "peoples": [
+   "Black",
+   "Hispanic",
+   "Native"
+  ],
+  "people": [
+   "Bishop Kani (Kani Gabar)",
+   "Deacon Malachi"
+  ],
+  "summary": "Bishop Kani established IUIC’s second school, in Orlando, Florida; a scholarly entry dates it to 2005.",
+  "account": [
+   "Michael T. Miller (CDAMM, 2026) writes that Kani (Kani Gabar) became a Hebrew Israelite in 1995, was one of IUIC’s founders, established IUIC’s second school in Orlando, Florida, in 2005, and now leads the Austin, Texas branch. IUIC’s own page on Bishop Kani says he began looking into the Israelite movement in 1995 intending to disprove it, came to know himself as a Benjamite, and has carried on the work despite betrayal and “temporarily stepping down as bishop”."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Orlando was built from nothing. New York had a camp on every corner, but in Florida there was nobody in the streets to teach and nobody to read; the word from the Bishop was to do the work anyway.",
+     "Deacon Malachi, who had left New York under the Bishop, was building in Atlanta and about to open a school, and the race was on: IUIC Orlando was the second school.",
+     "In New York the Bishop put the brothers out of his house and told them to go and open the schools; the same was done in Orlando. Complacency is of the devil: a leader keeps the work moving."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "w-vqxlv-V-I",
+     "title": "THE MAKING OF A LEADER: DESTROY AND BUILD",
+     "date": "2024-08-10",
+     "ts": "1:00:45",
+     "url": "https://youtu.be/w-vqxlv-V-I?t=3645"
+    }
+   },
+   {
+    "points": [
+     "In December 2022 Atlanta’s congregation marked ten years, and the same was announced as Orlando’s 10th anniversary: the congregations are growing and the word is getting out."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "08GsJvxEFmg",
+     "title": "Who & What is the Abomination of Desolation",
+     "date": "2022-12-04",
+     "ts": "5:20",
+     "url": "https://youtu.be/08GsJvxEFmg?t=320"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Israel United in Christ",
+    "author": "Michael T. Miller",
+    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
+    "year": "2026",
+    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
+    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
+    "accessed": "2026-10-03",
+    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
+   },
+   {
+    "title": "Bishop Kani",
+    "publisher": "Israel United in Christ (israelunite.org)",
+    "year": "2025",
+    "url": "https://israelunite.org/leadership/bishops/bishop-kani/",
+    "accessed": "2026-10-03",
+    "supports": "Bishop Kani began studying the Israelite movement in 1995 to dispel it, came to know himself as a Benjamite, and has served despite “temporarily stepping down as bishop”."
+   }
+  ],
+  "uncertainty": "Only the CDAMM entry gives the year 2005; IUIC’s own pages give no date. The 2024 recording does not name its speaker at this moment (the same recording later refers to “our Bishop Kanai”, but that is not proof of who is speaking at 1:00:45).",
+  "disagreements": [
+   {
+    "point": "When the Orlando school began",
+    "views": [
+     "Michael T. Miller (CDAMM, 2026): Kani established IUIC’s second school, in Orlando, in 2005.",
+     "A class on 4 December 2022 announced Orlando’s 10th anniversary alongside Atlanta’s ten years, which would place the Orlando congregation around 2012."
+    ]
+   }
+  ],
+  "status": "published",
+  "leader": "bishop-kani"
+ },
+ {
   "slug": "seminole-tribe-buys-hard-rock-2007",
   "title": "The Seminole Tribe buys Hard Rock",
   "start": 2006,
@@ -20498,6 +20699,83 @@
     "supports": "5 June 2009, at least 31 killed at the Devil's Curve near Bagua; over 1,000 km from Lima; the decrees and the FTA; over 600 police; Awajún and Wampis; 6 June, nine police killed at Petroperú; the comparison with the Shining Path; decrees suspended and repealed."
    }
   ],
+  "status": "published"
+ },
+ {
+  "slug": "iuic-10th-anniversary-2013",
+  "title": "IUIC marks its 10th anniversary",
+  "start": 2013,
+  "end": 2013,
+  "date": {
+   "text": "June 2013",
+   "precision": "month"
+  },
+  "period": "unto-this-day",
+  "group": "Israel United in Christ",
+  "place": "New York",
+  "region": "North America",
+  "peoples": [
+   "Black",
+   "Hispanic",
+   "Native"
+  ],
+  "people": [
+   "Bishop Nathanyel",
+   "Bishop Kani",
+   "Deacon Asaph"
+  ],
+  "summary": "In June 2013 IUIC’s class channel published “Israel United In Christ: 10th Anniversary”, ten years after the 2003 founding.",
+  "account": [
+   "IUIC’s main class channel (IUICintheClassRoom) published a short video titled “Israel United In Christ: 10th Anniversary” in June 2013. IUIC’s official history dates the founding to 2003."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "This truth is more than reading the scriptures: it is about action, as the disciples of Christ showed. A leader’s job is to look after the brothers and sisters who have need: if they have no food or no clothes, reading a scripture to them does nothing.",
+     "People will come in sick, naked and hungry, so a system has to be in place to help them. This truth is about building the nation of Israel."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "GF389uQryug",
+     "title": "Israel United In Christ: 10th Anniversary",
+     "date": "2013-06-20",
+     "ts": "0:16",
+     "url": "https://youtu.be/GF389uQryug?t=16"
+    }
+   },
+   {
+    "points": [
+     "For the 10th anniversary in 2013 a DVD was filmed in which the leaders were interviewed on why people hate IUIC. Deacon Asaph said there that the leaders, Bishop Nathanyel and Bishop Kani, are innovators who took this truth beyond the stereotypical box of what people think Israelites are."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "38RwOD1G_LI",
+     "title": "#IUIC | THE BIBLE: BOOK OF OUR FATHERS | Decadence, hatred and judgement the blackout of truth",
+     "date": "2022-06-25",
+     "ts": "12:13",
+     "url": "https://youtu.be/38RwOD1G_LI?t=733"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "“Israel United In Christ: 10th Anniversary” (YouTube upload, 2013-06-20)",
+    "publisher": "Israel United in Christ (IUICintheClassRoom)",
+    "year": "2013",
+    "url": "https://www.youtube.com/watch?v=GF389uQryug",
+    "accessed": "2026-10-03",
+    "supports": "The 10th-anniversary video and its publication in June 2013."
+   },
+   {
+    "title": "History",
+    "publisher": "Israel United in Christ (israelunite.org)",
+    "year": "2025",
+    "url": "https://israelunite.org/history/",
+    "accessed": "2026-10-03",
+    "supports": "Founded 2003 by Bishop Nathanyel in Coney Island; upstate basement recording videos; small building in Brooklyn, the first “official” school; growth since 2003 with schools across the country and abroad."
+   }
+  ],
+  "uncertainty": "The upload is dated 20 June 2013 on YouTube (21 June in the repository’s channel metadata, a time-zone difference). The anniversary DVD described in 2022 has not been found.",
   "status": "published"
  },
  {
@@ -20750,6 +21028,82 @@
   "status": "published"
  },
  {
+  "slug": "iuic-online-classes-2014",
+  "title": "IUIC invites the public to its online classes",
+  "start": 2014,
+  "end": 2014,
+  "date": {
+   "text": "January 2014",
+   "precision": "month"
+  },
+  "period": "unto-this-day",
+  "group": "Israel United in Christ",
+  "place": "New York (online)",
+  "region": "Worldwide",
+  "peoples": [
+   "Black",
+   "Hispanic",
+   "Native"
+  ],
+  "people": [
+   "Bishop Nathanyel (then Elder Nathanyel)"
+  ],
+  "summary": "In January 2014 IUIC published a video in which its leader, then called Elder Nathanyel, invited people to join IUIC’s online classes.",
+  "account": [
+   "IUIC’s class channel published “JOIN IUIC ONLINE CLASSES” on 9 January 2014 (date from the repository’s channel metadata). In it the leader introduces himself as “Elder Nathaniel of Israel United in Christ”; later recordings call him Bishop Nathanyel."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Christianity has destroyed our people for the past four hundred years; its lies have not benefited our people in the least.",
+     "Christ said you must be born again. Ezra shows what that means: subdue your own understanding, all that was learned in Babylon the great, and be taught all over again: your nationality, why we went into slavery in America, and who we are."
+    ],
+    "teacher": "Elder Nathanyel",
+    "source": {
+     "kind": "class",
+     "id": "9F2Xzh79A0Q",
+     "title": "JOIN IUIC ONLINE CLASSES",
+     "date": "2014-01-09",
+     "ts": "0:01",
+     "url": "https://youtu.be/9F2Xzh79A0Q?t=1"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "John 3:3",
+    "why": "Being born again is applied to being taught over again who we are."
+   },
+   {
+    "ref": "2 Esdras 14:34",
+    "why": "“Subdue your own understanding, and reform your hearts” is read as unlearning what was taught in Babylon (America) in order to be taught the truth."
+   }
+  ],
+  "sources": [
+   {
+    "title": "“JOIN IUIC ONLINE CLASSES” (YouTube upload, 2014-01-09)",
+    "publisher": "Israel United in Christ (IUICintheClassRoom)",
+    "year": "2014",
+    "url": "https://www.youtube.com/watch?v=9F2Xzh79A0Q",
+    "accessed": "2026-10-03",
+    "supports": "An invitation to IUIC’s online classes, dated 9 January 2014."
+   },
+   {
+    "title": "Israel United in Christ",
+    "author": "Michael T. Miller",
+    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
+    "year": "2026",
+    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
+    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
+    "accessed": "2026-10-03",
+    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
+   }
+  ],
+  "uncertainty": "The video shows the online classes were being offered by January 2014; when they began is not documented. The CDAMM entry (2026) documents IUIC’s large online output and its own streaming service but gives no start date.",
+  "status": "published",
+  "leader": "bishop-nathanyel"
+ },
+ {
   "slug": "afro-mexicans-counted-2015-2020",
   "title": "Afro-Mexicans counted for the first time",
   "start": 2015,
@@ -20847,6 +21201,172 @@
    }
   ],
   "uncertainty": "The emigration continues; the bar ends with the last dated figure read (2023).",
+  "status": "published"
+ },
+ {
+  "slug": "iuic-headquarters-school-2015",
+  "title": "IUIC opens its headquarters school, its first building",
+  "start": 2015,
+  "end": 2016,
+  "date": {
+   "text": "December 2015 – April 2016",
+   "precision": "range"
+  },
+  "period": "unto-this-day",
+  "group": "Israel United in Christ",
+  "place": "New York",
+  "region": "North America",
+  "peoples": [
+   "Black",
+   "Hispanic",
+   "Native"
+  ],
+  "people": [
+   "Bishop Nathanyel",
+   "Deacon Yawasap (now Bishop Yawasap)"
+  ],
+  "summary": "IUIC opened a new headquarters school in New York, which its members built themselves; the grand opening was published in December 2015 and again in April 2016.",
+  "account": [
+   "IUIC’s class channel published “The Israelites: IUIC HEADQUARTERS NEW SCHOOL GRAND OPENING” on 9 December 2015 and “IUIC HEADQUARTERS SCHOOL GRAND OPENING” on 13 April 2016."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Any leader who is not thinking forward about building and maintaining Israelite-owned institutions is not worth your time. Faith without works is dead, as James says: if a brother or sister is destitute of daily food, words alone profit nothing.",
+     "Those who give up everything and jeopard their lives are the ones who will judge the nations and have dominion over the people.",
+     "The little school was designed and wired by the brothers themselves, Deacon Yawasap among them, and built by the craftsmen of the congregation."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "wVhyzRfA7Qc",
+     "title": "The Israelites: IUIC HEADQUARTERS NEW SCHOOL GRAND OPENING",
+     "date": "2015-12-09",
+     "ts": "0:19",
+     "url": "https://youtu.be/wVhyzRfA7Qc?t=19"
+    }
+   },
+   {
+    "points": [
+     "The move from the old school, a little basement in the Bronx that the brothers fixed up, was a stepping stone. The new building had no walls, no electricity and no water, but the brothers had the trades and did it themselves, despite people saying it would never happen.",
+     "One member who came in 2006 recalled the road: an elder’s home in Coney Island, Brooklyn; then a basement on Long Island; then Brooklyn; then the Bronx; and now this building. You shall know them by their fruits."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "P8-0nDD4eoA",
+     "title": "IUIC HEADQUARTERS SCHOOL GRAND OPENING",
+     "date": "2016-04-13",
+     "ts": "23:00",
+     "url": "https://youtu.be/P8-0nDD4eoA?t=1380"
+    }
+   },
+   {
+    "points": [
+     "IUIC has existed since 2003 and got its first building in 2015. That was many years from the beginning, but the vision stayed and nobody gave up; the second building followed."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "vMFxToaI1wc",
+     "title": "#IUIC | PATIENT SAINTS RADIO: June 26, 2022",
+     "date": "2022-06-26",
+     "ts": "34:16",
+     "url": "https://youtu.be/vMFxToaI1wc?t=2056"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "James 2:14-17",
+    "why": "Faith without works is dead: a leader must build institutions that meet the people’s needs."
+   },
+   {
+    "ref": "Wisdom of Solomon 3:8",
+    "why": "Those who give everything for the work will judge the nations and have dominion over the people."
+   }
+  ],
+  "sources": [
+   {
+    "title": "“The Israelites: IUIC HEADQUARTERS NEW SCHOOL GRAND OPENING” (YouTube upload, 2015-12-09)",
+    "publisher": "Israel United in Christ (IUICintheClassRoom)",
+    "year": "2015",
+    "url": "https://www.youtube.com/watch?v=wVhyzRfA7Qc",
+    "accessed": "2026-10-03",
+    "supports": "The grand opening of the new headquarters school, published 9 December 2015."
+   },
+   {
+    "title": "“IUIC HEADQUARTERS SCHOOL GRAND OPENING” (YouTube upload, 2016-04-13)",
+    "publisher": "Israel United in Christ (IUICintheClassRoom)",
+    "year": "2016",
+    "url": "https://www.youtube.com/watch?v=P8-0nDD4eoA",
+    "accessed": "2026-10-03",
+    "supports": "The headquarters school grand opening, published 13 April 2016 (from the repository’s channel metadata)."
+   }
+  ],
+  "uncertainty": "The exact opening date and street address of the headquarters school are not given in the sources read; the 2022 class dates the first building to 2015.",
+  "status": "published"
+ },
+ {
+  "slug": "iuic-welcome-home-book-2015",
+  "title": "Welcome Home: An Introduction to Righteousness is published",
+  "start": 2015,
+  "end": 2015,
+  "date": {
+   "text": "21 June 2015",
+   "precision": "day"
+  },
+  "period": "unto-this-day",
+  "group": "Israel United in Christ",
+  "place": "New York",
+  "region": "North America",
+  "peoples": [
+   "Black",
+   "Hispanic",
+   "Native"
+  ],
+  "people": [
+   "Bishop Nathanyel (Nathanyel Ben Israel)"
+  ],
+  "summary": "Bishop Nathanyel’s Welcome Home: An Introduction to Righteousness, IUIC’s introductory book on the commandments, was published in paperback in June 2015.",
+  "account": [
+   "An archived Amazon page lists the paperback Welcome Home: An Introduction to Righteousness by Nathanyel Ben Israel, dated June 21, 2015. The CDAMM entry (2026) lists it among the four official IUIC publications credited to Nathanyel (CreateSpace, 2015) and cites it for IUIC’s rules on work and on women’s dress. IUIC’s website offers a “Welcome Home Booklet”."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "The Welcome Home booklet is required reading for everyone who enters the doors of IUIC.",
+     "It is the Bible condensed into a quick, livable form: if our people simply followed what is in it, coming straight out of the Bible, it could clean us up overnight."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "fL9kbjVNk_0",
+     "title": "The Israelites: SEX, RAPE... & KIDNAPPING",
+     "date": "2015-08-13",
+     "ts": "30:26",
+     "url": "https://youtu.be/fL9kbjVNk_0?t=1826"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Welcome Home: An Introduction to Righteousness (product page)",
+    "publisher": "Amazon.com",
+    "year": "2016",
+    "url": "https://www.amazon.com/Welcome-Introduction-Righteousness-Nathanyel-Israel/dp/1514646021",
+    "via": "https://web.archive.org/web/20160407161915/http://www.amazon.com:80/Welcome-Introduction-Righteousness-Nathanyel-Israel/dp/1514646021",
+    "accessed": "2026-10-03",
+    "supports": "Paperback by Nathanyel Ben Israel, dated June 21, 2015."
+   },
+   {
+    "title": "Israel United in Christ",
+    "author": "Michael T. Miller",
+    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
+    "year": "2026",
+    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
+    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
+    "accessed": "2026-10-03",
+    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
+   }
+  ],
+  "uncertainty": "In August 2015 the class said the book “has been out for a number of years”, so a booklet appears to have circulated before the 2015 paperback; its first date is not documented.",
   "status": "published"
  },
  {
@@ -21829,6 +22349,65 @@
   "status": "published"
  },
  {
+  "slug": "iuic-liberia-mission-2018",
+  "title": "IUIC’s mission to Liberia",
+  "start": 2018,
+  "end": 2018,
+  "date": {
+   "text": "Early 2018 (reported April 2018)",
+   "precision": "month"
+  },
+  "period": "unto-this-day",
+  "group": "Israel United in Christ",
+  "place": "Monrovia, Liberia",
+  "region": "West Africa",
+  "peoples": [
+   "Black"
+  ],
+  "people": [
+   "Bishop Nathanyel",
+   "Joshua Milton Blahyi (“General Butt Naked”)"
+  ],
+  "summary": "In early 2018 an IUIC delegation travelled to Liberia to teach the remnant of Israel there; the class reported on the mission on 8 April 2018.",
+  "account": [
+   "IUIC’s class channel published “The Israelites: IUIC RECAP ON MISSION TO LIBERIA AFRICA” on 8 April 2018, the delegation’s report on its mission to Liberia."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "In Liberia the delegation met the same problems the apostles met with the first converts in Acts 15: some still worshipped other gods, there was fornication, people ate things strangled such as bush meat, and blood. That is why those four things were named.",
+     "The congregation there had been watching online, and IUIC will have to work very closely with them. The delegation will go back."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "KKXBWF_FOJU",
+     "title": "The Israelites: IUIC RECAP ON MISSION TO LIBERIA AFRICA",
+     "date": "2018-04-08",
+     "ts": "3:15",
+     "url": "https://youtu.be/KKXBWF_FOJU?t=195"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "Acts 15:19-21",
+    "why": "The apostles’ instructions to the first converts are applied to what the delegation found in Liberia: idolatry, fornication, things strangled and blood."
+   }
+  ],
+  "sources": [
+   {
+    "title": "“The Israelites: IUIC RECAP ON MISSION TO LIBERIA AFRICA” (YouTube upload, 2018-04-08)",
+    "publisher": "Israel United in Christ (IUICintheClassRoom)",
+    "year": "2018",
+    "url": "https://www.youtube.com/watch?v=KKXBWF_FOJU",
+    "accessed": "2026-10-03",
+    "supports": "The class’s recap of the mission, dated 8 April 2018."
+   }
+  ],
+  "uncertainty": "The exact dates of the trip are not given. Later classes speak of Liberia as an ongoing mission field (for example a community cleanup there in 2026), not dated in a documented source.",
+  "status": "published"
+ },
+ {
   "slug": "lincoln-memorial-confrontation-2019",
   "title": "The Lincoln Memorial confrontation, and the coverage that followed",
   "start": 2019,
@@ -22386,6 +22965,82 @@
     "url": "https://en.wikipedia.org/wiki/COVID-19_pandemic_in_the_Navajo_Nation",
     "accessed": "2026-10-04",
     "supports": "March 17, 2020; Nez’s order of March 20; curfews; mask order April 19; third-highest rate by April 20; highest per capita in 2020; 31,571 cases and 1,893 deaths by September 13, 2022"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "our-hidden-history-radio-begins-2020",
+  "title": "Our Hidden History radio show begins",
+  "start": 2020,
+  "end": 2020,
+  "date": {
+   "text": "July–October 2020",
+   "precision": "range"
+  },
+  "period": "unto-this-day",
+  "group": "Israel United in Christ",
+  "place": "Philadelphia (IUIC Philadelphia)",
+  "region": "North America",
+  "peoples": [
+   "Black",
+   "Hispanic",
+   "Native"
+  ],
+  "people": [],
+  "summary": "IUIC’s history broadcast Our Hidden History began in 2020: its hosts date the start to July 2020, and the earliest upload titled “Episode 1” is dated 27 October 2020.",
+  "account": [
+   "The Our Hidden History channel’s upload titled “OHH - Eve of Destruction and the Religion of Rebellion vs Part 1 EPISODE 1” is dated 27 October 2020 (repository channel metadata). Episode 100 (“Echoes of Rome… Part 5”) is dated 21 May 2023. IUIC’s website describes Our Hidden History as uncovering the deliberate erasure of the true identity of the Israelites (Black, Hispanic and Native American peoples) during slavery and colonialism, read with Deuteronomy 28, Leviticus 26 and Psalm 83:1-4."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Our Hidden History takes up the history behind what was done to our people: the feminist movement and Christianity go hand in hand in being deceptive and destructive towards our people, and Black Lives Matter is used as a front, a Trojan horse, for a political agenda that removes fathers from the home."
+    ],
+    "source": {
+     "kind": "history",
+     "id": "DdkQvJ-TwNo",
+     "title": "OHH - Eve of Destruction and the Religion of Rebellion vs Part 1 EPISODE 1",
+     "date": "2020-10-27",
+     "ts": "2:57",
+     "url": "https://youtu.be/DdkQvJ-TwNo?t=177"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "“OHH - Eve of Destruction and the Religion of Rebellion vs Part 1 EPISODE 1” (YouTube upload, 2020-10-27)",
+    "publisher": "Israel United in Christ (Our Hidden History)",
+    "year": "2020",
+    "url": "https://www.youtube.com/watch?v=DdkQvJ-TwNo",
+    "accessed": "2026-10-03",
+    "supports": "The upload titled Episode 1, dated 27 October 2020."
+   },
+   {
+    "title": "“OUR HIDDEN HISTORY- ECHOES OF ROME: FROM AUGUSTUS CAESAR TO THE BIRTH OF CHRIST PART 5 EP 100” (YouTube upload, 2023-05-21)",
+    "publisher": "Israel United in Christ (Our Hidden History)",
+    "year": "2023",
+    "url": "https://www.youtube.com/watch?v=sXAmvsngAtU",
+    "accessed": "2026-10-03",
+    "supports": "Episode 100, dated 21 May 2023."
+   },
+   {
+    "title": "Our Hidden History",
+    "publisher": "Israel United in Christ (israelunite.org)",
+    "year": "2025",
+    "url": "https://israelunite.org/our-hidden-history/",
+    "accessed": "2026-10-03",
+    "supports": "IUIC’s own statement of what Our Hidden History is for: uncovering the erasure of the Israelites’ identity (Black, Hispanic and Native American peoples) through historical documents, read with Deuteronomy 28, Leviticus 26 and Psalm 83:1-4."
+   }
+  ],
+  "uncertainty": "The numbering does not settle the start: in the upload titled “Episode 1” the host welcomes listeners “back” to “episode 3 of Our Hidden History radio”, and at the 200th episode the hosts said the show began in July 2020.",
+  "disagreements": [
+   {
+    "point": "When the show began",
+    "views": [
+     "The channel’s upload titled “Episode 1” is dated 27 October 2020.",
+     "At the 200th episode (2026) the hosts said the show began in July 2020, and the October 2020 upload itself calls the show episode 3."
+    ]
    }
   ],
   "status": "published"
@@ -22953,6 +23608,70 @@
   "status": "published"
  },
  {
+  "slug": "iuic-gastonia-building-2022",
+  "title": "IUIC Gastonia opens its building",
+  "start": 2022,
+  "end": 2022,
+  "date": {
+   "text": "June 2022",
+   "precision": "month"
+  },
+  "period": "unto-this-day",
+  "group": "Israel United in Christ",
+  "place": "Gastonia, North Carolina",
+  "region": "North America",
+  "peoples": [
+   "Black",
+   "Hispanic",
+   "Native"
+  ],
+  "people": [],
+  "summary": "In June 2022 IUIC held the grand opening of its building in Gastonia, North Carolina, described in class as IUIC’s second building after the 2015 headquarters.",
+  "account": [
+   "IUIC’s second class channel published “#IUIC | PATIENT SAINTS RADIO: June 26, 2022”, recorded at IUIC Gastonia the day after its grand opening."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "The grand opening in Gastonia was epic, and it shows where the Ezra fund goes: it did not stop with headquarters in New York, it is here in Gastonia, and it will continue."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "vMFxToaI1wc",
+     "title": "#IUIC | PATIENT SAINTS RADIO: June 26, 2022",
+     "date": "2022-06-26",
+     "ts": "1:42",
+     "url": "https://youtu.be/vMFxToaI1wc?t=102"
+    }
+   },
+   {
+    "points": [
+     "IUIC has existed since 2003 and got its first building in 2015; now it is at the second. In 2003 neither building was yet seen, but there was hope, and hope makes you work towards a thing before it is there."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "vMFxToaI1wc",
+     "title": "#IUIC | PATIENT SAINTS RADIO: June 26, 2022",
+     "date": "2022-06-26",
+     "ts": "34:16",
+     "url": "https://youtu.be/vMFxToaI1wc?t=2056"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "“#IUIC | PATIENT SAINTS RADIO: June 26, 2022” (YouTube upload, 2022-06-26)",
+    "publisher": "Israel United in Christ (IUICintheclassroom Two)",
+    "year": "2022",
+    "url": "https://www.youtube.com/watch?v=vMFxToaI1wc",
+    "accessed": "2026-10-03",
+    "supports": "The broadcast from Gastonia after the grand opening, June 26, 2022."
+   }
+  ],
+  "uncertainty": "Only IUIC’s own broadcast documents this; no independent source was found. An undated class (Ui4UJNQvzkQ) says Gastonia is IUIC’s main branch in North Carolina.",
+  "status": "published"
+ },
+ {
   "slug": "haaland-v-brackeen-2023",
   "title": "Haaland v. Brackeen upholds the Indian Child Welfare Act",
   "start": 2023,
@@ -22989,6 +23708,154 @@
     "supports": "argued November 9, 2022; decided June 15, 2023; 7–2; Barrett for the majority; Thomas and Alito dissenting"
    }
   ],
+  "status": "published"
+ },
+ {
+  "slug": "iuic-20th-anniversary-2023",
+  "title": "IUIC’s 20th anniversary: Passover and Tabernacles 2023",
+  "start": 2023,
+  "end": 2023,
+  "date": {
+   "text": "April–October 2023",
+   "precision": "range"
+  },
+  "period": "unto-this-day",
+  "group": "Israel United in Christ",
+  "place": "Oklahoma and across IUIC’s schools",
+  "region": "North America",
+  "peoples": [
+   "Black",
+   "Hispanic",
+   "Native"
+  ],
+  "people": [],
+  "summary": "IUIC kept its 20th anniversary in 2023 with a 20th-anniversary Passover in April and a 20th-anniversary Feast of Tabernacles in Oklahoma, and released a documentary on 20 years of IUIC on IUIC TV.",
+  "account": [
+   "IUIC’s class channel published “PASSOVER 2023 - 20th Anniversary - Pt.2” on 21 April 2023, and later “Feast of Tabernacles 2023”, filmed at what members called the 20th-anniversary Tabernacles in Oklahoma. The CDAMM entry (2026) notes IUIC’s own subscription streaming service, IUIC TV."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "At the 20th-anniversary Passover the 300 “Complete Man” program graduated 62 of 79 men: the Men of Valor program makes soldiers, and the 300 program is the next step, a selection program of papers and classes to thoroughly furnish the men.",
+     "IUIC is always looking for ways to push things forward, not only in the streets and in teaching but in building the men around it."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "eRPthPd04OM",
+     "title": "PASSOVER 2023 - 20th Anniversary - Pt.2",
+     "date": "2023-04-21",
+     "ts": "0:45",
+     "url": "https://youtu.be/eRPthPd04OM?t=45"
+    }
+   },
+   {
+    "points": [
+     "The 20th-anniversary Tabernacles in Oklahoma was the biggest ever. Tabernacles is the time to live as Israel did coming out of Egypt, learning in the wilderness how to operate as a nation."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "WVY5LIbRivs",
+     "title": "Feast of Tabernacles 2023",
+     "date": "2024-08-04",
+     "ts": "0:48",
+     "url": "https://youtu.be/WVY5LIbRivs?t=48"
+    }
+   },
+   {
+    "points": [
+     "The 20th-anniversary Passover was spectacular, to the dismay of the Negroes who could not find a word of encouragement for their brothers; that hatred of one’s brother is a plantation we must escape from."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "8dctVR-WNhI",
+     "title": "Escaping The Plantation Of The Dead",
+     "date": "2023-04-29",
+     "ts": "9:29",
+     "url": "https://youtu.be/8dctVR-WNhI?t=569"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "“PASSOVER 2023 - 20th Anniversary - Pt.2” (YouTube upload, 2023-04-21)",
+    "publisher": "Israel United in Christ (IUICintheClassRoom)",
+    "year": "2023",
+    "url": "https://www.youtube.com/watch?v=eRPthPd04OM",
+    "accessed": "2026-10-03",
+    "supports": "The 20th-anniversary Passover, April 2023."
+   },
+   {
+    "title": "“Feast of Tabernacles 2023” (YouTube upload, 2024-08-04)",
+    "publisher": "Israel United in Christ (IUICintheClassRoom)",
+    "year": "2024",
+    "url": "https://www.youtube.com/watch?v=WVY5LIbRivs",
+    "accessed": "2026-10-03",
+    "supports": "The 20th-anniversary Tabernacles in Oklahoma (published 2024)."
+   },
+   {
+    "title": "Israel United in Christ",
+    "author": "Michael T. Miller",
+    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
+    "year": "2026",
+    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
+    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
+    "accessed": "2026-10-03",
+    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
+   }
+  ],
+  "uncertainty": "The documentary “chronicling 20 years” was announced on IUIC TV in a class on 29 October 2023; it has not been viewed. The upload date of the Tabernacles video (2024) is later than the feast.",
+  "status": "published"
+ },
+ {
+  "slug": "iuic-curacao-aruba-marches-2023",
+  "title": "IUIC marches in Aruba and Curaçao",
+  "start": 2023,
+  "end": 2023,
+  "date": {
+   "text": "December 2023",
+   "precision": "month"
+  },
+  "period": "unto-this-day",
+  "group": "Israel United in Christ",
+  "place": "Willemstad, Curaçao; Aruba",
+  "region": "Caribbean",
+  "peoples": [
+   "Black",
+   "Hispanic"
+  ],
+  "people": [],
+  "summary": "In December 2023 IUIC members marched in Aruba and then in Willemstad, Curaçao, handing out pamphlets; the press reported the march as peaceful.",
+  "account": [
+   "Curacao.nu reported on 15 December 2023 that members of IUIC, recognisable by their lilac shirts and black trousers, had marched on the island the day before, handing out pamphlets in the city centre and elsewhere. The march followed a similar action in Aruba and was peaceful; police and the Vrijwilligers Korps Curaçao were present and no disturbances were reported. The report called the visit a sign of IUIC’s growing influence beyond the United States."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "The press itself recorded that the march was peaceful. IUIC is peaceful, and its work will prove it.",
+     "The report’s own words show the work growing: IUIC’s visit to the Caribbean islands demonstrates its expansion beyond the United States."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "-6qYpEJB-zE",
+     "title": "Prepare For The Maccabees Perils",
+     "date": "2023-12-24",
+     "ts": "1:19:45",
+     "url": "https://youtu.be/-6qYpEJB-zE?t=4785"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Religieuze groep ‘Israel United in Christ’ actief op Curaçao",
+    "publisher": "Curacao.nu",
+    "year": "2023",
+    "url": "https://curacao.nu/religieuze-groep-israel-united-in-christ-actief-op-curacao/",
+    "via": "https://web.archive.org/web/20240806064846/https://curacao.nu/religieuze-groep-israel-united-in-christ-actief-op-curacao/",
+    "accessed": "2026-10-03",
+    "supports": "Published 15 December 2023: IUIC members marched in Willemstad the day before, handing out pamphlets; the march followed a similar action in Aruba; police and the Vrijwilligers Korps Curaçao were present and no disturbances were reported; IUIC described as founded in 2003 in New York."
+   }
+  ],
+  "uncertainty": "The date of the Aruba march is not given in the report.",
   "status": "published"
  },
  {
@@ -23142,6 +24009,76 @@
    }
   ],
   "status": "published"
+ },
+ {
+  "slug": "iuic-bishop-nathanyel-books-2025",
+  "title": "Bishop Nathanyel publishes Island of Deception and Biblical Events from Assyria to America",
+  "start": 2025,
+  "end": 2025,
+  "date": {
+   "text": "2025",
+   "precision": "year"
+  },
+  "period": "unto-this-day",
+  "group": "Israel United in Christ",
+  "place": "United States",
+  "region": "North America",
+  "peoples": [
+   "Black",
+   "Hispanic",
+   "Native"
+  ],
+  "people": [
+   "Bishop Nathanyel (Nathanyel Ben Israel)"
+  ],
+  "summary": "In 2025 Bishop Nathanyel published his third and fourth books: Island of Deception: Faith, Politics, and Survival in Melanesia, and Biblical Events from Assyria to America: Correcting His-story to Include Our Story.",
+  "account": [
+   "The CDAMM entry (2026) lists four official IUIC publications credited to Nathanyel Ben Israel: Understandest Thou, What Thou Readest? A Pictorial Guide of Bible Secrets (Trafford, 2006); Welcome Home: An Introduction to Righteousness (CreateSpace, 2015); Island of Deception: Faith, Politics, and Survival in Melanesia (Trafford, 2025); and Biblical Events from Assyria to America: Correcting His-story to Include Our Story (Trafford, 2025). It describes Island of Deception as almost travelogue in style, and notes that the seven chapters of Biblical Events are named after the successive captivities: Assyrian, Babylonian, Persian-Medean, Greek, Roman, Spanish and American."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "The award-winning author Bishop Nathanyel’s third book, Island of Deception: Faith, Politics, and Survival in Melanesia, is now available."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "DyzYPqC3mPs",
+     "title": "Rise And Fall Of The Pharisees",
+     "date": "2025-02-22",
+     "ts": "4:03:39",
+     "url": "https://youtu.be/DyzYPqC3mPs?t=14619"
+    }
+   },
+   {
+    "points": [
+     "Biblical Events from Assyria to America goes through the history, with scripture, dates and times, of what happened to the twelve tribes of Israel from the Assyrian captivity to us in America today.",
+     "It was not written overnight: the Bishop gave it out as a booklet of history and dates more than eighteen years earlier, and teachers have used it in their classes since."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "56guZLeWU-4",
+     "title": "Rise Of The Hasmoneans",
+     "date": "2025-05-05",
+     "ts": "14:52",
+     "url": "https://youtu.be/56guZLeWU-4?t=892"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Israel United in Christ",
+    "author": "Michael T. Miller",
+    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
+    "year": "2026",
+    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
+    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
+    "accessed": "2026-10-03",
+    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
+   }
+  ],
+  "uncertainty": "Retailer listings found in search give exact 2025 publication dates, but those pages could not be read, so only the year is given. A 2025 class says the history booklet behind Biblical Events circulated more than eighteen years earlier.",
+  "status": "published",
+  "leader": "bishop-nathanyel"
  },
  {
   "slug": "cdamm-entry-on-iuic-2026",
@@ -23373,943 +24310,6 @@
   "status": "published"
  },
  {
-  "slug": "iuic-founded-2003",
-  "title": "Israel United in Christ is founded in New York",
-  "start": 2003,
-  "end": 2003,
-  "date": {
-   "text": "2003",
-   "precision": "year"
-  },
-  "period": "israel-united-in-christ",
-  "group": "Israel United in Christ",
-  "place": "Coney Island, Brooklyn, New York",
-  "region": "North America",
-  "peoples": [
-   "Black",
-   "Hispanic",
-   "Native"
-  ],
-  "people": [
-   "Bishop Nathanyel (Nathanyel Ben Israel)",
-   "Bishop Kani",
-   "Barakshar",
-   "Bishop Yawasap"
-  ],
-  "summary": "Israel United in Christ (IUIC) was founded in 2003 in New York by Bishop Nathanyel, who was then living in Coney Island; its first classes met in his home before it opened its first “official” school in a small building in Brooklyn.",
-  "account": [
-   "IUIC’s official history says that in 2003 Bishop Nathanyel founded Israel United in Christ while living in Coney Island, New York. He then moved upstate, where he set up his basement to record biblically based educational videos and to keep teaching those who sought him out. As more members came, the basement became overcrowded, so he moved the classroom to a small building in Brooklyn, New York, where IUIC opened its very first “official” school. The same page says IUIC has grown since 2003, with schools operating across the country and internationally.",
-   "A 2026 scholarly entry by Michael T. Miller places the founding after the Israelite School of Universal Practical Knowledge split in late 1995 and the factions that followed it. It says Nathanyel was introduced to Black Hebrew Israelite teaching around 1990, and that IUIC was founded in 2003 by Nathanyel, Kani and Barakshar, quickly joined by Yawasap. Barakshar later left over whether his wife could teach women’s classes and formed Future World of Israel. The same entry gives an estimate of 10,000 members worldwide.",
-   "Press reports repeat the founding year. The Gleaner (Jamaica, 2017) was told by a member that IUIC was founded in 2003 and had 30 branches; the BBC (2019) reported that IUIC was founded in 2003 in New York and had around 40 churches, or “schools”, in the United States."
-  ],
-  "teaching": [
-   {
-    "points": [
-     "The 20th anniversary marks IUIC as an entity from the time three elders, Bishop Nathanyel among them, came together with their families and resolved to move something. One of the three is no longer with IUIC.",
-     "It began with about ten brothers around two tables in Bishop Nathanyel’s basement, about thirty people in all with their families, when nobody knew who IUIC was.",
-     "What has grown from it is the work of the Most High: lives changed through repentance, the children’s program, the kitchens and food pantries, the Daughters of Sarah, the social media and the other departments. It stands as a statement of longevity."
-    ],
-    "quote": "I remember the ten brothers around two tables in Bishop Nathaniel's basement",
-    "source": {
-     "kind": "class",
-     "id": "D4kx8lxOCjk",
-     "title": "The Power Hour Plus: Preparing For Marriage: Do’s and Don’ts For A Healthy Marriage",
-     "date": "2023-03-01",
-     "ts": "19:00",
-     "url": "https://youtu.be/D4kx8lxOCjk?t=1140"
-    }
-   },
-   {
-    "points": [
-     "As Nicodemus said, no man can do the works Christ did unless God is with him. In the same way, unless the Lord was with the leadership there was no way to go from a basement in Coney Island to over 180 countries visited and hundreds of congregations around the world.",
-     "People keep saying IUIC is “Acts 5”; it is not. Other movements were around for a couple of weeks, but this organization is by God, and it is not going anywhere."
-    ],
-    "quote": "there's no way you can go from a basement in Coney Island to over 180 countries visited",
-    "source": {
-     "kind": "class",
-     "id": "aqfyQICjjUY",
-     "title": "The Evolution of Persecution",
-     "date": "2025-11-15",
-     "ts": "34:21",
-     "url": "https://youtu.be/aqfyQICjjUY?t=2061"
-    }
-   }
-  ],
-  "scriptures": [
-   {
-    "ref": "John 3:2",
-    "why": "Nicodemus’ words, “no man can do these miracles that thou doest, except God be with him”, are applied to IUIC’s growth from a basement in Coney Island: it could not have happened unless God was with the leadership."
-   }
-  ],
-  "sources": [
-   {
-    "title": "History",
-    "publisher": "Israel United in Christ (israelunite.org)",
-    "year": "2025",
-    "url": "https://israelunite.org/history/",
-    "accessed": "2026-10-03",
-    "supports": "Founded 2003 by Bishop Nathanyel in Coney Island; upstate basement recording videos; small building in Brooklyn, the first “official” school; growth since 2003 with schools across the country and abroad."
-   },
-   {
-    "title": "Israel United in Christ",
-    "author": "Michael T. Miller",
-    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
-    "year": "2026",
-    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
-    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
-    "accessed": "2026-10-03",
-    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
-   },
-   {
-    "title": "Israel United In Christ offers a different perspective – Part I",
-    "author": "Paul H. Williams",
-    "publisher": "The Gleaner (Kingston, Jamaica)",
-    "year": "2017",
-    "url": "https://jamaica-gleaner.com/article/news/20170506/israel-united-christ-offers-different-perspective-part-i",
-    "via": "https://web.archive.org/web/20230306220108/https://jamaica-gleaner.com/article/news/20170506/israel-united-christ-offers-different-perspective-part-i",
-    "accessed": "2026-10-03",
-    "supports": "A member in Kingston said IUIC was founded in 2003 by Nethanyel Ben Israel in the United States, had 30 branches of “several thousand members” worldwide, and that Jamaican membership started in early 2015."
-   }
-  ],
-  "uncertainty": "The official history gives the year only. Where the first classes met is told differently: the official history says Bishop Nathanyel moved upstate and taught in his basement, while a member speaking at the 2015–2016 headquarters opening recalled that after Coney Island the classes moved to a basement on Long Island, then to Brooklyn, then to the Bronx. The sources do not say when in 2003 the founding took place.",
-  "disagreements": [
-   {
-    "point": "Who founded IUIC",
-    "views": [
-     "IUIC’s official history: Bishop Nathanyel founded IUIC; “The Most High used Bishop Nathanyel to establish Israel United in Christ” (Bishop Nathanyel page).",
-     "A class on IUIC’s 20th anniversary (2023): three elders, Bishop Nathanyel among them, came together with their families; one is no longer with IUIC."
-    ]
-   }
-  ],
-  "status": "published",
-  "leader": "bishop-nathanyel"
- },
- {
-  "slug": "iuic-orlando-second-school-2005",
-  "title": "IUIC opens its second school, in Orlando",
-  "start": 2005,
-  "end": 2005,
-  "date": {
-   "text": "2005",
-   "precision": "year"
-  },
-  "period": "israel-united-in-christ",
-  "group": "Israel United in Christ",
-  "place": "Orlando, Florida",
-  "region": "North America",
-  "peoples": [
-   "Black",
-   "Hispanic",
-   "Native"
-  ],
-  "people": [
-   "Bishop Kani (Kani Gabar)",
-   "Deacon Malachi"
-  ],
-  "summary": "Bishop Kani established IUIC’s second school, in Orlando, Florida; a scholarly entry dates it to 2005.",
-  "account": [
-   "Michael T. Miller (CDAMM, 2026) writes that Kani (Kani Gabar) became a Hebrew Israelite in 1995, was one of IUIC’s founders, established IUIC’s second school in Orlando, Florida, in 2005, and now leads the Austin, Texas branch. IUIC’s own page on Bishop Kani says he began looking into the Israelite movement in 1995 intending to disprove it, came to know himself as a Benjamite, and has carried on the work despite betrayal and “temporarily stepping down as bishop”."
-  ],
-  "teaching": [
-   {
-    "points": [
-     "Orlando was built from nothing. New York had a camp on every corner, but in Florida there was nobody in the streets to teach and nobody to read; the word from the Bishop was to do the work anyway.",
-     "Deacon Malachi, who had left New York under the Bishop, was building in Atlanta and about to open a school, and the race was on: IUIC Orlando was the second school.",
-     "In New York the Bishop put the brothers out of his house and told them to go and open the schools; the same was done in Orlando. Complacency is of the devil: a leader keeps the work moving."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "w-vqxlv-V-I",
-     "title": "THE MAKING OF A LEADER: DESTROY AND BUILD",
-     "date": "2024-08-10",
-     "ts": "1:00:45",
-     "url": "https://youtu.be/w-vqxlv-V-I?t=3645"
-    }
-   },
-   {
-    "points": [
-     "In December 2022 Atlanta’s congregation marked ten years, and the same was announced as Orlando’s 10th anniversary: the congregations are growing and the word is getting out."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "08GsJvxEFmg",
-     "title": "Who & What is the Abomination of Desolation",
-     "date": "2022-12-04",
-     "ts": "5:20",
-     "url": "https://youtu.be/08GsJvxEFmg?t=320"
-    }
-   }
-  ],
-  "sources": [
-   {
-    "title": "Israel United in Christ",
-    "author": "Michael T. Miller",
-    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
-    "year": "2026",
-    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
-    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
-    "accessed": "2026-10-03",
-    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
-   },
-   {
-    "title": "Bishop Kani",
-    "publisher": "Israel United in Christ (israelunite.org)",
-    "year": "2025",
-    "url": "https://israelunite.org/leadership/bishops/bishop-kani/",
-    "accessed": "2026-10-03",
-    "supports": "Bishop Kani began studying the Israelite movement in 1995 to dispel it, came to know himself as a Benjamite, and has served despite “temporarily stepping down as bishop”."
-   }
-  ],
-  "uncertainty": "Only the CDAMM entry gives the year 2005; IUIC’s own pages give no date. The 2024 recording does not name its speaker at this moment (the same recording later refers to “our Bishop Kanai”, but that is not proof of who is speaking at 1:00:45).",
-  "disagreements": [
-   {
-    "point": "When the Orlando school began",
-    "views": [
-     "Michael T. Miller (CDAMM, 2026): Kani established IUIC’s second school, in Orlando, in 2005.",
-     "A class on 4 December 2022 announced Orlando’s 10th anniversary alongside Atlanta’s ten years, which would place the Orlando congregation around 2012."
-    ]
-   }
-  ],
-  "status": "published",
-  "leader": "bishop-kani"
- },
- {
-  "slug": "iuic-10th-anniversary-2013",
-  "title": "IUIC marks its 10th anniversary",
-  "start": 2013,
-  "end": 2013,
-  "date": {
-   "text": "June 2013",
-   "precision": "month"
-  },
-  "period": "israel-united-in-christ",
-  "group": "Israel United in Christ",
-  "place": "New York",
-  "region": "North America",
-  "peoples": [
-   "Black",
-   "Hispanic",
-   "Native"
-  ],
-  "people": [
-   "Bishop Nathanyel",
-   "Bishop Kani",
-   "Deacon Asaph"
-  ],
-  "summary": "In June 2013 IUIC’s class channel published “Israel United In Christ: 10th Anniversary”, ten years after the 2003 founding.",
-  "account": [
-   "IUIC’s main class channel (IUICintheClassRoom) published a short video titled “Israel United In Christ: 10th Anniversary” in June 2013. IUIC’s official history dates the founding to 2003."
-  ],
-  "teaching": [
-   {
-    "points": [
-     "This truth is more than reading the scriptures: it is about action, as the disciples of Christ showed. A leader’s job is to look after the brothers and sisters who have need: if they have no food or no clothes, reading a scripture to them does nothing.",
-     "People will come in sick, naked and hungry, so a system has to be in place to help them. This truth is about building the nation of Israel."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "GF389uQryug",
-     "title": "Israel United In Christ: 10th Anniversary",
-     "date": "2013-06-20",
-     "ts": "0:16",
-     "url": "https://youtu.be/GF389uQryug?t=16"
-    }
-   },
-   {
-    "points": [
-     "For the 10th anniversary in 2013 a DVD was filmed in which the leaders were interviewed on why people hate IUIC. Deacon Asaph said there that the leaders, Bishop Nathanyel and Bishop Kani, are innovators who took this truth beyond the stereotypical box of what people think Israelites are."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "38RwOD1G_LI",
-     "title": "#IUIC | THE BIBLE: BOOK OF OUR FATHERS | Decadence, hatred and judgement the blackout of truth",
-     "date": "2022-06-25",
-     "ts": "12:13",
-     "url": "https://youtu.be/38RwOD1G_LI?t=733"
-    }
-   }
-  ],
-  "sources": [
-   {
-    "title": "“Israel United In Christ: 10th Anniversary” (YouTube upload, 2013-06-20)",
-    "publisher": "Israel United in Christ (IUICintheClassRoom)",
-    "year": "2013",
-    "url": "https://www.youtube.com/watch?v=GF389uQryug",
-    "accessed": "2026-10-03",
-    "supports": "The 10th-anniversary video and its publication in June 2013."
-   },
-   {
-    "title": "History",
-    "publisher": "Israel United in Christ (israelunite.org)",
-    "year": "2025",
-    "url": "https://israelunite.org/history/",
-    "accessed": "2026-10-03",
-    "supports": "Founded 2003 by Bishop Nathanyel in Coney Island; upstate basement recording videos; small building in Brooklyn, the first “official” school; growth since 2003 with schools across the country and abroad."
-   }
-  ],
-  "uncertainty": "The upload is dated 20 June 2013 on YouTube (21 June in the repository’s channel metadata, a time-zone difference). The anniversary DVD described in 2022 has not been found.",
-  "status": "published"
- },
- {
-  "slug": "iuic-online-classes-2014",
-  "title": "IUIC invites the public to its online classes",
-  "start": 2014,
-  "end": 2014,
-  "date": {
-   "text": "January 2014",
-   "precision": "month"
-  },
-  "period": "israel-united-in-christ",
-  "group": "Israel United in Christ",
-  "place": "New York (online)",
-  "region": "Worldwide",
-  "peoples": [
-   "Black",
-   "Hispanic",
-   "Native"
-  ],
-  "people": [
-   "Bishop Nathanyel (then Elder Nathanyel)"
-  ],
-  "summary": "In January 2014 IUIC published a video in which its leader, then called Elder Nathanyel, invited people to join IUIC’s online classes.",
-  "account": [
-   "IUIC’s class channel published “JOIN IUIC ONLINE CLASSES” on 9 January 2014 (date from the repository’s channel metadata). In it the leader introduces himself as “Elder Nathaniel of Israel United in Christ”; later recordings call him Bishop Nathanyel."
-  ],
-  "teaching": [
-   {
-    "points": [
-     "Christianity has destroyed our people for the past four hundred years; its lies have not benefited our people in the least.",
-     "Christ said you must be born again. Ezra shows what that means: subdue your own understanding, all that was learned in Babylon the great, and be taught all over again: your nationality, why we went into slavery in America, and who we are."
-    ],
-    "teacher": "Elder Nathanyel",
-    "source": {
-     "kind": "class",
-     "id": "9F2Xzh79A0Q",
-     "title": "JOIN IUIC ONLINE CLASSES",
-     "date": "2014-01-09",
-     "ts": "0:01",
-     "url": "https://youtu.be/9F2Xzh79A0Q?t=1"
-    }
-   }
-  ],
-  "scriptures": [
-   {
-    "ref": "John 3:3",
-    "why": "Being born again is applied to being taught over again who we are."
-   },
-   {
-    "ref": "2 Esdras 14:34",
-    "why": "“Subdue your own understanding, and reform your hearts” is read as unlearning what was taught in Babylon (America) in order to be taught the truth."
-   }
-  ],
-  "sources": [
-   {
-    "title": "“JOIN IUIC ONLINE CLASSES” (YouTube upload, 2014-01-09)",
-    "publisher": "Israel United in Christ (IUICintheClassRoom)",
-    "year": "2014",
-    "url": "https://www.youtube.com/watch?v=9F2Xzh79A0Q",
-    "accessed": "2026-10-03",
-    "supports": "An invitation to IUIC’s online classes, dated 9 January 2014."
-   },
-   {
-    "title": "Israel United in Christ",
-    "author": "Michael T. Miller",
-    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
-    "year": "2026",
-    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
-    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
-    "accessed": "2026-10-03",
-    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
-   }
-  ],
-  "uncertainty": "The video shows the online classes were being offered by January 2014; when they began is not documented. The CDAMM entry (2026) documents IUIC’s large online output and its own streaming service but gives no start date.",
-  "status": "published",
-  "leader": "bishop-nathanyel"
- },
- {
-  "slug": "iuic-headquarters-school-2015",
-  "title": "IUIC opens its headquarters school, its first building",
-  "start": 2015,
-  "end": 2016,
-  "date": {
-   "text": "December 2015 – April 2016",
-   "precision": "range"
-  },
-  "period": "israel-united-in-christ",
-  "group": "Israel United in Christ",
-  "place": "New York",
-  "region": "North America",
-  "peoples": [
-   "Black",
-   "Hispanic",
-   "Native"
-  ],
-  "people": [
-   "Bishop Nathanyel",
-   "Deacon Yawasap (now Bishop Yawasap)"
-  ],
-  "summary": "IUIC opened a new headquarters school in New York, which its members built themselves; the grand opening was published in December 2015 and again in April 2016.",
-  "account": [
-   "IUIC’s class channel published “The Israelites: IUIC HEADQUARTERS NEW SCHOOL GRAND OPENING” on 9 December 2015 and “IUIC HEADQUARTERS SCHOOL GRAND OPENING” on 13 April 2016."
-  ],
-  "teaching": [
-   {
-    "points": [
-     "Any leader who is not thinking forward about building and maintaining Israelite-owned institutions is not worth your time. Faith without works is dead, as James says: if a brother or sister is destitute of daily food, words alone profit nothing.",
-     "Those who give up everything and jeopard their lives are the ones who will judge the nations and have dominion over the people.",
-     "The little school was designed and wired by the brothers themselves, Deacon Yawasap among them, and built by the craftsmen of the congregation."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "wVhyzRfA7Qc",
-     "title": "The Israelites: IUIC HEADQUARTERS NEW SCHOOL GRAND OPENING",
-     "date": "2015-12-09",
-     "ts": "0:19",
-     "url": "https://youtu.be/wVhyzRfA7Qc?t=19"
-    }
-   },
-   {
-    "points": [
-     "The move from the old school, a little basement in the Bronx that the brothers fixed up, was a stepping stone. The new building had no walls, no electricity and no water, but the brothers had the trades and did it themselves, despite people saying it would never happen.",
-     "One member who came in 2006 recalled the road: an elder’s home in Coney Island, Brooklyn; then a basement on Long Island; then Brooklyn; then the Bronx; and now this building. You shall know them by their fruits."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "P8-0nDD4eoA",
-     "title": "IUIC HEADQUARTERS SCHOOL GRAND OPENING",
-     "date": "2016-04-13",
-     "ts": "23:00",
-     "url": "https://youtu.be/P8-0nDD4eoA?t=1380"
-    }
-   },
-   {
-    "points": [
-     "IUIC has existed since 2003 and got its first building in 2015. That was many years from the beginning, but the vision stayed and nobody gave up; the second building followed."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "vMFxToaI1wc",
-     "title": "#IUIC | PATIENT SAINTS RADIO: June 26, 2022",
-     "date": "2022-06-26",
-     "ts": "34:16",
-     "url": "https://youtu.be/vMFxToaI1wc?t=2056"
-    }
-   }
-  ],
-  "scriptures": [
-   {
-    "ref": "James 2:14-17",
-    "why": "Faith without works is dead: a leader must build institutions that meet the people’s needs."
-   },
-   {
-    "ref": "Wisdom of Solomon 3:8",
-    "why": "Those who give everything for the work will judge the nations and have dominion over the people."
-   }
-  ],
-  "sources": [
-   {
-    "title": "“The Israelites: IUIC HEADQUARTERS NEW SCHOOL GRAND OPENING” (YouTube upload, 2015-12-09)",
-    "publisher": "Israel United in Christ (IUICintheClassRoom)",
-    "year": "2015",
-    "url": "https://www.youtube.com/watch?v=wVhyzRfA7Qc",
-    "accessed": "2026-10-03",
-    "supports": "The grand opening of the new headquarters school, published 9 December 2015."
-   },
-   {
-    "title": "“IUIC HEADQUARTERS SCHOOL GRAND OPENING” (YouTube upload, 2016-04-13)",
-    "publisher": "Israel United in Christ (IUICintheClassRoom)",
-    "year": "2016",
-    "url": "https://www.youtube.com/watch?v=P8-0nDD4eoA",
-    "accessed": "2026-10-03",
-    "supports": "The headquarters school grand opening, published 13 April 2016 (from the repository’s channel metadata)."
-   }
-  ],
-  "uncertainty": "The exact opening date and street address of the headquarters school are not given in the sources read; the 2022 class dates the first building to 2015.",
-  "status": "published"
- },
- {
-  "slug": "iuic-welcome-home-book-2015",
-  "title": "Welcome Home: An Introduction to Righteousness is published",
-  "start": 2015,
-  "end": 2015,
-  "date": {
-   "text": "21 June 2015",
-   "precision": "day"
-  },
-  "period": "israel-united-in-christ",
-  "group": "Israel United in Christ",
-  "place": "New York",
-  "region": "North America",
-  "peoples": [
-   "Black",
-   "Hispanic",
-   "Native"
-  ],
-  "people": [
-   "Bishop Nathanyel (Nathanyel Ben Israel)"
-  ],
-  "summary": "Bishop Nathanyel’s Welcome Home: An Introduction to Righteousness, IUIC’s introductory book on the commandments, was published in paperback in June 2015.",
-  "account": [
-   "An archived Amazon page lists the paperback Welcome Home: An Introduction to Righteousness by Nathanyel Ben Israel, dated June 21, 2015. The CDAMM entry (2026) lists it among the four official IUIC publications credited to Nathanyel (CreateSpace, 2015) and cites it for IUIC’s rules on work and on women’s dress. IUIC’s website offers a “Welcome Home Booklet”."
-  ],
-  "teaching": [
-   {
-    "points": [
-     "The Welcome Home booklet is required reading for everyone who enters the doors of IUIC.",
-     "It is the Bible condensed into a quick, livable form: if our people simply followed what is in it, coming straight out of the Bible, it could clean us up overnight."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "fL9kbjVNk_0",
-     "title": "The Israelites: SEX, RAPE... & KIDNAPPING",
-     "date": "2015-08-13",
-     "ts": "30:26",
-     "url": "https://youtu.be/fL9kbjVNk_0?t=1826"
-    }
-   }
-  ],
-  "sources": [
-   {
-    "title": "Welcome Home: An Introduction to Righteousness (product page)",
-    "publisher": "Amazon.com",
-    "year": "2016",
-    "url": "https://www.amazon.com/Welcome-Introduction-Righteousness-Nathanyel-Israel/dp/1514646021",
-    "via": "https://web.archive.org/web/20160407161915/http://www.amazon.com:80/Welcome-Introduction-Righteousness-Nathanyel-Israel/dp/1514646021",
-    "accessed": "2026-10-03",
-    "supports": "Paperback by Nathanyel Ben Israel, dated June 21, 2015."
-   },
-   {
-    "title": "Israel United in Christ",
-    "author": "Michael T. Miller",
-    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
-    "year": "2026",
-    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
-    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
-    "accessed": "2026-10-03",
-    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
-   }
-  ],
-  "uncertainty": "In August 2015 the class said the book “has been out for a number of years”, so a booklet appears to have circulated before the 2015 paperback; its first date is not documented.",
-  "status": "published"
- },
- {
-  "slug": "iuic-liberia-mission-2018",
-  "title": "IUIC’s mission to Liberia",
-  "start": 2018,
-  "end": 2018,
-  "date": {
-   "text": "Early 2018 (reported April 2018)",
-   "precision": "month"
-  },
-  "period": "israel-united-in-christ",
-  "group": "Israel United in Christ",
-  "place": "Monrovia, Liberia",
-  "region": "West Africa",
-  "peoples": [
-   "Black"
-  ],
-  "people": [
-   "Bishop Nathanyel",
-   "Joshua Milton Blahyi (“General Butt Naked”)"
-  ],
-  "summary": "In early 2018 an IUIC delegation travelled to Liberia to teach the remnant of Israel there; the class reported on the mission on 8 April 2018.",
-  "account": [
-   "IUIC’s class channel published “The Israelites: IUIC RECAP ON MISSION TO LIBERIA AFRICA” on 8 April 2018, the delegation’s report on its mission to Liberia."
-  ],
-  "teaching": [
-   {
-    "points": [
-     "In Liberia the delegation met the same problems the apostles met with the first converts in Acts 15: some still worshipped other gods, there was fornication, people ate things strangled such as bush meat, and blood. That is why those four things were named.",
-     "The congregation there had been watching online, and IUIC will have to work very closely with them. The delegation will go back."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "KKXBWF_FOJU",
-     "title": "The Israelites: IUIC RECAP ON MISSION TO LIBERIA AFRICA",
-     "date": "2018-04-08",
-     "ts": "3:15",
-     "url": "https://youtu.be/KKXBWF_FOJU?t=195"
-    }
-   }
-  ],
-  "scriptures": [
-   {
-    "ref": "Acts 15:19-21",
-    "why": "The apostles’ instructions to the first converts are applied to what the delegation found in Liberia: idolatry, fornication, things strangled and blood."
-   }
-  ],
-  "sources": [
-   {
-    "title": "“The Israelites: IUIC RECAP ON MISSION TO LIBERIA AFRICA” (YouTube upload, 2018-04-08)",
-    "publisher": "Israel United in Christ (IUICintheClassRoom)",
-    "year": "2018",
-    "url": "https://www.youtube.com/watch?v=KKXBWF_FOJU",
-    "accessed": "2026-10-03",
-    "supports": "The class’s recap of the mission, dated 8 April 2018."
-   }
-  ],
-  "uncertainty": "The exact dates of the trip are not given. Later classes speak of Liberia as an ongoing mission field (for example a community cleanup there in 2026), not dated in a documented source.",
-  "status": "published"
- },
- {
-  "slug": "our-hidden-history-radio-begins-2020",
-  "title": "Our Hidden History radio show begins",
-  "start": 2020,
-  "end": 2020,
-  "date": {
-   "text": "July–October 2020",
-   "precision": "range"
-  },
-  "period": "israel-united-in-christ",
-  "group": "Israel United in Christ",
-  "place": "Philadelphia (IUIC Philadelphia)",
-  "region": "North America",
-  "peoples": [
-   "Black",
-   "Hispanic",
-   "Native"
-  ],
-  "people": [],
-  "summary": "IUIC’s history broadcast Our Hidden History began in 2020: its hosts date the start to July 2020, and the earliest upload titled “Episode 1” is dated 27 October 2020.",
-  "account": [
-   "The Our Hidden History channel’s upload titled “OHH - Eve of Destruction and the Religion of Rebellion vs Part 1 EPISODE 1” is dated 27 October 2020 (repository channel metadata). Episode 100 (“Echoes of Rome… Part 5”) is dated 21 May 2023. IUIC’s website describes Our Hidden History as uncovering the deliberate erasure of the true identity of the Israelites (Black, Hispanic and Native American peoples) during slavery and colonialism, read with Deuteronomy 28, Leviticus 26 and Psalm 83:1-4."
-  ],
-  "teaching": [
-   {
-    "points": [
-     "Our Hidden History takes up the history behind what was done to our people: the feminist movement and Christianity go hand in hand in being deceptive and destructive towards our people, and Black Lives Matter is used as a front, a Trojan horse, for a political agenda that removes fathers from the home."
-    ],
-    "source": {
-     "kind": "history",
-     "id": "DdkQvJ-TwNo",
-     "title": "OHH - Eve of Destruction and the Religion of Rebellion vs Part 1 EPISODE 1",
-     "date": "2020-10-27",
-     "ts": "2:57",
-     "url": "https://youtu.be/DdkQvJ-TwNo?t=177"
-    }
-   }
-  ],
-  "sources": [
-   {
-    "title": "“OHH - Eve of Destruction and the Religion of Rebellion vs Part 1 EPISODE 1” (YouTube upload, 2020-10-27)",
-    "publisher": "Israel United in Christ (Our Hidden History)",
-    "year": "2020",
-    "url": "https://www.youtube.com/watch?v=DdkQvJ-TwNo",
-    "accessed": "2026-10-03",
-    "supports": "The upload titled Episode 1, dated 27 October 2020."
-   },
-   {
-    "title": "“OUR HIDDEN HISTORY- ECHOES OF ROME: FROM AUGUSTUS CAESAR TO THE BIRTH OF CHRIST PART 5 EP 100” (YouTube upload, 2023-05-21)",
-    "publisher": "Israel United in Christ (Our Hidden History)",
-    "year": "2023",
-    "url": "https://www.youtube.com/watch?v=sXAmvsngAtU",
-    "accessed": "2026-10-03",
-    "supports": "Episode 100, dated 21 May 2023."
-   },
-   {
-    "title": "Our Hidden History",
-    "publisher": "Israel United in Christ (israelunite.org)",
-    "year": "2025",
-    "url": "https://israelunite.org/our-hidden-history/",
-    "accessed": "2026-10-03",
-    "supports": "IUIC’s own statement of what Our Hidden History is for: uncovering the erasure of the Israelites’ identity (Black, Hispanic and Native American peoples) through historical documents, read with Deuteronomy 28, Leviticus 26 and Psalm 83:1-4."
-   }
-  ],
-  "uncertainty": "The numbering does not settle the start: in the upload titled “Episode 1” the host welcomes listeners “back” to “episode 3 of Our Hidden History radio”, and at the 200th episode the hosts said the show began in July 2020.",
-  "disagreements": [
-   {
-    "point": "When the show began",
-    "views": [
-     "The channel’s upload titled “Episode 1” is dated 27 October 2020.",
-     "At the 200th episode (2026) the hosts said the show began in July 2020, and the October 2020 upload itself calls the show episode 3."
-    ]
-   }
-  ],
-  "status": "published"
- },
- {
-  "slug": "iuic-gastonia-building-2022",
-  "title": "IUIC Gastonia opens its building",
-  "start": 2022,
-  "end": 2022,
-  "date": {
-   "text": "June 2022",
-   "precision": "month"
-  },
-  "period": "israel-united-in-christ",
-  "group": "Israel United in Christ",
-  "place": "Gastonia, North Carolina",
-  "region": "North America",
-  "peoples": [
-   "Black",
-   "Hispanic",
-   "Native"
-  ],
-  "people": [],
-  "summary": "In June 2022 IUIC held the grand opening of its building in Gastonia, North Carolina, described in class as IUIC’s second building after the 2015 headquarters.",
-  "account": [
-   "IUIC’s second class channel published “#IUIC | PATIENT SAINTS RADIO: June 26, 2022”, recorded at IUIC Gastonia the day after its grand opening."
-  ],
-  "teaching": [
-   {
-    "points": [
-     "The grand opening in Gastonia was epic, and it shows where the Ezra fund goes: it did not stop with headquarters in New York, it is here in Gastonia, and it will continue."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "vMFxToaI1wc",
-     "title": "#IUIC | PATIENT SAINTS RADIO: June 26, 2022",
-     "date": "2022-06-26",
-     "ts": "1:42",
-     "url": "https://youtu.be/vMFxToaI1wc?t=102"
-    }
-   },
-   {
-    "points": [
-     "IUIC has existed since 2003 and got its first building in 2015; now it is at the second. In 2003 neither building was yet seen, but there was hope, and hope makes you work towards a thing before it is there."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "vMFxToaI1wc",
-     "title": "#IUIC | PATIENT SAINTS RADIO: June 26, 2022",
-     "date": "2022-06-26",
-     "ts": "34:16",
-     "url": "https://youtu.be/vMFxToaI1wc?t=2056"
-    }
-   }
-  ],
-  "sources": [
-   {
-    "title": "“#IUIC | PATIENT SAINTS RADIO: June 26, 2022” (YouTube upload, 2022-06-26)",
-    "publisher": "Israel United in Christ (IUICintheclassroom Two)",
-    "year": "2022",
-    "url": "https://www.youtube.com/watch?v=vMFxToaI1wc",
-    "accessed": "2026-10-03",
-    "supports": "The broadcast from Gastonia after the grand opening, June 26, 2022."
-   }
-  ],
-  "uncertainty": "Only IUIC’s own broadcast documents this; no independent source was found. An undated class (Ui4UJNQvzkQ) says Gastonia is IUIC’s main branch in North Carolina.",
-  "status": "published"
- },
- {
-  "slug": "iuic-20th-anniversary-2023",
-  "title": "IUIC’s 20th anniversary: Passover and Tabernacles 2023",
-  "start": 2023,
-  "end": 2023,
-  "date": {
-   "text": "April–October 2023",
-   "precision": "range"
-  },
-  "period": "israel-united-in-christ",
-  "group": "Israel United in Christ",
-  "place": "Oklahoma and across IUIC’s schools",
-  "region": "North America",
-  "peoples": [
-   "Black",
-   "Hispanic",
-   "Native"
-  ],
-  "people": [],
-  "summary": "IUIC kept its 20th anniversary in 2023 with a 20th-anniversary Passover in April and a 20th-anniversary Feast of Tabernacles in Oklahoma, and released a documentary on 20 years of IUIC on IUIC TV.",
-  "account": [
-   "IUIC’s class channel published “PASSOVER 2023 - 20th Anniversary - Pt.2” on 21 April 2023, and later “Feast of Tabernacles 2023”, filmed at what members called the 20th-anniversary Tabernacles in Oklahoma. The CDAMM entry (2026) notes IUIC’s own subscription streaming service, IUIC TV."
-  ],
-  "teaching": [
-   {
-    "points": [
-     "At the 20th-anniversary Passover the 300 “Complete Man” program graduated 62 of 79 men: the Men of Valor program makes soldiers, and the 300 program is the next step, a selection program of papers and classes to thoroughly furnish the men.",
-     "IUIC is always looking for ways to push things forward, not only in the streets and in teaching but in building the men around it."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "eRPthPd04OM",
-     "title": "PASSOVER 2023 - 20th Anniversary - Pt.2",
-     "date": "2023-04-21",
-     "ts": "0:45",
-     "url": "https://youtu.be/eRPthPd04OM?t=45"
-    }
-   },
-   {
-    "points": [
-     "The 20th-anniversary Tabernacles in Oklahoma was the biggest ever. Tabernacles is the time to live as Israel did coming out of Egypt, learning in the wilderness how to operate as a nation."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "WVY5LIbRivs",
-     "title": "Feast of Tabernacles 2023",
-     "date": "2024-08-04",
-     "ts": "0:48",
-     "url": "https://youtu.be/WVY5LIbRivs?t=48"
-    }
-   },
-   {
-    "points": [
-     "The 20th-anniversary Passover was spectacular, to the dismay of the Negroes who could not find a word of encouragement for their brothers; that hatred of one’s brother is a plantation we must escape from."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "8dctVR-WNhI",
-     "title": "Escaping The Plantation Of The Dead",
-     "date": "2023-04-29",
-     "ts": "9:29",
-     "url": "https://youtu.be/8dctVR-WNhI?t=569"
-    }
-   }
-  ],
-  "sources": [
-   {
-    "title": "“PASSOVER 2023 - 20th Anniversary - Pt.2” (YouTube upload, 2023-04-21)",
-    "publisher": "Israel United in Christ (IUICintheClassRoom)",
-    "year": "2023",
-    "url": "https://www.youtube.com/watch?v=eRPthPd04OM",
-    "accessed": "2026-10-03",
-    "supports": "The 20th-anniversary Passover, April 2023."
-   },
-   {
-    "title": "“Feast of Tabernacles 2023” (YouTube upload, 2024-08-04)",
-    "publisher": "Israel United in Christ (IUICintheClassRoom)",
-    "year": "2024",
-    "url": "https://www.youtube.com/watch?v=WVY5LIbRivs",
-    "accessed": "2026-10-03",
-    "supports": "The 20th-anniversary Tabernacles in Oklahoma (published 2024)."
-   },
-   {
-    "title": "Israel United in Christ",
-    "author": "Michael T. Miller",
-    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
-    "year": "2026",
-    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
-    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
-    "accessed": "2026-10-03",
-    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
-   }
-  ],
-  "uncertainty": "The documentary “chronicling 20 years” was announced on IUIC TV in a class on 29 October 2023; it has not been viewed. The upload date of the Tabernacles video (2024) is later than the feast.",
-  "status": "published"
- },
- {
-  "slug": "iuic-curacao-aruba-marches-2023",
-  "title": "IUIC marches in Aruba and Curaçao",
-  "start": 2023,
-  "end": 2023,
-  "date": {
-   "text": "December 2023",
-   "precision": "month"
-  },
-  "period": "israel-united-in-christ",
-  "group": "Israel United in Christ",
-  "place": "Willemstad, Curaçao; Aruba",
-  "region": "Caribbean",
-  "peoples": [
-   "Black",
-   "Hispanic"
-  ],
-  "people": [],
-  "summary": "In December 2023 IUIC members marched in Aruba and then in Willemstad, Curaçao, handing out pamphlets; the press reported the march as peaceful.",
-  "account": [
-   "Curacao.nu reported on 15 December 2023 that members of IUIC, recognisable by their lilac shirts and black trousers, had marched on the island the day before, handing out pamphlets in the city centre and elsewhere. The march followed a similar action in Aruba and was peaceful; police and the Vrijwilligers Korps Curaçao were present and no disturbances were reported. The report called the visit a sign of IUIC’s growing influence beyond the United States."
-  ],
-  "teaching": [
-   {
-    "points": [
-     "The press itself recorded that the march was peaceful. IUIC is peaceful, and its work will prove it.",
-     "The report’s own words show the work growing: IUIC’s visit to the Caribbean islands demonstrates its expansion beyond the United States."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "-6qYpEJB-zE",
-     "title": "Prepare For The Maccabees Perils",
-     "date": "2023-12-24",
-     "ts": "1:19:45",
-     "url": "https://youtu.be/-6qYpEJB-zE?t=4785"
-    }
-   }
-  ],
-  "sources": [
-   {
-    "title": "Religieuze groep ‘Israel United in Christ’ actief op Curaçao",
-    "publisher": "Curacao.nu",
-    "year": "2023",
-    "url": "https://curacao.nu/religieuze-groep-israel-united-in-christ-actief-op-curacao/",
-    "via": "https://web.archive.org/web/20240806064846/https://curacao.nu/religieuze-groep-israel-united-in-christ-actief-op-curacao/",
-    "accessed": "2026-10-03",
-    "supports": "Published 15 December 2023: IUIC members marched in Willemstad the day before, handing out pamphlets; the march followed a similar action in Aruba; police and the Vrijwilligers Korps Curaçao were present and no disturbances were reported; IUIC described as founded in 2003 in New York."
-   }
-  ],
-  "uncertainty": "The date of the Aruba march is not given in the report.",
-  "status": "published"
- },
- {
-  "slug": "iuic-bishop-nathanyel-books-2025",
-  "title": "Bishop Nathanyel publishes Island of Deception and Biblical Events from Assyria to America",
-  "start": 2025,
-  "end": 2025,
-  "date": {
-   "text": "2025",
-   "precision": "year"
-  },
-  "period": "israel-united-in-christ",
-  "group": "Israel United in Christ",
-  "place": "United States",
-  "region": "North America",
-  "peoples": [
-   "Black",
-   "Hispanic",
-   "Native"
-  ],
-  "people": [
-   "Bishop Nathanyel (Nathanyel Ben Israel)"
-  ],
-  "summary": "In 2025 Bishop Nathanyel published his third and fourth books: Island of Deception: Faith, Politics, and Survival in Melanesia, and Biblical Events from Assyria to America: Correcting His-story to Include Our Story.",
-  "account": [
-   "The CDAMM entry (2026) lists four official IUIC publications credited to Nathanyel Ben Israel: Understandest Thou, What Thou Readest? A Pictorial Guide of Bible Secrets (Trafford, 2006); Welcome Home: An Introduction to Righteousness (CreateSpace, 2015); Island of Deception: Faith, Politics, and Survival in Melanesia (Trafford, 2025); and Biblical Events from Assyria to America: Correcting His-story to Include Our Story (Trafford, 2025). It describes Island of Deception as almost travelogue in style, and notes that the seven chapters of Biblical Events are named after the successive captivities: Assyrian, Babylonian, Persian-Medean, Greek, Roman, Spanish and American."
-  ],
-  "teaching": [
-   {
-    "points": [
-     "The award-winning author Bishop Nathanyel’s third book, Island of Deception: Faith, Politics, and Survival in Melanesia, is now available."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "DyzYPqC3mPs",
-     "title": "Rise And Fall Of The Pharisees",
-     "date": "2025-02-22",
-     "ts": "4:03:39",
-     "url": "https://youtu.be/DyzYPqC3mPs?t=14619"
-    }
-   },
-   {
-    "points": [
-     "Biblical Events from Assyria to America goes through the history, with scripture, dates and times, of what happened to the twelve tribes of Israel from the Assyrian captivity to us in America today.",
-     "It was not written overnight: the Bishop gave it out as a booklet of history and dates more than eighteen years earlier, and teachers have used it in their classes since."
-    ],
-    "source": {
-     "kind": "class",
-     "id": "56guZLeWU-4",
-     "title": "Rise Of The Hasmoneans",
-     "date": "2025-05-05",
-     "ts": "14:52",
-     "url": "https://youtu.be/56guZLeWU-4?t=892"
-    }
-   }
-  ],
-  "sources": [
-   {
-    "title": "Israel United in Christ",
-    "author": "Michael T. Miller",
-    "publisher": "Critical Dictionary of Apocalyptic and Millenarian Movements (eds. James Crossley and Alastair Lockhart)",
-    "year": "2026",
-    "url": "https://www.cdamm.org/articles/israel-united-in-christ",
-    "via": "https://web.archive.org/web/20260907225314/https://www.cdamm.org/articles/israel-united-in-christ",
-    "accessed": "2026-10-03",
-    "supports": "Founding in 2003 by Nathanyel, Kani and Barakshar (quickly joined by Yawasap); Nathanyel introduced to Hebrew Israelite thought around 1990; Kani’s second school in Orlando in 2005; the four books (2006, 2015, 2025, 2025); IUIC TV; estimated 10,000 members; outreach."
-   }
-  ],
-  "uncertainty": "Retailer listings found in search give exact 2025 publication dates, but those pages could not be read, so only the year is given. A 2025 class says the history booklet behind Biblical Events circulated more than eighteen years earlier.",
-  "status": "published",
-  "leader": "bishop-nathanyel"
- },
- {
   "slug": "our-hidden-history-200th-episode-2026",
   "title": "Our Hidden History’s 200th episode",
   "start": 2026,
@@ -24318,7 +24318,7 @@
    "text": "28 June 2026",
    "precision": "day"
   },
-  "period": "israel-united-in-christ",
+  "period": "unto-this-day",
   "group": "Israel United in Christ",
   "place": "Philadelphia (IUIC Philadelphia), before a live audience",
   "region": "North America",

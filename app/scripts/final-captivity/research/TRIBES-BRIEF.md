@@ -28,8 +28,8 @@ Naphtali: Argentina and Chile · Asher: Colombia to Uruguay · Issachar: the Mex
    and leaders. Cover the whole span the periods allow (1440 to today), not one era.
 4. Periods (startYear..endYear must hold the event's `start`/`end`): into-the-ships 1440–1620,
    house-of-bondage 1615–1866, jim-crow 1863–1955, civil-rights-awakening 1953–2004,
-   unto-this-day 2002–2027 (events of today's world, NOT about IUIC), israel-united-in-christ
-   2002–2027 (IUIC leaders and organization ONLY — do not add events there).
+   unto-this-day (“Redemption”) 2002–2027 (all modern history, including the existing IUIC entries).
+   IUIC has no separate period; do not recreate one.
    `group`: one of GROUPS in check.mjs ("Caribbean and Latin America", "Native dispossession",
    "Resistance", "Slavery", "Other atrocities", "Achievements", "Civil rights", "Abolition",
    "Transatlantic trade", "African captivity", "Reconstruction and Jim Crow", "Identity and erasure").

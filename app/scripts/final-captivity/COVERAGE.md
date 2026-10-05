@@ -6,12 +6,11 @@ Sources reviewed through **2026-10-03**. Generated from the corpus scan (every c
 
 | Period | Years | Published | Drafts |
 | --- | --- | --- | --- |
-| Into the Ships | c.1441–1619 | 40 | 2 |
-| The House of Bondage | 1619–1865 | 20 | 5 |
-| Reconstruction and Jim Crow | 1865–1954 | 66 | 2 |
-| Civil Rights and the Awakening | 1954–2003 | 22 | 5 |
-| Unto This Day | 2003–today | 0 | 0 |
-| Israel United in Christ | 2003–today | 13 | 6 |
+| Into the Ships | c.1441–1619 | 60 | 3 |
+| The House of Bondage | 1619–1865 | 60 | 7 |
+| Reconstruction and Jim Crow | 1865–1954 | 111 | 3 |
+| Civil Rights and the Awakening | 1954–2003 | 57 | 5 |
+| Redemption | 2003–today | 58 | 12 |
 
 ## By research category
 
