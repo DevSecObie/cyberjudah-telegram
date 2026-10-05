@@ -22,6 +22,8 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- The Worker now serves donations ("Support CyberJudah"): `GET /api/donations` for the presets, amount bounds, the owner's giving link and the holy-days pause state, and `POST /api/invoice` for any amount within those bounds. A gift pauses the same way an Ask top-up does, from evening to evening on the Sabbath, feast days and New Moons, and is recorded once per Telegram charge in its own ledger, never added to the Ask balance.
+
 - Admins can correct precept explanations, verse positions and playback timestamps through the same review flow, while keeping recorded references intact.
 
 - Admins can review People summaries, reciprocal family relationships and credited pictures from the app. Published pictures appear in the existing profile and relationship graph.

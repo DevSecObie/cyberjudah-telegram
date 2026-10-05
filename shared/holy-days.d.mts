@@ -16,4 +16,5 @@ export function holyDay(date: string, days?: ListedDay[]): { kind: HolyKind; nam
 export function topupPause(now: number, tz: unknown, days?: ListedDay[]): Pause | null;
 export function pauseDay(p: Pause): string;
 export function pauseMessage(p: Pause): string;
+export function givingPauseMessage(p: Pause): string;
 export function eveOfHolyDay(now: number, tz: unknown, days?: ListedDay[]): { date: string; kind: HolyKind; name: string } | null;
