@@ -59,6 +59,22 @@ test("channel fallback reads YouTube's current lockupViewModel card layout", () 
   assert.deepEqual(skipped, []);
 });
 
+test("dated channel cards keep the same UTC day across host time zones", () => {
+  const previous = process.env.TZ;
+  try {
+    for (const tz of ["UTC", "America/Los_Angeles", "Pacific/Auckland"]) {
+      process.env.TZ = tz;
+      for (const date of ["Premiered Oct 3, 2026", "Streamed live on October 3, 2026", "2026-10-03"]) {
+        const found = parseChannelVideos(page([video(A, { publishedTimeText: { simpleText: date } })]), NOW);
+        assert.equal(found[0]?.published, "2026-10-03T00:00:00.000Z", `${date} in ${tz}`);
+      }
+    }
+  } finally {
+    if (previous === undefined) delete process.env.TZ;
+    else process.env.TZ = previous;
+  }
+});
+
 test("unexpected channel-card fields do not break the outage fallback", () => {
   const cards = [null, video(A, { title: { simpleText: {} } }), video(A, { title: { runs: {} } }), video(12345678901),
     video(B, { badges: [null], thumbnailOverlays: [null], title: { runs: [null, { text: "A valid class" }] } })];

@@ -27,6 +27,9 @@ const vars = [
   `TELEGRAM_API_ROOT:${STAND_IN}`,
   `PUSH_TEST_ORIGIN:${STAND_IN}`,
   "ADMIN_IDS:100000002",
+  "APP_REPO_TOKEN:e2e-app-only",
+  "CYBERJUDAH_TOKEN:e2e-content-only",
+  `CMS_GITHUB_API_ROOT:${STAND_IN}/github`,
   // Ask runs its real agent loop against a scripted stand-in of the Claude Messages API (e2e/claude.ts).
   "ANTHROPIC_API_KEY:e2e-not-a-real-key",
   `ANTHROPIC_BASE_URL:${STAND_IN}/anthropic`,
@@ -63,8 +66,8 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { browserName: "chromium", channel: "chromium", ...(process.env.CHROMIUM_PATH ? { launchOptions: { executablePath: process.env.CHROMIUM_PATH } } : {}) } },
     // The glass material and pointer behavior must also work in the engine used by Safari/iOS.
-    { name: "webkit", testMatch: ["glass.spec.ts", "contrast.spec.ts", "search-placement.spec.ts", "icons.spec.ts", "material-budget.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts"], use: { browserName: "webkit" } },
-    { name: "firefox", testMatch: ["glass.spec.ts", "material-budget.spec.ts", "search-placement.spec.ts", "icons.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts"], use: { browserName: "firefox" } },
+    { name: "webkit", testMatch: ["glass.spec.ts", "contrast.spec.ts", "search-placement.spec.ts", "icons.spec.ts", "material-budget.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts", "cms.spec.ts"], use: { browserName: "webkit" } },
+    { name: "firefox", testMatch: ["glass.spec.ts", "material-budget.spec.ts", "search-placement.spec.ts", "icons.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts", "cms.spec.ts"], use: { browserName: "firefox" } },
   ],
   webServer: liveBaseURL ? undefined : {
     command: `npm run build && bash ../bot/scripts/prepare-assets.sh && cd ../bot && rm -rf .wrangler/e2e && npx wrangler dev --local --port 8787 --persist-to .wrangler/e2e --test-scheduled ${vars}`,

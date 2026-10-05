@@ -38,6 +38,10 @@ export type Env = {
   E2E_CLOCK?: string;
   /** Telegram user ids (comma-separated) allowed to edit notes from the app. They also receive the hourly health-check pages. */
   ADMIN_IDS?: string;
+  /** Fine-grained token scoped only to the app repository. */
+  APP_REPO_TOKEN?: string;
+  /** Loopback GitHub stand-in, used only with E2E_CLOCK=on. */
+  CMS_GITHUB_API_ROOT?: string;
   /** D1 storage alert threshold in bytes (default 8 GB); the hourly self-check pages when the search database passes it. */
   D1_SIZE_ALERT_BYTES?: string;
   /** Set as a Worker secret from the CYBERJUDAH_TOKEN repository secret: a fine-grained GitHub token with contents write on the cyberjudah repository, for edits made in the app. */

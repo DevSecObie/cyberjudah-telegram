@@ -22,6 +22,14 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- Admins can correct precept explanations, verse positions and playback timestamps through the same review flow, while keeping recorded references intact.
+
+- Admins can review People summaries, reciprocal family relationships and credited pictures from the app. Published pictures appear in the existing profile and relationship graph.
+
+- Admins can correct class titles, teachers and dates, including undated recordings, through the shared review flow. Linked note front matter and metadata corrections stay in sync.
+
+- Admins can review Timeline and note corrections, outside-source changes and resource publications from Settings. Content saves open pull requests; publication requires passing checks and an explicit admin action.
+
 Merged to `main` and not yet in a tagged release. Production currently runs `861242f`
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
@@ -32,6 +40,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 - Ask's free tier now offers every Workers AI text model (26), not just the default: Cloudflare's 10,000 free neurons a day are shared across all of its models, so a reader can pick any of them in the model picker and the daily breaker still keeps the project's cost at $0.
 
 ### Fixed
+- Date-only YouTube upload labels now use UTC consistently, keeping fallback class dates stable across host time zones.
 - The Home screen's featured class label now follows the calendar: a class dated in the current Sabbath-to-Sabbath week reads "This week's class", last week's reads "Last week's class", and older classes show just their date.
 - The YouTube-outage fallback now reads the channel page's current card layout (`lockupViewModel`): YouTube changed its markup after the #122 hotfix shipped, so the fallback silently found nothing. Classes again appear as "Notes coming soon" while the RSS feed is down.
 - Answering no longer scans the whole rate-limit table on every request; old rows are swept once an hour instead.
@@ -82,6 +91,11 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   card fades in behind, and back from an event, a verse or a case study returns to the same place.
   Its periods and events now have pictures: our own period paintings and the approved People
   portraits. Its search works like the main search, and keeps its words when you come back.
+- The Final Captivity, the twelve tribes, second wave: 144 new Timeline events — Zebulon and
+  Issachar (Central America and Mexico), Naphtali and Asher (South America), Ephraim and Manasseh
+  (Puerto Rico and Cuba) — and tribe tags on 112 existing events, 346 events in all. Twelve events
+  answer outside charges from the KJV and the Apocrypha, each with the verses the classes
+  themselves read first.
 - Ask CyberJudah as the app's assistant: it answers questions about the app from the app's own
   list of screens, with links that open in place; finds people and case studies; finds and reopens
   your saved chats; reads your reading reminder; and proposes changes to it as a card you Confirm

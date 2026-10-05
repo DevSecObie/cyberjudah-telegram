@@ -7,22 +7,17 @@ import { useTeachings } from "@/screens/Home";
 import { alert, api, app, haptic } from "@/tg/sdk";
 import { Segmented } from "@/ui/ui";
 
-/**
- * Editing a note from the app. "Text" is the note's whole markdown, as it is in the
- * repository, to change anything; "Quick fixes" sets the teacher and title and swaps a
- * spelling everywhere. Saving is one commit to the library; the site and the app pick it up
- * when it rebuilds, a few minutes later. A text save names the version it was opened from,
- * so it never overwrites a save that landed in between.
- */
+/** Every note edit uses the shared review flow and the loaded file SHA. */
 type Pair = { from: string; to: string };
-export function NoteEditSheet({ open, onClose, note, onSaved }: { open: boolean; onClose: () => void; note: Note; onSaved: (changed: string[], commit: string) => void }) {
+export function NoteEditSheet({ open, onClose, note, onSaved, initialSource }: { open: boolean; onClose: () => void; note: Note; initialSource?: { text: string; sha: string }; onSaved: (changed: string[], commit: string, id: string) => void }) {
   const [teacher, setTeacher] = useState(note.teacher ?? "");
   const [title, setTitle] = useState(note.title);
   const [pairs, setPairs] = useState<Pair[]>([{ from: "", to: "" }]);
+  const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<"text" | "quick">("text");
-  const [source, setSource] = useState<{ text: string; sha: string } | null>(null);
-  const [draft, setDraft] = useState("");
+  const [source, setSource] = useState<{ text: string; sha: string } | null>(initialSource ?? null);
+  const [draft, setDraft] = useState(initialSource?.text ?? "");
   const [loadError, setLoadError] = useState<string | null>(null);
   useEffect(() => {
     if (!open || !note.file || source) return;
@@ -38,10 +33,10 @@ export function NoteEditSheet({ open, onClose, note, onSaved }: { open: boolean;
   const dirty = mode === "text" ? textDirty : changes.teacher || changes.title || changes.replace.length > 0;
 
   const save = async () => {
-    if (!dirty || !note.file) return;
+    if (!dirty || !note.file || !source || reason.trim().length < 3) return;
     setBusy(true);
     try {
-      const body: Record<string, unknown> = { file: note.file };
+      const body: Record<string, unknown> = { file: note.file, sha: source.sha, reason };
       if (mode === "text" && source) { body.body = draft; body.sha = source.sha; }
       else {
         if (changes.teacher) body.teacher = teacher.trim();
@@ -50,11 +45,11 @@ export function NoteEditSheet({ open, onClose, note, onSaved }: { open: boolean;
       }
       // The Worker says why an edit was refused; the reason reaches the person, not a generic line.
       const r = await fetch("/api/notes/edit", { method: "POST", headers: { "content-type": "application/json", authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify(body) });
-      const res = (await r.json().catch(() => null)) as { ok: true; commit: string; changed: string[] } | { ok: false; error: string } | null;
+      const res = (await r.json().catch(() => null)) as { ok: true; commit: string; changed: string[]; change: { id: string } } | { ok: false; error: string } | null;
       if (r.status === 401) { void alert("Your Telegram session has expired. Close CyberJudah, open it again, and the edit will save."); return; }
       if (!res) { void alert(r.status >= 500 ? "The server is being updated right now. Wait a minute and tap Save again; your changes are still here." : `The edit did not save (${r.status}). Try again in a moment.`); return; }
       if (!res.ok) { void alert(res.error ?? "The edit was refused."); return; }
-      haptic("success"); onSaved(res.changed, res.commit);
+      haptic("success"); onSaved(res.changed, res.commit, res.change.id);
     } catch { void alert("The edit did not reach the server. Check the connection and try again."); }
     finally { setBusy(false); }
   };
@@ -67,10 +62,11 @@ export function NoteEditSheet({ open, onClose, note, onSaved }: { open: boolean;
   // Mounted at the app's root, so no screen or sheet around it can decide its size.
   const host = document.getElementById("root") ?? document.body;
   return createPortal(
-    <Sheet open={open} onClose={onClose} height="full" title="Edit this note" subTitle="Saved as a commit to the library" className="edit-sheet" footer={
-      <div className="edit__footer"><button type="button" className="btn btn--quiet" onClick={onClose}>Cancel</button><button type="button" className="btn" disabled={!dirty || busy} onClick={() => void save()}>{busy ? "Saving…" : "Save"}</button></div>
+    <Sheet open={open} onClose={onClose} height="full" title="Edit this note" subTitle="Saved for review before publication" className="edit-sheet" footer={
+      <div className="edit__footer"><button type="button" className="btn btn--quiet" onClick={onClose}>Cancel</button><button type="button" className="btn" disabled={!dirty || !source || reason.trim().length < 3 || busy} onClick={() => void save()}>{busy ? "Saving…" : "Save for review"}</button></div>
     }>
       <div className="edit" onFocus={onFocus} data-mode={mode}>
+        <label className="edit__field"><span>Reason for this edit</span><input value={reason} onChange={e => setReason(e.target.value)} /></label>
         <Segmented label="What to edit" value={mode} onChange={setMode} options={[["text", "Text"], ["quick", "Quick fixes"]]} />
         {mode === "text" ? (
           loadError ? <p className="hint">{loadError}</p>

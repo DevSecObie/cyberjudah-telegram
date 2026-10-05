@@ -1,3 +1,4 @@
+import { CmsEditLink } from "@/admin/EditLink";
 import { useQueries } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -51,6 +52,7 @@ export function WhySheet({ open, onClose, slug, chapter, verse, reference, onRea
             </button>
             {words(r) ? <p className="why__words">{words(r)}</p> : null}
             {r.why ? <Breakdown text={r.why} open={expanded.has(`${r.kind}|${r.ref.url}`)} onMore={() => setExpanded(new Set(expanded).add(`${r.kind}|${r.ref.url}`))} /> : null}
+            {/^https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})$/.test(r.note.url) ? <CmsEditLink kind="precepts" id={new URL(r.note.url).searchParams.get("v")!} /> : null}
             {r.why || more ? <button type="button" className="why__src" onClick={() => onOpenClass(r.note.url, r.ts)}>{r.note.label}{r.note.date ? ` · ${fmtDate(r.note.date)}` : ""}{r.ts ? ` · ${r.ts}` : ""}{more ? ` · and ${more} more class${more > 1 ? "es" : ""}` : ""}</button> : null}
           </div>
         ))}

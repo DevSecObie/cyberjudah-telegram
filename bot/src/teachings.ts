@@ -1,3 +1,4 @@
+import { classCorrections, applyClassCorrection } from "./class-corrections";
 import type { Env, Exec } from "./env";
 import { ftsExpr, parseQuery } from "./search";
 import { FEEDS, noteUrl, passageExcerpt } from "./teachings.mjs";
@@ -30,7 +31,8 @@ export async function searchTeachings(env: Env, q: string, feed: string, page: n
       results = (await env.TEACH.prepare(sql).bind(expr, f, page * 20).all<Row>()).results;
       if (results.length || page > 0) { mode = i ? "loose" : "strict"; break; }
     }
-    const hits = results.slice(0, 20).map(({ matchedText, cues, note, ...hit }) => ({ ...hit, note: noteUrl(note), ...passageExcerpt(matchedText, cues, hit.start) }));
+    const corrections = await classCorrections(env);
+    const hits = results.slice(0, 20).map(({ matchedText, cues, note, ...hit }) => ({ ...hit, note: noteUrl(note), ...passageExcerpt(matchedText, cues, hit.start) })).map(row => applyClassCorrection(row, corrections));
     return { ok: true, q: text, feed: f, page, mode, hits, more: results.length > 20, ms: Date.now() - t0 };
   } catch (e) {
     console.error(JSON.stringify({ event: "teachings_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 120) }));
@@ -53,7 +55,8 @@ FROM hits AS h JOIN top USING (video) ORDER BY top.n DESC, top.d DESC, h.video, 
 export async function taughtIn(env: Env, slug: string, chapter: number, verses: number[]): Promise<{ ok: true; rows: TaughtRow[]; total: number } | { ok: false; reason: string }> {
   try {
     const res = await env.TEACH.prepare(taughtSql).bind(slug, chapter, JSON.stringify(verses)).all<TaughtRow & { total: number }>();
-    return { ok: true, rows: res.results.map((r) => ({ ...r, note: noteUrl(r.note) })), total: res.results[0]?.total ?? 0 };
+    const corrections = await classCorrections(env);
+    return { ok: true, rows: res.results.map((r) => applyClassCorrection({ ...r, note: noteUrl(r.note) }, corrections)), total: res.results[0]?.total ?? 0 };
   } catch { return { ok: false, reason: "unavailable" }; }
 }
 
@@ -90,7 +93,7 @@ export async function transcriptAround(env: Env, video: string, t: number, ctx?:
   const { kind, file } = got;
   const chunks = chunkSegments(file.segments ?? []).filter((c) => c.t >= t - span && c.t <= t + span);
   const note = await noteFor(env, video, ctx);
-  return { ok: true, video, kind, title: note?.title || file.cleanTitle || file.title || video, url: note?.url ?? "", date: file.date ?? note?.date ?? "", duration: file.duration ?? null, t, chunks };
+  return applyClassCorrection({ ok: true as const, video, kind, title: note?.title || file.cleanTitle || file.title || video, url: note?.url ?? "", date: file.date ?? note?.date ?? "", duration: file.duration ?? null, t, chunks }, await classCorrections(env));
 }
 
 /** The page a recording has, when it is written up: from teaching_refs/teaching_passages' note column. */
