@@ -72,7 +72,7 @@ export const TimelineSave = z.strictObject({
   shas: z.strictObject({ events: FileSha, drafts: FileSha }), event: TimelineShape, reason: Reason,
 });
 export const NoteSave = z.strictObject({ file: z.string().max(240), sha: FileSha, reason: Reason, body: text.optional(), teacher: z.string().max(200).optional(), title: z.string().max(500).optional(), replace: z.array(z.strictObject({ from: text, to: text })).max(30).optional() });
-export type CmsState = 'Checking' | 'Passed' | 'Failed' | 'Published' | 'Closed';
+export type CmsState = 'Checking' | 'Passed' | 'Failed' | 'Published' | 'Live' | 'Closed';
 export type CmsChange = {
   id: string; kind: CmsKind | 'resources'; subject: string; title: string; reason: string; repo: string; branch: string;
   by: { id: number; name: string }; at: string; head: string; files: { path: string; sha: string }[];

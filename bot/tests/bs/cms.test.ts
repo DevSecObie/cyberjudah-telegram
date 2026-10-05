@@ -6,7 +6,9 @@ import worker from '../../src/index.ts';
 import { signInitData } from '../../src/initdata.mjs';
 import type { Env } from '../../src/env.ts';
 import { FakeGithub } from '../fixtures/cms-github.mjs';
-import { allowedFile, APP_REPO, CONTENT_REPO, TIMELINE_FILES, createChange, Github } from '../../src/cms-github.ts';
+import { allowedFile, APP_REPO, CONTENT_REPO, TIMELINE_FILES, createChange, Github, recordChange } from '../../src/cms-github.ts';
+import { approvedSources, selectSources } from '../../src/source-policy.ts';
+import { rewriteJson } from '../../../shared/cms-json.ts';
 import { CalendarDate, NoteSave, SourceList, resolveScripture, timelineSchema } from '../../../shared/cms.ts';
 let fake: FakeGithub, env: Env, db: DatabaseSync;
 const originalFetch = globalThis.fetch;
@@ -139,9 +141,9 @@ test('resource changes require explicit confirmation, preserve CAS and record ou
   assert.equal((await request('admin/cms/resources','POST',body)).status,400);
   assert.equal(files.size,0);
   const response = await request('admin/cms/resources','POST',{...body,confirm:'apply'}); assert.equal(response.status,200,await response.clone().text());
-  const saved = await response.json() as any; assert.equal(saved.state,'Published'); assert.equal(saved.kind,'resources'); assert.equal(saved.by.id,42);
+  const saved = await response.json() as any; assert.equal(saved.state,'Live'); assert.equal(saved.kind,'resources'); assert.equal(saved.by.id,42);
   assert.equal((await request('admin/cms/resources','POST',{...body,confirm:'apply'})).status,409);
-  const audit = await (await request('admin/cms/changes')).json() as any; assert.deepEqual(new Set(audit.changes.map((c:any)=>c.state)),new Set(['Failed','Published']));
+  const audit = await (await request('admin/cms/changes')).json() as any; assert.deepEqual(new Set(audit.changes.map((c:any)=>c.state)),new Set(['Failed','Live']));
   assert.deepEqual((await (await request('admin/cms/resources')).json() as any).catalog,catalog);
   assert.deepEqual((await (await request('admin/cms/resources/releases')).json() as any).releases,[]);
   assert.equal(fake.calls.length,0,'Resource publication must not contact GitHub');
@@ -155,4 +157,91 @@ test('a failed Actions check with no summary shows its annotation in plain words
   assert.match(response.message,/The quote does not match the cited recording/);
   assert.ok(!response.message.includes('Process completed with exit code'));
   assert.ok(fake.calls.some(c=>/\/check-runs\/\d+\/annotations$/.test(c.route)));
+});
+
+test('editing an event changes only its title line, and an untouched save writes nothing', async () => {
+  const data = await loaded(), original = fake.files.get(TIMELINE_FILES.events)!;
+  assert.equal((await request('admin/cms/timeline', 'POST', pick(data))).status, 400);
+  assert.ok(!fake.calls.some(c => c.method === 'POST'));
+  const change = await save(), files = fake.commits.get(change.head)!;
+  assert.equal(files.get(TIMELINE_FILES.events), original.replace(JSON.stringify(data.event.title), JSON.stringify(data.event.title + ' correction')));
+  assert.equal(files.get(TIMELINE_FILES.drafts), fake.files.get(TIMELINE_FILES.drafts));
+});
+test('a real #140 spoken-against event round trips byte for byte, including its answer and teaching', async () => {
+  // Pinned source: PR #140, commit 1bc1efd467523d5fb1004906225a606cec15fdcb.
+  const text = readFileSync(new URL('../fixtures/cms-timeline-140.json', import.meta.url), 'utf8');
+  fake.files.set(TIMELINE_FILES.events, text); fake.commits.set(fake.main, new Map(fake.files));
+  const data = await loaded(); assert.ok(data.event.answer.length); assert.ok(data.event.teaching.length);
+  assert.equal(rewriteJson(text, [data.event]), text);
+  assert.equal((await request('admin/cms/timeline', 'POST', pick(data))).status, 400);
+  assert.ok(!fake.calls.some(c => c.method === 'POST'));
+  const c = await save(); assert.equal(fake.commits.get(c.head)!.get(TIMELINE_FILES.events), text.replace(JSON.stringify(data.event.title), JSON.stringify(data.event.title + ' correction')));
+});
+test('moving one draft adds exactly that event, preserves every unrelated record and leaves drafts in order', async () => {
+  const data = await loaded(), eventsText = fake.files.get(TIMELINE_FILES.events)!, original = JSON.parse(eventsText);
+  const draft = { ...data.event, slug: 'test-publish', status: 'draft' };
+  const drafts = JSON.parse(fake.files.get(TIMELINE_FILES.drafts)!); drafts.splice(2, 0, draft);
+  const draftsText = JSON.stringify(drafts, null, 1) + '\n'; fake.files.set(TIMELINE_FILES.drafts, draftsText); fake.commits.set(fake.main, new Map(fake.files));
+  const loadedDraft = await (await request('admin/cms/timeline/test-publish')).json() as any;
+  const response = await request('admin/cms/timeline', 'POST', { ...pick(loadedDraft), action: 'publish' });
+  assert.equal(response.status, 201, await response.clone().text());
+  const change = await response.json() as any, files = fake.commits.get(change.head)!;
+  const events = JSON.parse(files.get(TIMELINE_FILES.events)!);
+  assert.deepEqual(events.filter((e: any) => e.slug !== draft.slug), original);
+  assert.deepEqual(events.filter((e: any) => e.slug === draft.slug), [{ ...draft, status: 'published' }]);
+  assert.equal(rewriteJson(files.get(TIMELINE_FILES.events)!, original), eventsText);
+  assert.deepEqual(JSON.parse(files.get(TIMELINE_FILES.drafts)!), drafts.filter((e: any) => e.slug !== draft.slug));
+  assert.equal(rewriteJson(files.get(TIMELINE_FILES.drafts)!, drafts), draftsText);
+});
+test('source Publish activates its reviewed revision without deploying, and retries a failed KV write', async () => {
+  let kv: unknown = ['legacy.example.org'], unavailable = true;
+  env.SUBS = { get: async () => kv, put: async (_key: string, text: string) => { if (unavailable) throw new Error('Unavailable'); kv = JSON.parse(text); } } as unknown as KVNamespace;
+  const initial = await (await request('admin/cms/sources')).json() as any;
+  const change = await (await request('admin/cms/sources', 'POST', { sha: initial.sha, hosts: ['archive.org'], reason: 'Reviewed source change' })).json() as any;
+  assert.deepEqual(await approvedSources(env), ['legacy.example.org']); fake.checks = 'success';
+  const route = `admin/cms/changes/${change.id}`;
+  const saved = await (await request(route + '/publish', 'POST', { head: change.head, confirm: 'publish' })).json() as any;
+  assert.equal(saved.state, 'Published'); assert.match(saved.message, /Refresh status to retry/);
+  unavailable = false;
+  const live = await (await request(route)).json() as any;
+  assert.equal(live.state, 'Live'); assert.deepEqual(kv, { revision: 1, hosts: ['archive.org'] });
+  assert.deepEqual(await approvedSources(env), ['archive.org']);
+  assert.equal(fake.calls.filter(c => c.route.endsWith('/merge')).length, 1);
+  assert.deepEqual(selectSources({ revision: 3, hosts: ['loc.gov'] }, { revision: 2, hosts: ['archive.org'] }), ['loc.gov']);
+  assert.deepEqual(selectSources({ revision: 3, hosts: ['loc.gov'] }, { revision: 3, hosts: ['archive.org'] }), ['loc.gov']);
+  kv = { revision: 5, hosts: ['loc.gov'] }; await request(route); assert.deepEqual(kv, { revision: 5, hosts: ['loc.gov'] });
+});
+test('publication tells readers which approval or data rebuild remains, including Recent changes', async () => {
+  const change = await save(); fake.checks = 'success';
+  const result = await (await request(`admin/cms/changes/${change.id}/publish`, 'POST', { head: change.head, confirm: 'publish' })).json() as any;
+  assert.equal(result.message, 'Published. Readers will see it after the next update is approved.');
+  const audit = await (await request('admin/cms/changes')).json() as any; assert.equal(audit.changes[0].message, result.message);
+  const file = 'blog/2026/test.md', source = await (await request(`notes/source?file=${file}`)).json() as any;
+  const saved = await (await request('notes/edit', 'POST', { file, sha: source.sha, teacher: 'Correction', reason: 'Correct source metadata' })).json() as any;
+  const note = await (await request(`admin/cms/changes/${saved.change.id}/publish`, 'POST', { head: saved.change.head, confirm: 'publish' })).json() as any;
+  assert.equal(note.state, 'Published'); assert.equal(note.message, 'Published. Readers will see it after the data set rebuilds (a few minutes).');
+});
+test('audit pagination reaches all records, handles equal timestamps and never deletes rows', async () => {
+  const sample = await save();
+  for (let i = 0; i < 104; i++) await recordChange(env, { ...sample, id: crypto.randomUUID() });
+  const ids: string[] = []; let cursor: string | null = null;
+  do {
+    const response = await request(`admin/cms/changes${cursor ? '?cursor=' + encodeURIComponent(cursor) : ''}`);
+    const page = await response.json() as any; assert.ok(page.changes.length <= 50);
+    ids.push(...page.changes.map((c: any) => c.id)); cursor = page.cursor;
+  } while (cursor);
+  assert.equal(ids.length, 105); assert.equal(new Set(ids).size, 105);
+  assert.equal((db.prepare('SELECT count(*) AS n FROM cms_changes').get() as any).n, 105);
+  assert.equal((await request('admin/cms/changes?cursor=invalid')).status, 400);
+});
+test('failed saves remove orphan branches but preserve a PR created before a lost response', async () => {
+  for (const fail of ['contents', 'pull']) {
+    fake.failSave = fail;
+    const data = await loaded(); assert.equal((await request('admin/cms/timeline', 'POST', { ...pick(data), event: { ...data.event, title: 'A correction' } })).status, 503);
+    assert.equal(fake.refs.size, 0); assert.equal(fake.pulls.size, 0);
+  }
+  fake.failSave = ''; fake.losePullResponse = true;
+  const data = await loaded(); assert.equal((await request('admin/cms/timeline', 'POST', { ...pick(data), event: { ...data.event, title: 'A correction' } })).status, 503);
+  assert.equal(fake.refs.size, 1); assert.equal(fake.pulls.size, 1);
+  const audit = await (await request('admin/cms/changes')).json() as any; assert.ok(audit.changes.some((c: any) => c.pr && c.url));
 });

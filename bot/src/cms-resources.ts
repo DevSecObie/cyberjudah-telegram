@@ -33,7 +33,7 @@ cmsResources.post('/', async c => {
     const result = await response.json<{ error: string }>(); change.state = 'Failed'; change.message = result.error;
     await recordChange(c.env, change); return c.json({ error: result.error }, response.status as 400 | 409 | 503);
   }
-  change.state = 'Published'; change.message = 'The resource catalog is now live.';
+  change.state = 'Live'; change.message = 'The resource catalog is now live.';
   try { await recordChange(c.env, change); }
   catch { return c.json({ ...change, message: 'The resource catalog is live, but its final audit status could not be stored. Refresh the catalog before making another change.' }); }
   return c.json(change);

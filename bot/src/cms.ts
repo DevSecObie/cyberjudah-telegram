@@ -1,3 +1,4 @@
+import { rewriteJson } from "../../shared/cms-json";
 import { cmsResources } from "./cms-resources";
 import { readSources, saveSources } from "./cms-sources";
 import { Hono } from 'hono';
@@ -47,20 +48,32 @@ cms.post('/timeline', async c => {
   if (input.action === 'add' ? !!existing : !existing) throw new CmsError(input.action === 'add' ? 'That event id already exists.' : 'The event no longer exists.', 409);
   if (input.action === 'publish' && !wasDraft || input.action === 'unpublish' && (!existing || wasDraft)) throw new CmsError('This event has already moved. Refresh before editing.', 409);
   const draft = input.action === 'publish' ? false : input.action === 'unpublish' ? true : input.action === 'add' ? input.draft : wasDraft;
-  const event = timelineSchema(data.periods, data.leaders, draft).parse({ ...input.event, status: draft ? 'draft' : 'published' });
-  const events = data.lists.events.filter(e => e.slug !== input.id), drafts = data.lists.drafts.filter(e => e.slug !== input.id);
-  (draft ? drafts : events).push(event);
-  const order = new Map(data.periods.map((p, i) => [p.id, i]));
-  events.sort((a, b) => order.get(a.period)! - order.get(b.period)! || a.start! - b.start! || a.end! - b.end! || data.lists.events.findIndex(e => e.slug === a.slug) - data.lists.events.findIndex(e => e.slug === b.slug));
-  // Keep draft order stable when editing an existing draft.
-  if (draft && wasDraft) drafts.sort((a, b) => data.lists.drafts.findIndex(e => e.slug === a.slug) - data.lists.drafts.findIndex(e => e.slug === b.slug));
-  const files = [{ ...data.events, text: JSON.stringify(events, null, 1) + '\n' }, { ...data.drafts, text: JSON.stringify(drafts, null, 1) + '\n' }].filter(f => f.text !== (f.path === data.events.path ? data.events.text : data.drafts.text));
+  const event = { ...input.event };
+  // Status is an explicit move, not an extra field added to every ordinary edit.
+  if (input.action !== 'edit') event.status = draft ? 'draft' : 'published';
+  timelineSchema(data.periods, data.leaders, draft).parse(event);
+  const events = [...data.lists.events], drafts = [...data.lists.drafts];
+  const from = wasDraft ? drafts : events, into = draft ? drafts : events;
+  const oldIndex = from.findIndex(e => e.slug === input.id);
+  if (oldIndex >= 0) from.splice(oldIndex, 1);
+  let index = into.length;
+  if (existing && wasDraft === draft && (draft || existing.period === event.period && existing.start === event.start)) index = oldIndex;
+  else if (!draft) {
+    let last = -1;
+    into.forEach((e, i) => { if (e.period === event.period && e.start! <= event.start!) last = i; });
+    const first = into.findIndex(e => e.period === event.period);
+    const order = data.periods.map(p => p.id);
+    const later = into.findIndex(e => order.indexOf(e.period) > order.indexOf(event.period));
+    index = last >= 0 ? last + 1 : first >= 0 ? first : later >= 0 ? later : into.length;
+  }
+  into.splice(index, 0, event);
+  const files = [{ ...data.events, text: rewriteJson(data.events.text, events) }, { ...data.drafts, text: rewriteJson(data.drafts.text, drafts) }].filter(f => f.text !== (f.path === data.events.path ? data.events.text : data.drafts.text));
   if (!files.length) throw new CmsError('There is no content change to save.');
   return c.json(await createChange(c.env, { repo: APP_REPO, kind: 'timeline', subject: input.id, title: `${input.action === 'publish' ? 'Publish' : input.action === 'unpublish' ? 'Unpublish' : input.action === 'add' ? 'Add' : 'Edit'} Timeline event: ${event.title}`, reason: input.reason, base: data.base, files }, actor(c.get('tma').user!)), 201);
 });
 cms.get('/sources', async c => c.json(await readSources(c.env)));
 cms.post('/sources', async c => c.json(await saveSources(c.env, await c.req.json(), actor(c.get('tma').user!)), 201));
-cms.get('/changes', async c => c.json({ changes: await recentChanges(c.env) }));
+cms.get('/changes', async c => c.json(await recentChanges(c.env, c.req.query('cursor'))));
 cms.get('/changes/:id', async c => c.json(await refreshChange(c.env, c.req.param('id'))));
 cms.post('/changes/:id/publish', async c => {
   const input = z.strictObject({ head: FileSha, confirm: z.literal('publish') }).parse(await c.req.json());

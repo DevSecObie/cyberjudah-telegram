@@ -36,16 +36,35 @@ test('an admin edits a Timeline event, follows checks and explicitly publishes t
   const before = await (await request.get(`${STAND_IN}/__cms/calls`)).json();
   expect(before.some((c: {route:string})=>c.route.endsWith('/merge'))).toBe(false);
   await sheet.getByRole('button',{name:'Confirm publish'}).click();
-  await expect(page.getByRole('status')).toContainText('Published');
+  await expect(page.getByRole('status')).toContainText('Published. Readers will see it after the next update is approved.');
   const calls = await (await request.get(`${STAND_IN}/__cms/calls`)).json();
   const merge = calls.find((c: {route:string})=>c.route.endsWith('/merge')); expect(merge.body.merge_method).toBe('squash');
   expect(calls.filter((c: {method:string;route:string})=>c.method === 'PUT' && c.route.includes('/contents/')).every((c: {body:{branch:string}})=>c.body.branch.startsWith('cms/'))).toBe(true);
 });
 test('a non-admin sees no Admin or content Edit action and the server rejects direct access',async({page,request})=>{
+  const manifest = await (await request.get('/offline-shell.json')).json();
+  expect(manifest.paths.filter((p: string) => /\/(Admin|TimelineEditor|photo-editor|note-edit)[-.]/.test(p))).toEqual([]);
+  const scripts: string[] = []; page.on('request', r => { if (r.resourceType() === 'script') scripts.push(r.url()); });
   await launch(page,'/settings',false);
   await expect(page.getByText('Admin',{exact:true})).toHaveCount(0);
   await launch(page,`/timeline/event/${event.slug}`,false);
   await expect(page.getByRole('link',{name:'Edit',exact:true})).toHaveCount(0);
   const response = await request.post('/api/admin/cms/timeline',{headers:{authorization:`tma ${await sign(100000003)}`},data:{}}); expect(response.status()).toBe(403);
   await launch(page,'/settings/admin',false); await expect(page.getByText('This area is available to admins only.')).toBeVisible();
+  expect(scripts.filter(url => /\/(Admin|TimelineEditor|photo-editor|note-edit)[-.]/.test(url))).toEqual([]);
+});
+
+test('the #140 answer event loads and an untouched form submits every original value', async ({ page, request }) => {
+  const fixture = JSON.parse(readFileSync(new URL('../../bot/tests/fixtures/cms-timeline-140.json', import.meta.url), 'utf8'))[0];
+  const source = await (await request.get(`/api/admin/cms/timeline/${event.slug}`, { headers: { authorization: `tma ${await sign(100000002)}` } })).json();
+  await page.route(`**/api/admin/cms/timeline/${fixture.slug}`, r => r.fulfill({ json: { ...source, event: fixture } }));
+  let submitted: unknown;
+  await page.route('**/api/admin/cms/timeline', r => { submitted = r.request().postDataJSON().event; return r.fulfill({ status: 400, json: { error: 'There is no content change to save.' } }); });
+  await launch(page, `/settings/admin/timeline/${fixture.slug}`);
+  await expect(page.getByLabel('Answer 1 reference')).toHaveValue(fixture.answer[0].ref);
+  await expect(page.getByLabel('Teaching 1 quote')).toHaveValue(fixture.teaching[0].quote);
+  await page.getByLabel('Reason for this change').fill('Check the existing event values.');
+  await page.getByRole('button', { name: 'Save for review', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('There is no content change to save.');
+  expect(submitted).toEqual(fixture);
 });

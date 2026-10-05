@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router';
 import type { CmsChange } from '@shared/cms';
 import { api } from './client';
@@ -18,7 +18,7 @@ export function Admin() {
   useBackButton(false);
   const who = useQuery({ queryKey: ['me'], queryFn: () => api<{ admin?: boolean }>('/api/me'), retry: false });
   if (who.isPending) return <Screen title="Settings"><p>Checking access…</p></Screen>;
-  if (!who.data?.admin) return <Screen title="Settings"><p>This area is available to admins only.</p></Screen>;
+  if (!who.isSuccess || !who.data?.admin) return <Screen title="Settings"><p>This area is available to admins only.</p></Screen>;
   return <Screen title="Admin"><div className="cms"><p><Link to="/settings/admin">Admin home</Link></p><Routes>
     <Route index element={<AdminHome />} />
     <Route path="timeline" element={<TimelineList />} /><Route path="timeline/:id" element={<TimelineEditor />} />
@@ -33,8 +33,9 @@ function AdminHome() {
   return <><p>Correct the app’s content and follow each review through its checks.</p><nav className="cms-list" aria-label="Admin sections">{[['timeline', 'Timeline', 'Events, drafts, sources and pictures'], ['classes', 'Classes', 'Edit existing class notes'], ['people', 'People', 'Summaries and relationships'], ['precepts', 'Precepts', 'Class passages and explanations'], ['outside-sources', 'Outside sources', 'Sites Ask may read'], ['resources', 'Resources', 'Published editions and catalog rollback'], ['photos', 'Photos', 'Existing photo editor'], ['changes', 'Recent changes', 'Reviews, checks and publication']].map(([path, title, sub]) => <Link key={path} to={path}><b>{title}</b><small>{sub}</small></Link>)}</nav></>;
 }
 function Changes() {
-  const q = useQuery({ queryKey: ['cms', 'changes'], queryFn: () => api<{ changes: CmsChange[] }>('/api/admin/cms/changes'), refetchInterval: 10_000 });
-  return <><h2>Recent changes</h2>{q.isError ? <p role="alert">{q.error.message}</p> : null}<div className="cms-list">{q.data?.changes.map(c => <Link key={c.id} to={c.id}><b>{c.title}</b><small>{c.state} · {c.by.name} · {new Date(c.at).toLocaleString()}</small></Link>)}</div>{q.data && !q.data.changes.length ? <p>No changes saved yet.</p> : null}</>;
+  const q = useInfiniteQuery({ queryKey: ['cms', 'changes'], initialPageParam: '', queryFn: ({ pageParam }) => api<{ changes: CmsChange[]; cursor: string | null }>(`/api/admin/cms/changes${pageParam ? `?cursor=${encodeURIComponent(pageParam)}` : ''}`), getNextPageParam: page => page.cursor, refetchInterval: 10_000 });
+  const changes = q.data?.pages.flatMap(p => p.changes);
+  return <><h2>Recent changes</h2>{q.isError ? <p role="alert">{q.error.message}</p> : null}<div className="cms-list">{changes?.map(c => <Link key={c.id} to={c.id}><b>{c.title}</b><small>{c.state} · {c.by.name} · {new Date(c.at).toLocaleString()}</small><small>{c.message}</small></Link>)}</div>{changes && !changes.length ? <p>No changes saved yet.</p> : null}{q.hasNextPage ? <button type="button" disabled={q.isFetchingNextPage} onClick={() => void q.fetchNextPage()}>{q.isFetchingNextPage ? 'Loading…' : 'Older changes'}</button> : null}</>;
 }
 export function ChangeStatus() {
   const { id = '' } = useParams(), client = useQueryClient();
@@ -49,7 +50,7 @@ export function ChangeStatus() {
   if (q.isPending) return <p>Loading review…</p>;
   if (q.isError) return <p role="alert">{q.error.message} <button onClick={() => void q.refetch()}>Retry</button></p>;
   const c = q.data;
-  return <><h2>{c.title}</h2><p role="status" className="cms-status"><b>{c.state}</b><br />{c.message}</p><p>Edited by {c.by.name} · {new Date(c.at).toLocaleString()}</p><p>{c.reason}</p>{c.url ? <p><a href={c.url} target="_blank" rel="noopener noreferrer">Open review</a></p> : null}{error ? <p role="alert">{error}</p> : null}<div className="cms-actions"><button type="button" onClick={() => void q.refetch()}>Refresh status</button>{c.pr && c.state !== 'Published' && c.state !== 'Closed' ? <button className="btn" type="button" disabled={!c.canPublish} onClick={() => setConfirm(true)}>Publish</button> : null}</div>
+  return <><h2>{c.title}</h2><p role="status" className="cms-status"><b>{c.state}</b><br />{c.message}</p><p>Edited by {c.by.name} · {new Date(c.at).toLocaleString()}</p><p>{c.reason}</p>{c.url ? <p><a href={c.url} target="_blank" rel="noopener noreferrer">Open review</a></p> : null}{error ? <p role="alert">{error}</p> : null}<div className="cms-actions"><button type="button" onClick={() => void q.refetch()}>Refresh status</button>{c.pr && c.state !== 'Published' && c.state !== 'Live' && c.state !== 'Closed' ? <button className="btn" type="button" disabled={!c.canPublish} onClick={() => setConfirm(true)}>Publish</button> : null}</div>
     <Sheet open={confirm} onClose={() => setConfirm(false)} title="Publish change" subTitle={c.title} height="half"><div className="cms-form"><p>Merge this reviewed version into the app’s content? The server checks the exact version and required checks again. Production deployment still requires its own approval.</p>{error ? <p role="alert">{error}</p> : null}<button className="btn" type="button" disabled={busy} onClick={() => void publish()}>{busy ? 'Publishing…' : 'Confirm publish'}</button><button type="button" className="btn btn--quiet" onClick={() => setConfirm(false)}>Cancel</button></div></Sheet>
   </>;
 }

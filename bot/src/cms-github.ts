@@ -1,3 +1,4 @@
+import { validSourceRevision } from './source-policy';
 import type { Env } from './env';
 import { decodeBase64, encodeBase64, NOTE_FILE } from './edit.mjs';
 import type { CmsChange, CmsKind } from '../../shared/cms';
@@ -68,10 +69,20 @@ export async function getChange(env: Env, id: string) {
   if (!row) throw new CmsError('Change not found.', 404);
   return JSON.parse(row.data) as CmsChange;
 }
-export async function recentChanges(env: Env) {
+export async function recentChanges(env: Env, cursor?: string) {
   await setup(env);
-  const rows = await env.DB.prepare('SELECT data FROM cms_changes ORDER BY at DESC LIMIT 50').all<{ data: string }>();
-  return rows.results.map(r => JSON.parse(r.data) as CmsChange);
+  let before: { at: string; id: string } | undefined;
+  if (cursor) {
+    if (cursor.length > 200) throw new CmsError('Invalid change history page.');
+    try { before = JSON.parse(cursor); } catch { throw new CmsError('Invalid change history page.'); }
+    if (!before || !/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(before.at) || !/^[a-f0-9-]{36}$/.test(before.id)) throw new CmsError('Invalid change history page.');
+  }
+  const statement = before
+    ? env.DB.prepare('SELECT data FROM cms_changes WHERE at < ? OR (at = ? AND id < ?) ORDER BY at DESC, id DESC LIMIT 51').bind(before.at, before.at, before.id)
+    : env.DB.prepare('SELECT data FROM cms_changes ORDER BY at DESC, id DESC LIMIT 51');
+  const rows = await statement.all<{ data: string }>();
+  const changes = rows.results.slice(0, 50).map(r => JSON.parse(r.data) as CmsChange), last = changes.at(-1);
+  return { changes, cursor: rows.results.length > 50 && last ? JSON.stringify({ at: last.at, id: last.id }) : null };
 }
 export async function createChange(env: Env, plan: { repo: string; kind: CmsKind; subject: string; title: string; reason: string; base: string; files: FileEdit[] }, by: CmsActor) {
   if (!plan.files.length || plan.files.some(f => !allowedFile(plan.repo, plan.kind, f.path))) throw new CmsError('This edit is outside the allowed content paths.', 403);
@@ -83,7 +94,9 @@ export async function createChange(env: Env, plan: { repo: string; kind: CmsKind
   const branch = `cms/${plan.kind}-${plan.subject.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 45)}-${Date.now().toString(36)}-${id.slice(0, 6)}`;
   const change: CmsChange = { id, at, by, repo: plan.repo, kind: plan.kind, subject: plan.subject, title: plan.title, reason: plan.reason, branch, head: current.commit.sha, files: plan.files.map(({ path, sha }) => ({ path, sha })), state: 'Checking', message: 'Creating the review branch.' };
   await recordChange(env, change);
+  let attemptedBranch = false;
   try {
+    attemptedBranch = true;
     await git.json('/git/refs', { method: 'POST', body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: current.commit.sha }) });
     for (const file of plan.files) change.head = (await git.put(file.path, file.text, file.sha, branch, plan.kind, plan.title)).commit.sha;
     const body = `Edited by ${by.name} (Telegram user ${by.id}) in CyberJudah.\n\nReason: ${plan.reason}\n\nContent: ${plan.kind} / ${plan.subject}\n\nFiles:\n${plan.files.map(f => `- ${f.path}`).join('\n')}\n\nChangelog: not applicable — an admin content correction recorded in the CMS audit trail.\n\nPublication requires the admin's Publish action after checks pass. Production deployment approval remains separate.\n\nCMS change: ${id}`;
@@ -91,18 +104,45 @@ export async function createChange(env: Env, plan: { repo: string; kind: CmsKind
     change.pr = pull.number; change.url = pull.html_url; change.message = 'Waiting for repository checks.';
     await recordChange(env, change); return change;
   } catch (e) {
+    // A lost POST response may still have opened the PR. Confirm absence before
+    // deleting our branch; preserve it when GitHub cannot answer safely.
+    if (attemptedBranch && !change.pr) {
+      try {
+        const pulls = await git.json<{ number: number; html_url: string }[]>(`/pulls?state=all&head=${encodeURIComponent(plan.repo.split('/')[0] + ':' + branch)}&per_page=1`);
+        if (pulls.length) { change.pr = pulls[0].number; change.url = pulls[0].html_url; }
+        else await git.request(`/git/refs/heads/${encoded(branch)}`, { method: 'DELETE' });
+      } catch { /* Preserve the branch if its review status is uncertain. */ }
+    }
     change.state = 'Failed'; change.message = e instanceof CmsError ? e.message : 'The save could not finish. Check Recent changes before retrying.';
     await recordChange(env, change); throw e;
   }
 }
-type Pull = { state: string; merged: boolean; mergeable: boolean | null; mergeable_state: string; draft: boolean; head: { sha: string; ref: string; repo: { full_name: string } }; base: { ref: string } };
+type Pull = { state: string; merged: boolean; merge_commit_sha?: string; mergeable: boolean | null; mergeable_state: string; draft: boolean; head: { sha: string; ref: string; repo: { full_name: string } }; base: { ref: string } };
 type Check = { id: number; name: string; status: string; conclusion: string | null; app: { id: number }; output?: { title?: string; summary?: string } };
 const plain = (v: string) => v.replaceAll('<', '‹').replaceAll('>', '›').replace(/\s+/g, ' ').slice(0, 600);
+async function published(env: Env, git: Github, change: CmsChange, mergeSha?: string) {
+  change.state = 'Published'; change.canPublish = false;
+  change.message = change.repo === CONTENT_REPO
+    ? 'Published. Readers will see it after the data set rebuilds (a few minutes).'
+    : 'Published. Readers will see it after the next update is approved.';
+  if (change.kind === 'sources') {
+    try {
+      if (!mergeSha || !/^[a-f0-9]{40}$/.test(mergeSha)) throw new Error('Missing merge revision');
+      const config: unknown = JSON.parse((await git.file(SOURCES_FILE, mergeSha)).text);
+      if (!validSourceRevision(config)) throw new Error('Invalid source revision');
+      const current = await env.SUBS.get('ask:sources', 'json');
+      if (!validSourceRevision(current) || current.revision < config.revision) await env.SUBS.put('ask:sources', JSON.stringify(config));
+      change.state = 'Live'; change.message = 'Live. The published outside-source policy is active; KV propagation can take up to a minute.';
+    } catch {
+      change.message = 'Published. The outside-source policy could not be activated yet. Refresh status to retry; no deployment is needed.';
+    }
+  }
+}
 export async function refreshChange(env: Env, id: string) {
   const change = await getChange(env, id); change.canPublish = false;
   if (!change.pr) return change;
   const git = new Github(env, change.repo), pull = await git.json<Pull>(`/pulls/${change.pr}`);
-  if (pull.merged) { change.state = 'Published'; change.message = 'Merged by an admin. Production deployment approval is still separate.'; }
+  if (pull.merged) { await published(env, git, change, pull.merge_commit_sha); }
   else if (pull.state === 'closed') { change.state = 'Closed'; change.message = 'This change was closed without publishing.'; }
   else if (pull.head.sha !== change.head || pull.head.ref !== change.branch || pull.head.repo.full_name !== change.repo || pull.base.ref !== 'main') { change.state = 'Failed'; change.message = 'The review branch changed outside this editor. Review it in GitHub; this version cannot be published from the app.'; }
   else {
@@ -146,8 +186,8 @@ export async function publishChange(env: Env, id: string, expectedHead: string, 
   const git = new Github(env, change.repo);
   const files = await git.json<{ filename: string; status: string }[]>(`/pulls/${change.pr}/files?per_page=100`);
   if (files.length !== change.files.length || files.some(f => f.status !== 'modified' || !change.files.some(known => known.path === f.filename) || !allowedFile(change.repo, change.kind, f.filename))) throw new CmsError('The review contains files outside this edit. Publish was refused.', 409);
-  const result = await git.json<{ merged: boolean }>(`/pulls/${change.pr}/merge`, { method: 'PUT', body: JSON.stringify({ sha: expectedHead, merge_method: 'squash', commit_title: `CMS: ${change.title}`.slice(0, 240), commit_message: `Edited by ${change.by.name} (Telegram ${change.by.id}). Published by ${by.name} (Telegram ${by.id}).\n\n${change.reason}` }) });
+  const result = await git.json<{ merged: boolean; sha?: string }>(`/pulls/${change.pr}/merge`, { method: 'PUT', body: JSON.stringify({ sha: expectedHead, merge_method: 'squash', commit_title: `CMS: ${change.title}`.slice(0, 240), commit_message: `Edited by ${change.by.name} (Telegram ${change.by.id}). Published by ${by.name} (Telegram ${by.id}).\n\n${change.reason}` }) });
   if (!result.merged) throw new CmsError('GitHub did not merge this change. Refresh to see which requirement remains.', 409);
-  change.state = 'Published'; change.canPublish = false; change.message = `Merged by ${by.name}. Production deployment approval remains separate.`;
+  await published(env, git, change, result.sha);
   await recordChange(env, change); return change;
 }

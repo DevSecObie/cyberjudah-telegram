@@ -4,7 +4,7 @@ const hash = text => createHash('sha1').update(text).digest('hex');
 const root = new URL('../../../', import.meta.url);
 export class FakeGithub {
   /** @type {any[]} */ rules = [];
-  annotationOnly = false;
+  annotationOnly = false; failSave = ''; losePullResponse = false;
   calls = []; pulls = new Map(); refs = new Map(); commits = new Map(); checks = 'pending'; mergeable = true; extraFiles = []; wrongApp = false;
   constructor() {
     this.files = new Map();
@@ -28,6 +28,7 @@ export class FakeGithub {
       if (text == null) return { status: 404, body: {} };
       if (method === 'GET') return ok({ type: 'file', size: Buffer.byteLength(text), sha: hash(text), encoding: 'base64', content: Buffer.from(text).toString('base64') });
       if (method === 'PUT') {
+        if (this.failSave === 'contents') return { status: 503, body: {} };
         if (!body.branch?.startsWith('cms/') || body.sha !== hash(text)) return { status: 409, body: {} };
         const changed = new Map(files); changed.set(path, Buffer.from(body.content, 'base64').toString());
         const sha = hash(JSON.stringify([...changed]) + this.calls.length); this.commits.set(sha, changed); this.refs.set(body.branch, sha);
@@ -35,10 +36,13 @@ export class FakeGithub {
       }
     }
     if (p === '/git/refs' && method === 'POST') { this.refs.set(body.ref.replace('refs/heads/', ''), body.sha); return ok({}); }
+    if (p.startsWith('/git/refs/heads/') && method === 'DELETE') { this.refs.delete(decodeURIComponent(p.slice('/git/refs/heads/'.length))); return ok({}); }
+    if (p === '/pulls' && method === 'GET') return ok([...this.pulls.values()].filter(v => u.searchParams.get('head') === repo.split('/')[0] + ':' + v.head.ref));
     if (p === '/pulls' && method === 'POST') {
+      if (this.failSave === 'pull') return { status: 503, body: {} };
       const number = this.pulls.size + 1;
       const pull = { number, html_url: `https://github.com/${repo}/pull/${number}`, state: 'open', merged: false, draft: body.draft, head: { sha: this.refs.get(body.head), ref: body.head, repo: { full_name: repo } }, base: { ref: body.base } };
-      this.pulls.set(number, pull); return ok(pull);
+      this.pulls.set(number, pull); return this.losePullResponse ? { status: 503, body: {} } : ok(pull);
     }
     const pull = /^\/pulls\/(\d+)(\/files|\/merge)?$/.exec(p);
     if (pull) {
@@ -49,7 +53,7 @@ export class FakeGithub {
       }
       if (pull[2] === '/merge') {
         if (body.sha !== value.head.sha || this.checks !== 'success' || !this.mergeable || body.merge_method !== 'squash') return { status: 409, body: {} };
-        value.merged = true; value.state = 'closed'; return ok({ merged: true });
+        value.merged = true; value.state = 'closed'; value.merge_commit_sha = value.head.sha; this.main = value.head.sha; this.files = this.commits.get(this.main); return ok({ merged: true, sha: this.main });
       }
       return ok({ ...value, mergeable: this.mergeable, mergeable_state: this.mergeable ? 'clean' : 'blocked' });
     }
