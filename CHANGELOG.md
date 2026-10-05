@@ -22,6 +22,8 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- Small library updates behind the scenes (search caching, the bot's web framework, the Anthropic SDK), with no visible change.
+
 - Admins can correct precept explanations, verse positions and playback timestamps through the same review flow, while keeping recorded references intact.
 
 - Admins can review People summaries, reciprocal family relationships and credited pictures from the app. Published pictures appear in the existing profile and relationship graph.
