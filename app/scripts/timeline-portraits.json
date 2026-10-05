@@ -1,9 +1,6 @@
 {
  "source": "PORTRAITS in app/src/ui/portraits.ts on claude/people-portraits (docs/AVATARS.md), approved portraits",
- "heldBack": {
-  "joshua-exo-17-9": "Denied by the owner, 5 October 2026: needs to look like a warrior; to be redone",
-  "jesus-isa-7-14": "Denied by the owner, 5 October 2026: needs to look more austere; to be redone"
- },
+ "heldBack": {},
  "ids": [
   "aaron-exo-4-14",
   "abel-gen-4-2",
@@ -109,6 +106,7 @@
   "jeremiah-2ch-35-25",
   "jeroboam-1ki-11-26",
   "jesse-rut-4-17",
+  "jesus-isa-7-14",
   "jeush-gen-36-5",
   "joab-1sa-26-6",
   "job-job-1-1",
@@ -120,6 +118,7 @@
   "jonathan-1sa-13-2",
   "joseph-gen-30-24",
   "joseph-mat-1-16",
+  "joshua-exo-17-9",
   "josiah-1ki-13-2",
   "jubal-gen-4-21",
   "judah-gen-29-35",
