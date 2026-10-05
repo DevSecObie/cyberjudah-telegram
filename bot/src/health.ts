@@ -55,6 +55,15 @@ export async function selfCheck(env: Env, now = Date.now()): Promise<{ ok: boole
       });
     }
   } catch (e) { checks.push({ name: "daily-send", ok: false, detail: err(e) }); }
+  // D1 serializes writers: a burst of paid answers can lose every hold/settle retry.
+  // credits.ts counts those per day; past the alert threshold the admins are paged.
+  try {
+    const day = new Date(now).toISOString().slice(0, 10);
+    const r = await env.DB.prepare("SELECT n FROM contention_daily WHERE day = ?").bind(day).first<{ n: number }>().catch(() => null);
+    const n = r?.n ?? 0;
+    const alertAt = Math.max(1, Number(env.CREDITS_CONTENTION_ALERT ?? 50));
+    checks.push({ name: "credits-contention", ok: n < alertAt, detail: `${n} today` });
+  } catch (e) { checks.push({ name: "credits-contention", ok: false, detail: err(e) }); }
   return { ok: checks.every((c) => c.ok), checks };
 }
 

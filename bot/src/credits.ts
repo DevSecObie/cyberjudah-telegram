@@ -37,7 +37,11 @@ const TABLES = [
   `CREATE TABLE IF NOT EXISTS credit_usage (request_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, at INTEGER NOT NULL, model TEXT,
     status TEXT NOT NULL, held_mc INTEGER NOT NULL, charged_mc INTEGER NOT NULL, cost_usd REAL NOT NULL, absorbed_mc INTEGER NOT NULL DEFAULT 0, detail TEXT)`,
   "CREATE INDEX IF NOT EXISTS credit_usage_owner ON credit_usage (user_id, at)",
+  // The admin's daily totals read by time alone; without this the usage page scans the whole table.
+  "CREATE INDEX IF NOT EXISTS credit_usage_at ON credit_usage (at)",
   "CREATE TABLE IF NOT EXISTS credit_meta (user_id TEXT PRIMARY KEY, migrated_at INTEGER)",
+  // Write-contention events per UTC day, for the hourly health check's alerting.
+  "CREATE TABLE IF NOT EXISTS contention_daily (day TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)",
 ];
 let ready = false;
 export async function ensureCreditTables(env: Env): Promise<void> {
@@ -48,6 +52,19 @@ export async function ensureCreditTables(env: Env): Promise<void> {
 
 export const ownerOfUser = (env: Env, uid: number): Promise<Owner> => pid(env, uid);
 const isConstraint = (e: unknown) => /CHECK constraint|constraint failed/i.test(String((e as Error)?.message ?? e));
+
+/**
+ * D1 serializes writers: under burst load a hold/settle/refund/adjust can lose every retry.
+ * Count it per UTC day so the hourly health check can page when contention stops being rare.
+ */
+async function noteContention(env: Env, where: string, now = Date.now()): Promise<void> {
+  const day = new Date(now).toISOString().slice(0, 10);
+  console.error(JSON.stringify({ event: "credits_contention", where, day }));
+  await env.DB.batch([
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS contention_daily (day TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)"),
+    env.DB.prepare("INSERT INTO contention_daily (day, n) VALUES (?, 1) ON CONFLICT (day) DO UPDATE SET n = n + 1").bind(day),
+  ]).catch(() => null);
+}
 
 async function lotsOf(env: Env, owner: Owner): Promise<Lot[]> {
   const r = await env.DB.prepare("SELECT id, kind, granted_mc, remaining_mc, expires_at, created_at, source FROM credit_lots WHERE user_id = ? AND remaining_mc > 0").bind(owner).all<Lot>();
@@ -144,6 +161,7 @@ export async function hold(env: Env, owner: Owner, request: string, wantMc: numb
       if (!isConstraint(e) && !/UNIQUE|PRIMARY KEY/i.test(String((e as Error).message))) throw e;
     }
   }
+  await noteContention(env, "hold");
   throw new Error("credits contention");
 }
 
@@ -196,6 +214,7 @@ export async function settle(env: Env, owner: Owner, request: string, r: { actua
     catch (e) { if (!isConstraint(e)) { await env.DB.prepare("UPDATE credit_holds SET state = 'held' WHERE request_id = ? AND state = 'settling'").bind(request).run().catch(() => null); throw e; } }
   }
   await env.DB.prepare("UPDATE credit_holds SET state = 'held' WHERE request_id = ? AND state = 'settling'").bind(request).run().catch(() => null);
+  await noteContention(env, "settle");
   throw new Error("credits contention");
 }
 
@@ -234,6 +253,7 @@ export async function refundPayment(env: Env, owner: Owner, charge: string, now 
     const already = await env.DB.prepare("SELECT amount_mc FROM credit_ledger WHERE user_id = ? AND type = 'refund' AND ref = ?").bind(owner, `refund:${charge}`).first<{ amount_mc: number }>();
     if (already) return { clawed_mc: -already.amount_mc, spent_mc: 0 };
   }
+  await noteContention(env, "refundPayment");
   throw new Error("credits contention");
 }
 
@@ -252,6 +272,7 @@ export async function adjust(env: Env, owner: Owner, mc: number, ref: string, no
       return -take.reduce((s, t) => s + t.mc, 0);
     } catch (e) { if (!isConstraint(e)) throw e; }
   }
+  await noteContention(env, "adjust");
   throw new Error("credits contention");
 }
 

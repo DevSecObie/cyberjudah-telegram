@@ -5,7 +5,7 @@ import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { claude, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
-import { modelOf, type AskModel } from "../../shared/ask-models.mjs";
+import { MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid } from "./privacy.mjs";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
 import { isAdmin } from "./edit";
@@ -89,19 +89,36 @@ const TTS_LIMIT = 50;
  * A per-person daily quota, counted atomically inside D1: the increment is one UPSERT, so
  * concurrent requests cannot each read the same count and all slip under the cap the way a
  * KV read-modify-write can. One table for every capped thing; rows from earlier days are
- * swept on the way through.
+ * swept hourly (sweepRateCounts), never on the request path.
  */
 export async function takeQuota(env: Env, name: string, userId: number, limit: number): Promise<boolean> {
-  const day = new Date().toISOString().slice(0, 10);
   // Counted under the person's pseudonymous ID, and swept the next day.
-  const key = `${name}:${await pid(env, userId)}:${day}`;
+  const key = `${name}:${await pid(env, userId)}:${new Date().toISOString().slice(0, 10)}`;
+  return takeQuotaKey(env, key, limit);
+}
+
+/** The same atomic counter under an explicit key (IP velocity limits): swept with the rest. */
+export async function takeQuotaKey(env: Env, key: string, limit: number): Promise<boolean> {
   const res = await env.DB.batch([
     env.DB.prepare("CREATE TABLE IF NOT EXISTS rate_counts (key TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)"),
     env.DB.prepare("INSERT INTO rate_counts (key, n) VALUES (?, 1) ON CONFLICT (key) DO UPDATE SET n = n + 1 RETURNING n").bind(key),
-    env.DB.prepare("DELETE FROM rate_counts WHERE key NOT LIKE ?").bind(`%:${day}`),
   ]);
   const n = Number((res[1].results?.[0] as { n?: unknown } | undefined)?.n ?? limit + 1);
   return n <= limit;
+}
+
+/**
+ * Old quota rows are swept hourly, never on the request path: the sweep's leading-wildcard
+ * LIKE cannot use the key index, so running it per request is a full table scan on every Ask.
+ * Two days are kept so a UTC-midnight boundary never drops a live counter.
+ */
+export async function sweepRateCounts(env: Env, now = Date.now()): Promise<number> {
+  const day = (n: number) => new Date(now - n * 86400000).toISOString().slice(0, 10);
+  const res = await env.DB.batch([
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS rate_counts (key TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)"),
+    env.DB.prepare("DELETE FROM rate_counts WHERE key NOT LIKE ? AND key NOT LIKE ?").bind(`%:${day(0)}`, `%:${day(1)}`),
+  ]);
+  return Number((res[1] as { meta?: { changes?: number } }).meta?.changes ?? 0);
 }
 
 /** A hundred answers a day per person. */
@@ -110,11 +127,26 @@ async function allowed(env: Env, userId: number): Promise<boolean> {
 }
 
 /**
- * The free model: never charged, open to every reader, and offered whenever the balance is too low
- * for the model chosen. ASK_FREE_MODEL names it; by default the strongest low-cost model in
- * Cloudflare's catalog that researches with tools (GLM 5.3 Flash, Workers AI).
+ * Every Workers AI text model is free-tier eligible: Cloudflare gives the account 10,000 free
+ * neurons a day shared across all of its models (then $0.011/1k neurons on Workers Paid), so
+ * there is no separate "free lane" of models to pick from — the whole text menu is offered.
+ * ASK_FREE_MODELS optionally narrows it (comma-separated model ids); ASK_FREE_MODEL names the
+ * default free model, Llama 3.1 8B, the cheapest per answer. A reader picks any of them in the
+ * app's model picker; the daily circuit breaker below is what keeps the owner's cost at $0.
  */
-export const freeModel = (env: Env) => modelOf(env.ASK_FREE_MODEL || "@cf/zai-org/glm-5.3-flash", "@cf/zai-org/glm-5.3-flash");
+const FREE_FORMATS = new Set(["plain", "chat"]);
+export function freeModels(env: Env): Set<string> {
+  const pinned = String(env.ASK_FREE_MODELS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (pinned.length) return new Set(pinned);
+  return new Set(MODELS.filter((m) => m.id.startsWith("@cf/") && FREE_FORMATS.has(m.format)).map((m) => m.id));
+}
+
+/**
+ * The default free model: never charged, open to every reader, and offered whenever the balance
+ * is too low for the model chosen. It answers from the retrieved passages in one call
+ * (format "plain": no tool rounds); other free models may research up to ASK_FREE_MAX_ROUNDS.
+ */
+export const freeModel = (env: Env) => modelOf(env.ASK_FREE_MODEL || "@cf/meta/llama-3.1-8b-instruct-fp8", "@cf/meta/llama-3.1-8b-instruct-fp8");
 
 /** Ask is paid from the reader's balance (credits.ts) when ASK_BILLING is "on"; otherwise each person has the abuse limit above. */
 export const creditsOn = (env: Env) => env.ASK_BILLING === "on";
@@ -126,9 +158,48 @@ export const creditsOn = (env: Env) => env.ASK_BILLING === "on";
  * reader accepted (the app asks first). The free model and the admins are not charged: they get
  * a meter that measures and keeps to the same budget, and holds nothing.
  */
-export type Meter = { owner: string; request: string; held: number; spend: Spend; model: AskModel; free: boolean };
+export type Meter = { owner: string; request: string; held: number; spend: Spend; model: AskModel; free: boolean; admin: boolean; maxRounds?: number };
 type MeterStart = { ok: true; meter: Meter } | { ok: false; status: number; body: Record<string, unknown> };
 export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number> };
+
+/**
+ * The free tier answers at the owner's expense, so it is capped twice: fewer research rounds
+ * (ASK_FREE_MAX_ROUNDS, 3) and a hard per-answer ceiling (ASK_FREE_MAX_USD, five cents).
+ * Without the ceiling, one answer's budget is the paid per-request maximum.
+ */
+const freeMaxRounds = (env: Env) => Math.max(1, Math.floor(Number(env.ASK_FREE_MAX_ROUNDS ?? 3)));
+const freeMaxUsd = (env: Env) => Math.max(0.001, Number(env.ASK_FREE_MAX_USD ?? 0.05));
+
+/**
+ * The owner's free-tier spend is capped per UTC day at the free-allocation value
+ * (ASK_FREE_DAILY_USD_CAP, $0.11 = 10,000 free neurons/day at $0.011/1k): past it, free answers
+ * pause until tomorrow. Cloudflare's free neurons are shared across all Workers AI models, so
+ * the cap also covers the account's other AI usage — free answers pause instead of billing.
+ * A per-account answer cap cannot stop N accounts × 100 free answers each; only a global
+ * cap bounds that loss.
+ */
+const freeCapUsd = (env: Env) => Math.max(0.01, Number(env.ASK_FREE_DAILY_USD_CAP ?? 0.11));
+const freeDay = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
+
+export async function freeSpendToday(env: Env, now = Date.now()): Promise<number> {
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS free_spend_daily (day TEXT PRIMARY KEY, usd_micro INTEGER NOT NULL DEFAULT 0)").run().catch(() => null);
+  const r = await env.DB.prepare("SELECT usd_micro AS m FROM free_spend_daily WHERE day = ?").bind(freeDay(now)).first<{ m: number }>().catch(() => null);
+  return (r?.m ?? 0) / 1e6;
+}
+
+export async function freePaused(env: Env, now = Date.now()): Promise<boolean> {
+  return (await freeSpendToday(env, now)) >= freeCapUsd(env);
+}
+
+/** What a free answer cost, in micro-dollars; admins are excluded (their testing must not trip the breaker). */
+async function recordFreeSpend(env: Env, costUsd: number, now = Date.now()): Promise<void> {
+  if (!(costUsd > 0)) return;
+  const micro = Math.round(costUsd * 1e6);
+  await env.DB.batch([
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS free_spend_daily (day TEXT PRIMARY KEY, usd_micro INTEGER NOT NULL DEFAULT 0)"),
+    env.DB.prepare("INSERT INTO free_spend_daily (day, usd_micro) VALUES (?, ?) ON CONFLICT (day) DO UPDATE SET usd_micro = usd_micro + ?").bind(freeDay(now), micro, micro),
+  ]).catch(() => null);
+}
 export async function startMeter(env: Env, uid: number, model: AskModel, opts: MeterOpts = {}): Promise<MeterStart> {
   const cfg = creditsConfig(env);
   const owner = await ownerOfUser(env, uid);
@@ -138,7 +209,15 @@ export async function startMeter(env: Env, uid: number, model: AskModel, opts: M
   const est = estimateMc(model, cfg, { claudeViaCloudflare: viaCf });
   const request = opts.request && /^[a-z0-9-]{8,64}$/i.test(opts.request) ? opts.request : crypto.randomUUID();
   const free = freeModel(env);
-  if (model.id === free.id || isAdmin(env, uid)) return { ok: true, meter: { owner, request, held: 0, spend: makeSpend({ fee, budgetUsd: est.maxMc * MC_USD, rates: cfg.research }), model, free: true } };
+  const freeSet = freeModels(env);
+  const admin = isAdmin(env, uid);
+  const isFree = freeSet.has(model.id);
+  if (isFree || admin) {
+    const rounds = isFree && !admin ? freeMaxRounds(env) : 6;
+    const estFree = isFree && !admin ? estimateMc(model, cfg, { rounds }) : est;
+    const budget = isFree && !admin ? Math.min(estFree.maxMc * MC_USD, freeMaxUsd(env)) : est.maxMc * MC_USD;
+    return { ok: true, meter: { owner, request, held: 0, spend: makeSpend({ fee, budgetUsd: budget, rates: cfg.research }), model, free: true, admin, maxRounds: isFree && !admin ? rounds : undefined } };
+  }
   const typical = (await typicalMc(env, model.id).catch(() => null)) ?? est.typicalMc;
   const limit = opts.maxMc ?? opts.caps?.[model.id];
   const accepted = limit && limit > 0 ? Math.round(limit) : null;
@@ -149,7 +228,7 @@ export async function startMeter(env: Env, uid: number, model: AskModel, opts: M
   const h = await hold(env, owner, request, cap, minMc, model.id);
   // Not enough: the free model is offered, and a top-up.
   if (!h.ok) return { ok: false, status: 402, body: { error: "credits", model: model.id, name: model.name, available_mc: h.available_mc, need_mc: minMc, typical_mc: typical, free: { id: free.id, name: free.name, provider: free.provider } } };
-  return { ok: true, meter: { owner, request, held: h.held_mc, spend: makeSpend({ fee, budgetUsd: h.held_mc * MC_USD, rates: cfg.research }), model, free: false } };
+  return { ok: true, meter: { owner, request, held: h.held_mc, spend: makeSpend({ fee, budgetUsd: h.held_mc * MC_USD, rates: cfg.research }), model, free: false, admin: isAdmin(env, uid) } };
 }
 
 /**
@@ -164,6 +243,9 @@ export async function finishMeter(env: Env, m: Meter, status: "ok" | "failed" | 
   const charged = status === "ok" && !m.free ? Math.min(actual, m.held) : 0;
   const detail = { calls: m.spend.calls, searches: m.spend.searches, model_usd: Math.round(m.spend.modelUsd * 1e6) / 1e6, research_usd: Math.round(m.spend.researchUsd * 1e6) / 1e6 };
   console.log(JSON.stringify({ event: "ask_usage", model: m.model.id, status, cost_usd: Math.round(cost * 1e6) / 1e6, charged_mc: charged, held_mc: m.held, free: m.free, ...detail }));
+  // The owner's free-tier spend is metered per day for the circuit breaker (begin): what the
+  // calls actually cost, whatever the outcome, since the owner paid for them either way.
+  if (m.free && !m.admin) await recordFreeSpend(env, cost);
   if (m.free) return null;
   const r = await settle(env, m.owner, m.request, { actualMc: charged, costUsd: cost, status, model: m.model.id, detail, absorbedMc: actual - charged }).catch((e: Error) => { console.error(JSON.stringify({ event: "credits_settle_failed", message: e.message?.slice(0, 160) })); return null; });
   return r ? { charged_mc: r.charged_mc, balance: await wallet(env, m.owner) } : null;
@@ -179,6 +261,12 @@ async function begin(env: Env, uid: number, model: AskModel, opts: MeterOpts): P
   const r = await startMeter(env, uid, model, opts);
   if (!r.ok) return r;
   if (r.meter.free && !isAdmin(env, uid) && !(await allowed(env, uid))) return { ok: false, status: 429, body: { error: "limit" } };
+  // The global free-tier circuit breaker: past the owner's daily cap the free model pauses
+  // until tomorrow (paid answers are unaffected). Fires before any model call is made.
+  if (r.meter.free && !isAdmin(env, uid) && (await freePaused(env))) {
+    console.error(JSON.stringify({ event: "free_breaker_tripped", day: freeDay() }));
+    return { ok: false, status: 429, body: { error: "free-paused" } };
+  }
   return r;
 }
 
@@ -326,7 +414,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             // Claude researches first (searches and verses, reported as it goes), then writes.
             const steps: string[] = [];
             let ran: Awaited<ReturnType<typeof runAgent>> | null = null;
-            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model, spend, opts.resources); }
+            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model, spend, opts.resources, meter?.maxRounds); }
             catch (e) {
               // Claude cannot answer now (overloaded, rate limited, down, or its key refused): the
               // backup model answers from the passages already found, and the reader is not charged.
