@@ -1,0 +1,3251 @@
+{
+ "period": "multi",
+ "tribes": [
+  "Naphtali",
+  "Asher"
+ ],
+ "events": [
+  {
+   "slug": "siege-of-cusco-1536",
+   "title": "Manco Inca's rising and the siege of Cusco",
+   "start": 1536,
+   "end": 1537,
+   "date": {
+    "text": "6 May 1536 – March 1537",
+    "precision": "range"
+   },
+   "period": "into-the-ships",
+   "group": "Resistance",
+   "place": "Cusco and Lima, Peru",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Manco Inca Yupanqui",
+    "Hernando Pizarro",
+    "Juan Pizarro",
+    "Gonzalo Pizarro",
+    "Quiso Yupanqui"
+   ],
+   "summary": "Manco Inca, the Sapa Inca the Spaniards had crowned and then imprisoned and humiliated, escaped in April 1536 and laid a ten-month siege to Cusco, which the Spaniards held; when it failed he withdrew to Vilcabamba.",
+   "account": [
+    "After Pizarro's men captured Atahualpa at Cajamarca and killed him in July 1533, taking a ransom of over 39,000 lb (18 t) of gold and silver, they captured Cusco on November 15, 1533 and had Manco Inca crowned. Real power rested with the Spaniards, who frequently humiliated him; Juan Pizarro imprisoned him after an attempted escape in November 1535.",
+    "Released in January 1536, Manco left Cusco on April 18, 1536, met his military chiefs at Lares, and gathered an army estimated at 100,000 to 200,000 men (some sources say as few as 40,000) around the city, held by 190 Spaniards and several thousand Indian auxiliaries. The Incas seized the fortress of Sacsayhuamán above the city on May 5, 1536; the siege began on 6 May and lasted until March 1537.",
+    "Manco coordinated it with a siege of Lima under his captain Quiso Yupanqui; the Incas defeated four relief expeditions sent by Francisco Pizarro, killing nearly 500 Spanish soldiers. When the siege failed, Manco withdrew to Ollantaytambo and then to the remote jungles of Vilcabamba, where he founded the Neo-Inca State in 1537."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Siege of Cusco",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Siege_of_Cusco",
+     "accessed": "2026-10-04",
+     "supports": "Ransom of over 39,000 lb; capture of Cusco 15 November 1533; Manco's imprisonment and release; 18 April 1536; army of 100,000–200,000 (or 40,000); 190 Spaniards; Sacsayhuamán 5 May; siege 6 May 1536 – March 1537."
+    },
+    {
+     "title": "Neo-Inca State",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Neo-Inca_State",
+     "accessed": "2026-10-04",
+     "supports": "The siege of Lima under Quiso Yupanqui; four relief expeditions defeated and nearly 500 Spanish soldiers killed; retreat to Ollantaytambo and Vilcabamba; Neo-Inca State founded 1537."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "conquest-of-the-muisca-1537-1540",
+   "title": "The conquest of the Muisca and the founding of Bogotá",
+   "start": 1537,
+   "end": 1540,
+   "date": {
+    "text": "March 1537 – 1540; Bogotá founded 6 August 1538",
+    "precision": "range"
+   },
+   "period": "into-the-ships",
+   "group": "Native dispossession",
+   "place": "Altiplano Cundiboyacense (Bogotá savanna), Colombia",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Gonzalo Jiménez de Quesada",
+    "Hernán Pérez de Quesada",
+    "Tisquesusa",
+    "Sugamuxi",
+    "Sagipa"
+   ],
+   "summary": "From 1537 to 1540 Spanish expeditions under Gonzalo Jiménez de Quesada conquered the Muisca of the central Andean highlands of Colombia, burned their Sun Temple, and founded Bogotá in 1538 as the capital of the New Kingdom of Granada.",
+   "account": [
+    "The Muisca, the 'Salt People', lived in a loose confederation of rulers on the Bogotá savanna and the highlands of central Colombia, with an agriculture going back to around 3000 BCE; they traded gold, tumbaga and emeralds.",
+    "The conquest began in March 1537, when Quesada's greatly reduced troops entered Muisca territory at Chipatá. In April 1537 they beat the psihipqua Tisquesusa at Funza; in the Iraka Valley the iraca Sugamuxi fell, and the Sun Temple was burned by two of Quesada's soldiers in early September. On August 6, 1538 Quesada founded Bogotá as the capital of the New Kingdom of Granada; Tisquesusa's successor Sagipa allied with the Spanish that month. The conquest lasted until 1540."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Spanish conquest of the Muisca",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Spanish_conquest_of_the_Muisca",
+     "accessed": "2026-10-04",
+     "supports": "Dates 1537–1540; the Muisca confederation and economy; March 1537 at Chipatá; Funza April 1537; Sugamuxi and the burning of the Sun Temple; Bogotá founded 6 August 1538; Sagipa."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "valdivia-and-the-destruction-of-santiago-1541",
+   "title": "Valdivia invades Chile and Michimalonco burns Santiago",
+   "start": 1541,
+   "end": 1544,
+   "date": {
+    "text": "1541–1544 (Santiago founded 12 February 1541, destroyed 11 September 1541)",
+    "precision": "range"
+   },
+   "period": "into-the-ships",
+   "group": "Resistance",
+   "place": "Central Chile (Santiago, Aconcagua, Limarí)",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Naphtali"
+   ],
+   "people": [
+    "Pedro de Valdivia",
+    "Michimalonco",
+    "Trangolonco"
+   ],
+   "summary": "Pedro de Valdivia founded Santiago in February 1541 and forced the natives into gold mining; the toqui Michimalonco raised about 16,000 warriors and destroyed Santiago on September 11, 1541, fighting on until the Spanish controlled the central valleys at the end of 1543.",
+   "account": [
+    "The conquest of Chile began with Valdivia's arrival in 1541; Spanish conquerors came with thousands of yanakuna from the subdued Inca territories and a few African slaves. Valdivia defeated the toqui Michimalonco, who had a couple of years before expelled the Incas from the north of the Mapuche lands, and founded Santiago on February 12, 1541. He organized the first distribution of encomiendas and of indigenous people among the Spanish settlers; since Chile was not as rich in minerals as Peru, the natives were forced to work on construction and in placer gold mining.",
+    "Michimalonco's brother Trangolonco revolted and destroyed the Spanish settlement at Marga Marga, and the chiefs of the Cachapoal, Maipo and Mapocho valleys gathered around 16,000 warriors. On September 11, 1541 Michimalonco carried out the Destruction of Santiago, with only a handful of Spaniards barely surviving, and then waged an 'empty war' of starving the Spaniards of food. The Spanish finished controlling the valleys of Cachapoal, Maipo and Aconcagua at the end of 1543; in 1544 Michimalonco, with Diaguita allies, tried to cut the land route to Peru and was defeated at Limarí. The same year the Arauco War with the Mapuche began at the Bío-Bío River."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Spanish conquest of Chile",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Spanish_conquest_of_Chile",
+     "accessed": "2026-10-04",
+     "supports": "Valdivia's arrival 1541; yanakuna and African slaves; Santiago founded 12 February 1541; encomiendas and forced gold mining; Trangolonco; about 16,000 warriors; destruction of Santiago 11 September 1541; end of 1543; Limarí 1544; Arauco War begins."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "potosi-and-the-mita",
+   "title": "Potosí and the mita: the silver mountain worked by forced labour",
+   "start": 1545,
+   "end": 1603,
+   "date": {
+    "text": "1545 (Cerro Rico found); 1573 (Toledo's mita); to the 1603 report",
+    "precision": "range"
+   },
+   "period": "into-the-ships",
+   "group": "Slavery",
+   "place": "Potosí (Upper Peru, today Bolivia) and the southern Andes",
+   "region": "South America",
+   "peoples": [
+    "Native",
+    "Black"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Diego Huallpa",
+    "Francisco de Toledo"
+   ],
+   "summary": "Silver was found at the Cerro Rico of Potosí in 1545; from 1573 Viceroy Francisco de Toledo drafted one in seven adult native men into the mines through the mita, a forced-labour system under which many died and whole communities fled.",
+   "account": [
+    "Diego Huallpa, an indigenous prospector, is credited with discovering the Cerro Rico in 1545. Potosí grew to more than 200,000 people, and the mountain produced an estimated 60% of all the silver mined in the world in the second half of the 16th century; the Spanish still say valer un Potosí, 'to be worth a Potosí'. From 1554 the patio process used mercury to extract the silver, and mercury poisoning took the lives of many in the refining.",
+    "The Spanish Crown repurposed the Andean mit'a in 1573. Under Viceroy Francisco de Toledo, sent to Peru in 1569, communities had to provide one seventh of their male labour force; the first mit'a recruits reached Potosí in 1573, and recruitment came to cover nearly 200,000 square miles of southern Peru and present-day Bolivia. Thirteen thousand men were conscripted each year. Mitayos carried loads of 100 to 300 lbs up ladders in narrow shafts; many died or were seriously injured, and assignment to the mines was considered worse than a death sentence.",
+    "Thousands fled their villages and forfeited their land to escape the draft; by the late 17th century Upper Peru had lost nearly 50% of its indigenous population compared with a little over a century earlier. A 1603 report counted 58,800 Indians working at Potosí, 5,100 of them mitayos. Potosí was a multiracial society of native Andeans, Spanish settlers and black slaves."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "“What nation hath not had a part in her kingdom, and gotten of her spoils?” Every nation was paid with the silver of Potosí: from America to Japan they paid with the Spanish silver dollar, and every nation benefited from it, so nobody had a problem with hating us and destroying us.",
+      "Over 8 million miners died in Potosí between the 1500s and the 1800s. Friends do not do that to people: you kill 8 million miners to make money and start your whole global trade, and you call us your friends.",
+      "At Potosí the Spanish created the template for the modern economy, exploiting workers in one part of the world; the nations are still benefiting from our spoil today, as Europe still stands on Africa. Of a free woman Israel became a bondslave."
+     ],
+     "quote": "You could build a silver bridge from Potosi to Madrid",
+     "source": {
+      "kind": "class",
+      "id": "Kl5rt8oRTIA",
+      "title": "#IUIC | Sabbath Morning Class: The Haters of God's People",
+      "date": "2021-11-13",
+      "ts": "21:41",
+      "url": "https://youtu.be/Kl5rt8oRTIA?t=1301"
+     }
+    },
+    {
+     "points": [
+      "Revelation 18 names the merchandise of gold and silver of Babylon the great: all of it was stolen. They took so much silver out of Potosí that they could have built a bridge of silver to Spain, and another bridge back with the bones of the people who died in those mines. That is how much death it took to get the silver."
+     ],
+     "source": {
+      "kind": "class",
+      "id": "7X4t9JVOuNE",
+      "title": "THE BIBLE: BOOK OF OUR FATHERS | COME OUT of Her MY PEOPLE",
+      "date": "2020-10-02",
+      "ts": "37:58",
+      "url": "https://youtu.be/7X4t9JVOuNE?t=2278"
+     }
+    }
+   ],
+   "scriptures": [
+    {
+     "ref": "1 Maccabees 2:10-11",
+     "why": "Read with Potosí: every nation had a part in Israel's kingdom and got of her spoils, the silver of Potosí; of a free woman she became a bondslave."
+    },
+    {
+     "ref": "Revelation 18:12",
+     "why": "The merchandise of gold and silver of Babylon: the silver taken from the mines at the cost of the lives of the people."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Potosí",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Potos%C3%AD",
+     "accessed": "2026-10-04",
+     "supports": "Diego Huallpa and 1545; over 200,000 people; 60% of world silver; valer un Potosí; patio process 1554 and mercury; 13,000 men a year, one in seven; loads of 100–300 lbs; deaths; flight; nearly 50% loss by the late 17th century; 1603 report (58,800 / 5,100); black slaves."
+    },
+    {
+     "title": "Mit'a",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Mit%27a",
+     "accessed": "2026-10-04",
+     "supports": "Repurposed in 1573; Toledo sent in 1569; one-seventh of male labour; first recruits 1573; nearly 200,000 square miles; worse than a death sentence."
+    }
+   ],
+   "uncertainty": "The end year 1603 is the report the source cites; the mita at Potosí continued long after (the source gives figures to 1689).",
+   "disagreements": [
+    {
+     "point": "How many died at Potosí",
+     "views": [
+      "The class: over 8 million miners died in Potosí between the 1500s and the 1800s.",
+      "The sources read give no total: they say many mitayos died or were injured and that Upper Peru lost nearly 50% of its indigenous population by the late 17th century."
+     ]
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "lautaro-and-the-battle-of-tucapel-1553",
+   "title": "Lautaro and the Battle of Tucapel",
+   "start": 1551,
+   "end": 1557,
+   "date": {
+    "text": "1551 (escape) – 29 April 1557; Tucapel 25 December 1553",
+    "precision": "range"
+   },
+   "period": "into-the-ships",
+   "group": "Resistance",
+   "place": "Araucanía, Chile (Tucapel)",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Naphtali"
+   ],
+   "people": [
+    "Lautaro (Leftraru)",
+    "Pedro de Valdivia",
+    "Curiñancu"
+   ],
+   "summary": "Lautaro, a young Mapuche taken captive as a boy and made Pedro de Valdivia's servant, escaped in 1551, led the Mapuche to victory at Tucapel on December 25, 1553, where Valdivia was captured and killed, and fought on until he was killed in an ambush in 1557.",
+   "account": [
+    "Lautaro (c. 1534 – April 29, 1557) was captured by the Spaniards at the age of 11 and forced into servitude as Valdivia's personal servant, later his stableman; there he saw that the conquistadors and their horses were only mortal. According to several historians, Valdivia ordered his men to cut off the feet and hands of every Mapuche in the tribe of Lautaro's father Curiñancu, among them his parents, for resisting colonization.",
+    "Lautaro escaped in 1551 and was declared toqui. In December 1553 the Mapuche destroyed the fort of Tucapel; on Christmas Day, December 25, 1553 they surrounded Valdivia, who had left Concepción with only 50 soldiers, and the battle ended in his capture and death. A typhus plague, drought and famine kept the Mapuche from driving the Spaniards out in 1554 and 1555; in 1556–1557 Lautaro tried to reach Santiago to free central Chile and was killed in an ambush in 1557. He is revered among Mapuche and non-Mapuche Chileans and Argentinians."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Lautaro",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Lautaro",
+     "accessed": "2026-10-04",
+     "supports": "Life dates; captured at 11; servant and stableman; mutilation of Curiñancu's tribe; escape 1551; toqui; Tucapel; typhus, drought and famine 1554–55; march on Santiago and death in an ambush 1557."
+    },
+    {
+     "title": "Battle of Tucapel",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Battle_of_Tucapel",
+     "accessed": "2026-10-04",
+     "supports": "25 December 1553; destruction of the fort; Valdivia's 50 soldiers; his capture and death."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "fall-of-vilcabamba-and-tupac-amaru-1572",
+   "title": "The fall of Vilcabamba and the beheading of Túpac Amaru",
+   "start": 1572,
+   "end": 1572,
+   "date": {
+    "text": "14 April – 24 September 1572",
+    "precision": "range"
+   },
+   "period": "into-the-ships",
+   "group": "Native dispossession",
+   "place": "Vilcabamba and Cusco, Peru",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Túpac Amaru",
+    "Francisco de Toledo",
+    "Martín García Óñez de Loyola",
+    "Titu Cusi Yupanqui"
+   ],
+   "summary": "Viceroy Francisco de Toledo declared war on the last Inca state at Vilcabamba in April 1572; its last ruler, Túpac Amaru, was hunted down, tried and beheaded in the main square of Cusco on September 24, 1572, ending the Inca state.",
+   "account": [
+    "The Neo-Inca State founded by Manco Inca at Vilcabamba in 1537 lasted until 1572. When two Spanish ambassadors were killed on its border, Toledo declared war on 14 April 1572; the Spanish entered the deserted city on 24 June. Túpac Amaru fled into the lowland forests with about 100 people, and a group of forty soldiers under Martín García Óñez de Loyola pursued and arrested him with his wife.",
+    "The captives were marched into Cuzco on 21 September with the mummified remains of Manco Cápac and Titu Cusi. Five Inca generals were sentenced to hanging; Túpac Amaru was convicted of the murder of priests and sentenced to be beheaded. Clerics pleaded on their knees that he be sent to Spain instead, and Philip II disapproved of the execution. Before 10,000 to 15,000 witnesses in the main square of Cuzco, his reported last words were: 'Pacha Kamaq, witness how my enemies shed my blood.'"
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Túpac Amaru",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/T%C3%BApac_Amaru",
+     "accessed": "2026-10-04",
+     "supports": "Life dates 1545–1572; declaration of war 14 April 1572; entry 24 June; flight and capture; 21 September; the trial and sentence; pleas of clerics; Philip II; 10,000–15,000 witnesses; last words."
+    },
+    {
+     "title": "Neo-Inca State",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Neo-Inca_State",
+     "accessed": "2026-10-04",
+     "supports": "The state lasted from 1537 until 1572, when Túpac Amaru was captured and executed."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "curalaba-and-the-seven-cities-1598-1604",
+   "title": "Curalaba and the destruction of the Seven Cities",
+   "start": 1598,
+   "end": 1604,
+   "date": {
+    "text": "23 December 1598 – 1604",
+    "precision": "range"
+   },
+   "period": "into-the-ships",
+   "group": "Resistance",
+   "place": "Southern Chile, south of the Biobío River",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Naphtali"
+   ],
+   "people": [
+    "Pelantaru",
+    "Anganamón",
+    "Guaiquimilla",
+    "Martín García Óñez de Loyola"
+   ],
+   "summary": "On December 23, 1598 the Mapuche vice toqui Pelantaru ambushed and killed the Spanish governor at Curalaba; in the uprising that followed the Mapuche and Huilliche destroyed or forced the abandonment of all seven Spanish cities south of the Biobío, ending the conquest period in Chile.",
+   "account": [
+    "The revolt was triggered by the Battle of Curalaba on 23 December 1598, where Pelantaru and his lieutenants Anganamón and Guaiquimilla, with three hundred men, killed Governor Martín García Óñez de Loyola and nearly all his companions.",
+    "Over the next years the Mapuche destroyed or forced the abandonment of Santa Cruz de Coya (1599), Valdivia (1599, reoccupied in 1602 and abandoned again in 1604), Los Infantes (1599), La Imperial (1600), Villarrica (1602), Osorno (1603) and Arauco (1604). The chronicler Alonso González de Nájera wrote that more than 3,000 Spaniards were killed and over 500 women taken captive. The destruction gave rise to a Spanish–Mapuche frontier and, in traditional Chilean historiography, marks the end of the conquest."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Destruction of the Seven Cities",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Destruction_of_the_Seven_Cities",
+     "accessed": "2026-10-04",
+     "supports": "Curalaba on 23 December 1598; Pelantaru, Anganamón, Guaiquimilla and 300 men; the seven cities and their dates; González de Nájera's figures; the frontier; end of the conquest period."
+    },
+    {
+     "title": "Spanish conquest of Chile",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Spanish_conquest_of_Chile",
+     "accessed": "2026-10-04",
+     "supports": "The conquest ends with the death of Óñez de Loyola at Curalaba in 1598 and the destruction of the Seven Cities in 1598–1604."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "benkos-bioho-and-the-maroons-of-cartagena-1599",
+   "title": "Benkos Biohó and the maroons of Cartagena",
+   "start": 1599,
+   "end": 1612,
+   "date": {
+    "text": "1599 (escape) – 1612 (peace); he was hanged on 16 March 1621",
+    "precision": "range"
+   },
+   "period": "into-the-ships",
+   "group": "Resistance",
+   "place": "Montes de María and La Matuna, near Cartagena de Indias, Colombia",
+   "region": "South America",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Benkos Biohó (Domingo Biohó)",
+    "Queen Wiwa",
+    "Gerónimo de Suazo y Casasola"
+   ],
+   "summary": "Benkos Biohó, an African sold at Cartagena in 1596, escaped in 1599 into the marshes and built a maroon army and palenque that the governor could not defeat; Spain made peace with him in 1605–1612, then seized him in 1619 and hanged and quartered him in 1621.",
+   "account": [
+    "Biohó, described as of Mandinka origin from Guinea-Bissau, was seized by the Portuguese slave trader Pedro Gomes Reinel and sold in 1596 in Cartagena de Indias to Alonso del Campo. He escaped when the boat carrying him down the Magdalena River sank, was recaptured, and escaped again in 1599 into the marshy lands southeast of Cartagena with about 30 runaways. The maroons defeated the first expedition of 20 armed men sent against them, and Biohó came to dominate the Montes de María, taking the title 'king of Arcabuco' and organizing an intelligence network to help more slaves escape.",
+    "On 18 July 1605 Governor Gerónimo de Suazo y Casasola, unable to defeat the maroons, offered a treaty recognizing the autonomy of the Matuna palenque; peace was finalized in 1612. The Spaniards broke the treaty in 1619 when they captured Biohó in the city, and he was hanged and quartered on 16 March 1621; the governor argued that it was dangerous how much he was respected. By the end of the 17th century the Montes de María held over 600 maroons."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Benkos Biohó",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Benkos_Bioh%C3%B3",
+     "accessed": "2026-10-04",
+     "supports": "Origin; Reinel; sale in 1596; escapes and 1599; Montes de María; king of Arcabuco; 18 July 1605 treaty; 1612 peace; capture 1619; hanged and quartered 16 March 1621; over 600 maroons by the end of the century."
+    },
+    {
+     "title": "San Basilio de Palenque",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/San_Basilio_de_Palenque",
+     "accessed": "2026-10-04",
+     "supports": "About 30 runaways in 1599; defeat of the first expedition of 20 armed men; Queen Wiwa; palenque at Matuna."
+    }
+   ],
+   "uncertainty": "Biohó is described in the source as semi-legendary. His capture (1619) and execution (1621) fall after this bar's end; the bar runs from his escape to the 1612 peace.",
+   "status": "published"
+  },
+  {
+   "slug": "cartagena-slave-port-and-peter-claver",
+   "title": "Cartagena de Indias, the slave port of New Granada",
+   "start": 1615,
+   "end": 1654,
+   "date": {
+    "text": "1615–1654 (Claver's ministry); the Inquisition set up in Cartagena in 1610",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Transatlantic trade",
+   "place": "Cartagena de Indias, Colombia",
+   "region": "South America",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Peter Claver",
+    "Alonso de Sandoval"
+   ],
+   "summary": "By the 17th century Cartagena de Indias was a key port for importing enslaved Africans under the asiento; about 10,000 captives were landed there each year, after a crossing in which an estimated one third died, and the Jesuit Peter Claver met the ships from 1615 to 1654.",
+   "account": [
+    "Cartagena was a key port for the export of Bolivian silver to Spain and the import of enslaved Africans under the asiento system: Spain, the only European power with no trading posts in Africa, licensed merchants of other nations to bring slaves to its colonies. Pedro de Heredia, who entered the Bay of Cartagena on 14 January 1533, brought the first enslaved people to work clearing the underbrush; by the 17th century Cartagena was an important slave market, centered on the Plaza de los Coches. The Holy Office of the Inquisition was established there in 1610 and abolished with independence in 1811.",
+    "Peter Claver arrived in Cartagena in 1615 to work under Alonso de Sandoval, who had served the slaves for 40 years. Cartagena was a slave-trading hub where 10,000 slaves poured into the port yearly, crossing from West Africa under conditions so foul that an estimated one third died in transit. In 1622 Claver signed his profession 'Peter Claver, servant of the Ethiopians forever'; in 40 years he is estimated to have baptized around 300,000 people. He died on 8 September 1654."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "The history of Spanish enslavement of Africans began with the Portuguese captains Antão Gonçalves and Nuno Tristão in 1441: the transatlantic slave trade did not start in 1619. They say that date to throw us off.",
+      "From 1595 to 1640 the transatlantic slave trade to the Spanish Americas was concentrated in a few American ports, Cartagena de Indias and Veracruz among them. Spain and Portugal made us slaves, and school and church will not teach it."
+     ],
+     "source": {
+      "kind": "class",
+      "id": "kfUCr2riN-s",
+      "title": "Rise Of An Unseen Government",
+      "date": "2023-09-24",
+      "ts": "49:07",
+      "url": "https://youtu.be/kfUCr2riN-s?t=2947"
+     }
+    }
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Cartagena, Colombia",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Cartagena,_Colombia",
+     "accessed": "2026-10-04",
+     "supports": "Silver export and asiento slave imports; Spain without African factories; Pedro de Heredia, 14 January 1533; 17th-century slave market at the Plaza de los Coches; Inquisition 1610, abolished 1811."
+    },
+    {
+     "title": "Peter Claver",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Peter_Claver",
+     "accessed": "2026-10-04",
+     "supports": "Arrival in 1615 under Sandoval; 10,000 slaves a year; one third died in transit; 1622 profession; about 300,000 baptisms; died 8 September 1654."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "buenos-aires-and-montevideo-slave-trade",
+   "title": "The slave trade through Buenos Aires and Montevideo",
+   "start": 1680,
+   "end": 1812,
+   "date": {
+    "text": "1680–1812",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Transatlantic trade",
+   "place": "Río de la Plata: Buenos Aires and Montevideo",
+   "region": "South America",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Naphtali",
+    "Asher"
+   ],
+   "people": [],
+   "summary": "Between 1680 and 1812, when the traffic was halted, more than 110,000 enslaved Africans were brought into the Río de la Plata through Buenos Aires and Montevideo, many of them sent on to the interior provinces and to Brazil.",
+   "account": [
+    "The slave trade flourished through the port of Buenos Aires, where thousands of Africans arrived to be sold, many sent on to Brazil through a slave-smuggling network; most of those kept were sent to the interior provinces, while the Buenos Aires neighbourhoods of San Telmo and Monserrat housed many slaves.",
+    "From 1680 to 1777 at least 40,000 slaves were brought to the region; between 1777 and 1812, when the trafficking was halted, some 70,000 more were landed in Buenos Aires and Montevideo, besides an unknown number brought overland from Rio Grande do Sul. In the 18th and 19th centuries Black Argentines made up as much as half the population of some cities: 54% in Santiago del Estero, 52% in Catamarca, 46% in Salta, 44% in Córdoba and Tucumán."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Afro-Argentines",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Afro-Argentines",
+     "accessed": "2026-10-04",
+     "supports": "The port of Buenos Aires and smuggling to Brazil; San Telmo and Monserrat; 40,000 slaves 1680–1777; some 70,000 to 1812 in Buenos Aires and Montevideo; Rio Grande do Sul; city percentages."
+    }
+   ],
+   "uncertainty": "The total is the sum of the source's two figures ('at least' 40,000, and 'some' 70,000).",
+   "status": "published"
+  },
+  {
+   "slug": "san-basilio-de-palenque-1713",
+   "title": "San Basilio de Palenque wins its freedom",
+   "start": 1691,
+   "end": 1713,
+   "date": {
+    "text": "Royal decree 1691; accord of 1713",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Resistance",
+   "place": "San Basilio de Palenque, near Cartagena, Colombia",
+   "region": "South America",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Antonio María Casiani",
+    "Domingo Padilla"
+   ],
+   "summary": "After decades in which its maroons freed Africans landed at Cartagena, the palenque of San Basilio was granted its freedom and its land by the Spanish Crown on condition that it take in no new runaways; the accord of 1713 made it the first free African town in the Americas.",
+   "account": [
+    "The maroon community, made up of Africans and creoles from other nearby palenques, tried to free all the enslaved Africans arriving at Cartagena and was quite successful. The Spanish Crown issued a Royal Decree in 1691 guaranteeing freedom to the Africans of the palenque if they stopped welcoming new escapees, but runaways kept coming; the colonial authorities put down another rebellion there in 1696.",
+    "In January 1713, when it had 137 homes, the palenque was renamed San Basilio Magno. That year, after a prolonged period of fighting, Bishop Antonio María Casiani signed an accord granting the runaways the right to their land on condition that they accept no new maroons, which the Palenqueros eventually refused to honour. In 1772 it was included in the Mahates district. San Basilio de Palenque was declared a Masterpiece of the Oral and Intangible Heritage of Humanity by UNESCO in 2005."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "San Basilio de Palenque",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/San_Basilio_de_Palenque",
+     "accessed": "2026-10-04",
+     "supports": "The freeing of Africans at Cartagena; 1691 decree; 1696; January 1713 and 137 homes; Casiani's accord; 1772; UNESCO 2005; first free African town in the Americas."
+    },
+    {
+     "title": "Benkos Biohó",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Benkos_Bioh%C3%B3",
+     "accessed": "2026-10-04",
+     "supports": "In 1713 San Basilio de Palenque became the first free village in the Americas by decree of the King of Spain."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "guarani-war-1754-1756",
+   "title": "The Guaraní War over the seven missions",
+   "start": 1754,
+   "end": 1756,
+   "date": {
+    "text": "1754 – 10 February 1756 (Caiboaté)",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Native dispossession",
+   "place": "Misiones Orientales, east of the Uruguay River",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Sepé Tiaraju",
+    "Gomes Freire de Andrade"
+   ],
+   "summary": "When the 1750 Treaty of Madrid gave the seven Jesuit missions east of the Uruguay River to Portugal, their Guaraní refused to leave; a joint Spanish–Portuguese army defeated them at Caiboaté on February 10, 1756, killing 1,511 Guaraní for four European dead.",
+   "account": [
+    "The Treaty of Madrid set the Uruguay River as the border between Spanish and Portuguese territory, and the seven missions east of it, with 26,362 inhabitants by a Jesuit census, were to be dismantled and moved west. For most of the missions' history the Guaraní had fought Luso-Brazilian slavers, the bandeirantes, who sought to capture them to sell in Brazil.",
+    "In 1754 the Jesuits surrendered the missions, but the Guaraní, led by Sepé Tiaraju, refused to relocate; Spanish and Portuguese forces sent in July 1754 failed to remove them. On 10 February 1756, 3,000 Spanish and Portuguese soldiers fought the Guaraní at Caiboaté: 1,511 Guaraní were killed and four Europeans. The army occupied the seven missions; Spain and Portugal annulled the treaty in 1761."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Guaraní War",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Guaran%C3%AD_War",
+     "accessed": "2026-10-04",
+     "supports": "Treaty of Madrid 1750; the seven missions and 26,362 inhabitants; bandeirantes; 1754; Sepé Tiaraju; Caiboaté 10 February 1756, 3,000 soldiers, 1,511 Guaraní and four Europeans killed; Treaty of El Pardo 1761."
+    }
+   ],
+   "uncertainty": "The missions lie in what is now Rio Grande do Sul, Brazil; the people were the Guaraní of the Paraguay–Uruguay river missions, which this batch places with Asher (see gaps).",
+   "status": "published"
+  },
+  {
+   "slug": "rebellion-of-tupac-amaru-ii-1780",
+   "title": "The rebellion of Túpac Amaru II",
+   "start": 1780,
+   "end": 1783,
+   "date": {
+    "text": "4 November 1780 – 1783; Túpac Amaru II executed 18 May 1781",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Resistance",
+   "place": "Cusco, Tinta and the southern Andes, Peru",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Túpac Amaru II (José Gabriel Condorcanqui)",
+    "Micaela Bastidas",
+    "Antonio de Arriaga",
+    "Diego Cristóbal Túpac Amaru"
+   ],
+   "summary": "In November 1780 the kuraka José Gabriel Condorcanqui, taking the name Túpac Amaru II, led Quechua, Aymara and mestizo rebels against Spanish rule and the forced labour of the mita; he was captured and torn apart in Cusco on May 18, 1781, and the rising went on to 1783 at a cost estimated at 100,000 indigenous dead.",
+   "account": [
+    "The rebellion arose against the Bourbon Reforms, which among other things forced the indigenous population to mine under the mita, largely at the Cerro Rico of Potosí; among Túpac Amaru II's proclamations were the freedom of the indigenous people and the abolition of slavery. It began on 4 November 1780 with the seizure of the corregidor Antonio de Arriaga, hanged on 10 November before thousands.",
+    "Betrayed after defeats at Combapata and Checacupe in April 1781, Túpac Amaru II was sentenced on 15 May and on 18 May forced to watch the execution of his wife, Micaela Bastidas, and one of his children; four horses failed to tear his limbs apart, and he was beheaded in the Plaza de Armas of Cusco. His relatives and Túpac Katari carried on until 1783. The death toll is estimated at 100,000 indigenous people and 10,000–40,000 non-natives. It was the largest revolt in the Americas before the Spanish American wars of independence and the Haitian Revolution."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Rebellion of Túpac Amaru II",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Rebellion_of_T%C3%BApac_Amaru_II",
+     "accessed": "2026-10-04",
+     "supports": "Causes and the mita at Potosí; proclamations; 4 and 10 November 1780; capture; 15 and 18 May 1781; quartering and beheading; continuation to 1783; death toll; largest revolt before independence."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "tupac-katari-and-the-siege-of-la-paz-1781",
+   "title": "Túpac Katari and the siege of La Paz",
+   "start": 1781,
+   "end": 1781,
+   "date": {
+    "text": "13 March – November 1781",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Resistance",
+   "place": "La Paz and El Alto, Upper Peru (Bolivia)",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Túpac Katari (Julián Apasa Nina)",
+    "Bartolina Sisa",
+    "Gregoria Apaza",
+    "Andrés Túpac Amaru"
+   ],
+   "summary": "The Aymara leader Túpac Katari raised some 40,000 men and besieged La Paz from March 1781; the siege was broken in October, and he was captured and executed by quartering in November 1781, with his wife Bartolina Sisa and his sister Gregoria Apaza later executed too.",
+   "account": [
+    "Julián Apasa took the name Túpac Katari to honour the rebels Tomás Katari and Túpac Amaru. In 1781 he raised an army of some 40,000 and laid siege to La Paz on 13 March, holding court with his wife Bartolina Sisa in El Alto; the first siege lasted 109 days, from March until June, and the city held out with troops sent from Buenos Aires.",
+    "By 5 August he besieged the city again, joined by Andrés Túpac Amaru; the siege was broken by royalist forces on 17 October 1781. Betrayed by some of his followers, he was captured on the night of 9 November and executed by quartering. His reported last words were 'I die but will return tomorrow as thousand thousands'. Bartolina Sisa and Gregoria Apaza were also executed. In 2005 Bolivia declared Julián Apaza and Bartolina Sisa national Aymara heroes."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Túpac Katari",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/T%C3%BApac_Katari",
+     "accessed": "2026-10-04",
+     "supports": "Name; some 40,000 soldiers; 13 March 1781; 109 days; troops from Buenos Aires; second siege from 5 August; broken 17 October; capture 9 November; quartering; last words; Sisa and Apaza executed; Law 3102 of 2005."
+    }
+   ],
+   "uncertainty": "The source gives his execution date as both 13 and 15 November 1781.",
+   "status": "published"
+  },
+  {
+   "slug": "coro-rebellion-1795",
+   "title": "José Leonardo Chirino's rising at Coro",
+   "start": 1795,
+   "end": 1796,
+   "date": {
+    "text": "1795; Chirino executed 10 December 1796",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Resistance",
+   "place": "Santa Ana de Coro, Venezuela",
+   "region": "South America",
+   "peoples": [
+    "Black",
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "José Leonardo Chirino",
+    "José Caridad González"
+   ],
+   "summary": "In 1795 the free zambo José Leonardo Chirino, who had been to Saint-Domingue, led a rising at Coro for a republic, the freedom of all enslaved Africans and the end of native tribute; it was crushed, his children were sold into slavery, and he was executed in December 1796.",
+   "account": [
+    "1795 saw rebellions across the Caribbean, from Grenada to Jamaica, with the Haitian Revolution under way since 1791. Chirino (1754–1796) had recently travelled to Saint-Domingue; with José Caridad González, a Congolese man, he led the Coro rebellion.",
+    "Its four aims were an independent democratic republic without monarchy or colonialism, the freedom of all enslaved Africans and the abolition of slavery, the abolition of the tribute imposed on the indigenous population, and the abolition of privilege and prejudice by skin colour. After the rising was suppressed Chirino was betrayed by an associate and condemned to death; his children were sold into slavery, and he was executed on December 10, 1796."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "José Leonardo Chirino",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Jos%C3%A9_Leonardo_Chirino",
+     "accessed": "2026-10-04",
+     "supports": "Life dates; 1795 and the Caribbean risings; Saint-Domingue; José Caridad González; the four aims; betrayal, sale of his children and execution 10 December 1796."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "argentina-and-chile-end-slavery-1811-1853",
+   "title": "Freedom of wombs and abolition in Chile and Argentina",
+   "start": 1811,
+   "end": 1853,
+   "date": {
+    "text": "1811 (Chile's free womb) – 1853 (Argentina's constitution)",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Abolition",
+   "place": "Chile and Argentina",
+   "region": "South America",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Naphtali"
+   ],
+   "people": [],
+   "summary": "Chile freed the children of slaves in 1811 and abolished slavery in 1823, the second country in the Americas after Haiti; Argentina's Assembly of the Year XIII freed the wombs in 1813, but slavery was not abolished there until the constitution of 1853.",
+   "account": [
+    "In Chile, Afro-Chileans numbered 20,000 by 1590 but only 4,000 at emancipation. With the freedom of wombs, slavery was stopped in 1811, and by 1823 Chile was the second country in the Americas to prohibit slavery, after Haiti, freeing close to five thousand slaves.",
+    "In Argentina the Assembly of the Year XIII, called in 1813 to establish the new state, passed the law of freedom of wombs, by which children born to slaves were free, but it did not free those already enslaved. Forty years later, in 1853, the constitution abolished slavery completely; universities did not admit Black people until then. Black men served in the Regimiento de Pardos y Morenos, which gained regimental status in 1810 and fought in the war of independence."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Afro-Chileans",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Afro-Chileans",
+     "accessed": "2026-10-04",
+     "supports": "20,000 in 1590 and 4,000 in 1823; freedom of wombs 1811; abolition by 1823, second after Haiti; close to five thousand freed."
+    },
+    {
+     "title": "Afro-Argentines",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Afro-Argentines",
+     "accessed": "2026-10-04",
+     "supports": "The Assembly of the Year XIII and the freedom of wombs (1813); abolition in 1853; universities; the Regimiento de Pardos y Morenos."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "bolivar-petion-and-abolition-in-gran-colombia",
+   "title": "Bolívar's pledge to Pétion and the slow end of slavery from Venezuela to Peru",
+   "start": 1816,
+   "end": 1854,
+   "date": {
+    "text": "1816 (Haiti) – 1854 (Venezuela and Peru)",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Abolition",
+   "place": "Haiti, Venezuela, Colombia, Ecuador, Peru, Paraguay",
+   "region": "South America",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Simón Bolívar",
+    "Alexandre Pétion",
+    "Ramón Castilla"
+   ],
+   "summary": "In 1816 Simón Bolívar won arms and money from Haiti's president Alexandre Pétion by pledging to free the slaves of the lands he took; yet the republics freed only the newborn at first, and slavery lasted until 1851 in Colombia and Ecuador, 1854 in Venezuela and Peru, and 1869 in Paraguay.",
+   "account": [
+    "Forced into exile on Jamaica after Spanish forces subdued New Granada in 1815, Bolívar reached Les Cayes in Haiti on 24 December and met Pétion on 2 January 1816; after he pledged to free every slave in the areas he occupied, Pétion gave him money and military supplies. Realising the importance of Black soldiers, Bolívar declared the abolition of slavery in 1812 and again in 1816.",
+    "After independence, the Congress of Cúcuta (1821) passed a law of free womb, manumission and abolition of the slave trade for what is now Colombia and Venezuela. Slavery was finally abolished in Colombia in 1851 and in Ecuador in 1851; in Venezuela on 24 March 1854, when fewer than 24,000 slaves remained; and in Peru in 1854 by President Ramón Castilla. Paraguay adopted a free womb law in 1842 and abolished slavery for all ages in 1869."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Simón Bolívar",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Sim%C3%B3n_Bol%C3%ADvar",
+     "accessed": "2026-10-04",
+     "supports": "Exile after 1815; Les Cayes 24 December; meeting Pétion 2 January 1816; the pledge to free every slave; Pétion's money and supplies."
+    },
+    {
+     "title": "Afro-Venezuelans",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Afro-Venezuelans",
+     "accessed": "2026-10-04",
+     "supports": "Bolívar's declarations of 1812 and 1816 and the promise to Pétion; abolition 24 March 1854, fewer than 24,000 slaves."
+    },
+    {
+     "title": "Afro-Colombians",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Afro-Colombians",
+     "accessed": "2026-10-04",
+     "supports": "The Cúcuta Congress law of free womb, manumission and abolition of the slave trade."
+    },
+    {
+     "title": "Gran Colombia",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Gran_Colombia",
+     "accessed": "2026-10-04",
+     "supports": "The Constitution of Cúcuta, 30 August 1821 (the year of the Cúcuta Congress)."
+    },
+    {
+     "title": "Slavery in Colombia",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Slavery_in_Colombia",
+     "accessed": "2026-10-04",
+     "supports": "Definitive abolition in 1851."
+    },
+    {
+     "title": "Afro-Ecuadorians",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Afro-Ecuadorians",
+     "accessed": "2026-10-04",
+     "supports": "Slavery abolished in 1851."
+    },
+    {
+     "title": "Afro-Peruvians",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Afro-Peruvians",
+     "accessed": "2026-10-04",
+     "supports": "President Ramón Castilla abolished slavery in 1854."
+    },
+    {
+     "title": "Afro-Paraguayans",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Afro-Paraguayans",
+     "accessed": "2026-10-04",
+     "supports": "Free Womb Law 1842; abolition for all ages 1869."
+    }
+   ],
+   "uncertainty": "The Afro-Colombians article dates emancipation 1852 in one place and abolition 1851 in another; Slavery in Colombia gives 1851. The Cúcuta Congress is dated by its constitution of 30 August 1821; the Afro-Colombians article names the law only as \"of July 21\".",
+   "status": "published"
+  },
+  {
+   "slug": "pichincha-and-ayacucho-1822-1824",
+   "title": "Pichincha and Ayacucho: the end of Spanish rule in the Andes",
+   "start": 1822,
+   "end": 1824,
+   "date": {
+    "text": "24 May 1822 (Pichincha) – 9 December 1824 (Ayacucho)",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Caribbean and Latin America",
+   "place": "Quito, Ecuador and Ayacucho, Peru",
+   "region": "South America",
+   "peoples": [
+    "Hispanic",
+    "Native",
+    "Black"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Antonio José de Sucre",
+    "Simón Bolívar",
+    "Melchor Aymerich",
+    "José de la Serna"
+   ],
+   "summary": "Bolívar's general Antonio José de Sucre defeated the royalists on the slopes of Pichincha above Quito on May 24, 1822 and at Ayacucho on December 9, 1824, securing the independence of Ecuador within Gran Colombia and of Peru, and ending the Spanish American wars of independence.",
+   "account": [
+    "Guayaquil proclaimed its independence on October 9, 1820. Sucre, Bolívar's most trusted subordinate, took command of a patriot army there, and on 24 May 1822, on the slopes of the Pichincha volcano 3,500 metres above sea level beside Quito, defeated the royalist army of Melchor Aymerich, liberating Quito and the provinces of its Audiencia, from which Ecuador would emerge. Gran Colombia was dissolved in 1831.",
+    "On 9 December 1824 Sucre's independentist army met the royalists at Pampa de Ayacucho near Quinua; Viceroy José de la Serna was wounded, and his second in command signed the capitulation of the royalist army. The battle secured the independence of Peru and is considered in Peru the end of the Spanish American wars of independence."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "In the east of Ecuador the Shuar and other peoples repelled the invaders: they could not beat them physically, so they came with Christianity.",
+      "Invading from Colombia in 1822, the armies of Simón Bolívar and Sucre came to the aid of the Ecuadorian rebels, and on May 24 Sucre won at Pichincha. Bolívar fought the Spanish dependency created when they came over; but those born of Spain in these countries fought against him, and they could not unify."
+     ],
+     "source": {
+      "kind": "class",
+      "id": "IPN-bITmtlk",
+      "title": "NATIVES HOUR: ECUADOR… FROM SLAVERY TO HOSTAGES",
+      "date": "2024-03-10",
+      "ts": "49:43",
+      "url": "https://youtu.be/IPN-bITmtlk?t=2983"
+     }
+    },
+    {
+     "points": [
+      "When the conquistadors came, our brothers in Ecuador, Colombia and Venezuela were put on cocoa farms and in gold mines and made to serve the white Jesus the Jesuit priests forced on them; our ancestors fought that religion, and many died rather than serve it."
+     ],
+     "source": {
+      "kind": "class",
+      "id": "IPN-bITmtlk",
+      "title": "NATIVES HOUR: ECUADOR… FROM SLAVERY TO HOSTAGES",
+      "date": "2024-03-10",
+      "ts": "1:07:08",
+      "url": "https://youtu.be/IPN-bITmtlk?t=4028"
+     }
+    }
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Battle of Pichincha",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Battle_of_Pichincha",
+     "accessed": "2026-10-04",
+     "supports": "Guayaquil 9 October 1820; Sucre; 24 May 1822; 3,500 metres; Aymerich; liberation of Quito and the Audiencia."
+    },
+    {
+     "title": "Battle of Ayacucho",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Battle_of_Ayacucho",
+     "accessed": "2026-10-04",
+     "supports": "9 December 1824; Sucre; La Serna wounded; capitulation; independence of Peru; end of the wars of independence."
+    },
+    {
+     "title": "Gran Colombia",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Gran_Colombia",
+     "accessed": "2026-10-04",
+     "supports": "Dissolved in 1831; exile on Jamaica after 1815."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "occupation-of-araucania",
+   "title": "The Occupation of Araucanía",
+   "start": 1863,
+   "end": 1883,
+   "date": {
+    "text": "1861–1883 (the 'Pacification of Araucanía')",
+    "precision": "range"
+   },
+   "period": "jim-crow",
+   "group": "Native dispossession",
+   "place": "Araucanía, Chile",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Naphtali"
+   ],
+   "people": [
+    "Cornelio Saavedra Rodríguez",
+    "Pedro Lagos"
+   ],
+   "summary": "From 1861 to 1883 Chilean soldiers and settlers advanced into the Mapuche lands of Araucanía, independent through the whole colonial era, and incorporated them into Chile; thousands of Mapuche died by war and disease, chiefly smallpox, and their lands were reduced, plunging many into lasting poverty.",
+   "account": [
+    "Araucanía had remained de facto independent through the colonial era. Economic and geopolitical reasons, with increasingly negative attitudes towards the Mapuche, led Chile to seek its incorporation by force if necessary. Colonel Cornelio Saavedra Rodríguez planned a state-led colonization influenced by the United States frontier; in 1861 he ordered Major Pedro Lagos to advance to the confluence of the Mulchén and Bureo rivers.",
+    "For ten years (1861–1871) the Mapuche could not stop the advance; the war brought famine in the winter of 1869, worsened by smallpox. After a decade of near peace, while Chile fought Peru and Bolivia in the War of the Pacific, a large Chilean army reached the Cautín River in March 1881; a last coordinated Mapuche rising in November 1881 was defeated within days. The conflict killed thousands of Mapuche by warfare and disease, primarily smallpox, and the pillaging of the army and bandits and the reduction of their lands plunged many into poverty that has persisted for generations. It ran alongside Argentina's campaigns against the Mapuche of 1878–1885."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Occupation of Araucanía",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Occupation_of_Araucan%C3%ADa",
+     "accessed": "2026-10-04",
+     "supports": "Dates 1861–1883; independence through the colonial era; reasons; Saavedra's plan and the 1861 advance; 1861–1871; famine and smallpox 1869; March and November 1881; deaths by war and smallpox; reduced lands and poverty; the concurrent Argentine campaigns 1878–1885."
+    }
+   ],
+   "uncertainty": "The occupation began in 1861; the bar starts at 1863, where this period begins, because the Timeline places events inside a single period.",
+   "status": "published"
+  },
+  {
+   "slug": "paraguayan-war-1864-1870",
+   "title": "The Paraguayan War (War of the Triple Alliance)",
+   "start": 1864,
+   "end": 1870,
+   "date": {
+    "text": "late 1864 – 1 March 1870",
+    "precision": "range"
+   },
+   "period": "jim-crow",
+   "group": "Other atrocities",
+   "place": "Paraguay, with Argentina, Brazil and Uruguay",
+   "region": "South America",
+   "peoples": [
+    "Native",
+    "Hispanic",
+    "Black"
+   ],
+   "tribes": [
+    "Asher",
+    "Naphtali"
+   ],
+   "people": [
+    "Francisco Solano López"
+   ],
+   "summary": "From 1864 to 1870 Paraguay fought the Triple Alliance of Argentina, Brazil and Uruguay in the deadliest inter-state war in Latin American history; Paraguay lost a share of its people estimated anywhere from 7% to 69%, and both sides sent slaves and freedmen to the front.",
+   "account": [
+    "The war began in late 1864 out of a conflict between Paraguay and Brazil caused by the Uruguayan War; Argentina and Uruguay entered in 1865. After its defeat in conventional warfare Paraguay fought a 14-month guerrilla war that destroyed much of its army and civilian population through battle, hunger and disease, until President Francisco Solano López was killed at Cerro Corá on 1 March 1870. Argentine and Brazilian troops occupied Paraguay until 1876, and Paraguay ceded territory to both.",
+    "By 1867 Paraguay had lost 60,000 men. Estimates of its pre-war population vary from 300,000 to 1,337,000, and of its losses from 21,000 (7%) to 69% of the pre-war population; reports that up to 90% of the men were killed are without support. Brazil sent 8,570 ex-slaves freed to be sent to war, and its infantry was disparaged as recruited from slaves and the largely black landless underclass; López conscripted another 60,000 soldiers from slaves and children."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Paraguayan War",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Paraguayan_War",
+     "accessed": "2026-10-04",
+     "supports": "1864–1870; deadliest inter-state war; causes; 1865; guerrilla war and civilian deaths; Cerro Corá 1 March 1870; occupation to 1876; ceded territory; 60,000 by 1867; population and loss estimates; the 90% claim unsupported; 8,570 ex-slaves; slaves and children conscripted."
+    }
+   ],
+   "disagreements": [
+    {
+     "point": "How many Paraguayans died",
+     "views": [
+      "Some demographic work: as few as 21,000 (7% of the population).",
+      "Other work: as many as 69% of the pre-war population; the worst reports, without support, say up to 90% of the men."
+     ]
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "afro-argentines-yellow-fever-and-erasure",
+   "title": "Yellow fever, war and the 'disappearance' of the Afro-Argentines",
+   "start": 1864,
+   "end": 1887,
+   "date": {
+    "text": "1864 (cholera, war) – 1887 (the last census to count race until 2010)",
+    "precision": "range"
+   },
+   "period": "jim-crow",
+   "group": "Identity and erasure",
+   "place": "Buenos Aires and Argentina",
+   "region": "South America",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Naphtali"
+   ],
+   "people": [],
+   "summary": "Black Argentines, once up to half the people of some cities, were hit by war, cholera and the 1871 yellow fever epidemic in Buenos Aires, and from 1862 the press and politicians proclaimed their 'disappearance'; the 1887 census counted them at 1.8%, and race was not asked again until 2010.",
+   "account": [
+    "Older theories held that the Afro-Argentine population declined sharply through the war of independence, high infant mortality, the War of the Triple Alliance, cholera epidemics in 1861 and 1864 and a yellow fever epidemic in 1871, with the supposed high mortality of Black soldiers, which the theory says was planned, and emigration to Uruguay. Many also formed families with white and Indigenous people so that their children would be lighter, and censuses moved people of colour into ambiguous categories such as pardos and trigueños. From 1862 the press, intellectuals and politicians began to assert the misconception of Afro-Argentine 'disappearance'.",
+    "The yellow fever epidemic of 1871, thought to have come from Asunción with soldiers returning from the Paraguayan War, killed about 8% of the people of Buenos Aires, 13,614 deaths; on some days more than 500 died. The black population, crowded in miserable slums, was hit harder by the plague. In 1887 the official Black population was 1.8% of the total, and racial categories were not registered in later censuses. The census of 27 October 2010 was the first since 1887 to ask about African ancestry: 149,493 people (0.37%) identified as Afro-Argentine, though DNA studies put some African ancestry at 4% to 9% of the population."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "From the late 1800s Brazil, Cuba, the Dominican Republic, Argentina, Mexico, Puerto Rico and others had government plans to dilute or eliminate the black population through European immigration and intermarriage. In Argentina black Argentines were erased from the census: in the 1800s they were as much as 30% of Buenos Aires, today 4%. The government drafted black men disproportionately into wars, allowed disease to spread in black communities, and removed them from history.",
+      "Ephraim is a cake not turned: white on top, brown underneath. It was strategic, so that we would forget our heritage."
+     ],
+     "quote": "In Argentina, black Argentinas were erased from the census, literally.",
+     "source": {
+      "kind": "class",
+      "id": "0FPiXYsd-z8",
+      "title": "The Iranians & The Ephesians",
+      "date": "2026-02-14",
+      "ts": "1:30:37",
+      "url": "https://youtu.be/0FPiXYsd-z8?t=5437"
+     }
+    },
+    {
+     "points": [
+      "The history of black people in Mexico, Argentina and Brazil had to be suppressed so that the image of those people would match the false image of Jesus pushed on them. Argentina used to have black Argentinians, black image everywhere; they were killed out, pushed out of the country, or married off."
+     ],
+     "source": {
+      "kind": "class",
+      "id": "ti3uQkabt4Q",
+      "title": "#IUIC | FCN : Where Truth Speaks!!",
+      "date": "2022-02-17",
+      "ts": "1:10:56",
+      "url": "https://youtu.be/ti3uQkabt4Q?t=4256"
+     }
+    }
+   ],
+   "scriptures": [
+    {
+     "ref": "Hosea 7:8",
+     "why": "“Ephraim is a cake not turned”: the whitening of the nations was strategic, so that the people would forget their heritage."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Afro-Argentines",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Afro-Argentines",
+     "accessed": "2026-10-04",
+     "supports": "Up to fifty percent in some cities; the old theories of decline (independence war, infant mortality, Triple Alliance, cholera 1861 and 1864, yellow fever 1871, soldiers, emigration to Uruguay); mixing; pardos and trigueños; 1862 'disappearance' narrative; 1.8% in 1887; no racial categories after; 2010 census, 149,493 (0.37%); DNA 4–9%."
+    },
+    {
+     "title": "Yellow fever in Buenos Aires",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Yellow_fever_in_Buenos_Aires",
+     "accessed": "2026-10-04",
+     "supports": "1871 epidemic from Asunción with returning soldiers; about 8% of Porteños; 13,614 deaths; over 500 a day; the black population in miserable conditions hit harder."
+    }
+   ],
+   "disagreements": [
+    {
+     "point": "How large the black population was, and what it is now",
+     "views": [
+      "The class: as much as 30% of Buenos Aires in the 1800s, today 4%.",
+      "The sources read: up to fifty percent in certain cities in the 18th and 19th centuries; 1.8% in the 1887 census; 0.37% self-identified in 2010, with DNA studies finding some African ancestry in 4% to 9%."
+     ]
+    },
+    {
+     "point": "Whether the decline was planned",
+     "views": [
+      "The class: the government drafted black men disproportionately into wars and allowed disease to spread in black communities.",
+      "The source read presents a planned high mortality of black soldiers as an old theory, alongside mixing, census reclassification and the 'disappearance' narrative asserted from 1862."
+     ]
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "conquest-of-the-desert-1878-1885",
+   "title": "The Conquest of the Desert",
+   "start": 1878,
+   "end": 1885,
+   "date": {
+    "text": "1878–1885 (Roca's main campaign 1879)",
+    "precision": "range"
+   },
+   "period": "jim-crow",
+   "group": "Native dispossession",
+   "place": "The Pampas and Patagonia, Argentina",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Naphtali"
+   ],
+   "people": [
+    "Julio Argentino Roca"
+   ],
+   "summary": "Argentine campaigns led by General Julio Argentino Roca conquered the Pampas and Patagonia from their Indigenous peoples; troops killed more than 1,000 Mapuche, displaced more than 15,000 and enslaved part of the rest, and contemporary sources and scholars have classed it as genocide.",
+   "account": [
+    "By December 1878 more than 4,000 natives had been captured and 400 killed. In 1879 General Roca, with 6,000 soldiers armed with Remington rifles, began the second sweep, reaching Choele Choel in two months after killing 1,313 natives and capturing more than 15,000.",
+    "The 15,000 natives taken captive 'became servants or prisoners and were prevented from having children'; first-hand accounts tell of the killing of prisoners and 'mass executions', and others, such as the Teushen, were systematically slaughtered and went extinct within a generation. European settlers took the land. Apologists describe the conquest as a civilising mission; revisionists and scholars such as Jens Andermann classify it as genocide. It ran parallel to the Occupation of Araucanía in Chile."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Conquest of the Desert",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Conquest_of_the_Desert",
+     "accessed": "2026-10-04",
+     "supports": "Roca; more than 1,000 Mapuche killed, more than 15,000 displaced, a portion enslaved; the Teushen; December 1878 figures; 1879, 6,000 soldiers, 1,313 killed and over 15,000 captured; captives made servants and prevented from having children; mass executions; Andermann; genocide debate."
+    }
+   ],
+   "disagreements": [
+    {
+     "point": "What the conquest was",
+     "views": [
+      "Apologists: a civilising mission and a defence against native attacks.",
+      "Revisionists and scholars such as Jens Andermann: a genocide."
+     ]
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "putumayo-genocide-1879-1911",
+   "title": "The Putumayo genocide of the rubber boom",
+   "start": 1879,
+   "end": 1911,
+   "date": {
+    "text": "1879–1911 (forced removals to 1930)",
+    "precision": "range"
+   },
+   "period": "jim-crow",
+   "group": "Other atrocities",
+   "place": "Putumayo River basin, Peru and Colombia",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Julio César Arana",
+    "Benjamín Larrañaga",
+    "Roger Casement",
+    "Walter Ernest Hardenburg",
+    "Benjamin Saldaña Rocca"
+   ],
+   "summary": "In the Amazon rubber boom the Peruvian rubber baron Julio César Arana's company, from 1907 the London-registered Peruvian Amazon Company, enslaved the Indigenous peoples of the Putumayo, starving, torturing and killing them; nine in every ten of the targeted peoples were destroyed.",
+   "account": [
+    "The genocide was carried out chiefly by Arana's enterprise during the rubber boom of 1879 to 1911. With Benjamín Larrañaga he enslaved the Huitoto, Bora, Andoque, Ocaina, Nonuya, Muinanes and Resígaros, among others; company men committed mass starvation, torture and killings, and trained native youths to police and torture their own people. In 1907 Arana registered the Peruvian Amazon Company on the London Stock Exchange.",
+    "Nine in every ten targeted Amazonian populations were destroyed. The company kept working even after 215 arrest warrants were issued against its workers in 1911. Between 1924 and 1930 at least 6,719 Indigenous people were forced out of the Putumayo basin, and half of them perished. Eyewitness accounts by Benjamin Saldaña Rocca, Walter Hardenburg and Roger Casement brought the atrocities to the world's attention."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Putumayo genocide",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Putumayo_genocide",
+     "accessed": "2026-10-04",
+     "supports": "Arana and the rubber boom 1879–1911; Larrañaga; the peoples enslaved; starvation, torture and killings; the Muchachos de Confianza; the 1907 London registration; nine in ten destroyed; 215 warrants in 1911; 6,719 removed 1924–1930, half perished; Saldaña Rocca, Hardenburg, Casement."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "selknam-genocide",
+   "title": "The Selkʼnam genocide in Tierra del Fuego",
+   "start": 1880,
+   "end": 1930,
+   "date": {
+    "text": "1880s – early 1900s (100 left by 1930)",
+    "precision": "range"
+   },
+   "period": "jim-crow",
+   "group": "Other atrocities",
+   "place": "Isla Grande de Tierra del Fuego, Chile and Argentina",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Naphtali"
+   ],
+   "people": [
+    "Julius Popper"
+   ],
+   "summary": "Sheep ranching companies and the Tierra del Fuego gold rush brought a campaign of extermination against the Selkʼnam; paid hunters and the Chilean and Argentine militaries killed or captured them, and their number fell from about 4,000 in the 1880s to a few hundred by the early 1900s and 100 by 1930.",
+   "account": [
+    "In the late 19th century livestock companies affiliated with the Chilean and Argentine governments set up estancias on Isla Grande, which with the gold rush displaced the Selkʼnam. Companies paid their employees and hunters such as Julius Popper to kill or capture Selkʼnam people, and the Chilean and Argentine militaries attacked them during exploratory voyages.",
+    "The survivors fled south into the forests; the governments gave land grants to the Salesians, whose missions took in the remaining Selkʼnam, who were deported to Dawson Island. The population fell from about 4,000 in the 1880s to a few hundred by the early 1900s; by 1930 only 100 Selkʼnam were alive."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Selkʼnam genocide",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Selk%CA%BCnam_genocide",
+     "accessed": "2026-10-04",
+     "supports": "Late 19th to early 20th century; about 4,000 in the 1880s to a few hundred; estancias and the gold rush; paid hunters and Popper; the militaries; the Salesian missions and Dawson Island; 100 by 1930."
+    }
+   ],
+   "uncertainty": "The source says the genocide spanned ten to twenty years; the bar runs to 1930, the year of the last figure it gives.",
+   "status": "published"
+  },
+  {
+   "slug": "napalpi-massacre-1924",
+   "title": "The Napalpí massacre",
+   "start": 1924,
+   "end": 1924,
+   "date": {
+    "text": "19 July 1924",
+    "precision": "day"
+   },
+   "period": "jim-crow",
+   "group": "Other atrocities",
+   "place": "Napalpí, Chaco, Argentina",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Naphtali"
+   ],
+   "people": [
+    "Fernando Centeno",
+    "Sorai"
+   ],
+   "summary": "On July 19, 1924 police and ranchers massacred hundreds of Toba (Qom) and Mocoví people at the Napalpí reserve in the Chaco, who had struck against a 15% tax on their cotton; in 2019 an Argentine federal court declared it a crime against humanity.",
+   "account": [
+    "After the Conquest of the Chaco, which killed thousands of Indigenous people, the survivors were confined in compounds under a regime of exploitation bordering on slavery. One was Napalpí, 'cemetery' in the Toba Qom language, founded in 1911 as the Chaco Aboriginal Colony. In 1924 the authorities imposed a tax of 15% of the cotton crop, causing a strike; the police killed a shaman named Sorai in June, and Governor Fernando Centeno prepared a brutal repression.",
+    "Early on 19 July 1924 a group of 130 police, ranchers and settlers attacked; 400 Toba and Mocoví were killed. In 2019 a federal court declared the massacre a crime against humanity, outside the statute of limitations, and in 2022 Argentina opened a 'truth trial'."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Napalpí massacre",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Napalp%C3%AD_massacre",
+     "accessed": "2026-10-04",
+     "supports": "19 July 1924; 400 Toba and Mocoví; the Conquest of Chaco; the compounds; Napalpí founded 1911; 15% cotton tax and strike; Sorai; Centeno; 130 attackers; 2019 ruling; 2022 truth trial."
+    },
+    {
+     "title": "Rincón Bomba massacre",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Rinc%C3%B3n_Bomba_massacre",
+     "accessed": "2026-10-04",
+     "supports": "Gives the Napalpí dead as 500 to 1,000 Qom and Mocoví."
+    }
+   ],
+   "disagreements": [
+    {
+     "point": "The number killed",
+     "views": [
+      "The Napalpí massacre article: 400.",
+      "The Rincón Bomba massacre article: 500 to 1,000."
+     ]
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "ranquil-massacre-1934",
+   "title": "The Ránquil massacre",
+   "start": 1934,
+   "end": 1934,
+   "date": {
+    "text": "1934",
+    "precision": "year"
+   },
+   "period": "jim-crow",
+   "group": "Other atrocities",
+   "place": "Upper Biobío, Lonquimay, Chile",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Naphtali"
+   ],
+   "people": [
+    "Arturo Alessandri Palma"
+   ],
+   "summary": "In 1934 the Chilean Army put down a rising of forestry workers and Mapuche peasants on former Mapuche land in the upper Biobío; 477 workers, many of them Mapuche, were killed and around 500 taken prisoner.",
+   "account": [
+    "The upper Biobío had been opened to Chilean and foreign settlers by the Occupation of Araucanía; a colonization plan of 1881–1914 settled 15,000 foreigners, and the Mapuche, pressed by the alienation of their land, were left impoverished farmers in Lonquimay, under conditions described as semi-slavery and paid in tokens good only at the employer's store. The company Sociedad Puelma Tupper moved to evict the 'occupiers' of land the government had ceded to it.",
+    "Workers of the Lonquimay gold washings rose against the store's administration; President Arturo Alessandri Palma sent Carabineros and the army. 477 workers, many of them Mapuche, were killed, and around 500 prisoners taken."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Ranquil massacre",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Ranquil_massacre",
+     "accessed": "2026-10-04",
+     "supports": "1934; land opened by the occupation; 15,000 settlers 1881–1914; semi-slavery and tokens; Puelma Tupper evictions; Lonquimay rising; Alessandri; 477 killed, many Mapuche; around 500 prisoners."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "rincon-bomba-massacre-1947",
+   "title": "The Rincón Bomba massacre of the Pilagá",
+   "start": 1947,
+   "end": 1947,
+   "date": {
+    "text": "10–30 October 1947",
+    "precision": "range"
+   },
+   "period": "jim-crow",
+   "group": "Other atrocities",
+   "place": "La Bomba, near Las Lomitas, Formosa, Argentina",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Naphtali"
+   ],
+   "people": [
+    "Juan Perón"
+   ],
+   "summary": "Between October 10 and 30, 1947, Argentina's National Gendarmerie, with an air force plane, killed an estimated 750 to 1,000 Pilagá people at La Bomba in Formosa; the courts recognized it as a crime against humanity in 2019 and as genocide in 2020.",
+   "account": [
+    "The Pilagá of the Gran Chaco had stayed independent until the late 19th century; the defeated Chaco peoples were then subjected to forced labour in the national territories of Chaco and Formosa, where residents had no vote.",
+    "In October 1947, during Juan Perón's first presidency, the Gendarmerie with an Argentine Air Force aircraft and the territorial police attacked the Pilagá at La Bomba: executions, disappearances, torture, rape, kidnapping and forced labour, with an estimated 750 to 1,000 deaths. The event lived on only in Pilagá oral memory for decades; in 2005 the Pilagá People's Federation sued the state, and the massacre was judicially recognized as a crime against humanity in 2019 and classified as genocide in 2020."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Rincón Bomba massacre",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Rinc%C3%B3n_Bomba_massacre",
+     "accessed": "2026-10-04",
+     "supports": "Dates 10–30 October 1947; Gendarmerie, aircraft and police; Perón's first presidency; the atrocities and 750–1,000 deaths; Pilagá history and forced labour; 2005 suit; 2019 and 2020 rulings."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "bolivian-revolution-1952",
+   "title": "The Bolivian Revolution: the vote and the land for the Indians",
+   "start": 1952,
+   "end": 1953,
+   "date": {
+    "text": "9 April 1952; suffrage 24 June 1952; land reform 2 August 1953",
+    "precision": "range"
+   },
+   "period": "jim-crow",
+   "group": "Caribbean and Latin America",
+   "place": "Bolivia",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Víctor Paz Estenssoro",
+    "Hernán Siles Zuazo",
+    "Juan Lechín Oquendo"
+   ],
+   "summary": "The revolution of April 1952 brought the MNR to power in Bolivia; it gave the vote to the illiterate, the indigenous and women on June 24, 1952, raising the electorate from 205,000, and on August 2, 1953 decreed an agrarian reform granting hacienda lands to the Indians through their communities.",
+   "account": [
+    "The Revolutionary Nationalist Movement (MNR), led by Víctor Paz Estenssoro and Hernán Siles Zuazo, governed from 9 April 1952 until the coup of 4 November 1964. On 24 June 1952 it introduced universal suffrage; by granting the vote to the illiterate, indigenous peoples and women it raised the number of voters from 205,000 (6.6% of the population).",
+    "Under the slogans 'Agrarian reform' and 'Nationalization of mines', the Agrarian Reform Decree was signed at Ucureña, Cochabamba, on 2 August 1953; it granted hacienda lands to Indians through their unions and communities, on condition they not be sold individually. The revolution also pressed the 'castilianizing' of Bolivia's Indigenous communities."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Bolivian National Revolution",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Bolivian_National_Revolution",
+     "accessed": "2026-10-04",
+     "supports": "MNR leaders; 9 April 1952 – 4 November 1964; universal suffrage 24 June 1952; voters from 205,000 (6.6%); the slogans; Agrarian Reform Decree 2 August 1953 at Ucureña; hacienda lands granted to Indians; castilianizing."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "stroessner-and-the-ache",
+   "title": "Stroessner's Paraguay and the hunting of the Aché",
+   "start": 1954,
+   "end": 1989,
+   "date": {
+    "text": "4 May 1954 – 3 February 1989",
+    "precision": "range"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Other atrocities",
+   "place": "Paraguay",
+   "region": "South America",
+   "peoples": [
+    "Native",
+    "Hispanic"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Alfredo Stroessner",
+    "Andrés Rodríguez Pedotti"
+   ],
+   "summary": "General Alfredo Stroessner seized power in Paraguay in May 1954 and ruled until 1989; his regime murdered an estimated 3,000 to 4,000 people, and the Aché of eastern Paraguay were massacred, enslaved and confined to reservations, their children sold as late as the 1970s; in 1974 the UN accused Paraguay of slavery and genocide.",
+   "account": [
+    "Stroessner led the coup of 4 May 1954, became president on 15 August 1954, suspended constitutional rights and ruled by electoral fraud until he was overthrown by Andrés Rodríguez on 2–3 February 1989. An estimated 3,000 to 4,000 people were murdered, 400 to 500 more 'disappeared', and thousands were imprisoned and tortured; an investigating commission identified 20,090 victims of the regime.",
+    "The Northern Aché, once the only inhabitants of nearly 20,000 square kilometres of rural Paraguay, ended up confined on two reservations of little more than 50 square kilometres; in the process they were massacred, enslaved and given no adequate medical care, so that investors could take their land. Aché children were sold openly in the region as late as the 1970s. In 1974 the UN accused Paraguay of slavery and genocide, and in 2014 the Aché filed a genocide complaint against the Stroessner government in an Argentine court."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "Here is every South American country whose government the CIA overthrew since 1947: Guatemala 1954, El Salvador 1979, Nicaragua 1981, Panama 1989, Paraguay 1954, Brazil 1964, Peru 1968, Chile 1973, Uruguay 1973, Argentina 1976 and Venezuela in 2002. That is South America alone; Africa is not on the list, and the islands are not there. America has always overthrown governments with a traitor on the inside."
+     ],
+     "quote": "paraguay 1954, brazil 1964, peru 1968, chile 1973, uruguay 1973, argentina 1976",
+     "source": {
+      "kind": "class",
+      "id": "tmB8z0qSYo4",
+      "title": "DESTROYED BY FAMILIAR HANDS",
+      "date": "2026-01-10",
+      "ts": "1:15:59",
+      "url": "https://youtu.be/tmB8z0qSYo4?t=4559"
+     }
+    }
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Alfredo Stroessner",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Alfredo_Stroessner",
+     "accessed": "2026-10-04",
+     "supports": "Coup 4 May 1954; president 15 August 1954; electoral fraud; overthrow 2–3 February 1989; 3,000–4,000 murdered, 400–500 disappeared; abuses against the Aché; massacres and slavery; the 1974 UN accusation."
+    },
+    {
+     "title": "Aché",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Ach%C3%A9",
+     "accessed": "2026-10-04",
+     "supports": "Nearly 20,000 km² to two reservations of about 50 km²; massacres, slavery, no medical care; children sold as late as the 1970s; the 2014 complaint in Argentina."
+    },
+    {
+     "title": "Operation Condor",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Operation_Condor",
+     "accessed": "2026-10-04",
+     "supports": "20,090 identified victims of the Stroessner regime."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "chilean-coup-1973",
+   "title": "The Chilean coup of 1973 and Pinochet's dictatorship",
+   "start": 1973,
+   "end": 1990,
+   "date": {
+    "text": "11 September 1973 – 1990",
+    "precision": "range"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Other atrocities",
+   "place": "Chile",
+   "region": "South America",
+   "peoples": [
+    "Hispanic",
+    "Native"
+   ],
+   "tribes": [
+    "Naphtali"
+   ],
+   "people": [
+    "Salvador Allende",
+    "Augusto Pinochet",
+    "Henry Kissinger"
+   ],
+   "summary": "On September 11, 1973 the armed forces under General Augusto Pinochet overthrew the elected president Salvador Allende, who died in the palace; the junta killed thousands in the first months, arrested some 130,000 people in three years and tortured an estimated 40,000, and ruled until 1990.",
+   "account": [
+    "Allende, the first Marxist democratically elected president in a Latin American liberal democracy, was overthrown on 11 September 1973; he died in La Moneda palace, generally accepted as a suicide. The junta suspended all political activity; Pinochet was declared president in late 1974. The Nixon administration had helped create favourable conditions for the coup and promptly recognized the junta; documents declassified in 2023 showed Nixon and Kissinger knew of the plans days before.",
+    "In the first months the military killed thousands of real and suspected leftists or forced their 'disappearance'; 40,000 political enemies were held in the National Stadium. The government arrested some 130,000 people in three years, an estimated 40,000 were tortured, and at least 200,000 Chileans left the country between 1973 and 1990."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "An economic hit man confesses it: the U.S. government was deeply involved in the overthrow or assassination of Mossadegh of Iran, Allende of Chile, Árbenz of Guatemala and Lumumba of the Congo. Allende was replaced by the brutal dictator Pinochet, who oversaw the murder of tens of thousands of his people and was praised by Henry Kissinger.",
+      "When nations do not follow America's policies, they overthrow and assassinate their leaders. That is why the Bible calls her Babylon: she must fall."
+     ],
+     "quote": "speaking of allende of chile he was replaced by the terribly brutal dictator general pinochet",
+     "source": {
+      "kind": "class",
+      "id": "0CpVSa_3k3M",
+      "title": "#IUIC | SABBATH EVENING CLASS: WHEN CHAOS PRECEDES CHANGE",
+      "date": "2021-07-10",
+      "ts": "9:47",
+      "url": "https://youtu.be/0CpVSa_3k3M?t=587"
+     }
+    },
+    {
+     "points": [
+      "Here is every South American country whose government the CIA overthrew since 1947: Guatemala 1954, El Salvador 1979, Nicaragua 1981, Panama 1989, Paraguay 1954, Brazil 1964, Peru 1968, Chile 1973, Uruguay 1973, Argentina 1976 and Venezuela in 2002. That is South America alone; Africa is not on the list, and the islands are not there. America has always overthrown governments with a traitor on the inside."
+     ],
+     "quote": "paraguay 1954, brazil 1964, peru 1968, chile 1973, uruguay 1973, argentina 1976",
+     "source": {
+      "kind": "class",
+      "id": "tmB8z0qSYo4",
+      "title": "DESTROYED BY FAMILIAR HANDS",
+      "date": "2026-01-10",
+      "ts": "1:15:59",
+      "url": "https://youtu.be/tmB8z0qSYo4?t=4559"
+     }
+    }
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "1973 Chilean coup d'état",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/1973_Chilean_coup_d%27%C3%A9tat",
+     "accessed": "2026-10-04",
+     "supports": "11 September 1973; Allende's death; the junta; Pinochet president in late 1974; the Nixon administration and the 2023 declassified documents; thousands killed or disappeared; the National Stadium; 130,000 arrested; 40,000 tortured; 200,000 emigrants; dictatorship 1973–1990."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "uruguayan-coup-1973",
+   "title": "The Uruguayan coup and the civic-military dictatorship",
+   "start": 1973,
+   "end": 1985,
+   "date": {
+    "text": "27 June 1973 – 1985",
+    "precision": "range"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Other atrocities",
+   "place": "Uruguay",
+   "region": "South America",
+   "peoples": [
+    "Hispanic"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Juan María Bordaberry"
+   ],
+   "summary": "On June 27, 1973 President Juan María Bordaberry closed Uruguay's parliament and ruled with a junta of generals, banning trade unions and all associations; the civic-military dictatorship lasted until 1985.",
+   "account": [
+    "The army had been sent against the Tupamaro guerrillas in 1971 with training and support from the United States. On 27 June 1973 Bordaberry closed parliament; the general strike that followed lasted just over two weeks and ended with most union leaders in jail, dead or exiled to Argentina. All associations, including trade unions, were banned and the 1967 constitution practically voided. The dictatorship lasted until 1985."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "Here is every South American country whose government the CIA overthrew since 1947: Guatemala 1954, El Salvador 1979, Nicaragua 1981, Panama 1989, Paraguay 1954, Brazil 1964, Peru 1968, Chile 1973, Uruguay 1973, Argentina 1976 and Venezuela in 2002. That is South America alone; Africa is not on the list, and the islands are not there. America has always overthrown governments with a traitor on the inside."
+     ],
+     "quote": "paraguay 1954, brazil 1964, peru 1968, chile 1973, uruguay 1973, argentina 1976",
+     "source": {
+      "kind": "class",
+      "id": "tmB8z0qSYo4",
+      "title": "DESTROYED BY FAMILIAR HANDS",
+      "date": "2026-01-10",
+      "ts": "1:15:59",
+      "url": "https://youtu.be/tmB8z0qSYo4?t=4559"
+     }
+    }
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "1973 Uruguayan coup d'état",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/1973_Uruguayan_coup_d%27%C3%A9tat",
+     "accessed": "2026-10-04",
+     "supports": "27 June 1973; Bordaberry and the junta; the Tupamaros; 1971 operations and U.S. support; the two-week strike and its end; associations banned; 1967 constitution voided; dictatorship to 1985."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "operation-condor-1975-1983",
+   "title": "Operation Condor",
+   "start": 1975,
+   "end": 1983,
+   "date": {
+    "text": "November 1975 – 1983",
+    "precision": "range"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Other atrocities",
+   "place": "Argentina, Bolivia, Brazil, Chile, Paraguay, Uruguay",
+   "region": "South America",
+   "peoples": [
+    "Hispanic",
+    "Native"
+   ],
+   "tribes": [
+    "Naphtali",
+    "Asher"
+   ],
+   "people": [
+    "Augusto Pinochet",
+    "Manuel Contreras"
+   ],
+   "summary": "In November 1975 Pinochet's spy chief Manuel Contreras gathered the intelligence services of Argentina, Brazil, Bolivia, Chile, Paraguay and Uruguay into Operation Condor, a U.S.-backed campaign of kidnapping, torture and murder of opponents across borders that lasted until 1983.",
+   "account": [
+    "Condor was formally created when Contreras invited 50 intelligence officers from the six dictatorships to the Army War Academy in Santiago; the United States financed the covert operations. It ended with the fall of the Argentine junta in 1983.",
+    "The number of deaths directly attributable to it is disputed: some estimates attribute at least 60,000, up to 9,000 of them in Argentina; others estimate 50,000 killed, 30,000 disappeared and 400,000 imprisoned. A University of Oxford database has identified at least 805 cases of cross-border violations, including 367 murders and disappearances, and J. Patrice McSherry estimated 400 to 500 killed in cross-border operations."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Operation Condor",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Operation_Condor",
+     "accessed": "2026-10-04",
+     "supports": "1975–1983; Contreras and the 50 officers; the six countries; U.S. financing; end with the Argentine junta; the estimates (60,000 / 9,000; 50,000, 30,000, 400,000); Lessa's 805 cases and 367 murders and disappearances; McSherry's 400–500."
+    }
+   ],
+   "disagreements": [
+    {
+     "point": "How many Condor killed",
+     "views": [
+      "Some estimates: at least 60,000 deaths, or 50,000 killed, 30,000 disappeared and 400,000 imprisoned.",
+      "Narrower counts of cross-border operations: 367 murders and disappearances (Lessa's database) or 400 to 500 killed (McSherry)."
+     ]
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "argentine-dictatorship-1976-1983",
+   "title": "Argentina's last dictatorship and the Dirty War",
+   "start": 1976,
+   "end": 1983,
+   "date": {
+    "text": "24 March 1976 – 10 December 1983",
+    "precision": "range"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Other atrocities",
+   "place": "Argentina",
+   "region": "South America",
+   "peoples": [
+    "Hispanic"
+   ],
+   "tribes": [
+    "Naphtali"
+   ],
+   "people": [
+    "Isabel Perón"
+   ],
+   "summary": "The armed forces overthrew Isabel Perón on March 24, 1976 and ruled Argentina until December 10, 1983, waging a 'Dirty War' of torture, murder and forced disappearance in which some 30,000 people were killed or 'disappeared'.",
+   "account": [
+    "The junta suspended Congress, banned parties and limited civil rights, and launched a campaign of state terrorism: torture, extrajudicial murder and systematic forced disappearances. Some 30,000 citizens were killed or 'disappeared'; whole families vanished, and the military destroyed many records before democracy returned. Pregnant women among the disappeared were kept alive in secret prisons until they gave birth.",
+    "Facing protest and economic crisis, the junta invaded the Falkland Islands in April 1982 and lost the war with the United Kingdom; it handed power to an elected government on 10 December 1983."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "Here is every South American country whose government the CIA overthrew since 1947: Guatemala 1954, El Salvador 1979, Nicaragua 1981, Panama 1989, Paraguay 1954, Brazil 1964, Peru 1968, Chile 1973, Uruguay 1973, Argentina 1976 and Venezuela in 2002. That is South America alone; Africa is not on the list, and the islands are not there. America has always overthrown governments with a traitor on the inside."
+     ],
+     "quote": "paraguay 1954, brazil 1964, peru 1968, chile 1973, uruguay 1973, argentina 1976",
+     "source": {
+      "kind": "class",
+      "id": "tmB8z0qSYo4",
+      "title": "DESTROYED BY FAMILIAR HANDS",
+      "date": "2026-01-10",
+      "ts": "1:15:59",
+      "url": "https://youtu.be/tmB8z0qSYo4?t=4559"
+     }
+    }
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "National Reorganization Process",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/National_Reorganization_Process",
+     "accessed": "2026-10-04",
+     "supports": "24 March 1976 – 10 December 1983; Isabel Perón; suspended Congress and banned parties; Dirty War; some 30,000 killed or disappeared; destroyed records; pregnant women; Falklands April 1982."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "internal-conflict-in-peru-1980-2000",
+   "title": "Peru's internal conflict and the Truth Commission",
+   "start": 1980,
+   "end": 2003,
+   "date": {
+    "text": "17 May 1980 – December 2000; Truth Commission report 28 August 2003",
+    "precision": "range"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Other atrocities",
+   "place": "Peru (Ayacucho and the Andes)",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Alejandro Toledo"
+   ],
+   "summary": "In the war between the Peruvian state and the Shining Path from 1980 to 2000, the Truth and Reconciliation Commission found that about 69,280 people died or disappeared; Indigenous people were disproportionately attacked, 75% of the dead being native Quechua speakers.",
+   "account": [
+    "The conflict's main phase began on 17 May 1980, when the Shining Path burned ballot boxes at Chuschi in Ayacucho, and ended in December 2000; the MRTA waged its own insurgency from 1982 to 1997. Peru had one of the worst human rights records in the hemisphere: thousands of forced disappearances, and both the armed forces and the Shining Path massacring entire villages with impunity. Most of the Shining Path's violence was in Ayacucho, where many Indigenous people live in extreme poverty.",
+    "The Truth and Reconciliation Commission, set up by President Alejandro Toledo (13 July 2001 – 28 August 2003), concluded in its final report of 28 August 2003 that approximately 69,280 people died or disappeared, against an earlier estimate of 24,000. 75% of those killed spoke Quechua as their native language."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Internal conflict in Peru",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Internal_conflict_in_Peru",
+     "accessed": "2026-10-04",
+     "supports": "17 May 1980 – December 2000; MRTA 1982–1997; human rights record; massacres; 50,000–70,000 killed; Indigenous peoples disproportionately attacked, 75% Quechua speakers."
+    },
+    {
+     "title": "Truth and Reconciliation Commission (Peru)",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Truth_and_Reconciliation_Commission_(Peru)",
+     "accessed": "2026-10-04",
+     "supports": "Toledo; 13 July 2001 – 28 August 2003; Chuschi; Ayacucho; 69,280 against the earlier 24,000."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "colombia-constitution-1991-and-law-70",
+   "title": "Colombia's 1991 constitution and the law for Black communities",
+   "start": 1991,
+   "end": 1993,
+   "date": {
+    "text": "7 July 1991; Law 70 of 1993",
+    "precision": "range"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Civil rights",
+   "place": "Colombia",
+   "region": "South America",
+   "peoples": [
+    "Black",
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "César Gaviria"
+   ],
+   "summary": "Colombia's constitution of July 1991 ended the definition of the nation as Catholic, Hispanic and Spanish-speaking and recognized its multiethnic and multicultural make-up, giving indigenous, Afro-Colombian and Raizal peoples legal and political recognition; under its Article 55, Law 70 of 1993 followed for the Black communities.",
+   "account": [
+    "The constitution, promulgated on 7 July 1991 under President César Gaviria, replaced that of 1886 amid unprecedented violence. Colombia had been defined in exclusionary terms as a Catholic, Hispanic and Spanish-speaking nation; the 1991 constitution recognized its multiethnic and multicultural composition and allowed indigenous, Afro-Colombian and Raizal minorities to gain political, legal and cultural recognition.",
+    "Following the constitution, particularly Article 55, Law 70 of 1993 created within the Ministry of the Interior the Directorate for Black Communities, to form public policy and uphold the equality, identity and cultural autonomy of Black communities; with a 1995 education decree it opened the way to Afro-Colombian studies. Afro-Colombians remain among the most affected by the armed conflict: more than 2 million have been displaced."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Colombian Constitution of 1991",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Colombian_Constitution_of_1991",
+     "accessed": "2026-10-04",
+     "supports": "Promulgated 7 July 1991 under Gaviria; replaced 1886; violence; the old exclusionary definition; recognition of multiethnic composition and of indigenous, Afro-Colombian and Raizal minorities."
+    },
+    {
+     "title": "Black studies",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Black_studies",
+     "accessed": "2026-10-04",
+     "supports": "Article 55 (1991), Law 70 (1993) and Decree 804 (1995) as the basis of Afro-Colombian studies."
+    },
+    {
+     "title": "Ministry of the Interior (Colombia)",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Ministry_of_the_Interior_(Colombia)",
+     "accessed": "2026-10-04",
+     "supports": "Law 70 of 1993 creates the Directorate for Black Communities and its functions."
+    },
+    {
+     "title": "Afro-Colombians",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Afro-Colombians",
+     "accessed": "2026-10-04",
+     "supports": "More than 2 million Afro-Colombians displaced."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "forced-sterilization-in-peru-1996-2000",
+   "title": "The forced sterilization of Indigenous women in Peru",
+   "start": 1996,
+   "end": 2000,
+   "date": {
+    "text": "1996–2000",
+    "precision": "range"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Other atrocities",
+   "place": "Rural Andean Peru",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Alberto Fujimori",
+    "Vladimiro Montesinos"
+   ],
+   "summary": "Under President Alberto Fujimori, Peru's National Population Program sterilized an estimated 300,000 people between 1996 and 2000, chiefly poor Indigenous women of the Andes, often without their informed consent.",
+   "account": [
+    "The campaign drew on eugenic and neo-Malthusian ideas set out in Plan Verde, a military strategy conceived during the internal conflict, which presented Indigenous populations as an obstacle to national progress and linked racial improvement with whiteness. Under Fujimori (1990–2000) these ideas became a systematic policy said to reduce poverty and high birth rates.",
+    "Between 1996 and 2000 an estimated 300,000 sterilizations took place, mostly of native women in rural Andean regions, often without informed consent, reflecting the belief that they were 'unfit' for reproduction."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Forced sterilization in Peru",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Forced_sterilization_in_Peru",
+     "accessed": "2026-10-04",
+     "supports": "Fujimori and the National Population Program; Plan Verde; the 'Indian problem' and whiteness; 300,000 sterilizations 1996–2000; Indigenous women; lack of consent."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "bojaya-massacre-2002",
+   "title": "The Bojayá massacre",
+   "start": 2002,
+   "end": 2002,
+   "date": {
+    "text": "2 May 2002",
+    "precision": "day"
+   },
+   "period": "unto-this-day",
+   "group": "Other atrocities",
+   "place": "Bellavista, Bojayá, Chocó, Colombia",
+   "region": "South America",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [],
+   "summary": "On May 2, 2002, in fighting between FARC guerrillas and AUC paramilitaries for the Atrato River, a FARC gas-cylinder bomb fell through the roof of the church at Bellavista in Chocó where about 300 townspeople had taken refuge; 119 civilians died, 79 of them in the church.",
+   "account": [
+    "At least 250 paramilitaries moved into Bellavista on 21 April 2002 despite local protests; the UN human rights office and Colombia's Ombudsman warned of the danger. On 2 May the FARC attacked to take the Atrato River region; a cylinder bomb fired at paramilitaries by the church wall went through the roof, landed on the altar and exploded. 119 civilians died in the attack; about 300 inhabitants had sheltered in the church, and 79 died in the explosion.",
+    "In Colombia's conflict Afro-Colombians have been both victims of violence and displacement and members of armed groups; more than 2 million Afro-Colombians have been displaced."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Bojayá massacre",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Bojay%C3%A1_massacre",
+     "accessed": "2026-10-04",
+     "supports": "2 May 2002; Bellavista, Chocó; FARC and AUC; 250 paramilitaries from 21 April; warnings; the bomb; 119 dead, about 300 in the church, 79 killed there."
+    },
+    {
+     "title": "Afro-Colombians",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Afro-Colombians",
+     "accessed": "2026-10-04",
+     "supports": "Afro-Colombians as victims of violence and displacement; more than 2 million displaced."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "evo-morales-and-the-plurinational-state",
+   "title": "Evo Morales and the Plurinational State of Bolivia",
+   "start": 2006,
+   "end": 2009,
+   "date": {
+    "text": "January 2006 – 7 February 2009",
+    "precision": "range"
+   },
+   "period": "unto-this-day",
+   "group": "Achievements",
+   "place": "Bolivia",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Evo Morales"
+   ],
+   "summary": "Evo Morales, an Aymara former coca grower, won 53.7% of the vote in 2005 and became Bolivia's first president from its indigenous population; a new constitution approved by 61.43% of voters on January 25, 2009 made Bolivia a Plurinational State.",
+   "account": [
+    "Born to an Aymara family of subsistence farmers, Morales rose as a leader of the coca growers and campaigned for indigenous and poor communities. Elected in 2005 with 53.7% of the vote, he was widely described as Bolivia's first Indigenous leader, at a time when about 62% of the population identified as indigenous, and was crowned Apu Mallku of the Aymara at Tiwanaku in January 2006. He served from 2006 to 2019.",
+    "The constitution approved in a referendum on 25 January 2009, with 61.43% of the vote and 90.24% participation, and adopted on 7 February 2009, converted the Republic of Bolivia into the Plurinational State of Bolivia, recognizing the self-determination of the nations within it."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Evo Morales",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Evo_Morales",
+     "accessed": "2026-10-04",
+     "supports": "Aymara origins; coca growers; 53.7% in 2005; first indigenous president; 62% indigenous; Apu Mallku January 2006; 2006–2019; the plurinational constitution."
+    },
+    {
+     "title": "Constitution of Bolivia",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Constitution_of_Bolivia",
+     "accessed": "2026-10-04",
+     "supports": "Referendum 25 January 2009, 61.43% approval, 90.24% participation; adopted 7 February 2009."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "bagua-massacre-2009",
+   "title": "The Baguazo: Awajún and Wampis blockade at the Devil's Curve",
+   "start": 2009,
+   "end": 2009,
+   "date": {
+    "text": "5–6 June 2009",
+    "precision": "range"
+   },
+   "period": "unto-this-day",
+   "group": "Native dispossession",
+   "place": "Bagua, Amazonas, Peru",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Alan García"
+   ],
+   "summary": "On June 5, 2009 Peruvian security forces broke an Awajún and Wampis road blockade near Bagua, held against free-trade decrees opening the Amazon; at least 31 people were killed at the 'Devil's Curve', and nine more police died the next day at an oil facility.",
+   "account": [
+    "Indigenous peoples of the Amazon blockaded the 'Devil's Curve' highway near Bagua, more than 1,000 km north of Lima, to win the repeal of 'free trade' decrees issued by President García under the Free Trade Agreement with the United States. On 5 June 2009 over 600 police dispersed several thousand Awajún and Wampis with tear gas and live ammunition; at least 31 people were killed.",
+    "On 6 June nine more police officers were killed at a Petroperú facility the protesters had seized. Not since the conflict with the Shining Path had so many died in such clashes in Peru. Within a week Congress suspended two of the decrees, and they were later repealed."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Baguazo",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Baguazo",
+     "accessed": "2026-10-04",
+     "supports": "5 June 2009, at least 31 killed at the Devil's Curve near Bagua; over 1,000 km from Lima; the decrees and the FTA; over 600 police; Awajún and Wampis; 6 June, nine police killed at Petroperú; the comparison with the Shining Path; decrees suspended and repealed."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "venezuelan-exodus",
+   "title": "The Venezuelan exodus",
+   "start": 2015,
+   "end": 2023,
+   "date": {
+    "text": "2015 – today (figures to 2023)",
+    "precision": "range"
+   },
+   "period": "unto-this-day",
+   "group": "Caribbean and Latin America",
+   "place": "Venezuela and the Americas",
+   "region": "South America",
+   "peoples": [
+    "Hispanic",
+    "Black",
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Hugo Chávez",
+    "Nicolás Maduro"
+   ],
+   "summary": "The crisis in Venezuela under Hugo Chávez and Nicolás Maduro drove the largest recorded refugee crisis in the Americas: over four million had left by mid-2019 and, by the UNHCR's count, more than 7.9 million in all.",
+   "account": [
+    "Venezuelans wishing to emigrate rose from 30% in December 2015 to 57% in September 2016. By mid-2019 over four million had left since 1999, most in the preceding three and a half years; estimates reached 7.1 million by October 2022, over 20 percent of the population. The UNHCR counts more than 7.9 million emigrants; 390,000 left between May and August 2023 alone, driven by low wages, inflation, the lack of public services and political repression.",
+    "It is the largest recorded refugee crisis in the Americas and one of the most underfunded in modern history. According to a 2019 report by Mark Weisbrot and Jeffrey Sachs, the U.S. sanctions, which began in the 2010s, caused Venezuela a loss of $38 billion between 2016 and 2019 and, with preexisting trends, an estimated 40,000 excess deaths in 2017–2018."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Venezuelan refugee crisis",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Venezuelan_refugee_crisis",
+     "accessed": "2026-10-04",
+     "supports": "Largest refugee crisis in the Americas; 30% to 57% wishing to emigrate; four million by mid-2019; 7.1 million by October 2022 (over 20%); UNHCR 7.9 million; 390,000 in May–August 2023; underfunded."
+    },
+    {
+     "title": "2026 United States intervention in Venezuela",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/2026_United_States_intervention_in_Venezuela",
+     "accessed": "2026-10-04",
+     "supports": "US sanctions from the 2010s; the 2019 Weisbrot–Sachs report: a $38 billion loss 2016–2019 and an estimated 40,000 excess deaths in 2017–2018."
+    }
+   ],
+   "uncertainty": "The emigration continues; the bar ends with the last dated figure read (2023).",
+   "status": "published"
+  },
+  {
+   "slug": "colombia-peace-agreement-2016",
+   "title": "Colombia's peace agreement with the FARC",
+   "start": 2016,
+   "end": 2016,
+   "date": {
+    "text": "2 October – 30 November 2016",
+    "precision": "range"
+   },
+   "period": "unto-this-day",
+   "group": "Caribbean and Latin America",
+   "place": "Colombia",
+   "region": "South America",
+   "peoples": [
+    "Hispanic",
+    "Black",
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Juan Manuel Santos"
+   ],
+   "summary": "After the first peace deal with the FARC was narrowly rejected in a referendum on October 2, 2016, a revised agreement was signed on November 24 and ratified by Congress on November 29 and 30, officially ending the conflict that began in 1964.",
+   "account": [
+    "The armed conflict officially began in 1964 with the founding of the FARC and the ELN. The peace agreement was narrowly rejected on 2 October 2016, 50.2% to 49.8%. A revised agreement was signed on 24 November 2016 and, without another referendum, ratified by both houses of Congress on 29 and 30 November, officially ending the conflict.",
+    "Afro-Colombians were among the war's chief victims: more than 2 million were displaced, and those displaced still struggle to return home since the treaty."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Colombian peace process",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Colombian_peace_process",
+     "accessed": "2026-10-04",
+     "supports": "1964 beginnings; referendum 2 October 2016, 50.2% to 49.8%; revised agreement 24 November; ratification 29–30 November 2016."
+    },
+    {
+     "title": "Afro-Colombians",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Afro-Colombians",
+     "accessed": "2026-10-04",
+     "supports": "More than 2 million displaced; the struggle to return since the peace treaty."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "mapuche-conflict-and-the-plurinational-vote",
+   "title": "The Mapuche conflict, Catrillanca, and the rejected plurinational constitution",
+   "start": 2018,
+   "end": 2022,
+   "date": {
+    "text": "2018 – 4 September 2022",
+    "precision": "range"
+   },
+   "period": "unto-this-day",
+   "group": "Native dispossession",
+   "place": "Araucanía and Biobío, Chile",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Naphtali"
+   ],
+   "people": [
+    "Camilo Catrillanca",
+    "Sebastián Piñera",
+    "Gabriel Boric"
+   ],
+   "summary": "Mapuche communities' struggle for their ancestral lands, lost in the Occupation of Araucanía, sharpened after police shot Camilo Catrillanca in 2018 and Chile sent troops to Biobío and Araucanía in 2021; in 2022 voters rejected, 61.89% to 38.11%, a constitution that would have made Chile a plurinational state.",
+   "account": [
+    "The Mapuche conflict intensified with the return of democracy in the 1990s, as activists sought to recover the 'ancestral territory' lost in the Occupation of Araucanía and the Conquest of the Desert; its period of violence began in December 1997, and some groups have used violent tactics since 1998 while others negotiate. In 1993 the Chilean government passed the Indigenous Peoples Act recognizing Mapuche land, cultural and development rights. In 2018 Camilo Catrillanca, grandson of a local Indigenous leader, was shot in the head during a police operation near Ercilla; in October 2021 President Sebastián Piñera declared a state of emergency and deployed troops to Biobío and Araucanía.",
+    "The constitution drafted after the 2020 plebiscite declared that 'Chile is a Plurinational and Intercultural State'; the plurinational state and indigenous justice were among its most debated provisions. On 4 September 2022 it was rejected by 61.89% to 38.11%, winning also in communes with large indigenous populations, and the 1980 constitution of the dictatorship era remained in force."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Mapuche conflict",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Mapuche_conflict",
+     "accessed": "2026-10-04",
+     "supports": "Land disputes since the 19th century and forestry companies; December 1997; violent tactics since 1998; the 1993 Indigenous Peoples Act; Catrillanca 2018; the state of emergency of October 2021."
+    },
+    {
+     "title": "2022 Chilean constitutional referendum",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/2022_Chilean_constitutional_referendum",
+     "accessed": "2026-10-04",
+     "supports": "4 September 2022; 61.89% to 38.11%; the plurinational clause and concerns; reject won in communes with large indigenous populations; the 1980 constitution remains."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "sacaba-and-senkata-massacres-2019",
+   "title": "The Sacaba and Senkata massacres",
+   "start": 2019,
+   "end": 2019,
+   "date": {
+    "text": "15 and 19 November 2019",
+    "precision": "range"
+   },
+   "period": "unto-this-day",
+   "group": "Other atrocities",
+   "place": "Sacaba (Cochabamba) and Senkata (El Alto), Bolivia",
+   "region": "South America",
+   "peoples": [
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Evo Morales",
+    "Jeanine Áñez"
+   ],
+   "summary": "In the crisis after Evo Morales's fall in November 2019, soldiers and police fired on pro-Morales protesters, killing eleven coca growers' demonstrators at Sacaba on November 15 and ten demonstrators and bystanders at Senkata on November 19; the Inter-American Commission on Human Rights called Sacaba a massacre.",
+   "account": [
+    "On 15 November 2019 Bolivian soldiers and police broke up a protest led by coca growers at Huayllani in Sacaba municipality, Cochabamba; eleven demonstrators were killed and about ninety-eight wounded. On 19 November ten more demonstrators and bystanders were killed at Senkata, after which the pro-Morales movement entered talks with the Áñez government.",
+    "The Inter-American Commission on Human Rights denounced the Sacaba events as a massacre in December 2019, and the experts it appointed ratified that description in their 2021 report."
+   ],
+   "scriptures": [],
+   "sources": [
+    {
+     "title": "Sacaba massacre",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Sacaba_massacre",
+     "accessed": "2026-10-04",
+     "supports": "15 November 2019, eleven killed and about ninety-eight wounded; Senkata 19 November, ten killed; talks with the Áñez government; the IACHR in December 2019 and the 2021 report."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "us-intervention-in-venezuela-2026",
+   "title": "The United States strikes Venezuela and seizes Maduro",
+   "start": 2026,
+   "end": 2026,
+   "date": {
+    "text": "3 January 2026",
+    "precision": "day"
+   },
+   "period": "unto-this-day",
+   "group": "Caribbean and Latin America",
+   "place": "Caracas and northern Venezuela",
+   "region": "South America",
+   "peoples": [
+    "Hispanic",
+    "Black",
+    "Native"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Nicolás Maduro",
+    "Cilia Flores",
+    "Donald Trump",
+    "Delcy Rodríguez",
+    "Marco Rubio"
+   ],
+   "summary": "On January 3, 2026 U.S. forces bombed northern Venezuela and captured President Nicolás Maduro and his wife Cilia Flores, flying them to New York; about 80 people died, and the Trump administration made access to Venezuela's oil a core reason for the action.",
+   "account": [
+    "Operation Absolute Resolve began around 2 a.m. on 3 January 2026 with strikes on air defences across northern Venezuela while a force attacked Maduro's compound in Caracas. Approximately 80 Venezuelan and Cuban military personnel and civilians died; Cuba said 32 of its personnel were killed. Maduro and Flores were indicted in New York on drug trafficking charges and pleaded not guilty. UN officials and international law experts said the raid violated the UN Charter and Venezuela's sovereignty.",
+    "Delcy Rodríguez was sworn in as acting president on 5 January. The U.S. announced a 50-million-barrel oil deal, a new law gave private companies control of oil production, and the administration collected more than $13 billion from Venezuelan oil sales; according to The New York Times, Venezuela has since been a de facto puppet state, with the U.S. State Department under Marco Rubio controlling core parts of its government."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "“There is no new thing under the sun.” What just happened in Venezuela is not new: America has been doing this for over a hundred years. America pushes laws but respects no laws; it is a bully.",
+      "Every government America overthrows, it overthrows with somebody on the inside, a traitor, a trusted adviser: “mine own familiar friend, in whom I trusted”. Maduro is no different, Venezuela is no different, and it will not be over until Christ comes and takes them down."
+     ],
+     "quote": "America never overthrow them with somebody in the inside. He's always a traitor.",
+     "source": {
+      "kind": "class",
+      "id": "tmB8z0qSYo4",
+      "title": "DESTROYED BY FAMILIAR HANDS",
+      "date": "2026-01-10",
+      "ts": "7:14",
+      "url": "https://youtu.be/tmB8z0qSYo4?t=434"
+     }
+    },
+    {
+     "points": [
+      "Here is every South American country whose government the CIA overthrew since 1947: Guatemala 1954, El Salvador 1979, Nicaragua 1981, Panama 1989, Paraguay 1954, Brazil 1964, Peru 1968, Chile 1973, Uruguay 1973, Argentina 1976 and Venezuela in 2002. That is South America alone; Africa is not on the list, and the islands are not there. America has always overthrown governments with a traitor on the inside."
+     ],
+     "quote": "paraguay 1954, brazil 1964, peru 1968, chile 1973, uruguay 1973, argentina 1976",
+     "source": {
+      "kind": "class",
+      "id": "tmB8z0qSYo4",
+      "title": "DESTROYED BY FAMILIAR HANDS",
+      "date": "2026-01-10",
+      "ts": "1:15:59",
+      "url": "https://youtu.be/tmB8z0qSYo4?t=4559"
+     }
+    }
+   ],
+   "scriptures": [
+    {
+     "ref": "Ecclesiastes 1:9",
+     "why": "There is no new thing under the sun: the seizure of Venezuela repeats a hundred years of overthrown governments."
+    },
+    {
+     "ref": "Psalms 41:9",
+     "why": "Mine own familiar friend, in whom I trusted: the overthrow always comes through a traitor on the inside."
+    }
+   ],
+   "sources": [
+    {
+     "title": "2026 United States intervention in Venezuela",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/2026_United_States_intervention_in_Venezuela",
+     "accessed": "2026-10-04",
+     "supports": "3 January 2026; Operation Absolute Resolve; about 80 dead; 32 Cubans; the indictment; UN Charter; Rodríguez sworn in 5 January; the oil deal, law and $13 billion; the New York Times on puppet-state status; oil a core reason."
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "colombia-earthquake-2026",
+   "title": "The Chocó earthquake of 2026",
+   "start": 2026,
+   "end": 2026,
+   "date": {
+    "text": "10 August 2026",
+    "precision": "day"
+   },
+   "period": "unto-this-day",
+   "group": "Caribbean and Latin America",
+   "place": "Chocó and western Colombia",
+   "region": "South America",
+   "peoples": [
+    "Black",
+    "Native",
+    "Hispanic"
+   ],
+   "tribes": [
+    "Asher"
+   ],
+   "people": [
+    "Abelardo de la Espriella"
+   ],
+   "summary": "On August 10, 2026 a magnitude 7.4–7.5 earthquake centred near San José del Palmar in Chocó struck western Colombia, killing at least 335 people, injuring more than 4,600 and leaving 111 missing.",
+   "account": [
+    "The earthquake struck at 07:34 with its epicentre 20 km from San José del Palmar in the department of Chocó; it was felt across western and central Colombia and in Ecuador and Panama, and caused extensive damage in Cali, Pereira, Quibdó, Manizales, Armenia and Buenaventura. At least 335 people were killed, more than 4,600 injured and 111 left missing; at least 107 died in Pereira, and in Chocó at least 14 deaths and 119 injuries were recorded.",
+    "President Abelardo de la Espriella declared a state of national disaster and three days of mourning; the United States announced US$26.5 million in relief."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "“Woe unto them that decree unrighteous decrees”: unrighteous laws against the people, for the destruction of the people and of the land. When they take the precious minerals out of the earth the tectonic plates move and earthquakes happen; the minerals are in the earth for a reason.",
+      "They turn aside the needy from judgment and take away the right of the poor of my people, the rightful owners of the land. Chocó, Colombia's most Afro-Colombian department, was at the epicentre and paid the price for generations of government neglect: the people affected are our people, the indigenous and the Afro-descendants, and they are not getting help."
+     ],
+     "quote": "Woe unto them that decree unrighteous decrees.",
+     "source": {
+      "kind": "class",
+      "id": "FSUFtJ08joo",
+      "title": "ABYA YALA UNDER FIRE",
+      "date": "2026-08-29",
+      "ts": "1:56:39",
+      "url": "https://youtu.be/FSUFtJ08joo?t=6999"
+     }
+    }
+   ],
+   "scriptures": [
+    {
+     "ref": "Isaiah 10:1-2",
+     "why": "Woe to them that decree unrighteous decrees and take away the right from the poor: the laws and mining that strip the land, and the neglect of the people of Chocó."
+    }
+   ],
+   "sources": [
+    {
+     "title": "2026 Colombia earthquake",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/2026_Colombia_earthquake",
+     "accessed": "2026-10-04",
+     "supports": "10 August 2026; Mw 7.4–7.5; epicentre near San José del Palmar, Chocó; 07:34; at least 335 killed, more than 4,600 injured, 111 missing; the cities; 107 in Pereira; 14 deaths and 119 injuries in Chocó; national disaster and mourning; US$26.5 million."
+    }
+   ],
+   "disagreements": [
+    {
+     "point": "Where the earthquake hit hardest",
+     "views": [
+      "The class (a news report it played): Chocó, Colombia's most Afro-Colombian and poorest department, was at the epicentre and was neglected.",
+      "The source read: the epicentre was in Chocó, but most recorded deaths were elsewhere (at least 107 in Pereira; at least 14 in Chocó)."
+     ]
+    }
+   ],
+   "status": "published"
+  }
+ ],
+ "drafts": [
+  {
+   "slug": "comuneros-of-new-granada-1781",
+   "title": "The Comuneros revolt of New Granada",
+   "period": "house-of-bondage",
+   "tribes": [
+    "Asher"
+   ],
+   "status": "draft",
+   "needs": "A documented source: the Wikipedia article could not be fetched (rate-limited) and no other source was read.",
+   "start": 1781,
+   "end": 1781
+  },
+  {
+   "slug": "war-of-the-pacific-1879-1883",
+   "title": "The War of the Pacific (Chile against Peru and Bolivia)",
+   "period": "jim-crow",
+   "tribes": [
+    "Naphtali",
+    "Asher"
+   ],
+   "status": "draft",
+   "needs": "Reading of the source (Wikipedia 'War of the Pacific' was fetched but not read for figures) and a decision whether an inter-state war of Chile on Peru and Bolivia belongs on the tribes' timeline.",
+   "start": 1879,
+   "end": 1883
+  },
+  {
+   "slug": "peru-protests-2022-2023",
+   "title": "The killing of Aymara and Quechua protesters in Peru, 2022–2023",
+   "period": "unto-this-day",
+   "tribes": [
+    "Asher"
+   ],
+   "status": "draft",
+   "needs": "A source read for dates and the death toll (Wikipedia '2022–2023 Peruvian protests' could not be fetched).",
+   "start": 2022,
+   "end": 2023
+  },
+  {
+   "slug": "abolition-in-uruguay-and-bolivia",
+   "title": "The end of slavery in Uruguay and Bolivia",
+   "period": "house-of-bondage",
+   "tribes": [
+    "Asher"
+   ],
+   "status": "draft",
+   "needs": "Dated abolition laws for Uruguay and Bolivia: the Afro-Uruguayans and Afro-Bolivians articles read did not give them plainly."
+  }
+ ],
+ "ledger": [
+  {
+   "kind": "class",
+   "ref": "Kl5rt8oRTIA",
+   "title": "#IUIC | Sabbath Morning Class: The Haters of God's People",
+   "status": "reviewed",
+   "note": "read 19:30–28:30: Potosí with 1 Maccabees 2:10-11",
+   "events": [
+    "potosi-and-the-mita"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "7X4t9JVOuNE",
+   "title": "THE BIBLE: BOOK OF OUR FATHERS | COME OUT of Her MY PEOPLE",
+   "status": "reviewed",
+   "note": "read 37:50–40:00: Potosí with Revelation 18:12 (date from YouTube metadata)",
+   "events": [
+    "potosi-and-the-mita"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "kfUCr2riN-s",
+   "title": "Rise Of An Unseen Government",
+   "status": "reviewed",
+   "note": "read 48:40–54:00: 1441, the 1595–1640 ports (Cartagena de Indias)",
+   "events": [
+    "cartagena-slave-port-and-peter-claver"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "0FPiXYsd-z8",
+   "title": "The Iranians & The Ephesians",
+   "status": "reviewed",
+   "note": "read 1:30:37–1:35:00: whitening, Afro-Argentines erased from the census, Hosea 7:8; also 1:18:56 Brazil within Asher's span",
+   "events": [
+    "afro-argentines-yellow-fever-and-erasure"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "ti3uQkabt4Q",
+   "title": "#IUIC | FCN : Where Truth Speaks!!",
+   "status": "reviewed",
+   "note": "read 1:10:19–1:12:30: black Argentinians killed out, pushed out or married off (date from YouTube metadata)",
+   "events": [
+    "afro-argentines-yellow-fever-and-erasure"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "tmB8z0qSYo4",
+   "title": "DESTROYED BY FAMILIAR HANDS",
+   "status": "reviewed",
+   "note": "read 6:40–13:00 (Venezuela, Ecclesiastes 1:9, Psalms 41:9) and 1:15:20–1:19:00 (list of CIA-overthrown governments)",
+   "events": [
+    "us-intervention-in-venezuela-2026",
+    "stroessner-and-the-ache",
+    "chilean-coup-1973",
+    "uruguayan-coup-1973",
+    "argentine-dictatorship-1976-1983"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "0CpVSa_3k3M",
+   "title": "#IUIC | SABBATH EVENING CLASS: WHEN CHAOS PRECEDES CHANGE",
+   "status": "reviewed",
+   "note": "read 8:40–12:00: Allende and Pinochet (date from YouTube metadata)",
+   "events": [
+    "chilean-coup-1973"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "IPN-bITmtlk",
+   "title": "NATIVES HOUR: ECUADOR… FROM SLAVERY TO HOSTAGES",
+   "status": "reviewed",
+   "note": "read 44:10–52:50 and 1:06:40–1:11:00: colonial Ecuador, Pichincha, Bolívar (date from YouTube metadata)",
+   "events": [
+    "pichincha-and-ayacucho-1822-1824"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "FSUFtJ08joo",
+   "title": "ABYA YALA UNDER FIRE",
+   "status": "reviewed",
+   "note": "read 1:55:30–2:00:30: Isaiah 10:1-2 and the Chocó earthquake; skimmed the rest (Petro, Milei and Patagonia, Peru, Ecuador)",
+   "events": [
+    "colombia-earthquake-2026"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "iBzTQe7VvPo",
+   "title": "Power Hour: Hidden Hatred In Entertainment",
+   "status": "reviewed",
+   "note": "search hit 1:50:15: Asher is Colombia to Uruguay; Naphtali Chile to Argentina, the Mapuche and Patagonia (identity only, not an event)",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "2p0B1gftsNo",
+   "title": "#IUIC | THE POWER HOUR PLUS: Northern Kingdom Iconoclasm",
+   "status": "reviewed",
+   "note": "search hit 1:24:31: the Araucanians of Chile and Argentina are Naphtali (already used for galvarino-1557)",
+   "events": []
+  },
+  {
+   "kind": "history",
+   "ref": "oFmw0TPdYlk",
+   "title": "OHH: The Oppression of Latin America & God’s Divine Judgment",
+   "status": "reviewed",
+   "note": "skimmed: 2025–2026 Venezuela and Latin America current events; not cited",
+   "events": []
+  },
+  {
+   "kind": "history",
+   "ref": "ffxKEbSLscQ",
+   "title": "OUR HIDDEN HISTORY | TRANSITION OF POWER : SPECIAL EDITION VENEZUELA",
+   "status": "reviewed",
+   "note": "search hits only (Maduro, Chávez); not read; candidate for a second teaching on the 2026 intervention",
+   "events": []
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Siege_of_Cusco",
+   "title": "Siege of Cusco",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "siege-of-cusco-1536"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Neo-Inca_State",
+   "title": "Neo-Inca State",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "siege-of-cusco-1536",
+    "fall-of-vilcabamba-and-tupac-amaru-1572"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/T%C3%BApac_Amaru",
+   "title": "T%C3%BApac Amaru",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "fall-of-vilcabamba-and-tupac-amaru-1572"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Spanish_conquest_of_the_Muisca",
+   "title": "Spanish conquest of the Muisca",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "conquest-of-the-muisca-1537-1540"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Spanish_conquest_of_Chile",
+   "title": "Spanish conquest of Chile",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "valdivia-and-the-destruction-of-santiago-1541",
+    "curalaba-and-the-seven-cities-1598-1604"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Lautaro",
+   "title": "Lautaro",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "lautaro-and-the-battle-of-tucapel-1553"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Battle_of_Tucapel",
+   "title": "Battle of Tucapel",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "lautaro-and-the-battle-of-tucapel-1553"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Potos%C3%AD",
+   "title": "Potos%C3%AD",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "potosi-and-the-mita"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Mit%27a",
+   "title": "Mit%27a",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "potosi-and-the-mita"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Destruction_of_the_Seven_Cities",
+   "title": "Destruction of the Seven Cities",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "curalaba-and-the-seven-cities-1598-1604"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Benkos_Bioh%C3%B3",
+   "title": "Benkos Bioh%C3%B3",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "benkos-bioho-and-the-maroons-of-cartagena-1599",
+    "san-basilio-de-palenque-1713"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/San_Basilio_de_Palenque",
+   "title": "San Basilio de Palenque",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "benkos-bioho-and-the-maroons-of-cartagena-1599",
+    "san-basilio-de-palenque-1713"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Cartagena,_Colombia",
+   "title": "Cartagena, Colombia",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "cartagena-slave-port-and-peter-claver"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Peter_Claver",
+   "title": "Peter Claver",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "cartagena-slave-port-and-peter-claver"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Afro-Argentines",
+   "title": "Afro-Argentines",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "buenos-aires-and-montevideo-slave-trade",
+    "argentina-and-chile-end-slavery-1811-1853",
+    "afro-argentines-yellow-fever-and-erasure"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Afro-Chileans",
+   "title": "Afro-Chileans",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "argentina-and-chile-end-slavery-1811-1853"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Afro-Venezuelans",
+   "title": "Afro-Venezuelans",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "bolivar-petion-and-abolition-in-gran-colombia"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Afro-Colombians",
+   "title": "Afro-Colombians",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "bolivar-petion-and-abolition-in-gran-colombia",
+    "colombia-constitution-1991-and-law-70",
+    "bojaya-massacre-2002",
+    "colombia-peace-agreement-2016"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Afro-Ecuadorians",
+   "title": "Afro-Ecuadorians",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "bolivar-petion-and-abolition-in-gran-colombia"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Afro-Peruvians",
+   "title": "Afro-Peruvians",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "bolivar-petion-and-abolition-in-gran-colombia"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Afro-Paraguayans",
+   "title": "Afro-Paraguayans",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "bolivar-petion-and-abolition-in-gran-colombia"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Slavery_in_Colombia",
+   "title": "Slavery in Colombia",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "bolivar-petion-and-abolition-in-gran-colombia"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Sim%C3%B3n_Bol%C3%ADvar",
+   "title": "Sim%C3%B3n Bol%C3%ADvar",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "bolivar-petion-and-abolition-in-gran-colombia"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Gran_Colombia",
+   "title": "Gran Colombia",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "bolivar-petion-and-abolition-in-gran-colombia",
+    "pichincha-and-ayacucho-1822-1824"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Battle_of_Pichincha",
+   "title": "Battle of Pichincha",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "pichincha-and-ayacucho-1822-1824"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Battle_of_Ayacucho",
+   "title": "Battle of Ayacucho",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "pichincha-and-ayacucho-1822-1824"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Guaran%C3%AD_War",
+   "title": "Guaran%C3%AD War",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "guarani-war-1754-1756"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Rebellion_of_T%C3%BApac_Amaru_II",
+   "title": "Rebellion of T%C3%BApac Amaru II",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "rebellion-of-tupac-amaru-ii-1780"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/T%C3%BApac_Katari",
+   "title": "T%C3%BApac Katari",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "tupac-katari-and-the-siege-of-la-paz-1781"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Jos%C3%A9_Leonardo_Chirino",
+   "title": "Jos%C3%A9 Leonardo Chirino",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "coro-rebellion-1795"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Occupation_of_Araucan%C3%ADa",
+   "title": "Occupation of Araucan%C3%ADa",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "occupation-of-araucania"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Paraguayan_War",
+   "title": "Paraguayan War",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "paraguayan-war-1864-1870"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Yellow_fever_in_Buenos_Aires",
+   "title": "Yellow fever in Buenos Aires",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "afro-argentines-yellow-fever-and-erasure"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Conquest_of_the_Desert",
+   "title": "Conquest of the Desert",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "conquest-of-the-desert-1878-1885"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Putumayo_genocide",
+   "title": "Putumayo genocide",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "putumayo-genocide-1879-1911"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Selk%CA%BCnam_genocide",
+   "title": "Selk%CA%BCnam genocide",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "selknam-genocide"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Napalp%C3%AD_massacre",
+   "title": "Napalp%C3%AD massacre",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "napalpi-massacre-1924"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Ranquil_massacre",
+   "title": "Ranquil massacre",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "ranquil-massacre-1934"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Rinc%C3%B3n_Bomba_massacre",
+   "title": "Rinc%C3%B3n Bomba massacre",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "napalpi-massacre-1924",
+    "rincon-bomba-massacre-1947"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Bolivian_National_Revolution",
+   "title": "Bolivian National Revolution",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "bolivian-revolution-1952"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Alfredo_Stroessner",
+   "title": "Alfredo Stroessner",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "stroessner-and-the-ache"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Ach%C3%A9",
+   "title": "Ach%C3%A9",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "stroessner-and-the-ache"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/1973_Chilean_coup_d%27%C3%A9tat",
+   "title": "1973 Chilean coup d%27%C3%A9tat",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "chilean-coup-1973"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/1973_Uruguayan_coup_d%27%C3%A9tat",
+   "title": "1973 Uruguayan coup d%27%C3%A9tat",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "uruguayan-coup-1973"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Operation_Condor",
+   "title": "Operation Condor",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "stroessner-and-the-ache",
+    "operation-condor-1975-1983"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/National_Reorganization_Process",
+   "title": "National Reorganization Process",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "argentine-dictatorship-1976-1983"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Internal_conflict_in_Peru",
+   "title": "Internal conflict in Peru",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "internal-conflict-in-peru-1980-2000"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Truth_and_Reconciliation_Commission_(Peru)",
+   "title": "Truth and Reconciliation Commission (Peru)",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "internal-conflict-in-peru-1980-2000"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Colombian_Constitution_of_1991",
+   "title": "Colombian Constitution of 1991",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "colombia-constitution-1991-and-law-70"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Black_studies",
+   "title": "Black studies",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "colombia-constitution-1991-and-law-70"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Ministry_of_the_Interior_(Colombia)",
+   "title": "Ministry of the Interior (Colombia)",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "colombia-constitution-1991-and-law-70"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Forced_sterilization_in_Peru",
+   "title": "Forced sterilization in Peru",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "forced-sterilization-in-peru-1996-2000"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Bojay%C3%A1_massacre",
+   "title": "Bojay%C3%A1 massacre",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "bojaya-massacre-2002"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Evo_Morales",
+   "title": "Evo Morales",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "evo-morales-and-the-plurinational-state"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Constitution_of_Bolivia",
+   "title": "Constitution of Bolivia",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "evo-morales-and-the-plurinational-state"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Baguazo",
+   "title": "Baguazo",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "bagua-massacre-2009"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Venezuelan_refugee_crisis",
+   "title": "Venezuelan refugee crisis",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "venezuelan-exodus"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Colombian_peace_process",
+   "title": "Colombian peace process",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "colombia-peace-agreement-2016"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Mapuche_conflict",
+   "title": "Mapuche conflict",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "mapuche-conflict-and-the-plurinational-vote"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/2022_Chilean_constitutional_referendum",
+   "title": "2022 Chilean constitutional referendum",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "mapuche-conflict-and-the-plurinational-vote"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Sacaba_massacre",
+   "title": "Sacaba massacre",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "sacaba-and-senkata-massacres-2019"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/2026_United_States_intervention_in_Venezuela",
+   "title": "2026 United States intervention in Venezuela",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "venezuelan-exodus",
+    "us-intervention-in-venezuela-2026"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/2026_Colombia_earthquake",
+   "title": "2026 Colombia earthquake",
+   "status": "reviewed",
+   "note": "read (Wikipedia)",
+   "events": [
+    "colombia-earthquake-2026"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Slavery_in_Chile",
+   "title": "Slavery_in_Chile",
+   "status": "inaccessible",
+   "note": "does not exist",
+   "events": []
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Law_70_of_1993",
+   "title": "Law_70_of_1993",
+   "status": "inaccessible",
+   "note": "no article; Law 70 cited from Black studies and the Ministry of the Interior",
+   "events": []
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.funcionpublica.gov.co/eva/gestornormativo/norma.php?i=7388",
+   "title": "norma.php?i=7388",
+   "status": "inaccessible",
+   "note": "Ley 70 de 1993 text: unreachable, no snapshot",
+   "events": []
+  }
+ ],
+ "gaps": [
+  "Brazil: the chart's Asher runs 'Colombia to Uruguay'; classes place Brazil inside that span (0FPiXYsd-z8 1:18:56, 'brazil would be from the tribe of asher'; 7PNqDmHX76o and 743SiGZ73T4 list Brazil with Asher). This batch adds no Brazil-only event; the Guaraní War (missions now in Rio Grande do Sul) and the Paraguayan War are tagged Asher. Owner's decision: whether to add Asher to brazil-sugar-african-slavery and brazil-abolition-and-whitening-1888.",
+  "extends conquest-of-peru-1532-1533: could be tagged [\"Asher\"] (the class there already calls the Incas Asher).",
+  "extends galvarino-1557: could be tagged [\"Naphtali\"].",
+  "extends esmeraldas-maroons-1599: could be tagged [\"Asher\"] (Ecuador).",
+  "extends guatemala-1954-and-us-coups: its uncertainty asks for the other coups to be sourced; this batch now sources Paraguay 1954, Chile 1973, Uruguay 1973 and Argentina 1976 as their own events. Peru 1968, Brazil 1964 and Venezuela 2002 remain unsourced.",
+  "extends friars-israelite-origin-1581-1607: could carry Asher if its friars wrote of Peru.",
+  "Owner's decision: the Occupation of Araucanía (1861–1883) does not fit inside one period; its bar starts at 1863 (jim-crow), noted in its uncertainty.",
+  "Owner's decision: Bolívar's alliance with Pétion (bolivar-petion-and-abolition-gran-colombia) could also carry Levi (Haiti).",
+  "Owner's decision: the Colombia earthquake of 2026 is included as a disaster with documented mass death (335), taught in FSUFtJ08joo; its teaching ties earthquakes to mineral extraction, kept as the class's own words.",
+  "No class teaching was found for: the siege of Cusco, the Muisca, Valdivia and Michimalonco, Lautaro, Vilcabamba, Curalaba, Benkos Biohó and Palenque, the Buenos Aires slave trade, the Guaraní War, Túpac Amaru II, Túpac Katari, Coro, abolition in Chile/Argentina and Gran Colombia, the Occupation of Araucanía, the Paraguayan War, the Conquest of the Desert, Putumayo, the Selkʼnam, Napalpí, Ránquil, Rincón Bomba, the Bolivian revolution, Condor, Peru's conflict and sterilizations, Colombia 1991, Bojayá, Evo Morales, Bagua, the Venezuelan exodus, the peace agreement, the Mapuche conflict and Sacaba/Senkata. Searches run (whole corpus): Asher/Naphtali mapping, inca/pizarro/cusco, mapuche/araucan/patagonia/lautaro/valdivia, potosí/mita/silver mine, tupac amaru/katari, palenque/benkos/cartagena, conquest of the desert/roca, paraguayan war/triple alliance, afro-argentine, pinochet/videla/stroessner/condor/dirty war/allende, selk'nam/tierra del fuego, putumayo/rubber, afro-colombian/bojayá/law 70/1991 constitution, fujimori/shining path, bolívar/pétion/sucre/gran colombia, muisca/chibcha, manco/vilcabamba, yellow fever, evo morales, milei, venezuela/maduro/chávez, abya yala, andes/quechua/aymara/guaraní.",
+  "Teaching to add later: OHH ffxKEbSLscQ and LUvtkI6YNeQ (Transition of Power: Venezuela, Jan 2026) and 36emQd9wjts (Raising Cain, 2026-01-18) have many Venezuela hits; FSUFtJ08joo also teaches Milei and fires in Patagonia, Petro, and Peru (2026) for possible current-event entries.",
+  "The Potosí class figures (40,000 tons of silver, $36 billion, 8 million dead) are not in the sources read; the death toll is recorded as a disagreement.",
+  "image: Andrés Sánchez Gallque's 'The Mulattos of Esmeraldas' is already an existing event's subject; for this batch: Guaman Poma de Ayala's drawings of the mita and of Túpac Amaru's execution (Royal Library of Denmark, public domain); Theodor de Bry's engraving of Potosí's Cerro Rico; the 1553 Tucapel engravings in Ovalle's Histórica relación (1646, public domain); photographs of Selkʼnam by Martin Gusinde (check rights); Bolívar–Pétion portraits (public domain)."
+ ]
+}
