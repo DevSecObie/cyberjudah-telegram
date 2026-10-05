@@ -22,6 +22,7 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- Eleven more portraits: Sihon, Javan, Abiathar, Caleb, Ishmael, Ahaziah, Jehoiada, Jephthah, Joash, Manasseh and Abimelech of Gerar.
 - People show their portraits everywhere a person appears (the People list, a person's page, the family graph, the chapter's people, search, case studies), the same approved portraits as the Timeline; anyone without one keeps their letter.
 - More people have portraits on the Timeline: 37 newly approved, among them Christ, Joshua, Isaiah, Ezekiel, Nehemiah, Rachel, Leah and Rebekah, each drawn as the scriptures and the assembly's teaching describe them.
 - Admins can correct precept explanations, verse positions and playback timestamps through the same review flow, while keeping recorded references intact.
