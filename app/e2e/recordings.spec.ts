@@ -153,3 +153,68 @@ test("a failed narrator switches to the saved AI voice without changing the pref
   await expect.poll(async () => (await audios(page)).length).toBe(2);
   expect(await page.evaluate(() => localStorage.getItem("ttsVoice"))).toBe("narrator:test-reader");
 });
+
+test("pause and resume preserve recording position from both audio controls", async ({ page }) => {
+  await setup(page);
+  await page.addInitScript(() => localStorage.setItem("ttsVoice", "narrator:test-reader"));
+  await page.goto("/read/psalms/23");
+  await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
+  await expect.poll(async () => (await audios(page)).length).toBe(1);
+  await tick(page, 21);
+  await page.getByRole("button", { name: "Pause audio playback", exact: true }).click();
+  expect((await audios(page))[0].paused).toBe(true);
+  expect((await audios(page))[0].currentTime).toBe(21);
+  await expect(page.locator("#verset-3")).toHaveAttribute("data-reading", "");
+  await page.getByRole("button", { name: "Resume audio playback", exact: true }).click();
+  expect((await audios(page))[0].paused).toBe(false);
+  expect((await audios(page))[0].currentTime).toBe(21);
+  await page.getByRole("button", { name: "Collapse", exact: true }).click();
+  await page.getByRole("button", { name: "Pause audio playback", exact: true }).click();
+  expect((await audios(page))[0].paused).toBe(true);
+  await expect(page.getByRole("button", { name: "Resume audio playback", exact: true })).toBeVisible();
+});
+
+test("pause wins over a pending recording lookup", async ({ page }) => {
+  await setup(page);
+  await page.addInitScript(() => localStorage.setItem("ttsVoice", "narrator:test-reader"));
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/recordings/psalms/23", async (route) => { await gate; await route.fulfill({ json: { narrators: [narrator] } }); });
+  await page.goto("/read/psalms/23");
+  await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
+  await page.getByRole("button", { name: "Pause audio playback", exact: true }).click();
+  release();
+  await expect.poll(async () => (await audios(page)).length).toBe(1);
+  expect((await audios(page))[0].paused).toBe(true);
+  await page.getByRole("button", { name: "Resume audio playback", exact: true }).click();
+  expect((await audios(page))[0].paused).toBe(false);
+});
+
+test("paused voice and speed changes keep the verse and persist without autoplay", async ({ page }) => {
+  await setup(page);
+  await page.goto("/read/psalms/23");
+  await page.evaluate(() => localStorage.setItem("ttsVoice", "narrator:test-reader"));
+  await page.reload();
+  await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
+  await expect.poll(async () => (await audios(page)).length).toBe(1);
+  await tick(page, 21);
+  await page.getByRole("button", { name: "Pause audio playback", exact: true }).click();
+  await page.getByRole("button", { name: "Voice", exact: true }).click();
+  await page.getByRole("radio", { name: /Asteria/ }).click();
+  await expect(page.getByRole("button", { name: "Resume audio playback", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Speed 1x", exact: true }).click();
+  await page.getByRole("dialog", { name: "Speed", exact: true }).getByRole("radio", { name: "1.5x", exact: true }).click();
+  expect((await audios(page)).every((a) => a.paused)).toBe(true);
+  const requests: string[] = [];
+  page.on("request", (r) => { if (r.url().includes("/api/tts/")) requests.push(r.url()); });
+  await page.getByRole("button", { name: "Resume audio playback", exact: true }).click();
+  await expect.poll(() => requests.some((u) => u.includes("/23/3?"))).toBe(true);
+  await expect.poll(async () => (await audios(page)).at(-1)?.playbackRate).toBe(1.5);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Start audio playback", exact: true })).toBeVisible();
+  expect((await audios(page)).length).toBe(0);
+  await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Speed 1.5x", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Voice", exact: true }).click();
+  await expect(page.getByRole("radio", { name: /Asteria/ })).toHaveAttribute("aria-checked", "true");
+});

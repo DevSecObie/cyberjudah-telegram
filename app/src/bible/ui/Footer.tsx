@@ -1,3 +1,4 @@
+import { AUDIO_RATES } from "@/lib/audio-intent.mjs";
 import { AmbientSheet } from "./AmbientSheet";
 import { useAmbient } from "@/lib/ambient";
 import { useState } from "react";
@@ -28,8 +29,9 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
   if (hidden) return null;
   const arrowsY = fullscreen ? HEADER_HEIGHT + 60 + bottomBar : 0;
   const centerY = fullscreen ? HEADER_HEIGHT : 0;
-  const RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+  const RATES = AUDIO_RATES;
   const cur = speech.current ?? 1;
+  const playbackLabel = !speech.playing ? "Start audio playback" : speech.paused ? "Resume audio playback" : "Pause audio playback";
   return (
     <div className="bs-footer" style={{ pointerEvents: "none" }}>
       <button type="button" className="bs-chapterbtn" style={{ left: 10, bottom: 10 + bottomBar, opacity: hasPrev ? 1 : 0.6, transform: `translateY(${arrowsY}px)` }} disabled={!hasPrev} aria-label="Previous chapter" title="Previous chapter" onClick={() => { haptic(); onPrev(); }}><Feather name="arrow-left" size={20} color="var(--bs-tertiary)" /></button>
@@ -44,12 +46,13 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
           <div className="bs-audio__controls">
             <button type="button" className="bs-audio__ctl" aria-label="Previous chapter" title="Previous chapter" disabled={!hasPrev} onClick={onPrev}><Ion name="play-skip-back" size={20} color="var(--bs-tertiary)" /></button>
             <button type="button" className="bs-audio__ctl" aria-label="Previous verse" title="Previous verse" onClick={() => speech.play(Math.max(1, cur - 1))}><Feather name="chevron-left" size={22} color="var(--bs-tertiary)" /></button>
-            <button type="button" className="bs-audio__play" aria-label={speech.playing && speech.paused ? "Resume audio playback" : speech.playing ? "Stop audio playback" : "Start audio playback"} title={speech.playing && speech.paused ? "Resume audio playback" : speech.playing ? "Stop audio playback" : "Start audio playback"} onClick={() => { haptic(); if (speech.playing && speech.paused) speech.toggle(); else if (speech.playing) speech.stop(); else speech.play(cur); }}><Feather name={speech.playing && !speech.paused ? "x" : "play"} size={24} color={speech.playing ? "var(--bs-quart)" : "var(--bs-primary)"} /></button>
+            <button type="button" className="bs-audio__play" aria-label={playbackLabel} title={playbackLabel} onClick={() => { haptic(); speech.toggle(); }}><Feather name={speech.playing && !speech.paused ? "pause" : "play"} size={24} color={speech.playing ? "var(--bs-quart)" : "var(--bs-primary)"} /></button>
             <button type="button" className="bs-audio__ctl" aria-label="Next verse" title="Next verse" onClick={() => speech.play(Math.min(verseCount, cur + 1))}><Feather name="chevron-right" size={22} color="var(--bs-tertiary)" /></button>
             <button type="button" className="bs-audio__ctl" aria-label="Next chapter" title="Next chapter" disabled={!hasNext} onClick={onNext}><Ion name="play-skip-forward" size={20} color="var(--bs-tertiary)" /></button>
           </div>
           {speech.notice ? <p className="bs-audio__notice" role="status">{speech.notice}</p> : null}
           <div className="bs-audio__chips">
+            {speech.playing ? <button type="button" className="bs-chip" aria-label="Stop audio playback" onClick={() => speech.stop()}><Feather name="x" size={12} />Stop</button> : null}
             <button type="button" className="bs-chip" onClick={() => setVoices(true)}><Feather name="mic" size={12} />Voice</button>
             <button type="button" className="bs-chip" onClick={() => setAdjust("Speed")}><Feather name="clock" size={12} />Speed {speech.rate}x</button>
             <button type="button" className="bs-chip" disabled={!speech.pitchSupported} title={!speech.pitchSupported ? "Pitch is available with device voices" : undefined} onClick={() => setAdjust("Pitch")}><Feather name="sliders" size={12} />Pitch {speech.pitch}x</button>
@@ -60,7 +63,7 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
         </div>
       ) : (
         <div className="bs-playpill" style={{ bottom: 10 + bottomBar, transform: `translateY(${centerY}px)` }}>
-          <button type="button" className="bs-playbtn" aria-label={speech.playing ? "Pause audio playback" : "Start audio playback"} title={speech.playing ? "Pause audio playback" : "Start audio playback"} aria-busy={false} disabled={!speech.supported} style={{ background: speech.playing ? "var(--bs-primary)" : "var(--bs-reverse)", opacity: speech.supported ? 1 : 0.6 }} onClick={() => { haptic(); if (!speech.playing) speech.play(1); setExpanded(true); }}>
+          <button type="button" className="bs-playbtn" aria-label={playbackLabel} title={playbackLabel} aria-busy={false} disabled={!speech.supported} style={{ background: speech.playing ? "var(--bs-primary)" : "var(--bs-reverse)", opacity: speech.supported ? 1 : 0.6 }} onClick={() => { haptic(); speech.toggle(); setExpanded(true); }}>
             <Feather name="volume-2" size={22} color={speech.playing ? "var(--bs-reverse)" : "var(--bs-primary)"} />
           </button>
         </div>
