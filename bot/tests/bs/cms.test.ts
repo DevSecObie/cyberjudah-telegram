@@ -296,3 +296,16 @@ test('a later note text edit also updates an existing class correction',async()=
   const writes=fake.calls.filter(c=>c.method==='PUT');assert.equal(writes.length,2);
   assert.ok(writes.some(c=>c.route.endsWith(table)&&Buffer.from(c.body.content,'base64').toString().includes('New note title')));
 });
+
+test('class route changes only the selected table row and the changed note field', async () => {
+  const table = 'data/sources/class-teachers.tsv', note = 'blog/2026/test.md';
+  const text = 'video\tteacher\tdate\ttitle\nZYXWVUTSRQP\tKeep teacher\t\tKeep this first\nABCDEFGHIJK\tTest teacher\t2026-01-01\tTest class\n';
+  fake.commits.get(fake.main).set(table, text);
+  const before = fake.commits.get(fake.main).get(note);
+  const source = await (await request('admin/cms/classes/ABCDEFGHIJK')).json() as any;
+  const response = await request('admin/cms/classes', 'POST', { ...source, value: { ...source.value, title: 'Corrected title' }, reason: 'Correct the title' });
+  assert.equal(response.status, 201, await response.clone().text());
+  const change = await response.json() as any, files = fake.commits.get(change.head)!;
+  assert.equal(files.get(table), text.replace('Test class', 'Corrected title'));
+  assert.equal(files.get(note), before.replace('title: Test class', 'title: "Corrected title"'));
+});

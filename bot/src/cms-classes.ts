@@ -30,7 +30,7 @@ cmsClasses.post('/',async c=>{
   if (input.tableSha !== d.table.sha || input.note?.file !== d.note?.path || input.note?.sha !== d.note?.sha) throw new CmsError('Class details changed since you opened them. Reload before saving.',409);
   if (JSON.stringify(input.value) === JSON.stringify(d.value)) throw new CmsError('There is no class detail change to save.');
   d.rows.set(input.value.video,input.value);
-  const files=[{...d.table,text:writeClassTable(d.rows)}];
+  const files=[{...d.table,text:writeClassTable(d.rows,d.table.text)}];
   if(d.note){const text=updateClassNote(d.note.text,input.value);if(text!==d.note.text)files.push({...d.note,text});}
   const user=c.get('tma').user!;
   return c.json(await createChange(c.env,{repo:CONTENT_REPO,kind:'class',subject:input.value.video,title:`Edit class details: ${input.value.title}`,reason:input.reason,base:d.main.commit.sha,files},{id:user.id,name:user.username?`@${user.username}`:user.first_name}),201);

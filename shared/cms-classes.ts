@@ -17,13 +17,26 @@ export function parseClassTable(text: string) {
   }
   return rows;
 }
-export function writeClassTable(rows: ReturnType<typeof parseClassTable>) { return CLASS_HEADER+'\n'+[...rows.values()].sort((a,b)=>a.video.localeCompare(b.video)).map(r=>[r.video,r.teacher,r.date,r.title].join('\t')).join('\n')+'\n'; }
+export function writeClassTable(rows: ReturnType<typeof parseClassTable>, source = CLASS_HEADER+'\n') {
+  const original = parseClassTable(source), seen = new Set<string>();
+  const row = (r: z.infer<typeof ClassMetadata>) => [r.video,r.teacher,r.date,r.title].join('\t');
+  let result = source.replace(/[^\r\n]+/g, (line, offset) => {
+    if (offset === 0) return line; // Preserve the header, including a source BOM.
+    const id = line.split('\t')[0], value = rows.get(id);
+    seen.add(id);
+    return !value ? '' : JSON.stringify(value) === JSON.stringify(original.get(id)) ? line : row(value);
+  });
+  const newline = source.includes('\r\n') ? '\r\n' : '\n';
+  for (const [id, value] of rows) if (!seen.has(id)) result += (result.endsWith('\n') ? '' : newline) + row(value) + newline;
+  return result;
+}
 /** Front matter changes leave the note body and stable source path untouched. */
 export function updateClassNote(text: string, value: z.infer<typeof ClassMetadata>) {
   if (!text.startsWith('---\n')) throw new Error('The class note must keep its front matter.');
   const end = text.indexOf('\n---\n',4); if (end < 0) throw new Error('The class note must keep its front matter.');
   let front = text.slice(4,end);
   for (const field of ['title','teacher','date'] as const) {
+    if (noteField(text, field) === value[field]) continue;
     const expression = new RegExp(`^${field}:.*$`,'m'), line = `${field}: ${JSON.stringify(value[field])}`;
     front = expression.test(front) ? front.replace(expression,()=>line) : front+'\n'+line;
   }

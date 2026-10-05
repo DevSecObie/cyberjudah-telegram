@@ -27,3 +27,15 @@ test('blank front matter fields do not consume the following field as their valu
   assert.equal(noteField(changed,'date'),'2024-01-01');assert.equal(noteField(changed,'teacher'),'');
   assert.ok(changed.includes('slug: keep-the-link'));
 });
+
+test('class updates preserve table order, blank lines, CRLF and untouched front matter quoting', () => {
+  const source = '\uFEFF' + CLASS_HEADER + '\r\nZYXWVUTSRQP\tTeacher Z\t\tLast first\r\n\r\nABCDEFGHIJK\tTeacher A\t2024-01-01\tEarlier second\r\n';
+  const rows = parseClassTable(source);
+  assert.equal(writeClassTable(rows, source), source);
+  rows.set('ABCDEFGHIJK', { ...rows.get('ABCDEFGHIJK')!, date: '2024-02-29' });
+  assert.equal(writeClassTable(rows, source), source.replace('2024-01-01', '2024-02-29'));
+  const note = "---\ntitle: 'Original title'\nteacher: Known teacher\ndate: 2024-01-01\nslug: stable\n---\nBody\n";
+  const value = { video: 'ABCDEFGHIJK', title: 'Original title', teacher: 'Known teacher', date: '2024-01-01' };
+  assert.equal(updateClassNote(note, value), note);
+  assert.equal(updateClassNote(note, { ...value, date: '2024-02-29' }), note.replace('date: 2024-01-01', 'date: "2024-02-29"'));
+});

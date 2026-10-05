@@ -38,7 +38,7 @@ export async function commitEdit(env: Env, edit: NoteEdit, by: CmsActor) {
       if (prior) {
         const next = { ...prior };
         for (const key of ['title','teacher','date'] as const) if (noteField(source.text,key) !== noteField(applied.text,key)) next[key] = noteField(applied.text,key);
-        if (JSON.stringify(next) !== JSON.stringify(prior)) { const metadata = ClassMetadata.safeParse(next); if (!metadata.success) throw new CmsError(metadata.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('\n')); rows.set(video,metadata.data); files.push({...table,text:writeClassTable(rows)}); }
+        if (JSON.stringify(next) !== JSON.stringify(prior)) { const metadata = ClassMetadata.safeParse(next); if (!metadata.success) throw new CmsError(metadata.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('\n')); rows.set(video,metadata.data); files.push({...table,text:writeClassTable(rows,table.text)}); }
       }
     }
   }
