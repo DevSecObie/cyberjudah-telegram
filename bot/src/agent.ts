@@ -1,3 +1,5 @@
+import { resolveResourcePins } from "./resource-tools";
+import type { ResourcePins } from "../../shared/resources";
 import Anthropic from "@anthropic-ai/sdk";
 
 import { books, chapter, dataJson } from "./data";
@@ -102,8 +104,10 @@ export async function runAgent(
   userId?: number,
   model: AskModel = modelOf(env.CLAUDE_MODEL || CLAUDE_DEFAULT),
   spend: Spend = freeSpend(),
+  requestedResources?: ResourcePins,
 ): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean }> {
   // Directly, through the AI Gateway, or to the tests' stand-in (providers.ts).
+  const resourcePins = await resolveResourcePins(env, requestedResources);
   const client = await claude(env);
   const passages: Numbered[] = [];
   const seen = new Map<string, number>();
@@ -192,7 +196,7 @@ export async function runAgent(
     }
     const more = MORE_RUN[name];
     if (more) {
-      const r = await more(env, input, ctx, emit, line, add);
+      const r = await more(env, input, ctx, emit, line, add, resourcePins);
       emit({ passages: [...passages] });
       return r;
     }

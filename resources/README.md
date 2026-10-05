@@ -59,8 +59,29 @@ their own normal Wrangler/Cloudflare credentials and current Telegram admin init
 data in `RESOURCE_ADMIN_INIT_DATA` can run one command after reviewing the reports:
 
 ```sh
-node resources/publish.mjs --bundle /path/to/artifact --execute --bucket YOUR_BUCKET --api https://YOUR_APP_HOST
+node resources/publish.mjs --bundle /path/to/artifact --execute --bucket cyberjudah-audio --api https://cyberjudah.io
 ```
+
+Download the artifact from the repository's [Resource bundles workflow](https://github.com/DevSecObie/cyberjudah-telegram/actions/workflows/resource-bundles.yml):
+open the successful run for the reviewed commit, then download
+`approved-resource-bundles-<commit>` under **Artifacts**. Unzip it and use the
+directory containing `inventory.json` as `/path/to/artifact`. Sign in to GitHub
+to download; artifacts expire after 30 days. Use Node 24 and the matching checkout.
+
+For this Wrangler-based command, create a Cloudflare API token with **Account →
+Workers R2 Storage → Edit**, restricted to the account containing
+`cyberjudah-audio`. Set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` securely
+in your local shell. This token does not need Workers deployment, D1, KV or DNS
+permissions. Cloudflare's account API permission is account-scoped, so it can
+write other R2 buckets in that account; it is not bucket-scoped. R2's separate
+S3 **Object Read & Write** credentials can be bucket-scoped, but are not accepted
+by this Wrangler command. Do not grant R2 admin access merely to upload objects.
+
+`RESOURCE_ADMIN_INIT_DATA` is fresh Telegram Mini App init data from an account
+listed in the Worker's `ADMIN_IDS`. Supply it securely as an environment variable;
+it authorizes the catalog API separately from the Cloudflare upload token. Run the
+command promptly while that Telegram session is valid. Review the default dry
+verification output before adding `--execute`.
 
 Do not put credential values in arguments, files committed to Git, or logs. The
 script verifies every artifact hash, mapping and content-derived release identity,

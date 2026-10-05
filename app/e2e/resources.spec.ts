@@ -55,7 +55,7 @@ test("resource activation survives reload, failed updates, rollback and independ
   await expect(page.locator("#verset-1")).toContainText("The vision of Obadiah");
 });
 
-test("an in-flight installation cannot resurrect a resource after deactivation", async ({ page }) => {
+for (const action of ["deactivateResource", "removeResource"] as const) test(`an in-flight installation cannot resurrect a resource after ${action}`, async ({ page }) => {
   await setup(page); await harness(page);
   const a = fixture("v1", "original fixture"), b = fixture("v2", "updated fixture");
   let releaseDownload: (() => void) | undefined;
@@ -69,7 +69,7 @@ test("an in-flight installation cannot resurrect a resource after deactivation",
   const waiting = page.waitForRequest("**/v2/entries.ndjson");
   const install = page.evaluate(async (c) => { try { await window.__resources.installResource(c, "test-resource"); return "activated"; } catch (e) { return String(e); } }, b.catalog);
   await waiting;
-  await page.evaluate(() => window.__resources.deactivateResource("test-resource"));
+  await page.evaluate((action) => window.__resources[action]("test-resource"), action);
   releaseDownload!();
   expect(await install).toContain("superseded");
   expect(await page.evaluate(() => window.__resources.readResource("test-resource", "entry"))).toBe(null);

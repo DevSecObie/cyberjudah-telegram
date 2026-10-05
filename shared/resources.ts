@@ -11,6 +11,11 @@ export const MAX_MANIFEST_BYTES = 256 * 1024;
 export const MAX_CATALOG_BYTES = 512 * 1024;
 export const ResourceKind = z.enum(["bible", "lexicon", "dictionary", "reference", "timeline"]);
 export const APPROVED_RESOURCE_IDS = ["strongs", "josephus", "jewish-encyclopedia", "smiths-dictionary-of-the-bible"] as const;
+export const ResourcePinsSchema = z.strictObject({
+  strongs: ReleaseId.nullable().optional(), josephus: ReleaseId.nullable().optional(),
+  "jewish-encyclopedia": ReleaseId.nullable().optional(), "smiths-dictionary-of-the-bible": ReleaseId.nullable().optional(),
+});
+export type ResourcePins = z.infer<typeof ResourcePinsSchema>;
 export const RecordKey = z.string().min(1).max(200).regex(/^[A-Za-z0-9/_-]+$/);
 export const ShardSchema = z.strictObject({
   path: z.string().regex(/^[a-z0-9][a-z0-9-]{0,95}\.ndjson$/),

@@ -93,6 +93,7 @@ export function Settings() {
 
   return (
     <Screen title="Settings">
+      <Section title="Study library"><List><Row title="Study resources" sub="Install, remove or roll back offline resources" onClick={() => navigate("/resources")} /></List></Section>
       <Section title="Reading">
         <Segmented label="Theme" value={bible.preferredColorScheme} onChange={(v) => setBible({ preferredColorScheme: v })} options={[["auto", "Automatic"], ["light", "Day"], ["dark", "Night"]]} />
         <List>

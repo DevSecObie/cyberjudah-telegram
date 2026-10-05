@@ -37,6 +37,7 @@ export function Books() {
   const hits = found.data && found.data.ok ? found.data.hits : [];
   return (
     <Screen title="Library" kicker="Books the classes read from">
+      <Link to="/resources" className="bs-link">Offline study resources</Link>
       <div className="books__search">
         <SearchField id="book-q" value={q} onChange={setQ} onSubmit={() => { haptic("select"); setAsked(q.trim()); }} placeholder="Search inside the books" />
       </div>

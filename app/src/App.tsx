@@ -1,3 +1,4 @@
+import { useResourceSync } from "@/resources/hooks";
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
 
@@ -25,6 +26,8 @@ const Watch = lazy(() => import("@/screens/Watch").then((m) => ({ default: m.Wat
 const Ask = lazy(() => import("@/screens/Ask").then((m) => ({ default: m.Ask })));
 const BibleTab = lazy(() => import("@/bible/BibleTab").then((m) => ({ default: m.BibleTab })));
 const More = lazy(() => import("@/screens/More").then((m) => ({ default: m.More })));
+const ResourceInstaller = lazy(() => import("@/screens/ResourceInstaller").then((m) => ({ default: m.ResourceInstaller })));
+const ResourceReader = lazy(() => import("@/screens/ResourceReader").then((m) => ({ default: m.ResourceReader })));
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
 const Reminders = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.Reminders })));
 const ReminderSync = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.ReminderSync })));
@@ -64,6 +67,7 @@ const TagScreen = lazy(() => import("@/screens/Tags").then((m) => ({ default: m.
 
 
 export function App() {
+  useResourceSync();
   const location = useLocation();
   // Bible Strong's tabs: where the app is becomes the current tab's place (lib/tabs.ts).
   const prevPath = useRef<string | null>(null);
@@ -113,6 +117,8 @@ export function App() {
         <Route path="/note/*" element={<NoteScreen />} />
         <Route path="/watch/:video" element={<Watch />} />
         <Route path="/ask" element={<Ask />} />
+        <Route path="/resources" element={<ResourceInstaller />} />
+        <Route path="/resources/:id/:release" element={<ResourceReader />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/bar" element={<NavEditor />} />
         <Route path="/settings/requests" element={<NoteRequests />} />

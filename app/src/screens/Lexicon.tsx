@@ -1,3 +1,4 @@
+import { useResourceRelease } from "@/resources/hooks";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
@@ -13,7 +14,10 @@ import { Empty, Icon, List, Row, Screen, SearchField, Section, Segmented, Skelet
 type Lang = "hebrew" | "greek";
 const isLang = (r: StrongsRow, l: Lang) => r.n.startsWith(l === "hebrew" ? "H" : "G");
 /** The whole Strong's index (14,197 rows), kept for the session. */
-export const useStrongsIndex = () => useQuery({ queryKey: ["strongs-index"], queryFn: data.strongsIndex, staleTime: Infinity });
+export const useStrongsIndex = () => {
+  const release = useResourceRelease("strongs");
+  return useQuery({ queryKey: ["strongs-index", release], enabled: release !== undefined, queryFn: () => data.strongsIndex(release), staleTime: Infinity });
+};
 /** Strong's word of the day in a language: a word used often enough to be worth meeting (Bible Strong's StrongOfTheDay). */
 export function strongOfDay(rows: StrongsRow[] | undefined, lang: Lang): StrongsRow | undefined {
   if (!rows) return undefined;
@@ -90,16 +94,18 @@ export function StrongRow({ row }: { row: StrongsRow }) {
 
 /** One word's full study, as a screen: `/lexicon/H430`. */
 export function LexiconEntry() {
+  const [resourceParams] = useSearchParams();
+  const release = resourceParams.get("release") ?? undefined;
   const { number = "" } = useParams();
   useBackButton(false);
   const n = number.toUpperCase();
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
-  const e = useStrongs(n).data;
+  const e = useStrongs(n, true, release).data;
   useBottomButtons(e ? { text: "Share", onClick: () => void share({ kind: "note", title: `${e.lemma} (${e.xlit}) · Strong's ${e.number}`, text: e.def.slice(0, 300), sitePath: `/lexicon/${e.number.toLowerCase()}` }) } : null);
   return (
     <Screen title={e ? e.lemma : "Word study"} kicker={e ? `${e.xlit} · ${e.language} · Strong's ${e.number}` : `Strong's ${n}`}>
       <div className="lex">
-        <WordStudy number={n} books={books.data ?? []} />
+        <WordStudy number={n} books={books.data ?? []} release={release} />
       </div>
     </Screen>
   );

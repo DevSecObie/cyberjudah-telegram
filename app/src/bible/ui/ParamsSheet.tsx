@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router";
 import { useState, type ReactNode } from "react";
 
 import { haptic } from "@/tg/sdk";
@@ -14,6 +15,7 @@ import { HighlightTypeIndicator } from "./SelectedVersesSheet";
  * open their own sheets. Every label and choice is Bible Strong's.
  */
 export function ParamsSheet({ open, onClose, settings: s, set, palette }: { open: boolean; onClose: () => void; settings: BibleSettings; set: (p: Partial<BibleSettings>) => void; palette: Palette }) {
+  const navigate = useNavigate();
   const [sub, setSub] = useState<"fonts" | "palette" | "share" | null>(null);
   const align = { left: "Left", justify: "Justified" }[s.alignContent];
   const lh = { normal: "Normal", small: "Small", large: "Large" }[s.lineHeight];
@@ -59,6 +61,7 @@ export function ParamsSheet({ open, onClose, settings: s, set, palette }: { open
           <Row label="Showing strongs" value={press}>
             <button type="button" className="bs-touchicon" aria-label={`Showing strongs: ${press}`} title={`Showing strongs: ${press}`} onClick={() => { haptic("select"); set({ press: s.press === "shortPress" ? "longPress" : "shortPress" }); }}><PressIcon long={s.press === "longPress"} color="var(--bs-primary)" /></button>
           </Row>
+          <LinkRow label="Study resources" onPress={() => { onClose(); navigate("/resources"); }} />
           <LinkRow label="Fonts" value={<span style={{ fontFamily: webFontFamily(s.fontFamily) }}>{s.fontFamily}</span>} onPress={() => setSub("fonts")} />
           <LinkRow label="Color palette" onPress={() => setSub("palette")} />
           <LinkRow label="Share options" onPress={() => setSub("share")} />
