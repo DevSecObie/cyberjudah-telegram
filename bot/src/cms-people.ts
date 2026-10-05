@@ -1,3 +1,4 @@
+import { rewriteJson } from '../../shared/cms-json';
 import { Hono } from 'hono';
 import type { Env } from './env';
 import { PersonSave, PersonEdit, applyPersonEdit, type PersonRecord } from '../../shared/cms-people';
@@ -12,5 +13,5 @@ cmsPeople.post('/',async c=>{
   let people:PersonRecord[];try{people=applyPersonEdit(d.doc.people,input.id,input.value);}catch(e){throw new CmsError((e as Error).message);}
   if(JSON.stringify(people)===JSON.stringify(d.doc.people))throw new CmsError('There is no change to save.');
   const user=c.get('tma').user!,name=people.find(p=>p.id===input.id)!.name;
-  return c.json(await createChange(c.env,{repo:CONTENT_REPO,kind:'person',subject:input.id,title:`Edit person: ${name}`,reason:input.reason,base:d.main.commit.sha,files:[{...d.file,text:JSON.stringify({...d.doc,people})+'\n'}]},{id:user.id,name:user.username?`@${user.username}`:user.first_name}),201);
+  return c.json(await createChange(c.env,{repo:CONTENT_REPO,kind:'person',subject:input.id,title:`Edit person: ${name}`,reason:input.reason,base:d.main.commit.sha,files:[{...d.file,text:rewriteJson(d.file.text,{...d.doc,people})}]},{id:user.id,name:user.username?`@${user.username}`:user.first_name}),201);
 });

@@ -327,3 +327,14 @@ test('large People sources use GitHub raw media safely, and redirects are never 
  globalThis.fetch=(async(_url:RequestInfo|URL,init:RequestInit={})=>{assert.equal(init.redirect,'manual');return new Response(null,{status:302,headers:{location:'https://untrusted.invalid/'}});}) as typeof fetch;
  await assert.rejects(new Github(env,CONTENT_REPO).file('data/people/people.json','b'.repeat(40)),/unavailable/);
 });
+
+test('a People summary correction preserves record order, formatting and unrelated fields', async () => {
+  const path = 'data/people/people.json';
+  const text = JSON.stringify(JSON.parse(fake.files.get(path)!), null, 2) + '\n';
+  fake.commits.get(fake.main).set(path, text);
+  const source = await (await request('admin/cms/people/test-person')).json() as any;
+  const response = await request('admin/cms/people', 'POST', { id: source.id, sha: source.sha, value: { ...source.value, description: 'Verified correction' }, reason: 'Correct this summary' });
+  assert.equal(response.status, 201, await response.clone().text());
+  const change = await response.json() as any;
+  assert.equal(fake.commits.get(change.head)!.get(path), text.replace('Synthetic summary', 'Verified correction'));
+});
