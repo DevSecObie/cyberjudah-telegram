@@ -1,3 +1,4 @@
+import { rewriteJson } from '../../shared/cms-json';
 import { Hono } from 'hono';
 import type { Env } from './env';
 import { VideoId } from '../../shared/cms-classes';
@@ -11,7 +12,8 @@ cmsPrecepts.post('/',async c=>{
  const input=PreceptSave.parse(await c.req.json()),d=await source(c.env,input.video);
  if(input.sha!==d.file.sha)throw new CmsError('This precept pass changed. Reload it before saving.',409);
  if(input.video!==input.pass.video||!samePreceptStructure(d.pass,input.pass))throw new CmsError('Keep the class metadata, opened passages and referenced precepts unchanged. Only explanations, verse positions and timestamps may be edited here.');
- if(JSON.stringify(input.pass)===JSON.stringify(d.pass))throw new CmsError('There is no change to save.');
+ const text = rewriteJson(d.file.text,input.pass);
+ if(text===d.file.text)throw new CmsError('There is no change to save.');
  const user=c.get('tma').user!;
- return c.json(await createChange(c.env,{repo:CONTENT_REPO,kind:'precept',subject:input.video,title:`Edit precept pass: ${input.pass.title}`,reason:input.reason,base:d.main.commit.sha,files:[{...d.file,text:JSON.stringify(input.pass,null,2)+'\n'}]},{id:user.id,name:user.username?`@${user.username}`:user.first_name}),201);
+ return c.json(await createChange(c.env,{repo:CONTENT_REPO,kind:'precept',subject:input.video,title:`Edit precept pass: ${input.pass.title}`,reason:input.reason,base:d.main.commit.sha,files:[{...d.file,text}]},{id:user.id,name:user.username?`@${user.username}`:user.first_name}),201);
 });

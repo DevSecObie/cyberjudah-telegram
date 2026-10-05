@@ -355,3 +355,17 @@ test('precept edits preserve references, enforce SHA and allowlist, and require 
  fake.omittedChecks=[];assert.equal((await(await request(route)).json() as any).state,'Passed');
  assert.equal((await request(route+'/publish','POST',{head:c.head,confirm:'publish'})).status,200);
 });
+
+test('a precept correction preserves source property order and changes only the explanation', async () => {
+  const path = 'data/precepts/classes/ABCDEFGHIJK.json', original = JSON.parse(fake.files.get(path)!);
+  const { passages, ...meta } = original;
+  const text = JSON.stringify({ passages, ...meta }, null, 1) + '\n'; fake.commits.get(fake.main).set(path, text);
+  const source = await (await request('admin/cms/precepts/ABCDEFGHIJK')).json() as any;
+  assert.equal((await request('admin/cms/precepts', 'POST', { video: source.video, sha: source.sha, pass: source.pass, reason: 'Untouched pass' })).status, 400);
+  const old = source.pass.passages[0].precepts[0].why;
+  source.pass.passages[0].precepts[0].why = 'Corrected recorded explanation';
+  const response = await request('admin/cms/precepts', 'POST', { video: source.video, sha: source.sha, pass: source.pass, reason: 'Correct the explanation' });
+  assert.equal(response.status, 201, await response.clone().text());
+  const change = await response.json() as any;
+  assert.equal(fake.commits.get(change.head)!.get(path), text.replace('"why": ' + JSON.stringify(old), '"why": "Corrected recorded explanation"'));
+});
