@@ -1870,6 +1870,7 @@ test("an admin's note editor fits the phone: a long note keeps Save on screen", 
   await page.route("**/api/notes/source*", (r) => r.fulfill({ json: { ok: true, sha: "abc", text: "---\ntitle: Religion\n---\n\n" + "The whole note as written.\n\n".repeat(200) } }));
   await page.goto(`/note/classes/2026/2026-03-28-religion-the-false-prophet${LAUNCH}`);
   await page.locator('.nsheet button[aria-label="Edit this note"]').click();
+  await page.getByLabel("Reason for this edit").fill("Correct wording from the source.");
   const text = page.locator(".edit__text");
   await expect(text).toBeVisible();
   await text.click();

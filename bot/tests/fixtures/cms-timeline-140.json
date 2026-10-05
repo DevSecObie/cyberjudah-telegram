@@ -1,0 +1,86 @@
+[
+ {
+  "slug": "fbi-project-megiddo-1999",
+  "title": "The FBI’s Project Megiddo names the Black Hebrew Israelites",
+  "start": 1999,
+  "end": 1999,
+  "date": {
+   "text": "October 20, 1999",
+   "precision": "day"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Identity and erasure",
+  "place": "Washington, D.C.",
+  "region": "North America",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Judah"
+  ],
+  "people": [
+   "Louis Freeh",
+   "Janet Reno"
+  ],
+  "summary": "On October 20, 1999 the FBI released Project Megiddo, a report that named followers of white supremacy, Christian Identity, the militia movement, the Black Hebrew Israelites and apocalyptic cults as potential terrorists who might turn violent at the new millennium.",
+  "account": [
+   "Project Megiddo was researched and written by the Federal Bureau of Investigation under Director Louis Freeh and released on October 20, 1999. Its stated purpose was to warn domestic law enforcement of “the potential for extremist criminal activity in the United States by individuals or domestic groups who attach special significance to the year 2000.” It named the Black Hebrew Israelites among the movements whose followers might become violent in reaction to the new millennium, alongside white supremacists, Christian Identity, the militia movement and apocalyptic cults.",
+   "The report said “violent radical fringe members” of the Black Hebrew Israelite movement hold beliefs that “bear a striking resemblance to the Christian Identity theology practiced by many white supremacists.”",
+   "The report drew criticism at the time: Insight on the News called it “a polemic presented as a threat report” in which the FBI “has targeted religious groups.” On January 6, 2000, asked why the predicted acts of terror had not happened, Attorney General Janet Reno answered that “the nice answer would be that there was no threat.”"
+  ],
+  "teaching": [
+   {
+    "points": [
+     "The secret plots against Israel begin with defamation of character, and when defamation does not work, then comes martyrdom: so it was when the adversaries hindered the building of the temple “by their secret plots, and popular persuasions and commotions.” Project Megiddo is one link in that chain of events: it talks about the plans of America."
+    ],
+    "quote": "They got something called Project Megiddo, y'all can look that up when you want, when you get a chance. Talks about the plans of America.",
+    "source": {
+     "kind": "class",
+     "id": "FMMiNm4MHhE",
+     "title": "#IUIC | A Time Of Defamation",
+     "date": "2020-01-21",
+     "ts": "1:31",
+     "url": "https://youtu.be/FMMiNm4MHhE?t=91"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "1 Esdras 5:73",
+    "why": "Read at the opening of the class: the adversaries hindered the building of the temple with secret plots, popular persuasions and commotions, as they work to hinder the building of the nation of Israel today, beginning with defamation."
+   }
+  ],
+  "answer": [
+   {
+    "ref": "1 Esdras 5:73",
+    "why": "Read by the class with this report: “by their secret plots, and popular persuasions and commotions, they hindered the finishing of the building.” The work of rebuilding Israel was spoken against and hindered before; a government report naming the people as a threat is the same pattern."
+   },
+   {
+    "ref": "Psalms 83:3-4",
+    "why": "“They have taken crafty counsel against thy people, and consulted against thy hidden ones… that the name of Israel may be no more in remembrance.” Counsel taken against a hidden people is foretold."
+   },
+   {
+    "ref": "Luke 23:2",
+    "why": "Christ himself was charged as a danger to the state: “We found this fellow perverting the nation.” What was said of him is said of his people."
+   }
+  ],
+  "sources": [
+   {
+    "title": "Project Megiddo",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Project_Megiddo",
+    "accessed": "2026-10-04",
+    "supports": "released October 20, 1999 under Louis Freeh; named Black Hebrew Israelites among potential millennial terrorists; stated purpose; Insight on the News criticism; Janet Reno, January 6, 2000"
+   },
+   {
+    "title": "Black Hebrew Israelites",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Black_Hebrew_Israelites",
+    "accessed": "2026-10-04",
+    "supports": "the report’s words on “violent radical fringe members” and their resemblance to Christian Identity theology (citing the FBI report, pages 23–25)"
+   }
+  ],
+  "uncertainty": "The FBI’s own PDF (fbi.gov/library/megiddo/publicmegiddo.pdf) was not read; the report is cited through the two Wikipedia articles.",
+  "status": "published"
+ }
+]

@@ -1,0 +1,37 @@
+name: CMS content
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  cms-content:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Transcript corpus for changed Timeline records
+        uses: actions/checkout@v7
+        with:
+          repository: DevSecObie/cyberjudah
+          ref: main
+          path: .cms-corpus
+          sparse-checkout: |
+            blog/transcripts
+            history/transcripts
+            data/bible
+      - name: Validate source content and corpus evidence
+        env:
+          CMS_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CJ_ROOT: .cms-corpus
+        run: node scripts/check-cms.mjs
+      - name: Rebuild reader content from reviewed source
+        run: node app/scripts/final-captivity/build.mjs

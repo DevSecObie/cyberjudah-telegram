@@ -8,7 +8,9 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test": "node --test tests/*.test.mjs ../resources/*.test.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "prebuild": "node scripts/final-captivity/build.mjs",
+    "pretest": "node scripts/final-captivity/build.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.2",

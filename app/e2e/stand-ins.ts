@@ -1,3 +1,4 @@
+import { FakeGithub } from "../../bot/tests/fixtures/cms-github.mjs";
 import http from "node:http";
 import { claude } from "./claude";
 
@@ -20,6 +21,7 @@ export type Logged = { at: number; method: string; path: string; headers: Record
 
 export default async function globalSetup() {
   const log: Logged[] = [];
+  let github = new FakeGithub();
   let messageId = 1000;
   const server = http.createServer((req, res) => {
     let raw = "";
@@ -31,6 +33,10 @@ export default async function globalSetup() {
       let body: unknown = raw;
       try { body = raw ? JSON.parse(raw) : null; } catch { /* form or empty */ }
       log.push({ at: Date.now(), method: req.method ?? "", path, headers: req.headers as Record<string, string>, body });
+      if (path === "/__cms/reset") { github = new FakeGithub(); return json(200, { ok: true }); }
+      if (path === "/__cms/checks") { github.checks = (body as { state: string }).state; return json(200, { ok: true }); }
+      if (path === "/__cms/calls") return json(200, github.calls);
+      if (path.startsWith("/github/")) { const result = github.respond(path, req.method, body, req.headers); return json(result.status, result.body); }
       const bot = /^\/bot[^/]+\/(\w+)$/.exec(path);
       if (bot) {
         const p = (body ?? {}) as { chat_id?: number; text?: string };

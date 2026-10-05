@@ -103,42 +103,46 @@ resources.put("/catalog", async (c) => {
   try { for (;;) { const { done, value } = await reader.read(); if (done) break; size += value.length; if (size > MAX_CATALOG_BYTES) { await reader.cancel(); return c.json({ error: "Catalog too large" }, 413); } chunks.push(value); } } finally { reader.releaseLock(); }
   const bytes = new Uint8Array(size); let at = 0; for (const chunk of chunks) { bytes.set(chunk, at); at += chunk.length; }
   let input: unknown; try { input = JSON.parse(new TextDecoder().decode(bytes)); } catch { return c.json({ error: "Invalid JSON" }, 400); }
-  const parsed = CatalogSchema.safeParse(input); if (!parsed.success) return c.json({ error: "Invalid catalog" }, 400);
-  const { catalog, etag } = await readCatalog(c.env);
-  if (match !== etag || parsed.data.revision !== catalog.revision + 1) return c.json({ error: "Catalog changed; reload before publishing" }, 409);
+  return publishCatalog(c.env, input, match);
+});
+/** Shared by the existing upload API and the confirmed CMS catalog action. */
+export async function publishCatalog(env: Env, input: unknown, match: string): Promise<Response> {
+  const parsed = CatalogSchema.safeParse(input); if (!parsed.success) return Response.json({ error: "Invalid catalog" }, { status: 400 });
+  const { catalog, etag } = await readCatalog(env);
+  if (match !== etag || parsed.data.revision !== catalog.revision + 1) return Response.json({ error: "Catalog changed; reload before publishing" }, { status: 409 });
   // Approved releases are immutable and already fully checked. Only new releases
   // need shard validation; no client can activate half an upload.
   for (const entry of parsed.data.resources) {
     const marker = `resources/approved/${entry.id}/${entry.release}.json`;
-    const approved = await c.env.AUDIO.get(marker);
+    const approved = await env.AUDIO.get(marker);
     if (approved) {
-      if ((await approved.json<{ manifestSha256: string }>()).manifestSha256 !== entry.manifestSha256) return c.json({ error: "A release cannot be overwritten" }, 409);
+      if ((await approved.json<{ manifestSha256: string }>()).manifestSha256 !== entry.manifestSha256) return Response.json({ error: "A release cannot be overwritten" }, { status: 409 });
       continue;
     }
-    const base = releasePrefix(entry.id, entry.release), file = await c.env.AUDIO.get(`${base}manifest.json`);
-    if (!file || file.size > MAX_MANIFEST_BYTES) return c.json({ error: "Missing manifest" }, 400);
+    const base = releasePrefix(entry.id, entry.release), file = await env.AUDIO.get(`${base}manifest.json`);
+    if (!file || file.size > MAX_MANIFEST_BYTES) return Response.json({ error: "Missing manifest" }, { status: 400 });
     const data = new Uint8Array(await file.arrayBuffer());
-    if (await sha256(data) !== entry.manifestSha256) return c.json({ error: "Manifest checksum mismatch" }, 400);
+    if (await sha256(data) !== entry.manifestSha256) return Response.json({ error: "Manifest checksum mismatch" }, { status: 400 });
     const m = ManifestSchema.parse(JSON.parse(new TextDecoder().decode(data)));
-    if (m.id !== entry.id || m.release !== entry.release) return c.json({ error: "Manifest identity mismatch" }, 400);
+    if (m.id !== entry.id || m.release !== entry.release) return Response.json({ error: "Manifest identity mismatch" }, { status: 400 });
     const keys = new Set<string>(), indexed = new Map<string, string>();
     for (const bucket of m.index?.buckets ?? []) {
-      const object = await c.env.AUDIO.get(`${base}${bucket.path}`);
-      if (!object || object.size !== bucket.bytes) return c.json({ error: "Incomplete resource index" }, 400);
+      const object = await env.AUDIO.get(`${base}${bucket.path}`);
+      if (!object || object.size !== bucket.bytes) return Response.json({ error: "Incomplete resource index" }, { status: 400 });
       for (const [key, path] of await parseIndex(new Uint8Array(await object.arrayBuffer()), bucket, m)) indexed.set(key, path);
     }
     for (const part of m.parts) {
-      const object = await c.env.AUDIO.get(`${base}${part.path}`);
-      if (!object || object.size !== part.bytes) return c.json({ error: "Incomplete resource" }, 400);
-      for (const row of await parseShard(new Uint8Array(await object.arrayBuffer()), part, m.kind)) { if (keys.has(row.key)) return c.json({ error: "Duplicate resource record" }, 400); keys.add(row.key); if (m.index && indexed.get(row.key) !== part.path) return c.json({ error: "Resource index does not match records" }, 400); }
+      const object = await env.AUDIO.get(`${base}${part.path}`);
+      if (!object || object.size !== part.bytes) return Response.json({ error: "Incomplete resource" }, { status: 400 });
+      for (const row of await parseShard(new Uint8Array(await object.arrayBuffer()), part, m.kind)) { if (keys.has(row.key)) return Response.json({ error: "Duplicate resource record" }, { status: 400 }); keys.add(row.key); if (m.index && indexed.get(row.key) !== part.path) return Response.json({ error: "Resource index does not match records" }, { status: 400 }); }
     }
-    if (m.index && indexed.size !== keys.size) return c.json({ error: "Resource index contains missing records" }, 400);
-    const saved = await c.env.AUDIO.put(marker, JSON.stringify({ manifestSha256: entry.manifestSha256 }), { onlyIf: { etagDoesNotMatch: "*" } });
-    if (!saved && (await (await c.env.AUDIO.get(marker))?.json<{ manifestSha256: string }>())?.manifestSha256 !== entry.manifestSha256) return c.json({ error: "Release approval changed" }, 409);
+    if (m.index && indexed.size !== keys.size) return Response.json({ error: "Resource index contains missing records" }, { status: 400 });
+    const saved = await env.AUDIO.put(marker, JSON.stringify({ manifestSha256: entry.manifestSha256 }), { onlyIf: { etagDoesNotMatch: "*" } });
+    if (!saved && (await (await env.AUDIO.get(marker))?.json<{ manifestSha256: string }>())?.manifestSha256 !== entry.manifestSha256) return Response.json({ error: "Release approval changed" }, { status: 409 });
   }
   const body = jsonBytes(parsed.data), hash = await sha256(body);
-  await c.env.AUDIO.put(`resources/catalog/${hash}.json`, body, { onlyIf: { etagDoesNotMatch: "*" } });
-  const saved = await c.env.AUDIO.put(CURRENT, body, { onlyIf: etag === "*" ? { etagDoesNotMatch: "*" } : { etagMatches: etag.replaceAll('"', "") }, httpMetadata: { contentType: "application/json", cacheControl: "no-cache" } });
-  if (!saved) return c.json({ error: "Catalog changed; reload before publishing" }, 409);
-  c.header("etag", saved.httpEtag); return c.json(parsed.data);
-});
+  await env.AUDIO.put(`resources/catalog/${hash}.json`, body, { onlyIf: { etagDoesNotMatch: "*" } });
+  const saved = await env.AUDIO.put(CURRENT, body, { onlyIf: etag === "*" ? { etagDoesNotMatch: "*" } : { etagMatches: etag.replaceAll('"', "") }, httpMetadata: { contentType: "application/json", cacheControl: "no-cache" } });
+  if (!saved) return Response.json({ error: "Catalog changed; reload before publishing" }, { status: 409 });
+  return Response.json(parsed.data, { headers: { etag: saved.httpEtag } });
+}

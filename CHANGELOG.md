@@ -22,6 +22,8 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- Admins can review Timeline and note corrections, outside-source changes and resource publications from Settings. Content saves open pull requests; publication requires passing checks and an explicit admin action.
+
 Merged to `main` and not yet in a tagged release. Production currently runs `861242f`
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
