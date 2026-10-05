@@ -468,7 +468,7 @@
    "text": "2006",
    "precision": "year"
   },
-  "period": "israel-united-in-christ",
+  "period": "unto-this-day",
   "group": "Israel United in Christ",
   "place": "United States",
   "region": "North America",
@@ -505,7 +505,7 @@
    "text": "Early 2015",
    "precision": "month"
   },
-  "period": "israel-united-in-christ",
+  "period": "unto-this-day",
   "group": "Israel United in Christ",
   "place": "Kingston, Jamaica",
   "region": "Caribbean",
@@ -540,7 +540,7 @@
    "text": "2010s–today",
    "precision": "range"
   },
-  "period": "israel-united-in-christ",
+  "period": "unto-this-day",
   "group": "Israel United in Christ",
   "place": "IUIC schools",
   "region": "Worldwide",
@@ -585,7 +585,7 @@
    "text": "by May 2020",
    "precision": "circa"
   },
-  "period": "israel-united-in-christ",
+  "period": "unto-this-day",
   "group": "Israel United in Christ",
   "place": "United States",
   "region": "Worldwide",
@@ -635,7 +635,7 @@
    "text": "by January 2021",
    "precision": "circa"
   },
-  "period": "israel-united-in-christ",
+  "period": "unto-this-day",
   "group": "Israel United in Christ",
   "place": "Online",
   "region": "Worldwide",
@@ -687,7 +687,7 @@
    "text": "Spring 2026",
    "precision": "circa"
   },
-  "period": "israel-united-in-christ",
+  "period": "unto-this-day",
   "group": "Israel United in Christ",
   "place": "Liberia, Sierra Leone, Kenya, Tanzania, Zanzibar, Madagascar and elsewhere",
   "region": "Worldwide",
@@ -732,7 +732,7 @@
  {
   "slug": "iuic-2013-split",
   "title": "The 2013 split",
-  "period": "israel-united-in-christ",
+  "period": "unto-this-day",
   "needs": "no documented source was found for a 2013 split (IUIC’s history page records only the 1995 split; existing event the-1990s-splits); the owner should say which split is meant",
   "status": "draft"
  },

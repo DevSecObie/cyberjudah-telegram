@@ -39,21 +39,12 @@
     },
     {
       "id": "unto-this-day",
-      "title": "Unto This Day",
+      "title": "Redemption",
       "subTitle": "2003–today",
       "startYear": 2002,
       "endYear": 2027,
       "interval": 1,
       "color": "#3a4f7a"
-    },
-    {
-      "id": "israel-united-in-christ",
-      "title": "Israel United in Christ",
-      "subTitle": "2003–today",
-      "startYear": 2002,
-      "endYear": 2027,
-      "interval": 1,
-      "color": "#2c5d73"
     }
   ]
 }

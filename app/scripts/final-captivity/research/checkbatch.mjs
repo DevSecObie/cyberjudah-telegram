@@ -13,7 +13,7 @@ for (const e of b.events ?? []) {
   p.push(...checkEvent(e, periods, { corpus }));
   if (existing.has(e.slug)) p.push(e.slug + ": slug already exists in events.json (pick another or drop the duplicate)");
   if (seen.has(e.slug)) p.push(e.slug + ": slug repeated in this batch"); seen.add(e.slug);
-  if (!e.tribes?.length && e.period !== "israel-united-in-christ") p.push(e.slug + ": name the tribes it concerns");
+  if (!e.tribes?.length && e.group !== "Israel United in Christ") p.push(e.slug + ": name the tribes it concerns");
   if (e.answer?.length && !e.answer.every((a) => a.why)) p.push(e.slug + ": each answer verse needs its why");
 }
 for (const e of b.drafts ?? []) p.push(...checkEvent(e, periods, { corpus, draft: true }));
