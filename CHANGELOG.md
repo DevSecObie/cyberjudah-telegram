@@ -78,6 +78,11 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
   card fades in behind, and back from an event, a verse or a case study returns to the same place.
   Its periods and events now have pictures: our own period paintings and the approved People
   portraits. Its search works like the main search, and keeps its words when you come back.
+- The Final Captivity, the twelve tribes, second wave: 144 new Timeline events — Zebulon and
+  Issachar (Central America and Mexico), Naphtali and Asher (South America), Ephraim and Manasseh
+  (Puerto Rico and Cuba) — and tribe tags on 112 existing events, 346 events in all. Twelve events
+  answer outside charges from the KJV and the Apocrypha, each with the verses the classes
+  themselves read first.
 - Ask CyberJudah as the app's assistant: it answers questions about the app from the app's own
   list of screens, with links that open in place; finds people and case studies; finds and reopens
   your saved chats; reads your reading reminder; and proposes changes to it as a card you Confirm
