@@ -38,6 +38,7 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 - Ask names its existing Strong’s API fallback when an installed release is unavailable; edition searches first match all query words before falling back to the rarest word.
 
 ### Fixed
+- The final Timeline card is now “Redemption.” It includes all existing IUIC events alongside the other modern history, keeping their links, portraits and sources; IUIC has no separate card.
 - The Home screen's featured class label now follows the calendar: a class dated in the current Sabbath-to-Sabbath week reads "This week's class", last week's reads "Last week's class", and older classes show just their date.
 - The YouTube-outage fallback now reads the channel page's current card layout (`lockupViewModel`): YouTube changed its markup after the #122 hotfix shipped, so the fallback silently found nothing. Classes again appear as "Notes coming soon" while the RSS feed is down.
 
