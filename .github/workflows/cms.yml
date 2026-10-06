@@ -34,4 +34,4 @@ jobs:
           CJ_ROOT: .cms-corpus
         run: node scripts/check-cms.mjs
       - name: Rebuild reader content from reviewed source
-        run: node app/scripts/final-captivity/build.mjs
+        run: node app/scripts/final-captivity/build.mjs && node app/scripts/between-testaments/build.mjs

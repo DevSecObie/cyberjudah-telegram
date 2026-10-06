@@ -1,3 +1,4 @@
+import { AudioPlayerProvider, AudioPlayerBar } from "@/lib/AudioPlayer";
 import { useResourceSync } from "@/resources/hooks";
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
@@ -60,6 +61,9 @@ const Topics = lazy(() => import("@/screens/Library").then((m) => ({ default: m.
 const TopicScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.TopicScreen })));
 const Study = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Study })));
 const Encyclopedia = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Encyclopedia })));
+const Glossary = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Glossary })));
+const Concordance = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Concordance })));
+const ConcordanceBookScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.ConcordanceBookScreen })));
 const Lexicon = lazy(() => import("@/screens/Lexicon").then((m) => ({ default: m.Lexicon })));
 const LexiconEntry = lazy(() => import("@/screens/Lexicon").then((m) => ({ default: m.LexiconEntry })));
 const People = lazy(() => import("@/screens/People").then((m) => ({ default: m.People })));
@@ -98,6 +102,7 @@ export function App() {
   const appearance = useAppTheme().dark ? "dark" : "light";
   return (
     <AppRoot className="cj" appearance={appearance} platform={app?.platform === "ios" || app?.platform === "macos" ? "ios" : "base"} id="shell" data-tabs={tabs ? "" : undefined}>
+      <AudioPlayerProvider>
       <ThemeApplier />
       <Lock />
       <div className="route" data-location-key={location.key} key={location.pathname.split("/").slice(0, 2).join("/")}>
@@ -145,6 +150,9 @@ export function App() {
         <Route path="/sabbath" element={<Sabbath />} />
         <Route path="/study" element={<Study />} />
         <Route path="/encyclopedia" element={<Encyclopedia />} />
+        <Route path="/glossary" element={<Glossary />} />
+        <Route path="/concordance" element={<Concordance />} />
+        <Route path="/concordance/:book" element={<ConcordanceBookScreen />} />
         <Route path="/law" element={<LawIndex />} />
         <Route path="/law/:part/:section" element={<LawSectionScreen />} />
         <Route path="/law/:part" element={<LawIndex />} />
@@ -164,9 +172,11 @@ export function App() {
       </ScreenBoundary>
       </div>
       <Suspense fallback={null}><ReminderSync /></Suspense>
+      <AudioPlayerBar />
       <PageActions />
       <Drawers />
       {tabs ? <TabBar /> : null}
+      </AudioPlayerProvider>
     </AppRoot>
   );
 }

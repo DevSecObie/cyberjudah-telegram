@@ -7,7 +7,7 @@ import { isRead, markRead, pushHistory, unmarkRead, useHistory, useLast, usePlan
 import { advance, planDay } from "@/lib/plan";
 import { createRelation, deleteRelation, endpointHref, useChapterRelations, verseKey, type Endpoint, type Relation, type VerseEndpoint, type VerseRelationItem } from "@/lib/relations";
 import { share } from "@/lib/share";
-import { useSpeech } from "@/lib/tts";
+import { useReaderSpeech, useAudioPlayer } from "@/lib/AudioPlayer";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { alert, app, haptic, openLink } from "@/tg/sdk";
 import { RelationTargetPicker } from "@/screens/Relations";
@@ -139,10 +139,10 @@ export function BibleTab() {
   const [tagsTarget, setTagsTarget] = useState<number[]>([]);
   const toast = useToast();
   const say = (m: string) => toast(m, { ms: 2800 });
-  const speech = useSpeech(verses, chapterLabel, slug && ch ? { slug, chapter: ch } : undefined);
-  const [repeat, setRepeat] = useState(false);
+  const speech = useReaderSpeech(verses, chapterLabel, { slug, chapter: ch });
+  const player = useAudioPlayer();
+  const { repeat, setRepeat } = player;
   const [audioOpen, setAudioOpen] = useState(false);
-  useEffect(() => { if (speech.completed && audioOpen && repeat && verses.length) speech.play(1, undefined, false); }, [speech.completed, audioOpen, repeat]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useBottomButtons(null, null);
   useBackButton(true, () => {
@@ -274,7 +274,7 @@ export function BibleTab() {
           onOpenRelations={(v) => navigate(`/relations?endpoint=${verseKey(slug, ch, v)}`)} onOpenRelationItem={(it) => void openRelationItem(it)}
           onOpenTags={(v) => { const group = Object.entries(highlights).filter(([, h]) => h.date === highlights[String(v)]?.date).map(([k]) => +k); setTagsTarget(group.length ? group : [v]); setSheet("tags"); }} onOpenTag={(id) => navigate(`/bookmarks?tag=${id}`)} />
       )}
-      <Footer hasPrev={!!prev} hasNext={!!next} onPrev={() => go(prev)} onNext={() => go(next)} speech={speech} fullscreen={fullscreen} hidden={contextMode === "focused" && !!focus} bottomBar={bottomBar} reference={chapterLabel} verseCount={verses.length} repeat={repeat} setRepeat={setRepeat} expanded={audioOpen} setExpanded={setAudioOpen} />
+      <Footer hasPrev={!!prev} hasNext={!!next} onPrev={() => go(prev)} onNext={() => go(next)} speech={player.speech} fullscreen={fullscreen} hidden={contextMode === "focused" && !!focus} bottomBar={bottomBar} reference={chapterLabel} verseCount={verses.length} repeat={repeat} setRepeat={setRepeat} expanded={audioOpen} setExpanded={setAudioOpen} />
 
       <WhySheet open={sheet === "why"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={whyAt} reference={`${chapterLabel}:${whyAt}`}
         onRead={(url, v) => { setSheet(null); const m = slugOfUrl(url); navigate(m ? `/read/${m[1]}/${m[2]}${v ? `?v=${v}` : ""}` : url); }}

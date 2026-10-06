@@ -1758,8 +1758,8 @@ test("audio chips set device pitch and speed; Stop stays stopped with Repeat ena
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   await page.getByRole("button", { name: "Start audio playback" }).click();
-  await expect(page.locator(".bs-audio__top b")).toHaveText("Psalms 23:1 KJV");
-  await expect(page.locator(".bs-audio__chips button")).toHaveText(["Voice", "Speed 1x", "Pitch 1x", "Ambient", "Repeat"]);
+  await expect(page.locator(".bs-audio__top").getByRole("button", { name: "Return to current passage" })).toHaveText("Psalms 23:1 KJV");
+  await expect(page.locator(".bs-audio__chips button")).toHaveText(["Stop", "Voice", "Speed 1x", "Pitch 1x", "Ambient", "Repeat"]);
   await page.getByRole("button", { name: "Pitch 1x", exact: true }).click();
   await page.getByRole("dialog", { name: "Pitch", exact: true }).getByRole("radio", { name: "1.5x", exact: true }).click();
   await page.getByRole("button", { name: "Speed 1x", exact: true }).click();
@@ -1934,4 +1934,58 @@ test("the verse-selection sheet works by keyboard: no ring on the sheet, tabs wi
   await page.keyboard.press("Escape");
   await expect(sheet).toHaveCount(0);
   await expect(page.locator("nav.tabs")).toHaveJSProperty("inert", false);
+});
+
+test("Glossary: each word with its scripture, its entry and the moments it is taught; a linked word is brought into view", async ({ page }) => {
+  const entry = (term: string, slug: string) => ({
+    term, slug, aliases: term === "Amalek" ? ["Amalekites"] : [], definition: `${term}, as the classes teach it.`, url: `/glossary#${slug}`,
+    scripture: [{ label: "Exodus 17:16", url: "/bible/exodus/17#v16" }],
+    see: [{ title: "Esau and Edom", url: "/encyclopedia/esau-and-edom" }],
+    taught: [{ title: "Iran Is Not Amalek", video: "7dszBxZaO8E", seconds: 2205, url: "https://www.youtube.com/watch?v=7dszBxZaO8E&t=2205s" }],
+  });
+  const words = ["Amalek", "Babylon", "Covenant", "Edom", "Gentile", "Hebrew", "Israel", "Judah", "Levite", "Messiah", "Nazarite", "Priesthood", "Sabbath", "Zion"];
+  await page.route("**/api/glossary/index.json", (r) => r.fulfill({ json: { about: "The words the classes use.", entries: words.map((w) => entry(w, w.toLowerCase())) } }));
+  await page.goto(`/glossary${LAUNCH}`);
+  const amalek = page.locator("#gl-amalek");
+  await expect(amalek).toContainText("also Amalekites");
+  await expect(amalek.locator('a[href="/read/exodus/17?v=16"]')).toBeVisible();
+  await expect(amalek.locator('a[href="/note/encyclopedia/esau-and-edom"]')).toHaveText("See Esau and Edom");
+  await expect(amalek.locator('a[href="/watch/7dszBxZaO8E?t=2205"]')).toContainText("36:45");
+  await page.fill("#gl-q", "amalekites");
+  await expect(page.locator(".glossary")).toHaveCount(1);
+  await page.fill("#gl-q", "");
+  // A link into the glossary ("/glossary#zion"), followed inside the app, lands on the word.
+  await page.goto("/glossary#zion");
+  await expect(page.locator("#gl-zion")).toBeInViewport();
+});
+
+test("Concordance: books with how much of each is cited; a book lists each chapter's citations by shelf with the verses", async ({ page }) => {
+  await page.route("**/api/concordance/index.json", (r) => r.fulfill({ json: [
+    { book: "Genesis", slug: "genesis", testament: "Old Testament", url: "/concordance/genesis", chapters: 50, cited: [1, 3], citations: 4 },
+    { book: "Obadiah", slug: "obadiah", testament: "Old Testament", url: "/concordance/obadiah", chapters: 1, cited: [], citations: 0 },
+    { book: "John", slug: "john", testament: "New Testament", url: "/concordance/john", chapters: 21, cited: [3], citations: 1 },
+  ] }));
+  await page.route("**/api/concordance/genesis.json", (r) => r.fulfill({ json: {
+    book: "Genesis", slug: "genesis", testament: "Old Testament", url: "/concordance/genesis", chapters: 50, cited: [1, 3], citations: 4,
+    chapterRows: [
+      { chapter: 1, url: "/bible/genesis/1", cited_by: [{ kind: "note", label: "Genesis 1-4", url: "/study/genesis/1", verses: ["1-2", "1", "5"] }] },
+      { chapter: 3, url: "/bible/genesis/3", cited_by: [
+        { kind: "note", label: "The Serpent's Seed", url: "/classes/2026/serpents-seed", verses: ["15"] },
+        { kind: "law", label: "2H.4", url: "/law/2/h#2H.4", verses: [] },
+        { kind: "precept", label: "Sin", url: "/precepts/sin", verses: ["6-7"] },
+      ] },
+    ],
+  } }));
+  await page.goto(`/concordance${LAUNCH}`);
+  await expect(page.locator('a[href="/concordance/obadiah"]')).toContainText("none");
+  await expect(page.locator('a[href="/concordance/genesis"]')).toContainText("2 of 50");
+  await page.fill("#conc-q", "john");
+  await expect(page.locator('a[href="/concordance/genesis"]')).toHaveCount(0);
+  await page.goto(`/concordance/genesis${LAUNCH}`);
+  await expect(page.locator("#conc-ch-1 h2 a")).toHaveAttribute("href", "/read/genesis/1");
+  await expect(page.locator("#conc-ch-1")).toContainText("v. 1-2, 5");
+  const ch3 = page.locator("#conc-ch-3");
+  await expect(ch3).toContainText("Notes and classes");
+  await expect(ch3).toContainText("Laws");
+  await expect(ch3).toContainText("v. 6-7");
 });
