@@ -119,7 +119,7 @@ export function CaseScreen() {
         <CaseSection title="People in this case">
           <ul className="case__people">
             {k.people.map((p) => (
-              <li key={p.id}><Link to={`/person/${p.id}`} className="case__person" onClick={() => haptic("select")}><EntityAvatar name={p.name} kind={avatarKind(typeOf.get(p.id))} size={32} /><span>{p.name}</span><Feather name="chevron-right" size={14} color="currentColor" /></Link></li>
+              <li key={p.id}><Link to={`/person/${p.id}`} className="case__person" onClick={() => haptic("select")}><EntityAvatar id={p.id} name={p.name} kind={avatarKind(typeOf.get(p.id))} size={32} /><span>{p.name}</span><Feather name="chevron-right" size={14} color="currentColor" /></Link></li>
             ))}
           </ul>
         </CaseSection>
