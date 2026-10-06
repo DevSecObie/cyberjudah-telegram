@@ -1,7 +1,9 @@
 """Add a tribes batch to the branch's events.json / drafts.json / ledger.json (additive).
-Usage: tmerge.py <batch.json>..."""
+Usage: tmerge.py <batch.json>...
+Set FINAL_CAPTIVITY_ROOT to merge into a throwaway copy of the four JSON files
+instead of the ones next to this script (used by the test suite)."""
 import json, os, sys
-R = "<scratch>/wt-tribes/app/scripts/final-captivity"
+R = os.environ.get("FINAL_CAPTIVITY_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 P = lambda n: os.path.join(R, n)
 order = [p["id"] for p in json.load(open(P("periods.json")))["periods"]]
 events, drafts, ledger = json.load(open(P("events.json"))), json.load(open(P("drafts.json"))), json.load(open(P("ledger.json")))
