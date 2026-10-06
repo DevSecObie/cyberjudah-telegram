@@ -170,3 +170,28 @@ for (const voice of ["ai:asteria", "narrator:test-reader"]) {
     await expect(page.getByRole("button", { name: "Stop audio playback", exact: true })).toBeVisible();
   });
 }
+
+test("device speed and pitch changes stay paused until Resume and survive reload", async ({ page }) => {
+  await setup(page);
+  await panel(page);
+  await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("button", { name: "Next verse", exact: true }).click();
+  await expect(page.locator("#verset-2")).toHaveAttribute("data-reading", "");
+  await page.getByRole("button", { name: "Pause audio playback", exact: true }).click();
+  const before = (await state(page)).voices;
+  for (const name of ["Speed", "Pitch"]) {
+    await page.getByRole("button", { name: `${name} 1x`, exact: true }).click();
+    await page.getByRole("dialog", { name, exact: true }).getByRole("radio", { name: "1.25x", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Resume audio playback", exact: true })).toBeVisible();
+    expect((await state(page)).voices).toBe(before);
+  }
+  await page.getByRole("button", { name: "Resume audio playback", exact: true }).click();
+  await expect.poll(async () => (await state(page)).voices).toBe(before + 1);
+  await expect(page.locator("#verset-2")).toHaveAttribute("data-reading", "");
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Start audio playback", exact: true })).toBeVisible();
+  expect((await state(page)).voices).toBe(0);
+  await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Speed 1.25x", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pitch 1.25x", exact: true })).toBeVisible();
+});
