@@ -71,6 +71,7 @@
   "ephraim-gen-41-52",
   "ephrathah-rut-1-2",
   "er-gen-38-3",
+  "erasmus",
   "esau-gen-25-25",
   "esther-est-2-7",
   "eve-gen-3-20",
@@ -119,8 +120,11 @@
   "joab-1sa-26-6",
   "joash-2ki-11-2",
   "job-job-1-1",
+  "john-calvin",
+  "john-knox",
   "john-mat-3-1",
   "john-mat-4-21",
+  "john-wycliffe",
   "joiarib-1ch-9-10",
   "jonadab-2sa-13-3",
   "jonah-2ki-14-25",
@@ -149,6 +153,7 @@
   "manasseh-2ki-20-21",
   "manasseh-gen-41-51",
   "mark-act-12-12",
+  "martin-luther",
   "mattaniah-1ch-9-15",
   "mehujael-gen-4-18",
   "mephibosheth-2sa-4-4",
@@ -199,9 +204,12 @@
   "solomon-2sa-5-14",
   "teman-gen-36-11",
   "terah-gen-11-24",
+  "thomas-more",
   "tiberius-mat-22-17",
+  "ulrich-zwingli",
   "uzziah-2ki-14-21",
   "uzziel-exo-6-18",
+  "william-tyndale",
   "zadok-2sa-8-17",
   "zebulun-gen-30-20",
   "zechariah-1ch-9-21",
@@ -279,5 +287,74 @@
   "ulrich-zwingli": "ulrich-zwingli",
   "jacob": "israel-gen-25-26"
  },
- "eventsNote": "Events whose title names more than one person, or a figure outside the People index: event slug to portrait. Edomite and Roman figures are public-domain artworks (docs/AVATARS.md 9.5), not Higgsfield."
+ "eventsNote": "Events whose title names more than one person, or a figure outside the People index: event slug to portrait. Edomite and Roman figures are public-domain artworks (docs/AVATARS.md 9.5), not Higgsfield.",
+ "sources": {
+  "martin-luther": {
+   "url": "https://commons.wikimedia.org/wiki/File:Portrait_of_Martin_Luther_(1483%E2%80%931546),_by_Lucas_Cranach_the_Elder.jpg",
+   "author": "Lucas Cranach the Elder (1472-1553)",
+   "license": "Public domain (author died 1553; published before 1931)",
+   "credit": "Portrait of Martin Luther, 1517, by Lucas Cranach the Elder - Wikimedia Commons, public domain"
+  },
+  "john-calvin": {
+   "url": "https://commons.wikimedia.org/wiki/File:John_Calvin_-_best_likeness.jpg",
+   "author": "Unknown engraver, after a painting in the Bibliotheque de Geneve",
+   "license": "Public domain (faithful reproduction of a public-domain work of art)",
+   "credit": "John Calvin - best likeness, engraving after the Geneva University Library painting - Wikimedia Commons, public domain"
+  },
+  "william-tyndale": {
+   "url": "https://commons.wikimedia.org/wiki/File:Portrait_of_William_Tyndale.jpg",
+   "author": "Unknown artist, 1836 engraving",
+   "license": "Public domain (published before 1931)",
+   "credit": "Portrait of William Tyndale, 1836, Pitts Theology Library, Emory University - Wikimedia Commons, public domain"
+  },
+  "john-wycliffe": {
+   "url": "https://commons.wikimedia.org/wiki/File:Portrait_of_John_Wycliffe.jpg",
+   "author": "Bernard Picart (1673-1733)",
+   "license": "Public domain (published before 1931)",
+   "credit": "Portrait of John Wycliffe, 1714, by Bernard Picart, Pitts Theology Library, Emory University - Wikimedia Commons, public domain"
+  },
+  "erasmus": {
+   "url": "https://commons.wikimedia.org/wiki/File:Holbein,_Hans_-_Desiderius_Erasmus_-_Kunstmuseum_Basel.jpg",
+   "author": "Hans Holbein the Younger (1497/98-1543)",
+   "license": "Public domain (author's life plus 100 years or fewer; published before 1931)",
+   "credit": "Desiderius Erasmus, 1523, by Hans Holbein the Younger, Kunstmuseum Basel - Wikimedia Commons, public domain"
+  },
+  "thomas-more": {
+   "url": "https://commons.wikimedia.org/wiki/File:Portrait_of_Thomas_More_by_Hans_Holbein_d._J._in_the_Frick_Collection.jpg",
+   "author": "Hans Holbein the Younger (1497/98-1543)",
+   "license": "Public domain worldwide",
+   "credit": "Portrait of Thomas More, 1527, by Hans Holbein the Younger, The Frick Collection - Wikimedia Commons, public domain"
+  },
+  "john-knox": {
+   "url": "https://commons.wikimedia.org/wiki/File:Portrait_of_John_Knox_(4671577).jpg",
+   "author": "William Holl the Younger (1807-1871)",
+   "license": "Public domain (free of known copyright restrictions)",
+   "credit": "Portrait of John Knox, engraving by William Holl the Younger, National Library of Wales - Wikimedia Commons, public domain"
+  },
+  "ulrich-zwingli": {
+   "url": "https://commons.wikimedia.org/wiki/File:Ulrich_Zwingli_by_Hans_Asper_1531.jpg",
+   "author": "Hans Asper (ca. 1499-1571)",
+   "license": "Public domain (author's life plus 100 years or fewer)",
+   "credit": "Huldrych (Ulrich) Zwingli, 1531, by Hans Asper, from Froschauer's Zurich edition of Zwingli's writings - Wikimedia Commons, public domain"
+  },
+  "julius-caesar": {
+   "url": "https://commons.wikimedia.org/wiki/File:Gaius_Iulius_Caesar_(Vatican_Museum).jpg",
+   "author": "Unknown Roman sculptor (Julio-Claudian era marble bust)",
+   "license": "Public domain (Creative Commons Public Domain Mark 1.0; copyright expired)",
+   "credit": "Bust of Gaius Julius Caesar, Vatican Museums (Museo Gregoriano Profano) - Wikimedia Commons, public domain"
+  },
+  "constantine": {
+   "url": "https://commons.wikimedia.org/wiki/File:Marble_portrait_head_of_the_Emperor_Constantine_I_MET_DP142566.jpg",
+   "author": "Unknown Roman sculptor, ca. A.D. 325-370",
+   "license": "CC0 1.0 Universal Public Domain Dedication",
+   "credit": "Marble portrait head of the Emperor Constantine I, The Metropolitan Museum of Art, CC0"
+  },
+  "leo-x": {
+   "url": "https://commons.wikimedia.org/wiki/File:Portrait_of_Pope_Leo_X_(Raphael)_-_brightened.jpg",
+   "author": "Raphael (Raffaello Sanzio da Urbino, 1483-1520)",
+   "license": "Public domain (author died 1520; published before 1931)",
+   "credit": "Portrait of Pope Leo X with Cardinals Giulio de' Medici and Luigi de' Rossi (detail), 1518-1519, by Raphael, Galleria Palatina, Palazzo Pitti - Wikimedia Commons, public domain"
+  }
+ },
+ "sourcesNote": "Public-domain museum/archive portraits for Timeline figures outside the People index (Roman emperors, the Reformers): not Higgsfield-generated. Source URL, author, licence and credit recorded per id above; never invent a source."
 }
