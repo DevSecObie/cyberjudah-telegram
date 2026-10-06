@@ -22,8 +22,6 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
-- Bible narration continues across screens and canonical chapters with shared playback controls, a return-to-passage action, repeat while collapsed, supported system media controls, and ambient restoration that respects Pause and Stop.
-
 - Audio controls pause and resume at the current verse, remember speed and pitch on this device, and keep delayed recordings and setting changes from overriding Pause.
 - Portraits and Timeline paintings now load from CyberJudah's own storage, with the app's copies as a fallback, so the app download stays small as more pictures are added.
 - Angels (so far Raphael) get their own heading on their People page instead of the generic "Person".
