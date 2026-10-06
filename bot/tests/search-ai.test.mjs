@@ -40,8 +40,12 @@ test("a too-short question is rejected before anything runs", async () => {
   assert.equal(r.reason, "too-short");
 });
 
+// One D1 for the reader's answer and the admin's below: the credit tables are created once per
+// process, so a second fresh database would have none.
+const shared = env();
+
 test("with nothing in the library it says so, on the default free model", async () => {
-  const e = env();
+  const e = shared;
   const r = await answerSearch(e, "melchizedek", 7);
   assert.equal(r.ok, true);
   assert.match(r.answer, /not find enough reliable material/);
@@ -49,4 +53,14 @@ test("with nothing in the library it says so, on the default free model", async 
   assert.equal(r.model, "@cf/meta/llama-3.1-8b-instruct-fp8");
   const spent = await freeSpendToday(e);
   assert.ok(spent > 0 && spent < 0.001, `the nominal research cost is metered for the breaker (got $${spent})`);
+});
+
+// An admin's answers are not metered, as in Ask: their testing must not trip the owner's breaker.
+test("an admin's answer adds nothing to the day's free-tier spend", async () => {
+  const e = { ...shared, ADMIN_IDS: "7" };
+  const before = await freeSpendToday(e);
+  assert.ok(before > 0, "the reader's answer above was metered");
+  const r = await answerSearch(e, "melchizedek", 7);
+  assert.equal(r.ok, true);
+  assert.equal(await freeSpendToday(e), before, "an admin's answer is not metered against the breaker");
 });
