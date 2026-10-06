@@ -106,7 +106,7 @@ test("Download my data: a failed billing read rejects instead of exporting an in
   env.DB = { ...d1, prepare: q => ({ ...d1.prepare(q), first: async () => { throw new Error("billing unavailable"); } }) };
   await assert.rejects(exportData(env, 77), /billing unavailable/);
   env.DB = d1;
-  assert.deepEqual((await exportData(env, 77)).ask, { balance: { wallet: { total_mc: 0, lots: [] }, history: [] }, payments: [] });
+  assert.deepEqual((await exportData(env, 77)).ask, { balance: { wallet: { total_mc: 0, lots: [] }, history: [] }, payments: [], donations: [] });
 });
 
 /** Execute the real statements in SQLite, including D1's all-or-nothing batches. */
@@ -131,12 +131,13 @@ async function storedReader(t, key) {
   // Each local database gets a fresh module's schema-initialization state.
   const api = await import(`${out}?store=${key}`);
   const env = { ...await reader(), DB };
-  db.exec("CREATE TABLE payments (user_id TEXT, kind TEXT, stars INTEGER, created_at INTEGER); CREATE TABLE accounts (user_id TEXT); CREATE TABLE usage_people (user_id TEXT); CREATE TABLE rate_counts (key TEXT PRIMARY KEY, n INTEGER)");
+  db.exec("CREATE TABLE payments (user_id TEXT, kind TEXT, stars INTEGER, created_at INTEGER); CREATE TABLE donations (charge_id TEXT, user_id TEXT, stars INTEGER, created_at INTEGER); CREATE TABLE accounts (user_id TEXT); CREATE TABLE usage_people (user_id TEXT); CREATE TABLE rate_counts (key TEXT PRIMARY KEY, n INTEGER)");
   const owners = await Promise.all([77, 78].map(uid => pid(env, uid)));
   for (const [i, owner] of owners.entries()) {
     await api.adjust(env, owner, 5_000_000, `fixture-${i}`, "Privacy test");
     await api.setTopupReminder(env, 77 + i, true, "America/Los_Angeles");
     db.prepare("INSERT INTO payments VALUES (?, 'pack', 385, 1)").run(owner);
+    db.prepare("INSERT INTO donations VALUES (?, ?, 50, 1)").run(`gift-${i}`, owner);
     db.prepare("INSERT INTO accounts VALUES (?)").run(owner);
     db.prepare("INSERT INTO usage_people VALUES (?)").run(owner);
     db.prepare("INSERT INTO credit_meta VALUES (?, 1)").run(owner);
@@ -166,9 +167,13 @@ for (const [store, pattern] of [
     }
     assert.equal(db.prepare("SELECT COUNT(*) AS n FROM payments WHERE user_id = ?").get(me).n, 0);
     assert.equal(db.prepare("SELECT COUNT(*) AS n FROM payments WHERE user_id = 'deleted'").get().n, 1);
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM donations WHERE user_id = ?").get(me).n, 0, "donation unlinked, not deleted");
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM donations WHERE user_id = 'deleted'").get().n, 1);
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM donations WHERE user_id = ?").get(other).n, 1, "other reader's gift untouched");
     assert.equal(db.prepare("SELECT COUNT(*) AS n FROM rate_counts WHERE key LIKE ?").get(`%:${me}:%`).n, 0);
     const after = await api.exportData(env, 77), otherAfter = await api.exportData(env, 78);
     assert.equal(after.ask.balance.wallet.total_mc, 0);
+    assert.deepEqual(after.ask.donations, []);
     assert.deepEqual(after.askTopupReminder, { on: false, tz: null });
     assert.deepEqual(otherAfter.ask, otherBefore.ask);
     assert.deepEqual(otherAfter.askTopupReminder, otherBefore.askTopupReminder);
@@ -184,6 +189,15 @@ test("Delete my data: a missing old payments table does not block real cleanup",
   assert.equal(deleted.askBalanceUsd, 5);
   assert.equal(deleted.topupReminder, true);
   assert.deepEqual((await api.exportData(env, 77)).ask.payments, []);
+});
+
+test("Delete my data: a missing old donations table does not block real cleanup", async t => {
+  const { api, env, db } = await storedReader(t, "missing-donations");
+  db.exec("DROP TABLE donations");
+  const deleted = await api.deleteData(env, 77);
+  assert.equal(deleted.askBalanceUsd, 5);
+  assert.equal(deleted.topupReminder, true);
+  assert.deepEqual((await api.exportData(env, 77)).ask.donations, []);
 });
 
 test("Download my data: a failed top-up reminder read rejects rather than omitting it", async t => {
