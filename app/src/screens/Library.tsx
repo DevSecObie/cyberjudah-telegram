@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
 
-import { data, fmtDate, type GlossaryEntry, type ResolvedRef, type ThreadStop } from "@/api/data";
+import { compressVerses, data, fmtDate, type ConcordanceBook, type GlossaryEntry, type ResolvedRef, type ThreadStop } from "@/api/data";
 import { haptic } from "@/tg/sdk";
 import { toAppPath } from "@shared/links.mjs";
 import { share } from "@/lib/share";
@@ -193,5 +193,67 @@ function GlossaryItem({ e }: { e: GlossaryEntry }) {
       {e.see.length ? <div className="refs">{e.see.map((r) => <Link key={r.url} to={toApp(r.url)}>See {r.title}</Link>)}</div> : null}
       {e.taught.length ? <div className="glossary__taught">{e.taught.map((t) => <Link key={`${t.video}@${t.seconds}`} className="chip" to={`/watch/${t.video}?t=${t.seconds}`} aria-label={`${t.title} at ${clock(t.seconds)}`}><Icon name="play" size={12} /> {t.title.length > 34 ? `${t.title.slice(0, 32)}…` : t.title} · {clock(t.seconds)}</Link>)}</div> : null}
     </div>
+  );
+}
+
+/** The concordance's shelves, in the site's order: what cites a chapter, grouped by what it is. */
+const CITED_GROUPS: [label: string, test: (c: { kind: string; url: string }) => boolean][] = [
+  ["Notes and classes", (c) => !["law", "precept", "case"].includes(c.kind) && !/^\/(encyclopedia|law|precepts|cases)\//.test(c.url)],
+  ["Encyclopedia", (c) => c.url.startsWith("/encyclopedia/")],
+  ["Cases", (c) => c.kind === "case" || c.url.startsWith("/cases/")],
+  ["Precepts", (c) => c.kind === "precept" || c.url.startsWith("/precepts/")],
+  ["Laws", (c) => c.kind === "law" || c.url.startsWith("/law/")],
+];
+const verseList = (vv: string[]) => compressVerses(vv.flatMap((v) => { const [a, b = a] = v.split("-").map(Number); return Number.isFinite(a) && Number.isFinite(b) && b >= a ? Array.from({ length: b - a + 1 }, (_, i) => a + i) : []; })).replace(/,/g, ", ");
+
+/** The concordance, book by book: how much of each book the library cites. */
+export function Concordance() {
+  useBackButton(false);
+  const rows = useQuery({ queryKey: ["concordance-index"], queryFn: data.concordanceIndex, staleTime: 3_600_000 });
+  const [q, setQ] = useState("");
+  if (rows.isError) return <Screen title="Concordance"><Empty title="The concordance did not load" action={{ label: "Try again", onClick: () => void rows.refetch() }}>Check your connection.</Empty></Screen>;
+  const list = (rows.data ?? []).filter((r) => !q || r.book.toLowerCase().includes(q.toLowerCase()));
+  const testaments = [...new Set(list.map((r) => r.testament))];
+  return (
+    <Screen title="Concordance" kicker="Every chapter, with everything in the library that cites it">
+      <SearchField id="conc-q" value={q} onChange={setQ} placeholder="Find a book" />
+      {rows.isPending ? <Skeleton rows={12} /> : testaments.map((t) => (
+        <Section key={t} title={t}>
+          <List>{list.filter((r) => r.testament === t).map((r) => <Row key={r.slug} href={`/concordance/${r.slug}`} title={r.book} trailing={<span className="row__count">{r.cited.length ? `${r.cited.length} of ${r.chapters}` : "none"}</span>} />)}</List>
+        </Section>
+      ))}
+    </Screen>
+  );
+}
+
+/** One book's concordance: each cited chapter, and what cites it, grouped by shelf with the verses. */
+export function ConcordanceBookScreen() {
+  const { book = "" } = useParams();
+  const location = useLocation();
+  useBackButton(false);
+  const b = useQuery({ queryKey: ["concordance-book", book], queryFn: () => data.concordanceBook(book), staleTime: 3_600_000 });
+  // "/concordance/genesis#ch-3" lands on chapter 3, once per visit.
+  const went = useRef("");
+  useEffect(() => {
+    const id = decodeURIComponent(location.hash.slice(1));
+    if (!b.data || !id || went.current === location.key) return;
+    const t = setTimeout(() => { const el = document.getElementById(`conc-${id}`); if (!el) return; went.current = location.key; el.scrollIntoView({ block: "start" }); }, 120);
+    return () => clearTimeout(t);
+  }, [b.data, location.hash, location.key]);
+  if (b.isPending) return <Screen title="…"><Skeleton rows={10} /></Screen>;
+  if (!b.data) return <Screen title="Concordance"><Empty title="This book did not load" action={{ label: "All books", href: "/concordance" }} /></Screen>;
+  const d: ConcordanceBook = b.data;
+  return (
+    <Screen title={d.book} kicker={`Concordance · ${d.citations} citations into ${d.cited.length} of ${d.chapters} chapters`}>
+      {!d.chapterRows.length ? <Empty title={`Nothing in the library cites ${d.book} yet`} action={{ label: `Read ${d.book}`, href: `/read/${d.slug}/1` }} /> : d.chapterRows.map((ch) => (
+        <section key={ch.chapter} className="section conc-ch" id={`conc-ch-${ch.chapter}`}>
+          <div className="section__head"><h2><Link to={`/read/${d.slug}/${ch.chapter}`}>{d.book} {ch.chapter}</Link></h2><span className="row__count">{ch.cited_by.length}</span></div>
+          {CITED_GROUPS.map(([label, test]) => {
+            const rows = ch.cited_by.filter(test);
+            return rows.length ? <List key={label}>{rows.map((r) => <Row key={r.kind + r.url} href={toApp(r.url)} meta={label} title={r.label} sub={r.verses.length ? `v. ${verseList(r.verses)}` : undefined} />)}</List> : null;
+          })}
+        </section>
+      ))}
+    </Screen>
   );
 }

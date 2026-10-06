@@ -61,6 +61,8 @@ const TopicScreen = lazy(() => import("@/screens/Library").then((m) => ({ defaul
 const Study = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Study })));
 const Encyclopedia = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Encyclopedia })));
 const Glossary = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Glossary })));
+const Concordance = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Concordance })));
+const ConcordanceBookScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.ConcordanceBookScreen })));
 const Lexicon = lazy(() => import("@/screens/Lexicon").then((m) => ({ default: m.Lexicon })));
 const LexiconEntry = lazy(() => import("@/screens/Lexicon").then((m) => ({ default: m.LexiconEntry })));
 const People = lazy(() => import("@/screens/People").then((m) => ({ default: m.People })));
@@ -147,6 +149,8 @@ export function App() {
         <Route path="/study" element={<Study />} />
         <Route path="/encyclopedia" element={<Encyclopedia />} />
         <Route path="/glossary" element={<Glossary />} />
+        <Route path="/concordance" element={<Concordance />} />
+        <Route path="/concordance/:book" element={<ConcordanceBookScreen />} />
         <Route path="/law" element={<LawIndex />} />
         <Route path="/law/:part/:section" element={<LawSectionScreen />} />
         <Route path="/law/:part" element={<LawIndex />} />

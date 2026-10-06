@@ -22,6 +22,7 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- The Concordance, as on the website: book by book, every chapter with the study notes, classes, encyclopedia entries, cases, precepts and laws that cite it, and the verses each one cites. It is under More and on a new tab; a link to a book's concordance from the site opens it in the app.
 - A Glossary, as on the website: every word the classes use, defined from the teachings and the King James text, with its scriptures and the moments it is taught (each a tap into the recording at that second). It is under More and on a new tab, and a glossary link from the site opens the word.
 - People show their portraits everywhere a person appears (the People list, a person's page, the family graph, the chapter's people, search, case studies), the same approved portraits as the Timeline; anyone without one keeps their letter.
 - More people have portraits on the Timeline: 37 newly approved, among them Christ, Joshua, Isaiah, Ezekiel, Nehemiah, Rachel, Leah and Rebekah, each drawn as the scriptures and the classes describe them.

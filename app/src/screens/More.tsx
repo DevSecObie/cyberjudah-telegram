@@ -18,6 +18,7 @@ const STUDY: [string, string, string, IconName][] = [
   ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book", "layers"],
   ["/glossary", "Glossary", "The words the classes use, defined", "type"],
   ["/topics", "Topics", "Classes and episodes by what they cover", "tag"],
+  ["/concordance", "Concordance", "Book by book, everything in the library that cites each chapter", "list"],
 ];
 const LAW: [string, string, string, IconName][] = [
   ["/law", "The Law", "The handbook, every law with its scripture", "law"],

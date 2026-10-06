@@ -25,6 +25,7 @@ const PERSONAL: Item[] = [
 const LIBRARY: Item[] = [
   ["/lexicon", "Strong", "Explore Greek and Hebrew words", "spark"],
   ["/topics", "Topics", "Explore what the classes taught, by theme", "tag"],
+  ["/concordance", "Concordance", "Who cites each chapter, book by book", "list"],
   ["/dictionary", "Dictionary", "Look up definitions", "type"],
   ["/precepts", "Precepts", "Every subject scripture speaks to", "quote"],
   ["/people", "People", "Everyone named in the Bible", "star"],

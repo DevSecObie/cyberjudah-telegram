@@ -66,3 +66,7 @@
 .glossary .refs + .refs { margin-top: 2px; }
 .glossary__taught { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .glossary__taught .chip { display: inline-flex; align-items: center; gap: 4px; min-height: 28px; padding: 0 10px; border: .5px solid var(--hairline); border-radius: 14px; font: 500 var(--fs-footnote) var(--font-ui); color: var(--text-1); text-decoration: none; }
+
+/* A book's concordance: one section per chapter, the chapter's count beside its heading. */
+.conc-ch { scroll-margin-top: var(--sp-4); }
+.conc-ch .list + .list { margin-top: var(--sp-2); }

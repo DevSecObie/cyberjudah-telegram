@@ -33,4 +33,6 @@ test("share links round-trip", () => {
   assert.equal(sitePathOf("/note/classes/2026/x"), "/classes/2026/x");
   assert.equal(sitePathOf("/glossary"), "/glossary");
   assert.equal(toAppPath("/glossary#amalek"), "/glossary#amalek");
+  assert.equal(sitePathOf("/concordance/genesis"), "/concordance/genesis");
+  assert.equal(toAppPath("/concordance/genesis#ch-3"), "/concordance/genesis#ch-3");
 });

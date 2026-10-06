@@ -105,6 +105,10 @@ export type EncyclopediaRow = { slug: string; title: string; url: string; summar
 /** A word the classes use: its definition from the teachings and the KJV, the scripture behind it, and the moments it is taught. */
 export type GlossaryEntry = { term: string; slug: string; aliases: string[]; definition: string; url: string; scripture: { label: string; url: string }[]; see: { title: string; url: string }[]; taught: { title: string; video: string; seconds: number; url: string }[] };
 export type Glossary = { about: string; entries: GlossaryEntry[] };
+/** A book in the concordance: how many of its chapters the library cites, and how often. */
+export type ConcordanceBookRow = { book: string; slug: string; testament: string; url: string; chapters: number; cited: number[]; citations: number };
+/** A book's concordance: chapter by chapter, everything in the library that cites it, with the verses it cites. */
+export type ConcordanceBook = ConcordanceBookRow & { chapterRows: { chapter: number; url: string; cited_by: { kind: string; label: string; url: string; verses: string[] }[] }[] };
 export type Xref = Record<string, [string, number, number][]>;
 
 const abs = <T extends { thumb: string }>(rows: T[]) => rows.map((r) => (r.thumb?.startsWith("/") ? { ...r, thumb: `${DATA_ORIGIN}${r.thumb}` } : r));
@@ -156,6 +160,8 @@ export const data = {
   topicLabels: () => get<{ slug: string; label: string }[]>("/search/topics.json"),
   encyclopedia: () => get<EncyclopediaRow[]>("/api/encyclopedia/index.json"),
   glossary: () => get<Glossary>("/api/glossary/index.json"),
+  concordanceIndex: () => get<ConcordanceBookRow[]>("/api/concordance/index.json"),
+  concordanceBook: (slug: string) => get<ConcordanceBook>(`/api/concordance/${slug}.json`),
 };
 
 export function fmtDate(d?: string | null): string {
