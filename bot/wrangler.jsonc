@@ -73,7 +73,7 @@
         "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
         "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8",
         "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "0.11",
-        "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_IP_DAILY_LIMIT": "100", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
+        "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
         "DONATIONS_ON": "on", "DONATE_MIN_STARS": "1"
       }
     }
@@ -120,14 +120,14 @@
     // of owner spend per day past which free answers pause until tomorrow (429 free-paused).
     // The cap sits at the free-allocation value ($0.11 = 10,000 free neurons/day, shared across
     // all Workers AI models): inside it the owner pays nothing.
-    // ASK_IP_DAILY_LIMIT is the Sybil backstop (Ask requests per IP per day); SEARCH_AI_IP_DAILY_LIMIT
-    // the same for the search screen's AI answer block (100/day); CREDIT_USAGE_RETENTION_DAYS
+    // ASK_IP_DAILY_LIMIT is the Sybil backstop (Ask requests per IP per day); SEARCH_AI_DAILY_LIMIT
+    // caps the search screen's AI answer block per reader (20/day, admins excluded); CREDIT_USAGE_RETENTION_DAYS
     // how long per-request telemetry is kept; CREDITS_CONTENTION_ALERT how many D1 write-contention
     // events in a day page the admins from the hourly health check.
     // ASK_FREE_MODEL names the default free model (Llama 3.1 8B, cheapest per answer).
     "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8",
     "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "0.11",
-    "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_IP_DAILY_LIMIT": "100", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
+    "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
     // Donations ("Support CyberJudah"): on by default; a giver may name any amount of Stars from
     // DONATE_MIN_STARS up (no app-imposed ceiling until the owner adds DONATE_MAX_STARS below).
     // DONATION_URL (the owner's own HTTPS giving link) is not set here: it is not secret, but no

@@ -308,16 +308,17 @@ export type SearchAnswer =
   | { ok: false; reason: "too-short" | "unavailable" | "empty" };
 
 /**
- * The search screen's AI answer block: one free-tier answer over the library, no sign-in needed.
+ * The search screen's AI answer block: one free-tier answer over the library for a signed-in reader.
  * Pinned to the default free model on Cloudflare's own infrastructure (no third party sees the
  * question), run through the same meter as Ask's free answers so the owner's daily breaker
- * counts it. uid 0 is the anonymous reader: the free path holds nothing and charges nothing.
+ * counts it (an admin's answers are not metered, as in Ask). The free path holds nothing and
+ * charges nothing.
  */
-export async function answerSearch(env: Env, q: string): Promise<SearchAnswer> {
+export async function answerSearch(env: Env, q: string, uid: number): Promise<SearchAnswer> {
   const question = q.trim().slice(0, 200);
   if (question.length < 2) return { ok: false, reason: "too-short" };
   const model = freeModel(env);
-  const started = await startMeter(env, 0, model, {});
+  const started = await startMeter(env, uid, model, {});
   if (!started.ok) return { ok: false, reason: "unavailable" };
   const meter = started.meter;
   const spend = meter.spend;

@@ -35,14 +35,14 @@ const kv = () => ({ get: async () => null, put: async () => undefined, delete: a
 const env = () => ({ DB: d1(), PRIVACY_KEY: "test-key", SUBS: kv() });
 
 test("a too-short question is rejected before anything runs", async () => {
-  const r = await answerSearch(env(), "x");
+  const r = await answerSearch(env(), "x", 7);
   assert.equal(r.ok, false);
   assert.equal(r.reason, "too-short");
 });
 
 test("with nothing in the library it says so, on the default free model", async () => {
   const e = env();
-  const r = await answerSearch(e, "melchizedek");
+  const r = await answerSearch(e, "melchizedek", 7);
   assert.equal(r.ok, true);
   assert.match(r.answer, /not find enough reliable material/);
   assert.deepEqual(r.sources, []);
