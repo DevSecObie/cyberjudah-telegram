@@ -9227,6 +9227,26 @@
    "events": [
     "dominican-mass-deportations-2024"
    ]
+  },
+  {
+   "kind": "class",
+   "ref": "oxSqRScjkeM",
+   "title": "The Shadow War on Haiti",
+   "status": "reviewed",
+   "note": "read at 1:39:30-1:40:07 (voodoo/brujeria as 'instruments of cruelty') and 3:39:34-3:43:15 (the Haiti indemnity controversy Wikipedia page read on air, Aristide's 2003 reparations demand, Isaiah 32:6-7)",
+   "events": [
+    "haiti-reparations-demand-2003"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Haiti_indemnity_controversy",
+   "title": "Haiti indemnity controversy",
+   "status": "reviewed",
+   "note": "accessed 2026-10-06; the April 7, 2003 demand, the $21 billion / 90 million gold franc figures, the NYT account of its role in Aristide's removal, Latortue's rejection of the claim",
+   "events": [
+    "haiti-reparations-demand-2003"
+   ]
   }
  ],
  "gaps": [

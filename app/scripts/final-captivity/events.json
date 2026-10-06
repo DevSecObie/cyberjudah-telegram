@@ -21160,6 +21160,71 @@
   "status": "published"
  },
  {
+  "slug": "haiti-reparations-demand-2003",
+  "title": "Aristide demands $21 billion in reparations from France",
+  "start": 2003,
+  "end": 2003,
+  "date": {
+   "text": "April 7, 2003",
+   "precision": "day"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Caribbean and Latin America",
+  "place": "Port-au-Prince, Haiti",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Levi"
+  ],
+  "people": [
+   "Jean-Bertrand Aristide"
+  ],
+  "summary": "On April 7, 2003, President Jean-Bertrand Aristide demanded France pay Haiti over $21 billion, which he said was the present-day equivalent of the 90 million gold francs Haiti had been forced to pay Paris after independence; French and Haitian officials later told the New York Times the demand helped drive the push to remove him in the 2004 coup, and his successor called it \"illegal\" and dropped it.",
+  "account": [
+   "On April 7, 2003, Haitian President Jean-Bertrand Aristide formally demanded that France pay Haiti restitution of over $21 billion, which he said was the equivalent in present-day money of the 90 million gold francs Haiti had been forced to pay Paris after winning its independence. Aristide set up a commission to pursue the claim and framed it as restitution rather than aid.",
+   "French and Haitian officials later told the New York Times that Aristide's reparations push was a factor driving French and American cooperation on removing him, since France feared that paying reparations to Haiti would set a precedent for claims from other former colonies such as Algeria. Aristide was flown out of the country in the February 2004 coup; Haiti's transitional prime minister, Gerard Latortue, called the reparations claim \"illegal\" and \"ridiculous\" and the demand was dropped."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "The class reads the Wikipedia account of Aristide's 2003 demand that France repay the independence indemnity, and ties his removal in the 2004 coup to the same pattern used against other leaders who 'spoke right': Patrice Lumumba, Thomas Sankara, Martin Luther King Jr. and Malcolm X were all killed after making the powers uncomfortable, and a sell-out is always found within the ranks.",
+     "Isaiah 32:6-7 is read over the nations' claim that they have no money for reparations while funding other allies: the class names Israel's annual aid and funding for Ukraine as the 'hypocrisy' and 'lying words' of the vile person the prophecy describes."
+    ],
+    "quote": "We don't have money for reparations, but we have money for reparations to give to Israel -- seventy billion dollars a year. We got money for that. We don't have no money, but we got money to give to Ukraine.",
+    "source": {
+     "kind": "class",
+     "id": "oxSqRScjkeM",
+     "title": "The Shadow War on Haiti",
+     "date": "2023-02-19",
+     "ts": "3:41:39",
+     "url": "https://youtu.be/oxSqRScjkeM?t=13299"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "Isaiah 32:6",
+    "why": "applied to the nations' hypocrisy: claiming no money for reparations to Haiti while funding other allies, called 'lying words' against the poor."
+   },
+   {
+    "ref": "Isaiah 32:7",
+    "why": "'even when the needy speaketh right' applied to Aristide's reparations demand, read by the class as the needy 'speaking right' just before the powers moved to silence him."
+   }
+  ],
+  "sources": [
+   {
+    "title": "Haiti indemnity controversy",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Haiti_indemnity_controversy",
+    "accessed": "2026-10-06",
+    "supports": "the April 7, 2003 demand, the $21 billion and 90 million gold franc figures, the French/Haitian officials' account to the New York Times of the demand's role in Aristide's removal, and Gerard Latortue's rejection of the claim as 'illegal' and 'ridiculous'"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "bojaya-massacre-2002",
   "title": "The Bojayá massacre",
   "start": 2002,
