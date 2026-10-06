@@ -3,6 +3,7 @@ export const GROUPS = [
   "African captivity", "Transatlantic trade", "Slavery", "Resistance", "Abolition",
   "Caribbean and Latin America", "Native dispossession", "Reconstruction and Jim Crow",
   "Civil rights", "Other atrocities", "Achievements", "Identity and erasure", "Forerunners", "Israel United in Christ",
+  "Return from exile", "Maccabean revolt",
 ];
 export const PEOPLES = ["Black", "Hispanic", "Native"];
 /** The twelve tribes as the assembly's chart places them today; an event names the ones it concerns. */
@@ -11,7 +12,10 @@ export const TRIBES = {
   Zebulon: "Guatemala to Panama", Ephraim: "the Puerto Ricans", Manasseh: "the Cubans", Gad: "the North American Indians",
   Reuben: "the Seminole Indians", Naphtali: "Argentina and Chile", Asher: "Colombia to Uruguay", Issachar: "the Mexicans",
 };
-const PRECISION = ["day", "month", "year", "circa", "range", "decade"];
+// "unknown": the text gives no absolute date at all (Mattathias at Modin, "in those days"); kept
+// distinct from "circa", which still asserts an approximate year. An "unknown"-precision event
+// never carries start/end: see TimelineShape in shared/cms.ts.
+const PRECISION = ["day", "month", "year", "circa", "range", "decade", "unknown"];
 const KINDS = ["class", "history", "site", "note"];
 /** Book names as the app writes them (AGENTS.md), with the Apocrypha. */
 export const BOOKS = ["Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy", "Joshua", "Judges", "Ruth", "1 Samuel", "2 Samuel", "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles", "Ezra", "Nehemiah", "Esther", "Job", "Psalms", "Proverbs", "Ecclesiastes", "Song of Solomon", "Isaiah", "Jeremiah", "Lamentations", "Ezekiel", "Daniel", "Hosea", "Joel", "Amos", "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk", "Zephaniah", "Haggai", "Zechariah", "Malachi", "1 Esdras", "2 Esdras", "Tobit", "Judith", "Rest of Esther", "Wisdom of Solomon", "Ecclesiasticus", "Baruch", "Epistle of Jeremiah", "Song of the Three Holy Children", "History of Susanna", "Bel and the Dragon", "Prayer of Manasses", "1 Maccabees", "2 Maccabees", "Matthew", "Mark", "Luke", "John", "Acts", "Romans", "1 Corinthians", "2 Corinthians", "Galatians", "Ephesians", "Philippians", "Colossians", "1 Thessalonians", "2 Thessalonians", "1 Timothy", "2 Timothy", "Titus", "Philemon", "Hebrews", "James", "1 Peter", "2 Peter", "1 John", "2 John", "3 John", "Jude", "Revelation"];
@@ -33,8 +37,12 @@ export function checkEvent(e, periods, { corpus, draft = false, leaders = null }
   const period = periods.find((x) => x.id === e.period);
   if (!period) p.push(`${at}: unknown period ${e.period}`);
   if (draft && e.start == null) return p;
-  if (!Number.isInteger(e.start) || !Number.isInteger(e.end) || e.end < e.start) p.push(`${at}: start/end must be whole years, end ≥ start`);
-  else if (period && (e.start < period.startYear || e.end > period.endYear)) p.push(`${at}: ${e.start}–${e.end} is outside ${period.title} (${period.startYear}–${period.endYear})`);
+  // "unknown" precision says the text gives no absolute date at all; never a plotted position.
+  if (e.date?.precision === "unknown" && (e.start != null || e.end != null)) p.push(`${at}: an "unknown"-precision date cannot have start/end; keep it in drafts.json until a real date is cited`);
+  else {
+    if (!Number.isInteger(e.start) || !Number.isInteger(e.end) || e.end < e.start) p.push(`${at}: start/end must be whole years, end ≥ start`);
+    else if (period && (e.start < period.startYear || e.end > period.endYear)) p.push(`${at}: ${e.start}–${e.end} is outside ${period.title} (${period.startYear}–${period.endYear})`);
+  }
   if (e.date && (!e.date.text || !PRECISION.includes(e.date.precision))) p.push(`${at}: date needs text and a precision (${PRECISION.join(", ")})`);
   if (e.group && !GROUPS.includes(e.group)) p.push(`${at}: unknown group "${e.group}"`);
   for (const x of e.peoples ?? []) if (!PEOPLES.includes(x)) p.push(`${at}: unknown people "${x}"`);

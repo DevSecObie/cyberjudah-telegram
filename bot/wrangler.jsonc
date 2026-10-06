@@ -73,7 +73,8 @@
         "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
         "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8",
         "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "0.11",
-        "ASK_IP_DAILY_LIMIT": "1000", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50"
+        "ASK_IP_DAILY_LIMIT": "1000", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
+        "DONATIONS_ON": "on", "DONATE_MIN_STARS": "1"
       }
     }
   },
@@ -125,6 +126,13 @@
     // ASK_FREE_MODEL names the default free model (Llama 3.1 8B, cheapest per answer).
     "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8",
     "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "0.11",
-    "ASK_IP_DAILY_LIMIT": "1000", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50"
+    "ASK_IP_DAILY_LIMIT": "1000", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
+    // Donations ("Support CyberJudah"): on by default; a giver may name any amount of Stars from
+    // DONATE_MIN_STARS up (no app-imposed ceiling until the owner adds DONATE_MAX_STARS below).
+    // DONATION_URL (the owner's own HTTPS giving link) is not set here: it is not secret, but no
+    // such link exists yet in this repository; add it as a var, here and in env.staging, once the
+    // owner names it. Until then /api/donations reports donationUrl: null and no external-link
+    // button appears.
+    "DONATIONS_ON": "on", "DONATE_MIN_STARS": "1"
   }
 }
