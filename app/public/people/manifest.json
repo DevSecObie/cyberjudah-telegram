@@ -1,0 +1,342 @@
+{
+  "_readme": [
+    "Sourcing ledger for app/public/people/*.webp, promised by docs/AVATARS.md ('The prompts are kept with each Higgsfield job and repeated in app/public/people/manifest.json once the images are brought into the repository.') but never created.",
+    "Each key is the stable person id (the filename stem before -64/-128/-256/-512). kind is 'generated' (Higgsfield, project 'CyberJudah People Avatars', workspace 28f5ce8d-ddb7-41e6-b137-a3c55b619076) or 'archival' (a real public-domain work, not generated).",
+    "status 'approved' / 'awaiting_review' is copied verbatim from docs/AVATARS.md, not re-judged here. status 'needs_confirmation' or 'documented_but_not_hosted' marks a gap this seat found but could not close without inventing data (rule 3, ops/RULES.md): see note.",
+    "This file currently covers only the ids docs/AVATARS.md documents with enough detail to record without guessing. The live app/public/people/ directory holds well over 150 further ids (ordinary avatars from Batches 2-3 onward, and the People portraits reused onto Timeline events) with no job id recorded anywhere in the repo yet. Their generation jobs do exist and are readable from the Higgsfield project's history (confirmed by this seat, 2026-10-06), but matching each live .webp to its correct job record needs a visual/hash match against that history, batch by batch -- tracked as follow-up work, not done here to avoid mis-attributing the wrong job to the wrong file."
+  ],
+  "abraham-gen-11-26": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the jobs as nano_banana_2",
+    "batch": "pilot",
+    "job": "d1367665-d3df-4eb5-8297-3cb03425665d",
+    "supersededJobs": ["95e503d5"],
+    "status": "approved",
+    "note": "Style anchor for the pilot; used as an image reference for the rest of the set. Before Sinai, so no fringes. Approved 2026-10-01 (docs/AVATARS.md section 4)."
+  },
+  "israel-gen-25-26": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "pilot",
+    "job": "c936f6e7-8e2a-4439-9646-e1d4ec5824ac",
+    "supersededJobs": ["d8cdd3f4"],
+    "status": "approved",
+    "note": "Jacob (Israel); before Sinai. Regenerated without a face reference because using Abraham's portrait as a reference copied his face too (docs/AVATARS.md section 4, 'Review of the pilot')."
+  },
+  "esau-gen-25-25": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "pilot",
+    "job": "06b67b2d-5b47-4ed0-bd52-e11dd0b1fc04",
+    "supersededJobs": ["6c5de6b4"],
+    "alternateJob": "066e60ab-4334-4528-a2a4-e0d0010814fe",
+    "status": "approved",
+    "note": "Genesis 25:25. First version was a saturated sunburnt red that read as caricature; regenerated with a natural ruddy complexion, later reused as the reference complexion for Pilate, Tiberius and the Herods in batch 1."
+  },
+  "moses-exo-2-10": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "batch-1",
+    "job": "917ae027-a8f4-4a7a-9453-5e018c20efe0",
+    "supersededJobs": ["38bf3fad-5c53-4c38-ae77-56bf31b75384 (pilot; first try 3d1f4bdb)"],
+    "status": "approved",
+    "note": "Fringes with a ribband of blue. The pilot version had twisted, loc-like hair rather than tight woolly coils; replaced in batch 1 with tight woolly coils (docs/AVATARS.md sections 4-5)."
+  },
+  "miriam-exo-15-20": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "pilot",
+    "job": "fa0d393b-b46f-46e5-8e18-ef6281142119",
+    "status": "approved",
+    "note": "Head covering."
+  },
+  "ebed-melech-jer-38-7": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "pilot",
+    "job": "44356e8b-d569-49c8-bd93-22e5588e6aab",
+    "status": "approved",
+    "note": "Cushite."
+  },
+  "paul-act-7-58": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "pilot",
+    "job": "c456ddc2-2b27-4539-991f-f3315a5f8e81",
+    "supersededJobs": ["ad4725f8"],
+    "status": "approved",
+    "note": "Acts 21:38; bare-headed. Regenerated without a face reference (see Israel)."
+  },
+  "david-rut-4-17": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "pilot",
+    "job": "d7ac9e46-f2a7-4b7c-bacf-a3908ac5563c",
+    "status": "needs_confirmation",
+    "note": "1 Samuel 16:12 'ruddy' kept as a warm undertone. docs/AVATARS.md's 'Owner's verdicts on round 2' (section 9.5) lists 'the replaced David ... portraits' among what the owner approved, but no replacement job id is recorded anywhere in the repo. The file currently live may be this pilot job or an undocumented later one -- flagging rather than guessing which."
+  },
+  "esther-est-2-7": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "pilot",
+    "job": "3ef6af9f-75b4-4d7f-808c-fc8176baf56e",
+    "status": "needs_confirmation",
+    "note": "Head covering. Same gap as David: the round-2 verdicts mention a replaced Esther portrait with no job id recorded."
+  },
+  "aaron-exo-4-14": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "batch-1",
+    "job": "80b8c554-0204-4a8d-bef1-8b0018bf0f37",
+    "status": "approved",
+    "note": "High priest; linen mitre."
+  },
+  "judah-gen-29-35": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "batch-1",
+    "job": "ec30e895-9ef7-4743-87a9-36947815d27e",
+    "status": "approved",
+    "note": "Before Sinai. Also reused onto a Timeline event (docs/AVATARS.md section 9.5, round 3, 'People portraits reused')."
+  },
+  "joseph-gen-30-24": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "batch-1",
+    "job": "845c669e-fa0e-463a-a522-ed2369cab797",
+    "status": "approved",
+    "note": "Before Sinai; shaven in Egypt (Genesis 41:14)."
+  },
+  "isaac-gen-17-19": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "batch-1",
+    "job": "c2ba5066-b4d2-4300-aa9e-977dc6ddd4d1",
+    "status": "approved",
+    "note": "Before Sinai."
+  },
+  "solomon-2sa-5-14": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "round-2",
+    "job": "89baf23f-f145-43d4-b46a-09be69cea8ba",
+    "supersededJobs": ["36a2e248-3ef1-4fcb-b322-4ebde9e3afd1 (batch-1)"],
+    "status": "approved",
+    "note": "Song of Solomon 1:5. Fringes and a ribband of blue added in round 2 (owner: 'fire')."
+  },
+  "pilate-mat-27-2": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "batch-1",
+    "job": "49a8ecda-ad4f-4ffd-9627-6b3321da9dcf",
+    "status": "approved",
+    "note": "Edom; ruddy as Esau. Not one of the six figures later replaced with an online archival image."
+  },
+  "tiberius-mat-22-17": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "batch-1",
+    "job": "e811d9e4-f1bd-4576-9460-24003e84b91c",
+    "status": "approved",
+    "note": "Edom; ruddy as Esau. Not replaced."
+  },
+  "herod-act-12-1": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "batch-1",
+    "job": "ee8c36ce-e4c0-4a03-bbde-6b100ec827eb",
+    "status": "documented_but_not_hosted",
+    "note": "Herod Agrippa I; Edom, ruddy as Esau. docs/AVATARS.md records this as generated and kept in batch 1, but this seat did not find a herod-act-12-1 file in the current app/public/people/ listing -- flagging the discrepancy rather than guessing why."
+  },
+  "agrippa-act-25-13": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "batch-1",
+    "job": "34954897-5cbd-4c24-ace3-741d0810b411",
+    "status": "documented_but_not_hosted",
+    "note": "Agrippa II; Edom, ruddy as Esau. Same discrepancy as herod-act-12-1: documented as kept in batch 1 but not found in the current directory listing."
+  },
+  "pharaoh-exo-1-11": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); reported nano_banana_2",
+    "batch": "pilot",
+    "job": "bdfc9d23-704d-4f94-84ef-dce8526d845a",
+    "status": "documented_but_not_hosted",
+    "note": "Pharaoh of Exodus 1; Hamite, nemes. Approved in the pilot, but not found in the current directory listing, which instead has pharaoh-exo-3-10 and pharaoh-gen-37-36 (neither documented in docs/AVATARS.md at all)."
+  },
+  "herod-mat-14-1": {
+    "kind": "archival",
+    "subject": "Herod Antipas",
+    "source": "John Rogers Herbert, \"John the Baptist Reproving Herod\" (1848)",
+    "sourceUrl": "an archive.org mirror of the painting (exact item not recorded in docs/AVATARS.md)",
+    "author": "John Rogers Herbert",
+    "license": "public domain (the painting itself, 1848)",
+    "credit": "John Rogers Herbert, John the Baptist Reproving Herod, 1848 (public domain, via an archive.org mirror)",
+    "supersededJobs": ["62beaa0b-4858-4903-b4fa-df9d19428651 (batch-1, generated)"],
+    "status": "approved",
+    "note": "Owner's direction, 2026-10-03: 'for all of the edomites you can use images from online ... Romans etc.' Approved by the owner ('use h-crop')."
+  },
+  "herod-mat-2-1": {
+    "kind": "archival",
+    "subject": "Herod the Great",
+    "source": "J. W. Waterhouse, \"Mariamne Leaving the Judgement Seat of Herod\" (1887)",
+    "sourceUrl": "an archive.org mirror of the painting (exact item not recorded in docs/AVATARS.md)",
+    "author": "John William Waterhouse",
+    "license": "public domain (the painting itself, 1887)",
+    "credit": "John William Waterhouse, Mariamne Leaving the Judgement Seat of Herod, 1887 (public domain, via an archive.org mirror)",
+    "supersededJobs": ["569a3a6f-7cc0-4f18-a06e-d08d4619ff72 (batch-1, generated)"],
+    "status": "approved_with_noted_conflict",
+    "note": "The inventory table in docs/AVATARS.md section 9.5 marks this 'Candidate only: his face is bowed and hidden', but the later 'Owner's verdicts on round 2' paragraph lists it among 'all six Edomite and Roman images ... Herod the Great's included' as approved. Recording both rather than silently picking one. James Tissot's 'Herod' (Brooklyn Museum) was found and explicitly rejected: it paints Herod dark-skinned, against the assembly's teaching on Edom."
+  },
+  "julius-caesar": {
+    "kind": "archival",
+    "subject": "Julius Caesar",
+    "source": "Peter Paul Rubens, \"Julius Caesar\" (c. 1625)",
+    "sourceUrl": "Wikimedia Commons, file Caesar_by_Rubens.jpg",
+    "author": "Peter Paul Rubens",
+    "license": "PD-Art (public domain)",
+    "credit": "Peter Paul Rubens, Julius Caesar, c. 1625 (public domain, Wikimedia Commons, Caesar_by_Rubens.jpg)",
+    "status": "approved_with_noted_conflict",
+    "note": "Reused on Timeline events for a figure outside the People data (docs/AVATARS.md section 9.5, 'How they reach the app'). The inventory table marks this 'Awaiting review'; the later 'Owner's verdicts' paragraph lists 'all six Edomite and Roman images' as approved. Recording both."
+  },
+  "augustus-luk-2-1": {
+    "kind": "archival",
+    "subject": "Augustus Caesar",
+    "source": "Augustus of Prima Porta (statue)",
+    "sourceUrl": "Wikimedia Commons, file Statue-Augustus.jpg",
+    "author": "photo by Till Niermann",
+    "license": "released to the public domain by the photographer, Till Niermann",
+    "credit": "Augustus of Prima Porta; photo by Till Niermann (public domain, Wikimedia Commons, Statue-Augustus.jpg)",
+    "status": "approved_with_noted_conflict",
+    "note": "Same approved/awaiting-review conflict as julius-caesar; recording both rather than picking one."
+  },
+  "constantine": {
+    "kind": "archival",
+    "subject": "Constantine the Great",
+    "source": "bronze head, Musei Capitolini",
+    "sourceUrl": "Wikimedia Commons, file Head_Constantine_Musei_Capitolini_MC1072.jpg",
+    "author": "photo by Jastrow",
+    "license": "public domain",
+    "credit": "Bronze head of Constantine the Great, Musei Capitolini; photo by Jastrow (public domain, Wikimedia Commons, Head_Constantine_Musei_Capitolini_MC1072.jpg)",
+    "status": "approved_with_noted_conflict",
+    "note": "Same approved/awaiting-review conflict as julius-caesar; recording both rather than picking one."
+  },
+  "leo-x": {
+    "kind": "archival",
+    "subject": "Pope Leo X",
+    "source": "Raphael, \"Portrait of Leo X\" (1518)",
+    "sourceUrl": "Wikimedia Commons, file Pope-leo10.jpg",
+    "author": "Raphael",
+    "license": "PD-Art (public domain)",
+    "credit": "Raphael, Portrait of Pope Leo X, 1518 (public domain, Wikimedia Commons, Pope-leo10.jpg)",
+    "status": "approved_with_noted_conflict",
+    "note": "Same approved/awaiting-review conflict as julius-caesar; recording both rather than picking one."
+  },
+  "martin-luther": {
+    "kind": "archival",
+    "subject": "Martin Luther",
+    "source": "portrait by Lucas Cranach, 1528, Veste Coburg",
+    "sourceUrl": "needs_confirmation -- docs/AVATARS.md names the artist, year and collection but no Commons file name or URL",
+    "author": "Lucas Cranach",
+    "license": "needs_confirmation",
+    "credit": "Lucas Cranach, portrait of Martin Luther, 1528, Veste Coburg",
+    "status": "awaiting_review",
+    "note": "Round 4, 2026-10-03: 'real people with real portraits, so their own public-domain likenesses are used and none is generated ... fetched from Wikimedia Commons originals through the Wayback Machine.' This seat did not invent a Commons file name or URL where docs/AVATARS.md does not give one."
+  },
+  "john-calvin": {
+    "kind": "archival",
+    "subject": "John Calvin",
+    "source": "portrait held by the Bibliothèque de Genève",
+    "sourceUrl": "needs_confirmation -- docs/AVATARS.md names the collection only",
+    "author": "needs_confirmation",
+    "license": "needs_confirmation",
+    "credit": "Portrait of John Calvin, Bibliothèque de Genève",
+    "status": "awaiting_review",
+    "note": "See martin-luther for the method and the gap."
+  },
+  "william-tyndale": {
+    "kind": "archival",
+    "subject": "William Tyndale",
+    "source": "engraving",
+    "sourceUrl": "needs_confirmation -- docs/AVATARS.md records only 'engraving', no artist, collection or Commons file",
+    "author": "needs_confirmation",
+    "license": "needs_confirmation",
+    "credit": "Engraved portrait of William Tyndale",
+    "status": "awaiting_review",
+    "note": "See martin-luther for the method and the gap."
+  },
+  "john-wycliffe": {
+    "kind": "archival",
+    "subject": "John Wycliffe",
+    "source": "portrait after Kirkby, Balliol College",
+    "sourceUrl": "needs_confirmation -- docs/AVATARS.md names the attribution and college only",
+    "author": "after Kirkby",
+    "license": "needs_confirmation",
+    "credit": "Portrait of John Wycliffe, after Kirkby, Balliol College",
+    "status": "awaiting_review",
+    "note": "See martin-luther for the method and the gap."
+  },
+  "erasmus": {
+    "kind": "archival",
+    "subject": "Erasmus",
+    "source": "portrait by Hans Holbein",
+    "sourceUrl": "needs_confirmation -- docs/AVATARS.md names the artist only",
+    "author": "Hans Holbein",
+    "license": "needs_confirmation",
+    "credit": "Hans Holbein, portrait of Erasmus",
+    "status": "awaiting_review",
+    "note": "See martin-luther for the method and the gap."
+  },
+  "thomas-more": {
+    "kind": "archival",
+    "subject": "Thomas More",
+    "source": "portrait by Hans Holbein, Frick Collection",
+    "sourceUrl": "needs_confirmation -- docs/AVATARS.md names the artist and collection only",
+    "author": "Hans Holbein",
+    "license": "needs_confirmation",
+    "credit": "Hans Holbein, portrait of Thomas More, Frick Collection",
+    "status": "awaiting_review",
+    "note": "See martin-luther for the method and the gap."
+  },
+  "john-knox": {
+    "kind": "archival",
+    "subject": "John Knox",
+    "source": "Theodore Beza's Icones, 1580",
+    "sourceUrl": "needs_confirmation -- docs/AVATARS.md names the work and year only",
+    "author": "Theodore Beza (Icones, 1580)",
+    "license": "needs_confirmation",
+    "credit": "Portrait of John Knox, Theodore Beza's Icones, 1580",
+    "status": "awaiting_review",
+    "note": "See martin-luther for the method and the gap."
+  },
+  "ulrich-zwingli": {
+    "kind": "archival",
+    "subject": "Ulrich Zwingli",
+    "source": "portrait by Hans Asper",
+    "sourceUrl": "needs_confirmation -- docs/AVATARS.md names the artist only",
+    "author": "Hans Asper",
+    "license": "needs_confirmation",
+    "credit": "Hans Asper, portrait of Ulrich Zwingli",
+    "status": "awaiting_review",
+    "note": "See martin-luther for the method and the gap."
+  }
+}
