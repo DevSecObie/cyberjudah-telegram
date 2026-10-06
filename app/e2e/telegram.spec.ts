@@ -1,7 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import crypto from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
+import { DATA_ORIGIN, LAUNCH, setup, goInApp } from "./telegram-harness";
 
 /**
  * The app driven inside a stand-in for Telegram's SDK: a script served in place of
@@ -9,37 +7,9 @@ import path from "node:path";
  * storage, popups) so the tests can assert on it. Data comes from a local copy of the
  * library when DATA_DIR is set, else from the data origin.
  */
-const MOCK = fs.readFileSync(new URL("./telegram-mock.js", import.meta.url), "utf8");
-const DATA = process.env.DATA_DIR ?? "";
-// The origin the app was built to read its data from (app/src/api/data.ts): stand-ins must sit
-// there, or a build pointed elsewhere (VITE_DATA_ORIGIN, as local runs use) bypasses them.
-const DATA_ORIGIN = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
 // Search and full-library coverage runs separately against production every night. Pull
 // requests remain deterministic and never depend on the current contents of the library.
 const liveDataTest = process.env.RUN_LIVE_E2E ? test : test.skip;
-/** Launch data signed with the local bot token (bot/.dev.vars), so the Worker's API accepts it. */
-const BOT_TOKEN = process.env.BOT_TOKEN ?? "123456:ABC-DEF";
-const signed = () => {
-  const params: Record<string, string> = { query_id: "AAH", user: JSON.stringify({ id: 1, first_name: "Test" }), auth_date: String(Math.floor(Date.now() / 1000)) };
-  const check = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join("\n");
-  const secret = crypto.createHmac("sha256", "WebAppData").update(BOT_TOKEN).digest();
-  const hash = crypto.createHmac("sha256", secret).update(check).digest("hex");
-  return `#tgWebAppData=${encodeURIComponent(new URLSearchParams({ ...params, hash }).toString())}&tgWebAppVersion=9.1&tgWebAppPlatform=ios`;
-};
-const LAUNCH = signed();
-
-async function setup(page: Page) {
-  await page.route("https://telegram.org/**", (r) => r.fulfill({ contentType: "application/javascript", body: MOCK }));
-  if (DATA) await page.route(`${DATA_ORIGIN}/**`, (r) => {
-    const p = decodeURIComponent(new URL(r.request().url()).pathname);
-    const f = path.join(DATA, p);
-    if (f.startsWith(DATA) && fs.existsSync(f) && fs.statSync(f).isFile()) return r.fulfill({ path: f });
-    return r.fulfill({ status: 404, body: "" });
-  });
-  await page.route(/ytimg|youtube\.com|fonts\.g/, (r) => r.abort());
-  // Playwright tries the last route first: a stand-in thumbnail for screenshots, when given.
-  if (process.env.THUMB) await page.route(/ytimg/, (r) => r.fulfill({ path: process.env.THUMB! }));
-}
 type S = { main: string | null; second: string | null; back: boolean; settings: boolean };
 const state = (page: Page) => page.evaluate(() => (window as unknown as { __tg: { state(): S } }).__tg.state()) as Promise<S>;
 const press = (page: Page, which: "back" | "main" | "second" | "settings") => page.evaluate((w) => (window as unknown as { __tg: { press(w: string): void } }).__tg.press(w), which);
@@ -49,8 +19,6 @@ const tapVerse = async (page: Page, n: number) => { await page.click(`#verset-${
 const longPressVerse = async (page: Page, n: number) => { await page.locator(`#verset-${n} .bs-num`).evaluate((el) => el.scrollIntoView({ block: "center" })); await page.waitForTimeout(300); const b = (await page.locator(`#verset-${n} .bs-num`).boundingBox())!; await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await page.waitForTimeout(550); await page.mouse.up(); };
 /** A long press that must end in the resources sheet: the runner's first press can land while the text is still reflowing, so try again before giving up. */
 const openResources = async (page: Page, n: number) => { for (let i = 0; i < 3; i++) { await longPressVerse(page, n); if (await page.locator(".bs-resourcetabs").isVisible({ timeout: 4000 }).catch(() => false)) return; await page.waitForTimeout(500); } };
-/** In-app navigation (a reload would reset the mock's cloud storage). */
-const goInApp = (page: Page, to: string) => page.evaluate((t) => { history.pushState({ idx: (history.state?.idx ?? 0) + 1 }, "", t); dispatchEvent(new PopStateEvent("popstate")); }, to);
 
 test.beforeEach(async ({ page }) => setup(page));
 
