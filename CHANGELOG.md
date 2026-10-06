@@ -23,6 +23,8 @@ request that introduced this file ([#77]).
 ## [Unreleased]
 
 - The Worker now serves donations ("Support CyberJudah"): `GET /api/donations` for the presets, amount bounds, the owner's giving link and the holy-days pause state, and `POST /api/invoice` for any amount within those bounds. A gift pauses the same way an Ask top-up does, from evening to evening on the Sabbath, feast days and New Moons, and is recorded once per Telegram charge in its own ledger, never added to the Ask balance.
+- People show their portraits everywhere a person appears (the People list, a person's page, the family graph, the chapter's people, search, case studies), the same approved portraits as the Timeline; anyone without one keeps their letter.
+- More people have portraits on the Timeline: 37 newly approved, among them Christ, Joshua, Isaiah, Ezekiel, Nehemiah, Rachel, Leah and Rebekah, each drawn as the scriptures and the classes describe them.
 - Small library updates behind the scenes (search caching, the bot's web framework, the Anthropic SDK), with no visible change.
 - Routine dependency updates now leave TypeScript, Vite, the Vite React plugin and the Workers types package out of the weekly batch, so a major version of one of those is upgraded on its own instead of bundled in with everything else.
 
