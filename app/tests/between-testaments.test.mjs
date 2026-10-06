@@ -55,6 +55,14 @@ test("a renamed or reordered Exile/Life of Christ section fails loud instead of 
   assert.throws(() => build({ timeline: noExile, periods: withBounds, events: [good()] }), /no section with id "8" and title "The Exile"/);
   const wrongNext = { source: "x", reigns: "y", sections: [{ id: "8", title: "The Exile" }, { id: "9", title: "Something Else" }] };
   assert.throws(() => build({ timeline: wrongNext, periods: withBounds, events: [good()] }), /expected id "9" title "Life of Christ"/);
+  // The other half of each guard: the right title under the wrong id must fail the same way.
+  const exileRenumbered = { source: "x", reigns: "y", sections: [{ id: "7", title: "The Exile" }, { id: "9", title: "Life of Christ" }] };
+  assert.throws(() => build({ timeline: exileRenumbered, periods: withBounds, events: [good()] }), /no section with id "8" and title "The Exile"/);
+  const christRenumbered = { source: "x", reigns: "y", sections: [{ id: "8", title: "The Exile" }, { id: "10", title: "Life of Christ" }] };
+  assert.throws(() => build({ timeline: christRenumbered, periods: withBounds, events: [good()] }), /expected id "9" title "Life of Christ" right after The Exile, found id "10" title "Life of Christ"/);
+  // And The Exile as the last section: nothing follows it to splice before.
+  const exileLast = { source: "x", reigns: "y", sections: [{ id: "8", title: "The Exile" }] };
+  assert.throws(() => build({ timeline: exileLast, periods: withBounds, events: [good()] }), /found nothing/);
 });
 
 test("rebuilding is idempotent: a second run does not duplicate the section", () => {
