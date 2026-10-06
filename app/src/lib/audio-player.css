@@ -1,0 +1,18 @@
+.audio-player { position: fixed; z-index: var(--z-actions); bottom: calc(var(--dock-space) + 8px); left: calc(var(--rail-space, 0px) + var(--gutter)); right: var(--gutter); padding: 8px; border: 1px solid var(--control-edge); border-radius: var(--r-lg); background: var(--surface-1); color: var(--text-1); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px; }
+.audio-player__controls { display: flex; gap: 4px; }
+.audio-player button { min-height: 44px; }
+.audio-player p { flex-basis: 100%; margin: 0; font-size: var(--fs-caption); }
+html[data-audio-bar] #shell .route { padding-bottom: var(--audio-bar-space); }
+html[data-audio-bar] .pageactions { bottom: calc(var(--dock-space) + var(--audio-bar-space)); }
+html[data-audio-bar] .toasts { bottom: calc(var(--dock-space) + var(--audio-bar-space)); }
+.bs-playpill { display: flex; align-items: center; gap: 4px; }
+.bs-playpill > button { pointer-events: auto; min-width: 44px; min-height: 44px; }
+
+html[data-audio-bar] #root [data-tabs] .composer2 { bottom: calc(var(--dock-space) + var(--audio-bar-space)); }
+html[data-audio-bar][data-typing] #root [data-tabs] .composer2 { bottom: var(--audio-bar-space); }
+html[data-audio-bar] #root [data-tabs] .chat2 { padding-bottom: calc(var(--composer-h, 110px) + var(--dock-space) + var(--audio-bar-space) + var(--sp-5)); }
+html[data-audio-bar] .player[data-pip] { bottom: calc(var(--dock-space) + var(--audio-bar-space)); }
+@media (max-width: 899px) {
+  html[data-audio-bar] .srch__bar--dock { bottom: var(--audio-bar-space); }
+  html[data-audio-bar] .srch { padding-bottom: calc(var(--dock-space) + var(--audio-bar-space) + var(--search-bar-height, 64px) + var(--sp-4)) !important; }
+}

@@ -30,6 +30,7 @@ export const ttsSupported = typeof window !== "undefined" && "speechSynthesis" i
 const saved = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
 export function useSpeech(verses: { verse: number; text: string }[], intro: string, where?: { slug: string; chapter: number }) {
   const [playing, setPlaying] = useState(false), [paused, setPaused] = useState(false);
+  const [audible, setAudible] = useState(false), [loading, setLoading] = useState(false);
   const [current, setCurrent] = useState<number | null>(null), [completed, setCompleted] = useState(false);
   const [rate, setRate] = useState(() => audioRate(saved("ttsRate"))), [pitch, setPitch] = useState(() => audioRate(saved("ttsPitch")));
   const [voiceName, setVoiceName] = useState<string | null>(() => saved("ttsVoice"));
@@ -38,9 +39,8 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
   const [notice, setNotice] = useState("");
   const narrators = useNarrators(where);
   const human = voiceName?.startsWith("narrator:") ?? false;
-  const continuation = useRef(false), previousChapter = useRef("");
-  const playingRef = useRef(playing); playingRef.current = playing;
   const intent = useRef(new AudioIntent()), audio = useRef<HTMLAudioElement | null>(null);
+  const mediaAttempt = useRef<{ audio: HTMLAudioElement; generation: number } | null>(null);
   const recording = useRef<Narrator | null>(null), release = useRef<() => void>(() => undefined);
   const activeVoice = useRef<string | null>(null), utterance = useRef<SpeechSynthesisUtterance | null>(null);
   const pendingNext = useRef<(() => void) | null>(null);
@@ -57,11 +57,13 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
   }, []);
   const clearAudio = () => {
     discardAhead();
-    if (audio.current) { audio.current.onended = null; audio.current.ontimeupdate = null; audio.current.onerror = null; audio.current.pause(); audio.current.removeAttribute("src"); }
+    if (audio.current) { audio.current.onended = null; audio.current.ontimeupdate = null; audio.current.onerror = null; audio.current.onplaying = null; audio.current.onpause = null; audio.current.onwaiting = null; audio.current.pause(); audio.current.removeAttribute("src"); }
     audio.current = null; recording.current = null; release.current(); release.current = () => undefined;
   };
   const stop = (betweenChapters = false) => {
-    continuation.current = betweenChapters; if (!betweenChapters) ambient.stop();
+    mediaAttempt.current = null;
+    if (!betweenChapters) ambient.stop();
+    setAudible(false); setLoading(false);
     discardAhead();
     intent.current.stop(); if (ttsSupported) speechSynthesis.cancel(); utterance.current = null;
     pendingNext.current = null; restartOnResume.current = false;
@@ -69,12 +71,34 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
     setPlaying(false); setPaused(false); setCurrent(null); setCompleted(false);
   };
   const finish = (generation: number) => {
-    if (generation !== intent.current.generation) return;
+    if (!intent.current.canPlay(generation)) return;
+    intent.current.stop(); setAudible(false); setLoading(false);
     ambient.stop(); setPlaying(false); setPaused(false); setCurrent(null); setCompleted(true);
   };
   const fail = (generation: number, message: string) => {
     if (generation !== intent.current.generation) return;
     stop(); setNotice(message);
+  };
+  const playMedia = (a: HTMLAudioElement, generation: number) => {
+    const attempt = { audio: a, generation };
+    mediaAttempt.current = attempt;
+    const owns = () => intent.current.owns(generation) && audio.current === a && mediaAttempt.current === attempt;
+    a.onplaying = () => {
+      if (!owns()) return;
+      if (intent.current.paused) { a.pause(); return; }
+      setAudible(true); setLoading(false);
+    };
+    a.onwaiting = () => { if (owns()) { setAudible(false); setLoading(true); } };
+    a.onpause = () => {
+      if (!owns() || a.ended || a.paused === false) return;
+      intent.current.paused = true; setPaused(true); setAudible(false); setLoading(false); ambient.stop();
+    };
+    setLoading(true);
+    void a.play().then(() => {
+      if (!owns()) { if (mediaAttempt.current?.audio !== a || mediaAttempt.current === attempt) a.pause(); return; }
+      if (intent.current.paused || a.paused === true) { intent.current.paused = true; setPaused(true); a.pause(); setAudible(false); setLoading(false); ambient.stop(); return; }
+      setAudible(true); setLoading(false);
+    }).catch(() => { if (owns()) fail(generation, "Tap Play to resume audio."); });
   };
   const readVerses = (from: number, generation: number, voice: string | null) => {
     clearAudio(); activeVoice.current = voice;
@@ -93,8 +117,8 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
           if (generation !== intent.current.generation) { URL.revokeObjectURL(url); return; }
           release.current(); release.current = () => URL.revokeObjectURL(url);
           const a = new Audio(url); audio.current = a; a.playbackRate = options.current.rate;
-          a.onended = next; a.onerror = () => fail(generation, "Reading voice is unavailable. Please try again.");
-          setCurrent(item.verse); if (!intent.current.paused) void a.play().catch(() => fail(generation, "Tap Play to try the reading voice again."));
+          a.onended = () => { if (intent.current.owns(generation)) { setAudible(false); setLoading(true); next(); } }; a.onerror = () => fail(generation, "Reading voice is unavailable. Please try again.");
+          setCurrent(item.verse); if (!intent.current.paused) playMedia(a, generation);
           const following = queue[0];
           if (following) ahead.current = { verse: following.verse, voice: voice!, promise: verseAudio(where.slug, where.chapter, following.verse, voice!.slice(3)).then((url) => {
             if (generation !== intent.current.generation) { URL.revokeObjectURL(url); return null; } return url;
@@ -108,7 +132,9 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
       const selected = vs.find((v) => v.name === voice) ?? vs.find((v) => /^en/i.test(v.lang) && /natural|premium|enhanced|neural|siri/i.test(v.name)) ?? vs.find((v) => /^en/i.test(v.lang));
       if (selected) u.voice = selected;
       u.lang = selected?.lang ?? "en-GB"; u.rate = options.current.rate; u.pitch = options.current.pitch;
-      u.onstart = () => { if (generation === intent.current.generation) setCurrent(item.verse || null); };
+      u.onstart = () => { if (intent.current.canPlay(generation)) { setCurrent(item.verse || null); setAudible(true); setLoading(false); } else if (intent.current.owns(generation)) speechSynthesis.pause(); };
+      u.onpause = () => { if (intent.current.owns(generation)) { setAudible(false); setPaused(true); intent.current.paused = true; ambient.stop(); } };
+      u.onresume = () => { if (intent.current.canPlay(generation)) { setAudible(true); setLoading(false); } };
       u.onend = next; u.onerror = () => fail(generation, "Device voice is unavailable.");
       speechSynthesis.speak(u);
     };
@@ -120,9 +146,11 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
     } else next();
   };
   const play = (from = 1, requestedVoice = voiceName, fromGesture = true) => {
+    mediaAttempt.current = null;
     discardAhead();
     pendingNext.current = null;
-    continuation.current = false; ambient.begin(fromGesture);
+    ambient.begin(fromGesture);
+    setAudible(false); setLoading(true);
     const generation = intent.current.start();
     restartOnResume.current = false;
     if (audio.current) audio.current.pause();
@@ -160,7 +188,7 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
         setNotice("Recording unavailable. Using your chosen AI reading voice.");
         readVerses(currentRef.current ?? from, generation, fallback);
       };
-      if (intent.current.canPlay(generation)) void a.play().catch(() => fail(generation, "Tap Play to start the recording."));
+      if (intent.current.canPlay(generation)) playMedia(a, generation);
     };
     void start().catch(() => fail(generation, "Recording unavailable. Please try again."));
   };
@@ -177,10 +205,10 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
     const next = !intent.current.paused;
     if (!next && restartOnResume.current) { play(currentRef.current ?? 1); return; }
     intent.current.paused = next; setPaused(next);
-    if (next) ambient.stop(); else ambient.begin();
+    if (next) { ambient.stop(); setAudible(false); setLoading(false); } else ambient.begin();
     if (!next && pendingNext.current) { pendingNext.current(); return; }
     const generation = intent.current.generation;
-    if (audio.current) { if (next) audio.current.pause(); else void audio.current.play().catch(() => fail(generation, "Tap Play to resume.")); }
+    if (audio.current) { if (next) audio.current.pause(); else playMedia(audio.current, generation); }
     else if (ttsSupported) { if (next) speechSynthesis.pause(); else speechSynthesis.resume(); }
   };
   useEffect(() => {
@@ -191,15 +219,9 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
       else play(currentRef.current ?? 1, voiceName, false);
     }
   }, [rate, pitch]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    const key = `${where?.slug}/${where?.chapter}`;
-    const resume = !intent.current.paused && (continuation.current || (previousChapter.current !== key && playingRef.current));
-    previousChapter.current = key; stop(resume); clearAudio();
-    if (resume && verses.length) play(1, voiceName, false);
-  }, [verses.length, where?.slug, where?.chapter]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { ambient.voice(playing && !paused && current !== null); }, [playing, paused, current]);
   useEffect(() => () => { ambient.stop(); intent.current.stop(); if (ttsSupported) speechSynthesis.cancel(); clearAudio(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  return { supported: verses.length > 0 && (ttsSupported || !!where), playing, paused, current, rate, setRate, pitch, setPitch,
+  return { supported: verses.length > 0 && (ttsSupported || !!where), playing, paused, audible, loading, current, rate, setRate, pitch, setPitch,
     pitchSupported: ttsSupported && !human && !isAiVoice(voiceName), completed, play, stop, toggle,
     voices: available, voice: voiceName, setVoice, currentVoice: activeVoice.current,
     narrators: narrators.data?.narrators ?? [], narratorsLoading: narrators.isPending && !!where,
