@@ -163,18 +163,21 @@ export async function pruneBilling(env: Env): Promise<void> {
 }
 
 /**
- * Delete my data: the balance, its history and the old allowance record go. A payment record
- * keeps only the Telegram charge ID, kind, amount and date, no longer linked to the person:
+ * Delete my data: the balance, its history and the old allowance record go. A payment or donation
+ * record keeps only the Telegram charge ID, amount and date, no longer linked to the person:
  * Telegram's refund process and the owner's accounts need those (docs/PRIVACY.md).
  */
 export async function deleteBilling(env: Env, uid: number): Promise<{ balanceUsd: number }> {
   const id = await pid(env, uid);
   const left = await deleteCredits(env, id);
   const stmts: D1PreparedStatement[] = [];
-  // The payments table may not exist before the first payment. Absence is harmless;
+  // The payments and donations tables may not exist before the first one. Absence is harmless;
   // a failed lookup or cleanup must reach the caller rather than report success.
   if (await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'payments'").first()) {
     stmts.push(env.DB.prepare("UPDATE payments SET user_id = 'deleted' WHERE user_id = ? OR user_id = ?").bind(id, String(uid)));
+  }
+  if (await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'donations'").first()) {
+    stmts.push(env.DB.prepare("UPDATE donations SET user_id = 'deleted' WHERE user_id = ? OR user_id = ?").bind(id, String(uid)));
   }
   for (const t of ["accounts", "usage_people"]) {
     if (await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").bind(t).first()) stmts.push(env.DB.prepare(`DELETE FROM ${t} WHERE user_id = ? OR user_id = ?`).bind(id, String(uid)));
@@ -189,5 +192,11 @@ export async function billingRecord(env: Env, uid: number) {
   const id = await pid(env, uid);
   const has = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'payments'").first();
   const pays = has ? await env.DB.prepare("SELECT kind, stars, created_at FROM payments WHERE user_id = ? ORDER BY created_at").bind(id).all<{ kind: string; stars: number; created_at: number }>() : { results: [] };
-  return { balance: await creditsRecord(env, id), payments: (pays.results ?? []).map((r) => ({ kind: r.kind, stars: r.stars, at: new Date(r.created_at).toISOString() })) };
+  const hasDonations = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'donations'").first();
+  const gifts = hasDonations ? await env.DB.prepare("SELECT stars, created_at FROM donations WHERE user_id = ? ORDER BY created_at").bind(id).all<{ stars: number; created_at: number }>() : { results: [] };
+  return {
+    balance: await creditsRecord(env, id),
+    payments: (pays.results ?? []).map((r) => ({ kind: r.kind, stars: r.stars, at: new Date(r.created_at).toISOString() })),
+    donations: (gifts.results ?? []).map((r) => ({ stars: r.stars, at: new Date(r.created_at).toISOString() })),
+  };
 }
