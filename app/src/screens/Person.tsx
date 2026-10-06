@@ -52,7 +52,7 @@ export function Person() {
     <Screen className="entity">
       <header className="entity__summary">
         <div className="entity__id">
-          <EntityAvatar name={d.name} kind={kind} src={d.image?.src} size={48} />
+          <EntityAvatar id={d.id} name={d.name} kind={kind} src={d.image?.src} size={48} />
           <div>
             <p className="entity__eyebrow">{eyebrow}</p>
             <h1 className="entity__name">{d.name}</h1>
