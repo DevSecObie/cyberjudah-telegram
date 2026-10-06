@@ -31,4 +31,6 @@ test("share links round-trip", () => {
   assert.equal(appLink("", "https://cyberjudah.io", "/classes/2026/x"), "https://cyberjudah.io/classes/2026/x");
   assert.equal(sitePathOf("/read/john/3"), "/bible/john/3");
   assert.equal(sitePathOf("/note/classes/2026/x"), "/classes/2026/x");
+  assert.equal(sitePathOf("/glossary"), "/glossary");
+  assert.equal(toAppPath("/glossary#amalek"), "/glossary#amalek");
 });

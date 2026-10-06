@@ -1935,3 +1935,26 @@ test("the verse-selection sheet works by keyboard: no ring on the sheet, tabs wi
   await expect(sheet).toHaveCount(0);
   await expect(page.locator("nav.tabs")).toHaveJSProperty("inert", false);
 });
+
+test("Glossary: each word with its scripture, its entry and the moments it is taught; a linked word is brought into view", async ({ page }) => {
+  const entry = (term: string, slug: string) => ({
+    term, slug, aliases: term === "Amalek" ? ["Amalekites"] : [], definition: `${term}, as the classes teach it.`, url: `/glossary#${slug}`,
+    scripture: [{ label: "Exodus 17:16", url: "/bible/exodus/17#v16" }],
+    see: [{ title: "Esau and Edom", url: "/encyclopedia/esau-and-edom" }],
+    taught: [{ title: "Iran Is Not Amalek", video: "7dszBxZaO8E", seconds: 2205, url: "https://www.youtube.com/watch?v=7dszBxZaO8E&t=2205s" }],
+  });
+  const words = ["Amalek", "Babylon", "Covenant", "Edom", "Gentile", "Hebrew", "Israel", "Judah", "Levite", "Messiah", "Nazarite", "Priesthood", "Sabbath", "Zion"];
+  await page.route("**/api/glossary/index.json", (r) => r.fulfill({ json: { about: "The words the classes use.", entries: words.map((w) => entry(w, w.toLowerCase())) } }));
+  await page.goto(`/glossary${LAUNCH}`);
+  const amalek = page.locator("#gl-amalek");
+  await expect(amalek).toContainText("also Amalekites");
+  await expect(amalek.locator('a[href="/read/exodus/17?v=16"]')).toBeVisible();
+  await expect(amalek.locator('a[href="/note/encyclopedia/esau-and-edom"]')).toHaveText("See Esau and Edom");
+  await expect(amalek.locator('a[href="/watch/7dszBxZaO8E?t=2205"]')).toContainText("36:45");
+  await page.fill("#gl-q", "amalekites");
+  await expect(page.locator(".glossary")).toHaveCount(1);
+  await page.fill("#gl-q", "");
+  // A link into the glossary ("/glossary#zion"), followed inside the app, lands on the word.
+  await page.goto("/glossary#zion");
+  await expect(page.locator("#gl-zion")).toBeInViewport();
+});

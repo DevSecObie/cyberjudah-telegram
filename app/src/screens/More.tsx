@@ -16,6 +16,7 @@ const STUDY: [string, string, string, IconName][] = [
   ["/people", "People", "Everyone named in the Bible, with their family and their verses", "star"],
   ["/relations", "Your precepts", "The verses, notes and entries you joined, precept upon precept", "precepts"],
   ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book", "layers"],
+  ["/glossary", "Glossary", "The words the classes use, defined", "type"],
   ["/topics", "Topics", "Classes and episodes by what they cover", "tag"],
 ];
 const LAW: [string, string, string, IconName][] = [

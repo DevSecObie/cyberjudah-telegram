@@ -30,6 +30,7 @@ const LIBRARY: Item[] = [
   ["/people", "People", "Everyone named in the Bible", "star"],
   ["/books", "Library", "The books the classes read from", "layers"],
   ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book", "book"],
+  ["/glossary", "Glossary", "The words the classes use, defined", "type"],
   ["/law", "The Law", "Every law with its scripture", "law"],
   ["/cases", "Case studies", "Judgments, and those who were blessed", "folder"],
   ["/timeline", "Bible timeline", "Periods and events by year", "clock"],

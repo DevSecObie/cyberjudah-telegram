@@ -59,3 +59,10 @@
 .lawrow p { margin: 4px 0 6px; font: 400 var(--fs-callout)/1.45 var(--font-read); color: var(--text-1); }
 .refs { display: flex; flex-wrap: wrap; gap: 6px; }
 .refs a { display: inline-flex; align-items: center; min-height: 28px; font: 600 var(--fs-footnote) var(--font-ui); color: var(--accent); }
+
+/* The glossary: a word, its definition, its scripture and the moments it is taught. */
+.glossary { scroll-margin-top: var(--sp-4); }
+.glossary__aliases { font: 400 var(--fs-caption) var(--font-ui); color: var(--text-2); }
+.glossary .refs + .refs { margin-top: 2px; }
+.glossary__taught { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.glossary__taught .chip { display: inline-flex; align-items: center; gap: 4px; min-height: 28px; padding: 0 10px; border: .5px solid var(--hairline); border-radius: 14px; font: 500 var(--fs-footnote) var(--font-ui); color: var(--text-1); text-decoration: none; }
