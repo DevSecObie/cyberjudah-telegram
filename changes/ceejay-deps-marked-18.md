@@ -1,0 +1,1 @@
+- Upgraded the Markdown renderer used for class transcripts and notes to its next major version, with no visible change to how they display.
