@@ -13,7 +13,7 @@
     "pretest": "node scripts/final-captivity/build.mjs"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-query": "^5.104.1",
     "@telegram-apps/telegram-ui": "^2.1.13",
     "dompurify": "^3.4.16",
     "idb": "^8.0.3",
@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "@types/node": "^22.20.4",
+    "@types/node": "^26.6.4",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.4",
