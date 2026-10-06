@@ -112,14 +112,24 @@ class AmbientAudio {
     const generation = ++this.generation; this.cancelTimer(); this.ramp(0, 1);
     this.timer = setTimeout(() => { if (generation === this.generation) this.clearSource(); }, 1000);
   }
+  foreground = () => {
+    if (!this.reading || !this.unlocked || !this.context || document.hidden) return;
+    const generation = this.generation;
+    void this.context.resume().then(() => {
+      if (generation !== this.generation || !this.reading || document.hidden) return;
+      if (this.context?.state && this.context.state !== "running") { this.failed(); return; }
+      if (this.state.choice !== "off") void this.start(this.state.choice);
+    }).catch(() => { if (generation === this.generation && this.reading) this.failed(); });
+  };
   background = () => {
-    this.generation++; this.unlocked = false; this.cancelTimer(); this.clearSource(); this.update({ preview: null });
+    this.generation++; this.cancelTimer(); this.clearSource(); this.update({ preview: null });
     if (this.context) void this.context.suspend().catch(() => undefined);
   };
 }
 export const ambient = new AmbientAudio();
 if (typeof document !== "undefined") {
-  document.addEventListener("visibilitychange", () => { if (document.hidden) ambient.background(); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) ambient.background(); else ambient.foreground(); });
   app?.onEvent("deactivated", ambient.background);
+  app?.onEvent("activated", ambient.foreground);
 }
 export const useAmbient = () => useSyncExternalStore(ambient.subscribe, ambient.snapshot);

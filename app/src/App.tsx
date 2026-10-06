@@ -1,3 +1,4 @@
+import { AudioPlayerProvider, AudioPlayerBar } from "@/lib/AudioPlayer";
 import { useResourceSync } from "@/resources/hooks";
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
@@ -98,6 +99,7 @@ export function App() {
   const appearance = useAppTheme().dark ? "dark" : "light";
   return (
     <AppRoot className="cj" appearance={appearance} platform={app?.platform === "ios" || app?.platform === "macos" ? "ios" : "base"} id="shell" data-tabs={tabs ? "" : undefined}>
+      <AudioPlayerProvider>
       <ThemeApplier />
       <Lock />
       <div className="route" data-location-key={location.key} key={location.pathname.split("/").slice(0, 2).join("/")}>
@@ -164,9 +166,11 @@ export function App() {
       </ScreenBoundary>
       </div>
       <Suspense fallback={null}><ReminderSync /></Suspense>
+      <AudioPlayerBar />
       <PageActions />
       <Drawers />
       {tabs ? <TabBar /> : null}
+      </AudioPlayerProvider>
     </AppRoot>
   );
 }
