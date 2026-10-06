@@ -15,7 +15,7 @@ import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./t
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
 import { readSources, saveSources } from "./cms-sources";
-import { ask, askStream, creditsOn, defaultModelId, freeModels, similar, speakVerse, sweepRateCounts, takeQuotaKey } from "./ai";
+import { answerSearch, ask, askStream, creditsOn, defaultModelId, freeModels, freePaused, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -194,6 +194,25 @@ app.get("/api/search", async (c) => {
     const limit = Math.min(Math.max(Number(c.req.query("limit")) || 8, 1), 100);
     const res = await runSearch(c.env.DB, q, only, limit, false, c.req.query("live") === "1");
     return c.json(res, res.ok ? 200 : 503);
+  });
+});
+
+// The search screen's AI answer block: one free-tier answer over the library, for readers signed
+// in through Telegram like /api/search. Each answer is a single Workers AI call on the free tier,
+// bounded per reader (SEARCH_AI_DAILY_LIMIT, under the pseudonymous ID like the other daily limits)
+// and by the owner's daily breaker; admins are not counted. Identical questions share a cached
+// answer for two minutes.
+app.get("/api/search/answer", async (c) => {
+  return edgeCached(c, 120, async () => {
+    const q = c.req.query("q") ?? "";
+    if (q.trim().length < 2) return c.json({ ok: false, error: "too-short" }, 400);
+    const uid = c.get("tma").user!.id;
+    const limit = Math.max(1, Math.floor(Number(c.env.SEARCH_AI_DAILY_LIMIT ?? 20)));
+    if (!isAdmin(c.env, uid) && !(await takeQuota(c.env, "search_ai", uid, limit))) return c.json({ ok: false, error: "limit" }, 429);
+    if (await freePaused(c.env)) return c.json({ ok: false, error: "free-paused" }, 429);
+    const r = await answerSearch(c.env, q, uid);
+    if (!r.ok) return c.json({ ok: false, error: r.reason }, r.reason === "too-short" ? 400 : 503);
+    return c.json(r);
   });
 });
 
