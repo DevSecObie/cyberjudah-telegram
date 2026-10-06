@@ -51,8 +51,10 @@ test("the People list shows the portrait on the row and the letter for everyone 
   const row = page.locator(`a[href="/person/${ABRAHAM}"]`).first();
   await expect(row.locator(".avatar img")).toHaveAttribute("src", new RegExp(`/people/${ABRAHAM}-128\\.webp$`));
   // Anyone on the list without an approved portrait keeps the first letter of the name.
-  const letter = page.locator(".row .avatar:not(:has(img))").first();
-  if (await letter.count()) await expect(letter).toHaveText(/^[A-Z?]$/);
+  // Read them in one snapshot: the filtered list can still re-render, so a count and then a separate
+  // wait on the first one can race (the row it counted is gone by the time it is awaited).
+  const letters = await page.locator(".row .avatar:not(:has(img))").allTextContents();
+  for (const l of letters) expect(l.trim()).toMatch(/^[A-Z?]$/);
 });
 
 test("a portrait file that does not arrive falls back to the letter, not a broken image", async ({ page }) => {
