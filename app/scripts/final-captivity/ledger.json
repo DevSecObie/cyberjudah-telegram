@@ -9247,6 +9247,20 @@
    "events": [
     "haiti-reparations-demand-2003"
    ]
+  },
+  {
+   "kind": "web",
+   "ref": "various",
+   "title": "Five additional sourced events for Levi/Simeon (Dessalines's 1806 assassination, the 1991-94 Guantanamo HIV camp, Pena Gomez's 1994 election, Hurricane Jeanne 2004, the 2018-19 PetroCaribe protests)",
+   "status": "reviewed",
+   "note": "No class teaching found for any of these five despite tsearch regexes on names, dates and places; each stands on documented sources alone.",
+   "events": [
+    "dessalines-assassination-1806",
+    "haitian-boat-people-guantanamo-1991-1994",
+    "pena-gomez-1994-dominican-election",
+    "hurricane-jeanne-haiti-2004",
+    "haiti-petrocaribe-protests-2018-2019"
+   ]
   }
  ],
  "gaps": [

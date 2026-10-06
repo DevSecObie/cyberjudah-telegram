@@ -6181,6 +6181,47 @@
   "status": "published"
  },
  {
+  "slug": "dessalines-assassination-1806",
+  "title": "Haiti's founder, Dessalines, is assassinated by his own generals",
+  "start": 1806,
+  "end": 1806,
+  "date": {
+   "text": "October 17, 1806",
+   "precision": "day"
+  },
+  "period": "house-of-bondage",
+  "group": "Caribbean and Latin America",
+  "place": "Pont-Rouge (Larnage), near Port-au-Prince, Haiti",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Levi"
+  ],
+  "people": [
+   "Jean-Jacques Dessalines",
+   "Alexandre Pétion",
+   "Étienne-Élie Gérin"
+  ],
+  "summary": "Jean-Jacques Dessalines, who had led Haiti's independence in 1804 and declared himself Emperor, was ambushed and killed on October 17, 1806 by a conspiracy of his own officers, including Alexandre Pétion, after his land-redistribution and forced-labor policies turned the new elite and the formerly enslaved population against him.",
+  "account": [
+   "After declaring Haiti's independence in 1804, Jean-Jacques Dessalines ruled as Emperor Jacques I and enforced a plantation-labor system to rebuild the devastated economy, a policy the newly freed population experienced as a return to the conditions of slavery. His land-redistribution plans also alienated the mixed-race landowning elite, and senior military officers grew to resent his autocratic rule.",
+   "Disaffected officers under his own command, including Alexandre Pétion and Étienne-Élie Gérin, organized a conspiracy against him. On October 17, 1806, Dessalines was ambushed at Pont-Rouge (then called Larnage), just north of Port-au-Prince, and killed; accounts differ on whether he was shot, stabbed, or struck with a sabre, but his body was reportedly dismembered by a mob afterward. A woman named Dédée Bazile gathered his remains and arranged his burial at the Church of Sainte-Anne.",
+   "Dessalines's death split Haiti into a northern kingdom under Henri Christophe and a southern republic under Pétion, a division that lasted until Christophe's successor was overthrown and Jean-Pierre Boyer reunified the country in 1820."
+  ],
+  "sources": [
+   {
+    "title": "Jean-Jacques Dessalines",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Jean-Jacques_Dessalines",
+    "accessed": "2026-10-06",
+    "supports": "the October 17, 1806 date and Pont-Rouge location; the conspiracy by Pétion and Gérin; the disputed manner of death and the dismemberment of his body; Dédée Bazile's burial of his remains; the land-redistribution and forced-labor grievances behind the plot"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "mexican-war-of-independence-1810-1821",
   "title": "The Mexican War of Independence",
   "start": 1810,
@@ -20754,6 +20795,79 @@
   "status": "published"
  },
  {
+  "slug": "haitian-boat-people-guantanamo-1991-1994",
+  "title": "Haitian boat refugees are interdicted at sea and the HIV-positive among them held at Guantánamo",
+  "start": 1991,
+  "end": 1994,
+  "date": {
+   "text": "1991–1994",
+   "precision": "range"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Caribbean and Latin America",
+  "place": "the Windward Passage and Guantánamo Bay Naval Base, Cuba",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Levi"
+  ],
+  "people": [],
+  "answer": [
+   {
+    "ref": "Exodus 22:21",
+    "why": "the KJV commands against vexing or oppressing a stranger fleeing hardship, the opposite of the interdiction and repatriation Haitian refugees met on the high seas."
+   }
+  ],
+  "summary": "After the September 1991 coup against Jean-Bertrand Aristide, the US Coast Guard interdicted tens of thousands of Haitians fleeing by boat and, under a policy upheld by the Supreme Court in 1993, returned most of them to Haiti without a hearing; those found HIV-positive were instead held for up to twenty months behind razor wire at Guantánamo Bay until a federal court ordered the camp closed in June 1993.",
+  "account": [
+   "Under a 1981 US-Haitian agreement, the US Coast Guard intercepted vessels carrying undocumented Haitians and screened passengers at sea for asylum claims before returning the rest to Haiti. After the September 1991 military coup against President Jean-Bertrand Aristide, the number of Haitians fleeing by boat rose sharply, overwhelming the screening capacity on Coast Guard cutters; thousands were instead taken to a tent camp at the US Naval Base at Guantánamo Bay, Cuba, for processing.",
+   "In 1992, the Bush administration ordered the Coast Guard to repatriate intercepted Haitians directly to Haiti without any screening for asylum claims, a policy the incoming Clinton administration continued. Haitians who tested positive for HIV were segregated from the rest of the Guantánamo camp and held in a separate, fenced compound -- the only known refugee camp in the world made up entirely of HIV-positive detainees -- some for as long as twenty months.",
+   "The Haitian Centers Council and other plaintiffs sued over conditions at the HIV camp; on June 8, 1993, federal judge Sterling Johnson Jr. ordered the camp closed, writing that although the government called it a \"humanitarian camp,\" it was in substance \"an HIV prison camp,\" and ordered the remaining detainees released into the United States. Separately, in Sale v. Haitian Centers Council (decided June 21, 1993), the Supreme Court ruled 8-1 that the President's power to order the Coast Guard to repatriate undocumented aliens intercepted on the high seas was not limited by US immigration law or international refugee conventions; Justice Blackmun dissented alone."
+  ],
+  "disagreements": [
+   {
+    "point": "Whether the high-seas interdiction and return of intercepted Haitians violated the international prohibition on returning refugees to danger (non-refoulement)",
+    "views": [
+     "The Supreme Court majority in Sale v. Haitian Centers Council (1993) held that neither US immigration law nor the UN Refugee Convention's non-return provision applied to people intercepted outside US territory.",
+     "Justice Blackmun's dissent, and the plaintiffs in the Guantánamo HIV-camp litigation, argued the policy amounted to forced repatriation of refugees in substance, regardless of where on the water they were stopped."
+    ]
+   }
+  ],
+  "sources": [
+   {
+    "title": "Sale v. Haitian Centers Council, Inc.",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Sale_v._Haitian_Centers_Council,_Inc.",
+    "accessed": "2026-10-06",
+    "supports": "the 1981 interdiction agreement; the 1992 shift to repatriation without screening; the June 21, 1993 Supreme Court decision, its 8-1 vote and holding; Justice Blackmun's dissent"
+   },
+   {
+    "title": "The Tragic Plight of HIV-Infected Haitian Refugees at Guantánamo Bay",
+    "publisher": "Liverpool Law Review (Springer)",
+    "url": "https://link.springer.com/content/pdf/10.1007/s10991-007-9018-1.pdf",
+    "accessed": "2026-10-06",
+    "supports": "the segregated HIV-only camp at Guantánamo, detentions of up to twenty months, and its description as the only all-HIV-positive refugee camp known"
+   },
+   {
+    "title": "US turned away thousands of Haitian asylum-seekers and detained hundreds more in the 90s",
+    "publisher": "The Conversation",
+    "url": "https://theconversation.com/us-turned-away-thousands-of-haitian-asylum-seekers-and-detained-hundreds-more-in-the-90s-98611",
+    "accessed": "2026-10-06",
+    "supports": "the scale of the 1991-94 Haitian boat exodus following the coup and the US repatriation response"
+   },
+   {
+    "title": "Haitian Centers Council, Inc. v. Sale, 823 F. Supp. 1028 (E.D.N.Y. 1993)",
+    "publisher": "Justia",
+    "url": "https://law.justia.com/cases/federal/district-courts/FSupp/823/1028/2248130/",
+    "accessed": "2026-10-06",
+    "supports": "Judge Sterling Johnson Jr.'s June 8, 1993 order closing the Guantánamo HIV camp and his characterization of it as an \"HIV prison camp\""
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "the-1990s-splits",
   "title": "The 1990s splits: House of David and the ICGJC",
   "start": 1994,
@@ -20866,6 +20980,53 @@
     "url": "https://en.wikipedia.org/wiki/Zapatista_Army_of_National_Liberation",
     "accessed": "2026-10-04",
     "supports": "January 1, 1994; NAFTA; First Declaration; Maya of Chiapas; land and resources; civil resistance; nominal war since 1994"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "pena-gomez-1994-dominican-election",
+  "title": "A black candidate's Haitian ancestry is weaponized in the Dominican Republic's 1994 election",
+  "start": 1994,
+  "end": 1996,
+  "date": {
+   "text": "1994–1996",
+   "precision": "range"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Caribbean and Latin America",
+  "place": "Dominican Republic",
+  "region": "Caribbean",
+  "peoples": [
+   "Hispanic",
+   "Black"
+  ],
+  "tribes": [
+   "Simeon"
+  ],
+  "people": [
+   "José Francisco Peña Gómez",
+   "Joaquín Balaguer"
+  ],
+  "answer": [
+   {
+    "ref": "Numbers 12:1",
+    "why": "Miriam and Aaron spoke against Moses over the color of the Ethiopian woman he married; the KJV records that complaint answered by God's own rebuke of them, against the same prejudice used against Peña Gómez's complexion and ancestry."
+   }
+  ],
+  "summary": "José Francisco Peña Gómez, the black, Haitian-descended leader of the Dominican Revolutionary Party, lost a fraud-marred 1994 presidential election to Joaquín Balaguer after opponents campaigned on his skin color and ancestry, calling him Haitian rather than Dominican; the resulting crisis forced Balaguer to agree to leave office early, and Peña Gómez lost a closer runoff to Leonel Fernández in 1996.",
+  "account": [
+   "José Francisco Peña Gómez, born to Haitian parents in the Dominican Republic, led the Dominican Revolutionary Party (PRD) and ran for president against 87-year-old incumbent Joaquín Balaguer in 1994. The campaign was conducted, in contemporary accounts, as unusually dirty even by Dominican standards, and in later years his opponents used his Haitian ancestry and dark skin against him, branding him insufficiently Dominican.",
+   "The May 1994 election was marred by irregularities: roughly 200,000 voters found their names missing from the electoral rolls, and the lists held at polling stations did not match the lists issued to the parties. International observers raised grave concerns about the result's legitimacy. Balaguer was declared the winner by a narrow margin; Peña Gómez called a general strike that drew wide support, and under the resulting political pressure Balaguer agreed to a constitutional pact shortening his term and barring his immediate re-election.",
+   "In the 1996 election called under that pact, Peña Gómez won the first round but fell short of a majority; in the runoff, Leonel Fernández of the PLD won narrowly through an alliance with Balaguer's own party, which campaigned again on fears of a black, Haitian-descended president."
+  ],
+  "sources": [
+   {
+    "title": "José Francisco Peña Gómez",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Jos%C3%A9_Francisco_Pe%C3%B1a_G%C3%B3mez",
+    "accessed": "2026-10-06",
+    "supports": "Peña Gómez's Haitian parentage and PRD leadership; the 1994 election's roughly 200,000 missing voters and mismatched polling lists; the general strike and Balaguer's agreement to an early exit; the 1996 runoff loss to Fernández through a PLD-PRSC alliance; his opponents' later use of his Haitian ancestry against him"
    }
   ],
   "status": "published"
@@ -21220,6 +21381,43 @@
     "url": "https://en.wikipedia.org/wiki/Haiti_indemnity_controversy",
     "accessed": "2026-10-06",
     "supports": "the April 7, 2003 demand, the $21 billion and 90 million gold franc figures, the French/Haitian officials' account to the New York Times of the demand's role in Aristide's removal, and Gerard Latortue's rejection of the claim as 'illegal' and 'ridiculous'"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "hurricane-jeanne-haiti-2004",
+  "title": "Hurricane Jeanne drowns Gonaïves",
+  "start": 2004,
+  "end": 2004,
+  "date": {
+   "text": "September 17–19, 2004",
+   "precision": "range"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Caribbean and Latin America",
+  "place": "Gonaïves, Haiti",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Levi"
+  ],
+  "people": [],
+  "summary": "Although its center passed north of Haiti, Hurricane Jeanne dropped heavy rain from September 17 to 19, 2004 that flooded the deforested hillsides above Gonaïves under 16 feet of water, killing roughly 3,000 people nationwide -- most of them in that one city -- just months after the February 2004 coup that drove Jean-Bertrand Aristide from office.",
+  "account": [
+   "Hurricane Jeanne passed north of Haiti in September 2004 without making landfall there, but its outer bands dropped roughly 330 millimeters of rain over about 36 hours, from September 17 to 19. Decades of deforestation had stripped the hillsides above the port city of Gonaïves of the tree cover that would otherwise have slowed the runoff, and floodwaters reaching about 16 feet deep inundated roughly 80 percent of the city of around 100,000 people.",
+   "Haiti's Directorate of Civil Protection and international relief agencies recorded approximately 3,006 deaths nationwide, with 2,826 of them in Gonaúves alone, making Jeanne one of the deadliest Atlantic hurricanes on record for Haiti. About 5,490 homes were destroyed across the country, and roughly 300,000 people were left homeless in the Nord-Ouest department.",
+   "The flooding struck seven months after the armed rebellion that forced President Jean-Bertrand Aristide from office in February 2004, while the country was still under a transitional government and the newly arrived UN peacekeeping mission (MINUSTAH), compounding a humanitarian crisis already underway."
+  ],
+  "sources": [
+   {
+    "title": "Hurricane Jeanne",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Hurricane_Jeanne",
+    "accessed": "2026-10-06",
+    "supports": "the September 17-19, 2004 rainfall timing; the approximately 3,006 nationwide and 2,826 Gonaïves deaths; the 16-foot floodwaters and 80 percent of the city inundated; the 5,490 homes destroyed and 300,000 left homeless in Nord-Ouest; the deforestation and the February 2004 coup as compounding context"
    }
   ],
   "status": "published"
@@ -23659,6 +23857,53 @@
    }
   ],
   "uncertainty": "The exact dates of the trip are not given. Later classes speak of Liberia as an ongoing mission field (for example a community cleanup there in 2026), not dated in a documented source.",
+  "status": "published"
+ },
+ {
+  "slug": "haiti-petrocaribe-protests-2018-2019",
+  "title": "\"Where is the PetroCaribe money?\": corruption and mass protest under Jovenel Moïse",
+  "start": 2018,
+  "end": 2019,
+  "date": {
+   "text": "August 2018 – October 2019",
+   "precision": "range"
+  },
+  "period": "unto-this-day",
+  "group": "Caribbean and Latin America",
+  "place": "Port-au-Prince and nationwide, Haiti",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Levi"
+  ],
+  "people": [
+   "Jovenel Moïse",
+   "Gilbert Mirambeau Jr."
+  ],
+  "summary": "A Haitian Senate probe found that officials across three administrations, including then-president Jovenel Moïse, had embezzled an estimated 3.8 billion dollars raised through Venezuela's discounted PetroCaribe oil program; a viral #PetroCaribeChallenge launched in August 2018 by Gilbert Mirambeau Jr. helped drive waves of protest in October-November 2018 and again in 2019 that killed dozens and nearly toppled Moïse's government.",
+  "account": [
+   "Haiti joined the Venezuelan-financed PetroCaribe program, which let member states buy oil on credit at below-market rates and redirect the savings toward development projects. A Haitian Senate investigation released in November 2017, covering the years 2008 to 2016, found an estimated 3.8 billion dollars of PetroCaribe funds had been embezzled or misused by officials spanning three presidential administrations, including then-president Jovenel Moïse's own company.",
+   "On August 14, 2018, Haitian-Canadian activist Gilbert Mirambeau Jr. tweeted a photo of himself blindfolded holding a sign reading, in Haitian Creole, \"Kot kòb PetwoKaribe a?\" (\"Where is the PetroCaribe money?\"), launching the #PetroCaribeChallenge that spread rapidly online and became the public face of Haiti's anti-corruption movement.",
+   "Fuel-price increases in July 2018 had already triggered unrest; anger over the PetroCaribe revelations then drove protests through the autumn, including a week of demonstrations in November 2018 that left about 10 people dead. Haiti's Superior Court of Auditors released further findings in early 2019 documenting payments for projects that were never built, contracts awarded in a dead person's name, and large undocumented disbursements to officials, igniting a fresh wave of protests from February through October 2019 that the United Nations said killed at least 42 people and injured 86 between mid-September and October alone."
+  ],
+  "sources": [
+   {
+    "title": "2018–2021 Haitian protests",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/2018%E2%80%932021_Haitian_protests",
+    "accessed": "2026-10-06",
+    "supports": "the November 2017 Senate probe and the 3.8 billion dollar embezzlement estimate across three administrations; the August 14, 2018 Mirambeau tweet and the #PetroCaribeChallenge; the July 2018 fuel-price unrest; the November 2018 protests and roughly 10 deaths; the 2019 Superior Court of Auditors findings; the UN's count of 42 deaths and 86 injuries from mid-September to October 2019"
+   },
+   {
+    "title": "PetroCaribe Challenge: The campaign mobilising Haitians against corruption",
+    "publisher": "France 24",
+    "url": "https://www.france24.com/en/20190215-petrocaribe-challenge-social-media-campaign-mirambeau-haiti-corruption-moise",
+    "accessed": "2026-10-06",
+    "supports": "the #PetroCaribeChallenge campaign's origin and its role mobilizing protest against Moïse's government"
+   }
+  ],
   "status": "published"
  },
  {
