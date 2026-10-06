@@ -2,8 +2,9 @@
 // name order, and deletes the files. Run when cutting a release; see changes/README.md.
 import { readFileSync, writeFileSync, readdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = fileURLToPath(new URL("..", import.meta.url));
 const dir = join(root, "changes");
 const files = readdirSync(dir)
   .filter((f) => f.endsWith(".md") && f !== "README.md")
