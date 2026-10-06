@@ -3,7 +3,8 @@
 Each pull request that a reader, an admin or the bot's users would notice adds **one new file** here
 instead of editing `CHANGELOG.md`:
 
-- name it after the branch, with `/` turned into `-`, e.g. `changes/claude-portraits-m03.md`;
+- name it after the branch, with `/` turned into `-`, e.g. `changes/claude-portraits-m03.md`
+  (letters, digits, `.`, `_` and `-` only);
 - write one or more lines in plain words, each starting with `- `, exactly as they should read
   under Unreleased.
 
