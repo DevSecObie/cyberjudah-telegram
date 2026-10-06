@@ -117,6 +117,8 @@ export const pauseDay = (p) => new Intl.DateTimeFormat("en-US", { timeZone: p.zo
 const FOR = { sabbath: "the Sabbath", feast: "the feast day", newmoon: "the New Moon" };
 /** What the reader is told in place of the top-up buttons. */
 export const pauseMessage = (p) => `Top-ups pause for ${FOR[p.kind] ?? "the Sabbath"} — they open again after dark on ${pauseDay(p)}`;
+/** What a giver is told in place of the donation buttons: donations pause the same way top-ups do, from even unto even. */
+export const givingPauseMessage = (p) => `Giving pauses for ${FOR[p.kind] ?? "the Sabbath"} — it opens again after dark on ${pauseDay(p)}`;
 
 /**
  * Whether midday today (local) is the time to remind a reader to top up: tomorrow is a holy day

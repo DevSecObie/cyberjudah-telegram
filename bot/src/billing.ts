@@ -1,11 +1,11 @@
 import { telegramApi } from "./telegram-api";
 
 import type { Env } from "./env";
-import { payloadOf, readPayload, readSupport, SUPPORT_STARS, validPayment } from "./billing.mjs";
-export { SUPPORT_STARS };
+import { donationAmountValid, donationsConfig, payloadOf, readPayload, readSupport, SUPPORT_STARS, supportPayloadOf, validPayment } from "./billing.mjs";
+export { donationsConfig, SUPPORT_STARS, supportPayloadOf };
 import { creditsConfig, creditsRecord, deleteCredits, grantPayment, ownerOfUser, refundPayment, sweepHolds } from "./credits";
 import { fmtUsd, mcOfStars, MC_PER_USD } from "../../shared/credits.mjs";
-import { pauseMessage, topupPause, zoneOf, type Pause } from "../../shared/holy-days.mjs";
+import { DEFAULT_ZONE, givingPauseMessage, pauseMessage, topupPause, zoneOf, type Pause } from "../../shared/holy-days.mjs";
 import { pid } from "./privacy.mjs";
 
 /**
@@ -42,17 +42,46 @@ export async function invoiceFor(env: Env, uid: number, item: string, tz: string
   return { ok: true, link };
 }
 
+export type DonationInvoiceResult = { ok: true; link: string } | { ok: false; reason: "closed" } | { ok: false; reason: "bad-amount" } | { ok: false; reason: "pause"; pause: Pause; message: string };
 /**
- * Before Telegram takes the Stars: is this a real top-up at its real price, for this person, and
- * not during a Sabbath, feast day or New Moon where they are? `message` is what Telegram shows
- * the reader when it is refused.
+ * An invoice link for a gift of the giver's own chosen amount of Stars (any amount within
+ * donationsConfig's bounds, or one of its presets), unless donations are off, the amount is out
+ * of bounds, or giving is paused where the giver is now. The giver's zone goes in the payload, so
+ * the check before payment can tell the same.
+ */
+export async function invoiceForDonation(env: Env, uid: number, stars: number, tz: string, now = Date.now()): Promise<DonationInvoiceResult> {
+  const cfg = donationsConfig(env);
+  if (!cfg.on) return { ok: false, reason: "closed" };
+  if (!donationAmountValid(stars, cfg)) return { ok: false, reason: "bad-amount" };
+  const pause = topupPause(now, tz);
+  if (pause) return { ok: false, reason: "pause", pause, message: givingPauseMessage(pause) };
+  const link = await telegramApi(env).createInvoiceLink(
+    "Support CyberJudah", "Keep the library free and the classes online. Thank you.",
+    supportPayloadOf(uid, stars, zoneOf(tz)), "", "XTR", [{ label: "Support CyberJudah", amount: stars }],
+  );
+  return { ok: true, link };
+}
+
+/**
+ * Before Telegram takes the Stars: is this a real top-up or donation at its real price, for this
+ * person, and not during a Sabbath, feast day or New Moon where they are? `message` is what
+ * Telegram shows the reader when it is refused.
  */
 export function checkout(env: Env, payload: string, currency: string, amount: number, from: number, now = Date.now()): { ok: true } | { ok: false; message: string } {
   const changed = { ok: false as const, message: "This item or price has changed. Open Ask CyberJudah and try again." };
-  // Support is a fixed tier at its face value, for the giver: the invoice was made by the
-  // bot, but the shape, the amount and the buyer are checked anyway.
+  // A donation (support) invoice: the shape, the amount and the giver are checked, and — like a
+  // top-up — none is sold during a Sabbath, feast day or New Moon where the giver is. An invoice
+  // made outside the Mini App (the /support bot command) carries no zone, so it falls back to
+  // DEFAULT_ZONE.
   const s = readSupport(payload);
-  if (s) return currency === "XTR" && s.uid === from && s.stars === amount && SUPPORT_STARS.includes(s.stars) ? { ok: true } : changed;
+  if (s) {
+    if (currency !== "XTR" || s.uid !== from || s.stars !== amount) return changed;
+    const dc = donationsConfig(env);
+    if (!dc.on || !donationAmountValid(s.stars, dc)) return changed;
+    const pause = topupPause(now, s.tz ?? DEFAULT_ZONE);
+    if (pause) return { ok: false, message: givingPauseMessage(pause) };
+    return { ok: true };
+  }
   const c = creditsConfig(env);
   if (c.missing.length) return changed;
   const b = validPayment(payload, currency, amount, c);
@@ -83,6 +112,23 @@ export async function applyPayment(env: Env, from: number, pay: Paid): Promise<{
       .catch((e: Error) => console.error(JSON.stringify({ event: "plan_cancel_failed", message: e.message?.slice(0, 160) })));
   }
   return { kind: b.kind, mc };
+}
+
+/**
+ * After payment: a gift is recorded once per Telegram charge, in its own ledger — a donation
+ * never touches the Ask credit balance (credit_lots, credit_ledger). Returns the Stars given, or
+ * null when the payload is not a donation.
+ */
+export async function applyDonation(env: Env, from: number, pay: Paid): Promise<{ stars: number } | null> {
+  const s = readSupport(pay.invoice_payload);
+  if (!s || s.uid !== from || pay.currency !== "XTR" || pay.total_amount !== s.stars) return null;
+  // Keyed by the giver's pseudonymous id (pid), the same as payments and credit_ledger: never the raw Telegram id.
+  const owner = await ownerOfUser(env, from);
+  await env.DB.batch([
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS donations (charge_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, stars INTEGER NOT NULL, created_at INTEGER NOT NULL)"),
+    env.DB.prepare("INSERT OR IGNORE INTO donations (charge_id, user_id, stars, created_at) VALUES (?, ?, ?, ?)").bind(pay.telegram_payment_charge_id, owner, s.stars, Date.now()),
+  ]);
+  return { stars: s.stars };
 }
 
 /** Telegram refunded a payment (Telegram's refunded_payment, or the admins through refundStarPayment): what it added and is still unspent leaves the balance. */

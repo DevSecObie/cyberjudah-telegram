@@ -24,6 +24,7 @@ request that introduced this file ([#77]).
 
 - Angels (so far Raphael) get their own heading on their People page instead of the generic "Person".
 - Readiness work for the Apocrypha project: a new "Between the Testaments" age is wired into the Timeline's data pipeline and the event sheet, ready to show between The Exile and Life of Christ once the owner approves its boundary years; no visible change yet (the approved five-event sample stays a draft, with its source-calendar dates and class citations preserved, not plotted with an invented position).
+- The Worker now serves donations ("Support CyberJudah"): `GET /api/donations` for the presets, amount bounds, the owner's giving link and the holy-days pause state, and `POST /api/invoice` for any amount within those bounds. A gift pauses the same way an Ask top-up does, from evening to evening on the Sabbath, feast days and New Moons, and is recorded once per Telegram charge in its own ledger, never added to the Ask balance.
 - Eleven more portraits: Sihon, Javan, Abiathar, Caleb, Ishmael, Ahaziah, Jehoiada, Jephthah, Joash, Manasseh and Abimelech of Gerar.
 - People show their portraits everywhere a person appears (the People list, a person's page, the family graph, the chapter's people, search, case studies), the same approved portraits as the Timeline; anyone without one keeps their letter.
 - More people have portraits on the Timeline: 37 newly approved, among them Christ, Joshua, Isaiah, Ezekiel, Nehemiah, Rachel, Leah and Rebekah, each drawn as the scriptures and the classes describe them.
