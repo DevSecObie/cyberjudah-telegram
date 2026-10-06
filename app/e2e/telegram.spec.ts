@@ -1741,6 +1741,55 @@ test("Search: results come in as you type, grouped, a reference opens the Bible,
   await expect(page.locator(".srch__none")).toContainText("Nothing found");
 });
 
+test("Search: the AI answer block asks once per submitted search, sits above the keyword results with its citations, and stays silent when the answer fails", async ({ page }) => {
+  await page.route("**/api/search?**", (r) => r.fulfill({ json: { ok: true, q: "", mode: "strict", counts: { verse: 1 }, ms: 1, hits: [
+    { kind: "verse", title: "Genesis 14:18", url: "/bible/genesis/14#v18", sub: "", snippet: "And Melchizedek king of Salem brought forth bread and wine" },
+  ] } }));
+  await page.route("**/api/teachings?**", (r) => r.fulfill({ json: { ok: true, q: "", feed: "", page: 0, hits: [], more: false } }));
+  const asked: string[] = [];
+  await page.route("**/api/search/answer?**", (r) => {
+    asked.push(new URL(r.request().url()).searchParams.get("q") ?? "");
+    return r.fulfill({ json: { ok: true, model: "test-model", answer: "Melchizedek was king of Salem and priest of the most high God [1]. The class reads the bread and wine as a type [2].", sources: [
+      { n: 1, kind: "verse", title: "Genesis 14:18", url: "/bible/genesis/14#v18", sub: "", text: "And Melchizedek king of Salem brought forth bread and wine: and he was the priest of the most high God." },
+      { n: 2, kind: "class", title: "The Superiority of the Chosen People", url: "/classes/2026/superiority", sub: "Scriptures Opened", text: "A synthetic passage for the test." },
+    ] } });
+  });
+  await page.goto(`/search${LAUNCH}`);
+  await page.fill("#q", "Melchizedek");
+  // Typing alone brings the keyword results and asks nothing of the model.
+  await expect(page.locator(".srch__hit").first()).toBeVisible();
+  await expect(page.locator(".srch__ai")).toHaveCount(0);
+  expect(asked).toEqual([]);
+  // Enter submits: one answer for the search, above the keyword results, with its sources.
+  await page.press("#q", "Enter");
+  const block = page.locator(".srch__ai");
+  await expect(block.locator(".msg__text")).toContainText("king of Salem");
+  expect(asked).toEqual(["Melchizedek"]);
+  await expect(page.locator(".srch__group").first()).toHaveClass(/srch__ai/);
+  await expect(block.locator("h2")).toContainText("AI answer");
+  await expect(block.locator(".msg__text button.cite")).toHaveText(["1", "2"]);
+  await expect(block.locator(".srccard")).toHaveCount(2);
+  await expect(block.locator(".hint")).toContainText("check the sources");
+  await expect(page.locator(".srch__hit").first()).toBeVisible();
+  // A citation in the answer opens its source.
+  await block.locator(".msg__text button.cite").first().click();
+  await expect(page).toHaveURL(/\/read\/genesis\/14/);
+  await page.goBack();
+  await expect(page.locator(".srch__ai .srccard")).toHaveCount(2);
+  // A source card opens its source too.
+  await page.locator(".srch__ai .srccard").nth(1).click();
+  await expect(page).toHaveURL(/\/note\/classes\/2026\/superiority/);
+  await page.goBack();
+  // A refused answer (the daily limit) leaves the keyword results alone and shows no block.
+  await page.unroute("**/api/search/answer?**");
+  await page.route("**/api/search/answer?**", (r) => r.fulfill({ status: 429, json: { ok: false, error: "limit" } }));
+  await page.fill("#q", "Salem");
+  await page.press("#q", "Enter");
+  await expect(page).toHaveURL(/q=Salem/);
+  await expect(page.locator(".srch__hit").first()).toBeVisible();
+  await expect(page.locator(".srch__ai")).toHaveCount(0);
+});
+
 
 test("audio chips set device pitch and speed; Stop stays stopped with Repeat enabled", async ({ page }) => {
   await page.addInitScript(() => {
