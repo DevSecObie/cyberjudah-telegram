@@ -1,0 +1,1693 @@
+{
+ "period": "multiple (house-of-bondage, jim-crow, civil-rights-awakening, unto-this-day; see each event)",
+ "tribes": [
+  "Levi",
+  "Simeon"
+ ],
+ "events": [
+  {
+   "slug": "code-noir-1685",
+   "title": "The Code Noir enslaves Saint-Domingue",
+   "start": 1685,
+   "end": 1687,
+   "date": {
+    "text": "March 1685 (Martinique and Guadeloupe); May 6, 1687 (Saint-Domingue)",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Slavery",
+   "place": "Saint-Domingue (present-day Haiti) and the French Antilles",
+   "region": "Caribbean",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Levi"
+   ],
+   "people": [
+    "Louis XIV"
+   ],
+   "summary": "In March 1685 King Louis XIV of France issued the Code Noir, a 60-article royal decree that legalized and regulated slavery across the French Caribbean colonies, including Saint-Domingue, where it took effect May 6, 1687.",
+   "account": [
+    "The Code Noir was promulgated by Louis XIV in March 1685 to govern slavery in France's Caribbean colonies. It was implemented in Martinique on August 6, 1685, Guadeloupe on December 10, 1685, and Saint-Domingue on May 6, 1687; it was later extended to Louisiana (1724) and the Mascarene Islands (1723). Its first article ordered all Jews expelled from the colonies within three months.",
+    "The code required enslaved people to be baptized and instructed in the Catholic faith, gave them Sundays and Catholic holy days as rest days, and specified minimum food and clothing. It forbade them to carry weapons, assemble in groups, work on Sundays, or practice any religion but Catholicism, and barred their testimony as legal proof, though they could lodge complaints of mistreatment. Punishments were severe: ear-cropping for a first escape attempt, hamstringing for a second, and death for a third; masters could beat enslaved people but not torture or mutilate them outside the code's own penalties, and killing an enslaved person was technically prosecutable."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "The French empire's own \"black codes\" (the Code Noir) are placed beside America's slave codes as the same system of law stripping Israelites of rights, not an American invention."
+     ],
+     "quote": "Code noir, black code. 1685. A French decree that institutionalized slavery in French colonies.",
+     "source": {
+      "kind": "class",
+      "id": "TdRSQOfpfv8",
+      "title": "ESCP 2.0 | The French Government Wages War Against IUIC",
+      "ts": "1:24:51",
+      "url": "https://youtu.be/TdRSQOfpfv8?t=5091"
+     }
+    }
+   ],
+   "sources": [
+    {
+     "title": "Code Noir",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Code_Noir",
+     "accessed": "2026-10-06",
+     "supports": "issuer and date (March 1685); implementation dates in Martinique, Guadeloupe and Saint-Domingue; required baptism, rest days, food and clothing; prohibitions on weapons, assembly, non-Catholic worship and courtroom testimony; escape punishments; the first article's expulsion of Jews"
+    }
+   ],
+   "uncertainty": "The code's effective date in Saint-Domingue itself (May 6, 1687) is given as the event's end year; the class cites only the 1685 issue date.",
+   "status": "published"
+  },
+  {
+   "slug": "haiti-declares-independence-1804",
+   "title": "Haiti declares independence, the first free Black republic",
+   "start": 1804,
+   "end": 1804,
+   "date": {
+    "text": "January 1, 1804",
+    "precision": "day"
+   },
+   "period": "house-of-bondage",
+   "group": "Achievements",
+   "place": "Gonaïves, Saint-Domingue",
+   "region": "Caribbean",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Levi"
+   ],
+   "people": [
+    "Jean-Jacques Dessalines",
+    "Louis Boisrond-Tonnerre",
+    "Toussaint Louverture"
+   ],
+   "summary": "On January 1, 1804, at Gonaïves, Jean-Jacques Dessalines proclaimed the independence of Haiti, ending thirteen years of revolution and founding the first state in the world born of a successful uprising of enslaved people.",
+   "account": [
+    "Jean-Jacques Dessalines proclaimed Haitian independence on January 1, 1804, in the port city of Gonaïves, concluding the Haitian Revolution that had begun in 1791. Dessalines, himself formerly enslaved and unable to write French, had his secretary Louis Boisrond-Tonnerre compose and read the declaration; seventeen senior military officers signed it. Haiti became the first independent nation of Latin America and the Caribbean and the second in the Americas after the United States, and the first state founded by formerly enslaved people to abolish slavery outright.",
+    "The declaration emphasized emancipation and retribution against the French colonizers rather than the civic language of other independence documents of the era. Only two original printed copies of the declaration are known to survive; both were found in the UK National Archives between 2010 and 2011 by historian Julia Gaffield."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "The Haitian Revolution ran from 1791 to 1804 under Toussaint Louverture and then Jean-Jacques Dessalines, and the yellow fever that crippled Napoleon's troops is read as part of why the French were defeated.",
+      "Haiti's 1804 independence is held up as proof that the twelve-tribes chart is not new: France itself remembers having \"trauma\" from the Haitians' revolt and is said to resist IUIC teaching the connection."
+     ],
+     "quote": "On January 1st, 1804, Haiti proudly declared independence, becoming the second independent nation in the Americas and the first to abolish slavery.",
+     "source": {
+      "kind": "class",
+      "id": "TdRSQOfpfv8",
+      "title": "ESCP 2.0 | The French Government Wages War Against IUIC",
+      "ts": "1:16:00",
+      "url": "https://youtu.be/TdRSQOfpfv8?t=4560"
+     }
+    }
+   ],
+   "sources": [
+    {
+     "title": "Haitian Declaration of Independence",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Haitian_Declaration_of_Independence",
+     "accessed": "2026-10-06",
+     "supports": "date (January 1, 1804); Dessalines proclaiming it at Gonaïves; Boisrond-Tonnerre drafting it; Haiti as first/second independent American nation and first to abolish slavery outright; the two surviving copies found 2010-2011"
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "french-indemnity-haiti-1825",
+   "title": "France extorts a 150-million-franc independence debt from Haiti",
+   "start": 1825,
+   "end": 1838,
+   "date": {
+    "text": "April 17, 1825 ordinance; reduced February 12, 1838; last indemnity payment 1883; final related debt retired 1947",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Other atrocities",
+   "place": "Port-au-Prince, Haiti, and Paris, France",
+   "region": "Caribbean",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Levi",
+    "Simeon"
+   ],
+   "people": [
+    "Charles X",
+    "Ange René Armand de Mackau",
+    "Jean-Pierre Boyer"
+   ],
+   "summary": "On April 17, 1825, French King Charles X, backing his demand with fourteen warships, ordered Haiti to pay 150 million francs as compensation to former French slaveholders in exchange for recognizing its independence; the debt and the loans taken to pay it burdened Haiti's economy for over a century.",
+   "account": [
+    "On April 17, 1825, Charles X issued an ordinance demanding Haiti pay 150 million francs in five annual installments of 30 million, as compensation for the property, including enslaved people, that French colonists had lost in the Haitian Revolution, and requiring Haiti to halve its import duties for French merchants. France delivered the ultimatum by force: Baron de Mackau arrived at Port-au-Prince on July 3, 1825, aboard the warship La Circe, and a fleet eventually totaling fourteen French warships carrying 528 cannons backed the demand. President Jean-Pierre Boyer accepted the terms rather than risk invasion and the restoration of slavery.",
+    "Haiti could not pay from its own revenue and borrowed from French banks to make the first payments, compounding the debt with interest -- commonly called Haiti's \"double debt.\" On February 12, 1838, France reduced the remaining balance to 90 million francs, payable over 30 years. Haiti made its last indemnity remittance in 1883, but loans taken to service that debt were not fully repaid, to the National City Bank of New York, until 1947. A 2022 New York Times analysis estimated the debt and its associated loans removed between $21 billion and $115 billion of economic growth from Haiti over two centuries."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "Haiti's independence debt is taught as French extortion at gunpoint: the French demanded 150 million gold francs, backed by more than 500 cannons on their ships, and Haiti could not refuse without war."
+     ],
+     "quote": "On April 17th, 1825, besieged by French warships, Haiti agreed to pay an indemnity of 150 million gold franks to the European power.",
+     "source": {
+      "kind": "class",
+      "id": "TdRSQOfpfv8",
+      "title": "ESCP 2.0 | The French Government Wages War Against IUIC",
+      "ts": "1:19:24",
+      "url": "https://youtu.be/TdRSQOfpfv8?t=4764"
+     }
+    },
+    {
+     "points": [
+      "Answering a viewer's comment blaming Haiti's poverty on \"corrupt black leaders\" rather than France, the class points to the indemnity itself as the cause, and reads Genesis 49:5 as the reason Levi (Haiti) and Simeon (the Dominican Republic) are placed as brothers sharing one island, Santo Domingo.",
+      "On a second comment calling Haiti \"the voodoo/witchcraft capital of the world... pagan, evil, demonic,\" the class does not deny that Vodou is idolatry it holds Israel accountable for, but answers that this does not excuse France, citing Romans 9 that the oppressor God uses to chasten His people is still answerable for the cruelty."
+     ],
+     "quote": "The white man has conditioned us to think, like, no, no, no, everything that's going on in Haiti is the Haitians fault because their, their leaders are corrupt and completely denying the fact that they was put in that condition by the oppressors.",
+     "source": {
+      "kind": "class",
+      "id": "4sB9uLiRJ8A",
+      "title": "ESCP 2.0 | PROPHESYING THE FALL OF FRANCE",
+      "ts": "36:00",
+      "url": "https://youtu.be/4sB9uLiRJ8A?t=2160"
+     }
+    }
+   ],
+   "scriptures": [
+    {
+     "ref": "Genesis 49:5",
+     "why": "Read by the class to explain why Levi (Haiti) and Simeon (the Dominican Republic) are placed as brethren sharing the same island."
+    },
+    {
+     "ref": "Romans 9:19-20",
+     "why": "The class's answer to the charge that Haiti's Vodou makes it undeserving of sympathy: Israel's idolatry is punished, but the nation God used as the rod (France) remains a man who \"repliest against God,\" not beyond account for its cruelty."
+    }
+   ],
+   "answer": [
+    {
+     "ref": "Romans 9:19-20",
+     "why": "To the charge (read on air from a viewer's comment) that Haiti is \"the voodoo/witchcraft capital of the world... pagan, evil, demonic\" and therefore the author of its own poverty, the class answers from Romans 9 that a nation's idolatry does not clear the oppressor nation of its own cruelty before God."
+    }
+   ],
+   "disagreements": [
+    {
+     "point": "How much the indemnity cost Haiti",
+     "views": [
+      "The New York Times (2022) estimates $21-115 billion in lost growth over two centuries.",
+      "Classes cite a round $21 billion figure (also referenced in Haitian reparations demands and marches) without the lower bound."
+     ]
+    }
+   ],
+   "sources": [
+    {
+     "title": "Haitian independence debt",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Haitian_independence_debt",
+     "accessed": "2026-10-06",
+     "supports": "the April 17, 1825 ordinance and 150 million franc demand; the French warships (de Mackau, La Circe, fourteen ships and 528 cannons); the 1838 reduction to 90 million francs over 30 years; the last indemnity payment in 1883 and final related debt payment in 1947; the New York Times 2022 estimate of $21-115 billion lost"
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "duvalier-dynasty-haiti-1957-1986",
+   "title": "The Duvalier dynasty and the Tonton Macoutes",
+   "start": 1957,
+   "end": 1986,
+   "date": {
+    "text": "October 22, 1957 - February 7, 1986",
+    "precision": "range"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Other atrocities",
+   "place": "Port-au-Prince, Haiti",
+   "region": "Caribbean",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Levi"
+   ],
+   "people": [
+    "François Duvalier",
+    "Jean-Claude Duvalier"
+   ],
+   "summary": "François \"Papa Doc\" Duvalier ruled Haiti from 1957 until his death in 1971 through the paramilitary Tonton Macoutes, declaring himself president for life in 1964; his son Jean-Claude \"Baby Doc\" succeeded him and ruled until a popular uprising forced him into exile in France on February 7, 1986.",
+   "account": [
+    "François Duvalier was president of Haiti from October 22, 1957, until his death on April 21, 1971. In 1959 he formed the Militia of National Security Volunteers, known as the Tonton Macoutes, an unsalaried paramilitary and secret-police force that grew to roughly twice the size of the army by 1961 and eventually numbered in the hundreds of thousands; its members financed themselves through extortion and violence against Duvalier's opponents. In June 1964 a fraudulent referendum (reported as 99.9 percent in favor, with ballots premarked \"yes\") declared him president for life. Estimates of those killed or disappeared under his rule range from 30,000 to 60,000.",
+    "On Duvalier's death in 1971 his 19-year-old son Jean-Claude \"Baby Doc\" Duvalier succeeded him and ruled for 15 more years, continuing widespread torture and killing while hundreds of thousands emigrated. Popular revolts beginning in Gonaïves in 1985 spread nationwide by early 1986; under pressure from the Reagan administration, Jean-Claude Duvalier fled Haiti for France aboard a U.S. Air Force aircraft on February 7, 1986, ending 29 years of Duvalier rule. He returned to Haiti in January 2011, was charged with corruption and human-rights abuses, and died in Haiti on October 4, 2014."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "François Duvalier and his son Jean-Claude are taught as US-backed dictators who traded an anti-communist stand during the Cold War for American aid, until Haitian uprisings ended Jean-Claude's rule and opened the way to Haiti's first elected president, Jean-Bertrand Aristide, in 1990."
+     ],
+     "quote": "François Duvalier. Duvalier and his successor, aka his son Jean-Claude, ate up aid from the United States in exchange for their strong anti-communist stand at the height of the Cold War. Haitian uprisings ended Duvalier Jr.'s rule and led to Haiti choosing its democratically elected leader, Jean-Bertrand Aristide, in 1990.",
+     "source": {
+      "kind": "class",
+      "id": "w0YagF9DSjQ",
+      "title": "HAMMER TIME | Terror In Haiti",
+      "ts": "1:13:48",
+      "url": "https://youtu.be/w0YagF9DSjQ?t=4428"
+     }
+    }
+   ],
+   "sources": [
+    {
+     "title": "François Duvalier",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Fran%C3%A7ois_Duvalier",
+     "accessed": "2026-10-06",
+     "supports": "dates in power (1957-1971); the Tonton Macoutes' founding (1959), size and lack of salary; the 1964 president-for-life referendum; death toll estimates of 30,000-60,000"
+    },
+    {
+     "title": "Jean-Claude Duvalier",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Jean-Claude_Duvalier",
+     "accessed": "2026-10-06",
+     "supports": "succession in 1971 at age 19; the 1985-86 uprising beginning in Gonaïves; his February 7, 1986 flight to France aboard a US Air Force plane; his 2011 return, charges, and 2014 death"
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "aristide-coups-1991-2004",
+   "title": "Haiti's elected president ousted twice: the 1991 and 2004 coups",
+   "start": 1991,
+   "end": 2004,
+   "date": {
+    "text": "September 29-30, 1991; February 29, 2004",
+    "precision": "range"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Caribbean and Latin America",
+   "place": "Port-au-Prince, Haiti",
+   "region": "Caribbean",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Levi"
+   ],
+   "people": [
+    "Jean-Bertrand Aristide",
+    "Raoul Cédras"
+   ],
+   "summary": "Haiti's first democratically elected president, Jean-Bertrand Aristide, was overthrown by a military coup on September 29-30, 1991, restored by a 1994 US-led intervention, re-elected in 2000, and ousted a second time on February 29, 2004 in a rebellion he said was orchestrated with US and French pressure.",
+   "account": [
+    "Jean-Bertrand Aristide, Haiti's first democratically elected president, was overthrown on September 29-30, 1991, by the military under General Raoul Cédras and police chief Michel François; one of the coup's leaders was later reported to have been on the CIA's payroll, and the US had helped set up and fund the Haitian military and intelligence service that carried it out. Aristide was flown into exile in Venezuela while the junta killed thousands of his supporters and displaced hundreds of thousands more, driving a wave of Haitian boat refugees toward the United States. In September 1994, after negotiations led by Jimmy Carter, Colin Powell and Sam Nunn, the United States led Operation Uphold Democracy and restored Aristide to office.",
+    "Aristide won a second term in 2000 but was forced from power again on February 29, 2004, after an armed rebellion led by the National Revolutionary Front for the Liberation of Haiti seized Gonaïves and Cap-Haïtien and advanced on Port-au-Prince. US personnel flew Aristide out of the country to the Central African Republic; he maintained he had been coerced -- \"what some people call 'resignation' is a 'new coup d'état,' or 'modern kidnapping'\" -- and French officials later told the New York Times that France and the United States had effectively orchestrated the removal. The UN Security Council then authorized the MINUSTAH peacekeeping mission, which deployed about 7,000 troops beginning June 1, 2004."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "Aristide's two ousters are taught together as one pattern: within a year of his first election a CIA-linked coup toppled him, and after his 2001 return a second coup he blamed on the US forced him out again, followed by US pressure on a 2010 presidential candidate to withdraw."
+     ],
+     "quote": "But within a year, Aristide's government was toppled by a coup. Not only was one of the leaders of the coup on the CIA's payroll, but the US had set up and funded the Haitian military and national intelligence service, which both played key roles in the coup.",
+     "source": {
+      "kind": "class",
+      "id": "w0YagF9DSjQ",
+      "title": "HAMMER TIME | Terror In Haiti",
+      "ts": "1:14:07",
+      "url": "https://youtu.be/w0YagF9DSjQ?t=4447"
+     }
+    }
+   ],
+   "sources": [
+    {
+     "title": "1991 Haitian coup d'état",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/1991_Haitian_coup_d%27%C3%A9tat",
+     "accessed": "2026-10-06",
+     "supports": "the September 29-30, 1991 coup date; Cédras and François leading it; Aristide's exile to Venezuela; the 1994 Operation Uphold Democracy restoration"
+    },
+    {
+     "title": "2004 Haitian coup d'état",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/2004_Haitian_coup_d%27%C3%A9tat",
+     "accessed": "2026-10-06",
+     "supports": "the February 29, 2004 date; the rebellion's seizure of Gonaïves and Cap-Haïtien; Aristide's flight to the Central African Republic and his coercion claim; France's and the US's role as later reported; the MINUSTAH deployment"
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "haiti-earthquake-2010",
+   "title": "The 2010 Haiti earthquake",
+   "start": 2010,
+   "end": 2010,
+   "date": {
+    "text": "January 12, 2010",
+    "precision": "day"
+   },
+   "period": "unto-this-day",
+   "group": "Caribbean and Latin America",
+   "place": "Léogâne and Port-au-Prince, Haiti",
+   "region": "Caribbean",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Levi"
+   ],
+   "summary": "A magnitude-7.0 earthquake struck near Léogâne, 25 kilometers from Port-au-Prince, on January 12, 2010; estimates of the dead range from about 46,000 to over 300,000, some 1.5 million people were displaced, and the American Red Cross was later found to have built only six houses in Haiti despite raising almost $500 million.",
+   "account": [
+    "On January 12, 2010, at 16:53 local time, a magnitude-7.0 earthquake struck roughly 25 kilometers west of Port-au-Prince near Léogâne, at a depth of 13 kilometers. Death-toll estimates vary enormously by source: the Haitian government cited 220,000 to 316,000; the Inter-American Development Bank estimated 200,000-250,000 in February 2010; a University of Michigan study put it near 160,000; a Radio Netherlands investigation found about 92,000; and a 2011 USAID draft report estimated 46,000-85,000. A UN official said at the time, \"I do not think we will ever know what the death toll is from this earthquake.\" The International Federation of Red Cross estimated 3 million people affected; USAID put displacement at about 1.5 million, with 550,000 still without permanent shelter as of January 2012. Total damage was estimated at $7.8-8.5 billion, with roughly 250,000 homes and 30,000 commercial buildings destroyed or severely damaged.",
+    "An NPR/ProPublica investigation published in June 2015 found that the American Red Cross raised nearly $488 million for Haiti earthquake relief but built only six permanent homes, despite initially planning about 700; much of the money went to other organizations that took their own overhead, and the Red Cross disputed the account."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "The 2010 earthquake is taught as killing roughly half a million Haitians, and the charity relief money that followed -- cited as $150 to $450 million -- is challenged as never reaching the Haitian people."
+     ],
+     "quote": "During the earthquake that took place, I think it's in 2010, you'll remember half a million Haitian people died.",
+     "source": {
+      "kind": "class",
+      "id": "eIwAjSTonV8",
+      "title": "#IUIC | RAVENING WOLVES RADIO SHOW: Episode 54 - The Haiti Crisis",
+      "ts": "16:10",
+      "url": "https://youtu.be/eIwAjSTonV8?t=970"
+     }
+    }
+   ],
+   "sources": [
+    {
+     "title": "2010 Haiti earthquake",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/2010_Haiti_earthquake",
+     "accessed": "2026-10-06",
+     "supports": "date, time, magnitude and epicenter; the range of death-toll estimates from 46,000 to 316,000 and the UN official's quote; displacement figures; damage estimate"
+    },
+    {
+     "title": "In Search Of The Red Cross' $500 Million In Haiti Relief",
+     "publisher": "NPR",
+     "url": "https://www.npr.org/2015/06/03/411524156/in-search-of-the-red-cross-500-million-i",
+     "accessed": "2026-10-06",
+     "supports": "the Red Cross raising about $488 million for Haiti and building only six permanent homes"
+    }
+   ],
+   "disagreements": [
+    {
+     "point": "The earthquake's death toll",
+     "views": [
+      "Documented estimates range from about 46,000 (2011 USAID draft) to 316,000 (Haitian government), with most serious estimates below 250,000.",
+      "The class states \"half a million\" (500,000) Haitian deaths, above the highest documented government estimate."
+     ]
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "haiti-cholera-outbreak-2010",
+   "title": "UN peacekeepers bring cholera to Haiti",
+   "start": 2010,
+   "end": 2016,
+   "date": {
+    "text": "October 21, 2010 (first confirmed case) - December 2016 (UN apology)",
+    "precision": "range"
+   },
+   "period": "unto-this-day",
+   "group": "Other atrocities",
+   "place": "Artibonite River valley and nationwide, Haiti",
+   "region": "Caribbean",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Levi"
+   ],
+   "summary": "Nine months after the 2010 earthquake, a cholera epidemic traced to sanitation failures at a UN base housing Nepalese peacekeepers infected roughly 820,000 Haitians and killed nearly 10,000; the United Nations publicly apologized and pledged $400 million in assistance only in December 2016.",
+   "account": [
+    "The first confirmed cholera case in Haiti's modern history was recorded on October 21, 2010, nine months after the January earthquake, with the outbreak spreading rapidly along the Artibonite River. Investigators, including journalist Jonathan M. Katz and epidemiologist Renaud Piarroux, traced the source to a UN base housing Nepalese peacekeepers whose waste from outhouses flowed into the Artibonite; DNA testing matched the outbreak strain to those found in South Asia. By 2013 more than 6 percent of Haiti's population had been infected; the outbreak eventually accounted for an estimated 820,000 cases and nearly 10,000 deaths, and represented 57 percent of all cholera cases and 45 percent of all cholera deaths recorded worldwide in 2010-2011.",
+    "The United Nations resisted acknowledging responsibility for years. In December 2016, Secretary-General Ban Ki-moon formally apologized and pledged $400 million toward a response, though only a small fraction of that pledge had materialized in the years that followed."
+   ],
+   "sources": [
+    {
+     "title": "Haiti cholera outbreak",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Haiti_cholera_outbreak",
+     "accessed": "2026-10-06",
+     "supports": "the October 21, 2010 first case; the Artibonite River source and the Nepalese UN base; the Piarroux study and DNA matching; case and death totals; the December 2016 Ban Ki-moon apology and $400 million pledge"
+    }
+   ],
+   "status": "published",
+   "teaching": [
+    {
+     "points": [
+      "The UN's cholera outbreak in Haiti is taught as itself one of the plagues of Deuteronomy 28, sent because the commandments were broken, and the UN's presence in Haiti as the outside nation of Isaiah 10 used to tread the people down, and as Edom of Obadiah, a thief who is never satisfied."
+     ],
+     "quote": "Yeah, just like I was saying, Deuteronomy 28:61, the Lord said because we broke his commandments that he would send every sickness and every plague that's not written in the Bible. That's the UN doing that.",
+     "source": {
+      "kind": "class",
+      "id": "w0YagF9DSjQ",
+      "title": "HAMMER TIME | Terror In Haiti",
+      "ts": "42:18",
+      "url": "https://youtu.be/w0YagF9DSjQ?t=2538"
+     }
+    }
+   ],
+   "scriptures": [
+    {
+     "ref": "Deuteronomy 28:61",
+     "why": "the class reads the cholera the UN brought to Haiti as one of the sicknesses and plagues 'not written in the book of this law' sent for breaking the commandments."
+    },
+    {
+     "ref": "Isaiah 10:6",
+     "why": "applied to the UN's presence in Haiti as one of the nations the Lord sends 'to tread them down like the mire of the streets' while claiming to help."
+    },
+    {
+     "ref": "Obadiah 1:5",
+     "why": "applied to Edom (the white man) as a thief who, unlike an ordinary thief, is never satisfied and goes on stealing Haiti's wealth under cover of aid."
+    }
+   ]
+  },
+  {
+   "slug": "assassination-jovenel-moise-2021",
+   "title": "The assassination of President Jovenel Moïse",
+   "start": 2021,
+   "end": 2021,
+   "date": {
+    "text": "July 7, 2021",
+    "precision": "day"
+   },
+   "period": "unto-this-day",
+   "group": "Caribbean and Latin America",
+   "place": "Pèlerin 5, Pétion-Ville, Port-au-Prince, Haiti",
+   "region": "Caribbean",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Levi"
+   ],
+   "people": [
+    "Jovenel Moïse"
+   ],
+   "summary": "Haitian President Jovenel Moïse was beaten and shot to death at his private residence in Pétion-Ville in the early hours of July 7, 2021, by a group of 28 mostly Colombian mercenaries; the killing threw Haiti into a prolonged political and gang-violence crisis.",
+   "account": [
+    "Jovenel Moïse was killed at approximately 1:00 a.m. on July 7, 2021, at his residence in Pèlerin 5, Pétion-Ville, Port-au-Prince. He was beaten before being shot twelve times in the chest, arms, legs and hip, with his left eye gouged out. The attackers were a group of 28 foreign mercenaries, 26 of them Colombian (at least 21 former members of Colombia's army) and two Haitian-Americans; three were killed by police and the rest arrested or went into hiding. Suspects later named included Haitian-American physician Emmanuel Sanon, former government official Joseph-Félix Badio, former senator John Joël Joseph, businessman Rodolphe Jaar and security-firm owner Antonio Intriago.",
+    "Moïse had named Ariel Henry as his incoming prime minister shortly before his death; after a power struggle with interim prime minister Claude Joseph, Henry was sworn in on July 20, 2021. Gang violence escalated sharply in the aftermath, and Haiti's request for a UN peacekeeping force was not met with the US military deployment it sought."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "Jovenel Moïse's assassination is taught as the killing of Haiti's president by outside hands sent against him, described as \"jackals.\""
+     ],
+     "quote": "He was assassinated this week, okay, um, it's a very sad thing, man, you know? They went -- all the jackals went over there and they took him out, man, you understand?",
+     "source": {
+      "kind": "class",
+      "id": "5V6hePtdx-A",
+      "title": "#IUIC | RAVENING WOLVES SHOW: Episode 31",
+      "ts": "3:35",
+      "url": "https://youtu.be/5V6hePtdx-A?t=215"
+     }
+    }
+   ],
+   "sources": [
+    {
+     "title": "Assassination of Jovenel Moïse",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Assassination_of_Jovenel_Mo%C3%AFse",
+     "accessed": "2026-10-06",
+     "supports": "date, time, and location; manner of death; the 28 mercenaries, their mostly-Colombian composition and the two Haitian-Americans; named suspects; Henry's July 20, 2021 swearing-in"
+    }
+   ],
+   "uncertainty": "The cited recording's publish date is not in its metadata; its own reference to the killing happening \"this week\" places it in mid-July 2021.",
+   "status": "published"
+  },
+  {
+   "slug": "dominican-war-of-independence-1844",
+   "title": "The Dominican Republic wins independence from Haiti",
+   "start": 1844,
+   "end": 1856,
+   "date": {
+    "text": "February 27, 1844 (declared); final campaigns through January 24, 1856",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Resistance",
+   "place": "Santo Domingo and the eastern provinces of Hispaniola",
+   "region": "Caribbean",
+   "peoples": [
+    "Hispanic"
+   ],
+   "tribes": [
+    "Simeon"
+   ],
+   "people": [
+    "Juan Pablo Duarte",
+    "Francisco del Rosario Sánchez",
+    "Ramón Matías Mella",
+    "Pedro Santana"
+   ],
+   "summary": "On February 27, 1844, the secret society La Trinitaria, founded by Juan Pablo Duarte in 1838, declared the separation of the eastern, Spanish-speaking part of Hispaniola from Haitian rule, founding the Dominican Republic; Dominican forces under Pedro Santana secured that independence against repeated Haitian invasions through 1856.",
+   "account": [
+    "La Trinitaria, a secret resistance society founded in 1838 by Juan Pablo Duarte with Francisco del Rosario Sánchez and Ramón Matías Mella, declared the separation of the eastern part of Hispaniola from Haitian rule on February 27, 1844. Military command fell to Pedro Santana, a cattle rancher who led Dominican forces through four major campaigns against Haitian armies between 1844 and 1856. Despite Haiti deploying armies as large as 30,000 troops against smaller Dominican forces, the Dominicans won repeated victories.",
+    "Haiti withdrew its forces after its defeats, and the Dominican Republic's sovereignty as the First Republic was secured by January 24, 1856, though Haiti retained some border towns such as Hinche and Lascahobas."
+   ],
+   "sources": [
+    {
+     "title": "Dominican War of Independence",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Dominican_War_of_Independence",
+     "accessed": "2026-10-06",
+     "supports": "the February 27, 1844 declaration; La Trinitaria and Duarte's 1838 founding of it with Sánchez and Mella; Santana's military leadership; the four campaigns 1844-1856; Haitian troop numbers; Dominican sovereignty secured by January 24, 1856 with some border towns remaining Haitian"
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "dominican-restoration-war-1863",
+   "title": "The Dominican Restoration War against Spanish annexation",
+   "start": 1863,
+   "end": 1865,
+   "date": {
+    "text": "August 16, 1863 (El Grito de Capotillo) - July 15, 1865 (Spanish withdrawal)",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Resistance",
+   "place": "Santiago and nationwide, Dominican Republic",
+   "region": "Caribbean",
+   "peoples": [
+    "Hispanic"
+   ],
+   "tribes": [
+    "Simeon"
+   ],
+   "people": [
+    "Pedro Santana",
+    "Santiago Rodríguez",
+    "Isabella II"
+   ],
+   "summary": "Seventeen years after independence, President Pedro Santana invited Spain to re-annex the Dominican Republic in 1861; a rebellion begun by Santiago Rodríguez at Capotillo on August 16, 1863 drove the Spanish out, with Queen Isabella II annulling the annexation on March 3, 1865 and the last Spanish troops withdrawing July 15, 1865.",
+   "account": [
+    "Citing economic crisis and fear of renewed Haitian invasion, President Pedro Santana had Spain re-annex the Dominican Republic, announced March 18, 1861; Spain, taking advantage of the United States' Civil War to avoid Monroe Doctrine enforcement, accepted. Dominican rebels under Santiago Rodríguez launched the uprising known as El Grito de Capotillo on August 16, 1863, raising the Dominican flag and beginning the Restoration War; by September 1863 the rebels held Santiago and had formed a rebel government.",
+    "Spain committed roughly 51,000 troops plus 12,000 auxiliaries against about 15,000 Dominican fighters, but yellow fever devastated the Spanish force, inflicting about 10,000 casualties. Queen Isabella II signed the annulment of the annexation on March 3, 1865, and the last Spanish troops left the island on July 15, 1865, restoring Dominican sovereignty as the Second Republic."
+   ],
+   "sources": [
+    {
+     "title": "Dominican Restoration War",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Dominican_Restoration_War",
+     "accessed": "2026-10-06",
+     "supports": "Santana's 1861 invitation to Spain and the March 18, 1861 annexation announcement; the August 16, 1863 Grito de Capotillo and Santiago Rodríguez; the rebel government at Santiago; Spanish and Dominican troop numbers and yellow fever casualties; the March 3, 1865 annulment and July 15, 1865 withdrawal"
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "us-occupation-dominican-republic-1916",
+   "title": "The United States occupies the Dominican Republic, 1916-1924",
+   "start": 1916,
+   "end": 1924,
+   "date": {
+    "text": "May 15, 1916 - September 18, 1924",
+    "precision": "range"
+   },
+   "period": "jim-crow",
+   "group": "Caribbean and Latin America",
+   "place": "Santo Domingo and nationwide, Dominican Republic",
+   "region": "Caribbean",
+   "peoples": [
+    "Hispanic"
+   ],
+   "tribes": [
+    "Simeon"
+   ],
+   "people": [
+    "Ramón Natera"
+   ],
+   "summary": "US Marines occupied the Dominican Republic from May 15, 1916 to September 18, 1924, to force repayment of debts to European and American creditors, installing a military government that controlled Dominican finances through the National City Bank of New York while a guerrilla movement, the gavilleros, resisted in the eastern provinces.",
+   "account": [
+    "After a 1916 power struggle between President Juan Isidro Jimenes and War Minister Desiderio Arias, US Marines landed and established control by May 15, 1916, aiming to force repayment of Dominican debts to European creditors whose governments were threatening intervention. The US military government built roads connecting Santo Domingo to Santiago, Azua and San Pedro de Macorís, created the Dominican Constabulary Guard to replace partisan militias, balanced the budget and reduced debt, while controlling Dominican finances through the National City Bank of New York.",
+    "A guerrilla resistance called the gavilleros, led by General Ramón Natera, fought the occupation from 1917 to 1922 in the eastern provinces, mostly armed with black-powder rifles against American artillery and, from 1919, Marine aircraft fitted with machine guns; a Congressional investigation found imprisoned guerrillas had been mistreated. Political pressure from Warren Harding's 1921 campaign led to the 1922 Hughes-Peynado agreement; after Horacio Vásquez won the March 1924 election, US forces withdrew on September 18, 1924, transferring police authority to the Dominican National Guard, the force a young officer named Rafael Trujillo would rise through."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "The 1916-1924 US occupation of the Dominican Republic is named directly as the seed of the anti-Haitian sentiment Trujillo later built his dictatorship on, and is distinguished from the separate 1965 US invasion thirty years later."
+     ],
+     "quote": "The US had previously occupied the Dominican Republic from 1916 to 1924.",
+     "source": {
+      "kind": "class",
+      "id": "0R72YoWSDOM",
+      "title": "The Hidden Religion of America: Hellenism in Disguise",
+      "ts": "1:25:38",
+      "url": "https://youtu.be/0R72YoWSDOM?t=5138"
+     }
+    }
+   ],
+   "sources": [
+    {
+     "title": "United States occupation of the Dominican Republic (1916-1924)",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/United_States_occupation_of_the_Dominican_Republic_(1916%E2%80%931924)",
+     "accessed": "2026-10-06",
+     "supports": "the May 1916 Jimenes-Arias conflict and May 15, 1916 landing; the roads built and the Constabulary Guard; National City Bank financial control; the gavilleros under Ramón Natera, 1917-1922, their weapons and the Marine air support from 1919; the 1922 Hughes-Peynado agreement and September 18, 1924 withdrawal"
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "trujillo-dictatorship-1930",
+   "title": "Rafael Trujillo's dictatorship and dominicanidad",
+   "start": 1930,
+   "end": 1955,
+   "date": {
+    "text": "August 1930 - 1955 (regime continued to May 1961)",
+    "precision": "range"
+   },
+   "period": "jim-crow",
+   "group": "Other atrocities",
+   "place": "Ciudad Trujillo (Santo Domingo), Dominican Republic",
+   "region": "Caribbean",
+   "peoples": [
+    "Hispanic"
+   ],
+   "tribes": [
+    "Simeon"
+   ],
+   "people": [
+    "Rafael Trujillo"
+   ],
+   "summary": "Rafael Trujillo, risen through the US-created National Guard, seized power in August 1930 and ruled the Dominican Republic for 31 years through a personality cult and a secret police that killed an estimated 25,000 to over 50,000 people, while promoting \"dominicanidad,\" an official anti-Black, anti-Haitian national ideology, and \"blanqueamiento,\" the whitening of the population.",
+   "account": [
+    "Rafael Trujillo rose through the ranks of the US-created Dominican National Guard during the American occupation. In 1930 he made a secret arrangement with rebel leader Rafael Estrella Ureña: Trujillo kept his troops in their barracks while Estrella's forces marched on the capital, and Trujillo then stood for the presidency, officially winning with an implausible 99 percent of the vote. He renamed the capital Ciudad Trujillo and built a personality cult (\"Dios y Trujillo\"; churches required to display \"God in Heaven, Trujillo on Earth\"); government employees were required to donate 10 percent of their salaries to the state. His secret police, the SIM, killed an estimated 25,000 to over 50,000 opponents and civilians over his rule.",
+    "Trujillo's regime, initially backed by the United States, promoted \"dominicanidad,\" an official ideology distinguishing Dominican from Haitian identity and portraying Haiti as a threat; his government rewrote Dominican history to cast Haitians as constant aggressors. He promoted \"blanqueamiento,\" the whitening of the population, wore skin-lightening makeup himself, and had many Afro-Dominicans reclassified as \"indio\" to distance them from Blackness, even though his own grandmother was Haitian. This ideology directly preceded and justified his October 1937 Parsley Massacre of Haitians on the border."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "Trujillo's \"dominicanidad\" campaign is taught as the deliberate manufacturing of division between Dominicans and Haitians -- rewriting history, promoting whiteness, and relabeling Afro-Dominicans as \"indio\" -- and is likened to the accent test of Judges 12, where Ephraimites were killed for how they pronounced a word."
+     ],
+     "quote": "Trujillo's regime, initially backed by the US, aggressively promoted a nationalist ideology known as dominicanidad through the media and public speeches.",
+     "source": {
+      "kind": "class",
+      "id": "w0YagF9DSjQ",
+      "title": "HAMMER TIME | Terror In Haiti",
+      "ts": "37:35",
+      "url": "https://youtu.be/w0YagF9DSjQ?t=2255"
+     }
+    }
+   ],
+   "scriptures": [
+    {
+     "ref": "Judges 12:6",
+     "why": "The class draws a parallel between the Gileadites killing Ephraimites who could not pronounce \"Shibboleth\" and the ethnic testing used to tell Dominican from Haitian identity under Trujillo's dominicanidad and its border massacre."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Rafael Trujillo",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Rafael_Trujillo",
+     "accessed": "2026-10-06",
+     "supports": "rise through the National Guard; the 1930 arrangement with Estrella Ureña and the 99% election result; the Ciudad Trujillo renaming, personality cult, and the 10% salary levy; death toll estimates of 25,000-50,000+"
+    },
+    {
+     "title": "HAMMER TIME | Terror In Haiti",
+     "publisher": "YouTube transcript (IUIC class)",
+     "url": "https://youtu.be/w0YagF9DSjQ?t=2255",
+     "accessed": "2026-10-06",
+     "supports": "dominicanidad as official ideology; the history rewritten to portray Haitians as aggressors; blanqueamiento and Trujillo's own skin-lightening; reclassification of Afro-Dominicans as \"indio\"; Trujillo's own Haitian grandmother"
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "trujillo-assassination-1961",
+   "title": "Rafael Trujillo is assassinated",
+   "start": 1961,
+   "end": 1961,
+   "date": {
+    "text": "May 30, 1961",
+    "precision": "day"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Caribbean and Latin America",
+   "place": "road outside Ciudad Trujillo (Santo Domingo), Dominican Republic",
+   "region": "Caribbean",
+   "peoples": [
+    "Hispanic"
+   ],
+   "tribes": [
+    "Simeon"
+   ],
+   "people": [
+    "Rafael Trujillo",
+    "Antonio Imbert Barrera",
+    "Juan Bosch"
+   ],
+   "summary": "After 31 years in power, Rafael Trujillo was shot and killed in an ambush on a road outside the capital on May 30, 1961, by conspirators led by General Antonio Imbert Barrera, opening the way for the 1962 election of Juan Bosch.",
+   "account": [
+    "Rafael Trujillo was ambushed and shot to death on a road outside Ciudad Trujillo on May 30, 1961, by a group of conspirators led by General Antonio Imbert Barrera, ending his 31-year dictatorship. His death led to the December 1962 election of Juan Bosch as president, the first freely elected Dominican leader in decades, though Bosch was himself overthrown by a military coup within a year of taking office in 1963."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "Trujillo's fall is taught as a coup engineered against him \"because he was getting too crazy,\" opening the door to Juan Bosch, who the classes identify as an Edomite leader rather than one of Israel's own."
+     ],
+     "quote": "Initially they had put Trujillo in power. He was in power for about 35 years. He was the worst dictator of all of Latin America.",
+     "source": {
+      "kind": "history",
+      "id": "ffxKEbSLscQ",
+      "title": "OUR HIDDEN HISTORY | TRANSITION OF POWER : SPECIAL EDITION VENEZUELA EP 189",
+      "date": "2026-01-04",
+      "ts": "1:07:06",
+      "url": "https://youtu.be/ffxKEbSLscQ?t=4026"
+     }
+    }
+   ],
+   "sources": [
+    {
+     "title": "Rafael Trujillo",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Rafael_Trujillo",
+     "accessed": "2026-10-06",
+     "supports": "the May 30, 1961 assassination date and ambush; Antonio Imbert Barrera leading the conspirators"
+    }
+   ],
+   "disagreements": [
+    {
+     "point": "The length of Trujillo's rule",
+     "views": [
+      "Documented sources give 31 years (August 1930 - May 1961).",
+      "The class states \"about 35 years.\""
+     ]
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "dominican-civil-war-1965",
+   "title": "The United States invades the Dominican Republic, 1965",
+   "start": 1965,
+   "end": 1966,
+   "date": {
+    "text": "April 28, 1965 (US invasion) - July 1, 1966 (elections)",
+    "precision": "range"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Caribbean and Latin America",
+   "place": "Santo Domingo, Dominican Republic",
+   "region": "Caribbean",
+   "peoples": [
+    "Hispanic"
+   ],
+   "tribes": [
+    "Simeon"
+   ],
+   "people": [
+    "Juan Bosch",
+    "Lyndon B. Johnson",
+    "Joaquín Balaguer"
+   ],
+   "summary": "After constitutionalist forces tried to restore elected president Juan Bosch by overthrowing a military-installed government on April 24, 1965, President Lyndon Johnson sent about 22,500 US troops to the Dominican Republic on April 28, 1965 in Operation Power Pack, the first major US military intervention in Latin America in decades; elections in July 1966 brought Joaquín Balaguer to power.",
+   "account": [
+    "Juan Bosch, the Dominican Republic's first freely elected president, had been overthrown by a 1963 coup. On April 24, 1965, constitutionalist military and civilian forces moved to restore him by overthrowing the military-installed government of Donald Reid Cabral, but loyalist troops under General Elías Wessin y Wessin fought back. US Ambassador William Tapley Bennett described the situation as life-threatening and claimed the rebels were Communist-led; President Lyndon Johnson authorized Operation Power Pack, sending about 22,500 US troops -- 6,924 Marines and 12,434 82nd Airborne paratroopers -- plus an Inter-American Peace Force of 1,748 troops from allied Latin American states, beginning April 28, 1965.",
+    "US forces suffered 47 dead and 283 wounded; Dominican casualties were estimated at about 6,000, including over 600 constitutionalist regulars and an unknown number of armed civilians. A ceasefire was reached in August 1965, and elections on July 1, 1966 brought conservative candidate Joaquín Balaguer to power over Bosch, beginning what Dominicans call the Fourth Republic."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "The 1965 intervention is taught as an outright invasion, not merely a rescue mission, launched under President Lyndon Johnson -- and is placed in a line of foreign domination of the island running from Spain through France and Britain to the United States."
+     ],
+     "quote": "The United States invaded the Dominican Republic -- invaded, not went there -- wasn't a proxy where they sent warships and military personnel to invade the island.",
+     "source": {
+      "kind": "class",
+      "id": "0R72YoWSDOM",
+      "title": "The Hidden Religion of America: Hellenism in Disguise",
+      "ts": "1:22:55",
+      "url": "https://youtu.be/0R72YoWSDOM?t=4975"
+     }
+    }
+   ],
+   "scriptures": [
+    {
+     "ref": "Job 20:11",
+     "why": "Cited by the class while tracing Spanish, French, British and then US domination of the Dominican Republic across generations, as the sin of the fathers lying down with the son in the dust."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Dominican Civil War",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Dominican_Civil_War",
+     "accessed": "2026-10-06",
+     "supports": "the 1963 coup against Bosch; the April 24, 1965 constitutionalist uprising against Reid Cabral and Wessin y Wessin's loyalists; Ambassador Bennett's warnings; Operation Power Pack troop numbers; US and Dominican casualties; the August 1965 ceasefire and July 1, 1966 election of Balaguer"
+    }
+   ],
+   "disagreements": [
+    {
+     "point": "Length of the resulting US occupation",
+     "views": [
+      "The 1965-66 intervention ended with the ceasefire (August 1965) and 1966 elections, well under two years.",
+      "The recording, reading an AI-generated overview on air, states the invasion \"led to an eight-year US occupation,\" a figure that documented sources instead give for the separate 1916-1924 occupation."
+     ]
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "dominican-nationality-ruling-2013",
+   "title": "The Dominican Republic strips citizenship from Dominicans of Haitian descent",
+   "start": 2013,
+   "end": 2014,
+   "date": {
+    "text": "September 23, 2013 (Sentencia TC/0168/13); May 2014 (Law 169-14)",
+    "precision": "range"
+   },
+   "period": "unto-this-day",
+   "group": "Identity and erasure",
+   "place": "Dominican Republic",
+   "region": "Caribbean",
+   "peoples": [
+    "Hispanic",
+    "Black"
+   ],
+   "tribes": [
+    "Simeon",
+    "Levi"
+   ],
+   "summary": "The Dominican Republic's Constitutional Court ruled in 2013 that anyone born after 1929 to parents the state classified as \"in transit,\" overwhelmingly Dominicans of Haitian descent, had never held Dominican nationality, rendering an estimated 200,000 people stateless; a 2014 law offered a path to regularize some of them.",
+   "account": [
+    "In Sentencia TC/0168/13, the Dominican Republic's Constitutional Court ruled that anyone born in the country after June 21, 1929 to foreign parents classified as \"in transit\" -- a category long applied to undocumented Haitian laborers regardless of how many years or generations they had lived in the country -- had never legally held Dominican nationality, and ordered authorities to audit birth records back to that date. An estimated 200,000 people, overwhelmingly of Haitian descent, faced statelessness as a result; Amnesty International, Human Rights Watch and the Inter-American Commission on Human Rights all condemned the ruling.",
+    "In response, the government passed Law 169-14 in 2014, creating two categories: about 55,000 people with Civil Registry birth records received an amnesty and Dominican identity documents; about 53,000 people without such records had to register as foreigners and apply to naturalize by a 2015 deadline, of whom only 8,755 successfully registered. A further group born 2007-2010 had to register as foreigners and could seek ordinary naturalization after two years."
+   ],
+   "sources": [
+    {
+     "title": "Dominican Republic nationality law",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Dominican_Republic_nationality_law",
+     "accessed": "2026-10-06",
+     "supports": "the Sentencia TC/0168/13 ruling and its 1929 cutoff and \"in transit\" category; the roughly 200,000 estimate; international condemnation; Law 169-14's two categories and the 8,755 figure for the second category"
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "dominican-mass-deportations-2024",
+   "title": "The Dominican Republic's mass deportations of Haitians",
+   "start": 2024,
+   "end": 2025,
+   "date": {
+    "text": "2024-2025 (ongoing)",
+    "precision": "range"
+   },
+   "period": "unto-this-day",
+   "group": "Other atrocities",
+   "place": "Dominican Republic and the Dominican-Haitian border",
+   "region": "Caribbean",
+   "peoples": [
+    "Hispanic",
+    "Black"
+   ],
+   "tribes": [
+    "Simeon",
+    "Levi"
+   ],
+   "people": [
+    "Luis Abinader"
+   ],
+   "summary": "Under a policy set by President Luis Abinader's National Security and Defense Council to remove up to 10,000 undocumented Haitians a week, the Dominican Republic deported more than 276,000 people in 2024 and well over 100,000 more in 2025, including hundreds of pregnant and breastfeeding women, drawing UN condemnation.",
+   "account": [
+    "The Dominican Republic's National Security and Defense Council, headed by President Luis Abinader, ordered immigration authorities to remove up to 10,000 undocumented Haitians per week. The country deported more than 276,000 people in 2024, including over 94,000 in the final three months of the year alone. Deportations continued to accelerate into 2025: more than 119,000 Haitians had been deported by mid-2025, a 71 percent increase over the same period in 2024, and reporting later in the year put the figure above 145,000 Haitians deported, with nearly 20,000 repatriated between April and May 2025 alone, the highest two-month total on record.",
+    "The United Nations publicly condemned the deportation of about 900 pregnant or breastfeeding Haitian women in a several-month span, with the Secretary-General's spokesperson Stéphane Dujarric calling the practice a violation of international standards. Human-rights organizations including Amnesty International characterized the campaign as racially targeted."
+   ],
+   "sources": [
+    {
+     "title": "Dominican Republic deported more than 276,000 people in 2024",
+     "publisher": "CNN",
+     "url": "https://www.cnn.com/2025/01/02/americas/dominican-republic-deport-haitians-intl-latam",
+     "accessed": "2026-10-06",
+     "supports": "the 276,000 deportations in 2024 and the over 94,000 in the final quarter; the 10,000-per-week target set by the National Security and Defense Council under Abinader"
+    },
+    {
+     "title": "Dominican Republic reports sharp rise in Haitian migrant deportations",
+     "publisher": "France 24",
+     "url": "https://www.france24.com/en/live-news/20250505-dominican-republican-reports-sharp-rise-in-haitian-migrant-deportations",
+     "accessed": "2026-10-06",
+     "supports": "the 119,000 Haitians deported by mid-2025, a 71 percent year-on-year increase"
+    },
+    {
+     "title": "Dominican Republic: End racist deportations of Haitians",
+     "publisher": "Amnesty International Canada",
+     "url": "https://amnesty.ca/urgent-actions/dominican-republic-end-racist-deportations-of-haitians/",
+     "accessed": "2026-10-06",
+     "supports": "characterization of the campaign as racially targeted; UN condemnation of the deportation of pregnant and breastfeeding women"
+    }
+   ],
+   "uncertainty": "2025 deportation totals are still accumulating at the time of writing; later-year figures above 145,000 and the nearly 20,000 April-May repatriations come from reporting later in 2025 and may be revised.",
+   "status": "published"
+  },
+  {
+   "slug": "kingdom-of-haiti-christophe-1811",
+   "title": "Henri Christophe builds the Kingdom of Haiti and the Citadelle",
+   "start": 1811,
+   "end": 1820,
+   "date": {
+    "text": "28 March 1811 (proclaimed) – 8 October 1820 (Christophe's death)",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Achievements",
+   "place": "Cap-Haïtien and Milot, northern Haiti",
+   "region": "Caribbean",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Levi"
+   ],
+   "people": [
+    "Henri Christophe",
+    "Jacques-Victor Henry"
+   ],
+   "summary": "After Haiti split following Dessalines's 1806 assassination, Henri Christophe ruled the north, proclaiming himself King Henry I on 28 March 1811 and building the Citadelle Laferrière and the Sans-Souci Palace before his death in 1820 ended the kingdom.",
+   "account": [
+    "Following the assassination of Jean-Jacques Dessalines in 1806, Haiti split between a northern state under Henri Christophe and a southern republic led by Alexandre Pétion. Christophe proclaimed the Kingdom of Haiti on 28 March 1811 and was crowned King Henry I on 2 June 1811.",
+    "Christophe's government organized agricultural workers under a military-style system of forced labour, caporalisme agraire, to keep sugar and coffee exports running. He used this labour, along with the kingdom's resources, to build six castles, eight palaces including the Sans-Souci Palace (largely completed by 1813), the Royal Chapel of Milot, and the Citadelle Laferrière, a mountaintop fortress built to defend the north against a feared French invasion to restore slavery.",
+    "Christophe suffered a stroke in August 1820 and, facing an uprising, shot himself at the Citadelle on 8 October 1820. His son and heir, Jacques-Victor Henry, was proclaimed king but was hanged by the insurgents ten days later, on 18 October 1820; Jean-Pierre Boyer, who had succeeded Pétion as president of the south in 1818, then reunified the country."
+   ],
+   "sources": [
+    {
+     "title": "Kingdom of Haiti",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Kingdom_of_Haiti",
+     "accessed": "2026-10-06",
+     "supports": "the 28 March 1811 proclamation and 2 June 1811 coronation; the caporalisme agraire labour system; the construction of the Citadelle Laferrière and Sans-Souci Palace; Christophe's August 1820 stroke and 8 October 1820 death; Jacques-Victor Henry's proclamation and 18 October 1820 hanging; Boyer's 1818 succession to Pétion"
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "haitian-unification-hispaniola-1822",
+   "title": "Haiti unifies Hispaniola under Boyer",
+   "start": 1822,
+   "end": 1844,
+   "date": {
+    "text": "9 February 1822 – 27 February 1844",
+    "precision": "range"
+   },
+   "period": "house-of-bondage",
+   "group": "Caribbean and Latin America",
+   "place": "Santo Domingo and all of Hispaniola",
+   "region": "Caribbean",
+   "peoples": [
+    "Black",
+    "Hispanic"
+   ],
+   "tribes": [
+    "Levi",
+    "Simeon"
+   ],
+   "people": [
+    "Jean-Pierre Boyer",
+    "Juan Pablo Duarte"
+   ],
+   "summary": "President Jean-Pierre Boyer, who had reunified Haiti in 1820, marched an army of 12,000 into the newly independent Republic of Spanish Haiti and entered Santo Domingo on 9 February 1822, ruling the whole island until Dominican nationalists broke away on 27 February 1844.",
+   "account": [
+    "Jean-Pierre Boyer reunified Haiti's north and south in 1820 after Henri Christophe's death. When the Spanish-speaking east briefly declared itself the independent Republic of Spanish Haiti in late 1821, Boyer marched in with 12,000 soldiers in February 1822 and formally entered Santo Domingo on 9 February 1822, unifying the whole island of Hispaniola under Haitian rule for the next twenty-two years.",
+    "Boyer's government forbade white elites from owning land and forcibly stripped major Dominican landowning families of their property; it tried and largely failed to force the export-crop production of the 1826 and 1838 Code Rural on the east, and to pay France's 150-million-franc independence indemnity it imposed heavy taxation and let occupying soldiers commandeer food and supplies by force, reducing Dominicans to a position the Code Rural had already made of Haiti's own peasantry.",
+    "Boyer lost the support of the Haitian elite and was ousted in 1843, replaced by Charles Rivière-Hérard. On 27 February 1844 Dominican nationalists led by Juan Pablo Duarte and the secret society La Trinitaria seized Santo Domingo and declared the independent Dominican Republic, ending the twenty-two-year unification."
+   ],
+   "sources": [
+    {
+     "title": "Unification of Hispaniola",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Unification_of_Hispaniola",
+     "accessed": "2026-10-06",
+     "supports": "the 1820 reunification of Haiti; the 12,000-soldier invasion and 9 February 1822 entry into Santo Domingo; the twenty-two year duration to 27 February 1844; the land seizures, the Code Rural, and the taxation and requisitioning to pay the French indemnity; Boyer's 1843 ouster by Rivière-Hérard; Duarte, La Trinitaria and the 27 February 1844 Dominican declaration"
+    }
+   ],
+   "status": "published",
+   "teaching": [
+    {
+     "points": [
+      "The class frames the 1822-1844 occupation as Haiti protecting itself from being invaded or recolonized again, and credits it with abolishing slavery, redistributing land, breaking the Catholic Church's power in the east, and pushing French to replace Spanish; it marks this occupation as the start of \"the complicated relationship\" between Haiti and the Dominican Republic that the class traces through to the Parsley Massacre and the 2013 nationality ruling."
+     ],
+     "quote": "Fast forward to 1822, Haiti, trying to protect itself from being invaded or colonized again, occupied the eastern part of the island, which had recently won independence from Spain. This is where the complicated relationship began. At first, some Dominicans were relieved at being free from European rule, but that didn't last long. During Haiti's 22-year occupation, it abolished slavery, redistributed land, broke up the Catholic Church's power, and pushed for French to replace Spanish.",
+     "source": {
+      "kind": "class",
+      "id": "w0YagF9DSjQ",
+      "title": "HAMMER TIME | Terror In Haiti",
+      "ts": "31:02",
+      "url": "https://youtu.be/w0YagF9DSjQ?t=1862"
+     }
+    }
+   ]
+  },
+  {
+   "slug": "dominican-batey-expulsions-1991",
+   "title": "The Dominican Republic expels Haitian cane workers, 1991",
+   "start": 1991,
+   "end": 1991,
+   "date": {
+    "text": "13 June 1991 (decree); 18 June – September 1991 (expulsions)",
+    "precision": "range"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Other atrocities",
+   "place": "The bateyes of the Dominican sugar plantations",
+   "region": "Caribbean",
+   "peoples": [
+    "Black",
+    "Hispanic"
+   ],
+   "tribes": [
+    "Simeon",
+    "Levi"
+   ],
+   "people": [
+    "Joaquín Balaguer"
+   ],
+   "summary": "On 13 June 1991 President Joaquín Balaguer issued Decree 233-91 ordering the expulsion of foreign sugar-plantation workers; Dominican authorities used it to drive out Haitian cane cutters and their families, separating families and beating and detaining people without due process.",
+   "account": [
+    "On 13 June 1991, days after international media exposed the conditions of Haitian cane cutters on Dominican sugar plantations, President Joaquín Balaguer issued Decree 233-91, ordering the \"repatriation\" of undocumented foreign workers under 16 and over 60 from the plantations, and warned that the Dominican Republic risked \"losing its identity as a nation\" to what he called a \"peaceful invasion\" of Haitian migrants.",
+    "Beginning 18 June 1991, Dominican authorities carried out mass expulsions of Haitian sugar workers and their Dominican-born children without regard to legal residency, separating families, denying people the chance to collect belongings or wages or to notify relatives, and in some cases beating detainees. The Inter-American Commission on Human Rights' 1999 country report states the decree authorized the expulsion of more than 35,000 Haitians over 1991; Human Rights Watch's contemporary report describes several thousand summarily expelled between June and September, with tens of thousands more fleeing to Haiti on their own to avoid forced deportation."
+   ],
+   "sources": [
+    {
+     "title": "Report on the Situation of Human Rights in the Dominican Republic, Chapter IX (Haitians and Dominico-Haitians)",
+     "publisher": "Inter-American Commission on Human Rights (OAS)",
+     "year": "1999",
+     "url": "https://cidh.oas.org/countryrep/DominicanRep99/Chapter9.htm",
+     "accessed": "2026-10-06",
+     "supports": "the 13 June 1991 Decree 233-91, its terms, Balaguer's \"peaceful invasion\" language, and the figure of more than 35,000 expelled in 1991"
+    },
+    {
+     "title": "A Troubled Year: Haitians in the Dominican Republic",
+     "publisher": "Human Rights Watch",
+     "year": "1992",
+     "url": "https://www.hrw.org/legacy/reports/pdfs/d/domnrep/domrep92o.pdf",
+     "accessed": "2026-10-06",
+     "supports": "the 18 June 1991 start of expulsions, the separation of families, denial of belongings and wages, beatings, and the figure of several thousand summarily expelled plus tens of thousands fleeing voluntarily"
+    }
+   ],
+   "disagreements": [
+    {
+     "point": "How many Haitians the 1991 decree displaced",
+     "views": [
+      "The OAS/Inter-American Commission's 1999 report states Decree 233-91 authorized the expulsion of more than 35,000 Haitians in 1991.",
+      "Human Rights Watch's 1992 report describes several thousand sugar workers summarily expelled by Dominican authorities between June and September 1991, with tens of thousands more fleeing to Haiti on their own to avoid deportation."
+     ]
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "minustah-sexual-abuse-2004-2017",
+   "title": "UN peacekeepers' sexual abuse and exploitation in Haiti",
+   "start": 2004,
+   "end": 2017,
+   "date": {
+    "text": "2004–2017",
+    "precision": "range"
+   },
+   "period": "unto-this-day",
+   "group": "Other atrocities",
+   "place": "Haiti (MINUSTAH bases nationwide)",
+   "region": "Caribbean",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Levi"
+   ],
+   "people": [
+    "Rob Hotston"
+   ],
+   "summary": "Across MINUSTAH's 2004-2017 deployment, UN peacekeepers sexually abused and exploited Haitians, including at least 134 Sri Lankan soldiers accused of running a child sex ring from 2004 to 2007 and, separately, Quebec police officers accused of sexual misconduct investigated from 2013; none of the Sri Lankan soldiers was ever criminally convicted.",
+   "account": [
+    "Haitian children identified at least 134 Sri Lankan soldiers serving with the UN Stabilization Mission in Haiti (MINUSTAH) in a child sex ring operating from 2004 to 2007, involving at least nine documented child victims who were given small amounts of money, food or mobile phones; one girl was first assaulted at age 12, and one boy was allegedly raped by more than 100 soldiers starting at age 15.",
+    "In November 2007 the UN repatriated 108 members of the roughly 950-member Sri Lankan contingent, including three officers, on disciplinary grounds. Sri Lankan authorities classified the conduct as \"consensual\" under Sri Lankan law, and no soldier was ever criminally prosecuted or convicted; in 2016 Sri Lanka made a one-time ex-gratia payment to one victim and to a child born of the abuse.",
+    "Separately, a 2013 case investigated by UN investigator Rob Hotston involved a Canadian peacekeeper -- recruited from Quebec's Sûreté du Québec for the Haiti mission -- accused of picking up a Haitian sex worker, assaulting her and pointing his UN-issued firearm at her; she escaped with his UN identification badge, which identified him. Reporting later found four Quebec police officers accused of sexual misconduct while serving as Haiti peacekeepers, two of whom retired before facing discipline."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "The documentary segment on the Canadian peacekeeper's assault, played in class, becomes the occasion for teaching that the UN -- headquartered, as the class notes, in New York -- has brought disease and theft to Haiti behind a mask of peacekeeping: the UN's presence is read as Edom (the white man, the seed of Esau) sent to afflict Israel and to steal the country's wealth under cover of 'aid', which in fact gets sold rather than given."
+     ],
+     "quote": "So, Deacon, tell us about the UN, the United Nations. I thought the purpose of them being founded was to bring global peace on earth. You, you remember the UN is in the heart of New York City.",
+     "source": {
+      "kind": "class",
+      "id": "w0YagF9DSjQ",
+      "title": "HAMMER TIME | Terror In Haiti",
+      "ts": "42:03",
+      "url": "https://youtu.be/w0YagF9DSjQ?t=2523"
+     }
+    }
+   ],
+   "scriptures": [
+    {
+     "ref": "Isaiah 10:6",
+     "why": "applied to the UN among the nations the Lord sends 'to tread them down like the mire of the streets' while posing as peacekeepers."
+    },
+    {
+     "ref": "Obadiah 1:5",
+     "why": "applied to Edom as a thief who, unlike an ordinary thief, is never satisfied, continuing to steal Haiti's wealth."
+    }
+   ],
+   "sources": [
+    {
+     "title": "UN child sexual abuse scandal in Haiti",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/UN_child_sexual_abuse_scandal_in_Haiti",
+     "accessed": "2026-10-06",
+     "supports": "the 2004-2007 Sri Lankan child sex ring, the 134 accused soldiers, the nine documented victims, the November 2007 repatriation of 108 of about 950 contingent members, the lack of any criminal conviction, and the 2016 ex-gratia payment"
+    },
+    {
+     "title": "Unacceptable: Quebec police retire before hearings over alleged sexual misconduct in Haiti",
+     "publisher": "CBC News",
+     "url": "https://www.cbc.ca/news/canada/montreal/quebec-haiti-united-nations-peacekeepers-sexual-misconduct-1.3696833",
+     "accessed": "2026-10-06",
+     "supports": "the 2013 case investigated by UN investigator Rob Hotston, the Québec officer recruited from the Sûreté du Québec, the assault and firearm threat, the escape with the UN badge, and the four accused Quebec officers, two of whom retired before discipline"
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "haiti-gang-crisis-2023-2025",
+   "title": "Gangs seize Port-au-Prince as the state collapses",
+   "start": 2023,
+   "end": 2025,
+   "date": {
+    "text": "2 October 2023 (UN authorizes the mission) – October 2025 (Gang Suppression Force)",
+    "precision": "range"
+   },
+   "period": "unto-this-day",
+   "group": "Caribbean and Latin America",
+   "place": "Port-au-Prince and nationwide, Haiti",
+   "region": "Caribbean",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Levi"
+   ],
+   "people": [
+    "Jimmy Chérizier",
+    "Ariel Henry"
+   ],
+   "summary": "After the 2021 assassination of Jovenel Moïse, armed gangs led by Jimmy \"Barbecue\" Chérizier formed the Viv Ansanm coalition, stormed Haiti's prisons and forced Prime Minister Ariel Henry to resign in March 2024; by 2025 the coalition held about 80 percent of Port-au-Prince despite a Kenya-led, UN-authorized multinational police mission.",
+   "account": [
+    "The UN Security Council authorized a Kenya-led Multinational Security Support (MSS) mission for Haiti on 2 October 2023 (Resolution 2699). On 29 February 2024, Haiti's two largest gang umbrellas, the G9 Family and Allies and G-Pèp, united as the Viv Ansanm coalition under spokesman Jimmy \"Barbecue\" Chérizier, a former police officer, and launched coordinated attacks on police stations, government buildings and the international airport.",
+    "On 2-3 March 2024, Viv Ansanm stormed Haiti's largest prisons at Croix-des-Bouquets and the National Penitentiary, freeing roughly 4,700 inmates, then seized the main airport to block Prime Minister Ariel Henry's return from abroad. Henry announced his resignation on 11 March 2024, and a nine-member Transitional Presidential Council was sworn in on 25 April 2024.",
+    "Kenya's first contingent of 400 police officers landed in Port-au-Prince on 25 June 2024 under the MSS mission, which was authorized for up to 2,500 personnel but had only about 991 actually deployed by June 2025. In October 2025 the UN Security Council adopted Resolution 2793, transforming the MSS into a Gang Suppression Force with an expanded mandate and authorization for up to 5,500 personnel. By then Viv Ansanm controlled an estimated 80 percent of metropolitan Port-au-Prince."
+   ],
+   "teaching": [
+    {
+     "points": [
+      "A class video addressed directly to the Haitian people (\"the tribe of Levi\") after Ariel Henry's resignation reads the gang takeover not as mere crime but as the fruit of Haiti's leaders taking bribes from oppressors instead of serving their own people, and answers it from Lamentations: Israel's deliverance is not in any nation's hands but in obedience to God's commandments."
+     ],
+     "quote": "As we know, the scripture says, Lamentation 4:17: let us know that our power is not in the hands of a, a vain nation that can do anything for us, but is in the power of obedience of the commandments of God. One of the problems that Haiti has is those bribes that they continually to take; right, those people that's in power, instead of looking after their own people, what happens, they take the bribes of our oppressors.",
+     "teacher": "Captain S (IUIC Miami)",
+     "source": {
+      "kind": "class",
+      "id": "9TbSgxmAP48",
+      "title": "Message to the People of #Haiti🇭🇹 The Tribe of Levi #repent #keepthecommandments",
+      "ts": "1:15",
+      "url": "https://youtu.be/9TbSgxmAP48?t=75"
+     }
+    }
+   ],
+   "scriptures": [
+    {
+     "ref": "Lamentations 4:17",
+     "why": "the class applies this directly to Haiti's 2024 crisis: deliverance is not in any outside nation's hands but in the people's own obedience to God's commandments."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Viv Ansanm",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Viv_Ansanm",
+     "accessed": "2026-10-06",
+     "supports": "the 29 February 2024 revival of Viv Ansanm uniting G9 and G-Pèp under Jimmy Chérizier; the March 2024 prison breaks; the seizure of the airport; the 80 percent territorial-control figure"
+    },
+    {
+     "title": "Multinational Security Support Mission",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Multinational_Security_Support_Mission",
+     "accessed": "2026-10-06",
+     "supports": "the 2 October 2023 UN Security Council authorization (Resolution 2699); the 25 June 2024 arrival of Kenya's first 400 officers; the 2,500-personnel authorization and 991 actually deployed by June 2025; the October 2025 transition to the Gang Suppression Force under Resolution 2793 with up to 5,500 personnel"
+    },
+    {
+     "title": "Haiti's leader to resign as gangs run rampant through country engulfed in crisis",
+     "publisher": "CNN",
+     "url": "https://www.cnn.com/2024/03/11/americas/haiti-pm-ariel-henry-resigns-gang-violence-intl-hnk/index.html",
+     "accessed": "2026-10-06",
+     "supports": "Ariel Henry's 11 March 2024 resignation announcement and its gang-violence context"
+    }
+   ],
+   "uncertainty": "The class video (9TbSgxmAP48) is undated in the transcript corpus; its content (Ariel Henry's resignation and the five gangs) places it shortly after 11 March 2024.",
+   "status": "published"
+  },
+  {
+   "slug": "mirabal-sisters-assassination-1960",
+   "title": "Trujillo's secret police murder the Mirabal sisters",
+   "start": 1960,
+   "end": 1960,
+   "date": {
+    "text": "November 25, 1960",
+    "precision": "day"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Resistance",
+   "place": "near Salcedo, Dominican Republic",
+   "region": "Caribbean",
+   "peoples": [
+    "Hispanic"
+   ],
+   "tribes": [
+    "Simeon"
+   ],
+   "people": [
+    "Patria Mirabal",
+    "Minerva Mirabal",
+    "María Teresa Mirabal",
+    "Bélgica \"Dedé\" Mirabal",
+    "Rafael Trujillo"
+   ],
+   "summary": "Minerva and María Teresa Mirabal founded the clandestine 14th of June Movement against Rafael Trujillo under the codename \"Las Mariposas\"; on November 25, 1960, Trujillo's secret police strangled and clubbed the two of them and their sister Patria to death, along with their driver, and staged the killing as a car accident.",
+   "account": [
+    "Minerva and María Teresa Mirabal, two of four daughters of a Dominican farming family, founded and led the clandestine 14 June Revolutionary Movement against Rafael Trujillo's dictatorship, taking the codename \"Las Mariposas\" (the Butterflies); their sister Patria stored weapons for the movement at her house. A fourth sister, Bélgica (\"Dedé\"), did not take part and survived.",
+    "On November 25, 1960, while the three politically active sisters were returning from visiting their imprisoned husbands, Trujillo's secret police (the Servicio de Inteligencia Militar) stopped their vehicle, strangled and clubbed Patria, Minerva and María Teresa and their driver Rufino de la Cruz to death, then pushed the car off a mountain road to stage it as an accident. After Trujillo's own assassination in May 1961, General Pupo Román confirmed that secret police had carried out the killing, almost certainly on Trujillo's direct order.",
+    "On December 17, 1999, the UN General Assembly designated November 25 as the International Day for the Elimination of Violence against Women in memory of the Mirabal sisters."
+   ],
+   "sources": [
+    {
+     "title": "Mirabal sisters",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Mirabal_sisters",
+     "accessed": "2026-10-06",
+     "supports": "the sisters' names and birth years; the 14 June Revolutionary Movement and the \"Las Mariposas\" codename; the November 25, 1960 killing and its staging as an accident; Pupo Román's confirmation after Trujillo's 1961 assassination; the December 17, 1999 UN designation"
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "balaguer-twelve-years-1966-1978",
+   "title": "Balaguer's \"Twelve Years\": repression after the 1965 war",
+   "start": 1966,
+   "end": 1978,
+   "date": {
+    "text": "1966–1978",
+    "precision": "range"
+   },
+   "period": "civil-rights-awakening",
+   "group": "Other atrocities",
+   "place": "Dominican Republic",
+   "region": "Caribbean",
+   "peoples": [
+    "Hispanic"
+   ],
+   "tribes": [
+    "Simeon"
+   ],
+   "people": [
+    "Joaquín Balaguer",
+    "Francisco Caamaño"
+   ],
+   "summary": "Returning from exile with U.S. backing after the 1965 civil war, Joaquín Balaguer won the 1966 election and ruled for twelve years through a period of systematic political repression -- jailings, torture, disappearances and killings estimated at between about 3,000 and 11,000 -- before losing the 1978 election to Antonio Guzmán.",
+   "account": [
+    "After the 1965 Dominican civil war and United States intervention, Joaquín Balaguer returned from exile with U.S. backing and defeated Juan Bosch in the 1966 election, campaigning as a moderate conservative. Over his twelve years in power, political opponents were jailed and sometimes killed and opposition newspapers were occasionally seized, while Balaguer also funded schools, hospitals, dams, roads and public housing.",
+    "Estimates of the repression's toll vary. Luisa de Peña Díaz, director of the Memorial Museum of Dominican Resistance, states that between 1966 and 1978, 11,000 people were tortured, imprisoned, forcibly disappeared or killed, including 1,200 political killings; other reporting gives a toll of about 3,000 to 6,000 killed. Paramilitary death squads such as La Banda Colorá operated with impunity during this period, sometimes called \"Operation Cleanup\"; among the dead was Francisco Caamaño, who had led the 1965 constitutionalist revolt and was killed after returning to the country in 1973.",
+    "Balaguer was reelected in 1970 and 1974, largely through intimidation of the opposition. His bid for a fourth term in 1978 failed when election returns favored Antonio Guzmán; despite initial military interference with the vote count, Guzmán's victory stood, the first defeat of Balaguer's career."
+   ],
+   "sources": [
+    {
+     "title": "Joaquín Balaguer",
+     "publisher": "Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Joaqu%C3%ADn_Balaguer",
+     "accessed": "2026-10-06",
+     "supports": "the 1966 election and U.S.-backed return from exile; the repression figures (11,000 tortured/imprisoned/disappeared/killed including 1,200 political killings per the Memorial Museum of Dominican Resistance; a separate estimate of about 3,000 killed); the public-works spending; the 1970 and 1974 reelections; the 1978 election loss to Guzmán"
+    }
+   ],
+   "disagreements": [
+    {
+     "point": "The death toll of Balaguer's 1966-1978 repression",
+     "views": [
+      "The Memorial Museum of Dominican Resistance's director gives 11,000 tortured, imprisoned, disappeared or killed, including 1,200 political killings.",
+      "Other reporting gives narrower estimates of about 3,000 to 6,000 killed."
+     ]
+    }
+   ],
+   "status": "published"
+  },
+  {
+   "slug": "hurricane-matthew-haiti-2016",
+   "title": "Hurricane Matthew devastates Haiti",
+   "start": 2016,
+   "end": 2016,
+   "date": {
+    "text": "October 4, 2016",
+    "precision": "day"
+   },
+   "period": "unto-this-day",
+   "group": "Caribbean and Latin America",
+   "place": "Southern Haiti (South and Grand'Anse departments)",
+   "region": "Caribbean",
+   "peoples": [
+    "Black"
+   ],
+   "tribes": [
+    "Levi"
+   ],
+   "people": [],
+   "summary": "Hurricane Matthew struck southern Haiti on October 4, 2016, as a Category 4 storm, killing more than 1,000 people, destroying tens of thousands of homes, and triggering a renewed cholera outbreak in the storm-damaged south.",
+   "account": [
+    "Hurricane Matthew made landfall in southern Haiti on October 4, 2016. Within days the death toll passed 1,000 according to local officials' tallies. The South and Grand'Anse departments were hit hardest, with as much as 75 percent of homes losing their roofs; more than 29,000 houses were destroyed or severely damaged, and some 350,000 people needed immediate assistance, with about 60,000 in temporary shelters.",
+    "With clean water, food and shelter disrupted, cholera spread through rural communities already contending with the epidemic that followed the 2010 earthquake; outbreaks in the storm-hit south killed at least 13 people in the weeks after the hurricane."
+   ],
+   "sources": [
+    {
+     "title": "Haiti death toll tops 1,000 in Hurricane Matthew's devastating wake",
+     "publisher": "CBC News",
+     "url": "https://www.cbc.ca/news/world/haiti-hurricane-cholera-destruction-matthew-1.3798697",
+     "accessed": "2026-10-06",
+     "supports": "the October 4, 2016 landfall; the death toll passing 1,000; the post-hurricane cholera deaths"
+    },
+    {
+     "title": "Hurricane Matthew - News Update",
+     "publisher": "Habitat for Humanity Great Britain",
+     "url": "https://www.habitatforhumanity.org.uk/blog/2016/10/hurricane-matthew/",
+     "accessed": "2026-10-06",
+     "supports": "the 29,000 homes destroyed or severely damaged, the 350,000 people needing assistance, the 60,000 in shelters, and the 75 percent of homes losing roofs in the South and Grand'Anse departments"
+    }
+   ],
+   "status": "published"
+  }
+ ],
+ "drafts": [],
+ "ledger": [
+  {
+   "kind": "class",
+   "ref": "TdRSQOfpfv8",
+   "title": "ESCP 2.0 | The French Government Wages War Against IUIC",
+   "status": "reviewed",
+   "note": "read at 1:15:47, 1:16:00, 1:19:24, 1:24:41",
+   "events": [
+    "code-noir-1685",
+    "haiti-declares-independence-1804",
+    "french-indemnity-haiti-1825"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "X0_KpKwljL8",
+   "title": "€45,000 for teaching the truth? WTH France!",
+   "status": "reviewed",
+   "note": "a shorter re-cut of TdRSQOfpfv8 with the same narration; not separately cited as a source",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "4sB9uLiRJ8A",
+   "title": "ESCP 2.0 | PROPHESYING THE FALL OF FRANCE",
+   "status": "reviewed",
+   "note": "read at 29:58-38:50 (the \"corrupt leaders\" and \"voodoo capital\" charges and the class's answer, Genesis 49:5, Romans 9)",
+   "events": [
+    "french-indemnity-haiti-1825"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "w0YagF9DSjQ",
+   "title": "HAMMER TIME | Terror In Haiti",
+   "status": "reviewed",
+   "note": "read at 1:13:39-1:15:58 (Duvaliers, Aristide's two coups) and 37:28-38:47 (dominicanidad)",
+   "events": [
+    "duvalier-dynasty-haiti-1957-1986",
+    "aristide-coups-1991-2004",
+    "trujillo-dictatorship-1930"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "mIxqqZ5fuzA",
+   "title": "HAMMER TIME: Terror In Haiti",
+   "status": "reviewed",
+   "note": "a duplicate upload of w0YagF9DSjQ with the same narration; not separately cited as a source",
+   "events": []
+  },
+  {
+   "kind": "class",
+   "ref": "eIwAjSTonV8",
+   "title": "#IUIC | RAVENING WOLVES RADIO SHOW: Episode 54 - The Haiti Crisis",
+   "status": "reviewed",
+   "note": "read at 16:04-16:52",
+   "events": [
+    "haiti-earthquake-2010"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "5V6hePtdx-A",
+   "title": "#IUIC | RAVENING WOLVES SHOW: Episode 31",
+   "status": "reviewed",
+   "note": "read at 3:26-4:00",
+   "events": [
+    "assassination-jovenel-moise-2021"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "0R72YoWSDOM",
+   "title": "The Hidden Religion of America: Hellenism in Disguise",
+   "status": "reviewed",
+   "note": "read at 1:22:49-1:26:30",
+   "events": [
+    "us-occupation-dominican-republic-1916",
+    "dominican-civil-war-1965"
+   ]
+  },
+  {
+   "kind": "history",
+   "ref": "ffxKEbSLscQ",
+   "title": "OUR HIDDEN HISTORY | TRANSITION OF POWER : SPECIAL EDITION VENEZUELA EP 189",
+   "status": "reviewed",
+   "note": "read at 1:06:59-1:07:49",
+   "events": [
+    "trujillo-assassination-1961"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Code_Noir",
+   "title": "Code Noir",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "code-noir-1685"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Haitian_Declaration_of_Independence",
+   "title": "Haitian Declaration of Independence",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "haiti-declares-independence-1804"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Haitian_independence_debt",
+   "title": "Haitian independence debt",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "french-indemnity-haiti-1825"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Fran%C3%A7ois_Duvalier",
+   "title": "François Duvalier",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "duvalier-dynasty-haiti-1957-1986"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Jean-Claude_Duvalier",
+   "title": "Jean-Claude Duvalier",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "duvalier-dynasty-haiti-1957-1986"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/1991_Haitian_coup_d%27%C3%A9tat",
+   "title": "1991 Haitian coup d'état",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "aristide-coups-1991-2004"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/2004_Haitian_coup_d%27%C3%A9tat",
+   "title": "2004 Haitian coup d'état",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "aristide-coups-1991-2004"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/2010_Haiti_earthquake",
+   "title": "2010 Haiti earthquake",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "haiti-earthquake-2010"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.npr.org/2015/06/03/411524156/in-search-of-the-red-cross-500-million-i",
+   "title": "In Search Of The Red Cross' $500 Million In Haiti Relief",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "haiti-earthquake-2010"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Haiti_cholera_outbreak",
+   "title": "Haiti cholera outbreak",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "haiti-cholera-outbreak-2010"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Assassination_of_Jovenel_Mo%C3%AFse",
+   "title": "Assassination of Jovenel Moïse",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "assassination-jovenel-moise-2021"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Dominican_War_of_Independence",
+   "title": "Dominican War of Independence",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "dominican-war-of-independence-1844"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Dominican_Restoration_War",
+   "title": "Dominican Restoration War",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "dominican-restoration-war-1863"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/United_States_occupation_of_the_Dominican_Republic_(1916%E2%80%931924)",
+   "title": "United States occupation of the Dominican Republic (1916-1924)",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "us-occupation-dominican-republic-1916"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Rafael_Trujillo",
+   "title": "Rafael Trujillo",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "trujillo-dictatorship-1930",
+    "trujillo-assassination-1961"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Dominican_Civil_War",
+   "title": "Dominican Civil War",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "dominican-civil-war-1965"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Dominican_Republic_nationality_law",
+   "title": "Dominican Republic nationality law",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "dominican-nationality-ruling-2013"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.cnn.com/2025/01/02/americas/dominican-republic-deport-haitians-intl-latam",
+   "title": "Dominican Republic deported more than 276,000 people in 2024",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "dominican-mass-deportations-2024"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://www.france24.com/en/live-news/20250505-dominican-republican-reports-sharp-rise-in-haitian-migrant-deportations",
+   "title": "Dominican Republic reports sharp rise in Haitian migrant deportations",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "dominican-mass-deportations-2024"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://amnesty.ca/urgent-actions/dominican-republic-end-racist-deportations-of-haitians/",
+   "title": "Dominican Republic: End racist deportations of Haitians",
+   "status": "reviewed",
+   "note": "",
+   "events": [
+    "dominican-mass-deportations-2024"
+   ]
+  }
+ ],
+ "gaps": [
+  "image: the two surviving 1804 Haitian Declaration of Independence broadsides (UK National Archives, found by Julia Gaffield 2010-2011) -- archival, public institutional holding.",
+  "image: a public-domain period engraving of the French indemnity fleet or Charles X's 1825 ordinance document, for french-indemnity-haiti-1825.",
+  "image: NOAA/USGS public-domain seismic or aerial damage imagery of Port-au-Prince after the January 12, 2010 earthquake, for haiti-earthquake-2010.",
+  "extends haitian-revolution: the existing event covers 1791 broadly; code-noir-1685 and haiti-declares-independence-1804 in this batch are its legal prelude and its conclusion, not duplicates, but a reviewer may want to cross-link them.",
+  "extends haiti-occupation-1915-1934: the existing event is not expanded in this batch; dominican-civil-war-1965's teaching (0R72YoWSDOM) separately corrects a figure (an \"eight-year occupation\") that an AI-overview read on air had misattributed to 1965 instead of 1916-1924 -- recorded as a disagreement on dominican-civil-war-1965 rather than as a change to the existing event.",
+  "Owner's three standing tagging questions (Brazil/Asher; the Nathanyel/\"A Time Of Defamation\" teacher; the Caste War Maya and Garifuna/canal workers) are not engaged by this batch; none of its events touch those questions.",
+  "No class teaching was found for: the Dominican War of Independence (1844), the Dominican Restoration War (1863-65), the 2013 nationality ruling, or the 2024-25 Dominican mass deportations of Haitians, despite tsearch regexes on names, dates, leaders and places of each (capotillo, restoration war, sentencia, 168-13, stateless, denationaliz, deport). A later pass found class teaching for the cholera outbreak's UN/peacekeeper origin (w0YagF9DSjQ) and for the 2024 gang crisis (9TbSgxmAP48); both are now in this batch's events.",
+  "extends haitian-revolution: kingdom-of-haiti-christophe-1811 and haitian-unification-hispaniola-1822 in this batch continue the post-independence narrative the existing event ends in 1804; not duplicates, but a reviewer may want to cross-link them.",
+  "extends aristide-coups-1991-2004: minustah-sexual-abuse-2004-2017 in this batch continues past the existing event's 2004 MINUSTAH deployment; not a duplicate, but shares context.",
+  "extends assassination-jovenel-moise-2021: haiti-gang-crisis-2023-2025 in this batch picks up directly where that event ends; not a duplicate, but a reviewer may want to cross-link them.",
+  "No class teaching was found for the Mirabal sisters' 1960 assassination or Balaguer's 1966-1978 \"Twelve Years\" (searches: mirabal, las mariposas, butterflies+trujillo, balaguer).",
+  "extends haiti-cholera-outbreak-2010 / haiti-earthquake-2010: hurricane-matthew-haiti-2016 in this batch is a separate 2016 disaster that reignited cholera in the storm-hit south; not a duplicate of either existing event, but a reviewer may want to cross-link them."
+ ]
+}
