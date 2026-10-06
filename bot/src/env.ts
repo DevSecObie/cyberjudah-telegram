@@ -38,6 +38,10 @@ export type Env = {
   E2E_CLOCK?: string;
   /** Telegram user ids (comma-separated) allowed to edit notes from the app. They also receive the hourly health-check pages. */
   ADMIN_IDS?: string;
+  /** Donations ("Support CyberJudah", billing.ts donationsConfig): "off" turns off the feature without a deploy (on when unset). The owner's own HTTPS donation link; empty until the owner sets it. */
+  DONATIONS_ON?: string; DONATION_URL?: string;
+  /** The Stars a giver may name for a donation, besides the presets: at least 1 (default 1); optionally capped (unset means no app-imposed ceiling beyond Telegram's own). */
+  DONATE_MIN_STARS?: string; DONATE_MAX_STARS?: string;
   /** Fine-grained token scoped only to the app repository. */
   APP_REPO_TOKEN?: string;
   /** Loopback GitHub stand-in, used only with E2E_CLOCK=on. */
