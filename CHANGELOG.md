@@ -34,7 +34,6 @@ request that introduced this file ([#77]).
 - More people have portraits on the Timeline: 37 newly approved, among them Christ, Joshua, Isaiah, Ezekiel, Nehemiah, Rachel, Leah and Rebekah, each drawn as the scriptures and the classes describe them.
 - Small library updates behind the scenes (search caching, the bot's web framework, the Anthropic SDK), with no visible change.
 - Routine dependency updates now leave TypeScript, Vite, the Vite React plugin and the Workers types package out of the weekly batch, so a major version of one of those is upgraded on its own instead of bundled in with everything else.
-- Upgraded the Markdown renderer used for class transcripts and notes to its next major version, with no visible change to how they display.
 
 - Admins can correct precept explanations, verse positions and playback timestamps through the same review flow, while keeping recorded references intact.
 
