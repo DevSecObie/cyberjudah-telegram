@@ -69,7 +69,12 @@ const teaching = z.strictObject({
 export const TimelineShape = z.strictObject({
   slug: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/).max(120), title: nonempty,
   start: z.int().nullable().optional(), end: z.int().nullable().optional(),
-  date: z.strictObject({ text: nonempty, precision: z.enum(['day', 'month', 'year', 'circa', 'range', 'decade']) }).optional(),
+  date: z.strictObject({
+    text: nonempty, precision: z.enum(['day', 'month', 'year', 'circa', 'range', 'decade', 'unknown']),
+    // A source-calendar date ("15 Casleu, year 145") that is not converted to a BCE/CE year: say
+    // which calendar and where it is stated, but never invent the conversion (CYB-146).
+    calendar: text.optional(), sourceRef: text.optional(),
+  }).optional(),
   period: nonempty, group: z.string().refine(v => GROUPS.includes(v), 'Choose a listed group').optional(),
   tribes: z.array(z.string().refine(v => Object.hasOwn(TRIBES, v), 'Choose one of the twelve tribes')).max(12).optional(),
   peoples: z.array(z.string().refine(v => PEOPLES.includes(v), 'Choose a listed people')).max(3).optional(),

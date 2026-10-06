@@ -71,8 +71,8 @@ export function flatten(sections) {
   return [...seen.values()];
 }
 
-/** An event opens when it has our content: case studies, a reign from Who's Who, or a Final Captivity account (Bible Strong opens only events with details). */
-export const hasDetails = (e) => !!(e.cases?.length || e.reign || e.fc);
+/** An event opens when it has our content: case studies, a reign from Who's Who, or a Final Captivity or Between the Testaments account (Bible Strong opens only events with details). */
+export const hasDetails = (e) => !!(e.cases?.length || e.reign || e.fc || e.btt);
 
 /** Events whose title or date contain every word of the query, in timeline order (their search lists events with details). */
 export function searchEvents(sections, query) {
