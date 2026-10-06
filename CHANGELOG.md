@@ -23,7 +23,7 @@ request that introduced this file ([#77]).
 ## [Unreleased]
 
 - Angels (so far Raphael) get their own heading on their People page instead of the generic "Person".
-- Readiness work for the Apocrypha project: a new "Between the Testaments" age is wired into the Timeline's data pipeline, ready to show between The Exile and Life of Christ once the owner approves its boundary years; no visible change yet (the approved five-event sample stays a draft, with its source-calendar dates and class citations preserved, not plotted with an invented position).
+- Readiness work for the Apocrypha project: a new "Between the Testaments" age is wired into the Timeline's data pipeline and the event sheet, ready to show between The Exile and Life of Christ once the owner approves its boundary years; no visible change yet (the approved five-event sample stays a draft, with its source-calendar dates and class citations preserved, not plotted with an invented position).
 - People show their portraits everywhere a person appears (the People list, a person's page, the family graph, the chapter's people, search, case studies), the same approved portraits as the Timeline; anyone without one keeps their letter.
 - More people have portraits on the Timeline: 37 newly approved, among them Christ, Joshua, Isaiah, Ezekiel, Nehemiah, Rachel, Leah and Rebekah, each drawn as the scriptures and the classes describe them.
 - Small library updates behind the scenes (search caching, the bot's web framework, the Anthropic SDK), with no visible change.
