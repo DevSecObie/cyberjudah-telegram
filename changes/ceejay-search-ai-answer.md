@@ -1,0 +1,1 @@
+- Search now opens with an AI answer block: one free-tier answer over the library, with tappable citations, above the keyword results. Like search, it opens from Telegram; each answer is a single free-tier model call, up to 20 a day per reader, within the owner's daily breaker.

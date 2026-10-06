@@ -45,6 +45,7 @@ record holding anything personal is sealed for its owner (AES-GCM, a key derived
 | Stars payments | D1 `payments` | Telegram charge ID, kind, Stars, date; pid | Kept for refunds and accounts | Delete my data unlinks it (`user_id = 'deleted'`) |
 | Who asked on a day | D1 `usage_people` (pid) | pid, day | 30 days | Delete my data |
 | Daily limits | D1 `rate_counts` (`name:pid:day`) | A count | Swept daily | Delete my data |
+| Ask limit per network | D1 `rate_counts` (`ask_ip:<IP address>:day`) | The IP address the question came from, and a count, never linked to a pid | Swept daily (kept up to two days) | Expires on its own |
 | Class-note requests | KV `notereq:<video>` | Count, pids (once each) | Until the notes are written | Delete my data (the reader's pid and vote) |
 
 Nothing else about people is stored on the server. Highlights, notes, bookmarks, tags, history,

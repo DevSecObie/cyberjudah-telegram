@@ -111,3 +111,8 @@ a.rec { color: inherit; text-decoration: none; }
 .recs--compact .rec__links { display: none; }
 @media (min-width: 720px) { .recs--compact .rec { grid-template-columns: 180px minmax(0, 1fr); } }
 .hit { display: block; }
+/* The AI answer block: the free-tier answer card above the keyword results. */
+.srch__ai .msg__text { padding: var(--sp-3) var(--sp-3) 0; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
+.srch__ai .srcrail { margin-top: var(--sp-2); }
+.srch__ai > .hint { margin-top: var(--sp-2); }
+.srch__head h2 svg { margin-right: var(--sp-1); color: var(--accent); }

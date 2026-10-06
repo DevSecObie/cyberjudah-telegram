@@ -303,6 +303,44 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   }
 }
 
+export type SearchAnswer =
+  | { ok: true; answer: string; sources: (Passage & { n: number })[]; model: string }
+  | { ok: false; reason: "too-short" | "unavailable" | "empty" };
+
+/**
+ * The search screen's AI answer block: one free-tier answer over the library for a signed-in reader.
+ * Pinned to the default free model on Cloudflare's own infrastructure (no third party sees the
+ * question), run through the same meter as Ask's free answers so the owner's daily breaker
+ * counts it (an admin's answers are not metered, as in Ask). The free path holds nothing and
+ * charges nothing.
+ */
+export async function answerSearch(env: Env, q: string, uid: number): Promise<SearchAnswer> {
+  const question = q.trim().slice(0, 200);
+  if (question.length < 2) return { ok: false, reason: "too-short" };
+  const model = freeModel(env);
+  const started = await startMeter(env, uid, model, {});
+  if (!started.ok) return { ok: false, reason: "unavailable" };
+  const meter = started.meter;
+  const spend = meter.spend;
+  try {
+    const passages = answerCandidates(question, await retrieve(env, question, 12, spend), 8);
+    if (!passages.length) {
+      await finishMeter(env, meter, "empty");
+      return { ok: true, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], model: model.id };
+    }
+    // The default free model answers from the passages in one call (format "plain"): no tools.
+    const ran = await runAgent(env, question, [], passages, (t, k) => retrieve(env, t, k, spend), () => undefined, undefined, undefined, model, spend, undefined, meter.maxRounds);
+    const { answer } = splitFollowups(ran.text);
+    if (!answer.trim()) { await finishMeter(env, meter, "empty"); return { ok: false, reason: "empty" }; }
+    await finishMeter(env, meter, "ok");
+    return { ok: true, answer, sources: sourcesOf(answer, passages), model: model.id };
+  } catch (e) {
+    await finishMeter(env, meter, "failed").catch(() => null);
+    console.error(JSON.stringify({ event: "search_answer_failed", message: (e as Error).message?.slice(0, 160) }));
+    return { ok: false, reason: "unavailable" };
+  }
+}
+
 type Msg = { role: "system" | "user" | "assistant"; content: string };
 const CLAUDE_DEFAULT = "claude-sonnet-5";
 /**
