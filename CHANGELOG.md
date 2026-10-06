@@ -53,7 +53,6 @@ Merged to `main` and not yet in a tagged release. Production currently runs `861
 - Ask names its existing Strong’s API fallback when an installed release is unavailable; edition searches first match all query words before falling back to the rarest word.
 - Ask's free answers now run on Llama 3.1 8B inside Cloudflare's free tier, answering from the retrieved passages in one call, and pause for the day before they could ever cost the project anything.
 - Ask's free tier now offers every Workers AI text model (26), not just the default: Cloudflare's 10,000 free neurons a day are shared across all of its models, so a reader can pick any of them in the model picker and the daily breaker still keeps the project's cost at $0.
-- Search now opens with an AI answer block: one free-tier answer over the library, with tappable citations, above the keyword results. Like search, it opens from Telegram; each answer is a single free-tier model call, up to 20 a day per reader, within the owner's daily breaker.
 
 ### Fixed
 - Date-only YouTube upload labels now use UTC consistently, keeping fallback class dates stable across host time zones.
