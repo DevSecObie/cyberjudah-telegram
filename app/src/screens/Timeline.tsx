@@ -1,4 +1,5 @@
 import { CmsEditLink } from "@/admin/EditLink";
+import { onPictureError, pictureSrc } from "@/ui/pictures";
 import { useQueries } from "@tanstack/react-query";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useNavigationType, useParams, useSearchParams } from "react-router";
@@ -18,7 +19,7 @@ import { Lit } from "@/ui/search-hero";
 import { SearchBar, useSettled } from "@/ui/search-bar";
 import { useSheet } from "@/ui/sheet";
 import { Empty, Icon } from "@/ui/ui";
-import { FinalCaptivityDetail } from "./TimelineFinalCaptivity";
+import { AgeEventDetail } from "./TimelineFinalCaptivity";
 import { BackgroundExtension } from "@/ui/BackgroundExtension";
 import { PhotoEdit, usePhotos } from "@/ui/photo-edit";
 
@@ -43,7 +44,6 @@ const ALL = flatten(SECTIONS);
 /** The Final Captivity, the last age (app/scripts/final-captivity): its name and the date its sources were reviewed through. */
 const FINAL_CAPTIVITY = TL.finalCaptivity;
 const reviewed = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString([], { year: "numeric", month: "long", day: "numeric" });
-const BASE = import.meta.env.BASE_URL;
 
 /**
  * Periods with an approved picture (app/public/timeline/periods/<id>.webp, 640x800, their 4:5).
@@ -55,14 +55,14 @@ const PERIOD_PICTURES = new Set(["1", "2", "4", "5", "6", "7", "8", "9", "10", "
 /** An admin's cover or the existing approved period artwork; no image for unapproved periods. */
 function usePeriodPicture(s: TimelineSection) {
   const set = usePhotos().data?.[`period:${s.id}`];
-  return set ?? (PERIOD_PICTURES.has(s.id) ? `${BASE}timeline/periods/${s.id}.webp` : undefined);
+  return set ?? (PERIOD_PICTURES.has(s.id) ? pictureSrc(`timeline/periods/${s.id}.webp`) : undefined);
 }
 
 /** A period's picture, or its colour where the picture waits on direction. Decorative: the title is beside it. */
 function PeriodPicture({ s, className, eager }: { s: TimelineSection; className: string; eager?: boolean }) {
   const src = usePeriodPicture(s);
   return src
-    ? <img className={className} src={src} alt="" width={640} height={800} loading={eager ? "eager" : "lazy"} decoding="async" draggable={false} />
+    ? <img className={className} src={src} alt="" width={640} height={800} loading={eager ? "eager" : "lazy"} decoding="async" draggable={false} onError={onPictureError} />
     : <span className={`${className} tl-pic--none`} style={{ ["--tl-color" as string]: s.color }} aria-hidden="true" />;
 }
 
@@ -71,7 +71,7 @@ function PeriodPicture({ s, className, eager }: { s: TimelineSection; className:
 const portraitSrc = (e: TimelineEvent, size: 128 | 256, photos?: Record<string, string>) =>
   // A photo an admin set in the app comes first (ui/photo-edit.tsx): the event's own, then its leader's.
   photos?.[`event:${e.slug}`] ?? (e.leader ? photos?.[`leader:${e.leader}`] : undefined)
-  ?? (e.portrait ? `${BASE}people/${e.portrait}-${size}.webp` : e.leader ? `${BASE}timeline/leaders/${e.leader}-${size}.webp` : null);
+  ?? (e.portrait ? pictureSrc(`people/${e.portrait}-${size}.webp`) : e.leader ? pictureSrc(`timeline/leaders/${e.leader}-${size}.webp`) : null);
 
 /** Where a period's canvas was, and which event was opened from it, for this visit (the history entry). */
 type Place = { x: number; y: number; focus?: string };
@@ -128,7 +128,7 @@ function Panel({ title, onClose, children }: { title: string; onClose: () => voi
 function Emblem({ s }: { s: TimelineSection }) {
   return (
     <span className="tl-emblem tl-emblem--card" style={{ ["--tl-color" as string]: s.color }}>
-      <span className="tl-emblem__age">{s.sectionTitle}{String(s.id).startsWith("fc-") ? <b className="tl-emblem__new">New</b> : null}</span>
+      <span className="tl-emblem__age">{s.sectionTitle}{/^(fc|btt)-/.test(String(s.id)) ? <b className="tl-emblem__new">New</b> : null}</span>
       <span className="tl-emblem__title">{s.title}</span>
       <span className="tl-emblem__sub">{s.subTitle}</span>
       <i className="tl-emblem__bar" aria-hidden="true" />
@@ -327,7 +327,7 @@ export function TimelinePeriod() {
 
 /** SectionDetailsModal: the period's card with its picture; in place of their description, the case studies on its events. */
 function PeriodDetails({ s }: { s: TimelineSection }) {
-  if (s.events.some((e) => e.fc)) return <FcPeriodDetails s={s} />;
+  if (s.events.some((e) => e.fc || e.btt)) return <AgeGroupedPeriodDetails s={s} />;
   const withCases = s.events.filter((e) => e.cases?.length);
   return (
     <div className="tl-details">
@@ -343,10 +343,11 @@ function PeriodDetails({ s }: { s: TimelineSection }) {
   );
 }
 
-/** A Final Captivity period's details: its events by research category, in time order within each. */
-function FcPeriodDetails({ s }: { s: TimelineSection }) {
+/** A Final Captivity or Between the Testaments period's details: its events by research category, in time order within each. */
+function AgeGroupedPeriodDetails({ s }: { s: TimelineSection }) {
   const groups = new Map<string, TimelineEvent[]>();
   for (const e of s.events) groups.set(e.group ?? "Events", [...(groups.get(e.group ?? "Events") ?? []), e]);
+  const fc = s.events.some((e) => e.fc);
   return (
     <div className="tl-details">
       <SectionCard s={s} />
@@ -358,7 +359,7 @@ function FcPeriodDetails({ s }: { s: TimelineSection }) {
           <ul className="tl-details__list">{list.map((e) => <li key={e.slug}><Link to={`/timeline/event/${e.slug}`} onClick={() => haptic("select")}><b>{e.title}</b><span>{calculateLabel(e.start, e.end)}</span></Link></li>)}</ul>
         </section>
       ))}
-      {FINAL_CAPTIVITY ? <p className="hint">Sources reviewed through {reviewed(FINAL_CAPTIVITY.reviewedThrough)}.</p> : null}
+      {fc && FINAL_CAPTIVITY ? <p className="hint">Sources reviewed through {reviewed(FINAL_CAPTIVITY.reviewedThrough)}.</p> : null}
     </div>
   );
 }
@@ -378,7 +379,7 @@ function Bar({ e, g, onOpen }: { e: TimelineEvent; g: ReturnType<typeof geometry
     ? <><span className="tl-minor__title">{e.title}</span><span className="tl-minor__date">{label}</span></>
     : <>
         <span className="tl-major__ride"><span className="tl-major__desc"><span className="tl-major__title">{e.title}</span><i aria-hidden="true" /><span className="tl-major__date">{label}</span></span></span>
-        <span className="tl-major__pic" aria-hidden="true">{pic ? <img src={pic} alt="" width={60} height={60} loading="lazy" decoding="async" draggable={false} /> : <span className="tl-major__letter">{e.title.replace(/^(the|a|an)\s+/i, "").charAt(0).toUpperCase()}</span>}</span>
+        <span className="tl-major__pic" aria-hidden="true">{pic ? <img src={pic} alt="" width={60} height={60} loading="lazy" decoding="async" draggable={false} onError={onPictureError} /> : <span className="tl-major__letter">{e.title.replace(/^(the|a|an)\s+/i, "").charAt(0).toUpperCase()}</span>}</span>
       </>;
   const cls = e.type === "minor" ? "tl-minor" : "tl-major";
   if (e.type !== "minor") style.width = g.eventWidth(e.start, e.end, e.isFixed);
@@ -462,7 +463,7 @@ export function TimelineSearch() {
                 return (
                   <li key={e.slug}>
                     <Link to={`/timeline/event/${e.slug}`} data-result="" className="srch__hit" onClick={() => haptic("select")}>
-                      {pic ? <img className="tl-search__pic" src={pic} alt="" width={70} height={70} loading="lazy" decoding="async" /> : <span className="srch__kind" data-kind="history"><Icon name="history" size={18} /></span>}
+                      {pic ? <img className="tl-search__pic" src={pic} alt="" width={70} height={70} loading="lazy" decoding="async" onError={onPictureError} /> : <span className="srch__kind" data-kind="history"><Icon name="history" size={18} /></span>}
                       <span className="srch__body">
                         <span className="srch__title"><Lit text={`${e.title} (${calculateLabel(e.start, e.end)})`} needle={typed} /></span>
                         {sub ? <span className="srch__snip"><Lit text={sub} needle={typed} /></span> : null}
@@ -516,7 +517,7 @@ export function TimelineEventScreen() {
     <main className="tl-event" style={{ ["--tl-color" as string]: s.color }}>
       <Header title={e.title} onMenu={menu} />
       <div className="tl-event__body">
-        {pic ? <img className="tl-event__pic" src={pic} alt="" width={150} height={150} decoding="async" /> : null}
+        {pic ? <img className="tl-event__pic" src={pic} alt="" width={150} height={150} decoding="async" onError={onPictureError} /> : null}
         {/* An admin sets the picture here: a leader's portrait (on every event about them), else this event's own. */}
         <PhotoEdit slot={e.leader ? `leader:${e.leader}` : `event:${e.slug}`} label={e.leader ? "Leader's portrait" : "Event photo"} hasPhoto={!!pic} />
         <div className="tl-event__head">
@@ -525,8 +526,10 @@ export function TimelineEventScreen() {
           <Link className="tl-event__period" to={`/timeline/${e.sectionIndex}`}>{s.title} · {s.subTitle}</Link>
         </div>
 
+        {/* Between the Testaments has no CMS editor yet (bot/src/cms.ts only knows final-captivity's files); its events are read-only here until that lands. */}
         {e.fc ? <CmsEditLink kind="timeline" id={e.slug} /> : null}
-        {e.fc ? <FinalCaptivityDetail slug={e.slug} reviewedThrough={FINAL_CAPTIVITY?.reviewedThrough} /> : null}
+        {e.fc ? <AgeEventDetail slug={e.slug} source="fc" reviewedThrough={FINAL_CAPTIVITY?.reviewedThrough} /> : null}
+        {e.btt ? <AgeEventDetail slug={e.slug} source="btt" /> : null}
 
         {e.reign ? (
           <section className="tl-event__section" aria-label="Reign">
