@@ -7,27 +7,32 @@ import { haptic, openLink } from "@/tg/sdk";
 import { ScriptureCard, type VerseRef } from "@/ui/scripture";
 
 /**
- * An event of The Final Captivity, in the Timeline's event sheet (app/scripts/final-captivity).
- * The summary comes first, so the sheet's first detent shows it; then the documented history,
- * quotes from the classes (each linked to the moment it was taught), the Scriptures read
- * with it, where the sources differ, and the sources. The three kinds of statement are
- * labelled and never run together: what is documented, what the assembly teaches, and how the
- * Scripture is applied.
+ * An event of The Final Captivity or Between the Testaments, in the Timeline's event sheet
+ * (app/scripts/final-captivity, app/scripts/between-testaments: the same TimelineShape, built
+ * the same way, each age's events in their own data file). The summary comes first, so the
+ * sheet's first detent shows it; then the documented history, quotes from the classes (each
+ * linked to the moment it was taught), the Scriptures read with it, where the sources differ,
+ * and the sources. The three kinds of statement are labelled and never run together: what is
+ * documented, what the assembly teaches, and how the Scripture is applied.
  */
 type Source = { title: string; author?: string; publisher?: string; year?: string; url: string; via?: string; accessed?: string; supports?: string };
 type Teaching = { points?: string[]; quote?: string; teacher?: string; source: { kind: "class" | "history" | "site" | "note"; id?: string; title: string; date?: string; ts?: string; url: string } };
 export type FcDetail = {
   title: string; start: number; end: number; period: string;
-  date: { text: string; precision: string }; group: string; place?: string; region?: string; peoples?: string[]; tribes?: string[]; people?: string[];
+  date: { text: string; precision: string; calendar?: string; sourceRef?: string }; group: string; place?: string; region?: string; peoples?: string[]; tribes?: string[]; people?: string[];
   summary: string; account?: string[]; teaching?: Teaching[]; scriptures?: { ref: string; why?: string }[]; answer?: { ref: string; why?: string }[]; sources?: Source[];
   uncertainty?: string; disagreements?: { point: string; views: string[] }[];
   image?: { src: string; kind: "archival" | "generated"; caption: string; credit?: string; license?: string; sourceUrl?: string };
 };
 
-/** Every event's content, one file, loaded the first time an event of this age is opened. */
-export const useFinalCaptivity = () => useQuery({
-  queryKey: ["final-captivity"],
-  queryFn: async () => (await import("@/data/final-captivity.json")).default as unknown as Record<string, FcDetail>,
+export type AgeSource = "fc" | "btt";
+const AGE_QUERY_KEY: Record<AgeSource, string> = { fc: "final-captivity", btt: "between-testaments" };
+const loadAgeDetail = (source: AgeSource) => (source === "fc" ? import("@/data/final-captivity.json") : import("@/data/between-testaments.json"));
+
+/** Every event's content for one age, one file, loaded the first time an event of that age is opened. */
+export const useAgeDetail = (source: AgeSource) => useQuery({
+  queryKey: [AGE_QUERY_KEY[source]],
+  queryFn: async () => (await loadAgeDetail(source)).default as unknown as Record<string, FcDetail>,
   staleTime: Infinity,
 });
 
@@ -38,8 +43,8 @@ const REF = /^(.+?) (\d+)(?::(\d+)(?:-(\d+))?)?$/;
 const day = (d?: string) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(`${d}T12:00:00Z`).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" }) : d);
 const external = (url: string) => (ev: React.MouseEvent) => { ev.preventDefault(); haptic("select"); openLink(url); };
 
-export function FinalCaptivityDetail({ slug, reviewedThrough }: { slug: string; reviewedThrough?: string }) {
-  const all = useFinalCaptivity();
+export function AgeEventDetail({ slug, source, reviewedThrough }: { slug: string; source: AgeSource; reviewedThrough?: string }) {
+  const all = useAgeDetail(source);
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const e = all.data?.[slug];
   const place = useMemo(() => (list: { ref: string; why?: string }[] = []) => list.map((s) => {
