@@ -4,6 +4,14 @@
 people and five events for expansion, with Bible Strong’s original Timeline layout and controls. Nothing here is imported by the app or published by
 the content engine. No navigation, public data, teaching text, artwork or billing changes.
 
+**Update (CYB-146):** the five sample events are now carried forward, in the app's real draft
+format, at [`app/scripts/between-testaments/drafts.json`](../../../app/scripts/between-testaments/README.md) — still never shown in the app, still with no invented
+position, pending the owner's citation of this period's BCE boundary years. The ten people are
+the Timeline Researcher's to add under CYB-145, directly into `data/people/people.json` in the
+content repository, following the owner's later correction there (full records, two-way
+relationships, no separate proposal format) rather than this file's `people.json`, which stays
+as the original review record.
+
 The source is [DevSecObie/cyberjudah at ee09d540](https://github.com/DevSecObie/cyberjudah/tree/ee09d540382dfc8c64be363a95af1b5017fe2737).
 `people.json` uses the app's existing `Person` contract. `timeline.json` is a proposed
 editorial input, **not** the numeric-year `TimelineEvent` contract. `evidence.json` pins

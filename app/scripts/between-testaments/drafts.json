@@ -1,0 +1,82 @@
+[
+  {
+    "slug": "return-with-zorobabel",
+    "title": "The return with Zorobabel",
+    "period": "between-the-testaments",
+    "summary": "The returning people came with Zorobabel; he and Jesus the son of Josedec made ready the altar.",
+    "date": { "text": "No absolute date stated for the return", "precision": "unknown" },
+    "scriptures": [{ "ref": "1 Esdras 5:8" }, { "ref": "1 Esdras 5:48" }, { "ref": "1 Esdras 5:56" }],
+    "people": ["Zorobabel"],
+    "uncertainty": "The rebuilding is dated to the second year and second month after coming to the temple (1 Esdras 5:56); do not date the return itself from that statement. This return overlaps The Exile. Esdras's later return (1 Esdras 8:1-3) must be a separate event. No verified class excerpt selected yet.",
+    "status": "draft"
+  },
+  {
+    "slug": "alexander-and-the-greek-kingdom",
+    "title": "Alexander and the Greek kingdom",
+    "period": "between-the-testaments",
+    "summary": "Alexander, son of Philip, smote Darius and reigned over Greece; his servants bore rule after his death.",
+    "date": { "text": "No absolute date stated in the cited passage", "precision": "unknown" },
+    "scriptures": [{ "ref": "1 Maccabees 1:1" }, { "ref": "1 Maccabees 1:7" }, { "ref": "1 Maccabees 1:8" }, { "ref": "1 Maccabees 1:9" }],
+    "people": ["Alexander the Great"],
+    "teaching": [
+      {
+        "quote": "Alexander had everything united as one. These guys, they could not unite. They divided up the kingdom.",
+        "source": { "kind": "class", "title": "PROPHESY FROM PAIN TO PEACE", "id": "EUL_omVPaWc", "ts": "27:05", "date": "2026-03-15", "url": "https://youtu.be/EUL_omVPaWc?t=1625" }
+      }
+    ],
+    "uncertainty": "The passage gives a reign length, not a BCE year. No calendar conversion proposed.",
+    "status": "draft"
+  },
+  {
+    "slug": "desolation-of-the-altar",
+    "title": "The desolation of the altar",
+    "period": "between-the-testaments",
+    "summary": "The abomination of desolation was set upon the altar, and idol altars were built throughout the cities of Juda.",
+    "date": { "text": "15 Casleu, year 145", "precision": "day", "calendar": "year numbering in 1 Maccabees", "sourceRef": "1 Maccabees 1:54" },
+    "scriptures": [{ "ref": "1 Maccabees 1:10" }, { "ref": "1 Maccabees 1:54" }, { "ref": "1 Maccabees 1:59" }],
+    "people": [],
+    "teaching": [
+      {
+        "quote": "so not only did they defile the temple they put Idols throughout the cities of Judah that's what the Greeks did",
+        "source": { "kind": "class", "title": "Who & What is the Abomination of Desolation", "id": "08GsJvxEFmg", "ts": "1:16:12", "date": "2022-12-04", "url": "https://youtu.be/08GsJvxEFmg?t=4572" }
+      }
+    ],
+    "uncertainty": "Day precision applies to the source calendar only. The sacrifice on the idol altar is the 25th, not the 15th.",
+    "status": "draft"
+  },
+  {
+    "slug": "mattathias-at-modin",
+    "title": "Mattathias at Modin",
+    "period": "between-the-testaments",
+    "summary": "Mattathias refused to forsake the law and called those zealous of the law to follow him.",
+    "date": { "text": "In those days; no absolute date stated", "precision": "unknown", "sourceRef": "1 Maccabees 2:1" },
+    "scriptures": [{ "ref": "1 Maccabees 2:1" }, { "ref": "1 Maccabees 2:19" }, { "ref": "1 Maccabees 2:20" }, { "ref": "1 Maccabees 2:21" }, { "ref": "1 Maccabees 2:22" }, { "ref": "1 Maccabees 2:27" }],
+    "people": ["Mattathias"],
+    "teaching": [
+      {
+        "quote": "what kind of You know what kind of anger it took for him to to defy what everybody else was doing?",
+        "teacher": "Bishop",
+        "source": { "kind": "class", "title": "THE BEAUTY IN CIVILITY THE COST OF IMMORALITY", "id": "QczbDHIehUU", "ts": "1:55:54", "date": "2025-12-13", "url": "https://youtu.be/QczbDHIehUU?t=6954" }
+      }
+    ],
+    "uncertainty": "Sequence follows the narrative; do not assign a year from a neighbouring event.",
+    "status": "draft"
+  },
+  {
+    "slug": "cleansing-and-dedication-of-the-sanctuary",
+    "title": "The cleansing and dedication of the sanctuary",
+    "period": "between-the-testaments",
+    "summary": "Judas and his brethren went to cleanse and dedicate the sanctuary; the congregation ordained eight days of dedication each year.",
+    "date": { "text": "25 Casleu, year 148", "precision": "day", "calendar": "year numbering in 1 Maccabees", "sourceRef": "1 Maccabees 4:52" },
+    "scriptures": [{ "ref": "1 Maccabees 4:36" }, { "ref": "1 Maccabees 4:52" }, { "ref": "1 Maccabees 4:53" }, { "ref": "1 Maccabees 4:54" }, { "ref": "1 Maccabees 4:59" }],
+    "people": ["Judas Maccabeus"],
+    "teaching": [
+      {
+        "quote": "right so they ordained the feast of dedication or hanukkah to be kept in their season",
+        "source": { "kind": "class", "title": "The Israelites: Is The Apocrypha Biblical on WGAI 560 AM Radio", "id": "M5qAlri2gi8", "ts": "52:15", "date": "", "url": "https://youtu.be/M5qAlri2gi8?t=3135" }
+      }
+    ],
+    "uncertainty": "No BCE conversion; the class recording's upload date and teacher are not supplied in the corpus.",
+    "status": "draft"
+  }
+]

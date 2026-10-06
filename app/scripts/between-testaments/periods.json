@@ -1,0 +1,14 @@
+{
+  "age": "Between the Testaments",
+  "periods": [
+    {
+      "id": "between-the-testaments",
+      "title": "Between the Testaments",
+      "subTitle": "Pending: no owner-approved BCE boundary years yet; see README.md",
+      "startYear": null,
+      "endYear": null,
+      "interval": null,
+      "color": "#7a6a4f"
+    }
+  ]
+}
