@@ -30,11 +30,11 @@ import { CHAT_ID, deleteChat, getChat, getPending, listChats, moveLegacy, setAct
 import { askedBy, closeRequest, getRequest, listRequests, requestNotes, validVideo } from "./requests";
 import { tellAdmins } from "./health";
 import { notePdf, pdfName } from "./pdf.mjs";
-import { invoiceFor, pruneBilling, refundStars, SUPPORT_STARS } from "./billing";
+import { donationsConfig, invoiceFor, invoiceForDonation, pruneBilling, refundStars } from "./billing";
 import { adjust, creditsConfig, history as creditHistory, ownerOfUser, prepare as prepareCredits, typicalMc, usageDayCredits, wallet as creditWallet } from "./credits";
 import { getTopupReminder, sendTopupReminders, setTopupReminder } from "./topup-remind";
 import { estimateMc, mcOfUsd } from "../../shared/credits.mjs";
-import { pauseMessage, topupPause, zoneOf } from "../../shared/holy-days.mjs";
+import { givingPauseMessage, pauseMessage, topupPause, zoneOf } from "../../shared/holy-days.mjs";
 import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 import { hasClaude, unifiedBilling } from "./providers";
@@ -69,6 +69,8 @@ app.use("/api/*", async (c, next) => {
   if (c.req.method === "GET" && (c.req.path === "/api/photos" || c.req.path.startsWith("/api/photos/file/"))) return next();
   if (c.req.method === "GET" && c.req.path.startsWith("/api/resources/")) return next();
   if (c.req.path === "/api/verse-of-day" || c.req.path === "/api/health" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
+  // The donation presets, bounds, link and pause state are public, like the resource catalog: a plain-browser visitor sees them too, even though only the Mini App can open a Stars invoice.
+  if (c.req.method === "GET" && c.req.path === "/api/donations") return next();
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
   // Thirty days: Telegram keeps a Mini App open in the background for weeks, and its launch
   // data is only made afresh when it is opened again, so a short window turned every Search
@@ -548,14 +550,29 @@ app.post("/api/subscribe", async (c) => {
   return c.json({ subscribed: true });
 });
 
+// The donation presets, bounds, owner's link and pause state, public like the resource catalog.
+app.get("/api/donations", async (c) => {
+  const cfg = donationsConfig(c.env);
+  const tz = zoneOf(c.req.query("tz"));
+  const pause = topupPause(clock(c), tz);
+  return c.json({
+    open: cfg.on, presets: cfg.presets, minStars: cfg.min, maxStars: cfg.max, donationUrl: cfg.url,
+    pause: pause ? { kind: pause.kind, until: pause.until, message: givingPauseMessage(pause) } : null,
+  });
+});
+
 app.post("/api/invoice", async (c) => {
   const { user } = c.get("tma");
-  const body = await c.req.json<{ stars?: number }>().catch(() => null);
+  const body = await c.req.json<{ stars?: number; tz?: string }>().catch(() => null);
   const stars = Number(body?.stars);
-  if (!SUPPORT_STARS.includes(stars)) return c.json({ error: "bad-amount" }, 400);
+  const tz = zoneOf(body?.tz);
   try {
-    const link = await new Api(c.env.BOT_TOKEN).createInvoiceLink("Support CyberJudah", "Keep the library free and the classes online. Thank you.", `support:${user!.id}:${stars}`, "", "XTR", [{ label: "Support CyberJudah", amount: stars }]);
-    return c.json({ link });
+    const r = await invoiceForDonation(c.env, user!.id, stars, tz, clock(c));
+    if (r.ok) return c.json({ link: r.link });
+    if (r.reason === "bad-amount") return c.json({ error: "bad-amount" }, 400);
+    // A Sabbath, feast day or New Moon where the giver is: no invoice is made.
+    if (r.reason === "pause") return c.json({ error: "paused", pause: { kind: r.pause.kind, until: r.pause.until, message: r.message } }, 423);
+    return c.json({ error: "closed" }, 409);
   } catch (e) {
     console.error(JSON.stringify({ event: "invoice_failed", message: e instanceof Error ? e.message : String(e) }));
     return c.json({ error: "invoice-failed" }, 502);
