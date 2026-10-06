@@ -1759,7 +1759,7 @@ test("audio chips set device pitch and speed; Stop stays stopped with Repeat ena
   await expect(page.locator("#verset-1")).toBeVisible();
   await page.getByRole("button", { name: "Start audio playback" }).click();
   await expect(page.locator(".bs-audio__top b")).toHaveText("Psalms 23:1 KJV");
-  await expect(page.locator(".bs-audio__chips button")).toHaveText(["Voice", "Speed 1x", "Pitch 1x", "Ambient", "Repeat"]);
+  await expect(page.locator(".bs-audio__chips button")).toHaveText(["Stop", "Voice", "Speed 1x", "Pitch 1x", "Ambient", "Repeat"]);
   await page.getByRole("button", { name: "Pitch 1x", exact: true }).click();
   await page.getByRole("dialog", { name: "Pitch", exact: true }).getByRole("radio", { name: "1.5x", exact: true }).click();
   await page.getByRole("button", { name: "Speed 1x", exact: true }).click();
