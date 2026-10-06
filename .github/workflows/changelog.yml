@@ -1,7 +1,7 @@
 name: changelog
 
-# Every pull request either adds a line to CHANGELOG.md or says, in its description, why it needs
-# none: "Changelog: not applicable — <reason>" (a reason of at least a few words). Dependabot's
+# Every pull request either adds a changelog entry file in changes/ (see changes/README.md), edits
+# CHANGELOG.md, or says, in its description, why it needs none: "Changelog: not applicable — <reason>" (a reason of at least a few words). Dependabot's
 # updates are exempt. The description is read from the event payload, never run as a command.
 on:
   pull_request:
@@ -18,6 +18,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: A changelog line, or a reason there is none
         env:
           BODY: ${{ github.event.pull_request.body }}
@@ -26,9 +27,18 @@ jobs:
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           if [ "$AUTHOR" = "dependabot[bot]" ]; then echo "Dependency update: exempt."; exit 0; fi
+          entries=$(git diff --name-only --diff-filter=A "$BASE...$HEAD" | grep -E '^changes/[A-Za-z0-9._-]+\.md$' | grep -vx 'changes/README.md' || true)
+          if [ -n "$entries" ]; then
+            while IFS= read -r f; do
+              if ! git show "$HEAD:$f" | grep -q '^- '; then
+                echo "::error file=$f::$f has no line starting with '- '; see changes/README.md."; exit 1
+              fi
+            done <<< "$entries"
+            echo "A changelog entry is added in changes/."; exit 0
+          fi
           if git diff --name-only "$BASE...$HEAD" | grep -qx 'CHANGELOG.md'; then echo "CHANGELOG.md is updated."; exit 0; fi
           if printf '%s' "$BODY" | grep -Eiq 'changelog:[[:space:]]*not applicable[[:space:]]*(—|–|-|:)[[:space:]]*[^[:space:]].{9,}'; then
             echo "Not applicable, with a reason:"; printf '%s\n' "$BODY" | grep -Ei 'changelog:[[:space:]]*not applicable' | head -1; exit 0
           fi
-          echo "::error::Add a line under Unreleased in CHANGELOG.md, or write 'Changelog: not applicable — <reason>' in the pull request's description."
+          echo "::error::Add a changelog entry file in changes/ (see changes/README.md), or write 'Changelog: not applicable — <reason>' in the pull request's description."
           exit 1
