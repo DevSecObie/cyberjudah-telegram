@@ -18,7 +18,7 @@ import { Lit } from "@/ui/search-hero";
 import { SearchBar, useSettled } from "@/ui/search-bar";
 import { useSheet } from "@/ui/sheet";
 import { Empty, Icon } from "@/ui/ui";
-import { FinalCaptivityDetail } from "./TimelineFinalCaptivity";
+import { AgeEventDetail } from "./TimelineFinalCaptivity";
 import { BackgroundExtension } from "@/ui/BackgroundExtension";
 import { PhotoEdit, usePhotos } from "@/ui/photo-edit";
 
@@ -128,7 +128,7 @@ function Panel({ title, onClose, children }: { title: string; onClose: () => voi
 function Emblem({ s }: { s: TimelineSection }) {
   return (
     <span className="tl-emblem tl-emblem--card" style={{ ["--tl-color" as string]: s.color }}>
-      <span className="tl-emblem__age">{s.sectionTitle}{String(s.id).startsWith("fc-") ? <b className="tl-emblem__new">New</b> : null}</span>
+      <span className="tl-emblem__age">{s.sectionTitle}{/^(fc|btt)-/.test(String(s.id)) ? <b className="tl-emblem__new">New</b> : null}</span>
       <span className="tl-emblem__title">{s.title}</span>
       <span className="tl-emblem__sub">{s.subTitle}</span>
       <i className="tl-emblem__bar" aria-hidden="true" />
@@ -327,7 +327,7 @@ export function TimelinePeriod() {
 
 /** SectionDetailsModal: the period's card with its picture; in place of their description, the case studies on its events. */
 function PeriodDetails({ s }: { s: TimelineSection }) {
-  if (s.events.some((e) => e.fc)) return <FcPeriodDetails s={s} />;
+  if (s.events.some((e) => e.fc || e.btt)) return <AgeGroupedPeriodDetails s={s} />;
   const withCases = s.events.filter((e) => e.cases?.length);
   return (
     <div className="tl-details">
@@ -343,10 +343,11 @@ function PeriodDetails({ s }: { s: TimelineSection }) {
   );
 }
 
-/** A Final Captivity period's details: its events by research category, in time order within each. */
-function FcPeriodDetails({ s }: { s: TimelineSection }) {
+/** A Final Captivity or Between the Testaments period's details: its events by research category, in time order within each. */
+function AgeGroupedPeriodDetails({ s }: { s: TimelineSection }) {
   const groups = new Map<string, TimelineEvent[]>();
   for (const e of s.events) groups.set(e.group ?? "Events", [...(groups.get(e.group ?? "Events") ?? []), e]);
+  const fc = s.events.some((e) => e.fc);
   return (
     <div className="tl-details">
       <SectionCard s={s} />
@@ -358,7 +359,7 @@ function FcPeriodDetails({ s }: { s: TimelineSection }) {
           <ul className="tl-details__list">{list.map((e) => <li key={e.slug}><Link to={`/timeline/event/${e.slug}`} onClick={() => haptic("select")}><b>{e.title}</b><span>{calculateLabel(e.start, e.end)}</span></Link></li>)}</ul>
         </section>
       ))}
-      {FINAL_CAPTIVITY ? <p className="hint">Sources reviewed through {reviewed(FINAL_CAPTIVITY.reviewedThrough)}.</p> : null}
+      {fc && FINAL_CAPTIVITY ? <p className="hint">Sources reviewed through {reviewed(FINAL_CAPTIVITY.reviewedThrough)}.</p> : null}
     </div>
   );
 }
@@ -525,8 +526,10 @@ export function TimelineEventScreen() {
           <Link className="tl-event__period" to={`/timeline/${e.sectionIndex}`}>{s.title} · {s.subTitle}</Link>
         </div>
 
+        {/* Between the Testaments has no CMS editor yet (bot/src/cms.ts only knows final-captivity's files); its events are read-only here until that lands. */}
         {e.fc ? <CmsEditLink kind="timeline" id={e.slug} /> : null}
-        {e.fc ? <FinalCaptivityDetail slug={e.slug} reviewedThrough={FINAL_CAPTIVITY?.reviewedThrough} /> : null}
+        {e.fc ? <AgeEventDetail slug={e.slug} source="fc" reviewedThrough={FINAL_CAPTIVITY?.reviewedThrough} /> : null}
+        {e.btt ? <AgeEventDetail slug={e.slug} source="btt" /> : null}
 
         {e.reign ? (
           <section className="tl-event__section" aria-label="Reign">

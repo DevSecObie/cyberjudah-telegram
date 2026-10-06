@@ -52,9 +52,15 @@ export function build({ timeline, periods, events }) {
       };
     });
   // Spliced in right after The Exile (id "8") and before Life of Christ (id "9"), not appended
-  // at the end: this age sits inside ancient history, not after it.
-  const exileIndex = kept.findIndex((s) => s.id === "8");
-  const at = exileIndex === -1 ? kept.length : exileIndex + 1;
+  // at the end: this age sits inside ancient history, not after it. If Bible Strong's section
+  // ids or titles ever change, silently appending at the end would be worse than failing loud.
+  const exileIndex = kept.findIndex((s) => s.id === "8" && s.title === "The Exile");
+  if (exileIndex === -1) throw new Error('Between the Testaments: no section with id "8" and title "The Exile" to splice after; check app/src/data/timeline.json');
+  const nextSection = kept[exileIndex + 1];
+  if (nextSection?.id !== "9" || nextSection.title !== "Life of Christ") {
+    throw new Error(`Between the Testaments: expected id "9" title "Life of Christ" right after The Exile, found ${nextSection ? `id "${nextSection.id}" title "${nextSection.title}"` : "nothing"}`);
+  }
+  const at = exileIndex + 1;
   return { timeline: { ...timeline, sections: [...kept.slice(0, at), ...sections, ...kept.slice(at)] }, details };
 }
 

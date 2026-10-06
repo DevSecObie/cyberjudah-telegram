@@ -49,6 +49,14 @@ test("a period with a published event but no boundary years yet is a problem, no
   assert.ok(wouldBePublished, "sanity: good() targets the real period id");
 });
 
+test("a renamed or reordered Exile/Life of Christ section fails loud instead of appending at the end", () => {
+  const withBounds = { age: "Between the Testaments", periods: [{ ...periods.periods[0], startYear: -200, endYear: -4, interval: 10 }] };
+  const noExile = { source: "x", reigns: "y", sections: [{ id: "8", title: "Something Else" }, { id: "9", title: "Life of Christ" }] };
+  assert.throws(() => build({ timeline: noExile, periods: withBounds, events: [good()] }), /no section with id "8" and title "The Exile"/);
+  const wrongNext = { source: "x", reigns: "y", sections: [{ id: "8", title: "The Exile" }, { id: "9", title: "Something Else" }] };
+  assert.throws(() => build({ timeline: wrongNext, periods: withBounds, events: [good()] }), /expected id "9" title "Life of Christ"/);
+});
+
 test("rebuilding is idempotent: a second run does not duplicate the section", () => {
   const withBounds = { age: "Between the Testaments", periods: [{ ...periods.periods[0], startYear: -200, endYear: -4, interval: 10 }] };
   const timeline = { source: "x", reigns: "y", sections: [{ id: "8", title: "The Exile" }, { id: "9", title: "Life of Christ" }] };

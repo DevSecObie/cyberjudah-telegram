@@ -7,10 +7,16 @@ and the cleansing and dedication of the sanctuary. It follows **The Exile** and 
 same Bible Strong layout, with CyberJudah styling. No narrative-list replacement.
 
 Built the same way as [`app/scripts/final-captivity`](../final-captivity/README.md): these
-files are the source of truth, `app/scripts/timeline-data.mjs` calls this directory's
-`build.mjs` after its own build, and `check.mjs` must pass before anything here is published.
-Unlike Final Captivity, this age names no IUIC leader, so there is no `leaders.json`, and (so
-far) there is only one period, so there is no subperiod split to track in a ledger.
+files are the source of truth, `app/package.json`'s `prebuild`/`pretest` run this directory's
+`build.mjs` right after Final Captivity's own (neither calls the other, nor does
+`app/scripts/timeline-data.mjs` call either one — each `build.mjs` only touches its own
+`fc-`/`btt-`-prefixed sections of `app/src/data/timeline.json`, so running them in either order
+leaves the other's bars intact), and `check.mjs` must pass before anything here is published.
+Running `timeline-data.mjs` on its own (a full Bible Strong rebuild, not through `npm run
+build`/`test`) regenerates `timeline.json` from scratch and drops both ages' sections until
+`prebuild`/`pretest` run again. Unlike Final Captivity, this age names no IUIC leader, so there
+is no `leaders.json`, and (so far) there is only one period, so there is no subperiod split to
+track in a ledger.
 
 | File | What it holds |
 | --- | --- |
@@ -24,7 +30,7 @@ The approved sample's own review ([`docs/proposals/apocrypha/README.md`](../../.
 
 `build.mjs` mirrors Final Captivity's own rule ("a period shows once it has a published event; an empty canvas is left out") one step further: a period with no boundary years is left out of `app/src/data/timeline.json` even if `events.json` is not empty, and `check.mjs` treats a published event under a boundary-less period as a problem, not something to guess a position for.
 
-**So a future batch is data only:** once the owner approves this period's boundary years (filling in `periods.json`'s three `null` fields) and a dated event is sourced, moving that event from `drafts.json` to `events.json` is the entire change — `timeline-data.mjs` (which calls this directory's `build.mjs`) inserts the period between The Exile and Life of Christ, places its bars, and writes the detail file automatically. No code here needs to change for that.
+**So a future batch is data only:** once the owner approves this period's boundary years (filling in `periods.json`'s three `null` fields) and a dated event is sourced, moving that event from `drafts.json` to `events.json` is the entire change — the next `npm run build` or `npm test` (via `prebuild`/`pretest`) runs this directory's `build.mjs`, which inserts the period between The Exile and Life of Christ, places its bars, and writes the detail file automatically. No code here needs to change for that; the Timeline screen already reads a published event's `btt` flag the same way it reads Final Captivity's `fc`.
 
 ## An event
 
