@@ -22,6 +22,7 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- Portraits and Timeline paintings now load from CyberJudah's own storage, with the app's copies as a fallback, so the app download stays small as more pictures are added.
 - Angels (so far Raphael) get their own heading on their People page instead of the generic "Person".
 - Readiness work for the Apocrypha project: a new "Between the Testaments" age is wired into the Timeline's data pipeline and the event sheet, ready to show between The Exile and Life of Christ once the owner approves its boundary years; no visible change yet (the approved five-event sample stays a draft, with its source-calendar dates and class citations preserved, not plotted with an invented position).
 - The Concordance, as on the website: book by book, every chapter with the study notes, classes, encyclopedia entries, cases, precepts and laws that cite it, and the verses each one cites. It is under More and on a new tab; a link to a book's concordance from the site opens it in the app.
