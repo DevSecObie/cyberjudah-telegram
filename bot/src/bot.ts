@@ -8,7 +8,7 @@ import { runSearch } from "./search";
 import { parseReference } from "./refs.mjs";
 import { verseOfDay } from "./verse-of-day.mjs";
 import { pathToStartParam, startParamToPath } from "../../shared/links.mjs";
-import { applyPayment, applyRefund, checkout, SUPPORT_STARS } from "./billing";
+import { applyDonation, applyPayment, applyRefund, checkout, SUPPORT_STARS, supportPayloadOf } from "./billing";
 import { fmtUsd } from "../../shared/credits.mjs";
 import { linkDevice, reminderButton, reminderKeyboard, stopFor, telegramReturned } from "./remind";
 import { pid, seal } from "./privacy.mjs";
@@ -165,11 +165,12 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
       reply_markup: new InlineKeyboard().text("50 ⭐", "support:50").text("100 ⭐", "support:100").text("500 ⭐", "support:500"),
     }));
 
-  // A support tier picked from /support: the invoice for that many Stars.
+  // A support tier picked from /support: the invoice for that many Stars. A command carries no
+  // time zone, so the holy-days check at checkout falls back to DEFAULT_ZONE.
   bot.callbackQuery(/^support:(\d+)$/, async (ctx) => {
     const stars = Number(ctx.match[1]);
     if (!SUPPORT_STARS.includes(stars)) return ctx.answerCallbackQuery({ text: "That amount is not on offer." });
-    await ctx.replyWithInvoice("Support CyberJudah", "Keep the library free and the classes online. Thank you.", `support:${ctx.from?.id ?? 0}:${stars}`, "XTR", [{ label: "Support CyberJudah", amount: stars }]);
+    await ctx.replyWithInvoice("Support CyberJudah", "Keep the library free and the classes online. Thank you.", supportPayloadOf(ctx.from?.id ?? 0, stars), "XTR", [{ label: "Support CyberJudah", amount: stars }]);
     return ctx.answerCallbackQuery();
   });
 
@@ -202,6 +203,9 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     // A monthly plan bought before plans were withdrawn renewed: its Stars are added the same way, and it will not renew again.
     if (got?.kind === "plan") return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. Ask CyberJudah no longer has a monthly plan, so this renewal's ${pay.total_amount} Stars were added to your balance as ${fmtUsd(got.mc, { floor: true })}, and the plan will not renew again. You pay only what your answers cost.`, { parse_mode: "HTML", reply_markup: open(ctx, "ask", "Ask CyberJudah") });
     if (got?.kind === "pack") return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. ${fmtUsd(got.mc, { floor: true })} added to your Ask CyberJudah balance. It never expires, and each answer uses only what it costs.`, { parse_mode: "HTML", reply_markup: open(ctx, "ask", "Ask CyberJudah") });
+    // A gift, not a purchase: recorded in its own ledger, never added to the Ask balance.
+    const gift = await applyDonation(env, ctx.from.id, pay);
+    if (gift) return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. Your gift of ${gift.stars} Stars keeps the library free and the classes online.`, { parse_mode: "HTML" });
     return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}: ${pay.total_amount} Stars received. Study to shew thyself approved.`, { parse_mode: "HTML" });
   });
 

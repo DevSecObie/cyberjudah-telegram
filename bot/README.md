@@ -28,6 +28,10 @@ scripts/d1-id.sh    finds or creates the D1 database, prints its id
 | `SITE_URL` | var | the website, for source links |
 | `APP_URL` | var | the Mini App's direct link, `https://t.me/CyberJudah_bot/cybr` (in wrangler.jsonc) |
 | `WORKER_URL` | var | this Worker's public URL, so the cron can send `web_app` buttons (the webhook derives it from the request) |
+| `DONATIONS_ON` | var | "off" turns off donations ("Support CyberJudah") without a deploy; on when unset |
+| `DONATE_MIN_STARS` | var | the fewest Stars a giver may name besides the presets (`1` when unset) |
+| `DONATE_MAX_STARS` | var, optional | the most Stars a giver may name; unset means no app-imposed ceiling beyond Telegram's own |
+| `DONATION_URL` | var, optional | the owner's own HTTPS giving link, shown alongside the Stars presets; not set anywhere yet — `GET /api/donations` reports `donationUrl: null` until it is added |
 
 ```
 wrangler secret put BOT_TOKEN
