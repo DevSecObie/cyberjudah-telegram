@@ -42,6 +42,8 @@ request that introduced this file ([#77]).
 
 - Admins can review Timeline and note corrections, outside-source changes and resource publications from Settings. Content saves open pull requests; publication requires passing checks and an explicit admin action.
 
+- Timeline portraits for Julius Caesar, Constantine, Pope Leo X and eight Reformers (Luther, Calvin, Tyndale, Wycliffe, Erasmus, Thomas More, Knox, Zwingli) now use sourced public-domain artwork instead of the lettered avatar.
+
 Merged to `main` and not yet in a tagged release. Production currently runs `861242f`
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).
 
