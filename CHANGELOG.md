@@ -22,6 +22,10 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- Audio controls pause and resume at the current verse, remember speed and pitch on this device, and keep delayed recordings and setting changes from overriding Pause.
+- Portraits and Timeline paintings now load from CyberJudah's own storage, with the app's copies as a fallback, so the app download stays small as more pictures are added.
+- Angels (so far Raphael) get their own heading on their People page instead of the generic "Person".
+- Readiness work for the Apocrypha project: a new "Between the Testaments" age is wired into the Timeline's data pipeline and the event sheet, ready to show between The Exile and Life of Christ once the owner approves its boundary years; no visible change yet (the approved five-event sample stays a draft, with its source-calendar dates and class citations preserved, not plotted with an invented position).
 - The Concordance, as on the website: book by book, every chapter with the study notes, classes, encyclopedia entries, cases, precepts and laws that cite it, and the verses each one cites. It is under More and on a new tab; a link to a book's concordance from the site opens it in the app.
 - A Glossary, as on the website: every word the classes use, defined from the teachings and the King James text, with its scriptures and the moments it is taught (each a tap into the recording at that second). It is under More and on a new tab, and a glossary link from the site opens the word.
 - The Worker now serves donations ("Support CyberJudah"): `GET /api/donations` for the presets, amount bounds, the owner's giving link and the holy-days pause state, and `POST /api/invoice` for any amount within those bounds. A gift pauses the same way an Ask top-up does, from evening to evening on the Sabbath, feast days and New Moons, and is recorded once per Telegram charge in its own ledger, never added to the Ask balance.
@@ -38,6 +42,8 @@ request that introduced this file ([#77]).
 - Admins can correct class titles, teachers and dates, including undated recordings, through the shared review flow. Linked note front matter and metadata corrections stay in sync.
 
 - Admins can review Timeline and note corrections, outside-source changes and resource publications from Settings. Content saves open pull requests; publication requires passing checks and an explicit admin action.
+
+- Timeline portraits for Julius Caesar, Constantine, Pope Leo X and eight Reformers (Luther, Calvin, Tyndale, Wycliffe, Erasmus, Thomas More, Knox, Zwingli) now use sourced public-domain artwork instead of the lettered avatar.
 
 Merged to `main` and not yet in a tagged release. Production currently runs `861242f`
 ([deploy run 37060784554](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/37060784554)).

@@ -1,0 +1,1 @@
+- Bible narration continues across screens and canonical chapters with shared playback controls, a return-to-passage action, repeat while collapsed, supported system media controls, and ambient restoration that respects Pause and Stop.

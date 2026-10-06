@@ -1,0 +1,1 @@
+- Upgraded the app's page-routing library to its next major version; pages, links and back/forward navigation work the same as before.

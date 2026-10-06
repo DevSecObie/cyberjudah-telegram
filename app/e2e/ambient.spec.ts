@@ -116,8 +116,8 @@ test("music pauses in the background while device narration continues across ver
   await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
   await expect.poll(async () => (await state(page)).starts).toBe(1);
   await page.locator(".bs-audio").getByRole("button", { name: "Next chapter", exact: true }).click();
-  await expect(page).toHaveURL(/\/psalms\/24/);
-  await expect(page.locator("#verset-1")).toContainText("earth");
+  await expect(page).toHaveURL(/\/psalms\/23/);
+  await expect(page.getByRole("button", { name: "Return to current passage" })).toContainText("Psalms 24");
   await expect(page.getByRole("button", { name: "Stop audio playback", exact: true })).toBeVisible();
   expect((await state(page)).starts).toBe(1);
   await page.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, value: true }); document.dispatchEvent(new Event("visibilitychange")); });
@@ -127,7 +127,7 @@ test("music pauses in the background while device narration continues across ver
   await page.evaluate(() => (window as unknown as { __music: { finish(): void } }).__music.finish());
   await expect.poll(async () => (await state(page)).voices).toBeGreaterThan(before);
   await page.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, value: false }); document.dispatchEvent(new Event("visibilitychange")); });
-  expect((await state(page)).starts).toBe(1);
+  await expect.poll(async () => (await state(page)).starts).toBe(2);
   await expect(page.getByRole("button", { name: "Stop audio playback", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Ambient", exact: true }).click();
   await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("radio", { name: "Warm keys", exact: true }).click();
@@ -136,7 +136,8 @@ test("music pauses in the background while device narration continues across ver
   await page.getByRole("button", { name: "Next verse", exact: true }).click();
   await expect.poll(async () => (await state(page)).starts).toBe(2);
   await page.evaluate(() => { history.pushState({}, "", "/settings"); dispatchEvent(new PopStateEvent("popstate")); });
-  await expect.poll(async () => (await state(page)).ramps.at(-1)).toEqual([0, 1]);
+  await expect(page.getByRole("region", { name: "Bible audio player" })).toBeVisible();
+  expect((await state(page)).ramps.at(-1)?.[0]).toBeGreaterThan(0);
 });
 
 for (const voice of ["ai:asteria", "narrator:test-reader"]) {
@@ -168,5 +169,44 @@ for (const voice of ["ai:asteria", "narrator:test-reader"]) {
     await expect.poll(async () => (await state(page)).suspends).toBeGreaterThan(0);
     expect((await state(page)).voicePauses).toBe(pauses);
     await expect(page.getByRole("button", { name: "Stop audio playback", exact: true })).toBeVisible();
+  });
+}
+
+test("device speed and pitch changes stay paused until Resume and survive reload", async ({ page }) => {
+  await setup(page);
+  await panel(page);
+  await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("button", { name: "Next verse", exact: true }).click();
+  await expect(page.locator("#verset-2")).toHaveAttribute("data-reading", "");
+  await page.getByRole("button", { name: "Pause audio playback", exact: true }).click();
+  const before = (await state(page)).voices;
+  for (const name of ["Speed", "Pitch"]) {
+    await page.getByRole("button", { name: `${name} 1x`, exact: true }).click();
+    await page.getByRole("dialog", { name, exact: true }).getByRole("radio", { name: "1.25x", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Resume audio playback", exact: true })).toBeVisible();
+    expect((await state(page)).voices).toBe(before);
+  }
+  await page.getByRole("button", { name: "Resume audio playback", exact: true }).click();
+  await expect.poll(async () => (await state(page)).voices).toBe(before + 1);
+  await expect(page.locator("#verset-2")).toHaveAttribute("data-reading", "");
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Start audio playback", exact: true })).toBeVisible();
+  expect((await state(page)).voices).toBe(0);
+  await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Speed 1.25x", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pitch 1.25x", exact: true })).toBeVisible();
+});
+
+for (const action of ["Pause", "Stop"]) {
+  test(`ambient return never overrides ${action.toLowerCase()}`, async ({ page }) => {
+    await setup(page); await page.addInitScript(() => localStorage.setItem("ambientTrack", "soft-keys"));
+    await panel(page);
+    await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
+    await expect.poll(async () => (await state(page)).starts).toBe(1);
+    await page.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, value: true }); document.dispatchEvent(new Event("visibilitychange")); });
+    await page.getByRole("button", { name: `${action} audio playback`, exact: true }).click();
+    await page.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, value: false }); document.dispatchEvent(new Event("visibilitychange")); });
+    expect((await state(page)).starts).toBe(1);
+    await expect(page.getByRole("button", { name: action === "Pause" ? "Resume audio playback" : "Start audio playback", exact: true })).toBeVisible();
   });
 }
