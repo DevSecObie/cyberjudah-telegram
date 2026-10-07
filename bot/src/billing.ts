@@ -101,17 +101,17 @@ type Paid = { invoice_payload: string; currency: string; total_amount: number; t
  * A monthly plan bought before plans were withdrawn can still renew: its Stars are added to the
  * balance the same way, and the subscription is cancelled with Telegram so it does not renew again.
  */
-export async function applyPayment(env: Env, from: number, pay: Paid): Promise<{ kind: "plan" | "pack"; mc: number } | null> {
+export async function applyPayment(env: Env, from: number, pay: Paid): Promise<{ kind: "plan" | "pack"; mc: number; duplicate: boolean } | null> {
   const b = readPayload(pay.invoice_payload);
   if (!b || b.uid !== from || pay.currency !== "XTR" || pay.total_amount !== b.stars) return null;
   const c = creditsConfig(env);
   const mc = mcOfStars(b.stars, c.usdPerStar, c.margin);
-  await grantPayment(env, await ownerOfUser(env, from), { charge: pay.telegram_payment_charge_id, kind: b.kind, stars: b.stars, mc });
+  const granted = await grantPayment(env, await ownerOfUser(env, from), { charge: pay.telegram_payment_charge_id, kind: b.kind, stars: b.stars, mc });
   if (b.kind === "plan") {
     await telegramApi(env).editUserStarSubscription(from, pay.telegram_payment_charge_id, true)
       .catch((e: Error) => console.error(JSON.stringify({ event: "plan_cancel_failed", message: e.message?.slice(0, 160) })));
   }
-  return { kind: b.kind, mc };
+  return { kind: b.kind, mc, duplicate: !granted };
 }
 
 /**
@@ -163,18 +163,21 @@ export async function pruneBilling(env: Env): Promise<void> {
 }
 
 /**
- * Delete my data: the balance, its history and the old allowance record go. A payment record
- * keeps only the Telegram charge ID, kind, amount and date, no longer linked to the person:
+ * Delete my data: the balance, its history and the old allowance record go. A payment or donation
+ * record keeps only the Telegram charge ID, amount and date, no longer linked to the person:
  * Telegram's refund process and the owner's accounts need those (docs/PRIVACY.md).
  */
 export async function deleteBilling(env: Env, uid: number): Promise<{ balanceUsd: number }> {
   const id = await pid(env, uid);
   const left = await deleteCredits(env, id);
   const stmts: D1PreparedStatement[] = [];
-  // The payments table may not exist before the first payment. Absence is harmless;
+  // The payments and donations tables may not exist before the first one. Absence is harmless;
   // a failed lookup or cleanup must reach the caller rather than report success.
   if (await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'payments'").first()) {
     stmts.push(env.DB.prepare("UPDATE payments SET user_id = 'deleted' WHERE user_id = ? OR user_id = ?").bind(id, String(uid)));
+  }
+  if (await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'donations'").first()) {
+    stmts.push(env.DB.prepare("UPDATE donations SET user_id = 'deleted' WHERE user_id = ? OR user_id = ?").bind(id, String(uid)));
   }
   for (const t of ["accounts", "usage_people"]) {
     if (await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").bind(t).first()) stmts.push(env.DB.prepare(`DELETE FROM ${t} WHERE user_id = ? OR user_id = ?`).bind(id, String(uid)));
@@ -189,5 +192,11 @@ export async function billingRecord(env: Env, uid: number) {
   const id = await pid(env, uid);
   const has = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'payments'").first();
   const pays = has ? await env.DB.prepare("SELECT kind, stars, created_at FROM payments WHERE user_id = ? ORDER BY created_at").bind(id).all<{ kind: string; stars: number; created_at: number }>() : { results: [] };
-  return { balance: await creditsRecord(env, id), payments: (pays.results ?? []).map((r) => ({ kind: r.kind, stars: r.stars, at: new Date(r.created_at).toISOString() })) };
+  const hasDonations = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'donations'").first();
+  const gifts = hasDonations ? await env.DB.prepare("SELECT stars, created_at FROM donations WHERE user_id = ? ORDER BY created_at").bind(id).all<{ stars: number; created_at: number }>() : { results: [] };
+  return {
+    balance: await creditsRecord(env, id),
+    payments: (pays.results ?? []).map((r) => ({ kind: r.kind, stars: r.stars, at: new Date(r.created_at).toISOString() })),
+    donations: (gifts.results ?? []).map((r) => ({ stars: r.stars, at: new Date(r.created_at).toISOString() })),
+  };
 }

@@ -30,7 +30,7 @@ export type Env = {
   ASK_USD_PER_STAR?: string; ASK_MARGIN?: string; ASK_TOPUPS_USD?: string; ASK_UNIFIED_BILLING_FEE?: string; ASK_CONFIRM_ABOVE_USD?: string; ASK_MAX_REQUEST_USD?: string;
   ASK_EMBED_USD_PER_MTOK?: string; ASK_RERANK_USD_PER_MTOK?: string; ASK_VECTOR_USD_PER_MDIMS?: string;
   ASK_BILLING?: string; ASK_FREE_MODEL?: string; ASK_FREE_MODELS?: string;
-  /** The free tier's per-answer guardrails: research rounds (3), hard per-answer ceiling in dollars (0.05), and the owner's global daily cap in dollars (0.11 = the 10k free neurons/day) past which free answers pause. */
+  /** Free-answer budgets: research rounds (3), per-answer estimate ceiling (0.05), and a shared UTC-day allowance (0.11) reserved before non-admin free answers run. Other account AI usage is separate. */
   ASK_FREE_MAX_ROUNDS?: string; ASK_FREE_MAX_USD?: string; ASK_FREE_DAILY_USD_CAP?: string;
   /** Sybil backstop: Ask requests per IP per day (1000); per-request telemetry retention in days (180); daily D1 write-contention events before the health check pages (50). */
   ASK_IP_DAILY_LIMIT?: string; CREDIT_USAGE_RETENTION_DAYS?: string; CREDITS_CONTENTION_ALERT?: string;

@@ -1,0 +1,3 @@
+- Ask starts each paid request once, retries failed payment deliveries safely, and prevents refunded top-ups from returning to the balance when an answer finishes.
+- Free Ask and search answers reserve their shared daily allowance before running and pause safely when that allowance cannot be checked. The allowance covers these answers, not every use of the Cloudflare account; it does not guarantee a zero provider bill.
+- Download my data includes Stars gifts, and Delete my data unlinks those gifts from the giver while preserving the refund record.

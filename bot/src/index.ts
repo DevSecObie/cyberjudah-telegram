@@ -1,3 +1,5 @@
+import { sweepWebhookUpdates } from "./webhook-updates";
+import { sweepFreeBudget } from "./free-budget";
 import { CmsError } from "./cms-github";
 import { cms } from "./cms";
 import { ResourcePinsSchema } from "../../shared/resources";
@@ -15,7 +17,7 @@ import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./t
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
 import { readSources, saveSources } from "./cms-sources";
-import { answerSearch, ask, askStream, creditsOn, defaultModelId, freeModels, freePaused, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
+import { answerSearch, ask, askStream, creditsOn, defaultModelId, freeModels, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -209,9 +211,8 @@ app.get("/api/search/answer", async (c) => {
     const uid = c.get("tma").user!.id;
     const limit = Math.max(1, Math.floor(Number(c.env.SEARCH_AI_DAILY_LIMIT ?? 20)));
     if (!isAdmin(c.env, uid) && !(await takeQuota(c.env, "search_ai", uid, limit))) return c.json({ ok: false, error: "limit" }, 429);
-    if (await freePaused(c.env)) return c.json({ ok: false, error: "free-paused" }, 429);
     const r = await answerSearch(c.env, q, uid);
-    if (!r.ok) return c.json({ ok: false, error: r.reason }, r.reason === "too-short" ? 400 : 503);
+    if (!r.ok) return c.json({ ok: false, error: r.reason }, r.reason === "too-short" ? 400 : r.reason === "free-paused" ? 429 : 503);
     return c.json(r);
   });
 });
@@ -287,7 +288,7 @@ app.post("/api/ask", async (c) => {
   if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent, meterOpts);
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent, resourcePins?.data);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
-  return c.json(res, res.ok ? 200 : res.reason === "limit" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" ? 400 : 503);
+  return c.json(res, res.ok ? 200 : res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" ? 400 : 503);
 });
 // A note as a PDF: a signed link the app hands to Telegram's downloader, or the file sent to the
 // person's chat with the bot. The link names the note and an expiry, signed with the bot token.
@@ -662,6 +663,8 @@ export default {
     ctx.waitUntil(selfCheck(env).then((r) => reportHealth(env, r)));
     // Old usage rows are pruned; the tables stay small.
     ctx.waitUntil(pruneBilling(env).catch((e) => console.error(JSON.stringify({ event: "prune_failed", message: (e as Error).message?.slice(0, 120) }))));
+    ctx.waitUntil(sweepWebhookUpdates(env).catch((e) => console.error(JSON.stringify({ event: "webhook_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
+    ctx.waitUntil(sweepFreeBudget(env).catch((e) => console.error(JSON.stringify({ event: "free_budget_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Yesterday's quota rows are swept here, never on the request path (ai.ts).
     ctx.waitUntil(sweepRateCounts(env).catch((e) => console.error(JSON.stringify({ event: "sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Records still filed under Telegram IDs move to pseudonymous IDs (docs/PRIVACY.md), a bounded amount each hour.
