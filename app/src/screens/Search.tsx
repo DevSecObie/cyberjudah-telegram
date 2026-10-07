@@ -11,7 +11,7 @@ import { fmtDate } from "@/api/data";
 import { FEED_NAME, KIND_LABEL, Lit, Marked, hitPath, teachingPath, useTeachingsSearch, type Hit, type SearchResult, type TeachingHit } from "@/ui/search-hero";
 import { answerHtml, passageLabel, passagePath, type Source } from "./Ask";
 import { linkRefsInHtml, useBookSlugs } from "@/ui/reftext";
-import { thumbOf } from "@/ui/ui";
+import { THUMB, thumbOf } from "@/ui/ui";
 import { frameStyle, useBoard } from "@/lib/frames";
 import { Trouble } from "@/ui/trouble";
 import { SearchBar, useSettled } from "@/ui/search-bar";
@@ -354,7 +354,7 @@ function Recording({ h, eager }: { h: TeachingHit; eager: boolean }) {
   const frame = frameStyle(h.video, board.data, at);
   return (
     <Link to={teachingPath(h)} className="rec" data-result="">
-      <span className="rec__thumb">{frame ? <span className="rec__frame" style={frame} /> : <Img src={thumbOf(h.video)} eager={eager} />}<span className="rec__time">{timestamp(at)}</span></span>
+      <span className="rec__thumb">{frame ? <span className="rec__frame" style={frame} /> : <Img src={thumbOf(h.video)} eager={eager} {...THUMB} />}<span className="rec__time">{timestamp(at)}</span></span>
       <span className="rec__body">
         <span className="rec__meta">{showOf(h.title) ?? FEED_NAME[h.feed] ?? h.feed} · {h.date ? fmtDate(h.date) : "Date unavailable"} · <b>{timestamp(at)}</b></span>
         <span className="rec__title"><Marked text={h.matchedTitle || h.title} /></span>

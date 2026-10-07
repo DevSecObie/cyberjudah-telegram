@@ -6,7 +6,7 @@ import { fmtDate, type ClassMoment } from "@/api/data";
 import { thumbUrl } from "@/lib/taught";
 import { haptic, openLink } from "@/tg/sdk";
 import { sheetOpened } from "@/tg/hooks";
-import { youtube } from "@/ui/ui";
+import { jpegThumb, youtube } from "@/ui/ui";
 import { toAppPath } from "@shared/links.mjs";
 import { RequestNotes } from "@/ui/request-notes";
 import { Feather } from "../icons";
@@ -120,7 +120,8 @@ function DeckImage({ video, children, hidden }: { video: string; children?: Reac
   const [loaded, setLoaded] = useState(false);
   return (
     <>
-      <img src={thumbUrl(video)} alt="" loading="lazy" decoding="async" draggable={false} onLoad={() => setLoaded(true)}
+      <img src={thumbUrl(video)} alt="" width={320} height={180} loading="lazy" decoding="async" draggable={false} onLoad={() => setLoaded(true)}
+        onError={(e) => { const jpeg = jpegThumb(e.currentTarget.src); if (jpeg) e.currentTarget.src = jpeg; }}
         style={{ opacity: loaded && !hidden ? 1 : 0 }} />
       {children}
     </>

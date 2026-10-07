@@ -13,7 +13,7 @@ import { countdown, sabbath } from "@/lib/sun";
 import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
 import { api } from "@/tg/sdk";
 import { haptic, user } from "@/tg/sdk";
-import { Card, Icon, Img, Screen, Section, Skeleton, type IconName } from "@/ui/ui";
+import { Card, Icon, Img, Screen, Section, Skeleton, thumbOf, type IconName } from "@/ui/ui";
 import { assetUrl } from "@/lib/asset";
 import { SearchHero } from "@/ui/search-hero";
 import { PersonOfTheDay, PreceptOfTheDay, StrongOfTheDay, StudyStats, TopicOfTheDay, WordOfTheDay, useRandomVerse } from "./home-widgets";
@@ -26,7 +26,7 @@ export const useLive = (enabled = true) => useQuery({ queryKey: ["live"], queryF
 export type Teaching = { kind: "class" | "captains" | "history"; url: string; title: string; date: string; teacher: string; thumb: string; topics: string[]; books: string[]; sub?: string; collection?: string; video?: string; pending?: boolean; intro?: string; opens?: Opened[]; series?: Series };
 export type RecentVideo = { video: string; title: string; published: string; views: number | null };
 /** The video behind a teaching's thumbnail: YouTube's own (/vi/<id>/) or the site's local copy (/img/<feed>/<id>.jpg). */
-const videoOfThumb = (thumb: string) => /(?:\/vi\/|\/img\/[a-z]+\/)([A-Za-z0-9_-]{11})(?=[/.])/.exec(thumb ?? "")?.[1] ?? null;
+const videoOfThumb = (thumb: string) => /(?:\/vi(?:_webp)?\/|\/img\/[a-z]+\/)([A-Za-z0-9_-]{11})(?=[/.])/.exec(thumb ?? "")?.[1] ?? null;
 /** Where a teaching opens: its notes, or the recording itself while the notes are still coming. */
 export const teachingTo = (t: Teaching) => (t.pending && t.video ? `/watch/${encodeURIComponent(t.video)}` : `/note${t.url}`);
 /** The channel's newest uploads, so a class is in the app before its notes are written. `feedOk` reports RSS health; a channel fallback may still supply recordings. */
@@ -74,7 +74,7 @@ export function useTeachings() {
   const data = useMemo(() => {
     if (!notes.data) return notes.data;
     const have = new Set(notes.data.map((t) => videoOfThumb(t.thumb)).filter(Boolean));
-    const extra = (recent.data?.videos ?? []).filter((v) => !have.has(v.video)).map<Teaching>((v) => ({ kind: "class", url: `/watch/${v.video}`, title: v.title, date: v.published.slice(0, 10), teacher: "", thumb: `https://img.youtube.com/vi/${v.video}/mqdefault.jpg`, topics: [], books: [], video: v.video, pending: true }));
+    const extra = (recent.data?.videos ?? []).filter((v) => !have.has(v.video)).map<Teaching>((v) => ({ kind: "class", url: `/watch/${v.video}`, title: v.title, date: v.published.slice(0, 10), teacher: "", thumb: thumbOf(v.video), topics: [], books: [], video: v.video, pending: true }));
     const all = extra.length ? [...notes.data, ...extra].sort((a, b) => (b.date || "").localeCompare(a.date || "")) : notes.data;
     // A class taught as one of a run, or on one of the shows, carries that name, read from the titles.
     const series = seriesOf(all.filter((t) => t.kind === "class").map((t) => t.title));
