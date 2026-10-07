@@ -234,17 +234,18 @@ export async function settle(env: Env, owner: Owner, request: string, r: { actua
 export async function grantPayment(env: Env, owner: Owner, p: { charge: string; kind: "plan" | "pack"; stars: number; mc: number }, now = Date.now()): Promise<boolean> {
   await ensureCreditTables(env);
   const grants = grantStatements(env, owner, { kind: "topup", mc: p.mc, expires_at: null, source: `pay:${p.charge}`, type: "purchase", detail: { stars: p.stars, ...(p.kind === "plan" ? { renewal: true } : {}) } }, now);
-  // A retained payment may have been unlinked by Delete my data. A late delivery
-  // must not recreate that balance or assign the same charge to another reader.
+  // The retained charge is the authority, even partway through Delete my data.
+  // Create the lot only for a new charge, then record that charge in the SAME batch.
+  // A late delivery cannot recreate a deleted lot or credit a different reader.
   grants[0] = env.DB.prepare(`INSERT OR IGNORE INTO credit_lots (user_id, kind, granted_mc, remaining_mc, expires_at, source, created_at)
-    SELECT user_id, 'topup', ?, ?, NULL, ?, ? FROM payments WHERE charge_id = ? AND user_id = ?`)
-    .bind(p.mc, p.mc, `pay:${p.charge}`, now, p.charge, owner);
+    SELECT ?, 'topup', ?, ?, NULL, ?, ? WHERE NOT EXISTS (SELECT 1 FROM payments WHERE charge_id = ?)`)
+    .bind(owner, p.mc, p.mc, `pay:${p.charge}`, now, p.charge);
   const res = await env.DB.batch([
     env.DB.prepare("CREATE TABLE IF NOT EXISTS payments (charge_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL, stars INTEGER NOT NULL, created_at INTEGER NOT NULL)"),
-    env.DB.prepare("INSERT OR IGNORE INTO payments (charge_id, user_id, kind, stars, created_at) VALUES (?, ?, ?, ?, ?)").bind(p.charge, owner, p.kind, p.stars, now),
     ...grants,
+    env.DB.prepare("INSERT OR IGNORE INTO payments (charge_id, user_id, kind, stars, created_at) VALUES (?, ?, ?, ?, ?)").bind(p.charge, owner, p.kind, p.stars, now),
   ]);
-  return Number(res[2].meta.changes ?? 0) > 0;
+  return Number(res[1].meta.changes ?? 0) > 0;
 }
 
 /**

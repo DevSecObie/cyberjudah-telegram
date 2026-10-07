@@ -65,6 +65,8 @@ test('payment redelivery cannot recreate a deleted balance or assign one charge 
   assert.equal(await api.grantPayment(env, other, pay), false);
   assert.equal((await api.wallet(env, other)).total_mc, 0);
   await api.deleteCredits(env, owner);
+  assert.equal(await api.grantPayment(env, owner, pay), false, 'redelivery during deletion must not recreate the removed lot');
+  assert.equal((await api.wallet(env, owner)).total_mc, 0);
   await env.DB.prepare("UPDATE payments SET user_id = 'deleted' WHERE user_id = ?").bind(owner).run();
   assert.equal(await api.grantPayment(env, owner, pay), false);
   assert.equal((await api.wallet(env, owner)).total_mc, 0);
@@ -170,13 +172,21 @@ test('free model calls cap their output to the remaining budget and reject overs
   assert.equal(calls.length, 1);
 });
 
-test('missing provider usage keeps the full reservation even when the answer succeeds', async t => {
+test('missing or incomplete provider usage keeps the full reservation even when the answer succeeds', async t => {
   const { env, sql } = financialDb(t);
-  const start = await api.startMeter(env, 77, api.freeModel(env));
-  const reserved = sql.prepare('SELECT reserved_micro AS n FROM free_spend_holds').get().n;
-  start.meter.spend.call(undefined, api.freeModel(env));
-  await api.finishMeter(env, start.meter, 'ok');
-  assert.equal(await api.freeSpendToday(env), reserved / 1e6);
+  env.ASK_FREE_DAILY_USD_CAP = '1';
+  for (const usage of [undefined, { prompt_tokens: 100 }, { input_tokens: 100, output_tokens: NaN }]) {
+    const start = await api.startMeter(env, 77, api.freeModel(env));
+    start.meter.spend.call(usage, api.freeModel(env));
+    if (Number.isNaN(start.meter.spend.total())) {
+      await assert.rejects(api.finishMeter(env, start.meter, 'ok'), /Invalid free answer cost/);
+      assert.equal(sql.prepare('SELECT state FROM free_spend_holds WHERE request_id = ?').get(start.meter.reservation.request).state, 'held');
+    } else {
+      await api.finishMeter(env, start.meter, 'ok');
+      const reserved = sql.prepare("SELECT SUM(reserved_micro) AS n FROM free_spend_holds WHERE state = 'settled'").get().n;
+      assert.equal(await api.freeSpendToday(env), reserved / 1e6);
+    }
+  }
 });
 
 test('failed successful-payment delivery is retried, even with an old KV marker; completed duplicates credit once', async t => {

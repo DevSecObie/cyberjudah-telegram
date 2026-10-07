@@ -28,7 +28,9 @@ export function makeSpend({ fee = 0, budgetUsd = null, rates = RESEARCH_RATES }:
   const s: Spend = {
     fee, budgetUsd, modelUsd: 0, researchUsd: 0, calls: 0, searches: 0, unreported: false,
     call(usage, model) {
-      if (!usage || !("input_tokens" in usage || "prompt_tokens" in usage)) s.unreported = true;
+      const u = (usage ?? {}) as Record<string, unknown>;
+      const input = u.prompt_tokens ?? u.input_tokens, output = u.completion_tokens ?? u.output_tokens;
+      if (typeof input !== "number" || !Number.isFinite(input) || input < 0 || typeof output !== "number" || !Number.isFinite(output) || output < 0) s.unreported = true;
       s.modelUsd += callUsd(usage, model, { fee }); s.calls++;
     },
     search({ query, contexts }) {
