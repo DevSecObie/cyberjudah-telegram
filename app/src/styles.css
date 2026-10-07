@@ -1,5 +1,6 @@
 /* CyberJudah for Telegram: the stylesheet, in layers. Order matters: tokens, then the base, the
    materials and shell, controls, content, and each screen. Everything reads the tokens. */
+@import "./fonts/fonts.css";
 @import "./styles/tokens.css";
 @import "./styles/contrast.css";
 @import "./styles/base.css";
