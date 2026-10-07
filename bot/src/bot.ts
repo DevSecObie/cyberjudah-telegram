@@ -56,12 +56,23 @@ const HELP = [
 
 export async function createBot(env: Env, origin: string, exec?: Exec): Promise<Bot> {
   const bot = new Bot(env.BOT_TOKEN, { botInfo, client: telegramClient(env) });
-  // Completion is recorded only after the handler succeeds. Legacy KV markers are
-  // deliberately ignored so an earlier failed payment can recover on redelivery.
+  // Payment effects are idempotent by charge id, so failed deliveries can retry.
+  // Other handlers include toggles and invoice creation: preserve their existing
+  // mark-before-handling policy so a failed reply cannot repeat a completed effect.
   bot.use(async (ctx, next) => {
     const id = ctx.update.update_id;
-    if (Number.isSafeInteger(id)) await handleWebhookUpdate(env, id, next);
-    else await next();
+    const payment = ctx.message && ("successful_payment" in ctx.message || "refunded_payment" in ctx.message);
+    if (Number.isSafeInteger(id) && payment) {
+      // Ignore legacy markers only for payments, allowing earlier failed credits to recover.
+      await handleWebhookUpdate(env, id, next);
+      return;
+    }
+    if (typeof id === "number") {
+      const key = `webhook:${id}`;
+      if (await env.SUBS.get(key)) return;
+      await env.SUBS.put(key, "1", { expirationTtl: 86400 });
+    }
+    await next();
   });
   const open = (ctx: Context, param: string, text?: string) => openButton(env, origin, ctx.chat?.type, param, text);
 
