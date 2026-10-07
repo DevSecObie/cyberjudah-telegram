@@ -125,6 +125,8 @@ html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__ba
 /* Search shares the group's single material, with its own round control and fixed gap. */
 .tabs__main { display: flex; flex: 1 1 0; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .tabs .tab--search { flex: none; width: calc(var(--dock-h) - 12px); aspect-ratio: 1; margin-left: var(--sp-2); border-radius: 50%; background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--control-edge); }
+/* Search's circle stops growing with the text (its glyph does not), so at 200% every tab still fits. */
+.tabs .tab--search { max-width: 64px; max-height: 64px; align-self: center; }
 .tabs .tab--search .tab__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .tabs[data-search-current] .tabs__pill { border-radius: 50%; }
 .tabs .tab--search[data-on] { background: transparent; }
