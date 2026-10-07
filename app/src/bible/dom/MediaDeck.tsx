@@ -26,6 +26,7 @@ type Placement = "inline" | "chapter";
 const INLINE = { height: 25, ratio: 1.3, container: 0.7, margin: 2 };
 const CHAPTER = { height: 76, ratio: 16 / 9 };
 const MAX_STACKED = 3;
+const MIN_TARGET = 24;
 const SCROLL_SHRINK = { distance: 30, min: 0.2 };
 export const SOURCE_STAGGER = 70, SOURCE_SETTLE = 380, EXTRA_STAGGER = 50;
 // A chapter can have a hundred classes: after the first dozen the rest arrive together, and the
@@ -85,10 +86,14 @@ export function MediaDeck({ items, placement, palette: c, fontScale, sections, r
   const cardW = inline ? cardH * INLINE.ratio : CHAPTER.height * CHAPTER.ratio;
   const boxH = inline ? cardH * INLINE.container : cardH;
   const boxW = inline ? cardW * INLINE.container : cardW;
+  // The small inline deck is padded to at least a 24px box (WCAG 2.5.8) and the padding is taken
+  // back by a negative margin, so the line keeps its height; bible.css reaches the hit area to 44px.
+  const padV = inline ? Math.max(0, Math.ceil((MIN_TARGET - boxH) / 2)) : 0;
+  const padH = inline ? Math.max(0, Math.ceil((MIN_TARGET - boxW) / 2)) : 0;
   const style: CSSProperties = {
-    position: "relative", display: inline ? "inline-grid" : "grid", width: boxW, height: boxH,
-    margin: inline ? `0 ${INLINE.margin}px` : 0, overflow: "visible", isolation: "isolate",
-    padding: 0, border: 0, background: "transparent", cursor: disabled ? "default" : "pointer", verticalAlign: "middle",
+    position: "relative", display: inline ? "inline-grid" : "grid", width: boxW, height: boxH, boxSizing: "content-box",
+    margin: inline ? `${-padV}px ${INLINE.margin - padH}px` : 0, overflow: "visible", isolation: "isolate",
+    padding: `${padV}px ${padH}px`, border: 0, background: "transparent", cursor: disabled ? "default" : "pointer", verticalAlign: "middle",
     transformOrigin: "center bottom", transform: scale < 1 ? `scale(${scale})` : undefined, WebkitTapHighlightColor: "transparent",
   };
   return (

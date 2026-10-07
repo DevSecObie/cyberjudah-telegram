@@ -79,8 +79,8 @@
 .srch__empty p { max-width: 340px; margin: 0; font: 400 15px/1.5 var(--font-ui); }
 .srch__empty b { color: var(--text-1); font-weight: 600; }
 .srch__try { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); }
-#root .srch__try button:not([class*="tgui-"]) { min-height: 36px; padding: 0 14px; border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); color: var(--text-1); font: 500 var(--fs-sub) var(--font-ui); cursor: pointer; }
-#root .srch__try button:not([class*="tgui-"]):hover { background: var(--fill-2); }
+#root .srch__try button:not([class*="tgui-"]) { box-sizing: border-box; min-height: var(--touch); margin-block: -4px; padding: 0 14px; border: 0; border-block: 4px solid transparent; border-radius: var(--r-pill); background: var(--fill-1) padding-box; box-shadow: inset 0 0 0 .5px var(--hairline); color: var(--text-1); font: 500 var(--fs-sub) var(--font-ui); cursor: pointer; }
+#root .srch__try button:not([class*="tgui-"]):hover { background: var(--fill-2) padding-box; }
 .srch__feeds { margin-bottom: 4px; }
 #root button.srch__all { min-height: var(--touch); padding: 0; border: 0; background: none; color: var(--accent); font: 600 var(--fs-sub) var(--font-ui); cursor: pointer; }
 @media (min-width: 720px) { .srch__title { font-size: var(--fs-body); } .srch__snip { -webkit-line-clamp: 2; } }
