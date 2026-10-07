@@ -243,7 +243,11 @@ export async function finishMeter(env: Env, m: Meter, status: "ok" | "failed" | 
  * (admins aside); with billing off, the cap alone.
  */
 async function begin(env: Env, uid: number, model: AskModel, opts: MeterOpts): Promise<{ ok: true; meter: Meter | null } | { ok: false; status: number; body: Record<string, unknown> }> {
-  if (!creditsOn(env)) return (await allowed(env, uid)) ? { ok: true, meter: null } : { ok: false, status: 429, body: { error: "limit" } };
+  if (!creditsOn(env)) {
+    if (!(await allowed(env, uid))) return { ok: false, status: 429, body: { error: "limit" } };
+    // Disabling reader billing does not disable the free models' shared allowance.
+    return freeModels(env).has(model.id) ? startMeter(env, uid, model, opts) : { ok: true, meter: null };
+  }
   // Apply the reader quota before reserving the global budget: denied requests use none.
   if (freeModels(env).has(model.id) && !isAdmin(env, uid) && !(await allowed(env, uid))) return { ok: false, status: 429, body: { error: "limit" } };
   return startMeter(env, uid, model, opts);

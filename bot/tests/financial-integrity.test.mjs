@@ -105,9 +105,13 @@ test('a full free budget blocks Ask and search before calling AI, while admin te
   let calls = 0;
   env.AI = { run: async () => { calls++; return { data: [] }; } };
   const model = api.freeModel(env);
-  const ask = await api.askStream(env, 'a test question', 77, undefined, [], undefined, false, model.id, [model.provider]);
-  assert.equal(ask.status, 429);
-  assert.equal((await ask.json()).error, 'free-paused');
+  for (const billing of ['on', 'off']) {
+    const configured = { ...env, ASK_BILLING: billing, CLAUDE_MODEL: model.id };
+    const ask = await api.askStream(configured, 'a test question', 77, undefined, [], undefined, false, model.id, [model.provider]);
+    assert.equal(ask.status, 429);
+    assert.equal((await ask.json()).error, 'free-paused');
+    assert.equal((await api.ask(configured, 'one-piece question', 77, undefined, [], [model.provider])).reason, 'free-paused');
+  }
   assert.equal((await api.answerSearch(env, 'a search question', 77)).reason, 'free-paused');
   assert.equal(calls, 0);
   assert.equal((await api.answerSearch(env, 'admin search', 100000002)).ok, true);
