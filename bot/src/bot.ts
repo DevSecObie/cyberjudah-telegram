@@ -48,6 +48,9 @@ const HELP = [
   "/daily — the daily verse, on or off",
   "/stop — stop reading reminders",
   "/support — support the work with Telegram Stars",
+  "/privacy — what is kept about you, and your choices",
+  "/terms — the terms for the Ask balance",
+  "/paysupport — help with a Stars payment",
   "/help — this",
   "",
   "In any chat, type <code>@BOT matthew 15:24</code> or <code>@BOT passover</code> to send a verse or a search hit.",
@@ -126,6 +129,9 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
   // Privacy (docs/PRIVACY.md): read the policy, get a copy of what is kept, or delete it all.
   bot.command("privacy", (ctx) =>
     ctx.reply("What CyberJudah keeps about you, why, for how long, and who else sees it: read the privacy policy. Send /mydata for a copy of everything kept, or /deletemydata to delete it all. Questions: privacy@cyberjudah.io", { reply_markup: open(ctx, "privacy", "Privacy policy") }));
+  // The terms for the Ask balance bought with Stars (app/src/screens/Terms.tsx).
+  bot.command("terms", (ctx) =>
+    ctx.reply("The Ask balance pays for answers from the paid AI models, at what each answer costs. Credit bought with Stars never expires. Deleting your data loses any balance left. For a payment problem or a refund, send /paysupport.", { reply_markup: open(ctx, "terms", "Terms") }));
   bot.command("mydata", async (ctx) => {
     if (ctx.chat.type !== "private" || !ctx.from) return ctx.reply("Send /mydata in a private chat with me.");
     let data;

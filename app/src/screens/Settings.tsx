@@ -119,6 +119,7 @@ export function Settings() {
       <Section title="Reading Reminders">
         <List><Row title="Reading reminders" sub="Today's reading, at your time, in Telegram or as a push notification" onClick={() => navigate("/settings/reminders")} /></List>
         <List><Row title="Privacy" sub="What is kept, who sees it, and your choices: download or delete your data" onClick={() => navigate("/privacy")} /></List>
+        <List><Row title="Terms" sub="What your Ask balance buys, refunds, and what happens to it when you delete your data" onClick={() => navigate("/terms")} /></List>
       </Section>
       <Section title="Daily Verse">
         <List>

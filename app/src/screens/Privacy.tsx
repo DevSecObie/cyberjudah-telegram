@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { List, Row, Screen, Section } from "@/ui/ui";
 import { useBackButton } from "@/tg/hooks";
 import { api, ApiError, app, confirm, haptic } from "@/tg/sdk";
@@ -19,6 +20,7 @@ type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse: boole
 
 export function Privacy() {
   useBackButton(true);
+  const navigate = useNavigate();
   const [status, setStatus] = useState<string>("");
   const [busy, setBusy] = useState<"" | "export" | "delete">("");
   const [agreed, setAgreed] = useState(consented);
@@ -84,7 +86,7 @@ export function Privacy() {
       </Section>
 
       <Section title="Your Rights">
-        <p>You can get a copy of what is kept, have it deleted, withdraw your agreement, and stop any feature at any time, in this screen or with /mydata and /deletemydata in the bot. What the app does for you here happens at once. You can also complain to the data protection authority where you live. Payments: send /paysupport to the bot.</p>
+        <p>You can get a copy of what is kept, have it deleted, withdraw your agreement, and stop any feature at any time, in this screen or with /mydata and /deletemydata in the bot. What the app does for you here happens at once. You can also complain to the data protection authority where you live. Payments: send /paysupport to the bot, and see the <a href="/terms" onClick={(e) => { e.preventDefault(); navigate("/terms"); }}>terms for the Ask balance</a>.</p>
       </Section>
 
       <Section title="Contact">

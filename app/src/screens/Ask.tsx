@@ -630,6 +630,7 @@ async function pollAccount(before: AskAccount, set: (a: AskAccount) => void) {
  * costs the Stars it does; and the opt-in reminder to top up before those days.
  */
 function BalanceSheet({ acct, onClose, onPaid, onUsage, onChanged }: { acct: AskAccount; onClose: () => void; onPaid: () => void; onUsage: () => void; onChanged: () => void }) {
+  const navigate = useNavigate();
   const [busy, setBusy] = useState<string | null>(null);
   const [why, setWhy] = useState("");
   const [remind, setRemind] = useState(!!acct.remind?.on);
@@ -683,7 +684,7 @@ function BalanceSheet({ acct, onClose, onPaid, onUsage, onChanged }: { acct: Ask
           </>
         ) : null}
         {why ? <p className="credits__closed" role="alert">{why}</p> : null}
-        <p className="hint">Your chats, search, reading and PDFs stay free. Stars purchases are handled by Telegram. Your balance never expires.</p>
+        <p className="hint">Your chats, search, reading and PDFs stay free. Stars purchases are handled by Telegram. Your balance never expires. <a href="/terms" onClick={(e) => { e.preventDefault(); onClose(); navigate("/terms"); }}>Terms</a></p>
       </div>
     </Sheet>
   );

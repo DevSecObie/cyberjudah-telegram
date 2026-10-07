@@ -6,10 +6,10 @@ The routes are the contract in `shared/contract.md`.
 
 ```
 src/index.ts        Hono: /api/*, /webhook, /card/*, then the static app
-src/bot.ts          grammY: /start /help /verse /daily /support, inline mode, payments
+src/bot.ts          grammY: /start /help /verse /daily /support /privacy /terms /paysupport, inline mode, payments
 src/daily.ts        the hourly cron: today's verse to subscribers at their local hour
 src/search.ts       FTS5 search over search_docs in D1 (a port of the site's search)
-src/initdata.mjs    Mini App initData validation (HMAC-SHA256, 24h window)
+src/initdata.mjs    Mini App initData validation (HMAC-SHA256; 30 days, a day for privacy and invoices)
 src/refs.mjs        "john 3:16", "1 kings 8:22-27", "ps 23" -> a reference
 src/verse-of-day.mjs  the curated list, chosen by the UTC date
 src/card.ts         the 1200x630 SVG verse card
