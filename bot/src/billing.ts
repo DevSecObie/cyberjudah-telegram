@@ -101,17 +101,17 @@ type Paid = { invoice_payload: string; currency: string; total_amount: number; t
  * A monthly plan bought before plans were withdrawn can still renew: its Stars are added to the
  * balance the same way, and the subscription is cancelled with Telegram so it does not renew again.
  */
-export async function applyPayment(env: Env, from: number, pay: Paid): Promise<{ kind: "plan" | "pack"; mc: number } | null> {
+export async function applyPayment(env: Env, from: number, pay: Paid): Promise<{ kind: "plan" | "pack"; mc: number; duplicate: boolean } | null> {
   const b = readPayload(pay.invoice_payload);
   if (!b || b.uid !== from || pay.currency !== "XTR" || pay.total_amount !== b.stars) return null;
   const c = creditsConfig(env);
   const mc = mcOfStars(b.stars, c.usdPerStar, c.margin);
-  await grantPayment(env, await ownerOfUser(env, from), { charge: pay.telegram_payment_charge_id, kind: b.kind, stars: b.stars, mc });
+  const granted = await grantPayment(env, await ownerOfUser(env, from), { charge: pay.telegram_payment_charge_id, kind: b.kind, stars: b.stars, mc });
   if (b.kind === "plan") {
     await telegramApi(env).editUserStarSubscription(from, pay.telegram_payment_charge_id, true)
       .catch((e: Error) => console.error(JSON.stringify({ event: "plan_cancel_failed", message: e.message?.slice(0, 160) })));
   }
-  return { kind: b.kind, mc };
+  return { kind: b.kind, mc, duplicate: !granted };
 }
 
 /**

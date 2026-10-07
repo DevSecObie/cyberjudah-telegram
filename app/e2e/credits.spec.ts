@@ -105,6 +105,34 @@ test("the balance is in dollars, and each answer deducts what it actually cost, 
   await expect(sheet).not.toContainText(/credit/i);
 });
 
+test("a paid request runs once across simultaneous deliveries and completed replays", async ({ request }) => {
+  expect((await fund(request, 20, 1)).ok()).toBe(true);
+  const requestId = crypto.randomUUID(), question = `Replay regression ${requestId}`;
+  const body = { q: question, stream: true, model: OPUS, consent: ["Anthropic"], request: requestId, caps: { [OPUS]: 2_000_000 } };
+  const send = (data = body) => request.post('/api/ask', { headers: auth(20), data });
+  const replies = await Promise.all([send(), send()]);
+  expect(replies.map(r => r.status()).sort()).toEqual([200, 409]);
+  const accepted = replies.find(r => r.status() === 200)!;
+  expect(await accepted.text()).toContain(`A short answer to: ${question}`);
+  const after = await books(20);
+  const replay = await send({ ...body, q: `Different question ${requestId}` });
+  expect(replay.status()).toBe(409);
+  expect((await replay.json()).error).toBe('request-used');
+  expect(await books(20)).toEqual(after);
+  expect(after.lots).toBe(after.ledger);
+  const log = await (await request.get(`${STAND_IN}/__log`)).json() as Logged[];
+  expect(log.filter(e => e.path === '/anthropic/v1/messages' && JSON.stringify(e.body).includes(requestId))).toHaveLength(1);
+});
+
+test("the free budget pause says why, without claiming the reader used their daily question quota", async ({ page }) => {
+  await setup(page);
+  await page.route('**/api/ask', r => r.fulfill({ status: 429, json: { error: 'free-paused' } }));
+  await page.goto(`/ask${launch(21)}`);
+  await ask(page, 'Why is the free answer paused?');
+  await expect(answer(page)).toContainText('shared daily budget');
+  await expect(answer(page)).not.toContainText('a hundred questions');
+});
+
 test("a dearer model asks before an answer that may cost more than $0.25, and calls nothing until allowed", async ({ page, request }) => {
   await setup(page, { caps: {} });
   await fund(request, 2, 5);
