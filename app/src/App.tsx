@@ -34,6 +34,7 @@ const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default:
 const Reminders = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.Reminders })));
 const ReminderSync = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.ReminderSync })));
 const Privacy = lazy(() => import("@/screens/Privacy").then((m) => ({ default: m.Privacy })));
+const Donate = lazy(() => import("@/screens/Donate").then((m) => ({ default: m.Donate })));
 const Timeline = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.Timeline })));
 const TimelinePeriod = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.TimelinePeriod })));
 const TimelineSearch = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.TimelineSearch })));
@@ -113,6 +114,7 @@ export function App() {
         <Route path="/settings/admin/*" element={<AdminGate />} />
         <Route path="/settings/credits" element={<Credits />} />
         <Route path="/settings/reminders" element={<Reminders />} />
+        <Route path="/settings/donate" element={<Donate />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/search" element={<Search />} />
         <Route path="/classes" element={<Classes />} />

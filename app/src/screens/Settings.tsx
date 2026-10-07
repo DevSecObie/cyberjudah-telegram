@@ -6,7 +6,7 @@ import { data } from "@/api/data";
 import { offlineSupported, removeBook, saveBook, saveNarration, savedBooks } from "@/lib/offline";
 import { recordingJson, type RecordingCredit } from "@/lib/recordings";
 import { useBackButton, useStored, useTheme } from "@/tg/hooks";
-import { alert, api, app, confirm, features, haptic, openInvoice, platform, requestWriteAccess, setFullscreen, lockPortrait } from "@/tg/sdk";
+import { alert, api, app, confirm, features, haptic, platform, requestWriteAccess, setFullscreen, lockPortrait } from "@/tg/sdk";
 import { secure } from "@/tg/store";
 import { parseBackup, restore, sendBackup } from "@/lib/backup";
 import { useSheet } from "@/ui/sheet";
@@ -64,10 +64,6 @@ export function Settings() {
     const bm = app!.BiometricManager;
     const finish = () => { if (!bm.isBiometricAvailable) { void alert("This device has no biometrics set up."); return; } bm.requestAccess({ reason: "Lock CyberJudah with your fingerprint or face" }, (ok) => { if (!ok) return; secure.set("lock", on ? "on" : null); setLock(on); haptic("success"); }); };
     if (bm.isInited) finish(); else bm.init(finish);
-  };
-  const support = async (stars: number) => {
-    try { const { link } = await api<{ link: string }>("/api/invoice", { method: "POST", json: { stars } }); const s = await openInvoice(link); if (s === "paid") { haptic("success"); void alert("Thank you. Your support keeps the library free."); } }
-    catch { void alert("Support through Stars is not set up yet."); }
   };
   const offline = async () => {
     const list = books.data ?? [];
@@ -132,8 +128,7 @@ export function Settings() {
       ) : null}
       <BackupSection />
       <Section title="Support CyberJudah">
-        <div className="btn--row">{[50, 100, 500].map((n) => <button key={n} type="button" className="btn btn--quiet" disabled={!app} onClick={() => void support(n)}>⭐ {n}</button>)}</div>
-        <p className="hint">Telegram Stars go toward hosting the library. The text and the notes stay free.{app ? "" : " Stars are given inside Telegram."}</p>
+        <List><Row title="Support CyberJudah" sub="Telegram Stars, any amount, or give another way" onClick={() => navigate("/settings/donate")} /></List>
       </Section>
       {me?.admin ? <Section title="Content"><List><Row title="Admin" sub="Edit content, check reviews and publish approved changes" onClick={() => navigate("/settings/admin")} /></List></Section> : null}
       {me?.admin ? <AskUsage /> : null}
