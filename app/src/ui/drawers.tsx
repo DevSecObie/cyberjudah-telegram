@@ -82,14 +82,20 @@ const SLIDE_MS = 380;
 /** A horizontal swipe toward the drawer's own edge closes it, as Bible Strong's pan does. */
 function useSwipeClose(side: DrawerSide) {
   const start = useRef<{ x: number; y: number } | null>(null);
+  const swiped = useRef(false);
   return {
-    onPointerDown: (e: React.PointerEvent) => { start.current = { x: e.clientX, y: e.clientY }; },
+    onPointerDown: (e: React.PointerEvent) => { start.current = { x: e.clientX, y: e.clientY }; swiped.current = false; },
     onPointerUp: (e: React.PointerEvent) => {
       const s = start.current; start.current = null; if (!s) return;
       const dx = e.clientX - s.x, dy = e.clientY - s.y;
-      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && (side === "home" ? dx < 0 : dx > 0)) { haptic("select"); setDrawer(null); }
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && (side === "home" ? dx < 0 : dx > 0)) { swiped.current = true; haptic("select"); setDrawer(null); }
     },
     onPointerCancel: () => { start.current = null; },
+    // A swipe that starts on a link (the day's verse fills much of Home) would become the
+    // browser's own link drag, which cancels the pointer: the swipe never saw its end.
+    onDragStart: (e: React.DragEvent) => { e.preventDefault(); },
+    // The click that ends a swipe is not a tap on the link under it.
+    onClickCapture: (e: React.MouseEvent) => { if (swiped.current) { swiped.current = false; e.preventDefault(); e.stopPropagation(); } },
   };
 }
 
