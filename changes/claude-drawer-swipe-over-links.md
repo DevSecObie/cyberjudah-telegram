@@ -1,0 +1,1 @@
+- A swipe across the Home or More drawer now closes it even when it starts on a link, such as the day's verse, and no longer opens that link.
