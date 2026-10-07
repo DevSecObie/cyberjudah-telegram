@@ -1,0 +1,1 @@
+- Fixed: after Bible narration failed to start (e.g. a blocked autoplay), opening another chapter and tapping Play no longer resumes the chapter that failed; the shared player now retargets the chapter you're reading.
