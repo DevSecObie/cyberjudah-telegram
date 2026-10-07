@@ -77,7 +77,7 @@ const patchLast = (gen: number, fn: (t: Turn) => Turn) => { if (conv.gen === gen
 type AskFail = { error?: string; reason?: string; provider?: string; model?: string; country?: string };
 /** What went wrong, from the status and the server's own words. */
 const failure = (status: number, body: AskFail | null): string =>
-  status === 428 && body?.error === "consent" ? "consent" : status === 409 && body?.error === "confirm" ? "confirm" : status === 402 ? "credits" : status === 429 ? "limit" : status === 400 && body?.error === "too-short" ? "too-short"
+  status === 409 && body?.error === "request-used" ? "request-used" : status === 429 && body?.error === "free-paused" ? "free-paused" : status === 428 && body?.error === "consent" ? "consent" : status === 409 && body?.error === "confirm" ? "confirm" : status === 402 ? "credits" : status === 429 ? "limit" : status === 400 && body?.error === "too-short" ? "too-short"
     : status === 401 ? (body?.reason === "missing" ? "signin" : "session") : `unavailable:${status}`;
 /** No line from the server for this long (it sends one every 15 seconds while it works): the connection is gone. */
 const STALL_MS = 45_000;
@@ -376,6 +376,8 @@ function Waiting({ question, status }: { question: string; status?: string }) {
 /** Failures that need a sentence, not the troubleshooter. */
 const PLAIN_ERRORS: Record<string, string> = {
   limit: "That is a hundred questions today. The count starts again tomorrow.",
+  "free-paused": "Free answers have reached their shared daily budget. Try again later or choose a model paid from your balance.",
+  "request-used": "That request already started. Check Your chats for its answer before asking again.",
   "too-short": "Ask a fuller question: a few words at least.",
   stopped: "Stopped here. The answer may still finish and be kept in Your chats.",
   refused: "CyberJudah can't answer that one. Ask about the Scripture, the teachings or the app.",

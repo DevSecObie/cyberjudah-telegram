@@ -1,0 +1,1 @@
+- A failed bot reply no longer lets a repeated `/daily` delivery reverse the reader's subscription choice. Payment and refund deliveries still retry safely after storage failures.

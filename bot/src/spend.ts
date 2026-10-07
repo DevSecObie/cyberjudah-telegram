@@ -12,6 +12,7 @@ export type Spend = {
   readonly fee: number;
   readonly budgetUsd: number | null;
   modelUsd: number; researchUsd: number; calls: number; searches: number;
+  unreported: boolean;
   call(usage: object | null | undefined, model: AskModel): void;
   search(s: { query: string; contexts: string[] }): void;
   total(): number;
@@ -25,8 +26,13 @@ export type Spend = {
 
 export function makeSpend({ fee = 0, budgetUsd = null, rates = RESEARCH_RATES }: { fee?: number; budgetUsd?: number | null; rates?: ResearchRates } = {}): Spend {
   const s: Spend = {
-    fee, budgetUsd, modelUsd: 0, researchUsd: 0, calls: 0, searches: 0,
-    call(usage, model) { s.modelUsd += callUsd(usage, model, { fee }); s.calls++; },
+    fee, budgetUsd, modelUsd: 0, researchUsd: 0, calls: 0, searches: 0, unreported: false,
+    call(usage, model) {
+      const u = (usage ?? {}) as Record<string, unknown>;
+      const input = u.prompt_tokens ?? u.input_tokens, output = u.completion_tokens ?? u.output_tokens;
+      if (typeof input !== "number" || !Number.isFinite(input) || input < 0 || typeof output !== "number" || !Number.isFinite(output) || output < 0) s.unreported = true;
+      s.modelUsd += callUsd(usage, model, { fee }); s.calls++;
+    },
     search({ query, contexts }) {
       // The search models report no tokens: estimated from the text (shared/credits.mjs estTokens).
       const q = estTokens(query);
@@ -42,7 +48,10 @@ export function makeSpend({ fee = 0, budgetUsd = null, rates = RESEARCH_RATES }:
     },
     inputUsd(usage, model) {
       const u = (usage ?? {}) as Record<string, unknown>;
-      return callUsd({ ...u, output_tokens: 0, completion_tokens: 0 }, model, { fee });
+      // Preserve the provider's usage shape: adding completion_tokens to an
+      // input_tokens response would select the wrong pricing branch and price input at zero.
+      return callUsd(u.prompt_tokens != null || u.completion_tokens != null
+        ? { ...u, completion_tokens: 0 } : { ...u, output_tokens: 0 }, model, { fee });
     },
   };
   return s;
