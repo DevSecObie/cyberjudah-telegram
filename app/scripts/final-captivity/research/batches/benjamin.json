@@ -1209,6 +1209,121 @@
         }
       ],
       "status": "published"
+    },
+    {
+      "slug": "dominica-independence-1978",
+      "title": "Dominica's independence",
+      "start": 1978,
+      "end": 1978,
+      "date": {
+        "text": "3 November 1978",
+        "precision": "day"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Achievements",
+      "place": "Dominica",
+      "region": "Caribbean",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Benjamin"
+      ],
+      "people": [
+        "Patrick John"
+      ],
+      "summary": "The Commonwealth of Dominica became independent from the United Kingdom on 3 November 1978, with Patrick John, who had led the island's government since the 1967 federation dissolved, as its first prime minister; the new nation was struck within a year by both a political crisis that forced an interim government and one of the deadliest hurricanes in its history.",
+      "account": [
+        "Dominica became an associated state of the United Kingdom with internal self-government on 27 February 1967, and Patrick John served as its first premier. Dominica became independent on 3 November 1978, with John continuing as prime minister.",
+        "Political discontent with John's government led to the formation of an interim government under Oliver Seraphin in mid-1979. In August 1979, Hurricane David struck the island with winds of 150 mph (240 km/h), killing 42 people and destroying or severely damaging about 75 percent of homes. Following elections in 1980, Eugenia Charles of the Dominica Freedom Party became prime minister, the Caribbean's first woman to hold that office."
+      ],
+      "sources": [
+        {
+          "title": "History of Dominica",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/History_of_Dominica",
+          "accessed": "2026-10-07",
+          "supports": "the 1967 associated statehood, the 3 November 1978 independence date, Patrick John as first prime minister, the 1979 interim government under Oliver Seraphin, Hurricane David's casualties and damage, and Eugenia Charles's 1980 election as the Caribbean's first woman prime minister"
+        }
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "saint-lucia-independence-1979",
+      "title": "Saint Lucia's independence",
+      "start": 1979,
+      "end": 1979,
+      "date": {
+        "text": "22 February 1979",
+        "precision": "day"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Achievements",
+      "place": "Saint Lucia",
+      "region": "Caribbean",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Benjamin"
+      ],
+      "people": [
+        "John Compton",
+        "Allan Louisy"
+      ],
+      "summary": "Saint Lucia, which changed hands between France and Britain roughly a dozen times during the 18th century before Britain secured permanent control in 1814, became independent from the United Kingdom on 22 February 1979 under Premier John Compton of the United Workers Party, who was defeated later that same year by Allan Louisy's Saint Lucia Labour Party.",
+      "account": [
+        "During the 18th century Saint Lucia changed ownership, or was declared neutral territory, about a dozen times between France and Britain, earning it the name 'Helen of the West' after the mythological Helen of Troy. Britain secured permanent control in 1814 under the Treaty of Paris ending the Napoleonic Wars. The island was granted representative government in 1924, universal suffrage in 1951, and membership in the West Indies Federation from 1958 to 1962, followed by associated statehood with internal self-government in 1967.",
+        "Saint Lucia became independent on 22 February 1979 under Premier John Compton of the United Workers Party, remaining a Commonwealth realm. Compton's party was defeated later the same year by the Saint Lucia Labour Party under Allan Louisy."
+      ],
+      "sources": [
+        {
+          "title": "Saint Lucia",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Saint_Lucia",
+          "accessed": "2026-10-07",
+          "supports": "the colonial history of repeated changes of control between France and Britain, the 1814 Treaty of Paris, the path through representative government, universal suffrage, the West Indies Federation and associated statehood, the 22 February 1979 independence date, John Compton as premier, and his defeat by Allan Louisy's Saint Lucia Labour Party later in 1979"
+        }
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "saint-vincent-and-the-grenadines-independence-1979",
+      "title": "Saint Vincent and the Grenadines's independence",
+      "start": 1979,
+      "end": 1979,
+      "date": {
+        "text": "27 October 1979",
+        "precision": "day"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Achievements",
+      "place": "Saint Vincent and the Grenadines",
+      "region": "Caribbean",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Benjamin"
+      ],
+      "people": [
+        "Milton Cato"
+      ],
+      "summary": "Saint Vincent and the Grenadines became independent from the United Kingdom on 27 October 1979, with Milton Cato of the Saint Vincent Labour Party, who had served as Premier since 1974, as its first prime minister, nearly two centuries after the British deported almost 5,000 Garifuna from the island following the Second Carib War of 1795-1797.",
+      "account": [
+        "The French first colonised Saint Vincent in 1719, settling at Barrouallie and importing enslaved Africans to work plantations. Britain captured the island during the Seven Years' War, with control confirmed by the 1763 Treaty of Paris. The Garifuna (Black Carib) people fought two wars against British control, the First Carib War of 1772-1773 and the Second Carib War of 1795-1797 led by paramount chief Joseph Chatoyer with French support; after their defeat in 1797, almost 5,000 Garifuna were deported to Roatan in Honduras, Belize, and Baliceaux in the Grenadines.",
+        "Saint Vincent and the Grenadines became fully independent from the United Kingdom on 27 October 1979, with Milton Cato of the centre-left Saint Vincent Labour Party, who had served as Premier since 1974, as its first prime minister; he ruled until his defeat in the 1984 general election."
+      ],
+      "sources": [
+        {
+          "title": "Saint Vincent and the Grenadines",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Saint_Vincent_and_the_Grenadines",
+          "accessed": "2026-10-07",
+          "supports": "the 1719 French settlement at Barrouallie, the 1763 Treaty of Paris, the First and Second Carib Wars, the deportation of almost 5,000 Garifuna in 1797, the 27 October 1979 independence date, and Milton Cato as first prime minister"
+        }
+      ],
+      "status": "published"
     }
   ],
   "drafts": [],
@@ -1561,10 +1676,40 @@
       "events": [
         "trinidad-1990-coup-attempt-jamaat-al-muslimeen"
       ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/History_of_Dominica",
+      "title": "History of Dominica",
+      "status": "reviewed",
+      "note": "Read in full 2026-10-07.",
+      "events": [
+        "dominica-independence-1978"
+      ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/Saint_Lucia",
+      "title": "Saint Lucia",
+      "status": "reviewed",
+      "note": "Read in full 2026-10-07.",
+      "events": [
+        "saint-lucia-independence-1979"
+      ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/Saint_Vincent_and_the_Grenadines",
+      "title": "Saint Vincent and the Grenadines",
+      "status": "reviewed",
+      "note": "Read in full 2026-10-07.",
+      "events": [
+        "saint-vincent-and-the-grenadines-independence-1979"
+      ]
     }
   ],
   "gaps": [
-    "This batch covers 27 of the aimed-for 30–45 events. Added this run: Leonard Howell and the rise of Rastafari (a class moment from Bishop Nathanyel found and read, a8ZeJW3j9Bc), and Antigua and Barbuda’s, and Saint Kitts and Nevis’s independence (1981, 1983) and the 1990 Jamaat al Muslimeen coup attempt in Trinidad (history-only; no class moment found specifically about the 1981/1983 independences or the 1990 coup — tsearch hits for antigua/st kitts/nevis were mission reports and testimonies, not teaching on the independence events themselves, and the one ‘abu bakr’ hit in the corpus is about al-Baghdadi, not Trinidad’s Abu Bakr). trinidadexpress.com and newsday.co.tt were tried for a second source on the coup and both failed (connection refused / HTTP 429); only Wikipedia is cited there. Researched but not yet written up for lack of run time: the Haitian-revolutionary-inspired slave conspiracies elsewhere in the Lesser Antilles, the 1970s-80s Jamaican political violence (JLP/PNP \"garrison\" politics), the Grenadian New Jewel Movement’s 1979 programme in more depth, St. Kitts and Nevis and Antigua and Barbuda’s pre-1981/1983 path to statehood in more depth, and Hurricane Ivan (2004) or Hurricane Gilbert (1988) as modern disasters. Searches run for the included events: taino|arawak|hispaniola (redirected the Taino/Hispaniola material to the Levi-Simeon batch, see note below); tacky|coromantee|jamaica revolt|1760; morant bay|paul bogle; windrush; grenada|maurice bishop; emancipation 1834|apprenticeship; rastafari|rastafarian, leonard howell; antigua; st.?\\s?kitts|saint kitts|nevis; abu bakr|muslimeen|1990 coup. Not yet searched for a class moment: the 1661 Barbados slave code, the Antigua 1736 conspiracy, the 1780 hurricane, Fédon’s rebellion, the Second Maroon War deportation, Bussa’s rebellion, the Demerara rebellion, the British West Indies Regiment/Taranto mutiny, the 1937 Trinidad and 1938 Jamaica riots, the West Indies Federation, the four 1962–1966 independence events, the Trinidad Black Power Revolution, and CARICOM.",
+    "This batch covers 30 of the aimed-for 30–45 events. Added this run: Leonard Howell and the rise of Rastafari (a class moment from Bishop Nathanyel found and read, a8ZeJW3j9Bc); Antigua and Barbuda’s, Saint Kitts and Nevis’s, Dominica’s, Saint Lucia’s and Saint Vincent and the Grenadines’s independence (1978, 1979 x2, 1981, 1983); and the 1990 Jamaat al Muslimeen coup attempt in Trinidad. All five independence events and the coup attempt are history-only; no class moment was found specifically about any of them — tsearch hits for antigua/st kitts/nevis/dominica/st lucia/st vincent were mission reports, identity-themed broadcasts recorded on-location, and testimonies, not teaching on the independence events themselves, and the one ‘abu bakr’ hit in the corpus is about al-Baghdadi, not Trinidad’s Abu Bakr. A radio broadcast recorded in Dominica (vZhdwhrTVmU, 1:28) teaches that West Indians have forgotten their Israelite identity, naming Antigua and Dominica, but does not teach the 1978 independence itself, so it is not attached as `teaching` to dominica-independence-1978; noting it here in case a future researcher judges otherwise. trinidadexpress.com and newsday.co.tt were tried for a second source on the coup and both failed (connection refused / HTTP 429); only Wikipedia is cited there. Researched but not yet written up for lack of run time: the Haitian-revolutionary-inspired slave conspiracies elsewhere in the Lesser Antilles, the 1970s-80s Jamaican political violence (JLP/PNP \"garrison\" politics), the Grenadian New Jewel Movement’s 1979 programme in more depth, and Hurricane Ivan (2004) or Hurricane Gilbert (1988) as modern disasters. Searches run for the included events: taino|arawak|hispaniola (redirected the Taino/Hispaniola material to the Levi-Simeon batch, see note below); tacky|coromantee|jamaica revolt|1760; morant bay|paul bogle; windrush; grenada|maurice bishop; emancipation 1834|apprenticeship; rastafari|rastafarian, leonard howell; antigua; st.?\\s?kitts|saint kitts|nevis; abu bakr|muslimeen|1990 coup; dominica|st\\.?\\s?lucia|saint lucia|st\\.?\\s?vincent|saint vincent. Not yet searched for a class moment on any new angle: the Trinidad Black Power Revolution and CARICOM beyond what tsearch already covered for those slugs.",
     "Note for the Levi and Simeon batch (CYB-81, the other open Timeline issue, not this one): tsearch for 'taino|arawak|hispaniola' found a strong class teaching moment reading from Las Casas's \"A Short Account of the Destruction of the Indies\" about Hispaniola, in video YImBDT6gbY8 (\"THE BIBLE: BOOK OF OUR FATHERS | A Great Evil Upon The Jews [PART 3]\") at 1:14:04, which the class ties explicitly to Simeon (Dominican Republic) and Levi (Haiti), not Benjamin — \"before levi got there all of that area was hispaniola... simeon was there.\" That moment, plus a second one in oKmVoNiHJfE at 0:36 naming a Taino cacique the caption renders as \"Achui\" (likely Hatuey) of Hispaniola's Guahaba province, belongs in the Levi-Simeon batch, not here.",
     "Owner's decision carried over from AGENTS.md, not resolved in this batch: whether the Garifuna deportation (garifuna-deportation-1797, already published) and the Panama Canal silver roll (panama-canal-and-the-silver-roll-1904-1914, already published) should also carry the Zebulon tag alongside Benjamin — both are already tagged [\"Zebulon\", \"Benjamin\"] in events.json, so this appears already decided; flagging only because AGENTS.md still listed it as open.",
     "image: a public-domain engraving or period map of Hispaniola/the Lesser Antilles for the general West Indies period context (e.g. a 17th-century Barbados plantation map, Library of Congress or British Library digitised collections) — none sourced this run.",
