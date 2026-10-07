@@ -38,7 +38,7 @@ export function Settings() {
   // One typeface for reading: the notes and the Bible both follow this row, and it names the face the Bible is really set in.
   const [bible, setBible] = useBibleSettings();
   const face = ["System", "Avenir", "normal", "Roboto"].includes(bible.fontFamily) ? "System" : bible.fontFamily;
-  const [fullscreen, setFs, fsLoaded] = useStored("fullscreen", true);
+  const [fullscreen, setFs, fsLoaded] = useStored("fullscreen", false);
   const [portrait, setPortrait] = useStored("portrait", false);
   const [daily, setDaily] = useState<boolean | null>(null);
   const [me, setMe] = useState<{ user: { id: number }; admin?: boolean; canEdit?: boolean } | null>(null);
