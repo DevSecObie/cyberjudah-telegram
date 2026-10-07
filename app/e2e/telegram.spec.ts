@@ -1747,8 +1747,9 @@ test("Search: the AI answer block asks once per submitted search, sits above the
   ] } }));
   await page.route("**/api/teachings?**", (r) => r.fulfill({ json: { ok: true, q: "", feed: "", page: 0, hits: [], more: false } }));
   const asked: string[] = [];
-  await page.route("**/api/search/answer?**", (r) => {
+  await page.route("**/api/search/answer?**", async (r) => {
     asked.push(new URL(r.request().url()).searchParams.get("q") ?? "");
+    await new Promise((ok) => setTimeout(ok, 500));
     return r.fulfill({ json: { ok: true, model: "test-model", answer: "Melchizedek was king of Salem and priest of the most high God [1]. The class reads the bread and wine as a type [2].", sources: [
       { n: 1, kind: "verse", title: "Genesis 14:18", url: "/bible/genesis/14#v18", sub: "", text: "And Melchizedek king of Salem brought forth bread and wine: and he was the priest of the most high God." },
       { n: 2, kind: "class", title: "The Superiority of the Chosen People", url: "/classes/2026/superiority", sub: "Scriptures Opened", text: "A synthetic passage for the test." },
@@ -1763,6 +1764,24 @@ test("Search: the AI answer block asks once per submitted search, sits above the
   // Enter submits: one answer for the search, above the keyword results, with its sources.
   await page.press("#q", "Enter");
   const block = page.locator(".srch__ai");
+  // While the answer is pending, the card reads as loading, not blank: visible text on a
+  // visibly contrasting mark, not a placeholder with a near-zero-alpha fill (#295).
+  const pending = block.locator(".msg__thinking");
+  await expect(pending).toBeVisible();
+  await expect(pending).toContainText(/answering/i);
+  const mark = pending.locator(".answer__dots i").first();
+  const markBox = await mark.boundingBox();
+  expect(markBox?.width ?? 0).toBeGreaterThan(0);
+  const markAlpha = await mark.evaluate((el) => {
+    // Every engine serializes an opaque colour as rgb(r, g, b), a translucent one as rgba(r, g, b, a)
+    // and a color-mix() result (the old skeleton's --fill-2) as color(srgb r g b / a): the alpha is
+    // the fourth number when there are four and 1 when there are three. Matching "rgba?(" alone
+    // misses the color() form and reads an rgb() colour's blue channel as its alpha.
+    const c = getComputedStyle(el).backgroundColor;
+    const nums = c.slice(c.indexOf("(") + 1).replace(/^[a-z][\w-]*\s+/i, "").match(/[\d.]+/g) ?? [];
+    return nums.length >= 4 ? Number(nums[3]) : nums.length === 3 ? 1 : 0;
+  });
+  expect(markAlpha).toBeGreaterThan(0.3);
   await expect(block.locator(".msg__text")).toContainText("king of Salem");
   expect(asked).toEqual(["Melchizedek"]);
   await expect(page.locator(".srch__group").first()).toHaveClass(/srch__ai/);
