@@ -30,6 +30,7 @@ import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit"
 import { CHAT_ID, deleteChat, getChat, getPending, listChats, moveLegacy, setActionState } from "./chats";
 import { askedBy, closeRequest, getRequest, listRequests, requestNotes, validVideo } from "./requests";
 import { tellAdmins } from "./health";
+import { reportMessage } from "./report.mjs";
 import { notePdf, pdfName } from "./pdf.mjs";
 import { donationsConfig, invoiceFor, invoiceForDonation, pruneBilling, refundStars } from "./billing";
 import { adjust, creditsConfig, history as creditHistory, ownerOfUser, prepare as prepareCredits, typicalMc, usageDayCredits, wallet as creditWallet } from "./credits";
@@ -524,6 +525,16 @@ app.post("/api/share", async (c) => {
     console.error(JSON.stringify({ event: "share_failed", message: e instanceof Error ? e.message : String(e) }));
     return c.json({ error: "share-failed" }, 502);
   }
+});
+
+// "Report this answer" (report.mjs): which answer and why, to the admins; never its text or who
+// reported it. A few a day per reader, so it cannot be used to flood the admins.
+app.post("/api/report", async (c) => {
+  const text = reportMessage(await c.req.json().catch(() => null));
+  if (!text) return c.json({ ok: false, error: "bad-request" }, 400);
+  if (!(await takeQuota(c.env, "report", c.get("tma").user!.id, 10))) return c.json({ ok: false, error: "limit" }, 429);
+  c.executionCtx.waitUntil(tellAdmins(c.env, text).catch(() => undefined));
+  return c.json({ ok: true });
 });
 
 // Privacy (docs/PRIVACY.md): a copy of everything kept about the reader, and deletion of all of it.

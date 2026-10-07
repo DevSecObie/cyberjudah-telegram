@@ -14,6 +14,7 @@ import { linkRefsInHtml, useBookSlugs } from "@/ui/reftext";
 import { thumbOf } from "@/ui/ui";
 import { frameStyle, useBoard } from "@/lib/frames";
 import { Trouble } from "@/ui/trouble";
+import { ReportAnswer } from "@/ui/report";
 import { SearchBar, useSettled } from "@/ui/search-bar";
 
 const EXAMPLES = ["Passover", "Melchizedek", "Matthew 15:24", "\"most high\"", "twelve tribes", "usury"];
@@ -244,6 +245,7 @@ function AiAnswer({ q }: { q: string }) {
         </div>
       ) : null}
       <p className="hint">From the library, answered by the free model. It can be wrong — check the sources.</p>
+      <div className="msg__actions"><ReportAnswer of={{ kind: "search", ...(data.model ? { model: data.model } : {}) }} /></div>
     </section>
   );
 }

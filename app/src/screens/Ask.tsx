@@ -15,6 +15,7 @@ import { agree, consented } from "@/lib/ai-consent";
 import { spinnerLine } from "@/lib/spinner";
 import { APP_URL } from "@/lib/share";
 import { Trouble } from "@/ui/trouble";
+import { ReportAnswer } from "@/ui/report";
 import { Sheet } from "@/bible/ui/Sheet";
 import { Icon, timestamp } from "@/ui/ui";
 import { KIND_LABEL, hitPath, teachingPath } from "@/ui/search-hero";
@@ -336,7 +337,7 @@ export function Ask() {
         <div className="chat2__turns">
           {turns.map((t, i) => t.role === "user"
             ? <div key={`${chatId}-${i}`} className="msg msg--me"><div className="msg__bubble">{t.content}</div></div>
-            : <AssistantTurn key={`${chatId}-${i}`} t={t} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} chatId={chatId} onRetry={() => send(lastUser, true)} onFollow={(q) => send(q)} onPlans={() => setPlans(true)} onModel={openPicker} onUsage={() => setUsageOpen(true)} acct={acct} onUseModel={(id) => { chooseModel(id); setModelId(id); haptic("select"); send(lastUser, true); }} onAccept={(m, mc) => { acceptCap(m, mc); haptic("success"); send(lastUser, true); }} />)}
+            : <AssistantTurn key={`${chatId}-${i}`} t={t} index={i} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} chatId={chatId} onRetry={() => send(lastUser, true)} onFollow={(q) => send(q)} onPlans={() => setPlans(true)} onModel={openPicker} onUsage={() => setUsageOpen(true)} acct={acct} onUseModel={(id) => { chooseModel(id); setModelId(id); haptic("select"); send(lastUser, true); }} onAccept={(m, mc) => { acceptCap(m, mc); haptic("success"); send(lastUser, true); }} />)}
           <div ref={endRef} className="chat2__end" />
         </div>
       )}
@@ -386,7 +387,7 @@ const PLAIN_ERRORS: Record<string, string> = {
   signin: "Open CyberJudah from Telegram to ask questions: your answers are saved to your Telegram account.",
 };
 
-function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onPlans, onModel, onUsage, acct, onUseModel, onAccept }: { t: Turn; question: string; last: boolean; busy: boolean; chatId: string | null; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void; onModel: () => void; onUsage: () => void; acct: AskAccount | null; onUseModel: (id: string) => void; onAccept: (model: string, mc: number) => void }) {
+function AssistantTurn({ t, index, question, last, busy, chatId, onRetry, onFollow, onPlans, onModel, onUsage, acct, onUseModel, onAccept }: { t: Turn; index: number; question: string; last: boolean; busy: boolean; chatId: string | null; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void; onModel: () => void; onUsage: () => void; acct: AskAccount | null; onUseModel: (id: string) => void; onAccept: (model: string, mc: number) => void }) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const sources = t.sources ?? [];
@@ -474,6 +475,7 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
             <div className="msg__actions">
               <button type="button" className="msg__action" onClick={copy} aria-label="Copy the answer" title="Copy the answer"><Icon name={copied ? "check" : "copy"} size={16} />{copied ? "Copied" : "Copy"}</button>
               {last ? <button type="button" className="msg__action" onClick={onRetry} aria-label="Ask again" title="Ask again"><Icon name="retry" size={16} />Retry</button> : null}
+              {chatId && t.content ? <ReportAnswer of={{ kind: "ask", chat: chatId, turn: index }} /> : null}
             </div>
           ) : null}
         </>
