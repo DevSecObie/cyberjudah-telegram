@@ -43,6 +43,10 @@ record holding anything personal is sealed for its owner (AES-GCM, a key derived
 | Ask balance | D1 `credit_lots`, `credit_ledger`, `credit_holds`, `credit_usage`, `credit_meta` (`user_id` = pid); the old `accounts` row it was carried over from | Balance, each top-up, refund and adjustment, and each paid answer's model, steps and cost (never the question) | Until Delete my data | Delete my data |
 | Top-up reminder | D1 `topup_reminders` (`user_id` = pid) | Time zone, the chat to write to (sealed), the last eve handled | Until turned off | Delete my data |
 | Stars payments | D1 `payments` | Telegram charge ID, kind, Stars, date; pid | Kept for refunds and accounts | Delete my data unlinks it (`user_id = 'deleted'`) |
+| Stars donations | D1 `donations` | Telegram charge ID, Stars, date; pid | Kept for refunds and accounts; included in Download my data | Delete my data unlinks it (`user_id = 'deleted'`) |
+| Telegram delivery claims | D1 `webhook_updates` | Update sequence id, random processing claim, state and time; no reader id or message | Seven days, swept hourly | Expires on its own |
+| Free-answer reservations | D1 `free_spend_holds` | Server-generated random id, UTC day, amount, state; no reader id or question | Seven days, swept hourly | Expires on its own |
+| Aggregate free-answer spend | D1 `free_spend_daily` | UTC day and total estimated cost; no reader id or question | Aggregate operational history | Not linked to a reader |
 | Who asked on a day | D1 `usage_people` (pid) | pid, day | 30 days | Delete my data |
 | Daily limits | D1 `rate_counts` (`name:pid:day`) | A count | Swept daily | Delete my data |
 | Ask limit per network | D1 `rate_counts` (`ask_ip:<IP address>:day`) | The IP address the question came from, and a count, never linked to a pid | Swept daily (kept up to two days) | Expires on its own |

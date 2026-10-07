@@ -12,6 +12,8 @@ import { isAdmin } from "./edit";
 import { creditsConfig, hold, ownerOfUser, prepare, settle, typicalMc, wallet, type Wallet } from "./credits";
 import { estimateMc, MC_USD, mcOfUsd, viaUnifiedBilling } from "../../shared/credits.mjs";
 import { freeSpend, makeSpend, type Spend } from "./spend";
+import { reserveFreeBudget, settleFreeBudget, type FreeReservation } from "./free-budget";
+export { freeSpendToday, freePaused } from "./free-budget";
 
 /**
  * The AI features, all through Workers AI and the Vectorize index of the teachings:
@@ -132,7 +134,8 @@ async function allowed(env: Env, userId: number): Promise<boolean> {
  * there is no separate "free lane" of models to pick from — the whole text menu is offered.
  * ASK_FREE_MODELS optionally narrows it (comma-separated model ids); ASK_FREE_MODEL names the
  * default free model, Llama 3.1 8B, the cheapest per answer. A reader picks any of them in the
- * app's model picker; the daily circuit breaker below is what keeps the owner's cost at $0.
+ * app's model picker. Admission reserves its budget against the daily free-answer allowance;
+ * this does not measure other account usage or guarantee a zero Cloudflare bill.
  */
 const FREE_FORMATS = new Set(["plain", "chat"]);
 export function freeModels(env: Env): Set<string> {
@@ -156,9 +159,10 @@ export const creditsOn = (env: Env) => env.ASK_BILLING === "on";
  * request starts, the most it may cost on this model is worked out and that much is held from the
  * balance. A request whose most is above ASK_CONFIRM_ABOVE_USD is held only up to a limit the
  * reader accepted (the app asks first). The free model and the admins are not charged: they get
- * a meter that measures and keeps to the same budget, and holds nothing.
+ * a meter that measures the same budget and holds no reader balance. Non-admin free
+ * answers reserve their cost separately from the owner's daily allowance.
  */
-export type Meter = { owner: string; request: string; held: number; spend: Spend; model: AskModel; free: boolean; admin: boolean; maxRounds?: number };
+export type Meter = { owner: string; request: string; held: number; spend: Spend; model: AskModel; free: boolean; admin: boolean; maxRounds?: number; reservation?: FreeReservation };
 type MeterStart = { ok: true; meter: Meter } | { ok: false; status: number; body: Record<string, unknown> };
 export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number> };
 
@@ -170,36 +174,6 @@ export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: nu
 const freeMaxRounds = (env: Env) => Math.max(1, Math.floor(Number(env.ASK_FREE_MAX_ROUNDS ?? 3)));
 const freeMaxUsd = (env: Env) => Math.max(0.001, Number(env.ASK_FREE_MAX_USD ?? 0.05));
 
-/**
- * The owner's free-tier spend is capped per UTC day at the free-allocation value
- * (ASK_FREE_DAILY_USD_CAP, $0.11 = 10,000 free neurons/day at $0.011/1k): past it, free answers
- * pause until tomorrow. Cloudflare's free neurons are shared across all Workers AI models, so
- * the cap also covers the account's other AI usage — free answers pause instead of billing.
- * A per-account answer cap cannot stop N accounts × 100 free answers each; only a global
- * cap bounds that loss.
- */
-const freeCapUsd = (env: Env) => Math.max(0.01, Number(env.ASK_FREE_DAILY_USD_CAP ?? 0.11));
-const freeDay = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
-
-export async function freeSpendToday(env: Env, now = Date.now()): Promise<number> {
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS free_spend_daily (day TEXT PRIMARY KEY, usd_micro INTEGER NOT NULL DEFAULT 0)").run().catch(() => null);
-  const r = await env.DB.prepare("SELECT usd_micro AS m FROM free_spend_daily WHERE day = ?").bind(freeDay(now)).first<{ m: number }>().catch(() => null);
-  return (r?.m ?? 0) / 1e6;
-}
-
-export async function freePaused(env: Env, now = Date.now()): Promise<boolean> {
-  return (await freeSpendToday(env, now)) >= freeCapUsd(env);
-}
-
-/** What a free answer cost, in micro-dollars; admins are excluded (their testing must not trip the breaker). */
-async function recordFreeSpend(env: Env, costUsd: number, now = Date.now()): Promise<void> {
-  if (!(costUsd > 0)) return;
-  const micro = Math.round(costUsd * 1e6);
-  await env.DB.batch([
-    env.DB.prepare("CREATE TABLE IF NOT EXISTS free_spend_daily (day TEXT PRIMARY KEY, usd_micro INTEGER NOT NULL DEFAULT 0)"),
-    env.DB.prepare("INSERT INTO free_spend_daily (day, usd_micro) VALUES (?, ?) ON CONFLICT (day) DO UPDATE SET usd_micro = usd_micro + ?").bind(freeDay(now), micro, micro),
-  ]).catch(() => null);
-}
 export async function startMeter(env: Env, uid: number, model: AskModel, opts: MeterOpts = {}): Promise<MeterStart> {
   const cfg = creditsConfig(env);
   const owner = await ownerOfUser(env, uid);
@@ -216,7 +190,17 @@ export async function startMeter(env: Env, uid: number, model: AskModel, opts: M
     const rounds = isFree && !admin ? freeMaxRounds(env) : 6;
     const estFree = isFree && !admin ? estimateMc(model, cfg, { rounds }) : est;
     const budget = isFree && !admin ? Math.min(estFree.maxMc * MC_USD, freeMaxUsd(env)) : est.maxMc * MC_USD;
-    return { ok: true, meter: { owner, request, held: 0, spend: makeSpend({ fee, budgetUsd: budget, rates: cfg.research }), model, free: true, admin, maxRounds: isFree && !admin ? rounds : undefined } };
+    let reservation: FreeReservation | undefined;
+    if (!admin) {
+      try {
+        const held = await reserveFreeBudget(env, crypto.randomUUID(), budget);
+        if (!held) return { ok: false, status: 429, body: { error: "free-paused" } };
+        reservation = held;
+      } catch {
+        return { ok: false, status: 503, body: { error: "unavailable", message: "The free answer budget is unavailable. Please try again later." } };
+      }
+    }
+    return { ok: true, meter: { owner, request, held: 0, spend: makeSpend({ fee, budgetUsd: budget, rates: cfg.research }), model, free: true, admin, reservation, maxRounds: isFree && !admin ? rounds : undefined } };
   }
   const typical = (await typicalMc(env, model.id).catch(() => null)) ?? est.typicalMc;
   const limit = opts.maxMc ?? opts.caps?.[model.id];
@@ -227,6 +211,7 @@ export async function startMeter(env: Env, uid: number, model: AskModel, opts: M
   const minMc = Math.min(cap, Math.max(1000, Math.ceil(typical / 2)));
   const h = await hold(env, owner, request, cap, minMc, model.id);
   // Not enough: the free model is offered, and a top-up.
+  if (!h.ok && "reason" in h) return { ok: false, status: 409, body: { error: "request-used", message: "This request already started. Wait for its answer or send a new request." } };
   if (!h.ok) return { ok: false, status: 402, body: { error: "credits", model: model.id, name: model.name, available_mc: h.available_mc, need_mc: minMc, typical_mc: typical, free: { id: free.id, name: free.name, provider: free.provider } } };
   return { ok: true, meter: { owner, request, held: h.held_mc, spend: makeSpend({ fee, budgetUsd: h.held_mc * MC_USD, rates: cfg.research }), model, free: false, admin: isAdmin(env, uid) } };
 }
@@ -243,9 +228,10 @@ export async function finishMeter(env: Env, m: Meter, status: "ok" | "failed" | 
   const charged = status === "ok" && !m.free ? Math.min(actual, m.held) : 0;
   const detail = { calls: m.spend.calls, searches: m.spend.searches, model_usd: Math.round(m.spend.modelUsd * 1e6) / 1e6, research_usd: Math.round(m.spend.researchUsd * 1e6) / 1e6 };
   console.log(JSON.stringify({ event: "ask_usage", model: m.model.id, status, cost_usd: Math.round(cost * 1e6) / 1e6, charged_mc: charged, held_mc: m.held, free: m.free, ...detail }));
-  // The owner's free-tier spend is metered per day for the circuit breaker (begin): what the
-  // calls actually cost, whatever the outcome, since the owner paid for them either way.
-  if (m.free && !m.admin) await recordFreeSpend(env, cost);
+  // Failed/backup calls may have incurred unreported provider costs. Keep their full
+  // reservation; a failed settlement leaves the reservation held, never reusable.
+  if (m.reservation) await settleFreeBudget(env, m.reservation,
+    status === "failed" || status === "backup" || m.spend.unreported ? Math.max(cost, m.spend.budgetUsd ?? 0) : cost);
   if (m.free) return null;
   const r = await settle(env, m.owner, m.request, { actualMc: charged, costUsd: cost, status, model: m.model.id, detail, absorbedMc: actual - charged }).catch((e: Error) => { console.error(JSON.stringify({ event: "credits_settle_failed", message: e.message?.slice(0, 160) })); return null; });
   return r ? { charged_mc: r.charged_mc, balance: await wallet(env, m.owner) } : null;
@@ -258,16 +244,9 @@ export async function finishMeter(env: Env, m: Meter, status: "ok" | "failed" | 
  */
 async function begin(env: Env, uid: number, model: AskModel, opts: MeterOpts): Promise<{ ok: true; meter: Meter | null } | { ok: false; status: number; body: Record<string, unknown> }> {
   if (!creditsOn(env)) return (await allowed(env, uid)) ? { ok: true, meter: null } : { ok: false, status: 429, body: { error: "limit" } };
-  const r = await startMeter(env, uid, model, opts);
-  if (!r.ok) return r;
-  if (r.meter.free && !isAdmin(env, uid) && !(await allowed(env, uid))) return { ok: false, status: 429, body: { error: "limit" } };
-  // The global free-tier circuit breaker: past the owner's daily cap the free model pauses
-  // until tomorrow (paid answers are unaffected). Fires before any model call is made.
-  if (r.meter.free && !isAdmin(env, uid) && (await freePaused(env))) {
-    console.error(JSON.stringify({ event: "free_breaker_tripped", day: freeDay() }));
-    return { ok: false, status: 429, body: { error: "free-paused" } };
-  }
-  return r;
+  // Apply the reader quota before reserving the global budget: denied requests use none.
+  if (freeModels(env).has(model.id) && !isAdmin(env, uid) && !(await allowed(env, uid))) return { ok: false, status: 429, body: { error: "limit" } };
+  return startMeter(env, uid, model, opts);
 }
 
 /** A question answered in one piece (the bot and older clients). It cannot ask first, so it is held to ASK_CONFIRM_ABOVE_USD at most. */
@@ -279,7 +258,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   // The one-piece answer uses the setup's own model: agreed to, as in askStream.
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   const r = await begin(env, userId, model, { maxMc: creditsConfig(env).confirmAboveMc });
-  if (!r.ok) return { ok: false, reason: r.status === 429 ? "limit" : "credits" };
+  if (!r.ok) return { ok: false, reason: r.body.error === "free-paused" ? "free-paused" : r.status === 429 ? "limit" : r.status === 503 ? "unavailable" : "credits" };
   const meter = r.meter;
   const spend = meter?.spend ?? freeSpend();
   try {
@@ -305,7 +284,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 
 export type SearchAnswer =
   | { ok: true; answer: string; sources: (Passage & { n: number })[]; model: string }
-  | { ok: false; reason: "too-short" | "unavailable" | "empty" };
+  | { ok: false; reason: "too-short" | "unavailable" | "empty" | "free-paused" };
 
 /**
  * The search screen's AI answer block: one free-tier answer over the library for a signed-in reader.
@@ -319,7 +298,7 @@ export async function answerSearch(env: Env, q: string, uid: number): Promise<Se
   if (question.length < 2) return { ok: false, reason: "too-short" };
   const model = freeModel(env);
   const started = await startMeter(env, uid, model, {});
-  if (!started.ok) return { ok: false, reason: "unavailable" };
+  if (!started.ok) return { ok: false, reason: started.body.error === "free-paused" ? "free-paused" : "unavailable" };
   const meter = started.meter;
   const spend = meter.spend;
   try {
@@ -487,6 +466,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           if (!passages.length && backup) { send({ error: "busy" }); return; }
           if (!passages.length) {
             const answer = "The search did not find enough reliable material in the library to answer that question.";
+            await finish("empty");
             await keep(answer, [], []);
             send({ delta: answer }); send({ done: true, answer, followups: [], sources: [] }); return;
           }

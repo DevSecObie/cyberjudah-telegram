@@ -32,6 +32,7 @@ const TABLES = [
     type TEXT NOT NULL, amount_mc INTEGER NOT NULL, lot_id INTEGER NOT NULL DEFAULT 0, ref TEXT NOT NULL, detail TEXT,
     UNIQUE (user_id, type, ref, lot_id))`,
   "CREATE INDEX IF NOT EXISTS credit_ledger_owner ON credit_ledger (user_id, at)",
+  "CREATE INDEX IF NOT EXISTS credit_ledger_lot_type ON credit_ledger (lot_id, type)",
   `CREATE TABLE IF NOT EXISTS credit_holds (request_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, held_mc INTEGER NOT NULL,
     alloc TEXT NOT NULL, state TEXT NOT NULL, model TEXT, created_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS credit_usage (request_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, at INTEGER NOT NULL, model TEXT,
@@ -43,11 +44,11 @@ const TABLES = [
   // Write-contention events per UTC day, for the hourly health check's alerting.
   "CREATE TABLE IF NOT EXISTS contention_daily (day TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)",
 ];
-let ready = false;
+const ready = new WeakSet<D1Database>();
 export async function ensureCreditTables(env: Env): Promise<void> {
-  if (ready) return;
+  if (ready.has(env.DB)) return;
   await env.DB.batch(TABLES.map((sql) => env.DB.prepare(sql)));
-  ready = true;
+  ready.add(env.DB);
 }
 
 export const ownerOfUser = (env: Env, uid: number): Promise<Owner> => pid(env, uid);
@@ -131,17 +132,18 @@ export async function wallet(env: Env, owner: Owner, now = Date.now()): Promise<
   return walletOf(await lotsOf(env, owner), now);
 }
 
-export type Hold = { ok: true; request: string; held_mc: number } | { ok: false; available_mc: number };
+export type Hold = { ok: true; request: string; held_mc: number } | { ok: false; available_mc: number } | { ok: false; reason: "duplicate" };
 /**
  * Hold part of the balance for a request before it starts: up to `wantMc` (the most it may cost),
  * at least `minMc` (or it does not start). It leaves the lots at once, so requests sent together
  * cannot spend the same money; the request settles what it actually used at the end. The same
- * request id holds once.
+ * request id starts work once. Repeated ids are rejected, including settled requests: merely
+ * reusing their old reservation would execute new provider work without a new charge.
  */
 export async function hold(env: Env, owner: Owner, request: string, wantMc: number, minMc: number, model: string, now = Date.now()): Promise<Hold> {
   for (let i = 0; i < 6; i++) {
-    const had = await env.DB.prepare("SELECT held_mc FROM credit_holds WHERE request_id = ? AND user_id = ?").bind(request, owner).first<{ held_mc: number }>();
-    if (had) return { ok: true, request, held_mc: had.held_mc };
+    const had = await env.DB.prepare("SELECT 1 FROM credit_holds WHERE request_id = ?").bind(request).first();
+    if (had) return { ok: false, reason: "duplicate" };
     const lots = await lotsOf(env, owner);
     const available = walletOf(lots, now).total_mc;
     if (available < Math.max(1, minMc)) return { ok: false, available_mc: available };
@@ -177,7 +179,7 @@ export async function settle(env: Env, owner: Owner, request: string, r: { actua
   const status = r.status ?? "ok";
   const claimed = await env.DB.prepare("UPDATE credit_holds SET state = 'settling' WHERE request_id = ? AND user_id = ? AND state = 'held'").bind(request, owner).run();
   if (!Number(claimed.meta.changes ?? 0)) {
-    const done = await env.DB.prepare("SELECT charged_mc, absorbed_mc, status FROM credit_usage WHERE request_id = ?").bind(request).first<Settled>();
+    const done = await env.DB.prepare("SELECT charged_mc, absorbed_mc, status FROM credit_usage WHERE request_id = ? AND user_id = ?").bind(request, owner).first<Settled>();
     return done ?? null;
   }
   const h = await env.DB.prepare("SELECT held_mc, alloc, model FROM credit_holds WHERE request_id = ?").bind(request).first<{ held_mc: number; alloc: string; model: string }>();
@@ -193,8 +195,13 @@ export async function settle(env: Env, owner: Owner, request: string, r: { actua
         if (!back) break;
         const n = Math.min(back, t.mc); back -= n;
         stmts.push(
-          env.DB.prepare("UPDATE credit_lots SET remaining_mc = remaining_mc + ? WHERE id = ?").bind(n, t.lot),
+          // A refund ledger row is a durable tombstone, including refunds of an entirely
+          // held lot (amount 0). D1 executes this batch atomically with respect to refunds.
+          env.DB.prepare("UPDATE credit_lots SET remaining_mc = remaining_mc + ? WHERE id = ? AND NOT EXISTS (SELECT 1 FROM credit_ledger WHERE lot_id = ? AND type = 'refund')").bind(n, t.lot, t.lot),
           env.DB.prepare("INSERT OR IGNORE INTO credit_ledger (user_id, at, type, amount_mc, lot_id, ref) VALUES (?, ?, 'release', ?, ?, ?)").bind(owner, now, n, t.lot, request),
+          // Keep the ledger and history balanced when unused funds go back to a refunded
+          // payment instead of the wallet. This also handles failed and timed-out answers.
+          env.DB.prepare("INSERT OR IGNORE INTO credit_ledger (user_id, at, type, amount_mc, lot_id, ref) SELECT ?, ?, 'refund', ?, ?, ? WHERE EXISTS (SELECT 1 FROM credit_ledger WHERE lot_id = ? AND type = 'refund')").bind(owner, now, -n, t.lot, `refund-hold:${request}`, t.lot),
         );
       }
     } else {
@@ -226,10 +233,16 @@ export async function settle(env: Env, owner: Owner, request: string, r: { actua
  */
 export async function grantPayment(env: Env, owner: Owner, p: { charge: string; kind: "plan" | "pack"; stars: number; mc: number }, now = Date.now()): Promise<boolean> {
   await ensureCreditTables(env);
+  const grants = grantStatements(env, owner, { kind: "topup", mc: p.mc, expires_at: null, source: `pay:${p.charge}`, type: "purchase", detail: { stars: p.stars, ...(p.kind === "plan" ? { renewal: true } : {}) } }, now);
+  // A retained payment may have been unlinked by Delete my data. A late delivery
+  // must not recreate that balance or assign the same charge to another reader.
+  grants[0] = env.DB.prepare(`INSERT OR IGNORE INTO credit_lots (user_id, kind, granted_mc, remaining_mc, expires_at, source, created_at)
+    SELECT user_id, 'topup', ?, ?, NULL, ?, ? FROM payments WHERE charge_id = ? AND user_id = ?`)
+    .bind(p.mc, p.mc, `pay:${p.charge}`, now, p.charge, owner);
   const res = await env.DB.batch([
     env.DB.prepare("CREATE TABLE IF NOT EXISTS payments (charge_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL, stars INTEGER NOT NULL, created_at INTEGER NOT NULL)"),
     env.DB.prepare("INSERT OR IGNORE INTO payments (charge_id, user_id, kind, stars, created_at) VALUES (?, ?, ?, ?, ?)").bind(p.charge, owner, p.kind, p.stars, now),
-    ...grantStatements(env, owner, { kind: "topup", mc: p.mc, expires_at: null, source: `pay:${p.charge}`, type: "purchase", detail: { stars: p.stars, ...(p.kind === "plan" ? { renewal: true } : {}) } }, now),
+    ...grants,
   ]);
   return Number(res[2].meta.changes ?? 0) > 0;
 }

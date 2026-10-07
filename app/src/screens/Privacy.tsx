@@ -11,7 +11,7 @@ import { consented, withdraw } from "@/lib/ai-consent";
  * the other. Required by Telegram's Bot Developer Terms (section 4) and Standard Bot Privacy
  * Policy (7.3), and by Apple's App Review Guidelines 5.1.1(i) and 5.1.2(i).
  */
-export const PRIVACY_UPDATED = "2026-10-03";
+export const PRIVACY_UPDATED = "2026-10-07";
 /** Where privacy questions and requests go (the owner's address). */
 export const PRIVACY_CONTACT = "privacy@cyberjudah.io";
 
@@ -67,7 +67,7 @@ export function Privacy() {
           <li><b>Daily verse:</b> the hour and the chat to send it to. Kept until you send /daily again.</li>
           <li><b>Ask balance:</b> what is left, each top-up and each answer you paid for (the model and what it cost, never the question). Kept until you delete your data.</li>
           <li><b>Top-up reminder:</b> if you turned it on, your time zone and the chat to send it to. Kept until you turn it off.</li>
-          <li><b>Stars payments:</b> Telegram's charge reference, what was bought, the amount and the date, for refunds and the accounts. Deleting your data unlinks them from you.</li>
+          <li><b>Stars payments and gifts:</b> Telegram's charge reference, what was bought or given, the amount and the date, for refunds and the accounts. Downloading your data includes both; deleting your data unlinks them from you.</li>
           <li><b>Class-note requests:</b> so each person counts once. Kept until the notes are written.</li>
           <li><b>Counts:</b> how many questions you asked today (cleared daily) and whether you asked on a given day (30 days), for limits and costs.</li>
         </ul>

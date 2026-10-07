@@ -117,9 +117,9 @@
     // Off: no balance, and the cap of 100 questions a day per person applies to every model.
     // The free tier answers at the owner's expense, so it is capped twice: ASK_FREE_MAX_ROUNDS
     // research rounds and ASK_FREE_MAX_USD dollars per answer, and ASK_FREE_DAILY_USD_CAP dollars
-    // of owner spend per day past which free answers pause until tomorrow (429 free-paused).
-    // The cap sits at the free-allocation value ($0.11 = 10,000 free neurons/day, shared across
-    // all Workers AI models): inside it the owner pays nothing.
+    // reserved and completed free-answer cost per UTC day (429 free-paused when exhausted).
+    // Storage failures block admission. Admins and other account AI uses are separate;
+    // this is not a guarantee of a zero provider bill (see docs/OPERATIONS.md).
     // ASK_IP_DAILY_LIMIT is the Sybil backstop (Ask requests per IP per day); SEARCH_AI_DAILY_LIMIT
     // caps the search screen's AI answer block per reader (20/day, admins excluded); CREDIT_USAGE_RETENTION_DAYS
     // how long per-request telemetry is kept; CREDITS_CONTENTION_ALERT how many D1 write-contention
