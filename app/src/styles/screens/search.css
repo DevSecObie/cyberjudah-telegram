@@ -45,6 +45,8 @@
 #root .srch__hit { display: flex; align-items: flex-start; gap: var(--sp-3); padding: var(--sp-3) var(--sp-3) var(--sp-3) 14px; border-top: .5px solid var(--hairline); color: inherit; text-decoration: none; outline: none; transition: none; }
 .srch__list > li:first-child .srch__hit { border-top: 0; }
 #root .srch__hit:hover, #root .srch__hit:focus-visible { background: var(--accent-softer); }
+/* The global focus ring, drawn inside: the list clips anything outside a row. */
+#root .srch__hit:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 [data-result]:focus-visible { outline: 2px solid var(--accent) !important; outline-offset: -2px; }
 .srch__kind { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); }
 .srch__kind[data-kind="verse"] { background: color-mix(in srgb, var(--sky) 16%, transparent); color: var(--sky); }
