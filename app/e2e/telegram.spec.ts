@@ -459,7 +459,7 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await page.goto(`/${LAUNCH}`);
   await page.click('.tab[aria-label="Bible"]');
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
-  await page.click('.tab[aria-label^="Tabs"]');
+  await page.click('.tab[aria-label$="Tabs open"]');
   await expect(page).toHaveURL(/\/tabs/);
   await expect(page.locator(".tabcard")).toHaveCount(1);
   await expect(page.locator(".tabcard__title b").first()).toHaveText("Genesis 1 - KJV");
@@ -470,7 +470,7 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await expect(page.locator(".nt-heading")).toHaveText("What would you like to explore?");
   await page.click(".nt-item >> text=Strong");
   await expect(page).toHaveURL(/\/lexicon/);
-  await page.click('.tab[aria-label^="Tabs"]');
+  await page.click('.tab[aria-label$="Tabs open"]');
   await expect(page.locator(".tabcard")).toHaveCount(2);
   await expect(page.locator(".switcherbar__group")).toHaveText("2 tabs");
   await page.click('.tabcard__close[aria-label="Close Strong"]');
@@ -1183,7 +1183,7 @@ test("Classes: a class in a series is labelled by it, and the series opens in or
   const dates = await page.locator("article.post .post__who time").evaluateAll((els) => els.map((e) => e.getAttribute("datetime") ?? ""));
   expect(dates).toEqual([...dates].sort());
   // Leaving the series shows every class again.
-  await page.getByRole("button", { name: /^Series: Navigating/ }).click();
+  await page.getByRole("button", { name: /^Navigating.*: show every class$/ }).click();
   await expect(page).not.toHaveURL(/series=/);
 });
 
@@ -1580,7 +1580,7 @@ test("the bottom bar sits above the Bible, and each reader chooses its buttons",
   await page.click('[aria-label="Move Library up"]');
   await expect(page.locator(".tabs .tab")).toHaveCount(8);
   const labels = await page.locator(".tabs .tab").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  expect(labels).toEqual(["Home", "Bible", "Classes", "Ask", "Library", expect.stringMatching(/^Tabs/), "Menu", "Search"]);
+  expect(labels).toEqual(["Home", "Bible", "Classes", "Ask", "Library", expect.stringMatching(/Tabs open$/), "Menu", "Search"]);
   // Scrolling the editor may have shrunk the bar to its capsule: a tap on it opens it first.
   if (await page.locator("nav.tabs[data-mini]").count()) await page.locator("nav.tabs .tab[data-on]").click();
   await page.click('.tab[aria-label="Library"]');
