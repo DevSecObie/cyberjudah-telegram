@@ -116,10 +116,11 @@ html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__ba
 .tab__glyph { display: grid; place-items: center; height: 26px; transition: transform var(--dur-1) var(--ease); }
 .tabs .tab:active .tab__glyph { transform: scale(.88); }
 .tab__label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font: 500 .65625rem/1.1 var(--font-ui); letter-spacing: -.01em; }
-/* With large text a label no longer fits its tab: rather than break mid-word, the tab keeps its
-   glyph alone (each tab is named by aria-label). Queried in rem, so it follows the reader's size. */
+/* With large text a label no longer fits its tab: rather than break mid-word, the phone dock's tab
+   keeps its glyph alone (each tab is named by aria-label); the desktop rail grows, its labels
+   ellipsize. Queried in rem, so it follows the reader's size. */
 .tabs .tab { container: tab / inline-size; }
-@container tab (max-width: 2.75rem) { .tabs .tab .tab__label { display: none; } }
+@media (max-width: 899px) { @container tab (max-width: 2.75rem) { .tabs .tab .tab__label { display: none; } } }
 .tabs .tab[data-on] { color: var(--dock-ink-override, var(--text-1)); }
 .tabs .tab[data-on] .tab__label { font-weight: 700; }
 /* Search shares the group's single material, with its own round control and fixed gap. */
