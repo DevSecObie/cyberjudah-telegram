@@ -310,9 +310,9 @@ export function Ask() {
       <header className="chat2__bar">
         <button type="button" className="chat2__new" aria-label="Your chats" disabled={!app} title={app ? "Your chats" : "Your chats are kept with your Telegram account"} onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
         {/* The model is chosen here, at the top, as in ChatGPT and Claude: the title, then the model and what is left. */}
-        <button type="button" className="chat2__heading" aria-label={model ? `Model: ${model.name}. Change` : "Ask CyberJudah"} title={model ? `Model: ${model.name}. Change` : "Ask CyberJudah"} disabled={!acct?.models?.length} onClick={() => { haptic("select"); setPicking(true); }}>
+        <button type="button" className="chat2__heading" title={model ? `Model: ${model.name}. Change` : "Ask CyberJudah"} disabled={!acct?.models?.length} onClick={() => { haptic("select"); setPicking(true); }}>
           <b>Ask CyberJudah</b>
-          <small>{model ? <>{model.name.replace(/^Claude /, "")}{model.free ? " · free" : ""}<span className="chat2__chev" aria-hidden="true"> ▾</span>{acct?.unlimited ? " · Unlimited" : acct?.metered && !model.free ? <> · {meterLine(acct)}</> : null}</> : meterLine(acct)}</small>
+          <small>{model ? <>{model.name.replace(/^Claude /, "")}{model.free ? " · free" : ""}<span className="chat2__chev" aria-hidden="true"> ▾</span>{acct?.unlimited ? " · Unlimited" : acct?.metered && !model.free ? <> · {meterLine(acct)}</> : null}<span className="sr-only">. Change the model</span></> : meterLine(acct)}</small>
         </button>
         <button type="button" className="chat2__new" aria-label="New chat" title="New chat" disabled={!turns.length} onClick={newChat}><Icon name="compose" size={21} /></button>
       </header>

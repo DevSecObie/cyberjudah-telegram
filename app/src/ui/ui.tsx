@@ -249,7 +249,7 @@ export function TabBar() {
   const items: { id: NavId | "more"; label: string; aria: string; glyph: ReactNode; onClick: () => void }[] = [
     ...ids.filter(id => id !== "search").map((id) => {
       const item = navItem(id);
-      return { id, label: id === "tabs" ? "Tabs" : item.label, aria: id === "tabs" ? `Tabs, ${tabs.length} open` : item.label,
+      return { id, label: id === "tabs" ? "Tabs" : item.label, aria: id === "tabs" ? `${count} Tabs open` : item.label,
         glyph: item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={22} />,
         onClick: () => id === "home" ? toggle("home") : go(() => navPath(id), id === "tabs") };
     }),

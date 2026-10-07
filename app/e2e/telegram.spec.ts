@@ -1134,7 +1134,7 @@ test("The Law: a law found by its words opens in its section, brought into view;
   await page.getByRole("button", { name: "Reset" }).click();
   await expect(page.locator("#law-q")).toHaveValue("");
   // One part only.
-  await page.getByRole("button", { name: "Part: every part" }).click();
+  await page.getByRole("button", { name: "Every part: choose a part" }).click();
   await page.locator(".sheet__item", { hasText: "9. Feasts and observances" }).click();
   await expect(page.locator(".laws__part")).toHaveCount(1);
   await expect(page.getByRole("region", { name: "Feasts and observances" })).toBeVisible();
