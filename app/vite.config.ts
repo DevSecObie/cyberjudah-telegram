@@ -87,5 +87,12 @@ export default defineConfig({
     },
   },
   server: { port: 5173, allowedHosts: true },
-  build: { target: "es2022", sourcemap: false },
+  build: {
+    target: "es2022", sourcemap: false,
+    // React, the router and React Query change far less often than the app: in a chunk of their
+    // own they stay cached across deploys. Only libraries the first paint needs go here.
+    rollupOptions: { output: { manualChunks(id) {
+      if (/[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|@tanstack[\\/](query-core|react-query))[\\/]/.test(id)) return "vendor";
+    } } },
+  },
 });
