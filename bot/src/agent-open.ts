@@ -26,6 +26,20 @@ type ToolCall = { id: string; name: string; arguments: string };
 /** A failure from the model's side: shaped as an API connection error, so Ask's backup answers instead (providers.ts claudeUnavailable). */
 const unavailable = (e: unknown) => new Anthropic.APIConnectionError({ message: `Model unavailable: ${(e as Error)?.message?.slice(0, 160) ?? "no answer"}` });
 
+/**
+ * Tools that read the reader's own records (saved-chat titles, reminder settings). The AI
+ * agreement covers the question, the chat's earlier questions and library passages
+ * (docs/PRIVACY.md), so these are offered only to models Cloudflare itself runs (Workers AI,
+ * the host), never to a third-party provider: Claude, OpenAI, Google and the rest.
+ */
+export const PERSONAL_TOOLS = new Set(["my_saved_chats", "my_reminder"]);
+export const hostedByCloudflare = (model: AskModel) => model.id.startsWith("@cf/");
+/** The tools this model may be given: all of them on Cloudflare's own models, none of PERSONAL_TOOLS elsewhere. */
+export const toolsFor = <T extends { name: string }>(model: AskModel, tools: T[]): T[] =>
+  hostedByCloudflare(model) ? tools : tools.filter((t) => !PERSONAL_TOOLS.has(t.name));
+/** Said to a model that is not given PERSONAL_TOOLS, so it does not pretend to see the reader's records. */
+export const WITHHELD = `my_saved_chats and my_reminder are not available with this model: the person's saved chats and reminder are not shared with this model's provider. If they ask about them, say this model cannot see them, and that the Cloudflare-hosted models in Ask can, or that their reminder is in [Reading reminders](/settings/reminders).`;
+
 export async function researchOpen(
   env: Env,
   model: AskModel,
@@ -40,6 +54,9 @@ export async function researchOpen(
 ): Promise<Result> {
   if (!env.AI_GATEWAY) throw unavailable(new Error("No AI Gateway is configured for this model"));
   const ai = env.AI as unknown as Ai;
+  // Whatever the caller passes, a third-party model is never given the reader's own records.
+  tools = toolsFor(model, tools);
+  const offered = new Set(tools.map((t) => t.name));
   const call = async (input: unknown): Promise<Record<string, unknown>> => {
     try {
       // Not logged: the request carries the reader's question (providers.ts viaGateway).
@@ -52,6 +69,7 @@ export async function researchOpen(
   const length = model.id.startsWith("@cf/") ? { max_tokens: 4096 } : {};
   /** Runs one tool call: its input checked against the tool's schema first, as for Claude. */
   const tool = async (name: string, raw: unknown): Promise<string> => {
+    if (!offered.has(name)) return `No tool named ${name}.`;
     let input: unknown = raw;
     if (typeof raw === "string") { try { input = raw.trim() ? JSON.parse(raw) : {}; } catch { return JSON.stringify({ INVALID_JSON: raw.slice(0, 400) }); } }
     const why = checkInput(schemas.get(name) as never, input);

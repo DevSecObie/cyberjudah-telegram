@@ -14,7 +14,7 @@ import { loadReminder, tgRid } from "./remind";
 import { publicView } from "./reminders.mjs";
 import { parseReference } from "./refs.mjs";
 import { modelOf, unitsFor, type AskModel } from "../../shared/ask-models.mjs";
-import { researchOpen } from "./agent-open";
+import { researchOpen, toolsFor, WITHHELD } from "./agent-open";
 import { freeSpend, type Spend } from "./spend";
 
 /**
@@ -122,10 +122,13 @@ export async function runAgent(
   };
   for (const p of first) add(p);
   const actions: SavedAction[] = [];
+  // The reader's saved chats and reminder are read only for Cloudflare-hosted models (agent-open.ts toolsFor).
+  const offered = new Set(toolsFor(model, TOOL_DEFS).map((t) => t.name));
   const line = (name: string, what: string, path: string) => `${name}: ${what} Link: ${path}`;
   if (passages.length) emit({ passages: [...passages] });
 
   const run = async (name: string, input: Record<string, unknown>): Promise<{ content: string; error?: boolean }> => {
+    if (!offered.has(name)) return { content: `No tool named ${name}.`, error: true };
     if (name === "search_library") {
       const query = str(input.query, 200);
       if (query.length < 2) return { content: "Give a query of a few words.", error: true };
@@ -204,6 +207,7 @@ export async function runAgent(
     return { content: `No tool named ${name}.`, error: true };
   };
 
+  const instructions = `${SYSTEM}\n\n${RESEARCH}\n\n${APP}${offered.size < TOOL_DEFS.length ? `\n\n${WITHHELD}` : ""}`;
   const messages: Anthropic.MessageParam[] = [
     ...normalizeHistory(history, 6).map((m) => ({ role: m.role as "assistant" | "user", content: String(m.content).slice(0, 3000) })),
     { role: "user", content: `${passages.length ? `Passages already found for this question:\n\n${passages.map(listed).join("\n\n")}` : "The first search found nothing close; search the library yourself."}\n\nQuestion: ${question}` },
@@ -212,7 +216,7 @@ export async function runAgent(
   // Every other model researches through Cloudflare, with the same tools and the same sources
   // (agent-open.ts); only Claude streams through the Messages API below.
   if (model.format !== "anthropic") {
-    const r = await researchOpen(env, model, `${SYSTEM}\n\n${RESEARCH}\n\n${APP}`, messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, run, emit, maxRounds, spend);
+    const r = await researchOpen(env, model, instructions, messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, run, emit, maxRounds, spend);
     return { ...r, passages, actions };
   }
 
@@ -223,7 +227,7 @@ export async function runAgent(
   // The instructions and tools are the same for every question and every round: cached once
   // (a breakpoint on the system prompt), and the conversation so far cached as it grows (the
   // request's automatic breakpoint on its last block), so each research round re-reads it cheaply.
-  const system: Anthropic.TextBlockParam[] = [{ type: "text", text: `${SYSTEM}\n\n${RESEARCH}\n\n${APP}`, cache_control: { type: "ephemeral" } }];
+  const system: Anthropic.TextBlockParam[] = [{ type: "text", text: instructions, cache_control: { type: "ephemeral" } }];
   let lastInputUsd = 0;
   for (let round = 0; round < maxRounds; round++) {
     // The request's budget (what was held from the balance for it): past 70% of it the research stops and the
@@ -241,7 +245,7 @@ export async function runAgent(
       ...(model.effort ? { output_config: { effort: "high" as const } } : {}),
       cache_control: { type: "ephemeral" },
       system,
-      tools: TOOLS,
+      tools: TOOLS.filter((t) => offered.has(t.name)),
       ...(last ? { tool_choice: { type: "none" as const } } : {}),
       messages,
     });

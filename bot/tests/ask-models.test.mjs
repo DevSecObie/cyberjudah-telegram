@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import Anthropic from "@anthropic-ai/sdk";
 import { costFactor, MODELS, modelOf, unitsFor } from "../../shared/ask-models.mjs";
-import { researchOpen } from "../src/agent-open.ts";
+import { PERSONAL_TOOLS, researchOpen, toolsFor } from "../src/agent-open.ts";
 import { claudeUnavailable } from "../src/providers.ts";
 
 test("the model list is Cloudflare's catalog: every model priced, spoken to in a known format, Claude with its own id", () => {
@@ -107,4 +107,22 @@ test("a model that fails or cannot be reached counts as unavailable, so Ask's ba
   assert.equal(claudeUnavailable(e), true);
   const none = await researchOpen({ AI: {} }, modelOf("openai/gpt-5.1"), "S", [], TOOLS, SCHEMAS, async () => ({ content: "" }), () => {}, 2).then(() => null, (x) => x);
   assert.ok(none instanceof Anthropic.APIConnectionError, "no gateway configured");
+});
+
+test("the reader's saved chats and reminder are offered only to Cloudflare-hosted models, never to a third-party provider", async () => {
+  const mine = [...TOOLS, ...[...PERSONAL_TOOLS].map((name) => ({ name, description: "Yours.", input_schema: { type: "object", properties: {}, required: [] } }))];
+  const names = (model) => toolsFor(modelOf(model), mine).map((t) => t.name);
+  for (const hosted of ["@cf/zai-org/glm-5.3-flash", "@cf/deepseek-ai/deepseek-v4-pro-0813"]) assert.deepEqual(names(hosted), ["search_library", "my_saved_chats", "my_reminder"], hosted);
+  for (const third of ["openai/gpt-5.1", "claude-opus-5", "deepseek/deepseek-v4-pro", "google/gemini-3.1-pro"]) assert.deepEqual(names(third), ["search_library"], third);
+
+  // Even when given them, a third-party model is not sent them, and a call to one is not run.
+  const { env, sent } = binding([
+    { choices: [{ message: { role: "assistant", content: null, tool_calls: [{ id: "c1", type: "function", function: { name: "my_saved_chats", arguments: "{}" } }] }, finish_reason: "tool_calls" }] },
+    { choices: [{ message: { role: "assistant", content: "Done." }, finish_reason: "stop" }] },
+  ]);
+  const ran = [];
+  await researchOpen(env, modelOf("openai/gpt-5.1"), "S", [{ role: "user", content: "My chats?" }], mine, new Map(mine.map((t) => [t.name, t.input_schema])), async (name) => { ran.push(name); return { content: "Your chat titles" }; }, () => {}, 3);
+  assert.deepEqual(sent[0].input.tools.map((t) => t.function.name), ["search_library"]);
+  assert.deepEqual(ran, []);
+  assert.equal(sent[1].input.messages.at(-1).content, "No tool named my_saved_chats.");
 });
