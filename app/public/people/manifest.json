@@ -3,7 +3,8 @@
     "Sourcing ledger for app/public/people/*.webp, promised by docs/AVATARS.md ('The prompts are kept with each Higgsfield job and repeated in app/public/people/manifest.json once the images are brought into the repository.') but never created.",
     "Each key is the stable person id (the filename stem before -64/-128/-256/-512). kind is 'generated' (Higgsfield, project 'CyberJudah People Avatars', workspace 28f5ce8d-ddb7-41e6-b137-a3c55b619076) or 'archival' (a real public-domain work, not generated).",
     "status 'approved' / 'awaiting_review' is copied verbatim from docs/AVATARS.md, not re-judged here. status 'needs_confirmation' or 'documented_but_not_hosted' marks a gap this seat found but could not close without inventing data (rule 3, ops/RULES.md): see note.",
-    "This file currently covers only the ids docs/AVATARS.md documents with enough detail to record without guessing. The live app/public/people/ directory holds well over 150 further ids (ordinary avatars from Batches 2-3 onward, and the People portraits reused onto Timeline events) with no job id recorded anywhere in the repo yet. Their generation jobs do exist and are readable from the Higgsfield project's history (confirmed by this seat, 2026-10-06), but matching each live .webp to its correct job record needs a visual/hash match against that history, batch by batch -- tracked as follow-up work, not done here to avoid mis-attributing the wrong job to the wrong file."
+    "This file currently covers only the ids docs/AVATARS.md documents with enough detail to record without guessing. The live app/public/people/ directory holds well over 150 further ids (ordinary avatars from Batches 2-3 onward, and the People portraits reused onto Timeline events) with no job id recorded anywhere in the repo yet. Their generation jobs do exist and are readable from the Higgsfield project's history (confirmed by this seat, 2026-10-06), but matching each live .webp to its correct job record needs a visual/hash match against that history, batch by batch -- tracked as follow-up work, not done here to avoid mis-attributing the wrong job to the wrong file.",
+    "CYB-209 batch 2: the entries below (abel-gen-4-2 through ahiezer-num-1-12) were matched by paging the full Higgsfield 'CyberJudah People Avatars' generation history (about 700 completed jobs, 2026-10-01 to 2026-10-05) via show_generations, then for every id with more than one candidate job sharing the same subject/tribe/period prompt, downloading both the live .webp and each candidate's render and visually comparing pose, garment and complexion before recording a job id -- never picking by recency or filename alone (see each entry's note for the comparison outcome). alphaeus-mat-10-3 is flagged rather than guessed: no completed job for Alphaeus was found anywhere in that history."
   ],
   "abraham-gen-11-26": {
     "kind": "generated",
@@ -338,5 +339,185 @@
     "credit": "Hans Asper, portrait of Ulrich Zwingli",
     "status": "awaiting_review",
     "note": "See martin-luther for the method and the gap."
+  },
+  "abel-gen-4-2": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "1db0983f-b0cc-406a-a9aa-07174e02ceb2",
+    "status": "needs_confirmation",
+    "note": "CYB-209: a man of the generations of Adam (Genesis 5:1), before the Flood. Single candidate job in the Higgsfield history for Abel; visually matches the live file. No owner verdict recorded for this batch yet, so status is left needs_confirmation rather than approved."
+  },
+  "abiathar-1sa-22-20": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "ad3d7da9-5385-4f77-9ab5-122b7cf019fc",
+    "supersededJobs": ["0c608b49-556d-4a63-b660-07a9f9f32bb1 (same prompt, earlier near-frontal render, 2026-10-01; the live file's three-quarter-turned pose and breastplate gem layout match the 2026-10-05 job instead)"],
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of the Tribe of Levi, High Priest living at the time of United Monarchy (the mitre, ephod and breastplate of judgment). Two candidate jobs existed with the same prompt; picked by downloading both renders and the live webp and comparing pose and breastplate stone layout, not by recency or filename."
+  },
+  "abiel-1sa-9-1": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "cc2bc1e0-fb69-43e4-8fba-b81b6f21ef4f",
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of the Tribe of Benjamin, living at the time of United Monarchy. Single candidate; visually matches the live file."
+  },
+  "abiezer-num-26-30": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "a2bf745d-7e50-44c5-ae05-83ea5d91436d",
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of the Tribe of Manasseh, living at the time of Egypt and Wilderness. Single candidate; visually matches the live file."
+  },
+  "abihu-exo-6-23": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "743a46df-4ebd-465b-9d26-d0e78ab55ea8",
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of the Tribe of Levi, Priest living at the time of Egypt and Wilderness. Single candidate; visually matches the live file."
+  },
+  "abijah-1ki-14-31": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "d246beb1-cda0-4717-8d20-ab7ecde93bd7",
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of the Tribe of Judah, King living at the time of Divided Monarchy. Single candidate; visually matches the live file."
+  },
+  "abimelech-gen-20-2": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "fded53b8-87ec-41c4-bf4c-4aeb96451017",
+    "status": "needs_confirmation",
+    "note": "CYB-209: a Hamite man of Canaan, of the people known today as the South Africans, King living at the time of the Patriarchs (King of Gerar, Genesis 20:2). Distinguished from the Judges 8:31 Abimelech by tribe/role in the prompt, then visually confirmed against the live file."
+  },
+  "abimelech-jdg-8-31": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "80a35185-fbc9-482e-880a-9a80b36b8b58",
+    "supersededJobs": ["9de649fd-09dd-4fe5-aebb-5db9db29e240 (same prompt, near-frontal render about two minutes earlier, 2026-10-05; the live file's three-quarter-turned pose and fringe drape match the later job instead)"],
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of the Tribe of Manasseh, Judge living before Israel's Monarchy (son of Gideon, Judges 8:31). Two candidate jobs existed with the same prompt; picked by downloading both renders and the live webp and comparing pose and garment drape, not by recency or filename."
+  },
+  "abishai-1sa-26-6": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "dab92965-152a-49e9-9d7a-389c3c4fa4bd",
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of the Tribe of Judah, David's warrior living at the time of United Monarchy. Single candidate; visually matches the live file."
+  },
+  "abner-1sa-14-50": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "f36e28d0-3cc0-477b-9557-b5cbf9636b8f",
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of the Tribe of Benjamin, David's compatriot living at the time of United Monarchy. Single candidate; visually matches the live file."
+  },
+  "absalom-2sa-3-3": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "23856afd-bbb3-4d0a-bc1d-8777ab8198ce",
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of the Tribe of Judah, a strikingly handsome young prince with a great, thick head of hair (2 Samuel 14:25-26). Single candidate; visually matches the live file."
+  },
+  "achan-jos-7-1": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "a206619f-e317-432c-a33a-762ad7106bc2",
+    "supersededJobs": ["d1917219-6328-407c-8ae1-6de5a2691caf (same prompt, about two minutes earlier, 2026-10-01; longer grizzled beard and a tan wrap with a woven stripe border, where the live file shows a shorter beard and a cream wrap with blue-threaded fringe tassels matching the later job)"],
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of the Tribe of Judah, living before Israel's Monarchy. Two candidate jobs existed with the same prompt; picked by downloading both renders and the live webp and comparing beard length and wrap/fringe style, not by recency or filename."
+  },
+  "adah-gen-26-34": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "161bd0c7-0460-4b13-9d3a-b17024f80277",
+    "status": "needs_confirmation",
+    "note": "CYB-209: a Hamite woman of Canaan (a Hittite), living at the time of the Patriarchs (Esau's wife, Genesis 26:34). Single candidate; visually matches the live file."
+  },
+  "adah-gen-4-19": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "2759b9b6-335f-4dff-83d9-0279a829bfa2",
+    "supersededJobs": ["a3a8b6ea-a942-4c7c-9e67-38ce2a97b0b6 (a different prompt for a woman 'of the generations of Adam, Genesis 5:1', generated about six minutes earlier, 2026-10-01; visually a different woman entirely -- a Black woman, not the live file's fair-skinned, fair-haired figure -- so this is a discarded false start, not a regeneration of the same portrait)"],
+    "status": "needs_confirmation",
+    "note": "CYB-209: a woman of the line of Cain, before the Flood (Lamech's wife, Genesis 4:19). Visually confirmed against the live file; the superseded job was for a visually distinct figure under a different prompt, not a pose/style regeneration."
+  },
+  "adonijah-2sa-3-4": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "116651c4-67d7-4e07-8b82-dee451cef4f6",
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of the Tribe of Judah, David's son living at the time of United Monarchy. Single candidate; visually matches the live file."
+  },
+  "ahab-1ki-16-28": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "0a6a6182-e23c-460d-a24c-07ddfb401726",
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of Israel, King living at the time of Divided Monarchy. Single candidate; visually matches the live file."
+  },
+  "ahaz-2ki-15-38": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "58ed451f-035e-4bbb-9921-a4b010d0a8b8",
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of the Tribe of Judah, King living at the time of Divided Monarchy. Single candidate; visually matches the live file."
+  },
+  "ahaziah-2ki-8-24": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "f6ef26a6-ccde-4583-941e-ab06390f7c25",
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of the Tribe of Judah, King living at the time of Divided Monarchy (Ahaziah son of Jehoram, King of Judah, 2 Kings 8:24). A second Ahaziah job exists in the history ('an Israelite man of Israel, King', job 3c97a898) for Ahaziah son of Ahab, King of Israel (2 Kings 1:2) -- not this filename, and not hosted under any id in the current directory listing; not recorded here."
+  },
+  "ahiezer-num-1-12": {
+    "kind": "generated",
+    "generator": "Higgsfield",
+    "model": "nano_banana_pro (requested); Higgsfield reported the job as nano_banana_2",
+    "batch": "batch-2",
+    "job": "407d9745-c4df-4081-bb0f-939cdcecf20b",
+    "status": "needs_confirmation",
+    "note": "CYB-209: an Israelite man of the Tribe of Dan, living at the time of Egypt and Wilderness. Single candidate; visually matches the live file."
+  },
+  "alphaeus-mat-10-3": {
+    "kind": "generated",
+    "status": "needs_confirmation",
+    "note": "CYB-209: alphaeus-mat-10-3-128.webp and -256.webp are live in app/public/people/, but no completed job for Alphaeus was found anywhere in the Higgsfield 'CyberJudah People Avatars' history -- about 700 completed image jobs were paged via show_generations, spanning 2026-10-01 to 2026-10-05 (the full range of the project's activity; earlier/later pages fall into an unrelated children's-book project in the same workspace). Flagging per rule 3 (ops/RULES.md) rather than inventing a job id or guessing a near-match."
   }
 }
