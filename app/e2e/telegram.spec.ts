@@ -1599,6 +1599,41 @@ test("a back step from the first screen stays in the app instead of going to a b
   await expect(page.locator(".tabs")).toBeVisible();
 });
 
+test("outside Telegram there is no back guard: Back leaves the page as on any site", async ({ page }) => {
+  await page.goto("/classes");
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/classes$/);
+});
+
+test("Telegram opens expanded, not full screen, its chrome first painted in the reader's saved colours", async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem("cj:theme-pref", "light"); localStorage.setItem("cj:palette", JSON.stringify({ "--canvas": "#f4ecd8" })); });
+  await page.goto(`/${LAUNCH}`);
+  await expect(page.locator(".tabs")).toBeVisible();
+  const log = await page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log);
+  expect(log.find((l) => l[0] === "header")).toEqual(["header", "#f4ecd8"]);
+  expect(log.some((l) => l[0] === "expand")).toBe(true);
+  expect(log.some((l) => l[0] === "fullscreen")).toBe(false);
+});
+
+test("until the reader picks a theme the app wears Telegram's accent, and their own theme's once they do", async ({ page }) => {
+  const accent = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim());
+  const params = () => { (window as unknown as { __themeParams: object }).__themeParams = { bg_color: "#17212b", button_color: "#5288c1", accent_text_color: "#6ab2f2" }; };
+  await page.addInitScript(params);
+  await page.goto(`/${LAUNCH}`);
+  await expect(page.locator(".tabs")).toBeVisible();
+  await expect.poll(accent).toMatch(/^#[0-9a-f]{6}$/);
+  const telegram = await accent();
+  const page2 = await page.context().newPage();
+  await setup(page2);
+  await page2.addInitScript(params);
+  await page2.addInitScript(() => { (window as unknown as { __cloud: object }).__cloud = { bs: JSON.stringify({ preferredDarkTheme: "dark" }) }; });
+  await page2.goto(`/${LAUNCH}`);
+  await expect(page2.locator(".tabs")).toBeVisible();
+  await expect.poll(() => page2.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim())).not.toBe(telegram);
+});
+
 // ── Ask CyberJudah and saved chats ──────────────────────────────────────────────────────────
 const ndjson = (...lines: unknown[]) => lines.map((l) => JSON.stringify(l)).join("\n") + "\n";
 const SOURCE = { n: 1, kind: "class", title: "Passover class", url: "/classes/2026/passover", sub: "Why we keep it", text: "…" };
