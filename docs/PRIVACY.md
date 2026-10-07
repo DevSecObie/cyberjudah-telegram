@@ -13,7 +13,7 @@ a change to the other.
 |---|---|---|
 | Telegram Bot Developer Terms, 4 | A privacy policy that is easy to reach, saying what is stored, how and why; set in @BotFather when the standard policy does not fit | The Privacy screen; `/privacy`; **owner action:** set the Privacy Policy in @BotFather (below) |
 | Telegram Bot Developer Terms, 4.2 | Delete data on request, and when it is no longer needed | Delete my data; retention below |
-| Telegram Bot Developer Terms, 4.3 | Use what people send only with "individual, explicit, active and revocable consent" after being told its use | The AI agreement in Ask, checked by the server (428), withdrawn in Privacy |
+| Telegram Bot Developer Terms, 4.3 | Use what people send only with "individual, explicit, active and revocable consent" after being told its use | The AI agreement in Ask and Search, checked by the server (428), withdrawn in Privacy |
 | Telegram Bot Developer Terms, 4.4(a) | "user data is always encrypted at rest and stored separately from its encryption key" | `privacy.mjs` seal/open (AES-GCM), key from the `PRIVACY_KEY` Worker secret, data in KV/D1 |
 | Telegram Bot Developer Terms, 4.4(e)/(d) | The security checks the platform documents (launch data) | `initdata.mjs` validates every request's launch data |
 | Telegram Bot Developer Terms, 6.2.1 | Stars sellers answer `/paysupport` | `/paysupport` reaches the admins |
@@ -67,7 +67,9 @@ a bounded amount each hour, until none are left. Chats also move the first time 
   Alibaba, Moonshot AI, MiniMax, Thinking Machines, Unbiased, or Cloudflare for the hosted models):
   the question, the earlier questions in the chat, library passages. Never the name or Telegram ID.
   Only after the reader agrees to that provider (`lib/ai-consent.ts`; the server answers 428
-  otherwise). When Claude is unavailable, the backup answer is written by Workers AI on Cloudflare,
+  otherwise, including before a Search cache lookup). Search sends only the current query and
+  matching library passages; answers are cached at the edge for two minutes, keyed by question
+  and model, with no reader identity. Search is not saved as an Ask conversation. When Claude is unavailable, the backup answer is written by Workers AI on Cloudflare,
   the host.
 - **Browser push services** (Apple, Google, Mozilla), only for push reminders.
 

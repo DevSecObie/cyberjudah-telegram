@@ -49,7 +49,7 @@ export function Privacy() {
           <List>
             <Row icon="download" title={busy === "export" ? "Sending…" : "Download my data"} sub="A copy of everything kept about you, sent to your chat with the bot" onClick={busy ? undefined : () => void sendCopy()} />
             <Row icon="trash" title={busy === "delete" ? "Deleting…" : "Delete my data"} sub="Everything kept about you, removed at once" onClick={busy ? undefined : () => void deleteAll()} />
-            <Row icon="close" title="Withdraw AI agreement" sub={agreed.length ? `You agreed to: ${agreed.join(", ")}. Ask will ask again before sending a question.` : "You have not agreed to any AI provider."} onClick={agreed.length ? () => { withdraw(); setAgreed([]); haptic("select"); setStatus("Done. Ask will ask before sending your next question to any AI provider."); } : undefined} />
+            <Row icon="close" title="Withdraw AI agreement" sub={agreed.length ? `You agreed to: ${agreed.join(", ")}. Ask and Search will ask again before sending a question to an external AI provider.` : "You have not agreed to any AI provider."} onClick={agreed.length ? () => { withdraw(); setAgreed([]); haptic("select"); setStatus("Done. Ask and Search will ask before sending your next question to an external AI provider."); } : undefined} />
           </List>
         ) : <p className="hint">Open CyberJudah in Telegram to download or delete what is kept about you. In the bot you can also send /mydata or /deletemydata. A reminder set up in this browser is removed in Settings → Reading reminders.</p>}
         {status ? <p className="hint" role="status">{status}</p> : null}
@@ -77,7 +77,7 @@ export function Privacy() {
         <ul>
           <li><b>Telegram</b> runs the platform: sign-in, messages and Stars payments, under Telegram's own privacy policy.</li>
           <li><b>Cloudflare</b> hosts CyberJudah and runs the Cloudflare-hosted AI models. Its request logs are kept for up to 7 days. Calls to AI models are logged without your words, or not logged at all.</li>
-          <li><b>The AI provider of the model you choose</b> (for example Anthropic, OpenAI, Google or xAI) receives your question, the earlier questions in that chat, and passages from the library, so that it can write the answer. Only after you agree, in Ask, to that provider. Your name and Telegram ID are not sent. Each provider handles what it receives under its own terms.</li>
+          <li><b>The AI provider of the model you choose</b> (for example Anthropic, OpenAI, Google or xAI) receives your question, the earlier questions in that chat, and passages from the library, so that it can write the answer. Only after you agree, in Ask or Search, to that provider. Search sends only your current question and matching passages; its answers are shared in a cache for two minutes. Your name and Telegram ID are not sent. Each provider handles what it receives under its own terms.</li>
           <li><b>Your browser's push service</b> (from Apple, Google or Mozilla), only if you turn on push reminders.</li>
         </ul>
         <p>CyberJudah does not sell your data or use it for advertising.</p>

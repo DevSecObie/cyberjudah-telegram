@@ -13,6 +13,7 @@ import { creditsConfig, hold, ownerOfUser, prepare, settle, typicalMc, wallet, t
 import { estimateMc, MC_USD, mcOfUsd, viaUnifiedBilling } from "../../shared/credits.mjs";
 import { freeSpend, makeSpend, type Spend } from "./spend";
 import { reserveFreeBudget, settleFreeBudget, type FreeReservation } from "./free-budget";
+import { researchOpen } from "./agent-open";
 export { freeSpendToday, freePaused } from "./free-budget";
 
 /**
@@ -175,6 +176,11 @@ const freeMaxRounds = (env: Env) => Math.max(1, Math.floor(Number(env.ASK_FREE_M
 const freeMaxUsd = (env: Env) => Math.max(0.001, Number(env.ASK_FREE_MAX_USD ?? 0.05));
 
 export async function startMeter(env: Env, uid: number, model: AskModel, opts: MeterOpts = {}): Promise<MeterStart> {
+  return startMeterFor(env, uid, model, opts, false);
+}
+
+/** Sponsored search is a server-only choice; request bodies cannot opt paid Ask into it. */
+async function startMeterFor(env: Env, uid: number, model: AskModel, opts: MeterOpts, sponsoredSearch: boolean): Promise<MeterStart> {
   const cfg = creditsConfig(env);
   const owner = await ownerOfUser(env, uid);
   await prepare(env, owner, { uid });
@@ -185,9 +191,9 @@ export async function startMeter(env: Env, uid: number, model: AskModel, opts: M
   const free = freeModel(env);
   const freeSet = freeModels(env);
   const admin = isAdmin(env, uid);
-  const isFree = freeSet.has(model.id);
+  const isFree = sponsoredSearch || freeSet.has(model.id);
   if (isFree || admin) {
-    const rounds = isFree && !admin ? freeMaxRounds(env) : 6;
+    const rounds = sponsoredSearch ? 1 : isFree && !admin ? freeMaxRounds(env) : 6;
     const estFree = isFree && !admin ? estimateMc(model, cfg, { rounds }) : est;
     const budget = isFree && !admin ? Math.min(estFree.maxMc * MC_USD, freeMaxUsd(env)) : est.maxMc * MC_USD;
     let reservation: FreeReservation | undefined;
@@ -287,22 +293,29 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 }
 
 export type SearchAnswer =
-  | { ok: true; answer: string; sources: (Passage & { n: number })[]; model: string; ms: number }
-  | { ok: false; reason: "too-short" | "unavailable" | "empty" | "free-paused" };
+  | { ok: true; answer: string; sources: (Passage & { n: number })[]; model: string; provider: string; ms: number }
+  | { ok: false; reason: "too-short" | "unavailable" | "empty" | "free-paused" | "consent" };
+
+/** Only catalogued chat/plain models with known prices can supply a sponsored search. */
+export function searchModel(env: Env): AskModel | null {
+  const id = env.SEARCH_AI_MODEL?.trim() || freeModel(env).id;
+  return MODELS.find((m) => m.id === id && FREE_FORMATS.has(m.format)
+    && (m.id.startsWith("@cf/") || m.provider === "Google" && m.id.startsWith("google/"))) ?? null;
+}
 
 /**
- * The search screen's AI answer block: one free-tier answer over the library for a signed-in reader.
- * Pinned to the default free model on Cloudflare's own infrastructure (no third party sees the
- * question), run through the same meter as Ask's free answers so the owner's daily breaker
- * counts it (an admin's answers are not metered, as in Ask). The free path holds nothing and
- * charges nothing.
+ * One library-grounded call, funded by the owner's shared free-answer allowance. A configured
+ * external provider requires consent before retrieval or metering. No reader balance is held,
+ * and no tools or web searches are offered to the model. Admins retain their existing exemption.
  */
-export async function answerSearch(env: Env, q: string, uid: number): Promise<SearchAnswer> {
+export async function answerSearch(env: Env, q: string, uid: number, consent: string[] = []): Promise<SearchAnswer> {
   const t0 = Date.now();
   const question = q.trim().slice(0, 200);
   if (question.length < 2) return { ok: false, reason: "too-short" };
-  const model = freeModel(env);
-  const started = await startMeter(env, uid, model, {});
+  const model = searchModel(env);
+  if (!model) return { ok: false, reason: "unavailable" };
+  if (!model.id.startsWith("@cf/") && !consent.includes(model.provider)) return { ok: false, reason: "consent" };
+  const started = await startMeterFor(env, uid, model, {}, true);
   if (!started.ok) return { ok: false, reason: started.body.error === "free-paused" ? "free-paused" : "unavailable" };
   const meter = started.meter;
   const spend = meter.spend;
@@ -310,14 +323,18 @@ export async function answerSearch(env: Env, q: string, uid: number): Promise<Se
     const passages = answerCandidates(question, await retrieve(env, question, 12, spend), 8);
     if (!passages.length) {
       await finishMeter(env, meter, "empty", Date.now() - t0);
-      return { ok: true, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], model: model.id, ms: Date.now() - t0 };
+      return { ok: true, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], model: model.id, provider: model.provider, ms: Date.now() - t0 };
     }
-    // The default free model answers from the passages in one call (format "plain"): no tools.
-    const ran = await runAgent(env, question, [], passages, (t, k) => retrieve(env, t, k, spend), () => undefined, undefined, undefined, model, spend, undefined, meter.maxRounds);
+    // Use the plain adapter even for chat models: one bounded answer, never a research loop.
+    const prompt = buildPrompt(question, passages);
+    const system = prompt.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
+    const messages = prompt.filter((m): m is { role: "user" | "assistant"; content: string } => m.role !== "system");
+    const ran = await researchOpen(env, { ...model, format: "plain" }, system, messages,
+      [], new Map(), async () => ({ content: "No tools are available." }), () => undefined, 1, spend);
     const { answer } = splitFollowups(ran.text);
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, "ok", Date.now() - t0);
-    return { ok: true, answer, sources: sourcesOf(answer, passages), model: model.id, ms: Date.now() - t0 };
+    return { ok: true, answer, sources: sourcesOf(answer, passages), model: model.id, provider: model.provider, ms: Date.now() - t0 };
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
     console.error(JSON.stringify({ event: "search_answer_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 160) }));

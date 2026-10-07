@@ -36,6 +36,8 @@ export type Env = {
   ASK_IP_DAILY_LIMIT?: string; CREDIT_USAGE_RETENTION_DAYS?: string; CREDITS_CONTENTION_ALERT?: string;
   /** Search AI answers per reader per day (20), counted under the pseudonymous ID. */
   SEARCH_AI_DAILY_LIMIT?: string;
+  /** Catalog model for the owner-funded, library-only search answer. Unset uses ASK_FREE_MODEL. */
+  SEARCH_AI_MODEL?: string;
   /** End-to-end tests only: "on" lets a request name its moment (x-e2e-now), to test the Sabbath pause on any day. Never set in wrangler.jsonc. */
   E2E_CLOCK?: string;
   /** Telegram user ids (comma-separated) allowed to edit notes from the app. They also receive the hourly health-check pages. */

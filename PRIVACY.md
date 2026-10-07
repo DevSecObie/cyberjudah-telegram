@@ -14,6 +14,8 @@ If a user turns on reading reminders, the Worker stores in Cloudflare KV: whethe
 
 Search and transcript queries are processed to return results. Application logs should contain operational error information only and must not contain bot tokens, raw `initData`, note contents, or complete user profiles.
 
+Search AI answers can use Google through Cloudflare AI Gateway after you agree in the app. Google receives the current search and matching library passages, without your name or Telegram ID. Answers are shared in an edge cache for two minutes and are not saved as Ask chats. Withdraw AI agreement in Settings → Privacy; ordinary library search remains available.
+
 Optional location access is used to calculate local Sabbath times. The application should not persist precise coordinates on the server.
 
 Ask CyberJudah conversations are saved to the user's account in Cloudflare KV, keyed by their Telegram user id: each question, the answer, the sources cited, the suggested follow-ups and the research steps. A user sees only their own conversations and can delete any of them from the Your chats list; at most 300 are kept, the oldest dropped first. Questions are sent to Anthropic (Claude) to be answered, under Anthropic's commercial terms, which do not use API data to train its models by default.
