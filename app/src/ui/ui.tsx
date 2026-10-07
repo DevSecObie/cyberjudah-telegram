@@ -249,7 +249,7 @@ export function TabBar() {
   const items: { id: NavId | "more"; label: string; aria: string; glyph: ReactNode; onClick: () => void }[] = [
     ...ids.filter(id => id !== "search").map((id) => {
       const item = navItem(id);
-      return { id, label: id === "tabs" ? "Tabs" : item.label, aria: id === "tabs" ? `Tabs, ${tabs.length} open` : item.label,
+      return { id, label: id === "tabs" ? "Tabs" : item.label, aria: id === "tabs" ? `${count} Tabs open` : item.label,
         glyph: item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={22} />,
         onClick: () => id === "home" ? toggle("home") : go(() => navPath(id), id === "tabs") };
     }),
@@ -261,7 +261,7 @@ export function TabBar() {
     const kept = mini && (on || (it.id === "more" && !items.some(x => x.id === current)));
     return <button key={it.id} type="button" className={`tab${it.id === "search" ? " tab--search" : ""}`} data-nav={it.id} data-on={on ? "" : undefined} data-kept={kept ? "" : undefined} aria-current={on ? "page" : undefined}
       aria-label={it.aria} title={it.aria} tabIndex={mini && !kept && it.id !== "search" ? -1 : undefined} onClick={it.onClick}>
-      <span className="tab__glyph">{it.glyph}</span><span className="tab__label" aria-hidden="true">{it.label}</span>
+      <span className="tab__glyph">{it.glyph}</span>{" "}<span className="tab__label" aria-hidden="true">{it.label}</span>
     </button>;
   };
   return (
