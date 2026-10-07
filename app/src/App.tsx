@@ -31,6 +31,7 @@ const ResourceInstaller = lazy(() => import("@/screens/ResourceInstaller").then(
 const ResourceReader = lazy(() => import("@/screens/ResourceReader").then((m) => ({ default: m.ResourceReader })));
 import { AdminGate } from "@/admin/AdminGate";
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
+const AudioSettings = lazy(() => import("@/screens/AudioSettings").then((m) => ({ default: m.AudioSettings })));
 const Reminders = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.Reminders })));
 const ReminderSync = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.ReminderSync })));
 const Privacy = lazy(() => import("@/screens/Privacy").then((m) => ({ default: m.Privacy })));
@@ -127,6 +128,7 @@ export function App() {
         <Route path="/resources" element={<ResourceInstaller />} />
         <Route path="/resources/:id/:release" element={<ResourceReader />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/settings/audio" element={<AudioSettings />} />
         <Route path="/settings/bar" element={<NavEditor />} />
         <Route path="/settings/requests" element={<NoteRequests />} />
         <Route path="/plan" element={<Plan />} />

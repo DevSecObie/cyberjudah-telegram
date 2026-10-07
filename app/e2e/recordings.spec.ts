@@ -93,18 +93,61 @@ test("offline text stays saved when the optional narration is declined or fails"
   await page.evaluate(() => { const tg = (window as unknown as { Telegram: { WebApp: { showConfirm: (text: string, cb: (yes: boolean) => void) => void } } }).Telegram.WebApp; tg.showConfirm = (text, cb) => { (window as unknown as { __confirmation: string }).__confirmation = text; cb(false); }; });
   await page.getByRole("button", { name: "Save a book", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: /Obadiah/ }).click();
-  await expect(page.locator(".pill--ok")).toHaveText("offline");
+  // Text status and narration completeness are two separate pills (CYB-123): declining narration never hides that the text is saved.
+  await expect(page.locator(".pill--ok")).toHaveText("text");
+  await expect(page.locator(".pill").last()).toHaveText("no narration");
   await expect.poll(() => page.evaluate(() => (window as unknown as { __confirmation: string }).__confirmation)).toContain("12.0 MB");
   expect(requests).toEqual([]);
-  // Remove and save again, consenting to narration but with its media unavailable.
-  await page.getByRole("button", { name: /Obadiah.*Saved on this device/ }).click();
-  await expect(page.locator(".pill--ok")).toHaveCount(0);
+  // Managing narration and removing the book are separate actions: tapping the saved row no longer deletes anything by itself.
+  await page.getByRole("button", { name: /Obadiah.*saved on this device/i }).click();
+  const manage = page.getByRole("dialog", { name: "Obadiah" });
+  await expect(manage.getByRole("button", { name: "Download narration" })).toBeVisible();
+  await manage.getByRole("button", { name: "Remove text and narration" }).click();
+  await expect(page.locator(".pill")).toHaveCount(0);
+  // Save again, consenting to narration but with its media unavailable: the text still survives a total narration failure.
   await page.evaluate(() => { (window as unknown as { Telegram: { WebApp: { showConfirm: (text: string, cb: (yes: boolean) => void) => void } } }).Telegram.WebApp.showConfirm = (_text, cb) => cb(true); });
   await page.route("**/api/audio/recordings/**", (r) => r.fulfill({ status: 503 }));
   await page.getByRole("button", { name: "Save a book", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: /Obadiah/ }).click();
   await expect.poll(() => requests.length).toBeGreaterThan(0);
-  await expect(page.locator(".pill--ok")).toHaveText("offline");
+  await expect(page.locator(".pill--ok")).toHaveText("text");
+  await expect(page.locator(".pill").last()).toHaveText("no narration");
+});
+
+test("a narration retry downloads only what's missing, keeps the saved text, and reaches complete", async ({ page }) => {
+  await setup(page);
+  const chapters = [
+    { readerId: "test-reader", reader: "Test reader", slug: "obadiah", chapter: 1, audio: "recordings/test-reader/obadiah/1.m4a", bytes: 5_000_000, source: narrator.source, license: narrator.license },
+    { readerId: "test-reader", reader: "Test reader", slug: "obadiah", chapter: 2, audio: "recordings/test-reader/obadiah/2.m4a", bytes: 7_000_000, source: narrator.source, license: narrator.license },
+  ];
+  await page.route("**/api/recordings/catalog", (r) => r.fulfill({ json: { chapters } }));
+  await page.route("**/api/kjv/books.json", (r) => r.fulfill({ json: [{ book: "Obadiah", slug: "obadiah", chapters: 2, chapterIds: [1, 2], testament: "old" }] }));
+  await page.route(/\/api\/kjv\/obadiah\/\d\.json/, (r) => { const n = Number(new URL(r.request().url()).pathname.match(/obadiah\/(\d)\.json/)![1]); return r.fulfill({ json: { book: "Obadiah", chapter: n, verses: [{ verse: 1, text: `Test verse ${n}` }] } }); });
+  await page.route("**/api/recordings/obadiah/1", (r) => r.fulfill({ json: { narrators: [{ ...narrator, audio: "/api/audio/recordings/obadiah-1.m4a" }] } }));
+  await page.route("**/api/recordings/obadiah/2", (r) => r.fulfill({ json: { narrators: [{ ...narrator, audio: "/api/audio/recordings/obadiah-2.m4a" }] } }));
+  let chapter1Requests = 0, chapter2Fails = true;
+  await page.route("**/api/audio/recordings/obadiah-1.m4a", (r) => { chapter1Requests++; return r.fulfill({ contentType: "audio/mp4", body: "chapter-1" }); });
+  await page.route("**/api/audio/recordings/obadiah-2.m4a", (r) => chapter2Fails ? r.fulfill({ status: 503 }) : r.fulfill({ contentType: "audio/mp4", body: "chapter-2" }));
+  const textRequests: string[] = []; page.on("request", (r) => { if (r.url().includes("/api/kjv/obadiah/")) textRequests.push(r.url()); });
+  await page.goto("/settings#tgWebAppData=auth_date%3D1&tgWebAppPlatform=ios");
+  await page.evaluate(() => { (window as unknown as { Telegram: { WebApp: { showConfirm: (t: string, cb: (yes: boolean) => void) => void } } }).Telegram.WebApp.showConfirm = (_t, cb) => cb(false); });
+  await page.getByRole("button", { name: "Save a book", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /Obadiah/ }).click();
+  await expect(page.locator(".pill").last()).toHaveText("no narration");
+  const savedTextRequests = textRequests.length;
+  // Download narration directly from the saved row, without removing or re-fetching the text.
+  await page.getByRole("button", { name: /Obadiah.*saved on this device/i }).click();
+  await page.getByRole("dialog", { name: "Obadiah" }).getByRole("button", { name: "Download narration" }).click();
+  await expect(page.locator(".pill").last()).toHaveText("partial");
+  expect(textRequests.length).toBe(savedTextRequests);
+  expect(chapter1Requests).toBe(1);
+  // Fix the missing chapter and retry: the action now reads "Finish downloading", and the already-saved chapter is not re-fetched.
+  chapter2Fails = false;
+  await page.getByRole("button", { name: /Obadiah.*saved on this device/i }).click();
+  await page.getByRole("dialog", { name: "Obadiah" }).getByRole("button", { name: "Finish downloading narration" }).click();
+  await expect(page.locator(".pill--ok").last()).toHaveText("narration");
+  expect(textRequests.length).toBe(savedTextRequests);
+  expect(chapter1Requests).toBe(1);
 });
 
 test("recording credits open with Telegram's link handler", async ({ page }) => {
@@ -412,4 +455,44 @@ test("shared controls clear search and Ask composers without adding a glass laye
     expect(await bar.evaluate((el) => getComputedStyle(el).backdropFilter)).toBe("none");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
+});
+
+test("audio settings are reachable from Settings without starting playback, and a choice there reaches the Bible reader", async ({ page }) => {
+  await setup(page);
+  await page.route("**/api/recordings/catalog", (r) => r.fulfill({ json: { chapters: [] } }));
+  await page.goto("/settings");
+  await expect(page.getByRole("button", { name: "Audio settings" })).toBeVisible();
+  expect((await audios(page)).length).toBe(0);
+  await page.getByRole("button", { name: "Audio settings" }).click();
+  await expect(page).toHaveURL(/\/settings\/audio/);
+  expect((await audios(page)).length).toBe(0);
+  // Choosing a voice and a speed here, while nothing is playing, must never start playback.
+  await page.getByRole("button", { name: "Voice" }).click();
+  await page.getByRole("dialog", { name: "Voice", exact: true }).getByRole("radio", { name: /Asteria/ }).click();
+  await page.getByRole("button", { name: "Speed" }).click();
+  await page.getByRole("dialog", { name: "Speed", exact: true }).getByRole("radio", { name: "1.5x", exact: true }).click();
+  expect((await audios(page)).length).toBe(0);
+  expect(await page.evaluate(() => localStorage.getItem("ttsVoice"))).toBe("ai:asteria");
+  expect(await page.evaluate(() => localStorage.getItem("ttsRate"))).toBe("1.5");
+  // The reader reads the very same shared preferences: no separate choice is needed there (CYB-123).
+  await page.goto("/read/psalms/23");
+  await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
+  await expect.poll(async () => (await audios(page)).length).toBe(1);
+  await expect.poll(async () => (await audios(page))[0].playbackRate).toBe(1.5);
+  await page.getByRole("button", { name: "Voice", exact: true }).click();
+  await expect(page.getByRole("radio", { name: /Asteria/ })).toHaveAttribute("aria-checked", "true");
+});
+
+test("an unavailable saved voice shows an explicit fallback instead of silently switching, and keeps the preference until it's changed", async ({ page }) => {
+  await setup(page);
+  await page.route("**/api/recordings/catalog", (r) => r.fulfill({ json: { chapters: [] } }));
+  await page.addInitScript(() => localStorage.setItem("ttsVoice", "Ghost Voice"));
+  await page.goto("/settings/audio");
+  await expect(page.getByRole("status")).toContainText("no longer on this device");
+  expect(await page.evaluate(() => localStorage.getItem("ttsVoice"))).toBe("Ghost Voice");
+  expect((await audios(page)).length).toBe(0);
+  await page.getByRole("button", { name: "Use the free generated voice", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveCount(0);
+  expect(await page.evaluate(() => localStorage.getItem("ttsVoice"))).toBe("ai:asteria");
+  expect((await audios(page)).length).toBe(0);
 });

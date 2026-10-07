@@ -22,7 +22,7 @@ async function verseAudio(slug: string, ch: number, verse: number, voice: string
   return URL.createObjectURL(await res.blob());
 }
 export function useAiVoices() {
-  return useQuery({ queryKey: ["voices"], queryFn: () => authed("/api/voices").then((r) => r.json() as Promise<{ voices: AiVoice[] }>).then((r) => r.voices), staleTime: Infinity, retry: 1 });
+  return useQuery({ queryKey: ["voices"], queryFn: () => authed("/api/voices").then((r) => { if (!r.ok) throw new Error(`voices ${r.status}`); return r.json() as Promise<{ voices: AiVoice[] }>; }).then((r) => r.voices), staleTime: Infinity, retry: 1 });
 }
 
 /** Device / AI verse playback and one seekable human recording per chapter. */
@@ -165,6 +165,11 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
       if (generation !== intent.current.generation) return;
       if (!narrator) {
         if (requestedHuman) setNotice("No recording for this chapter. Using your chosen AI reading voice.");
+        else if (requestedVoice && !isAiVoice(requestedVoice) && ttsSupported) {
+          const vs = speechSynthesis.getVoices();
+          // A saved device voice can vanish after an OS update; say so once, keep the preference, and read with the device's own default.
+          if (vs.length && !vs.some((v) => v.name === requestedVoice)) setNotice("Your chosen voice is no longer on this device. Reading with this device's default voice instead.");
+        }
         readVerses(from, generation, requestedHuman ? fallback : requestedVoice); return;
       }
       const verse = narrator.verses.find((v) => v[0] === from);
@@ -225,5 +230,5 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
     pitchSupported: ttsSupported && !human && !isAiVoice(voiceName), completed, play, stop, toggle,
     voices: available, voice: voiceName, setVoice, currentVoice: activeVoice.current,
     narrators: narrators.data?.narrators ?? [], narratorsLoading: narrators.isPending && !!where,
-    narratorsError: narrators.isError, notice };
+    narratorsError: narrators.isError, narratorsRefetch: () => void narrators.refetch(), notice };
 }
