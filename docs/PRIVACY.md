@@ -72,9 +72,12 @@ a bounded amount each hour, until none are left. Chats also move the first time 
   the question, the earlier questions in the chat, library passages. Never the name or Telegram ID.
   Only after the reader agrees to that provider (`lib/ai-consent.ts`; the server answers 428
   otherwise, with the provider's home country when `shared/ask-models.mjs` `PROVIDER_COUNTRY`
-  knows it). The tools that read the reader's own records (`my_saved_chats`: saved-chat titles;
-  `my_reminder`: the reminder's settings) are offered only to Cloudflare-hosted models, never to a
-  third-party provider (`agent-open.ts` `toolsFor`). When Claude is unavailable, the backup answer
+  knows it). When the reader asks about them, the chosen model also receives the reader's own
+  records through two tools (`agent.ts`): `my_saved_chats` sends the titles of their other saved
+  chats, each with its number of questions, the date of its last question and its link; `my_reminder`
+  sends the reading reminder's settings: on or off, time, time zone, channel (Telegram or push), any
+  pause date and the reading-plan day, or whether it follows the last chapter read. The AI agreement
+  in Ask says so before the first question. When Claude is unavailable, the backup answer
   is written by Workers AI on Cloudflare, the host.
 - **Google Fonts:** the app's typefaces (`app/index.html`), so Google receives the reader's IP
   address and browser details when the app loads.

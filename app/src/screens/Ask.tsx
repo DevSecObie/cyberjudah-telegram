@@ -419,7 +419,7 @@ function AssistantTurn({ t, index, question, last, busy, chatId, onRetry, onFoll
             <span><b id="consent-title">Send your question to {t.consent.provider}?</b><small>{t.consent.model} is run by {t.consent.provider}{t.consent.country ? `, based in ${t.consent.country}` : ""}</small></span>
           </div>
           <ul className="consent__list">
-            <li><Icon name="arrowUp" size={16} /><span><b>Sent</b> Your question, the earlier questions in this chat, and passages from the library.</span></li>
+            <li><Icon name="arrowUp" size={16} /><span><b>Sent</b> Your question, the earlier questions in this chat, and passages from the library. If you ask about them, also the titles and dates of your other saved chats, and your reminder's time, time zone, channel and place in the reading plan.</span></li>
             <li><Icon name="close" size={16} /><span><b>Not sent</b> Your name and your Telegram ID.</span></li>
             <li><Icon name="clock" size={16} /><span><b>Kept</b> Your chats, encrypted, for 180 days unless you delete them.</span></li>
           </ul>
