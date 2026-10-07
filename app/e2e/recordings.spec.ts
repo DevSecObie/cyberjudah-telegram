@@ -359,6 +359,29 @@ test("a rejected media start does not keep targeting the failed chapter after na
   expect((await audios(page))[0].paused).toBe(true);
 });
 
+test("a rejected media start does not keep targeting the failed chapter when the rejection lands after navigating away", async ({ page }) => {
+  await continuitySetup(page);
+  await page.addInitScript(() => {
+    let calls = 0;
+    window.Audio.prototype.play = function () {
+      if (++calls === 1) return new Promise<void>((_, reject) => { (window as unknown as { __rejectPlay: () => void }).__rejectPlay = () => reject(new Error("NotAllowedError")); });
+      Object.defineProperty(this, "paused", { configurable: true, writable: true, value: false });
+      return Promise.resolve();
+    };
+  });
+  await page.goto("/read/psalms/23");
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
+  await page.waitForFunction(() => !!(window as unknown as { __rejectPlay?: () => void }).__rejectPlay);
+  await routeTo(page, "/read/psalms/24");
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await page.evaluate(() => (window as unknown as { __rejectPlay: () => void }).__rejectPlay());
+  await expect(page.getByRole("status")).toContainText("Tap Play to resume audio.");
+  await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
+  await expect.poll(async () => (await audios(page)).at(-1)?.paused).toBe(false);
+  expect((await audios(page)).at(-1)?.src).toContain("psalms/24");
+});
+
 test("Stop wins even when a pending media play promise resolves afterward", async ({ page }) => {
   await continuitySetup(page);
   await page.addInitScript(() => {
