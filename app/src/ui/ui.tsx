@@ -261,7 +261,7 @@ export function TabBar() {
     const kept = mini && (on || (it.id === "more" && !items.some(x => x.id === current)));
     return <button key={it.id} type="button" className={`tab${it.id === "search" ? " tab--search" : ""}`} data-nav={it.id} data-on={on ? "" : undefined} data-kept={kept ? "" : undefined} aria-current={on ? "page" : undefined}
       aria-label={it.aria} title={it.aria} tabIndex={mini && !kept && it.id !== "search" ? -1 : undefined} onClick={it.onClick}>
-      <span className="tab__glyph">{it.glyph}</span><span className="tab__label" aria-hidden="true">{it.label}</span>
+      <span className="tab__glyph">{it.glyph}</span>{" "}<span className="tab__label" aria-hidden="true">{it.label}</span>
     </button>;
   };
   return (
