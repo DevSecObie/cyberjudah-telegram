@@ -23,3 +23,18 @@ test("the built app is staged at the root and under app/, so /app/assets resolve
     for (const [, src] of html.matchAll(/src="\/([^"]+)"/g)) assert.ok(existsSync(join(root, ".deploy", src)), src);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test("hashed build assets are cached as immutable, and nothing else is", () => {
+  const root = mkdtempSync(join(tmpdir(), "cj-stage-"));
+  try {
+    mkdirSync(join(root, "bot/scripts"), { recursive: true });
+    cpSync(new URL("../scripts/prepare-assets.sh", import.meta.url), join(root, "bot/scripts/prepare-assets.sh"));
+    mkdirSync(join(root, "app/dist/assets"), { recursive: true });
+    writeFileSync(join(root, "app/dist/index.html"), "");
+    execFileSync("sh", [join(root, "bot/scripts/prepare-assets.sh")], { stdio: "pipe" });
+    // Workers Static Assets reads _headers at the root only: one rule per path, then its headers.
+    const rules = readFileSync(join(root, ".deploy/_headers"), "utf8").split(/\n(?=\S)/).map((r) => r.trim().split("\n"));
+    assert.deepEqual(rules.filter((r) => r.some((h) => /immutable/.test(h))).map((r) => r[0]), ["/assets/*", "/app/assets/*"]);
+    assert.equal(rules.length, 2);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

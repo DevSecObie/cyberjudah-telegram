@@ -22,6 +22,7 @@ import { Empty, Icon } from "@/ui/ui";
 import { AgeEventDetail } from "./TimelineFinalCaptivity";
 import { BackgroundExtension } from "@/ui/BackgroundExtension";
 import { PhotoEdit, usePhotos } from "@/ui/photo-edit";
+import "@/styles/screens/timeline.css";
 
 /**
  * Bible Strong's Bible Timeline (strong/apps/expo/src/features/timeline), ported to the web:

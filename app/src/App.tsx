@@ -15,7 +15,6 @@ import { Drawers } from "@/ui/drawers";
 import { ScreenBoundary } from "@/ui/boundary";
 import { ThemeApplier, useAppTheme } from "@/ui/theme";
 import { Home } from "@/screens/Home";
-import { NavEditor } from "@/screens/NavEditor";
 import { Tabs as TabsScreen, NewTab } from "@/screens/Tabs";
 const NoteRequests = lazy(() => import("@/screens/NoteRequests").then((m) => ({ default: m.NoteRequests })));
 // Every other screen loads on first visit, so the first paint stays small: one chunk per
@@ -29,7 +28,8 @@ const BibleTab = lazy(() => import("@/bible/BibleTab").then((m) => ({ default: m
 const More = lazy(() => import("@/screens/More").then((m) => ({ default: m.More })));
 const ResourceInstaller = lazy(() => import("@/screens/ResourceInstaller").then((m) => ({ default: m.ResourceInstaller })));
 const ResourceReader = lazy(() => import("@/screens/ResourceReader").then((m) => ({ default: m.ResourceReader })));
-import { AdminGate } from "@/admin/AdminGate";
+const AdminGate = lazy(() => import("@/admin/AdminGate").then((m) => ({ default: m.AdminGate })));
+const NavEditor = lazy(() => import("@/screens/NavEditor").then((m) => ({ default: m.NavEditor })));
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
 const Reminders = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.Reminders })));
 const ReminderSync = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.ReminderSync })));

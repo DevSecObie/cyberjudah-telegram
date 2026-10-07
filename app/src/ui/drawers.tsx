@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigationType } from "react-router";
 
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { HomeBody } from "@/screens/Home";
-import { MoreBody } from "@/screens/More";
 import { sheetOpened } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { Icon } from "@/ui/ui";
+
+// The menu loads with its first opening (the More screen's module, shared with /more).
+const MoreBody = lazy(() => import("@/screens/More").then((m) => ({ default: m.MoreBody })));
 
 /**
  * Bible Strong's Home and menu drawers (CompactAppSwitcherScreen): Home from the left, the menu
@@ -67,7 +69,7 @@ export function Drawers() {
               <button type="button" className="drawer__back" aria-label="Close the menu" title="Close the menu" onClick={() => { haptic("select"); setDrawer(null); }}><Icon name="back" size={22} /></button>
               <h2>More</h2>
             </header>
-            <div className="drawer__scroll"><MoreBody /></div>
+            <div className="drawer__scroll"><Suspense fallback={null}><MoreBody /></Suspense></div>
           </>
         ) : null}
       </Panel>

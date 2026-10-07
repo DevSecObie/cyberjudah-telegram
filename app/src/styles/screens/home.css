@@ -152,6 +152,8 @@
 .shero__prompts { position: absolute; left: 46px; right: 56px; top: 0; bottom: 0; overflow: hidden; pointer-events: none; }
 .shero__prompt { position: absolute; inset: 0; display: flex; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 400 var(--fs-callout) var(--font-ui); color: var(--text-4); opacity: 0; transform: translateY(14px); transition: opacity var(--dur-3) ease, transform var(--dur-3) ease; }
 .shero__prompt[data-on] { opacity: 1; transform: none; }
+/* The first prompt is the home's largest paint: it is there from the first frame, never faded in. */
+.shero__prompt:first-child[data-on] { transition: none; }
 .shero__clear { position: relative; z-index: 1; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--fill-2); color: var(--text-1) !important; font-size: 17px !important; line-height: 1; cursor: pointer; }
 .shero__go { position: relative; z-index: 1; display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--accent); color: var(--on-accent) !important; cursor: pointer; transition: opacity var(--dur-2), transform var(--dur-2) var(--ease); }
 .shero__go:disabled { opacity: 0; transform: scale(.6); pointer-events: none; }
