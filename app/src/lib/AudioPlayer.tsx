@@ -28,7 +28,11 @@ function usePlayer() {
     setPending(false); setLoadPaused(false); setNotice(""); engine.current.stop();
   };
   const prepare = (value: Selection) => {
-    if (!active.current && !same(selection?.where, value.where)) { target.current = value.where; setSelection(value); }
+    // A failed media start reports its notice before the player's own effect clears `active`
+    // (children run first), so retarget on that failure signal too, not only when active is false.
+    if ((!active.current || (!speech.playing && !!speech.notice)) && !same(selection?.where, value.where)) {
+      target.current = value.where; setSelection(value);
+    }
   };
   const start = (where: AudioChapter, from = 1, fromGesture = true) => {
     const generation = intent.current.start();
@@ -80,6 +84,12 @@ function usePlayer() {
     if (next) start(next, 1, false);
     else { stop(); setNotice("End of the Bible."); }
   }, [speech.completed, books.data, books.isError]); // completion reads the current repeat preference
+  useEffect(() => {
+    // A rejected media start (e.g. NotAllowedError) stops the engine but never calls the player's own
+    // stop(); without this, active stays true and a different chapter's reader can never re-target us.
+    if (!active.current || speech.playing || !speech.notice) return;
+    active.current = false; loading.current = false;
+  }, [speech.playing, speech.notice]);
   const controls = useRef({ toggle, stop, skip, start, speech, pending, loadPaused });
   controls.current = { toggle, stop, skip, start, speech, pending, loadPaused };
   useEffect(() => bindMediaSession(navigator.mediaSession, {
