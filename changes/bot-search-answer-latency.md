@@ -1,0 +1,1 @@
+- Internal: the search screen's AI answer now reports its own latency (`ms` in the response, `elapsedMs` on the logged usage event), so a slow answer can be measured from the Worker. No visible change for readers.
