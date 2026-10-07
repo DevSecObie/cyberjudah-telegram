@@ -77,17 +77,34 @@ export function Drawers() {
 
 const SLIDE_MS = 380;
 
-/** A horizontal swipe toward the drawer's own edge closes it, as Bible Strong's pan does. */
+/**
+ * A horizontal swipe toward the drawer's own edge closes it, as Bible Strong's pan does. The Today
+ * card's verse and other links live inside the drawer, so a swipe may start on one: a mouse drag
+ * beginning on a link or image otherwise starts Chromium's native drag-and-drop, which cancels the
+ * pointer sequence before onPointerUp can close the drawer, and the release then fires the link's
+ * click and navigates (CYB-321). `onDragStart` stops the native drag so the pointer sequence (and
+ * the close below) runs normally; once a swipe is recognised, the click that follows on release is
+ * suppressed for one tick so it cannot also navigate.
+ */
 function useSwipeClose(side: DrawerSide) {
   const start = useRef<{ x: number; y: number } | null>(null);
+  const suppressClick = useRef(false);
   return {
     onPointerDown: (e: React.PointerEvent) => { start.current = { x: e.clientX, y: e.clientY }; },
     onPointerUp: (e: React.PointerEvent) => {
       const s = start.current; start.current = null; if (!s) return;
       const dx = e.clientX - s.x, dy = e.clientY - s.y;
-      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && (side === "home" ? dx < 0 : dx > 0)) { haptic("select"); setDrawer(null); }
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && (side === "home" ? dx < 0 : dx > 0)) {
+        haptic("select"); setDrawer(null);
+        suppressClick.current = true;
+        window.setTimeout(() => { suppressClick.current = false; }, 0);
+      }
     },
     onPointerCancel: () => { start.current = null; },
+    onDragStart: (e: React.DragEvent) => { e.preventDefault(); },
+    onClickCapture: (e: React.MouseEvent) => {
+      if (suppressClick.current) { e.preventDefault(); e.stopPropagation(); }
+    },
   };
 }
 

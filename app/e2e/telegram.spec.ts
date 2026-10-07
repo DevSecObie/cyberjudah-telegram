@@ -383,6 +383,26 @@ test("Home is Bible Strong's drawer: it slides the app aside and closes with a s
   await expect(page).toHaveURL(/\/read\/genesis\/1/);
 });
 
+test("Home drawer: a swipe starting on the Today card's verse link still closes it, not navigates (CYB-321)", async ({ page }) => {
+  // A mouse drag beginning on a link starts Chromium's native drag-and-drop unless the drawer stops
+  // it; this locates the link itself (never a fixed offset), so the gesture starts on it regardless
+  // of how long the day's verse is.
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await page.click('.tab[aria-label="Home"]');
+  const home = page.locator(".drawer--home[data-open]");
+  await expect(home).toBeVisible();
+  await expect.poll(async () => Math.round((await home.boundingBox())!.x)).toBe(0);
+  const link = home.locator(".today-card__verse");
+  await expect(link).toBeVisible();
+  const box = (await link.boundingBox())!;
+  const y = box.y + Math.min(10, box.height / 2);
+  await page.mouse.move(box.x + box.width / 2, y); await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 - 120, y + 5, { steps: 6 }); await page.mouse.up();
+  await expect(page.locator(".drawer--home[data-open]")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/read\/genesis\/1/);
+});
+
 test("the reading plan ticks today's chapters and keeps a streak", async ({ page }) => {
   await page.goto(`/plan${LAUNCH}`);
   // Before a plan is started, its one action sits with the words it answers, not in Telegram's bottom buttons.
