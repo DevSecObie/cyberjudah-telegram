@@ -44,13 +44,31 @@ test("a too-short question is rejected before anything runs", async () => {
 // process, so a second fresh database would have none.
 const shared = env();
 
-test("with nothing in the library it says so, on the default free model", async () => {
+test("with nothing in the library it says so, on the default free model, and reports its latency", async () => {
   const e = shared;
-  const r = await answerSearch(e, "melchizedek", 7);
+  const lines = [];
+  const original = console.log;
+  console.log = (...args) => lines.push(args.join(" "));
+  let r;
+  try {
+    r = await answerSearch(e, "melchizedek", 7);
+  } finally {
+    console.log = original;
+  }
   assert.equal(r.ok, true);
   assert.match(r.answer, /not find enough reliable material/);
   assert.deepEqual(r.sources, []);
   assert.equal(r.model, "@cf/meta/llama-3.1-8b-instruct-fp8");
+  // CYB-296: the response reports its own server-side latency in ms.
+  assert.equal(typeof r.ms, "number");
+  assert.ok(Number.isFinite(r.ms) && r.ms >= 0, `ms should be a finite, non-negative number (got ${r.ms})`);
+  // CYB-296: the usage event logged for the search path carries the same latency as elapsedMs,
+  // and nothing else beyond numbers (never the question, never a reader id).
+  const usage = lines.map((l) => { try { return JSON.parse(l); } catch { return null; } }).find((o) => o && o.event === "ask_usage");
+  assert.ok(usage, "expected an ask_usage event to be logged");
+  assert.equal(typeof usage.elapsedMs, "number");
+  assert.ok(Number.isFinite(usage.elapsedMs) && usage.elapsedMs >= 0, `elapsedMs should be a finite, non-negative number (got ${usage.elapsedMs})`);
+  assert.ok(!("q" in usage) && !("question" in usage) && !("uid" in usage));
   const spent = await freeSpendToday(e);
   assert.ok(spent > 0 && spent < 0.001, `the nominal research cost is metered for the breaker (got $${spent})`);
 });

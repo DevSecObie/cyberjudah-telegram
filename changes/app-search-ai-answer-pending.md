@@ -1,0 +1,1 @@
+- Search's AI answer block now shows "Answering from the library…" while the free-tier answer is computed, instead of a blank card.

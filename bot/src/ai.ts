@@ -222,12 +222,12 @@ export async function startMeter(env: Env, uid: number, model: AskModel, opts: M
  * charge is recorded as written off. Returns the charge and the new balance, or null when nothing
  * was settled (the free model, an admin).
  */
-export async function finishMeter(env: Env, m: Meter, status: "ok" | "failed" | "refused" | "empty" | "backup"): Promise<{ charged_mc: number; balance: Wallet } | null> {
+export async function finishMeter(env: Env, m: Meter, status: "ok" | "failed" | "refused" | "empty" | "backup", elapsedMs?: number): Promise<{ charged_mc: number; balance: Wallet } | null> {
   const cost = m.spend.total();
   const actual = mcOfUsd(cost);
   const charged = status === "ok" && !m.free ? Math.min(actual, m.held) : 0;
   const detail = { calls: m.spend.calls, searches: m.spend.searches, model_usd: Math.round(m.spend.modelUsd * 1e6) / 1e6, research_usd: Math.round(m.spend.researchUsd * 1e6) / 1e6 };
-  console.log(JSON.stringify({ event: "ask_usage", model: m.model.id, status, cost_usd: Math.round(cost * 1e6) / 1e6, charged_mc: charged, held_mc: m.held, free: m.free, ...detail }));
+  console.log(JSON.stringify({ event: "ask_usage", model: m.model.id, status, cost_usd: Math.round(cost * 1e6) / 1e6, charged_mc: charged, held_mc: m.held, free: m.free, ...(elapsedMs !== undefined ? { elapsedMs } : {}), ...detail }));
   // Failed/backup calls may have incurred unreported provider costs. Keep their full
   // reservation; a failed settlement leaves the reservation held, never reusable.
   if (m.reservation) await settleFreeBudget(env, m.reservation,
@@ -287,7 +287,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 }
 
 export type SearchAnswer =
-  | { ok: true; answer: string; sources: (Passage & { n: number })[]; model: string }
+  | { ok: true; answer: string; sources: (Passage & { n: number })[]; model: string; ms: number }
   | { ok: false; reason: "too-short" | "unavailable" | "empty" | "free-paused" };
 
 /**
@@ -298,6 +298,7 @@ export type SearchAnswer =
  * charges nothing.
  */
 export async function answerSearch(env: Env, q: string, uid: number): Promise<SearchAnswer> {
+  const t0 = Date.now();
   const question = q.trim().slice(0, 200);
   if (question.length < 2) return { ok: false, reason: "too-short" };
   const model = freeModel(env);
@@ -308,18 +309,18 @@ export async function answerSearch(env: Env, q: string, uid: number): Promise<Se
   try {
     const passages = answerCandidates(question, await retrieve(env, question, 12, spend), 8);
     if (!passages.length) {
-      await finishMeter(env, meter, "empty");
-      return { ok: true, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], model: model.id };
+      await finishMeter(env, meter, "empty", Date.now() - t0);
+      return { ok: true, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], model: model.id, ms: Date.now() - t0 };
     }
     // The default free model answers from the passages in one call (format "plain"): no tools.
     const ran = await runAgent(env, question, [], passages, (t, k) => retrieve(env, t, k, spend), () => undefined, undefined, undefined, model, spend, undefined, meter.maxRounds);
     const { answer } = splitFollowups(ran.text);
-    if (!answer.trim()) { await finishMeter(env, meter, "empty"); return { ok: false, reason: "empty" }; }
-    await finishMeter(env, meter, "ok");
-    return { ok: true, answer, sources: sourcesOf(answer, passages), model: model.id };
+    if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
+    await finishMeter(env, meter, "ok", Date.now() - t0);
+    return { ok: true, answer, sources: sourcesOf(answer, passages), model: model.id, ms: Date.now() - t0 };
   } catch (e) {
-    await finishMeter(env, meter, "failed").catch(() => null);
-    console.error(JSON.stringify({ event: "search_answer_failed", message: (e as Error).message?.slice(0, 160) }));
+    await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
+    console.error(JSON.stringify({ event: "search_answer_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 160) }));
     return { ok: false, reason: "unavailable" };
   }
 }

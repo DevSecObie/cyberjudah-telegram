@@ -215,7 +215,7 @@ function AiAnswer({ q }: { q: string }) {
     return (
       <section className="srch__group srch__ai" aria-label="AI answer">
         <div className="srch__head"><h2><Icon name="spark" size={16} />AI answer</h2></div>
-        <Skeleton rows={3} />
+        <div className="msg__thinking" role="status"><span className="answer__dots" aria-hidden="true"><i /><i /><i /></span>Answering from the library…</div>
       </section>
     );
   }
