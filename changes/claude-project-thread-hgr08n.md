@@ -1,4 +1,5 @@
-- Third-party AI models no longer see your saved chat titles or reminder settings; the agreement card says where each provider is based.
+- The AI agreement card says where each provider is based, and that asking about your saved chats or reminder sends their titles and dates or its settings to the chosen model.
+- Push reminders show the app's own icon, so a reminder no longer waits on the website to load one.
 - A Report button under Ask answers and the search AI answer sends the admins which answer it was and why.
 - New Terms screen and /terms command for the Ask balance; /help now lists /privacy, /terms and /paysupport.
 - The privacy policy now covers IP limits, Sabbath location, answer reports, admin support messages, fonts and YouTube, and an age line.
