@@ -22,6 +22,7 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- A swipe that starts on the Home drawer's Today card (or another link inside a drawer) now closes the drawer, instead of sometimes doing nothing or opening the link on release.
 - Audio controls pause and resume at the current verse, remember speed and pitch on this device, and keep delayed recordings and setting changes from overriding Pause.
 - Portraits and Timeline paintings now load from CyberJudah's own storage, with the app's copies as a fallback, so the app download stays small as more pictures are added.
 - Angels (so far Raphael) get their own heading on their People page instead of the generic "Person".

@@ -21,6 +21,7 @@ How each row was checked (2026-10-02, against `main` at `799f696`; the D1 import
 |---|---|---|---|---|
 | 2026-10-01 | Search can fail while a deploy runs | Every deploy re-imports the full 147 MB search index, and wrangler warns that "your D1 database will be unavailable to serve queries" during the import. How long Search is down has not been measured | Needs a decision: skip the import when the data set's index is unchanged | None yet |
 | 2026-09-30 | Precept-pass fixes requested with `@codex` are never made | The Codex GitHub connector answers every request with "To use Codex here, create a Codex account and connect to github" (cyberjudah #14, #15) | Codex connected by the owner on 2026-10-02; the fixes were requested again on both pull requests the same day | cyberjudah [#14](https://github.com/DevSecObie/cyberjudah/pull/14), [#15](https://github.com/DevSecObie/cyberjudah/pull/15) |
+| 2026-10-07 | `browser-tests (chromium)` fails red on every main-based pull request, on days with a long verse of the day, and the `playwright` check cannot be listed as ready | The Home drawer's swipe-to-close e2e test starts its swipe at a fixed offset that lands on the Today card's verse `<Link>` whenever the day's verse is long; a mouse drag starting on a link begins Chromium's native drag-and-drop, which fires `pointercancel` before `useSwipeClose`'s `onPointerUp` can close the drawer, and the release then clicks the link and navigates | Fixed in [#180]: `useSwipeClose` cancels the link's `dragstart` and suppresses the click that follows a recognised swipe, so a swipe starting on a link closes the drawer instead of doing nothing or navigating | [#180] |
 
 ## Resolved
 
@@ -79,3 +80,4 @@ line, so the cause is not confirmed); `d971840` ([run 36915871818](https://githu
 [#76]: https://github.com/DevSecObie/cyberjudah-telegram/pull/76
 [#78]: https://github.com/DevSecObie/cyberjudah-telegram/pull/78
 [#79]: https://github.com/DevSecObie/cyberjudah-telegram/pull/79
+[#180]: https://github.com/DevSecObie/cyberjudah-telegram/pull/180
