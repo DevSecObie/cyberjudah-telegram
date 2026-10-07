@@ -5,7 +5,7 @@ import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { claude, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
-import { MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
+import { countryOf, MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid } from "./privacy.mjs";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
 import { isAdmin } from "./edit";
@@ -412,7 +412,8 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   if (question.length < 2) return reply(400, { error: "too-short" });
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
-  if (!consent.includes(model.provider)) return reply(428, { error: "consent", provider: model.provider, model: model.name });
+  // Where the provider is based goes with it, when known, for the agreement card.
+  if (!consent.includes(model.provider)) return reply(428, { error: "consent", provider: model.provider, model: model.name, ...(countryOf(model.provider) ? { country: countryOf(model.provider) } : {}) });
   // The balance: held before anything is spent, settled once at the end with what the answer
   // actually cost (finishMeter). Leaving mid-answer does not cancel it (waitUntil), so it is still
   // settled once. Too little for this model: Ask says so and offers the free model and a top-up.

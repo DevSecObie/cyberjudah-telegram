@@ -28,7 +28,7 @@ export type Passage = { kind: string; title: string; url: string; sub?: string; 
 export type Source = Passage & { n: number };
 /** A change the assistant proposed; only the reader's Confirm carries it out (bot/src/assistant.mjs). */
 export type Action = { id: string; kind: "reminder"; summary: string; settings: ReminderSettings; state?: "applied" | "cancelled" };
-type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[]; actions?: Action[]; waiting?: boolean; backup?: boolean; consent?: { provider: string; model: string }; meter?: MeterInfo; used?: number; free?: boolean };
+type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[]; actions?: Action[]; waiting?: boolean; backup?: boolean; consent?: { provider: string; model: string; country?: string }; meter?: MeterInfo; used?: number; free?: boolean };
 /** What the server said about a request's cost: the most it may cost (asked first), or what the balance lacks and the free model on offer. */
 type MeterInfo = { model: string; name: string; typical_mc: number; max_mc?: number; available_mc?: number; need_mc?: number; free?: { id: string; name: string; provider: string } };
 /** The welcome screen's starters: a question and the line under it. */
@@ -74,7 +74,7 @@ const replaceConv = (next: { turns: Turn[]; chatId: string | null }) => { convAb
 /** Patch the last turn of conversation `gen` only (the answer being written); a replaced conversation is left alone. */
 const patchLast = (gen: number, fn: (t: Turn) => Turn) => { if (conv.gen === gen) setConv((c) => ({ turns: c.turns.map((t, i) => (i === c.turns.length - 1 ? fn(t) : t)) })); };
 
-type AskFail = { error?: string; reason?: string; provider?: string; model?: string };
+type AskFail = { error?: string; reason?: string; provider?: string; model?: string; country?: string };
 /** What went wrong, from the status and the server's own words. */
 const failure = (status: number, body: AskFail | null): string =>
   status === 428 && body?.error === "consent" ? "consent" : status === 409 && body?.error === "confirm" ? "confirm" : status === 402 ? "credits" : status === 429 ? "limit" : status === 400 && body?.error === "too-short" ? "too-short"
@@ -111,7 +111,7 @@ async function runQuestion(q: string, opts: AskOpts) {
     heard = Date.now();
     if (!res.ok || !res.body) {
       const body = await res.text().then((t) => { try { return JSON.parse(t.split("\n")[0]) as AskFail; } catch { return null; } }).catch(() => null);
-      patch((t) => ({ ...t, thinking: false, error: failure(res.status, body), ...(body?.error === "consent" && body.provider ? { consent: { provider: body.provider, model: body.model ?? body.provider } } : {}), ...(body?.error === "confirm" || body?.error === "credits" ? { meter: body as unknown as MeterInfo } : {}) }));
+      patch((t) => ({ ...t, thinking: false, error: failure(res.status, body), ...(body?.error === "consent" && body.provider ? { consent: { provider: body.provider, model: body.model ?? body.provider, ...(body.country ? { country: body.country } : {}) } } : {}), ...(body?.error === "confirm" || body?.error === "credits" ? { meter: body as unknown as MeterInfo } : {}) }));
       if (res.status === 402) opts.onAccount?.();
       return;
     }
@@ -416,7 +416,7 @@ function AssistantTurn({ t, index, question, last, busy, chatId, onRetry, onFoll
         <div className="consent" role="group" aria-labelledby="consent-title">
           <div className="consent__head">
             <span className="consent__icon" aria-hidden="true"><Icon name="shield" size={20} /></span>
-            <span><b id="consent-title">Send your question to {t.consent.provider}?</b><small>{t.consent.model} is run by {t.consent.provider}</small></span>
+            <span><b id="consent-title">Send your question to {t.consent.provider}?</b><small>{t.consent.model} is run by {t.consent.provider}{t.consent.country ? `, based in ${t.consent.country}` : ""}</small></span>
           </div>
           <ul className="consent__list">
             <li><Icon name="arrowUp" size={16} /><span><b>Sent</b> Your question, the earlier questions in this chat, and passages from the library.</span></li>

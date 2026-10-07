@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import Anthropic from "@anthropic-ai/sdk";
-import { costFactor, MODELS, modelOf, unitsFor } from "../../shared/ask-models.mjs";
+import { costFactor, countryOf, MODELS, modelOf, PROVIDER_COUNTRY, unitsFor } from "../../shared/ask-models.mjs";
 import { PERSONAL_TOOLS, researchOpen, toolsFor } from "../src/agent-open.ts";
 import { claudeUnavailable } from "../src/providers.ts";
 
@@ -125,4 +125,13 @@ test("the reader's saved chats and reminder are offered only to Cloudflare-hoste
   assert.deepEqual(sent[0].input.tools.map((t) => t.function.name), ["search_library"]);
   assert.deepEqual(ran, []);
   assert.equal(sent[1].input.messages.at(-1).content, "No tool named my_saved_chats.");
+});
+
+test("the agreement card names where a provider is based only when that is known; a new provider is a decision, not a guess", () => {
+  assert.equal(countryOf("OpenAI"), "the United States");
+  assert.equal(countryOf("DeepSeek"), "China");
+  assert.equal(countryOf("Unbiased"), undefined, "not known for certain: nothing is said");
+  assert.equal(countryOf("toString"), undefined);
+  const unknown = new Set(["Unbiased"]);
+  for (const p of new Set(MODELS.map((m) => m.provider))) assert.ok(PROVIDER_COUNTRY[p] || unknown.has(p), `decide where ${p} is based, or list it as unknown`);
 });
