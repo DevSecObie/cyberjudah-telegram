@@ -43,6 +43,67 @@
       "status": "published"
     },
     {
+      "slug": "prince-klaas-antigua-conspiracy-1736",
+      "title": "The Antigua slave conspiracy and the execution of Prince Klaas",
+      "start": 1736,
+      "end": 1736,
+      "date": {
+        "text": "October–November 1736",
+        "precision": "range"
+      },
+      "period": "house-of-bondage",
+      "group": "Resistance",
+      "place": "Antigua",
+      "region": "Caribbean",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Benjamin"
+      ],
+      "people": [
+        "Prince Klaas"
+      ],
+      "summary": "In October 1736 Antigua's governor announced he had uncovered a plot by Prince Klaas (Court), an enslaved man said to have been a king in the Gold Coast, to blow up a ball honouring King George II and touch off a general uprising; the colony executed 88 enslaved and free Black people, including Klaas, by burning, breaking on the wheel or gibbeting.",
+      "account": [
+        "In 1736 Antigua's authorities said they had discovered a conspiracy led by an enslaved man called Prince Klaas (recorded as \"Court\" and also called Tackey), said to have been born around 1690 in what is now Ghana and brought to Antigua around 1701. The plan, as the governor described it, was to smuggle a ten-gallon barrel of gunpowder into a building and detonate it during a ball honouring King George II in late October 1736, killing the Europeans gathered there and signalling enslaved people on the surrounding plantations to rise and kill the white population, with the aim of establishing an African-governed state.",
+        "On the report of an enslaved informer, Klaas and 132 others were tried. Eighty-eight were executed: 77, including Klaas, were broken on the wheel or burned at the stake, and 6 were gibbeted (left to die in a metal cage); other accounts give 6 hanged and starved and 58 burned at the stake. Klaas was about 45 when he was executed in early November 1736. Some historians have questioned whether the colony's magistrates, in a state of panic, exaggerated or invented the scale of the plot."
+      ],
+      "sources": [
+        {
+          "title": "Prince Klaas",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Prince_Klaas",
+          "accessed": "2026-10-06",
+          "supports": "the 1736 date, the plan to bomb the king's-birthday ball, the informer, the trial of 132 people and the execution figures and methods"
+        },
+        {
+          "title": "Antigua's Disputed Slave Conspiracy of 1736",
+          "publisher": "Smithsonian Magazine",
+          "url": "https://www.smithsonianmag.com/history/antiguas-disputed-slave-conspiracy-of-1736-117569/",
+          "accessed": "2026-10-06",
+          "supports": "the historians' dispute over whether the conspiracy's scale was real or exaggerated by panicked magistrates"
+        }
+      ],
+      "disagreements": [
+        {
+          "point": "The exact execution count and method",
+          "views": [
+            "Wikipedia's \"Prince Klaas\" article: 88 executed, of whom 77 (including Klaas) were broken on the wheel or burned, and 6 were gibbeted.",
+            "The same article elsewhere states the authorities \"hung and starved six Africans and burnt another 58 at the stake\" — a different breakdown of the same roughly 88 total."
+          ]
+        },
+        {
+          "point": "Whether the conspiracy was real or invented",
+          "views": [
+            "Most historians accept the colonial court's finding that a real plot existed.",
+            "Some historians, per Smithsonian Magazine, think Antigua's \"panicky British rulers\" exaggerated or invented the danger."
+          ]
+        }
+      ],
+      "status": "published"
+    },
+    {
       "slug": "tackys-revolt-jamaica-1760",
       "title": "Tacky's Revolt in Jamaica",
       "start": 1760,
@@ -110,67 +171,6 @@
           "views": [
             "Wikipedia: Tacky was shot and killed by the Maroon marksman Davy during the British counter-insurgency, and his head was displayed on a pole in Spanish Town.",
             "The class (Deuteronomy28Project video): \"he failed. he was captured and hung and burnt alive.\""
-          ]
-        }
-      ],
-      "status": "published"
-    },
-    {
-      "slug": "prince-klaas-antigua-conspiracy-1736",
-      "title": "The Antigua slave conspiracy and the execution of Prince Klaas",
-      "start": 1736,
-      "end": 1736,
-      "date": {
-        "text": "October–November 1736",
-        "precision": "range"
-      },
-      "period": "house-of-bondage",
-      "group": "Resistance",
-      "place": "Antigua",
-      "region": "Caribbean",
-      "peoples": [
-        "Black"
-      ],
-      "tribes": [
-        "Benjamin"
-      ],
-      "people": [
-        "Prince Klaas"
-      ],
-      "summary": "In October 1736 Antigua's governor announced he had uncovered a plot by Prince Klaas (Court), an enslaved man said to have been a king in the Gold Coast, to blow up a ball honouring King George II and touch off a general uprising; the colony executed 88 enslaved and free Black people, including Klaas, by burning, breaking on the wheel or gibbeting.",
-      "account": [
-        "In 1736 Antigua's authorities said they had discovered a conspiracy led by an enslaved man called Prince Klaas (recorded as \"Court\" and also called Tackey), said to have been born around 1690 in what is now Ghana and brought to Antigua around 1701. The plan, as the governor described it, was to smuggle a ten-gallon barrel of gunpowder into a building and detonate it during a ball honouring King George II in late October 1736, killing the Europeans gathered there and signalling enslaved people on the surrounding plantations to rise and kill the white population, with the aim of establishing an African-governed state.",
-        "On the report of an enslaved informer, Klaas and 132 others were tried. Eighty-eight were executed: 77, including Klaas, were broken on the wheel or burned at the stake, and 6 were gibbeted (left to die in a metal cage); other accounts give 6 hanged and starved and 58 burned at the stake. Klaas was about 45 when he was executed in early November 1736. Some historians have questioned whether the colony's magistrates, in a state of panic, exaggerated or invented the scale of the plot."
-      ],
-      "sources": [
-        {
-          "title": "Prince Klaas",
-          "publisher": "Wikipedia",
-          "url": "https://en.wikipedia.org/wiki/Prince_Klaas",
-          "accessed": "2026-10-06",
-          "supports": "the 1736 date, the plan to bomb the king's-birthday ball, the informer, the trial of 132 people and the execution figures and methods"
-        },
-        {
-          "title": "Antigua's Disputed Slave Conspiracy of 1736",
-          "publisher": "Smithsonian Magazine",
-          "url": "https://www.smithsonianmag.com/history/antiguas-disputed-slave-conspiracy-of-1736-117569/",
-          "accessed": "2026-10-06",
-          "supports": "the historians' dispute over whether the conspiracy's scale was real or exaggerated by panicked magistrates"
-        }
-      ],
-      "disagreements": [
-        {
-          "point": "The exact execution count and method",
-          "views": [
-            "Wikipedia's \"Prince Klaas\" article: 88 executed, of whom 77 (including Klaas) were broken on the wheel or burned, and 6 were gibbeted.",
-            "The same article elsewhere states the authorities \"hung and starved six Africans and burnt another 58 at the stake\" — a different breakdown of the same roughly 88 total."
-          ]
-        },
-        {
-          "point": "Whether the conspiracy was real or invented",
-          "views": [
-            "Most historians accept the colonial court's finding that a real plot existed.",
-            "Some historians, per Smithsonian Magazine, think Antigua's \"panicky British rulers\" exaggerated or invented the danger."
           ]
         }
       ],
@@ -566,6 +566,78 @@
           "url": "https://en.wikipedia.org/wiki/British_West_Indies_Regiment",
           "accessed": "2026-10-06",
           "supports": "the 1915 formation, the recruitment figures and origins, the service and casualty figures, the Taranto mutiny dates and causes, the courts martial, and the founding of the Caribbean League"
+        }
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "rastafari-leonard-howell-1933",
+      "title": "Leonard Howell and the rise of Rastafari in Jamaica",
+      "start": 1933,
+      "end": 1940,
+      "date": {
+        "text": "1933–1940",
+        "precision": "range"
+      },
+      "period": "jim-crow",
+      "group": "Resistance",
+      "place": "Jamaica",
+      "region": "Kingston and St Catherine Parish",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Benjamin"
+      ],
+      "people": [
+        "Leonard Percival Howell",
+        "Haile Selassie I"
+      ],
+      "summary": "Leonard Percival Howell, deported from the United States in 1932 after working with Marcus Garvey's UNIA, began preaching in Jamaica from 1933 that the newly crowned Ethiopian emperor Haile Selassie I was the returned Black Messiah, becoming one of the first teachers of what grew into the Rastafari movement; convicted of sedition for it, he went on to found the Pinnacle commune at Sligoville, St Catherine, in 1940, which the colonial and Jamaican authorities raided and eventually destroyed.",
+      "account": [
+        "Howell, born in Clarendon, Jamaica, in 1898, migrated to the United States and became a lieutenant in Marcus Garvey's Universal Negro Improvement Association before being deported back to Jamaica in December 1932. Inspired by the November 1930 coronation of Ras Tafari Makonnen as Emperor Haile Selassie I of Ethiopia, Howell began preaching from January 1933 that Selassie was the incarnation of God and the returned Black Messiah for the African diaspora. He founded the King of Kings Mission, appointed himself Selassie's representative in Jamaica, and was prosecuted for sedition for preaching doctrines the colonial authorities judged anti-Church and anti-government; he wrote the movement's first text, 'The Promised Key', in prison.",
+        "In 1940 Howell founded Pinnacle, a communal settlement on about 400 acres at Sligoville in St Catherine Parish, where several hundred followers farmed, traded and governed themselves largely outside colonial authority. Jamaican police raided Pinnacle more than once in the years that followed and ultimately cleared and destroyed it in the 1950s; sources differ on the exact years of the later raids, Howell's further imprisonment and Pinnacle's final destruction (see disagreements). Howell died in Kingston in 1981."
+      ],
+      "teaching": [
+        {
+          "points": [
+            "Bishop Nathanyel taught that Leonard P. Howell made up the Rastafarian religion, and that being made by a Black man does not make it biblical: a man-made religion is still a man-made religion, not the faith of the Israelites."
+          ],
+          "quote": "Leonard P. Howell, he made up the Rastafarian religion. I don't care if he is Black, it ain't biblical. Don't make up your own religions.",
+          "teacher": "Bishop Nathanyel",
+          "source": {
+            "kind": "class",
+            "id": "a8ZeJW3j9Bc",
+            "title": "#IUIC | Bishop Nathanyel | Walking OFF The Plantation | Sierra Leone",
+            "date": "",
+            "ts": "16:28",
+            "url": "https://youtu.be/a8ZeJW3j9Bc?t=988"
+          }
+        }
+      ],
+      "sources": [
+        {
+          "title": "Leonard Howell",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Leonard_Howell",
+          "accessed": "2026-10-07",
+          "supports": "Howell's birth and death dates, deportation in 1932, the 1933 preaching of Selassie's divinity, the 1934 sedition trial and sentence, and Pinnacle's 1940 founding and 1954/1958 destruction"
+        },
+        {
+          "title": "Leonard Howell the unforgettable father of Rastafari",
+          "publisher": "Jamaica Gleaner",
+          "url": "https://past.jamaica-gleaner.com/article/news/20240218/leonard-howell-unforgettable-father-rastafari",
+          "accessed": "2026-10-07",
+          "supports": "the King of Kings Mission, 'The Promised Key', Pinnacle's size and population, and an alternative chronology of Howell's later arrest and Pinnacle's destruction"
+        }
+      ],
+      "disagreements": [
+        {
+          "point": "The dates of Howell's later sedition arrest, release, and of Pinnacle's final destruction",
+          "views": [
+            "Wikipedia: Howell was tried for sedition on 13 March 1934 and sentenced to two years; Pinnacle was \"nearly destroyed\" by a police raid in 1954 and completely cleared in 1958.",
+            "The Jamaica Gleaner (18 February 2024): Howell was released from prison in 1940, Pinnacle was raided by police in 1941 and Howell sentenced again to two years for sedition, he was released in 1943, and the authorities completely destroyed Pinnacle in 1954."
+          ]
         }
       ],
       "status": "published"
@@ -1022,6 +1094,121 @@
         }
       ],
       "status": "published"
+    },
+    {
+      "slug": "antigua-and-barbuda-independence-1981",
+      "title": "Antigua and Barbuda's independence",
+      "start": 1981,
+      "end": 1981,
+      "date": {
+        "text": "1 November 1981",
+        "precision": "day"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Achievements",
+      "place": "Antigua and Barbuda",
+      "region": "Caribbean",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Benjamin"
+      ],
+      "people": [
+        "Vere Cornwall Bird"
+      ],
+      "summary": "Antigua and Barbuda became independent from the United Kingdom on 1 November 1981, with Vere Cornwall Bird sworn in as its first prime minister, after a constitutional process in which the British refused Barbuda's bid to separate from Antigua as its own territory and instead gave Barbuda increased local autonomy.",
+      "account": [
+        "Antigua, an associated state of the United Kingdom from 1967, moved toward full independence after its government signalled the intention in 1978 and the pro-independence party won 13 of 17 seats in the April 1980 election. A constitutional conference at Lancaster House in December 1980 addressed outstanding issues, including a Barbudan delegation's wish to separate from Antigua as its own territory, which the British refused on grounds of Barbuda's small population; the compromise instead amended the Barbuda Local Government Act to give the island greater autonomy.",
+        "Antigua's House of Representatives passed a resolution consenting to the termination of its association with Britain on 23 April 1981, and the Senate passed it on 1 May 1981. The British House of Lords approved the independence order on 8 July 1981 by a vote of 75 to 7, and Queen Elizabeth II signed both the termination and constitution orders on 31 July 1981. Antigua and Barbuda became independent on 1 November 1981, and Vere Cornwall Bird was sworn in as its first prime minister."
+      ],
+      "sources": [
+        {
+          "title": "Independence of Antigua and Barbuda",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Independence_of_Antigua_and_Barbuda",
+          "accessed": "2026-10-07",
+          "supports": "the 1 November 1981 independence date, Vere Bird as first prime minister, and the constitutional process and dates leading to independence, including the Barbuda dispute"
+        }
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "st-kitts-and-nevis-independence-1983",
+      "title": "Saint Kitts and Nevis's independence",
+      "start": 1983,
+      "end": 1983,
+      "date": {
+        "text": "19 September 1983",
+        "precision": "day"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Achievements",
+      "place": "Saint Kitts and Nevis",
+      "region": "Caribbean",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Benjamin"
+      ],
+      "people": [
+        "Kennedy Simmonds"
+      ],
+      "summary": "Saint Kitts and Nevis became independent from the United Kingdom on 19 September 1983, the smallest sovereign state in the Western Hemisphere, with Dr Kennedy Simmonds of the People's Action Movement as its first prime minister; the new constitution gave Nevis the right to secede from the federation by a two-thirds referendum vote, a provision shaped by Anguilla's earlier break from the same St Kitts-based territory.",
+      "account": [
+        "Saint Kitts-Nevis-Anguilla became an associated state of the United Kingdom with full internal self-government in 1967. Anguilla, resentful of domination by St Kitts, unilaterally declared independence from the arrangement that same year and was formally separated from it in 1980, remaining a British overseas territory. A constitutional conference was held in London in 1982; the resulting Constitution of Saint Kitts and Nevis was adopted on 23 June 1983, giving Nevis the right to secede from the federation if a referendum produced a two-thirds majority in favour.",
+        "Saint Kitts and Nevis became independent on 19 September 1983, with Dr Kennedy Simmonds, who had served as Premier since 1980, as its first prime minister. The new country opted to remain within the Commonwealth, with the British monarch as head of state represented by a Governor-General."
+      ],
+      "sources": [
+        {
+          "title": "Saint Kitts and Nevis",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Saint_Kitts_and_Nevis",
+          "accessed": "2026-10-07",
+          "supports": "the 19 September 1983 independence date, Kennedy Simmonds as first prime minister, the 1967 associated statehood, Anguilla's 1967/1980 separation, and the 1983 constitution's secession provision for Nevis"
+        }
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "trinidad-1990-coup-attempt-jamaat-al-muslimeen",
+      "title": "The Jamaat al Muslimeen coup attempt in Trinidad",
+      "start": 1990,
+      "end": 1990,
+      "date": {
+        "text": "27 July – 1 August 1990",
+        "precision": "range"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Caribbean and Latin America",
+      "place": "Port of Spain, Trinidad and Tobago",
+      "region": "Caribbean",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Benjamin"
+      ],
+      "people": [
+        "Yasin Abu Bakr",
+        "A. N. R. Robinson"
+      ],
+      "summary": "On 27 July 1990, about 114 members of the Jamaat al Muslimeen, led by Imam Yasin Abu Bakr, stormed Trinidad and Tobago's Parliament at the Red House and the state television station, holding Prime Minister A. N. R. Robinson and much of his cabinet hostage for six days before surrendering on 1 August 1990; 24 people died, and the government's later amnesty for the insurgents was upheld by the Court of Appeal and then invalidated by the Privy Council, though none were re-arrested.",
+      "account": [
+        "On 27 July 1990, roughly 114 members of the Jamaat al Muslimeen, an Afrocentric Black Muslim organisation led by Imam Yasin Abu Bakr (born Lennox Phillips) and Bilaal Abdullah, attempted to overthrow the government of Trinidad and Tobago. Forty-two of them stormed the Red House, the seat of Parliament, taking Prime Minister A. N. R. Robinson and most of his National Alliance for Reconstruction cabinet hostage, while 72 others attacked the Trinidad and Tobago Television (TTT) station. A car bomb exploded at Police Headquarters on St Vincent Street.",
+        "The standoff lasted six days of negotiation before the insurgents surrendered on 1 August 1990. Twenty-four people died in the uprising, and the government later estimated millions of dollars in property losses from the accompanying looting and arson. The insurgents were charged with treason, but an amnesty agreement reached to secure their surrender was upheld by the Court of Appeal and they were released; the Judicial Committee of the Privy Council later invalidated that amnesty, though none of the insurgents were re-arrested."
+      ],
+      "sources": [
+        {
+          "title": "Jamaat al Muslimeen coup attempt",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Jamaat_al_Muslimeen_coup_attempt",
+          "accessed": "2026-10-07",
+          "supports": "the dates, numbers of insurgents, the Red House and TTT attacks, the car bomb, casualties, the surrender, and the amnesty's later invalidation"
+        }
+      ],
+      "status": "published"
     }
   ],
   "drafts": [],
@@ -1324,10 +1511,60 @@
       "events": [
         "grenada-revolution-and-us-invasion-1979-1983"
       ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/Leonard_Howell",
+      "title": "Leonard Howell",
+      "status": "reviewed",
+      "note": "Read in full 2026-10-07.",
+      "events": [
+        "rastafari-leonard-howell-1933"
+      ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://past.jamaica-gleaner.com/article/news/20240218/leonard-howell-unforgettable-father-rastafari",
+      "title": "Leonard Howell the unforgettable father of Rastafari",
+      "status": "reviewed",
+      "note": "Read in full 2026-10-07; gives a differing chronology of Howell's later arrest and Pinnacle's destruction, recorded as a disagreement.",
+      "events": [
+        "rastafari-leonard-howell-1933"
+      ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/Independence_of_Antigua_and_Barbuda",
+      "title": "Independence of Antigua and Barbuda",
+      "status": "reviewed",
+      "note": "Read in full 2026-10-07.",
+      "events": [
+        "antigua-and-barbuda-independence-1981"
+      ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/Saint_Kitts_and_Nevis",
+      "title": "Saint Kitts and Nevis",
+      "status": "reviewed",
+      "note": "Read in full 2026-10-07.",
+      "events": [
+        "st-kitts-and-nevis-independence-1983"
+      ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/Jamaat_al_Muslimeen_coup_attempt",
+      "title": "Jamaat al Muslimeen coup attempt",
+      "status": "reviewed",
+      "note": "Read in full 2026-10-07; trinidadexpress.com and newsday.co.tt were tried for a second source and both failed (connection refused / HTTP 429), so no demands beyond what Wikipedia documents are recorded.",
+      "events": [
+        "trinidad-1990-coup-attempt-jamaat-al-muslimeen"
+      ]
     }
   ],
   "gaps": [
-    "This batch covers 22 of the aimed-for 30–45 events; researched but not yet written up for lack of run time: the Haitian-revolutionary-inspired slave conspiracies elsewhere in the Lesser Antilles, Rastafari's rise in Jamaica from the 1930s, the 1970s-80s Jamaican political violence (JLP/PNP \"garrison\" politics), the Grenadian New Jewel Movement's 1979 programme in more depth, St. Kitts and Nevis and Antigua and Barbuda independence (1983 and 1981), the 1990 Trinidad coup attempt (Jamaat al Muslimeen), and Hurricane Ivan (2004) or Hurricane Gilbert (1988) as modern disasters. Searches run for the included events: taino|arawak|hispaniola (redirected the Taino/Hispaniola material to the Levi-Simeon batch, see note below); tacky|coromantee|jamaica revolt|1760; morant bay|paul bogle; windrush; grenada|maurice bishop; emancipation 1834|apprenticeship. Not yet searched for a class moment: the 1661 Barbados slave code, the Antigua 1736 conspiracy, the 1780 hurricane, Fédon's rebellion, the Second Maroon War deportation, Bussa's rebellion, the Demerara rebellion, the British West Indies Regiment/Taranto mutiny, the 1937 Trinidad and 1938 Jamaica riots, the West Indies Federation, the four 1962–1966 independence events, the Trinidad Black Power Revolution, and CARICOM.",
+    "This batch covers 27 of the aimed-for 30–45 events. Added this run: Leonard Howell and the rise of Rastafari (a class moment from Bishop Nathanyel found and read, a8ZeJW3j9Bc), and Antigua and Barbuda’s, and Saint Kitts and Nevis’s independence (1981, 1983) and the 1990 Jamaat al Muslimeen coup attempt in Trinidad (history-only; no class moment found specifically about the 1981/1983 independences or the 1990 coup — tsearch hits for antigua/st kitts/nevis were mission reports and testimonies, not teaching on the independence events themselves, and the one ‘abu bakr’ hit in the corpus is about al-Baghdadi, not Trinidad’s Abu Bakr). trinidadexpress.com and newsday.co.tt were tried for a second source on the coup and both failed (connection refused / HTTP 429); only Wikipedia is cited there. Researched but not yet written up for lack of run time: the Haitian-revolutionary-inspired slave conspiracies elsewhere in the Lesser Antilles, the 1970s-80s Jamaican political violence (JLP/PNP \"garrison\" politics), the Grenadian New Jewel Movement’s 1979 programme in more depth, St. Kitts and Nevis and Antigua and Barbuda’s pre-1981/1983 path to statehood in more depth, and Hurricane Ivan (2004) or Hurricane Gilbert (1988) as modern disasters. Searches run for the included events: taino|arawak|hispaniola (redirected the Taino/Hispaniola material to the Levi-Simeon batch, see note below); tacky|coromantee|jamaica revolt|1760; morant bay|paul bogle; windrush; grenada|maurice bishop; emancipation 1834|apprenticeship; rastafari|rastafarian, leonard howell; antigua; st.?\\s?kitts|saint kitts|nevis; abu bakr|muslimeen|1990 coup. Not yet searched for a class moment: the 1661 Barbados slave code, the Antigua 1736 conspiracy, the 1780 hurricane, Fédon’s rebellion, the Second Maroon War deportation, Bussa’s rebellion, the Demerara rebellion, the British West Indies Regiment/Taranto mutiny, the 1937 Trinidad and 1938 Jamaica riots, the West Indies Federation, the four 1962–1966 independence events, the Trinidad Black Power Revolution, and CARICOM.",
     "Note for the Levi and Simeon batch (CYB-81, the other open Timeline issue, not this one): tsearch for 'taino|arawak|hispaniola' found a strong class teaching moment reading from Las Casas's \"A Short Account of the Destruction of the Indies\" about Hispaniola, in video YImBDT6gbY8 (\"THE BIBLE: BOOK OF OUR FATHERS | A Great Evil Upon The Jews [PART 3]\") at 1:14:04, which the class ties explicitly to Simeon (Dominican Republic) and Levi (Haiti), not Benjamin — \"before levi got there all of that area was hispaniola... simeon was there.\" That moment, plus a second one in oKmVoNiHJfE at 0:36 naming a Taino cacique the caption renders as \"Achui\" (likely Hatuey) of Hispaniola's Guahaba province, belongs in the Levi-Simeon batch, not here.",
     "Owner's decision carried over from AGENTS.md, not resolved in this batch: whether the Garifuna deportation (garifuna-deportation-1797, already published) and the Panama Canal silver roll (panama-canal-and-the-silver-roll-1904-1914, already published) should also carry the Zebulon tag alongside Benjamin — both are already tagged [\"Zebulon\", \"Benjamin\"] in events.json, so this appears already decided; flagging only because AGENTS.md still listed it as open.",
     "image: a public-domain engraving or period map of Hispaniola/the Lesser Antilles for the general West Indies period context (e.g. a 17th-century Barbados plantation map, Library of Congress or British Library digitised collections) — none sourced this run.",
