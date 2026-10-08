@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router";
 
 import { data, type StrongsRow } from "@/api/data";
 import { useBookmarks, useTags, type Highlight } from "@/bible/store";
-import { usePlan } from "@/lib/marks";
+import { listStudies, subscribeStudies } from "@/studies/storage";
 import { useSavedRelations } from "@/lib/relations";
 import { pickOfDay, pickRandom } from "@/lib/ofday";
 import { haptic } from "@/tg/sdk";
@@ -109,7 +109,7 @@ export function useStudyCounts() {
     const publish = () => { if (live) setTotals({ highlights: [...counts].filter(([k]) => k.startsWith("bs_h_")).reduce((n, [, v]) => n + v, 0), notes: [...counts].filter(([k]) => k.startsWith("bs_n_")).reduce((n, [, v]) => n + v, 0) }); };
     const update = (key: string, raw: string | null) => {
       if (!live) return;
-      try { counts.set(key, Object.keys(JSON.parse(raw ?? "{}") as Record<string, Highlight>).length); } catch { counts.set(key, 0); }
+      try { counts.set(key, Object.values(JSON.parse(raw ?? "{}") as Record<string, Highlight>).filter(value => !key.startsWith("bs_h_") || !!value.color).length); } catch { counts.set(key, 0); }
       publish();
     };
     void store.keys().then(async (keys) => {
@@ -129,13 +129,19 @@ export function useStudyCounts() {
 
 export function StudyStats({ expanded = false }: { expanded?: boolean }) {
   const c = useStudyCounts();
-  const [plan] = usePlan();
+  const [studyCount, setStudyCount] = useState(0);
+  useEffect(() => {
+    let live = true;
+    const refresh = () => { void listStudies().then(rows => { if (live) setStudyCount(rows.length); }).catch(() => {}); };
+    const off = subscribeStudies(refresh); refresh();
+    return () => { live = false; off(); };
+  }, []);
   const relations = useSavedRelations();
   const cells: [string, number, string, IconName][] = [
     ["Highlights", c.highlights, "/bookmarks?tab=highlights", "compose"],
     ["Bookmarks", c.bookmarks, "/bookmarks", "bookmark"],
     ["Notes", c.notes, "/bookmarks?tab=notes", "note"],
-    ...(expanded ? [["Studies", plan ? 1 : 0, "/plan", "check"], ["Precepts", relations.length, "/relations", "precepts"]] as [string, number, string, IconName][] : []),
+    ...(expanded ? [["Studies", studyCount, "/studies", "compose"], ["Precepts", relations.length, "/relations", "precepts"]] as [string, number, string, IconName][] : []),
     ["Tags", c.tags, "/tags", "tag"],
   ];
   return (

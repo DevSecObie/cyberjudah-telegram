@@ -34,8 +34,8 @@ export function openButton(env: Env, origin: string, chatType: string | undefine
 }
 
 /** Today's verse, as a Telegram HTML message plus the start param that opens it. */
-export async function todaysVerse(env: Env, ctx?: Exec) {
-  const v = verseOfDay();
+export async function todaysVerse(env: Env, ctx?: Exec, date?: string) {
+  const v = verseOfDay(date);
   const ch = await chapter(env, v.slug, v.chapter, ctx);
   const text = ch?.verses.find((x) => x.verse === v.verse)?.text ?? "";
   const param = pathToStartParam(`/bible/${v.slug}/${v.chapter}`, String(v.verse));

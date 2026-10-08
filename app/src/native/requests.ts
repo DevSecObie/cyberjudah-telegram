@@ -7,8 +7,10 @@ if (native) {
   const fetchOriginal = globalThis.fetch.bind(globalThis);
   globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
     const source = input instanceof Request ? input.url : String(input);
-    const url = new URL(source, location.href);
-    if (url.origin !== location.origin || !url.pathname.startsWith("/api/")) return fetchOriginal(input, init);
+    const local = new URL(location.href), url = new URL(source, local);
+    const workerPath = url.pathname.startsWith("/api/") || url.pathname === "/bs/v1/bibles/KJV/search";
+    // Custom iOS schemes can have an opaque URL origin; compare their scheme and host.
+    if (url.protocol !== local.protocol || url.host !== local.host || !workerPath) return fetchOriginal(input, init);
     const target = `https://cyberjudah.io${url.pathname}${url.search}`;
     return input instanceof Request
       ? fetchOriginal(new Request(target, input), { ...init, credentials: "omit" })

@@ -1,4 +1,5 @@
 import { NativeLifecycle } from "@/native/NativeLifecycle";
+import { WorkspaceCommands } from "@/ui/WorkspaceCommands";
 import { AudioPlayerProvider, AudioPlayerBar } from "@/lib/AudioPlayer";
 import { useResourceSync } from "@/resources/hooks";
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
@@ -33,6 +34,7 @@ const AdminGate = lazy(() => import("@/admin/AdminGate").then((m) => ({ default:
 const NavEditor = lazy(() => import("@/screens/NavEditor").then((m) => ({ default: m.NavEditor })));
 const Account = lazy(() => import("@/screens/Account").then(m => ({ default: m.Account })));
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
+const Help = lazy(() => import("@/screens/Help").then(m => ({ default: m.Help })));
 const AudioSettings = lazy(() => import("@/screens/AudioSettings").then((m) => ({ default: m.AudioSettings })));
 const Reminders = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.Reminders })));
 const ReminderSync = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.ReminderSync })));
@@ -112,6 +114,7 @@ export function App() {
       <AudioPlayerProvider>
       <ThemeApplier />
       <NativeLifecycle />
+      <WorkspaceCommands />
       <Lock />
       <div className="route" data-location-key={location.key} key={location.pathname.split("/").slice(0, 2).join("/")}>
       <ScreenBoundary resetKey={location.pathname}>
@@ -138,6 +141,7 @@ export function App() {
         <Route path="/resources/:id/:release" element={<ResourceReader />} />
         <Route path="/settings/account" element={<Account />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/settings/help" element={<Help />} />
         <Route path="/settings/audio" element={<AudioSettings />} />
         <Route path="/settings/bar" element={<NavEditor />} />
         <Route path="/settings/requests" element={<NoteRequests />} />

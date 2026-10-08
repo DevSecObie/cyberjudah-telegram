@@ -393,7 +393,7 @@ test("the reading plan ticks today's chapters and keeps a streak", async ({ page
   await page.click(".sheet__item >> text=4 chapters a day");
   await expect(page.locator(".card__label")).toHaveText("Today");
   await expect(page.locator(".plan-row")).toHaveCount(4);
-  for (let i = 0; i < 4; i++) await page.locator(".plan-row i").nth(i).click();
+  for (let i = 0; i < 4; i++) await page.locator(".plan-row__check").nth(i).click();
   await expect(page.locator(".plan-row[data-read]")).toHaveCount(4);
   await expect(page.locator(".pageaction").last()).toHaveText("Tomorrow's reading");
   await page.locator(".pageaction").last().click();
@@ -494,9 +494,13 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
 });
 
-test("the new-tab search entry opens Search in that tab", async ({ page }) => {
+test("the new-tab finder opens the chosen Search tool", async ({ page }) => {
   await page.goto(`/new${LAUNCH}`);
   await page.getByRole("button", { name: "A passage, a tab, a tool…" }).click();
+  const finder = page.getByRole("dialog", { name: "Find a tab or tool" });
+  await expect(finder).toBeVisible();
+  await finder.getByRole("combobox").fill("Search");
+  await finder.getByRole("option", { name: "Search Open in a new tab", exact: true }).click();
   await expect(page).toHaveURL(/\/search/);
   await expect(page.locator('.tab[aria-label="Search"]')).toHaveAttribute("aria-current", "page");
 });
@@ -524,7 +528,8 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   await expect(home.locator(".today-card")).toContainText("Genesis 1:1");
   await expect(home.locator(".hello, .search-hero, .door__btn--ask")).toHaveCount(0);
   await expect(home.locator(".stats__cell small")).toHaveText(["Highlights", "Bookmarks", "Notes", "Studies", "Precepts", "Tags"]);
-  await expect(home.locator('.stats__cell[href="/plan"] b')).toHaveText("1");
+  // A reading plan is not a personal study.
+  await expect(home.locator('.stats__cell[href="/studies"] b')).toHaveText("0");
   await expect(home.locator('.stats__cell[href="/bookmarks?tab=highlights"] b')).toHaveText("1");
   await expect(home.locator('.stats__cell[href="/bookmarks?tab=notes"] b')).toHaveText("1");
   await expect(home.locator('.stats__cell[href="/relations"] b')).toHaveText("2");
@@ -535,6 +540,13 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   await press(page, "back");
   await expect(image).toHaveCount(0);
   await expect(home).toHaveAttribute("data-open", "");
+  await home.locator('.stats__cell[href="/studies"]').click();
+  await expect(page).toHaveURL(/\/studies$/);
+  await page.getByRole("button", { name: "New study", exact: true }).click();
+  await expect(page.getByLabel("Study title", { exact: true })).toBeVisible();
+  await goInApp(page, "/read/genesis/1");
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect(home.locator('.stats__cell[href="/studies"] b')).toHaveText("1");
   await home.locator('.stats__cell[href="/relations"]').click();
   await expect(page).toHaveURL(/\/relations$/);
   await expect(page.locator(".nt-item")).toHaveCount(2);
@@ -695,7 +707,7 @@ test("reading progress: read chapters in the book picker, the day strip and catc
 
   // The plan: two days behind, a strip of days, a chip to catch up.
   await page.goto(`/plan${LAUNCH}`);
-  await expect(page.locator(".daystrip__day[aria-current]")).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".daystrip__day[aria-current]")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".daystrip__day[data-done]")).toHaveCount(1);
   await expect(page.locator(".catchup")).toHaveText("Catch up · 11 chapters");
   await shot("tracker-plan");
@@ -722,10 +734,14 @@ test("reading progress: read chapters in the book picker, the day strip and catc
 });
 
 test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a reference or finds the words", async ({ page }) => {
-  await page.route("**/api/search?**", (r) => r.fulfill({ json: { ok: true, q: "", mode: "strict", counts: {}, ms: 1, hits: [
-    { kind: "verse", title: "John 1:4", url: "/bible/john/1#v4", sub: "", snippet: "In him was life; and the life was the light of men." },
-    { kind: "verse", title: "Sirach 43:9", url: "/bible/sirach/43#v9", sub: "", snippet: "The beauty of heaven, the glory of the stars, an ornament giving light in the highest places of the Lord." },
-  ] } }));
+  await page.route("**/bs/v1/bibles/KJV/search?**", r => {
+    const q = new URL(r.request().url()).searchParams;
+    const results = [
+      { book: 43, chapter: 1, verse: 4, text: "In him was life; and the life was the light of men." },
+      { book: 73, chapter: 43, verse: 9, text: "The beauty of heaven, the glory of the stars, an ornament giving light in the highest places of the Lord." },
+    ].filter(v => (!q.has("book") || v.book === Number(q.get("book"))) && (q.get("section") !== "apoc" || v.book > 66));
+    return r.fulfill({ json: { results, count: results.length } });
+  });
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await page.click(".bs-pill--book");
   await expect(page.locator('.bs-bookrow:has-text("2 Maccabees")')).toBeVisible();
@@ -749,11 +765,11 @@ test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a re
   await page.click('.bs-search__filters .bs-chip:has-text("Apocrypha")');
   await expect(page.locator(".bs-search__hit")).toHaveCount(1);
   await expect(page.locator(".bs-search__count")).toHaveText("1 verse in the Apocrypha");
-  await page.selectOption(".bs-chip--select", "tobit");
+  await page.selectOption('select[aria-label="One book"]', "tobit");
   await expect(page.locator(".bs-search__hit")).toHaveCount(0);
-  await expect(page.locator(".bs-search__hint")).toContainText("No verse has those words in Tobit. 2 elsewhere.");
+  await expect(page.locator(".bs-search__hint")).toContainText("No matching verses in Tobit.");
   await page.click('.bs-search__filters .bs-chip:has-text("All")');
-  await page.selectOption(".bs-chip--select", "");
+  await page.selectOption('select[aria-label="One book"]', "");
   await expect(page.locator(".bs-search__hit")).toHaveCount(2);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/bible-search.png` });
   await page.locator(".bs-search__hit").first().click();

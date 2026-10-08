@@ -18,6 +18,13 @@ export function bookLabel(slug) {
   return String(slug).split("-").map((w, i) => (i && (w === "of" || w === "the" || w === "and") ? w : w.charAt(0).toUpperCase() + w.slice(1))).join(" ");
 }
 
+/** Reject normalized dates such as February 31 before fetching any chapter. */
+export function validVerseDate(value) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
 /** The reference for a UTC date (any Date, or a "YYYY-MM-DD" string), the same all day everywhere. */
 export function verseOfDay(date = new Date()) {
   const d = typeof date === "string" ? new Date(`${date}T00:00:00Z`) : date;

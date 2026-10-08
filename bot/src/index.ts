@@ -24,7 +24,7 @@ import { verseCard } from "./card";
 import { sendDaily } from "./daily";
 import { push, reminderCounts, reminders, sendReminders } from "./remind";
 import { reportHealth, selfCheck } from "./health";
-import { bookLabel } from "./verse-of-day.mjs";
+import { bookLabel, validVerseDate } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
 import { resources } from "./resources";
 import { bs } from "./bs";
@@ -602,7 +602,9 @@ app.route("/api/dictionary", dictionary);
 app.route("/api/resources", resources);
 
 app.get("/api/verse-of-day", async (c) => {
-  const v = await todaysVerse(c.env, c.executionCtx);
+  const date = c.req.query("date");
+  if (date !== undefined && !validVerseDate(date)) return c.json({ error: "Use a valid date in YYYY-MM-DD format." }, 400);
+  const v = await todaysVerse(c.env, c.executionCtx, date);
   if (!v.text) return c.json({ error: "unavailable" }, 503);
   c.header("cache-control", "public, max-age=600");
   return c.json({ ref: v.ref, slug: v.slug, chapter: v.chapter, verse: v.verse, text: v.text, startapp: v.param });

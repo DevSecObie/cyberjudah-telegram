@@ -7,7 +7,7 @@ import { dayKey, expand, type Plan, type Progress } from "./marks";
  * the flat list of every chapter in every book. A day is done when its chapters are marked
  * read; the streak counts consecutive days with a day completed.
  */
-export type PlanDay = { day: number; chapters: { slug: string; book: string; chapter: number; read: boolean }[]; done: boolean; total: number; pct: number; label: string };
+export type PlanDay = { day: number; chapters: { slug: string; book: string; chapter: number; read: boolean }[]; done: boolean; total: number; pct: number; readCount: number; label: string };
 
 export function flatChapters(books: Book[]) {
   const out: { slug: string; book: string; chapter: number }[] = [];
@@ -20,9 +20,11 @@ export function planDay(plan: NonNullable<Plan>, books: Book[], progress: Progre
   const per = plan.perDay;
   const slice = all.slice(day * per, day * per + per).map((c) => ({ ...c, read: expand(progress[c.slug]).has(c.chapter) }));
   const total = Math.ceil(all.length / per);
+  const readByBook = new Map(books.map(b => [b.slug, expand(progress[b.slug])]));
+  const readCount = all.filter(c => readByBook.get(c.slug)?.has(c.chapter)).length;
   const first = slice[0], last = slice[slice.length - 1];
   const label = !first ? "Finished" : first.slug === last.slug ? `${first.book} ${first.chapter}${last.chapter > first.chapter ? `–${last.chapter}` : ""}` : `${first.book} ${first.chapter} – ${last.book} ${last.chapter}`;
-  return { day, chapters: slice, done: slice.length > 0 && slice.every((c) => c.read), total, pct: Math.min(100, Math.round((day / total) * 100)), label };
+  return { day, chapters: slice, done: slice.length > 0 && slice.every((c) => c.read), total, pct: all.length ? Math.round(readCount / all.length * 100) : 0, readCount, label };
 }
 
 /** Called when a day's chapters are all read: advance, and keep the streak honest. */

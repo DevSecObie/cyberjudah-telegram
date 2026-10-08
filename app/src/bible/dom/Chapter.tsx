@@ -49,7 +49,6 @@ export function Chapter(p: ChapterProps) {
   const hasVerses = p.verses.length > 0;
   const isContextFocused = p.contextDisplayMode === "focused";
   const focus = p.focusVerses;
-  const adjacent = focus?.length ? { prev: Math.min(...focus) - 1, next: Math.max(...focus) + 1 } : null;
 
   // The verse being read: marked, and kept in view a third of the way down while the reading follows
   // it. A scroll by the reader frees the page; "Back to verse N" (or the reading reaching a verse
@@ -191,15 +190,14 @@ export function Chapter(p: ChapterProps) {
         {p.verses.map((row) => {
           const n = row.verse;
           const isFocused = focus?.length ? focus.includes(n) : undefined;
-          const fadePosition = isContextFocused && adjacent ? (n === adjacent.prev ? "top" : n === adjacent.next ? "bottom" : undefined) : undefined;
-          if (isContextFocused && focus?.length && !isFocused && !fadePosition) return null;
+          if (isContextFocused && focus?.length && !isFocused) return null;
           const vk = makeKey(slug, chapter, n);
           const items = p.relationItems[n];
           return (
             <Verse key={vk} verseKey={vk} number={n} text={row.text} settings={s} palette={c} theme={theme}
               isSelected={p.selected.includes(n)} isSelectedMode={selectedMode} isTouched={touched === vk}
               highlightedColor={p.highlights[String(n)]?.color} bookmark={bookmarkOf.get(n)}
-              isVerseToScroll={!isContextFocused && p.verseToScroll === n && n !== 1} isFocused={isFocused} fadePosition={fadePosition}
+              isVerseToScroll={!isContextFocused && p.verseToScroll === n && n !== 1} isFocused={isFocused}
               relationItems={items} relationCount={items?.length || undefined}
               moments={p.moments?.[n]} deck={p.deck}
               tagGroup={tagGroups.get(n)} taggedItemsCount={p.highlights[String(n)]?.tags ? Object.keys(p.highlights[String(n)].tags!).length : 0}

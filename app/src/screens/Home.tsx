@@ -136,7 +136,7 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
   const lastBook = last && books.data ? books.data.find((b) => b.slug === last.slug) : null;
   const lastRead = last ? (progress[last.slug] ? String(progress[last.slug]).split(",").reduce((n, r) => { const [a, b] = r.split("-").map(Number); return n + (b ? b - a + 1 : 1); }, 0) : 0) : 0;
   const [loc] = useStored<{ lat: number; lng: number } | null>("loc", null);
-  const verse = useQuery({ queryKey: ["votd"], queryFn: () => fetch("/api/verse-of-day").then((r) => r.json() as Promise<Verse>), staleTime: 60 * 60_000 });
+  const verse = useQuery({ queryKey: ["votd", new Date().toISOString().slice(0, 10)], queryFn: async () => { const r = await fetch("/api/verse-of-day"); if (!r.ok) throw new Error("Daily verse unavailable"); return r.json() as Promise<Verse>; }, staleTime: 60 * 60_000 });
   const feed = useTeachings();
   const stats = useQuery({ queryKey: ["stats"], queryFn: data.stats, staleTime: 60 * 60_000 });
   const live = useLive();
@@ -159,10 +159,7 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
         <img src={assetUrl("brand/cyber-lion.webp")} alt="" width={44} height={44} onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
         <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>What do you want to learn?</h1></div>
       </div>
-      <Link to={verse.data ? `/read/${verse.data.slug}/${verse.data.chapter}?v=${verse.data.verse}` : "/bible"} className="hero" onClick={() => haptic("select")}>
-        <small>Today's Scripture</small>
-        {verse.data ? <><p className="hero__verse">{verse.data.text}</p><span className="hero__ref">{verse.data.ref}</span></> : <p className="hero__verse" style={{ color: "var(--text-3)" }}>Loading the day's verse…</p>}
-      </Link>
+      <TodayCard verse={verse.data} failed={verse.isError} />
       <SearchHero value={q} onChange={setQ} onSubmit={search} big />
       <div className="door">
         <button type="button" className="btn btn--bordered door__btn" onClick={() => { if (q.trim()) search(q); else document.getElementById("q")?.focus(); }}><Icon name="search" size={18} /> Search</button>
@@ -237,7 +234,7 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
       <h2 className="shelf">Meditate</h2>
       {sched && today && plan ? (
         <Link to="/plan" className="streak" onClick={() => haptic("select")}>
-          <span className="streak__day"><b>Day {plan.day}</b><small>{sched.owed ? `${sched.owed} to catch up` : `${today.pct}% of the library`}</small></span>
+          <span className="streak__day"><b>Day {plan.day + 1}</b><small>{sched.owed ? `${sched.owed} to catch up` : `${today.pct}% of this plan`}</small></span>
           <span className="streak__bar"><i style={{ width: `${Math.round((todayRead / Math.max(1, today.chapters.length)) * 100)}%` }} /></span>
           <span className="streak__due">{todayRead}/{today.chapters.length} today</span>
           {plan.streak ? <span className="streak__fire">🔥 {plan.streak}</span> : null}

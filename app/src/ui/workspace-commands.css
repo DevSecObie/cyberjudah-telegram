@@ -1,0 +1,10 @@
+.workspace-commands { z-index: 1200; }
+.workspace-commands__sheet { display: flex; flex-direction: column; max-height: min(80dvh, 650px); width: min(100%, 580px); }
+.workspace-commands__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.workspace-commands__header h2 { font: 600 var(--fs-title3) var(--font-ui); }
+.workspace-commands__header button { width: 48px; height: 48px; flex: none; border: 0; border-radius: var(--r-pill); background: var(--surface-2); color: var(--text-1); font-size: 24px; }
+.workspace-commands input { min-height: 48px; width: 100%; padding: 12px; background: var(--surface-1); color: var(--text-1); border: 1px solid var(--control-edge); border-radius: var(--r-md); }
+.workspace-commands__list { overflow: auto; margin-block: 12px; }
+.workspace-commands [role="option"] { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 48px; padding: 12px; border-radius: var(--r-md); cursor: pointer; }
+.workspace-commands [role="option"] small { color: var(--text-3); }
+.workspace-commands [aria-selected="true"] { background: var(--surface-2); box-shadow: inset 3px 0 var(--accent); }
