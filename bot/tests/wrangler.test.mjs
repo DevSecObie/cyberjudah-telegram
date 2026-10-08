@@ -18,6 +18,14 @@ test("staging has every production setting (environments do not inherit vars)", 
   assert.notEqual(config.env.staging.vars.APP_URL, config.vars.APP_URL);
 });
 
+test("staging explicitly binds inference and the shared published library, with separate reader storage", () => {
+  const staging = config.env.staging;
+  for (const key of ["ai", "vectorize", "r2_buckets"]) assert.deepEqual(staging[key], config[key], `${key} is not inherited`);
+  const database = env => env.d1_databases.find(db => db.binding === "DB").database_name;
+  assert.notEqual(database(staging), database(config));
+  assert.deepEqual(staging.routes, [], "staging must not take production's routes");
+});
+
 test("the end-to-end tests' clock is never on in a deployed Worker", () => {
   assert.equal(config.vars.E2E_CLOCK, undefined);
   assert.equal(config.env.staging.vars.E2E_CLOCK, undefined);
