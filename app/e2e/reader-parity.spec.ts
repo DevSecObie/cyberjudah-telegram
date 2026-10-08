@@ -133,6 +133,7 @@ test("daily verses have five days, sharing and images on Home", async ({ page })
 
 test("keyboard palette switches to an existing tab and opens a passage with its range", async ({ page }) => {
   await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1")).toBeVisible();
   await page.keyboard.press("Control+k");
   const input = page.getByRole("combobox", { name: "Find a tab or tool" });
   await input.fill("John"); await input.press("Enter");
