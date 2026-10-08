@@ -18,6 +18,8 @@ function usePlayer() {
   const [pending, setPending] = useState(false), [loadPaused, setLoadPaused] = useState(false);
   const [notice, setNotice] = useState("");
   const [repeat, setRepeat] = useState(false);
+  // The audio controls follow the one shared player across reader mounts and tabs.
+  const [expanded, setExpanded] = useState(false);
   const intent = useRef(new AudioIntent());
   const active = useRef(false), loading = useRef(false);
   const target = useRef<AudioChapter | null>(null);
@@ -110,7 +112,7 @@ function usePlayer() {
   return { speech: { ...speech, playing: pending || speech.playing, paused: pending ? loadPaused : speech.paused,
     loading: pending || speech.loading, notice: notice || speech.notice, stop, toggle,
     play: (from = 1) => { if (selection && !loading.current) { active.current = true; setNotice(""); engine.current.play(from); } } },
-    selection, pending, prepare, start, skip, repeat, setRepeat,
+    selection, pending, prepare, start, skip, repeat, setRepeat, expanded, setExpanded,
     previous: adjacentChapter(books.data ?? [], target.current, -1), next: adjacentChapter(books.data ?? [], target.current, 1) };
 }
 type Player = ReturnType<typeof usePlayer>;

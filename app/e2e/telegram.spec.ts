@@ -494,9 +494,13 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
 });
 
-test("the new-tab search entry opens Search in that tab", async ({ page }) => {
+test("the new-tab finder opens the chosen Search tool", async ({ page }) => {
   await page.goto(`/new${LAUNCH}`);
   await page.getByRole("button", { name: "A passage, a tab, a tool…" }).click();
+  const finder = page.getByRole("dialog", { name: "Find a tab or tool" });
+  await expect(finder).toBeVisible();
+  await finder.getByRole("combobox").fill("Search");
+  await finder.getByRole("option", { name: "Search Open in a new tab", exact: true }).click();
   await expect(page).toHaveURL(/\/search/);
   await expect(page.locator('.tab[aria-label="Search"]')).toHaveAttribute("aria-current", "page");
 });
@@ -524,7 +528,8 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   await expect(home.locator(".today-card")).toContainText("Genesis 1:1");
   await expect(home.locator(".hello, .search-hero, .door__btn--ask")).toHaveCount(0);
   await expect(home.locator(".stats__cell small")).toHaveText(["Highlights", "Bookmarks", "Notes", "Studies", "Precepts", "Tags"]);
-  await expect(home.locator('.stats__cell[href="/plan"] b')).toHaveText("1");
+  // A reading plan is not a personal study.
+  await expect(home.locator('.stats__cell[href="/studies"] b')).toHaveText("0");
   await expect(home.locator('.stats__cell[href="/bookmarks?tab=highlights"] b')).toHaveText("1");
   await expect(home.locator('.stats__cell[href="/bookmarks?tab=notes"] b')).toHaveText("1");
   await expect(home.locator('.stats__cell[href="/relations"] b')).toHaveText("2");
@@ -535,6 +540,13 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   await press(page, "back");
   await expect(image).toHaveCount(0);
   await expect(home).toHaveAttribute("data-open", "");
+  await home.locator('.stats__cell[href="/studies"]').click();
+  await expect(page).toHaveURL(/\/studies$/);
+  await page.getByRole("button", { name: "New study", exact: true }).click();
+  await expect(page.getByLabel("Study title", { exact: true })).toBeVisible();
+  await goInApp(page, "/read/genesis/1");
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect(home.locator('.stats__cell[href="/studies"] b')).toHaveText("1");
   await home.locator('.stats__cell[href="/relations"]').click();
   await expect(page).toHaveURL(/\/relations$/);
   await expect(page.locator(".nt-item")).toHaveCount(2);
@@ -695,7 +707,7 @@ test("reading progress: read chapters in the book picker, the day strip and catc
 
   // The plan: two days behind, a strip of days, a chip to catch up.
   await page.goto(`/plan${LAUNCH}`);
-  await expect(page.locator(".daystrip__day[aria-current]")).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".daystrip__day[aria-current]")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".daystrip__day[data-done]")).toHaveCount(1);
   await expect(page.locator(".catchup")).toHaveText("Catch up · 11 chapters");
   await shot("tracker-plan");

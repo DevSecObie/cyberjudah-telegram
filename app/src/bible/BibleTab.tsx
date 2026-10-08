@@ -153,8 +153,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const say = (m: string) => toast(m, { ms: 2800 });
   const speech = useReaderSpeech(verses, chapterLabel, { slug, chapter: ch });
   const player = useAudioPlayer();
-  const { repeat, setRepeat } = player;
-  const [audioOpen, setAudioOpen] = useState(false);
+  const { repeat, setRepeat, expanded: audioOpen, setExpanded: setAudioOpen } = player;
 
   useBottomButtons(null, null);
   useBackButton(true, () => {
