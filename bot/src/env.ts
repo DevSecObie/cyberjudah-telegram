@@ -18,6 +18,9 @@ export type Env = {
   /** The repository the transcripts are read from (owner/name); DevSecObie/cyberjudah when unset. */
   TRANSCRIPTS_REPO?: string;
   BOT_TOKEN: string;
+  /** Server-only signing credential for the existing Telegram account. */
+  FIREBASE_SERVICE_ACCOUNT?: string;
+  FIREBASE_AUTH_LIMIT?: RateLimit;
   /** Telegram OIDC website login; register the exact HTTPS callback with BotFather. */
   TELEGRAM_LOGIN_CLIENT_ID?: string;
   TELEGRAM_LOGIN_CLIENT_SECRET?: string;
