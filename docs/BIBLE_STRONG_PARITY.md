@@ -1,5 +1,7 @@
 # Bible Strong parity review
 
+Current scope (owner clarification, 8 October 2026): preserve the existing CyberJudah app, every content destination and Apple Liquid Glass; integrate reader and interaction improvements in `app/`. The separate Expo prototype is not the replacement product. See [the current integration scope](LATEST_FORK_INTEGRATION.md). The review below records the earlier baseline; its tables are not a new claim of complete parity with the latest upstream.
+
 Reference: [smontlouis/bible-strong at 8ca8842](https://github.com/smontlouis/bible-strong/tree/8ca884298e109f20762415d4b9d6581d3506e963/apps/expo/src/features), reviewed 2026-10-08.
 CyberJudah baseline: `4434426` (including personal studies, phrase marks, reading plans and native packaging from #200).
 

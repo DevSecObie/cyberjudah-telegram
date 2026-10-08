@@ -2,6 +2,8 @@
 
 Owner direction recorded 8 October 2026. Firestore is the system of record for personal notes and revisions; its SDK owns offline persistence, the write queue and token refresh. Workers validate identity, mint custom tokens and handle edge/API services. No new D1 note tables or note mirrors.
 
+The owner's later scope correction keeps `app/` as the product. This architecture and the published rules remain authorized, but implement the client integration in the existing CyberJudah app. The `strong/` prototype supplies tested reference helpers; it does not replace the existing UI or require adopting its Redux model. References below to prototype promotion describe the earlier work; the current release boundary is a verified migration and storage cutover inside the existing app. See `docs/LATEST_FORK_INTEGRATION.md`.
+
 The owner confirmed publishing `strong/firebase/firestore.rules` at 9:17 AM on 8 October. The September 8 versions remain in console history. **Do not change or deploy different rules without owner approval.**
 
 ## Existing identity trace, before implementation
