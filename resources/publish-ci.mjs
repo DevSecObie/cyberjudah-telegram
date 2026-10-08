@@ -12,10 +12,15 @@ export async function publicationLaunch(env) {
   return signInitData({ user: { id, first_name: "Resource publication" }, auth_date: String(Math.floor(Date.now() / 1000)) }, env.BOT_TOKEN);
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  try {
   const args = process.argv.slice(2), output = args[args.indexOf("--bundle") + 1];
   if (!args.includes("--bundle") || !output) throw new Error("Pass --bundle with the verified artifact directory.");
   const initData = await publicationLaunch(process.env);
   const result = await publishArtifact({ output: path.resolve(output), bucket: "cyberjudah-audio", api: new URL(process.env.WORKER_URL || "https://cyberjudah.io").origin, execute: true, initData,
     upload: async (bucket, key, file) => execFileSync(process.execPath, [fileURLToPath(new URL("../node_modules/wrangler/bin/wrangler.js", import.meta.url)), "r2", "object", "put", `${bucket}/${key}`, "--file", file, "--content-type", file.endsWith(".json") ? "application/json" : "application/x-ndjson", "--remote"], { stdio: ["ignore", "ignore", "inherit"] }) });
   console.log(`::notice::Published ${result.published.resources.length} resource releases at catalog revision ${result.published.revision}.`);
+  } catch (error) {
+    console.error(`::error::${String(error.message).slice(0, 500).replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")}`);
+    process.exitCode = 1;
+  }
 }

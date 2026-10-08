@@ -51,4 +51,8 @@ async function diagnose() {
     await call(`${base}/${tail.id}`, "DELETE").catch(() => annotate("warning", "Staging diagnostic stream cleanup failed; the stream will expire automatically."));
   }
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) diagnose().catch(error => { annotate("error", error.message); process.exitCode = 1; });
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  // A closed diagnostic WebSocket can otherwise keep Node alive after the result and cleanup.
+  const finish = code => process.stdout.write("", () => process.exit(code));
+  diagnose().then(() => finish(0), error => { annotate("error", error.message); finish(1); });
+}

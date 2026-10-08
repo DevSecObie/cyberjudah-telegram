@@ -54,7 +54,7 @@ they do not need a second local copy of the server index.
 
 ## Admin publication — manual only
 
-For an approved deployment, an owner can dispatch **Resource bundles** with **publish**
+For an approved deployment, an owner can dispatch **Resource bundles** from **main** with **publish**
 enabled. The workflow builds and verifies the pinned approved sources, then waits for the
 `production` environment approval before upload. It uses the existing Cloudflare repository
 secrets and signs a fresh catalog request on the server for the first account in `ADMIN_IDS`,
