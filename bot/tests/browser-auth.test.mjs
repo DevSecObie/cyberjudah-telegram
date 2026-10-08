@@ -20,9 +20,11 @@ test("login is unavailable without explicit OIDC configuration", async () => {
   assert.equal((await browserAuth.request(`${origin}/start`, {}, e)).status, 503);
   assert.deepEqual(await (await browserAuth.request(`${origin}/status`, {}, e)).json(), { available: false, user: null });
 });
-test("verified Telegram id, not the opaque subject or a numeric string, identifies the account", () => {
+test("verified Telegram IDs have the same identity as numbers or canonical numeric strings", () => {
   assert.equal(telegramProfile({ sub: "opaque", id: 77, name: "Reader" }).id, 77);
-  for (const id of ["77", -1, 0, Number.MAX_SAFE_INTEGER + 1, undefined]) assert.throws(() => telegramProfile({ id, name: "Reader", sub: "77" }));
+  assert.deepEqual(telegramProfile({ sub: "opaque", id: "77", given_name: "Reader" }), { id: 77, first_name: "Reader" });
+  for (const id of ["077", "77.0", "7e1", " 77", "-77", -1, 0, Number.MAX_SAFE_INTEGER + 1, String(Number.MAX_SAFE_INTEGER + 1), undefined]) assert.throws(() => telegramProfile({ id, name: "Reader", sub: "77" }));
+  assert.throws(() => telegramProfile({ id: "77" }), { code: "profile-name" });
 });
 test("OIDC state, PKCE, signed claims, nonce, cookies, CSRF and revocation protect browser sessions", async () => {
   const e = env(), { privateKey, publicKey } = await generateKeyPair("RS256");
@@ -39,7 +41,7 @@ test("OIDC state, PKCE, signed claims, nonce, cookies, CSRF and revocation prote
     if (target.endsWith("jwks.json")) return Response.json({ keys: [jwk] });
     if (target.endsWith("/token")) {
       exchanges++; assert.equal(new URLSearchParams(init.body).get("code_verifier"), pending.verifier);
-      const token = await new SignJWT({ id: 77, name: "Reader", nonce }).setProtectedHeader({ alg: "RS256", kid: "test-key" }).setIssuer(tokenIssuer).setAudience(audience).setSubject("opaque-subject").setIssuedAt().setExpirationTime(expiration).sign(signingKey);
+      const token = await new SignJWT({ id: "77", given_name: "Reader", nonce }).setProtectedHeader({ alg: "RS256", kid: "test-key" }).setIssuer(tokenIssuer).setAudience(audience).setSubject("opaque-subject").setIssuedAt().setExpirationTime(expiration).sign(signingKey);
       return Response.json({ id_token: token });
     }
     throw new Error(`Unexpected network request: ${target}`);

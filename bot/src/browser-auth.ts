@@ -20,8 +20,11 @@ async function schema(env: Env) {
 
 /** OIDC's opaque sub is NOT the Telegram numeric user id. Only the verified profile id is used. */
 export function telegramProfile(claims: JWTPayload): TelegramUser {
-  if (!Number.isSafeInteger(claims.id) || Number(claims.id) <= 0 || typeof claims.name !== "string") throw new Error("Telegram profile unavailable");
-  return { id: Number(claims.id), first_name: claims.name.slice(0, 120), ...(typeof claims.preferred_username === "string" ? { username: claims.preferred_username.slice(0, 64) } : {}) };
+  const id = typeof claims.id === "string" && /^[1-9][0-9]{0,15}$/.test(claims.id) ? Number(claims.id) : claims.id;
+  const name = typeof claims.name === "string" ? claims.name : claims.given_name;
+  if (!Number.isSafeInteger(id) || Number(id) <= 0) throw Object.assign(new Error("Telegram profile unavailable"), { code: claims.id == null ? "profile-id-missing" : "profile-id-invalid" });
+  if (typeof name !== "string") throw Object.assign(new Error("Telegram profile unavailable"), { code: "profile-name" });
+  return { id: Number(id), first_name: name.slice(0, 120), ...(typeof claims.preferred_username === "string" ? { username: claims.preferred_username.slice(0, 64) } : {}) };
 }
 
 export async function browserSession(request: Request, env: Env): Promise<InitData | null> {
@@ -92,6 +95,8 @@ browserAuth.get("/callback", async c => {
     // Only bounded stage/claim names leave the server, never codes, tokens or error messages.
     const claim = (error as { claim?: unknown })?.claim;
     if (failure === "claims" && typeof claim === "string" && ["iss", "aud", "exp", "iat", "sub", "nonce"].includes(claim)) failure += `-${claim}`;
+    const code = (error as { code?: unknown })?.code;
+    if (failure === "profile" && typeof code === "string" && ["profile-id-missing", "profile-id-invalid", "profile-name"].includes(code)) failure = code;
     loginEvent(failure);
     return c.redirect(`/app/settings/account?login=failed&reason=${failure}`);
   }

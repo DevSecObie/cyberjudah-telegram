@@ -15,7 +15,7 @@ const annotate = (level, message) => console.log(`::${level}::${String(message).
 
 /** Read only fixed login outcomes; discard request URLs, cookies, claims and arbitrary text. */
 export function loginResults(event) {
-  const allowed = new Set(["started", "completed", "cookie", "state", "exchange", "token", "claims", "nonce", "profile", "storage", ...["iss", "aud", "exp", "iat", "sub", "nonce"].map(c => `claims-${c}`)]);
+  const allowed = new Set(["started", "completed", "cookie", "state", "exchange", "token", "claims", "nonce", "profile", "profile-id-missing", "profile-id-invalid", "profile-name", "storage", ...["iss", "aud", "exp", "iat", "sub", "nonce"].map(c => `claims-${c}`)]);
   return (event.logs ?? []).flatMap(log => (log.message ?? []).flatMap(message => {
     try { const row = JSON.parse(message); return row.event === "browser_login" && allowed.has(row.result) ? [row.result] : []; }
     catch { return []; }
