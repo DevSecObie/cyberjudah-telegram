@@ -5,7 +5,7 @@ import { useResourceSync } from "@/resources/hooks";
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router";
 
-import { launchPath } from "@shared/links.mjs";
+import { initialLaunchPath } from "@/tg/launch.mjs";
 import { isTabPath, recordPath } from "@/lib/tabs";
 import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
@@ -94,14 +94,15 @@ export function App() {
   const navigate = useNavigate();
   useSettingsButton();
 
-  // A launch with a start param (a shared verse, a class) lands on that screen, once.
+  // Consume the launch once per app mount, not once per webview session. Telegram may
+  // reuse that session for another shared link. Explicit routes survive refreshes.
+  const launchHandled = useRef(false);
   useEffect(() => {
-    if (!startParam) return;
-    try { if (sessionStorage.getItem("launched")) return; sessionStorage.setItem("launched", "1"); } catch { /* ignore */ }
-    const to = launchPath(startParam);
-    if (to !== "/") navigate(to, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (launchHandled.current) return;
+    launchHandled.current = true;
+    const to = initialLaunchPath(location.pathname, startParam);
+    if (to) navigate(to, { replace: true });
+  }, [location.pathname, navigate]);
 
   // The tab bar stays on every screen, as in an iOS app, except the player, which takes the screen.
   // The tab bar stays through a class note or a recording: a reader who came from a verse is still in the app.
