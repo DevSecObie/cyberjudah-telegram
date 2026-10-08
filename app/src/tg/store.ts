@@ -23,6 +23,7 @@ export function connectPersonalStore(start: Promise<PersonalStore | null>) {
   // A failed sign-in leaves source data readable, but never silently writes to old keys.
   void personal.catch(() => {});
 }
+export const personalStore = () => personal;
 export const receivePersonalValue = (key: string, value: string) => emit(key, value);
 
 function local(): globalThis.Storage | null { try { return window.localStorage; } catch { return null; } }
@@ -132,22 +133,6 @@ export const secure = {
     return new Promise((resolve) => { if (!features.secureStorage) return resolve(null); app!.SecureStorage.getItem(key, (err, v) => resolve(err ? null : v ?? null)); });
   },
   set(key: string, value: string | null) {
-    if (readerCollection(key) && opening) {
-      const baseline = cache.get(key) ?? null;
-      void personal.then(synced => synced ? synced.set(key, value, baseline) : store.set(key, value))
-        .catch(() => window.dispatchEvent(new CustomEvent("cj:sync-error", { detail: "This change could not sync. Your original saved marks are unchanged." })));
-      return;
-    }
-    if (readerCollection(key) && failed) {
-      window.dispatchEvent(new CustomEvent("cj:sync-error", { detail: "Account sync is unavailable. Reopen the app before editing this mark." }));
-      return;
-    }
-    if (readerCollection(key) && account) {
-      const baseline = cache.get(key) ?? account.get(key);
-      // Emit only after the snapshot is ready; hydration cannot replace a just-saved edit.
-      void account.set(key, value, baseline).catch(() => window.dispatchEvent(new CustomEvent("cj:sync-error", { detail: "This change could not sync. Keep this page open and try again when connected." })));
-      return;
-    }
     if (!features.secureStorage) return;
     if (value === null) app!.SecureStorage.removeItem(key); else app!.SecureStorage.setItem(key, value);
   },

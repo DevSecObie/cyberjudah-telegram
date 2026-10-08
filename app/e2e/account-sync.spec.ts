@@ -8,8 +8,8 @@ import { keyedHash, pid, seal } from "../../bot/src/privacy.mjs";
 const MOCK = fs.readFileSync(new URL("./telegram-mock.js", import.meta.url), "utf8");
 const token = process.env.BOT_TOKEN!;
 const old = JSON.stringify({ 2: { color: "color1", date: 123 } });
-function signed(id: number) {
-  const values: Record<string, string> = { user: JSON.stringify({ id, first_name: "Sync reader" }), auth_date: String(Math.floor(Date.now() / 1000)) };
+function signed(id: number, age = 0) {
+  const values: Record<string, string> = { user: JSON.stringify({ id, first_name: "Sync reader" }), auth_date: String(Math.floor(Date.now() / 1000) - age) };
   const secret = crypto.createHmac("sha256", "WebAppData").update(token).digest();
   const hash = crypto.createHmac("sha256", secret).update(Object.keys(values).sort().map(k => `${k}=${values[k]}`).join("\n")).digest("hex");
   return new URLSearchParams({ ...values, hash }).toString();
@@ -91,6 +91,27 @@ test("phone, computer and web share highlights while original marks remain intac
     const saved = await request.get(`http://127.0.0.1:8089/v1/projects/demo-cyberjudah/databases/(default)/documents/users/tg_${id}/highlights`, { headers: { authorization: "Bearer owner" } });
     const revisions = (await saved.json()).documents.filter((d: any) => d.fields.history?.booleanValue).map((d: any) => d.fields.snapshot.mapValue.fields.value?.mapValue?.fields.color?.stringValue);
     expect(revisions).toEqual(expect.arrayContaining(["color2", "color5"]));
+    await a.goto(`${origin}/studies${launch}`);
+    await a.getByRole("button", { name: "New study", exact: true }).click();
+    await a.getByLabel("Study title", { exact: true }).fill("Synced personal study");
+    await a.getByRole("textbox", { name: "Writing 1", exact: true }).fill("Words kept across devices.");
+    await expect(a.getByRole("status").filter({ hasText: "Saved on this device" })).toBeVisible();
+    const studyUrl = a.url().split("#")[0];
+    await b.goto(`${studyUrl}${launch}`); await c.goto(studyUrl);
+    for (const page of [b, c]) {
+      await expect(page.getByLabel("Study title", { exact: true })).toHaveValue("Synced personal study");
+      await expect(page.getByRole("textbox", { name: "Writing 1", exact: true })).toHaveValue("Words kept across devices.");
+    }
+    expect(await a.evaluate(() => localStorage.getItem("cj:bs_h_genesis_1"))).toBe(old);
+    expect(mints).toBe(1);
+    // Expired launch data must not silently switch a signed-in reader back to old-key writes.
+    await a.goto(`${origin}/read/genesis/1#tgWebAppData=${encodeURIComponent(signed(id, 172800))}&tgWebAppVersion=9.1&tgWebAppPlatform=ios`);
+    await expect(a.getByRole("alert")).toContainText("Sign-in expired");
+    await a.getByRole("alert").getByRole("button", { name: "Dismiss" }).click();
+    await mark(a, 1, 3);
+    await expect(a.getByRole("alert")).toContainText("Account sync is unavailable");
+    expect(await a.evaluate(() => localStorage.getItem("cj:bs_h_genesis_1"))).toBe(old);
+    expect(await a.evaluate(() => (window as unknown as { __tg: { cloud: Record<string, string> } }).__tg.cloud.bs_h_genesis_1)).toBe(old);
 
   } finally { await phone.close(); await computer.close(); await web.close(); }
 });

@@ -9,7 +9,7 @@ export async function connectReader(db: Firestore, uid: string, changed: (key: s
   let closed = false;
   const entries = (key: string) => Object.fromEntries([...rows.values()].filter(r => r.key === key && r.value !== null).map(r => [r.entry, r.value]));
   try {
-    await Promise.all(["highlights", "notes", "links", "bookmarks", "tags", "relations"].map(name => new Promise<void>((resolve, reject) => {
+    await Promise.all(["highlights", "notes", "links", "bookmarks", "tags", "relations", "studies", "wordAnnotations"].map(name => new Promise<void>((resolve, reject) => {
       stops.push(onSnapshot(collection(db, "users", uid, name), { includeMetadataChanges: true }, snapshot => {
         if (closed) return;
         const keys = new Set<string>();
@@ -50,9 +50,10 @@ export async function connectReader(db: Firestore, uid: string, changed: (key: s
         const ref = doc(db, "users", uid, name, id);
         // Keep both versions, including simultaneous and offline edits. Deletions are tombstones,
         // so an older device import cannot bring a removed mark back.
-        batch.set(ref, next, { merge: true });
-        const history = name === "notes" ? doc(ref, "revisions", revision) : doc(db, "users", uid, name, `revision-${revision}`);
-        batch.set(history, { history: true, snapshot: next, before: previous ?? null, user: { id: uid } });
+        batch.set(ref, { ...next, ...(name === "studies" ? { user: { id: uid } } : {}) }, { merge: true });
+        const history = (name === "notes" || name === "studies") ? doc(ref, "revisions", revision) : doc(db, "users", uid, name, `revision-${revision}`);
+        // Notes and studies already keep the previous revision separately; do not double a large document.
+        batch.set(history, { history: true, snapshot: next, before: name === "notes" || name === "studies" ? previous?.revision ?? null : previous ?? null, user: { id: uid } });
         staged.push([identity, next]);
       }
       if (closed) throw new Error("Account changed. No changes were sent.");

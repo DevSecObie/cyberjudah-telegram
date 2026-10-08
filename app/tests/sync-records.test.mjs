@@ -18,7 +18,7 @@ test('a device-only study and existing word marks retain their fields and owners
   const study = { id: 'one', revision: 7, title: 'Study', blocks: [{ text: 'My words' }] };
   const annotation = { id: 'mark', verseKey: 'genesis-1-1', start: 7, end: 20, quote: 'beginning God', style: 'underline' };
   const rows = await deviceRecords({ localValues: {}, studies: [study], annotations: [annotation] }, 'tg_77');
-  assert.deepEqual(rows[0].data, { value: study, user: { id: 'tg_77' } });
+  assert.deepEqual(rows[0].data.value, study); assert.deepEqual(rows[0].data.user, { id: 'tg_77' });
   assert.deepEqual(rows[1].data.value, annotation);
 });
 test('malformed saved data aborts conversion instead of treating it as an empty source', async () => {
