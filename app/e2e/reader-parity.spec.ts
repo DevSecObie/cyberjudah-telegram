@@ -145,6 +145,12 @@ test("keyboard palette switches to an existing tab and opens a passage with its 
   await page.keyboard.press("Control+k"); await input.fill("study");
   await expect(page.getByRole("option", { name: /My studies/ })).toBeVisible();
   await input.press("Enter"); await expect(page).toHaveURL(/\/studies$/);
+  await page.keyboard.press("Control+k");
+  await input.fill("Bible"); await input.press("Tab");
+  const dialog = page.getByRole("dialog", { name: "Find a tab or tool" });
+  await expect(dialog.getByRole("button", { name: "Close", exact: true })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(dialog).toBeHidden(); await expect(page).toHaveURL(/\/studies$/);
 });
 
 test("plan completion can be corrected by keyboard and its read action stays inside the app", async ({ page }) => {

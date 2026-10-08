@@ -63,11 +63,12 @@ export function WorkspaceCommands() {
       const key = e.key.toLowerCase();
       const cycle = key === "q" && !e.metaKey && (mac ? e.ctrlKey && !e.altKey : e.altKey && !e.ctrlKey);
       if (mode) {
-        if (e.key === "ArrowDown" || e.key === "ArrowUp" || cycle && mode === "recent") {
+        const inChoices = e.target instanceof HTMLElement && !!e.target.closest('[role="combobox"], [role="listbox"]');
+        if (inChoices && (e.key === "ArrowDown" || e.key === "ArrowUp") || cycle && mode === "recent") {
           e.preventDefault();
           const step = e.key === "ArrowUp" || cycle && e.shiftKey ? -1 : 1;
           setIndex(n => choices.length ? (n + step + choices.length) % choices.length : 0);
-        } else if (e.key === "Enter") { e.preventDefault(); choose(choices[selected]); }
+        } else if (e.key === "Enter" && inChoices) { e.preventDefault(); choose(choices[selected]); }
         return;
       }
       if (e.defaultPrevented || e.repeat || editing(e.target) || [...document.querySelectorAll('[data-sheet-open], [role="dialog"], [role="menu"]')].some(el => el.getAttribute("aria-modal") !== "false" && !el.closest('[inert], [aria-hidden="true"]'))) return;
