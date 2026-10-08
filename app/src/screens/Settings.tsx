@@ -2,8 +2,9 @@ import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 
-import { data } from "@/api/data";
+import { data, type Book } from "@/api/data";
 import { offlineSupported, removeBook, saveBook, saveNarration, savedBooks } from "@/lib/offline";
+import { narrationHint, narrationStatus, removeNarration, type NarrationStatus } from "@/lib/narration";
 import { recordingJson, type RecordingCredit } from "@/lib/recordings";
 import { useBackButton, useStored, useTheme } from "@/tg/hooks";
 import { alert, api, app, confirm, features, haptic, platform, requestWriteAccess, setFullscreen, lockPortrait } from "@/tg/sdk";
@@ -17,7 +18,7 @@ import type { Font, Spacing } from "@/ui/theme";
 import { DARK_THEMES, LIGHT_THEMES } from "@/bible/theme";
 
 /** A setting's current value, iOS style: quiet text before the chevron. */
-function Value({ children }: { children: string }) {
+export function Value({ children }: { children: string }) {
   return <span className="row__value">{children}<Icon name="chevron" size={16} /></span>;
 }
 
@@ -47,7 +48,15 @@ export function Settings() {
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const [saved, setSaved] = useState<string[]>([]);
   const [saving, setSaving] = useState<{ slug: string; pct: number } | null>(null);
+  const [narration, setNarration] = useState<Record<string, NarrationStatus>>({});
   useEffect(() => { void api<{ subscribed: boolean; user: { id: number }; admin?: boolean; canEdit?: boolean }>("/api/me").then((m) => { setDaily(m.subscribed); setMe(m); }).catch(() => setDaily(false)); void secure.get("lock").then((v) => setLock(v === "on")); void savedBooks().then(setSaved); }, []);
+  const refreshNarration = async (slug: string) => {
+    const b = books.data?.find((x) => x.slug === slug);
+    if (!b) return;
+    const status = await narrationStatus(b);
+    setNarration((prev) => ({ ...prev, [slug]: status }));
+  };
+  useEffect(() => { if (!books.data) return; saved.forEach((s) => void refreshNarration(s)); }, [saved, books.data]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!fsLoaded) return; setFullscreen(fullscreen); try { localStorage.setItem("cj:fullscreen", fullscreen ? "on" : "off"); } catch { /* private mode */ } }, [fullscreen, fsLoaded]);
   useEffect(() => { lockPortrait(portrait); }, [portrait]);
 
@@ -65,6 +74,21 @@ export function Settings() {
     const finish = () => { if (!bm.isBiometricAvailable) { void alert("This device has no biometrics set up."); return; } bm.requestAccess({ reason: "Lock CyberJudah with your fingerprint or face" }, (ok) => { if (!ok) return; secure.set("lock", on ? "on" : null); setLock(on); haptic("success"); }); };
     if (bm.isInited) finish(); else bm.init(finish);
   };
+  /** Narration bytes for one book from the recordings catalog; a plain explanation when the catalog itself can't be read. */
+  const narrationBytes = async (slug: string): Promise<{ bytes: number | null; failed: boolean }> => {
+    try {
+      const catalog = await recordingJson<{ chapters: RecordingCredit[] }>("/api/recordings/catalog");
+      const bytes = catalog.chapters.filter((r) => r.slug === slug).reduce((sum, r) => sum + r.bytes, 0);
+      return { bytes, failed: false };
+    } catch { return { bytes: null, failed: true }; }
+  };
+  const downloadNarration = async (b: Book) => {
+    setSaving({ slug: b.slug, pct: 0 });
+    const complete = await saveNarration(b, (d, t) => setSaving({ slug: b.slug, pct: Math.round(d / t * 100) }));
+    setSaving(null); haptic(complete ? "success" : "error");
+    if (!complete) void alert("Some narration could not be downloaded. The saved text is unaffected; retry while connected to finish it.");
+    await refreshNarration(b.slug);
+  };
   const offline = async () => {
     const list = books.data ?? [];
     const a = await sheet.open({ title: "Save a book for offline reading", items: list.filter((b) => !saved.includes(b.slug)).map((b) => ({ id: b.slug, text: b.book, hint: `${b.chapters} chapters` })) });
@@ -74,22 +98,33 @@ export function Settings() {
     const complete = await saveBook(b, (d, t) => setSaving({ slug: b.slug, pct: Math.round((d / t) * 100) }));
     setSaving(null); setSaved(await savedBooks()); haptic(complete ? "success" : "error");
     if (!complete) { void alert("The book download is incomplete. Please retry while connected to save all text."); return; }
-    try {
-      const catalog = await recordingJson<{ chapters: RecordingCredit[] }>("/api/recordings/catalog");
-      const bytes = catalog.chapters.filter((r) => r.slug === b.slug).reduce((sum, r) => sum + r.bytes, 0);
-      if (bytes > 0 && Number.isFinite(bytes) && await confirm(`Text saved. Also save narration (≈ ${(bytes / 1_000_000).toFixed(1)} MB)?`)) {
-        setSaving({ slug: b.slug, pct: 0 });
-        const audioComplete = await saveNarration(b, (d, t) => setSaving({ slug: b.slug, pct: Math.round(d / t * 100) }));
-        if (!audioComplete) void alert("Text is saved. Some narration could not be downloaded; please retry while connected.");
-      }
-    } catch { /* Text is complete even if the optional audio catalog is unavailable. */ }
-    finally { setSaving(null); }
+    const { bytes, failed } = await narrationBytes(b.slug);
+    if (failed) { void alert(`Text saved. ${narrationHint(null, true)}`); return; }
+    if (bytes && bytes > 0 && await confirm(`Text saved. Also save narration (${narrationHint(bytes, false)})?`)) await downloadNarration(b);
+    else await refreshNarration(b.slug);
   };
-  const forget = async (slug: string) => { const b = books.data?.find((x) => x.slug === slug); if (b) { await removeBook(b); setSaved(await savedBooks()); } };
+  /** Text removal and narration removal are separate actions (CYB-123): neither requires the other. */
+  const manageNarration = async (slug: string) => {
+    const b = books.data?.find((x) => x.slug === slug);
+    if (!b) return;
+    const status = narration[slug] ?? "none";
+    const { bytes, failed } = status === "complete" ? { bytes: null, failed: false } : await narrationBytes(slug);
+    const items = [
+      ...(status !== "complete" ? [{ id: "download", text: status === "partial" ? "Finish downloading narration" : "Download narration", hint: narrationHint(bytes, failed) }] : []),
+      ...(status !== "none" ? [{ id: "remove-narration", text: "Remove narration only", destructive: true }] : []),
+      { id: "remove-book", text: "Remove text and narration", destructive: true },
+    ];
+    const a = await sheet.open({ title: b.book, items });
+    if (!a) return;
+    if (a.id === "download") await downloadNarration(b);
+    else if (a.id === "remove-narration") { await removeNarration(b); await refreshNarration(b.slug); haptic("success"); }
+    else if (a.id === "remove-book") { await removeBook(b); setSaved(await savedBooks()); setNarration((prev) => { const next = { ...prev }; delete next[slug]; return next; }); haptic("success"); }
+  };
 
   return (
     <Screen title="Settings">
       <Section title="Study library"><List><Row title="Study resources" sub="Install, remove or roll back offline resources" onClick={() => navigate("/resources")} /></List></Section>
+      <Section title="Listening"><List><Row title="Audio settings" sub="Voice, speed, pitch and ambient sound" onClick={() => navigate("/settings/audio")} /></List></Section>
       <Section title="Reading">
         <Segmented label="Theme" value={bible.preferredColorScheme} onChange={(v) => setBible({ preferredColorScheme: v })} options={[["auto", "Automatic"], ["light", "Day"], ["dark", "Night"]]} />
         <List>
@@ -109,7 +144,16 @@ export function Settings() {
       {offlineSupported ? (
         <Section title="Offline Books" action={<button type="button" className="link" disabled={books.isPending || !!saving} onClick={() => void offline()}>Save a book</button>}>
           {saving ? <div className="progress"><i style={{ width: `${saving.pct}%` }} /></div> : null}
-          {saved.length ? <List>{saved.map((s) => <Row key={s} onClick={() => void forget(s)} title={books.data?.find((b) => b.slug === s)?.book ?? s} sub="Saved on this device · tap to remove" trailing={<span className="pill pill--ok">offline</span>} />)}</List> : <p className="hint">Save the text to read without a connection. Available narration is an optional extra download.</p>}
+          {saved.length ? <List>{saved.map((s) => {
+            const status = narration[s];
+            const narrationLabel = status === "complete" ? "narration saved" : status === "partial" ? "narration partial" : "narration not saved";
+            return <Row key={s} onClick={() => void manageNarration(s)} title={books.data?.find((b) => b.slug === s)?.book ?? s} sub={`Text saved on this device · ${narrationLabel} · tap to manage`} trailing={
+              <span style={{ display: "flex", gap: 6 }}>
+                <span className="pill pill--ok">text</span>
+                <span className={`pill ${status === "complete" ? "pill--ok" : ""}`}>{status === "complete" ? "narration" : status === "partial" ? "partial" : "no narration"}</span>
+              </span>
+            } />;
+          })}</List> : <p className="hint">Save the text to read without a connection. Available narration is an optional extra download.</p>}
         </Section>
       ) : null}
       <Section title="Reading Reminders">

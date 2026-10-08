@@ -53,15 +53,19 @@ export async function saveNarration(book: Book, onProgress?: (done: number, tota
     } catch { complete = false; }
   }
   let done = 0;
+  const succeeded = new Set<string>();
   // Full files are cached as blobs; offline playback seeks locally without Range fetches.
+  // A retry after a partial failure only fetches what's still missing: already-cached chapters are not re-downloaded.
   for (const url of media) {
-    try { const r = await fetch(url); if (!r.ok) complete = false; else await cache.put(url, r); }
+    if (await cache.match(url)) { succeeded.add(url); onProgress?.(++done, media.size); continue; }
+    try { const r = await fetch(url); if (!r.ok) complete = false; else { await cache.put(url, r); succeeded.add(url); } }
     catch { complete = false; }
     onProgress?.(++done, media.size);
   }
   const previous = await cache.match(`${location.origin}/__offline/audio/${book.slug}`);
   const retained = previous ? await previous.json() as string[] : [];
-  await cache.put(`${location.origin}/__offline/audio/${book.slug}`, new Response(JSON.stringify([...new Set([...retained, ...media])])));
+  // Only files actually cached go on the ledger: it drives deletion, and must never claim a file is saved when it isn't.
+  await cache.put(`${location.origin}/__offline/audio/${book.slug}`, new Response(JSON.stringify([...new Set([...retained, ...succeeded])])));
   return complete;
 }
 
