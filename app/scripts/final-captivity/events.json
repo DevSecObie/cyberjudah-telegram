@@ -4625,6 +4625,44 @@
   "status": "published"
  },
  {
+  "slug": "barbados-sugar-slave-code-1661",
+  "title": "The sugar revolution and Barbados's 1661 slave code",
+  "start": 1640,
+  "end": 1661,
+  "date": {
+   "text": "c.1640–1661",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Slavery",
+  "place": "Barbados",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [],
+  "summary": "Barbados's planters switched from tobacco and indentured European labour to sugar in the 1640s, and the enslaved African population tripled; in 1661 the island's parliament passed \"An Act for the better ordering and governing of Negroes,\" the first comprehensive slave code in English America, which classed enslaved people as chattel property and became the model for later codes elsewhere.",
+  "account": [
+   "Barbadian planters took up sugar cultivation in the 1640s, replacing tobacco and indentured European workers with enslaved Africans; the enslaved population on the island tripled over the decade as the sugar plantations grew.",
+   "In 1661 the Parliament of Barbados passed \"An Act for the better ordering and governing of Negroes,\" the first comprehensive slave code in English America. Its preamble classed enslaved people as \"chattel property,\" required masters to provide only one set of clothing a year with no standard for diet or housing, and let an owner mutilate or burn a slave alive without legal consequence; an enslaved person who struck a white person could be whipped, have the nose slit and the face branded, and be put to death for a second offence.",
+   "Historian Russell Menard writes that because Barbados was the first English colony to write a comprehensive slave code, its code was especially influential: Jamaica, South Carolina (1696), Antigua and other colonies adopted or modelled their own slave codes on it, and its influence is traceable even where Virginia's and Maryland's codes were not exact copies."
+  ],
+  "sources": [
+   {
+    "title": "Barbados Slave Code",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Barbados_Slave_Code",
+    "accessed": "2026-10-06",
+    "supports": "the 1640s shift to sugar and African slavery; the 1661 act's title and provisions; its influence on Jamaica, Carolina, Antigua and others"
+   }
+  ],
+  "uncertainty": "The exact year the enslaved population began to triple is given only as \"since 1640\" in the source; start is set at 1640 and end at the 1661 act.",
+  "status": "published"
+ },
+ {
   "slug": "virginia-condition-of-the-mother-1662",
   "title": "Virginia makes bondage follow the mother",
   "start": 1662,
@@ -5282,6 +5320,67 @@
   ]
  },
  {
+  "slug": "prince-klaas-antigua-conspiracy-1736",
+  "title": "The Antigua slave conspiracy and the execution of Prince Klaas",
+  "start": 1736,
+  "end": 1736,
+  "date": {
+   "text": "October–November 1736",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Resistance",
+  "place": "Antigua",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Prince Klaas"
+  ],
+  "summary": "In October 1736 Antigua's governor announced he had uncovered a plot by Prince Klaas (Court), an enslaved man said to have been a king in the Gold Coast, to blow up a ball honouring King George II and touch off a general uprising; the colony executed 88 enslaved and free Black people, including Klaas, by burning, breaking on the wheel or gibbeting.",
+  "account": [
+   "In 1736 Antigua's authorities said they had discovered a conspiracy led by an enslaved man called Prince Klaas (recorded as \"Court\" and also called Tackey), said to have been born around 1690 in what is now Ghana and brought to Antigua around 1701. The plan, as the governor described it, was to smuggle a ten-gallon barrel of gunpowder into a building and detonate it during a ball honouring King George II in late October 1736, killing the Europeans gathered there and signalling enslaved people on the surrounding plantations to rise and kill the white population, with the aim of establishing an African-governed state.",
+   "On the report of an enslaved informer, Klaas and 132 others were tried. Eighty-eight were executed: 77, including Klaas, were broken on the wheel or burned at the stake, and 6 were gibbeted (left to die in a metal cage); other accounts give 6 hanged and starved and 58 burned at the stake. Klaas was about 45 when he was executed in early November 1736. Some historians have questioned whether the colony's magistrates, in a state of panic, exaggerated or invented the scale of the plot."
+  ],
+  "sources": [
+   {
+    "title": "Prince Klaas",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Prince_Klaas",
+    "accessed": "2026-10-06",
+    "supports": "the 1736 date, the plan to bomb the king's-birthday ball, the informer, the trial of 132 people and the execution figures and methods"
+   },
+   {
+    "title": "Antigua's Disputed Slave Conspiracy of 1736",
+    "publisher": "Smithsonian Magazine",
+    "url": "https://www.smithsonianmag.com/history/antiguas-disputed-slave-conspiracy-of-1736-117569/",
+    "accessed": "2026-10-06",
+    "supports": "the historians' dispute over whether the conspiracy's scale was real or exaggerated by panicked magistrates"
+   }
+  ],
+  "disagreements": [
+   {
+    "point": "The exact execution count and method",
+    "views": [
+     "Wikipedia's \"Prince Klaas\" article: 88 executed, of whom 77 (including Klaas) were broken on the wheel or burned, and 6 were gibbeted.",
+     "The same article elsewhere states the authorities \"hung and starved six Africans and burnt another 58 at the stake\" — a different breakdown of the same roughly 88 total."
+    ]
+   },
+   {
+    "point": "Whether the conspiracy was real or invented",
+    "views": [
+     "Most historians accept the colonial court's finding that a real plot existed.",
+     "Some historians, per Smithsonian Magazine, think Antigua's \"panicky British rulers\" exaggerated or invented the danger."
+    ]
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "stono-rebellion-1739",
   "title": "The Stono Rebellion",
   "start": 1739,
@@ -5376,6 +5475,79 @@
    }
   ],
   "uncertainty": "The missions lie in what is now Rio Grande do Sul, Brazil; the people were the Guaraní of the Paraguay–Uruguay river missions, which this batch places with Asher (see gaps).",
+  "status": "published"
+ },
+ {
+  "slug": "tackys-revolt-jamaica-1760",
+  "title": "Tacky's Revolt in Jamaica",
+  "start": 1760,
+  "end": 1761,
+  "date": {
+   "text": "7 April 1760 – late 1761",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Resistance",
+  "place": "St. Mary and Westmoreland parishes, Jamaica",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Tacky",
+   "Apongo",
+   "Cubah",
+   "Davy"
+  ],
+  "summary": "On Easter Monday, 7 April 1760, an enslaved Fante leader named Tacky led an uprising in Jamaica that seized plantations and a fort before being put down over many months; a second rising broke out in the west under Apongo in May, and scattered guerrilla resistance continued into 1761.",
+  "account": [
+   "On 7 April 1760, Tacky, a Fante royal from present-day Ghana enslaved on a Jamaican plantation, led an uprising that captured the Frontier and Trinity plantations and took nearly four barrels of gunpowder and 40 firearms from Fort Haldane. In May a second rising broke out in Westmoreland led by Apongo. British forces, helped by Jamaican Maroons bound by treaty to suppress revolts, hunted down the rebels; a Maroon marksman named Davy shot Tacky dead, and his head was displayed on a pole in Spanish Town.",
+   "About 60 white colonists and 60 free Black people were killed in the uprising; more than 1,100 rebels were killed and over 500 were captured and resold into slavery elsewhere. The revolt fragmented into guerrilla raids from the Cockpit Country that continued through 1761. The colonial assembly passed harsher slave laws afterward and banned the practice of Obeah."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Tacky was a Fante king from the Gold Coast (modern Ghana) before he was enslaved on a Jamaican plantation; in 1759, after years of suffering there, he and allies named Yaw, Sobadu and Quao planned a rebellion in a hidden cave, with the support of Queen Nanny, also of Ghanaian descent.",
+     "The class applies Deuteronomy 28:36 to Tacky as an African king brought into servitude: he is presented as one of the kings \"the LORD shall bring\" into a nation he never knew, there to serve other gods."
+    ],
+    "quote": "Tacky's plan was to defeat the British and all slave masters and create a Jamaica as a separate and independent Black colony.",
+    "source": {
+     "kind": "class",
+     "id": "qSwHJH5wY58",
+     "title": "#IUIC | ##Deuteronomy28Project | Deuteronomy 28:36 | Southern Kingdom Edition",
+     "date": "",
+     "ts": "0:09",
+     "url": "https://youtu.be/qSwHJH5wY58?t=9"
+    }
+   }
+  ],
+  "scriptures": [
+   {
+    "ref": "Deuteronomy 28:36",
+    "why": "the class reads this verse over Tacky's story as an African king brought into a nation he never knew, there to serve other gods"
+   }
+  ],
+  "sources": [
+   {
+    "title": "Tacky's War",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Tacky%27s_War",
+    "accessed": "2026-10-06",
+    "supports": "the date (7 April 1760), Tacky's capture of Frontier and Trinity and Fort Haldane, Apongo's rising, Davy killing Tacky, and the casualty figures"
+   }
+  ],
+  "disagreements": [
+   {
+    "point": "How Tacky died",
+    "views": [
+     "Wikipedia: Tacky was shot and killed by the Maroon marksman Davy during the British counter-insurgency, and his head was displayed on a pole in Spanish Town.",
+     "The class (Deuteronomy28Project video): \"he failed. he was captured and hung and burnt alive.\""
+    ]
+   }
+  ],
   "status": "published"
  },
  {
@@ -5729,6 +5901,43 @@
   "status": "published"
  },
  {
+  "slug": "great-hurricane-of-1780",
+  "title": "The Great Hurricane of 1780",
+  "start": 1780,
+  "end": 1780,
+  "date": {
+   "text": "9–18 October 1780",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Other atrocities",
+  "place": "Barbados, St. Lucia, Martinique, St. Vincent, St. Eustatius and Dominica",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [],
+  "summary": "The Great Hurricane of 9–18 October 1780 tore through the Lesser Antilles with winds estimated near 200 mph, killing about 22,000 people across Barbados, St. Lucia, Martinique and other islands, making it the deadliest hurricane recorded in the Atlantic; enslaved plantation labourers, housed in the flimsiest buildings and given no warning, made up the great majority of the dead.",
+  "account": [
+   "The Great Hurricane struck the Lesser Antilles from 9 to 18 October 1780, reaching Barbados on 10 October with gusts estimated at 200 mph, then moving through St. Vincent, St. Lucia, Martinique, St. Eustatius, Dominica and on to Puerto Rico and Bermuda.",
+   "The storm killed roughly 22,000 people in total, the highest death toll of any Atlantic hurricane on record: about 4,300 in Barbados, 6,000 in St. Lucia, 9,000 in Martinique and 4,000–5,000 on St. Eustatius. Martinique's capital, St. Pierre, was almost completely demolished, and a 20-foot storm surge struck St. Vincent. Warring British and French fleets in the region at the time added to the toll."
+  ],
+  "sources": [
+   {
+    "title": "1780 Atlantic hurricane season",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/1780_Atlantic_hurricane_season",
+    "accessed": "2026-10-06",
+    "supports": "the October 1780 dates, the islands struck, the roughly 22,000 total dead and the per-island death tolls"
+   }
+  ],
+  "uncertainty": "The source does not break the death toll down by status (enslaved versus free); the summary's claim that enslaved labourers made up most of the dead reflects the islands' demographics at the time rather than a figure stated in the source, and is flagged here rather than stated as a cited number.",
+  "status": "published"
+ },
+ {
   "slug": "tupac-katari-and-the-siege-of-la-paz-1781",
   "title": "Túpac Katari and the siege of La Paz",
   "start": 1781,
@@ -5964,6 +6173,89 @@
     "supports": "Life dates; 1795 and the Caribbean risings; Saint-Domingue; José Caridad González; the four aims; betrayal, sale of his children and execution 10 December 1796."
    }
   ],
+  "status": "published"
+ },
+ {
+  "slug": "fedons-rebellion-grenada-1795-1796",
+  "title": "Fédon's Rebellion in Grenada",
+  "start": 1795,
+  "end": 1796,
+  "date": {
+   "text": "2 March 1795 – 19 June 1796",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Resistance",
+  "place": "Grenada",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Julien Fédon",
+   "Ralph Abercromby"
+  ],
+  "summary": "From March 1795 to June 1796 the free coloured planter Julien Fédon led a revolutionary army in Grenada, inspired by the French Revolution and the Haitian Revolution, that aimed to found a Black republic; the British under General Ralph Abercromby eventually crushed the rebellion, in which some 7,000 people were killed.",
+  "account": [
+   "On 2 March 1795 Julien Fédon, a free coloured plantation owner who took the title \"General-in-chief of the Grenadian rebel army,\" launched a rebellion against British rule in Grenada. The rebels, inspired by the French Revolution, the Haitian Revolution and Thomas Paine's Rights of Man, wore tricolour sashes and used the slogan \"liberty, equality or death\"; their goal was to found a Black republic as had already happened in neighbouring Haiti.",
+   "On 8 April 1795 Fédon's forces attacked Belvidere and took hostages, including the governor, Ninian Home; Fédon later had 44 of his 47 hostages killed. In the fighting the British lost 27 dead and 57 wounded at Belvidere alone, and the rebellion caused about £2,500,000 in damage to plantations and distilleries. General Ralph Abercromby's forces eventually defeated the rebellion on 19 June 1796; roughly 7,000 people were killed in the uprising, and Fédon himself disappeared, apparently drowning while trying to escape to Trinidad."
+  ],
+  "sources": [
+   {
+    "title": "Fédon's Rebellion",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/F%C3%A9don%27s_Rebellion",
+    "accessed": "2026-10-06",
+    "supports": "the 1795–1796 dates, Fédon's title and goals, the Belvidere attack and hostage killings, the casualty and damage figures, and Abercromby's victory"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "second-maroon-war-trelawny-deportation-1795-1800",
+  "title": "The Second Maroon War and the deportation of the Trelawny Maroons",
+  "start": 1795,
+  "end": 1800,
+  "date": {
+   "text": "1795–1796 war; deportation 1796, resettlement in Sierra Leone by 1800",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Resistance",
+  "place": "Trelawny Town, Jamaica; Nova Scotia; Sierra Leone",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Montague James",
+   "John Jarrett",
+   "Leonard Parkinson",
+   "James Palmer",
+   "George Walpole",
+   "Lord Balcarres"
+  ],
+  "summary": "An eight-month war in 1795–1796 between the British and the Trelawny Town Maroons of Jamaica ended with Governor Lord Balcarres deporting about 581 Maroons to Nova Scotia despite the British commander's earlier promise against transportation; after a harsh winter there, the Maroons petitioned to move on and resettled in the new colony of Sierra Leone by the start of the nineteenth century.",
+  "account": [
+   "The Second Maroon War lasted about eight months in 1795–1796, pitting the British colonial government against the Trelawny Town Maroons under leaders including Montague James, John Jarrett, Leonard Parkinson and James Palmer. The British commander, General George Walpole, had assured the Maroons they would not be deported if they surrendered, but Governor Lord Balcarres used a minor delay in the peace terms as grounds to deport them anyway; Walpole resigned in protest and complained in Parliament, without success.",
+   "In 1796 about 581 Trelawny Maroons were shipped to Nova Scotia, while 58 others stayed behind in Jamaica. Seventeen died during the crossing, and another 19 died in the harsh winter of 1796–1797 while 5 were born, leaving about 550 by 1797. Unhappy in Nova Scotia, the Maroons asked to be moved again, and relocated to the new British settlement of Freetown, Sierra Leone, at the start of the nineteenth century."
+  ],
+  "sources": [
+   {
+    "title": "Second Maroon War",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Second_Maroon_War",
+    "accessed": "2026-10-06",
+    "supports": "the 1795–1796 dates, the leaders, Walpole's promise and resignation, Balcarres's deportation order, the deportation and death figures, and the move to Sierra Leone"
+   }
+  ],
+  "uncertainty": "The source gives the Sierra Leone resettlement only as \"the start of the nineteenth century\"; end year is set at 1800 as an approximation of that phrase.",
   "status": "published"
  },
  {
@@ -6834,6 +7126,44 @@
   "status": "published"
  },
  {
+  "slug": "bussas-rebellion-barbados-1816",
+  "title": "Bussa's Rebellion in Barbados",
+  "start": 1816,
+  "end": 1816,
+  "date": {
+   "text": "14–16 April 1816",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Resistance",
+  "place": "Barbados",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Bussa"
+  ],
+  "summary": "On 14–16 April 1816 an enslaved African-born man named Bussa led the largest slave revolt in Barbadian history, with about 5,000 enslaved people rising across the island; colonial militia crushed the revolt within three days, killing Bussa and 50 others in battle and executing 214 more afterward.",
+  "account": [
+   "Bussa, an African-born enslaved man likely of Coromantee or Igbo descent, led a revolt that broke out on 14 April 1816 and lasted until 16 April. About 400 enslaved people fought actively, out of roughly 5,000 who joined the uprising across the island.",
+   "British forces lost only one soldier and one civilian. Of the rebels, 50 were killed in the fighting, including Bussa, while the revolt continued briefly under his surviving forces; afterward colonial authorities executed 214 more enslaved people, exiled 170, and mutilated many others. It was the largest slave revolt in Barbadian history and the first of three major revolts (with the Demerara rebellion of 1823 and Jamaica's Baptist War of 1831–1832) that helped push Britain toward abolition."
+  ],
+  "sources": [
+   {
+    "title": "Bussa's rebellion",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Bussa%27s_rebellion",
+    "accessed": "2026-10-06",
+    "supports": "the April 1816 dates, Bussa's background, the participation and casualty figures, and the revolt's place among the three major British West Indian revolts"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "central-american-independence-and-abolition-1821-1824",
   "title": "Central America's independence and the abolition of slavery",
   "start": 1821,
@@ -7226,6 +7556,47 @@
   "status": "published"
  },
  {
+  "slug": "demerara-rebellion-1823",
+  "title": "The Demerara rebellion",
+  "start": 1823,
+  "end": 1823,
+  "date": {
+   "text": "18–20 August 1823",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Resistance",
+  "place": "Demerara, British Guiana",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Jack Gladstone",
+   "Quamina",
+   "John Smith",
+   "John Murray"
+  ],
+  "summary": "On 18–20 August 1823 between 9,000 and 15,000 enslaved people across some 37 plantations in Demerara, British Guiana, rose up under Jack Gladstone and his father Quamina after wrongly believing Parliament had already freed them; colonial forces killed hundreds suppressing the revolt, executed 27 rebels, killed Quamina and left his body on a gibbet, and the death in prison of the missionary John Smith, convicted alongside them, galvanised British abolitionists.",
+  "account": [
+   "On 18–20 August 1823, between 9,000 and 15,000 enslaved people across about 37 estates on Demerara's east coast rose up, led by Jack Gladstone, an enslaved man on the Success plantation, and his father Quamina, along with other members of their church. The revolt was triggered by a mistaken belief that Parliament in London had already abolished slavery, combined with harsh plantation conditions and religious restrictions.",
+   "Colonial forces under Governor John Murray suppressed the rising, killing between 200 and 500 enslaved people; bodies were left on public display for months as a warning. Twenty-seven rebels were executed, out of 45 death sentences handed down. Jack Gladstone was captured on 6 September and deported, probably to Saint Lucia; Quamina was killed by trackers and his body was hung on a gibbet. The English Congregationalist missionary John Smith, tried alongside the rebels and sentenced to death, died in prison awaiting the outcome of his appeal; his case became a rallying point for the British abolitionist movement in the years before the Slavery Abolition Act 1833."
+  ],
+  "sources": [
+   {
+    "title": "Demerara rebellion of 1823",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Demerara_rebellion_of_1823",
+    "accessed": "2026-10-06",
+    "supports": "the August 1823 dates, the leaders, participation and casualty figures, the executions, and John Smith's death and its effect on abolitionism"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "french-indemnity-haiti-1825",
   "title": "France extorts a 150-million-franc independence debt from Haiti",
   "start": 1825,
@@ -7535,6 +7906,110 @@
   "tribes": [
    "Judah"
   ]
+ },
+ {
+  "slug": "baptist-war-jamaica-1831-1832",
+  "title": "The Baptist War (Sam Sharpe's rebellion) in Jamaica",
+  "start": 1831,
+  "end": 1832,
+  "date": {
+   "text": "25 December 1831 – 5 January 1832",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Resistance",
+  "place": "Jamaica",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Samuel Sharpe"
+  ],
+  "summary": "Beginning on Christmas Day 1831 a Black Baptist deacon, Samuel Sharpe, led a rebellion that drew in up to 60,000 of Jamaica's roughly 300,000 enslaved people; colonial forces killed hundreds suppressing it and executed Sharpe and hundreds more afterward, and the scale of the reprisals helped push Parliament toward the Slavery Abolition Act 1833.",
+  "account": [
+   "The Baptist War, also called the Christmas Rebellion, began on 25 December 1831 and lasted until 5 January 1832, led by Samuel Sharpe, a literate Black Baptist deacon who had organised a plan for a peaceful strike for wages and freedom that turned into an armed uprising. Up to 60,000 of Jamaica's roughly 300,000 enslaved people took part.",
+   "Fourteen white colonists were killed. At least 307 rebels were killed during the revolt, and colonial courts afterward executed another 310 to 340 enslaved Jamaicans, including Sharpe and the planter-militiaman Robert Gardner, for offences ranging from rebellion to minor property crimes. Property damage was assessed at £1,154,589. Though militarily defeated, the uprising's brutality and scale were widely reported in Britain and accelerated the passage of the Slavery Abolition Act 1833."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "The class names Samuel Sharpe among \"our... great leaders,\" identifying him as a Jamaican freedom fighter alongside Paul Bogle and other civil-rights figures."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "p2qeiT1HunU",
+     "title": "The Paranoia of the Inevitable Phenomenon",
+     "date": "2024-03-10",
+     "ts": "4:04:07",
+     "url": "https://youtu.be/p2qeiT1HunU?t=14647"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Baptist War",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Baptist_War",
+    "accessed": "2026-10-06",
+    "supports": "the December 1831–January 1832 dates, Sharpe's role, the participation figure, the casualty and execution figures, the property damage, and the effect on abolition"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "slavery-abolition-act-emancipation-apprenticeship-1833-1838",
+  "title": "The Slavery Abolition Act, emancipation and apprenticeship in the British Caribbean",
+  "start": 1833,
+  "end": 1838,
+  "date": {
+   "text": "Royal assent 28 August 1833; effective 1 August 1834; apprenticeship ended by mid-1838",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Abolition",
+  "place": "British Caribbean",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [],
+  "summary": "The Slavery Abolition Act received royal assent on 28 August 1833 and took effect on 1 August 1834, freeing around 800,000 enslaved people across the British Caribbean while binding most of them to an unpaid \"apprenticeship\" to their former owners that was supposed to run to 1840 but was ended early, by the middle of 1838 in Jamaica; Parliament paid £20 million, 40% of its annual budget, to compensate slave owners, and nothing to the people who had been enslaved.",
+  "account": [
+   "The Slavery Abolition Act received royal assent on 28 August 1833 and came into force on 1 August 1834. Enslaved people over the age of six became \"apprentices\" rather than being immediately freed outright; the first apprenticeships were due to end on 1 August 1838 and the rest on 1 August 1840, but most colonies ended the system early, with Jamaica the last to do so, in the middle of June 1838.",
+   "The British government paid £20 million — about 40% of the Treasury's entire annual income in 1833 — to compensate the roughly 800,000 enslaved people's owners for the loss of their human property; the formerly enslaved received no compensation. About 800,000 freed people were recorded in the compensation claims process across the British Caribbean."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Reading a historical account of Caribbean Maroon resistance, the class notes that unnamed resistance leaders held out \"from the 1760s through to the first stage of emancipation in 1834,\" and that it is significant that most of the senior chiefs among them had been born in Africa rather than Creole-born in the colonies, because Africans who had lived a free life before enslavement were already warriors, kings and princes."
+    ],
+    "source": {
+     "kind": "history",
+     "id": "iRSZ1SPOWKE",
+     "title": "OHH-ECHOES OF ROME: THE THIRD PERSECUTION AND THE CYRENIAN REVOLT PART 3 EP 125",
+     "date": "2024-02-04",
+     "ts": "2:06:46",
+     "url": "https://youtu.be/iRSZ1SPOWKE?t=7606"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Slavery Abolition Act 1833",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Slavery_Abolition_Act_1833",
+    "accessed": "2026-10-06",
+    "supports": "the royal assent and effective dates, the apprenticeship system and its early end in Jamaica, the £20 million compensation figure and its share of the 1833 Treasury income, and the 800,000 freed figure"
+   }
+  ],
+  "status": "published"
  },
  {
   "slug": "second-seminole-war-1835-1842",
@@ -8900,6 +9375,61 @@
   "tribes": [
    "Judah"
   ]
+ },
+ {
+  "slug": "morant-bay-rebellion-1865",
+  "title": "The Morant Bay rebellion",
+  "start": 1865,
+  "end": 1865,
+  "date": {
+   "text": "11–25 October 1865",
+   "precision": "range"
+  },
+  "period": "house-of-bondage",
+  "group": "Resistance",
+  "place": "Morant Bay, St Thomas-in-the-East, Jamaica",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Paul Bogle",
+   "George William Gordon",
+   "Edward John Eyre"
+  ],
+  "summary": "On 11 October 1865 the Baptist preacher Paul Bogle led a protest march in Morant Bay, Jamaica, after a trespassing trial turned violent; Governor Edward John Eyre's forces killed more than 400 Black Jamaicans suppressing the rebellion and hanged Bogle and the politician George William Gordon, and the crisis led Britain to strip Jamaica of its elected assembly and rule it directly as a Crown Colony.",
+  "account": [
+   "On 7 October 1865 a Black man was tried for trespassing on abandoned plantation land in Morant Bay; when a spectator disrupted the proceedings, police violence followed and an arrest warrant was issued against the Baptist preacher Paul Bogle for inciting a riot. On 11 October, Bogle led hundreds of peasants in a march on the Morant Bay courthouse; the volunteer militia shot and killed seven men there, and 25 people died that day in the unrest that followed.",
+   "Governor Edward John Eyre declared martial law. Troops killed more than 400 Black Jamaicans and arrested more than 300 more during the suppression. Bogle was hanged on 25 October along with 14 others. George William Gordon, a mixed-race politician accused of inciting the rebellion though his direct involvement was minimal, was arrested in Kingston, transferred to Morant Bay under martial law, and executed on 23 October. The rebellion led Britain to abolish Jamaica's elected Assembly and govern it directly as a Crown Colony, ending planter political control; in 1969 Bogle and Gordon were both named Jamaican National Heroes."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "The class names Paul Bogle among \"our... great leaders,\" identifying him as a Jamaican freedom fighter alongside Samuel Sharpe, Bob Marley and Bishop Nathanyel."
+    ],
+    "source": {
+     "kind": "class",
+     "id": "p2qeiT1HunU",
+     "title": "The Paranoia of the Inevitable Phenomenon",
+     "date": "2024-03-10",
+     "ts": "4:03:59",
+     "url": "https://youtu.be/p2qeiT1HunU?t=14639"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Morant Bay rebellion",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Morant_bay_rebellion",
+    "accessed": "2026-10-06",
+    "supports": "the October 1865 dates, Bogle's role and the trial that triggered the march, the casualty figures, Eyre's martial law, the executions of Bogle and Gordon, and the move to Crown Colony government"
+   }
+  ],
+  "status": "published"
  },
  {
   "slug": "occupation-of-araucania",
@@ -13839,6 +14369,42 @@
   ]
  },
  {
+  "slug": "british-west-indies-regiment-taranto-mutiny-1915-1918",
+  "title": "The British West Indies Regiment and the Taranto Mutiny",
+  "start": 1915,
+  "end": 1918,
+  "date": {
+   "text": "1915–1918",
+   "precision": "range"
+  },
+  "period": "jim-crow",
+  "group": "Resistance",
+  "place": "Palestine, France, Flanders, Italy; Taranto, Italy",
+  "region": "Caribbean / Europe / Middle East",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [],
+  "summary": "Some 15,600 West Indian volunteers served in the British West Indies Regiment in the First World War, mostly in Palestine, while being denied the pay and promotions given white soldiers; in December 1918, after the armistice, battalions gathered at Taranto, Italy mutinied over the discrimination, leading to disbandment, courts martial and one execution, but also to the founding of the Caribbean League, which demanded self-determination for the West Indies.",
+  "account": [
+   "The British West Indies Regiment formed in 1915, its 1st Battalion mustering at Seaford, Sussex, on 1 October 1915 with recruits from Jamaica (about two-thirds of the roughly 15,600 men who served), British Guiana, Trinidad, Barbados, the Bahamas, British Honduras, the Leeward Islands, Saint Lucia and St Vincent. The regiment served mainly against Ottoman forces in Palestine and Jordan, with some battalions in France, Flanders and Italy; 262 men died, 105 of them in combat and 157 of disease, and 573 were wounded, while the regiment earned 81 medals for bravery and 49 mentions in despatches.",
+   "After the armistice, BWIR battalions gathered at Taranto, Italy to demobilise. Resentment grew when the men discovered white soldiers had received pay rises they were denied, despite being made to do menial labour — loading ships, fatigue duty and latrine work. On 6 December 1918 the 9th Battalion refused orders and 180 sergeants petitioned against the unequal pay and promotions; the 10th Battalion also refused work on 9 December. Over four days a Black NCO was killed and an officer assaulted before the Worcestershire Regiment restored order. The 9th Battalion was disbanded, about 60 men were court-martialled for mutiny and given sentences of three to five years (one got 20 years, and one was executed). On 17 December 1918 about 60 NCOs formed the Caribbean League, demanding equal rights and self-determination for the West Indies."
+  ],
+  "sources": [
+   {
+    "title": "British West Indies Regiment",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/British_West_Indies_Regiment",
+    "accessed": "2026-10-06",
+    "supports": "the 1915 formation, the recruitment figures and origins, the service and casualty figures, the Taranto mutiny dates and causes, the courts martial, and the founding of the Caribbean League"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "garrett-morgan-1916",
   "title": "Garrett Morgan's safety hood and traffic signal",
   "start": 1916,
@@ -15691,6 +16257,78 @@
   "status": "published"
  },
  {
+  "slug": "rastafari-leonard-howell-1933",
+  "title": "Leonard Howell and the rise of Rastafari in Jamaica",
+  "start": 1933,
+  "end": 1940,
+  "date": {
+   "text": "1933–1940",
+   "precision": "range"
+  },
+  "period": "jim-crow",
+  "group": "Resistance",
+  "place": "Jamaica",
+  "region": "Kingston and St Catherine Parish",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Leonard Percival Howell",
+   "Haile Selassie I"
+  ],
+  "summary": "Leonard Percival Howell, deported from the United States in 1932 after working with Marcus Garvey's UNIA, began preaching in Jamaica from 1933 that the newly crowned Ethiopian emperor Haile Selassie I was the returned Black Messiah, becoming one of the first teachers of what grew into the Rastafari movement; convicted of sedition for it, he went on to found the Pinnacle commune at Sligoville, St Catherine, in 1940, which the colonial and Jamaican authorities raided and eventually destroyed.",
+  "account": [
+   "Howell, born in Clarendon, Jamaica, in 1898, migrated to the United States and became a lieutenant in Marcus Garvey's Universal Negro Improvement Association before being deported back to Jamaica in December 1932. Inspired by the November 1930 coronation of Ras Tafari Makonnen as Emperor Haile Selassie I of Ethiopia, Howell began preaching from January 1933 that Selassie was the incarnation of God and the returned Black Messiah for the African diaspora. He founded the King of Kings Mission, appointed himself Selassie's representative in Jamaica, and was prosecuted for sedition for preaching doctrines the colonial authorities judged anti-Church and anti-government; he wrote the movement's first text, 'The Promised Key', in prison.",
+   "In 1940 Howell founded Pinnacle, a communal settlement on about 400 acres at Sligoville in St Catherine Parish, where several hundred followers farmed, traded and governed themselves largely outside colonial authority. Jamaican police raided Pinnacle more than once in the years that followed and ultimately cleared and destroyed it in the 1950s; sources differ on the exact years of the later raids, Howell's further imprisonment and Pinnacle's final destruction (see disagreements). Howell died in Kingston in 1981."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Bishop Nathanyel taught that Leonard P. Howell made up the Rastafarian religion, and that being made by a Black man does not make it biblical: a man-made religion is still a man-made religion, not the faith of the Israelites."
+    ],
+    "quote": "Leonard P. Howell, he made up the Rastafarian religion. I don't care if he is Black, it ain't biblical. Don't make up your own religions.",
+    "teacher": "Bishop Nathanyel",
+    "source": {
+     "kind": "class",
+     "id": "a8ZeJW3j9Bc",
+     "title": "#IUIC | Bishop Nathanyel | Walking OFF The Plantation | Sierra Leone",
+     "date": "",
+     "ts": "16:28",
+     "url": "https://youtu.be/a8ZeJW3j9Bc?t=988"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "Leonard Howell",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Leonard_Howell",
+    "accessed": "2026-10-07",
+    "supports": "Howell's birth and death dates, deportation in 1932, the 1933 preaching of Selassie's divinity, the 1934 sedition trial and sentence, and Pinnacle's 1940 founding and 1954/1958 destruction"
+   },
+   {
+    "title": "Leonard Howell the unforgettable father of Rastafari",
+    "publisher": "Jamaica Gleaner",
+    "url": "https://past.jamaica-gleaner.com/article/news/20240218/leonard-howell-unforgettable-father-rastafari",
+    "accessed": "2026-10-07",
+    "supports": "the King of Kings Mission, 'The Promised Key', Pinnacle's size and population, and an alternative chronology of Howell's later arrest and Pinnacle's destruction"
+   }
+  ],
+  "disagreements": [
+   {
+    "point": "The dates of Howell's later sedition arrest, release, and of Pinnacle's final destruction",
+    "views": [
+     "Wikipedia: Howell was tried for sedition on 13 March 1934 and sentenced to two years; Pinnacle was \"nearly destroyed\" by a police raid in 1954 and completely cleared in 1958.",
+     "The Jamaica Gleaner (18 February 2024): Howell was released from prison in 1940, Pinnacle was raided by police in 1941 and Howell sentenced again to two years for sedition, he was released in 1943, and the authorities completely destroyed Pinnacle in 1954."
+    ]
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "indian-reorganization-act-1934",
   "title": "The Indian Reorganization Act",
   "start": 1934,
@@ -15902,6 +16540,45 @@
   ]
  },
  {
+  "slug": "trinidad-oilfield-riots-fyzabad-1937",
+  "title": "The 1937 Trinidad oilfield riots at Fyzabad",
+  "start": 1937,
+  "end": 1937,
+  "date": {
+   "text": "19 June – 6 July 1937",
+   "precision": "range"
+  },
+  "period": "jim-crow",
+  "group": "Resistance",
+  "place": "Fyzabad and the southern oilfields, Trinidad",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Tubal Uriah Butler",
+   "Charlie King"
+  ],
+  "summary": "A strike called by the labour organiser Tubal Uriah \"Buzz\" Butler among Trinidad's oilfield workers on 18 June 1937 erupted into violence at Fyzabad when police tried to arrest him, killing a police corporal and sparking island-wide riots that left 14 dead and 59 wounded; Governor Arthur Fletcher declared a state of emergency, and British warships and troops suppressed the unrest by 6 July.",
+  "account": [
+   "Tubal Uriah \"Buzz\" Butler organised an oil workers' strike at Trinidad Leaseholds' Forest Reserve field in southern Trinidad beginning 18 June 1937. The next day, when police tried to arrest Butler as he addressed a crowd at Fyzabad, his supporters stopped them; Police Corporal Charlie King, trying to make the arrest, was chased, thrown from a shop window, broke his leg, and was then burned to death by the crowd at Fyzabad Junction.",
+   "Fourteen people were killed and 59 wounded in the violence that followed at Fyzabad and across the colony. Governor Arthur Fletcher declared a state of emergency, and the British warships HMS Ajax and HMS Exeter arrived on 22–23 June with about 2,200 troops and police, who suppressed the unrest by 6 July. Butler was imprisoned from 9 September 1937 to May 1939; tried between 25 November and 16 December 1937, he was convicted of inciting to riot and sentenced to two years."
+  ],
+  "sources": [
+   {
+    "title": "Tubal Uriah Butler",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Tubal_Uriah_Butler",
+    "accessed": "2026-10-06",
+    "supports": "the June 1937 strike and Fyzabad confrontation, Charlie King's death, the casualty figures, the state of emergency and military response, and Butler's trial and sentence"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "frederick-mckinley-jones-refrigeration",
   "title": "Frederick McKinley Jones and refrigerated transport",
   "start": 1938,
@@ -15955,6 +16632,45 @@
   "tribes": [
    "Judah"
   ]
+ },
+ {
+  "slug": "frome-and-kingston-riots-jamaica-1938",
+  "title": "The Frome and Kingston labour riots in Jamaica, and the Moyne Commission",
+  "start": 1938,
+  "end": 1940,
+  "date": {
+   "text": "May–June 1938 riots; Moyne Commission 1938–1939; Colonial Development and Welfare Act, July 1940",
+   "precision": "range"
+  },
+  "period": "jim-crow",
+  "group": "Resistance",
+  "place": "Frome, Westmoreland, and Kingston, Jamaica",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Alexander Bustamante"
+  ],
+  "summary": "Labour unrest that broke out at the Tate & Lyle-owned Frome sugar estate in Westmoreland in 1938 spread to Kingston and across Jamaica, leaving 46 dead and at least 429 injured; the unrest, part of a wave across the British West Indies from 1934 to 1939, led Britain to appoint the Moyne Commission, whose findings produced the Colonial Development and Welfare Act of 1940 and fed the rise of Jamaica's trade unions and political parties.",
+  "account": [
+   "In the 1930s the British firm Tate & Lyle bought the Frome estate in Westmoreland, Jamaica, and in May 1937 formed the West Indies Sugar Company with £600,000 of capital, consolidating several plantations and leaving many sugar workers without jobs. That grievance fed labour riots at the Frome factory in 1938, where police killed four protesters and wounded nine; unrest spread from Frome east to Kingston, and across Jamaica the 1938 unrest left 46 dead and at least 429 injured, with thousands detained and prosecuted.",
+   "Jamaica's 1938 unrest was part of a wider wave of labour disturbances across the British West Indies from 1934 to 1939, including Trinidad's 1937 riots and a 1937 Barbados uprising that killed between 14 and 22 people. The British government responded by appointing the West India Royal Commission, chaired by Lord Moyne, which investigated conditions from November 1938 to February 1939 and reported on housing, agriculture, health, prisons and schools; its findings led to the Colonial Development and Welfare Act of July 1940, which committed £5 million a year for ten years to colonial development and £500,000 a year indefinitely for colonial research. The unrest also strengthened Jamaica's trade unions and fed the growth of the People's National Party (1938) and the Jamaica Labour Party (1943)."
+  ],
+  "sources": [
+   {
+    "title": "British West Indian labour unrest of 1934–1939",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/British_West_Indian_labour_unrest_of_1934%E2%80%931939",
+    "accessed": "2026-10-06",
+    "supports": "the Frome estate background, the 1938 Jamaica casualty figures, the wider 1934–1939 unrest across the British West Indies, the Barbados 1937 casualty figures, the Moyne Commission's dates and findings, and the Colonial Development and Welfare Act of 1940"
+   }
+  ],
+  "uncertainty": "The Frome-specific casualty figures (4 killed, 9 wounded) and the wider Jamaica-wide 1938 figures (46 dead, 429+ injured) come from the same source but are not perfectly reconciled there; both are given as stated.",
+  "status": "published"
  },
  {
   "slug": "negro-project-1939",
@@ -16661,6 +17377,42 @@
    }
   ],
   "uncertainty": "end is set at 1955 to fit the period; the law was repealed in 1957.",
+  "status": "published"
+ },
+ {
+  "slug": "windrush-generation-1948",
+  "title": "The Windrush generation arrives in Britain",
+  "start": 1948,
+  "end": 1948,
+  "date": {
+   "text": "22 June 1948",
+   "precision": "day"
+  },
+  "period": "jim-crow",
+  "group": "Caribbean and Latin America",
+  "place": "Tilbury, England; Kingston, Jamaica",
+  "region": "Caribbean / United Kingdom",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [],
+  "summary": "On 22 June 1948 the troopship HMT Empire Windrush docked at Tilbury carrying 802 Caribbean migrants to Britain under the newly passed British Nationality Act 1948, which gave citizens of the UK's colonies the right to live and work in Britain; the ship's arrival, following smaller earlier sailings, became the iconic start of the postwar Caribbean community in Britain, remembered as the \"Windrush generation.\"",
+  "account": [
+   "The HMT Empire Windrush, a former German troopship travelling from Australia to England, docked at Kingston, Jamaica, where a newspaper advertisement had offered cheap passage to Britain; many of the 802 passengers who boarded were former servicemen hoping to rejoin the RAF, while others simply sought opportunity in England. The ship arrived at the port of Tilbury, near London, on 22 June 1948.",
+   "The migrants travelled under the British Nationality Act 1948, which had just granted citizenship of the United Kingdom and colonies, with the right of entry and settlement in Britain, to people throughout the colonies. Earlier, smaller ships had already brought Caribbean migrants — the SS Ormonde in March 1947 with 241 passengers and the SS Almanzora in December 1947 with 200 — but the Windrush's arrival became the enduring symbol of the start of Britain's postwar Caribbean community, and its passengers and those who followed in subsequent years came to be known as the \"Windrush generation.\""
+  ],
+  "sources": [
+   {
+    "title": "Windrush generation",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Windrush_generation",
+    "accessed": "2026-10-06",
+    "supports": "the 22 June 1948 date, the 802 passenger figure, the British Nationality Act 1948, and the earlier Ormonde and Almanzora sailings"
+   }
+  ],
   "status": "published"
  },
  {
@@ -17727,6 +18479,46 @@
   "status": "published"
  },
  {
+  "slug": "west-indies-federation-1958-1962",
+  "title": "The West Indies Federation",
+  "start": 1958,
+  "end": 1962,
+  "date": {
+   "text": "3 January 1958 – 31 May 1962",
+   "precision": "range"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Caribbean and Latin America",
+  "place": "British Caribbean",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Norman Manley",
+   "Eric Williams"
+  ],
+  "summary": "The West Indies Federation, uniting ten British Caribbean territories under one government from 3 January 1958, collapsed after a September 1961 Jamaican referendum voted to leave; Jamaica's withdrawal on 6 August 1962 led Trinidad's premier Eric Williams to declare that \"one from ten leaves nought,\" and the federation was formally dissolved on 31 May 1962.",
+  "account": [
+   "The West Indies Federation was established on 3 January 1958, joining ten territories — Jamaica, Trinidad and Tobago, Barbados, Antigua, Dominica, Grenada, Montserrat, Saint Lucia, Saint Vincent and the Grenadines, and Saint Christopher-Nevis-Anguilla, with the Cayman Islands and Turks and Caicos administratively attached to Jamaica — under a single federal government.",
+   "Jamaica, the largest member, resented having a smaller share of federal parliamentary seats than its population warranted and feared its bauxite wealth would be drained to support poorer members; many Jamaicans were also unhappy that Kingston was not made the federal capital. A September 1961 referendum produced a 54% vote to leave the federation, against the opposition of Jamaican premier Norman Manley. Jamaica formally withdrew on 6 August 1962, and Trinidad's premier, Eric Williams, responded that \"one from ten leaves nought,\" judging the federation no longer viable without its two largest economies; it was formally dissolved on 31 May 1962."
+  ],
+  "sources": [
+   {
+    "title": "West Indies Federation",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/West_Indies_Federation",
+    "accessed": "2026-10-06",
+    "supports": "the formation date and member territories, Jamaica's grievances, the 1961 referendum result, the withdrawal and dissolution dates, and Williams's response"
+   }
+  ],
+  "uncertainty": "The source gives Jamaica's withdrawal as 6 August 1962, the same date as Jamaica's independence, and the federation's formal dissolution as 31 May 1962 — before that withdrawal date; both dates are given here as the source states them.",
+  "status": "published"
+ },
+ {
   "slug": "cuban-exodus-peter-pan-and-freedom-flights-1959-1973",
   "title": "The first Cuban exiles: Operation Peter Pan, the Freedom Flights and the Adjustment Act",
   "start": 1959,
@@ -18323,6 +19115,80 @@
   "status": "published"
  },
  {
+  "slug": "jamaica-independence-1962",
+  "title": "Jamaica's independence",
+  "start": 1962,
+  "end": 1962,
+  "date": {
+   "text": "6 August 1962",
+   "precision": "day"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Achievements",
+  "place": "Jamaica",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Alexander Bustamante"
+  ],
+  "summary": "Jamaica became independent from the United Kingdom on 6 August 1962, with Alexander Bustamante, then 78 years old, becoming its first prime minister.",
+  "account": [
+   "Jamaica achieved independence from the United Kingdom on 6 August 1962. Alexander Bustamante, at the age of 78, became the country's first prime minister."
+  ],
+  "sources": [
+   {
+    "title": "Jamaica",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Jamaica",
+    "accessed": "2026-10-06",
+    "supports": "the 6 August 1962 independence date and Bustamante as first prime minister"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "trinidad-and-tobago-independence-1962",
+  "title": "Trinidad and Tobago's independence",
+  "start": 1962,
+  "end": 1962,
+  "date": {
+   "text": "31 August 1962",
+   "precision": "day"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Achievements",
+  "place": "Trinidad and Tobago",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Eric Williams"
+  ],
+  "summary": "Trinidad and Tobago became independent from the United Kingdom under the Trinidad and Tobago Independence Act 1962 on 31 August 1962, with Eric Williams as prime minister.",
+  "account": [
+   "Trinidad and Tobago achieved full independence from the United Kingdom under the Trinidad and Tobago Independence Act 1962 on 31 August 1962, with Eric Williams serving as prime minister."
+  ],
+  "sources": [
+   {
+    "title": "History of Trinidad and Tobago",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/History_of_Trinidad_and_Tobago",
+    "accessed": "2026-10-06",
+    "supports": "the 31 August 1962 independence date and Eric Williams as prime minister"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "civil-rights-act-1964",
   "title": "The Civil Rights Act of 1964",
   "start": 1964,
@@ -18778,6 +19644,81 @@
     ]
    }
   ],
+  "status": "published"
+ },
+ {
+  "slug": "barbados-independence-1966",
+  "title": "Barbados's independence",
+  "start": 1966,
+  "end": 1966,
+  "date": {
+   "text": "30 November 1966",
+   "precision": "day"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Achievements",
+  "place": "Barbados",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Errol Barrow"
+  ],
+  "summary": "Barbados, which had belonged to the short-lived West Indies Federation from 1958 to 1962, became independent from the United Kingdom on 30 November 1966, with Errol Barrow as its first prime minister.",
+  "account": [
+   "Barbados belonged to the West Indies Federation from 1958 to 1962, and gained full independence from the United Kingdom on 30 November 1966. Errol Barrow became the country's first prime minister."
+  ],
+  "sources": [
+   {
+    "title": "Barbados",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Barbados",
+    "accessed": "2026-10-06",
+    "supports": "the 30 November 1966 independence date, Barrow as first prime minister, and the 1958–1962 federation membership"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "guyana-independence-1966",
+  "title": "Guyana's independence",
+  "start": 1966,
+  "end": 1966,
+  "date": {
+   "text": "26 May 1966",
+   "precision": "day"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Achievements",
+  "place": "Guyana (formerly British Guiana)",
+  "region": "Caribbean / South America",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Forbes Burnham"
+  ],
+  "summary": "British Guiana became independent from the United Kingdom as Guyana on 26 May 1966, a dominion in which Forbes Burnham's People's National Congress rose to power.",
+  "account": [
+   "Guyana achieved independence from the United Kingdom as a dominion on 26 May 1966. Forbes Burnham of the People's National Congress rose to power in the new nation."
+  ],
+  "sources": [
+   {
+    "title": "Guyana",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Guyana",
+    "accessed": "2026-10-06",
+    "supports": "the 26 May 1966 independence date and Forbes Burnham's rise to power"
+   }
+  ],
+  "uncertainty": "The source names Burnham as the leader who rose to power after independence but does not explicitly state he was the first prime minister.",
   "status": "published"
  },
  {
@@ -19266,6 +20207,54 @@
   "status": "published"
  },
  {
+  "slug": "trinidad-black-power-revolution-1970",
+  "title": "The 1970 Black Power Revolution in Trinidad and Tobago",
+  "start": 1970,
+  "end": 1970,
+  "date": {
+   "text": "26 February – 25 April 1970",
+   "precision": "range"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Civil rights",
+  "place": "Trinidad and Tobago",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Geddes Granger",
+   "Eric Williams",
+   "Raffique Shah",
+   "Basil Davis"
+  ],
+  "summary": "From February to April 1970 the National Joint Action Committee, led by Geddes Granger (later Makandal Daaga), led mass Black Power demonstrations against Eric Williams's government; after police killed a protester and soldiers mutinied at Teteron Barracks, Williams declared a state of emergency, arrested 15 Black Power leaders, and reshuffled his cabinet.",
+  "account": [
+   "The National Joint Action Committee (NJAC), formed out of the Guild of Undergraduates at the University of the West Indies' St. Augustine campus and led by Geddes Granger (later known as Makandal Daaga), organised mass demonstrations against Prime Minister Eric Williams's government between 26 February and the declaration of a state of emergency on 21 April 1970, seeking to unite the country's African and Indian communities against the government.",
+   "On 6 April 1970 police shot and killed a protester, Basil Davis. On 13 April, government minister A. N. R. Robinson resigned. On 18 April, sugar workers struck. On 21 April, Williams declared a state of emergency and arrested 15 Black Power leaders; soldiers of the Trinidad Defence Force, led by Raffique Shah and Rex Lassalle, mutinied at Teteron Barracks and took hostages, before the Coast Guard helped contain the mutiny and the soldiers surrendered on 25 April. Williams reshuffled his cabinet, dropping three ministers and three senators, and introduced a Public Order Act that was later withdrawn after public opposition led by Robinson's new Action Committee of Democratic Citizens."
+  ],
+  "sources": [
+   {
+    "title": "Black Power Revolution",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Black_Power_Revolution",
+    "accessed": "2026-10-06",
+    "supports": "the February–April 1970 dates, NJAC and Granger's role, the Basil Davis killing, the state of emergency and arrests, the Teteron Barracks mutiny, and the cabinet reshuffle and Public Order Act"
+   },
+   {
+    "title": "Makandal Daaga",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Makandal_Daaga",
+    "accessed": "2026-10-06",
+    "supports": "Geddes Granger's later name Makandal Daaga, and his founding of NJAC in February 1969"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "tuskegee-study-exposed-1972",
   "title": "The Tuskegee syphilis study exposed",
   "start": 1972,
@@ -19472,6 +20461,41 @@
     "url": "https://en.wikipedia.org/wiki/1973_Uruguayan_coup_d%27%C3%A9tat",
     "accessed": "2026-10-04",
     "supports": "27 June 1973; Bordaberry and the junta; the Tupamaros; 1971 operations and U.S. support; the two-week strike and its end; associations banned; 1967 constitution voided; dictatorship to 1985."
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "caricom-founded-1973",
+  "title": "The founding of CARICOM",
+  "start": 1973,
+  "end": 1973,
+  "date": {
+   "text": "1 August 1973",
+   "precision": "day"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Achievements",
+  "place": "Chaguaramas, Trinidad and Tobago",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [],
+  "summary": "The Caribbean Community (CARICOM) took effect on 1 August 1973 under the Treaty of Chaguaramas, founded by Barbados, Jamaica, Guyana and Trinidad and Tobago to promote economic integration, equitable sharing of its benefits, and coordinated foreign policy among Caribbean nations.",
+  "account": [
+   "The Treaty of Chaguaramas took effect on 1 August 1973, establishing the Caribbean Community, CARICOM, with four founding members: Barbados, Jamaica, Guyana and Trinidad and Tobago. Its purpose was to promote economic integration and cooperation among its members, to see that the benefits of integration were equitably shared, and to coordinate members' foreign policy."
+  ],
+  "sources": [
+   {
+    "title": "Caribbean Community",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Caribbean_Community",
+    "accessed": "2026-10-06",
+    "supports": "the 1 August 1973 date, the Treaty of Chaguaramas, the four founding members, and CARICOM's stated purpose"
    }
   ],
   "status": "published"
@@ -19810,6 +20834,44 @@
   "status": "published"
  },
  {
+  "slug": "dominica-independence-1978",
+  "title": "Dominica's independence",
+  "start": 1978,
+  "end": 1978,
+  "date": {
+   "text": "3 November 1978",
+   "precision": "day"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Achievements",
+  "place": "Dominica",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Patrick John"
+  ],
+  "summary": "The Commonwealth of Dominica became independent from the United Kingdom on 3 November 1978, with Patrick John, who had led the island's government since the 1967 federation dissolved, as its first prime minister; the new nation was struck within a year by both a political crisis that forced an interim government and one of the deadliest hurricanes in its history.",
+  "account": [
+   "Dominica became an associated state of the United Kingdom with internal self-government on 27 February 1967, and Patrick John served as its first premier. Dominica became independent on 3 November 1978, with John continuing as prime minister.",
+   "Political discontent with John's government led to the formation of an interim government under Oliver Seraphin in mid-1979. In August 1979, Hurricane David struck the island with winds of 150 mph (240 km/h), killing 42 people and destroying or severely damaging about 75 percent of homes. Following elections in 1980, Eugenia Charles of the Dominica Freedom Party became prime minister, the Caribbean's first woman to hold that office."
+  ],
+  "sources": [
+   {
+    "title": "History of Dominica",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/History_of_Dominica",
+    "accessed": "2026-10-07",
+    "supports": "the 1967 associated statehood, the 3 November 1978 independence date, Patrick John as first prime minister, the 1979 interim government under Oliver Seraphin, Hurricane David's casualties and damage, and Eugenia Charles's 1980 election as the Caribbean's first woman prime minister"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "seminole-bingo-and-indian-gaming-1979",
   "title": "Seminole bingo opens Indian gaming",
   "start": 1979,
@@ -20042,6 +21104,150 @@
   "status": "published"
  },
  {
+  "slug": "grenada-revolution-and-us-invasion-1979-1983",
+  "title": "The Grenada Revolution, the execution of Maurice Bishop, and the US invasion",
+  "start": 1979,
+  "end": 1983,
+  "date": {
+   "text": "13 March 1979 coup; 19 October 1983 execution; 25 October – 2 November 1983 invasion",
+   "precision": "range"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Caribbean and Latin America",
+  "place": "Grenada",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Maurice Bishop",
+   "Bernard Coard",
+   "Hudson Austin"
+  ],
+  "summary": "Maurice Bishop's New Jewel Movement took power in a nearly bloodless 1979 coup and built free health care and literacy programmes; after his deputy Bernard Coard's faction placed him under house arrest in October 1983, a crowd freed him but he and seven allies were executed by firing squad on 19 October, and the United States invaded Grenada on 25 October in an eight-day operation that deposed the new military government.",
+  "account": [
+   "On 13 March 1979 Maurice Bishop led the New Jewel Movement in a nearly bloodless coup against Prime Minister Eric Gairy while Gairy was abroad, establishing a People's Revolutionary Government that suspended the constitution, detained political opponents, and built free health care and literacy programmes that drew international attention.",
+   "On 13 October 1983 a faction led by Bishop's deputy, Bernard Coard, placed Bishop under house arrest. On 19 October a crowd estimated at 15,000 to 30,000 freed him and marched with him to occupy Fort Rupert, but Bishop and seven allies were lined up in the fort's courtyard and executed by firing squad that same day; Hudson Austin then formed a military council to rule the island.",
+   "On 25 October 1983 the United States invaded Grenada in Operation Urgent Fury, an eight-day operation ending 2 November that involved about 7,300 US troops against roughly 1,300 Grenadian and 784 Cuban personnel (including 636 construction workers). The invasion killed 19 to 24 US troops, 24 Cubans, 21 to 45 Grenadians and 24 civilians (18 of them in the bombing of a mental hospital); 638 Cubans were captured. Hudson Austin's government was deposed, and Nicholas Brathwaite led the island until elections were held in December 1984."
+  ],
+  "teaching": [
+   {
+    "points": [
+     "Watching a video account of Maurice Bishop's rise and fall, the class affirms that he was a lawyer from Grenada who led a bloodless coup, built free health care and launched literacy programmes that brought down unemployment, and that his own revolutionary army, not a foreign enemy, carried out his 1983 execution.",
+     "In the class's understanding, the CIA was behind Bishop's execution by his own military, and the United States went to war with Grenada afterward."
+    ],
+    "quote": "No, the CIA was behind that. The CIA.",
+    "source": {
+     "kind": "class",
+     "id": "stGojnrSmJA",
+     "title": "The End Of PAX Americana",
+     "date": "2026-07-30",
+     "ts": "1:44:38",
+     "url": "https://youtu.be/stGojnrSmJA?t=6278"
+    }
+   }
+  ],
+  "sources": [
+   {
+    "title": "United States invasion of Grenada",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/United_States_invasion_of_Grenada",
+    "accessed": "2026-10-06",
+    "supports": "the 1979 coup, the October 1983 house arrest and execution of Bishop, the invasion dates and troop and casualty figures, and the post-invasion leadership"
+   }
+  ],
+  "disagreements": [
+   {
+    "point": "How long after Bishop's execution the US invaded Grenada",
+    "views": [
+     "Wikipedia: the US invasion began 25 October 1983, six days after Bishop's execution on 19 October 1983, in the same month.",
+     "The class (\"The End Of PAX Americana\"): \"three years after this, america went to war with grenada.\""
+    ]
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "saint-lucia-independence-1979",
+  "title": "Saint Lucia's independence",
+  "start": 1979,
+  "end": 1979,
+  "date": {
+   "text": "22 February 1979",
+   "precision": "day"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Achievements",
+  "place": "Saint Lucia",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "John Compton",
+   "Allan Louisy"
+  ],
+  "summary": "Saint Lucia, which changed hands between France and Britain roughly a dozen times during the 18th century before Britain secured permanent control in 1814, became independent from the United Kingdom on 22 February 1979 under Premier John Compton of the United Workers Party, who was defeated later that same year by Allan Louisy's Saint Lucia Labour Party.",
+  "account": [
+   "During the 18th century Saint Lucia changed ownership, or was declared neutral territory, about a dozen times between France and Britain, earning it the name 'Helen of the West' after the mythological Helen of Troy. Britain secured permanent control in 1814 under the Treaty of Paris ending the Napoleonic Wars. The island was granted representative government in 1924, universal suffrage in 1951, and membership in the West Indies Federation from 1958 to 1962, followed by associated statehood with internal self-government in 1967.",
+   "Saint Lucia became independent on 22 February 1979 under Premier John Compton of the United Workers Party, remaining a Commonwealth realm. Compton's party was defeated later the same year by the Saint Lucia Labour Party under Allan Louisy."
+  ],
+  "sources": [
+   {
+    "title": "Saint Lucia",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Saint_Lucia",
+    "accessed": "2026-10-07",
+    "supports": "the colonial history of repeated changes of control between France and Britain, the 1814 Treaty of Paris, the path through representative government, universal suffrage, the West Indies Federation and associated statehood, the 22 February 1979 independence date, John Compton as premier, and his defeat by Allan Louisy's Saint Lucia Labour Party later in 1979"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "saint-vincent-and-the-grenadines-independence-1979",
+  "title": "Saint Vincent and the Grenadines's independence",
+  "start": 1979,
+  "end": 1979,
+  "date": {
+   "text": "27 October 1979",
+   "precision": "day"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Achievements",
+  "place": "Saint Vincent and the Grenadines",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Milton Cato"
+  ],
+  "summary": "Saint Vincent and the Grenadines became independent from the United Kingdom on 27 October 1979, with Milton Cato of the Saint Vincent Labour Party, who had served as Premier since 1974, as its first prime minister, nearly two centuries after the British deported almost 5,000 Garifuna from the island following the Second Carib War of 1795-1797.",
+  "account": [
+   "The French first colonised Saint Vincent in 1719, settling at Barrouallie and importing enslaved Africans to work plantations. Britain captured the island during the Seven Years' War, with control confirmed by the 1763 Treaty of Paris. The Garifuna (Black Carib) people fought two wars against British control, the First Carib War of 1772-1773 and the Second Carib War of 1795-1797 led by paramount chief Joseph Chatoyer with French support; after their defeat in 1797, almost 5,000 Garifuna were deported to Roatan in Honduras, Belize, and Baliceaux in the Grenadines.",
+   "Saint Vincent and the Grenadines became fully independent from the United Kingdom on 27 October 1979, with Milton Cato of the centre-left Saint Vincent Labour Party, who had served as Premier since 1974, as its first prime minister; he ruled until his defeat in the 1984 general election."
+  ],
+  "sources": [
+   {
+    "title": "Saint Vincent and the Grenadines",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Saint_Vincent_and_the_Grenadines",
+    "accessed": "2026-10-07",
+    "supports": "the 1719 French settlement at Barrouallie, the 1763 Treaty of Paris, the First and Second Carib Wars, the deportation of almost 5,000 Garifuna in 1797, the 27 October 1979 independence date, and Milton Cato as first prime minister"
+   }
+  ],
+  "status": "published"
+ },
+ {
   "slug": "internal-conflict-in-peru-1980-2000",
   "title": "Peru's internal conflict and the Truth Commission",
   "start": 1980,
@@ -20213,6 +21419,82 @@
   "tribes": [
    "Judah"
   ]
+ },
+ {
+  "slug": "antigua-and-barbuda-independence-1981",
+  "title": "Antigua and Barbuda's independence",
+  "start": 1981,
+  "end": 1981,
+  "date": {
+   "text": "1 November 1981",
+   "precision": "day"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Achievements",
+  "place": "Antigua and Barbuda",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Vere Cornwall Bird"
+  ],
+  "summary": "Antigua and Barbuda became independent from the United Kingdom on 1 November 1981, with Vere Cornwall Bird sworn in as its first prime minister, after a constitutional process in which the British refused Barbuda's bid to separate from Antigua as its own territory and instead gave Barbuda increased local autonomy.",
+  "account": [
+   "Antigua, an associated state of the United Kingdom from 1967, moved toward full independence after its government signalled the intention in 1978 and the pro-independence party won 13 of 17 seats in the April 1980 election. A constitutional conference at Lancaster House in December 1980 addressed outstanding issues, including a Barbudan delegation's wish to separate from Antigua as its own territory, which the British refused on grounds of Barbuda's small population; the compromise instead amended the Barbuda Local Government Act to give the island greater autonomy.",
+   "Antigua's House of Representatives passed a resolution consenting to the termination of its association with Britain on 23 April 1981, and the Senate passed it on 1 May 1981. The British House of Lords approved the independence order on 8 July 1981 by a vote of 75 to 7, and Queen Elizabeth II signed both the termination and constitution orders on 31 July 1981. Antigua and Barbuda became independent on 1 November 1981, and Vere Cornwall Bird was sworn in as its first prime minister."
+  ],
+  "sources": [
+   {
+    "title": "Independence of Antigua and Barbuda",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Independence_of_Antigua_and_Barbuda",
+    "accessed": "2026-10-07",
+    "supports": "the 1 November 1981 independence date, Vere Bird as first prime minister, and the constitutional process and dates leading to independence, including the Barbuda dispute"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "st-kitts-and-nevis-independence-1983",
+  "title": "Saint Kitts and Nevis's independence",
+  "start": 1983,
+  "end": 1983,
+  "date": {
+   "text": "19 September 1983",
+   "precision": "day"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Achievements",
+  "place": "Saint Kitts and Nevis",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Kennedy Simmonds"
+  ],
+  "summary": "Saint Kitts and Nevis became independent from the United Kingdom on 19 September 1983, the smallest sovereign state in the Western Hemisphere, with Dr Kennedy Simmonds of the People's Action Movement as its first prime minister; the new constitution gave Nevis the right to secede from the federation by a two-thirds referendum vote, a provision shaped by Anguilla's earlier break from the same St Kitts-based territory.",
+  "account": [
+   "Saint Kitts-Nevis-Anguilla became an associated state of the United Kingdom with full internal self-government in 1967. Anguilla, resentful of domination by St Kitts, unilaterally declared independence from the arrangement that same year and was formally separated from it in 1980, remaining a British overseas territory. A constitutional conference was held in London in 1982; the resulting Constitution of Saint Kitts and Nevis was adopted on 23 June 1983, giving Nevis the right to secede from the federation if a referendum produced a two-thirds majority in favour.",
+   "Saint Kitts and Nevis became independent on 19 September 1983, with Dr Kennedy Simmonds, who had served as Premier since 1980, as its first prime minister. The new country opted to remain within the Commonwealth, with the British monarch as head of state represented by a Governor-General."
+  ],
+  "sources": [
+   {
+    "title": "Saint Kitts and Nevis",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Saint_Kitts_and_Nevis",
+    "accessed": "2026-10-07",
+    "supports": "the 19 September 1983 independence date, Kennedy Simmonds as first prime minister, the 1967 associated statehood, Anguilla's 1967/1980 separation, and the 1983 constitution's secession provision for Nevis"
+   }
+  ],
+  "status": "published"
  },
  {
   "slug": "move-bombing-1985",
@@ -20484,6 +21766,45 @@
     "url": "https://en.wikipedia.org/wiki/Native_American_Graves_Protection_and_Repatriation_Act",
     "accessed": "2026-10-04",
     "supports": "enacted November 16, 1990; repatriation provisions"
+   }
+  ],
+  "status": "published"
+ },
+ {
+  "slug": "trinidad-1990-coup-attempt-jamaat-al-muslimeen",
+  "title": "The Jamaat al Muslimeen coup attempt in Trinidad",
+  "start": 1990,
+  "end": 1990,
+  "date": {
+   "text": "27 July – 1 August 1990",
+   "precision": "range"
+  },
+  "period": "civil-rights-awakening",
+  "group": "Caribbean and Latin America",
+  "place": "Port of Spain, Trinidad and Tobago",
+  "region": "Caribbean",
+  "peoples": [
+   "Black"
+  ],
+  "tribes": [
+   "Benjamin"
+  ],
+  "people": [
+   "Yasin Abu Bakr",
+   "A. N. R. Robinson"
+  ],
+  "summary": "On 27 July 1990, about 114 members of the Jamaat al Muslimeen, led by Imam Yasin Abu Bakr, stormed Trinidad and Tobago's Parliament at the Red House and the state television station, holding Prime Minister A. N. R. Robinson and much of his cabinet hostage for six days before surrendering on 1 August 1990; 24 people died, and the government's later amnesty for the insurgents was upheld by the Court of Appeal and then invalidated by the Privy Council, though none were re-arrested.",
+  "account": [
+   "On 27 July 1990, roughly 114 members of the Jamaat al Muslimeen, an Afrocentric Black Muslim organisation led by Imam Yasin Abu Bakr (born Lennox Phillips) and Bilaal Abdullah, attempted to overthrow the government of Trinidad and Tobago. Forty-two of them stormed the Red House, the seat of Parliament, taking Prime Minister A. N. R. Robinson and most of his National Alliance for Reconstruction cabinet hostage, while 72 others attacked the Trinidad and Tobago Television (TTT) station. A car bomb exploded at Police Headquarters on St Vincent Street.",
+   "The standoff lasted six days of negotiation before the insurgents surrendered on 1 August 1990. Twenty-four people died in the uprising, and the government later estimated millions of dollars in property losses from the accompanying looting and arson. The insurgents were charged with treason, but an amnesty agreement reached to secure their surrender was upheld by the Court of Appeal and they were released; the Judicial Committee of the Privy Council later invalidated that amnesty, though none of the insurgents were re-arrested."
+  ],
+  "sources": [
+   {
+    "title": "Jamaat al Muslimeen coup attempt",
+    "publisher": "Wikipedia",
+    "url": "https://en.wikipedia.org/wiki/Jamaat_al_Muslimeen_coup_attempt",
+    "accessed": "2026-10-07",
+    "supports": "the dates, numbers of insurgents, the Red House and TTT attacks, the car bomb, casualties, the surrender, and the amnesty's later invalidation"
    }
   ],
   "status": "published"
