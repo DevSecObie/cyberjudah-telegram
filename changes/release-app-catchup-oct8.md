@@ -2,3 +2,4 @@
 - Kept privacy identities separate when two configured secrets have the same length, and rejected unconfigured webhook authentication.
 - Added authenticated search and consent checks after staging and production deployment, alongside the combined privacy, accessibility, audio and search updates.
 - Restored staging's missing inference and library-storage bindings so release checks exercise working search, audio and resources.
+- Added an explicit, production-approved publication workflow for the approved study-resource bundles.
