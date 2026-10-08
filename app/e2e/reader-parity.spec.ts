@@ -102,6 +102,7 @@ test("reader adding a second finger cancels the pending long press", async ({ pa
   await touchVerse(page, "touchend", 0);
   await page.clock.runFor(250);
   await expect(page.locator(".bs-resourcetabs")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
 });
 
@@ -129,6 +130,7 @@ test("reader press preference still swaps resources and verse selection", async 
   await page.getByRole("dialog", { name: "Font and settings" }).getByRole("button", { name: "Close", exact: true }).click();
   await page.locator("#verset-1 .bs-num").click();
   await expect(page.locator(".bs-resourcetabs")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
   await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
   const b = (await page.locator("#verset-1 .bs-num").boundingBox())!;

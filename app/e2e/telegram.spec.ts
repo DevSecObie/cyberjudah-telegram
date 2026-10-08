@@ -1364,7 +1364,7 @@ test("Strong's: a verse's words open the Hebrew or Greek behind them, with every
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   await longPressVerse(page, 1);
-  await page.click('.bs-resourcetabs button >> text=Words');
+  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".bs-words__w", { hasText: "God" }).first()).toContainText("H430");
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/strongs-words.png` });
   await page.locator(".bs-words__w", { hasText: "God" }).first().click();
