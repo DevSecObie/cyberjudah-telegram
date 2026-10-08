@@ -1,0 +1,2 @@
+- Keep each verse selected when tapping a passage quickly, and stop cancelled touches or two-finger gestures from opening the reader's long-press sheet.
+- Dismiss reader sheets reliably after a fast downward swipe.

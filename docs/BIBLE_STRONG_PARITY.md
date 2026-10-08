@@ -1,5 +1,17 @@
 # Bible Strong parity review
 
+Current owner direction, 8 October 2026: retain the existing CyberJudah app, all content and Apple Liquid Glass; integrate reader and interaction improvements into `app/`. The separate Expo prototype is not the replacement product. Visible changes require previews in the existing app before implementation.
+
+Latest upstream checked for the current gesture work: `a40b63c5bef7fbe41dbd1573780e65e736eab333` (8 October 2026). Its changes after the previously checked `eed343d` concern resource publication, not the Expo reader/navigation source. The earlier review below remains a gap inventory, not a claim of complete current-source parity.
+
+## Current reader gesture corrections
+
+The existing reader retains its taught-precept chips, explanation sheets, personal relations and inline class decks. Fast taps on distinct verses now deliver the first selection before starting the next gesture; cancellation, multi-touch and lost window focus clear the held press so a late release cannot select a verse or open resources. Both configured short/long press modes keep their existing actions. A fast sheet release uses its actual release position to decide dismissal.
+
+`reader-parity.spec.ts` exercises rapid mouse/touch selection, cancelled-touch recovery, multi-touch interruption, focus loss and the press preference; `telegram.spec.ts` covers rapid sheet dismissal and the existing precept/class flows. These are interaction fixes, with no new layout or content substitution. Double-tap word annotation, rich/free-note behavior and the remaining differences below still need focused integration and previews; the existing gesture callback does not yet provide upstream's word-annotation workflow.
+
+## Earlier baseline review
+
 Reference: [smontlouis/bible-strong at 8ca8842](https://github.com/smontlouis/bible-strong/tree/8ca884298e109f20762415d4b9d6581d3506e963/apps/expo/src/features), reviewed 2026-10-08.
 CyberJudah baseline: `4434426` (including personal studies, phrase marks, reading plans and native packaging from #200).
 

@@ -35,6 +35,109 @@ async function overview(page: Page) {
 }
 test.beforeEach(async ({ page }) => setup(page));
 
+async function gestureClock(page: Page) {
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-2 .bs-num")).toBeVisible();
+  await page.clock.install({ time: new Date("2026-10-08T18:00:00Z") });
+  await page.clock.pauseAt(new Date("2026-10-08T18:00:01Z"));
+}
+async function touchVerse(page: Page, type: string, fingers: number, verse = 1) {
+  await page.locator(`#verset-${verse} .bs-num`).evaluate((el, { type, fingers }) => {
+    const r = el.getBoundingClientRect();
+    const point = { identifier: 1, target: el, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2 };
+    const event = new Event(type, { bubbles: true });
+    Object.defineProperties(event, {
+      touches: { value: Array.from({ length: fingers }, (_, i) => ({ ...point, identifier: i + 1, clientX: point.clientX + i * 20 })) },
+      changedTouches: { value: [point] },
+    });
+    el.dispatchEvent(event);
+  }, { type, fingers });
+}
+
+for (const input of ["mouse", "touch"] as const) test(`reader rapid ${input} taps retain each distinct verse selection`, async ({ page }) => {
+  await gestureClock(page);
+  for (const n of [1, 2]) {
+    if (input === "touch") {
+      await touchVerse(page, "touchstart", 1, n);
+      await touchVerse(page, "touchend", 0, n);
+    } else {
+      const b = (await page.locator(`#verset-${n} .bs-num`).boundingBox())!;
+      await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+    }
+    await page.clock.runFor(50);
+  }
+  await page.clock.runFor(250);
+  await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(2);
+  await expect(page.getByRole("dialog", { name: "Selected: Genesis 1:1-2", exact: true })).toBeVisible();
+});
+
+test("reader cancelled touch cannot select a verse on a later release", async ({ page }) => {
+  await gestureClock(page);
+  await touchVerse(page, "touchstart", 1);
+  await page.clock.runFor(100);
+  await touchVerse(page, "touchcancel", 0);
+  await touchVerse(page, "touchend", 0);
+  await page.clock.runFor(600);
+  await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await touchVerse(page, "touchstart", 1);
+  await touchVerse(page, "touchend", 0);
+  await page.clock.runFor(250);
+  await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
+});
+
+test("reader adding a second finger cancels the pending long press", async ({ page }) => {
+  await gestureClock(page);
+  await touchVerse(page, "touchstart", 1);
+  await page.clock.runFor(100);
+  await touchVerse(page, "touchstart", 2);
+  await page.clock.runFor(500);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await touchVerse(page, "touchend", 1);
+  await touchVerse(page, "touchend", 0);
+  await page.clock.runFor(250);
+  await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
+  await touchVerse(page, "touchstart", 1);
+  await page.clock.runFor(500);
+  await touchVerse(page, "touchend", 0);
+  await page.clock.runFor(250);
+  await expect(page.locator(".bs-resourcetabs")).toBeVisible();
+  await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
+});
+
+test("reader focus loss cancels a held press and the next click still works", async ({ page }) => {
+  await gestureClock(page);
+  const b = (await page.locator("#verset-1 .bs-num").boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.down();
+  await page.clock.runFor(100);
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await page.clock.runFor(500);
+  await page.mouse.up();
+  await page.clock.runFor(250);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
+  await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+  await page.clock.runFor(250);
+  await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
+});
+
+test("reader press preference still swaps resources and verse selection", async ({ page }) => {
+  await page.goto("/read/genesis/1");
+  await menu(page, "Font and settings");
+  await page.getByRole("button", { name: "Showing strongs: Long press", exact: true }).click();
+  await page.getByRole("dialog", { name: "Font and settings" }).getByRole("button", { name: "Close", exact: true }).click();
+  await page.locator("#verset-1 .bs-num").click();
+  await expect(page.locator(".bs-resourcetabs")).toBeVisible();
+  await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  const b = (await page.locator("#verset-1 .bs-num").boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await page.mouse.down(); await page.waitForTimeout(550); await page.mouse.up();
+  await expect(page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true })).toBeVisible();
+  await expect(page.locator(".bs-resourcetabs")).toHaveCount(0);
+});
+
 test("reader selections and expanded passage context belong to their own tabs", async ({ page }) => {
   await page.goto("/read/genesis/1");
   await page.locator("#verset-1 .bs-text").click();
@@ -133,6 +236,7 @@ test("daily verses have five days, sharing and images on Home", async ({ page })
 
 test("keyboard palette switches to an existing tab and opens a passage with its range", async ({ page }) => {
   await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1")).toBeVisible();
   await page.keyboard.press("Control+k");
   const input = page.getByRole("combobox", { name: "Find a tab or tool" });
   await input.fill("John"); await input.press("Enter");
