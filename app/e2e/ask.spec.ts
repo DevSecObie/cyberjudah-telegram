@@ -259,7 +259,7 @@ test("privacy: nothing is sent to an AI provider until the reader agrees, and th
   // Withdrawn in Settings → Privacy: asked again.
   await page.goto(`/privacy${launch(12)}`);
   await page.getByText("Withdraw AI agreement").click();
-  await expect(page.getByRole("status")).toContainText("Ask will ask before sending");
+  await expect(page.getByRole("status")).toContainText("Ask and Search will ask before sending");
   await page.goto(`/ask${launch(12)}`);
   await page.getByRole("button", { name: "New chat" }).click();
   await ask(page, "And the Sabbath?");

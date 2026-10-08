@@ -41,14 +41,14 @@ export async function researchOpen(
   if (!env.AI_GATEWAY) throw unavailable(new Error("No AI Gateway is configured for this model"));
   const ai = env.AI as unknown as Ai;
   const call = async (input: unknown): Promise<Record<string, unknown>> => {
-    if (model.id.startsWith("@cf/") && spend?.budgetUsd != null) {
+    if ((model.id.startsWith("@cf/") || model.format === "plain") && spend?.budgetUsd != null) {
       // Bound the output before starting a free call, including plain/chat models. Use
       // UTF-8 bytes plus framing headroom as a conservative input-token allowance.
       // A budget refusal must not turn into an unmetered provider fallback.
       const tokens = new TextEncoder().encode(JSON.stringify(input)).length + 1024;
       const room = spend.outputTokensLeft(model, spend.inputUsd({ input_tokens: tokens }, model));
       if (room < 64 || spend.unreported) throw new Error("The answer has used its reserved budget.");
-      input = { ...(input as Record<string, unknown>), max_tokens: Math.min(4096, room) };
+      input = { ...(input as Record<string, unknown>), max_tokens: Math.min(4096, model.maxOutput ?? 4096, room) };
     }
     try {
       // Not logged: the request carries the reader's question (providers.ts viaGateway).

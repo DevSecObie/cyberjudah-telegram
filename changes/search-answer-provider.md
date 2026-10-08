@@ -1,0 +1,1 @@
+- Search can answer through a separately configured provider while keeping library citations and remaining free to readers. It asks for external-provider consent before sending a question, and keeps ordinary results available when consent is declined or the answer fails.

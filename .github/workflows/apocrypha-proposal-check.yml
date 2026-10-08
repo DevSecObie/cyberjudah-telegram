@@ -1,0 +1,34 @@
+name: Apocrypha proposal check
+# docs/proposals/apocrypha/check.py validates the owner-approved review sample
+# (people.json, timeline.json, evidence.json) against the pinned cyberjudah commit
+# in evidence.json: every scripture quotation, caption excerpt and family link it
+# claims. Run it whenever the sample or the checker itself changes, so neither can
+# drift silently out of sync with the source it cites.
+on:
+  pull_request:
+    paths:
+      - 'docs/proposals/apocrypha/**'
+      - '.github/workflows/apocrypha-proposal-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/proposals/apocrypha/**'
+      - '.github/workflows/apocrypha-proposal-check.yml'
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: cyberjudah (full history, for the pinned evidence commit)
+        uses: actions/checkout@v7
+        with:
+          repository: DevSecObie/cyberjudah
+          path: .apocrypha-corpus
+          fetch-depth: 0
+          persist-credentials: false
+      - run: python3 docs/proposals/apocrypha/check.py .apocrypha-corpus

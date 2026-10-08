@@ -9,6 +9,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      verify_only:
+        description: Verify the currently deployed staging app without deploying again
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -17,11 +22,12 @@ permissions:
 # two at once collide in the search-index import ("Cannot start another import") and race to
 # decide which build staging shows. A queued run waits; none is cancelled.
 concurrency:
-  group: staging
+  group: ${{ inputs.verify_only && 'staging-verification' || 'staging' }}
   cancel-in-progress: false
 
 jobs:
   check:
+    if: ${{ !inputs.verify_only }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -38,7 +44,7 @@ jobs:
 
   stage:
     # CMS review branches require an owner workflow_dispatch to stage, even when ready.
-    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.draft == false && !startsWith(github.head_ref, 'cms/') && !startsWith(github.head_ref, 'codex/cms-'))
+    if: ${{ !inputs.verify_only && (github.event_name == 'workflow_dispatch' || (github.event.pull_request.draft == false && !startsWith(github.head_ref, 'cms/') && !startsWith(github.head_ref, 'codex/cms-'))) }}
     needs: check
     runs-on: ubuntu-latest
     steps:
@@ -137,3 +143,47 @@ jobs:
           curl -sf "$URL/app/strong/" | grep -q "/app/strong/_expo/static/js/web/entry-"
           curl -sf "$URL/app/strong/bible" | grep -q "/app/strong/_expo/static/js/web/entry-"
           echo "fork: ok"
+      - name: Verify authenticated search and provider consent
+        working-directory: bot
+        env:
+          WORKER_URL: ${{ steps.deploy.outputs.url }}
+          BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
+          EXPECTED_SEARCH_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8"
+        run: node scripts/verify-release.mjs
+
+  verify-current:
+    if: github.event_name == 'workflow_dispatch' && inputs.verify_only
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Resolve the staging worker address
+        id: address
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, urllib.request
+          account = os.environ['CLOUDFLARE_ACCOUNT_ID']
+          req = urllib.request.Request(f'https://api.cloudflare.com/client/v4/accounts/{account}/workers/subdomain', headers={'Authorization': 'Bearer ' + os.environ['CLOUDFLARE_API_TOKEN']})
+          with urllib.request.urlopen(req, timeout=30) as response:
+              result = json.load(response)
+          subdomain = result.get('result', {}).get('subdomain', '')
+          if not result.get('success') or not re.fullmatch(r'[a-z0-9-]+', subdomain):
+              raise SystemExit('Could not resolve the staging Worker address.')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'url=https://cyberjudah-telegram-staging.{subdomain}.workers.dev\n')
+          PY
+      - name: Verify current staging
+        working-directory: bot
+        env:
+          WORKER_URL: ${{ steps.address.outputs.url }}
+          BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
+          EXPECTED_SEARCH_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8"
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/diagnose-staging.mjs

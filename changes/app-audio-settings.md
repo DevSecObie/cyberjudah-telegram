@@ -1,0 +1,2 @@
+- Audio settings (voice, speed, pitch and ambient sound) are now reachable from Settings without starting playback, explain the difference between licensed, generated and device voices, and offer an explicit choice when a saved voice is no longer available.
+- Saved books now show text and narration status separately, with a dedicated download/retry action for narration that never requires removing the saved text, shows the size before downloading, and only re-fetches what's missing.

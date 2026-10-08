@@ -16,6 +16,7 @@ const hex = (bytes) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0"))
 
 /** Same length, every char compared, no early exit: the hash (or a secret) must not leak by timing. */
 export function sameHex(a, b) {
+  if (!a || !b) return false;
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);

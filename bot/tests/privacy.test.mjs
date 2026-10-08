@@ -39,3 +39,13 @@ test("a counted address is kept under a keyed hash: stable, not the plain SHA-25
   assert.notEqual(await keyedHash(env, "other", ip), h);
   assert.notEqual(await keyedHash(env, "remcreate", "203.0.113.8"), h);
 });
+
+test("same-length secrets never share cached pseudonyms or HMAC keys", async () => {
+  const a = { PRIVACY_KEY: "first-test-key" }, b = { PRIVACY_KEY: "other-test-key" };
+  assert.equal(a.PRIVACY_KEY.length, b.PRIVACY_KEY.length);
+  const id = await pid(a, 73), hash = await keyedHash(a, "remcreate", "203.0.113.7");
+  assert.notEqual(await pid(b, 73), id);
+  assert.notEqual(await keyedHash(b, "remcreate", "203.0.113.7"), hash);
+  assert.equal(await pid(a, 73), id);
+  assert.equal(await keyedHash(a, "remcreate", "203.0.113.7"), hash);
+});

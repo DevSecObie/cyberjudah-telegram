@@ -54,6 +54,14 @@ they do not need a second local copy of the server index.
 
 ## Admin publication — manual only
 
+For an approved deployment, an owner can dispatch **Resource bundles** from **main** with **publish**
+enabled. The workflow builds and verifies the pinned approved sources, then waits for the
+`production` environment approval before upload. It uses the existing Cloudflare repository
+secrets and signs a fresh catalog request on the server for the first account in `ADMIN_IDS`,
+using `BOT_TOKEN`. Launch data is never printed or stored as an artifact. The same checksum,
+schema, path and `If-Match` checks apply as in the local command below. Pull requests and the
+default workflow dispatch only build artifacts. Publication preserves unrelated resources.
+
 The default `publish.mjs` command above only verifies local files. An admin with
 their own normal Wrangler/Cloudflare credentials and current Telegram admin init
 data in `RESOURCE_ADMIN_INIT_DATA` can run one command after reviewing the reports:
@@ -93,8 +101,9 @@ Retry against the new current ETag. Never write approval markers or the current
 catalog pointer directly. Uploading a new release does not delete installed older
 releases, which remain available for rollback and pinned citations.
 
-No remote upload, merge or deployment is performed by the build or CI workflow.
-R2 is the sole app resource CDN. The upload script is for the admin’s later use.
+No remote upload is performed by pull-request checks or a dispatch without **publish**.
+R2 is the sole app resource CDN. Only the explicit, production-approved publication job
+or the administrator's local command writes remote releases.
 
 ---
 

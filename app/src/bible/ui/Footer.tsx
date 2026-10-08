@@ -18,7 +18,7 @@ import { Sheet } from "./Sheet";
  * reference being read, chapter skips, previous/next verse, play/stop, and the Speed and
  * Repeat chips. In fullscreen the arrows slide off and the pill drops by the header height.
  */
-export type Speech = { supported: boolean; loading?: boolean; playing: boolean; paused: boolean; current: number | null; rate: number; setRate: (r: number) => void; pitch: number; setPitch: (p: number) => void; pitchSupported: boolean; play: (from?: number) => void; stop: () => void; toggle: () => void; voices: SpeechSynthesisVoice[]; voice: string | null; setVoice: (name: string | null) => void; currentVoice: string | null; narrators: Narrator[]; narratorsLoading: boolean; narratorsError: boolean; notice: string };
+export type Speech = { supported: boolean; loading?: boolean; playing: boolean; paused: boolean; current: number | null; rate: number; setRate: (r: number) => void; pitch: number; setPitch: (p: number) => void; pitchSupported: boolean; play: (from?: number) => void; stop: () => void; toggle: () => void; voices: SpeechSynthesisVoice[]; voice: string | null; setVoice: (name: string | null) => void; currentVoice: string | null; narrators: Narrator[]; narratorsLoading: boolean; narratorsError: boolean; narratorsRefetch: () => void; notice: string };
 
 export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, hidden, bottomBar, reference, verseCount, repeat, setRepeat, expanded, setExpanded }: {
   hasPrev: boolean; hasNext: boolean; onPrev: () => void; onNext: () => void; speech: Speech; fullscreen: boolean; hidden: boolean; bottomBar: number; reference: string; verseCount: number; repeat: boolean; setRepeat: (v: boolean) => void; expanded: boolean; setExpanded: (v: boolean) => void;
@@ -82,9 +82,14 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
           <Sheet open={voices} onClose={() => setVoices(false)} title="Voice" subTitle={aiVoices.data?.length ? `${aiVoices.data.length} reading voices, and ${speech.voices.length} on this device` : speech.voices.length ? `${speech.voices.length} English voices on this device` : "No English voice on this device"} height="half">
             <div className="bs-fontlist">
               <h3 className="bs-audio__group">Narrators</h3>
-              {speech.narratorsLoading ? <p className="bs-audio__notice">Finding recordings…</p> : !speech.narrators.length ? <p className="bs-audio__notice">{speech.narratorsError ? "Recordings are unavailable right now." : "No recording for this chapter. Choose an AI reading voice below."}</p> : null}
-              {speech.narrators.map((n) => <button key={n.id} type="button" role="radio" aria-checked={speech.voice === `narrator:${n.id}`} className="bs-fontrow" onClick={() => { speech.setVoice(`narrator:${n.id}`); setVoices(false); }}><span>{n.reader}<small className="bs-audio__detail">Human narration · KJV</small></span>{speech.voice === `narrator:${n.id}` ? <Feather name="check" size={20} color="var(--bs-primary)" /> : null}</button>)}
+              {speech.narratorsLoading ? <p className="bs-audio__notice">Finding recordings…</p> : !speech.narrators.length ? (
+                <p className="bs-audio__notice">
+                  {speech.narratorsError ? <>Recordings are unavailable right now. <button type="button" className="link" onClick={speech.narratorsRefetch}>Retry</button></> : "No recording for this chapter. Choose an AI reading voice below."}
+                </p>
+              ) : null}
+              {speech.narrators.map((n) => <button key={n.id} type="button" role="radio" aria-checked={speech.voice === `narrator:${n.id}`} className="bs-fontrow" onClick={() => { speech.setVoice(`narrator:${n.id}`); setVoices(false); }}><span>{n.reader}<small className="bs-audio__detail">Licensed narration · KJV</small></span>{speech.voice === `narrator:${n.id}` ? <Feather name="check" size={20} color="var(--bs-primary)" /> : null}</button>)}
               <h3 className="bs-audio__group">AI reading voices</h3>
+              {aiVoices.isError ? <p className="bs-audio__notice">Reading voices are unavailable right now. <button type="button" className="link" onClick={() => void aiVoices.refetch()}>Retry</button></p> : aiVoices.isPending ? <p className="bs-audio__notice">Finding reading voices…</p> : null}
               {aiVoices.data?.map((v) => {
                 const id = `ai:${v.id}`, on = speech.voice === id;
                 return <button key={id} type="button" role="radio" aria-checked={on} className="bs-fontrow" onClick={() => { speech.setVoice(id); setVoices(false); }}><span style={{ color: on ? "var(--bs-primary)" : "var(--bs-default)" }}>{v.name}<small style={{ display: "block", fontSize: 12, color: "var(--bs-tertiary)" }}>Reading voice · {v.note}</small></span>{on ? <Feather name="check" size={20} color="var(--bs-primary)" /> : null}</button>;

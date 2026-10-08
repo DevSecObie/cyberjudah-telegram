@@ -8,7 +8,9 @@ turn class captions or catalog metadata into a rightsholder's licence statement.
 KJV with the Apocrypha remains the only Bible text. Easton's stays unchanged;
 Brenton is on hold, reference-only if ever added. Webster 1828 and Britannica
 1911 are dropped; their modern websites remain link-only. Interlinear work stays
-paused. No remote R2 upload, merge or deployment is authorized for this work.
+paused. That implementation phase did not authorize remote publication. The owner's
+October 8 catch-up deployment request separately authorizes publishing these approved
+bundles through the production-approved workflow described in [resources/README.md](../resources/README.md).
 
 Sources, commit IDs and SHA-256 hashes are in
 [`resources/sources.lock.json`](../resources/sources.lock.json). The converter

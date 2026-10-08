@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router";
 
 import { data, fmtDate, type FeedRow, type HistoryRow, type Opened } from "@/api/data";
 import { toAppPath } from "@shared/links.mjs";
+import { orderTeachings } from "@shared/teaching-order.mjs";
 const toApp = (sitePath: string) => toAppPath(sitePath) ?? sitePath;
 import { pullStyle, usePullToRefresh } from "@/lib/pull";
 import { planDay, schedule } from "@/lib/plan";
@@ -23,7 +24,7 @@ import { TodayCard, type DailyVerse as Verse } from "./TodayCard";
 export type LiveNow = { live: boolean; upcoming: boolean; video: string | null; title: string | null; starts: string | null };
 /** Whether a class is on the air, asked again every minute while Home is open. */
 export const useLive = (enabled = true) => useQuery({ queryKey: ["live"], queryFn: () => api<LiveNow>("/api/live"), enabled, refetchInterval: 60_000, staleTime: 45_000, retry: false });
-export type Teaching = { kind: "class" | "captains" | "history"; url: string; title: string; date: string; teacher: string; thumb: string; topics: string[]; books: string[]; sub?: string; collection?: string; video?: string; pending?: boolean; intro?: string; opens?: Opened[]; series?: Series };
+export type Teaching = { kind: "class" | "captains" | "history"; url: string; title: string; date: string; broadcastAt?: string; teacher: string; thumb: string; topics: string[]; books: string[]; sub?: string; collection?: string; video?: string; pending?: boolean; intro?: string; opens?: Opened[]; series?: Series };
 export type RecentVideo = { video: string; title: string; published: string; views: number | null };
 /** The video behind a teaching's thumbnail: YouTube's own (/vi/<id>/) or the site's local copy (/img/<feed>/<id>.jpg). */
 const videoOfThumb = (thumb: string) => /(?:\/vi(?:_webp)?\/|\/img\/[a-z]+\/)([A-Za-z0-9_-]{11})(?=[/.])/.exec(thumb ?? "")?.[1] ?? null;
@@ -67,15 +68,16 @@ function useNotedTeachings() {
   });
 }
 
-/** Everything taught, with the recordings that have no notes yet listed among them, newest first. */
+/** Newest day first; each day's broadcasts run from first to last, including pending notes. */
 export function useTeachings() {
   const notes = useNotedTeachings();
   const recent = useRecent();
-  const data = useMemo(() => {
+  const broadcasts = useQuery({ queryKey: ["class-broadcasts"], queryFn: () => data.broadcasts(), staleTime: 10 * 60_000, retry: false });
+  const teachings = useMemo(() => {
     if (!notes.data) return notes.data;
-    const have = new Set(notes.data.map((t) => videoOfThumb(t.thumb)).filter(Boolean));
+    const have = new Set(notes.data.map((t) => t.video ?? videoOfThumb(t.thumb)).filter(Boolean));
     const extra = (recent.data?.videos ?? []).filter((v) => !have.has(v.video)).map<Teaching>((v) => ({ kind: "class", url: `/watch/${v.video}`, title: v.title, date: v.published.slice(0, 10), teacher: "", thumb: thumbOf(v.video), topics: [], books: [], video: v.video, pending: true }));
-    const all = extra.length ? [...notes.data, ...extra].sort((a, b) => (b.date || "").localeCompare(a.date || "")) : notes.data;
+    const all = orderTeachings([...notes.data, ...extra], broadcasts.data);
     // A class taught as one of a run, or on one of the shows, carries that name, read from the titles.
     const series = seriesOf(all.filter((t) => t.kind === "class").map((t) => t.title));
     return all.map((t) => {
@@ -83,8 +85,8 @@ export function useTeachings() {
       const s = series.get(t.title) ?? (showOf(t.title) ? { name: showOf(t.title)! } : undefined);
       return s ? { ...t, series: s } : t;
     });
-  }, [notes.data, recent.data]);
-  return { ...notes, data, feedOk: recent.data?.feedOk };
+  }, [notes.data, recent.data, broadcasts.data]);
+  return { ...notes, data: teachings, feedOk: recent.data?.feedOk };
 }
 
 /** The Learn shelf: where the teaching is kept, each its own door (Bible Strong's learning cards). */

@@ -5,6 +5,10 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
+process.on("uncaughtException", error => {
+  console.error(`::error::${String(error.message).replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")}`);
+  process.exitCode = 1;
+});
 const root = process.env.RECORDINGS_EXPORT_DIR;
 if (!root) { console.log("Recordings unchanged (RECORDINGS_EXPORT_DIR is not set)."); process.exit(0); }
 const dry = process.argv.includes("--dry-run");
@@ -24,6 +28,15 @@ for (const chapter of catalog.chapters) {
 uploads.push(["recordings/catalog.json", path.join(root, "catalog.json"), "application/json"]);
 for (const [key, file, type] of uploads) {
   if (dry) { console.log(`${key} <- ${file}`); continue; }
-  const r = spawnSync("npx", ["wrangler", "r2", "object", "put", `${bucket}/${key}`, "--file", file, "--content-type", type, "--remote"], { stdio: "inherit" });
-  if (r.status !== 0) throw new Error(`Upload failed: ${key}; catalog not advanced`);
+  let uploaded = false;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const r = spawnSync("npx", ["wrangler", "r2", "object", "put", `${bucket}/${key}`, "--file", file, "--content-type", type, "--remote"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    if (r.status === 0) { uploaded = true; break; }
+    // Wrangler's normal CLI errors contain the failed API operation, never the token.
+    const detail = String(r.error?.message || r.stderr || r.stdout).replace(/\x1b\[[0-9;]*m/g, "").slice(-1600);
+    console.error(`::warning::Upload attempt ${attempt} for ${key}: ${detail.replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")}`);
+    if (attempt < 3) await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+  }
+  if (!uploaded) throw new Error(`Upload failed: ${key}; catalog not advanced`);
 }
+console.log(`::notice::${dry ? "Verified" : "Published"} ${catalog.chapters.length} narration chapters; catalog written last.`);

@@ -1,0 +1,1 @@
+- Classes keep the newest day first and show each day's recordings in broadcast order. A class awaiting notes stays with the day it was taught, even when its recording was uploaded later.
