@@ -14,8 +14,8 @@ The owner's Latest Teachings screenshot is an explicit requirement within that l
 - Connect Timeline geometry and details to CyberJudah sources and approved photos, retaining all events and the final Redemption card. Show original source quotations and scripture separately.
 - Use the actual Easton dictionary identity and CyberJudah's Strong's publication identity. Browser resource queries use browser connectivity instead of a third-party reachability probe.
 - Generate five CyberJudah reading plans from the pinned book/chapter metadata, including the Apocrypha. Keep the upstream plan screens and progress model.
-- Configure the owner's Firebase project, keep analytics disabled, and reconcile the owner-supplied rules with private saved-data sync. The base rules were owner-confirmed published on 8 October; the later authorized revision amendment and delete correction are mirrored locally. Ten rules tests and seven migration-engine tests pass against Firestore emulators. See `strong/firebase/README.md`.
-- Add verified Telegram-to-Firebase sign-in with stable `tg_<id>` UIDs, SDK session restoration before minting, and SDK persistent offline caching. Browser bridge tests prove fresh mint counts, cold-start restoration and two-device identity. Production signing requires the Worker-only service-account secret.
+- Configure the owner's Firebase project, keep analytics disabled, and reconcile the owner-supplied rules with private saved-data sync. The base rules were owner-confirmed published on 8 October; the owner also confirmed publishing the revision amendment and delete correction, mirrored locally. Ten rules tests and seven migration-engine tests pass against Firestore emulators. See `strong/firebase/README.md`.
+- Add verified Telegram-to-Firebase sign-in with stable `tg_<id>` UIDs, SDK session restoration before minting, and SDK persistent offline caching. Browser bridge tests prove fresh mint counts, cold-start restoration and two-device identity. The owner confirmed configuring the Worker-only service-account secret; live sign-in still needs verification after deployment.
 
 ## Remaining before promoting the fork to `/app`
 

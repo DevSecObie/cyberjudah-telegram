@@ -18,7 +18,7 @@ There is no broad signed-in read fallback. Unlisted collections are denied. The 
 
 ## Apply the reviewed rules
 
-The owner authorized nested note/study revision access on 8 October and the subsequent top-level revision update/delete split. The local rules include both exact amendments. Publication of the corrected amendment has not yet been confirmed; no other rules changes are authorized.
+The owner authorized nested note/study revision access on 8 October and the subsequent top-level revision update/delete split. The local rules include both exact amendments. The owner confirmed publishing the corrected amendment on 8 October; no other rules changes are authorized.
 
 The owner confirmed publishing this replacement on 8 October 2026. That is owner confirmation; this environment has not independently read the deployed rules or tested live sign-in. The local emulator tests do not update production. From this directory, with the owner's Firebase CLI account authenticated:
 
@@ -40,6 +40,8 @@ npm test
 
 Tests use the `demo-cyberjudah` emulator project, never production data. Java 21 is required. They exercise owner isolation across every saved collection, unauthenticated refusal, shared-study takeover prevention, legacy note migration and tab queries, existing shared-content reads, restricted counters, and private connection status. CI runs the same suite.
 
+This directory's lockfile overrides vulnerable transitive dependencies of the emulator CLI: gRPC, OpenTelemetry core, basic-ftp and gaxios's UUID dependency. The scoped Chokidar 4 override removes the unpatched `braces` dependency from Firebase Tools. This CLI installation is tested for Auth and Firestore emulators only; it is not the toolchain for Functions development or production deployment. Recheck these overrides when upgrading Firebase Tools, and remove them when its own dependency tree supplies the fixes.
+
 Real sign-in and two-device sync must still be checked after the rules are published. Emulator and mocked adapter tests are not proof of production Firebase access.
 
 ## Browser sync verification
@@ -59,7 +61,7 @@ Both export scripts clear Expo's transform cache before building and verify the 
 
 `POST /api/firebase/token` accepts only verified, fresh Telegram `Authorization: tma ...` launch data. The Worker derives `tg_<Telegram ID>` and signs a one-hour Firebase custom token. The client waits for the SDK's persisted-session restoration first; restored sessions only verify the matching identity through `/api/firebase/identity`. Firebase handles ID-token renewal itself. There is no hourly mint job and no D1 copy of notes or tokens.
 
-Before enabling the staged fork for users, create a dedicated service account in **cyberjudah-app → Google Cloud → IAM & Admin → Service Accounts**, create its JSON key, and store the complete JSON as the Cloudflare Worker secret **`FIREBASE_SERVICE_ACCOUNT`**. Use the Cloudflare dashboard secret editor or, from the owner's authenticated machine:
+The owner confirmed that `FIREBASE_SERVICE_ACCOUNT` is configured on the Worker on 8 October. This environment has not read the secret or verified live minting. For setup or rotation, create a dedicated service account in **cyberjudah-app → Google Cloud → IAM & Admin → Service Accounts**, create its JSON key, and store the complete JSON as the Cloudflare Worker secret **`FIREBASE_SERVICE_ACCOUNT`**. Use the Cloudflare dashboard secret editor or, from the owner's authenticated machine:
 
 ```sh
 cd bot
@@ -68,6 +70,6 @@ npx wrangler secret put FIREBASE_SERVICE_ACCOUNT < /path/to/private-service-acco
 
 Do not paste the JSON into chat, commit it, put it in an `EXPO_PUBLIC_*` variable, or upload it as a build artifact. Local signing does not need a Firestore administrator role or an IAM signBlob grant. The account must belong to `cyberjudah-app`; the Worker rejects a key for another project. Protect and rotate this key as an authentication credential. A repository Actions secret of the same name is optional: the production workflow installs it when supplied and otherwise preserves a directly configured Worker secret. Staging needs its own explicitly configured binding.
 
-The `FIREBASE_AUTH_LIMIT` Worker binding limits minting to ten requests per verified Telegram UID per minute. Missing signing configuration or rate-limit binding fails closed with HTTP 503. No key is available in this development environment; bridge tests generate disposable local keys and exchange tokens only with the official Auth emulator. Production signing and provider login are still unverified.
+The `FIREBASE_AUTH_LIMIT` Worker binding limits minting to ten requests per verified Telegram UID per minute. Missing signing configuration or rate-limit binding fails closed with HTTP 503. No key is available in this development environment; bridge tests generate disposable local keys and exchange tokens only with the official Auth emulator. Production signing and provider login are still unverified; owner confirmation establishes configuration, not a live sign-in test.
 
 Migration traces, the two versioned commit points, tested retry behavior, and remaining conversion/cutover work are recorded in [FIREBASE_IDENTITY_MIGRATION.md](../../docs/FIREBASE_IDENTITY_MIGRATION.md). The migration engine is not yet invoked by normal sign-in; it must not mark legacy data migrated before all converters and UI readers are ready.

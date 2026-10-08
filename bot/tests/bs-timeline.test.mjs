@@ -21,7 +21,7 @@ test('the fork receives every published event, the original geometry, and Redemp
   for (const [i, section] of sections.entries()) {
     assert.deepEqual(section.events.map(({ id, slug, row, start, end }) => ({ id, slug, row, start, end })), source.sections[i].events.map(({ id, slug, row, start, end }) => ({ id, slug, row, start, end })));
     assert.equal(section.titleEn, source.sections[i].title);
-    assert.ok(!section.image.includes('biblehistory.com'));
+    assert.equal(new URL(section.image, 'https://cyberjudah.test').hostname, 'cyberjudah.test');
   }
   assert.equal(sections.at(-1).title, 'Redemption');
   assert.ok(sections.at(-1).events.some(e => e.slug === 'iuic-founded-2003'));

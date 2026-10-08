@@ -1,3 +1,5 @@
+import { DomUtils, parseDocument } from 'htmlparser2'
+
 /**
  * The sections of a commentary on one chapter, as the public site addresses them, and the
  * rule that picks the one bearing on a verse. This module loads nothing: the public site
@@ -29,26 +31,11 @@ const EGW_CONTEXT_LINK_PATTERN =
 const EGW_CONTEXT_HREF_PATTERN =
   /<a\b[^>]*\bclass=(?:"[^"]*\bexternal-source\b[^"]*"|'[^']*\bexternal-source\b[^']*')[^>]*\bhref=(?:"([^"]+)"|'([^']+)')[^>]*>/iu
 
-const ENTITIES: Record<string, string> = {
-  amp: '&',
-  lt: '<',
-  gt: '>',
-  quot: '"',
-  apos: "'",
-  nbsp: ' ',
-}
-
-// The text of a heading: tags removed, common entities decoded, white space collapsed.
+// A plain-text grouping key, parsed once (including entities), never HTML output.
 const headingText = (html: string): string =>
-  html
-    .replace(/<br\s*\/?>|<\/(?:p|div|li|dd|dt|td|th|tr|blockquote|h[1-6])>/giu, ' ')
-    .replace(/<[^>]*>/gu, '')
-    .replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/giu, (entity, name: string) => {
-      const key = name.toLowerCase()
-      if (key.startsWith('#x')) return String.fromCodePoint(Number.parseInt(key.slice(2), 16))
-      if (key.startsWith('#')) return String.fromCodePoint(Number(key.slice(1)))
-      return ENTITIES[key] ?? entity
-    })
+  DomUtils.textContent(
+    parseDocument(html.replace(/<br\s*\/?>|<\/(?:p|div|li|dd|dt|td|th|tr|blockquote|h[1-6])>/giu, ' '))
+  )
     .replace(/\s+/gu, ' ')
     .trim()
 

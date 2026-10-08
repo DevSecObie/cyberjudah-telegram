@@ -26,6 +26,7 @@
     "metro-runtime": "patch:metro-runtime@npm%3A0.84.5#~/.yarn/patches/metro-runtime-npm-0.84.5-e3e8c081e8.patch",
     "image-size": "portal:./shims/image-size",
     "@grpc/grpc-js": "1.14.5",
-    "proxy-addr": "2.0.8"
+    "proxy-addr": "2.0.8",
+    "qs": "6.16.0"
   }
 }

@@ -116,10 +116,12 @@ export function estimateReadingHtmlHeight(
     1,
     Math.floor(width / (typography.fontSize * AVERAGE_CHAR_WIDTH_RATIO))
   )
-  const lines = html
-    .replace(/<\/(p|li|h[1-6]|div|blockquote)>|<br\s*\/?>/giu, '\n')
-    .replace(/<[^>]*>/gu, '')
-    .replace(/&[a-z0-9#]+;/giu, ' ')
+  // Parse text rather than deleting angle-bracket substrings. This is a numeric
+  // layout estimate; the resulting text is never rendered as HTML.
+  const text = DomUtils.textContent(
+    parseDocument(html.replace(/<\/(p|li|h[1-6]|div|blockquote)>|<br\s*\/?>/giu, '\n'))
+  )
+  const lines = text
     .split('\n')
     .map(block => block.trim())
     .filter(Boolean)

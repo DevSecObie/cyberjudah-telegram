@@ -33,7 +33,7 @@ The owner confirmed publishing `strong/firebase/firestore.rules` at 9:17 AM on 8
 
 ## Planned bridge
 
-Implementation status: the Worker routes and stable UID derivation now exist in `bot/src/firebase-auth.ts`; the web client restores SDK auth before invoking the bridge. Unit tests and browser tests against the real Auth emulator pass for tampering, two-device identity and mint counts. Production signing still requires the Worker-only credential described in `strong/firebase/README.md`. The trace above records the state before these changes.
+Implementation status: the Worker routes and stable UID derivation now exist in `bot/src/firebase-auth.ts`; the web client restores SDK auth before invoking the bridge. Unit tests and browser tests against the real Auth emulator pass for tampering, two-device identity and mint counts. The owner confirmed configuring the Worker-only signing credential on 8 October; live minting remains unverified until this code is deployed. The trace above records the state before these changes.
 
 - Add a POST mint route with fresh signed Telegram initData verification and a safe positive integer Telegram ID. Reject missing, stale, tampered and duplicate identity fields. UID is exactly `tg_<verified numeric ID>`; never accept a UID from the request and never allocate one randomly.
 - Sign Firebase custom tokens on the Worker using a Firebase service account configured as Worker secrets. Public browser config cannot sign. No signing key, custom token, ID token or refresh token is logged or persisted in D1.
@@ -55,9 +55,9 @@ Implementation status: `telegramMigration.web.ts` now implements the two indepen
 
 ## Owner-authorized revision amendment
 
-After the trace, the owner authorized exact nested revision paths under private notes/private studies and under legacy public studies. `strong/firebase/firestore.rules` now mirrors that supplied amendment; publication of the amendment itself is not yet independently confirmed. No other rule change is authorized.
+After the trace, the owner authorized exact nested revision paths under private notes/private studies and under legacy public studies. `strong/firebase/firestore.rules` now mirrors that supplied amendment; the owner confirmed publishing the corrected amendment on 8 October (not independently read back by this environment). No other rule change is authorized.
 
-The owner subsequently approved splitting top-level revision update and delete: updates require both existing and incoming ownership, while deletes check the existing document. The local rules contain that exact correction. Emulator tests cover owner create/read/delete for private note and study revisions, cross-account refusal, atomic note-plus-initial-revision writes, and top-level revision update/delete ownership. Publication of the corrected amendment still requires owner confirmation.
+The owner subsequently approved splitting top-level revision update and delete: updates require both existing and incoming ownership, while deletes check the existing document. The local rules contain that exact correction. Emulator tests cover owner create/read/delete for private note and study revisions, cross-account refusal, atomic note-plus-initial-revision writes, and top-level revision update/delete ownership. The owner confirmed publication of the corrected amendment on 8 October.
 
 The amendment does not add nested study-block documents. Oversized existing IndexedDB studies still require a reviewed representation; never silently skip them or set their import flag prematurely.
 
