@@ -48,7 +48,7 @@ async function setup(page: Page, mode = "normal") {
 }
 
 async function overview(page: Page) {
-  await page.getByRole("button", { name: "Tabs, 8 open", exact: true }).click();
+  await page.getByRole("button", { name: "8 Tabs open", exact: true }).click();
   await expect(page.getByRole("main", { name: "Your tabs" })).toBeVisible();
   await expect(page.locator("html")).not.toHaveAttribute("data-tab-motion");
 }

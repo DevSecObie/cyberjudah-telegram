@@ -249,7 +249,7 @@ export function TabBar() {
   const items: { id: NavId | "more"; label: string; aria: string; glyph: ReactNode; onClick: () => void }[] = [
     ...ids.filter(id => id !== "search").map((id) => {
       const item = navItem(id);
-      return { id, label: id === "tabs" ? "Tabs" : item.label, aria: id === "tabs" ? `Tabs, ${tabs.length} open` : item.label,
+      return { id, label: id === "tabs" ? "Tabs" : item.label, aria: id === "tabs" ? `${count} Tabs open` : item.label,
         glyph: item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={22} />,
         onClick: () => id === "home" ? toggle("home") : go(() => navPath(id), id === "tabs") };
     }),
@@ -261,7 +261,7 @@ export function TabBar() {
     const kept = mini && (on || (it.id === "more" && !items.some(x => x.id === current)));
     return <button key={it.id} type="button" className={`tab${it.id === "search" ? " tab--search" : ""}`} data-nav={it.id} data-on={on ? "" : undefined} data-kept={kept ? "" : undefined} aria-current={on ? "page" : undefined}
       aria-label={it.aria} title={it.aria} tabIndex={mini && !kept && it.id !== "search" ? -1 : undefined} onClick={it.onClick}>
-      <span className="tab__glyph">{it.glyph}</span><span className="tab__label" aria-hidden="true">{it.label}</span>
+      <span className="tab__glyph">{it.glyph}</span>{" "}<span className="tab__label" aria-hidden="true">{it.label}</span>
     </button>;
   };
   return (
@@ -325,8 +325,13 @@ export function useGo() {
   return (href: string, replace = false) => { const to = toAppPath(href); if (to) navigate(to, { replace }); };
 }
 
-export function Img({ src, eager }: { src: string; eager?: boolean }) {
-  return <img src={src} alt="" loading={eager ? "eager" : "lazy"} decoding="async" onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />;
+/** width and height, when the image's size is known (a YouTube thumbnail), hold its box before it loads. */
+export function Img({ src, eager, width, height }: { src: string; eager?: boolean; width?: number; height?: number }) {
+  return <img src={src} alt="" width={width} height={height} loading={eager ? "eager" : "lazy"} decoding="async" onError={(e) => {
+    // The rare video without a WebP thumbnail still has YouTube's JPEG.
+    const jpeg = jpegThumb(e.currentTarget.src);
+    if (jpeg) e.currentTarget.src = jpeg; else e.currentTarget.style.visibility = "hidden";
+  }} />;
 }
 
 /** A tappable list row: TelegramUI's Cell. `href` is a site or app path. */
@@ -402,4 +407,8 @@ export function Card({ children, glow, href, onClick, className }: { children: R
 
 export const timestamp = (s: number) => { const t = Math.max(0, Math.floor(s)); const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60; return h ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}` : `${m}:${String(sec).padStart(2, "0")}`; };
 export const youtube = (id: string, start = 0) => `https://www.youtube.com/watch?v=${encodeURIComponent(id)}${start > 0 ? `&t=${Math.floor(start)}s` : ""}`;
-export const thumbOf = (id: string, big = false) => `https://img.youtube.com/vi/${encodeURIComponent(id)}/${big ? "hqdefault" : "mqdefault"}.jpg`;
+/** YouTube's WebP thumbnail of a video: 320 x 180 (mqdefault), or 480 x 360 when big (hqdefault). */
+export const thumbOf = (id: string, big = false) => `https://i.ytimg.com/vi_webp/${encodeURIComponent(id)}/${big ? "hqdefault" : "mqdefault"}.webp`;
+export const THUMB = { width: 320, height: 180 }, THUMB_BIG = { width: 480, height: 360 };
+/** The JPEG of a WebP YouTube thumbnail (every video has one), or null for any other image. */
+export const jpegThumb = (src: string) => /^https:\/\/i\.ytimg\.com\/vi_webp\//.test(src) ? src.replace("/vi_webp/", "/vi/").replace(/\.webp$/, ".jpg") : null;

@@ -10,6 +10,8 @@ test("start params open the screen they name", () => {
   assert.equal(launchPath("psalms"), "/bible?book=psalms");
   assert.equal(launchPath("classes_2026_the-coming-crisis"), "/note/classes/2026/the-coming-crisis");
   assert.equal(launchPath("law"), "/law");
+  assert.equal(launchPath("privacy"), "/privacy");
+  assert.equal(launchPath("terms"), "/terms");
   assert.equal(launchPath("a/b"), "/");
   assert.equal(launchPath("x".repeat(513)), "/");
 });

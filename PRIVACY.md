@@ -1,39 +1,11 @@
-# Privacy and data handling
+# Privacy
 
-CyberJudah for Telegram is designed to minimize server-side personal data.
+The privacy policy is in two places, kept in step:
 
-## Data used
+- **For readers:** the Privacy screen in the app (`/privacy`, or https://cyberjudah.io/app/privacy),
+  also reached with `/privacy` in the bot. `/mydata` and `/deletemydata` give a copy of what is
+  kept, or delete it.
+- **For operators and contributors:** [docs/PRIVACY.md](docs/PRIVACY.md), which lists every record
+  kept, for how long, who else handles it, and where the code enforces each statement.
 
-Telegram supplies signed Mini App launch data that identifies the current Telegram user. The Worker validates this data to authorize personal API actions. It does not intentionally persist the complete launch payload.
-
-Reading preferences, bookmarks, highlights, notes, progress, recent searches, and related study state are stored through Telegram CloudStorage or on the user's device, depending on client capability.
-
-If a user enables the daily verse, the Worker stores the Telegram chat identifier, delivery hour, and timezone offset in Cloudflare KV. Turning the feature off deletes that subscription record.
-
-If a user turns on reading reminders, the Worker stores in Cloudflare KV: whether they are on, the time and the IANA time zone (for example "America/Chicago"), the channels chosen (Telegram, push or both), any pause, the Telegram chat identifier when Telegram is used, and, for each browser where push is turned on (up to ten), the browser's push subscription (its endpoint URL and the two public keys the browser gives with it) and the last day it was reached. To say what to read, it also keeps the reading plan's day and pace and the last chapter read (book and chapter only), the dates a reminder was sent or marked done, and the chapters marked done from a reminder until the app has recorded them. A browser that is not opened inside Telegram is given a random device credential, kept in that browser's local storage; the Worker keeps only its SHA-256 hash. To limit abuse, the Worker counts requests per caller for a minute (Cloudflare's rate limiter, not stored by the app), and counts new browser credentials per network address per day under a hash of the address, kept two days. The push endpoint is given to the browser's push service (Google, Mozilla, Apple or Microsoft) to deliver the reminder; no reading or personal content is sent in a push.
-
-Search and transcript queries are processed to return results. Application logs should contain operational error information only and must not contain bot tokens, raw `initData`, note contents, or complete user profiles.
-
-Search AI answers can use Google through Cloudflare AI Gateway after you agree in the app. Google receives the current search and matching library passages, without your name or Telegram ID. Answers are shared in an edge cache for two minutes and are not saved as Ask chats. Withdraw AI agreement in Settings → Privacy; ordinary library search remains available.
-
-Optional location access is used to calculate local Sabbath times. The application should not persist precise coordinates on the server.
-
-Ask CyberJudah conversations are saved to the user's account in Cloudflare KV, keyed by their Telegram user id: each question, the answer, the sources cited, the suggested follow-ups and the research steps. A user sees only their own conversations and can delete any of them from the Your chats list; at most 300 are kept, the oldest dropped first. Questions are sent to Anthropic (Claude) to be answered, under Anthropic's commercial terms, which do not use API data to train its models by default.
-
-Ask CyberJudah's allowance is kept in Cloudflare KV per Telegram user id: the day's free use, the monthly plan's renewal date and use, and any top-up credit. The day's totals of questions and usage (with the ids of the people who asked, for counting) are kept for 120 days so the operator can price the service.
-
-Telegram Stars payments are processed by Telegram. The bot checks each purchase before accepting it, records the Telegram charge id so a payment is applied once, and grants the plan or credit bought.
-
-## Service providers
-
-The application depends on Telegram, Cloudflare Workers/D1/KV, GitHub Actions for deployment, and the CyberJudah data service. Their respective policies govern data processed by those services.
-
-## Retention and deletion
-
-Daily-verse subscription data remains until the user disables the feature or the operator removes it. A reading reminder that is turned off keeps its settings so it can be turned on again. "Forget this browser" deletes that browser's credential and push subscription (and its reminder, if it was never linked to Telegram); "Delete my reading reminder" in Telegram deletes the reminder and every subscription. A push subscription is also deleted when push is turned off in that browser or the push service reports it expired, and a browser's credential, its unlinked reminder and its subscription index are deleted automatically after 180 days without use. Saved conversations remain until the user deletes them; allowance records remain while the account is in use. Device and Telegram CloudStorage data can be removed through the applicable client or future in-app reset controls.
-
-## Security and contact
-
-Never send credentials or private launch data in a public issue. See [SECURITY.md](SECURITY.md) for private reporting instructions.
-
-This document describes the repository's intended behavior and should be reviewed before a public production launch.
+Questions and requests: privacy@cyberjudah.io. To report a security problem, see [SECURITY.md](SECURITY.md).

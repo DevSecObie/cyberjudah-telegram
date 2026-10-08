@@ -2,9 +2,9 @@ import { useEffect } from "react";
 
 import { useStored, useTheme } from "@/tg/hooks";
 import { app } from "@/tg/sdk";
-import { paletteOf, resolveTheme, useBibleSettings } from "@/bible/settings";
+import { paletteOf, resolveTheme, useBibleSettings, type BibleSettings } from "@/bible/settings";
 import { isDarkTheme, type ThemeName } from "@/bible/theme";
-import { appVars } from "./palette";
+import { appVars, withTelegramAccent } from "./palette";
 
 export type Font = "serif" | "sans";
 export type Spacing = "tight" | "regular" | "airy";
@@ -38,7 +38,12 @@ export function ThemeApplier() {
     if (transparency === "reduced") root.dataset.transparency = "reduced"; else delete root.dataset.transparency;
     try { localStorage.setItem("cj:transparency", transparency); } catch { /* private mode */ }
   }, [transparency]);
-  const vars = appVars(paletteOf(name, bible), dark);
+  // Until the reader picks a theme of their own, the accent is Telegram's (its theme params).
+  const [stored] = useStored<Partial<BibleSettings>>("bs", {});
+  const { params } = useTheme();
+  const picked = !!(stored.preferredLightTheme || stored.preferredDarkTheme);
+  const palette = paletteOf(name, bible);
+  const vars = withTelegramAccent(appVars(palette, dark), picked ? undefined : params.accent_text_color || params.button_color, palette, dark);
   const key = JSON.stringify(vars);
   useEffect(() => {
     const root = document.documentElement;

@@ -9,7 +9,7 @@ import { Hono } from "hono";
 import { Api, webhookCallback } from "grammy";
 import type { InlineQueryResultArticle } from "grammy/types";
 import type { Env, Exec, Sub } from "./env";
-import { LAUNCH_DATA_MAX_AGE, validateInitData, type InitData } from "./initdata.mjs";
+import { launchMaxAge, sameHex, validateInitData, type InitData } from "./initdata.mjs";
 import { createBot, deletedSummary, todaysVerse } from "./bot";
 import { chapter, dataJson, escapeHtml, openLink } from "./data";
 import { runSearch } from "./search";
@@ -17,7 +17,7 @@ import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./t
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
 import { readSources, saveSources } from "./cms-sources";
-import { ask, askStream, creditsOn, defaultModelId, freeModels, similar, speakVerse, sweepRateCounts, takeQuotaKey } from "./ai";
+import { ask, askStream, creditsOn, defaultModelId, freeModels, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
 import { searchAnswers } from "./search-answer";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
@@ -33,6 +33,7 @@ import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit"
 import { CHAT_ID, deleteChat, getChat, getPending, listChats, moveLegacy, setActionState } from "./chats";
 import { askedBy, closeRequest, getRequest, listRequests, requestNotes, validVideo } from "./requests";
 import { tellAdmins } from "./health";
+import { reportMessage } from "./report.mjs";
 import { notePdf, pdfName } from "./pdf.mjs";
 import { donationsConfig, invoiceFor, invoiceForDonation, pruneBilling, refundStars } from "./billing";
 import { adjust, creditsConfig, history as creditHistory, ownerOfUser, prepare as prepareCredits, typicalMc, usageDayCredits, wallet as creditWallet } from "./credits";
@@ -81,8 +82,9 @@ app.use("/api/*", async (c, next) => {
   // Thirty days: Telegram keeps a Mini App open in the background for weeks, and its launch
   // data is only made afresh when it is opened again, so a short window turned every Search
   // and Ask into "not answering" for a reader who never closed the app. The signature still
-  // proves who is asking; the age check only bounds a replay.
-  const data = m ? await validateInitData(m[1], c.env.BOT_TOKEN, LAUNCH_DATA_MAX_AGE) : null;
+  // proves who is asking; the age check only bounds a replay. Privacy and the Stars invoices
+  // take a day at most (initdata.mjs launchMaxAge).
+  const data = m ? await validateInitData(m[1], c.env.BOT_TOKEN, launchMaxAge(c.req.path)) : null;
   if (!data?.user) {
     const stale = m ? !!(await validateInitData(m[1], c.env.BOT_TOKEN, 10 * 365 * 86400))?.user : false;
     return c.json({ error: "unauthorized", reason: stale ? "stale" : m ? "invalid" : "missing" }, 401);
@@ -97,7 +99,8 @@ app.route("/api/push", push);
 
 app.post("/webhook", async (c) => {
   // The secret is checked before the bot is built: a stray request must not cost a getMe call.
-  if (c.req.header("x-telegram-bot-api-secret-token") !== c.env.WEBHOOK_SECRET) return c.text("unauthorized", 401);
+  // Compared in constant time, so the secret cannot be guessed a character at a time.
+  if (!sameHex(c.req.header("x-telegram-bot-api-secret-token") ?? "", c.env.WEBHOOK_SECRET ?? "")) return c.text("unauthorized", 401);
   const bot = await createBot(c.env, new URL(c.req.url).origin, c.executionCtx);
   return webhookCallback(bot, "hono", { secretToken: c.env.WEBHOOK_SECRET })(c);
 });
@@ -474,6 +477,7 @@ app.get("/api/tts/:slug/:ch/:verse", (c) => {
   return speakVerse(c.env, slug, ch, verse, c.req.query("voice") ?? "asteria", c.get("tma").user!.id, c.executionCtx);
 });
 
+const SHARE_DAILY_LIMIT = 200;
 app.post("/api/share", async (c) => {
   const { user } = c.get("tma");
   const body = await c.req.json<{ kind?: string; title?: string; text?: string; url?: string; startapp?: string }>().catch(() => null);
@@ -483,6 +487,9 @@ app.post("/api/share", async (c) => {
   const text = String(body.text ?? "").trim().slice(0, 3500);
   const startapp = SAFE_PARAM.test(String(body.startapp ?? "")) ? String(body.startapp) : "";
   if (!kind || (!title && !text)) return c.json({ error: "bad-request" }, 400);
+  // Each share is a Bot API call made for the reader: bounded per reader a day, like the other
+  // daily limits; past it the app falls back to Telegram's share sheet (app/src/lib/share.ts).
+  if (!(await takeQuota(c.env, "share", user!.id, SHARE_DAILY_LIMIT))) return c.json({ error: "limit" }, 429);
   // Only the site is linked as the source: the app cannot make the bot relay other links.
   let site = c.env.SITE_URL;
   try { const u = new URL(String(body.url ?? "/"), c.env.SITE_URL); if (u.origin === new URL(c.env.SITE_URL).origin) site = u.href; } catch { /* keep the site root */ }
@@ -505,6 +512,16 @@ app.post("/api/share", async (c) => {
     console.error(JSON.stringify({ event: "share_failed", message: e instanceof Error ? e.message : String(e) }));
     return c.json({ error: "share-failed" }, 502);
   }
+});
+
+// "Report this answer" (report.mjs): which answer and why, to the admins; never its text or who
+// reported it. A few a day per reader, so it cannot be used to flood the admins.
+app.post("/api/report", async (c) => {
+  const text = reportMessage(await c.req.json().catch(() => null));
+  if (!text) return c.json({ ok: false, error: "bad-request" }, 400);
+  if (!(await takeQuota(c.env, "report", c.get("tma").user!.id, 10))) return c.json({ ok: false, error: "limit" }, 429);
+  c.executionCtx.waitUntil(tellAdmins(c.env, text).catch(() => undefined));
+  return c.json({ ok: true });
 });
 
 // Privacy (docs/PRIVACY.md): a copy of everything kept about the reader, and deletion of all of it.

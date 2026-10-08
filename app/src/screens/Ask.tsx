@@ -15,6 +15,7 @@ import { agree, consented } from "@/lib/ai-consent";
 import { spinnerLine } from "@/lib/spinner";
 import { APP_URL } from "@/lib/share";
 import { Trouble } from "@/ui/trouble";
+import { ReportAnswer } from "@/ui/report";
 import { Sheet } from "@/bible/ui/Sheet";
 import { Icon, timestamp } from "@/ui/ui";
 import { KIND_LABEL, hitPath, teachingPath } from "@/ui/search-hero";
@@ -27,7 +28,7 @@ export type Passage = { kind: string; title: string; url: string; sub?: string; 
 export type Source = Passage & { n: number };
 /** A change the assistant proposed; only the reader's Confirm carries it out (bot/src/assistant.mjs). */
 export type Action = { id: string; kind: "reminder"; summary: string; settings: ReminderSettings; state?: "applied" | "cancelled" };
-type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[]; actions?: Action[]; waiting?: boolean; backup?: boolean; consent?: { provider: string; model: string }; meter?: MeterInfo; used?: number; free?: boolean };
+type Turn = { role: "user" | "assistant"; content: string; sources?: Source[]; passages?: Source[]; error?: string; cut?: boolean; thinking?: boolean; status?: string; steps?: string[]; followups?: string[]; actions?: Action[]; waiting?: boolean; backup?: boolean; consent?: { provider: string; model: string; country?: string }; meter?: MeterInfo; used?: number; free?: boolean };
 /** What the server said about a request's cost: the most it may cost (asked first), or what the balance lacks and the free model on offer. */
 type MeterInfo = { model: string; name: string; typical_mc: number; max_mc?: number; available_mc?: number; need_mc?: number; free?: { id: string; name: string; provider: string } };
 /** The welcome screen's starters: a question and the line under it. */
@@ -73,7 +74,7 @@ const replaceConv = (next: { turns: Turn[]; chatId: string | null }) => { convAb
 /** Patch the last turn of conversation `gen` only (the answer being written); a replaced conversation is left alone. */
 const patchLast = (gen: number, fn: (t: Turn) => Turn) => { if (conv.gen === gen) setConv((c) => ({ turns: c.turns.map((t, i) => (i === c.turns.length - 1 ? fn(t) : t)) })); };
 
-type AskFail = { error?: string; reason?: string; provider?: string; model?: string };
+type AskFail = { error?: string; reason?: string; provider?: string; model?: string; country?: string };
 /** What went wrong, from the status and the server's own words. */
 const failure = (status: number, body: AskFail | null): string =>
   status === 409 && body?.error === "request-used" ? "request-used" : status === 429 && body?.error === "free-paused" ? "free-paused" : status === 428 && body?.error === "consent" ? "consent" : status === 409 && body?.error === "confirm" ? "confirm" : status === 402 ? "credits" : status === 429 ? "limit" : status === 400 && body?.error === "too-short" ? "too-short"
@@ -110,7 +111,7 @@ async function runQuestion(q: string, opts: AskOpts) {
     heard = Date.now();
     if (!res.ok || !res.body) {
       const body = await res.text().then((t) => { try { return JSON.parse(t.split("\n")[0]) as AskFail; } catch { return null; } }).catch(() => null);
-      patch((t) => ({ ...t, thinking: false, error: failure(res.status, body), ...(body?.error === "consent" && body.provider ? { consent: { provider: body.provider, model: body.model ?? body.provider } } : {}), ...(body?.error === "confirm" || body?.error === "credits" ? { meter: body as unknown as MeterInfo } : {}) }));
+      patch((t) => ({ ...t, thinking: false, error: failure(res.status, body), ...(body?.error === "consent" && body.provider ? { consent: { provider: body.provider, model: body.model ?? body.provider, ...(body.country ? { country: body.country } : {}) } } : {}), ...(body?.error === "confirm" || body?.error === "credits" ? { meter: body as unknown as MeterInfo } : {}) }));
       if (res.status === 402) opts.onAccount?.();
       return;
     }
@@ -310,9 +311,9 @@ export function Ask() {
       <header className="chat2__bar">
         <button type="button" className="chat2__new" aria-label="Your chats" disabled={!app} title={app ? "Your chats" : "Your chats are kept with your Telegram account"} onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
         {/* The model is chosen here, at the top, as in ChatGPT and Claude: the title, then the model and what is left. */}
-        <button type="button" className="chat2__heading" aria-label={model ? `Model: ${model.name}. Change` : "Ask CyberJudah"} title={model ? `Model: ${model.name}. Change` : "Ask CyberJudah"} disabled={!acct?.models?.length} onClick={() => { haptic("select"); setPicking(true); }}>
+        <button type="button" className="chat2__heading" title={model ? `Model: ${model.name}. Change` : "Ask CyberJudah"} disabled={!acct?.models?.length} onClick={() => { haptic("select"); setPicking(true); }}>
           <b>Ask CyberJudah</b>
-          <small>{model ? <>{model.name.replace(/^Claude /, "")}{model.free ? " · free" : ""}<span className="chat2__chev" aria-hidden="true"> ▾</span>{acct?.unlimited ? " · Unlimited" : acct?.metered && !model.free ? <> · {meterLine(acct)}</> : null}</> : meterLine(acct)}</small>
+          <small>{model ? <>{model.name.replace(/^Claude /, "")}{model.free ? " · free" : ""}<span className="chat2__chev" aria-hidden="true"> ▾</span>{acct?.unlimited ? " · Unlimited" : acct?.metered && !model.free ? <> · {meterLine(acct)}</> : null}<span className="sr-only">. Change the model</span></> : meterLine(acct)}</small>
         </button>
         <button type="button" className="chat2__new" aria-label="New chat" title="New chat" disabled={!turns.length} onClick={newChat}><Icon name="compose" size={21} /></button>
       </header>
@@ -336,7 +337,7 @@ export function Ask() {
         <div className="chat2__turns">
           {turns.map((t, i) => t.role === "user"
             ? <div key={`${chatId}-${i}`} className="msg msg--me"><div className="msg__bubble">{t.content}</div></div>
-            : <AssistantTurn key={`${chatId}-${i}`} t={t} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} chatId={chatId} onRetry={() => send(lastUser, true)} onFollow={(q) => send(q)} onPlans={() => setPlans(true)} onModel={openPicker} onUsage={() => setUsageOpen(true)} acct={acct} onUseModel={(id) => { chooseModel(id); setModelId(id); haptic("select"); send(lastUser, true); }} onAccept={(m, mc) => { acceptCap(m, mc); haptic("success"); send(lastUser, true); }} />)}
+            : <AssistantTurn key={`${chatId}-${i}`} t={t} index={i} question={turns[i - 1]?.content ?? ""} last={i === turns.length - 1} busy={busy} chatId={chatId} onRetry={() => send(lastUser, true)} onFollow={(q) => send(q)} onPlans={() => setPlans(true)} onModel={openPicker} onUsage={() => setUsageOpen(true)} acct={acct} onUseModel={(id) => { chooseModel(id); setModelId(id); haptic("select"); send(lastUser, true); }} onAccept={(m, mc) => { acceptCap(m, mc); haptic("success"); send(lastUser, true); }} />)}
           <div ref={endRef} className="chat2__end" />
         </div>
       )}
@@ -388,7 +389,7 @@ const PLAIN_ERRORS: Record<string, string> = {
   signin: "Open CyberJudah from Telegram to ask questions: your answers are saved to your Telegram account.",
 };
 
-function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onPlans, onModel, onUsage, acct, onUseModel, onAccept }: { t: Turn; question: string; last: boolean; busy: boolean; chatId: string | null; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void; onModel: () => void; onUsage: () => void; acct: AskAccount | null; onUseModel: (id: string) => void; onAccept: (model: string, mc: number) => void }) {
+function AssistantTurn({ t, index, question, last, busy, chatId, onRetry, onFollow, onPlans, onModel, onUsage, acct, onUseModel, onAccept }: { t: Turn; index: number; question: string; last: boolean; busy: boolean; chatId: string | null; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void; onModel: () => void; onUsage: () => void; acct: AskAccount | null; onUseModel: (id: string) => void; onAccept: (model: string, mc: number) => void }) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const sources = t.sources ?? [];
@@ -417,10 +418,10 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
         <div className="consent" role="group" aria-labelledby="consent-title">
           <div className="consent__head">
             <span className="consent__icon" aria-hidden="true"><Icon name="shield" size={20} /></span>
-            <span><b id="consent-title">Send your question to {t.consent.provider}?</b><small>{t.consent.model} is run by {t.consent.provider}</small></span>
+            <span><b id="consent-title">Send your question to {t.consent.provider}?</b><small>{t.consent.model} is run by {t.consent.provider}{t.consent.country ? `, based in ${t.consent.country}` : ""}</small></span>
           </div>
           <ul className="consent__list">
-            <li><Icon name="arrowUp" size={16} /><span><b>Sent</b> Your question, the earlier questions in this chat, and passages from the library.</span></li>
+            <li><Icon name="arrowUp" size={16} /><span><b>Sent</b> Your question, the earlier questions in this chat, and passages from the library. If you ask about them, also the titles and dates of your other saved chats, and your reminder's time, time zone, channel and place in the reading plan.</span></li>
             <li><Icon name="close" size={16} /><span><b>Not sent</b> Your name and your Telegram ID.</span></li>
             <li><Icon name="clock" size={16} /><span><b>Kept</b> Your chats, encrypted, for 180 days unless you delete them.</span></li>
           </ul>
@@ -476,6 +477,7 @@ function AssistantTurn({ t, question, last, busy, chatId, onRetry, onFollow, onP
             <div className="msg__actions">
               <button type="button" className="msg__action" onClick={copy} aria-label="Copy the answer" title="Copy the answer"><Icon name={copied ? "check" : "copy"} size={16} />{copied ? "Copied" : "Copy"}</button>
               {last ? <button type="button" className="msg__action" onClick={onRetry} aria-label="Ask again" title="Ask again"><Icon name="retry" size={16} />Retry</button> : null}
+              {chatId && t.content ? <ReportAnswer of={{ kind: "ask", chat: chatId, turn: index }} /> : null}
             </div>
           ) : null}
         </>
@@ -630,6 +632,7 @@ async function pollAccount(before: AskAccount, set: (a: AskAccount) => void) {
  * costs the Stars it does; and the opt-in reminder to top up before those days.
  */
 function BalanceSheet({ acct, onClose, onPaid, onUsage, onChanged }: { acct: AskAccount; onClose: () => void; onPaid: () => void; onUsage: () => void; onChanged: () => void }) {
+  const navigate = useNavigate();
   const [busy, setBusy] = useState<string | null>(null);
   const [why, setWhy] = useState("");
   const [remind, setRemind] = useState(!!acct.remind?.on);
@@ -683,7 +686,7 @@ function BalanceSheet({ acct, onClose, onPaid, onUsage, onChanged }: { acct: Ask
           </>
         ) : null}
         {why ? <p className="credits__closed" role="alert">{why}</p> : null}
-        <p className="hint">Your chats, search, reading and PDFs stay free. Stars purchases are handled by Telegram. Your balance never expires.</p>
+        <p className="hint">Your chats, search, reading and PDFs stay free. Stars purchases are handled by Telegram. Your balance never expires. <a href="/terms" onClick={(e) => { e.preventDefault(); onClose(); navigate("/terms"); }}>Terms</a></p>
       </div>
     </Sheet>
   );

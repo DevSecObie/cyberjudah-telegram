@@ -85,3 +85,15 @@ export const appVars = memoizePalette((p: Palette, dark: boolean): Record<string
       .map(([key, value]) => [`--${key}`, readableColor(value, grounds)])),
   };
 });
+
+/**
+ * Telegram's accent (accent_text_color, else button_color) in place of the palette's, for a reader
+ * who has not chosen a theme: the app then wears the client's colour, kept readable on every
+ * ground (4.6:1), with the ink on it whichever of the two reads better.
+ */
+export function withTelegramAccent(vars: Record<string, string>, accent: string | undefined, p: Palette, dark: boolean): Record<string, string> {
+  if (!accent || !/^#[0-9a-f]{6}$/i.test(accent)) return vars;
+  const value = readableColor(accent, paletteGrounds(p, dark));
+  const onAccent = ["#ffffff", "#00161c"].map((c) => [c, contrast(parseColor(c), parseColor(value))] as const).sort((a, b) => b[1] - a[1])[0][0];
+  return { ...vars, "--accent": value, "--on-accent": onAccent };
+}

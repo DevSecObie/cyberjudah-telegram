@@ -55,7 +55,14 @@ export function SearchHero({ value, onChange, onSubmit, autoFocus, big, mode = "
   const inputRef = useRef<HTMLInputElement>(null);
   const ask = mode === "ask";
   const prompts = ask ? ASK_PROMPTS : PROMPTS;
-  useEffect(() => { if (value) return; const t = setInterval(() => setI((n) => (n + 1) % prompts.length), 3000); return () => clearInterval(t); }, [value, prompts.length]);
+  // One pass through the prompts, then it rests on the first (WCAG 2.2.2: nothing moves for more
+  // than five seconds unasked); with reduced motion it never moves at all.
+  useEffect(() => {
+    if (value || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    let steps = 0;
+    const t = setInterval(() => { steps += 1; setI(steps % prompts.length); if (steps >= prompts.length) clearInterval(t); }, 3000);
+    return () => clearInterval(t);
+  }, [value, prompts.length]);
   return (
     <form className={`shero${big ? " shero--big" : ""}`} data-focus={focused ? "" : undefined} data-mode={ask ? "ask" : undefined} role="search" onSubmit={(e) => { e.preventDefault(); hideKeyboard(); onSubmit(value); }}>
       <div className="shero__field">

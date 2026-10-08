@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { open, pid, seal } from "../src/privacy.mjs";
+import { createHash } from "node:crypto";
+import { keyedHash, open, pid, seal } from "../src/privacy.mjs";
 
 const env = { PRIVACY_KEY: "test-privacy-key", BOT_TOKEN: "123:abc" };
 
@@ -26,4 +27,15 @@ test("a sealed conversation opens only for its owner; plain records written befo
   assert.equal(await open(env, other, stored), null, "another person's key cannot open it");
   assert.deepEqual(await open(env, owner, JSON.stringify(chat)), chat, "legacy plain JSON");
   assert.equal(await open(env, owner, null), null);
+});
+
+test("a counted address is kept under a keyed hash: stable, not the plain SHA-256, different for another key or purpose", async () => {
+  const ip = "203.0.113.7";
+  const h = await keyedHash(env, "remcreate", ip);
+  assert.match(h, /^[0-9a-f]{64}$/);
+  assert.equal(await keyedHash(env, "remcreate", ip), h, "the same address, the same count");
+  assert.notEqual(h, createHash("sha256").update(ip).digest("hex"), "not rebuildable by hashing every address");
+  assert.notEqual(await keyedHash({ PRIVACY_KEY: "another-key" }, "remcreate", ip), h);
+  assert.notEqual(await keyedHash(env, "other", ip), h);
+  assert.notEqual(await keyedHash(env, "remcreate", "203.0.113.8"), h);
 });

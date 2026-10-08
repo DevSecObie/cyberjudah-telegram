@@ -2,14 +2,16 @@
 
 One Cloudflare Worker (`bot/`) serves the app's static build (`app/dist`) and these routes.
 Every `/api/*` call from the app sends `Authorization: tma <initData>`; the worker validates
-the HMAC with the bot token (see `bot/src/initdata.ts`) and refuses anything older than 24h.
+the HMAC with the bot token (see `bot/src/initdata.mjs`) and refuses launch data older than
+30 days, or a day for `/api/privacy/*`, `/api/ask/buy` and `/api/invoice` (`launchMaxAge`).
 
 | Route | Auth | Body / query | Response |
 |---|---|---|---|
 | `POST /webhook` | `X-Telegram-Bot-Api-Secret-Token` | Telegram Update | 200 |
 | `GET /api/me` | tma | | `{ user: {id, first_name, username?}, subscribed: boolean, premium: boolean }` |
 | `GET /api/search` | tma | `q`, `only?` (verse\|law\|precept\|case\|study\|class\|captains\|history\|encyclopedia), `limit?` | `{ ok, q, mode, counts: {kind: n}, hits: [{kind,title,url,sub,snippet}] }` |
-| `POST /api/share` | tma | `{ kind: "verse"\|"note"\|"app", title, text, url, startapp }` | `{ id }` – a prepared inline message id for `WebApp.shareMessage(id)` (allow_user_chats, group_chats, channel_chats) |
+| `POST /api/share` | tma | `{ kind: "verse"\|"note"\|"app", title, text, url, startapp }` | `{ id }` – a prepared inline message id for `WebApp.shareMessage(id)` (allow_user_chats, group_chats, channel_chats); 429 `{ error: "limit" }` past 200 a day |
+| `POST /api/report` | tma | `{ kind: "ask", chat, turn, reason }` or `{ kind: "search", model?, reason }`, reason `wrong`\|`harmful` | `{ ok }` – tells the admins which answer was reported and why (`bot/src/report.mjs`); 429 past 10 a day |
 | `POST /api/subscribe` | tma | `{ on: boolean, hour?: 0-23, tz?: minutes offset }` | `{ subscribed }` – daily verse, sent by the cron at that local hour; call after `requestWriteAccess` |
 | `POST /api/invoice` | tma | `{ stars: 50\|100\|500 }` | `{ link }` – Telegram Stars invoice link for `WebApp.openInvoice` |
 | `GET /api/dictionary` | none | `q?`, `letter?`, `page?` | `{ count, page, pages, rows: [{slug, term}], related: [...] }` – Easton's Bible Dictionary |

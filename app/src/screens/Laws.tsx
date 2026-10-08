@@ -53,7 +53,7 @@ export function LawIndex() {
         <SearchField id="law-q" value={q} onChange={setQ} placeholder="Search the law: Sabbath, usury, idols" />
         {!part ? (
           <div className="cfeed__filters">
-            <button type="button" className="cfeed__pick" data-on={pick ? "" : undefined} disabled={!laws.data} aria-label={`Part: ${chosen ? chosen.title : "every part"}`} title={`Part: ${chosen ? chosen.title : "every part"}`} onClick={() => void choosePart()}><span>{chosen ? `${chosen.n}. ${chosen.title}` : "Every part"}</span><Icon name="chevron" size={14} /></button>
+            <button type="button" className="cfeed__pick" data-on={pick ? "" : undefined} disabled={!laws.data} aria-label={`${chosen ? `${chosen.n}. ${chosen.title}` : "Every part"}: choose a part`} title={`${chosen ? `${chosen.n}. ${chosen.title}` : "Every part"}: choose a part`} onClick={() => void choosePart()}><span>{chosen ? `${chosen.n}. ${chosen.title}` : "Every part"}</span><Icon name="chevron" size={14} /></button>
             {filtered ? <button type="button" className="cfeed__reset" onClick={() => { haptic("select"); reset(); }}>Reset</button> : null}
           </div>
         ) : null}

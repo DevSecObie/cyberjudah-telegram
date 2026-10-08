@@ -156,5 +156,5 @@ export function chapterClasses(byVerse: Record<number, ClassMoment[]>): { taught
   for (const m of rest) if (!seen.has(m.video)) { seen.add(m.video); read.push(m); }
   return { taught, read };
 }
-/** YouTube's medium thumbnail of a recording (320 x 180). */
-export const thumbUrl = (video: string) => `https://i.ytimg.com/vi/${encodeURIComponent(video)}/mqdefault.jpg`;
+/** YouTube's medium thumbnail of a recording (320 x 180), as WebP. */
+export const thumbUrl = (video: string) => `https://i.ytimg.com/vi_webp/${encodeURIComponent(video)}/mqdefault.webp`;
