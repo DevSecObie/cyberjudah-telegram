@@ -234,7 +234,7 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
       <h2 className="shelf">Meditate</h2>
       {sched && today && plan ? (
         <Link to="/plan" className="streak" onClick={() => haptic("select")}>
-          <span className="streak__day"><b>Day {plan.day}</b><small>{sched.owed ? `${sched.owed} to catch up` : `${today.pct}% of the library`}</small></span>
+          <span className="streak__day"><b>Day {plan.day + 1}</b><small>{sched.owed ? `${sched.owed} to catch up` : `${today.pct}% of this plan`}</small></span>
           <span className="streak__bar"><i style={{ width: `${Math.round((todayRead / Math.max(1, today.chapters.length)) * 100)}%` }} /></span>
           <span className="streak__due">{todayRead}/{today.chapters.length} today</span>
           {plan.streak ? <span className="streak__fire">🔥 {plan.streak}</span> : null}

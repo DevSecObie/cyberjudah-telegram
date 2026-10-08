@@ -44,7 +44,7 @@ export function Plan() {
     const a = await sheet.open({ title: "How much a day?", items: [{ id: "4", text: "4 chapters a day", hint: "The class's pace · about 11 months" }, { id: "2", text: "2 chapters a day", hint: "About 22 months" }, { id: "6", text: "6 chapters a day", hint: "About 7 months" }] });
     if (a) { setPlan(startPlan(+a.id)); haptic("success"); }
   };
-  const reset = async () => { if (plan && await confirm(`Restart ${plan.name ?? "Whole Bible with Apocrypha"}? Your completed chapters stay marked.`)) { setPlan({ ...plan, ...startPlan(plan.perDay) }); setViewDay(null); } };
+  const reset = async () => { if (plan && await confirm(`Restart ${plan.name ?? "Whole Bible with Apocrypha"}? Your completed chapters stay marked.`)) { setPlan({ ...plan, ...startPlan(plan.perDay), lastDone: undefined }); setViewDay(null); } };
   useBottomButtons(plan ? (today?.done ? { text: today.day + 1 === today.total ? "Complete plan" : "Tomorrow's reading", onClick: () => setPlan(advance(plan)) } : today?.chapters.find((c) => !c.read) ? { text: `Read ${today.chapters.find((c) => !c.read)!.book} ${today.chapters.find((c) => !c.read)!.chapter}`, onClick: () => { const c = today!.chapters.find((x) => !x.read)!; navigate(`/read/${c.slug}/${c.chapter}`); } } : null) : null, plan ? { text: "Start over", onClick: () => void reset() } : null);
 
   if (books.isPending) return <Screen title="Reading plan"><Skeleton rows={4} /></Screen>;

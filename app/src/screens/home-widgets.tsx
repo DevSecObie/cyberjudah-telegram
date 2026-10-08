@@ -109,7 +109,7 @@ export function useStudyCounts() {
     const publish = () => { if (live) setTotals({ highlights: [...counts].filter(([k]) => k.startsWith("bs_h_")).reduce((n, [, v]) => n + v, 0), notes: [...counts].filter(([k]) => k.startsWith("bs_n_")).reduce((n, [, v]) => n + v, 0) }); };
     const update = (key: string, raw: string | null) => {
       if (!live) return;
-      try { counts.set(key, Object.keys(JSON.parse(raw ?? "{}") as Record<string, Highlight>).length); } catch { counts.set(key, 0); }
+      try { counts.set(key, Object.values(JSON.parse(raw ?? "{}") as Record<string, Highlight>).filter(value => !key.startsWith("bs_h_") || !!value.color).length); } catch { counts.set(key, 0); }
       publish();
     };
     void store.keys().then(async (keys) => {

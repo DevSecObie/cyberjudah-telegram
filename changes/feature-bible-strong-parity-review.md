@@ -1,0 +1,4 @@
+- Bible tabs keep verse selections and expanded passage context when reopened. Opening a new Bible tab now stays in that tab, and a search palette finds tabs, tools and scripture with keyboard controls on Mac and Windows.
+- Scripture search now filters across all matches, offers more result pages and Bible order, and opens complete typed verse ranges. Focus shows only the requested passage; verse numbers can be hidden in reading settings.
+- Save a selection, chapter or whole book as a text file with your chosen notes, links, precepts, tags and phrase marks. Home offers five days of scripture with share and image controls.
+- Reading-plan buttons stay inside the app, chapters can be marked read or unread with touch or keyboard, and progress belongs to the selected plan. Home counts actual personal studies, and Settings includes a reading guide.
