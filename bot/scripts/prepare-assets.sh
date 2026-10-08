@@ -13,6 +13,15 @@ rm -rf .deploy
 mkdir -p .deploy/app
 cp -r app/dist/. .deploy/
 cp -r app/dist/. .deploy/app/
+# Vite names every file under assets/ by its content hash, so a browser may keep one for a
+# year without asking again; a new build references new names. index.html, sw.js and the
+# public files keep their names across builds and keep the default caching.
+cat > .deploy/_headers <<'HEADERS'
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+/app/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+HEADERS
 # The Bible Strong fork (strong/, built by strong/build-web.sh) is staged beside the current
 # app at /app/strong while it is built out; the current app at /app is unchanged.
 if [ -d strong/dist ]; then

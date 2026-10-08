@@ -79,9 +79,9 @@ export function Classes() {
           <Chips>{FEEDS.map(([f, label]) => <Chip key={f} on={feed === f} onClick={() => set({ feed: f, teacher: undefined, year: undefined, series: undefined })}>{label}{res.data ? <span className="chip__n"> {counts[f]}</span> : null}</Chip>)}</Chips>
         </div>
         <div className="cfeed__filters">
-          <button type="button" className="cfeed__pick" data-on={year ? "" : undefined} disabled={years.length < 2} aria-label={`Year: ${year || "any"}`} title={`Year: ${year || "any"}`} onClick={() => void choose("Year", year, years, "year")}><span>{year || "Any year"}</span><Icon name="chevron" size={14} /></button>
-          <button type="button" className="cfeed__pick" data-on={teacher ? "" : undefined} disabled={teachers.length < 2} aria-label={`Teacher: ${teacher || "any"}`} title={`Teacher: ${teacher || "any"}`} onClick={() => void choose("Teacher", teacher, teachers, "teacher")}><span>{teacher || "Any teacher"}</span><Icon name="chevron" size={14} /></button>
-          {series ? <button type="button" className="cfeed__pick" data-on="" aria-label={`Series: ${series}. Show every class`} title={`Series: ${series}. Show every class`} onClick={() => { haptic("select"); set({ series: undefined }); }}><span>{series}</span><Icon name="close" size={14} /></button> : null}
+          <button type="button" className="cfeed__pick" data-on={year ? "" : undefined} disabled={years.length < 2} aria-label={`${year || "Any year"}: choose a year`} title={`${year || "Any year"}: choose a year`} onClick={() => void choose("Year", year, years, "year")}><span>{year || "Any year"}</span><Icon name="chevron" size={14} /></button>
+          <button type="button" className="cfeed__pick" data-on={teacher ? "" : undefined} disabled={teachers.length < 2} aria-label={`${teacher || "Any teacher"}: choose a teacher`} title={`${teacher || "Any teacher"}: choose a teacher`} onClick={() => void choose("Teacher", teacher, teachers, "teacher")}><span>{teacher || "Any teacher"}</span><Icon name="chevron" size={14} /></button>
+          {series ? <button type="button" className="cfeed__pick" data-on="" aria-label={`${series}: show every class`} title={`${series}: show every class`} onClick={() => { haptic("select"); set({ series: undefined }); }}><span>{series}</span><Icon name="close" size={14} /></button> : null}
           {filtered ? <button type="button" className="cfeed__reset" onClick={() => { haptic("select"); reset(); }}>Reset</button> : null}
         </div>
       </div>

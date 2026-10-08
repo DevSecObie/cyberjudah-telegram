@@ -38,7 +38,7 @@ export function Settings() {
   // One typeface for reading: the notes and the Bible both follow this row, and it names the face the Bible is really set in.
   const [bible, setBible] = useBibleSettings();
   const face = ["System", "Avenir", "normal", "Roboto"].includes(bible.fontFamily) ? "System" : bible.fontFamily;
-  const [fullscreen, setFs, fsLoaded] = useStored("fullscreen", true);
+  const [fullscreen, setFs, fsLoaded] = useStored("fullscreen", false);
   const [portrait, setPortrait] = useStored("portrait", false);
   const [daily, setDaily] = useState<boolean | null>(null);
   const [me, setMe] = useState<{ user: { id: number }; admin?: boolean; canEdit?: boolean } | null>(null);
@@ -115,6 +115,7 @@ export function Settings() {
       <Section title="Reading Reminders">
         <List><Row title="Reading reminders" sub="Today's reading, at your time, in Telegram or as a push notification" onClick={() => navigate("/settings/reminders")} /></List>
         <List><Row title="Privacy" sub="What is kept, who sees it, and your choices: download or delete your data" onClick={() => navigate("/privacy")} /></List>
+        <List><Row title="Terms" sub="What your Ask balance buys, refunds, and what happens to it when you delete your data" onClick={() => navigate("/terms")} /></List>
       </Section>
       <Section title="Daily Verse">
         <List>

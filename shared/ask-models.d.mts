@@ -9,3 +9,5 @@ export const UNIT_USD_PER_M: number;
 export function modelOf(id: unknown, fallback?: string): AskModel;
 export function unitsFor(u: object | null | undefined, model?: AskModel): number;
 export function costFactor(model?: AskModel): number;
+export const PROVIDER_COUNTRY: Record<string, string>;
+export function countryOf(provider: string): string | undefined;

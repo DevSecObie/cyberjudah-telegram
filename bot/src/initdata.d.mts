@@ -24,5 +24,8 @@ export type InitData = {
   [key: string]: unknown;
 };
 export const LAUNCH_DATA_MAX_AGE: number;
+export const SENSITIVE_MAX_AGE: number;
+export function launchMaxAge(path: string): number;
+export function sameHex(a: string, b: string): boolean;
 export function validateInitData(initData: unknown, botToken: string, maxAgeSec?: number, now?: number): Promise<InitData | null>;
 export function signInitData(fields: Record<string, string | object | number>, botToken: string): Promise<string>;

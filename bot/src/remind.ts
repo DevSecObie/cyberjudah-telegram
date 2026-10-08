@@ -13,7 +13,7 @@ import {
   type Meta, type Portion, type Reminder,
 } from "./reminders.mjs";
 import { b64u, sendPush, validSubscription, type VapidKeys } from "./webpush.mjs";
-import { open, pid, seal } from "./privacy.mjs";
+import { keyedHash, open, pid, seal } from "./privacy.mjs";
 
 /**
  * Reading reminders (rules in reminders.mjs). One record per reader in the SUBS namespace:
@@ -264,7 +264,8 @@ reminders.put("/", async (c) => {
     // A new credential: limited per address per minute, and capped per address per day.
     const ip = clientIp(c);
     if (await overLimit(c.env, `create:${ip}`)) return tooMany(c);
-    const dayKey = `remcreate:${await sha256(ip)}:${new Date().toISOString().slice(0, 10)}`;
+    // The address is counted under a keyed hash (privacy.mjs), not one anyone could rebuild by hashing every address.
+    const dayKey = `remcreate:${await keyedHash(c.env, "remcreate", ip)}:${new Date().toISOString().slice(0, 10)}`;
     const made = Number(await c.env.SUBS.get(dayKey)) || 0;
     if (made >= CREATE_PER_DAY) return c.json({ ok: false, error: "rate-limited" }, 429, { "retry-after": "3600" });
     await c.env.SUBS.put(dayKey, String(made + 1), { expirationTtl: 2 * 86400 });

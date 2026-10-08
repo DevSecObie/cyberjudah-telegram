@@ -426,7 +426,8 @@ test("controls: an overflowing rail scrolls natively and restores drag after res
   await page.addInitScript(() => {
     (window as unknown as { __cloud: Record<string, string> }).__cloud.nav = JSON.stringify(["plan", "bookmarks", "precepts", "library", "bible", "search"]);
   });
-  await page.setViewportSize({ width: 1280, height: 550 });
+  // Rail labels keep to one line at 200%, so the window is short enough for the rail to overflow.
+  await page.setViewportSize({ width: 1280, height: 450 });
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   await page.addStyleTag({ content: "html { font-size: 200% !important; }" });

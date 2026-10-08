@@ -43,6 +43,23 @@ export async function pid(env, uid) {
   return id;
 }
 
+/**
+ * A keyed hash (HMAC-SHA-256, hex) of a value that must be counted but not kept, such as a
+ * network address: without PRIVACY_KEY it cannot be reversed by hashing every address.
+ * `purpose` keeps one use's hashes apart from another's.
+ */
+const macKeys = new Map();
+export async function keyedHash(env, purpose, value) {
+  const cacheKey = `${rootOf(env).length}:${purpose}`;
+  let k = macKeys.get(cacheKey);
+  if (!k) {
+    k = crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt, info: enc.encode(`mac:${purpose}`) }, await root(env), { name: "HMAC", hash: "SHA-256", length: 256 }, false, ["sign"]);
+    macKeys.set(cacheKey, k);
+  }
+  const sig = await crypto.subtle.sign("HMAC", await k, enc.encode(String(value)));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 async function sealKey(env, owner) {
   return crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt, info: enc.encode(`seal:${owner}`) }, await root(env), { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
 }

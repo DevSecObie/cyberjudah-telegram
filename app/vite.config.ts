@@ -32,6 +32,19 @@ const offlineShell: Plugin = {
 };
 
 /**
+ * The reading face (src/fonts/fonts.css) is self-hosted with a hashed name, so its preload is
+ * added once the build knows that name: the home verse and the Bible ask for it first.
+ */
+const preloadReadingFace: Plugin = {
+  name: "preload-reading-face", apply: "build",
+  transformIndexHtml: { order: "post", handler(_html, ctx) {
+    const face = Object.values(ctx.bundle ?? {}).find((a) => a.type === "asset" && a.originalFileNames.some((n) => n.endsWith("newsreader-latin-opsz-normal.woff2")));
+    if (!face) { this.warn?.("reading face not found in the bundle; no font preload"); return; }
+    return [{ tag: "link", attrs: { rel: "preload", href: assetBase + face.fileName, as: "font", type: "font/woff2", crossorigin: "" }, injectTo: "head" }];
+  } },
+};
+
+/**
  * telegram-ui's Subheadline renders an <h6> by default, and Cell, Chip and Badge use it for
  * subtitles, counts and labels with no way to pass another element. That fills every list with
  * level-six headings. Render it as a <span> (kept block-level in CSS) so headings are only the
@@ -49,7 +62,7 @@ const plainSubheadline: Plugin = {
 };
 
 export default defineConfig({
-  plugins: [plainSubheadline, react(), offlineShell],
+  plugins: [plainSubheadline, react(), offlineShell, preloadReadingFace],
   // The dev server pre-bundles telegram-ui with esbuild, so the same change is made there.
   optimizeDeps: {
     esbuildOptions: {
@@ -74,5 +87,12 @@ export default defineConfig({
     },
   },
   server: { port: 5173, allowedHosts: true },
-  build: { target: "es2022", sourcemap: false },
+  build: {
+    target: "es2022", sourcemap: false,
+    // React, the router and React Query change far less often than the app: in a chunk of their
+    // own they stay cached across deploys. Only libraries the first paint needs go here.
+    rollupOptions: { output: { manualChunks(id) {
+      if (/[\\/]node_modules[\\/](react|react-dom|scheduler|react-router|@tanstack[\\/](query-core|react-query))[\\/]/.test(id)) return "vendor";
+    } } },
+  },
 });

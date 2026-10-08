@@ -14,6 +14,27 @@ import data from "./ask-models.json" with { type: "json" };
 
 export const MODELS = data.models;
 
+/**
+ * Where each provider is based (its headquarters), shown when Ask asks the reader to agree to it,
+ * so they know whose jurisdiction their question goes to. Kept here, not in ask-models.json,
+ * because that file is rebuilt from Cloudflare's catalog. A provider whose home is not known
+ * for certain is left out, and the card says nothing rather than guess.
+ */
+export const PROVIDER_COUNTRY = {
+  Anthropic: "the United States",
+  OpenAI: "the United States",
+  Google: "the United States",
+  xAI: "the United States",
+  "Thinking Machines": "the United States",
+  "Cloudflare (Workers AI)": "the United States",
+  DeepSeek: "China",
+  "Alibaba (Qwen)": "China",
+  "Moonshot AI": "China",
+  MiniMax: "China",
+};
+/** The country a provider is based in, or undefined when it is not known for certain. */
+export const countryOf = (provider) => (Object.hasOwn(PROVIDER_COUNTRY, provider) ? PROVIDER_COUNTRY[provider] : undefined);
+
 /** What a unit of the allowance is worth: a million units cost this many dollars (Claude Opus 5's input price). */
 export const UNIT_USD_PER_M = 5;
 

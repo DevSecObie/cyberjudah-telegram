@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { resourceRelease } from './client';
 
 /** Keep cross-tab changes observable even while no resource screen is mounted. */
 export function useResourceSync() {
@@ -17,6 +16,6 @@ export function useResourceSync() {
 
 /** React Query keys include the selected release; updates cannot reuse old entry data. */
 export function useResourceRelease(id: string, explicit?: string | null) {
-  const selected = useQuery({ queryKey: ['resource-release', id], queryFn: () => resourceRelease(id), staleTime: Infinity, enabled: explicit === undefined });
+  const selected = useQuery({ queryKey: ['resource-release', id], queryFn: () => import('./client').then((m) => m.resourceRelease(id)), staleTime: Infinity, enabled: explicit === undefined });
   return explicit === undefined ? selected.data : explicit;
 }

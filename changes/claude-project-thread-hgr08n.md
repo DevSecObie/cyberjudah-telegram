@@ -1,0 +1,9 @@
+- The AI agreement card says where each provider is based, and that asking about your saved chats or reminder sends their titles and dates or its settings to the chosen model.
+- Push reminders show the app's own icon, so a reminder no longer waits on the website to load one.
+- A Report button under Ask answers and the search AI answer sends the admins which answer it was and why.
+- New Terms screen and /terms command for the Ask balance; /help now lists /privacy, /terms and /paysupport.
+- The privacy policy now covers IP limits, Sabbath location, answer reports, admin support messages, fonts and YouTube, and an age line.
+- Search words stay out of the Worker's request logs, and sensitive routes only accept launch data up to a day old.
+- Fonts are served with the app instead of from Google, and the app loads less code up front.
+- Bigger tap areas in the Bible reader and across the app, text that scales with your size setting, and clearer headings and button names for screen readers.
+- The app opens expanded rather than full screen, follows Telegram's accent colour until you pick a theme, and the search prompts stop rotating after one round.

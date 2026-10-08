@@ -4,7 +4,9 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-05-01",
   "compatibility_flags": ["nodejs_compat"],
-  "observability": { "enabled": true },
+  // Workers Logs keep console output (event names and counts only), but not the per-request
+  // invocation logs: their URLs would carry search words (/api/search?q=, /api/similar?q=).
+  "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false } },
   "workers_dev": true,
   // The Mini App lives at cyberjudah.io/app: the SPA under /app, the API it calls under
   // /api, and the verse-card images and frames under /card and /frames. The rest of the

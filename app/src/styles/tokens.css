@@ -122,7 +122,8 @@
   --z-sticky: 20; --z-actions: 55; --z-dock: 60; --z-drawer: 70; --z-pip: 80; --z-sheet: 90; --z-toast: 100; --z-lock: 110;
 
   /* Safe areas and the dock. --dock-space is the room content keeps clear at the bottom. */
-  --safe-top: 0px; --safe-left: 0px; --safe-right: 0px;
+  /* The device's insets outside Telegram; inside it, boot() sets Telegram's on the root, which wins. */
+  --safe-top: env(safe-area-inset-top, 0px); --safe-left: env(safe-area-inset-left, 0px); --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --dock-h: max(60px, 3.75rem);
   --dock-gap: 10px;
