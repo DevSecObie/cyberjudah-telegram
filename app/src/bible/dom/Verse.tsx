@@ -1,4 +1,4 @@
-import { AnnotatedText } from "@/studies/PhraseAnnotations";
+import { AnnotatedText } from "@/studies/AnnotatedText";
 import { useState, type CSSProperties } from "react";
 
 import type { ClassMoment } from "@/api/data";

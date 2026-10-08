@@ -1,0 +1,1 @@
+Removed the custom Mark phrase button and separate phrase form from the reader. Existing saved word marks remain visible and included in backups. Hidden action pages no longer leave empty space in the selection sheet.
