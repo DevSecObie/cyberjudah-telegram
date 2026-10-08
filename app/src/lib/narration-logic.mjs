@@ -12,6 +12,8 @@
  * @returns {NarrationStatus}
  */
 export function narrationStatusFrom(required, cached) {
+  // No chapter has any licensed/generated audio at all: that is not the same as having
+  // downloaded everything that exists, so this must not read as "complete" (CYB-123 review).
   if (required.length === 0) return "none";
   const have = required.filter((u) => cached.has(u)).length;
   if (have === 0) return "none";

@@ -4,6 +4,10 @@ Current owner direction, 8 October 2026: retain the existing CyberJudah app, all
 
 Latest upstream checked for the current gesture work: `a40b63c5bef7fbe41dbd1573780e65e736eab333` (8 October 2026). Its changes after the previously checked `eed343d` concern resource publication, not the Expo reader/navigation source. The earlier review below remains a gap inventory, not a claim of complete current-source parity.
 
+## Implementation constraint
+
+The owner rejected custom substitutes on 8 October 2026. Reuse the latest Bible Strong components and interaction modules; keep CyberJudah's content and existing Glass material. Do not add substitute forms, extra action rows or alternate annotation controls. The custom “Mark phrase” entry/form has been removed; its saved annotations and backup format remain intact. The separate Expo app is still not a replacement deployment.
+
 ## Current reader gesture corrections
 
 The existing reader retains its taught-precept chips, explanation sheets, personal relations and inline class decks. Fast taps on distinct verses now deliver the first selection before starting the next gesture; cancellation, multi-touch and lost window focus clear the held press so a late release cannot select a verse or open resources. Both configured short/long press modes keep their existing actions. A fast sheet release uses its actual release position to decide dismissal.
