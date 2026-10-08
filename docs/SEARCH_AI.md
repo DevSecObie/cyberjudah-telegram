@@ -4,8 +4,11 @@ The Search screen uses `SEARCH_AI_MODEL` for one answer from the retrieved Cyber
 passages. It does not enable Google web search, research tools or paid reader requests. Ask's
 model picker and pricing are unchanged.
 
-Production and staging select `google/gemini-2.5-flash-lite`, already in the pinned, priced
-catalog in `shared/ask-models.json`. Only known Google chat models and Cloudflare plain/chat
+Production and staging retain `@cf/meta/llama-3.1-8b-instruct-fp8` until the gateway is funded.
+The Google integration supports `google/gemini-2.5-flash-lite`, already in the pinned, priced
+catalog in `shared/ask-models.json`. The October 8 live staging check reached the gateway but
+was refused with `2021: Insufficient AI Gateway credits`; Google is not advertised as live.
+Only known Google chat models and Cloudflare plain/chat
 models are accepted. An unknown or unsupported setting disables the answer instead of silently
 choosing another paid provider. Remove `SEARCH_AI_MODEL` to return to `ASK_FREE_MODEL`.
 
@@ -16,8 +19,9 @@ choosing another paid provider. Remove `SEARCH_AI_MODEL` to return to `ASK_FREE_
    third-party calls. The existing `AI` binding authenticates the request; no Google key needs
    to be added to the app or to this repository. If a Google BYOK key is already stored under
    the gateway's `default` alias, it takes precedence and Google bills that key instead.
-2. Keep `SEARCH_AI_MODEL` consistent in the production and `env.staging.vars` sections of
-   `bot/wrangler.jsonc`. No extra Worker secret or client variable is required for this binding
+2. After funding, set `SEARCH_AI_MODEL` to `google/gemini-2.5-flash-lite` in both the production
+   and `env.staging.vars` sections of `bot/wrangler.jsonc`, and match `EXPECTED_SEARCH_MODEL`
+   in the staging and deployment workflows. No extra Worker secret or client variable is required for this binding
    path. Existing secrets for other features stay as configured.
 3. After an authorized staging deployment, submit a Search query with reliable library results.
    Before accepting, confirm ordinary results appear and Google has not received a model call.

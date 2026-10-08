@@ -79,7 +79,7 @@
         "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
         "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8",
         "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "0.11",
-        "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_MODEL": "google/gemini-2.5-flash-lite", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
+        "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
         "DONATIONS_ON": "on", "DONATE_MIN_STARS": "1"
       }
     }
@@ -135,7 +135,7 @@
     // ASK_FREE_MODEL names the default free model (Llama 3.1 8B, cheapest per answer).
     "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8",
     "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "0.11",
-    "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_MODEL": "google/gemini-2.5-flash-lite", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
+    "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
     // Donations ("Support CyberJudah"): on by default; a giver may name any amount of Stars from
     // DONATE_MIN_STARS up (no app-imposed ceiling until the owner adds DONATE_MAX_STARS below).
     // DONATION_URL (the owner's own HTTPS giving link) is not set here: it is not secret, but no

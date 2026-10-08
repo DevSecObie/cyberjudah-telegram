@@ -4,6 +4,7 @@ import { signInitData } from "../src/initdata.mjs";
 /** A bounded live check: no messages, content writes or paid reader balance. */
 export async function verifyRelease({ url, token, expectedModel, fetcher = fetch, log = console.log }) {
   if (!url || !token || !expectedModel) throw new Error("Set WORKER_URL, BOT_TOKEN and EXPECTED_SEARCH_MODEL for release verification.");
+  const external = !expectedModel.startsWith("@cf/"), provider = external ? "Google" : "Cloudflare";
   const origin = new URL(url).origin;
   const get = (path, headers = {}) => fetcher(`${origin}${path}`, { headers, redirect: "error", signal: AbortSignal.timeout(60_000) });
   const requireStatus = (response, status, label) => {
@@ -36,24 +37,26 @@ export async function verifyRelease({ url, token, expectedModel, fetcher = fetch
     if (!Array.isArray(body[field])) throw new Error(`${label}: invalid catalog.`);
     log(`${label}: ${body[field].length} published`);
   }
-  const consent = await get(query, headers);
-  requireStatus(consent, 428, "Provider consent");
-  if ((await consent.json()).provider !== "Google") throw new Error("Provider consent: unexpected provider.");
-  log("Authentication and provider consent: enforced");
-  const response = await get(query, { ...headers, "x-ai-consent": "Google" });
+  if (external) {
+    const consent = await get(query, headers);
+    requireStatus(consent, 428, "Provider consent");
+    if ((await consent.json()).provider !== provider) throw new Error("Provider consent: unexpected provider.");
+    log("External provider consent: enforced");
+  }
+  const response = await get(query, { ...headers, ...(external ? { "x-ai-consent": provider } : {}) });
   if (response.status !== 200) {
     const body = await response.json().catch(() => ({}));
     const reason = ["free-paused", "limit", "unavailable", "empty"].includes(body.error) ? body.error : "unexpected-response";
     throw new Error(`Search answer: HTTP ${response.status} (${reason}). Check the gateway funding, allowance and provider configuration.`);
   }
   const answer = await response.json();
-  if (!answer.ok || answer.model !== expectedModel || answer.provider !== "Google" || !answer.answer?.trim() || !Array.isArray(answer.sources) || !answer.sources.length) {
+  if (!answer.ok || answer.model !== expectedModel || answer.provider !== provider || !answer.answer?.trim() || !Array.isArray(answer.sources) || !answer.sources.length) {
     throw new Error("Search answer: the configured provider did not return a cited library answer.");
   }
   if (response.headers.get("cache-control") !== "private, no-store") throw new Error("Search answer: browser caching is not disabled.");
   // Reusing a cached question after withdrawing consent must still be refused.
-  requireStatus(await get(query, headers), 428, "Withdrawn consent");
-  log(`Search answer: configured provider verified, ${answer.sources.length} citations; consent enforced after caching`);
+  if (external) { requireStatus(await get(query, headers), 428, "Withdrawn consent"); log("External provider consent: enforced after caching"); }
+  log(`Search answer: configured ${provider} provider verified, ${answer.sources.length} citations`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
