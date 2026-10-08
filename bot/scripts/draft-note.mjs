@@ -29,7 +29,7 @@ const DATA_ORIGIN = process.env.DATA_ORIGIN ?? "https://data.cyberjudah.io";
 const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID, TOKEN = process.env.CLOUDFLARE_API_TOKEN, GH = process.env.CYBERJUDAH_TOKEN ?? process.env.GITHUB_TOKEN;
 const PART_WORDS = 4000;
 
-const getJson = async (url, headers = {}) => { const r = await fetch(url, { headers }); if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.json(); };
+const getJson = async (url, headers = {}, init = {}) => { const r = await fetch(url, { ...init, headers }); if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.json(); };
 const gh = (path, init = {}) => getJson(`https://api.github.com${path}`, { accept: "application/vnd.github+json", ...(GH ? { authorization: `Bearer ${GH}` } : {}), "content-type": "application/json", ...(init.headers ?? {}) }, init);
 const llm = async (messages, max_tokens = 1500) => {
   for (let attempt = 1; ; attempt++) {
