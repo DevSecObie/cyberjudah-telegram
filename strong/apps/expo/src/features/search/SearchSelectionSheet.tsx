@@ -1,3 +1,5 @@
+import { getSimpleStrongModuleId } from '@bible-strong/resource-domain/strong-lexicon'
+import { getPrimaryStrongLexiconAvailability } from '~features/resources/layeredStrongLexiconAccess'
 import PassageBrowser from './PassageBrowser'
 import { usePassageFilterChoices } from './usePassageFilterChoices'
 import { createSearchExperienceController } from './searchExperience'
@@ -23,7 +25,15 @@ import HeaderContent from '~common/ContextualPanel/HeaderContent'
 import { useTheme } from '~themes/ThemeProvider'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useAtomValue } from 'jotai/react'
-import { Fragment, type PropsWithChildren, Ref, useDeferredValue, useState, useRef } from 'react'
+import {
+  Fragment,
+  type PropsWithChildren,
+  type ReactNode,
+  Ref,
+  useDeferredValue,
+  useState,
+  useRef,
+} from 'react'
 import { ActivityIndicator, FlatList, Platform, TextInput } from 'react-native'
 import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
@@ -120,6 +130,7 @@ export type SearchSelectionSheetProps = {
   initialSource?: SearchItemType
   onDismiss?: () => void
   onSelectItem: (item: SearchEntityResult, version: VersionCode) => void | Promise<void>
+  searchAccessory?: ReactNode
 }
 
 const browseModeLabelKeys: Record<BrowseMode, string> = {
@@ -307,6 +318,7 @@ const SearchSelectionSheet = ({
   inline = false,
   browsePassages = false,
   requirePassageVerse = false,
+  searchAccessory,
 }: SearchSelectionSheetProps) => {
   const { t } = useTranslation()
   const filtersRef = useRef<SheetRef>(null)
@@ -463,13 +475,16 @@ const SearchSelectionSheet = ({
       strongLetter,
     ],
     queryFn: async ({ pageParam }) => {
-      const availability = await resources.strongLexicon.getModuleAvailability('core')
+      const availability = await getPrimaryStrongLexiconAvailability(
+        resources.strongLexicon,
+        resourcesLanguage.STRONG
+      )
       if (availability.status !== 'available') {
         throw new ResourceAccessError(
           availability.status === 'corrupt' ? 'INVALID_OFFLINE_COPY' : 'UNKNOWN',
-          (await resources.strongLexicon.getModuleRecoveryActions?.('core')) ?? [
-            'acquire-offline-copy',
-          ]
+          (await resources.strongLexicon.getModuleRecoveryActions?.(
+            getSimpleStrongModuleId(resourcesLanguage.STRONG)
+          )) ?? ['acquire-offline-copy']
         )
       }
       return resources.strongLexicon.listEntries({
@@ -740,7 +755,10 @@ const SearchSelectionSheet = ({
   const resourceFailures: (RelationResourceFailure | undefined)[] = [
     shouldLoadStrongTargets && strongQuery.isError
       ? {
-          identity: { kind: 'strong-lexicon-module', moduleId: 'core' } as const,
+          identity: {
+            kind: 'strong-lexicon-module',
+            moduleId: getSimpleStrongModuleId(resourcesLanguage.STRONG),
+          } as const,
           title: t('resource.strong.temporarilyUnavailable'),
           error: strongQuery.error,
           retry: strongQuery.refetch,
@@ -889,15 +907,18 @@ const SearchSelectionSheet = ({
   }
 
   const searchHeader = (
-    <Box className="overflow-hidden border-continuous px-[20px] pt-[8px] pb-[12px]">
-      <SheetSearchInput
-        value={searchValue}
-        onChangeText={handleSearch}
-        onDelete={() => handleSearch('')}
-        placeholder={placeholder}
-        ref={searchInputRef}
-        autoFocus={Platform.OS === 'web'}
-      />
+    <Box className="overflow-hidden border-continuous flex-row items-start gap-[8px] px-[20px] pt-[8px] pb-[12px]">
+      <Box className="overflow-visible border-continuous flex-[1]">
+        <SheetSearchInput
+          value={searchValue}
+          onChangeText={handleSearch}
+          onDelete={() => handleSearch('')}
+          placeholder={placeholder}
+          ref={searchInputRef}
+          autoFocus={Platform.OS === 'web'}
+        />
+      </Box>
+      {searchAccessory}
     </Box>
   )
 

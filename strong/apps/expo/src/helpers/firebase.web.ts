@@ -5,7 +5,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  getFirestore,
   increment as firestoreIncrement,
   onSnapshot,
   query,
@@ -22,9 +21,9 @@ import {
 import { getStorage, ref } from 'firebase/storage'
 
 import type { ResourceLanguage, DatabaseId } from '~helpers/databaseTypes'
-import { firebaseApp } from './firebaseApp.web'
+import { firebaseApp, firebaseDb } from './firebaseApp.web'
 
-export const firebaseDb = getFirestore(firebaseApp)
+export { firebaseDb }
 export const storageRef = ref(getStorage(firebaseApp))
 export const increment = firestoreIncrement(1)
 

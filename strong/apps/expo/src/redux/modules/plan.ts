@@ -1,15 +1,6 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { OngoingPlan, OnlinePlan, Plan, Section, Status } from '~common/types'
-import type { FirebaseFirestoreTypes } from '@react-native-firebase/firestore'
-import {
-  firebaseDb,
-  increment,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  updateDoc,
-} from '~helpers/firebase'
+import { loadReadingPlan, loadReadingPlans } from '~helpers/readingPlanCatalog'
 import { RootState } from './reducer'
 import { importData, receiveLiveUpdates, USER_LOGOUT } from './user'
 import { markReadingSliceAsRead } from '~features/plans/planProgress'
@@ -33,41 +24,11 @@ const initialState: PlanModel = {
   images: {},
 }
 
-const docsArr = async (collectionName: string) => {
-  const snapshot = await getDocs(collection(firebaseDb, collectionName))
-
-  return snapshot.docs.map((x: FirebaseFirestoreTypes.QueryDocumentSnapshot) => x.data())
-}
-
-export const fetchPlans = createAsyncThunk('plan/fetchPlans', async () => {
-  const results = (await docsArr('plans')) as OnlinePlan[]
-  return results
-})
+export const fetchPlans = createAsyncThunk('plan/fetchPlans', loadReadingPlans)
 
 export const fetchPlan = createAsyncThunk(
   'plan/fetchPlan',
-  async ({ id, update = false }: { id: string; update?: boolean; enroll?: boolean }) => {
-    const planRef = doc(firebaseDb, 'plans', id)
-
-    const planSnapshot = await getDoc(planRef)
-    const plan = planSnapshot.data() as OnlinePlan
-    if (!plan) throw new Error('Reading content is unavailable')
-
-    if (update) {
-      await updateDoc(planRef, { downloads: increment })
-    }
-
-    const snapshot = await getDocs(collection(firebaseDb, 'plans', id, 'plan-sections'))
-    // An empty offline Firestore cache is not evidence that a collection has no readings.
-    if (snapshot.empty && snapshot.metadata.fromCache) {
-      throw new Error('Reading content is not available offline')
-    }
-    const sections = snapshot.docs.map((x: FirebaseFirestoreTypes.QueryDocumentSnapshot) =>
-      x.data()
-    ) as Section[]
-
-    return { ...plan, sections }
-  }
+  async ({ id }: { id: string; update?: boolean; enroll?: boolean }) => loadReadingPlan(id)
 )
 
 export const updatePlans = createAsyncThunk(

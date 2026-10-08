@@ -30,6 +30,8 @@ import { toast } from '~helpers/toast'
 import EntityChipList from '~common/EntityChipList'
 import { useOpenInNewTab } from '~features/app-switcher/utils/useOpenInNewTab'
 import generateUUID from '~helpers/generateUUID'
+import { getPublicSiteUrl } from '~helpers/publicSiteLinks'
+import { buildPublicDictionaryPath } from './publicDictionaryRoutes'
 import { useTabContext } from '~features/app-switcher/context/TabContext'
 import { useResourceAccess } from '~features/resources/resourceAccess'
 import {
@@ -103,7 +105,9 @@ const DictionnaryDetailScreen = ({
   const work = storedWork ?? getDefaultDictionaryWork(dictionaryResourceLanguage)
   const resolvedDictionaryTitle =
     dictionaryTitle ??
-    (work === 'easton-webster'
+    (work === 'easton'
+      ? 'Easton’s Bible Dictionary'
+      : work === 'easton-webster'
       ? 'Easton’s Bible Dictionary & Webster’s 1828 Dictionary'
       : work === 'westphal'
         ? 'Dictionnaire encyclopédique de la Bible'
@@ -325,7 +329,14 @@ const DictionnaryDetailScreen = ({
         .text.replace(/&#/g, '\\')
         .replace(/\\x([0-9A-F]+);/gi, (_, hex: string) => {
           return String.fromCharCode(parseInt(hex, 16))
-        })} \n\nLa suite sur https://bible-strong.app`
+        })} \n\nLa suite sur ${getPublicSiteUrl(() =>
+        buildPublicDictionaryPath({
+          language: dictionaryResourceLanguage,
+          work,
+          entryId: dictionnaireItem.id ?? 0,
+          word: dictionnaireItem.word,
+        })
+      )}`
       Share.share({ message })
     } catch (e) {
       toast.error('Erreur lors du partage.')
@@ -541,6 +552,7 @@ const DictionnaryDetailScreen = ({
         ) : (
           dictionnaireItem?.definition && (
             <SwitchableHTMLView
+              selectable
               previewSource={{
                 kind: 'dictionary',
                 work,

@@ -4,6 +4,7 @@ import { twMerge } from '~common/ui/classNames'
 import { resolveThemeColor, colorWithOpacity } from '~themes/colorValues'
 import { useTheme as useStylingTheme } from '~themes/ThemeProvider'
 import PageContent from '~common/ui/PageContent'
+import { useAtom } from 'jotai/react'
 import React, { useRef, useState } from 'react'
 import { ScrollView, type ScrollView as ScrollViewType } from 'react-native'
 import { useTranslation } from 'react-i18next'
@@ -25,16 +26,19 @@ import {
   StrongEditorialHtml,
   StrongEditorialPreview,
   StrongEditorialSection,
-  StrongEyebrow,
   StrongEntityRelationList,
   StrongEntitySummaryCard,
+  StrongLevelSwitch,
   StrongLexicalRelationCard,
   StrongPreviewLink,
 } from './StrongDetailUI'
+import { strongDefinitionLevelAtom } from './atoms'
 import { StrongEntityRelationGraph } from './StrongEntityRelationGraph'
 import {
   formatStrongContextMorphology,
+  getStrongContextHighlight,
   getStrongContextVerseText,
+  type StrongContextHighlight,
 } from './strongContextPresentation'
 import { splitStrongEntityRelations } from './strongEntityPresentation'
 import { splitStrongLexicalRelations } from './strongLexiconRelations'
@@ -43,21 +47,34 @@ import { getScaledStrongTextStyle, type StrongReadingTypography } from './strong
 import { formatStrongLemmaPartOfSpeech } from './strongLemmaPartOfSpeech'
 import { isStrongOriginalUnnamed } from './strongOriginalPresentation'
 import StrongPassageMediaSection from './StrongPassageMediaSection'
+import {
+  isSameStrongDefinition,
+  presentStrongDefinitions,
+} from '@bible-strong/resource-domain/strong-definition-presentation'
 type Anchor = 'context' | 'definition' | 'media' | 'entity' | 'related' | 'concordance'
 
 type Props = {
   entry: StrongLexiconEntry
+  extrasLoading?: boolean
+  extrasError?: boolean
+  onRetryExtras?: () => void
   passageMedia: ResolvedPassageMedia[]
   contextVerse?: Verse
+  contextLoading?: boolean
+  contextError?: boolean
+  onRetryContext?: () => void
   contextReference?: string
   contextVersion?: string
   clickedWord?: string
   contextMorphologies?: StrongLexiconMorphology[]
-  concordanceCount: number
-  concordanceTotalCount: number
+  concordanceCount?: number
+  concordanceTotalCount?: number
   concordanceVersion: string
   concordanceVerses: Verse[]
   concordanceLoading: boolean
+  concordanceError: boolean
+  concordanceRetrying: boolean
+  onRetryConcordance: () => void
   lemmaStats: StrongBibleLemmaStat[]
   selectedLemmaId?: number
   readingTypography: StrongReadingTypography
@@ -72,12 +89,12 @@ type Props = {
 
 const HighlightedVerse = ({
   text,
-  word,
+  highlight,
   untranslatedOffset,
   readingTypography,
 }: {
   text: string
-  word?: string
+  highlight?: StrongContextHighlight
   untranslatedOffset?: number
   readingTypography: StrongReadingTypography
 }) => {
@@ -94,24 +111,29 @@ const HighlightedVerse = ({
         {text.slice(untranslatedOffset)}
       </Text>
     )
-  if (!word) return <Text style={getScaledStrongTextStyle(18, 28, readingTypography)}>{text}</Text>
-  const index = text.toLocaleLowerCase().indexOf(word.toLocaleLowerCase())
-  if (index < 0)
+  if (!highlight)
     return <Text style={getScaledStrongTextStyle(18, 28, readingTypography)}>{text}</Text>
 
   return (
     <Text style={getScaledStrongTextStyle(20, 30, readingTypography)}>
-      {text.slice(0, index)}
+      {text.slice(0, highlight.start)}
       <Text
         className="bg-light-primary text-primary font-bold rounded-[5px] px-[3px]"
         style={getScaledStrongTextStyle(20, 30, readingTypography)}
       >
-        {text.slice(index, index + word.length)}
+        {text.slice(highlight.start, highlight.end)}
       </Text>
-      {text.slice(index + word.length)}
+      {text.slice(highlight.end)}
     </Text>
   )
 }
+
+const DefinitionBlock = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <VStack className="overflow-hidden border-continuous gap-[8px] pt-[16px] mt-[4px] border-t-[1px] border-border">
+    <Text className="font-bold text-[15px]">{title}</Text>
+    {children}
+  </VStack>
+)
 
 const JumpNavigationContent = ({
   anchors,
@@ -145,7 +167,13 @@ const JumpNavigationContent = ({
 const StrongDetailMainPage = ({
   entry,
   passageMedia,
+  extrasLoading = false,
+  extrasError = false,
+  onRetryExtras,
   contextVerse,
+  contextLoading = false,
+  contextError = false,
+  onRetryContext,
   contextReference,
   contextVersion,
   clickedWord,
@@ -155,6 +183,9 @@ const StrongDetailMainPage = ({
   concordanceVersion,
   concordanceVerses,
   concordanceLoading,
+  concordanceError,
+  concordanceRetrying,
+  onRetryConcordance,
   lemmaStats,
   selectedLemmaId,
   readingTypography,
@@ -170,6 +201,8 @@ const StrongDetailMainPage = ({
 
   const { t, i18n } = useTranslation()
   const scrollRef = useRef<ScrollViewType>(null)
+  const [storedLevel, setStoredLevel] = useAtom(strongDefinitionLevelAtom)
+  const [contextDisclosure, setContextDisclosure] = useState<{ key: string; expanded: boolean }>()
   const [anchorOffsets, setAnchorOffsets] = useState<Partial<Record<Anchor, number>>>({})
   const [dictionaryPreview, setDictionaryPreview] = useState<{
     resourceId: number
@@ -200,12 +233,35 @@ const StrongDetailMainPage = ({
           getStrongReferenceNumber(identity.code) === getStrongReferenceNumber(entry.baseCode)
       )
   )?.startOffset
-  const dictionaryResource = entry.resources[0]
+  const definition = presentStrongDefinitions(entry)
   const lexicalRelations = splitStrongLexicalRelations(entry.relations)
   const displayedRelationCount = Math.min(lexicalRelations.relatedWords.length, 4)
   const displayedConcordanceCount = Math.min(concordanceVerses.length, 3)
   const isOriginalUnnamed = isStrongOriginalUnnamed(entry.original)
   const originalLabel = isOriginalUnnamed ? t('strongDetail.unnamedPerson') : entry.original
+  const dictionaryResource = isOriginalUnnamed ? undefined : entry.resources[0]
+  const nameMeaningHtml = [definition.essentialHtml, definition.deep?.html].some(html =>
+    isSameStrongDefinition(html, entry.nameMeaningHtml)
+  )
+    ? undefined
+    : entry.nameMeaningHtml
+  const deepDefinitionTitle =
+    definition.deep?.kind === 'general'
+      ? t('strongDetail.definition.generalEntry')
+      : t('strongDetail.definition.detailed')
+  const hasDeepContent =
+    Boolean(definition.deep || nameMeaningHtml || dictionaryResource) ||
+    lexicalRelations.alternateSenses.length > 0
+  const hasLevelChoice =
+    hasDeepContent ||
+    Boolean(contextReference) ||
+    Boolean(contextVerse) ||
+    extrasLoading ||
+    extrasError
+  const level = hasLevelChoice ? storedLevel : 'essential'
+  const contextKey = JSON.stringify([entry.stepCode, contextReference, contextVersion, level])
+  const contextExpanded =
+    contextDisclosure?.key === contextKey ? contextDisclosure.expanded : level === 'deep'
 
   return (
     <ScrollView
@@ -292,7 +348,7 @@ const StrongDetailMainPage = ({
               {
                 id: 'concordance',
                 label: t('Concordance'),
-                visible: concordanceCount > 0,
+                visible: true,
               },
             ]}
             onPress={scrollToAnchor}
@@ -300,28 +356,57 @@ const StrongDetailMainPage = ({
         </PageContent>
       </Box>
 
-      {!!contextVerse && (
+      {hasLevelChoice && (
+        <PageContent className="mt-4" style={{ maxWidth: 600 }}>
+          <StrongLevelSwitch
+            options={[
+              { value: 'essential', label: t('strongDetail.definition.level.essential') },
+              { value: 'deep', label: t('strongDetail.definition.level.deep') },
+            ]}
+            value={level}
+            onChange={nextLevel => {
+              setStoredLevel(nextLevel)
+              setContextDisclosure(undefined)
+            }}
+          />
+        </PageContent>
+      )}
+
+      {(!!contextVerse || !!contextReference) && (
         <StrongEditorialSection
           title={t('strongDetail.context.title')}
+          subtitle={[contextReference, contextVersion].filter(Boolean).join(' · ')}
+          expanded={contextExpanded}
+          onToggle={() => setContextDisclosure({ key: contextKey, expanded: !contextExpanded })}
           onLayout={event => setAnchor('context', event.nativeEvent.layout.y)}
         >
           <VStack className="overflow-hidden border-continuous border-l-[3px] pl-[17px] py-[5px] gap-[10px]">
-            <HighlightedVerse
-              text={contextText ?? ''}
-              word={clickedWord || entry.gloss}
-              untranslatedOffset={untranslatedContextOffset}
-              readingTypography={readingTypography}
-            />
+            {contextVerse ? (
+              <HighlightedVerse
+                text={contextText ?? ''}
+                highlight={getStrongContextHighlight(
+                  contextVerse,
+                  entry,
+                  clickedWord || entry.gloss
+                )}
+                untranslatedOffset={untranslatedContextOffset}
+                readingTypography={readingTypography}
+              />
+            ) : contextLoading ? (
+              <Loading message={t('Chargement...')} />
+            ) : contextError ? (
+              <TouchableBox onPress={onRetryContext} accessibilityRole="button" className="py-3">
+                <Text className="text-primary">{t('Réessayer')}</Text>
+              </TouchableBox>
+            ) : null}
             <VStack className="overflow-hidden border-continuous gap-[4px]">
-              <Text className="text-tertiary text-[12px]">
-                {[contextReference, contextVersion].filter(Boolean).join(' · ')}
-              </Text>
-              {contextMorphologies.map(morphology => (
-                <Text className="text-tertiary text-[12px]" key={morphology.code}>
-                  {formatStrongContextMorphology(morphology)}
-                </Text>
-              ))}
-              {!contextMorphologies.length && entry.morphology && (
+              {level === 'deep' &&
+                contextMorphologies.map(morphology => (
+                  <Text className="text-tertiary text-[12px]" key={morphology.code}>
+                    {formatStrongContextMorphology(morphology)}
+                  </Text>
+                ))}
+              {level === 'deep' && !contextMorphologies.length && entry.morphology && (
                 <Text className="text-tertiary text-[12px]">
                   {formatStrongContextMorphology(entry.morphology)}
                 </Text>
@@ -331,85 +416,93 @@ const StrongDetailMainPage = ({
         </StrongEditorialSection>
       )}
 
-      {!!contextVerse && (
-        <PageContent style={{ maxWidth: 600 }}>
-          <Box className="overflow-hidden border-continuous w-[42px] h-[3px] bg-default mt-[34px] mb-[2px]" />
-        </PageContent>
-      )}
-
       <StrongEditorialSection
         title={t('strongDetail.definition.title')}
         onLayout={event => setAnchor('definition', event.nativeEvent.layout.y)}
       >
-        {entry.nameMeaningHtml && (
-          <VStack
-            className="overflow-hidden border-continuous gap-[8px]"
-            style={{ marginBottom: entry.definitionHtml ? 18 : 0 }}
-          >
-            <StrongEditorialHtml
-              value={entry.nameMeaningHtml}
-              onOpenBibleReference={onOpenBibleReference}
-              onOpenStrong={onOpenStrong}
-            />
-          </VStack>
-        )}
-        {entry.definitionHtml ? (
+        {definition.essentialHtml ? (
           <StrongEditorialHtml
-            value={entry.definitionHtml}
+            selectable
+            value={definition.essentialHtml}
             onOpenBibleReference={onOpenBibleReference}
             onOpenStrong={onOpenStrong}
           />
-        ) : !entry.nameMeaningHtml ? (
+        ) : (
           <Text className="text-tertiary">
-            {t('strongLexicon.definitionUnavailable', {
-              language: entry.language,
-            })}
+            {t('strongLexicon.definitionUnavailable', { language: entry.language })}
           </Text>
-        ) : null}
-        {lexicalRelations.alternateSenses.length > 0 && (
-          <VStack className="border-continuous overflow-hidden mt-[10px] pt-[18px] border-t-[1px] border-border gap-[9px]">
-            <StrongEyebrow>{t('strongLexicon.otherMeanings')}</StrongEyebrow>
-            {lexicalRelations.alternateSenses.map(relation => (
-              <StrongLexicalRelationCard
-                key={relation.stepCode}
-                relation={relation}
-                readingTypography={readingTypography}
-                onPress={() => onOpenStrong(relation.stepCode)}
-              />
-            ))}
-          </VStack>
+        )}
+        {level === 'deep' && (
+          <>
+            {definition.deep && (
+              <DefinitionBlock title={deepDefinitionTitle}>
+                <StrongEditorialHtml
+                  selectable
+                  value={definition.deep.html}
+                  onOpenBibleReference={onOpenBibleReference}
+                  onOpenStrong={onOpenStrong}
+                />
+              </DefinitionBlock>
+            )}
+            {nameMeaningHtml && (
+              <DefinitionBlock title={t('strongDetail.definition.nameMeaning')}>
+                <StrongEditorialHtml
+                  selectable
+                  value={nameMeaningHtml}
+                  onOpenBibleReference={onOpenBibleReference}
+                  onOpenStrong={onOpenStrong}
+                />
+              </DefinitionBlock>
+            )}
+            {lexicalRelations.alternateSenses.length > 0 && (
+              <DefinitionBlock title={t('strongLexicon.otherMeanings')}>
+                <VStack className="gap-[9px]">
+                  {lexicalRelations.alternateSenses.map(relation => (
+                    <StrongLexicalRelationCard
+                      key={relation.stepCode}
+                      relation={relation}
+                      readingTypography={readingTypography}
+                      onPress={() => onOpenStrong(relation.stepCode)}
+                    />
+                  ))}
+                </VStack>
+              </DefinitionBlock>
+            )}
+            {extrasLoading && <Loading message={t('Chargement...')} />}
+            {extrasError && (
+              <TouchableBox onPress={onRetryExtras} accessibilityRole="button" className="py-3">
+                <Text className="text-primary">{t('Réessayer')}</Text>
+              </TouchableBox>
+            )}
+            {dictionaryResource && (
+              <DefinitionBlock title={t('strongDetail.definition.classicalGreek')}>
+                <StrongEditorialPreview
+                  value={dictionaryResource.contentHtml}
+                  readingTypography={readingTypography}
+                  numberOfLines={5}
+                  onOpenBibleReference={onOpenBibleReference}
+                  onOpenStrong={onOpenStrong}
+                  onOverflowChange={overflows =>
+                    setDictionaryPreview(current =>
+                      current?.resourceId === dictionaryResource.id &&
+                      current.overflows === overflows
+                        ? current
+                        : { resourceId: dictionaryResource.id, overflows }
+                    )
+                  }
+                />
+                {dictionaryPreview?.resourceId === dictionaryResource.id &&
+                  dictionaryPreview.overflows && (
+                    <StrongPreviewLink
+                      label={t('strongDetail.dictionary.open')}
+                      onPress={() => onOpenPage('dictionary')}
+                    />
+                  )}
+              </DefinitionBlock>
+            )}
+          </>
         )}
       </StrongEditorialSection>
-
-      {!isOriginalUnnamed &&
-        (dictionaryResource ? (
-          <StrongEditorialSection title={t('strongDetail.dictionary.light')}>
-            <Text className="text-tertiary text-[12px]">
-              {dictionaryResource.source} · {dictionaryResource.title}
-            </Text>
-            <StrongEditorialPreview
-              value={dictionaryResource.contentHtml}
-              readingTypography={readingTypography}
-              numberOfLines={5}
-              onOpenBibleReference={onOpenBibleReference}
-              onOpenStrong={onOpenStrong}
-              onOverflowChange={overflows =>
-                setDictionaryPreview(current =>
-                  current?.resourceId === dictionaryResource.id && current.overflows === overflows
-                    ? current
-                    : { resourceId: dictionaryResource.id, overflows }
-                )
-              }
-            />
-            {dictionaryPreview?.resourceId === dictionaryResource.id &&
-              dictionaryPreview.overflows && (
-                <StrongPreviewLink
-                  label={t('strongDetail.dictionary.open')}
-                  onPress={() => onOpenPage('dictionary')}
-                />
-              )}
-          </StrongEditorialSection>
-        ) : null)}
 
       {passageMedia.length > 0 && (
         <StrongPassageMediaSection
@@ -428,6 +521,7 @@ const StrongDetailMainPage = ({
             <StrongEntitySummaryCard
               entity={entry.entity}
               plain
+              previewLines={4}
               readingTypography={readingTypography}
               onOpenBibleReference={onOpenBibleReference}
               onOpenStrong={onOpenStrong}
@@ -438,13 +532,11 @@ const StrongDetailMainPage = ({
             />
             {!!entityRelations?.graph.length && (
               <VStack className="overflow-hidden border-continuous mt-[7px] gap-[10px]">
-                <Text className="font-bold text-[17px]">
-                  {t(
-                    entry.entity.category === 'person'
-                      ? 'strongDetail.entity.personalRelationships'
-                      : 'strongDetail.entity.relationships'
-                  )}
-                </Text>
+                {entry.entity.category !== 'person' && (
+                  <Text className="font-bold text-[17px]">
+                    {t('strongDetail.entity.relationships')}
+                  </Text>
+                )}
                 <StrongEntityRelationGraph
                   entity={entry.entity}
                   onOpenProfile={onOpenEntityProfile}
@@ -489,100 +581,117 @@ const StrongDetailMainPage = ({
         </StrongEditorialSection>
       )}
 
-      {concordanceCount > 0 && (
-        <StrongEditorialSection
-          title={t('Concordance')}
-          onLayout={event => setAnchor('concordance', event.nativeEvent.layout.y)}
-        >
-          <HStack className="overflow-hidden border-continuous items-baseline gap-[8px]">
-            <Text className="font-bold text-[26px]">{concordanceCount}</Text>
-            <Text className="text-tertiary text-[14px]">
-              {t('strongDetail.concordance.usesIn', { version: concordanceVersion })}
-            </Text>
-          </HStack>
-          {lemmaStats.length > 0 && (
-            <HorizontalControlScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ marginHorizontal: -20 }}
-              contentContainerStyle={{ paddingHorizontal: 20, gap: 7 }}
+      <StrongEditorialSection
+        title={t('Concordance')}
+        onLayout={event => setAnchor('concordance', event.nativeEvent.layout.y)}
+      >
+        <HStack className="overflow-hidden border-continuous items-baseline gap-[8px]">
+          <Text className="font-bold text-[26px]">{concordanceCount ?? '—'}</Text>
+          <Text className="text-tertiary text-[14px]">
+            {t('strongDetail.concordance.usesIn', { version: concordanceVersion })}
+          </Text>
+        </HStack>
+        {lemmaStats.length > 0 && (
+          <HorizontalControlScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginHorizontal: -20 }}
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 7 }}
+          >
+            <TouchableBox
+              className="overflow-hidden border-continuous"
+              onPress={() => onSelectLemma(undefined)}
             >
+              <Box
+                className={twMerge(
+                  'overflow-hidden border-continuous',
+                  twMerge(
+                    selectedLemmaId == null ? 'bg-primary' : 'bg-light-grey',
+                    'overflow-hidden border-continuous rounded-[16px] px-[10px] py-[7px]'
+                  )
+                )}
+              >
+                <Text
+                  className={twMerge(
+                    selectedLemmaId == null ? 'text-reverse' : 'text-default',
+                    'text-[12px]'
+                  )}
+                >
+                  {t('Tous')} · {concordanceTotalCount ?? '—'}
+                </Text>
+              </Box>
+            </TouchableBox>
+            {lemmaStats.map(lemma => (
               <TouchableBox
                 className="overflow-hidden border-continuous"
-                onPress={() => onSelectLemma(undefined)}
+                key={lemma.id}
+                onPress={() => onSelectLemma(lemma.id)}
               >
                 <Box
                   className={twMerge(
                     'overflow-hidden border-continuous',
                     twMerge(
-                      selectedLemmaId == null ? 'bg-primary' : 'bg-light-grey',
+                      selectedLemmaId === lemma.id ? 'bg-primary' : 'bg-light-grey',
                       'overflow-hidden border-continuous rounded-[16px] px-[10px] py-[7px]'
                     )
                   )}
                 >
                   <Text
                     className={twMerge(
-                      selectedLemmaId == null ? 'text-reverse' : 'text-default',
+                      selectedLemmaId === lemma.id ? 'text-reverse' : 'text-default',
                       'text-[12px]'
                     )}
                   >
-                    {t('Tous')} · {concordanceTotalCount}
+                    {lemma.lemma} {formatStrongLemmaPartOfSpeech(lemma.partOfSpeech, i18n.language)}{' '}
+                    · {lemma.occurrenceCount}
                   </Text>
                 </Box>
               </TouchableBox>
-              {lemmaStats.map(lemma => (
-                <TouchableBox
-                  className="overflow-hidden border-continuous"
-                  key={lemma.id}
-                  onPress={() => onSelectLemma(lemma.id)}
-                >
-                  <Box
-                    className={twMerge(
-                      'overflow-hidden border-continuous',
-                      twMerge(
-                        selectedLemmaId === lemma.id ? 'bg-primary' : 'bg-light-grey',
-                        'overflow-hidden border-continuous rounded-[16px] px-[10px] py-[7px]'
-                      )
-                    )}
-                  >
-                    <Text
-                      className={twMerge(
-                        selectedLemmaId === lemma.id ? 'text-reverse' : 'text-default',
-                        'text-[12px]'
-                      )}
-                    >
-                      {lemma.lemma}{' '}
-                      {formatStrongLemmaPartOfSpeech(lemma.partOfSpeech, i18n.language)} ·{' '}
-                      {lemma.occurrenceCount}
-                    </Text>
-                  </Box>
-                </TouchableBox>
-              ))}
-            </HorizontalControlScrollView>
-          )}
-          {concordanceLoading ? (
-            <Loading />
-          ) : (
-            <VStack className="overflow-hidden border-continuous">
-              {concordanceVerses.slice(0, displayedConcordanceCount).map(verse => (
-                <ConcordanceVerse
-                  key={`${verse.Livre}-${verse.Chapitre}-${verse.Verset}`}
-                  onOpenVerse={onOpenConcordanceVerse}
-                  t={t}
-                  concordanceFor={String(entry.baseCode)}
-                  verse={verse}
-                />
-              ))}
-            </VStack>
-          )}
-          {hasHiddenStrongPreviewItems(concordanceTotalCount, displayedConcordanceCount) && (
-            <StrongPreviewLink
-              label={t('strongDetail.concordance.open')}
-              onPress={() => onOpenPage('concordance')}
-            />
-          )}
-        </StrongEditorialSection>
-      )}
+            ))}
+          </HorizontalControlScrollView>
+        )}
+        {concordanceLoading && <Loading />}
+        {concordanceError && (
+          <VStack className="gap-2 py-3">
+            <Text accessibilityRole="alert" className="text-tertiary">
+              {t('strongDetail.concordance.loadError')}
+            </Text>
+            <TouchableBox
+              accessibilityRole="button"
+              disabled={concordanceRetrying}
+              onPress={onRetryConcordance}
+            >
+              <Text className="text-primary font-semibold">
+                {t(concordanceRetrying ? 'Chargement...' : 'bible.error.retry')}
+              </Text>
+            </TouchableBox>
+          </VStack>
+        )}
+        {!concordanceLoading && !concordanceError && concordanceCount === 0 && (
+          <Text className="text-tertiary">{t('strongDetail.concordance.empty')}</Text>
+        )}
+        {concordanceVerses.length > 0 && (
+          <VStack className="overflow-hidden border-continuous">
+            {concordanceVerses.slice(0, displayedConcordanceCount).map(verse => (
+              <ConcordanceVerse
+                key={`${verse.Livre}-${verse.Chapitre}-${verse.Verset}`}
+                onOpenVerse={onOpenConcordanceVerse}
+                t={t}
+                concordanceFor={String(entry.baseCode)}
+                verse={verse}
+              />
+            ))}
+          </VStack>
+        )}
+        {(concordanceTotalCount == null ||
+          concordanceError ||
+          hasHiddenStrongPreviewItems(concordanceTotalCount, displayedConcordanceCount)) && (
+          <StrongPreviewLink
+            label={t('strongDetail.concordance.open')}
+            onPress={() => onOpenPage('concordance')}
+          />
+        )}
+      </StrongEditorialSection>
     </ScrollView>
   )
 }

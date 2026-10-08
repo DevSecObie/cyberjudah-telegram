@@ -1,12 +1,10 @@
-import { Asset } from 'expo-asset'
+import Constants from 'expo-constants'
 import type { TimelineSection } from './types'
 
-// Bundled timeline geometry is an HTTP asset in the browser, not a native file.
+// Geometry and content are published together by CyberJudah, including CMS changes.
 export const getEvents = async (): Promise<TimelineSection[]> => {
-  // Metro needs a static asset reference to include this file in web exports.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const [asset] = await Asset.loadAsync(require('~assets/timeline/events.txt'))
-  const response = await fetch(asset.uri)
-  if (!response.ok) throw new Error(`TIMELINE_ASSET_HTTP_${response.status}`)
+  const baseUrl = (Constants.expoConfig?.extra?.resourceApiUrl as string | undefined) || '/bs'
+  const response = await fetch(`${baseUrl.replace(/\/$/, '')}/v1/timelines/en/sections`)
+  if (!response.ok) throw new Error(`TIMELINE_HTTP_${response.status}`)
   return response.json()
 }

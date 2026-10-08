@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy'
 
 import { isVersionInstalled } from '~helpers/biblesDb'
+import { isInstalledBibleCanonical } from '~helpers/canonicalBibleInstallation'
 import {
   getCommentaryDbPath,
   getDbPath,
@@ -15,7 +16,10 @@ import {
   type DatabaseId,
   type ResourceLanguage,
 } from '~helpers/databaseTypes'
-import { resourceDatabaseRequiredTables } from '~helpers/resourceDatabaseSchema'
+import {
+  getCommentaryRequiredTables,
+  resourceDatabaseRequiredTables,
+} from '~helpers/resourceDatabaseSchema'
 import { restoreOrphanedResourceBackup } from '~helpers/atomicResourceFile'
 import {
   createOfflineCopyId,
@@ -82,6 +86,7 @@ type ResourceAvailabilityDependencies = {
   initSQLiteDir: () => Promise<unknown>
   initLanguageDirs: (lang: ResourceLanguage) => Promise<unknown>
   isVersionInstalled: (versionId: string) => Promise<boolean>
+  isInstalledBibleCanonical?: (versionId: string) => Promise<boolean>
   getDbPath: (
     dbId: Extract<OfflineCopyIdentity, { kind: 'database' }>['databaseId'],
     lang: ResourceLanguage
@@ -150,8 +155,7 @@ const validateStandaloneResource = async (
     const tableNames = new Set(tables.map(table => table.name.toLowerCase()))
     return kind === 'dictionary'
       ? tableNames.has('dictionnaire')
-      : tableNames.has('commentaires') ||
-          (tableNames.has('commentary_documents') && tableNames.has('commentary_verse_documents'))
+      : getCommentaryRequiredTables(tableNames).every(table => tableNames.has(table))
   } catch {
     return false
   } finally {
@@ -164,6 +168,7 @@ const defaultDependencies: ResourceAvailabilityDependencies = {
   initSQLiteDir,
   initLanguageDirs,
   isVersionInstalled,
+  isInstalledBibleCanonical,
   getDbPath,
   restoreBackup: path => restoreOrphanedResourceBackup(path, `${path}.backup`),
   getStrongBibleAvailability: getStrongBibleSidecarAvailability,
@@ -296,6 +301,10 @@ export const probeLocalResourceAvailability = async (
 
   const installed = await dependencies.isVersionInstalled(resource.versionId)
   if (installed) {
+    // A canonical copy carries its own headings and red words, whatever an older catalog lists.
+    if (await dependencies.isInstalledBibleCanonical?.(resource.versionId)) {
+      return { status: 'available', resource }
+    }
     const archiveEntries = getMobileResourceCatalogEntry(createOfflineCopyId(resource)).entries
     const requiredChildKinds = [
       ...(archiveEntries.pericope ? (['bible-pericope'] as const) : []),

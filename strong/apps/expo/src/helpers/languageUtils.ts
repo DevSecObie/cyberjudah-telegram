@@ -45,7 +45,7 @@ export const DEFAULT_BIBLE_VERSIONS: Record<ActiveLanguage, DefaultVersionCode> 
 
 /**
  * Get the default Bible version for a language
- * Falls back to LSG if language is not found
+ * Falls back to KJV if language is not found
  */
 export const getDefaultBibleVersion = (lang: string): DefaultVersionCode => {
   if (isActiveLanguage(lang)) {
@@ -73,7 +73,7 @@ export const DATE_LOCALE_EN_US = enUS
 
 /**
  * Get the date-fns locale for a language
- * Falls back to French if language is not found
+ * Falls back to English if language is not found
  */
 export const getDateLocale = (lang: string): Locale => {
   if (isSupportedLanguage(lang)) {

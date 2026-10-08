@@ -3,16 +3,21 @@ import {
   buildPublicStrongPath,
   parsePublicStrongCode,
   publicStrongContext,
+  resolvePublicStrongContext,
 } from '../publicStrongRoutes'
 
 describe('public Strong routes', () => {
   it.each([
     ['g3056', { kind: 'strong', code: 'G3056' }],
     ['H430', { kind: 'strong', code: 'H0430' }],
-    ['h3651c', { kind: 'dstrong', code: 'H3651C' }],
+    ['h3651c', { kind: 'dstrong', code: 'H3651c' }],
+    ['H2148V', { kind: 'dstrong', code: 'H2148V' }],
+    ['h2148v', { kind: 'dstrong', code: 'H2148v' }],
   ] as const)('normalizes %s', (value, expected) => {
     expect(parsePublicStrongCode(value)).toEqual(expected)
-    expect(buildPublicStrongPath(value)).toBe(`/strong/${expected.code.toLocaleLowerCase()}`)
+    expect(buildPublicStrongPath(value)).toBe(
+      `/strong/${expected.code[0].toLowerCase() + expected.code.slice(1)}`
+    )
   })
 
   it('rejects codes without a lexical-language prefix', () => {
@@ -33,6 +38,32 @@ describe('public Strong routes', () => {
       reference: 'G4074G',
       identityKind: 'dstrong',
       identityCode: 'G4074G',
+    })
+  })
+
+  it('keeps the context verse book instead of the lexical placeholder', () => {
+    expect(
+      resolvePublicStrongContext(
+        { kind: 'dstrong', code: 'G0266' },
+        { book: 45, bibleVersion: 'KJV', bibleChapter: 6, bibleVerse: 23 }
+      )
+    ).toEqual({
+      book: 45,
+      reference: 'G0266',
+      identityKind: 'dstrong',
+      identityCode: 'G0266',
+      bibleVersion: 'KJV',
+      bibleChapter: 6,
+      bibleVerse: 23,
+    })
+  })
+
+  it('falls back to the lexical placeholder book without a context verse', () => {
+    expect(resolvePublicStrongContext({ kind: 'dstrong', code: 'H0430' }, { book: 45 })).toEqual({
+      book: 1,
+      reference: 'H0430',
+      identityKind: 'dstrong',
+      identityCode: 'H0430',
     })
   })
 })

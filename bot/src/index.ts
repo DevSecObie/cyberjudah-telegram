@@ -28,6 +28,7 @@ import { bookLabel, validVerseDate } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
 import { resources } from "./resources";
 import { bs } from "./bs";
+import { strongContent } from "./strong-content";
 import { buildCatalog, emptyCatalog, SLUGS, type PassageMediaMoment } from "./passage-media.mjs";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
 import { CHAT_ID, deleteChat, getChat, getPending, listChats, moveLegacy, setActionState } from "./chats";
@@ -50,6 +51,7 @@ import { deleteData, exportData } from "./mydata";
 import { photoFile, photoManifest, removePhoto, setPhoto } from "./photos";
 import { MAX_BYTES } from "./photos.mjs";
 import { browserAuth, browserSession } from "./browser-auth";
+import { firebaseAuth } from "./firebase-auth";
 import { studyBackup } from "./study-backup";
 import { cors } from "hono/cors";
 
@@ -101,6 +103,7 @@ app.use("/api/*", async (c, next) => {
 });
 
 app.route("/api/admin/cms", cms);
+app.route("/api/firebase", firebaseAuth);
 app.route("/api/study-backup", studyBackup);
 app.route("/api/reminders", reminders);
 app.route("/api/push", push);
@@ -643,6 +646,7 @@ app.get("/card/:slug/:chapter/:file", async (c) => {
 // under it is one of its screens, so it gets the fork's index.html (the asset fallback would
 // give the current app's).
 // The reader's inline class videos for one chapter, public and same-origin with the fork.
+app.route("/app/strong/_content", strongContent);
 app.get("/app/strong/_media/:book/:chapter", async (c) => {
   const book = Number(c.req.param("book")), chapter = Number(c.req.param("chapter"));
   if (!Number.isInteger(book) || !Number.isInteger(chapter)) return c.notFound();

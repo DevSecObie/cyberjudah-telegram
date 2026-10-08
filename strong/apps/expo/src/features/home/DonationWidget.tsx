@@ -8,7 +8,6 @@ import { useTranslation } from 'react-i18next'
 import Link from '~common/Link'
 import Box from '~common/ui/Box'
 import Text from '~common/ui/Text'
-import useLanguage from '~helpers/useLanguage'
 const LinkBox = (props: React.ComponentProps<typeof Box> & React.ComponentProps<typeof Link>) => (
   <Box
     as={Link}
@@ -26,13 +25,12 @@ const color2 = '#CFDEF3'
 const DonationWidget = () => {
   const stylingTheme = useStylingTheme()
 
-  const lang = useLanguage()
   const { t } = useTranslation()
   return (
     <Box className="overflow-hidden border-continuous bg-light-grey px-[20px] pt-[20px] pb-[20px]">
       <LinkBox
         className="p-[20px] h-[130px] relative rounded-[30px] bg-primary items-center justify-center overflow-visible"
-        href={`https://bible-strong.app/${lang === 'fr' ? 'fr/' : ''}give`}
+        href="https://cyberjudah.io/app/settings/donate"
         style={{
           shadowColor: 'rgb(89,131,240)',
           shadowOffset: { width: 0, height: 2 },

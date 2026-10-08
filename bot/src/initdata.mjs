@@ -41,7 +41,7 @@ export const LAUNCH_DATA_MAX_AGE = 30 * 86400;
  * reopen it (401 "stale"), as for any launch past LAUNCH_DATA_MAX_AGE.
  */
 export const SENSITIVE_MAX_AGE = 86400;
-const SENSITIVE = (path) => path.startsWith("/api/privacy/") || path === "/api/ask/buy" || path === "/api/invoice";
+const SENSITIVE = (path) => path.startsWith("/api/privacy/") || path.startsWith("/api/firebase/") || path === "/api/ask/buy" || path === "/api/invoice";
 /** How old launch data a request to this path may carry. */
 export const launchMaxAge = (path) => (SENSITIVE(path) ? SENSITIVE_MAX_AGE : LAUNCH_DATA_MAX_AGE);
 

@@ -39,6 +39,7 @@ import { firebaseApp } from './firebaseApp.web'
 import { storage } from './storage'
 import { toast } from './toast'
 import { tokenManager } from './TokenManager'
+import { createTelegramFirebaseBridge } from './telegramFirebaseBridge'
 
 export type FireAuthProfile = {
   id: string
@@ -75,6 +76,19 @@ export class WebFireAuth {
   previousEmailVerified = false
   accountEntryAttempts = new AccountEntryAttemptCoordinator()
   unresolvedAccountEntries = createUnresolvedAccountEntryRepository(storage)
+  private telegramSignIn = createTelegramFirebaseBridge({
+    auth: getAuth(firebaseApp),
+    initData: () => (globalThis as typeof globalThis & { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData,
+    request: (...args) => fetch(...args),
+    signIn: async token => {
+      const attempt = this.beginAccountEntryAttempt('provider-sign-in', 'custom-token')
+      try {
+        const credential = await signInWithCustomToken(getAuth(firebaseApp), token)
+        attempt.complete({ userId: credential.user.uid, credentialIsNewUser: getAdditionalUserInfo(credential)?.isNewUser })
+        return credential.user
+      } catch (error) { attempt.fail(); throw error }
+    },
+  })
 
   private beginAccountEntryAttempt(
     operation: AccountEntryOperation,
@@ -127,6 +141,9 @@ export class WebFireAuth {
     this.onEmailVerified = onEmailVerified
     this.onError = onError
 
+    try { await this.telegramSignIn() }
+    catch (error) { this.onError?.(error); return }
+
     onAuthStateChanged(getAuth(firebaseApp), async user => {
       if (!user) {
         void identifyAnalyticsUser(null)
@@ -167,6 +184,10 @@ export class WebFireAuth {
           if (data && typeof data.displayName === 'string') profile.displayName = data.displayName
           if (data && typeof data.photoURL === 'string') profile.photoURL = data.photoURL
         }
+        // Custom-token/provider accounts have no upstream Cloud Function creating a
+        // profile in this project. Establish only the path owner's ID before migrations
+        // use updateDoc; merge preserves any profile another device just created.
+        if (!userDocument.data()?.id) await setDoc(doc(firebaseDb, 'users', user.uid), { id: user.uid }, { merge: true })
       } catch (error) {
         appLogger.warn('sync', 'web_auth.profile_read_failed', { error })
       }

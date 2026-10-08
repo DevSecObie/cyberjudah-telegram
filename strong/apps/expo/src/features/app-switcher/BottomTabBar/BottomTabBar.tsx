@@ -30,6 +30,7 @@ const BottomTabBar = ({ openMenu, openHome }: BottomTabBarProps) => {
 
   return (
     <AnimatedBox
+      testID="cyberjudah-navigation-dock"
       className="overflow-hidden border-continuous bg-reverse absolute bottom-[0px] left-[0px] right-[0px] border-t-[1px] border-border"
       style={[
         { paddingBottom: insets.bottom, height: bottomBarHeight },

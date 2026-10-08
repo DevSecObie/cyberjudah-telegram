@@ -24,6 +24,17 @@ export const useConnectionStatus = (): ConnectionStatus => {
   useEffect(() => {
     if (isOfflineModeForced) return
 
+    if (Platform.OS === 'web') {
+      const update = () => setStatus(navigator.onLine === false ? 'offline' : 'internet')
+      update()
+      window.addEventListener('online', update)
+      window.addEventListener('offline', update)
+      return () => {
+        window.removeEventListener('online', update)
+        window.removeEventListener('offline', update)
+      }
+    }
+
     let unsubscribeNetInfo: (() => void) | null = null
 
     const updateStatus = (state: NetInfoState) => {

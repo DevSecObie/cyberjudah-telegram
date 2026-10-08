@@ -15,7 +15,8 @@ jest.mock('../agentObservability', () => ({
   appLogger: { captureError: (...args: unknown[]) => mockCaptureError(...args) },
 }))
 
-const apiUrl = 'https://api.bible-strong.app/v1/bibles/LSG/books/1/chapters/1'
+// Only Offline-copy requests acquire App Check (ADR-0065).
+const apiUrl = 'https://api.bible-strong.app/v1/offline-artifacts/databases/nave-fr.sqlite.zip'
 const artifactUrl = 'https://api.bible-strong.app/v1/offline-artifacts/bibles/bible-lsg.json.zip'
 const nativeError = (message: string) =>
   Object.assign(new Error(message), { code: 'appCheck/token-error' })
@@ -38,7 +39,7 @@ describe('Native Resource App Check token acquisition', () => {
     jest.resetModules()
     jest.useFakeTimers({ now: 1_000 })
     mockGetToken.mockReset().mockResolvedValue({ token: 'valid-token' })
-    mockInitialize.mockReset().mockResolvedValue({})
+    mockInitialize.mockReset().mockReturnValue({})
     mockCaptureError.mockReset()
     mockFetch.mockReset().mockImplementation(async () => new Response('{}', { status: 200 }))
     globalThis.fetch = mockFetch
@@ -180,7 +181,9 @@ describe('Native Resource App Check token acquisition', () => {
   })
 
   it('can recover from a rejected initialization after cooldown', async () => {
-    mockInitialize.mockRejectedValueOnce(new Error('Initialization failed'))
+    mockInitialize.mockImplementationOnce(() => {
+      throw new Error('Initialization failed')
+    })
     await expect(appCheck.getResourceAppCheckToken()).rejects.toThrow()
     expect(mockGetToken).not.toHaveBeenCalled()
     await jest.advanceTimersByTimeAsync(2_000)

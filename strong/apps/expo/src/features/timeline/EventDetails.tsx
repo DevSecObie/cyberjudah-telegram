@@ -1,12 +1,14 @@
 import { timelineContext } from '~features/study-assistant/referenceContext'
 import { useAssistantResourceContext } from '~features/study-assistant/useAssistantResourceContext'
 import React from 'react'
+import { Linking } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
 import { useAtomValue } from 'jotai/react'
 import useTimelineLanguage from './useTimelineLanguage'
 import { getLegacyLocalizedField } from '~helpers/languageUtils'
 import Box from '~common/ui/Box'
 import Paragraph from '~common/ui/Paragraph'
+import Text from '~common/ui/Text'
 import { calculateLabel } from './constants'
 import { TimelineEventDetail, TimelineEvent as TimelineEventProps } from './types'
 import { Image } from 'expo-image'
@@ -34,7 +36,13 @@ const Description = ({ description, article }: Partial<TimelineEventDetail>) => 
         {description}
       </Paragraph>
       <Paragraph className="mt-[20px]" scale={-1}>
-        {article}
+        {article?.split(/(https?:\/\/[^\s]+)/g).map((part, index) =>
+          /^https?:\/\//.test(part) ? (
+            <Text key={index} accessibilityRole="link" className="text-primary underline" onPress={() => void Linking.openURL(part)}>
+              {part}
+            </Text>
+          ) : part
+        )}
       </Paragraph>
     </Box>
   )

@@ -1,10 +1,7 @@
-import { Asset } from 'expo-asset'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Platform } from 'react-native'
 import { useDispatch, useSelector } from 'react-redux'
 import Link from '~common/Link'
-import type { Plan } from '~common/types'
 import Box from '~common/ui/Box'
 import Text from '~common/ui/Text'
 import { FeatherIcon } from '~common/ui/Icon'
@@ -12,41 +9,12 @@ import { useComputedPlanItems, useUpdatePlans } from '~features/plans/plan.hooks
 import { getEditorialKind } from '~features/plans/readingCalendar'
 import { hasPlanParticipation } from '~features/plans/planProgress'
 import FollowedPlanCard from '~features/plans/FollowedPlanCard'
-import useLanguage from '~helpers/useLanguage'
+import { loadReadingPlan } from '~helpers/readingPlanCatalog'
 import { addPlan } from '~redux/modules/plan'
 import type { RootState } from '~redux/modules/reducer'
 
-const readResponseText = async (response: Response): Promise<string> => {
-  if (!response.ok) {
-    throw new Error(`Failed to load bundled plan: HTTP ${response.status}`)
-  }
-  return response.text()
-}
-
-const loadBibleProjectPlan = async (lang: string): Promise<Plan | undefined> => {
-  const [asset] = await Asset.loadAsync(
-    lang === 'fr'
-      ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-        require('~assets/plans/bible-project-plan.txt')
-      : // eslint-disable-next-line @typescript-eslint/no-require-imports
-        require('~assets/plans/bible-project-plan-en.txt')
-  )
-
-  let serialized: string | undefined
-  if (Platform.OS === 'web') {
-    const response = await fetch(asset.uri)
-    serialized = await readResponseText(response)
-  } else if (asset.localUri) {
-    const FileSystem = await import('expo-file-system/legacy')
-    serialized = await FileSystem.readAsStringAsync(asset.localUri)
-  }
-
-  return serialized ? (JSON.parse(serialized) as Plan) : undefined
-}
-
 const useGetFirstPlans = () => {
-  const lang = useLanguage()
-  const planId = lang === 'fr' ? 'bible-project-plan' : 'bible-project-plan-en'
+  const planId = 'cyberjudah-four-chapters'
   const hasPlan = useSelector((state: RootState) =>
     state.plan.myPlans.some(plan => plan.id === planId)
   )
@@ -54,7 +22,7 @@ const useGetFirstPlans = () => {
   useEffect(() => {
     if (hasPlan) return
     let active = true
-    void loadBibleProjectPlan(lang)
+    void loadReadingPlan(planId)
       .then(plan => {
         if (active && plan) dispatch(addPlan(plan))
       })
@@ -62,7 +30,7 @@ const useGetFirstPlans = () => {
     return () => {
       active = false
     }
-  }, [hasPlan, lang, dispatch])
+  }, [hasPlan, dispatch])
 }
 
 const PlanHome = ({ compact = false }: { compact?: boolean }) => {

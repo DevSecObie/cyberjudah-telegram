@@ -1,5 +1,4 @@
 import * as FileSystem from 'expo-file-system/legacy'
-import { unzip } from 'react-native-zip-archive'
 
 import {
   getMultipleVerses,
@@ -20,6 +19,7 @@ import { planWordAnnotationRealignment } from '~helpers/wordAnnotationRealignmen
 import { realignWordAnnotationsAction } from '~redux/modules/user'
 import { persistor, store } from '~redux/store'
 import { getFileSha256, toNativeFilePath, verifyFileSha256 } from './fileIntegrity'
+import { unzipOfflineArchive, type OfflineArchiveSource } from './offlineArchiveSource'
 import {
   clearAnnotationMigrationJournal,
   persistAnnotationMigrationJournal,
@@ -33,6 +33,10 @@ import {
 } from './bibleResourceValidation'
 import { rollbackActivatedResourceFiles, type ActivatedResourceFile } from './atomicResourceFile'
 import { appLogger } from './agentObservability'
+import { isCanonicalBibleSchemaVersion } from './canonicalBibleInstallation'
+import { clearLegacyBibleSideFileCaches, removeLegacyBibleSideFiles } from './legacyBibleSideFiles'
+import { requirePericopePath } from './pericopes'
+import { requireRedWordsPath } from './redWords'
 
 export type BibleArchiveEntries = {
   canonical: string
@@ -98,7 +102,7 @@ export async function downloadAndInsertBible(
     if (opts.expectedArchiveSha256) {
       await verifyFileSha256(
         tempPath,
-        opts.expectedArchiveSha256,
+        downloadResult.archive.archiveSha256,
         `BIBLE_ARCHIVE_CHECKSUM_MISMATCH:${versionId}`
       )
     }
@@ -107,6 +111,7 @@ export async function downloadAndInsertBible(
       downloadedPath: tempPath,
       extractionDirectory,
       archiveEntry,
+      archive: downloadResult.archive,
     })
     const data = await FileSystem.readAsStringAsync(jsonPath)
     const jsonData = JSON.parse(data) as BibleJsonData
@@ -193,6 +198,17 @@ export async function downloadAndInsertBible(
       throw error
     }
     await completeOptionalBibleBundleFiles(bundleActivation)
+    if (
+      isCanonicalBibleJsonData(jsonData) &&
+      isCanonicalBibleSchemaVersion(jsonData.schemaVersion)
+    ) {
+      await removeLegacyBibleSideFiles(
+        versionId,
+        optionalFiles.map(file => file.destinationPath)
+      )
+    } else {
+      clearLegacyBibleSideFileCaches(versionId)
+    }
     if (realignmentPlan && Object.keys(realignmentPlan.updates).length > 0) {
       try {
         store.dispatch(realignWordAnnotationsAction(realignmentPlan.updates))
@@ -249,14 +265,14 @@ const validateOptionalBibleBundleEntries = async ({
     entries?.pericope
       ? {
           entry: entries.pericope,
-          destinationPath: `${FileSystem.documentDirectory}bible-${versionId.toLowerCase()}-pericope.json`,
+          destinationPath: requirePericopePath(versionId),
           validate: validatePericopeResource,
         }
       : undefined,
     entries?.redWords
       ? {
           entry: entries.redWords,
-          destinationPath: `${FileSystem.documentDirectory}red-words-${versionId}.json`,
+          destinationPath: requireRedWordsPath(versionId),
           validate: validateRedWordsResource,
         }
       : undefined,
@@ -324,16 +340,18 @@ const resolveDownloadedBibleJson = async ({
   downloadedPath,
   extractionDirectory,
   archiveEntry,
+  archive,
 }: {
   downloadedPath: string
   extractionDirectory: string
   archiveEntry?: string
+  archive: OfflineArchiveSource
 }): Promise<string> => {
   if (!archiveEntry) return downloadedPath
 
   await FileSystem.deleteAsync(extractionDirectory, { idempotent: true })
   await FileSystem.makeDirectoryAsync(extractionDirectory, { intermediates: true })
-  await unzip(toNativeFilePath(downloadedPath), toNativeFilePath(extractionDirectory), 'UTF-8')
+  await unzipOfflineArchive(downloadedPath, extractionDirectory, archive)
   const jsonPath = `${extractionDirectory}${archiveEntry}`
   const info = await FileSystem.getInfoAsync(jsonPath)
   if (!info.exists) {

@@ -1,11 +1,13 @@
 import * as FileSystem from 'expo-file-system/legacy'
-import { unzip } from 'react-native-zip-archive'
 
 import { downloadAndInsertBible } from '~helpers/downloadBibleToSqlite'
 import { downloadResourceArtifact } from '~helpers/downloadResourceArtifact'
 import { dbManager, openSQLiteDatabase } from '~helpers/sqlite'
 import type { DatabaseId } from '~helpers/databaseTypes'
-import { resourceDatabaseRequiredTables } from '~helpers/resourceDatabaseSchema'
+import {
+  getCommentaryRequiredTables,
+  resourceDatabaseRequiredTables,
+} from '~helpers/resourceDatabaseSchema'
 import type { DownloadItem } from '~state/downloadQueue'
 import type {
   BibleDownloadItem,
@@ -24,7 +26,8 @@ import type { DownloadResourceArtifactResult } from './downloadResourceArtifact'
 import { installAtomicResourceFile } from './atomicResourceFile'
 import { installStrongLexiconModule } from './strongLexiconModules'
 import type { ResourceInstallationLifecycle } from './resourceInstallationLifecycle'
-import { toNativeFilePath, verifyFileSha256 } from './fileIntegrity'
+import { verifyFileSha256 } from './fileIntegrity'
+import { unzipOfflineArchive } from './offlineArchiveSource'
 
 export interface ResourceInstallationCallbacks {
   onDownloadProgress: (progress: number) => void
@@ -112,14 +115,14 @@ const installDatabase = async (
     if (item.expectedArchiveSha256) {
       await verifyFileSha256(
         archivePath,
-        item.expectedArchiveSha256,
+        result.archive.archiveSha256,
         `RESOURCE_DATABASE_ARCHIVE_CHECKSUM_MISMATCH:${dbId}:${lang}`
       )
     }
     await callbacks.installationLifecycle.prepare(result)
 
     await FileSystem.makeDirectoryAsync(extractionDirectory, { intermediates: true })
-    await unzip(toNativeFilePath(archivePath), toNativeFilePath(extractionDirectory), 'UTF-8')
+    await unzipOfflineArchive(archivePath, extractionDirectory, result.archive)
     const temporaryPath = `${extractionDirectory}${item.archiveEntry}`
     const extractedInfo = await FileSystem.getInfoAsync(temporaryPath)
     if (!extractedInfo.exists || extractedInfo.isDirectory) {
@@ -166,7 +169,7 @@ const installDatabase = async (
             : item.type === 'dictionary'
               ? ['dictionnaire']
               : item.type === 'commentary'
-                ? ['commentaires']
+                ? getCommentaryRequiredTables(tableNames)
                 : resourceDatabaseRequiredTables[dbId as DatabaseId]
           )?.some(table => !tableNames.has(table.toLowerCase()))
         ) {

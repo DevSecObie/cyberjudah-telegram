@@ -1,5 +1,11 @@
 import { ExpoConfig, ConfigContext } from 'expo/config'
 
+const APP_VERSION = '27.2.0'
+// Patch releases share a runtime and receive the same OTA updates. Any native change must
+// ship in a new major or minor version, which creates a new runtime.
+const [majorVersion, minorVersion] = APP_VERSION.split('.')
+const RUNTIME_VERSION = `${majorVersion}.${minorVersion}`
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: process.env.APP_NAME ?? 'dev - Bible Strong',
@@ -9,13 +15,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   primaryColor: '#ffffff',
   githubUrl: 'https://github.com/bulby97/bible-strong',
   platforms: ['ios', 'android', 'web'],
-  version: '27.0.17',
+  version: APP_VERSION,
   orientation: 'default',
   icon: './assets/images/icon-2.png',
   userInterfaceStyle: 'automatic',
 
   android: {
-    versionCode: 504,
+    versionCode: 511,
     package: 'com.smontlouis.biblestrong',
     googleServicesFile:
       process.env.ANDROID_GOOGLE_SERVICES_FILE ?? 'firebase/dev/google-services.json',
@@ -42,7 +48,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     bundleIdentifier: process.env.BUNDLE_IDENTIFIER ?? 'com.smontlouis.biblestrong.dev',
-    buildNumber: '293',
+    buildNumber: '297',
     googleServicesFile:
       process.env.IOS_GOOGLE_SERVICES_FILE ?? './firebase/dev/GoogleService-Info.plist',
     userInterfaceStyle: 'automatic',
@@ -81,8 +87,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-image',
     'expo-sqlite',
     'expo-audio',
-    '@react-native-firebase/app',
+    // CocoaPods, not SPM: RNFirebase 26 rejects SPM with our static frameworks linkage.
+    ['@react-native-firebase/app', { ios: { disableSPM: true } }],
     './plugins/withFirebaseAppCheckSwiftBridge.js',
+    // Offline-copy keys come from BIBLE_STRONG_ARCHIVE_KEYS in the build environment (ADR-0065).
+    './plugins/withBibleStrongArchiveKeys.js',
     '@react-native-firebase/app-check',
     '@react-native-firebase/auth',
     [
@@ -178,8 +187,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // (EXPO_BASE_URL, e.g. /app/strong while it is staged beside the current app).
     ...(process.env.EXPO_BASE_URL ? { baseUrl: process.env.EXPO_BASE_URL } : {}),
   },
-  runtimeVersion: 'a170e84b5290228c1fc1a7d1b850784dc093085c',
-  // runtimeVersion: {
-  //   policy: 'fingerprint',
-  // },
+  runtimeVersion: RUNTIME_VERSION,
 })

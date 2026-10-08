@@ -234,3 +234,18 @@ a {
   aspect-ratio: 1;
   min-width: 0;
 }
+
+/* CyberJudah navigation material; upstream dimensions and controls are preserved. */
+[data-testid='workspace-page-header'], [data-testid='cyberjudah-navigation-dock'] {
+  background-color: rgba(246,244,238,.92) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(170%);
+  backdrop-filter: blur(16px) saturate(170%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+}
+@media (prefers-reduced-transparency: reduce) {
+  [data-testid='workspace-page-header'], [data-testid='cyberjudah-navigation-dock'] {
+    background-color: #f6f4ee !important;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

@@ -22,9 +22,7 @@ export const getWebFirebaseConfig = (environment: FirebaseWebEnvironment): Fireb
   ][]) {
     const value = environment[environmentKey]?.trim()
     if (!value) {
-      // CyberJudah build: no Firebase project. An inert placeholder keeps the modules that
-      // import Firebase loading; nothing is sent anywhere, and accounts and sync are Telegram's.
-      return { apiKey: 'cyberjudah-offline', authDomain: 'localhost', projectId: 'cyberjudah-offline', storageBucket: 'cyberjudah-offline', messagingSenderId: '0', appId: '1:0:web:0' }
+      throw new Error(`Missing Expo Web Firebase configuration: ${environmentKey}`)
     }
     config[configKey] = value
   }

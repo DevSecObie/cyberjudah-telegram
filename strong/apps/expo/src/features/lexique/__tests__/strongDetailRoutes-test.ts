@@ -18,11 +18,11 @@ const context: StrongDetailRouteContext = {
 
 describe('Strong detail routes', () => {
   it.each([
-    ['index', '/strong/g4074g'],
+    ['index', '/strong/g4074G'],
     ['entity', '/strong/entity/Peter%40Matt.4.18'],
-    ['dictionary', '/strong/g4074g/dictionary'],
-    ['related', '/strong/g4074g/related'],
-    ['concordance', '/strong/g4074g/concordance'],
+    ['dictionary', '/strong/g4074G/dictionary'],
+    ['related', '/strong/g4074G/related'],
+    ['concordance', '/strong/g4074G/concordance'],
   ] as const)('creates the %s route with the complete Strong context', (page, pathname) => {
     const route = createStrongDetailRoute(page, context, {
       entityKey: page === 'entity' ? 'Peter@Matt.4.18' : undefined,
@@ -30,6 +30,7 @@ describe('Strong detail routes', () => {
     expect(route).toEqual({
       pathname,
       params: {
+        book: '40',
         bibleVersion: 'LSG',
         clickedWord: 'Pierre',
         bibleChapter: '16',
@@ -46,6 +47,7 @@ describe('Strong detail routes', () => {
 
     expect(parseStrongDetailRouteParams(route.params)).toEqual({
       context: {
+        book: 40,
         bibleVersion: 'LSG',
         clickedWord: 'Pierre',
         bibleChapter: 16,
@@ -54,6 +56,32 @@ describe('Strong detail routes', () => {
       },
       entityKey: undefined,
     })
+  })
+
+  it('keeps the book of a context verse outside Matthew', () => {
+    const route = createStrongDetailRoute('index', {
+      book: 45,
+      identityKind: 'dstrong',
+      identityCode: 'G0266',
+      bibleVersion: 'KJV',
+      bibleChapter: 6,
+      bibleVerse: 23,
+    })
+
+    expect(route).toEqual({
+      pathname: '/strong/g0266',
+      params: { book: '45', bibleVersion: 'KJV', bibleChapter: '6', bibleVerse: '23' },
+    })
+  })
+
+  it('omits the book from a public route without a context verse', () => {
+    expect(
+      createStrongDetailRoute('index', {
+        book: 40,
+        identityKind: 'dstrong',
+        identityCode: 'G0266',
+      })
+    ).toEqual({ pathname: '/strong/g0266', params: {} })
   })
 
   it('supports an autonomous entity route without a Strong identity', () => {

@@ -46,7 +46,10 @@
   // (so each reader's own time is reached in every time zone, including :30 and :45 offsets).
   "triggers": { "crons": ["0 * * * *", "15,30,45 * * * *"] },
   // Abuse protection for the reading-reminder endpoints (remind.ts): per caller, per minute.
-  "ratelimits": [{ "name": "REMIND_LIMIT", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } }],
+  "ratelimits": [
+    { "name": "REMIND_LIMIT", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },
+    { "name": "FIREBASE_AUTH_LIMIT", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } }
+  ],
   // Staging: the same code against separate resources, deployed by .github/workflows/stage.yml.
   // The staging bot is a second @BotFather bot; its token and webhook secret live in the
   // STAGING_BOT_TOKEN / STAGING_WEBHOOK_SECRET repository secrets. The teaching database,
@@ -63,7 +66,10 @@
         { "binding": "TEACH", "database_name": "cyberjudah", "database_id": "11111111-1111-1111-1111-111111111111" }
       ],
       "kv_namespaces": [{ "binding": "SUBS", "id": "00000000000000000000000000000000" }],
-      "ratelimits": [{ "name": "REMIND_LIMIT", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } }],
+      "ratelimits": [
+        { "name": "REMIND_LIMIT", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } },
+        { "name": "FIREBASE_AUTH_LIMIT", "namespace_id": "1004", "simple": { "limit": 10, "period": 60 } }
+      ],
       // These bindings are not inherited from the top-level Worker configuration.
       "ai": { "binding": "AI" },
       "vectorize": [{ "binding": "VEC", "index_name": "cyberjudah-teachings" }],

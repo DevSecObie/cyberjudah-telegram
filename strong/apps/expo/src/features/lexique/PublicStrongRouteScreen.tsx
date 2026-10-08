@@ -1,5 +1,4 @@
 import { Redirect, type Href, useLocalSearchParams } from 'expo-router'
-import type { ReactNode } from 'react'
 
 import ResourceUnavailableView from '~features/resources/ResourceUnavailableView'
 import { IS_FORM_SHEET } from '~helpers/constants'
@@ -12,15 +11,15 @@ import {
   buildPublicStrongEntityPath,
   buildPublicStrongPath,
   parsePublicStrongCode,
-  publicStrongContext,
+  resolvePublicStrongContext,
   type PublicStrongEntryPage,
 } from './publicStrongRoutes'
 import { parseStrongDetailRouteParams } from './strongDetailRoutes'
-import PublicPage from '~features/app/PublicPage'
 
 type PublicStrongRouteParams = {
   code?: string | string[]
   uniqueName?: string | string[]
+  book?: string
   strongBibleVersionId?: string
   bibleVersion?: string
   clickedWord?: string
@@ -47,25 +46,24 @@ export const PublicStrongEntryRouteScreen = ({ page }: { page: PublicStrongEntry
 
   const rawCode = firstString(params.code)
   const canonicalPath = buildPublicStrongPath(identity.code, page)
-  if (rawCode !== identity.code.toLocaleLowerCase()) {
+  const requestedPath = `/strong/${rawCode}${page === 'index' ? '' : `/${page}`}`
+  if (requestedPath !== canonicalPath) {
     const { code: _code, ...contextParams } = params
     return <Redirect href={{ pathname: canonicalPath, params: contextParams } as Href} />
   }
 
   const { context: contextualParams } = parseStrongDetailRouteParams(params)
-  const context = { ...contextualParams, ...publicStrongContext(identity) }
-  const title = identity.code
-  let content: ReactNode
+  const context = resolvePublicStrongContext(identity, contextualParams)
   if (page === 'dictionary') {
-    content = <StrongDictionaryRouteScreen context={context} isFormSheet={IS_FORM_SHEET} />
-  } else if (page === 'related') {
-    content = <StrongRelatedRouteScreen context={context} isFormSheet={IS_FORM_SHEET} />
-  } else if (page === 'concordance') {
-    content = <StrongConcordanceRouteScreen context={context} isFormSheet={IS_FORM_SHEET} />
-  } else {
-    content = <StrongMainScreen key={identity.code} context={context} isFormSheet={IS_FORM_SHEET} />
+    return <StrongDictionaryRouteScreen context={context} isFormSheet={IS_FORM_SHEET} />
   }
-  return <PublicPage title={title}>{content}</PublicPage>
+  if (page === 'related') {
+    return <StrongRelatedRouteScreen context={context} isFormSheet={IS_FORM_SHEET} />
+  }
+  if (page === 'concordance') {
+    return <StrongConcordanceRouteScreen context={context} isFormSheet={IS_FORM_SHEET} />
+  }
+  return <StrongMainScreen key={identity.code} context={context} isFormSheet={IS_FORM_SHEET} />
 }
 
 export const PublicStrongEntityRouteScreen = () => {
@@ -87,13 +85,11 @@ export const PublicStrongEntityRouteScreen = () => {
 
   const { context } = parseStrongDetailRouteParams(params)
   return (
-    <PublicPage title={uniqueName}>
-      <StrongEntityRouteScreen
-        key={uniqueName}
-        context={context}
-        entityKey={uniqueName}
-        isFormSheet={IS_FORM_SHEET}
-      />
-    </PublicPage>
+    <StrongEntityRouteScreen
+      key={uniqueName}
+      context={context}
+      entityKey={uniqueName}
+      isFormSheet={IS_FORM_SHEET}
+    />
   )
 }

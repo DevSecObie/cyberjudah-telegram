@@ -9,7 +9,6 @@ import Box, { VStack } from '~common/ui/Box'
 import { FeatherIcon } from '~common/ui/Icon'
 import Text from '~common/ui/Text'
 import { useComputedPlanItems } from '~features/plans/plan.hooks'
-import useLanguage from '~helpers/useLanguage'
 const LinkBox = (props: React.ComponentProps<typeof Box> & React.ComponentProps<typeof Link>) => (
   <Box
     as={Link}
@@ -25,11 +24,10 @@ const TheBibleProject = () => {
   const stylingTheme = useStylingTheme()
 
   const { t } = useTranslation()
-  const lang = useLanguage()
 
   const plans = useComputedPlanItems()
   const plan = plans.find(
-    p => p.id === (lang === 'fr' ? 'bible-project-plan' : 'bible-project-plan-en')
+    p => p.id === 'cyberjudah-four-chapters'
   )
   const { id } = plan || {}
   if (!id) {
@@ -55,7 +53,7 @@ const TheBibleProject = () => {
       >
         <Box className="overflow-hidden border-continuous h-[92px] bg-light-grey">
           <Image
-            source={require('~assets/images/home/bible-project-plan.jpg')}
+            source={require('~assets/images/home/cyberjudah-plan.webp')}
             contentFit="cover"
             style={{ width: '100%', height: '100%' }}
           />

@@ -37,12 +37,13 @@ const StrongMainScreen = ({
 }: StrongMainScreenProps) => {
   const pushRouteOnce = usePushRouteOnce()
   const activeContext = context
-  const entryState = useStrongEntryRoute(activeContext)
+  const entryState = useStrongEntryRoute(activeContext, true)
   const {
     resources,
     identity,
     coreAvailability,
     entry,
+    backgroundReady,
     languageState: { language: resourceLanguage },
   } = entryState
   const navigationKey = identity ? `${identity.kind}:${identity.code}` : 'unknown'
@@ -87,18 +88,10 @@ const StrongMainScreen = ({
         allBooks: true,
         lexemeId: selectedLemmaId,
       }
-      const versesResult = await resources.lexiconBible.loadFoundVersesByBook(request)
-      return {
-        verses: versesResult.status === 'available' ? versesResult.verses : [],
-        version:
-          versesResult.status === 'available'
-            ? versesResult.provenance.versionId
-            : currentStrongBibleVersionId,
-      }
+      return resources.lexiconBible.loadFoundVersesByBook(request)
     },
-    enabled: Boolean(entry),
+    enabled: Boolean(entry) && backgroundReady,
     networkMode: 'always',
-    placeholderData: previousData => previousData,
   })
   const concordanceTotalQuery = useQuery({
     queryKey: resourceQueryKeys.lexiconBibleCounts(concordanceRequest),
@@ -111,7 +104,7 @@ const StrongMainScreen = ({
         reference: entry!.stepCode,
         allBooks: true,
       }),
-    enabled: Boolean(entry),
+    enabled: Boolean(entry) && backgroundReady,
     networkMode: 'always',
   })
   const lemmaStatsQuery = useQuery({
@@ -124,7 +117,7 @@ const StrongMainScreen = ({
         book: entry?.language === 'hebrew' ? 1 : 40,
         reference: entry!.stepCode,
       }),
-    enabled: Boolean(entry),
+    enabled: Boolean(entry) && backgroundReady,
     networkMode: 'always',
   })
   const contextVerseQuery = useQuery({
@@ -146,6 +139,7 @@ const StrongMainScreen = ({
         verse: activeContext.bibleVerse!,
       }),
     enabled: Boolean(
+      backgroundReady &&
       activeContext.bibleVersion &&
       activeContext.book &&
       activeContext.bibleChapter &&
@@ -166,7 +160,9 @@ const StrongMainScreen = ({
         resourceLanguage
       ),
     enabled: Boolean(
-      activeContext.morphologyCodes?.length && coreAvailability.data?.status === 'available'
+      backgroundReady &&
+      activeContext.morphologyCodes?.length &&
+      coreAvailability.data?.status === 'available'
     ),
     networkMode: 'always',
   })
@@ -189,7 +185,7 @@ const StrongMainScreen = ({
   }, [entry, onTitleChange])
 
   const openConcordanceVerse = (verse: Verse, version?: string) => {
-    const resolvedVersion = version ?? concordanceQuery.data?.version
+    const resolvedVersion = version ?? concordanceVersion
     routeNavigation.openConcordanceVerse(verse, resolvedVersion)
   }
 
@@ -203,24 +199,47 @@ const StrongMainScreen = ({
           verses: [activeContext.bibleVerse],
         })
       : undefined
-  const concordanceVersion = concordanceQuery.data?.version
+  const countsResult = concordanceTotalQuery.data
+  const previewResult = concordanceQuery.data
+  const availableCounts =
+    countsResult?.status === 'available'
+      ? { counts: countsResult.counts, provenance: countsResult.provenance }
+      : undefined
+  const availablePreview =
+    previewResult?.status === 'available'
+      ? { verses: previewResult.verses, provenance: previewResult.provenance }
+      : undefined
+  const concordanceVersion =
+    availableCounts?.provenance.versionId ??
+    availablePreview?.provenance.versionId ??
+    currentStrongBibleVersionId
+  const previewMatchesVersion = availablePreview?.provenance.versionId === concordanceVersion
+  const concordanceError = Boolean(
+    concordanceQuery.isError ||
+    concordanceTotalQuery.isError ||
+    (concordanceQuery.data && !availablePreview) ||
+    (concordanceTotalQuery.data && !availableCounts) ||
+    (availablePreview && !previewMatchesVersion)
+  )
+  const concordanceLoading = concordanceQuery.isPending || concordanceTotalQuery.isPending
+  const retryConcordance = () => {
+    void concordanceQuery.refetch()
+    void concordanceTotalQuery.refetch()
+    void lemmaStatsQuery.refetch()
+  }
   const lemmaStats =
     lemmaStatsQuery.data?.status === 'available' &&
     lemmaStatsQuery.data.provenance.versionId === concordanceVersion
       ? lemmaStatsQuery.data.lemmas
       : []
-  const concordanceTotalCount =
-    concordanceTotalQuery.data?.status === 'available' &&
-    concordanceTotalQuery.data.provenance.versionId === concordanceVersion
-      ? concordanceTotalQuery.data.counts.reduce(
-          (total, current) => total + Number(current.versesCountByBook),
-          0
-        )
-      : 0
+  const concordanceTotalCount = availableCounts?.counts.reduce(
+    (total, current) => total + Number(current.versesCountByBook),
+    0
+  )
   const concordanceCount =
     selectedLemmaId == null
       ? concordanceTotalCount
-      : (lemmaStats.find(lemma => lemma.id === selectedLemmaId)?.occurrenceCount ?? 0)
+      : lemmaStats.find(lemma => lemma.id === selectedLemmaId)?.occurrenceCount
   const passageMedia = entry
     ? getPassageMediaForStrong({ strongCode: entry.stepCode, language: resourceLanguage })
     : []
@@ -242,8 +261,16 @@ const StrongMainScreen = ({
       {entry && (
         <StrongDetailMainPage
           entry={entry}
+          extrasLoading={entryState.extrasLoading}
+          extrasError={entryState.extrasError}
+          onRetryExtras={() => void entryState.retryExtras()}
           passageMedia={passageMedia}
           contextVerse={contextVerse}
+          contextLoading={contextVerseQuery.isPending}
+          contextError={
+            contextVerseQuery.isError || Boolean(contextVerseQuery.data && !contextVerse)
+          }
+          onRetryContext={() => void contextVerseQuery.refetch()}
           contextReference={contextReference}
           contextVersion={
             contextVerseQuery.data?.status === 'available'
@@ -254,9 +281,12 @@ const StrongMainScreen = ({
           contextMorphologies={contextMorphologiesQuery.data}
           concordanceCount={concordanceCount}
           concordanceTotalCount={concordanceTotalCount}
-          concordanceVersion={concordanceQuery.data?.version ?? currentStrongBibleVersionId}
-          concordanceVerses={concordanceQuery.data?.verses ?? []}
-          concordanceLoading={concordanceQuery.isPending}
+          concordanceVersion={concordanceVersion}
+          concordanceVerses={previewMatchesVersion ? (availablePreview?.verses ?? []) : []}
+          concordanceLoading={concordanceLoading}
+          concordanceError={concordanceError}
+          concordanceRetrying={concordanceQuery.isFetching || concordanceTotalQuery.isFetching}
+          onRetryConcordance={retryConcordance}
           lemmaStats={lemmaStats}
           selectedLemmaId={selectedLemmaId}
           readingTypography={readingTypography}

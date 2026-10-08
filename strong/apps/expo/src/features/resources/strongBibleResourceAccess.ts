@@ -300,6 +300,7 @@ export const localStrongBibleResourceAdapter: StrongBibleResourceAdapter = {
 }
 
 type HttpStrongBibleResourceAdapterOptions = {
+  datasetIdForVersion?: (versionId: string) => string | undefined
   baseUrl: string
   fetcher?: typeof fetch
   isOnline: () => Promise<boolean>
@@ -377,6 +378,7 @@ const bibleChapterUnavailableError = (
 
 export const createHttpStrongBibleResourceAdapter = ({
   baseUrl,
+  datasetIdForVersion = getStrongDatasetId,
   fetcher = fetch,
   isOnline,
   bibleChapterAdapter,
@@ -418,7 +420,7 @@ export const createHttpStrongBibleResourceAdapter = ({
     resource: { versionId: string; datasetId: string },
     versionId: StrongBibleVersionId
   ) => {
-    if (resource.versionId !== versionId || resource.datasetId !== getStrongDatasetId(versionId)) {
+    if (resource.versionId !== versionId || resource.datasetId !== datasetIdForVersion(versionId)) {
       throw new ResourceAccessError('INTEGRITY_FAILURE')
     }
   }
@@ -438,6 +440,16 @@ export const createHttpStrongBibleResourceAdapter = ({
     if (!matchesRequest) throw new ResourceAccessError('INTEGRITY_FAILURE')
   }
 
+  // Older API deployments add padding but do not try the inverse spelling.
+  // Send the unpadded alias so both padded and unpadded publications resolve.
+  // The suffix keeps its letter case: `H2148v` and `H2148V` are two identities.
+  const concordanceReference = (reference: string | number) =>
+    encodeURIComponent(
+      String(reference)
+        .trim()
+        .replace(/^([HGhg])0*(?=\d)/u, (_, prefix: string) => prefix.toUpperCase())
+    )
+
   const loadChapter = async (versionId: StrongBibleVersionId, book: number, chapter: number) => {
     const response = await get(
       `/v1/strong-bibles/${encodeURIComponent(versionId)}/books/${book}/chapters/${chapter}`,
@@ -451,7 +463,7 @@ export const createHttpStrongBibleResourceAdapter = ({
   }
 
   const loadAvailability = async (versionId: string): Promise<StrongBibleSidecarAvailability> => {
-    if (!isStrongCapableBibleVersion(versionId)) return { status: 'unsupported' }
+    if (!isStrongCapableBibleVersion(versionId) || !datasetIdForVersion(versionId)) return { status: 'unsupported' }
     try {
       const coverage = await get(
         `/v1/strong-bibles/${encodeURIComponent(versionId)}/coverage`,
@@ -564,7 +576,7 @@ export const createHttpStrongBibleResourceAdapter = ({
     },
     async loadCountsByBook(versionId, request) {
       const response = await get(
-        `/v1/strong-bibles/${encodeURIComponent(versionId)}/books/${request.book}/identities/${encodeURIComponent(String(request.reference))}/counts`,
+        `/v1/strong-bibles/${encodeURIComponent(versionId)}/books/${request.book}/identities/${concordanceReference(request.reference)}/counts`,
         StrongBibleCountsDto
       )
       assertPublicationIdentity(response.resource, versionId)
@@ -585,8 +597,10 @@ export const createHttpStrongBibleResourceAdapter = ({
       if (request.cursor !== undefined) query.set('cursor', request.cursor)
       if (request.allBooks !== undefined) query.set('allBooks', String(request.allBooks))
       if (request.lexemeId !== undefined) query.set('lexemeId', String(request.lexemeId))
+      // React Native's URLSearchParams does not expose `size` on every runtime.
+      const queryString = query.toString()
       const response = await get(
-        `/v1/strong-bibles/${encodeURIComponent(versionId)}/books/${request.book}/identities/${encodeURIComponent(String(request.reference))}/occurrences${query.size ? `?${query}` : ''}`,
+        `/v1/strong-bibles/${encodeURIComponent(versionId)}/books/${request.book}/identities/${concordanceReference(request.reference)}/occurrences${queryString ? `?${queryString}` : ''}`,
         StrongBibleOccurrencesDto
       )
       assertPublicationIdentity(response.resource, versionId)
@@ -651,7 +665,7 @@ export const createHttpStrongBibleResourceAdapter = ({
     },
     async loadLemmaStats(versionId, request) {
       const response = await get(
-        `/v1/strong-bibles/${encodeURIComponent(versionId)}/books/${request.book}/identities/${encodeURIComponent(String(request.reference))}/lemmas`,
+        `/v1/strong-bibles/${encodeURIComponent(versionId)}/books/${request.book}/identities/${concordanceReference(request.reference)}/lemmas`,
         StrongBibleLemmaStatsDto
       )
       assertPublicationIdentity(response.resource, versionId)

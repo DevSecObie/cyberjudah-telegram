@@ -63,7 +63,7 @@ const initPromise = i18n
   .use(languageDetector)
   .init({
     resources,
-    fallbackLng: 'fr',
+    fallbackLng: DEFAULT_LANGUAGE,
     returnEmptyString: false,
     keySeparator: false,
     interpolation: {

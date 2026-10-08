@@ -1,5 +1,5 @@
 import type { ResourceLanguage } from '~helpers/databaseTypes'
-import type { DictionaryAccess, DictionaryWork } from '~features/resources/dictionaryAccess'
+import { getDefaultDictionaryWork, type DictionaryAccess, type DictionaryWork } from '~features/resources/dictionaryAccess'
 import type { OfflineResourceRegistrySnapshot } from '~features/resources/resourceAvailability'
 
 export const selectDictionaryWidgetWork = (
@@ -8,7 +8,7 @@ export const selectDictionaryWidgetWork = (
   snapshot: OfflineResourceRegistrySnapshot
 ): DictionaryWork => {
   const candidates = works.filter(work => work.resource.language === language)
-  const defaultWork = language === 'en' ? 'easton-webster' : 'westphal'
+  const defaultWork = getDefaultDictionaryWork(language)
   const installed = new Set(
     [...snapshot.resources.values()].flatMap(entry =>
       entry.resource.kind === 'dictionary' &&

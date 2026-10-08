@@ -90,12 +90,12 @@ const TimelineItem = ({
           style={{ backgroundColor: resolveThemeColor(stylingTheme, color) }}
         />
       </Box>
-      <Box className="overflow-hidden border-continuous w-[55%] h-[250px] rounded-[10px]">
-        <Image
+      <Box className="overflow-hidden border-continuous w-[55%] h-[250px] rounded-[10px]" style={{ backgroundColor: color }}>
+        {!!image && <Image
           source={getTimelinePeriodImageSource(image)}
           contentFit="cover"
           style={{ width: '100%', height: '100%' }}
-        />
+        />}
       </Box>
     </LinkBox>
   )

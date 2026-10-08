@@ -1,0 +1,14 @@
+{
+  "name": "cyberjudah-firebase-rules",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-cyberjudah \"node --test tests/*.test.mjs\"",
+    "test:web": "firebase emulators:exec --only auth,firestore --project demo-cyberjudah \"node --test tests-web/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "firebase": "13.0.0",
+    "firebase-tools": "15.33.0"
+  }
+}

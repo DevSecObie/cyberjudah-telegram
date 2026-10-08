@@ -58,6 +58,8 @@ export function createReaderPreview(
         dictionaryTitle:
           work === 'westphal'
             ? 'Dictionnaire encyclopédique de la Bible'
+            : work === 'easton'
+              ? 'Easton’s Bible Dictionary'
             : work === 'easton-webster'
               ? 'Easton’s Bible Dictionary & Webster’s 1828 Dictionary'
               : work,

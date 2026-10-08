@@ -39,7 +39,7 @@ const TimelineWidget = () => {
       <LinkBox className="bg-reverse rounded-[20px] flex-[1]" route="TimelineHome">
         <Box className="overflow-hidden border-continuous h-[92px] bg-light-grey">
           <Image
-            source={require('~assets/images/home/bible-timeline.jpg')}
+            source={require('~assets/images/home/cyberjudah-timeline.webp')}
             contentFit="cover"
             style={{ width: '100%', height: '100%' }}
           />
