@@ -34,7 +34,6 @@ export async function narrationStatus(book: Book): Promise<NarrationStatus> {
   const perChapter = await Promise.all(book.chapterIds.map((c) => chapterMedia(cache, book.slug, c)));
   if (perChapter.some((m) => m === null)) return perChapter.every((m) => m === null) ? "none" : "partial";
   const required = perChapter.flat() as string[];
-  if (required.length === 0) return "none";
   const cached = new Set<string>();
   await Promise.all(required.map(async (u) => { if (await cache.match(u)) cached.add(u); }));
   return narrationStatusFrom(required, cached);
