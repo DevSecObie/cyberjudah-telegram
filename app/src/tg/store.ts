@@ -14,12 +14,12 @@ const writes = new Map<string, number>();
 type PersonalStore = { get(key: string): string; set(key: string, value: string | null, baseline: string | null): Promise<void>; keys(): string[]; close(): void };
 let personal: Promise<PersonalStore | null> = Promise.resolve(null);
 let account: PersonalStore | null = null;
-let opening = false, failed = false, session = 0;
+let opening = false, failed = false, hideLegacy = false, session = 0;
 export function connectPersonalStore(start: Promise<PersonalStore | null>) {
   const run = ++session;
-  account?.close(); account = null; opening = true; failed = false;
+  account?.close(); account = null; opening = true; failed = false; hideLegacy = false;
   for (const key of cache.keys()) if (readerCollection(key)) { emit(key, null); cache.delete(key); }
-  personal = start.then(value => { if (run !== session) { value?.close(); return null; } account = value; opening = false; return value; }, error => { if (run === session) { opening = false; failed = true; } throw error; });
+  personal = start.then(value => { if (run !== session) { value?.close(); return null; } account = value; opening = false; return value; }, error => { if (run === session) { opening = false; failed = true; hideLegacy = error?.code === "account_changed"; } throw error; });
   // A failed sign-in leaves source data readable, but never silently writes to old keys.
   void personal.catch(() => {});
 }
@@ -62,6 +62,7 @@ export const store = {
   async get(key: string): Promise<string | null> {
     if (readerCollection(key)) {
       const synced = await personal.catch(() => null);
+      if (hideLegacy) return null;
       if (synced) return cache.get(key) ?? synced.get(key);
     }
     if (cache.has(key)) return cache.get(key)!;
@@ -110,7 +111,7 @@ export const store = {
     let device: string[] = [];
     try { device = Object.keys(local() ?? {}).filter(k => k.startsWith("cj:")).map(k => k.slice(3)); } catch { /* Restricted browser storage; cloud and cached keys remain available. */ }
     const synced = await personal.catch(() => null);
-    return [...new Set([...(synced?.keys() ?? []), ...cloud, ...device, ...[...cache.keys()].filter(k => cache.get(k) !== null)])];
+    return [...new Set([...(synced?.keys() ?? []), ...cloud, ...device, ...[...cache.keys()].filter(k => cache.get(k) !== null)])].filter(key => !hideLegacy || !readerCollection(key));
   },
 };
 

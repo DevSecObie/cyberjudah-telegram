@@ -25,6 +25,12 @@ async function start() {
   const run = ++generation;
   await auth.authStateReady();
   const restored = auth.currentUser;
+  const changedAccount = async () => {
+    await signOut(auth);
+    throw Object.assign(new Error("Account changed. Reopen the app to sign in. Your saved marks are unchanged."), { code: "account_changed" });
+  };
+  // An unverified launch may only block access here; it never supplies the Firebase UID.
+  if (!navigator.onLine && restored && app?.initDataUnsafe.user && restored.uid !== `tg_${app.initDataUnsafe.user.id}`) return changedAccount();
   if (!navigator.onLine && restored?.uid === localStorage.getItem(DEVICE_MIGRATION_OWNER_KEY)) return connectReader(db, restored.uid, receivePersonalValue, report);
   const response = await fetch(`/api/firebase/${restored ? "identity" : "token"}`, {
     method: "POST", headers: app?.initData ? { authorization: `tma ${app.initData}` } : {},
@@ -39,7 +45,7 @@ async function start() {
   if (!response.ok) throw new Error("Account sync is unavailable. Your saved marks are unchanged.");
   const result = await response.json() as { uid: string; token?: string };
   if (!/^tg_[1-9][0-9]*$/.test(result.uid)) throw new Error("Invalid account identity");
-  if (restored && restored.uid !== result.uid) throw new Error("Sign out before switching accounts. No saved data was moved.");
+  if (restored && restored.uid !== result.uid) return changedAccount();
   if (run !== generation) return null;
   if (!restored) {
     if (!result.token) throw new Error("Missing sign-in token");

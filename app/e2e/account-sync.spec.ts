@@ -104,6 +104,19 @@ test("phone, computer and web share highlights while original marks remain intac
     }
     expect(await a.evaluate(() => localStorage.getItem("cj:bs_h_genesis_1"))).toBe(old);
     expect(mints).toBe(1);
+    // A different verified Telegram account cannot read or import this device's old owner data.
+    await b.route("https://telegram.org/**", route => route.fulfill({ contentType: "application/javascript", body: `window.__cloud = {}; ${MOCK}` }));
+    const otherLaunch = `#tgWebAppData=${encodeURIComponent(signed(id + 1))}&tgWebAppVersion=9.1&tgWebAppPlatform=ios`;
+    await b.goto(`${origin}/read/genesis/1${otherLaunch}`);
+    await expect(b.getByRole("alert")).toContainText("Account changed");
+    await expect.poll(() => colour(b, 2)).toBe("rgba(0, 0, 0, 0)");
+    await b.reload();
+    await expect.poll(async () => (await request.get(`http://127.0.0.1:8089/v1/projects/demo-cyberjudah/databases/(default)/documents/users/tg_${id + 1}`, { headers: { authorization: "Bearer owner" } })).status()).toBe(200);
+    await expect.poll(() => b.evaluate(() => localStorage.getItem("cj:migration:indexedDB-owner"))).toBe(`tg_${id}`);
+    await b.goto(`${studyUrl}${otherLaunch}`);
+    await expect(b.getByLabel("Study title", { exact: true })).toHaveCount(0);
+    await expect(b.getByText("Study not found")).toBeVisible();
+    expect(await b.evaluate(() => localStorage.getItem("cj:bs_h_genesis_1"))).toBe(old);
     // Expired launch data must not silently switch a signed-in reader back to old-key writes.
     await a.goto(`${origin}/read/genesis/1#tgWebAppData=${encodeURIComponent(signed(id, 172800))}&tgWebAppVersion=9.1&tgWebAppPlatform=ios`);
     await expect(a.getByRole("alert")).toContainText("Sign-in expired");
