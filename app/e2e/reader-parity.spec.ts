@@ -142,6 +142,9 @@ test("keyboard palette switches to an existing tab and opens a passage with its 
   await expect(page).toHaveURL(/\/read\/genesis\/1\?v=2-3/);
   await expect(page.getByRole("button", { name: "3 Tabs open", exact: true })).toBeVisible();
   await page.keyboard.press("Control+Alt+w"); await expect(page.getByRole("button", { name: "2 Tabs open", exact: true })).toBeVisible();
+  await page.keyboard.press("Control+k"); await input.fill("study");
+  await expect(page.getByRole("option", { name: /My studies/ })).toBeVisible();
+  await input.press("Enter"); await expect(page).toHaveURL(/\/studies$/);
 });
 
 test("plan completion can be corrected by keyboard and its read action stays inside the app", async ({ page }) => {

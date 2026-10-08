@@ -10,14 +10,14 @@ import { moveTab } from "./tab-motion";
 import "./workspace-commands.css";
 
 const destinations = [
-  ["Bible", "/bible"], ["Search", "/search"], ["My studies", "/studies"], ["Reading plans", "/plans"],
+  ["Bible", "/bible"], ["Search", "/search"], ["My studies", "/studies", "study writing"], ["Reading plans", "/plans"],
   ["Classes", "/classes"], ["Highlights, notes and bookmarks", "/bookmarks"], ["Strong’s lexicon", "/lexicon"],
   ["Dictionary", "/dictionary"], ["People", "/people"], ["Precepts", "/precepts"], ["Your precepts", "/relations"],
   ["Tags", "/tags"], ["Bible timeline", "/timeline"], ["Library", "/books"], ["The Law", "/law"],
   ["Topics", "/topics"], ["Concordance", "/concordance"], ["Ask CyberJudah", "/ask"], ["Downloads and resources", "/resources"],
   ["Audio settings", "/settings/audio"], ["Settings", "/settings"],
 ];
-type Choice = { id: string; title: string; detail: string; path: string; group?: string; tab?: string };
+type Choice = { id: string; title: string; detail: string; path: string; keywords?: string; group?: string; tab?: string };
 const editing = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || !!target.closest('input,textarea,select,[role="textbox"]'));
 
 /** Workspace navigation without stealing browser tabs' Cmd/Ctrl+T and Cmd/Ctrl+W. */
@@ -35,9 +35,12 @@ export function WorkspaceCommands() {
   const passage = parseReference(query, books.data ?? []);
   const openTabs: Choice[] = tabs.groups.flatMap(group => group.tabs.filter(t => t.path !== "/new").map(tab => ({ id: tab.id, tab: tab.id, group: group.id, title: tabTitle(tab.path), detail: group.name, path: tab.path })));
   const rank = (id: string) => id === tabs.current ? -1 : recent.includes(id) ? recent.indexOf(id) : 100;
+  const normalize = (text: string) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f’']/g, "");
+  const terms = normalize(query).trim().split(/\s+/).filter(Boolean);
+  const tools: Choice[] = destinations.map(([title, path, keywords]) => ({ id: path, title, path, keywords, detail: "Open in a new tab" }));
   const choices = mode === "recent" ? openTabs.sort((a, b) => rank(a.id) - rank(b.id)) : [
     ...(passage ? [{ id: "passage", title: passage.label, detail: "Open passage", path: `/read/${passage.slug}/${passage.chapter}${passage.verse ? `?v=${passage.verse}${passage.verseEnd ? `-${passage.verseEnd}` : ""}` : ""}` }] : []),
-    ...[...openTabs, ...destinations.map(([title, path]) => ({ id: path, title, path, detail: "Open in a new tab" }))].filter(c => `${c.title} ${c.detail}`.toLowerCase().includes(query.toLowerCase().trim())),
+    ...[...openTabs, ...tools].filter(c => terms.every(term => normalize(`${c.title} ${c.detail} ${c.keywords ?? ""}`).includes(term))),
   ];
   const selected = Math.min(index, Math.max(0, choices.length - 1));
   const choose = (choice?: Choice) => {
