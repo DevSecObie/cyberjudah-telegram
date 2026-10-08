@@ -72,13 +72,6 @@ jobs:
         env:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
           CYBERJUDAH_APP_BASE: /app/
-      - name: Cache the Bible Strong fork's packages
-        uses: actions/cache@v6
-        with:
-          path: ~/.yarn/berry/cache
-          key: strong-yarn-${{ hashFiles('strong/yarn.lock') }}
-      - name: Build the Bible Strong fork (staged at /app/strong)
-        run: bash strong/build-web.sh
       - name: Upload the app's pictures to R2
         working-directory: bot
         env:

@@ -1,0 +1,1 @@
+- Fix Telegram browser sign-in rejecting verified profiles whose ID is a numeric string or whose name is supplied as given_name.
