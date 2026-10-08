@@ -25,7 +25,9 @@ export async function connectReader(db: Firestore, uid: string, changed: (key: s
           if (change.type === "removed") rows.delete(identity); else rows.set(identity, row);
         }
         keys.forEach(key => changed(key, readerValue(key, entries(key))));
-        if (!snapshot.metadata.fromCache || !navigator.onLine) resolve();
+        // Cached snapshots are usable immediately. Waiting for every server acknowledgement
+        // can strand a restored session if the device goes offline during hydration.
+        resolve();
       }, error => { report("Saved data could not sync. Your existing marks are unchanged."); reject(error); }));
     })));
   } catch (error) { stops.forEach(stop => stop()); throw error; }
