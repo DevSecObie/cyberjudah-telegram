@@ -22,10 +22,4 @@ cat > .deploy/_headers <<'HEADERS'
 /app/assets/*
   Cache-Control: public, max-age=31536000, immutable
 HEADERS
-# The Bible Strong fork (strong/, built by strong/build-web.sh) is staged beside the current
-# app at /app/strong while it is built out; the current app at /app is unchanged.
-if [ -d strong/dist ]; then
-  mkdir -p .deploy/app/strong
-  cp -r strong/dist/. .deploy/app/strong/
-fi
 echo "staged $(find .deploy -type f | wc -l) asset files in .deploy/"
