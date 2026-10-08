@@ -19,6 +19,13 @@ Create a **fine-grained personal access token** in GitHub **Settings → Develop
 
 Save it as the **Worker secret** `APP_REPO_TOKEN` in Cloudflare's dashboard, or run `npx wrangler secret put APP_REPO_TOKEN` from `bot/` with your normal Cloudflare credentials. Paste the token at the secure prompt, never into chat, a file or a command argument. Add the secret separately to staging only if you intend to allow staging edits.
 
+Alternatively save `APP_REPO_TOKEN` as an Actions repository secret in `cyberjudah-telegram`;
+the approved production deploy copies it to the Worker. A missing Actions copy never
+removes a secret configured directly in Cloudflare. Staging stays separately configured.
+The manual `verify-release` workflow reads the production CMS lists using a configured
+admin, verifies that a non-admin is refused, and reports missing or expired repository
+credentials without making edits or opening PRs.
+
 The existing `CYBERJUDAH_TOKEN` stays scoped to `DevSecObie/cyberjudah`; note reviews need Contents and Pull requests read/write and Checks read there too. Neither token reaches the client. Do not grant either token branch/ruleset bypass rights. Keep the app's existing required checks and add **playwright** and **cms-content** as required checks on main.
 
 D1 `DB` stores the audit trail in `cms_changes` (created automatically): editor Telegram id/name, time, reason, content id/kind, files, PR URL and observed outcome. Status refresh records merges or closures made outside the app. Recent changes pages through all records, 50 at a time; no rows are deleted. No token is stored there.
