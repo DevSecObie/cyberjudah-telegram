@@ -45,13 +45,27 @@ async function signIn(page, origin, account, firstSignIn = false) {
   }
 }
 
+// A full page load closes the account write scope until the app has restored the session and
+// inspected the account; edits made before then stay local and are replaced by the first cloud
+// snapshot. Wait for this load's sync (its persisted state) to finish before editing.
+async function accountSynced(page, since) {
+  await expect.poll(() => page.evaluate(since => {
+    try {
+      const sync = JSON.parse(JSON.parse(localStorage.getItem('bible-strong:root') || '{}').user || '{}').sync
+      return sync?.isLoading === false && sync.startedAt >= since
+    } catch { return false }
+  }, since), { timeout: 30_000 }).toBe(true)
+}
+
 test('real Auth and Firestore emulators sync notes across browsers and isolate account switches', { timeout: 180_000 }, async t => {
   const suffix = Date.now()
   const alice = await account(`alice-${suffix}@example.invalid`)
   const bob = await account(`bob-${suffix}@example.invalid`)
   const first = await openReader(t, { allowEmulators: true })
   await signIn(first.page, first.origin, alice, true)
+  const loaded = await first.page.evaluate(() => Date.now())
   await first.page.goto(`${first.origin}/app/strong/note`)
+  await accountSynced(first.page, loaded)
   await first.page.getByRole('textbox', { name: 'Title (optional)', exact: true }).fill('Private synchronized note')
   await first.page.getByRole('textbox', { name: 'Description', exact: true }).fill('Only the same account may see this note.')
   await first.page.getByRole('button', { name: 'Save', exact: true }).tap()

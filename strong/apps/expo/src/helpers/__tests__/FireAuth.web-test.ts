@@ -100,4 +100,40 @@ describe('WebFireAuth auth-state cleanup', () => {
     expect(fireAuth.user).toBeNull()
     expect(fireAuth.profile).toBeNull()
   })
+
+  it('signs out a persisted account whose session restore is still reading the profile', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { WebFireAuth } = require('../FireAuth.web') as typeof import('../FireAuth.web')
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const firestore = require('~helpers/firebase') as { getDoc: jest.Mock }
+    let releaseProfile: (() => void) | undefined
+    firestore.getDoc.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          releaseProfile = () => resolve({ exists: () => false, data: () => ({ id: 'user-1' }) })
+        })
+    )
+    const fireAuth = new WebFireAuth()
+    const onLogin = jest.fn()
+    const onLogout = jest.fn()
+    await fireAuth.init(onLogin, jest.fn(), onLogout, jest.fn(), jest.fn(), {} as never)
+
+    const restoring = mockAuthStateListener?.({
+      uid: 'user-1',
+      email: 'reader@example.test',
+      emailVerified: true,
+      displayName: 'Reader',
+      photoURL: null,
+      metadata: { creationTime: 'today' },
+      providerData: [{ providerId: 'password', displayName: 'Reader', photoURL: null }],
+    })
+    await fireAuth.logout()
+    await mockAuthStateListener?.(null)
+    releaseProfile?.()
+    await restoring
+
+    expect(onLogin).not.toHaveBeenCalled()
+    expect(onLogout).toHaveBeenCalledTimes(1)
+    expect(fireAuth.user).toBeNull()
+  })
 })

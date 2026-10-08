@@ -74,6 +74,9 @@ export class WebFireAuth {
   onLogin: OnLoginCallback | null = null
   onError: AuthErrorCallback | null = null
   previousEmailVerified = false
+  // Bumped by every auth-state change and sign-out, so a session restore still reading the
+  // profile cannot log back in a user who signed out (or was replaced) meanwhile.
+  private authStateGeneration = 0
   accountEntryAttempts = new AccountEntryAttemptCoordinator()
   unresolvedAccountEntries = createUnresolvedAccountEntryRepository(storage)
   private telegramSignIn = createTelegramFirebaseBridge({
@@ -145,6 +148,7 @@ export class WebFireAuth {
     catch (error) { this.onError?.(error); return }
 
     onAuthStateChanged(getAuth(firebaseApp), async user => {
+      const generation = ++this.authStateGeneration
       if (!user) {
         void identifyAnalyticsUser(null)
         const wasAuthenticated = Boolean(this.user)
@@ -191,6 +195,7 @@ export class WebFireAuth {
       } catch (error) {
         appLogger.warn('sync', 'web_auth.profile_read_failed', { error })
       }
+      if (generation !== this.authStateGeneration) return
 
       if (!this.user) {
         this.user = user
@@ -359,9 +364,13 @@ export class WebFireAuth {
   }
 
   logout = async () => {
+    // The persisted account can be on screen before the session restore finishes; signing out
+    // then must still clear it, since no auth-state change will report a logout.
+    const restored = Boolean(this.user)
+    this.authStateGeneration += 1
     await signOut(getAuth(firebaseApp))
     void identifyAnalyticsUser(null)
-    if (this.user) {
+    if (this.user || !restored) {
       runAllCleanups()
       this.user = null
       this.profile = null
