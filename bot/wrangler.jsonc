@@ -49,9 +49,9 @@
   "ratelimits": [{ "name": "REMIND_LIMIT", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } }],
   // Staging: the same code against separate resources, deployed by .github/workflows/stage.yml.
   // The staging bot is a second @BotFather bot; its token and webhook secret live in the
-  // STAGING_BOT_TOKEN / STAGING_WEBHOOK_SECRET repository secrets. D1 "cyberjudah-telegram"
-  // and the Vectorize index are the shared read-only data (staging never runs the embed);
-  // the staging database and the SUBS-STAGING KV namespace are staging's own.
+  // STAGING_BOT_TOKEN / STAGING_WEBHOOK_SECRET repository secrets. The teaching database,
+  // Vectorize index and published R2 library are shared; staging never embeds or publishes
+  // resources. Reader state uses staging's own database and SUBS-STAGING KV namespace.
   "env": {
     "staging": {
       "name": "cyberjudah-telegram-staging",
@@ -64,6 +64,10 @@
       ],
       "kv_namespaces": [{ "binding": "SUBS", "id": "00000000000000000000000000000000" }],
       "ratelimits": [{ "name": "REMIND_LIMIT", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } }],
+      // These bindings are not inherited from the top-level Worker configuration.
+      "ai": { "binding": "AI" },
+      "vectorize": [{ "binding": "VEC", "index_name": "cyberjudah-teachings" }],
+      "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "cyberjudah-audio" }],
       // Environments do not inherit "vars": every production setting is repeated here (only
       // APP_URL differs). tests/wrangler.test.mjs fails if one goes missing.
       "vars": {
@@ -75,7 +79,7 @@
         "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
         "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8",
         "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "0.11",
-        "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
+        "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
         "DONATIONS_ON": "on", "DONATE_MIN_STARS": "1"
       }
     }
@@ -126,10 +130,12 @@
     // caps the search screen's AI answer block per reader (20/day, admins excluded); CREDIT_USAGE_RETENTION_DAYS
     // how long per-request telemetry is kept; CREDITS_CONTENTION_ALERT how many D1 write-contention
     // events in a day page the admins from the hourly health check.
+    // SEARCH_AI_MODEL is a library-only answer; SEARCH_AI_FREE_ONLY rejects third-party billing.
+    // Remove the model setting to use ASK_FREE_MODEL. See docs/SEARCH_AI.md for quota limits.
     // ASK_FREE_MODEL names the default free model (Llama 3.1 8B, cheapest per answer).
     "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8",
     "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "0.11",
-    "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
+    "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
     // Donations ("Support CyberJudah"): on by default; a giver may name any amount of Stars from
     // DONATE_MIN_STARS up (no app-imposed ceiling until the owner adds DONATE_MAX_STARS below).
     // DONATION_URL (the owner's own HTTPS giving link) is not set here: it is not secret, but no

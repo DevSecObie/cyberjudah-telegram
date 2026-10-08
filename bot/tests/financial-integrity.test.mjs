@@ -101,7 +101,7 @@ test('free answers reserve a shared daily budget atomically before any retrieval
   assert.equal(await api.freeSpendToday(env), admitted.length * 0.01, 'settlement is idempotent');
 });
 
-test('a full free budget blocks Ask and search before calling AI, while admin testing stays separate', async t => {
+test('a full free budget blocks Ask and all searches before calling AI', async t => {
   const { env } = financialDb(t);
   await api.reserveFreeBudget(env, 'all-budget', 0.11);
   let calls = 0;
@@ -116,7 +116,8 @@ test('a full free budget blocks Ask and search before calling AI, while admin te
   }
   assert.equal((await api.answerSearch(env, 'a search question', 77)).reason, 'free-paused');
   assert.equal(calls, 0);
-  assert.equal((await api.answerSearch(env, 'admin search', 100000002)).ok, true);
+  assert.equal((await api.answerSearch(env, 'admin search', 100000002)).reason, 'free-paused');
+  assert.equal(calls, 0);
   assert.equal(await api.freeSpendToday(env), 0);
 });
 

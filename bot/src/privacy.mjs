@@ -33,7 +33,7 @@ const salt = enc.encode("cyberjudah-privacy-v1");
 /** The pseudonymous ID a person's records are filed under: 22 characters, the same every time for the same person. */
 const pids = new Map();
 export async function pid(env, uid) {
-  const cacheKey = `${rootOf(env).length}:${uid}`;
+  const cacheKey = JSON.stringify([rootOf(env), String(uid)]);
   const hit = pids.get(cacheKey);
   if (hit) return hit;
   const bits = await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt, info: enc.encode(`pid:tg:${uid}`) }, await root(env), 128);
@@ -50,7 +50,7 @@ export async function pid(env, uid) {
  */
 const macKeys = new Map();
 export async function keyedHash(env, purpose, value) {
-  const cacheKey = `${rootOf(env).length}:${purpose}`;
+  const cacheKey = JSON.stringify([rootOf(env), purpose]);
   let k = macKeys.get(cacheKey);
   if (!k) {
     k = crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt, info: enc.encode(`mac:${purpose}`) }, await root(env), { name: "HMAC", hash: "SHA-256", length: 256 }, false, ["sign"]);

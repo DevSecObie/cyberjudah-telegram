@@ -66,3 +66,23 @@ end-of-catalog, collapsed repeat, rapid requests, Stop during chapter loading an
 pending media play, Media Session actions, external pause and ambient return.
 `app/tests/audio-continuity.test.mjs` covers catalog boundaries and handler disposal;
 `audio-intent.test.mjs` covers async ownership and persisted rate validation.
+
+## Audio settings and offline narration
+
+Settings → Audio settings (`/settings/audio`) reads and writes the same shared player
+preferences the Bible reader uses (`AudioPlayer.tsx`'s context): voice, speed, pitch and
+ambient sound. Nothing on that screen starts playback; choosing a voice or a speed while
+idle only saves the preference. A saved voice preference that no longer resolves (a
+device voice no longer on this device, a removed AI voice, an unlisted narrator) shows an
+explicit status with a retry and a one-tap fallback to the free generated voice, rather
+than silently substituting one.
+
+A saved book's text and its optional narration are tracked separately (`lib/narration.ts`,
+`lib/offline.ts`): a book can have its text saved with no narration, partial narration (some
+chapters' recordings missing or failed), or complete narration. Status is read straight from
+the Cache API, never from a download ledger, so it can't claim a file is saved when it
+isn't. The saved-book row in Settings opens an action sheet to download or retry narration
+(showing the size first, or a plain note when the catalog can't be read), remove narration
+only, or remove the book; a retry only fetches what's still missing, never the whole book
+again. `app/tests/narration.test.mjs` covers the pure completeness/hint logic;
+`recordings.spec.ts` covers the Settings flows end to end.

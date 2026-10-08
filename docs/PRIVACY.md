@@ -13,7 +13,7 @@ a change to the other.
 |---|---|---|
 | Telegram Bot Developer Terms, 4 | A privacy policy that is easy to reach, saying what is stored, how and why; set in @BotFather when the standard policy does not fit | The Privacy screen; `/privacy`; **owner action:** set the Privacy Policy in @BotFather (below) |
 | Telegram Bot Developer Terms, 4.2 | Delete data on request, and when it is no longer needed | Delete my data; retention below |
-| Telegram Bot Developer Terms, 4.3 | Use what people send only with "individual, explicit, active and revocable consent" after being told its use | The AI agreement in Ask, checked by the server (428), withdrawn in Privacy |
+| Telegram Bot Developer Terms, 4.3 | Use what people send only with "individual, explicit, active and revocable consent" after being told its use | The AI agreement in Ask and Search, checked by the server (428), withdrawn in Privacy |
 | Telegram Bot Developer Terms, 4.4(a) | "user data is always encrypted at rest and stored separately from its encryption key" | `privacy.mjs` seal/open (AES-GCM), key from the `PRIVACY_KEY` Worker secret, data in KV/D1 |
 | Telegram Bot Developer Terms, 4.4(e)/(d) | The security checks the platform documents (launch data) | `initdata.mjs` validates every request's launch data |
 | Telegram Bot Developer Terms, 6.2.1 | Stars sellers answer `/paysupport` | `/paysupport` reaches the admins |
@@ -69,22 +69,24 @@ a bounded amount each hour, until none are left. Chats also move the first time 
 ## Who else handles it
 
 - **Telegram:** platform, sign-in, messages, Stars.
-- **Cloudflare:** hosting (Workers, KV, D1, R2), Workers AI, AI Gateway. Workers Logs keep requests
-  3–7 days; AI calls are logged without content, or not at all.
+- **Cloudflare:** hosting (Workers, KV, D1, R2), Workers AI, AI Gateway. Invocation logs are off;
+  service log messages are kept up to seven days. AI calls are logged without content, or not at all.
 - **The AI provider of the model the reader chooses** (Anthropic, OpenAI, Google, xAI, DeepSeek,
   Alibaba, Moonshot AI, MiniMax, Thinking Machines, Unbiased, or Cloudflare for the hosted models):
   the question, the earlier questions in the chat, library passages. Never the name or Telegram ID.
   Only after the reader agrees to that provider (`lib/ai-consent.ts`; the server answers 428
-  otherwise, with the provider's home country when `shared/ask-models.mjs` `PROVIDER_COUNTRY`
-  knows it). When the reader asks about them, the chosen model also receives the reader's own
+  otherwise, including before Search cache lookups). Search sends only the current query and
+  matching library passages; answers are cached for two minutes, keyed by question and model,
+  with no reader identity. Search is not saved as an Ask conversation. Ask also discloses the
+  provider's home country when `shared/ask-models.mjs` `PROVIDER_COUNTRY`
+  knows it. When the reader asks about them, the chosen model also receives the reader's own
   records through two tools (`agent.ts`): `my_saved_chats` sends the titles of their other saved
   chats, each with its number of questions, the date of its last question and its link; `my_reminder`
   sends the reading reminder's settings: on or off, time, time zone, channel (Telegram or push), any
   pause date and the reading-plan day, or whether it follows the last chapter read. The AI agreement
   in Ask says so before the first question. When Claude is unavailable, the backup answer
   is written by Workers AI on Cloudflare, the host.
-- **Google Fonts:** the app's typefaces (`app/index.html`), so Google receives the reader's IP
-  address and browser details when the app loads.
+- **Typefaces:** self-hosted with the app (`app/src/fonts`); loading them does not contact Google Fonts.
 - **YouTube:** class thumbnails (`img.youtube.com`) when classes are listed, and the player
   (`youtube-nocookie.com`) when a class is played.
 - **The admins** (the Telegram IDs in `ADMIN_IDS`), through `tellAdmins`: `/paysupport`

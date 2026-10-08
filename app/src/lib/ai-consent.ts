@@ -1,6 +1,6 @@
 /**
  * Which AI providers the reader has agreed may receive their questions (docs/PRIVACY.md). Asked
- * for in Ask before the first question to a provider, sent with every question (the server
+ * for in Ask and Search before the first question to a provider, sent with every question (the server
  * refuses a provider not on the list), and withdrawn in Settings → Privacy. Kept on this device.
  */
 const KEY = "cj:ai-consent";
