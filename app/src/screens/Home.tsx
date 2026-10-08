@@ -68,7 +68,7 @@ function useNotedTeachings() {
   });
 }
 
-/** Newest day first; each day's broadcasts run from first to last, including pending notes. */
+/** In the order the classes went live, newest first, including those whose notes are still coming. */
 export function useTeachings() {
   const notes = useNotedTeachings();
   const recent = useRecent();
