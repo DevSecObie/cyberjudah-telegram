@@ -1,3 +1,5 @@
+import "./native/requests";
+import { native } from "./native/platform";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
@@ -23,7 +25,7 @@ boot({ bg: canvas, header: canvas, bottomBar: canvas });
 // Before the router reads the history: a back step must never leave the app for a blank page.
 // Only inside Telegram: in a plain browser, Back must be free to leave the site.
 if (app) installBackGuard();
-registerOfflineShell(basename);
+if (!native) registerOfflineShell(basename);
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 5 * 60_000, retry: 1, refetchOnWindowFocus: false } } });
 

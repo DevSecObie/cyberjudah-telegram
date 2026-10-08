@@ -1,3 +1,4 @@
+import { WordAlignment } from "./WordAlignment";
 import { useQuery } from "@tanstack/react-query";
 import { avatarKind, EntityAvatar } from "@/ui/avatar";
 import { useState } from "react";
@@ -28,6 +29,7 @@ type Entry = { slug: string; term: string; definitions: string[] };
 
 export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, verse, text, reference, books }: { open: boolean; onClose: () => void; tab: ResourceTab; setTab: (t: ResourceTab) => void; slug: string; chapter: number; verse: number; text: string; reference: string; books: Book[] }) {
   const navigate = useNavigate();
+  const [alignment, setAlignment] = useState(false);
   const [word, setWord] = useState<string | null>(null);
   // Where the reader came from, so a note or teaching can offer the way back to this verse.
   const from = `from=${encodeURIComponent(`/read/${slug}/${chapter}?v=${verse}`)}`;
@@ -82,6 +84,8 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
             <p className="bs-greek__src">Swete's Septuagint (1909), verse {verse} as Swete numbers it; the King James Apocrypha were translated from this Greek. Strong's numbers cover the 66 books only.</p>
           </div>
         ) : <p className="bs-loading">Strong's numbers cover the 66 books; this verse has none.</p>) : <>
+          <button type="button" className="bs-btn" aria-expanded={alignment} onClick={() => setAlignment(!alignment)}>{alignment ? "Hide word alignment" : "Show word alignment"}</button>
+          {alignment && <WordAlignment words={verseWords} onWord={setWord} />}
           <p className="bs-words__hint">Tap a word for the Hebrew or Greek behind it, what it means, and every verse that uses it.</p>
           <div className="bs-words">{verseWords.map(([t, nums], i) => nums.length
             ? <span key={i} className="bs-words__group">{[...new Set(nums)].map((n) => <button key={n} type="button" className="bs-words__w" aria-label={`${t} — ${n}`} onClick={() => setWord(n)}>{t}<small>{n}</small></button>)}</span>

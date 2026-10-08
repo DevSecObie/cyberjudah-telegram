@@ -48,7 +48,8 @@ export function Plan() {
 
   if (books.isPending) return <Screen title="Reading plan"><Skeleton rows={4} /></Screen>;
   if (!plan || !today) return (
-    <Screen title="Reading plan" kicker="4 Chapters a Day">
+    <Screen title="Reading plan" kicker="Choose your reading pace">
+      <Link to="/plans">Browse reading plans</Link>
       {/* Before a plan is started there is little on the page, so its one action sits with the words it answers. */}
       <Empty title="Read the whole library, a few chapters a day" action={{ label: "Start the plan", onClick: () => void start() }}>Genesis to Revelation with the Apocrypha, in order. The app ticks off each chapter as you read it and keeps your streak.</Empty>
       <Card><p className="card__label">So far</p><p className="verse" style={{ fontFamily: "var(--font-ui)", fontWeight: 700 }}>{chaptersRead(progress)} chapters read</p></Card>
@@ -57,6 +58,7 @@ export function Plan() {
   const dayDone = shown!.done;
   return (
     <Screen title="Reading plan" kicker={`Day ${today.day + 1} of ${today.total}`}>
+      <Link to="/plans">{plan.name ?? "Whole Bible with Apocrypha"} · Change plan</Link>
       <Card glow>
         <p className="card__label">{today.done ? "Today · done" : "Today"}</p>
         <p className="verse" style={{ fontFamily: "var(--font-ui)", fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em" }}>{today.label}</p>

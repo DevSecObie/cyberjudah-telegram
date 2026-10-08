@@ -512,7 +512,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 
 /* The selection sheet as Bible Strong shows it on an iPhone (measured from its screen): a card
    floating 8 px in from the sides and bottom, shared large sheet corners, a fine light hairline; the grabber,
-   then the 56 px colour row of 20 px swatches spread across; the six actions on one row (48 px
+   then the 48 px colour row of 20 px swatches spread across; the six actions on one row (48 px
    tiles of radius 16 in the theme's light grey, the icon in the accent, an 11 px label); then the
    footer track (radius 20, 3 px in, 16 px from the card's sides) with the chosen tab dark and in
    the accent. The material is restrained: a dense tint and a light blur (one backdrop filter,
@@ -522,11 +522,12 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
   --sel-tile: var(--bs-light-grey);
   --sel-accent: var(--bs-primary);
 }
+.bs-sheet.bs-selected:not(.bs-sheet--full) { padding-bottom: 4px; }
 .bs-selected .bs-sheet__handle { width: 36px; height: 5px; border-radius: 3px; margin: 6px auto 0; background: color-mix(in srgb, var(--bs-default) 45%, transparent); }
 .bs-selected__inner { overflow: hidden; }
 
 .bs-selected .bs-colors { margin: 0 4px; justify-content: flex-start; }
-.bs-selected .bs-colors__cell { flex: 1 0 44px; min-width: 44px; height: 56px; }
+.bs-selected .bs-colors__cell { flex: 1 0 44px; min-width: 44px; height: 48px; }
 /* The reader's generic ring (#root .bs :focus-visible, 1-2-0) sits 2px outside and is clipped at the
    sheet's edge; these take precedence and draw it inside each control. The sheet itself takes the
    focus on open only so that Tab starts inside it; it is not a control and draws no ring. */
@@ -543,7 +544,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-selected .bs-pages { margin: 0; }
 .bs-selected .bs-pages__track { transition: transform .22s cubic-bezier(.3, .7, .2, 1); }
 .bs-selected .bs-actions { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); padding: 0 6px; }
-#root .bs-selected .bs-actions > .bs-action { width: auto; min-width: 0; gap: 8px; padding: 8px 0; border-radius: 12px; }
+#root .bs-selected .bs-actions > .bs-action { width: auto; min-width: 0; gap: 6px; padding: 0; border-radius: 12px; }
 #root .bs-selected .bs-action:focus-visible { outline: 2px solid var(--sel-accent); outline-offset: -2px; border-radius: 12px; }
 .bs-selected .bs-action__box { width: 48px; height: 48px; border-radius: 16px; background: var(--sel-tile); transition: transform .18s ease; }
 .bs-selected .bs-action__box[data-active] { box-shadow: inset 0 0 0 2px var(--sel-accent); }
@@ -571,3 +572,14 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
   .bs-selected .bs-pages__track, .bs-selected .bs-tabsfooter__indicator, .bs-selected .bs-action__box { transition: none; }
   .bs-selected .bs-action:not(:disabled):active .bs-action__box { transform: none; }
 }
+
+.word-alignment__row { display: grid; grid-template-columns: minmax(5rem, 1fr) minmax(0, 3fr); gap: 12px; padding-block: 12px; border-bottom: 1px solid var(--bs-light-grey); }
+.word-alignment__row button { display: grid; gap: 6px; width: 100%; min-height: 44px; padding: 12px; margin-bottom: 8px; border: 1px solid var(--bs-grey); border-radius: 8px; text-align: start; color: var(--bs-default); background: var(--bs-reverse); font: inherit; }
+.word-alignment p { line-height: 1.6; }
+
+/* New study actions occupy a labelled row without altering the six reader controls. */
+.bs-selected__extra { display: flex; align-items: center; gap: 12px; width: calc(100% - 32px); box-sizing: border-box; min-height: 48px; margin: 2px 16px 0; padding: 8px 12px; border: 0; border-top: 1px solid var(--bs-border, var(--hairline)); border-radius: 0; background: transparent; color: var(--bs-primary); font: inherit; text-align: start; cursor: pointer; }
+.bs-selected__extra span { flex: 1; font-size: .875rem; }
+.bs-selected__extra:hover:not(:disabled) { background: var(--sel-tile); border-radius: 12px; }
+.bs-selected__extra:disabled { opacity: .45; cursor: default; }
+#root .bs-selected__extra:focus-visible { outline: 2px solid var(--sel-accent); outline-offset: -2px; border-radius: 12px; }

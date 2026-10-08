@@ -14,7 +14,7 @@ export type VerseNotes = Record<string, string>;
 export type Progress = Record<string, string>;
 export type Last = { slug: string; chapter: number; name: string; at: number };
 export type HistoryRow = { slug: string; chapter: number; name: string; at: number };
-export type Plan = { startedAt: string; day: number; streak: number; lastDone?: string; perDay: number } | null;
+export type Plan = { startedAt: string; day: number; streak: number; lastDone?: string; perDay: number; books?: string[]; name?: string } | null;
 
 export const COLORS = [
   { id: "y", label: "Yellow", css: "#fcee0a" }, { id: "g", label: "Green", css: "#3ddc84" }, { id: "b", label: "Blue", css: "#00e5ff" },

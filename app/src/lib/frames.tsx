@@ -1,3 +1,4 @@
+import { native } from "@/native/platform";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
@@ -36,7 +37,7 @@ export function frameStyle(video: string, board: Board | undefined, t: number, w
   const x = l.cols > 1 ? (col / (l.cols - 1)) * 100 : 0, y = l.rows > 1 ? (row / (l.rows - 1)) * 100 : 0;
   return {
     ...(width ? { width, height: Math.round((width * l.h) / l.w) } : {}),
-    backgroundImage: `url(/frames/${encodeURIComponent(video)}/${l.level}/${sheet}.jpg)`,
+    backgroundImage: `url(${native ? "https://cyberjudah.io" : ""}/frames/${encodeURIComponent(video)}/${l.level}/${sheet}.jpg)`,
     backgroundSize: `${l.cols * 100}% ${l.rows * 100}%`,
     backgroundPosition: `${x}% ${y}%`,
     backgroundRepeat: "no-repeat",

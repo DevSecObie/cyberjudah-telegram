@@ -1,3 +1,5 @@
+import { revokeBrowserSessions } from "./browser-auth";
+import { readStudyBackup, deleteStudyBackup } from "./study-backup";
 import type { Env } from "./env";
 import { deleteAllChats, getChat, listChats } from "./chats";
 import { billingRecord, deleteBilling } from "./billing";
@@ -24,6 +26,7 @@ export type MyData = {
   ask: unknown;
   askTopupReminder: unknown;
   classNoteRequests: string[];
+  personalStudyBackup: unknown;
 };
 
 async function noteRequestsOf(env: Env, uid: number): Promise<{ video: string; r: NoteRequest; meta: unknown }[]> {
@@ -50,7 +53,8 @@ export async function exportData(env: Env, uid: number): Promise<MyData> {
   const sub = await open<{ hour: number; tz: number }>(env, subKey, await env.SUBS.get(subKey));
   return {
     generated: new Date().toISOString(),
-    note: "Everything CyberJudah keeps about you. Your highlights, notes, bookmarks and reading history stay on your device and in your Telegram backups, not on CyberJudah's servers.",
+    note: "Everything CyberJudah keeps about you, including an optional personal-study cloud backup. Reader highlights, notes, bookmarks and reading history stay on your device and in Telegram's storage.",
+    personalStudyBackup: await readStudyBackup(env, uid),
     savedChats: chats,
     readingReminder: rec ? publicView(rec) : null,
     dailyVerse: sub ? { hour: sub.hour, tzOffsetMinutes: sub.tz } : null,
@@ -64,6 +68,7 @@ export type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse
 
 export async function deleteData(env: Env, uid: number): Promise<Deleted> {
   const me = await pid(env, uid);
+  await deleteStudyBackup(env, uid);
   const savedChats = await deleteAllChats(env, uid);
   const readingReminder = await forgetReminder(env, uid);
   const subKey = `sub:${me}`;
@@ -85,6 +90,7 @@ export async function deleteData(env: Env, uid: number): Promise<Deleted> {
     env.DB.prepare("CREATE TABLE IF NOT EXISTS rate_counts (key TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)"),
     env.DB.prepare("DELETE FROM rate_counts WHERE key LIKE ?").bind(`%:${me}:%`),
   ]);
+  await revokeBrowserSessions(env, uid);
   return { savedChats, readingReminder, dailyVerse, classNoteRequests: reqs.length, askBalanceUsd: billing.balanceUsd, topupReminder };
 }
 

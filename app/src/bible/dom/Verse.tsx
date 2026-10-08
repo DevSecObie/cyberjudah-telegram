@@ -1,3 +1,4 @@
+import { AnnotatedText } from "@/studies/PhraseAnnotations";
 import { useState, type CSSProperties } from "react";
 
 import type { ClassMoment } from "@/api/data";
@@ -67,7 +68,7 @@ export function Verse(p: VerseProps) {
         {p.bookmark ? <BookmarkIcon color={p.bookmark.color} onClick={() => p.onOpenBookmark(p.bookmark!)} /> : null}
         {p.relationCount && s.relationsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.relationCount} onClick={p.onOpenRelations} label={`${p.relationCount} ${p.relationCount === 1 ? "precept" : "precepts"}`}><Feather name="precepts" size={16} color={"var(--bs-primary)"} /></CountBadge> : null}
         {p.taggedItemsCount && s.tagsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.taggedItemsCount} onClick={p.onOpenTags} label={`${p.taggedItemsCount} tags`}><Feather name="tag" size={14} color={"var(--bs-primary)"} /></CountBadge> : null}
-        <span className="bs-text" data-verse-key={p.verseKey} style={{ fontSize: getBibleTextFontSize(false, s.fontSizeScale), lineHeight: scaleLineHeight(32, s.lineHeight, s.fontSizeScale), whiteSpace: "pre-line" }}>{p.text}</span>
+        <span className="bs-text" data-verse-key={p.verseKey} style={{ fontSize: getBibleTextFontSize(false, s.fontSizeScale), lineHeight: scaleLineHeight(32, s.lineHeight, s.fontSizeScale), whiteSpace: "pre-line" }}><AnnotatedText verseKey={p.verseKey} text={p.text} /></span>
         {deck ? <MediaDeck items={p.moments!} placement="inline" palette={c} fontScale={s.fontSizeScale} reference={p.deck!.reference} from={`${p.deck!.from}?v=${p.number}`} disabled={p.isSelectedMode} /> : null}
       </span>
       {tags ? <VerseTags tags={p.tagGroup!.tags} settings={s} palette={c} theme={theme} onOpenTags={p.onOpenTags} onOpenTag={p.onOpenTag} /> : null}

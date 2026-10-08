@@ -1,3 +1,4 @@
+import { apiURL } from "@/native/platform";
 import { useSyncExternalStore } from "react";
 import { app } from "@/tg/sdk";
 
@@ -11,7 +12,7 @@ export const AMBIENT_TRACKS = [
   {"id": "wind", "name": "Wind", "category": "nature", "artist": "fthgurdy", "original": "Gentle wind", "source": "https://freesound.org/people/fthgurdy/sounds/528944/", "download": "https://cdn.freesound.org/previews/528/528944_3302313-hq.mp3", "duration": 151.216, "sha256": "1bd7b6d299e965d37a01f6856a2e5c0ccfb717da08d27b868d20bf794b69191a"},
   {"id": "ocean", "name": "Ocean waves", "category": "nature", "artist": "SamsterBirdies", "original": "Calm ocean waves", "source": "https://freesound.org/people/SamsterBirdies/sounds/578524/", "download": "https://cdn.freesound.org/previews/578/578524_5487341-hq.mp3", "duration": 240.0, "sha256": "af0fe0f309688954f0548c9df1faee25cf02061db20ea17bc0ae1943d7c7add7"},
   {"id": "fire", "name": "Gentle fire", "category": "nature", "artist": "soundofsong", "original": "fire crackling loop.wav", "source": "https://freesound.org/people/soundofsong/sounds/650574/", "download": "https://cdn.freesound.org/previews/650/650574_9782868-hq.mp3", "duration": 150.32, "sha256": "afc1c84f76ce2bd3beeea3743c7deec7261e3ebed5edc6bb94ad3075eb1d7c1a"},
-].map((t) => ({ ...t, license: "CC0 1.0", licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/", changes: "Repeated with crossfades, level adjusted and encoded to AAC at 96 kbps", audio: `/api/audio/ambient/${t.id}.m4a?v=${t.sha256}` }));
+].map((t) => ({ ...t, license: "CC0 1.0", licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/", changes: "Repeated with crossfades, level adjusted and encoded to AAC at 96 kbps", audio: apiURL(`/api/audio/ambient/${t.id}.m4a?v=${t.sha256}`) }));
 type State = { choice: string; volume: number; error: boolean; preview: string | null };
 const get = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
 const put = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* private mode */ } };

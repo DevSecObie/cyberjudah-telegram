@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+import { saveFile } from "@/studies/files";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { List, Row, Screen, Section } from "@/ui/ui";
@@ -12,7 +14,7 @@ import { consented, withdraw } from "@/lib/ai-consent";
  * the other. Required by Telegram's Bot Developer Terms (section 4) and Standard Bot Privacy
  * Policy (7.3), and by Apple's App Review Guidelines 5.1.1(i) and 5.1.2(i).
  */
-export const PRIVACY_UPDATED = "2026-10-07";
+export const PRIVACY_UPDATED = "2026-10-08";
 /** Where privacy questions and requests go (the owner's address). */
 export const PRIVACY_CONTACT = "privacy@cyberjudah.io";
 
@@ -25,15 +27,21 @@ export function Privacy() {
   const [busy, setBusy] = useState<"" | "export" | "delete">("");
   const [agreed, setAgreed] = useState(consented);
   const inTelegram = !!app?.initData;
+  const session = useQuery({ queryKey: ["browser-session"], enabled: !inTelegram, queryFn: () => api<{ user: unknown }>("/api/auth/status"), retry: false });
+  const signedIn = inTelegram || !!session.data?.user;
 
   const sendCopy = async () => {
     setBusy("export"); setStatus("");
-    try { await api("/api/privacy/export/send", { method: "POST" }); haptic("success"); setStatus("A copy of everything kept about you has been sent to your chat with the bot."); }
+    try {
+      if (inTelegram) { await api("/api/privacy/export/send", { method: "POST" }); setStatus("A copy of everything kept about you has been sent to your chat with the bot."); }
+      else { await saveFile("cyberjudah-account-data.json", JSON.stringify(await api("/api/privacy/export"), null, 2)); setStatus("Your account data was downloaded."); }
+      haptic("success");
+    }
     catch (e) { setStatus(e instanceof ApiError && e.status === 400 ? "The bot could not send you the file. Open a chat with the bot, press Start, and try again." : "That did not work. Please try again."); }
     finally { setBusy(""); }
   };
   const deleteAll = async () => {
-    if (!(await confirm("Delete everything CyberJudah keeps about you? Your saved Ask chats, reading reminder, daily verse, Ask balance (any balance left is lost), top-up reminder and class-note requests. This cannot be undone."))) return;
+    if (!(await confirm("Delete everything CyberJudah keeps about you? Your saved Ask chats, reading reminder, daily verse, Ask balance (any balance left is lost), top-up reminder, class-note requests, cloud study backup and browser sign-ins. This cannot be undone."))) return;
     setBusy("delete"); setStatus("");
     try {
       const r = await api<{ ok: boolean; summary: string; deleted: Deleted }>("/api/privacy/delete", { method: "POST", json: { confirm: "delete" } });
@@ -47,9 +55,9 @@ export function Privacy() {
   return (
     <Screen title="Privacy" kicker={`Last updated ${PRIVACY_UPDATED}`} className="privacy">
       <Section title="Your Choices">
-        {inTelegram ? (
+        {signedIn ? (
           <List>
-            <Row icon="download" title={busy === "export" ? "Sending…" : "Download my data"} sub="A copy of everything kept about you, sent to your chat with the bot" onClick={busy ? undefined : () => void sendCopy()} />
+            <Row icon="download" title={busy === "export" ? "Sending…" : "Download my data"} sub={inTelegram ? "A copy of everything kept about you, sent to your chat with the bot" : "Download a JSON copy of your account data"} onClick={busy ? undefined : () => void sendCopy()} />
             <Row icon="trash" title={busy === "delete" ? "Deleting…" : "Delete my data"} sub="Everything kept about you, removed at once" onClick={busy ? undefined : () => void deleteAll()} />
             <Row icon="close" title="Withdraw AI agreement" sub={agreed.length ? `You agreed to: ${agreed.join(", ")}. Ask and Search will ask again before sending a question to an external AI provider.` : "You have not agreed to any AI provider."} onClick={agreed.length ? () => { withdraw(); setAgreed([]); haptic("select"); setStatus("Done. Ask and Search will ask before sending your next question to an external AI provider."); } : undefined} />
           </List>
@@ -58,6 +66,8 @@ export function Privacy() {
       </Section>
 
       <Section title="What Stays with You">
+        <p>Personal study documents and phrase marks are stored on your device. Account → Export all personal studies makes a file backup; Account also lets you delete these local records. If you choose Save cloud backup, an encrypted snapshot is kept on CyberJudah’s servers under your coded account ID until you replace or delete it. Account-data deletion removes that cloud snapshot and revokes browser sign-ins; it does not delete local documents or files you exported.</p>
+        <p>Browser sign-in uses Telegram to verify your account. An encrypted session record and a secure, HTTP-only browser cookie keep you signed in for up to one day. Signing out removes that browser’s session; deleting your account data revokes all browser sessions.</p>
         <p>Your highlights, notes, bookmarks, tags, reading history, reading plan and settings are kept on your device and in Telegram's own cloud storage for this app. They are not on CyberJudah's servers. A backup from Settings goes to your own chat with the bot.</p>
         <p>If you use the Sabbath screen, your location, rounded to three decimal places (about 100 metres), is kept the same way, in Telegram's cloud storage (in this browser when CyberJudah is opened outside Telegram), until you tap Forget. Sunset is worked out on your device, and the location is not kept on CyberJudah's servers; like your settings, it goes into a backup you send to your chat.</p>
       </Section>

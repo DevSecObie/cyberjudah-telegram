@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CyberJudah</string>
+    <string name="title_activity_main">CyberJudah</string>
+    <string name="package_name">io.cyberjudah.app</string>
+    <string name="custom_url_scheme">io.cyberjudah.app</string>
+</resources>

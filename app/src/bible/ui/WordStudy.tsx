@@ -1,3 +1,4 @@
+import { AddToStudy } from "@/studies/AddToStudy";
 import { useResourceRelease } from "@/resources/hooks";
 import { ReferenceText } from "@/resources/ReferenceText";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -21,6 +22,7 @@ export const useStrongs = (number: string, enabled = true, explicit?: string | n
  */
 export function WordStudy({ number, books, here, onRead, enabled = true, release }: { number: string; books: Book[]; here?: { slug: string; chapter: number; verse: number }; onRead?: () => void; enabled?: boolean; release?: string | null }) {
   const navigate = useNavigate();
+  const [adding, setAdding] = useState(false);
   const q = useStrongs(number, enabled, release);
   const [allBooks, setAllBooks] = useState(false);
   const [openBook, setOpenBook] = useState<string | null>(null);
@@ -63,6 +65,8 @@ export function WordStudy({ number, books, here, onRead, enabled = true, release
               <small>Strong's {e.number} · {e.language} · {e.count.toLocaleString()} {e.count === 1 ? "time" : "times"} in {e.verses.toLocaleString()} {e.verses === 1 ? "verse" : "verses"}</small>
             </div>
           </header>
+          <button type="button" className="bs-btn" onClick={() => setAdding(true)}>Add to study</button>
+          {adding ? <AddToStudy onClose={() => setAdding(false)} blocks={[{ id: crypto.randomUUID(), kind: "strongs", number: e.number, lemma: e.lemma, definition: e.def ?? "" }]} /> : null}
           {e.def ? <section className="bs-word__sec"><h3>Meaning</h3><p><ReferenceText text={e.def} links={e.scripture?.def} onRead={onRead} /></p></section> : null}
           {e.derivation ? <section className="bs-word__sec"><h3>Derivation</h3><p><ReferenceText text={e.derivation} links={e.scripture?.derivation} onRead={onRead} /></p></section> : null}
           {e.kjv ? <section className="bs-word__sec"><h3>The King James Renders It</h3><p><ReferenceText text={e.kjv} links={e.scripture?.kjv} onRead={onRead} /></p></section> : null}

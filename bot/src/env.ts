@@ -18,6 +18,9 @@ export type Env = {
   /** The repository the transcripts are read from (owner/name); DevSecObie/cyberjudah when unset. */
   TRANSCRIPTS_REPO?: string;
   BOT_TOKEN: string;
+  /** Telegram OIDC website login; register the exact HTTPS callback with BotFather. */
+  TELEGRAM_LOGIN_CLIENT_ID?: string;
+  TELEGRAM_LOGIN_CLIENT_SECRET?: string;
   WEBHOOK_SECRET: string;
   /** Set as a Worker secret from the ANTHROPIC_API_KEY repository secret: Ask CyberJudah answers with Claude; without it, with Llama on Workers AI. */
   ANTHROPIC_API_KEY?: string;
