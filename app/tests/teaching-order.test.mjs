@@ -10,14 +10,14 @@ const times = {
   afternoon: { date: day, broadcastAt: `${day}T18:58:36Z` },
   haiti: { date: day, broadcastAt: `${day}T21:56:00Z` },
 };
-test('newest broadcast day first, then first-to-last inside each day', () => {
+test('newest live first, across days and within a day', () => {
   const input = [
     { video: 'afternoon', date: day }, { video: 'haiti', date: '2026-10-04', pending: true },
     { video: 'midday', date: day }, { video: 'older', date: '2026-09-26' },
     { video: 'morning', date: day }, { video: 'newer', date: '2026-10-07' },
   ];
   const copy = structuredClone(input);
-  assert.deepEqual(orderTeachings(input, times, NY).map(r => r.video), ['newer', 'morning', 'midday', 'afternoon', 'haiti', 'older']);
+  assert.deepEqual(orderTeachings(input, times, NY).map(r => r.video), ['newer', 'haiti', 'afternoon', 'midday', 'morning', 'older']);
   assert.deepEqual(input, copy, 'sorting does not mutate cached queries');
 });
 test('a class is dated by the day it went live, not the day its notes carry', () => {
@@ -39,7 +39,7 @@ test('unknown starts follow the day\'s broadcasts, stable, without inventing upl
 test('timezone offsets compare as instants', () => {
   const rows = [{ video: 'early', date: day }, { video: 'late', date: day }];
   const broadcasts = { late: { date: day, broadcastAt: '2026-10-03T23:05:00Z' }, early: { date: day, broadcastAt: '2026-10-03T17:56:00-04:00' } };
-  assert.deepEqual(orderTeachings(rows, broadcasts, NY).map(r => r.video), ['early', 'late']);
+  assert.deepEqual(orderTeachings(rows, broadcasts, NY).map(r => r.video), ['late', 'early']);
 });
 test('invalid metadata cannot replace a class date or hide a class', () => {
   const rows = [{ video: 'one', date: day, pending: true }, { video: 'two', date: day }];

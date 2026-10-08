@@ -90,13 +90,13 @@ for (const available of [true, false]) {
     } }) : r.fulfill({ status: 503, body: 'unavailable' }));
     await page.goto(`/classes${LAUNCH}`);
     await expect(page.locator('.post__title')).toHaveText(available
-      ? ['Newest day', 'Morning class', 'Midday class', 'Afternoon class', 'Haiti evening class', 'Previous week']
+      ? ['Newest day', 'Haiti evening class', 'Afternoon class', 'Midday class', 'Morning class', 'Previous week']
       : ['Newest day', 'Haiti evening class', 'Afternoon class', 'Midday class', 'Morning class', 'Previous week']);
     await expect(page.getByRole('link', { name: 'Morning class', exact: true })).toHaveAttribute('href', '/note/classes/CO-THOc-IhQ');
     await expect(page.getByRole('link', { name: 'Haiti evening class', exact: true })).toHaveAttribute('href', '/watch/pZs5reAzxi4');
     await page.getByRole('searchbox').fill('class');
     await expect(page.locator('.post__title')).toHaveText(available
-      ? ['Morning class', 'Midday class', 'Afternoon class', 'Haiti evening class']
+      ? ['Haiti evening class', 'Afternoon class', 'Midday class', 'Morning class']
       : ['Haiti evening class', 'Afternoon class', 'Midday class', 'Morning class']);
   });
 }
