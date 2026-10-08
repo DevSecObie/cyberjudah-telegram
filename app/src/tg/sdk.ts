@@ -1,3 +1,4 @@
+import { native, nativePlatform, apiURL, nativeOpen } from "@/native/platform";
 import type { HomeScreenStatus, InvoiceStatus, PopupParams, WebApp } from "./types";
 
 /**
@@ -14,7 +15,7 @@ export const app: WebApp | null = (() => {
 
 export const inTelegram = app !== null;
 export const has = (v: string) => app?.isVersionAtLeast(v) ?? false;
-export const platform = app?.platform ?? "web";
+export const platform = app?.platform ?? (native ? nativePlatform : "web");
 export const isMobile = platform === "ios" || platform === "android";
 export const user = app?.initDataUnsafe.user ?? null;
 export const startParam = app?.initDataUnsafe.start_param ?? new URLSearchParams(location.search).get("tgWebAppStartParam") ?? undefined;
@@ -36,6 +37,7 @@ export function haptic(kind: "tap" | "select" | "success" | "warning" | "error" 
 }
 
 export function openLink(url: string, opts?: { instantView?: boolean }) {
+  if (native) { void nativeOpen(url).catch(() => {}); return; }
   if (!app) { window.open(url, "_blank", "noopener"); return; }
   if (/^https:\/\/t\.me\//.test(url)) app.openTelegramLink(url);
   else app.openLink(url, opts?.instantView ? { try_instant_view: true } : undefined);
@@ -136,10 +138,10 @@ export class ApiError extends Error {
 /** The bot backend, authenticated with the launch data. */
 export async function api<T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
   const headers = new Headers(init?.headers);
-  headers.set("Authorization", `tma ${app?.initData ?? ""}`);
+  if (app?.initData) headers.set("Authorization", `tma ${app.initData}`);
   let body = init?.body;
   if (init?.json !== undefined) { headers.set("content-type", "application/json"); body = JSON.stringify(init.json); }
-  const res = await fetch(path, { ...init, headers, body });
+  const res = await fetch(apiURL(path), { ...init, headers, body });
   if (!res.ok) {
     let reason: string | undefined;
     try { reason = ((await res.json()) as { reason?: string; error?: string }).reason; } catch { /* no body */ }

@@ -1,3 +1,4 @@
+import { saveFile } from "@/studies/files";
 import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -9,7 +10,7 @@ import { recordingJson, type RecordingCredit } from "@/lib/recordings";
 import { useBackButton, useStored, useTheme } from "@/tg/hooks";
 import { alert, api, app, confirm, features, haptic, platform, requestWriteAccess, setFullscreen, lockPortrait } from "@/tg/sdk";
 import { secure } from "@/tg/store";
-import { parseBackup, restore, sendBackup } from "@/lib/backup";
+import { collect, parseBackup, restore, sendBackup } from "@/lib/backup";
 import { useSheet } from "@/ui/sheet";
 import { Icon, List, Row, Screen, FormSection as Section, Segmented } from "@/ui/ui";
 import { useRelationsDisplay } from "@/lib/relations";
@@ -171,6 +172,7 @@ export function Settings() {
       {features.biometrics && features.secureStorage ? (
         <Section title="Privacy"><List><Toggle on={lock} onChange={(v) => void toggleLock(v)} title="Lock with biometrics" sub="Ask for your fingerprint or face when the app opens" /></List></Section>
       ) : null}
+      <List><Row icon="gear" title="Account & personal studies" onClick={() => navigate("/settings/account")} /></List>
       <BackupSection />
       <Section title="Support CyberJudah">
         <List><Row title="Support CyberJudah" sub="Telegram Stars, any amount, or give another way" onClick={() => navigate("/settings/donate")} /></List>
@@ -222,6 +224,10 @@ function BackupSection() {
   const [status, setStatus] = useState("");
   const send = async () => {
     setBusy("send"); setStatus("");
+    if (!app) {
+      try { saveFile("cyberjudah-backup.json", JSON.stringify({ app: "cyberjudah", version: 1, date: new Date().toISOString(), keys: await collect() }, null, 2)); setStatus("Backup downloaded."); } catch { setStatus("The backup could not be read from this browser."); }
+      setBusy(null); return;
+    }
     const r = await sendBackup();
     setBusy(null);
     if (r.ok) { haptic("success"); setStatus(`Sent to your chat with the bot: ${r.entries} entries.`); } else { haptic("error"); setStatus(r.error); }
@@ -238,7 +244,7 @@ function BackupSection() {
   return (
     <Section title="Backup">
       <List>
-        <Row onClick={() => void send()} icon="download" title={busy === "send" ? "Sending…" : "Send a backup to your chat"} sub="Highlights, notes, tags, bookmarks, links, plan and settings, as one file" />
+        <Row onClick={() => void send()} icon="download" title={busy === "send" ? "Preparing…" : app ? "Send a backup to your chat" : "Download a backup"} sub="Highlights, notes, tags, bookmarks, links, plan and settings, as one file" />
         <Row onClick={() => file.current?.click()} icon="retry" title={busy === "restore" ? "Restoring…" : "Restore from a file"} sub="A backup file from your chat" />
       </List>
       <input ref={file} type="file" accept="application/json,.json" hidden onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ""; }} aria-label="Backup file" />

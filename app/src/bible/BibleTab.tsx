@@ -1,3 +1,5 @@
+import { AddToStudy } from "@/studies/AddToStudy";
+import { PhraseAnnotations } from "@/studies/PhraseAnnotations";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
@@ -123,7 +125,7 @@ export function BibleTab() {
   }, [plan, list, progress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sheets.
-  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare">(null);
+  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare" | "study" | "phrase">(null);
   // The classes that taught each verse: pictures after the verses, as Bible Strong shows its videos.
   // Every class that read each verse: those with notes first, then every other the transcripts find.
   const classMoments = useClassesByVerse(slug, ch);
@@ -286,8 +288,11 @@ export function BibleTab() {
         onNote={() => { setNoteEdit(null); setSheet("note"); }} onTag={() => { setTagsTarget(selectedSorted); setSheet("tags"); }} onLink={() => setSheet("link")} onRelation={() => setSheet("relation")}
         onBookmark={() => { setBookmarkTarget({ verse: first, existing: bookmarks.find((b) => b.book === slug && b.chapter === ch && b.verse === first) }); setSheet("bookmark"); }} onFocus={setFocus}
         onLexicon={() => openResources(first, "words")} onDictionary={() => openResources(first, "dictionary")} onThemes={() => openResources(first, "themes")} onReferences={() => openResources(first, "references")} onCommentary={() => openResources(first, "commentary")} onCompare={() => { setResourceVerse(first); setSheet("compare"); }}
+        onStudy={() => setSheet("study")} onPhrase={() => setSheet("phrase")}
         onCopy={() => void copy()} onShare={shareSel} onExport={() => void exportSel("selection")} onSelectAll={() => setSelected(verses.map((v) => v.verse))} />
 
+      {sheet === "study" ? <AddToStudy onClose={() => setSheet(null)} blocks={[{ id: crypto.randomUUID(), kind: "scripture", book: slug, chapter: ch, reference: selectedReference ?? chapterLabel, verses: selectedText() }]} /> : null}
+      {sheet === "phrase" ? <PhraseAnnotations key={verseKey(slug, ch, first)} verseKey={verseKey(slug, ch, first)} reference={reference([first])} text={verses.find(v => v.verse === first)?.text ?? ""} onClose={() => setSheet(null)} /> : null}
       <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v)} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />
       <SearchSheet open={sheet === "search"} initial={searchSeed} onClose={() => { setSheet(null); setSearchSeed(""); }} books={list} onGo={(s, c, v) => go({ slug: s, ch: c }, v)} />
       <VersionSheet open={sheet === "version"} onClose={() => setSheet(null)} />

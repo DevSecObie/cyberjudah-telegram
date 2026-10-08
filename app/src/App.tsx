@@ -1,3 +1,4 @@
+import { NativeLifecycle } from "@/native/NativeLifecycle";
 import { AudioPlayerProvider, AudioPlayerBar } from "@/lib/AudioPlayer";
 import { useResourceSync } from "@/resources/hooks";
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
@@ -30,6 +31,7 @@ const ResourceInstaller = lazy(() => import("@/screens/ResourceInstaller").then(
 const ResourceReader = lazy(() => import("@/screens/ResourceReader").then((m) => ({ default: m.ResourceReader })));
 const AdminGate = lazy(() => import("@/admin/AdminGate").then((m) => ({ default: m.AdminGate })));
 const NavEditor = lazy(() => import("@/screens/NavEditor").then((m) => ({ default: m.NavEditor })));
+const Account = lazy(() => import("@/screens/Account").then(m => ({ default: m.Account })));
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
 const AudioSettings = lazy(() => import("@/screens/AudioSettings").then((m) => ({ default: m.AudioSettings })));
 const Reminders = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.Reminders })));
@@ -42,6 +44,7 @@ const TimelinePeriod = lazy(() => import("@/screens/Timeline").then((m) => ({ de
 const TimelineSearch = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.TimelineSearch })));
 const TimelineEventScreen = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.TimelineEventScreen })));
 const Credits = lazy(() => import("@/screens/Credits").then((m) => ({ default: m.Credits })));
+const ReadingPlans = lazy(() => import("@/screens/ReadingPlans").then(m => ({ default: m.ReadingPlans })));
 const Plan = lazy(() => import("@/screens/Plan").then((m) => ({ default: m.Plan })));
 const History = lazy(() => import("@/screens/History").then((m) => ({ default: m.History })));
 const Dictionary = lazy(() => import("@/screens/Dictionary").then((m) => ({ default: m.Dictionary })));
@@ -62,6 +65,7 @@ const Cases = lazy(() => import("@/screens/Cases").then((m) => ({ default: m.Cas
 const CaseScreen = lazy(() => import("@/screens/Cases").then((m) => ({ default: m.CaseScreen })));
 const Topics = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Topics })));
 const TopicScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.TopicScreen })));
+const PersonalStudies = lazy(() => import("@/screens/PersonalStudies").then(m => ({ default: m.PersonalStudies })));
 const Study = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Study })));
 const Encyclopedia = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Encyclopedia })));
 const Glossary = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Glossary })));
@@ -107,6 +111,7 @@ export function App() {
     <AppRoot className="cj" appearance={appearance} platform={app?.platform === "ios" || app?.platform === "macos" ? "ios" : "base"} id="shell" data-tabs={tabs ? "" : undefined}>
       <AudioPlayerProvider>
       <ThemeApplier />
+      <NativeLifecycle />
       <Lock />
       <div className="route" data-location-key={location.key} key={location.pathname.split("/").slice(0, 2).join("/")}>
       <ScreenBoundary resetKey={location.pathname}>
@@ -131,10 +136,12 @@ export function App() {
         <Route path="/ask" element={<Ask />} />
         <Route path="/resources" element={<ResourceInstaller />} />
         <Route path="/resources/:id/:release" element={<ResourceReader />} />
+        <Route path="/settings/account" element={<Account />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/audio" element={<AudioSettings />} />
         <Route path="/settings/bar" element={<NavEditor />} />
         <Route path="/settings/requests" element={<NoteRequests />} />
+        <Route path="/plans" element={<ReadingPlans />} />
         <Route path="/plan" element={<Plan />} />
         <Route path="/relations" element={<Relations />} />
         <Route path="/history" element={<History />} />
@@ -154,6 +161,8 @@ export function App() {
         <Route path="/books/:slug/:k" element={<BookChapterScreen />} />
         <Route path="/bookmarks" element={<Bookmarks />} />
         <Route path="/sabbath" element={<Sabbath />} />
+        <Route path="/studies" element={<PersonalStudies />} />
+        <Route path="/studies/:id" element={<PersonalStudies />} />
         <Route path="/study" element={<Study />} />
         <Route path="/encyclopedia" element={<Encyclopedia />} />
         <Route path="/glossary" element={<Glossary />} />

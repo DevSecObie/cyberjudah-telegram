@@ -1,3 +1,4 @@
+import { apiURL } from "@/native/platform";
 import type { SyntheticEvent } from "react";
 
 /**
@@ -8,7 +9,7 @@ import type { SyntheticEvent } from "react";
 const R2 = "/api/img/";
 
 /** The R2 address of a picture, by its path under app/public (e.g. "people/moses-exo-2-10-128.webp"). */
-export const pictureSrc = (path: string) => `${R2}${path}`;
+export const pictureSrc = (path: string) => apiURL(`${R2}${path}`);
 
 /** The bundled copy of the same picture. */
 export const bundledSrc = (path: string) => `${import.meta.env.BASE_URL}${path}`;

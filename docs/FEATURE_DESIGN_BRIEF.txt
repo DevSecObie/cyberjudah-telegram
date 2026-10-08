@@ -1,0 +1,58 @@
+CyberJudah feature design and implementation brief
+
+Refine the existing CyberJudah Telegram app into a cohesive, polished Bible-study
+experience. Work in the current app and its established navigation; do not replace
+it with a separate prototype or an unrelated design system.
+
+Before implementation:
+- Inspect the current screen, repository guidance, shared components and tokens.
+- Read current official Apple Human Interface Guidelines, Android/Material design
+  and developer guidance, Telegram Mini Apps documentation where relevant, and
+  WCAG guidance. Record which decisions each source informs.
+- Describe the concrete user task, the main action, secondary actions, and the
+  loading, empty, error, success and disabled states that the task needs.
+
+Design requirements:
+- Use clear type hierarchy, consistent 4/8-based spacing, restrained accent color,
+  readable opaque content surfaces and the app's existing navigation materials.
+- Give the main action visual priority. Group export, destructive and infrequent
+  actions without making them difficult to discover. Label icon-only controls.
+- Reuse the app's buttons, icons, sheets, tokens and vanilla CSS. Avoid introducing
+  a second component library or adding blur to every content card.
+- Adapt to compact, medium and wide windows. Preserve comfortable line lengths,
+  safe-area spacing, visible keyboard focus and touch targets. For this web UI,
+  target at least 48 CSS pixels for new standalone touch controls; do not claim
+  that CSS pixels are identical to native Apple points or Android dp.
+- Support the app's light, dark and sepia palettes, reduced motion/transparency,
+  larger text and keyboard input. Aim for WCAG AA contrast: 4.5:1 normal text,
+  3:1 large text and meaningful non-text control boundaries.
+
+Behavior that must survive refinement:
+- Bible Strong reader workflows, separate Link and Relation controls and inline
+  Precept labels; faithful KJV/Apocrypha text and original source references.
+- Existing local study records, optimistic edit-conflict protection, annotations,
+  exports, imports, reading progress, navigation, authentication and billing.
+- Honest states: a manual cloud backup is not automatic sync; dictionary forms
+  are not verified morphology; preview data is not a live authenticated account.
+
+Review before presenting:
+- Compare real before/after screenshots at phone and desktop widths.
+- Exercise the changed user flows, saving, reopening, exports and error paths.
+- Check keyboard entry/exit and focus restoration for sheets, text contrast,
+  200% text sizing, horizontal overflow and reduced motion in browser engines.
+- Use real published content for previews and clearly label any sample writing.
+- Report what was verified and what remains unverified. Browser viewport checks
+  are not physical iPhone/Android tests. Do not promise zero breaking changes,
+  App Store acceptance or production readiness without the required evidence.
+
+Official references consulted for the current refinement:
+https://developer.apple.com/design/human-interface-guidelines/materials
+https://developer.apple.com/design/human-interface-guidelines/buttons
+https://developer.android.com/design/ui/mobile/guides/layout-and-content/grids-and-units
+https://developer.android.com/develop/ui/compose/accessibility/api-defaults
+https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html
+https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html
+
+Applications in this pass: opaque study document surfaces; shared prominent,
+bordered and plain button styles; a responsive plan grid; separate document
+options; labelled reader extension rows; 48px controls and preserved focus paths.

@@ -1,3 +1,4 @@
+import { apiURL } from "@/native/platform";
 import { useQuery } from "@tanstack/react-query";
 import { cachedResponse } from "./offline";
 
@@ -17,7 +18,7 @@ export function useNarrators(where?: { slug: string; chapter: number }) {
 }
 export async function narrationSource(url: string): Promise<{ url: string; release: () => void }> {
   const saved = await cachedResponse(new URL(url, location.origin).href);
-  if (!saved) return { url, release: () => undefined };
+  if (!saved) return { url: apiURL(url), release: () => undefined };
   const local = URL.createObjectURL(await saved.blob());
   return { url: local, release: () => URL.revokeObjectURL(local) };
 }

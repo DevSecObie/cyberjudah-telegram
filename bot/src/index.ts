@@ -49,12 +49,19 @@ import { migratePrivacy } from "./privacy-migrate";
 import { deleteData, exportData } from "./mydata";
 import { photoFile, photoManifest, removePhoto, setPhoto } from "./photos";
 import { MAX_BYTES } from "./photos.mjs";
+import { browserAuth, browserSession } from "./browser-auth";
+import { studyBackup } from "./study-backup";
+import { cors } from "hono/cors";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
+// Bundled native readers have local webview origins. No cookie credentials are allowed
+// across origins; private endpoints still require their existing signed authorization.
+app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type"], credentials: false }));
 // Public Bible Strong resource feed; independent of Telegram authentication.
 app.route("/bs", bs);
 app.route("/api/recordings", recordings);
+app.route("/api/auth", browserAuth);
 app.on(["GET", "HEAD"], "/api/audio/*", (c) => recordingAudio(c.req.raw, c.env));
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 
@@ -84,7 +91,7 @@ app.use("/api/*", async (c, next) => {
   // and Ask into "not answering" for a reader who never closed the app. The signature still
   // proves who is asking; the age check only bounds a replay. Privacy and the Stars invoices
   // take a day at most (initdata.mjs launchMaxAge).
-  const data = m ? await validateInitData(m[1], c.env.BOT_TOKEN, launchMaxAge(c.req.path)) : null;
+  const data = m ? await validateInitData(m[1], c.env.BOT_TOKEN, launchMaxAge(c.req.path)) : await browserSession(c.req.raw, c.env);
   if (!data?.user) {
     const stale = m ? !!(await validateInitData(m[1], c.env.BOT_TOKEN, 10 * 365 * 86400))?.user : false;
     return c.json({ error: "unauthorized", reason: stale ? "stale" : m ? "invalid" : "missing" }, 401);
@@ -94,6 +101,7 @@ app.use("/api/*", async (c, next) => {
 });
 
 app.route("/api/admin/cms", cms);
+app.route("/api/study-backup", studyBackup);
 app.route("/api/reminders", reminders);
 app.route("/api/push", push);
 

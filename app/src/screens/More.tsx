@@ -57,7 +57,8 @@ export function MoreBody() {
   return (
     <div className="more">
       <Card icon="bookmark" title="Yours" items={[
-        { icon: "check", label: "Reading plan", color: C.green, href: "/plan" },
+        { icon: "book", label: "My studies", color: C.blue, href: "/studies" },
+        { icon: "check", label: "Reading plans", color: C.green, href: "/plans" },
         { icon: "bookmark", label: "Bookmarks, highlights & notes", color: C.amber, href: "/bookmarks" },
         { icon: "tag", label: "Tags", color: C.rose, href: "/tags" },
         { icon: "clock", label: "History", color: C.blue, href: "/history" },
@@ -70,6 +71,7 @@ export function MoreBody() {
       ]} />
       <Card icon="law" title="The Law" items={LAW.map(([href, label, , icon], k) => ({ href, label, icon, color: [C.amber, C.teal, C.slate][k % 3] }))} />
       <Card icon="gear" title="Settings" items={[
+        { icon: "gear", label: "Account", color: C.blue, href: "/settings/account" },
         { icon: "gear", label: "Settings", color: C.slate, href: "/settings" },
         { icon: "list", label: "Bottom bar", color: C.blue, href: "/settings/bar" },
         pin ? { icon: "star", label: "Add to Home Screen", color: C.amber, onClick: addToHomeScreen } : null,

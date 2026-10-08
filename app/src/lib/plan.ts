@@ -16,7 +16,7 @@ export function flatChapters(books: Book[]) {
 }
 
 export function planDay(plan: NonNullable<Plan>, books: Book[], progress: Progress, day = plan.day): PlanDay {
-  const all = flatChapters(books);
+  const all = flatChapters(plan.books ? books.filter(b => plan.books!.includes(b.slug)) : books);
   const per = plan.perDay;
   const slice = all.slice(day * per, day * per + per).map((c) => ({ ...c, read: expand(progress[c.slug]).has(c.chapter) }));
   const total = Math.ceil(all.length / per);
@@ -49,7 +49,7 @@ export function dateOfDay(plan: NonNullable<Plan>, day: number) {
 export function schedule(plan: NonNullable<Plan>, books: Book[], progress: Progress, today = dayKey()) {
   const due = daysBetween(plan.startedAt, today);
   const offset = due - plan.day;
-  const all = flatChapters(books);
+  const all = flatChapters(plan.books ? books.filter(b => plan.books!.includes(b.slug)) : books);
   let owed = 0;
   for (let i = plan.day * plan.perDay; i < Math.min(all.length, (due + 1) * plan.perDay); i++) if (!expand(progress[all[i].slug]).has(all[i].chapter)) owed++;
   return { due, offset, owed: offset > 0 ? owed : 0 };

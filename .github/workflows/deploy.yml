@@ -33,8 +33,12 @@ jobs:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
           CYBERJUDAH_APP_BASE: /app/
 
+  release-browser-checks:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/e2e.yml
+
   deploy:
-    needs: check
+    needs: [check, release-browser-checks]
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     # Attach required reviewers under Settings → Environments → production to gate
     # production deploys behind a human approval. Until then this is a label only.

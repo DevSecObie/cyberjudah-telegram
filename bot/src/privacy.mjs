@@ -16,7 +16,11 @@
  */
 const enc = new TextEncoder();
 const dec = new TextDecoder();
-const b64url = (b) => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const b64url = (b) => {
+  const bytes = new Uint8Array(b); let binary = "";
+  for (let i = 0; i < bytes.length; i += 8192) binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
 const fromB64url = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
 
 const rootOf = (env) => env.PRIVACY_KEY || env.BOT_TOKEN || "";
