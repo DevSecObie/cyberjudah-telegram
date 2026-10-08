@@ -68,3 +68,35 @@ test("a recovered feed clears dismissal so a later outage is announced again", a
   await expect(page.locator(".cfeed__notice")).toBeVisible();
   await expect(page.locator("article.post")).toContainText(saved.title);
 });
+
+for (const available of [true, false]) {
+  test(`class broadcast order with metadata ${available ? 'available' : 'unavailable'}`, async ({ page }) => {
+    await setup(page, () => true);
+    const day = '2026-10-03';
+    const noted = (videoId: string, title: string, date = day) => ({ videoId, title, date, teacher: 'Teacher', url: `/classes/${videoId}`, thumb: '', topics: [], books: [] });
+    // Input order is deliberately unrelated to the broadcast or alphabetic order.
+    const notes = [noted('TVP5_nyFcHs', 'Afternoon class'), noted('PkFnZPllE5w', 'Midday class'), noted('CO-THOc-IhQ', 'Morning class'), noted('older123456', 'Previous week', '2026-09-26')];
+    await page.route('**/search/classes.json', r => r.fulfill({ json: notes }));
+    await page.route('**/api/recent', r => r.fulfill({ json: { feedOk: true, videos: [
+      { video: 'pZs5reAzxi4', title: 'Haiti evening class', published: '2026-10-04T02:38:19Z', views: null },
+      { video: 'CO-THOc-IhQ', title: 'Duplicate recording', published: '2026-10-03T15:00:00Z', views: null },
+      { video: 'newest12345', title: 'Newest day', published: '2026-10-07T12:00:00Z', views: null },
+    ] } }));
+    await page.route('**/api/classes/broadcasts.json', r => available ? r.fulfill({ json: {
+      'CO-THOc-IhQ': { date: day, broadcastAt: `${day}T12:56:31Z` },
+      PkFnZPllE5w: { date: day, broadcastAt: `${day}T16:00:04Z` },
+      TVP5_nyFcHs: { date: day, broadcastAt: `${day}T18:58:36Z` },
+      pZs5reAzxi4: { date: day, broadcastAt: `${day}T21:56:00Z` },
+    } }) : r.fulfill({ status: 503, body: 'unavailable' }));
+    await page.goto(`/classes${LAUNCH}`);
+    await expect(page.locator('.post__title')).toHaveText(available
+      ? ['Newest day', 'Morning class', 'Midday class', 'Afternoon class', 'Haiti evening class', 'Previous week']
+      : ['Newest day', 'Haiti evening class', 'Afternoon class', 'Midday class', 'Morning class', 'Previous week']);
+    await expect(page.getByRole('link', { name: 'Morning class', exact: true })).toHaveAttribute('href', '/note/classes/CO-THOc-IhQ');
+    await expect(page.getByRole('link', { name: 'Haiti evening class', exact: true })).toHaveAttribute('href', '/watch/pZs5reAzxi4');
+    await page.getByRole('searchbox').fill('class');
+    await expect(page.locator('.post__title')).toHaveText(available
+      ? ['Morning class', 'Midday class', 'Afternoon class', 'Haiti evening class']
+      : ['Haiti evening class', 'Afternoon class', 'Midday class', 'Morning class']);
+  });
+}

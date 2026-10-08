@@ -145,6 +145,7 @@ export const data = {
   notes: () => get<NoteRow[]>("/api/notes/index.json"),
   note: (sitePath: string) => get<Note>(`/api/notes${sitePath}.json`),
   classes: () => get<FeedRow[]>("/search/classes.json").then(abs),
+  broadcasts: () => get<Record<string, { date: string; broadcastAt: string }>>("/api/classes/broadcasts.json"),
   captains: () => get<FeedRow[]>("/search/captains.json").then(abs),
   history: () => get<HistoryRow[]>("/api/history/index.json").then(abs),
   episode: (slug: string) => get<HistoryEpisode>(`/api/history/${slug}.json`),
