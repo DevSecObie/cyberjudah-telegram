@@ -1,4 +1,5 @@
 import { telegramClient } from "./telegram-api";
+import { handleWebhookUpdate } from "./webhook-updates";
 import { Bot, InlineKeyboard, InputFile, type Context } from "grammy";
 import type { InlineQueryResultArticle, UserFromGetMe } from "grammy/types";
 import { tellAdmins } from "./health";
@@ -48,6 +49,9 @@ const HELP = [
   "/daily — the daily verse, on or off",
   "/stop — stop reading reminders",
   "/support — support the work with Telegram Stars",
+  "/privacy — what is kept about you, and your choices",
+  "/terms — the terms for the Ask balance",
+  "/paysupport — help with a Stars payment",
   "/help — this",
   "",
   "In any chat, type <code>@BOT matthew 15:24</code> or <code>@BOT passover</code> to send a verse or a search hit.",
@@ -55,12 +59,17 @@ const HELP = [
 
 export async function createBot(env: Env, origin: string, exec?: Exec): Promise<Bot> {
   const bot = new Bot(env.BOT_TOKEN, { botInfo, client: telegramClient(env) });
-  // Telegram retries an update when the Worker is slow or answers badly; without dedup the
-  // retry runs every handler a second time (double /daily toggles, double invoices).
-  // Retries are sequential (Telegram waits for the first attempt's outcome), so a
-  // check-then-set in KV is enough; entries expire after a day.
+  // Payment effects are idempotent by charge id, so failed deliveries can retry.
+  // Other handlers include toggles and invoice creation: preserve their existing
+  // mark-before-handling policy so a failed reply cannot repeat a completed effect.
   bot.use(async (ctx, next) => {
     const id = ctx.update.update_id;
+    const payment = ctx.message && ("successful_payment" in ctx.message || "refunded_payment" in ctx.message);
+    if (Number.isSafeInteger(id) && payment) {
+      // Ignore legacy markers only for payments, allowing earlier failed credits to recover.
+      await handleWebhookUpdate(env, id, next);
+      return;
+    }
     if (typeof id === "number") {
       const key = `webhook:${id}`;
       if (await env.SUBS.get(key)) return;
@@ -126,6 +135,9 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
   // Privacy (docs/PRIVACY.md): read the policy, get a copy of what is kept, or delete it all.
   bot.command("privacy", (ctx) =>
     ctx.reply("What CyberJudah keeps about you, why, for how long, and who else sees it: read the privacy policy. Send /mydata for a copy of everything kept, or /deletemydata to delete it all. Questions: privacy@cyberjudah.io", { reply_markup: open(ctx, "privacy", "Privacy policy") }));
+  // The terms for the Ask balance bought with Stars (app/src/screens/Terms.tsx).
+  bot.command("terms", (ctx) =>
+    ctx.reply("The Ask balance pays for answers from the paid AI models, at what each answer costs. Credit bought with Stars never expires. Deleting your data loses any balance left. For a payment problem or a refund, send /paysupport.", { reply_markup: open(ctx, "terms", "Terms") }));
   bot.command("mydata", async (ctx) => {
     if (ctx.chat.type !== "private" || !ctx.from) return ctx.reply("Send /mydata in a private chat with me.");
     let data;
@@ -200,6 +212,7 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
   bot.on("message:successful_payment", async (ctx) => {
     const pay = ctx.message.successful_payment;
     const got = await applyPayment(env, ctx.from.id, pay);
+    if (got?.duplicate) return;
     // A monthly plan bought before plans were withdrawn renewed: its Stars are added the same way, and it will not renew again.
     if (got?.kind === "plan") return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. Ask CyberJudah no longer has a monthly plan, so this renewal's ${pay.total_amount} Stars were added to your balance as ${fmtUsd(got.mc, { floor: true })}, and the plan will not renew again. You pay only what your answers cost.`, { parse_mode: "HTML", reply_markup: open(ctx, "ask", "Ask CyberJudah") });
     if (got?.kind === "pack") return ctx.reply(`Thank you, ${escapeHtml(ctx.from.first_name)}. ${fmtUsd(got.mc, { floor: true })} added to your Ask CyberJudah balance. It never expires, and each answer uses only what it costs.`, { parse_mode: "HTML", reply_markup: open(ctx, "ask", "Ask CyberJudah") });
@@ -213,7 +226,7 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
   bot.on("message", async (ctx, next) => {
     const r = (ctx.message as { refunded_payment?: { telegram_payment_charge_id: string; currency: string } }).refunded_payment;
     if (!r || r.currency !== "XTR") return next();
-    const out = await applyRefund(env, ctx.from.id, r.telegram_payment_charge_id).catch(() => null);
+    const out = await applyRefund(env, ctx.from.id, r.telegram_payment_charge_id);
     return ctx.reply(out ? `Your refund is through. The unused ${fmtUsd(out.clawed_mc)} from that payment has been taken off your Ask balance.` : "Your refund is through.");
   });
 

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
-import { LAUNCH_DATA_MAX_AGE, validateInitData, signInitData } from "../src/initdata.mjs";
+import { LAUNCH_DATA_MAX_AGE, launchMaxAge, sameHex, SENSITIVE_MAX_AGE, validateInitData, signInitData } from "../src/initdata.mjs";
 
 // Build a structurally useful value without committing anything secret scanners can mistake
 // for a live Telegram credential.
@@ -67,4 +67,20 @@ test("the API's window keeps a Mini App left open for weeks signed in", async ()
   assert.ok(await validateInitData(daysOld(4), TOKEN, LAUNCH_DATA_MAX_AGE, now));
   assert.ok(await validateInitData(daysOld(29), TOKEN, LAUNCH_DATA_MAX_AGE, now));
   assert.equal(await validateInitData(daysOld(31), TOKEN, LAUNCH_DATA_MAX_AGE, now), null);
+});
+
+test("privacy and the Stars invoices take launch data a day old at most; every other route keeps the long window", async () => {
+  assert.equal(SENSITIVE_MAX_AGE, 86400);
+  for (const p of ["/api/privacy/export", "/api/privacy/export/send", "/api/privacy/delete", "/api/ask/buy", "/api/invoice"]) assert.equal(launchMaxAge(p), SENSITIVE_MAX_AGE, p);
+  for (const p of ["/api/ask", "/api/search", "/api/ask/account", "/api/share", "/api/invoices", "/api/privacy"]) assert.equal(launchMaxAge(p), LAUNCH_DATA_MAX_AGE, p);
+  const twoDays = sign({ ...fresh, auth_date: String(Math.floor(now / 1000) - 2 * 86400) });
+  assert.equal(await validateInitData(twoDays, TOKEN, launchMaxAge("/api/privacy/delete"), now), null);
+  assert.ok(await validateInitData(twoDays, TOKEN, launchMaxAge("/api/ask"), now));
+});
+
+test("secrets are compared whole: equal only when every character is", () => {
+  assert.equal(sameHex("s3cret-value", "s3cret-value"), true);
+  assert.equal(sameHex("s3cret-value", "s3cret-valuf"), false);
+  assert.equal(sameHex("s3cret-value", "s3cret"), false);
+  assert.equal(sameHex("", "s3cret"), false);
 });

@@ -14,8 +14,8 @@ async function hmac(key, data) {
 
 const hex = (bytes) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 
-/** Same length, every char compared, no early exit: the hash must not leak by timing. */
-function sameHex(a, b) {
+/** Same length, every char compared, no early exit: the hash (or a secret) must not leak by timing. */
+export function sameHex(a, b) {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
@@ -33,6 +33,16 @@ function sameHex(a, b) {
  * the age only bounds a replay.
  */
 export const LAUNCH_DATA_MAX_AGE = 30 * 86400;
+
+/**
+ * A day, for the routes where a replayed launch would do the most: a copy of the reader's data,
+ * deleting it, and the Stars invoices. A reader whose app has been open longer is asked to
+ * reopen it (401 "stale"), as for any launch past LAUNCH_DATA_MAX_AGE.
+ */
+export const SENSITIVE_MAX_AGE = 86400;
+const SENSITIVE = (path) => path.startsWith("/api/privacy/") || path === "/api/ask/buy" || path === "/api/invoice";
+/** How old launch data a request to this path may carry. */
+export const launchMaxAge = (path) => (SENSITIVE(path) ? SENSITIVE_MAX_AGE : LAUNCH_DATA_MAX_AGE);
 
 export async function validateInitData(initData, botToken, maxAgeSec = 86400, now = Date.now()) {
   if (typeof initData !== "string" || !initData || typeof botToken !== "string" || !botToken) return null;

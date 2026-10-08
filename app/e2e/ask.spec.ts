@@ -294,7 +294,7 @@ test("the model is chosen at the top: an admin starts on Claude Opus 5.5, every 
   await setup(page);
   await page.goto(`/ask${launch(51)}`);
   const heading = page.locator(".chat2__heading");
-  await expect(heading).toHaveAttribute("aria-label", "Model: Claude Sonnet 5. Change");
+  await expect(heading).toHaveAccessibleName(/^Ask CyberJudah.*Sonnet 5.*Change the model$/);
   await expect(heading).toContainText("Sonnet 5");
   await heading.click();
   await expect(page.getByRole("radiogroup", { name: "Model" })).toBeVisible();

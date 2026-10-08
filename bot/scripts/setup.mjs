@@ -44,6 +44,7 @@ await call("setMyCommands", {
     { command: "privacy", description: "Privacy policy" },
     { command: "mydata", description: "A copy of what is kept about you" },
     { command: "deletemydata", description: "Delete everything kept about you" },
+    { command: "terms", description: "Terms for the Ask balance" },
     { command: "paysupport", description: "Help with a Stars payment" },
     { command: "help", description: "What this bot does" },
   ],

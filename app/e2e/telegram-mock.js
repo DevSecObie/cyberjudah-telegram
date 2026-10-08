@@ -32,7 +32,7 @@
   const Back = button("Back"), Main = button("Main"), Second = button("Second"), SettingsB = button("Settings");
   const WebApp = {
     initData, initDataUnsafe: { user, start_param: params.get("tgWebAppStartParam") || undefined, auth_date: 1, hash: "x" }, version, platform: params.get("tgWebAppPlatform") || "ios",
-    colorScheme: "dark", themeParams: { bg_color: "#05070f" }, isActive: true, isExpanded: true, viewportHeight: innerHeight, viewportStableHeight: innerHeight,
+    colorScheme: "dark", themeParams: window.__themeParams || { bg_color: "#05070f" }, isActive: true, isExpanded: true, viewportHeight: innerHeight, viewportStableHeight: innerHeight,
     headerColor: "", backgroundColor: "", bottomBarColor: "", isClosingConfirmationEnabled: false, isVerticalSwipesEnabled: true, isFullscreen: false, isOrientationLocked: false,
     safeAreaInset: { top: 0, bottom: 0, left: 0, right: 0 }, contentSafeAreaInset: { top: 0, bottom: 0, left: 0, right: 0 },
     BackButton: Back, MainButton: Main, SecondaryButton: Second, SettingsButton: SettingsB,
@@ -43,7 +43,7 @@
     Gyroscope: { isStarted: false, x: null, y: null, z: null, start(p, cb) { cb && cb(true); return this; }, stop(cb) { cb && cb(true); return this; } },
     DeviceOrientation: { isStarted: false, absolute: false, alpha: null, beta: null, gamma: null, start(p, cb) { cb && cb(true); return this; }, stop(cb) { cb && cb(true); return this; } },
     LocationManager: { isInited: false, isLocationAvailable: true, isAccessRequested: false, isAccessGranted: true, init(cb) { this.isInited = true; cb && cb(); return this; }, getLocation(cb) { cb({ latitude: 33.75, longitude: -84.39, altitude: null, course: null, speed: null, horizontal_accuracy: null, vertical_accuracy: null, course_accuracy: null, speed_accuracy: null }); return this; }, openSettings() { return this; } },
-    isVersionAtLeast: atLeast, setHeaderColor(c) { WebApp.headerColor = c; }, setBackgroundColor(c) { WebApp.backgroundColor = c; }, setBottomBarColor(c) { WebApp.bottomBarColor = c; },
+    isVersionAtLeast: atLeast, setHeaderColor(c) { WebApp.headerColor = c; log.push(["header", c]); }, setBackgroundColor(c) { WebApp.backgroundColor = c; }, setBottomBarColor(c) { WebApp.bottomBarColor = c; },
     enableClosingConfirmation() { WebApp.isClosingConfirmationEnabled = true; }, disableClosingConfirmation() { WebApp.isClosingConfirmationEnabled = false; },
     enableVerticalSwipes() { WebApp.isVerticalSwipesEnabled = true; }, disableVerticalSwipes() { WebApp.isVerticalSwipesEnabled = false; },
     requestFullscreen() { WebApp.isFullscreen = true; log.push(["fullscreen", true]); }, exitFullscreen() { WebApp.isFullscreen = false; }, lockOrientation() { WebApp.isOrientationLocked = true; }, unlockOrientation() { WebApp.isOrientationLocked = false; },

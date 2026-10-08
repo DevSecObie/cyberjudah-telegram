@@ -30,3 +30,10 @@ test("Ask is sold at cost: no margin, no plan, no free daily allowance for paid 
     assert.equal(vars.ASK_TOPUPS_USD, "1,5,20");
   }
 });
+
+test("Workers Logs keep console output but no invocation logs, whose URLs carry search words", () => {
+  assert.equal(config.observability.enabled, true);
+  assert.equal(config.observability.logs.enabled, true);
+  assert.equal(config.observability.logs.invocation_logs, false);
+  assert.equal(config.env.staging.observability, undefined, "staging inherits the same setting");
+});

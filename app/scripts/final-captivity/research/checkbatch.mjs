@@ -1,12 +1,12 @@
 // Checks one research batch file against the Final Captivity checker (with the transcript corpus).
-// Usage: node app/scripts/final-captivity/research/checkbatch.mjs <batch.json>
+// Usage: CJ_ROOT=<a cyberjudah checkout> node app/scripts/final-captivity/research/checkbatch.mjs <batch.json>
 import fs from "node:fs";
-const W = "app/scripts/final-captivity/";
-const { checkEvent, loadCorpus } = await import(W + "check.mjs");
-const periods = JSON.parse(fs.readFileSync(W + "periods.json", "utf8")).periods;
-const existing = new Set(JSON.parse(fs.readFileSync(W + "events.json", "utf8")).map((e) => e.slug));
+const { checkEvent, loadCorpus } = await import(new URL("../check.mjs", import.meta.url).href);
+const periods = JSON.parse(fs.readFileSync(new URL("../periods.json", import.meta.url), "utf8")).periods;
+const existing = new Set(JSON.parse(fs.readFileSync(new URL("../events.json", import.meta.url), "utf8")).map((e) => e.slug));
 const b = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-const corpus = loadCorpus("/home/user/cyberjudah");
+const corpus = loadCorpus(process.env.CJ_ROOT);
+if (!corpus) console.log("no CJ_ROOT (or path not found): checking shape only, not against the transcript corpus");
 const p = [];
 const seen = new Set();
 for (const e of b.events ?? []) {

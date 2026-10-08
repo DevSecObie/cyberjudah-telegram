@@ -459,7 +459,7 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await page.goto(`/${LAUNCH}`);
   await page.click('.tab[aria-label="Bible"]');
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
-  await page.click('.tab[aria-label^="Tabs"]');
+  await page.click('.tab[aria-label$="Tabs open"]');
   await expect(page).toHaveURL(/\/tabs/);
   await expect(page.locator(".tabcard")).toHaveCount(1);
   await expect(page.locator(".tabcard__title b").first()).toHaveText("Genesis 1 - KJV");
@@ -470,7 +470,7 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await expect(page.locator(".nt-heading")).toHaveText("What would you like to explore?");
   await page.click(".nt-item >> text=Strong");
   await expect(page).toHaveURL(/\/lexicon/);
-  await page.click('.tab[aria-label^="Tabs"]');
+  await page.click('.tab[aria-label$="Tabs open"]');
   await expect(page.locator(".tabcard")).toHaveCount(2);
   await expect(page.locator(".switcherbar__group")).toHaveText("2 tabs");
   await page.click('.tabcard__close[aria-label="Close Strong"]');
@@ -1134,7 +1134,7 @@ test("The Law: a law found by its words opens in its section, brought into view;
   await page.getByRole("button", { name: "Reset" }).click();
   await expect(page.locator("#law-q")).toHaveValue("");
   // One part only.
-  await page.getByRole("button", { name: "Part: every part" }).click();
+  await page.getByRole("button", { name: "Every part: choose a part" }).click();
   await page.locator(".sheet__item", { hasText: "9. Feasts and observances" }).click();
   await expect(page.locator(".laws__part")).toHaveCount(1);
   await expect(page.getByRole("region", { name: "Feasts and observances" })).toBeVisible();
@@ -1183,7 +1183,7 @@ test("Classes: a class in a series is labelled by it, and the series opens in or
   const dates = await page.locator("article.post .post__who time").evaluateAll((els) => els.map((e) => e.getAttribute("datetime") ?? ""));
   expect(dates).toEqual([...dates].sort());
   // Leaving the series shows every class again.
-  await page.getByRole("button", { name: /^Series: Navigating/ }).click();
+  await page.getByRole("button", { name: /^Navigating.*: show every class$/ }).click();
   await expect(page).not.toHaveURL(/series=/);
 });
 
@@ -1580,7 +1580,7 @@ test("the bottom bar sits above the Bible, and each reader chooses its buttons",
   await page.click('[aria-label="Move Library up"]');
   await expect(page.locator(".tabs .tab")).toHaveCount(8);
   const labels = await page.locator(".tabs .tab").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  expect(labels).toEqual(["Home", "Bible", "Classes", "Ask", "Library", expect.stringMatching(/^Tabs/), "Menu", "Search"]);
+  expect(labels).toEqual(["Home", "Bible", "Classes", "Ask", "Library", expect.stringMatching(/Tabs open$/), "Menu", "Search"]);
   // Scrolling the editor may have shrunk the bar to its capsule: a tap on it opens it first.
   if (await page.locator("nav.tabs[data-mini]").count()) await page.locator("nav.tabs .tab[data-on]").click();
   await page.click('.tab[aria-label="Library"]');
@@ -1597,6 +1597,41 @@ test("a back step from the first screen stays in the app instead of going to a b
   await expect(page).toHaveURL(/\/read\/genesis\/1/);
   await expect(page.locator("#verset-1")).toBeVisible();
   await expect(page.locator(".tabs")).toBeVisible();
+});
+
+test("outside Telegram there is no back guard: Back leaves the page as on any site", async ({ page }) => {
+  await page.goto("/classes");
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/classes$/);
+});
+
+test("Telegram opens expanded, not full screen, its chrome first painted in the reader's saved colours", async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem("cj:theme-pref", "light"); localStorage.setItem("cj:palette", JSON.stringify({ "--canvas": "#f4ecd8" })); });
+  await page.goto(`/${LAUNCH}`);
+  await expect(page.locator(".tabs")).toBeVisible();
+  const log = await page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log);
+  expect(log.find((l) => l[0] === "header")).toEqual(["header", "#f4ecd8"]);
+  expect(log.some((l) => l[0] === "expand")).toBe(true);
+  expect(log.some((l) => l[0] === "fullscreen")).toBe(false);
+});
+
+test("until the reader picks a theme the app wears Telegram's accent, and their own theme's once they do", async ({ page }) => {
+  const accent = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim());
+  const params = () => { (window as unknown as { __themeParams: object }).__themeParams = { bg_color: "#17212b", button_color: "#5288c1", accent_text_color: "#6ab2f2" }; };
+  await page.addInitScript(params);
+  await page.goto(`/${LAUNCH}`);
+  await expect(page.locator(".tabs")).toBeVisible();
+  await expect.poll(accent).toMatch(/^#[0-9a-f]{6}$/);
+  const telegram = await accent();
+  const page2 = await page.context().newPage();
+  await setup(page2);
+  await page2.addInitScript(params);
+  await page2.addInitScript(() => { (window as unknown as { __cloud: object }).__cloud = { bs: JSON.stringify({ preferredDarkTheme: "dark" }) }; });
+  await page2.goto(`/${LAUNCH}`);
+  await expect(page2.locator(".tabs")).toBeVisible();
+  await expect.poll(() => page2.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim())).not.toBe(telegram);
 });
 
 // ── Ask CyberJudah and saved chats ──────────────────────────────────────────────────────────
@@ -1747,8 +1782,9 @@ test("Search: the AI answer block asks once per submitted search, sits above the
   ] } }));
   await page.route("**/api/teachings?**", (r) => r.fulfill({ json: { ok: true, q: "", feed: "", page: 0, hits: [], more: false } }));
   const asked: string[] = [];
-  await page.route("**/api/search/answer?**", (r) => {
+  await page.route("**/api/search/answer?**", async (r) => {
     asked.push(new URL(r.request().url()).searchParams.get("q") ?? "");
+    await new Promise((ok) => setTimeout(ok, 500));
     return r.fulfill({ json: { ok: true, model: "test-model", answer: "Melchizedek was king of Salem and priest of the most high God [1]. The class reads the bread and wine as a type [2].", sources: [
       { n: 1, kind: "verse", title: "Genesis 14:18", url: "/bible/genesis/14#v18", sub: "", text: "And Melchizedek king of Salem brought forth bread and wine: and he was the priest of the most high God." },
       { n: 2, kind: "class", title: "The Superiority of the Chosen People", url: "/classes/2026/superiority", sub: "Scriptures Opened", text: "A synthetic passage for the test." },
@@ -1763,6 +1799,24 @@ test("Search: the AI answer block asks once per submitted search, sits above the
   // Enter submits: one answer for the search, above the keyword results, with its sources.
   await page.press("#q", "Enter");
   const block = page.locator(".srch__ai");
+  // While the answer is pending, the card reads as loading, not blank: visible text on a
+  // visibly contrasting mark, not a placeholder with a near-zero-alpha fill (#295).
+  const pending = block.locator(".msg__thinking");
+  await expect(pending).toBeVisible();
+  await expect(pending).toContainText(/answering/i);
+  const mark = pending.locator(".answer__dots i").first();
+  const markBox = await mark.boundingBox();
+  expect(markBox?.width ?? 0).toBeGreaterThan(0);
+  const markAlpha = await mark.evaluate((el) => {
+    // Every engine serializes an opaque colour as rgb(r, g, b), a translucent one as rgba(r, g, b, a)
+    // and a color-mix() result (the old skeleton's --fill-2) as color(srgb r g b / a): the alpha is
+    // the fourth number when there are four and 1 when there are three. Matching "rgba?(" alone
+    // misses the color() form and reads an rgb() colour's blue channel as its alpha.
+    const c = getComputedStyle(el).backgroundColor;
+    const nums = c.slice(c.indexOf("(") + 1).replace(/^[a-z][\w-]*\s+/i, "").match(/[\d.]+/g) ?? [];
+    return nums.length >= 4 ? Number(nums[3]) : nums.length === 3 ? 1 : 0;
+  });
+  expect(markAlpha).toBeGreaterThan(0.3);
   await expect(block.locator(".msg__text")).toContainText("king of Salem");
   expect(asked).toEqual(["Melchizedek"]);
   await expect(page.locator(".srch__group").first()).toHaveClass(/srch__ai/);

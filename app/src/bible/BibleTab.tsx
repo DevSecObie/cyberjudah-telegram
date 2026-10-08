@@ -251,7 +251,8 @@ export function BibleTab() {
   const resource = verses.find((v) => v.verse === resourceVerse);
 
   return (
-    <div className="bs" data-dark={isDarkTheme(theme) ? "" : undefined} style={{ ...cssVars(palette), background: palette.reverse, color: palette.default }}>
+    <main className="bs" data-dark={isDarkTheme(theme) ? "" : undefined} style={{ ...cssVars(palette), background: palette.reverse, color: palette.default }}>
+      {chapterLabel ? <h1 className="sr-only">{chapterLabel}, KJV</h1> : null}
       <Header bookLabel={chapterLabel} version="KJV" onBook={() => setSheet("books")} onVersion={() => setSheet("version")} onVerses={() => setSheet("verses")}
         selectedReference={selectedReference} focusedReference={focusedReference} onClearFocus={clearFocus} collapsed={fullscreen}
         onMenu={onMenu} hasChapterBookmark={!!chapterBookmark} chapterBookmarkColor={chapterBookmark?.color} onChapterBookmark={() => { setBookmarkTarget({ existing: chapterBookmark }); setSheet("bookmark"); }} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
@@ -299,7 +300,7 @@ export function BibleTab() {
       {sheet === "relation" ? <RelationTargetPicker source={verseEndpoint() as Endpoint} onClose={() => setSheet(null)} onCreated={() => { setSheet(null); setSelected([]); }} /> : null}
       {resource ? <CompareSheet open={sheet === "compare"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={resource.verse} text={resource.text} reference={reference([resource.verse])} books={list} onRead={(s, c, v) => go({ slug: s, ch: c }, v)} /> : null}
       {resource ? <ResourcesSheet open={sheet === "resources"} onClose={() => setSheet(null)} tab={resourceTab} setTab={setResourceTab} slug={slug} chapter={ch} verse={resource.verse} text={resource.text} reference={reference([resource.verse])} books={list} /> : null}
-    </div>
+    </main>
   );
 }
 

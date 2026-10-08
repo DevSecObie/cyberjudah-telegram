@@ -160,11 +160,13 @@ export function boot(colors: { bg: string; header: string; bottomBar: string }) 
   root.dataset.tg = "yes";
   app.ready();
   app.expand();
-  // Full screen from the first paint on phones (8.0): the app is a screen of its own, not a
-  // panel under Telegram's header. Settings can turn it off, and that choice is applied there.
-  if (features.fullscreen && isMobile && localStorage.getItem("cj:fullscreen") !== "off") app.requestFullscreen();
+  // Expanded, under Telegram's own header, by default: full screen (8.0) hides the client's
+  // controls, so it is only for a reader who turned it on in Settings (mirrored here for boot).
+  if (features.fullscreen && isMobile && localStorage.getItem("cj:fullscreen") === "on") app.requestFullscreen();
   if (has("6.1")) { app.setHeaderColor(colors.header); app.setBackgroundColor(colors.bg); }
   if (features.bottomBarColor) app.setBottomBarColor(colors.bottomBar);
+  // Kept on purpose: the reader scrolls inside its own container (.bs-scroll) and sheets close by
+  // dragging down, and with Telegram's swipe-to-minimise on those gestures fold the app instead.
   if (features.swipes) app.disableVerticalSwipes();
   const insets = () => {
     const s = app.safeAreaInset ?? { top: 0, bottom: 0, left: 0, right: 0 };

@@ -7,7 +7,7 @@ import { offlineSupported, removeBook, saveBook, saveNarration, savedBooks } fro
 import { narrationHint, narrationStatus, removeNarration, type NarrationStatus } from "@/lib/narration";
 import { recordingJson, type RecordingCredit } from "@/lib/recordings";
 import { useBackButton, useStored, useTheme } from "@/tg/hooks";
-import { alert, api, app, confirm, features, haptic, openInvoice, platform, requestWriteAccess, setFullscreen, lockPortrait } from "@/tg/sdk";
+import { alert, api, app, confirm, features, haptic, platform, requestWriteAccess, setFullscreen, lockPortrait } from "@/tg/sdk";
 import { secure } from "@/tg/store";
 import { parseBackup, restore, sendBackup } from "@/lib/backup";
 import { useSheet } from "@/ui/sheet";
@@ -39,7 +39,7 @@ export function Settings() {
   // One typeface for reading: the notes and the Bible both follow this row, and it names the face the Bible is really set in.
   const [bible, setBible] = useBibleSettings();
   const face = ["System", "Avenir", "normal", "Roboto"].includes(bible.fontFamily) ? "System" : bible.fontFamily;
-  const [fullscreen, setFs, fsLoaded] = useStored("fullscreen", true);
+  const [fullscreen, setFs, fsLoaded] = useStored("fullscreen", false);
   const [portrait, setPortrait] = useStored("portrait", false);
   const [daily, setDaily] = useState<boolean | null>(null);
   const [me, setMe] = useState<{ user: { id: number }; admin?: boolean; canEdit?: boolean } | null>(null);
@@ -73,10 +73,6 @@ export function Settings() {
     const bm = app!.BiometricManager;
     const finish = () => { if (!bm.isBiometricAvailable) { void alert("This device has no biometrics set up."); return; } bm.requestAccess({ reason: "Lock CyberJudah with your fingerprint or face" }, (ok) => { if (!ok) return; secure.set("lock", on ? "on" : null); setLock(on); haptic("success"); }); };
     if (bm.isInited) finish(); else bm.init(finish);
-  };
-  const support = async (stars: number) => {
-    try { const { link } = await api<{ link: string }>("/api/invoice", { method: "POST", json: { stars } }); const s = await openInvoice(link); if (s === "paid") { haptic("success"); void alert("Thank you. Your support keeps the library free."); } }
-    catch { void alert("Support through Stars is not set up yet."); }
   };
   /** Narration bytes for one book from the recordings catalog; a plain explanation when the catalog itself can't be read. */
   const narrationBytes = async (slug: string): Promise<{ bytes: number | null; failed: boolean }> => {
@@ -163,6 +159,7 @@ export function Settings() {
       <Section title="Reading Reminders">
         <List><Row title="Reading reminders" sub="Today's reading, at your time, in Telegram or as a push notification" onClick={() => navigate("/settings/reminders")} /></List>
         <List><Row title="Privacy" sub="What is kept, who sees it, and your choices: download or delete your data" onClick={() => navigate("/privacy")} /></List>
+        <List><Row title="Terms" sub="What your Ask balance buys, refunds, and what happens to it when you delete your data" onClick={() => navigate("/terms")} /></List>
       </Section>
       <Section title="Daily Verse">
         <List>
@@ -176,8 +173,7 @@ export function Settings() {
       ) : null}
       <BackupSection />
       <Section title="Support CyberJudah">
-        <div className="btn--row">{[50, 100, 500].map((n) => <button key={n} type="button" className="btn btn--quiet" disabled={!app} onClick={() => void support(n)}>⭐ {n}</button>)}</div>
-        <p className="hint">Telegram Stars go toward hosting the library. The text and the notes stay free.{app ? "" : " Stars are given inside Telegram."}</p>
+        <List><Row title="Support CyberJudah" sub="Telegram Stars, any amount, or give another way" onClick={() => navigate("/settings/donate")} /></List>
       </Section>
       {me?.admin ? <Section title="Content"><List><Row title="Admin" sub="Edit content, check reviews and publish approved changes" onClick={() => navigate("/settings/admin")} /></List></Section> : null}
       {me?.admin ? <AskUsage /> : null}

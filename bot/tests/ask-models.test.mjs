@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import Anthropic from "@anthropic-ai/sdk";
-import { costFactor, MODELS, modelOf, unitsFor } from "../../shared/ask-models.mjs";
+import { costFactor, countryOf, MODELS, modelOf, PROVIDER_COUNTRY, unitsFor } from "../../shared/ask-models.mjs";
 import { researchOpen } from "../src/agent-open.ts";
 import { claudeUnavailable } from "../src/providers.ts";
 
@@ -107,4 +107,13 @@ test("a model that fails or cannot be reached counts as unavailable, so Ask's ba
   assert.equal(claudeUnavailable(e), true);
   const none = await researchOpen({ AI: {} }, modelOf("openai/gpt-5.1"), "S", [], TOOLS, SCHEMAS, async () => ({ content: "" }), () => {}, 2).then(() => null, (x) => x);
   assert.ok(none instanceof Anthropic.APIConnectionError, "no gateway configured");
+});
+
+test("the agreement card names where a provider is based only when that is known; a new provider is a decision, not a guess", () => {
+  assert.equal(countryOf("OpenAI"), "the United States");
+  assert.equal(countryOf("DeepSeek"), "China");
+  assert.equal(countryOf("Unbiased"), undefined, "not known for certain: nothing is said");
+  assert.equal(countryOf("toString"), undefined);
+  const unknown = new Set(["Unbiased"]);
+  for (const p of new Set(MODELS.map((m) => m.provider))) assert.ok(PROVIDER_COUNTRY[p] || unknown.has(p), `decide where ${p} is based, or list it as unknown`);
 });

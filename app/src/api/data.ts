@@ -1,4 +1,6 @@
-import { resourceRecord, resourceRelease } from "@/resources/client";
+// Installed resources (their schemas and IndexedDB) load with the first lexicon lookup, not with the first paint.
+const resourceRelease = (id: string) => import("@/resources/client").then((m) => m.resourceRelease(id));
+const resourceRecord = <T>(id: string, key: string, release: string) => import("@/resources/client").then((m) => m.resourceRecord<T>(id, key, release));
 /**
  * The CyberJudah data set, read straight from the data origin (engine/README.md in the
  * cyberjudah repo is the contract). Types cover the fields the app shows.

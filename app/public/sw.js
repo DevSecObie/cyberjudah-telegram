@@ -6,7 +6,9 @@
  * own subscription's endpoint) and shows it, with Done and Pause. Tapping the reminder opens
  * the app at the chapter.
  */
-const ICON = "https://cyberjudah.io/assets/brand/cyber-lion.png";
+// The app's own icon, from this worker's origin: a notification is not shown until its icon has
+// loaded or failed, so an icon on another host (or one the network cannot reach) holds it back.
+const ICON = new URL("icons/light-192.png", self.registration.scope).href;
 
 const SHELL_REVISION = "__CJ_SHELL_REVISION__";
 const ASSET_BASE = "__CJ_ASSET_BASE__";

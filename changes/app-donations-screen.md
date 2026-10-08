@@ -1,0 +1,1 @@
+- Support CyberJudah, reachable from Settings and More: Telegram Stars with a few presets and any custom amount within the owner's bounds, with the owner's own donation link when one is set; it pauses with a calm message during the Sabbath, feast days and New Moons the same way a top-up does, and shows thanks after Telegram confirms the gift. Nothing to read is ever behind it.

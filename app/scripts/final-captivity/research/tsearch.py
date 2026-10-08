@@ -4,14 +4,17 @@ Usage: tsearch.py build
        tsearch.py find '<regex>' [--feed classes|history] [--n 30] [--ctx 240] [--after YYYY] [--title '<regex>']
        tsearch.py read <videoId> <m:ss|seconds> [--len 600]   (the transcript from that moment)
        tsearch.py titles '<regex>'                           (titles matching)
-Results: date, feed, videoId, ts, title, snippet; each hit links https://youtu.be/<id>?t=<s>."""
+Results: date, feed, videoId, ts, title, snippet; each hit links https://youtu.be/<id>?t=<s>.
+Set CJ_ROOT (or ROOT) to your checkout of DevSecObie/cyberjudah."""
 import json, os, re, sys, glob, pickle, bisect
-ROOT = "/home/user/cyberjudah"
+ROOT = os.environ.get("CJ_ROOT") or os.environ.get("ROOT")
 IDX = os.path.join(os.path.dirname(__file__), "tindex.pkl")
 def fmt(s):
     s = int(s); h, m = divmod(s, 3600); m, sec = divmod(m, 60)
     return f"{h}:{m:02d}:{sec:02d}" if h else f"{m}:{sec:02d}"
 def build():
+    if not ROOT or not os.path.isdir(os.path.join(ROOT, "blog", "transcripts")):
+        sys.exit("set CJ_ROOT (or ROOT) to a checkout of DevSecObie/cyberjudah with blog/transcripts/")
     docs = []
     meta = {}
     for f in ("blog/channel-meta.tsv", "history/channel-meta.tsv"):

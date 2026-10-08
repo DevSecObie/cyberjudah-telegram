@@ -37,7 +37,7 @@ type Item = { icon: IconName; label: string; color: string; colored?: boolean; h
 function Card({ icon, title, items }: { icon: IconName; title: string; items: (Item | null)[] }) {
   return (
     <section className="mcard">
-      <h3 className="mcard__head"><Icon name={icon} size={16} />{title}</h3>
+      <h2 className="mcard__head"><Icon name={icon} size={16} />{title}</h2>
       {items.filter((i): i is Item => !!i).map((i) => {
         const inner = <><span className="mcard__icon" style={{ color: i.color, background: `color-mix(in srgb, ${i.color} 12%, transparent)` }}><Icon name={i.icon} size={20} /></span><span className="mcard__label" style={i.colored ? { color: i.color } : undefined}>{i.label}</span><span className="mcard__chev"><Icon name="chevron" size={20} /></span></>;
         return i.href
@@ -76,6 +76,7 @@ export function MoreBody() {
         { icon: "download", label: "Download the vault", color: C.green, onClick: () => downloadFile(`${DATA_ORIGIN}/downloads/vault.zip`, "cyberjudah-vault.zip") },
       ]} />
       <Card icon="star" title="CyberJudah" items={[
+        { icon: "star", label: "Support CyberJudah", color: C.amber, href: "/settings/donate" },
         { icon: "share", label: "Share the app", color: C.teal, onClick: () => void share({ kind: "app", title: "CyberJudah", text: "The KJV with the Apocrypha, and everything taught from it, in Telegram.", sitePath: "/" }) },
         { icon: "link", label: "Open the full website", color: C.blue, onClick: () => openLink(SITE_URL) },
         { icon: "link", label: "The notes on GitHub", color: C.slate, onClick: () => openLink("https://github.com/DevSecObie/cyberjudah") },
