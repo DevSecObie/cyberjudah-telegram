@@ -26,6 +26,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const ms = tone === "error" ? 0 : opts?.ms ?? 3500;
     setList((l) => [...l.filter((t) => t.text !== text), { id: next.current++, text, tone, ms }].slice(-MAX));
   }, []);
+  useEffect(() => {
+    const syncError = (event: Event) => show((event as CustomEvent<string>).detail, { tone: "error" });
+    window.addEventListener("cj:sync-error", syncError);
+    return () => window.removeEventListener("cj:sync-error", syncError);
+  }, [show]);
   const ctx = useMemo(() => ({ show }), [show]);
   return (
     <ToastContext.Provider value={ctx}>
