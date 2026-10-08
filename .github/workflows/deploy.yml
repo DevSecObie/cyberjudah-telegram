@@ -163,6 +163,13 @@ jobs:
           if [ -z "$PRIVACY_KEY" ]; then echo "::error::Add the PRIVACY_KEY repository secret (docs/PRIVACY.md) before deploying: records about people are filed and encrypted under it."; exit 1; fi
           printf '%s' "$PRIVACY_KEY" | npx wrangler secret put PRIVACY_KEY
           node scripts/setup.mjs
+      - name: Verify the deployed app and authenticated search
+        working-directory: bot
+        env:
+          WORKER_URL: ${{ steps.deploy.outputs.url }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          EXPECTED_SEARCH_MODEL: google/gemini-2.5-flash-lite
+        run: node scripts/verify-release.mjs
 
   refresh-search:
     # The library changes when the cyberjudah repo publishes; keep the search index fresh.

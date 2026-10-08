@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { narrationStatusFrom, narrationHint } from '../src/lib/narration-logic.mjs';
 
-test('a book with no recorded chapters is complete: there is nothing optional left to fetch', () => {
-  assert.equal(narrationStatusFrom([], new Set()), 'complete');
+test('a book with no recorded chapters has no saved narration', () => {
+  assert.equal(narrationStatusFrom([], new Set()), 'none');
 });
 
 test('no required file cached at all is none, not partial', () => {

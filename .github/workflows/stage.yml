@@ -137,3 +137,10 @@ jobs:
           curl -sf "$URL/app/strong/" | grep -q "/app/strong/_expo/static/js/web/entry-"
           curl -sf "$URL/app/strong/bible" | grep -q "/app/strong/_expo/static/js/web/entry-"
           echo "fork: ok"
+      - name: Verify authenticated search and provider consent
+        working-directory: bot
+        env:
+          WORKER_URL: ${{ steps.deploy.outputs.url }}
+          BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
+          EXPECTED_SEARCH_MODEL: google/gemini-2.5-flash-lite
+        run: node scripts/verify-release.mjs

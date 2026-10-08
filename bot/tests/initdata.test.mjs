@@ -83,4 +83,5 @@ test("secrets are compared whole: equal only when every character is", () => {
   assert.equal(sameHex("s3cret-value", "s3cret-valuf"), false);
   assert.equal(sameHex("s3cret-value", "s3cret"), false);
   assert.equal(sameHex("", "s3cret"), false);
+  assert.equal(sameHex("", ""), false, "an unconfigured webhook cannot authenticate an empty header");
 });

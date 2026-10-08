@@ -1,0 +1,3 @@
+- Fixed empty narration catalogs showing saved audio or offering an empty download.
+- Kept privacy identities separate when two configured secrets have the same length, and rejected unconfigured webhook authentication.
+- Added authenticated search and consent checks after staging and production deployment, alongside the combined privacy, accessibility, audio and search updates.

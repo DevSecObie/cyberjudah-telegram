@@ -69,8 +69,8 @@ a bounded amount each hour, until none are left. Chats also move the first time 
 ## Who else handles it
 
 - **Telegram:** platform, sign-in, messages, Stars.
-- **Cloudflare:** hosting (Workers, KV, D1, R2), Workers AI, AI Gateway. Workers Logs keep requests
-  3–7 days; AI calls are logged without content, or not at all.
+- **Cloudflare:** hosting (Workers, KV, D1, R2), Workers AI, AI Gateway. Invocation logs are off;
+  service log messages are kept up to seven days. AI calls are logged without content, or not at all.
 - **The AI provider of the model the reader chooses** (Anthropic, OpenAI, Google, xAI, DeepSeek,
   Alibaba, Moonshot AI, MiniMax, Thinking Machines, Unbiased, or Cloudflare for the hosted models):
   the question, the earlier questions in the chat, library passages. Never the name or Telegram ID.
@@ -86,8 +86,7 @@ a bounded amount each hour, until none are left. Chats also move the first time 
   pause date and the reading-plan day, or whether it follows the last chapter read. The AI agreement
   in Ask says so before the first question. When Claude is unavailable, the backup answer
   is written by Workers AI on Cloudflare, the host.
-- **Google Fonts:** the app's typefaces (`app/index.html`), so Google receives the reader's IP
-  address and browser details when the app loads.
+- **Typefaces:** self-hosted with the app (`app/src/fonts`); loading them does not contact Google Fonts.
 - **YouTube:** class thumbnails (`img.youtube.com`) when classes are listed, and the player
   (`youtube-nocookie.com`) when a class is played.
 - **The admins** (the Telegram IDs in `ADMIN_IDS`), through `tellAdmins`: `/paysupport`

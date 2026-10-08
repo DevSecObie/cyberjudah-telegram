@@ -47,6 +47,11 @@ consent is checked before the cache. Browser responses use `private, no-store`.
   third-party `env.AI.run()` calls, Unified Billing, BYOK precedence and `collectLog`.
 - [Google AI Studio through AI Gateway](https://developers.cloudflare.com/ai-gateway/usage/providers/google-ai-studio/).
 
-Local tests use a fake AI binding and real SQLite-backed D1, so they do not prove that the
-production gateway is funded or that a live provider request succeeds. Run the staging check
-above before approving production.
+Local tests use a fake AI binding and real SQLite-backed D1. Staging and production deploys
+also run `bot/scripts/verify-release.mjs`: it checks the app and reader shells, database health,
+unsigned request rejection, a cited answer from the configured provider, and consent before
+and after caching. It signs the existing synthetic test reader and makes at most one provider
+request per run, under the normal free-answer allowance; it sends no Telegram messages and
+does not touch a real reader's balance. Missing gateway funding, exhausted allowance or an
+uncited answer fails that deployment's verification step. A failed verification after upload
+does not automatically roll the Worker back. Review the run before calling the release ready.

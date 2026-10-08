@@ -8,10 +8,12 @@ on:
   pull_request:
     paths:
       - 'docs/proposals/apocrypha/**'
+      - '.github/workflows/apocrypha-proposal-check.yml'
   push:
     branches: [main]
     paths:
       - 'docs/proposals/apocrypha/**'
+      - '.github/workflows/apocrypha-proposal-check.yml'
 permissions:
   contents: read
 jobs:
@@ -20,10 +22,13 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: cyberjudah (full history, for the pinned evidence commit)
         uses: actions/checkout@v7
         with:
           repository: DevSecObie/cyberjudah
           path: .apocrypha-corpus
           fetch-depth: 0
+          persist-credentials: false
       - run: python3 docs/proposals/apocrypha/check.py .apocrypha-corpus

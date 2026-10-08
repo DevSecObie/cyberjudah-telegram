@@ -33,6 +33,8 @@ type Row = { word: string; attempt: 1 | 2; outcome: Outcome; ms: number };
 live("the search answer's time from Enter to first visible content, each word twice", async ({ page }, testInfo) => {
   test.setTimeout(WORDS.length * 2 * (DEADLINE_MS + 15_000));
   await page.route("https://telegram.org/**", (r) => r.fulfill({ contentType: "application/javascript", body: MOCK }));
+  // This synthetic reader opts in before timing; waiting for human consent is not latency.
+  await page.addInitScript(() => localStorage.setItem("cj:ai-consent", JSON.stringify(["Google", "Cloudflare"])));
   const rows: Row[] = [];
   let timeouts = 0;
   for (const word of WORDS) {

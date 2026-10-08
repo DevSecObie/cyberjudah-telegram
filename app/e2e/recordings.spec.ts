@@ -114,6 +114,30 @@ test("offline text stays saved when the optional narration is declined or fails"
   await expect(page.locator(".pill").last()).toHaveText("no narration");
 });
 
+test("an empty narration catalog never claims saved audio or offers an empty download", async ({ page }) => {
+  await setup(page, false);
+  await page.route("**/api/recordings/catalog", r => r.fulfill({ json: { chapters: [] } }));
+  await page.route("**/api/kjv/books.json", r => r.fulfill({ json: [{ book: "Obadiah", slug: "obadiah", chapters: 1, chapterIds: [1], testament: "old" }] }));
+  await page.route("**/api/kjv/obadiah/1.json", r => r.fulfill({ json: { book: "Obadiah", chapter: 1, verses: [{ verse: 1, text: "Test verse" }] } }));
+  await page.goto("/settings#tgWebAppData=auth_date%3D1&tgWebAppPlatform=ios");
+  await page.getByRole("button", { name: "Save a book", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /Obadiah/ }).click();
+  await expect(page.locator(".pill--ok")).toHaveText("text");
+  // Also cover previously fetched, empty chapter catalogs, which caused the false badge.
+  await page.evaluate(async () => {
+    const cache = await caches.open("cj-offline-v1");
+    await cache.put(`${location.origin}/api/recordings/obadiah/1`, new Response(JSON.stringify({ narrators: [] })));
+  });
+  await page.reload();
+  const row = page.getByRole("button", { name: /Obadiah.*saved on this device/i });
+  await expect(row).toContainText("narration not saved");
+  await expect(row.locator(".pill--ok")).toHaveText("text");
+  await row.click();
+  const sheet = page.getByRole("dialog", { name: "Obadiah" });
+  await expect(sheet.getByRole("button", { name: /Download narration|Finish downloading narration/ })).toHaveCount(0);
+  await expect(sheet.getByRole("button", { name: "Remove text and narration" })).toBeVisible();
+});
+
 test("a narration retry downloads only what's missing, keeps the saved text, and reaches complete", async ({ page }) => {
   await setup(page);
   const chapters = [

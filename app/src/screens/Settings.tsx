@@ -110,7 +110,7 @@ export function Settings() {
     const status = narration[slug] ?? "none";
     const { bytes, failed } = status === "complete" ? { bytes: null, failed: false } : await narrationBytes(slug);
     const items = [
-      ...(status !== "complete" ? [{ id: "download", text: status === "partial" ? "Finish downloading narration" : "Download narration", hint: narrationHint(bytes, failed) }] : []),
+      ...(status !== "complete" && (failed || (bytes ?? 0) > 0) ? [{ id: "download", text: status === "partial" ? "Finish downloading narration" : "Download narration", hint: narrationHint(bytes, failed) }] : []),
       ...(status !== "none" ? [{ id: "remove-narration", text: "Remove narration only", destructive: true }] : []),
       { id: "remove-book", text: "Remove text and narration", destructive: true },
     ];
