@@ -13,11 +13,13 @@ export async function verifyRelease({ url, token, expectedModel, fetcher = fetch
   requireStatus(health, 200, "Health");
   if (!(await health.json()).ok) throw new Error("Health: a search database is unavailable.");
   log("Search databases: healthy");
-  for (const path of ["/", "/app/strong/", "/app/strong/bible"]) {
+  // /app/ is the Mini App on both workers.dev and the production custom domain;
+  // the custom domain's root belongs to the separate public website.
+  for (const path of ["/app/", "/app/strong/", "/app/strong/bible"]) {
     const shell = await get(path);
     requireStatus(shell, 200, "App shell");
     const html = await shell.text();
-    if (!(shell.headers.get("content-type") ?? "").includes("text/html") || !html.includes(path === "/" ? 'id="root"' : "/app/strong/_expo/static/js/web/entry-")) {
+    if (!(shell.headers.get("content-type") ?? "").includes("text/html") || !html.includes(path === "/app/" ? 'id="root"' : "/app/strong/_expo/static/js/web/entry-")) {
       throw new Error(`App shell: unexpected page at ${path}.`);
     }
   }
