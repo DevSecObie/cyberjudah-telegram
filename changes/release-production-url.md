@@ -1,0 +1,1 @@
+- Fix narration publication and release verification when the optional production URL variable is unset. Preserve checked downloads across publication failures and report independent verification failures separately.
