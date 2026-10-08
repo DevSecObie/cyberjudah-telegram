@@ -70,8 +70,8 @@ export default defineConfig({
     { name: "firefox", testMatch: ["telegram-launch.spec.ts", "reader-parity.spec.ts", "study-tools.spec.ts", "recordings.spec.ts", "ambient.spec.ts", "glass.spec.ts", "material-budget.spec.ts", "search-placement.spec.ts", "search-provider.spec.ts", "icons.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts", "cms.spec.ts"], use: { browserName: "firefox" } },
   ],
   webServer: liveBaseURL ? undefined : {
-    command: `npm run build && bash ../bot/scripts/prepare-assets.sh && cd ../bot && rm -rf .wrangler/e2e && npx wrangler dev --local --port 8787 --persist-to .wrangler/e2e --test-scheduled ${vars}`,
-    url: "http://127.0.0.1:8787/api/verse-of-day",
+    command: `CYBERJUDAH_APP_BASE=/app/ npm run build && bash ../bot/scripts/prepare-assets.sh && cd ../bot && rm -rf .wrangler/e2e && npx wrangler dev --local --port 8787 --persist-to .wrangler/e2e --test-scheduled ${vars}`,
+    url: "http://127.0.0.1:8787/api/auth/status",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
   },
