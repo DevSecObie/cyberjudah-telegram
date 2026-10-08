@@ -60,17 +60,24 @@ browserAuth.get("/callback", async c => {
   const encoded = getCookie(c, LOGIN);
   deleteCookie(c, LOGIN, cookieOptions);
   if (!configured(c.env)) return c.redirect("/app/settings/account?login=unavailable");
+  let failure = encoded ? "state" : "cookie";
   try {
     const pending = await open(c.env, "browser-login", encoded ?? null) as { state: string; verifier: string; nonce: string; created: number } | null;
     const code = c.req.query("code");
     if (!encoded?.startsWith("s1.") || !pending || !code || code.length > 4096 || c.req.query("state") !== pending.state || Date.now() - pending.created > 600_000 || pending.created > Date.now()) throw new Error("Invalid login state");
+    failure = "exchange";
     const response = await fetch(`${issuer}/token`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", authorization: `Basic ${btoa(`${c.env.TELEGRAM_LOGIN_CLIENT_ID}:${c.env.TELEGRAM_LOGIN_CLIENT_SECRET}`)}` }, body: new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: `${new URL(c.req.url).origin}/api/auth/callback`, client_id: c.env.TELEGRAM_LOGIN_CLIENT_ID!, code_verifier: pending.verifier }), signal: AbortSignal.timeout(15_000) });
     if (!response.ok) throw new Error("Token exchange failed");
+    failure = "token";
     const tokens = await response.json() as { id_token?: string };
     if (!tokens.id_token) throw new Error("Missing token");
+    failure = "claims";
     const { payload } = await jwtVerify(tokens.id_token, jwks, { issuer, audience: c.env.TELEGRAM_LOGIN_CLIENT_ID, algorithms: ["RS256"], requiredClaims: ["exp", "iat", "sub", "nonce"], maxTokenAge: "10m", clockTolerance: 30 });
+    failure = "nonce";
     if (payload.nonce !== pending.nonce) throw new Error("Invalid nonce");
+    failure = "profile";
     const user = telegramProfile(payload), token = random(), owner = await pid(c.env, user.id), created = Math.floor(Date.now() / 1000);
+    failure = "storage";
     await schema(c.env);
     const previous = getCookie(c, SESSION);
     if (previous) await c.env.DB.prepare("DELETE FROM browser_sessions WHERE token_hash=?").bind(await keyedHash(c.env, "browser-session", previous)).run();
@@ -78,7 +85,12 @@ browserAuth.get("/callback", async c => {
     await c.env.DB.prepare("INSERT INTO browser_sessions(token_hash,owner,sealed,expires) VALUES(?,?,?,?)").bind(await keyedHash(c.env, "browser-session", token), owner, await seal(c.env, owner, { user, created }), created + 86400).run();
     setCookie(c, SESSION, token, { ...cookieOptions, maxAge: 86400 });
     return c.redirect("/app/settings/account");
-  } catch { return c.redirect("/app/settings/account?login=failed"); }
+  } catch (error) {
+    // Only bounded stage/claim names leave the server, never codes, tokens or error messages.
+    const claim = (error as { claim?: unknown })?.claim;
+    if (failure === "claims" && typeof claim === "string" && ["iss", "aud", "exp", "iat", "sub", "nonce"].includes(claim)) failure += `-${claim}`;
+    return c.redirect(`/app/settings/account?login=failed&reason=${failure}`);
+  }
 });
 browserAuth.post("/logout", async c => {
   if (c.req.header("origin") !== new URL(c.req.url).origin) return c.json({ error: "Invalid origin" }, 403);
