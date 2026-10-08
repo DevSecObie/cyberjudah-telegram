@@ -194,11 +194,13 @@ test("Font and settings: night theme, verse mode, text size, fonts, all kept in 
   expect(JSON.parse(c.bs)).toMatchObject({ preferredColorScheme: "dark", preferredDarkTheme: "black", fontSizeScale: 1, textDisplay: "block", fontFamily: "Georgia" });
 });
 
-test("a long press opens the verse's resources: dictionary, references, comments", async ({ page }) => {
+test("a long press opens Strong's, with dictionary and references available", async ({ page }) => {
   await page.goto(`/read/genesis/2${LAUNCH}`);
   await expect(page.locator("#verset-8")).toBeVisible();
   await longPressVerse(page, 8);
   await expect(page.locator(".bs-sheet__titles b")).toHaveText("Genesis 2:8");
+  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "Dictionary", exact: true }).click();
   await expect(page.locator(".bs-sheet__titles small")).toHaveText("Dictionary");
   await expect(page.locator(".bs-resrow b", { hasText: /^Eden$/ })).toBeVisible();
   await page.click('.bs-resourcetabs button >> text=References');
