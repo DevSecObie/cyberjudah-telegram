@@ -7,12 +7,14 @@ import { MODELS } from "../../shared/ask-models.mjs";
 function fixture({ answerStatus = 200, sources = [{}], model = "google/test", expectedModel = "google/test", cachedConsent = false } = {}) {
   let answered = false, calls = 0;
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "private, no-store" } });
-  return { count: () => calls, options: { url: "https://app.invalid", token: "test-token", expectedModel, log() {}, async fetcher(url, { headers }) {
+  return { count: () => calls, options: { url: "https://app.invalid", token: "test-token", expectedModel, verifySync: true, log() {}, async fetcher(url, { headers }) {
     const path = new URL(url).pathname;
     if (path === "/api/health") return json({ ok: true });
-    if (!path.startsWith("/api/")) return new Response(path === "/app/" ? '<div id="root"></div>' : '/app/strong/_expo/static/js/web/entry-abc.js', { headers: { "content-type": "text/html" } });
+    if (["/app/", "/app/bible/genesis/1"].includes(path)) return new Response('<div id="root"></div>', { headers: { "content-type": "text/html" } });
+    if (path === "/api/auth/status") return json({ available: true });
     if (!headers.authorization) return json({}, 401);
     assert.equal((await validateInitData(headers.authorization.slice(4), "test-token")).user.id, 1);
+    if (path === "/api/firebase/token") return json({ uid: "tg_1", token: "fixture.payload.signature" });
     if (path === "/api/resources/catalog") return json({ resources: [] });
     if (path === "/api/recordings/catalog") return json({ chapters: [{}] });
     if (!expectedModel.startsWith("@cf/") && !headers["x-ai-consent"] && !(cachedConsent && answered)) return json({ provider: "Google" }, 428);
