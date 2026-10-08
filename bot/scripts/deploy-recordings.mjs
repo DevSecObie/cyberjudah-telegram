@@ -5,6 +5,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
+import { signInitData } from "../src/initdata.mjs";
+import { mergeRecordingCatalog } from "./recording-catalog.mjs";
 process.on("uncaughtException", error => {
   console.error(`::error::${String(error.message).replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")}`);
   process.exitCode = 1;
@@ -25,7 +27,20 @@ for (const chapter of catalog.chapters) {
   await fs.access(index);
   uploads.push([chapter.audio, file, "audio/mp4"], [`recordings/index/${chapter.index}`, index, "application/json"]);
 }
-uploads.push(["recordings/catalog.json", path.join(root, "catalog.json"), "application/json"]);
+let published = catalog;
+if (catalog.partial) {
+  const url = process.env.WORKER_URL, token = process.env.BOT_TOKEN;
+  if (!url || !token) throw new Error("A partial export needs WORKER_URL and BOT_TOKEN to preserve published chapters");
+  const origin = new URL(url).origin;
+  if (!origin.startsWith("https://")) throw new Error("Narration catalog requires HTTPS");
+  const launch = await signInitData({ user: { id: 1, first_name: "Release check" }, auth_date: String(Math.floor(Date.now() / 1000)) }, token);
+  const response = await fetch(`${origin}/api/recordings/catalog`, { headers: { authorization: `tma ${launch}` }, redirect: "error", signal: AbortSignal.timeout(60_000) });
+  if (!response.ok) throw new Error(`Cannot preserve published narration (HTTP ${response.status}); catalog not changed`);
+  published = mergeRecordingCatalog(await response.json(), catalog);
+}
+const catalogFile = path.join(root, "catalog-to-publish.json");
+await fs.writeFile(catalogFile, JSON.stringify(published));
+uploads.push(["recordings/catalog.json", catalogFile, "application/json"]);
 for (const [key, file, type] of uploads) {
   if (dry) { console.log(`${key} <- ${file}`); continue; }
   let uploaded = false;
@@ -39,4 +54,4 @@ for (const [key, file, type] of uploads) {
   }
   if (!uploaded) throw new Error(`Upload failed: ${key}; catalog not advanced`);
 }
-console.log(`::notice::${dry ? "Verified" : "Published"} ${catalog.chapters.length} narration chapters; catalog written last.`);
+console.log(`::notice::${dry ? "Verified" : "Published"} ${catalog.chapters.length} narration chapters; ${published.chapters.length} available in total; catalog written last.`);

@@ -6,6 +6,7 @@ import { Frame } from "@/lib/frames";
 import { sheetOpened } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { Icon, timestamp } from "@/ui/ui";
+import { useModal } from "@/ui/modal";
 
 /**
  * A book's picture full screen, with what the classes said as they showed it.
@@ -28,12 +29,20 @@ export function PictureViewer({ figure, figures, book, onClose, onChange }: { fi
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [words, setWords] = useState<0 | 1 | 2>(figure.readings.length > 0 ? 1 : 0); // the panel: tucked away, half, or the whole screen
   const grab = useRef<{ y: number; id: number } | null>(null);
-  const [entered, setEntered] = useState(false);
+  const dialog = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
+  useModal(dialog, true, onClose);
   const stage = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const gesture = useRef<{ scale: number; dist: number; pos: { x: number; y: number }; mid: { x: number; y: number }; moved: boolean; start: number } | null>(null);
   const lastTap = useRef(0);
-  useEffect(() => { const off = sheetOpened(); const id = requestAnimationFrame(() => setEntered(true)); return () => { off(); cancelAnimationFrame(id); }; }, []);
+  useEffect(() => {
+    const off = sheetOpened(), element = dialog.current;
+    const dismiss = () => close.current();
+    element?.addEventListener("cj:close", dismiss);
+    return () => { off(); element?.removeEventListener("cj:close", dismiss); };
+  }, []);
   useEffect(() => { setScale(1); setPos({ x: 0, y: 0 }); setWords((w) => (figure.readings.length > 0 ? (w === 0 ? 1 : w) : 0)); }, [figure.file, figure.readings.length]);
   // The handle: drag up for more of the words (half, then the whole screen), down for more of the picture; a tap steps between the picture and the words.
   const grabDown = (e: RPointerEvent) => { grab.current = { y: e.clientY, id: e.pointerId }; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); };
@@ -105,7 +114,7 @@ export function PictureViewer({ figure, figures, book, onClose, onChange }: { fi
   const where = figure.page != null ? `${figure.kind === "foldout" ? "facing " : ""}${book.volumes > 1 ? `${volumeLabel && !/^Volume \d+$/.test(volumeLabel) ? volumeLabel : `vol. ${figure.vol}`}, ` : ""}p. ${figure.page}` : "";
   const name = figure.title || KIND[figure.kind];
   return (
-    <div className={`pv${entered ? " pv--in" : ""}${words === 1 ? " pv--words" : words === 2 ? " pv--full" : ""}`} role="dialog" aria-label={name} data-sheet-open>
+    <div ref={dialog} className={`pv${words === 1 ? " pv--words" : words === 2 ? " pv--full" : ""}`} role="dialog" aria-modal="true" aria-label={name} data-sheet-open>
       <div className="pv__bar">
         <button type="button" className="pv__btn" aria-label="Close" title="Close" onClick={onClose}><Icon name="back" size={20} /></button>
         <div className="pv__title"><b>{name}</b><small>{[KIND[figure.kind], where, list.length > 1 ? `${index + 1} of ${list.length}` : ""].filter(Boolean).join(" · ")}</small></div>
