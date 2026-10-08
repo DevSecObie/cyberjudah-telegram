@@ -51,7 +51,7 @@ async function start() {
   const common = { db, uid, deviceStore: localStorage, currentUid };
   // Once bound, this device's original data can never be imported into a second account.
   if (!localStorage.getItem(DEVICE_MIGRATION_OWNER_KEY)) localStorage.setItem(DEVICE_MIGRATION_OWNER_KEY, uid);
-  if (app && features.cloud) await migrateTelegramSource({ ...common, source: "cloudStorage", readAndConvert: async () => readerRecords(await readTelegramCloudSnapshot(app!.CloudStorage)) });
+  if (app && features.cloud) await migrateTelegramSource({ ...common, source: "cloudStorage", cloudStorageScope: import.meta.env.VITE_ACCOUNT_SYNC_SCOPE === "staging" ? "staging" : "app", readAndConvert: async () => readerRecords(await readTelegramCloudSnapshot(app!.CloudStorage)) });
   if (localStorage.getItem(DEVICE_MIGRATION_OWNER_KEY) === uid) await migrateTelegramSource({ ...common, source: "indexedDB", readAndConvert: async () => deviceRecords(await readLegacyDeviceSnapshot(indexedDB, localStorage), uid) });
   if (currentUid() !== uid) return null;
   const reader = await connectReader(db, uid, (key, value) => { if (run === generation) receivePersonalValue(key, value); }, report);

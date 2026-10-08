@@ -12,6 +12,7 @@ type MigrationOptions = {
   db: Firestore
   uid: string
   source: 'cloudStorage' | 'indexedDB'
+  cloudStorageScope?: 'app' | 'staging'
   deviceStore: DeviceStore
   readAndConvert(): Promise<MigrationRecord[]>
   /** Refuse an account switch before any read/write or completion flag. */
@@ -43,8 +44,9 @@ export async function migrateTelegramSource(options: MigrationOptions) {
   if (source === 'indexedDB' && deviceStore.getItem(DEVICE_MIGRATION_OWNER_KEY) !== uid) throw new Error('Confirm which account owns this device data before importing it')
   const userRef = doc(db, 'users', uid)
   const deviceKey = deviceMigrationKey(uid)
+  const scope = options.cloudStorageScope ?? 'app'
   const state = source === 'cloudStorage'
-    ? (await getDocFromServer(userRef)).data()?.telegramMigration?.cloudStorage
+    ? (await getDocFromServer(userRef)).data()?.telegramMigration?.cloudStorageBySource?.[scope]
     : JSON.parse(deviceStore.getItem(deviceKey) ?? 'null')
   assertOwner()
   if (Number(state?.migrationVersion ?? 0) >= TELEGRAM_MIGRATION_VERSION) return { imported: 0, alreadyComplete: true }
@@ -91,7 +93,7 @@ export async function migrateTelegramSource(options: MigrationOptions) {
   assertOwner()
   const completed = { migrationVersion: TELEGRAM_MIGRATION_VERSION }
   if (source === 'cloudStorage') {
-    await setDoc(userRef, { telegramMigration: { cloudStorage: completed } }, { merge: true })
+    await setDoc(userRef, { telegramMigration: { cloudStorageBySource: { [scope]: completed } } }, { merge: true })
   } else {
     // Deliberately local and UID-scoped. Another device must still import its own IndexedDB.
     deviceStore.setItem(deviceKey, JSON.stringify(completed))
