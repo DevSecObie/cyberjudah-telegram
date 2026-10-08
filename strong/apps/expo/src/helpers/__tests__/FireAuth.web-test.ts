@@ -10,7 +10,7 @@ jest.mock('firebase/auth', () => ({
   OAuthProvider: jest.fn(),
   createUserWithEmailAndPassword: jest.fn(),
   getAdditionalUserInfo: jest.fn(),
-  getAuth: jest.fn(() => ({})),
+  getAuth: jest.fn(() => ({ authStateReady: async () => {}, currentUser: null })),
   onAuthStateChanged: jest.fn((_auth, listener) => {
     mockAuthStateListener = listener
   }),
@@ -34,7 +34,7 @@ jest.mock('@sentry/react-native', () => ({
 jest.mock('~helpers/firebase', () => ({
   doc: jest.fn(),
   firebaseDb: {},
-  getDoc: jest.fn(async () => ({ exists: () => false })),
+  getDoc: jest.fn(async () => ({ exists: () => false, data: () => undefined })),
   setDoc: jest.fn(),
 }))
 

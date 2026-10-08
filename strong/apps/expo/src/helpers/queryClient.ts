@@ -3,6 +3,8 @@ import { focusManager, onlineManager, QueryClient } from '@tanstack/react-query'
 import { AppState, Platform } from 'react-native'
 import { connectionStatusFromNetInfo } from './useConnection'
 import { isOfflineModeForced } from './runtimeConfig'
+import { resourceQueryKeys } from './resourceQueryKeys'
+import { refetchResourceOnReconnect } from './resourceQueryRecovery'
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,6 +18,12 @@ export const queryClient = new QueryClient({
   },
 })
 
+queryClient.setQueryDefaults(resourceQueryKeys.all(), {
+  refetchOnReconnect: refetchResourceOnReconnect,
+  // An inactive screen may miss the reconnect event while its failure stays cached.
+  refetchOnMount: refetchResourceOnReconnect,
+})
+
 let managersConfigured = false
 
 export const configureQueryManagers = () => {
@@ -24,6 +32,19 @@ export const configureQueryManagers = () => {
 
   if (isOfflineModeForced) {
     onlineManager.setOnline(false)
+  } else if (Platform.OS === 'web') {
+    // A third-party reachability probe can be blocked while our own API works.
+    // Browser connectivity is a hint; each request still reports real failures.
+    onlineManager.setEventListener(setOnline => {
+      const update = () => setOnline(navigator.onLine !== false)
+      update()
+      window.addEventListener('online', update)
+      window.addEventListener('offline', update)
+      return () => {
+        window.removeEventListener('online', update)
+        window.removeEventListener('offline', update)
+      }
+    })
   } else {
     onlineManager.setEventListener(setOnline =>
       NetInfo.addEventListener(state => {

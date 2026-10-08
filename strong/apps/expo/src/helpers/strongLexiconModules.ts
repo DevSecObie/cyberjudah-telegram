@@ -1,12 +1,16 @@
+import {
+  getStrongModuleSchema,
+  isStandaloneStrongModule,
+} from '@bible-strong/resource-domain/strong-lexicon'
 import * as FileSystem from 'expo-file-system/legacy'
-import { unzip } from 'react-native-zip-archive'
 import type { StrongLexiconModuleAvailability } from '@bible-strong/resource-domain/strong-lexicon'
 
 import { installAtomicResourceFile, restoreOrphanedResourceBackup } from './atomicResourceFile'
 import { AsyncConnectionRegistry } from './asyncConnectionRegistry'
 import { getSharedSqliteDirPath } from './databaseTypes'
 import { downloadResourceArtifact } from './downloadResourceArtifact'
-import { toNativeFilePath, verifyFileSha256 } from './fileIntegrity'
+import { verifyFileSha256 } from './fileIntegrity'
+import { unzipOfflineArchive } from './offlineArchiveSource'
 import { createOfflineCopyId } from './offlineCopyId'
 import { getMobileResourceCatalogEntry } from './mobileResourceCatalog'
 import {
@@ -39,7 +43,7 @@ const ensureStrongLexiconQueryIndexes = async (
   moduleId: StrongLexiconModuleId,
   database: SQLiteDatabase
 ): Promise<void> => {
-  if (moduleId === 'core') {
+  if (isStandaloneStrongModule(moduleId)) {
     await database.execAsync(`
       CREATE INDEX IF NOT EXISTS StepEntries_browse_idx
         ON StepEntries(language, gloss COLLATE NOCASE, baseCode, id);
@@ -112,7 +116,7 @@ const getExpectedStrongLexiconPublication = (
   }
 }
 
-const REQUIRED_TABLES: Record<StrongLexiconModuleId, string[]> = {
+const REQUIRED_TABLES: Record<'core' | 'resources' | 'entities', string[]> = {
   core: [
     'DictionaryMeta',
     'StepEntries',
@@ -135,7 +139,10 @@ const REQUIRED_TABLES: Record<StrongLexiconModuleId, string[]> = {
   ],
 }
 
-const REQUIRED_TABLE_COLUMNS: Record<StrongLexiconModuleId, Record<string, string[]>> = {
+const REQUIRED_TABLE_COLUMNS: Record<
+  'core' | 'resources' | 'entities',
+  Record<string, string[]>
+> = {
   core: {
     StepEntries: [
       'id',
@@ -253,7 +260,7 @@ export const validateStrongLexiconModuleDatabase = async (
   options: { integrityCheck?: 'full' | 'quick' } = {}
 ): Promise<StrongLexiconModuleAvailability> => {
   const publication = getExpectedStrongLexiconPublication(moduleId)
-  const requiredTables = REQUIRED_TABLES[moduleId]
+  const requiredTables = REQUIRED_TABLES[getStrongModuleSchema(moduleId)]
   const integrityCheck = options.integrityCheck ?? 'full'
   const integrity = await database.getFirstAsync<{
     integrity_check?: string
@@ -302,7 +309,7 @@ export const validateStrongLexiconModuleDatabase = async (
       notnull: number
       pk: number
     }>(`PRAGMA table_info("${table}")`)
-    const expected = REQUIRED_TABLE_COLUMNS[moduleId][table]
+    const expected = REQUIRED_TABLE_COLUMNS[getStrongModuleSchema(moduleId)][table]
     const columnsByName = new Map(columns.map(column => [column.name, column]))
     if (expected.some(columnName => !columnsByName.has(columnName))) {
       throw new Error(`STRONG_LEXICON_SCHEMA_COLUMNS_MISMATCH:${moduleId}:${table}`)
@@ -351,7 +358,7 @@ export const validateStrongLexiconModuleDatabase = async (
     metadata.moduleKind !== moduleId ||
     metadata.resourceIdentity !== `strong-lexicon:${moduleId}` ||
     revision !== publication.resourceRevision ||
-    (moduleId !== 'core' && metadata.coreRevision !== publication.coreRevision)
+    (!isStandaloneStrongModule(moduleId) && metadata.coreRevision !== publication.coreRevision)
   ) {
     return {
       status: 'incompatible',
@@ -360,7 +367,7 @@ export const validateStrongLexiconModuleDatabase = async (
     }
   }
 
-  if (moduleId !== 'core') {
+  if (moduleId === 'resources' || moduleId === 'entities') {
     const core = await getCoreAvailability()
     if (core.status !== 'available') {
       return { status: 'core-missing', moduleId }
@@ -530,15 +537,18 @@ export const installStrongLexiconModule = async (
       isCancelled: callbacks.isCancelled,
     })
     if (callbacks.isCancelled?.()) throw new Error('CANCELLED')
-    await readBoundedArchive(archivePath, {
-      entry: publication.entry,
-      archiveBytes: publication.archiveBytes,
-      contentBytes: publication.contentBytes,
-    })
+    // An encrypted copy is pinned by its catalog SHA-256, and the extracted entry is checked below.
+    if (result.archive.kind === 'plain') {
+      await readBoundedArchive(archivePath, {
+        entry: publication.entry,
+        archiveBytes: publication.archiveBytes,
+        contentBytes: publication.contentBytes,
+      })
+    }
     if (publication.archiveSha256) {
       await verifyFileSha256(
         archivePath,
-        publication.archiveSha256,
+        result.archive.archiveSha256,
         `STRONG_LEXICON_ARCHIVE_CHECKSUM_MISMATCH:${moduleId}`
       )
     }
@@ -549,7 +559,7 @@ export const installStrongLexiconModule = async (
     await FileSystem.deleteAsync(extractionDirectory, { idempotent: true })
     await FileSystem.makeDirectoryAsync(extractionDirectory, { intermediates: true })
     callbacks.onInsertProgress?.(0.15)
-    await unzip(toNativeFilePath(archivePath), toNativeFilePath(extractionDirectory), 'UTF-8')
+    await unzipOfflineArchive(archivePath, extractionDirectory, result.archive)
     const extractedEntries = await FileSystem.readDirectoryAsync(extractionDirectory)
     if (extractedEntries.length !== 1 || extractedEntries[0] !== publication.entry) {
       throw new Error(`STRONG_LEXICON_ARCHIVE_ENTRIES_INVALID:${moduleId}`)

@@ -1,3 +1,4 @@
+import LatestTeachings from './LatestTeachings'
 import ResourceDiscovery from './ResourceDiscovery'
 import { Image, type ImageSource } from 'expo-image'
 import { useFonts } from 'expo-font'
@@ -167,7 +168,7 @@ export default function DesktopHome() {
   const openCommandPalette = useSetAtom(commandPaletteOpenAtom)
   const setCommandReturnFocus = useSetAtom(commandPaletteReturnFocusAtom)
   const bibleProjectPlan = plans.find(
-    plan => plan.id === (lang === 'fr' ? 'bible-project-plan' : 'bible-project-plan-en')
+    plan => plan.id === 'cyberjudah-four-chapters'
   )
 
   return (
@@ -176,6 +177,7 @@ export default function DesktopHome() {
         <div className="bs-home-content">
           <Events />
           <OfflineNotice />
+          <LatestTeachings />
           <div className="bs-home-grid">
             <div className="bs-home-search">
               <LoginPrompt className="mx-0 rounded-[20px] px-[16px] py-[16px]" />
@@ -214,7 +216,7 @@ export default function DesktopHome() {
                   />
                   <LearningCard
                     title={t('home.learning.bibleProjectPlan')}
-                    source={require('~assets/images/home/bible-project-plan.jpg')}
+                    source={require('~assets/images/home/cyberjudah-plan.webp')}
                     route={bibleProjectPlan ? 'Plan' : 'Plans'}
                     params={
                       bibleProjectPlan
@@ -224,7 +226,7 @@ export default function DesktopHome() {
                   />
                   <LearningCard
                     title={t('home.desktop.timeline')}
-                    source={require('~assets/images/home/bible-timeline.jpg')}
+                    source={require('~assets/images/home/cyberjudah-timeline.webp')}
                     route="TimelineHome"
                   />
                 </div>
@@ -238,7 +240,7 @@ export default function DesktopHome() {
                 <PlanHome compact />
               </Box>
               <LinkBox
-                href="https://click.audibible.app/5nmN/stephane30"
+                href="https://cyberjudah.io/app/audio"
                 className="rounded-[20px] overflow-hidden p-[24px] min-h-[200px]"
                 style={{ backgroundColor: '#122B4B' }}
               >

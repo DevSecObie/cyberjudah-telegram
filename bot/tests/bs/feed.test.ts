@@ -55,7 +55,7 @@ insert.run('class', 'God', '/classes/test', '', 'God', '', '');
 const db = { prepare(sql: string) {
   return { bind(...params: unknown[]) { const stmt = sqlite.prepare(sql); return { first: async () => stmt.get(...params), all: async () => ({ results: stmt.all(...params) }) }; } };
 } };
-const env = { DATA_ORIGIN: 'https://data.cyberjudah.io', DB: db, ASSETS: { fetch: () => { throw new Error('A /bs request fell through to the SPA'); } } };
+const env = { DATA_ORIGIN: 'https://data.cyberjudah.io', DB: db, SUBS: { get: async () => null }, ASSETS: { fetch: () => { throw new Error('A /bs request fell through to the SPA'); } } };
 beforeEach(async () => { await Promise.all(pending.splice(0)); data.clear(); for (const [key, value] of originals) data.set(key, structuredClone(value)); cache.clear(); fetched.length = 0; failure = undefined; });
 after(() => { globalThis.fetch = originalFetch; delete (globalThis as any).caches; sqlite.close(); });
 const covered = new Set<string>();
@@ -247,11 +247,12 @@ test('commentary sections agree with the upstream section builder, maintain rank
   assert.deepEqual(runs.map(s => [s.rangeStartVerse, s.rangeEndVerse]), [[1, 1], [3, 3]]);
 });
 
-test('cross references, empty timelines and unsupported resources use the documented schemas', async () => {
+test('cross references, CyberJudah timelines and unsupported resources use the documented schemas', async () => {
   const { json: refs } = await request('/v1/cross-references/fr/verses/43-1-1', Supplementary.CrossReferenceResponseDto);
   assert.ok(refs.references.includes('1-1-1'));
   await request('/v1/cross-references/en/verses/43-1-1', Supplementary.CrossReferenceResponseDto);
-  const { json: timeline } = await request('/v1/timelines/en/events', Timeline.TimelineEventsResponseDto); assert.deepEqual(timeline.events, []);
+  const { json: timeline } = await request('/v1/timelines/en/events', Timeline.TimelineEventsResponseDto);
+  assert.ok(timeline.events.length > 100, 'The canvas needs the full CyberJudah index');
   await request('/v1/timelines/en/events/unknown', Problems.ResourceNotFoundProblem, { status: 404 });
   await request('/v1/interlinear-bibles/BHG/languages/en/coverage', Problems.ResourceNotFoundProblem, { status: 404 });
   await request('/v1/interlinear-bibles/BHG/languages/en/books/1/chapters/1', Problems.ResourceNotFoundProblem, { status: 404 });

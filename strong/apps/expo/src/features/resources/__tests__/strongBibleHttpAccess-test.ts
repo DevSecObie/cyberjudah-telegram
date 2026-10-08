@@ -67,6 +67,109 @@ const unavailableAdapter = (): jest.Mocked<StrongBibleResourceAdapter> => ({
 })
 
 describe('Strong Bible HTTP resource access', () => {
+  it('accepts only the configured CyberJudah publication and still rejects identity drift', async () => {
+    let datasetId = 'CYBERJUDAH'
+    const fetcher = jest.fn(() => jsonResponse({
+      resource: { ...resource, versionId: 'KJV', datasetId },
+      books: [1], chaptersByBook: { '1': [1] }, verseCountByBookChapter: { '1-1': 31 },
+    }))
+    const adapter = createHttpStrongBibleResourceAdapter({
+      baseUrl: '/bs', fetcher, isOnline: async () => true,
+      datasetIdForVersion: id => id === 'KJV' ? 'CYBERJUDAH' : undefined,
+      availabilityStaleTimeMs: 0,
+      bibleChapterAdapter: {
+        loadCoverage: async () => ({
+          status: 'available',
+          coverage: {
+            canon: { id: 'kjv-apocrypha-81', orderedBooks: [1] },
+            versification: 'kjv-apocrypha-81',
+            books: [1], chaptersByBook: { 1: [1] }, verseCountByBookChapter: { '1-1': 31 },
+          },
+          textRevision: resource.textRevision, textSha256: resource.textSha256,
+        }),
+        loadChapter: jest.fn(),
+      },
+    })
+    expect(await adapter.getAvailability('KJV')).toMatchObject({ status: 'available', datasetId: 'CYBERJUDAH' })
+    expect(await adapter.getAvailability('NASB2020')).toEqual({ status: 'unsupported' })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    datasetId = 'another-publication'
+    await expect(adapter.getAvailability('KJV')).rejects.toMatchObject({ code: 'INTEGRITY_FAILURE' })
+  })
+
+  it('resolves a padded lexicon reference through unpadded KJV concordance endpoints', async () => {
+    const identity = { kind: 'dstrong', code: 'H430G' }
+    const fetcher = jest.fn((url: string) => {
+      expect(url).toContain('/identities/H430G/')
+      return jsonResponse({
+        resource: { ...resource, versionId: 'KJV', datasetId: 'KJV' },
+        identity,
+        counts: [{ book: 1, verseCount: 1 }],
+        verses: [],
+        lemmas: [],
+      })
+    })
+    const adapter = createHttpStrongBibleResourceAdapter({
+      baseUrl: 'https://resources.test',
+      fetcher: fetcher as typeof fetch,
+      isOnline: async () => true,
+      bibleChapterAdapter: {
+        loadChapter: async () => ({ status: 'unavailable', reason: 'resource-unsupported' }),
+        loadCoverage: async () => ({ status: 'unavailable', reason: 'resource-unsupported' }),
+      },
+    })
+    const request: Parameters<StrongBibleResourceAdapter['loadCountsByBook']>[1] = {
+      currentVersionId: 'KJV',
+      defaultVersionId: 'KJV',
+      book: 1,
+      reference: 'H0430G',
+    }
+    await expect(adapter.loadCountsByBook('KJV', request)).resolves.toEqual({
+      identity,
+      counts: [{ Livre: 1, versesCountByBook: 1 }],
+    })
+    await expect(adapter.loadFoundVersesByBook('KJV', request)).resolves.toMatchObject({ identity })
+    await expect(adapter.loadLemmaStats('KJV', request)).resolves.toMatchObject({ identity })
+    expect(fetcher).toHaveBeenCalledTimes(3)
+  })
+
+  it('asks for a sense with the letter case of its suffix', async () => {
+    const identity = { kind: 'dstrong', code: 'H2148v' }
+    const fetcher = jest.fn((url: string) => {
+      expect(url).toContain('/identities/H2148v/')
+      return jsonResponse({
+        resource,
+        identity,
+        counts: [{ book: 38, verseCount: 2 }],
+        verses: [],
+        lemmas: [],
+      })
+    })
+    const adapter = createHttpStrongBibleResourceAdapter({
+      baseUrl: 'https://resources.test',
+      fetcher: fetcher as typeof fetch,
+      isOnline: async () => true,
+      bibleChapterAdapter: {
+        loadChapter: async () => ({ status: 'unavailable', reason: 'resource-unsupported' }),
+        loadCoverage: async () => ({ status: 'unavailable', reason: 'resource-unsupported' }),
+      },
+    })
+    const request: Parameters<StrongBibleResourceAdapter['loadCountsByBook']>[1] = {
+      currentVersionId: 'LSG',
+      defaultVersionId: 'LSG',
+      book: 38,
+      reference: 'h2148v',
+    }
+
+    await expect(adapter.loadCountsByBook('LSG', request)).resolves.toEqual({
+      identity,
+      counts: [{ Livre: 38, versesCountByBook: 2 }],
+    })
+    await expect(adapter.loadFoundVersesByBook('LSG', request)).resolves.toMatchObject({ identity })
+    await expect(adapter.loadLemmaStats('LSG', request)).resolves.toMatchObject({ identity })
+    expect(fetcher).toHaveBeenCalledTimes(3)
+  })
+
   afterEach(() => {
     jest.restoreAllMocks()
   })
@@ -446,6 +549,52 @@ describe('Strong Bible HTTP resource access', () => {
       '[ResourceAccess] Recoverable integrity warning: strong-bible-text-revision-mismatch',
       expect.objectContaining({ versionId: 'LSG', book: 1, chapter: 1 })
     )
+  })
+
+  it('preserves scope, lemma filters and pagination when URLSearchParams.size is unavailable on native', async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(URLSearchParams.prototype, 'size')
+    Object.defineProperty(URLSearchParams.prototype, 'size', {
+      configurable: true,
+      get: () => undefined,
+    })
+    try {
+      const fetcher = jest.fn((_url: unknown) => jsonResponse({ resource, verses: [] }))
+      const online = createHttpStrongBibleResourceAdapter({
+        baseUrl: 'https://resources.example',
+        fetcher,
+        isOnline: async () => true,
+        bibleChapterAdapter: {
+          loadChapter: async () => ({ status: 'unavailable', reason: 'chapter-not-available' }),
+          loadCoverage: async () => ({ status: 'unavailable', reason: 'resource-unsupported' }),
+          loadVerseTexts: async () => ({
+            status: 'available',
+            texts: {},
+            textRevision: resource.textRevision,
+            textSha256: resource.textSha256,
+          }),
+        },
+      })
+      await online.loadFoundVersesByBook('LSG', {
+        currentVersionId: 'LSG',
+        defaultVersionId: 'LSG',
+        book: 1,
+        reference: 'H5521',
+        allBooks: true,
+        lexemeId: 379,
+        limit: 60,
+        cursor: 'next+page=',
+      })
+      const url = new URL(String(fetcher.mock.calls[0][0]))
+      expect(Object.fromEntries(url.searchParams)).toEqual({
+        allBooks: 'true',
+        lexemeId: '379',
+        limit: '60',
+        cursor: 'next+page=',
+      })
+    } finally {
+      if (descriptor) Object.defineProperty(URLSearchParams.prototype, 'size', descriptor)
+      else Reflect.deleteProperty(URLSearchParams.prototype, 'size')
+    }
   })
 
   it('keeps displayable HTTP Strong occurrences when another verse text is missing', async () => {

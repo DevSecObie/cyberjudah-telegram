@@ -107,6 +107,80 @@ describe('strongLexiconAccess', () => {
     )
   })
 
+  it('reads definitions and lexical relations without opening installed addons', async () => {
+    mockGetStrongLexiconModuleAvailability.mockImplementation(async moduleId => ({
+      status: 'available',
+      moduleId,
+    }))
+    const identity = { kind: 'dstrong' as const, code: 'H3068G' }
+    const definitions = await localStrongLexiconAccess.loadEntry(identity, 'fr', {
+      content: 'definitions',
+    })
+    expect(definitions?.definitionHtml).toBe('<p>celui qui existe</p>')
+    expect(definitions?.nameMeaningHtml).toBe('YHWH = « celui qui est »')
+    expect(mockWithOptionalStrongLexiconDatabase).not.toHaveBeenCalled()
+    const full = await localStrongLexiconAccess.loadEntry(identity, 'fr')
+    expect(full?.definitionHtml).toBe(definitions?.definitionHtml)
+    expect(full?.relations).toEqual(definitions?.relations)
+    expect(mockWithOptionalStrongLexiconDatabase).toHaveBeenCalledTimes(2)
+  })
+
+  it('normalizes unpadded KJV identities for HTTP cards while preserving occurrence matching', async () => {
+    const identities = [
+      { kind: 'dstrong' as const, code: 'H430G' },
+      { kind: 'dstrong' as const, code: 'H776G' },
+    ]
+    const fetcher = jest.fn(async (url: string) => {
+      const requested = new URL(url).searchParams.get('identities')?.split(',') ?? []
+      return new Response(
+        JSON.stringify({
+          entries: requested.flatMap(identity => {
+            if (!['dstrong:H0430G', 'dstrong:H0776G'].includes(identity)) return []
+            const code = identity.split(':')[1]
+            return [
+              {
+                resource: { revision: 'core-r1' },
+                id: code === 'H0430G' ? 430 : 776,
+                selectedIdentity: { kind: 'dstrong', code },
+                stepCode: code,
+                classicStrong: code.slice(0, -1),
+                eStrong: code.slice(0, -1),
+                dStrong: code,
+                language: 'hebrew',
+                baseCode: code === 'H0430G' ? 430 : 776,
+                original: '',
+                transliteration: '',
+                gloss: code === 'H0430G' ? 'God' : 'earth',
+              },
+            ]
+          }),
+        }),
+        { status: 200 }
+      )
+    })
+    const access = createHttpStrongLexiconAccess({
+      baseUrl: 'https://resources.test',
+      fetcher: fetcher as typeof fetch,
+      isOnline: async () => true,
+    })
+    const cards = await access.loadEntryCards(identities, 'fr')
+    expect(cards.map(card => card.selectedIdentity)).toEqual(identities)
+    expect(cards.map(card => card.stepCode)).toEqual(['H0430G', 'H0776G'])
+  })
+
+  it('normalizes unpadded identities for offline cards', async () => {
+    const cards = await localStrongLexiconAccess.loadEntryCards(
+      [{ kind: 'strong', code: 'H413' }],
+      'fr'
+    )
+    expect(cards).toEqual([
+      expect.objectContaining({
+        selectedIdentity: { kind: 'strong', code: 'H413' },
+        stepCode: 'H0413',
+      }),
+    ])
+  })
+
   it('loads bounded Strong lexicon pages and carries the keyset cursor', async () => {
     const fetcher = jest.fn(
       async () =>
@@ -1096,6 +1170,23 @@ const createHybridStub = (
 })
 
 describe('hybrid Strong lexicon routing', () => {
+  it('does not wait for remote addons when definitions are installed', async () => {
+    const offline = createHybridStub({ core: 'available' }, 'offline')
+    const online = createHybridStub('available', 'online')
+    const access = createHybridStrongLexiconAccess({
+      offline,
+      online,
+      remotelyReadable: true,
+      isOnline: async () => true,
+    })
+    const identity = { kind: 'strong' as const, code: 'G3056' }
+    await access.loadEntry(identity, 'fr', { content: 'definitions' })
+    expect(offline.loadEntry).toHaveBeenCalledWith(identity, 'fr', { content: 'definitions' })
+    expect(online.loadEntry).not.toHaveBeenCalled()
+    await access.loadEntry(identity, 'fr')
+    expect(online.loadEntry).toHaveBeenCalledTimes(1)
+  })
+
   it('prefers an installed entry over HTTP', async () => {
     const offline = createHybridStub('available', 'offline')
     const online = createHybridStub('available', 'online')

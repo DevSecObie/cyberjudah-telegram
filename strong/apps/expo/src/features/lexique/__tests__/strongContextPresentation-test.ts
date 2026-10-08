@@ -1,5 +1,7 @@
+import type { Verse } from '~common/types'
 import {
   formatStrongContextMorphology,
+  getStrongContextHighlight,
   getStrongContextVerseText,
 } from '../strongContextPresentation'
 
@@ -30,5 +32,103 @@ describe('strongContextPresentation', () => {
         meaning: 'Nom, nominatif, masculin, pluriel, titre',
       })
     ).toBe('nom, nominatif, masculin, pluriel, titre · N-NPM-T')
+  })
+})
+
+describe('getStrongContextHighlight', () => {
+  // Romans 3:8 (LSG): "que" first occurs inside "quelques-uns".
+  const texte =
+    'Et pourquoi ne ferions-nous pas le mal afin qu’il en arrive du bien, comme quelques-uns, qui nous calomnient, prétendent que nous le disons?'
+  const romans3v8: Verse = {
+    Livre: 45,
+    Chapitre: 3,
+    Verset: 8,
+    Texte: texte,
+    StrongSpans: [
+      {
+        ordinal: 0,
+        startOffset: 75,
+        length: 12,
+        identities: [{ kind: 'strong', code: 'G5100' }],
+      },
+      {
+        ordinal: 1,
+        startOffset: 110,
+        length: 10,
+        identities: [{ kind: 'strong', code: 'G5346' }],
+      },
+      {
+        ordinal: 2,
+        startOffset: 121,
+        length: 3,
+        identities: [
+          { kind: 'strong', code: 'G3754' },
+          { kind: 'dstrong', code: 'G3754G' },
+        ],
+      },
+    ],
+  }
+  const hoti = { stepCode: 'G3754G', dStrong: 'G3754G', eStrong: 'G3754', baseCode: 3754 }
+  const highlighted = (verse: Verse, word?: string) => {
+    const range = getStrongContextHighlight(verse, hoti, word)
+    return range && [range.start, texte.slice(range.start, range.end)]
+  }
+
+  it('highlights the span of the entry, not the first substring of the tapped word', () => {
+    expect(highlighted(romans3v8, 'que')).toEqual([121, 'que'])
+  })
+
+  it('falls back to a whole word when the verse has no Strong spans', () => {
+    expect(highlighted({ ...romans3v8, StrongSpans: undefined }, 'que')).toEqual([121, 'que'])
+  })
+
+  it('does not highlight a word that only appears inside another word', () => {
+    expect(highlighted({ ...romans3v8, StrongSpans: undefined }, 'quel')).toBeUndefined()
+  })
+
+  describe('with two senses of one number in a verse', () => {
+    // Every Zechariah shares the extended code `H2148a`; two of them only differ by the
+    // letter case of their suffix.
+    const zechariahSpan = (ordinal: number, startOffset: number, dStrong: string) => ({
+      ordinal,
+      startOffset,
+      length: 8,
+      identities: [
+        { kind: 'strong' as const, code: 'H2148' },
+        { kind: 'estrong' as const, code: 'H2148a' },
+        { kind: 'dstrong' as const, code: dStrong },
+      ],
+    })
+    const verse: Verse = {
+      Livre: 16,
+      Chapitre: 11,
+      Verset: 4,
+      Texte: 'Zacharie, fils de Zacharie',
+      StrongSpans: [zechariahSpan(0, 0, 'H2148V'), zechariahSpan(1, 18, 'H2148v')],
+    }
+    const sense = (stepCode: string) => ({
+      stepCode,
+      dStrong: stepCode,
+      eStrong: 'H2148a',
+      baseCode: 2148,
+    })
+
+    it('highlights the span tagged with the sense of the entry', () => {
+      expect(getStrongContextHighlight(verse, sense('H2148V'), 'Zacharie')).toEqual({
+        start: 0,
+        end: 8,
+      })
+      expect(getStrongContextHighlight(verse, sense('H2148v'), 'Zacharie')).toEqual({
+        start: 18,
+        end: 26,
+      })
+    })
+
+    it('falls back to the shared codes when no span carries the sense of the entry', () => {
+      expect(getStrongContextHighlight(verse, sense('H2148B'), 'Zacharie')).toEqual({
+        start: 0,
+        end: 8,
+      })
+    })
   })
 })

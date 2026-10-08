@@ -1,5 +1,5 @@
 import { DomUtils, parseDocument } from 'htmlparser2'
-import { hasChildren, isTag, type AnyNode } from 'domhandler'
+import { hasChildren, isTag, isText, type AnyNode } from 'domhandler'
 import type { MixedStyleDeclaration } from '@native-html/render'
 import { scaleFontSize } from '~features/bible/BibleDOM/scaleFontSize'
 import { scaleLineHeight } from '~features/bible/BibleDOM/scaleLineHeight'
@@ -37,6 +37,11 @@ export function cleanReadingHTML(html: string): string {
   const document = parseDocument(html)
   const clean = (nodes: AnyNode[]) => {
     for (const node of [...nodes]) {
+      // Compatibility with published commentary containing double-encoded NBSPs.
+      // The parser has decoded one layer; repair only spaces in text nodes.
+      if (isText(node)) {
+        node.data = node.data.replace(/&(?:nbsp|#0*160|#x0*a0);/giu, '\u00a0')
+      }
       if (isTag(node)) {
         if (blockedTags.has(node.name)) {
           DomUtils.removeElement(node)
@@ -96,6 +101,33 @@ export function readingHtmlStyles(
     },
     blockquote: { ...paragraph, marginLeft: 24, marginRight: 24 },
   }
+}
+
+// Average glyph width of the reading fonts, relative to the font size.
+const AVERAGE_CHAR_WIDTH_RATIO = 0.5
+
+/** Rough height of rendered HTML, reserved before the DOM engine reports its measured size. */
+export function estimateReadingHtmlHeight(
+  html: string,
+  typography: ReadingTypography,
+  width: number
+): number {
+  const charsPerLine = Math.max(
+    1,
+    Math.floor(width / (typography.fontSize * AVERAGE_CHAR_WIDTH_RATIO))
+  )
+  // Parse text rather than deleting angle-bracket substrings. This is a numeric
+  // layout estimate; the resulting text is never rendered as HTML.
+  const text = DomUtils.textContent(
+    parseDocument(html.replace(/<\/(p|li|h[1-6]|div|blockquote)>|<br\s*\/?>/giu, '\n'))
+  )
+  const lines = text
+    .split('\n')
+    .map(block => block.trim())
+    .filter(Boolean)
+    .reduce((total, block) => total + Math.ceil(block.length / charsPerLine), 0)
+  const paragraphs = html.match(/<p[\s>]/giu)?.length ?? 0
+  return Math.ceil(lines * typography.lineHeight + paragraphs * typography.fontSize)
 }
 
 export function readingHtmlCSS(

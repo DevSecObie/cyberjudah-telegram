@@ -29,7 +29,7 @@ export function Sheet({ open, onClose, backdrop = true, height = "auto", title, 
   // opens a shorter sheet to full height.
   const down = (e: RPointerEvent) => { if ((e.target as HTMLElement).closest("button:not(.bs-sheet__resize)")) return; dragged.current = false; start.current = e.clientY; ((e.target as HTMLElement).closest(".bs-sheet__resize") ?? e.currentTarget).setPointerCapture(e.pointerId); };
   const move = (e: RPointerEvent) => { if (start.current !== null) { const dy = e.clientY - start.current; if (Math.abs(dy) > 6) dragged.current = true; setDrag(dy); } };
-  const up = () => { if (start.current === null) return; start.current = null; if (drag > 90) onClose(); else if (drag < -60 && height !== "full" && !tall) { previousTop.current = box.current?.getBoundingClientRect().top ?? null; setTall(true); } setDrag(0); };
+  const up = (e: RPointerEvent) => { if (start.current === null) return; const dy = e.clientY - start.current; start.current = null; if (Math.abs(dy) > 6) dragged.current = true; if (dy > 90) onClose(); else if (dy < -60 && height !== "full" && !tall) { previousTop.current = box.current?.getBoundingClientRect().top ?? null; setTall(true); } setDrag(0); };
   // A sheet over a dimmed page holds the focus; one that leaves the page usable (no backdrop) does not.
   const box = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {

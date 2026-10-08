@@ -11,6 +11,7 @@ import { useLayoutSize } from '~helpers/useLayoutSize'
 import EventDetailVerse from './EventDetailVerse'
 import { getEvents } from './events'
 import { TimelineEvent, TimelineEventDetail } from './types'
+import { getTimelineImageUri } from './timelineImage'
 import { usePushRouteOnce } from '~navigation/usePushRouteOnce'
 
 const Media = ({
@@ -70,7 +71,7 @@ const Media = ({
                   draggable={false}
                   style={{ width: imageWidth, height: imageWidth }}
                   source={{
-                    uri: `http://timeline.biblehistory.com/media/images/original/${item.file}`,
+                    uri: getTimelineImageUri(item.file, 'original'),
                   }}
                   contentFit="contain"
                 />

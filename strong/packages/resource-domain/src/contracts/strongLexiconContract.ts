@@ -5,12 +5,28 @@ export { decodeStrongLexiconPageCursor, encodeStrongLexiconPageCursor }
 
 export const StrongLexiconLanguage = Schema.Literal('fr', 'en')
 export const StrongLexicalLanguage = Schema.Literal('greek', 'hebrew')
-export const StrongLexiconModuleIdSchema = Schema.Literal('core', 'resources', 'entities')
+export const StrongLexiconModuleIdSchema = Schema.Literal(
+  'core',
+  'resources',
+  'entities',
+  'simple-fr',
+  'simple-en'
+)
 export const StrongLexiconIdentityKind = Schema.Literal('strong', 'estrong', 'dstrong', 'ustrong')
+// Which entries a lexicon list names: one representative per unified identity, the default,
+// or every entry, including those that share a unified identity with another.
+export const StrongLexiconBrowseIdentities = Schema.Literal('unified', 'all')
 
 export class StrongLexiconEntryPath extends Schema.Class<StrongLexiconEntryPath>(
   'StrongLexiconEntryPath'
 )({ reference: Schema.NonEmptyString }) {}
+
+// A classical Strong number, as it is written without a sense suffix.
+const ClassicalNumber = Schema.String.pipe(Schema.pattern(/^[HG]\d{1,6}$/i))
+
+export class StrongLexiconNumberPath extends Schema.Class<StrongLexiconNumberPath>(
+  'StrongLexiconNumberPath'
+)({ number: ClassicalNumber }) {}
 
 export class StrongLexiconEntityPath extends Schema.Class<StrongLexiconEntityPath>(
   'StrongLexiconEntityPath'
@@ -35,13 +51,16 @@ export class StrongLexiconEntryQuery extends Schema.Class<StrongLexiconEntryQuer
   'StrongLexiconEntryQuery'
 )({
   language: StrongLexiconLanguage,
+  level: Schema.optional(Schema.Literal('simple', 'detailed')),
   kind: Schema.optional(StrongLexiconIdentityKind),
+  content: Schema.optional(Schema.Literal('definitions', 'full')),
 }) {}
 
 export class StrongLexiconEntriesQuery extends Schema.Class<StrongLexiconEntriesQuery>(
   'StrongLexiconEntriesQuery'
 )({
   language: StrongLexiconLanguage,
+  level: Schema.optional(Schema.Literal('simple', 'detailed')),
   identities: Schema.NonEmptyString.pipe(
     Schema.filter(
       value =>
@@ -57,7 +76,9 @@ export class StrongLexiconBrowseQuery extends Schema.Class<StrongLexiconBrowseQu
   'StrongLexiconBrowseQuery'
 )({
   language: StrongLexiconLanguage,
+  level: Schema.optional(Schema.Literal('simple', 'detailed')),
   lexicalLanguage: Schema.optional(StrongLexicalLanguage),
+  identities: Schema.optional(StrongLexiconBrowseIdentities),
   search: Schema.optional(Schema.String),
   prefix: Schema.optional(Schema.String),
   limit: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.between(1, 500))),
@@ -70,11 +91,19 @@ export class StrongLexiconBrowseQuery extends Schema.Class<StrongLexiconBrowseQu
 
 export class StrongLexiconRandomQuery extends Schema.Class<StrongLexiconRandomQuery>(
   'StrongLexiconRandomQuery'
-)({ language: StrongLexiconLanguage, lexicalLanguage: StrongLexicalLanguage }) {}
+)({
+  language: StrongLexiconLanguage,
+  level: Schema.optional(Schema.Literal('simple', 'detailed')),
+  lexicalLanguage: StrongLexicalLanguage,
+}) {}
 
 export class StrongLexiconMorphologyQuery extends Schema.Class<StrongLexiconMorphologyQuery>(
   'StrongLexiconMorphologyQuery'
-)({ language: StrongLexiconLanguage, codes: Schema.NonEmptyString }) {}
+)({
+  language: StrongLexiconLanguage,
+  level: Schema.optional(Schema.Literal('simple', 'detailed')),
+  codes: Schema.NonEmptyString,
+}) {}
 
 export class StrongLexiconChapterEntitiesQuery extends Schema.Class<StrongLexiconChapterEntitiesQuery>(
   'StrongLexiconChapterEntitiesQuery'
@@ -233,6 +262,30 @@ export class StrongLexiconSearchResponseDto extends Schema.Class<StrongLexiconSe
   resource: Schema.Struct({ revision: Schema.String }),
   entries: Schema.Array(StrongLexiconSearchResultDto),
   nextCursor: Schema.optional(Schema.String),
+}) {}
+
+// A sense of a classical number: its row in the simple lexicon of the language, then what
+// its entry in the detailed lexicon tells it apart by, when it has one.
+export class StrongLexiconNumberSenseDto extends Schema.Class<StrongLexiconNumberSenseDto>(
+  'StrongLexiconNumberSenseDto'
+)({
+  id: Schema.Int,
+  stepCode: Schema.String,
+  classicStrong: Schema.String,
+  language: StrongLexicalLanguage,
+  original: Schema.String,
+  transliteration: Schema.String,
+  gloss: Schema.String,
+  detailedDefinitionHtml: Schema.optional(Schema.String),
+  entityBrief: Schema.optional(Schema.String),
+}) {}
+
+export class StrongLexiconNumberSensesDto extends Schema.Class<StrongLexiconNumberSensesDto>(
+  'StrongLexiconNumberSensesDto'
+)({
+  resource: Schema.Struct({ revision: Schema.String }),
+  classicStrong: Schema.String,
+  senses: Schema.Array(StrongLexiconNumberSenseDto),
 }) {}
 
 export class StrongLexiconMorphologyResponseDto extends Schema.Class<StrongLexiconMorphologyResponseDto>(

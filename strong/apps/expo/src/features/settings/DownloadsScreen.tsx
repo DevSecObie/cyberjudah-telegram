@@ -1,3 +1,4 @@
+import { getSimpleStrongModuleId } from '@bible-strong/resource-domain/strong-lexicon'
 import { useConfirmDialog } from '~common/ConfirmDialog/useConfirmDialog'
 import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -28,6 +29,9 @@ import {
 } from '~helpers/databaseTypes'
 import { offlineResourceRegistry } from '~features/resources/resourceAvailability'
 import { useOfflineResourceRegistry } from '~features/resources/useOfflineResourceRegistry'
+import { useStrongIndexLexiconModuleId } from '~features/resources/useStrongIndexLexicon'
+import { resourceNeedsUpdate } from '~features/resources/availableUpdates'
+import { useMarkAvailableUpdatesSeen } from '~features/resources/useAvailableUpdates'
 import {
   createCommentaryDownloadItem,
   createOfflineCopyDownloadItem,
@@ -156,12 +160,35 @@ function buildCommentaryItems(lang: ResourceLanguage): UnifiedItem[] {
 }
 
 function buildStrongLexiconItems(
+  lang: ResourceLanguage,
   t: (key: string, options?: Record<string, unknown>) => string
 ): UnifiedItem[] {
   return [
+    ...[lang].map(locale => ({
+      id: createOfflineCopyId({
+        kind: 'strong-lexicon-module',
+        moduleId: getSimpleStrongModuleId(locale),
+      }),
+      name: t(
+        locale === 'fr'
+          ? 'offlineSetup.resources.simpleLexiconFr'
+          : 'offlineSetup.resources.simpleLexiconEn'
+      ),
+      subtitle: t('offlineSetup.option.simpleLexiconDescription'),
+      estimatedSize: createOfflineCopyDownloadItem({
+        kind: 'strong-lexicon-module',
+        moduleId: getSimpleStrongModuleId(locale),
+      }).estimatedSize,
+      lang: locale,
+      searchText: 'strong lexique simple grec hébreu français anglais',
+    })),
     {
       id: createOfflineCopyId({ kind: 'strong-lexicon-module', moduleId: 'core' }),
-      name: t('offlineSetup.resources.strongLexicon'),
+      name: t('offlineSetup.resources.detailedLexicon'),
+      parentItemId: createOfflineCopyId({
+        kind: 'strong-lexicon-module',
+        moduleId: getSimpleStrongModuleId(lang),
+      }),
       subtitle: t('offlineSetup.option.strongLexiconDescription'),
       estimatedSize: createOfflineCopyDownloadItem({
         kind: 'strong-lexicon-module',
@@ -228,7 +255,7 @@ function buildAllSections(
   )
   const frenchDictionaries = dictionaryWorks.filter(work => work.resource.language === 'fr')
   const englishDictionaries = dictionaryWorks.filter(work => work.resource.language === 'en')
-  const sharedStudyTools = [...buildStrongLexiconItems(t), ...buildSharedDatabaseItems()]
+  const sharedStudyTools = buildSharedDatabaseItems()
   const sections = buildDownloadResourceSections({
     titles: {
       french: t('versionCatalog.language.fr'),
@@ -241,12 +268,14 @@ function buildAllSections(
       otherResources: t('downloads.subsection.otherResources'),
     },
     french: {
+      studyTools: buildStrongLexiconItems('fr', t),
       bibles: bibleGroups.get('bible-fr') ?? [],
       commentaries: buildCommentaryItems('fr'),
       dictionaries: buildDictionaryItems(frenchDictionaries),
       otherResources: buildDatabaseItems('fr', frenchDictionaries.length === 0),
     },
     english: {
+      studyTools: buildStrongLexiconItems('en', t),
       bibles: bibleGroups.get('bible-en') ?? [],
       commentaries: buildCommentaryItems('en'),
       dictionaries: buildDictionaryItems(englishDictionaries),
@@ -272,7 +301,7 @@ function useDownloadedItems() {
   const registry = useOfflineResourceRegistry()
   const downloadedSet = new Set<string>()
   const invalidSet = new Set<string>()
-  const updateAvailableSet = new Set<string>()
+  const needsUpdateSet = new Set<string>()
   const strongAvailability = new Map<StrongBibleVersionId, StrongBibleSidecarAvailability>()
   const interlinearAvailability = new Map<ResourceLanguage, InterlinearSidecarAvailability>()
   const strongLexiconAvailability = new Map<
@@ -291,7 +320,7 @@ function useDownloadedItems() {
       downloadedSet.add(entry.id)
     }
     if (availability.status === 'corrupt') invalidSet.add(entry.id)
-    if (entry.updateAvailable) updateAvailableSet.add(entry.id)
+    if (resourceNeedsUpdate(entry)) needsUpdateSet.add(entry.id)
 
     if (resource.kind === 'strong-bible-index') {
       strongAvailability.set(resource.versionId, availability as StrongBibleSidecarAvailability)
@@ -308,7 +337,7 @@ function useDownloadedItems() {
   return {
     downloadedSet,
     invalidSet,
-    updateAvailableSet,
+    needsUpdateSet,
     strongAvailability,
     interlinearAvailability,
     strongLexiconAvailability,
@@ -364,6 +393,8 @@ const DownloadsScreen = () => {
     retry: false,
   })
   const { enqueue, clearCompleted } = useDownloadQueue()
+  const strongIndexLexiconModuleId = useStrongIndexLexiconModuleId()
+  useMarkAvailableUpdatesSeen()
 
   // Local state
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
@@ -379,7 +410,7 @@ const DownloadsScreen = () => {
   const {
     downloadedSet,
     invalidSet,
-    updateAvailableSet,
+    needsUpdateSet,
     strongAvailability,
     interlinearAvailability,
     strongLexiconAvailability,
@@ -401,26 +432,7 @@ const DownloadsScreen = () => {
     setCollapsedSections(getDefaultCollapsedSections())
   }
 
-  const itemNeedsUpdate = (item: UnifiedItem) => {
-    if (updateAvailableSet.has(item.id)) return true
-    const identity = parseOfflineCopyId(item.id)
-    if (!identity) return false
-
-    if (identity.kind === 'strong-bible-index') {
-      return ['incompatible'].includes(strongAvailability.get(identity.versionId)?.status ?? '')
-    }
-    if (identity.kind === 'strong-lexicon-module') {
-      return ['incompatible', 'core-missing'].includes(
-        strongLexiconAvailability.get(identity.moduleId)?.status ?? ''
-      )
-    }
-    if (identity.kind === 'interlinear-index') {
-      return ['base-incompatible'].includes(
-        interlinearAvailability.get(identity.language)?.status ?? ''
-      )
-    }
-    return false
-  }
+  const itemNeedsUpdate = (item: UnifiedItem) => needsUpdateSet.has(item.id)
 
   const uniqueItems = Array.from(
     new Map(allSections.flatMap(section => section.data).map(item => [item.id, item])).values()
@@ -538,6 +550,7 @@ const DownloadsScreen = () => {
       case 'strong-bible-index':
         return createOfflineCopyDownloadPlan(identity, {
           availabilityStatus: strongAvailability.get(identity.versionId)?.status ?? 'base-missing',
+          strongIndexLexiconModuleId,
         })
       case 'interlinear-index':
         return createOfflineCopyDownloadPlan(identity, {

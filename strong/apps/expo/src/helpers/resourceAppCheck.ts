@@ -3,34 +3,34 @@ import {
   getToken,
   initializeAppCheck,
   ReactNativeFirebaseAppCheckProvider,
-  type FirebaseAppCheckTypes,
+  type AppCheck,
 } from '@react-native-firebase/app-check'
 
 import {
   createResourceAppCheckFetch,
+  isResourceApiRequestUrl,
   isResourceAppCheckProtectedUrl,
 } from './resourceAppCheckRequest'
 import { appLogger } from './agentObservability'
 
-let appCheckInitialization: Promise<FirebaseAppCheckTypes.Module> | undefined
+let appCheckInstance: AppCheck | undefined
 
-export const initializeResourceAppCheck = (): Promise<FirebaseAppCheckTypes.Module> => {
-  if (appCheckInitialization) return appCheckInitialization
+export const initializeResourceAppCheck = async (): Promise<AppCheck> => {
+  // A failed initialization throws before caching, so the next caller retries it.
+  if (appCheckInstance) return appCheckInstance
 
   const provider = new ReactNativeFirebaseAppCheckProvider()
   provider.configure({
     android: { provider: __DEV__ ? 'debug' : 'playIntegrity' },
     apple: { provider: __DEV__ ? 'debug' : 'appAttestWithDeviceCheckFallback' },
   })
-  appCheckInitialization = initializeAppCheck(getApp(), {
+  appCheckInstance = initializeAppCheck(getApp(), {
     provider,
-    isTokenAutoRefreshEnabled: true,
-  }).catch(error => {
-    // A transient initialization failure must not poison the rest of the session.
-    appCheckInitialization = undefined
-    throw error
+    // Tokens are acquired on demand for Offline copies and the assistant only (ADR-0065).
+    // Background refresh would spend an attestation per TTL on every running app.
+    isTokenAutoRefreshEnabled: false,
   })
-  return appCheckInitialization
+  return appCheckInstance
 }
 
 const getAppCheckFailureCode = (error: unknown): string => {
@@ -127,7 +127,7 @@ const requestDiagnostics = (input: RequestInfo | URL, init?: RequestInit) => {
 export const resourceApiFetch: typeof fetch = async (input, init) => {
   const response = await guardedResourceApiFetch(input, init)
   if (
-    isResourceAppCheckProtectedUrl(input) &&
+    isResourceApiRequestUrl(input) &&
     (response.status === 401 ||
       response.status === 403 ||
       response.status === 429 ||

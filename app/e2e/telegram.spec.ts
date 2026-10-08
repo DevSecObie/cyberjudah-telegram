@@ -852,6 +852,24 @@ test("in the Bible, an open sheet shows Telegram's back button and closes with i
   await expect.poll(async () => (await note.boundingBox())!.height).toBeGreaterThan(before + 40);
 });
 
+test("a sheet uses the release position even when a fast swipe finishes before the next render", async ({ page }) => {
+  await page.goto(`/read/genesis/4${LAUNCH}`);
+  await expect(page.locator("#verset-5")).toBeVisible();
+  await page.click('.bs-iconbtn[aria-label="Scripture options"]');
+  await page.getByRole("menuitem", { name: "Font and settings", exact: true }).click();
+  const grab = page.getByRole("dialog", { name: "Font and settings", exact: true }).locator(".bs-sheet__grab");
+  await grab.hover({ position: { x: 10, y: 10 } });
+  await page.mouse.down();
+  await grab.evaluate(el => {
+    // One browser task reproduces move/up arriving before React renders the drag state.
+    const y = el.getBoundingClientRect().top + 10;
+    el.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerId: 1, clientY: y + 200 }));
+    el.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 1, clientY: y + 200 }));
+  });
+  await page.mouse.up();
+  await expect(page.locator("[data-sheet-open]")).toHaveCount(0);
+});
+
 test("a verse's comment opens the note right where that passage is broken down", async ({ page }) => {
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-7")).toBeVisible();

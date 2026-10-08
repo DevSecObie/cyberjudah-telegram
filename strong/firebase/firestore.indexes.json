@@ -1,0 +1,16 @@
+{
+  "indexes": [
+    { "collectionGroup": "studies", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "user.id", "order": "ASCENDING" },
+      { "fieldPath": "modified_at", "order": "DESCENDING" }
+    ] },
+    { "collectionGroup": "events", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "status", "order": "ASCENDING" },
+      { "fieldPath": "lang", "order": "ASCENDING" }
+    ] }
+  ],
+  "fieldOverrides": [
+    { "collectionGroup": "users", "fieldPath": "bible", "indexes": [] },
+    { "collectionGroup": "users", "fieldPath": "plan", "indexes": [] }
+  ]
+}

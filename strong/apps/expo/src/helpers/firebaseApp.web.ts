@@ -1,6 +1,8 @@
 import { getApp, getApps, initializeApp } from 'firebase/app'
+import { initializeFirestore, memoryLocalCache, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
 
 import { getWebFirebaseConfig } from './webFirebaseConfig'
+import { connectWebFirebaseEmulators } from './firebaseEmulators.web'
 
 export const firebaseApp =
   getApps()[0] ??
@@ -16,5 +18,14 @@ export const firebaseApp =
       EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
     })
   )
+
+// The SDK owns the offline document cache and pending writes, including across tabs.
+export const firebaseDb = initializeFirestore(firebaseApp, {
+  localCache: typeof window === 'undefined' ? memoryLocalCache() : persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+})
+
+if (process.env.EXPO_PUBLIC_FIREBASE_EMULATOR_HOST && typeof window !== 'undefined') {
+  connectWebFirebaseEmulators(firebaseApp, process.env.EXPO_PUBLIC_FIREBASE_EMULATOR_HOST, window.location.hostname)
+}
 
 export const getFirebaseApp = () => getApp()

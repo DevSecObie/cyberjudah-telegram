@@ -13,6 +13,7 @@ strong/.yarn/cache/
 strong/.yarn/install-state.gz
 strong/.yarn/unplugged/
 strong/dist/
+strong/dist-auth/
 
 # Downloaded and prepared licensed audio
 .cache/

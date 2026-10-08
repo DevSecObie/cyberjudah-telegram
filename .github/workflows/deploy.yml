@@ -142,6 +142,7 @@ jobs:
           PRIVACY_KEY: ${{ secrets.PRIVACY_KEY }}
           TELEGRAM_LOGIN_CLIENT_ID: ${{ secrets.TELEGRAM_LOGIN_CLIENT_ID }}
           TELEGRAM_LOGIN_CLIENT_SECRET: ${{ secrets.TELEGRAM_LOGIN_CLIENT_SECRET }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
           # The Worker needs the same secrets Telegram will present; wrangler stores them on the Worker.
           printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
@@ -155,6 +156,8 @@ jobs:
           if [ -n "$CYBERJUDAH_TOKEN" ]; then printf '%s' "$CYBERJUDAH_TOKEN" | npx wrangler secret put CYBERJUDAH_TOKEN; else echo "No CYBERJUDAH_TOKEN secret: notes are read-only in the app."; fi
           # A token configured directly on the Worker remains intact when no repository copy exists.
           if [ -n "$APP_REPO_TOKEN" ]; then printf '%s' "$APP_REPO_TOKEN" | npx wrangler secret put APP_REPO_TOKEN; fi
+          # Signing stays on the Worker; preserve a directly configured secret when absent.
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then printf '%s' "$FIREBASE_SERVICE_ACCOUNT" | npx wrangler secret put FIREBASE_SERVICE_ACCOUNT; fi
           if [ -n "$ADMIN_IDS" ]; then printf '%s' "$ADMIN_IDS" | npx wrangler secret put ADMIN_IDS; fi
           # Web Push for reading reminders: all three VAPID secrets or none (docs/OPERATIONS.md).
           # A partial set would make push look available while every send fails, so it stops here.

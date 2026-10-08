@@ -30,6 +30,7 @@ import { useRouter } from 'expo-router'
 import { Events } from './Events'
 import ProfileStats from '~features/profile/components/ProfileStats'
 import PassageMediaLibraryWidget from './PassageMediaLibraryWidget'
+import LatestTeachings from './LatestTeachings'
 // local react props
 type HomeProps = {
   closeHome: () => void
@@ -108,6 +109,7 @@ export const Home = ({ closeHome, inWorkspace = false }: HomeProps) => {
           <TryAudibibleWidget />
         </VStack>
 
+        <LatestTeachings />
         <Box className="overflow-hidden border-continuous bg-light-grey px-[20px]">
           <Text
             className="text-[23px] flex-[1]"
@@ -128,10 +130,10 @@ export const Home = ({ closeHome, inWorkspace = false }: HomeProps) => {
             <Box className="overflow-hidden border-continuous flex-[1]">
               <Button
                 color="#3b5998"
-                onPress={() => Linking.openURL('https://www.facebook.com/fr.bible.strong')}
+                onPress={() => Linking.openURL('https://cyberjudah.io')}
                 leftIcon={
                   <FeatherIcon
-                    name="facebook"
+                    name="globe"
                     size={20}
                     color="white"
                     style={{ marginRight: 10 }}

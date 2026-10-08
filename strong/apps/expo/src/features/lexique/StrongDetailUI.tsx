@@ -17,7 +17,11 @@ import { useTranslation, type TFunction } from 'react-i18next'
 import { DomUtils, parseDocument } from 'htmlparser2'
 import { hasChildren, isTag, isText, type ChildNode } from 'domhandler'
 import SwitchableHTMLView from '~common/SwitchableHTMLView'
-import { linkifyStrongReferences, normalizeExternalContextLinks } from '~common/stylizedHtmlUtils'
+import {
+  linkifyStrongReferences,
+  normalizeExternalContextLinks,
+  removeLegacySpacerImages,
+} from '~common/stylizedHtmlUtils'
 import Box, { HStack, TouchableBox, VStack } from '~common/ui/Box'
 import { FeatherIcon } from '~common/ui/Icon'
 import Text from '~common/ui/Text'
@@ -40,11 +44,17 @@ export const StrongEditorialSection = ({
   children,
   onLayout,
   separated = false,
+  subtitle,
+  expanded,
+  onToggle,
 }: {
   title: string
   children: React.ReactNode
   onLayout?: (event: LayoutChangeEvent) => void
+  subtitle?: string
   separated?: boolean
+  expanded?: boolean
+  onToggle?: () => void
 }) => (
   <VStack
     className="border-continuous overflow-hidden mt-[28px] border-border gap-[12px]"
@@ -52,10 +62,59 @@ export const StrongEditorialSection = ({
     style={{ paddingTop: separated ? 24 : 0, borderTopWidth: separated ? 1 : 0 }}
   >
     <PageContent className="gap-[12px]" style={{ maxWidth: 600 }}>
-      <StrongEyebrow>{title}</StrongEyebrow>
-      {children}
+      {onToggle ? (
+        <TouchableBox
+          accessibilityRole="button"
+          accessibilityLabel={title}
+          accessibilityState={{ expanded: Boolean(expanded) }}
+          onPress={onToggle}
+          activeOpacity={0.7}
+          className="flex-row items-center justify-between gap-3 py-2"
+        >
+          <StrongEyebrow>{title}</StrongEyebrow>
+          <FeatherIcon name={expanded ? 'chevron-up' : 'chevron-down'} color="primary" size={18} />
+        </TouchableBox>
+      ) : (
+        <StrongEyebrow>{title}</StrongEyebrow>
+      )}
+      {subtitle ? <Text className="text-tertiary text-[12px]">{subtitle}</Text> : null}
+      {(!onToggle || expanded) && children}
     </PageContent>
   </VStack>
+)
+
+export const StrongLevelSwitch = <T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[]
+  value: T
+  onChange: (value: T) => void
+}) => (
+  <HStack className="overflow-hidden border-continuous bg-light-grey rounded-[10px] p-[2px] gap-[2px]">
+    {options.map(option => {
+      const selected = option.value === value
+      return (
+        <TouchableBox
+          key={option.value}
+          accessibilityRole="button"
+          accessibilityLabel={option.label}
+          accessibilityState={{ selected }}
+          onPress={() => onChange(option.value)}
+          activeOpacity={0.7}
+          className={twMerge(
+            'overflow-hidden border-continuous flex-[1] items-center rounded-[8px] py-[6px]',
+            selected && 'bg-reverse'
+          )}
+        >
+          <Text className={twMerge('text-[13px] font-bold', !selected && 'text-tertiary')}>
+            {option.label}
+          </Text>
+        </TouchableBox>
+      )
+    })}
+  </HStack>
 )
 
 export const StrongPreviewLink = ({ label, onPress }: { label: string; onPress: () => void }) => (
@@ -107,6 +166,7 @@ export const StrongLexicalRelationCard = ({
 type StrongEditorialHtmlProps = {
   typography?: ReadingTypography
   value?: string
+  selectable?: boolean
   onOpenBibleReference: (osis: string) => void
   onOpenStrong: (stepCode: string) => void
 }
@@ -114,6 +174,7 @@ type StrongEditorialHtmlProps = {
 export const StrongEditorialHtml = ({
   value,
   typography,
+  selectable,
   onOpenBibleReference,
   onOpenStrong,
 }: StrongEditorialHtmlProps) => {
@@ -123,9 +184,13 @@ export const StrongEditorialHtml = ({
   return (
     <SwitchableHTMLView
       typography={typography}
+      selectable={selectable}
       value={linkifyStrongReferences(
         normalizeExternalContextLinks(
-          linkifyStrongEditorialBibleReferences(value, theme.colors.primary)
+          linkifyStrongEditorialBibleReferences(
+            removeLegacySpacerImages(value),
+            theme.colors.primary
+          )
         )
       )}
       onLinkPress={target => {
@@ -235,7 +300,7 @@ export const StrongEditorialPreview = ({
   const theme = useTheme()
   if (!value) return null
   const document = parseDocument(
-    linkifyStrongEditorialBibleReferences(value, theme.colors.primary),
+    linkifyStrongEditorialBibleReferences(removeLegacySpacerImages(value), theme.colors.primary),
     { decodeEntities: true }
   )
   const fullText = DomUtils.textContent(document)
@@ -301,6 +366,7 @@ export const StrongEntitySummaryCard = ({
   expanded = false,
   plain = false,
   compact = false,
+  previewLines,
   editorialTypography,
   readingTypography,
   onOpenBibleReference,
@@ -310,6 +376,8 @@ export const StrongEntitySummaryCard = ({
   expanded?: boolean
   plain?: boolean
   compact?: boolean
+  /** Truncates the short description; the full text stays on the entity page. */
+  previewLines?: number
   editorialTypography?: ReadingTypography
   readingTypography: StrongReadingTypography
   onOpenBibleReference: (osis: string) => void
@@ -362,14 +430,22 @@ export const StrongEntitySummaryCard = ({
           )}
         </VStack>
       </HStack>
-      {!!entity.shortDescription && (
+      {!!entity.shortDescription && previewLines ? (
+        <StrongEditorialPreview
+          value={entity.shortDescription}
+          readingTypography={readingTypography}
+          numberOfLines={previewLines}
+          onOpenBibleReference={onOpenBibleReference}
+          onOpenStrong={onOpenStrong}
+        />
+      ) : !!entity.shortDescription ? (
         <StrongEditorialHtml
           value={entity.shortDescription}
           typography={resolvedEditorialTypography}
           onOpenBibleReference={onOpenBibleReference}
           onOpenStrong={onOpenStrong}
         />
-      )}
+      ) : null}
       {expanded && !!detailedDescription && (
         <Box
           className="border-continuous overflow-hidden border-border"

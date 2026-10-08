@@ -25,7 +25,7 @@ const FAQScreen = () => {
       id: 'availability',
       question: t('faq.availabilityQuestion'),
       answer: t('faq.availabilityAnswer'),
-      link: { href: 'https://web.bible-strong.app/home', label: t('faq.openWeb') },
+      link: { href: 'https://cyberjudah.io/app/strong/home', label: t('faq.openWeb') },
     },
     { id: 'free', question: t('faq.freeQuestion'), answer: t('faq.freeAnswer') },
     { id: 'account', question: t('faq.accountQuestion'), answer: t('faq.accountAnswer') },
@@ -50,7 +50,7 @@ const FAQScreen = () => {
       question: t('faq.bugNoticedQuestion'),
       answer: t('faq.bugNoticedAnswer'),
       link: {
-        href: 'https://github.com/smontlouis/bible-strong/issues',
+        href: 'https://github.com/DevSecObie/cyberjudah-telegram/issues',
         label: t('faq.openIssues'),
       },
     },
@@ -58,7 +58,7 @@ const FAQScreen = () => {
       id: 'idea',
       question: t('faq.ideaQuestion'),
       answer: t('faq.ideaAnswer'),
-      link: { href: 'mailto:stephane@lestudio316.com', label: t('faq.contact') },
+      link: { href: 'mailto:privacy@cyberjudah.io', label: t('faq.contact') },
     },
     {
       id: 'support',
@@ -257,7 +257,7 @@ const FAQScreen = () => {
                     </Box>
                   </HStack>
                   <LinkBox
-                    href="mailto:stephane@lestudio316.com"
+                    href="mailto:privacy@cyberjudah.io"
                     className="self-end flex-row items-center gap-[10px] border border-primary rounded-[10px] px-[16px] py-[12px]"
                     style={{ alignSelf: wide ? 'center' : 'flex-end' }}
                   >

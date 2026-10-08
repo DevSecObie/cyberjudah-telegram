@@ -87,22 +87,20 @@ describe('Strong Bible download planning', () => {
   it('uses the global ZIP catalog for a historical Bible', () => {
     expect(createBibleDownloadItem('OST')).toEqual(
       expect.objectContaining({
-        url: 'https://api.bible-strong.app/v1/offline-artifacts/bibles/bible-ost.json.zip',
+        url: expect.stringMatching(
+          /^https:\/\/api\.bible-strong\.app\/v1\/offline-artifacts\/bibles\/bible-ost\.json\.zip\?sha256=[a-f0-9]{64}$/
+        ),
         archiveEntry: 'bible-ost.json',
         expectedArchiveSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
       })
     )
   })
 
-  it('installs legacy display metadata from the same Bible archive', () => {
+  it('installs the canonical text alone from the Bible archive (ADR-0066)', () => {
     expect(createBibleDownloadItem('NBS')).toEqual(
       expect.objectContaining({
         id: 'bible:NBS',
-        archiveEntries: {
-          canonical: 'bible-nbs.json',
-          pericope: 'bible-nbs-pericope.json',
-          redWords: 'red-words-nbs.json',
-        },
+        archiveEntries: { canonical: 'bible-nbs.json' },
       })
     )
   })
@@ -134,6 +132,22 @@ describe('Strong Bible download planning', () => {
       ])
     }
   )
+
+  it('acquires the named Strong lexicon with the index, independently of it', () => {
+    const plan = createStrongSidecarDownloadPlan('DBY', 'missing', 'simple-fr')
+
+    expect(plan.map(item => item.id)).toEqual(['bible-strong:DBY', 'strong-lexicon:simple-fr'])
+    expect(plan[1]?.dependsOnId).toBeUndefined()
+  })
+
+  it('keeps the canonical Bible first when the lexicon comes with a missing base', () => {
+    expect(
+      createOfflineCopyDownloadPlan(
+        { kind: 'strong-bible-index', versionId: 'DBY' },
+        { availabilityStatus: 'base-missing', strongIndexLexiconModuleId: 'simple-en' }
+      ).map(item => item.id)
+    ).toEqual(['bible:DBY', 'bible-strong:DBY', 'strong-lexicon:simple-en'])
+  })
 
   it('deduplicates a base selected explicitly and added as a sidecar dependency', () => {
     const plan = createStrongSidecarDownloadPlan('DBY', 'base-missing')

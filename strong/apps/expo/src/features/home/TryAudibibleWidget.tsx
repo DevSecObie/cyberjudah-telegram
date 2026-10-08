@@ -30,7 +30,7 @@ const TryAudibibleWidget = () => {
     <Box className="overflow-hidden border-continuous bg-light-grey px-[20px] pb-[40px]">
       <LinkBox
         className="p-[20px] h-[100px] relative items-center bg-primary flex-row rounded-[20px] overflow-visible"
-        href={`https://click.audibible.app/5nmN/stephane30`}
+        href={`https://cyberjudah.io/app/audio`}
         style={{
           shadowColor: 'rgb(89,131,240)',
           shadowOffset: { width: 0, height: 2 },
@@ -51,7 +51,7 @@ const TryAudibibleWidget = () => {
             borderWidth: 2,
             borderColor: 'white',
           }}
-          source={require('../../assets/images/audibible-icon.png')}
+          source={require('../../assets/images/home/cyberjudah-icon.png')}
         />
         <Box className="overflow-hidden border-continuous ml-[16px]">
           <Text

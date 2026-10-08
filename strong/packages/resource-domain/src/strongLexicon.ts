@@ -1,7 +1,7 @@
 import type { ResourceLanguage } from './interlinearBible'
 import type { StrongIdentity } from './strongIdentities'
 
-export type StrongLexiconModuleId = 'core' | 'resources' | 'entities'
+export type StrongLexiconModuleId = 'core' | 'resources' | 'entities' | 'simple-fr' | 'simple-en'
 
 export type StrongLexiconModuleAvailability =
   | { status: 'missing'; moduleId: StrongLexiconModuleId }
@@ -87,6 +87,7 @@ export type StrongLexiconEntry = {
   gloss: string
   nameMeaningHtml?: string
   definitionHtml?: string
+  detailedDefinitionHtml?: string
   morphology?: StrongLexiconMorphology
   relations: StrongLexiconRelation[]
   resources: StrongLexiconResource[]
@@ -137,6 +138,14 @@ export type StrongLexiconSearchResult = {
   transliteration: string
   gloss: string
 }
+/**
+ * A sense of a classical number: its row in the simple lexicon of a language, then what its
+ * entry in the detailed lexicon tells it apart by, when it has one.
+ */
+export type StrongLexiconNumberSense = StrongLexiconSearchResult & {
+  detailedDefinitionHtml?: string
+  entityBrief?: string
+}
 export type StrongLexiconPage = { entries: StrongLexiconSearchResult[]; nextCursor?: string }
 export type StrongLexiconListRequest = {
   signal?: AbortSignal
@@ -147,3 +156,17 @@ export type StrongLexiconListRequest = {
   limit?: number
   cursor?: string
 }
+
+export const getSimpleStrongModuleId = (language: ResourceLanguage): StrongLexiconModuleId =>
+  language === 'fr' ? 'simple-fr' : 'simple-en'
+
+export const isSimpleStrongModule = (moduleId: StrongLexiconModuleId): boolean =>
+  moduleId === 'simple-fr' || moduleId === 'simple-en'
+
+export const isStandaloneStrongModule = (moduleId: StrongLexiconModuleId): boolean =>
+  moduleId === 'core' || isSimpleStrongModule(moduleId)
+
+export const getStrongModuleSchema = (
+  moduleId: StrongLexiconModuleId
+): 'core' | 'resources' | 'entities' =>
+  isSimpleStrongModule(moduleId) ? 'core' : (moduleId as 'core' | 'resources' | 'entities')

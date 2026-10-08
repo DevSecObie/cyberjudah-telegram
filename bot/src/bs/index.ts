@@ -4,6 +4,7 @@ import { dictionaries } from './dictionary';
 import { lexicon, strongBibles } from './strongs';
 import { naves } from './topics';
 import { commentaries } from './commentary';
+import { timelines } from './timeline';
 import { type App, BOOKS, FeedError, invalid, limit, load, metadata, missing, sha, verseKey } from './core';
 
 export const bs = new Hono<App>();
@@ -53,14 +54,7 @@ bs.get('/v1/cross-references/:language/verses/:verseKey', async c => {
   }))];
   return c.json({ resource: { kind: 'cross-references', resourceId: 'cyberjudah-xref', language: lang, revision: `cj-xref-${await sha(data)}` }, verseKey: c.req.param('verseKey'), references });
 });
-bs.get('/v1/timelines/:language/events', c => {
-  const lang = c.req.param('language');
-  if (!['en', 'fr'].includes(lang)) return invalid();
-  limit(c, 100, 50);
-  // Episodes have publication dates, not dates/periods of historical events.
-  return c.json({ resource: { kind: 'timeline', language: lang, revision: 'cj-history-no-timeline-v1' }, events: [] });
-});
-bs.get('/v1/timelines/:language/events/:slug', c => missing('TIMELINE_EVENT_NOT_FOUND'));
+bs.route('/v1/timelines', timelines);
 bs.get('/v1/interlinear-bibles/:version/languages/:language/coverage', c => missing('INTERLINEAR_UNSUPPORTED'));
 bs.get('/v1/interlinear-bibles/:version/languages/:language/books/:book/chapters/:chapter', c => missing('INTERLINEAR_UNSUPPORTED'));
 bs.post('/v1/search-events', c => c.json({ accepted: false }, 202));

@@ -10,7 +10,7 @@ import {
 let transportPromise: Promise<AnalyticsTransport | null> | undefined
 const load = () => {
   transportPromise ??= (async () => {
-    if (typeof window === 'undefined') return null
+    if (typeof window === 'undefined' || process.env.EXPO_PUBLIC_ANALYTICS_ENABLED !== 'true') return null
     const sdk = await import('firebase/analytics')
     if (!(await sdk.isSupported())) return null
     const { firebaseApp } = await import('./firebaseApp.web')

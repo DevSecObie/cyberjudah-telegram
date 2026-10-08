@@ -68,3 +68,5 @@ export const linkifyStrongReferences = (html: string) => {
 
   return result + linkifyText(html.slice(cursor))
 }
+
+export { removeLegacySpacerImages } from '@bible-strong/resource-domain/strong-definition-comparison'

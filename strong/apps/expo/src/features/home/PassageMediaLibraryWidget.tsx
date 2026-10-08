@@ -6,11 +6,16 @@ import { useTranslation } from 'react-i18next'
 import Box, { TouchableBox } from '~common/ui/Box'
 import { FeatherIcon } from '~common/ui/Icon'
 import Text from '~common/ui/Text'
+import { useTeachings } from './useTeachings'
 const PassageMediaLibraryWidget = () => {
   const stylingTheme = useStylingTheme()
 
   const { t } = useTranslation()
   const pushRoute = usePushRouteOnce()
+  const feed = useTeachings()
+  const featured = feed.data?.teachings.find(
+    teaching => teaching.kind === 'class'
+  )
 
   return (
     <Box className="overflow-hidden border-continuous bg-light-grey pt-[20px]">
@@ -31,7 +36,7 @@ const PassageMediaLibraryWidget = () => {
       >
         <Box className="border-continuous overflow-visible w-[48%] h-[100%] bg-light-grey rounded-tl-[20px] rounded-bl-[20px]">
           <Image
-            source={require('~assets/images/home/courses-videos.jpg')}
+            source={featured?.thumb ? { uri: featured.thumb } : undefined}
             contentFit="cover"
             contentPosition="center"
             style={{
@@ -46,7 +51,9 @@ const PassageMediaLibraryWidget = () => {
           <Text
             className="text-[20px]"
             numberOfLines={2}
-            style={{ fontFamily: resolveFontFamily(stylingTheme.fontFamily.title) }}
+            style={{
+              fontFamily: resolveFontFamily(stylingTheme.fontFamily.title),
+            }}
           >
             {t('passageMediaLibrary.title')}
           </Text>

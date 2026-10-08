@@ -1,0 +1,25 @@
+{
+  "name": "cyberjudah-firebase-rules",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-cyberjudah \"node --test tests/*.test.mjs\"",
+    "test:web": "firebase emulators:exec --only auth,firestore --project demo-cyberjudah \"node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=./ci-test-reporter.mjs --test-reporter-destination=stderr tests-web/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "firebase": "13.0.0",
+    "firebase-tools": "15.33.0"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "1.14.6",
+    "@opentelemetry/core": "2.8.0",
+    "basic-ftp": "6.2.2",
+    "firebase-tools": {
+      "chokidar": "4.0.3"
+    },
+    "gaxios": {
+      "uuid": "11.1.1"
+    }
+  }
+}

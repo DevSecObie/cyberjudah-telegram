@@ -24,7 +24,7 @@ export const buildPublicStrongPath = (
 ): string => {
   const identity = parsePublicStrongCode(code)
   if (!identity) throw new Error('PUBLIC_STRONG_ROUTE_INVALID')
-  const root = `/strong/${identity.code.toLocaleLowerCase()}`
+  const root = `/strong/${identity.code[0].toLowerCase() + identity.code.slice(1)}`
   return page === 'index' ? root : `${root}/${PAGE_SUFFIXES[page]}`
 }
 
@@ -40,3 +40,15 @@ export const publicStrongContext = (identity: StrongIdentity): StrongDetailRoute
   identityKind: identity.kind,
   identityCode: identity.code,
 })
+
+export const resolvePublicStrongContext = (
+  identity: StrongIdentity,
+  routeContext: StrongDetailRouteContext
+): StrongDetailRouteContext => {
+  const context = { ...routeContext, ...publicStrongContext(identity) }
+  const hasVerseContext =
+    routeContext.book != null &&
+    routeContext.bibleChapter != null &&
+    routeContext.bibleVerse != null
+  return hasVerseContext ? { ...context, book: routeContext.book } : context
+}
