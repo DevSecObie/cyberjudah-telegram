@@ -22,7 +22,7 @@ export type SelectedVersesSheetProps = {
   moreThanOne: boolean; hasBookmark: boolean; hasFocus: boolean;
   onNote: () => void; onTag: () => void; onLink: () => void; onRelation: () => void; onBookmark: () => void; onFocus: () => void;
   onLexicon: () => void; onDictionary: () => void; onThemes: () => void; onReferences: () => void; onCommentary: () => void; onCompare: () => void;
-  onStudy: () => void; onPhrase: () => void;
+  onStudy: () => void;
   onCopy: () => void; onShare: () => void; onExport: () => void; onSelectAll: () => void;
 };
 const TABS = ["Annotate", "Study", "Share"];
@@ -71,7 +71,6 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
                 <ActionItem name="bookmark" label="Bookmark" onPress={p.onBookmark} disabled={p.moreThanOne} isActive={p.hasBookmark} />
                 <ActionItem name="crosshair" label="Focus" onPress={p.onFocus} isActive={p.hasFocus} />
               </ActionsLayout>
-              <button type="button" className="bs-selected__extra" onClick={p.onPhrase} disabled={p.moreThanOne}><Feather name="edit-3" size={18} /><span>Mark phrase</span><Feather name="chevron-right" size={16} /></button>
             </div>
             <div className="bs-page" style={{ width }} role="tabpanel" id={`sv-panel-1`} aria-labelledby={`sv-tab-1`} aria-hidden={tab !== 1} inert={tab !== 1}>
               <ActionsLayout>
