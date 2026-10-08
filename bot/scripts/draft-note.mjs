@@ -35,7 +35,8 @@ const llm = async (messages, max_tokens = 1500) => {
   for (let attempt = 1; ; attempt++) {
     const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/ai/run/${ANSWER_MODEL}`, { method: "POST", headers: { authorization: `Bearer ${TOKEN}`, "content-type": "application/json" }, body: JSON.stringify({ messages, max_tokens, temperature: 0.2 }) });
     const body = await res.json().catch(() => ({}));
-    if (res.ok && body.success) return (body.result?.response ?? "").trim();
+    // Workers AI sometimes hands back a JSON reply already parsed; turn it back into text.
+    if (res.ok && body.success) { const r = body.result?.response ?? ""; return typeof r === "string" ? r.trim() : JSON.stringify(r); }
     if (attempt >= 3) throw new Error(`Workers AI: ${res.status} ${JSON.stringify(body.errors ?? body).slice(0, 200)}`);
     await new Promise((r) => setTimeout(r, 3000 * attempt));
   }
