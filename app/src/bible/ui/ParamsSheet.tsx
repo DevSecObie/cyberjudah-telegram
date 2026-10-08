@@ -52,6 +52,7 @@ export function ParamsSheet({ open, onClose, settings: s, set, palette }: { open
           <Row label="Verse mode" value={td}>
             <IconBtn name={s.textDisplay === "inline" ? "arrow-right" : "corner-down-right"} label={`Verse mode: ${td}`} selected onPress={() => set({ textDisplay: s.textDisplay === "inline" ? "block" : "inline" })} />
           </Row>
+          <Switch label="Verse numbers" on={s.showVerseNumbers} onChange={showVerseNumbers => set({ showVerseNumbers })} />
           <Row label="Precepts display" value={rd}>
             <IconBtn name={s.relationsDisplay === "inline" ? "align-left" : "precepts"} label={`Precepts display: ${rd}`} selected onPress={() => set({ relationsDisplay: s.relationsDisplay === "inline" ? "block" : "inline" })} />
           </Row>

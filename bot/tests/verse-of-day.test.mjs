@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { verseOfDay, VERSES, bookLabel } from "../src/verse-of-day.mjs";
+import { verseOfDay, VERSES, bookLabel, validVerseDate } from "../src/verse-of-day.mjs";
 
 test("the same date gives the same verse, any time of day", () => {
   const a = verseOfDay(new Date("2026-09-25T00:00:01Z"));
@@ -25,4 +25,9 @@ test("the curated references are present", () => {
   for (const r of ["psalms 119:105", "proverbs 4:7", "isaiah 28:10", "2-timothy 2:15", "revelation 14:12", "hebrews 4:12"]) assert.ok(refs.has(r), r);
   assert.equal(bookLabel("2-timothy"), "2 Timothy");
   assert.equal(bookLabel("song-of-solomon"), "Song of Solomon");
+});
+
+test("dated daily scripture accepts leap days and rejects impossible or malformed dates", () => {
+  assert.equal(validVerseDate("2024-02-29"), true);
+  for (const value of ["2026-02-29", "2026-04-31", "2026-13-01", "2026-1-01", "2026-10-08T12:00:00Z", "", null]) assert.equal(validVerseDate(value), false);
 });

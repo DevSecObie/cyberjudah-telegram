@@ -25,12 +25,12 @@ async function search(c: Ctx, multi: boolean, semantic: boolean) {
   if (!q || q.length > 200) return invalid('Expected a search query of 1 to 200 characters');
   const take = limit(c, 100, 20), offset = integer(c.req.query('offset'), 0, Number.MAX_SAFE_INTEGER, 0);
   const b = c.req.query('book'), section = c.req.query('section'), canon = c.req.query('canon'), lang = c.req.query('language'), sort = c.req.query('sortOrder') ?? 'relevance';
-  if (section && !['ot', 'nt'].includes(section) || lang && !['en', 'fr'].includes(lang) || !['relevance', 'book'].includes(sort)) return invalid();
+  if (section && !['ot', 'nt', 'apoc'].includes(section) || lang && !['en', 'fr'].includes(lang) || !['relevance', 'book'].includes(sort)) return invalid();
   if (canon && !['protestant-66', 'catholic-73', 'clementine-vulgate', 'theotex-septuagint', 'kjv-1611'].includes(canon)) return invalid();
   // Version coverage supplies our canon; never silently reinterpret another canon's numbering.
   if (canon && !['protestant-66', 'kjv-1611'].includes(canon)) return missing('BIBLE_UNSUPPORTED', 'This canon is not provided by CyberJudah');
   const selected = b ? bookById(b).id : undefined;
-  const books = BOOKS.filter(row => (!selected || row.id === selected) && (!section || (section === 'nt' ? row.id >= 40 && row.id <= 66 : row.id <= 39)) && (canon !== 'protestant-66' || row.id <= 66));
+  const books = BOOKS.filter(row => (!selected || row.id === selected) && (!section || (section === 'nt' ? row.id >= 40 && row.id <= 66 : section === 'apoc' ? row.id > 66 : row.id <= 39)) && (canon !== 'protestant-66' || row.id <= 66));
   let results: { version: string; book: number; chapter: number; verse: number; text: string; highlighted: string; match: { kind: 'lexical' } }[] = [], count = 0;
   if (!semantic && books.length) {
     const found = await runBibleSearch(c.env.DB, q, books.map(b => b.sourceName), take, offset, sort === 'book');

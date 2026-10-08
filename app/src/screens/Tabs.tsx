@@ -13,11 +13,12 @@ import { moveTab, reflowTabs } from "@/ui/tab-motion";
 /** Bible Strong's New Tab page (TabScreen/NewTab/NewTabContent): every resource, by section, each opening in this tab. */
 type Item = [to: string, title: string, description: string, icon: IconName];
 const READ: Item[] = [
-  ["/plan", "Reading plan", "Follow a reading plan", "check"],
+  ["/plans", "Reading plans", "Choose a plan or resume your reading", "check"],
   ["/study", "4 Chapters a Day", "The daily reading, a note for every chapter", "book"],
   ["/classes?feed=history", "Our Hidden History", "Explore our history, episode by episode", "history"],
 ];
 const PERSONAL: Item[] = [
+  ["/studies", "My studies", "Your writing, scripture and word studies", "compose"],
   ["/classes", "Classes", "Every Sabbath class, with its notes", "play"],
   ["/bookmarks", "Kept", "Your highlights, notes and bookmarks", "bookmark"],
   ["/ask", "Ask CyberJudah", "Answers from the teachings, with their sources", "chat"],
@@ -51,7 +52,7 @@ export function NewTab() {
   return (
     <Screen className="newtab">
       <h1 className="nt-heading">What would you like to explore?</h1>
-      <button type="button" className="nt-search" onClick={() => open("/search")}><Icon name="search" size={20} /><span>A passage, a tab, a tool…</span></button>
+      <button type="button" className="nt-search" onClick={() => window.dispatchEvent(new Event("cj:commands"))}><Icon name="search" size={20} /><span>A passage, a tab, a tool…</span></button>
       <h2 className="shelf">Read and explore</h2>
       <button type="button" className="nt-hero" onClick={() => open("/bible")}>
         <span className="nt-hero__icon"><Icon name="book-open" size={64} /></span>

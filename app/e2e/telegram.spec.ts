@@ -393,7 +393,7 @@ test("the reading plan ticks today's chapters and keeps a streak", async ({ page
   await page.click(".sheet__item >> text=4 chapters a day");
   await expect(page.locator(".card__label")).toHaveText("Today");
   await expect(page.locator(".plan-row")).toHaveCount(4);
-  for (let i = 0; i < 4; i++) await page.locator(".plan-row i").nth(i).click();
+  for (let i = 0; i < 4; i++) await page.locator(".plan-row__check").nth(i).click();
   await expect(page.locator(".plan-row[data-read]")).toHaveCount(4);
   await expect(page.locator(".pageaction").last()).toHaveText("Tomorrow's reading");
   await page.locator(".pageaction").last().click();
@@ -722,10 +722,14 @@ test("reading progress: read chapters in the book picker, the day strip and catc
 });
 
 test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a reference or finds the words", async ({ page }) => {
-  await page.route("**/api/search?**", (r) => r.fulfill({ json: { ok: true, q: "", mode: "strict", counts: {}, ms: 1, hits: [
-    { kind: "verse", title: "John 1:4", url: "/bible/john/1#v4", sub: "", snippet: "In him was life; and the life was the light of men." },
-    { kind: "verse", title: "Sirach 43:9", url: "/bible/sirach/43#v9", sub: "", snippet: "The beauty of heaven, the glory of the stars, an ornament giving light in the highest places of the Lord." },
-  ] } }));
+  await page.route("**/bs/v1/bibles/KJV/search?**", r => {
+    const q = new URL(r.request().url()).searchParams;
+    const results = [
+      { book: 43, chapter: 1, verse: 4, text: "In him was life; and the life was the light of men." },
+      { book: 73, chapter: 43, verse: 9, text: "The beauty of heaven, the glory of the stars, an ornament giving light in the highest places of the Lord." },
+    ].filter(v => (!q.has("book") || v.book === Number(q.get("book"))) && (q.get("section") !== "apoc" || v.book > 66));
+    return r.fulfill({ json: { results, count: results.length } });
+  });
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await page.click(".bs-pill--book");
   await expect(page.locator('.bs-bookrow:has-text("2 Maccabees")')).toBeVisible();
@@ -749,11 +753,11 @@ test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a re
   await page.click('.bs-search__filters .bs-chip:has-text("Apocrypha")');
   await expect(page.locator(".bs-search__hit")).toHaveCount(1);
   await expect(page.locator(".bs-search__count")).toHaveText("1 verse in the Apocrypha");
-  await page.selectOption(".bs-chip--select", "tobit");
+  await page.selectOption('select[aria-label="One book"]', "tobit");
   await expect(page.locator(".bs-search__hit")).toHaveCount(0);
-  await expect(page.locator(".bs-search__hint")).toContainText("No verse has those words in Tobit. 2 elsewhere.");
+  await expect(page.locator(".bs-search__hint")).toContainText("No matching verses in Tobit.");
   await page.click('.bs-search__filters .bs-chip:has-text("All")');
-  await page.selectOption(".bs-chip--select", "");
+  await page.selectOption('select[aria-label="One book"]', "");
   await expect(page.locator(".bs-search__hit")).toHaveCount(2);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/bible-search.png` });
   await page.locator(".bs-search__hit").first().click();

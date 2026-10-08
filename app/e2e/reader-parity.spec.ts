@@ -1,0 +1,156 @@
+import { expect, test, type Page } from "@playwright/test";
+import fs from "node:fs/promises";
+const DATA = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
+const verses = Array.from({ length: 31 }, (_, i) => ({ verse: i + 1, text: i === 0 ? "In the beginning God created the heaven and the earth." : `Verse ${i + 1}: And God said, Let there be light: and there was light.` }));
+async function setup(page: Page) {
+  page.setDefaultTimeout(15_000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: "" }));
+  await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
+  await page.route(`${DATA}/**`, r => {
+    const path = new URL(r.request().url()).pathname;
+    if (path === "/api/kjv/books.json") return r.fulfill({ json: [
+      { book: "Genesis", slug: "genesis", chapters: 2, verses: 62, chapterIds: [1, 2] },
+      { book: "John", slug: "john", chapters: 3, verses: 93, chapterIds: [1, 2, 3] },
+      { book: "Wisdom of Solomon", slug: "wisdom-of-solomon", chapters: 1, verses: 31, chapterIds: [1] },
+    ] });
+    const chapter = /\/api\/kjv\/([^/]+)\/(\d+).json/.exec(path);
+    if (chapter) return r.fulfill({ json: { book: chapter[1], chapter: +chapter[2], translation: "KJV", verses } });
+    return r.fulfill({ status: 404, body: "" });
+  });
+  await page.route("**/api/verse-of-day*", r => r.fulfill({ json: { ref: new URL(r.request().url()).searchParams.has("date") ? "Genesis 1:2" : "Genesis 1:1", slug: "genesis", chapter: 1, verse: new URL(r.request().url()).searchParams.has("date") ? 2 : 1, text: "In the beginning God created the heaven and the earth." } }));
+  await page.addInitScript(() => {
+    localStorage.setItem("cj:bs", JSON.stringify({ press: "longPress" }));
+    localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "one", groups: [{ id: "one", name: "My tabs", color: "#2dd4bf", current: "bible-one", tabs: [{ id: "bible-one", path: "/read/genesis/1" }, { id: "bible-two", path: "/read/john/3?v=16-18" }] }] }));
+  });
+}
+async function menu(page: Page, action: string) {
+  await page.getByRole("button", { name: "Scripture options", exact: true }).click();
+  await page.getByRole("menuitem", { name: action, exact: true }).click();
+}
+async function overview(page: Page) {
+  if (await page.locator("nav.tabs[data-mini]").count()) await page.locator("nav.tabs .tab[data-kept]").click();
+  await page.getByRole("button", { name: /\d+ Tabs open/ }).click();
+  await expect(page.getByRole("main", { name: "Your tabs" })).toBeVisible();
+}
+test.beforeEach(async ({ page }) => setup(page));
+
+test("reader selections and expanded passage context belong to their own tabs", async ({ page }) => {
+  await page.goto("/read/genesis/1");
+  await page.locator("#verset-1 .bs-text").click();
+  await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "Find a tab or tool" }).fill("John"); await page.keyboard.press("Enter");
+  await expect(page.locator(".bs-verse")).toHaveCount(3);
+  await expect(page.locator("#verset-15")).toHaveCount(0);
+  await page.locator(".bs-context__main").click();
+  await expect(page.locator(".bs-verse")).toHaveCount(31);
+  await overview(page); await page.getByRole("button", { name: "Open Genesis 1 - KJV", exact: true }).click();
+  await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox", { name: "Find a tab or tool" }).fill("John"); await page.keyboard.press("Enter");
+  await expect(page.locator(".bs-context__main")).toHaveText("Back to the Scripture");
+  await expect(page.locator("#verset-1")).not.toHaveAttribute("data-selected");
+});
+
+test("new Bible tab stays selected and carries its focused passage", async ({ page }) => {
+  await page.goto("/read/genesis/1?v=1-2");
+  await menu(page, "Open in new tab");
+  await expect(page).toHaveURL(/\/read\/genesis\/1\?v=1-2/);
+  await expect.poll(() => page.evaluate(() => { const s = JSON.parse(localStorage.getItem("cj:tabgroups")!); return s.groups[0].current; })).not.toBe("bible-one");
+  await expect(page.getByRole("button", { name: "3 Tabs open", exact: true })).toBeVisible();
+  await expect(page.locator(".bs-verse")).toHaveCount(2);
+});
+
+test("export saves the chosen scope and notes, and supports a whole book", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({ "1/2": { id: "n", title: "Creation", description: "My saved note", date: 1 }, "7": { id: "other", title: "Unrelated note", description: "Do not include", date: 1 } })));
+  await page.goto("/read/genesis/1"); await page.locator("#verset-1 .bs-text").click();
+  const selected = page.getByRole("dialog", { name: /^Selected:/ });
+  await selected.getByRole("tab", { name: "Share", exact: true }).click();
+  await selected.getByRole("button", { name: "Export", exact: true }).click();
+  const sheet = page.getByRole("dialog", { name: "Export passage" });
+  await expect(sheet.locator("pre")).toContainText("My saved note");
+  const download = page.waitForEvent("download"); await sheet.getByRole("button", { name: "Save text file" }).click();
+  const text = await fs.readFile((await (await download).path())!, "utf8");
+  expect(text).toContain("1. In the beginning"); expect(text).toContain("My saved note"); expect(text).toContain("outside this selection"); expect(text).not.toContain("Unrelated note");
+  await sheet.getByRole("switch", { name: "Notes", exact: true }).click();
+  await expect(sheet.locator("pre")).not.toContainText("My saved note");
+  await sheet.getByLabel("Export scope").selectOption("book");
+  await expect(sheet.locator("pre")).toContainText("Genesis 1");
+  const whole = page.waitForEvent("download"); await sheet.getByRole("button", { name: "Save text file" }).click();
+  expect(await fs.readFile((await (await whole).path())!, "utf8")).toContain("Genesis 2 · Scripture");
+});
+
+test("search applies filters on the server, pages, sorts, and preserves a typed verse range", async ({ page }) => {
+  const queries: URLSearchParams[] = [];
+  await page.route("**/bs/v1/bibles/KJV/search?*", r => {
+    const q = new URL(r.request().url()).searchParams; queries.push(q);
+    const offset = Number(q.get("offset")), book = Number(q.get("book") || (q.get("section") === "apoc" ? 72 : 1));
+    return r.fulfill({ json: { count: 52, results: Array.from({ length: offset ? 2 : 50 }, (_, i) => ({ book, chapter: Math.floor((i + offset) / 31) + 1, verse: (i + offset) % 31 + 1, text: `God created ${offset + i}` })) } });
+  });
+  await page.goto("/read/genesis/1"); await menu(page, "Search the Scriptures");
+  const sheet = page.getByRole("dialog", { name: "Search the Scriptures", exact: true });
+  await sheet.getByRole("searchbox").fill("God created");
+  await expect(sheet.locator(".bs-search__hit")).toHaveCount(50);
+  await sheet.getByRole("button", { name: "More verses" }).click();
+  await expect(sheet.locator(".bs-search__hit")).toHaveCount(52);
+  await sheet.getByLabel("One book").selectOption("john");
+  await expect(sheet.locator(".bs-search__hit").first()).toContainText("John");
+  expect(queries.at(-1)?.get("book")).toBe("43"); expect(queries.at(-1)?.get("offset")).toBe("0");
+  await sheet.getByRole("button", { name: "Apocrypha", exact: true }).click();
+  await expect(sheet.locator(".bs-search__hit").first()).toContainText("Wisdom of Solomon");
+  expect(queries.at(-1)?.get("section")).toBe("apoc");
+  await sheet.getByLabel("Result order").selectOption("book");
+  await expect.poll(() => queries.at(-1)?.get("sortOrder")).toBe("book");
+  await sheet.getByRole("searchbox").fill("John 3:16-18");
+  await sheet.getByRole("button", { name: /Go to John 3:16-18/ }).click();
+  await expect(page).toHaveURL(/\/read\/john\/3\?v=16-18/);
+  await expect(page.locator(".bs-verse")).toHaveCount(3);
+});
+
+test("reader verse numbers can be hidden without hiding them from assistive technology", async ({ page }) => {
+  await page.goto("/read/genesis/1"); await menu(page, "Font and settings");
+  await page.getByRole("switch", { name: "Verse numbers", exact: true }).click();
+  await page.getByRole("dialog", { name: "Font and settings" }).getByRole("button", { name: "Close", exact: true }).click();
+  await expect(page.locator("#verset-1 .bs-num")).toHaveCount(0);
+  await expect(page.locator("#verset-1 .sr-only")).toHaveText("1");
+  await page.reload(); await expect(page.locator("#verset-1 .bs-num")).toHaveCount(0);
+});
+
+test("daily verses have five days, sharing and images on Home", async ({ page }) => {
+  await page.goto("/");
+  const card = page.getByRole("region", { name: "Daily scripture" });
+  await expect(card).toContainText("Genesis 1:1");
+  await expect(card.getByRole("button", { name: "Share", exact: true })).toBeEnabled();
+  await card.getByRole("button", { name: "Previous day's scripture" }).click();
+  await expect(card).toContainText("Yesterday"); await expect(card).toContainText("Genesis 1:2");
+  await card.getByRole("button", { name: "Image", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Verse image" }).getByRole("img")).toHaveAttribute("src", "/card/genesis/1/2.svg");
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await card.getByRole("button", { name: "Today's scripture", exact: true }).click();
+  await expect(card).toContainText("Genesis 1:1");
+});
+
+test("keyboard palette switches to an existing tab and opens a passage with its range", async ({ page }) => {
+  await page.goto("/read/genesis/1");
+  await page.keyboard.press("Control+k");
+  const input = page.getByRole("combobox", { name: "Find a tab or tool" });
+  await input.fill("John"); await input.press("Enter");
+  await expect(page).toHaveURL(/\/read\/john\/3\?v=16-18/);
+  await expect(page.getByRole("button", { name: "2 Tabs open", exact: true })).toBeVisible();
+  await page.keyboard.press("Control+k"); await input.fill("Genesis 1:2-3"); await input.press("Enter");
+  await expect(page).toHaveURL(/\/read\/genesis\/1\?v=2-3/);
+  await expect(page.getByRole("button", { name: "3 Tabs open", exact: true })).toBeVisible();
+  await page.keyboard.press("Control+Alt+w"); await expect(page.getByRole("button", { name: "2 Tabs open", exact: true })).toBeVisible();
+});
+
+test("plan completion can be corrected by keyboard and its read action stays inside the app", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("cj:plan", JSON.stringify({ startedAt: new Date().toISOString().slice(0, 10), day: 0, streak: 0, perDay: 1, books: ["john"], name: "John" })));
+  await page.goto("/plan");
+  const check = page.getByRole("button", { name: "John 1 read", exact: true });
+  await check.focus(); await page.keyboard.press("Space"); await expect(check).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Space"); await expect(check).toHaveAttribute("aria-pressed", "false");
+  await page.getByRole("button", { name: "Read John 1", exact: true }).click();
+  await expect(page).toHaveURL(/\/read\/john\/1$/);
+  await expect(page.locator("#verset-1")).toBeVisible();
+});

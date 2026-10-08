@@ -82,7 +82,7 @@ export function selectTab(id: string): string {
 /** Close a tab; the last tab of a group is never closed, it goes back to the New Tab page. */
 export function closeTab(id: string) {
   const g = group();
-  if (g.tabs.length === 1) { setGroup({ ...g, tabs: [{ ...g.tabs[0], path: "/new" }], current: g.tabs[0].id }); return; }
+  if (g.tabs.length === 1) { const t = { id: uid(), path: "/new" }; setGroup({ ...g, tabs: [t], current: t.id }); return; }
   const tabs = g.tabs.filter((t) => t.id !== id);
   setGroup({ ...g, tabs, current: g.current === id ? tabs[tabs.length - 1].id : g.current });
 }
@@ -142,7 +142,7 @@ const KINDS: [RegExp, string, string][] = [
   [/^\/new/, "New tab", "compose"], [/^\/(bible|read)/, "Bible", "book-open"], [/^\/search/, "Search", "search"], [/^\/lexicon/, "Strong", "spark"],
   [/^\/dictionary/, "Dictionary", "type"], [/^\/topics/, "Topics", "tag"], [/^\/(person|people)/, "People", "star"], [/^\/(classes|note|watch)/, "Classes", "play"],
   [/^\/history/, "Recently viewed", "history"], [/^\/timeline/, "Bible timeline", "clock"], [/^\/books/, "Library", "layers"], [/^\/encyclopedia/, "Encyclopedia", "book"], [/^\/law/, "The Law", "law"],
-  [/^\/precepts/, "Precepts", "quote"], [/^\/cases/, "Case studies", "folder"], [/^\/plan/, "Reading plan", "check"], [/^\/study/, "4 Chapters a Day", "book"],
+  [/^\/precepts/, "Precepts", "quote"], [/^\/cases/, "Case studies", "folder"], [/^\/plans/, "Reading plans", "check"], [/^\/plan/, "Reading plan", "check"], [/^\/studies/, "My studies", "compose"], [/^\/study/, "4 Chapters a Day", "book"],
   [/^\/(bookmarks|tags)/, "Kept", "bookmark"], [/^\/ask/, "Ask CyberJudah", "chat"], [/^\/relations/, "Your precepts", "precepts"], [/^\/sabbath/, "Sabbath", "sun"], [/^\/settings/, "Settings", "gear"],
 ];
 export function tabKind(path: string): { kind: string; icon: string } {

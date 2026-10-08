@@ -2,7 +2,7 @@ import { AddToStudy } from "@/studies/AddToStudy";
 import { PhraseAnnotations } from "@/studies/PhraseAnnotations";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { compressVerses, data, verseNumbers } from "@/api/data";
 import { isRead, markRead, pushHistory, unmarkRead, useHistory, useLast, usePlan, useProgress } from "@/lib/marks";
@@ -31,8 +31,10 @@ import { ResourcesSheet, type ResourceTab } from "./ui/ResourcesSheet";
 import { CompareSheet } from "./ui/CompareSheet";
 import { chapterClasses, isWhy, slugOfUrl, useClassesByVerse, useTaughtRelations, whyVerse } from "@/lib/taught";
 import { MediaDeck } from "./dom/MediaDeck";
-import { newTab, selectTab } from "@/lib/tabs";
+import { newTab, useTabs } from "@/lib/tabs";
+import { readerSession, saveReaderSession } from "./session";
 import { WhySheet } from "./ui/WhySheet";
+import { PassageExportSheet } from "./ui/PassageExportSheet";
 import { SelectedVersesSheet } from "./ui/SelectedVersesSheet";
 import "./bible.css";
 
@@ -43,6 +45,14 @@ import "./bible.css";
  * in Telegram's cloud storage.
  */
 export function BibleTab() {
+  const { current } = useTabs();
+  const location = useLocation();
+  const focus = new URLSearchParams(location.search).get("v") ?? "";
+  const sessionKey = `${current}:${location.pathname}:${focus}`;
+  return <BibleReader key={sessionKey} sessionKey={sessionKey} />;
+}
+
+function BibleReader({ sessionKey }: { sessionKey: string }) {
   const { book: slugParam, chapter: chapterParam } = useParams();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
@@ -87,14 +97,14 @@ export function BibleTab() {
   const go = (t: { slug: string; ch: number } | null, verse?: number) => { if (t) navigate(`/read/${t.slug}/${t.ch}${verse && verse > 1 ? `?v=${verse}` : ""}`); };
 
   // Per-tab state.
-  const [selected, setSelected] = useState<number[]>([]);
   const focus = useMemo(() => { const v = verseNumbers(params.get("v")); return v.length ? v : null; }, [params]);
-  const [contextMode, setContextMode] = useState<"focused" | "fullChapter">(focus ? "focused" : "fullChapter");
-  const [fullscreen, setFullscreen] = useState(false);
+  const [initial] = useState(() => readerSession(sessionKey, !!focus));
+  const [selected, setSelected] = useState(initial.selected);
+  const [contextMode, setContextMode] = useState(initial.contextMode);
+  const [fullscreen, setFullscreen] = useState(initial.fullscreen);
   const [verseToScroll, setVerseToScroll] = useState<number | undefined>(focus?.[0]);
   const [navRequest, setNavRequest] = useState(0);
-  useEffect(() => { setSelected([]); setFullscreen(false); setContextMode(focus ? "focused" : "fullChapter"); setVerseToScroll(focus?.[0] ?? 1); }, [slug, ch]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (focus) { setContextMode("focused"); setVerseToScroll(focus[0]); } else setContextMode("fullChapter"); }, [focus?.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { saveReaderSession(sessionKey, { selected, contextMode, fullscreen }); }, [sessionKey, selected, contextMode, fullscreen]);
 
   // Study data.
   const [highlights, setHighlights] = useChapterHighlights(slug, ch);
@@ -215,17 +225,8 @@ export function BibleTab() {
 
   const copy = async () => { const c = versesContent(selectedText(), selectedReference ?? "", settings.shareVerses); try { await navigator.clipboard.writeText(c.all); say("Copied to the clipboard."); haptic("success"); } catch { void alert("Copying is not allowed here."); } };
   const shareSel = () => { const c = versesContent(selectedText(), selectedReference ?? "", settings.shareVerses); void share({ kind: "verse", title: selectedReference ?? chapterLabel, text: c.content.trim(), sitePath: `/bible/${slug}/${ch}`, verses: compressVerses(selectedSorted) }); };
-  const exportSel = async (scope: "selection" | "chapter") => {
-    const rows = scope === "selection" ? selectedText() : verses.map((v) => ({ verse: v.verse, text: v.text }));
-    const ref = scope === "selection" ? selectedReference ?? chapterLabel : chapterLabel;
-    const lines = [`${ref} (KJV)`, "", ...rows.map((r) => `${r.verse}. ${r.text}`)];
-    const noteRows = Object.entries(notes).filter(([k]) => scope === "chapter" || k.split("/").some((v) => selected.includes(+v)));
-    if (noteRows.length) lines.push("", "NOTES", ...noteRows.map(([k, n]) => `${bookName(slug)} ${ch}:${k.replace("/", ",")} — ${n.title}${n.description ? `: ${n.description}` : ""}`));
-    const body = lines.join("\n");
-    const file = new File([body], `${ref.replace(/[^A-Za-z0-9]+/g, "-")}.txt`, { type: "text/plain" });
-    try { if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: ref }); return; } } catch { /* fall through */ }
-    try { await navigator.clipboard.writeText(body); say("Copied to the clipboard."); } catch { void alert("Export is not available here."); }
-  };
+  const [exportSelection, setExportSelection] = useState<number[]>([]);
+  const exportSel = (scope: "selection" | "chapter") => { setExportSelection(scope === "selection" ? selectedSorted : []); setSheet("export"); };
 
   // A search handed over from elsewhere (?search=passover) opens Search the Scriptures with those words in it.
   const [searchSeed, setSearchSeed] = useState("");
@@ -241,7 +242,7 @@ export function BibleTab() {
     if (a === "bookmark") { setBookmarkTarget({ existing: bookmarks.find((b) => b.book === slug && b.chapter === ch && !b.verse) }); setSheet("bookmark"); }
     if (a === "export") void exportSel("chapter");
     if (a === "search") setSheet("search");
-    if (a === "newtab") navigate(selectTab(newTab(`/read/${slug}/${ch}`)), { replace: true });
+    if (a === "newtab") navigate(newTab(`/read/${slug}/${ch}${focus ? `?v=${compressVerses(focus)}` : ""}`), { replace: true });
   };
   const chapterBookmark = bookmarks.find((b) => b.book === slug && b.chapter === ch && !b.verse);
   const formatBookmark = (b: Bookmark) => `${bookName(b.book)} ${b.chapter}${b.verse ? `:${b.verse}` : ""}`;
@@ -291,10 +292,11 @@ export function BibleTab() {
         onStudy={() => setSheet("study")} onPhrase={() => setSheet("phrase")}
         onCopy={() => void copy()} onShare={shareSel} onExport={() => void exportSel("selection")} onSelectAll={() => setSelected(verses.map((v) => v.verse))} />
 
+      {sheet === "export" && book ? <PassageExportSheet book={book} chapter={ch} selected={exportSelection} reference={reference(exportSelection)} onClose={() => setSheet(null)} /> : null}
       {sheet === "study" ? <AddToStudy onClose={() => setSheet(null)} blocks={[{ id: crypto.randomUUID(), kind: "scripture", book: slug, chapter: ch, reference: selectedReference ?? chapterLabel, verses: selectedText() }]} /> : null}
       {sheet === "phrase" ? <PhraseAnnotations key={verseKey(slug, ch, first)} verseKey={verseKey(slug, ch, first)} reference={reference([first])} text={verses.find(v => v.verse === first)?.text ?? ""} onClose={() => setSheet(null)} /> : null}
       <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v)} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />
-      <SearchSheet open={sheet === "search"} initial={searchSeed} onClose={() => { setSheet(null); setSearchSeed(""); }} books={list} onGo={(s, c, v) => go({ slug: s, ch: c }, v)} />
+      <SearchSheet open={sheet === "search"} initial={searchSeed} onClose={() => { setSheet(null); setSearchSeed(""); }} books={list} onGo={(s, c, v, end) => navigate(`/read/${s}/${c}${v ? `?v=${v}${end ? `-${end}` : ""}` : ""}`)} />
       <VersionSheet open={sheet === "version"} onClose={() => setSheet(null)} />
       <VersePopup open={sheet === "verses"} onClose={() => setSheet(null)} count={verses.length} selected={verseToScroll} onSelect={(v) => { setVerseToScroll(v); setNavRequest((n) => n + 1); }} />
       <ParamsSheet open={sheet === "params"} onClose={() => setSheet(null)} settings={settings} set={setSettings} palette={palette} />

@@ -173,6 +173,7 @@ export function Settings() {
         <Section title="Privacy"><List><Toggle on={lock} onChange={(v) => void toggleLock(v)} title="Lock with biometrics" sub="Ask for your fingerprint or face when the app opens" /></List></Section>
       ) : null}
       <List><Row icon="gear" title="Account & personal studies" onClick={() => navigate("/settings/account")} /></List>
+      <List><Row icon="book" title="Help & reading guide" sub="Navigation, study tools, offline reading and keyboard controls" onClick={() => navigate("/settings/help")} /></List>
       <BackupSection />
       <Section title="Support CyberJudah">
         <List><Row title="Support CyberJudah" sub="Telegram Stars, any amount, or give another way" onClick={() => navigate("/settings/donate")} /></List>

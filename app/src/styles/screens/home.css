@@ -179,3 +179,12 @@
 .live mark { background: color-mix(in srgb, var(--gold) 32%, transparent); color: var(--text-1); font-weight: 600; }
 .fold { display: flex; align-items: center; gap: var(--sp-2); width: 100%; min-height: var(--h-md); padding: 0 var(--sp-4); border: 1px dashed var(--control-edge); border-radius: var(--r-md); background: none; color: var(--text-3); font: 500 var(--fs-sub) var(--font-ui); cursor: pointer; }
 .fold:hover { background: var(--state-hover); color: var(--text-1); }
+
+.today-card__days { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; margin-block: 8px; }
+.today-card__days button { min-height: 48px; min-width: 0; border: 0; border-radius: var(--r-pill); color: var(--text-2); background: transparent; font: 600 16px var(--font-ui); }
+.today-card__days button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.today-card__days button:disabled { opacity: var(--disabled-opacity); }
+
+.today-card__arrows { display: flex; margin-left: auto; }
+.today-card__arrows button { min-width: 48px; min-height: 48px; border: 0; background: transparent; color: var(--text-2); font-size: 24px; }
+.today-card__arrows button:disabled { opacity: var(--disabled-opacity); }

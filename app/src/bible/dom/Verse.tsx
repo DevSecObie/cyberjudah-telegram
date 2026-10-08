@@ -64,7 +64,7 @@ export function Verse(p: VerseProps) {
   return (
     <span id={`verset-${p.number}`} className="bs-verse" data-vk={p.verseKey} data-selected={p.isSelected ? "" : undefined} style={wrapper}>
       <span style={container}>
-        <span className="bs-num" style={{ fontSize: scaleFontSize(14, s.fontSizeScale) }}>{p.number} </span>
+        <span className={s.showVerseNumbers ? "bs-num" : "sr-only"} style={s.showVerseNumbers ? { fontSize: scaleFontSize(14, s.fontSizeScale) } : undefined}>{p.number} </span>
         {p.bookmark ? <BookmarkIcon color={p.bookmark.color} onClick={() => p.onOpenBookmark(p.bookmark!)} /> : null}
         {p.relationCount && s.relationsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.relationCount} onClick={p.onOpenRelations} label={`${p.relationCount} ${p.relationCount === 1 ? "precept" : "precepts"}`}><Feather name="precepts" size={16} color={"var(--bs-primary)"} /></CountBadge> : null}
         {p.taggedItemsCount && s.tagsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.taggedItemsCount} onClick={p.onOpenTags} label={`${p.taggedItemsCount} tags`}><Feather name="tag" size={14} color={"var(--bs-primary)"} /></CountBadge> : null}

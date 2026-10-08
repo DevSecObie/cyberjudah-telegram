@@ -29,7 +29,7 @@ const TABS = ["Annotate", "Study", "Share"];
 const TAB_KEY = "selectedVersesTabIndex";
 
 export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
-  const [tab, setTab] = useState(() => { try { return Number(localStorage.getItem(TAB_KEY) ?? 0) || 0; } catch { return 0; } });
+  const [tab, setTab] = useState(() => { try { const saved = Number(localStorage.getItem(TAB_KEY)); return Number.isInteger(saved) && saved >= 0 && saved < TABS.length ? saved : 0; } catch { return 0; } });
   const goTo = (i: number) => { setTab(i); try { localStorage.setItem(TAB_KEY, String(i)); } catch { /* ignore */ } };
   const [width, setWidth] = useState(360);
   const ref = useRef<HTMLDivElement>(null);

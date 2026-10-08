@@ -19,6 +19,7 @@ export type BibleSettings = {
   lineHeight: "normal" | "small" | "large";
   fontSizeScale: number;
   textDisplay: "inline" | "block";
+  showVerseNumbers: boolean;
   preferredColorScheme: "light" | "dark" | "auto";
   preferredLightTheme: LightTheme;
   preferredDarkTheme: DarkTheme;
@@ -35,7 +36,7 @@ export type BibleSettings = {
 };
 
 export const DEFAULT_SETTINGS: BibleSettings = {
-  alignContent: "left", lineHeight: "normal", fontSizeScale: 0, textDisplay: "inline",
+  alignContent: "left", lineHeight: "normal", fontSizeScale: 0, textDisplay: "inline", showVerseNumbers: true,
   preferredColorScheme: "auto", preferredLightTheme: "default", preferredDarkTheme: "dark",
   // "Long press" (Bible Strong's default): a tap selects the verse, a long press opens its resources.
   press: "longPress", relationsDisplay: "inline", tagsDisplay: "inline", fontFamily: "Newsreader",
