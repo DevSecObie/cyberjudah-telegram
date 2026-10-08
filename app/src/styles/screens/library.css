@@ -40,8 +40,8 @@
 .readfrom { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 
 /* ── Picture viewer: a picture full screen, the classes' words beneath. Dark in every theme. ── */
-.pv { --accent: var(--media-accent); --on-accent: var(--media-on-accent); --mat-base: var(--media-canvas); --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent); position: fixed; inset: 0; z-index: var(--z-dock); display: grid; grid-template-rows: auto 1fr auto; background: var(--media-canvas); color: var(--media-ink); opacity: 0; transition: opacity var(--dur-3) ease; }
-.pv--in { opacity: 1; }
+.pv { --accent: var(--media-accent); --on-accent: var(--media-on-accent); --mat-base: var(--media-canvas); --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent); position: fixed; inset: 0; z-index: var(--z-dock); display: grid; grid-template-rows: auto 1fr auto; background: var(--media-canvas); color: var(--media-ink); animation: fade-in var(--dur-3) ease backwards; }
+@media (prefers-reduced-motion: reduce) { .pv { animation: none; } }
 .pv--words { grid-template-rows: auto minmax(34vh, 1fr) minmax(0, 52vh); }
 .pv--full { grid-template-rows: auto 0fr 1fr; }
 .pv--full .pv__stage { visibility: hidden; }

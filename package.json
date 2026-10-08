@@ -12,5 +12,6 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "deploy": "npm run build && npm run deploy --workspace bot"
   },
-  "engines": { "node": ">=22" }
+  "engines": { "node": ">=22" },
+  "overrides": { "sharp": "0.35.5" }
 }
