@@ -11,6 +11,7 @@ const jwks = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
 const cookieOptions = { secure: true, httpOnly: true, sameSite: "Lax" as const, path: "/" };
 const random = () => [...crypto.getRandomValues(new Uint8Array(32))].map(n => n.toString(16).padStart(2, "0")).join("");
 const configured = (env: Env) => !!(env.TELEGRAM_LOGIN_CLIENT_ID && env.TELEGRAM_LOGIN_CLIENT_SECRET && env.PRIVACY_KEY);
+const loginEvent = (result: string) => console.info(JSON.stringify({ event: "browser_login", result }));
 async function schema(env: Env) {
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS browser_sessions (token_hash TEXT PRIMARY KEY, owner TEXT NOT NULL, sealed TEXT NOT NULL, expires INTEGER NOT NULL)").run();
   await env.DB.prepare("CREATE INDEX IF NOT EXISTS browser_sessions_owner ON browser_sessions(owner)").run();
@@ -54,6 +55,7 @@ browserAuth.get("/start", async c => {
   setCookie(c, LOGIN, sealed, { ...cookieOptions, maxAge: 600 });
   const callback = `${new URL(c.req.url).origin}/api/auth/callback`;
   const params = new URLSearchParams({ client_id: c.env.TELEGRAM_LOGIN_CLIENT_ID!, redirect_uri: callback, response_type: "code", scope: "openid profile", state, nonce, code_challenge: challenge, code_challenge_method: "S256" });
+  loginEvent("started");
   return c.redirect(`${issuer}/auth?${params}`);
 });
 browserAuth.get("/callback", async c => {
@@ -84,11 +86,13 @@ browserAuth.get("/callback", async c => {
     await c.env.DB.prepare("DELETE FROM browser_sessions WHERE expires<=?").bind(created).run();
     await c.env.DB.prepare("INSERT INTO browser_sessions(token_hash,owner,sealed,expires) VALUES(?,?,?,?)").bind(await keyedHash(c.env, "browser-session", token), owner, await seal(c.env, owner, { user, created }), created + 86400).run();
     setCookie(c, SESSION, token, { ...cookieOptions, maxAge: 86400 });
+    loginEvent("completed");
     return c.redirect("/app/settings/account");
   } catch (error) {
     // Only bounded stage/claim names leave the server, never codes, tokens or error messages.
     const claim = (error as { claim?: unknown })?.claim;
     if (failure === "claims" && typeof claim === "string" && ["iss", "aud", "exp", "iat", "sub", "nonce"].includes(claim)) failure += `-${claim}`;
+    loginEvent(failure);
     return c.redirect(`/app/settings/account?login=failed&reason=${failure}`);
   }
 });
