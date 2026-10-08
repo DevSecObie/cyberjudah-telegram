@@ -512,7 +512,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 
 /* The selection sheet as Bible Strong shows it on an iPhone (measured from its screen): a card
    floating 8 px in from the sides and bottom, shared large sheet corners, a fine light hairline; the grabber,
-   then the 56 px colour row of 20 px swatches spread across; the six actions on one row (48 px
+   then the 48 px colour row of 20 px swatches spread across; the six actions on one row (48 px
    tiles of radius 16 in the theme's light grey, the icon in the accent, an 11 px label); then the
    footer track (radius 20, 3 px in, 16 px from the card's sides) with the chosen tab dark and in
    the accent. The material is restrained: a dense tint and a light blur (one backdrop filter,
@@ -522,11 +522,12 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
   --sel-tile: var(--bs-light-grey);
   --sel-accent: var(--bs-primary);
 }
+.bs-sheet.bs-selected:not(.bs-sheet--full) { padding-bottom: 4px; }
 .bs-selected .bs-sheet__handle { width: 36px; height: 5px; border-radius: 3px; margin: 6px auto 0; background: color-mix(in srgb, var(--bs-default) 45%, transparent); }
 .bs-selected__inner { overflow: hidden; }
 
 .bs-selected .bs-colors { margin: 0 4px; justify-content: flex-start; }
-.bs-selected .bs-colors__cell { flex: 1 0 44px; min-width: 44px; height: 56px; }
+.bs-selected .bs-colors__cell { flex: 1 0 44px; min-width: 44px; height: 48px; }
 /* The reader's generic ring (#root .bs :focus-visible, 1-2-0) sits 2px outside and is clipped at the
    sheet's edge; these take precedence and draw it inside each control. The sheet itself takes the
    focus on open only so that Tab starts inside it; it is not a control and draws no ring. */
