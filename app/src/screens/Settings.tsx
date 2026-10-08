@@ -109,8 +109,11 @@ export function Settings() {
     if (!b) return;
     const status = narration[slug] ?? "none";
     const { bytes, failed } = status === "complete" ? { bytes: null, failed: false } : await narrationBytes(slug);
+    // The catalog confirms this book has no licensed narration at all: offering a "Download" that
+    // would fetch nothing is a dead end, and running it used to misreport status as "complete" (CYB-123 review).
+    const noRecordings = status !== "complete" && !failed && bytes === 0;
     const items = [
-      ...(status !== "complete" ? [{ id: "download", text: status === "partial" ? "Finish downloading narration" : "Download narration", hint: narrationHint(bytes, failed) }] : []),
+      ...(!noRecordings && status !== "complete" ? [{ id: "download", text: status === "partial" ? "Finish downloading narration" : "Download narration", hint: narrationHint(bytes, failed) }] : []),
       ...(status !== "none" ? [{ id: "remove-narration", text: "Remove narration only", destructive: true }] : []),
       { id: "remove-book", text: "Remove text and narration", destructive: true },
     ];

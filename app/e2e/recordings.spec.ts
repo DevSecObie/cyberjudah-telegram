@@ -114,6 +114,27 @@ test("offline text stays saved when the optional narration is declined or fails"
   await expect(page.locator(".pill").last()).toHaveText("no narration");
 });
 
+test("a book with no licensed narration at all never offers a download that fetches nothing (CYB-123 release review)", async ({ page }) => {
+  await setup(page);
+  await page.route("**/api/recordings/catalog", (r) => r.fulfill({ json: { chapters: [] } }));
+  await page.route("**/api/kjv/books.json", (r) => r.fulfill({ json: [{ book: "Obadiah", slug: "obadiah", chapters: 1, chapterIds: [1], testament: "old" }] }));
+  await page.route("**/api/kjv/obadiah/1.json", (r) => r.fulfill({ json: { book: "Obadiah", chapter: 1, verses: [{ verse: 1, text: "Test verse" }] } }));
+  await page.goto("/settings#tgWebAppData=auth_date%3D1&tgWebAppPlatform=ios");
+  await page.getByRole("button", { name: "Save a book", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /Obadiah/ }).click();
+  // No confirmation dialog for narration appears: the catalog already says there is nothing to fetch.
+  // The saved-book label never claims narration is saved for a book that has none (CYB-123 release review).
+  await expect(page.locator(".pill--ok")).toHaveText("text");
+  await expect(page.locator(".pill").last()).toHaveText("no narration");
+  await expect(page.getByRole("button", { name: /Obadiah.*narration not saved.*tap to manage/i })).toBeVisible();
+  // Managing the book offers no "Download narration" action to tap, since nothing would be fetched.
+  await page.getByRole("button", { name: /Obadiah.*saved on this device/i }).click();
+  const manage = page.getByRole("dialog", { name: "Obadiah" });
+  await expect(manage.getByRole("button", { name: "Download narration" })).toHaveCount(0);
+  await expect(manage.getByRole("button", { name: "Remove narration only" })).toHaveCount(0);
+  await expect(manage.getByRole("button", { name: "Remove text and narration" })).toBeVisible();
+});
+
 test("a narration retry downloads only what's missing, keeps the saved text, and reaches complete", async ({ page }) => {
   await setup(page);
   const chapters = [
