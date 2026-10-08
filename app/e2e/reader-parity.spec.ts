@@ -145,9 +145,13 @@ test("keyboard palette switches to an existing tab and opens a passage with its 
 });
 
 test("plan completion can be corrected by keyboard and its read action stays inside the app", async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("cj:plan", JSON.stringify({ startedAt: new Date().toISOString().slice(0, 10), day: 0, streak: 0, perDay: 1, books: ["john"], name: "John" })));
+  await page.addInitScript(() => {
+    localStorage.setItem("cj:plan", JSON.stringify({ startedAt: new Date().toISOString().slice(0, 10), day: 0, streak: 0, perDay: 1, books: ["john"], name: "John" }));
+    localStorage.setItem("cj:read", JSON.stringify({ genesis: "1-2" }));
+  });
   const base = (process.env.CYBERJUDAH_APP_BASE ?? "/").replace(/\/$/, "");
   await page.goto(`${base}/plan`);
+  await expect(page.locator(".card__ref")).toContainText("0% of this plan");
   const check = page.getByRole("button", { name: "John 1 read", exact: true });
   await check.focus(); await page.keyboard.press("Space"); await expect(check).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("Space"); await expect(check).toHaveAttribute("aria-pressed", "false");
@@ -174,4 +178,24 @@ test("the reading guide is reachable from Settings and has usable tab shortcuts"
   await expect(page).toHaveURL(/\/settings\/help$/);
   await expect(page.getByRole("heading", { name: "Keyboard controls", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "My studies", exact: true })).toHaveAttribute("href", "/studies");
+});
+
+test("Mac shortcuts cycle recent tabs and do not interrupt a note editor", async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(navigator, "platform", { configurable: true, value: "MacIntel" }));
+  await page.goto("/read/genesis/1");
+  await page.keyboard.down("Control"); await page.keyboard.press("q");
+  await expect(page.getByRole("dialog", { name: "Recent tabs", exact: true })).toBeVisible();
+  await page.keyboard.up("Control");
+  await expect(page).toHaveURL(/\/read\/john\/3\?v=16-18/);
+  await page.keyboard.press("Meta+Alt+n"); await expect(page).toHaveURL(/\/new$/);
+  await page.keyboard.press("Meta+k");
+  await page.getByRole("combobox", { name: "Find a tab or tool" }).fill("Genesis"); await page.keyboard.press("Enter");
+  await page.locator("#verset-1 .bs-text").click();
+  const selected = page.getByRole("dialog", { name: /^Selected:/ });
+  await selected.getByRole("tab", { name: "Annotate", exact: true }).click();
+  await selected.getByRole("button", { name: "Note", exact: true }).click();
+  await page.getByRole("textbox", { name: "Description", exact: true }).fill("Keep my writing");
+  await page.keyboard.press("Meta+k");
+  await expect(page.getByRole("dialog", { name: "Find a tab or tool" })).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "Description", exact: true })).toHaveValue("Keep my writing");
 });
