@@ -16,13 +16,18 @@ function local(): globalThis.Storage | null { try { return window.localStorage; 
 function readDevice(key: string): Promise<string | null> {
   return new Promise((resolve) => {
     if (features.deviceStorage) app!.DeviceStorage.getItem(key, (err, v) => resolve(err ? null : v ?? null));
-    else resolve(local()?.getItem(`cj:${key}`) ?? null);
+    else { try { resolve(local()?.getItem(`cj:${key}`) ?? null); } catch { resolve(null); } }
   });
 }
 function writeDevice(key: string, value: string | null) {
   if (features.deviceStorage) { if (value === null) app!.DeviceStorage.removeItem(key); else app!.DeviceStorage.setItem(key, value); }
   // Keep an enumerable mirror: Telegram DeviceStorage has no getKeys operation.
-  const l = local(); if (!l) return; if (value === null) l.removeItem(`cj:${key}`); else l.setItem(`cj:${key}`, value);
+  try {
+    const l = local(); if (!l) return; if (value === null) l.removeItem(`cj:${key}`); else l.setItem(`cj:${key}`, value);
+  } catch (error) {
+    // A full browser mirror must not interrupt a successful Telegram write.
+    if (!features.deviceStorage) throw error;
+  }
 }
 function readCloud(key: string): Promise<string | null> {
   return new Promise((resolve) => {
@@ -44,7 +49,12 @@ export const store = {
     const v = await readDevice(key);
     if ((writes.get(key) ?? 0) !== revision) return cache.get(key) ?? null;
     cache.set(key, v);
-    void readCloud(key).then((c) => { if ((writes.get(key) ?? 0) === revision && c !== null && c !== v) { writeDevice(key, c); emit(key, c); } });
+    void readCloud(key).then((c) => {
+      if ((writes.get(key) ?? 0) === revision && c !== null && c !== v) {
+        emit(key, c);
+        try { writeDevice(key, c); } catch { /* Cloud data remains available in memory if the device is full. */ }
+      }
+    });
     return v;
   },
   set(key: string, value: string | null) {
@@ -61,7 +71,8 @@ export const store = {
   /** Cloud plus this browser's saved keys; browser-only backups must not be empty. */
   async keys(): Promise<string[]> {
     const cloud = await new Promise<string[]>((resolve) => { if (!features.cloud) return resolve([]); app!.CloudStorage.getKeys((err, k) => resolve(err ? [] : k ?? [])); });
-    const device = Object.keys(local() ?? {}).filter(k => k.startsWith("cj:")).map(k => k.slice(3));
+    let device: string[] = [];
+    try { device = Object.keys(local() ?? {}).filter(k => k.startsWith("cj:")).map(k => k.slice(3)); } catch { /* Restricted browser storage; cloud and cached keys remain available. */ }
     return [...new Set([...cloud, ...device, ...[...cache.keys()].filter(k => cache.get(k) !== null)])];
   },
 };

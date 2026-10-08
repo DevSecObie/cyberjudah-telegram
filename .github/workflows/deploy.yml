@@ -140,6 +140,8 @@ jobs:
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
           CF_AIG_TOKEN: ${{ secrets.CF_AIG_TOKEN }}
           PRIVACY_KEY: ${{ secrets.PRIVACY_KEY }}
+          TELEGRAM_LOGIN_CLIENT_ID: ${{ secrets.TELEGRAM_LOGIN_CLIENT_ID }}
+          TELEGRAM_LOGIN_CLIENT_SECRET: ${{ secrets.TELEGRAM_LOGIN_CLIENT_SECRET }}
         run: |
           # The Worker needs the same secrets Telegram will present; wrangler stores them on the Worker.
           printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN
@@ -169,6 +171,13 @@ jobs:
           # records made under one key cannot be found or opened under another.
           if [ -z "$PRIVACY_KEY" ]; then echo "::error::Add the PRIVACY_KEY repository secret (docs/PRIVACY.md) before deploying: records about people are filed and encrypted under it."; exit 1; fi
           printf '%s' "$PRIVACY_KEY" | npx wrangler secret put PRIVACY_KEY
+          # OIDC is opt-in. Keep any directly configured Worker values intact when absent.
+          if [ -n "$TELEGRAM_LOGIN_CLIENT_ID" ] && [ -n "$TELEGRAM_LOGIN_CLIENT_SECRET" ]; then
+            printf '%s' "$TELEGRAM_LOGIN_CLIENT_ID" | npx wrangler secret put TELEGRAM_LOGIN_CLIENT_ID
+            printf '%s' "$TELEGRAM_LOGIN_CLIENT_SECRET" | npx wrangler secret put TELEGRAM_LOGIN_CLIENT_SECRET
+          elif [ -n "$TELEGRAM_LOGIN_CLIENT_ID$TELEGRAM_LOGIN_CLIENT_SECRET" ]; then
+            echo "::error::Set both TELEGRAM_LOGIN_CLIENT_ID and TELEGRAM_LOGIN_CLIENT_SECRET."; exit 1
+          else echo "No Telegram Login credentials: browser sign-in stays disabled unless configured directly on the Worker."; fi
           node scripts/setup.mjs
       - name: Verify the deployed app and authenticated search
         working-directory: bot

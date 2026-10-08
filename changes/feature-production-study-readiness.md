@@ -1,0 +1,5 @@
+- Personal studies now keep writing, Scripture and Strong's blocks together, with phrase marks, safe Markdown preview, conflict-safe local saving, import, export and printing. Verse actions retain separate Link and Relation controls and inline Precept labels.
+- Reading plans include the KJV with Apocrypha and individual books, with explicit start controls. Reader, account and study screens use shared controls, accessible focus, readable themes and touch targets.
+- Signed-in Telegram readers can explicitly back up personal studies to their account. Desktop Telegram login is available only after the owner configures Telegram Login credentials; browser reading and local studies work without an account.
+- Prepare local-bundle Android and iOS projects and unsigned build checks. These are development packages, not store releases; signing, native account/payment flows and physical-device verification remain release gates.
+- Production deployment now waits for browser regression checks. Update vulnerable image/native build dependencies and retain first-to-last class order within the newest broadcast day.

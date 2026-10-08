@@ -32,14 +32,14 @@ test("OIDC state, PKCE, signed claims, nonce, cookies, CSRF and revocation prote
   assert.equal(url.origin, "https://oauth.telegram.org"); assert.equal(url.searchParams.get("code_challenge_method"), "S256"); assert.equal(url.searchParams.get("scope"), "openid profile");
   assert.match(start.headers.get("set-cookie"), /HttpOnly/); assert.match(start.headers.get("set-cookie"), /Secure/);
   const pending = await open(e, "browser-login", decodeURIComponent(loginCookie.split("=").slice(1).join("=")));
-  let nonce = pending.nonce, exchanges = 0;
+  let nonce = pending.nonce, exchanges = 0, audience = "100", tokenIssuer = "https://oauth.telegram.org", expiration = "5m", signingKey = privateKey;
   const oldFetch = globalThis.fetch;
   globalThis.fetch = async (input, init) => {
     const target = String(input);
     if (target.endsWith("jwks.json")) return Response.json({ keys: [jwk] });
     if (target.endsWith("/token")) {
       exchanges++; assert.equal(new URLSearchParams(init.body).get("code_verifier"), pending.verifier);
-      const token = await new SignJWT({ id: 77, name: "Reader", nonce }).setProtectedHeader({ alg: "RS256", kid: "test-key" }).setIssuer("https://oauth.telegram.org").setAudience("100").setSubject("opaque-subject").setIssuedAt().setExpirationTime("5m").sign(privateKey);
+      const token = await new SignJWT({ id: 77, name: "Reader", nonce }).setProtectedHeader({ alg: "RS256", kid: "test-key" }).setIssuer(tokenIssuer).setAudience(audience).setSubject("opaque-subject").setIssuedAt().setExpirationTime(expiration).sign(signingKey);
       return Response.json({ id_token: token });
     }
     throw new Error(`Unexpected network request: ${target}`);
@@ -51,6 +51,15 @@ test("OIDC state, PKCE, signed claims, nonce, cookies, CSRF and revocation prote
     const wrongNonce = await browserAuth.request(`${origin}/callback?code=test&state=${pending.state}`, { headers: { cookie: loginCookie } }, e);
     assert.match(wrongNonce.headers.get("location"), /login=failed/);
     nonce = pending.nonce;
+    const rejected = async () => {
+      const response = await browserAuth.request(`${origin}/callback?code=test&state=${pending.state}`, { headers: { cookie: loginCookie } }, e);
+      assert.match(response.headers.get("location"), /login=failed/);
+      assert.ok(!response.headers.getSetCookie().some(c => c.startsWith("__Host-cj-session=")), "invalid claims never create a session");
+    };
+    audience = "another-client"; await rejected(); audience = "100";
+    tokenIssuer = "https://evil.test"; await rejected(); tokenIssuer = "https://oauth.telegram.org";
+    expiration = "-5m"; await rejected(); expiration = "5m";
+    signingKey = (await generateKeyPair("RS256")).privateKey; await rejected(); signingKey = privateKey;
     const success = await browserAuth.request(`${origin}/callback?code=test&state=${pending.state}`, { headers: { cookie: loginCookie } }, e);
     assert.equal(success.headers.get("location"), "/app/settings/account");
     const sessionCookie = success.headers.getSetCookie().find(c => c.startsWith("__Host-cj-session=")).split(";")[0];

@@ -1,1 +1,1 @@
-- Classes now list in the order they went live, newest first: the latest broadcast of a day leads it, and a class is dated by the day it streamed rather than the day its notes were written or uploaded.
+- Classes use the day they actually streamed, newest day first and first-to-last broadcast order within each day, including classes whose notes arrive later.

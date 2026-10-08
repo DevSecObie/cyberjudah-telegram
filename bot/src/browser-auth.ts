@@ -11,7 +11,11 @@ const jwks = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
 const cookieOptions = { secure: true, httpOnly: true, sameSite: "Lax" as const, path: "/" };
 const random = () => [...crypto.getRandomValues(new Uint8Array(32))].map(n => n.toString(16).padStart(2, "0")).join("");
 const configured = (env: Env) => !!(env.TELEGRAM_LOGIN_CLIENT_ID && env.TELEGRAM_LOGIN_CLIENT_SECRET && env.PRIVACY_KEY);
-async function schema(env: Env) { await env.DB.prepare("CREATE TABLE IF NOT EXISTS browser_sessions (token_hash TEXT PRIMARY KEY, owner TEXT NOT NULL, sealed TEXT NOT NULL, expires INTEGER NOT NULL)").run(); }
+async function schema(env: Env) {
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS browser_sessions (token_hash TEXT PRIMARY KEY, owner TEXT NOT NULL, sealed TEXT NOT NULL, expires INTEGER NOT NULL)").run();
+  await env.DB.prepare("CREATE INDEX IF NOT EXISTS browser_sessions_owner ON browser_sessions(owner)").run();
+  await env.DB.prepare("CREATE INDEX IF NOT EXISTS browser_sessions_expires ON browser_sessions(expires)").run();
+}
 
 /** OIDC's opaque sub is NOT the Telegram numeric user id. Only the verified profile id is used. */
 export function telegramProfile(claims: JWTPayload): TelegramUser {

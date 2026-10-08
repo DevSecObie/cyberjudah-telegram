@@ -225,7 +225,7 @@ function BackupSection() {
   const send = async () => {
     setBusy("send"); setStatus("");
     if (!app) {
-      try { saveFile("cyberjudah-backup.json", JSON.stringify({ app: "cyberjudah", version: 1, date: new Date().toISOString(), keys: await collect() }, null, 2)); setStatus("Backup downloaded."); } catch { setStatus("The backup could not be read from this browser."); }
+      try { await saveFile("cyberjudah-backup.json", JSON.stringify({ app: "cyberjudah", version: 1, date: new Date().toISOString(), keys: await collect() }, null, 2)); setStatus("Backup downloaded."); } catch { setStatus("The backup could not be exported. Your saved data is unchanged."); }
       setBusy(null); return;
     }
     const r = await sendBackup();
