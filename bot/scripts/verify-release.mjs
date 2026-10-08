@@ -27,6 +27,13 @@ export async function verifyRelease({ url, token, expectedModel, fetcher = fetch
   // Same synthetic reader as the existing live browser suite; no real reader is impersonated.
   const launch = await signInitData({ user: { id: 1, first_name: "Release check" }, auth_date: String(Math.floor(Date.now() / 1000)) }, token);
   const headers = { authorization: `tma ${launch}` };
+  for (const [path, field, label] of [["/api/resources/catalog", "resources", "Resource releases"], ["/api/recordings/catalog", "chapters", "Narration chapters"]]) {
+    const response = await get(path, headers);
+    requireStatus(response, 200, label);
+    const body = await response.json();
+    if (!Array.isArray(body[field])) throw new Error(`${label}: invalid catalog.`);
+    log(`${label}: ${body[field].length} published`);
+  }
   const consent = await get(query, headers);
   requireStatus(consent, 428, "Provider consent");
   if ((await consent.json()).provider !== "Google") throw new Error("Provider consent: unexpected provider.");
@@ -48,6 +55,10 @@ export async function verifyRelease({ url, token, expectedModel, fetcher = fetch
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  verifyRelease({ url: process.env.WORKER_URL, token: process.env.BOT_TOKEN, expectedModel: process.env.EXPECTED_SEARCH_MODEL })
-    .catch(error => { console.error(error.message); process.exitCode = 1; });
+  // Expose safe results as check annotations as well as logs, without launch data or answers.
+  const annotation = (level, message) => process.env.GITHUB_ACTIONS
+    ? `::${level}::${String(message).replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")}` : message;
+  verifyRelease({ url: process.env.WORKER_URL, token: process.env.BOT_TOKEN, expectedModel: process.env.EXPECTED_SEARCH_MODEL,
+    log: message => console.log(annotation("notice", message)) })
+    .catch(error => { console.error(annotation("error", error.message)); process.exitCode = 1; });
 }

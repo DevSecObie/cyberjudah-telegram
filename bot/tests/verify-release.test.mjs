@@ -12,6 +12,8 @@ function fixture({ answerStatus = 200, sources = [{}], model = "google/test", ca
     if (!path.startsWith("/api/")) return new Response(path === "/" ? '<div id="root"></div>' : '/app/strong/_expo/static/js/web/entry-abc.js', { headers: { "content-type": "text/html" } });
     if (!headers.authorization) return json({}, 401);
     assert.equal((await validateInitData(headers.authorization.slice(4), "test-token")).user.id, 1);
+    if (path === "/api/resources/catalog") return json({ resources: [] });
+    if (path === "/api/recordings/catalog") return json({ chapters: [{}] });
     if (!headers["x-ai-consent"] && !(cachedConsent && answered)) return json({ provider: "Google" }, 428);
     calls++; answered = true;
     return json({ ok: true, answer: "A cited answer [1]", sources, model, provider: "Google", error: "free-paused" }, answerStatus);
