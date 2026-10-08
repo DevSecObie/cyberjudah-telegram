@@ -55,15 +55,13 @@ export function PassageExportSheet({ book, chapter, selected, reference, onClose
     } catch { setError(copy ? "Copy is unavailable here. Save the text file instead." : "The file could not be saved. Try copying the passage instead."); }
     finally { setBusy(false); }
   };
-  return <Sheet open onClose={onClose} title="Export passage" subTitle={title} height="full">
+  return <Sheet open onClose={onClose} title="Export passage" subTitle={title} height="full" footer={<div className="bs-export__footer">{status && <p role="status">{status}</p>}<div className="bs-export__actions"><Button disabled={!body || busy || !Object.values(options).some(Boolean)} onClick={() => void output(false)}>Save text file</Button><Button reverse disabled={!body || busy || !Object.values(options).some(Boolean)} onClick={() => void output(true)}>Copy</Button></div></div>}>
     <div className="bs-export">
       <label>Passage<select aria-label="Export scope" value={scope} onChange={e => setScope(e.target.value)}>{selected.length > 0 && <option value="selection">Selected verses</option>}<option value="chapter">Whole chapter</option><option value="book">Whole book</option></select></label>
       <fieldset><legend>Include</legend>{OPTIONS.map(([key, label]) => <Switch key={key} label={label} on={options[key]} onChange={on => setOptions({ ...options, [key]: on })} />)}</fieldset>
       {error && <p role="alert">{error} <button type="button" onClick={() => setRetry(n => n + 1)}>Retry</button></p>}
       {!body && !error && <p role="status">Preparing passage…</p>}
       {body && <><h3>Preview</h3><pre className="bs-export__preview">{body.slice(0, 2400)}{body.length > 2400 ? "\n… Full passage included in the file." : ""}</pre></>}
-      {status && <p role="status">{status}</p>}
-      <div className="bs-export__actions"><Button disabled={!body || busy || !Object.values(options).some(Boolean)} onClick={() => void output(false)}>Save text file</Button><Button reverse disabled={!body || busy || !Object.values(options).some(Boolean)} onClick={() => void output(true)}>Copy</Button></div>
     </div>
   </Sheet>;
 }

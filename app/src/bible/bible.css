@@ -591,3 +591,5 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-export fieldset { border: 1px solid var(--bs-border); border-radius: 12px; padding: 8px 12px; min-width: 0; }
 .bs-export__preview { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; background: var(--bs-light-grey); padding: 16px; border-radius: 12px; max-height: 240px; overflow: auto; }
 .bs-export__actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+.bs-export__footer { padding: 8px 16px; }
