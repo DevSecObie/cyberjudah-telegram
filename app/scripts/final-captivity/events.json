@@ -2407,7 +2407,10 @@
    }
   ],
   "uncertainty": "Supersedes the round-1 draft 'brazil-sugar-colonies-1530s'. Boxer's phrase 'a hell for blacks' describes the second half of the seventeenth century.",
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Asher"
+  ]
  },
  {
   "slug": "our-lady-of-guadalupe-1531",
@@ -12190,7 +12193,10 @@
     ]
    }
   ],
-  "status": "published"
+  "status": "published",
+  "tribes": [
+   "Asher"
+  ]
  },
  {
   "slug": "wounded-knee-massacre-1890",
@@ -22474,7 +22480,8 @@
      "date": "2020-01-21",
      "ts": "1:31",
      "url": "https://youtu.be/FMMiNm4MHhE?t=91"
-    }
+    },
+    "teacher": "Bishop Nathanyel"
    }
   ],
   "scriptures": [
@@ -24641,7 +24648,8 @@
      "date": "2020-01-21",
      "ts": "10:01",
      "url": "https://youtu.be/FMMiNm4MHhE?t=601"
-    }
+    },
+    "teacher": "Bishop Nathanyel"
    },
    {
     "points": [
@@ -25381,7 +25389,8 @@
      "date": "2020-01-21",
      "ts": "14:04",
      "url": "https://youtu.be/FMMiNm4MHhE?t=844"
-    }
+    },
+    "teacher": "Bishop Nathanyel"
    },
    {
     "points": [

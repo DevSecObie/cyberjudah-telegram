@@ -1,0 +1,1 @@
+Pictures open reliably with reduced motion and close with Back or Escape. Timeline corrections and additional West Indies events are included, and narration publication can retain existing chapters while an upstream recording is temporarily unavailable.

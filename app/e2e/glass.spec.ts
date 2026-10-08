@@ -303,9 +303,39 @@ test("materials: content stays unfiltered at 200% shared text size with reduced 
   expect((await materials(page, [[".book__figure"]]))[0].filter).toBe("none");
   await page.locator(".book__figure").click();
   await expect(page.locator(".pv__bar")).toBeVisible();
+  await expect(page.locator(".pv")).toHaveCSS("opacity", "1");
   await expect.poll(() => filteredSurfaces(page)).toEqual(["pv__bar::before"]);
   await page.locator(".pv").getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.locator(".pv")).toHaveCount(0);
+});
+
+test("pictures: reduced motion opens without an animation frame and Back closes the viewer", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await setup(page);
+  await page.goto(`/books/materials${LAUNCH}`);
+  const figure = page.locator(".book__figure");
+  await expect(figure).toBeVisible();
+  // A suspended rendering callback must not leave a mounted modal transparent.
+  await figure.evaluate(element => {
+    window.requestAnimationFrame = () => 0;
+    (element as HTMLElement).click();
+  });
+  await expect(page.locator(".pv")).toHaveCSS("opacity", "1");
+  await expect.poll(() => filteredSurfaces(page)).toEqual(["pv__bar::before"]);
+  await page.locator(".pv").dispatchEvent("cj:close");
+  await expect(page.locator(".pv")).toHaveCount(0);
+});
+
+test("pictures: Escape closes the viewer and returns keyboard focus", async ({ page }) => {
+  await setup(page);
+  await page.goto(`/books/materials${LAUNCH}`);
+  const figure = page.locator(".book__figure");
+  await figure.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".pv")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".pv")).toHaveCount(0);
+  await expect(figure).toBeFocused();
 });
 
 test("materials: unsupported-filter CSS branch yields opaque reader surfaces", async ({ page }) => {
