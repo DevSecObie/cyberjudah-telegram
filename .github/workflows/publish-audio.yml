@@ -72,7 +72,8 @@ jobs:
           python3 scripts/audio/recordings.py check
           # archive.org can stall a download; checked sources are kept, so a retry resumes with the rest.
           for i in 1 2 3 4; do
-            python3 scripts/audio/recordings.py export --output "$RUNNER_TEMP/recordings" && exit 0
+            if python3 scripts/audio/recordings.py export --output "$RUNNER_TEMP/recordings" 2>&1 | tee "$RUNNER_TEMP/narration-export.log"; then exit 0; fi
+            python3 -c 'import pathlib,sys; s="\n".join(pathlib.Path(sys.argv[1]).read_text().splitlines()[-8:]); print("::warning::Narration export: " + s.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))' "$RUNNER_TEMP/narration-export.log"
             echo "::warning::Export attempt $i failed; retrying in $((i * 30))s"
             sleep $((i * 30))
           done

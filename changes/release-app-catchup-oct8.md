@@ -3,3 +3,4 @@
 - Added authenticated search and consent checks after staging and production deployment, alongside the combined privacy, accessibility, audio and search updates.
 - Restored staging's missing inference and library-storage bindings so release checks exercise working search, audio and resources.
 - Added an explicit, production-approved publication workflow for the approved study-resource bundles.
+- Kept Search on a hosted free-tier model, blocked paid provider settings by default, and applied its daily limit to admins too.

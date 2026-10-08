@@ -75,21 +75,20 @@ test("with nothing in the library it says so, on the default free model, and rep
   assert.ok(spent > 0 && spent < 0.001, `the nominal research cost is metered for the breaker (got $${spent})`);
 });
 
-// An admin's answers are not metered, as in Ask: their testing must not trip the owner's breaker.
-test("an admin's answer adds nothing to the day's free-tier spend", async () => {
+test("admin searches share the daily free-tier allowance", async () => {
   const e = { ...shared, ADMIN_IDS: "7" };
   const before = await freeSpendToday(e);
   assert.ok(before > 0, "the reader's answer above was metered");
   const r = await answerSearch(e, "melchizedek", 7);
   assert.equal(r.ok, true);
-  assert.equal(await freeSpendToday(e), before, "an admin's answer is not metered against the breaker");
+  assert.ok(await freeSpendToday(e) > before, "admin searches must not bypass the daily allowance");
 });
 
 const GOOGLE = "google/gemini-2.5-flash-lite";
 function fixture(t, reply = { choices: [{ message: { content: "Melchizedek was king of Salem [1]." } }], usage: { prompt_tokens: 800, completion_tokens: 80 } }) {
   const db = financialDb(t), sent = [];
   Object.assign(db.env, {
-    SEARCH_AI_MODEL: GOOGLE, AI_GATEWAY: "default",
+    SEARCH_AI_MODEL: GOOGLE, SEARCH_AI_FREE_ONLY: "off", AI_GATEWAY: "default",
     AI: { async run(model, input, options) {
       sent.push({ model, input, options });
       if (model.includes("bge-m3")) return { data: [[1, 2]] };
@@ -102,11 +101,23 @@ function fixture(t, reply = { choices: [{ message: { content: "Melchizedek was k
 }
 
 test("external search needs consent before touching storage or retrieval; unknown models fail closed", async () => {
-  assert.equal((await answerSearch({ SEARCH_AI_MODEL: GOOGLE }, "Melchizedek", 7)).reason, "consent");
+  assert.equal((await answerSearch({ SEARCH_AI_MODEL: GOOGLE, SEARCH_AI_FREE_ONLY: "off" }, "Melchizedek", 7)).reason, "consent");
   for (const id of ["google/not-in-catalog", "anthropic/claude-opus-5"]) {
     assert.equal(searchModel({ SEARCH_AI_MODEL: id }), null);
     assert.equal((await answerSearch({ SEARCH_AI_MODEL: id }, "Melchizedek", 7, ["Google"])).reason, "unavailable");
   }
+});
+
+test("free-only search rejects a paid configuration before storage, even with consent", async () => {
+  assert.equal((await answerSearch({ SEARCH_AI_MODEL: GOOGLE }, "Melchizedek", 7, ["Google"])).reason, "unavailable");
+  assert.equal(searchModel({}).provider, "Cloudflare (Workers AI)");
+});
+
+test("an admin cannot bypass an exhausted search allowance", async t => {
+  const { env, sent } = fixture(t);
+  Object.assign(env, { ADMIN_IDS: "7", ASK_FREE_DAILY_USD_CAP: "0" });
+  assert.equal((await answerSearch(env, "Melchizedek", 7, ["Google"])).reason, "free-paused");
+  assert.deepEqual(sent, []);
 });
 
 test("search routes one bounded call through the gateway, cites the library and never charges the reader", async t => {

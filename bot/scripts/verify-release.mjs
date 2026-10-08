@@ -4,7 +4,7 @@ import { signInitData } from "../src/initdata.mjs";
 /** A bounded live check: no messages, content writes or paid reader balance. */
 export async function verifyRelease({ url, token, expectedModel, fetcher = fetch, log = console.log }) {
   if (!url || !token || !expectedModel) throw new Error("Set WORKER_URL, BOT_TOKEN and EXPECTED_SEARCH_MODEL for release verification.");
-  const external = !expectedModel.startsWith("@cf/"), provider = external ? "Google" : "Cloudflare";
+  const external = !expectedModel.startsWith("@cf/"), provider = external ? "Google" : "Cloudflare (Workers AI)";
   const origin = new URL(url).origin;
   const get = (path, headers = {}) => fetcher(`${origin}${path}`, { headers, redirect: "error", signal: AbortSignal.timeout(60_000) });
   const requireStatus = (response, status, label) => {

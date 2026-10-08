@@ -31,6 +31,13 @@ test("the end-to-end tests' clock is never on in a deployed Worker", () => {
   assert.equal(config.env.staging.vars.E2E_CLOCK, undefined);
 });
 
+test("production and staging search use only a hosted free-tier model", () => {
+  for (const vars of [config.vars, config.env.staging.vars]) {
+    assert.equal(vars.SEARCH_AI_FREE_ONLY, "on");
+    assert.match(vars.SEARCH_AI_MODEL, /^@cf\//);
+  }
+});
+
 test("Ask is sold at cost: no margin, no plan, no free daily allowance for paid models", () => {
   for (const vars of [config.vars, config.env.staging.vars]) {
     assert.equal(vars.ASK_MARGIN, "1");

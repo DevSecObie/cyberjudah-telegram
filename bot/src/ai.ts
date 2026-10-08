@@ -193,11 +193,12 @@ async function startMeterFor(env: Env, uid: number, model: AskModel, opts: Meter
   const admin = isAdmin(env, uid);
   const isFree = sponsoredSearch || freeSet.has(model.id);
   if (isFree || admin) {
+    const budgeted = isFree && (!admin || sponsoredSearch);
     const rounds = sponsoredSearch ? 1 : isFree && !admin ? freeMaxRounds(env) : 6;
-    const estFree = isFree && !admin ? estimateMc(model, cfg, { rounds }) : est;
-    const budget = isFree && !admin ? Math.min(estFree.maxMc * MC_USD, freeMaxUsd(env)) : est.maxMc * MC_USD;
+    const estFree = budgeted ? estimateMc(model, cfg, { rounds }) : est;
+    const budget = budgeted ? Math.min(estFree.maxMc * MC_USD, freeMaxUsd(env)) : est.maxMc * MC_USD;
     let reservation: FreeReservation | undefined;
-    if (!admin) {
+    if (!admin || sponsoredSearch) {
       try {
         const held = await reserveFreeBudget(env, crypto.randomUUID(), budget);
         if (!held) return { ok: false, status: 429, body: { error: "free-paused" } };
@@ -296,9 +297,10 @@ export type SearchAnswer =
   | { ok: true; answer: string; sources: (Passage & { n: number })[]; model: string; provider: string; ms: number }
   | { ok: false; reason: "too-short" | "unavailable" | "empty" | "free-paused" | "consent" };
 
-/** Only catalogued chat/plain models with known prices can supply a sponsored search. */
+/** Search defaults to hosted free-tier models; third-party billing requires an explicit opt-in. */
 export function searchModel(env: Env): AskModel | null {
   const id = env.SEARCH_AI_MODEL?.trim() || freeModel(env).id;
+  if (env.SEARCH_AI_FREE_ONLY !== "off" && !id.startsWith("@cf/")) return null;
   return MODELS.find((m) => m.id === id && FREE_FORMATS.has(m.format)
     && (m.id.startsWith("@cf/") || m.provider === "Google" && m.id.startsWith("google/"))) ?? null;
 }
@@ -306,7 +308,7 @@ export function searchModel(env: Env): AskModel | null {
 /**
  * One library-grounded call, funded by the owner's shared free-answer allowance. A configured
  * external provider requires consent before retrieval or metering. No reader balance is held,
- * and no tools or web searches are offered to the model. Admins retain their existing exemption.
+ * and no tools or web searches are offered to the model. Admin searches share the daily limit.
  */
 export async function answerSearch(env: Env, q: string, uid: number, consent: string[] = []): Promise<SearchAnswer> {
   const t0 = Date.now();
