@@ -81,6 +81,14 @@
 .plan-start b { font: 600 15px var(--font-ui); color: var(--text-1); }
 .plan-start > span:nth-child(2) > span { font: 400 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
 .plan-start > svg { color: var(--text-4); }
+/* Bible Strong 1dfaa0d: MeditationsHome and PlanHome reading rows. */
+.drawer--home .plan-start { padding: 18px; gap: 14px; border-radius: 20px; }
+.drawer--home .plan-start .resume__icon { width: 48px; height: 48px; border-radius: 14px; }
+.drawer--home .plan-start .resume__icon svg { width: 24px; height: 24px; }
+.drawer--home .plan-start > span:nth-child(2) { gap: 5px; }
+.drawer--home .plan-start b { font-size: 16px; font-weight: 700; }
+.drawer--home .plan-start > span:nth-child(2) > span { font-size: 13px; }
+.drawer--home .plan-start > svg { width: 20px; height: 20px; color: var(--accent); }
 .sabbath { display: flex; align-items: center; gap: 14px; }
 .sabbath__icon { flex: none; display: grid; place-items: center; width: var(--touch); height: var(--touch); border-radius: var(--r-md); background: color-mix(in srgb, var(--gold) 18%, transparent); color: var(--gold); }
 .sabbath b { display: block; font: 600 var(--fs-callout) var(--font-ui); color: var(--text-1); font-variant-numeric: tabular-nums; }
