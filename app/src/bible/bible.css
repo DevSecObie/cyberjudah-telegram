@@ -589,13 +589,6 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .word-alignment__row button { display: grid; gap: 6px; width: 100%; min-height: 44px; padding: 12px; margin-bottom: 8px; border: 1px solid var(--bs-grey); border-radius: 8px; text-align: start; color: var(--bs-default); background: var(--bs-reverse); font: inherit; }
 .word-alignment p { line-height: 1.6; }
 
-/* New study actions occupy a labelled row without altering the six reader controls. */
-.bs-selected__extra { display: flex; align-items: center; gap: 12px; width: calc(100% - 32px); box-sizing: border-box; min-height: 48px; margin: 2px 16px 0; padding: 8px 12px; border: 0; border-top: 1px solid var(--bs-border, var(--hairline)); border-radius: 0; background: transparent; color: var(--bs-primary); font: inherit; text-align: start; cursor: pointer; }
-.bs-selected__extra span { flex: 1; font-size: .875rem; }
-.bs-selected__extra:hover:not(:disabled) { background: var(--sel-tile); border-radius: 12px; }
-.bs-selected__extra:disabled { opacity: .45; cursor: default; }
-#root .bs-selected__extra:focus-visible { outline: 2px solid var(--sel-accent); outline-offset: -2px; border-radius: 12px; }
-
 /* Passage export uses the reader's sheet and palette. */
 .bs-export { padding: 16px; display: grid; gap: 16px; }
 .bs-export label { display: grid; gap: 8px; }
