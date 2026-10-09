@@ -128,7 +128,10 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const selectedText = () => verses.filter((v) => selected.includes(v.verse)).map((v) => ({ verse: v.verse, text: v.text }));
 
   // Where they left off, the history, the chapter counted as read after a while, the plan moving on.
-  useEffect(() => { if (chapterLabel) { setLast({ slug, chapter: ch, name: chapterLabel, at: Date.now() }); setHistory(pushHistory(history, { slug, chapter: ch, name: chapterLabel })); } }, [slug, ch, chapterLabel]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (chapterLabel) setLast({ slug, chapter: ch, name: chapterLabel, at: Date.now() }); }, [slug, ch, chapterLabel]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Bible Strong's BibleViewer records book, chapter and the verse being gone to, once the real chapter is up.
+  const loaded = !!text.data && !text.isPlaceholderData;
+  useEffect(() => { if (chapterLabel && loaded) setHistory(pushHistory(history, { slug, chapter: ch, verse: verseToScroll ?? 1, name: chapterLabel })); }, [slug, ch, chapterLabel, verseToScroll, loaded]); // eslint-disable-line react-hooks/exhaustive-deps
   const progressRef = useRef(progress); progressRef.current = progress;
   const rootRef = useRef<HTMLElement>(null);
   useEffect(() => { const t = setTimeout(() => setProgress(markRead(progressRef.current, slug, ch)), 20_000); return () => clearTimeout(t); }, [slug, ch]); // eslint-disable-line react-hooks/exhaustive-deps
