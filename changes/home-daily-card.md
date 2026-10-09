@@ -1,0 +1,1 @@
+- Browse Home’s daily scriptures in Bible Strong’s stacked, swipeable cards, with the existing verse, sharing, image and reminder actions.
