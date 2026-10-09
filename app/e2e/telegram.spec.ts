@@ -1868,7 +1868,7 @@ test("audio chips set device pitch and speed; Stop stays stopped with Repeat ena
   await expect(page.locator("#verset-1")).toBeVisible();
   await page.getByRole("button", { name: "Start audio playback" }).click();
   await expect(page.locator(".bs-audio__top").getByRole("button", { name: "Return to current passage" })).toHaveText("Psalms 23:1 KJV");
-  await expect(page.locator(".bs-audio__chips button")).toHaveText(["Stop", "Voice", "Speed 1x", "Pitch 1x", "Ambient", "Repeat"]);
+  await expect(page.locator(".bs-audio__chips button")).toHaveText(["Stop", "Voice", "Speed 1x", "Pitch 1x", "Ambient", "Repeat", "Timer"]);
   await page.getByRole("button", { name: "Pitch 1x", exact: true }).click();
   await page.getByRole("dialog", { name: "Pitch", exact: true }).getByRole("radio", { name: "1.5x", exact: true }).click();
   await page.getByRole("button", { name: "Speed 1x", exact: true }).click();
@@ -1887,6 +1887,41 @@ test("audio chips set device pitch and speed; Stop stays stopped with Repeat ena
   await page.evaluate(() => { const speech = (window as unknown as { __speech: { finish(): void } }).__speech; for (let i = 0; i < 7; i++) speech.finish(); });
   await expect(page.getByRole("button", { name: "Stop audio playback" })).toBeVisible();
   await expect.poll(async () => (await spoken()).length).toBeGreaterThan(count + 7);
+});
+
+test("the sleep timer counts down and stops audio; pausing clears it", async ({ page }) => {
+  await page.clock.install();
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "SpeechSynthesisUtterance", { value: class { text: string; rate = 1; pitch = 1; constructor(text: string) { this.text = text; } } });
+    const voice = { name: "Test English", lang: "en-GB", localService: true };
+    Object.defineProperty(window, "speechSynthesis", { value: {
+      getVoices: () => [voice], addEventListener() {}, removeEventListener() {},
+      speak(u: SpeechSynthesisUtterance) { u.onstart?.({} as SpeechSynthesisEvent); },
+      cancel() {}, pause() {}, resume() {}, paused: false,
+    } });
+  });
+  await page.goto(`/read/psalms/23${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await page.getByRole("button", { name: "Start audio playback" }).click();
+  const timer = page.locator(".bs-audio__chips").getByRole("button", { name: /^Sleep timer/ });
+  await expect(timer).toHaveText("Timer");
+  await expect(timer).toHaveAttribute("aria-pressed", "false");
+  await timer.click();
+  await page.getByRole("dialog", { name: "Sleep timer", exact: true }).getByRole("radio", { name: "5 minutes", exact: true }).click();
+  await expect(timer).toHaveText("5:00");
+  await expect(timer).toHaveAttribute("aria-pressed", "true");
+  await page.clock.runFor(61_000);
+  await expect(timer).toHaveText("3:59");
+  // Pausing clears the timer, as in Bible Strong.
+  await page.locator(".bs-audio").getByRole("button", { name: "Pause audio playback" }).click();
+  await expect(timer).toHaveText("Timer");
+  await page.locator(".bs-audio").getByRole("button", { name: "Resume audio playback" }).click();
+  await timer.click();
+  await page.getByRole("dialog", { name: "Sleep timer", exact: true }).getByRole("radio", { name: "5 minutes", exact: true }).click();
+  await page.clock.runFor(5 * 60_000 + 1_000);
+  await expect(page.locator(".bs-audio").getByRole("button", { name: "Start audio playback" })).toBeVisible();
+  await expect(page.locator(".bs-audio__notice")).toHaveText("Sleep timer ended.");
+  await expect(page.locator(".bs-audio__chips").getByRole("button", { name: /^Sleep timer/ })).toHaveText("Timer");
 });
 
 test("Stop cancels a pending device voice lookup", async ({ page }) => {
