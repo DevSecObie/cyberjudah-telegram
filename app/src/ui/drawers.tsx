@@ -58,7 +58,7 @@ export function Drawers() {
       <Panel side="home" open={side === "home"}>
         {hasOpenedHome ? (
           <>
-            <div className="drawer__scroll"><HomeBody drawer /></div>
+            <div className="drawer__scroll"><HomeBody drawer active={side === "home"} /></div>
             <div className="drawer__fade" aria-hidden="true" />
             <button type="button" className="drawer__x" aria-label="Close Home" title="Close Home" onClick={() => { haptic("select"); setDrawer(null); }}><Icon name="close" size={24} /></button>
           </>

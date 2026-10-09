@@ -41,17 +41,17 @@ async function gestureClock(page: Page) {
   await page.clock.install({ time: new Date("2026-10-08T18:00:00Z") });
   await page.clock.pauseAt(new Date("2026-10-08T18:00:01Z"));
 }
-async function touchVerse(page: Page, type: string, fingers: number, verse = 1) {
-  await page.locator(`#verset-${verse} .bs-num`).evaluate((el, { type, fingers }) => {
+async function touchVerse(page: Page, type: string, fingers: number, verse = 1, offsetY = 0) {
+  await page.locator(`#verset-${verse} .bs-num`).evaluate((el, { type, fingers, offsetY }) => {
     const r = el.getBoundingClientRect();
-    const point = { identifier: 1, target: el, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2 };
+    const point = { identifier: 1, target: el, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2 + offsetY };
     const event = new Event(type, { bubbles: true });
     Object.defineProperties(event, {
       touches: { value: Array.from({ length: fingers }, (_, i) => ({ ...point, identifier: i + 1, clientX: point.clientX + i * 20 })) },
       changedTouches: { value: [point] },
     });
     el.dispatchEvent(event);
-  }, { type, fingers });
+  }, { type, fingers, offsetY });
 }
 
 for (const input of ["mouse", "touch"] as const) test(`reader rapid ${input} taps retain each distinct verse selection`, async ({ page }) => {
@@ -238,6 +238,8 @@ test("daily verses have five days, sharing and images on Home", async ({ page })
   await card.getByRole("button", { name: "Today's scripture", exact: true }).click();
   await expect(card).toContainText("Genesis 1:1");
 
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
   await page.getByRole("button", { name: "Home", exact: true }).click();
   const home = page.locator(".drawer--home");
   await home.getByRole("button", { name: "Previous day's scripture" }).click();
@@ -256,6 +258,10 @@ test("daily verses have five days, sharing and images on Home", async ({ page })
   await expect(home).toHaveAttribute("inert", "");
   // Stay away beyond the closing animation, which used to discard Home's state.
   await page.waitForTimeout(500);
+  await touchVerse(page, "touchstart", 1);
+  await touchVerse(page, "touchmove", 1, 1, 160);
+  await expect(home.locator(".pull")).toHaveCSS("height", "0px");
+  await touchVerse(page, "touchend", 0, 1, 160);
   await page.getByRole("button", { name: "Home", exact: true }).click();
   await expect(home.getByRole("region", { name: "Daily scripture" })).toContainText("Yesterday");
   await expect(word.locator(".widget__body")).toHaveAttribute("href", "/lexicon/G2");
