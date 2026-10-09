@@ -11,6 +11,7 @@ function fixture({ answerStatus = 200, sources = [{}], model = "google/test", ex
     const path = new URL(url).pathname;
     if (path === "/api/health") return json({ ok: true });
     if (["/app/", "/app/read/genesis/1"].includes(path)) return new Response('<div id="root"></div>', { headers: { "content-type": "text/html" } });
+    if (path === "/api/auth/status") return json({ available: true });
     if (!headers.authorization) return json({}, 401);
     assert.equal((await validateInitData(headers.authorization.slice(4), "test-token")).user.id, 1);
     if (path === "/api/firebase/token") return json({ uid: "tg_1", token: "fixture.payload.signature" });
