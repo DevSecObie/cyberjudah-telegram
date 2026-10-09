@@ -341,14 +341,16 @@ test("Home is Bible Strong's drawer: it slides the app aside and closes with a s
   await page.click('.tab[aria-label="Home"]');
   const home = page.locator(".drawer--home[data-open]");
   await expect(home).toBeVisible();
-  await expect(home.locator(".today-card header b")).toHaveText("Today");
+  await expect(home.locator(".today-card[data-active] header b")).toHaveText("Today");
   // The app moved aside with it.
   await expect.poll(() => page.evaluate(() => getComputedStyle(document.querySelector("#shell .route")!).transform)).not.toBe("none");
   // A swipe back toward its edge closes it (once it has finished sliding in).
   await expect.poll(async () => Math.round((await home.boundingBox())!.x)).toBe(0);
   const box = (await home.boundingBox())!;
-  await page.mouse.move(box.x + box.width - 40, box.y + 300); await page.mouse.down();
-  await page.mouse.move(box.x + 60, box.y + 305, { steps: 6 }); await page.mouse.up();
+  const counts = (await home.locator(".stats--six").boundingBox())!;
+  // The Today card owns its horizontal swipe; swiping the rest of Home still closes it.
+  await page.mouse.move(box.x + box.width - 40, counts.y + 10); await page.mouse.down();
+  await page.mouse.move(box.x + 60, counts.y + 15, { steps: 6 }); await page.mouse.up();
   await expect(page.locator(".drawer--home[data-open]")).toHaveCount(0);
   await expect(page).toHaveURL(/\/read\/genesis\/1/);
 });
@@ -495,7 +497,7 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await page.getByRole("button", { name: "Home", exact: true }).click();
   const home = page.locator(".drawer--home");
-  await expect(home.locator(".today-card")).toContainText("Genesis 1:1");
+  await expect(home.locator(".today-card[data-active]")).toContainText("Genesis 1:1");
   await expect(home.locator(".hello, .search-hero, .door__btn--ask")).toHaveCount(0);
   await expect(home.locator(".stats__cell small")).toHaveText(["Highlights", "Bookmarks", "Notes", "Studies", "Precepts", "Tags"]);
   // A reading plan is not a personal study.
