@@ -51,6 +51,7 @@ import { photoFile, photoManifest, removePhoto, setPhoto } from "./photos";
 import { MAX_BYTES } from "./photos.mjs";
 import { browserAuth, browserSession } from "./browser-auth";
 import { studyBackup } from "./study-backup";
+import { firebaseAuth } from "./firebase-auth";
 import { cors } from "hono/cors";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
@@ -102,6 +103,7 @@ app.use("/api/*", async (c, next) => {
 
 app.route("/api/admin/cms", cms);
 app.route("/api/study-backup", studyBackup);
+app.route("/api/firebase", firebaseAuth);
 app.route("/api/reminders", reminders);
 app.route("/api/push", push);
 
