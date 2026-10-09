@@ -33,6 +33,19 @@ jobs:
       - run: npm run test:e2e --workspace app -- --project=${{ matrix.browser }}
         env:
           CI: "true"
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Check the published rules and retry-safe imports
+        if: matrix.browser == 'chromium'
+        run: npx --yes --package firebase-tools@15.33.0 firebase emulators:exec --config app/firebase/firebase.json --only firestore --project demo-cyberjudah 'node --test app/firebase/tests/*.test.mjs'
+      - name: Check account sync in this browser
+        run: npx --yes --package firebase-tools@15.33.0 firebase emulators:exec --config app/firebase/firebase.json --only auth,firestore --project demo-cyberjudah 'npm run test:e2e --workspace app -- account-sync.spec.ts --project=${{ matrix.browser }}'
+        env:
+          CI: 'true'
+          VITE_ACCOUNT_SYNC: 'true'
+          VITE_FIREBASE_EMULATOR: 'true'
       - name: Upload Playwright traces
         if: failure()
         uses: actions/upload-artifact@v7
