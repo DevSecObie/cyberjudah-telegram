@@ -1,0 +1,1 @@
+- Changing chapter no longer blanks the page: as in Bible Strong, the chapter you were reading stays on screen until the next one has loaded.

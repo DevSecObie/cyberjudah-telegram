@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
-import { compressVerses, data, verseNumbers } from "@/api/data";
+import { compressVerses, data, verseNumbers, type Chapter as ChapterData } from "@/api/data";
 import { isRead, markRead, pushHistory, unmarkRead, useHistory, useLast, usePlan, useProgress } from "@/lib/marks";
 import { advance, planDay } from "@/lib/plan";
 import { createRelation, deleteRelation, endpointHref, useChapterRelations, verseKey, type Endpoint, type Relation, type VerseEndpoint, type VerseRelationItem } from "@/lib/relations";
@@ -44,6 +44,10 @@ import "./bible.css";
  * focus verses, context mode, fullscreen) lives here; the study data and the settings live
  * in Telegram's cloud storage.
  */
+/** Each tab's chapter on screen. Each chapter mounts its own reader, so this carries it across for
+ * Bible Strong's keepPreviousData: the tab's last chapter stays up until the next one arrives. */
+const shownChapter = new Map<string, ChapterData>();
+
 export function BibleTab() {
   const { current } = useTabs();
   const location = useLocation();
@@ -53,6 +57,7 @@ export function BibleTab() {
 }
 
 function BibleReader({ sessionKey }: { sessionKey: string }) {
+  const tabId = sessionKey.slice(0, sessionKey.indexOf(":"));
   const { book: slugParam, chapter: chapterParam } = useParams();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
@@ -90,8 +95,11 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const idx = list.findIndex((b) => b.slug === slug);
   const book = list[idx];
   const bookName = useCallback((s: string) => list.find((b) => b.slug === s)?.book ?? s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()), [list]);
-  const text = useQuery({ queryKey: ["chapter", slug, ch], queryFn: () => data.chapter(slug, ch), staleTime: Infinity });
+  const text = useQuery({ queryKey: ["chapter", slug, ch], queryFn: () => data.chapter(slug, ch), staleTime: Infinity, placeholderData: () => shownChapter.get(tabId) });
+  useEffect(() => { if (text.data && !text.isPlaceholderData) shownChapter.set(tabId, text.data); }, [tabId, text.data, text.isPlaceholderData]);
   const verses = text.data?.verses ?? [];
+  // As BibleViewer: the footer waits while fetching, and audio only takes the real chapter.
+  const loading = text.isFetching;
   const next = book && ch < book.chapters ? { slug, ch: ch + 1 } : list[idx + 1] ? { slug: list[idx + 1].slug, ch: 1 } : null;
   const prev = book && ch > 1 ? { slug, ch: ch - 1 } : idx > 0 ? { slug: list[idx - 1].slug, ch: list[idx - 1].chapters } : null;
   const go = (t: { slug: string; ch: number } | null, verse?: number) => { if (t) navigate(`/read/${t.slug}/${t.ch}${verse && verse > 1 ? `?v=${verse}` : ""}`); };
@@ -156,7 +164,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const [tagsTarget, setTagsTarget] = useState<number[]>([]);
   const toast = useToast();
   const say = (m: string) => toast(m, { ms: 2800 });
-  const speech = useReaderSpeech(verses, chapterLabel, { slug, chapter: ch });
+  const speech = useReaderSpeech(text.isPlaceholderData ? [] : verses, chapterLabel, { slug, chapter: ch });
   const player = useAudioPlayer();
   const { repeat, setRepeat, expanded: audioOpen, setExpanded: setAudioOpen } = player;
 
@@ -282,7 +290,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
           onOpenRelations={(v) => navigate(`/relations?endpoint=${verseKey(slug, ch, v)}`)} onOpenRelationItem={(it) => void openRelationItem(it)}
           onOpenTags={(v) => { const group = Object.entries(highlights).filter(([, h]) => h.date === highlights[String(v)]?.date).map(([k]) => +k); setTagsTarget(group.length ? group : [v]); setSheet("tags"); }} onOpenTag={(id) => navigate(`/bookmarks?tag=${id}`)} />
       )}
-      <Footer hasPrev={!!prev && !text.isPending} hasNext={!!next && !text.isPending} onPrev={() => step(prev)} onNext={() => step(next)} speech={player.speech} fullscreen={fullscreen} hidden={contextMode === "focused" && !!focus} bottomBar={bottomBar} reference={chapterLabel} verseCount={verses.length} repeat={repeat} setRepeat={setRepeat} expanded={audioOpen} setExpanded={setAudioOpen} />
+      <Footer hasPrev={!!prev && !loading} hasNext={!!next && !loading} onPrev={() => step(prev)} onNext={() => step(next)} speech={player.speech} fullscreen={fullscreen} hidden={contextMode === "focused" && !!focus} bottomBar={bottomBar} reference={chapterLabel} verseCount={verses.length} repeat={repeat} setRepeat={setRepeat} expanded={audioOpen} setExpanded={setAudioOpen} />
 
       <WhySheet open={sheet === "why"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={whyAt} reference={`${chapterLabel}:${whyAt}`}
         onRead={(url, v) => { setSheet(null); const m = slugOfUrl(url); navigate(m ? `/read/${m[1]}/${m[2]}${v ? `?v=${v}` : ""}` : url); }}

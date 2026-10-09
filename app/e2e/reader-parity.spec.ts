@@ -191,6 +191,26 @@ test("reader v opens Go to verse and jumps to a valid verse, as Bible Strong's w
   await expect(page.getByRole("dialog", { name: "Go to verse" })).toHaveCount(0);
 });
 
+test("reader keeps the current chapter on screen until the next one arrives, as Bible Strong's keepPreviousData", async ({ page }) => {
+  let release!: () => void;
+  const held = new Promise<void>(done => { release = done; });
+  await page.route(`${DATA}/api/kjv/john/*.json`, async r => {
+    const n = +/(\d+)\.json/.exec(r.request().url())![1];
+    if (n === 2) await held;
+    await r.fulfill({ json: { book: "john", chapter: n, translation: "KJV", verses: [{ verse: 1, text: `John chapter ${n} first verse.` }, { verse: 2, text: `John chapter ${n} second verse.` }] } });
+  });
+  await page.goto("/read/john/1");
+  await expect(page.locator("#verset-1 .bs-text")).toHaveText("John chapter 1 first verse.");
+  await page.click('.bs-chapterbtn[aria-label="Next chapter"]');
+  await expect(page).toHaveURL(/\/read\/john\/2$/);
+  // While John 2 loads, John 1 stays up and the arrows wait.
+  await expect(page.locator(".bs-chapterbtn[aria-label='Next chapter']")).toBeDisabled();
+  await expect(page.locator("#verset-1 .bs-text")).toHaveText("John chapter 1 first verse.");
+  release();
+  await expect(page.locator("#verset-1 .bs-text")).toHaveText("John chapter 2 first verse.");
+  await expect(page.locator(".bs-chapterbtn[aria-label='Next chapter']")).toBeEnabled();
+});
+
 test("reader press preference still swaps resources and verse selection", async ({ page }) => {
   await page.goto("/read/genesis/1");
   await menu(page, "Font and settings");
