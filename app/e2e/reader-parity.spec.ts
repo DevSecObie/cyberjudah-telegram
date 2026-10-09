@@ -191,22 +191,6 @@ test("reader v opens Go to verse and jumps to a valid verse, as Bible Strong's w
   await expect(page.getByRole("dialog", { name: "Go to verse" })).toHaveCount(0);
 });
 
-test("history keeps the verse gone to and opens on it, as Bible Strong's history does", async ({ page }) => {
-  await page.goto("/read/genesis/1");
-  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
-  await page.keyboard.press("v");
-  await page.getByRole("dialog", { name: "Go to verse" }).getByRole("textbox", { name: "Verse" }).fill("28");
-  await page.getByRole("dialog", { name: "Go to verse" }).getByRole("button", { name: "Go" }).click();
-  await expect(page.locator("#verset-28")).toBeInViewport();
-  await page.goto("/history");
-  // One row per passage: the chapter itself and verse 28 of it.
-  await expect(page.getByRole("link", { name: /Genesis 1:28$/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Genesis 1$/ })).toBeVisible();
-  await page.getByRole("link", { name: /Genesis 1:28$/ }).click();
-  await expect(page).toHaveURL(/\/read\/genesis\/1\?v=28$/);
-  await expect(page.locator("#verset-28")).toBeVisible();
-});
-
 test("reader press preference still swaps resources and verse selection", async ({ page }) => {
   await page.goto("/read/genesis/1");
   await menu(page, "Font and settings");
@@ -473,4 +457,20 @@ test("Mac shortcuts cycle recent tabs and do not interrupt a note editor", async
   await page.keyboard.press("Meta+k");
   await expect(page.getByRole("dialog", { name: "Find a tab or tool" })).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Description", exact: true })).toHaveValue("Keep my writing");
+});
+
+test("history keeps the verse gone to and opens on it, as Bible Strong's history does", async ({ page }) => {
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await page.keyboard.press("v");
+  await page.getByRole("dialog", { name: "Go to verse" }).getByRole("textbox", { name: "Verse" }).fill("28");
+  await page.getByRole("dialog", { name: "Go to verse" }).getByRole("button", { name: "Go" }).click();
+  await expect(page.locator("#verset-28")).toBeInViewport();
+  await page.goto("/history");
+  // One row per passage: the chapter itself and verse 28 of it.
+  await expect(page.getByRole("link", { name: /Genesis 1:28$/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Genesis 1$/ })).toBeVisible();
+  await page.getByRole("link", { name: /Genesis 1:28$/ }).click();
+  await expect(page).toHaveURL(/\/read\/genesis\/1\?v=28$/);
+  await expect(page.locator("#verset-28")).toBeVisible();
 });
