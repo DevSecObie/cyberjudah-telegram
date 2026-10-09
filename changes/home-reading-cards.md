@@ -1,0 +1,1 @@
+- Match Home's reading plan and 4 Chapters a Day cards to Bible Strong's spacing and sizing, keeping their existing content and destinations.
