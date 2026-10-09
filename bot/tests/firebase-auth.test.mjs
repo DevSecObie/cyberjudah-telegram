@@ -43,6 +43,7 @@ test('missing, tampered, expired, duplicated and invalid Telegram identities nev
   assert.throws(() => telegramFirebaseUid('77'));
 });
 test('a supplied UID or claims cannot select a different Firebase account', async () => {
+  assert.equal((await request(await launch(), { body: '' })).status, 200, 'browsers may send an empty POST body stream');
   for (const body of ['{"uid":"admin"}', '{"claims":{"admin":true}}']) assert.equal((await request(await launch(), { body })).status, 400);
   assert.equal((await request(await launch(), {}, env, '/token?uid=admin')).status, 400);
 });

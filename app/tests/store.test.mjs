@@ -13,7 +13,7 @@ async function setup(t, { cloud = false, deviceStorage = false, full = false } =
   } });
   let cloudRead; const cloudWrites = [], deviceWrites = [];
   const previous = { window: globalThis.window, sdk: globalThis.__storeTestSdk };
-  globalThis.window = { localStorage: storage };
+  globalThis.window = { localStorage: storage, dispatchEvent: () => true };
   globalThis.__storeTestSdk = { features: { cloud, deviceStorage }, app: {
     DeviceStorage: { getItem: (_k, cb) => cb(null, 'device'), setItem: (k, v) => deviceWrites.push([k, v]), removeItem: () => {} },
     CloudStorage: { getItem: (_k, cb) => { cloudRead = cb; }, getKeys: cb => cb(null, ['cloud']), setItem: (k, v) => cloudWrites.push([k, v]), removeItem: () => {} },
@@ -23,8 +23,8 @@ async function setup(t, { cloud = false, deviceStorage = false, full = false } =
     b.onResolve({ filter: /^\.\/sdk$/ }, () => ({ path: 'sdk', namespace: 'test' }));
     b.onLoad({ filter: /.*/, namespace: 'test' }, () => ({ contents: 'export const { app, features } = globalThis.__storeTestSdk;' }));
   } }] });
-  const { store } = await import(`data:text/javascript;base64,${Buffer.from(output.outputFiles[0].text).toString('base64')}#${instance++}`);
-  return { store, cloudWrites, deviceWrites, reply: value => cloudRead(null, value) };
+  const { store, connectPersonalStore } = await import(`data:text/javascript;base64,${Buffer.from(output.outputFiles[0].text).toString('base64')}#${instance++}`);
+  return { store, connectPersonalStore, cloudWrites, deviceWrites, reply: value => cloudRead(null, value) };
 }
 test('browser backup enumerates existing and newly saved preferences without unrelated keys', async t => {
   const { store } = await setup(t);
@@ -50,4 +50,16 @@ test('cloud reads remain usable when this browser cannot persist their mirror', 
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(await store.get('bookmark'), 'from-cloud');
   assert.throws(() => store.set('bookmark', 'unsaved'), /Full/);
+});
+
+test('failed account sync reads original marks without refreshing or writing their old keys', async t => {
+  const { store, connectPersonalStore, reply, deviceWrites, cloudWrites } = await setup(t, { cloud: true, deviceStorage: true });
+  connectPersonalStore(Promise.reject(new Error('Expired sign-in')));
+  assert.equal(await store.get('bs_h_genesis_1'), 'device');
+  reply('original-cloud');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(await store.get('bs_h_genesis_1'), 'original-cloud');
+  store.set('bs_h_genesis_1', 'unsynced edit');
+  assert.deepEqual(deviceWrites, []);
+  assert.deepEqual(cloudWrites, []);
 });

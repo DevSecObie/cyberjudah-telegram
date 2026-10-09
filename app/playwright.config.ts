@@ -19,7 +19,12 @@ if (!liveBaseURL) {
   process.env.BOT_TOKEN = "100000001:E2E-local-worker-only";
   if (!process.env.E2E_VAPID_PUBLIC) { const k = vapid(); process.env.E2E_VAPID_PUBLIC = k.pub; process.env.E2E_VAPID_PRIVATE = k.priv; }
 }
+if (process.env.VITE_FIREBASE_EMULATOR === "true" && !process.env.E2E_FIREBASE_ACCOUNT) {
+  const { privateKey } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
+  process.env.E2E_FIREBASE_ACCOUNT = JSON.stringify({ type: "service_account", project_id: "cyberjudah-app", client_email: "fixture@cyberjudah-app.iam.gserviceaccount.com", private_key: privateKey.export({ type: "pkcs8", format: "pem" }) });
+}
 const vars = [
+  ...(process.env.E2E_FIREBASE_ACCOUNT ? [`FIREBASE_SERVICE_ACCOUNT:${process.env.E2E_FIREBASE_ACCOUNT}`, "TELEGRAM_LOGIN_CLIENT_ID:100000001", "TELEGRAM_LOGIN_CLIENT_SECRET:local-fixture"] : []),
   `BOT_TOKEN:${process.env.BOT_TOKEN}`,
   `VAPID_PUBLIC_KEY:${process.env.E2E_VAPID_PUBLIC}`,
   `VAPID_PRIVATE_KEY:${process.env.E2E_VAPID_PRIVATE}`,
@@ -66,8 +71,8 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { browserName: "chromium", channel: "chromium", ...(process.env.CHROMIUM_PATH ? { launchOptions: { executablePath: process.env.CHROMIUM_PATH } } : {}) } },
     // The glass material and pointer behavior must also work in the engine used by Safari/iOS.
-    { name: "webkit", testMatch: ["telegram-launch.spec.ts", "reader-parity.spec.ts", "study-tools.spec.ts", "recordings.spec.ts", "ambient.spec.ts", "glass.spec.ts", "contrast.spec.ts", "search-placement.spec.ts", "search-provider.spec.ts", "icons.spec.ts", "material-budget.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts", "cms.spec.ts"], use: { browserName: "webkit" } },
-    { name: "firefox", testMatch: ["telegram-launch.spec.ts", "reader-parity.spec.ts", "study-tools.spec.ts", "recordings.spec.ts", "ambient.spec.ts", "glass.spec.ts", "material-budget.spec.ts", "search-placement.spec.ts", "search-provider.spec.ts", "icons.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts", "cms.spec.ts"], use: { browserName: "firefox" } },
+    { name: "webkit", testMatch: ["account-sync.spec.ts", "telegram-launch.spec.ts", "reader-parity.spec.ts", "study-tools.spec.ts", "recordings.spec.ts", "ambient.spec.ts", "glass.spec.ts", "contrast.spec.ts", "search-placement.spec.ts", "search-provider.spec.ts", "icons.spec.ts", "material-budget.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts", "cms.spec.ts"], use: { browserName: "webkit" } },
+    { name: "firefox", testMatch: ["account-sync.spec.ts", "telegram-launch.spec.ts", "reader-parity.spec.ts", "study-tools.spec.ts", "recordings.spec.ts", "ambient.spec.ts", "glass.spec.ts", "material-budget.spec.ts", "search-placement.spec.ts", "search-provider.spec.ts", "icons.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts", "cms.spec.ts"], use: { browserName: "firefox" } },
   ],
   webServer: liveBaseURL ? undefined : {
     command: `CYBERJUDAH_APP_BASE=/app/ npm run build && bash ../bot/scripts/prepare-assets.sh && cd ../bot && rm -rf .wrangler/e2e && npx wrangler dev --local --port 8787 --persist-to .wrangler/e2e --test-scheduled ${vars}`,

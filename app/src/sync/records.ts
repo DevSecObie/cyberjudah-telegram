@@ -10,18 +10,19 @@ export function readerCollection(key: string): MigrationRecord["collection"] | u
   if (key === "bs_tags") return "tags";
   if (/^rel_.+_\d+$/.test(key)) return "relations";
 }
+const isList = (key: string) => key === "bs_bm" || key === "bm" || /^rel_.+_\d+$/.test(key);
 export function readerEntries(key: string, raw: string | null): Record<string, unknown> {
   if (raw === null) return {};
   const value = JSON.parse(raw);
-  if (key === "bs_bm" || key === "bm") {
+  if (isList(key)) {
     if (!Array.isArray(value) || value.some(v => !v || typeof v.id !== "string")) throw new Error("Invalid saved bookmarks; the original is unchanged.");
     if (new Set(value.map(v => v.id)).size !== value.length) throw new Error("Duplicate saved bookmark IDs; the original is unchanged.");
-    return Object.fromEntries(value.map(v => [v.id, v]));
+    return { _list: value }; // Preserve the original list order as well as its values.
   }
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid saved reader data; the original is unchanged.");
   return value;
 }
-export const readerValue = (key: string, entries: Record<string, unknown>) => JSON.stringify(key === "bs_bm" || key === "bm" ? Object.values(entries) : entries);
+export const readerValue = (key: string, entries: Record<string, unknown>) => JSON.stringify(isList(key) ? entries._list ?? [] : entries);
 export const recordIdentity = (key: string, entry: string) => JSON.stringify([key, entry]);
 export async function readerRecords(values: Record<string, string>): Promise<MigrationRecord[]> {
   const records: MigrationRecord[] = [];
