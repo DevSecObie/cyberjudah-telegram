@@ -10,8 +10,7 @@ function fixture({ answerStatus = 200, sources = [{}], model = "google/test", ex
   return { count: () => calls, options: { url: "https://app.invalid", token: "test-token", expectedModel, verifySync: true, log() {}, async fetcher(url, { headers }) {
     const path = new URL(url).pathname;
     if (path === "/api/health") return json({ ok: true });
-    if (["/app/", "/app/bible/genesis/1"].includes(path)) return new Response('<div id="root"></div>', { headers: { "content-type": "text/html" } });
-    if (path === "/api/auth/status") return json({ available: true });
+    if (["/app/", "/app/read/genesis/1"].includes(path)) return new Response('<div id="root"></div>', { headers: { "content-type": "text/html" } });
     if (!headers.authorization) return json({}, 401);
     assert.equal((await validateInitData(headers.authorization.slice(4), "test-token")).user.id, 1);
     if (path === "/api/firebase/token") return json({ uid: "tg_1", token: "fixture.payload.signature" });

@@ -16,7 +16,7 @@ export async function verifyRelease({ url, token, expectedModel, verifySync = fa
   log("Search databases: healthy");
   // /app/ is the Mini App on both workers.dev and the production custom domain;
   // the custom domain's root belongs to the separate public website.
-  for (const path of ["/app/", "/app/bible/genesis/1"]) {
+  for (const path of ["/app/", "/app/read/genesis/1"]) {
     const shell = await get(path);
     requireStatus(shell, 200, "App shell");
     const html = await shell.text();

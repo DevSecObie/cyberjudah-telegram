@@ -1,0 +1,1 @@
+- Open Strong’s word lookup directly from a verse’s detail gesture, matching Bible Strong.
