@@ -41,17 +41,17 @@ async function gestureClock(page: Page) {
   await page.clock.install({ time: new Date("2026-10-08T18:00:00Z") });
   await page.clock.pauseAt(new Date("2026-10-08T18:00:01Z"));
 }
-async function touchVerse(page: Page, type: string, fingers: number, verse = 1) {
-  await page.locator(`#verset-${verse} .bs-num`).evaluate((el, { type, fingers }) => {
+async function touchVerse(page: Page, type: string, fingers: number, verse = 1, offsetY = 0) {
+  await page.locator(`#verset-${verse} .bs-num`).evaluate((el, { type, fingers, offsetY }) => {
     const r = el.getBoundingClientRect();
-    const point = { identifier: 1, target: el, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2 };
+    const point = { identifier: 1, target: el, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2 + offsetY };
     const event = new Event(type, { bubbles: true });
     Object.defineProperties(event, {
       touches: { value: Array.from({ length: fingers }, (_, i) => ({ ...point, identifier: i + 1, clientX: point.clientX + i * 20 })) },
       changedTouches: { value: [point] },
     });
     el.dispatchEvent(event);
-  }, { type, fingers });
+  }, { type, fingers, offsetY });
 }
 
 for (const input of ["mouse", "touch"] as const) test(`reader rapid ${input} taps retain each distinct verse selection`, async ({ page }) => {
@@ -102,6 +102,7 @@ test("reader adding a second finger cancels the pending long press", async ({ pa
   await touchVerse(page, "touchend", 0);
   await page.clock.runFor(250);
   await expect(page.locator(".bs-resourcetabs")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
 });
 
@@ -129,6 +130,7 @@ test("reader press preference still swaps resources and verse selection", async 
   await page.getByRole("dialog", { name: "Font and settings" }).getByRole("button", { name: "Close", exact: true }).click();
   await page.locator("#verset-1 .bs-num").click();
   await expect(page.locator(".bs-resourcetabs")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
   await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
   const b = (await page.locator("#verset-1 .bs-num").boundingBox())!;
@@ -221,7 +223,12 @@ test("reader verse numbers can be hidden without hiding them from assistive tech
   await expect(page.locator("#verset-1 .bs-num")).toHaveCount(0);
 });
 
-test("daily verses have five days, sharing and images on Home", async ({ page }) => {
+test("daily verses have five days, sharing and images on Home", async ({ page, browserName }) => {
+  await page.route(`${DATA}/search/{classes,captains}.json`, r => r.fulfill({ json: [] }));
+  await page.route(`${DATA}/api/strongs/index.json`, r => r.fulfill({ json: [
+    { n: "G1", lemma: "Α", xlit: "alpha", def: "Alpha", count: 100 },
+    { n: "G2", lemma: "Ἀαρών", xlit: "Aaron", def: "Aaron", count: 10 },
+  ] }));
   await page.goto("/");
   const card = page.getByRole("region", { name: "Daily scripture" });
   await expect(card).toContainText("Genesis 1:1");
@@ -233,6 +240,76 @@ test("daily verses have five days, sharing and images on Home", async ({ page })
   await page.getByRole("button", { name: "Close", exact: true }).click();
   await card.getByRole("button", { name: "Today's scripture", exact: true }).click();
   await expect(card).toContainText("Genesis 1:1");
+
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  const home = page.locator(".drawer--home");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const stack = home.getByRole("region", { name: "Daily scripture" });
+  const active = stack.locator(".today-card[data-active]");
+  const touch = browserName === "chromium" ? await page.context().newCDPSession(page) : null;
+  const swipe = async (right: boolean) => {
+    const b = (await stack.boundingBox())!;
+    const x = b.x + b.width * (right ? .2 : .8), end = b.x + b.width * (right ? .8 : .2), y = b.y + 110;
+    if (touch) {
+      await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+      for (let n = 1; n <= 12; n++) {
+        await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + (end - x) * n / 12, y }] });
+        await page.waitForTimeout(25);
+      }
+      await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    } else {
+      await page.mouse.move(x, y); await page.mouse.down();
+      await page.mouse.move(end, y, { steps: 12 }); await page.mouse.up();
+    }
+  };
+  await expect(stack.locator(".today-card[inert]")).toHaveCount(4);
+  for (const day of ["Yesterday", "Two days ago", "Three days ago", "Four days ago", "Four days ago"]) {
+    await swipe(true); await expect(active.locator("header b")).toHaveText(day);
+    await expect(home).toHaveAttribute("data-open", "");
+    await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  }
+  for (const day of ["Three days ago", "Two days ago", "Yesterday", "Today", "Today"]) {
+    await swipe(false); await expect(active.locator("header b")).toHaveText(day);
+  }
+  await touch?.detach();
+  await stack.press("ArrowRight"); await expect(active.locator("header b")).toHaveText("Yesterday");
+  await active.getByRole("button", { name: "Image", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Verse image" }).getByRole("img")).toHaveAttribute("src", "/card/genesis/1/2.svg");
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+  const word = home.locator(".widget").first();
+  await expect(word.locator(".widget__body")).toHaveAttribute("href", "/lexicon/G1");
+  await page.evaluate(() => { Math.random = () => .99; });
+  await word.getByRole("button", { name: "Another one" }).click();
+  await expect(word.locator(".widget__body")).toHaveAttribute("href", "/lexicon/G2");
+  const shelf = home.locator(".widgets");
+  await expect(home.locator(".feed__card--skel")).toHaveCount(0);
+  await shelf.evaluate(el => { el.scrollIntoView({ block: "center" }); el.scrollLeft = 200; });
+  await expect.poll(() => shelf.evaluate(el => el.scrollLeft)).toBeGreaterThan(20);
+  const position = await home.evaluate(el => [el.querySelector(".drawer__scroll")!.scrollTop, el.querySelector(".widgets")!.scrollLeft]);
+  await home.getByRole("button", { name: "Close Home" }).click();
+  await expect(home).toHaveAttribute("inert", "");
+  // Stay away beyond the closing animation, which used to discard Home's state.
+  await page.waitForTimeout(500);
+  await touchVerse(page, "touchstart", 1);
+  await touchVerse(page, "touchmove", 1, 1, 160);
+  await expect(home.locator(".pull")).toHaveCSS("height", "0px");
+  await touchVerse(page, "touchend", 0, 1, 160);
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect(active.locator("header b")).toHaveText("Yesterday");
+  await expect(word.locator(".widget__body")).toHaveAttribute("href", "/lexicon/G2");
+  await expect.poll(() => home.evaluate(el => [el.querySelector(".drawer__scroll")!.scrollTop, el.querySelector(".widgets")!.scrollLeft])).toEqual(position);
+  // A chapter first saved while Home is closed must join its displayed totals on reopening.
+  const highlights = home.locator(".stats__cell").filter({ hasText: "Highlights" }).locator("b");
+  await expect(highlights).toHaveText("0");
+  await home.getByRole("button", { name: "Close Home" }).click();
+  await touchVerse(page, "touchstart", 1);
+  await touchVerse(page, "touchend", 0);
+  await page.locator(".bs-colors__cell").nth(1).click();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect(highlights).toHaveText("1");
 });
 
 test("keyboard palette switches to an existing tab and opens a passage with its range", async ({ page }) => {
