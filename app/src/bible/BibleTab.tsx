@@ -19,6 +19,7 @@ import { cssVars, isDarkTheme } from "./theme";
 import { useToast } from "@/ui/toast";
 import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
 import { BookSelectorSheet, VersePopup } from "./ui/BookSelectorSheet";
+import { VerseJump } from "./ui/VerseJump";
 import { BookmarkSheet, LinkSheet, NoteSheet, TagsPanel } from "./ui/Editors";
 import { ChapterEnd } from "./ui/ChapterEnd";
 import { ChapterPeople } from "./ui/ChapterPeople";
@@ -31,7 +32,7 @@ import { CompareSheet } from "./ui/CompareSheet";
 import { chapterClasses, isWhy, slugOfUrl, useClassesByVerse, useTaughtRelations, whyVerse } from "@/lib/taught";
 import { MediaDeck } from "./dom/MediaDeck";
 import { newTab, useTabs } from "@/lib/tabs";
-import { readerSession, saveReaderSession } from "./session";
+import { readerFullscreen, readerSession, saveReaderFullscreen, saveReaderSession } from "./session";
 import { WhySheet } from "./ui/WhySheet";
 import { PassageExportSheet } from "./ui/PassageExportSheet";
 import { SelectedVersesSheet } from "./ui/SelectedVersesSheet";
@@ -94,13 +95,17 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const next = book && ch < book.chapters ? { slug, ch: ch + 1 } : list[idx + 1] ? { slug: list[idx + 1].slug, ch: 1 } : null;
   const prev = book && ch > 1 ? { slug, ch: ch - 1 } : idx > 0 ? { slug: list[idx - 1].slug, ch: list[idx - 1].chapters } : null;
   const go = (t: { slug: string; ch: number } | null, verse?: number) => { if (t) navigate(`/read/${t.slug}/${t.ch}${verse && verse > 1 ? `?v=${verse}` : ""}`); };
+  // Bible Strong's previous/next and swipe change the tab's chapter in place (state/tabs.ts), so Back
+  // returns to where reading began instead of stepping through every chapter read.
+  const step = (t: { slug: string; ch: number } | null) => { if (t) navigate(`/read/${t.slug}/${t.ch}`, { replace: true }); };
 
   // Per-tab state.
   const focus = useMemo(() => { const v = verseNumbers(params.get("v")); return v.length ? v : null; }, [params]);
   const [initial] = useState(() => readerSession(sessionKey, !!focus));
   const [selected, setSelected] = useState(initial.selected);
   const [contextMode, setContextMode] = useState(initial.contextMode);
-  const [fullscreen, setFullscreen] = useState(initial.fullscreen);
+  const [fullscreen, setFullscreen] = useState(readerFullscreen);
+  useEffect(() => { saveReaderFullscreen(fullscreen); }, [fullscreen]);
   const [verseToScroll, setVerseToScroll] = useState<number | undefined>(focus?.[0]);
   const [navRequest, setNavRequest] = useState(0);
   useEffect(() => { saveReaderSession(sessionKey, { selected, contextMode, fullscreen }); }, [sessionKey, selected, contextMode, fullscreen]);
@@ -125,6 +130,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   // Where they left off, the history, the chapter counted as read after a while, the plan moving on.
   useEffect(() => { if (chapterLabel) { setLast({ slug, chapter: ch, name: chapterLabel, at: Date.now() }); setHistory(pushHistory(history, { slug, chapter: ch, name: chapterLabel })); } }, [slug, ch, chapterLabel]); // eslint-disable-line react-hooks/exhaustive-deps
   const progressRef = useRef(progress); progressRef.current = progress;
+  const rootRef = useRef<HTMLElement>(null);
   useEffect(() => { const t = setTimeout(() => setProgress(markRead(progressRef.current, slug, ch)), 20_000); return () => clearTimeout(t); }, [slug, ch]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!plan || !list.length || !planDay(plan, list, progress).done) return;
@@ -252,7 +258,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const resource = verses.find((v) => v.verse === resourceVerse);
 
   return (
-    <main className="bs" data-dark={isDarkTheme(theme) ? "" : undefined} style={{ ...cssVars(palette), background: palette.reverse, color: palette.default }}>
+    <main ref={rootRef} className="bs" data-dark={isDarkTheme(theme) ? "" : undefined} style={{ ...cssVars(palette), background: palette.reverse, color: palette.default }}>
       {chapterLabel ? <h1 className="sr-only">{chapterLabel}, KJV</h1> : null}
       <Header bookLabel={chapterLabel} version="KJV" onBook={() => setSheet("books")} onVersion={() => setSheet("version")} onVerses={() => setSheet("verses")}
         selectedReference={selectedReference} focusedReference={focusedReference} onClearFocus={clearFocus} collapsed={fullscreen}
@@ -271,12 +277,12 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
             sections={[{ title: `Taught from ${chapterLabel}`, items: chapterGroups.taught }, { title: `Read in class`, items: chapterGroups.read }].filter((x) => x.items.length)} /> : null} /><ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
             onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} /></>}
           onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "words")}
-          onSwipe={(dir) => go(dir === "left" ? next : prev)} onFullscreen={setFullscreen}
+          onSwipe={(dir) => step(dir === "left" ? next : prev)} onFullscreen={setFullscreen}
           onOpenBookmark={(b) => { setBookmarkTarget({ verse: b.verse, existing: b }); setSheet("bookmark"); }}
           onOpenRelations={(v) => navigate(`/relations?endpoint=${verseKey(slug, ch, v)}`)} onOpenRelationItem={(it) => void openRelationItem(it)}
           onOpenTags={(v) => { const group = Object.entries(highlights).filter(([, h]) => h.date === highlights[String(v)]?.date).map(([k]) => +k); setTagsTarget(group.length ? group : [v]); setSheet("tags"); }} onOpenTag={(id) => navigate(`/bookmarks?tag=${id}`)} />
       )}
-      <Footer hasPrev={!!prev} hasNext={!!next} onPrev={() => go(prev)} onNext={() => go(next)} speech={player.speech} fullscreen={fullscreen} hidden={contextMode === "focused" && !!focus} bottomBar={bottomBar} reference={chapterLabel} verseCount={verses.length} repeat={repeat} setRepeat={setRepeat} expanded={audioOpen} setExpanded={setAudioOpen} />
+      <Footer hasPrev={!!prev && !text.isPending} hasNext={!!next && !text.isPending} onPrev={() => step(prev)} onNext={() => step(next)} speech={player.speech} fullscreen={fullscreen} hidden={contextMode === "focused" && !!focus} bottomBar={bottomBar} reference={chapterLabel} verseCount={verses.length} repeat={repeat} setRepeat={setRepeat} expanded={audioOpen} setExpanded={setAudioOpen} />
 
       <WhySheet open={sheet === "why"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={whyAt} reference={`${chapterLabel}:${whyAt}`}
         onRead={(url, v) => { setSheet(null); const m = slugOfUrl(url); navigate(m ? `/read/${m[1]}/${m[2]}${v ? `?v=${v}` : ""}` : url); }}
@@ -292,9 +298,10 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
 
       {sheet === "export" && book ? <PassageExportSheet book={book} chapter={ch} selected={exportSelection} reference={reference(exportSelection)} onClose={() => setSheet(null)} /> : null}
       {sheet === "study" ? <AddToStudy onClose={() => setSheet(null)} blocks={[{ id: crypto.randomUUID(), kind: "scripture", book: slug, chapter: ch, reference: selectedReference ?? chapterLabel, verses: selectedText() }]} /> : null}
-      <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v)} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />
+      <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v)} onLongSelect={(s, c, v) => navigate(newTab(`/read/${s}/${c}${v > 1 ? `?v=${v}` : ""}`), { replace: true })} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />
       <SearchSheet open={sheet === "search"} initial={searchSeed} onClose={() => { setSheet(null); setSearchSeed(""); }} books={list} onGo={(s, c, v, end) => navigate(`/read/${s}/${c}${v ? `?v=${v}${end ? `-${end}` : ""}` : ""}`)} />
       <VersionSheet open={sheet === "version"} onClose={() => setSheet(null)} />
+      <VerseJump root={rootRef} label={chapterLabel} count={verses.length} onNavigate={(v) => { setVerseToScroll(v); setNavRequest((n) => n + 1); }} />
       <VersePopup open={sheet === "verses"} onClose={() => setSheet(null)} count={verses.length} selected={verseToScroll} onSelect={(v) => { setVerseToScroll(v); setNavRequest((n) => n + 1); }} />
       <ParamsSheet open={sheet === "params"} onClose={() => setSheet(null)} settings={settings} set={setSettings} palette={palette} />
       <BookmarkSheet open={sheet === "bookmark"} onClose={() => setSheet(null)} reference={bookmarkTarget.verse ? reference([bookmarkTarget.verse]) : chapterLabel} location={{ book: slug, chapter: ch, verse: bookmarkTarget.verse }} existing={bookmarkTarget.existing} bookmarks={bookmarks} setBookmarks={setBookmarks} formatReference={formatBookmark} />
