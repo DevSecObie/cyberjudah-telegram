@@ -1,0 +1,1 @@
+- Match Home’s six saved-content cards to Bible Strong’s spacing and icons, preserving their counts and destinations.
