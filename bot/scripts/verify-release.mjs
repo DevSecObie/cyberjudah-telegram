@@ -16,11 +16,11 @@ export async function verifyRelease({ url, token, expectedModel, fetcher = fetch
   log("Search databases: healthy");
   // /app/ is the Mini App on both workers.dev and the production custom domain;
   // the custom domain's root belongs to the separate public website.
-  for (const path of ["/app/", "/app/strong/", "/app/strong/bible"]) {
+  for (const path of ["/app/", "/app/read/genesis/1"]) {
     const shell = await get(path);
     requireStatus(shell, 200, "App shell");
     const html = await shell.text();
-    if (!(shell.headers.get("content-type") ?? "").includes("text/html") || !html.includes(path === "/app/" ? 'id="root"' : "/app/strong/_expo/static/js/web/entry-")) {
+    if (!(shell.headers.get("content-type") ?? "").includes("text/html") || !html.includes('id="root"')) {
       throw new Error(`App shell: unexpected page at ${path}.`);
     }
   }
