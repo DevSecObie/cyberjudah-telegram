@@ -33,7 +33,7 @@ firebaseAuth.use("*", async (c, next) => {
 firebaseAuth.post("/identity", c => c.json({ uid: c.get("firebaseUid") }));
 firebaseAuth.post("/token", async c => {
   // No client UID, claims or account-linking parameters are accepted.
-  if (Object.keys(c.req.query()).length || c.req.raw.body !== null) return c.json({ error: "unexpected_sign_in_parameters" }, 400);
+  if (Object.keys(c.req.query()).length || (await c.req.text()).length > 0) return c.json({ error: "unexpected_sign_in_parameters" }, 400);
   if (!c.env.FIREBASE_SERVICE_ACCOUNT || !c.env.FIREBASE_AUTH_LIMIT) return c.json({ error: "firebase_sign_in_unavailable" }, 503);
   const uid = c.get("firebaseUid");
   if (!(await c.env.FIREBASE_AUTH_LIMIT.limit({ key: uid })).success) return c.json({ error: "sign_in_rate_limited", message: "Please wait a minute and try again." }, 429);

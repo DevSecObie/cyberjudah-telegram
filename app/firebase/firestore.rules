@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function owns(userId) { return signedIn() && request.auth.uid == userId; }
+    // These are personal documents. They never grant Telegram admin rights or API quotas.
+    match /users/{userId} {
+      allow read, write: if owns(userId);
+    }
+    match /users/{userId}/{collection}/{document} {
+      allow read, write: if owns(userId) && collection in [
+        'bookmarks', 'highlights', 'notes', 'links', 'relations', 'relationIndex',
+        'relationPairs', 'tags', 'wordAnnotations', 'strongsHebreu', 'strongsGrec',
+        'words', 'naves', 'studies', 'tabGroups'
+      ];
+    }
+    // Revision history: previous states saved before meaningful edits.
+    // Nested under the note/study they belong to; owner-only via the path.
+    match /users/{userId}/notes/{noteId}/revisions/{revisionId} {
+      allow read, write: if owns(userId);
+    }
+    match /users/{userId}/studies/{studyId}/revisions/{revisionId} {
+      allow read, write: if owns(userId);
+    }
+    match /studies/{studyId}/revisions/{revisionId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.user.id == request.auth.uid;
+      allow update: if signedIn() && resource.data.user.id == request.auth.uid
+        && request.resource.data.user.id == request.auth.uid;
+      allow delete: if signedIn() && resource.data.user.id == request.auth.uid;
+    }
+    match /studies/{studyId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.user.id == request.auth.uid;
+      allow update: if signedIn() && resource.data.user.id == request.auth.uid
+        && request.resource.data.user.id == request.auth.uid;
+      allow delete: if signedIn() && resource.data.user.id == request.auth.uid;
+    }
+    match /users-status/{userId} {
+      allow read, write: if owns(userId);
+    }
+    // Preserve the shared-content reads in the owner's active September 8 rules.
+    // Never restore their catch-all signed-in read: it exposes other users' data.
+    match /root/{document=**} { allow read: if signedIn(); }
+    match /stats/{document=**} { allow read: if true; }
+    match /verse-commentaries/{document=**} { allow read: if true; }
+    match /plans/{document=**} { allow read: if true; }
+    // Older clients increment this counter; they cannot alter a plan's content.
+    match /plans/{planId} {
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['downloads'])
+        && resource.data.downloads is int
+        && request.resource.data.downloads is int
+        && request.resource.data.downloads == resource.data.downloads + 1;
+    }
+    // Editorial content is otherwise written only through trusted tooling.
+    match /changelog/{document} { allow read: if true; }
+    match /events/{document} { allow read: if resource.data.status == 'published'; }
+  }
+}

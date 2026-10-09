@@ -1,0 +1,1 @@
+- Check private reader sync in Chromium, WebKit and Firefox against local Auth and Firestore emulators and the owner-published rules.
