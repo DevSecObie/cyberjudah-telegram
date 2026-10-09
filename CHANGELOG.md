@@ -22,6 +22,8 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- Class notes no longer dock above the top of the screen when dragged to full and back; a negative or stale safe-area reading could leave the sheet (and its drag grip) out of reach, off the top edge.
+
 - Shared Telegram links open their destination on every launch, including reused webviews; refreshing an explicit screen keeps that screen.
 
 - Audio controls pause and resume at the current verse, remember speed and pitch on this device, and keep delayed recordings and setting changes from overriding Pause.

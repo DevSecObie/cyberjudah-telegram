@@ -61,7 +61,10 @@ export function NotesSheet({ open, onClose, full = false, onFull, title = "Class
     const measure = () => {
       const el = document.querySelector<HTMLElement>(".player:not([data-pip])");
       setTop(el ? Math.round(el.getBoundingClientRect().bottom) : 0);
-      setSafeTop(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-top")) || 0);
+      // A device inset is never negative; without the clamp a stale or mid-update reading of
+      // --safe-top could dock the full-screen sheet (and its grip) above the top of the screen,
+      // out of reach of the very gesture meant to undock it.
+      setSafeTop(Math.max(0, parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-top")) || 0));
     };
     measure();
     const raf = requestAnimationFrame(measure);
