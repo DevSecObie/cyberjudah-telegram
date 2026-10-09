@@ -35,14 +35,19 @@ export function Widget({ label, title, sub, to, resource, resourceTo, icon, colo
 }
 
 /** Strong of the day, Greek or Hebrew: the word, its meaning, a shuffle, the Lexicon under it. */
-export function StrongOfTheDay({ lang }: { lang: "hebrew" | "greek" }) {
+export function StrongOfTheDay({ lang, compact = false }: { lang: "hebrew" | "greek"; compact?: boolean }) {
   const idx = useStrongsIndex();
   const [row, setRow] = useState<StrongsRow | undefined>();
   useEffect(() => { setRow(strongOfDay(idx.data, lang)); }, [idx.data, lang]);
   const pool = idx.data?.filter((r) => r.n[0] === (lang === "hebrew" ? "H" : "G") && r.count >= 5 && r.def) ?? [];
   const shuffle = () => setRow(pool[pickRandom(pool.length)]);
   const gloss = (row?.def.split(";")[0].replace(/\([^)]*\)/g, "").replace(/\s+/g, " ").trim() ?? "").replace(/^(.{34}[^ ]*) .*$/, "$1…");
-  return <Widget label={lang === "hebrew" ? "Hebrew" : "Greek"} title={gloss} sub={row ? `${row.lemma} · ${row.xlit || row.n}` : undefined} to={row ? `/lexicon/${row.n}` : "/lexicon"} resource="Lexicon" resourceTo={`/lexicon?lang=${lang}`} icon="spark" colors={lang === "greek" ? ["rgba(86,204,242,1)", "rgba(47,128,237,1)"] : ["rgba(248,131,121,1)", "rgba(255,77,93,1)"]} loading={idx.isPending} onShuffle={idx.data ? shuffle : undefined} />;
+  // Bible Strong 1dfaa0d helpers/truncate.ts, as used by StrongOfTheDay (10 characters).
+  const truncate = (text: string) => {
+    const shortened = text.replace(/(\r\n|\n|\r)/gm, "").replace(/^(.{10}[^\s]*).*/gi, "$1") + "...";
+    return compact && shortened.length < text.length ? shortened : text;
+  };
+  return <Widget label={lang === "hebrew" ? "Hebrew" : "Greek"} title={truncate(gloss)} sub={row ? truncate(`${row.lemma} · ${row.xlit || row.n}`) : undefined} to={row ? `/lexicon/${row.n}` : "/lexicon"} resource="Lexicon" resourceTo={`/lexicon?lang=${lang}`} icon="spark" colors={lang === "greek" ? ["rgba(86,204,242,1)", "rgba(47,128,237,1)"] : ["rgba(248,131,121,1)", "rgba(255,77,93,1)"]} loading={idx.isPending} onShuffle={idx.data ? shuffle : undefined} />;
 }
 
 /** Topic of the day: what the classes taught on a subject (Bible Strong's NaveOfTheDay, on the classes' own topics). */

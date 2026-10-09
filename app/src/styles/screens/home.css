@@ -118,6 +118,17 @@
 #root .widget__foot { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; box-sizing: border-box; min-height: var(--touch); border: 0; border-top: 8px solid transparent; background: rgba(0, 0, 0, .2) padding-box; color: var(--widget-ink); font: 700 var(--fs-caption) var(--font-ui); cursor: pointer; }
 /* A 44px tap area around the same 32px disc, centred where it always was. */
 #root .widget__shuffle { position: absolute; top: 0; right: 0; z-index: 1; display: grid; place-items: center; box-sizing: border-box; width: var(--touch); height: var(--touch); padding: 6px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .22) content-box; color: var(--widget-ink); cursor: pointer; }
+/* Bible Strong 1dfaa0d: widget.tsx, StrongOfTheDay and RandomButton. */
+.drawer--home .widgets { gap: 16px; padding-inline: 20px; scroll-snap-type: none; }
+.drawer--home .widget { flex-basis: min(50vw, 300px); height: 120px; border-radius: 20px; scroll-snap-align: none; }
+.drawer--home .widget__body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0; padding: 20px 10px 0; gap: 0; }
+.drawer--home .widget__label { margin: 0; padding: 3px 5px; font-size: 10px; line-height: 12px; background: rgba(0, 0, 0, .1); }
+.drawer--home .widget__title { display: block; white-space: nowrap; text-overflow: ellipsis; font-size: 15px; font-weight: 400; line-height: 23px; }
+.drawer--home .widget__sub { display: block; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; line-height: 15px; opacity: .5; }
+#root .drawer--home .widget__shuffle { left: 0; right: auto; background: none; }
+#root .drawer--home .widget__shuffle svg { width: 15px; height: 15px; }
+#root .drawer--home .widget__foot { height: 44px; border: 0; background: rgba(0, 0, 0, .04); font-size: 12px; }
+.drawer--home .widget__foot svg { width: 20px; height: 20px; }
 .tools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-2); }
 #root .tools__btn { display: grid; justify-items: center; gap: 5px; min-height: 64px; padding: 10px 2px var(--sp-2); border: 0; border-radius: var(--r-md); background: var(--surface-1); box-shadow: var(--card-edge); color: var(--text-2); font: 500 .75rem var(--font-ui); text-align: center; cursor: pointer; }
 #root .tools__btn:hover { background: color-mix(in srgb, var(--text-1) 4%, var(--surface-1)); }
