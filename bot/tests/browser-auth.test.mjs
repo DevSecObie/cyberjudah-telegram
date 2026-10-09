@@ -6,8 +6,8 @@ import { generateKeyPair, exportJWK, SignJWT } from "jose";
 import { open } from "../src/privacy.mjs";
 
 const out = new URL("./.build/browser-auth.mjs", import.meta.url).pathname;
-await build({ stdin: { contents: 'export * from "./src/browser-auth.ts"; export * from "./src/study-backup.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
-const { browserAuth, browserSession, revokeBrowserSessions, telegramProfile, studyBackup, readStudyBackup, deleteStudyBackup } = await import(out);
+await build({ stdin: { contents: 'export * from "./src/browser-auth.ts"; export * from "./src/study-backup.ts"; export * from "./src/firebase-auth.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
+const { firebaseAuth, browserAuth, browserSession, revokeBrowserSessions, telegramProfile, studyBackup, readStudyBackup, deleteStudyBackup } = await import(out);
 function env() {
   const db = new DatabaseSync(":memory:");
   const prepare = (sql, values = []) => ({ bind: (...a) => prepare(sql, a), first: async () => db.prepare(sql).get(...values) ?? null, run: async () => ({ meta: { changes: db.prepare(sql).run(...values).changes } }) });
@@ -68,7 +68,11 @@ test("OIDC state, PKCE, signed claims, nonce, cookies, CSRF and revocation prote
     assert.equal((await browserSession(new Request(`${origin}/api/me`, { headers: { cookie: sessionCookie } }), e)).user.id, 77);
     assert.equal(await browserSession(new Request(`${origin}/api/privacy/delete`, { method: "POST", headers: { cookie: sessionCookie, origin: "https://evil.test" } }), e), null);
     assert.equal((await browserAuth.request(`${origin}/logout`, { method: "POST", headers: { cookie: sessionCookie, origin: "https://evil.test" } }, e)).status, 403);
+    const bridge = (originHeader) => firebaseAuth.request(`${origin}/identity`, { method: "POST", headers: { cookie: sessionCookie, origin: originHeader } }, e);
+    assert.deepEqual(await (await bridge(origin)).json(), { uid: "tg_77" }, "web and Telegram use the same Firebase account");
+    assert.equal((await bridge("https://evil.test")).status, 401);
     await revokeBrowserSessions(e, 77);
+    assert.equal((await bridge(origin)).status, 401, "revoked browser sessions cannot restore Firebase");
     assert.equal(await browserSession(new Request(`${origin}/api/me`, { headers: { cookie: sessionCookie } }), e), null);
   } finally { globalThis.fetch = oldFetch; }
 });

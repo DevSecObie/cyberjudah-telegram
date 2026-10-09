@@ -1,0 +1,1 @@
+- Reuse Telegram sign-in for one stable private sync identity across the Mini App and website.
