@@ -120,7 +120,7 @@ export function Home() {
 }
 
 /** Home's content, on its own page or in Bible Strong's Home drawer over the current tab. */
-export function HomeBody({ drawer = false }: { drawer?: boolean }) {
+export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; active?: boolean }) {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [last] = useLast();
@@ -128,7 +128,7 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
   const [plan] = usePlan();
   const [progress] = useProgress();
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
-  const { pull, busy } = usePullToRefresh();
+  const { pull, busy } = usePullToRefresh(active);
   const ps = pullStyle(pull, busy);
   const sched = plan && books.data ? schedule(plan, books.data, progress) : null;
   const today = plan && books.data ? planDay(plan, books.data, progress) : null;
@@ -167,7 +167,7 @@ export function HomeBody({ drawer = false }: { drawer?: boolean }) {
       </div>
       <p className="hint hint--center">Search finds the moment a word, a name or a Scripture was said in a class. Ask answers your question from the teachings, with its sources.</p>
       </>}
-      <StudyStats expanded={drawer} />
+      <StudyStats expanded={drawer} active={active} />
       {!drawer ? <>
       {whatsNew.length ? (
         <div className="whatsnew" aria-label="New in CyberJudah">
