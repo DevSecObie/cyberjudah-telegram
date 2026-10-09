@@ -107,7 +107,7 @@ test("phone, computer and web share highlights while original marks remain intac
     }
     // Download my data (docs/PRIVACY.md) reaches the same Firestore documents account sync writes.
     const exported = await c.evaluate(() => fetch("/api/privacy/export").then(r => r.json()));
-    expect(exported.accountSync.highlights.some((h: { value?: string }) => h.value === "color2" || h.value === "color5")).toBe(true);
+    expect(exported.accountSync.highlights.some((h: { value?: { color?: string } }) => h.value?.color === "color2" || h.value?.color === "color5")).toBe(true);
     expect(exported.accountSync.studies.some((s: unknown) => JSON.stringify(s).includes("Synced personal study"))).toBe(true);
     expect(await a.evaluate(() => localStorage.getItem("cj:bs_h_genesis_1"))).toBe(old);
     expect(mints).toBe(1);
@@ -125,8 +125,10 @@ test("phone, computer and web share highlights while original marks remain intac
     expect(deletion.deleted.accountSyncRecords).toBeGreaterThan(0);
     const afterDelete = await request.get(`http://127.0.0.1:8089/v1/projects/demo-cyberjudah/databases/(default)/documents/users/tg_${id}/highlights`, { headers: { authorization: "Bearer owner" } });
     expect((await afterDelete.json()).documents ?? []).toEqual([]);
-    const reExported = await c.evaluate(() => fetch("/api/privacy/export").then(r => r.json()));
-    expect(reExported.accountSync).toBeNull();
+    // Deletion also signs this browser out, so its old session can no longer read anything.
+    expect(await c.evaluate(() => fetch("/api/privacy/export").then(r => r.status))).toBe(401);
+    const reExported = await request.get(`${origin}/api/privacy/export`, { headers: { authorization: `tma ${signed(id)}` } });
+    expect((await reExported.json()).accountSync).toBeNull();
 
   } finally { await phone.close(); await computer.close(); await web.close(); }
 });
