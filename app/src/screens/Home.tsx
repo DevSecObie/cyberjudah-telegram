@@ -167,7 +167,7 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
       </div>
       <p className="hint hint--center">Search finds the moment a word, a name or a Scripture was said in a class. Ask answers your question from the teachings, with its sources.</p>
       </>}
-      <StudyStats expanded={drawer} />
+      <StudyStats expanded={drawer} active={active} />
       {!drawer ? <>
       {whatsNew.length ? (
         <div className="whatsnew" aria-label="New in CyberJudah">

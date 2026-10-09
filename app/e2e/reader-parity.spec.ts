@@ -266,6 +266,16 @@ test("daily verses have five days, sharing and images on Home", async ({ page })
   await expect(home.getByRole("region", { name: "Daily scripture" })).toContainText("Yesterday");
   await expect(word.locator(".widget__body")).toHaveAttribute("href", "/lexicon/G2");
   await expect.poll(() => home.evaluate(el => [el.querySelector(".drawer__scroll")!.scrollTop, el.querySelector(".widgets")!.scrollLeft])).toEqual(position);
+  // A chapter first saved while Home is closed must join its displayed totals on reopening.
+  const highlights = home.locator(".stats__cell").filter({ hasText: "Highlights" }).locator("b");
+  await expect(highlights).toHaveText("0");
+  await home.getByRole("button", { name: "Close Home" }).click();
+  await touchVerse(page, "touchstart", 1);
+  await touchVerse(page, "touchend", 0);
+  await page.locator(".bs-colors__cell").nth(1).click();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect(highlights).toHaveText("1");
 });
 
 test("keyboard palette switches to an existing tab and opens a passage with its range", async ({ page }) => {

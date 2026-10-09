@@ -1,1 +1,1 @@
-- Keep Home's chosen daily verse, shuffled cards and scroll position when closing and reopening the drawer.
+- Keep Home's chosen daily verse, shuffled cards and scroll position when closing and reopening the drawer, and refresh its saved-content totals on return.
