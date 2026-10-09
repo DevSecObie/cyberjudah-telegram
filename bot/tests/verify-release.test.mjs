@@ -10,7 +10,7 @@ function fixture({ answerStatus = 200, sources = [{}], model = "google/test", ex
   return { count: () => calls, options: { url: "https://app.invalid", token: "test-token", expectedModel, log() {}, async fetcher(url, { headers }) {
     const path = new URL(url).pathname;
     if (path === "/api/health") return json({ ok: true });
-    if (!path.startsWith("/api/")) return new Response(path === "/app/" ? '<div id="root"></div>' : '/app/strong/_expo/static/js/web/entry-abc.js', { headers: { "content-type": "text/html" } });
+    if (["/app/", "/app/read/genesis/1"].includes(path)) return new Response('<div id="root"></div>', { headers: { "content-type": "text/html" } });
     if (!headers.authorization) return json({}, 401);
     assert.equal((await validateInitData(headers.authorization.slice(4), "test-token")).user.id, 1);
     if (path === "/api/resources/catalog") return json({ resources: [] });
