@@ -154,7 +154,7 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
   return (
     <Screen className="home">
       <div className="pull" style={{ height: ps.height, opacity: ps.opacity }} aria-hidden="true">{ps.label}</div>
-      {drawer ? <TodayCard verse={verse.data} failed={verse.isError} /> : <>
+      {drawer ? <TodayCard verse={verse.data} failed={verse.isError} stacked /> : <>
       <div className="hello">
         <img src={assetUrl("brand/cyber-lion.webp")} alt="" width={44} height={44} onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
         <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>What do you want to learn?</h1></div>

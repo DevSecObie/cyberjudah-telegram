@@ -223,7 +223,7 @@ test("reader verse numbers can be hidden without hiding them from assistive tech
   await expect(page.locator("#verset-1 .bs-num")).toHaveCount(0);
 });
 
-test("daily verses have five days, sharing and images on Home", async ({ page }) => {
+test("daily verses have five days, sharing and images on Home", async ({ page, browserName }) => {
   await page.route(`${DATA}/search/{classes,captains}.json`, r => r.fulfill({ json: [] }));
   await page.route(`${DATA}/api/strongs/index.json`, r => r.fulfill({ json: [
     { n: "G1", lemma: "Α", xlit: "alpha", def: "Alpha", count: 100 },
@@ -245,8 +245,39 @@ test("daily verses have five days, sharing and images on Home", async ({ page })
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
   await page.getByRole("button", { name: "Home", exact: true }).click();
   const home = page.locator(".drawer--home");
-  await home.getByRole("button", { name: "Previous day's scripture" }).click();
-  await expect(home.getByRole("region", { name: "Daily scripture" })).toContainText("Yesterday");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const stack = home.getByRole("region", { name: "Daily scripture" });
+  const active = stack.locator(".today-card[data-active]");
+  const touch = browserName === "chromium" ? await page.context().newCDPSession(page) : null;
+  const swipe = async (right: boolean) => {
+    const b = (await stack.boundingBox())!;
+    const x = b.x + b.width * (right ? .2 : .8), end = b.x + b.width * (right ? .8 : .2), y = b.y + 110;
+    if (touch) {
+      await touch.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+      for (let n = 1; n <= 12; n++) {
+        await touch.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + (end - x) * n / 12, y }] });
+        await page.waitForTimeout(25);
+      }
+      await touch.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    } else {
+      await page.mouse.move(x, y); await page.mouse.down();
+      await page.mouse.move(end, y, { steps: 12 }); await page.mouse.up();
+    }
+  };
+  await expect(stack.locator(".today-card[inert]")).toHaveCount(4);
+  for (const day of ["Yesterday", "Two days ago", "Three days ago", "Four days ago", "Four days ago"]) {
+    await swipe(true); await expect(active.locator("header b")).toHaveText(day);
+    await expect(home).toHaveAttribute("data-open", "");
+    await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  }
+  for (const day of ["Three days ago", "Two days ago", "Yesterday", "Today", "Today"]) {
+    await swipe(false); await expect(active.locator("header b")).toHaveText(day);
+  }
+  await touch?.detach();
+  await stack.press("ArrowRight"); await expect(active.locator("header b")).toHaveText("Yesterday");
+  await active.getByRole("button", { name: "Image", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Verse image" }).getByRole("img")).toHaveAttribute("src", "/card/genesis/1/2.svg");
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   const word = home.locator(".widget").first();
   await expect(word.locator(".widget__body")).toHaveAttribute("href", "/lexicon/G1");
   await page.evaluate(() => { Math.random = () => .99; });
@@ -266,7 +297,7 @@ test("daily verses have five days, sharing and images on Home", async ({ page })
   await expect(home.locator(".pull")).toHaveCSS("height", "0px");
   await touchVerse(page, "touchend", 0, 1, 160);
   await page.getByRole("button", { name: "Home", exact: true }).click();
-  await expect(home.getByRole("region", { name: "Daily scripture" })).toContainText("Yesterday");
+  await expect(active.locator("header b")).toHaveText("Yesterday");
   await expect(word.locator(".widget__body")).toHaveAttribute("href", "/lexicon/G2");
   await expect.poll(() => home.evaluate(el => [el.querySelector(".drawer__scroll")!.scrollTop, el.querySelector(".widgets")!.scrollLeft])).toEqual(position);
   // A chapter first saved while Home is closed must join its displayed totals on reopening.
