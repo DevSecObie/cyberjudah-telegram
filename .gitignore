@@ -17,6 +17,7 @@ strong/dist/
 # Downloaded and prepared licensed audio
 .cache/
 bot/tests/.build/
+app/tests/.build/
 
 # Research kit's local search index (pickle; loaded with pickle.load, never commit)
 app/scripts/final-captivity/research/tindex.pkl
