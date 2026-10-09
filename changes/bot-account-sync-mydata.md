@@ -1,0 +1,1 @@
+- Download my data and Delete my data now also reach the synced highlights, notes, bookmarks, tags, links and personal studies account sync keeps, once account sync is turned on.

@@ -264,7 +264,7 @@ for (const theme of ["default", "dark", "sepia"]) {
   }
 }
 
-test("materials: header, menu and selection stay within budget without stacked glass", async ({ page }) => {
+test("materials: header, menu and selection stay within budget without stacked glass", async ({ page, browserName }) => {
   await setup(page);
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
@@ -287,6 +287,25 @@ test("materials: header, menu and selection stay within budget without stacked g
   await page.locator("#verset-1").click();
   await expect(page.locator(".bs-selected")).toBeVisible();
   await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
+  // The mobile action row scrolls without turning the action page or selecting an action.
+  const row = page.locator("#sv-panel-0 .bs-actions");
+  await expect.poll(() => row.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
+  await page.locator(".bs-selected").evaluate(async el => { await Promise.all(el.getAnimations().map(a => a.finished.catch(() => {}))); });
+  const bounds = (await row.boundingBox())!;
+  const x = bounds.x + bounds.width - 24, y = bounds.y + bounds.height / 2;
+  if (browserName === "chromium") {
+    const session = await page.context().newCDPSession(page);
+    await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    for (let i = 1; i <= 10; i++) await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x - i * 18, y }] });
+    await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await session.detach();
+  } else {
+    await page.mouse.move(x, y); await page.mouse.wheel(300, 0);
+  }
+  await expect.poll(() => row.evaluate(el => el.scrollLeft)).toBeGreaterThan(0);
+  await expect(page.getByRole("tab", { name: "Annotate", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(row.getByRole("button", { name: "Focus", exact: true })).toBeInViewport({ ratio: 1 });
+  await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
 });
 
 test("materials: content stays unfiltered at 200% shared text size with reduced motion", async ({ page }) => {
