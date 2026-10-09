@@ -20,7 +20,7 @@ async function setup(page: Page) {
   });
   await page.route("**/api/verse-of-day*", r => r.fulfill({ json: { ref: new URL(r.request().url()).searchParams.has("date") ? "Genesis 1:2" : "Genesis 1:1", slug: "genesis", chapter: 1, verse: new URL(r.request().url()).searchParams.has("date") ? 2 : 1, text: "In the beginning God created the heaven and the earth." } }));
   await page.addInitScript(() => {
-    localStorage.setItem("cj:bs", JSON.stringify({ press: "longPress" }));
+    if (!localStorage.getItem("cj:bs")) localStorage.setItem("cj:bs", JSON.stringify({ press: "longPress" }));
     localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "one", groups: [{ id: "one", name: "My tabs", color: "#2dd4bf", current: "bible-one", tabs: [{ id: "bible-one", path: "/read/genesis/1" }, { id: "bible-two", path: "/read/john/3?v=16-18" }] }] }));
   });
 }
@@ -102,6 +102,7 @@ test("reader adding a second finger cancels the pending long press", async ({ pa
   await touchVerse(page, "touchend", 0);
   await page.clock.runFor(250);
   await expect(page.locator(".bs-resourcetabs")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
 });
 
@@ -129,6 +130,7 @@ test("reader press preference still swaps resources and verse selection", async 
   await page.getByRole("dialog", { name: "Font and settings" }).getByRole("button", { name: "Close", exact: true }).click();
   await page.locator("#verset-1 .bs-num").click();
   await expect(page.locator(".bs-resourcetabs")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
   await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
   const b = (await page.locator("#verset-1 .bs-num").boundingBox())!;
@@ -217,7 +219,8 @@ test("reader verse numbers can be hidden without hiding them from assistive tech
   await page.getByRole("dialog", { name: "Font and settings" }).getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.locator("#verset-1 .bs-num")).toHaveCount(0);
   await expect(page.locator("#verset-1 .sr-only")).toHaveText("1");
-  await page.reload(); await expect(page.locator("#verset-1 .bs-num")).toHaveCount(0);
+  await page.reload(); await expect(page.locator("#verset-1")).toBeVisible();
+  await expect(page.locator("#verset-1 .bs-num")).toHaveCount(0);
 });
 
 test("daily verses have five days, sharing and images on Home", async ({ page }) => {
