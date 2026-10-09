@@ -36,7 +36,7 @@ export function useChapterHighlights(slug: string, ch: number): [Record<string, 
   const [hl, setHl, loaded] = useStored<Record<string, Highlight>>(hKey(slug, ch), {});
   const [old] = useStored<Highlights>("hl", {});
   useEffect(() => {
-    if (!loaded || Object.keys(hl).length) return;
+    if (!loaded || Object.keys(hl).length || store.hasPersonalKey(hKey(slug, ch))) return;
     const legacy = parseHl(old[`${slug}/${ch}`]);
     if (!legacy.size) return;
     const next: Record<string, Highlight> = {};

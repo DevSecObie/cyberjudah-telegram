@@ -270,7 +270,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
           footer={<><ChapterPeople slug={slug} chapter={ch} palette={palette} resources={chapterDeck.length ? <MediaDeck items={chapterDeck} placement="chapter" palette={palette} fontScale={settings.fontSizeScale} reference={chapterLabel} from={`/read/${slug}/${ch}`}
             sections={[{ title: `Taught from ${chapterLabel}`, items: chapterGroups.taught }, { title: `Read in class`, items: chapterGroups.read }].filter((x) => x.items.length)} /> : null} /><ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
             onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} /></>}
-          onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "dictionary")}
+          onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "words")}
           onSwipe={(dir) => go(dir === "left" ? next : prev)} onFullscreen={setFullscreen}
           onOpenBookmark={(b) => { setBookmarkTarget({ verse: b.verse, existing: b }); setSheet("bookmark"); }}
           onOpenRelations={(v) => navigate(`/relations?endpoint=${verseKey(slug, ch, v)}`)} onOpenRelationItem={(it) => void openRelationItem(it)}

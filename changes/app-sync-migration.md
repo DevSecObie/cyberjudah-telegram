@@ -1,0 +1,1 @@
+- Prepare read-only imports of saved reader data with separate Telegram and device completion flags; preserve original values and initial note revisions.
