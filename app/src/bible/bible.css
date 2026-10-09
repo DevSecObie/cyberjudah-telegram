@@ -560,6 +560,16 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 @media (max-width: 420px) { #root .bs-selected .bs-action__label { font-size: .625rem; letter-spacing: -.01em; } .bs-selected .bs-actions { padding: 0 2px; } .bs-selected .bs-action__box { width: 46px; height: 46px; } }
 @media (max-width: 360px) { #root .bs-selected .bs-action__label { font-size: .5625rem; white-space: normal; text-align: center; line-height: 1.15; } .bs-selected .bs-action__box { width: 42px; height: 42px; border-radius: 14px; } }
 
+/* Bible Strong 1dfaa0d: native ActionsLayout / ActionItem use a scrolling row,
+   70px actions, 48px tiles and 10px labels. Rems preserve shared text scaling. */
+@media (max-width: 600px) {
+  #root .bs-selected .bs-actions { display: flex; flex-wrap: nowrap; overflow-x: auto; padding: 0 16px; scrollbar-width: none; }
+  #root .bs-selected .bs-actions::-webkit-scrollbar { display: none; }
+  #root .bs-selected .bs-actions > .bs-action { flex: 0 0 4.375rem; width: 4.375rem; min-width: 4.375rem; padding: 8px 0; gap: 8px; }
+  #root .bs-selected .bs-action__box { width: 48px; height: 48px; border-radius: 16px; }
+  #root .bs-selected .bs-action__label { font-size: .625rem; line-height: normal; white-space: nowrap; letter-spacing: normal; max-width: 100%; }
+}
+
 .bs-selected .bs-tabsfooter { margin: 1px 16px 0; padding: var(--control-inset); --r-outer: calc(var(--h-sm) / 2 + var(--control-inset)); --inset: var(--control-inset); --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset))); border-radius: var(--r-outer); background: var(--sel-tile); }
 .bs-selected .bs-tabsfooter__indicator { top: 3px; bottom: 3px; left: 3px; border-radius: var(--r-inner); background: var(--bs-reverse); transition: transform .22s cubic-bezier(.3, .7, .2, 1); }
 #root .bs-selected .bs-tabsfooter__tab { min-height: var(--h-sm); padding: 9px 0; font-size: var(--control-font); line-height: 1.3; font-weight: 400; color: color-mix(in srgb, var(--bs-default) 92%, #fff); }
