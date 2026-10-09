@@ -123,6 +123,16 @@ test("reader focus loss cancels a held press and the next click still works", as
   await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
 });
 
+test("reader pressing a verse shows no touch light, as in Bible Strong", async ({ page }) => {
+  await gestureClock(page);
+  const lit = () => page.locator("#verset-1 .bs-text").evaluate(el => getComputedStyle(el.parentElement!).backgroundColor);
+  const before = await lit();
+  await touchVerse(page, "touchstart", 1);
+  await page.clock.runFor(200);
+  expect(await lit()).toBe(before);
+  await touchVerse(page, "touchend", 1);
+});
+
 test("reader press preference still swaps resources and verse selection", async ({ page }) => {
   await page.goto("/read/genesis/1");
   await menu(page, "Font and settings");

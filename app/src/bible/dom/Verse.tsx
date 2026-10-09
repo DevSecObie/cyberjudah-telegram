@@ -56,7 +56,8 @@ export function Verse(p: VerseProps) {
     fontFamily: font, ...(p.isFocused === false && !p.isSelectedMode ? { color: "var(--bs-tertiary)" } : {}), ...hl, padding: 4, WebkitBoxDecorationBreak: "clone", boxDecorationBreak: "clone",
     borderBottom: p.isSelected ? `2px dashed var(--bs-default)` : "none", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none",
     ...(p.isVerseToScroll ? { animation: "bs-zoom 0.5s ease 0s 3 normal none running" } : {}),
-    ...(p.isTouched ? { backgroundColor: "var(--bs-light-grey)" } : {}),
+    // Bible Strong's ContainerText tracks the touched verse but paints nothing for it: a press shows
+    // no light, and a selected verse is marked only by the dashed underline above.
   };
   const deck = !!(p.moments?.length && p.deck);
   const tags = !!(p.tagGroup?.tags.length && s.tagsDisplay === "inline");

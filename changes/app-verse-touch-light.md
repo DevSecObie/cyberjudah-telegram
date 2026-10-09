@@ -1,0 +1,1 @@
+- Touching a verse no longer lights it grey, and selecting one no longer pops: as in Bible Strong, a selected verse is shown only by its dashed underline.
