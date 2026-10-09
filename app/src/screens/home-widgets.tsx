@@ -98,11 +98,12 @@ export function useRandomVerse() {
 }
 
 /** Everything the reader has kept, counted (Bible Strong's ProfileStats): highlights, bookmarks, notes, tags. */
-export function useStudyCounts() {
+export function useStudyCounts(active = true) {
   const [bookmarks] = useBookmarks();
   const [tags] = useTags();
   const [totals, setTotals] = useState<{ highlights: number; notes: number } | null>(null);
   useEffect(() => {
+    if (!active) return;
     let live = true;
     const off: (() => void)[] = [];
     const counts = new Map<string, number>();
@@ -123,12 +124,12 @@ export function useStudyCounts() {
       if (live) publish();
     }).catch(() => { if (live) setTotals({ highlights: 0, notes: 0 }); });
     return () => { live = false; off.forEach((stop) => stop()); };
-  }, []);
+  }, [active]);
   return { highlights: totals?.highlights ?? 0, bookmarks: bookmarks.length, notes: totals?.notes ?? 0, tags: Object.keys(tags).length, ready: totals !== null };
 }
 
-export function StudyStats({ expanded = false }: { expanded?: boolean }) {
-  const c = useStudyCounts();
+export function StudyStats({ expanded = false, active = true }: { expanded?: boolean; active?: boolean }) {
+  const c = useStudyCounts(active);
   const [studyCount, setStudyCount] = useState(0);
   useEffect(() => {
     let live = true;

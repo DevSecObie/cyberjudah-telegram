@@ -19,13 +19,15 @@ export function Drawers() {
   const side = useDrawer();
   const { pathname, search } = useLocation();
   const [shown, setShown] = useState<DrawerSide | null>(side);
+  // Bible Strong 1dfaa0d keeps Home mounted after its first opening.
+  const [hasOpenedHome, setHasOpenedHome] = useState(side === "home");
   const scrimSwipe = useSwipeClose(side ?? "home");
   // A navigation from inside a drawer (a link, a search) closes it. A screen correcting its own
   // address (the Bible settling /bible on its chapter) is a replace, and must not.
   const navType = useNavigationType();
   useEffect(() => { if (navType !== "REPLACE") setDrawer(null); }, [pathname, search]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (side) { setShown(side); return sheetOpened(); }
+    if (side) { setShown(side); if (side === "home") setHasOpenedHome(true); return sheetOpened(); }
     const t = window.setTimeout(() => setShown(null), SLIDE_MS);
     return () => window.clearTimeout(t);
   }, [side]);
@@ -54,9 +56,9 @@ export function Drawers() {
     <>
       <div className="drawer-scrim" data-open={side ? "" : undefined} data-side={side ?? undefined} onClick={() => setDrawer(null)} {...scrimSwipe} aria-hidden="true" />
       <Panel side="home" open={side === "home"}>
-        {shown === "home" ? (
+        {hasOpenedHome ? (
           <>
-            <div className="drawer__scroll"><HomeBody drawer /></div>
+            <div className="drawer__scroll"><HomeBody drawer active={side === "home"} /></div>
             <div className="drawer__fade" aria-hidden="true" />
             <button type="button" className="drawer__x" aria-label="Close Home" title="Close Home" onClick={() => { haptic("select"); setDrawer(null); }}><Icon name="close" size={24} /></button>
           </>
