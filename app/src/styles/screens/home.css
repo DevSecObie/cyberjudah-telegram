@@ -42,9 +42,13 @@
 
 /* Counts: a row of small numbered cells. */
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-2); }
-.stats--six { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* Bible Strong 1dfaa0d ProfileStats: two rows, compact left-aligned counters. */
+.stats--six { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 20px; gap: 10px; }
 .stats__cell { display: grid; justify-items: center; gap: 2px; padding: 10px 4px; border-radius: var(--r-md); background: var(--surface-1); box-shadow: var(--card-edge); color: inherit; }
-.stats--six .stats__cell { gap: 4px; color: var(--accent); }
+.stats--six .stats__cell { justify-items: start; padding: 12px; border-radius: 12px; gap: 0; color: var(--text-3); background: var(--canvas); }
+.stats--six .stats__cell small { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 400; text-transform: lowercase; }
+.stats--six .stats__value { gap: 8px; }
+.stats--six svg { stroke-width: 2; }
 .stats__cell b { font: 700 18px/1.1 var(--font-ui); font-variant-numeric: tabular-nums; color: var(--text-1); }
 .stats__cell small { font: 500 .75rem var(--font-ui); color: var(--text-3); }
 .stats__value { display: flex; align-items: center; gap: var(--sp-2); }
