@@ -3,6 +3,7 @@ import type { LegacyDeviceSnapshot } from "./sources";
 
 /** Keep the reader's values intact; only the Firestore envelope is new. */
 export function readerCollection(key: string): MigrationRecord["collection"] | undefined {
+  if (key === "studies" || key === "wordAnnotations") return key;
   if (/^bs_h_.+_\d+$/.test(key) || key === "hl") return "highlights";
   if (/^(bs_n|nt)_.+_\d+$/.test(key)) return "notes";
   if (/^bs_l_.+_\d+$/.test(key)) return "links";
@@ -41,7 +42,7 @@ export async function deviceRecords(snapshot: LegacyDeviceSnapshot, uid: string)
     for (const value of values) {
       if (!value || typeof value !== "object" || !("id" in value) || typeof value.id !== "string") throw new Error("Invalid local study; the original is unchanged.");
       const sourceIdentity = recordIdentity(collection, value.id);
-      records.push({ collection, id: await migrationDocumentId(sourceIdentity), sourceIdentity, data: { value, ...(collection === "studies" ? { user: { id: uid } } : {}) } });
+      records.push({ collection, id: await migrationDocumentId(sourceIdentity), sourceIdentity, data: { key: collection, entry: value.id, value, revision: "imported", ...(collection === "studies" ? { user: { id: uid } } : {}) } });
     }
   }
   return records;
