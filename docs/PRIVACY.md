@@ -54,11 +54,29 @@ record holding anything personal is sealed for its owner (AES-GCM, a key derived
 | New reminder browsers per network | KV `remcreate:<HMAC of IP address>:day` (`remind.ts`; `privacy.mjs` `keyedHash`, keyed from `PRIVACY_KEY`) | A count of new browser credentials from that address | Two days (`expirationTtl`) | Expires on its own |
 | Class-note requests | KV `notereq:<video>` | Count, pids (once each) | Until the notes are written | Delete my data (the reader's pid and vote) |
 
-Nothing else about people is stored on the server. Highlights, notes, bookmarks, tags, history,
-the plan and settings are kept on the device and in Telegram's CloudStorage for the Mini App. So
-is the Sabbath screen's location (`loc`, rounded to three decimal places, `Sabbath.tsx`), used on
-the device to work out sunset and removed with Forget; like every CloudStorage key it is part of a
-backup sent through `/api/backup` to the reader's chat, which the Worker does not keep.
+The rows below exist only for a reader signed in to account sync (`VITE_ACCOUNT_SYNC`; off in
+production until [docs/PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md) §2 is done). Each is
+filed by the Telegram ID directly (`tg_<id>`, `bot/src/firebase-auth.ts`), not the keyed `pid`
+above, because Firestore's own rules (`app/firebase/firestore.rules`), not `privacy.mjs`, keep
+one reader's documents from another's.
+
+| Record | Where | Holds | Kept | Deleted by |
+|---|---|---|---|---|
+| Highlights | Firestore `users/tg_<id>/highlights` | A highlighted verse's colour, by key and verse, with its revision history as sibling documents | Until replaced or Delete my data | Delete my data |
+| Notes | Firestore `users/tg_<id>/notes`, revision history in `users/tg_<id>/notes/<id>/revisions` | A verse note's text, with its earlier versions | Until replaced or Delete my data | Delete my data |
+| Links | Firestore `users/tg_<id>/links` | Links a reader drew from a verse to another passage | Until replaced or Delete my data | Delete my data |
+| Bookmarks | Firestore `users/tg_<id>/bookmarks` | The reader's saved bookmarks | Until replaced or Delete my data | Delete my data |
+| Tags | Firestore `users/tg_<id>/tags` | The reader's tag labels | Until replaced or Delete my data | Delete my data |
+| Relations | Firestore `users/tg_<id>/relations` | Typed links a reader drew between scripture, notes and library entries | Until replaced or Delete my data | Delete my data |
+| Personal studies | Firestore `users/tg_<id>/studies`, revision history in `users/tg_<id>/studies/<id>/revisions` | A study's title, writing and blocks, with its earlier versions | Until replaced or Delete my data | Delete my data |
+| Word annotations | Firestore `users/tg_<id>/wordAnnotations` | Per-word marks made while reading | Until replaced or Delete my data | Delete my data |
+
+Signed out of account sync, or before it is turned on, highlights, notes, bookmarks, tags,
+history, the plan and settings stay only on the device and in Telegram's CloudStorage for the
+Mini App, and nothing else about people is stored on the server. So is the Sabbath screen's
+location (`loc`, rounded to three decimal places, `Sabbath.tsx`), used on the device to work out
+sunset and removed with Forget; like every CloudStorage key it is part of a backup sent through
+`/api/backup` to the reader's chat, which the Worker does not keep.
 
 The reminder endpoints also pass the caller's IP address to Cloudflare's rate limiter
 (`REMIND_LIMIT`, per minute), which the app does not store.
@@ -95,6 +113,10 @@ a bounded amount each hour, until none are left. Chats also move the first time 
   it, or the search answer's model, and the reason, never the question, the answer or who reported
   it. Ten reports a day per reader.
 - **Browser push services** (Apple, Google, Mozilla), only for push reminders.
+- **Google Firebase:** once a reader is signed in to account sync, the eight record types above
+  (highlights, notes, links, bookmarks, tags, relations, personal studies, word annotations),
+  under the reader's Telegram ID, so the same marks follow them to another device. Delete my
+  data removes them (`bot/src/firestore-admin.ts`).
 
 ## Children
 

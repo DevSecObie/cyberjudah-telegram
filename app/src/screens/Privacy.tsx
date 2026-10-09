@@ -18,7 +18,7 @@ export const PRIVACY_UPDATED = "2026-10-08";
 /** Where privacy questions and requests go (the owner's address). */
 export const PRIVACY_CONTACT = "privacy@cyberjudah.io";
 
-type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse: boolean; classNoteRequests: number; askBalanceUsd: number; topupReminder: boolean };
+type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse: boolean; classNoteRequests: number; askBalanceUsd: number; topupReminder: boolean; accountSyncRecords: number };
 
 export function Privacy() {
   useBackButton(true);
@@ -27,6 +27,7 @@ export function Privacy() {
   const [busy, setBusy] = useState<"" | "export" | "delete">("");
   const [agreed, setAgreed] = useState(consented);
   const inTelegram = !!app?.initData;
+  const syncing = import.meta.env.VITE_ACCOUNT_SYNC === "true";
   const session = useQuery({ queryKey: ["browser-session"], enabled: !inTelegram, queryFn: () => api<{ user: unknown }>("/api/auth/status"), retry: false });
   const signedIn = inTelegram || !!session.data?.user;
 
@@ -41,7 +42,8 @@ export function Privacy() {
     finally { setBusy(""); }
   };
   const deleteAll = async () => {
-    if (!(await confirm("Delete everything CyberJudah keeps about you? Your saved Ask chats, reading reminder, daily verse, Ask balance (any balance left is lost), top-up reminder, class-note requests, cloud study backup and browser sign-ins. This cannot be undone."))) return;
+    const synced = syncing ? ", your synced highlights, notes, bookmarks, tags, links and personal studies" : "";
+    if (!(await confirm(`Delete everything CyberJudah keeps about you? Your saved Ask chats, reading reminder, daily verse, Ask balance (any balance left is lost), top-up reminder, class-note requests, cloud study backup${synced} and browser sign-ins. This cannot be undone.`))) return;
     setBusy("delete"); setStatus("");
     try {
       const r = await api<{ ok: boolean; summary: string; deleted: Deleted }>("/api/privacy/delete", { method: "POST", json: { confirm: "delete" } });
@@ -68,7 +70,7 @@ export function Privacy() {
       <Section title="What Stays with You">
         <p>Personal study documents and phrase marks are stored on your device. Account → Export all personal studies makes a file backup; Account also lets you delete these local records. If you choose Save cloud backup, an encrypted snapshot is kept on CyberJudah’s servers under your coded account ID until you replace or delete it. Account-data deletion removes that cloud snapshot and revokes browser sign-ins; it does not delete local documents or files you exported.</p>
         <p>Browser sign-in uses Telegram to verify your account. An encrypted session record and a secure, HTTP-only browser cookie keep you signed in for up to one day. Signing out removes that browser’s session; deleting your account data revokes all browser sessions.</p>
-        <p>Your highlights, notes, bookmarks, tags, reading history, reading plan and settings are kept on your device and in Telegram's own cloud storage for this app. They are not on CyberJudah's servers. A backup from Settings goes to your own chat with the bot.</p>
+        <p>{syncing ? "Signed in, your highlights, notes, bookmarks, tags, links and personal studies also follow your account between your devices and the website, kept in Google Firebase under your account's coded ID until Delete my data removes them. " : ""}Your reading history, reading plan and settings are kept on your device and in Telegram's own cloud storage for this app, not on CyberJudah's servers. A backup from Settings goes to your own chat with the bot.</p>
         <p>If you use the Sabbath screen, your location, rounded to three decimal places (about 100 metres), is kept the same way, in Telegram's cloud storage (in this browser when CyberJudah is opened outside Telegram), until you tap Forget. Sunset is worked out on your device, and the location is not kept on CyberJudah's servers; like your settings, it goes into a backup you send to your chat.</p>
       </Section>
 
@@ -97,6 +99,7 @@ export function Privacy() {
           <li><b>YouTube</b> serves the classes' thumbnail pictures when you browse them, and plays a class in its privacy-enhanced player (youtube-nocookie.com) when you start one.</li>
           <li><b>The CyberJudah admins:</b> if you send /paysupport, they receive your name, @username, Telegram ID and your message, so they can answer you. If you report an answer, they are told only which answer it was and why, not who you are.</li>
           <li><b>Your browser's push service</b> (from Apple, Google or Mozilla), only if you turn on push reminders.</li>
+          {syncing ? <li><b>Google Firebase</b> keeps your synced highlights, notes, bookmarks, tags, links and personal studies, under your account's coded ID, so the same marks follow you to another device. Delete my data removes them.</li> : null}
         </ul>
         <p>CyberJudah does not sell your data or use it for advertising.</p>
       </Section>

@@ -1993,8 +1993,8 @@ test("an admin's note editor fits the phone: a long note keeps Save on screen", 
 });
 
 // Regression (#75, fixed in #76): the verse-selection sheet became a tall floating card (about
-// 330 px at 390x844, with an empty band above the tabs). It keeps Bible Strong's size: the six
-// Annotate actions on one row, the sheet no taller than 280 px (Bible Strong's is about 212),
+// 330 px at 390x844, with an empty band above the tabs). It keeps Bible Strong's size: the
+// Annotate actions on one scrolling row, the sheet no taller than 280 px (Bible Strong's is about 212),
 // and the selected verse above it.
 test("the verse-selection sheet keeps Bible Strong's size: one row of actions, the verse in view", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -2005,7 +2005,7 @@ test("the verse-selection sheet keeps Bible Strong's size: one row of actions, t
   await expect(sheet).toBeVisible();
   await page.locator(".bs-tabsfooter__tab", { hasText: "Annotate" }).click();
   const actions = sheet.locator(".bs-page:not([aria-hidden=true]) .bs-action");
-  await expect(actions).toHaveCount(6);
+  await expect(actions.locator(".bs-action__label")).toHaveText(["Note", "Tag", "Link", "Relation", "Bookmark", "Add to study", "Focus"]);
   const tops = new Set(await actions.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top))));
   expect(tops.size).toBe(1);
   const s = (await sheet.boundingBox())!;
