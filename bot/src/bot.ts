@@ -335,6 +335,7 @@ export function deletedSummary(d: Deleted): string {
     d.classNoteRequests ? `${d.classNoteRequests} class-note ${d.classNoteRequests === 1 ? "request" : "requests"}` : "",
     `your Ask balance${d.askBalanceUsd ? ` (${fmtUsd(Math.round(d.askBalanceUsd * 1e6), { floor: true })})` : ""}`,
     d.topupReminder ? "your top-up reminder" : "",
+    d.accountSyncRecords ? `${d.accountSyncRecords} synced reading ${d.accountSyncRecords === 1 ? "mark" : "marks"}` : "",
   ].filter(Boolean);
   return `Done. Deleted: ${parts.join(", ")}. Payment records keep only Telegram's charge reference, not who paid.`;
 }

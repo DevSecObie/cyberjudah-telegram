@@ -24,7 +24,10 @@ if (process.env.VITE_FIREBASE_EMULATOR === "true" && !process.env.E2E_FIREBASE_A
   process.env.E2E_FIREBASE_ACCOUNT = JSON.stringify({ type: "service_account", project_id: "cyberjudah-app", client_email: "fixture@cyberjudah-app.iam.gserviceaccount.com", private_key: privateKey.export({ type: "pkcs8", format: "pem" }) });
 }
 const vars = [
-  ...(process.env.E2E_FIREBASE_ACCOUNT ? [`FIREBASE_SERVICE_ACCOUNT:${process.env.E2E_FIREBASE_ACCOUNT}`, "TELEGRAM_LOGIN_CLIENT_ID:100000001", "TELEGRAM_LOGIN_CLIENT_SECRET:local-fixture"] : []),
+  // The Firestore emulator's project (demo-cyberjudah) differs from the signing secret's real
+  // one (cyberjudah-app, checked in firebase-auth.ts): mydata.ts's account-sync export and
+  // deletion detect the loopback emulator instead of minting a real Google access token.
+  ...(process.env.E2E_FIREBASE_ACCOUNT ? [`FIREBASE_SERVICE_ACCOUNT:${process.env.E2E_FIREBASE_ACCOUNT}`, "TELEGRAM_LOGIN_CLIENT_ID:100000001", "TELEGRAM_LOGIN_CLIENT_SECRET:local-fixture", "FIRESTORE_EMULATOR_HOST:127.0.0.1:8089"] : []),
   `BOT_TOKEN:${process.env.BOT_TOKEN}`,
   `VAPID_PUBLIC_KEY:${process.env.E2E_VAPID_PUBLIC}`,
   `VAPID_PRIVATE_KEY:${process.env.E2E_VAPID_PRIVATE}`,
