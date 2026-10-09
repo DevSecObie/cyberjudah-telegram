@@ -1,0 +1,1 @@
+- Keep mobile verse actions at Bible Strong’s sizes and scroll the row horizontally instead of squeezing the controls.

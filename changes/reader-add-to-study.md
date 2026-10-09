@@ -1,0 +1,1 @@
+- Place Add to study between Bookmark and Focus in Annotate, matching Bible Strong 1dfaa0d and opening the existing study picker.
