@@ -558,6 +558,16 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 @media (max-width: 420px) { #root .bs-selected .bs-action__label { font-size: .625rem; letter-spacing: -.01em; } .bs-selected .bs-actions { padding: 0 2px; } .bs-selected .bs-action__box { width: 46px; height: 46px; } }
 @media (max-width: 360px) { #root .bs-selected .bs-action__label { font-size: .5625rem; white-space: normal; text-align: center; line-height: 1.15; } .bs-selected .bs-action__box { width: 42px; height: 42px; border-radius: 14px; } }
 
+/* Bible Strong 1dfaa0d: native ActionsLayout / ActionItem use a scrolling row,
+   70px actions, 48px tiles and 10px labels. Rems preserve shared text scaling. */
+@media (max-width: 600px) {
+  #root .bs-selected .bs-actions { display: flex; flex-wrap: nowrap; overflow-x: auto; padding: 0 16px; scrollbar-width: none; }
+  #root .bs-selected .bs-actions::-webkit-scrollbar { display: none; }
+  #root .bs-selected .bs-actions > .bs-action { flex: 0 0 4.375rem; width: 4.375rem; min-width: 4.375rem; padding: 8px 0; gap: 8px; }
+  #root .bs-selected .bs-action__box { width: 48px; height: 48px; border-radius: 16px; }
+  #root .bs-selected .bs-action__label { font-size: .625rem; line-height: normal; white-space: nowrap; letter-spacing: normal; max-width: 100%; }
+}
+
 .bs-selected .bs-tabsfooter { margin: 1px 16px 0; padding: var(--control-inset); --r-outer: calc(var(--h-sm) / 2 + var(--control-inset)); --inset: var(--control-inset); --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset))); border-radius: var(--r-outer); background: var(--sel-tile); }
 .bs-selected .bs-tabsfooter__indicator { top: 3px; bottom: 3px; left: 3px; border-radius: var(--r-inner); background: var(--bs-reverse); transition: transform .22s cubic-bezier(.3, .7, .2, 1); }
 #root .bs-selected .bs-tabsfooter__tab { min-height: var(--h-sm); padding: 9px 0; font-size: var(--control-font); line-height: 1.3; font-weight: 400; color: color-mix(in srgb, var(--bs-default) 92%, #fff); }
@@ -576,13 +586,6 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .word-alignment__row { display: grid; grid-template-columns: minmax(5rem, 1fr) minmax(0, 3fr); gap: 12px; padding-block: 12px; border-bottom: 1px solid var(--bs-light-grey); }
 .word-alignment__row button { display: grid; gap: 6px; width: 100%; min-height: 44px; padding: 12px; margin-bottom: 8px; border: 1px solid var(--bs-grey); border-radius: 8px; text-align: start; color: var(--bs-default); background: var(--bs-reverse); font: inherit; }
 .word-alignment p { line-height: 1.6; }
-
-/* New study actions occupy a labelled row without altering the six reader controls. */
-.bs-selected__extra { display: flex; align-items: center; gap: 12px; width: calc(100% - 32px); box-sizing: border-box; min-height: 48px; margin: 2px 16px 0; padding: 8px 12px; border: 0; border-top: 1px solid var(--bs-border, var(--hairline)); border-radius: 0; background: transparent; color: var(--bs-primary); font: inherit; text-align: start; cursor: pointer; }
-.bs-selected__extra span { flex: 1; font-size: .875rem; }
-.bs-selected__extra:hover:not(:disabled) { background: var(--sel-tile); border-radius: 12px; }
-.bs-selected__extra:disabled { opacity: .45; cursor: default; }
-#root .bs-selected__extra:focus-visible { outline: 2px solid var(--sel-accent); outline-offset: -2px; border-radius: 12px; }
 
 /* Passage export uses the reader's sheet and palette. */
 .bs-export { padding: 16px; display: grid; gap: 16px; }

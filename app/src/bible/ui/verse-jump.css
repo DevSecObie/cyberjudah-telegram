@@ -1,0 +1,12 @@
+/* Bible Strong's command-palette.css (.bs-command-overlay, .bs-command-dialog) and bible-keyboard.css. */
+.bs-command-overlay { position: fixed; inset: 0; background: #0006; z-index: 10000; }
+.bs-command-dialog { position: fixed; z-index: 10001; top: 14vh; left: 50%; transform: translateX(-50%); width: min(620px, calc(100vw - 32px)); outline: none; border-radius: 16px; box-shadow: 0 24px 80px #0003; box-sizing: border-box; }
+.bs-verse-jump { padding: 24px; border-radius: 16px; background: var(--bs-reverse); color: var(--bs-default); max-width: 360px; }
+.bs-verse-jump h2 { margin: 0 0 8px; font-size: 18px; }
+.bs-verse-jump p { margin: 0 0 20px; font-size: 13px; color: var(--bs-tertiary); }
+.bs-verse-jump form { display: flex; gap: 10px; }
+.bs-verse-jump input { min-width: 0; width: 100%; border: 1px solid var(--bs-border); border-radius: 8px; padding: 10px 12px; font: inherit; background: transparent; color: inherit; }
+.bs-verse-jump input:focus { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
+.bs-verse-jump input[aria-invalid="true"] { border-color: var(--bs-quart); }
+.bs-verse-jump button { border: 0; border-radius: 8px; padding: 10px 16px; font: inherit; background: var(--bs-primary); color: white; }
+.bs-verse-jump button:disabled { opacity: 0.4; }

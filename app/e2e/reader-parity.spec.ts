@@ -133,6 +133,74 @@ test("reader pressing a verse shows no touch light, as in Bible Strong", async (
   await touchVerse(page, "touchend", 1);
 });
 
+test("reader chapter changes stay in place: Back leaves the reader and a collapsed header holds", async ({ page }) => {
+  // Long chapters, so the reader can scroll far enough to collapse its header.
+  const long = Array.from({ length: 40 }, (_, i) => ({ verse: i + 1, text: "And the light shineth in darkness; and the darkness comprehended it not. ".repeat(3) }));
+  await page.route(`${DATA}/api/kjv/john/*.json`, r => r.fulfill({ json: { book: "john", chapter: +/(\d+)\.json/.exec(r.request().url())![1], translation: "KJV", verses: long } }));
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  // A jump from the book picker is its own step in history, as before.
+  await page.locator(".bs-pill--book").click();
+  await page.locator(".bs-picker").getByRole("button", { name: "John", exact: true }).click();
+  await page.getByRole("button", { name: "Chapter 1", exact: true }).click();
+  await expect(page).toHaveURL(/\/read\/john\/1$/);
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await page.click('.bs-chapterbtn[aria-label="Next chapter"]');
+  await expect(page).toHaveURL(/\/read\/john\/2$/);
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  // Scrolling fast collapses the header, as Bible Strong's SWIPE_DOWN does (after the reader's
+  // 600 ms settle following a chapter change).
+  await page.waitForTimeout(800);
+  await page.locator(".bs-scroll").evaluate(async el => { for (const top of [40, 120, 600]) { el.scrollTop = top; await new Promise(r => setTimeout(r, 30)); } });
+  await expect(page.locator(".bs-header__summary")).toBeVisible();
+  // A swipe to the next chapter keeps it collapsed: one fullscreen state, as upstream's atom.
+  const y = 400;
+  await page.mouse.move(340, y);
+  await page.mouse.down();
+  await page.mouse.move(60, y, { steps: 4 });
+  await page.mouse.up();
+  await expect(page).toHaveURL(/\/read\/john\/3$/);
+  await expect(page.locator("#verset-1 .bs-num")).toBeAttached();
+  await expect(page.locator(".bs-header__summary")).toBeVisible();
+  // Paging chapters left no trail: Back returns to the passage before John.
+  await page.goBack();
+  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+});
+
+test("book picker long press opens the chapter in a new tab, as Bible Strong's web picker does", async ({ page }) => {
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await expect(page.getByRole("button", { name: "2 Tabs open", exact: true })).toBeVisible();
+  await page.locator(".bs-pill--book").click();
+  await page.locator(".bs-picker").getByRole("button", { name: "John", exact: true }).click();
+  const tile = page.getByRole("button", { name: "Chapter 2", exact: true });
+  const t = (await tile.boundingBox())!;
+  await page.mouse.move(t.x + t.width / 2, t.y + t.height / 2);
+  await page.mouse.down(); await page.waitForTimeout(650); await page.mouse.up();
+  await expect(page).toHaveURL(/\/read\/john\/2$/);
+  await expect(page.getByRole("button", { name: "3 Tabs open", exact: true })).toBeVisible();
+  await expect(page.locator(".bs-picker")).toHaveCount(0);
+});
+
+test("reader v opens Go to verse and jumps to a valid verse, as Bible Strong's web reader does", async ({ page }) => {
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await page.keyboard.press("v");
+  const dialog = page.getByRole("dialog", { name: "Go to verse" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("textbox", { name: "Verse" })).toBeFocused();
+  await dialog.getByRole("textbox", { name: "Verse" }).fill("99");
+  await expect(dialog.getByRole("button", { name: "Go" })).toBeDisabled();
+  await dialog.getByRole("textbox", { name: "Verse" }).fill("28");
+  await dialog.getByRole("button", { name: "Go" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator("#verset-28")).toBeInViewport();
+  // Typing in a field never opens it.
+  await page.locator(".bs-pill--book").click();
+  await page.getByRole("textbox", { name: "Search books" }).press("v");
+  await expect(page.getByRole("dialog", { name: "Go to verse" })).toHaveCount(0);
+});
+
 test("reader press preference still swaps resources and verse selection", async ({ page }) => {
   await page.goto("/read/genesis/1");
   await menu(page, "Font and settings");
