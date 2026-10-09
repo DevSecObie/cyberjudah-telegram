@@ -7,8 +7,8 @@ import { Sheet } from "./Sheet";
 
 /**
  * SelectedVersesModal, at Bible Strong's sizes: the grabber, the colour bar (60 px, 20 px swatches
- * spread evenly), then three groups of actions (Annotate, Study, Share), each one row of
- * six places with no scrolling (a 48 px tile, a 20 px icon, a 10 px label), swiped as pages under
+ * spread evenly), then three groups of actions (Annotate, Study, Share), scrolling horizontally
+ * on mobile (a 48 px tile, a 20 px icon, a 10 px label), swiped as pages under
  * the segmented footer. No title and no close, as in Bible Strong: the header already names the
  * passage, and it closes by swiping down, Telegram's back button or Escape.
  */
@@ -69,6 +69,7 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
                 <ActionItem name="link" label="Link" onPress={p.onLink} />
                 <ActionItem name="git-merge" label="Relation" onPress={p.onRelation} />
                 <ActionItem name="bookmark" label="Bookmark" onPress={p.onBookmark} disabled={p.moreThanOne} isActive={p.hasBookmark} />
+                <ActionItem name="feather" label="Add to study" onPress={p.onStudy} />
                 <ActionItem name="crosshair" label="Focus" onPress={p.onFocus} isActive={p.hasFocus} />
               </ActionsLayout>
             </div>
@@ -81,7 +82,6 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
                 <ActionItem icon={<CommentIcon />} label="Commentary" onPress={p.onCommentary} disabled={p.moreThanOne} />
                 <ActionItem name="layers" label="Side by side" onPress={p.onCompare} disabled={p.moreThanOne} />
               </ActionsLayout>
-              <button type="button" className="bs-selected__extra" onClick={p.onStudy}><Feather name="file-plus" size={18} /><span>Add to study</span><Feather name="chevron-right" size={16} /></button>
             </div>
             <div className="bs-page" style={{ width }} role="tabpanel" id={`sv-panel-2`} aria-labelledby={`sv-tab-2`} aria-hidden={tab !== 2} inert={tab !== 2}>
               <ActionsLayout>

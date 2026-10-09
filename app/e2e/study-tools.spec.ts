@@ -55,7 +55,7 @@ test("reader keeps Link and Relation, adds Scripture to studies and preserves ex
     });
     db.close();
   });
-  await selected.getByRole("tab", { name: "Study", exact: true }).click(); await selected.getByRole("button", { name: "Add to study", exact: true }).click();
+  await selected.getByRole("tab", { name: "Annotate", exact: true }).click(); await selected.getByRole("button", { name: "Add to study", exact: true }).click();
   await page.getByRole("dialog", { name: "Add to study", exact: true }).getByRole("button", { name: "New study", exact: true }).click();
   await expect(page.locator(".study-block blockquote")).toContainText("In the beginning God created");
   await page.goto("/read/genesis/1"); await expect(page.locator("#verset-1 .phrase-underline")).toHaveText("beginning God");
