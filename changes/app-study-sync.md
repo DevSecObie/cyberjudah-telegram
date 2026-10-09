@@ -1,0 +1,1 @@
+- Use the same account sync for existing personal studies and saved word marks, while keeping their original local records and editor layout intact.
