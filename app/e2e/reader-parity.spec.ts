@@ -221,6 +221,11 @@ test("reader verse numbers can be hidden without hiding them from assistive tech
 });
 
 test("daily verses have five days, sharing and images on Home", async ({ page }) => {
+  await page.route(`${DATA}/search/{classes,captains}.json`, r => r.fulfill({ json: [] }));
+  await page.route(`${DATA}/api/strongs/index.json`, r => r.fulfill({ json: [
+    { n: "G1", lemma: "Α", xlit: "alpha", def: "Alpha", count: 100 },
+    { n: "G2", lemma: "Ἀαρών", xlit: "Aaron", def: "Aaron", count: 10 },
+  ] }));
   await page.goto("/");
   const card = page.getByRole("region", { name: "Daily scripture" });
   await expect(card).toContainText("Genesis 1:1");
@@ -232,6 +237,29 @@ test("daily verses have five days, sharing and images on Home", async ({ page })
   await page.getByRole("button", { name: "Close", exact: true }).click();
   await card.getByRole("button", { name: "Today's scripture", exact: true }).click();
   await expect(card).toContainText("Genesis 1:1");
+
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  const home = page.locator(".drawer--home");
+  await home.getByRole("button", { name: "Previous day's scripture" }).click();
+  await expect(home.getByRole("region", { name: "Daily scripture" })).toContainText("Yesterday");
+  const word = home.locator(".widget").first();
+  await expect(word.locator(".widget__body")).toHaveAttribute("href", "/lexicon/G1");
+  await page.evaluate(() => { Math.random = () => .99; });
+  await word.getByRole("button", { name: "Another one" }).click();
+  await expect(word.locator(".widget__body")).toHaveAttribute("href", "/lexicon/G2");
+  const shelf = home.locator(".widgets");
+  await expect(home.locator(".feed__card--skel")).toHaveCount(0);
+  await shelf.evaluate(el => { el.scrollIntoView({ block: "center" }); el.scrollLeft = 200; });
+  await expect.poll(() => shelf.evaluate(el => el.scrollLeft)).toBeGreaterThan(20);
+  const position = await home.evaluate(el => [el.querySelector(".drawer__scroll")!.scrollTop, el.querySelector(".widgets")!.scrollLeft]);
+  await home.getByRole("button", { name: "Close Home" }).click();
+  await expect(home).toHaveAttribute("inert", "");
+  // Stay away beyond the closing animation, which used to discard Home's state.
+  await page.waitForTimeout(500);
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect(home.getByRole("region", { name: "Daily scripture" })).toContainText("Yesterday");
+  await expect(word.locator(".widget__body")).toHaveAttribute("href", "/lexicon/G2");
+  await expect.poll(() => home.evaluate(el => [el.querySelector(".drawer__scroll")!.scrollTop, el.querySelector(".widgets")!.scrollLeft])).toEqual(position);
 });
 
 test("keyboard palette switches to an existing tab and opens a passage with its range", async ({ page }) => {
