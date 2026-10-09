@@ -25,15 +25,30 @@
 #root .today-card footer button { display: flex; align-items: center; gap: 6px; min-height: var(--touch); padding: 0; border: 0; background: none; color: var(--text-3); font: 500 var(--fs-footnote) var(--font-ui); cursor: pointer; }
 #root .today-card footer button:hover { color: var(--text-1); }
 .today-card footer button:disabled { opacity: var(--disabled-opacity); }
+/* Bible Strong 1dfaa0d UserWidget / StandaloneVerseOfTheDay compact stack. */
+.today-stack { position: relative; isolation: isolate; height: 304px; touch-action: pan-y pinch-zoom; user-select: none; -webkit-user-select: none; }
+.today-stack .today-card { position: absolute; inset: 4px 16.5px auto; height: 280px; min-height: 280px; margin: 0; padding: 20px; border-radius: 30px; background: var(--canvas); }
+.today-stack .today-card header { font-size: 14px; }
+.today-stack .today-card header a { width: 44px; height: 44px; }
+.today-stack .today-card__verse { flex: none; padding: 10px 0 0; margin-bottom: auto; }
+.today-stack .today-card__verse p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; line-height: 1.4; margin-bottom: 5px; }
+.today-stack .today-card__verse b { font-size: 12px; font-weight: 400; color: var(--text-3); }
+.today-stack .today-card footer { gap: 0; }
+#root .today-stack .today-card footer :is(button, a) { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; min-height: 44px; padding: 0; color: var(--text-3); }
+.today-stack svg { stroke-width: 2; }
 .today-image { max-height: 90dvh; overflow: auto; }
 .today-image img { width: 100%; display: block; margin-bottom: var(--sp-4); border-radius: var(--r-md); }
 .today-image .btn { display: flex; }
 
 /* Counts: a row of small numbered cells. */
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-2); }
-.stats--six { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* Bible Strong 1dfaa0d ProfileStats: two rows, compact left-aligned counters. */
+.stats--six { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 20px; gap: 10px; }
 .stats__cell { display: grid; justify-items: center; gap: 2px; padding: 10px 4px; border-radius: var(--r-md); background: var(--surface-1); box-shadow: var(--card-edge); color: inherit; }
-.stats--six .stats__cell { gap: 4px; color: var(--accent); }
+.stats--six .stats__cell { justify-items: start; padding: 12px; border-radius: 12px; gap: 0; color: var(--text-3); background: var(--canvas); }
+.stats--six .stats__cell small { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 400; text-transform: lowercase; }
+.stats--six .stats__value { gap: 8px; }
+.stats--six svg { stroke-width: 2; }
 .stats__cell b { font: 700 18px/1.1 var(--font-ui); font-variant-numeric: tabular-nums; color: var(--text-1); }
 .stats__cell small { font: 500 .75rem var(--font-ui); color: var(--text-3); }
 .stats__value { display: flex; align-items: center; gap: var(--sp-2); }

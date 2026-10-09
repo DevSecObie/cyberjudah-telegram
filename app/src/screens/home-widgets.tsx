@@ -139,15 +139,15 @@ export function StudyStats({ expanded = false, active = true }: { expanded?: boo
   }, []);
   const relations = useSavedRelations();
   const cells: [string, number, string, IconName][] = [
-    ["Highlights", c.highlights, "/bookmarks?tab=highlights", "compose"],
-    ["Bookmarks", c.bookmarks, "/bookmarks", "bookmark"],
-    ["Notes", c.notes, "/bookmarks?tab=notes", "note"],
-    ...(expanded ? [["Studies", studyCount, "/studies", "compose"], ["Precepts", relations.length, "/relations", "precepts"]] as [string, number, string, IconName][] : []),
-    ["Tags", c.tags, "/tags", "tag"],
+    ["Highlights", c.highlights, "/bookmarks?tab=highlights", "edit-line"],
+    ["Bookmarks", c.bookmarks, "/bookmarks", "bookmark-outline"],
+    ["Notes", c.notes, "/bookmarks?tab=notes", "note-outline"],
+    ...(expanded ? [["Studies", studyCount, "/studies", "feather"], ["Precepts", relations.length, "/relations", "chain"]] as [string, number, string, IconName][] : []),
+    ["Tags", c.tags, "/tags", "tag-outline"],
   ];
   return (
     <div className={`stats${expanded ? " stats--six" : ""}`} aria-label="What you have kept">
-      {cells.map(([label, n, to, icon]) => <Link key={label} to={to} className="stats__cell" onClick={() => haptic("select")}><span className="stats__value">{expanded ? <Icon name={icon} size={20} /> : null}<b>{n.toLocaleString()}</b></span><small>{label}</small></Link>)}
+      {cells.map(([label, n, to, icon]) => <Link key={label} to={to} className="stats__cell" onClick={() => haptic("select")}><span className="stats__value">{expanded ? <Icon name={icon} size={18} /> : null}<b>{n.toLocaleString()}</b></span><small>{label}</small></Link>)}
     </div>
   );
 }
