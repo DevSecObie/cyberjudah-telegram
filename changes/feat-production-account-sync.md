@@ -1,0 +1,1 @@
+- Highlights, notes, bookmarks and personal studies now follow your Telegram account: the same marks on your phone, your computer and the website after signing in. Marks you already saved come with you.
