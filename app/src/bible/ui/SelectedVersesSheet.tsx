@@ -23,6 +23,8 @@ export type SelectedVersesSheetProps = {
   onNote: () => void; onTag: () => void; onLink: () => void; onRelation: () => void; onBookmark: () => void; onFocus: () => void;
   onLexicon: () => void; onDictionary: () => void; onThemes: () => void; onReferences: () => void; onCommentary: () => void; onCompare: () => void;
   onStudy: () => void;
+  /** Annotation mode ("Mode libre"): mark words instead of whole verses. */
+  onFreeMode?: () => void;
   onCopy: () => void; onShare: () => void; onExport: () => void; onSelectAll: () => void;
 };
 const TABS = ["Annotate", "Study", "Share"];
@@ -71,6 +73,7 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
                 <ActionItem name="bookmark" label="Bookmark" onPress={p.onBookmark} disabled={p.moreThanOne} isActive={p.hasBookmark} />
                 <ActionItem name="feather" label="Add to study" onPress={p.onStudy} />
                 <ActionItem name="crosshair" label="Focus" onPress={p.onFocus} isActive={p.hasFocus} />
+                {p.onFreeMode ? <ActionItem name="edit-2" label="Free mode" onPress={p.onFreeMode} variant="emphasized" /> : null}
               </ActionsLayout>
             </div>
             <div className="bs-page" style={{ width }} role="tabpanel" id={`sv-panel-1`} aria-labelledby={`sv-tab-1`} aria-hidden={tab !== 1} inert={tab !== 1}>

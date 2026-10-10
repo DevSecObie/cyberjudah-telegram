@@ -117,11 +117,6 @@
 .study-panel > h2 { display: flex; align-items: center; gap: 10px; font-size: var(--fs-body); margin: 0; }
 .study-panel > p { color: var(--text-3); font-size: var(--fs-sub); }
 .study-choice { margin-block: 12px; min-height: var(--study-touch); }
-.phrase-highlight { background: color-mix(in srgb, #d9a625 32%, transparent); color: inherit; }
-.phrase-underline { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .2em; }
-.phrase-circle { border: 1.5px solid currentColor; border-radius: .8em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-/* Bible Strong's word selection (AnnotationMode/HighlightComponents.tsx): a light system-blue fill. */
-.phrase-selecting { background: rgba(0, 122, 255, 0.2); }
 @media (max-width: 600px) {
   .study-intro { padding-top: 8px; }
   .study-paper { padding: 24px 16px; }

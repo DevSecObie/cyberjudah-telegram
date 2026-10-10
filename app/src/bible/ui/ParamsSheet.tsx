@@ -117,7 +117,8 @@ function ShareOptions({ settings: s, set }: { settings: BibleSettings; set: (p: 
 }
 
 /** Color palette: the five default colours and the custom ones, each editable (hex, name, type). */
-export function PaletteSheet({ open, onClose, settings: s, set, palette, editing: startEditing }: { open: boolean; onClose: () => void; settings: BibleSettings; set: (p: Partial<BibleSettings>) => void; palette: Palette; editing?: string | null }) {
+/** With `onSelect` it is Bible Strong's colour picker (ColorPickerModal): a row picks its colour, its pencil edits it. */
+export function PaletteSheet({ open, onClose, settings: s, set, palette, editing: startEditing, onSelect }: { open: boolean; onClose: () => void; settings: BibleSettings; set: (p: Partial<BibleSettings>) => void; palette: Palette; editing?: string | null; onSelect?: (key: string) => void }) {
   const items = colorItems(s, palette);
   const [editing, setEditing] = useState<string | null>(startEditing ?? null);
   const item = items.find((c) => c.key === editing);
@@ -134,14 +135,26 @@ export function PaletteSheet({ open, onClose, settings: s, set, palette, editing
     <>
       <Sheet open={open && !item} onClose={onClose} title="Color palette" hasBack onBack={onClose}>
         <div className="bs-palette">
-          {items.map((c, i) => (
-            <button key={c.key} type="button" className="bs-palette__row" onClick={() => setEditing(c.key)}>
-              <HighlightTypeIndicator color={c.hex} type={c.type} size={26} />
-              <span className="bs-palette__name">{c.name || (c.key.startsWith("color") ? `Color ${i + 1}` : "Custom color")}</span>
-              <small>{c.hex}</small>
-              <Feather name="chevron-right" size={18} color="var(--bs-grey)" />
-            </button>
-          ))}
+          {items.map((c, i) => {
+            const name = c.name || (c.key.startsWith("color") ? `Color ${i + 1}` : "Custom color");
+            return onSelect ? (
+              <div key={c.key} className="bs-palette__row">
+                <button type="button" className="bs-palette__pick" onClick={() => onSelect(c.key)}>
+                  <HighlightTypeIndicator color={c.hex} type={c.type} size={26} />
+                  <span className="bs-palette__name">{name}</span>
+                  <small>{c.hex}</small>
+                </button>
+                <button type="button" className="bs-iconbtn" aria-label={`Edit ${name}`} title={`Edit ${name}`} onClick={() => setEditing(c.key)}><Feather name="edit-2" size={18} color="var(--bs-grey)" /></button>
+              </div>
+            ) : (
+              <button key={c.key} type="button" className="bs-palette__row" onClick={() => setEditing(c.key)}>
+                <HighlightTypeIndicator color={c.hex} type={c.type} size={26} />
+                <span className="bs-palette__name">{name}</span>
+                <small>{c.hex}</small>
+                <Feather name="chevron-right" size={18} color="var(--bs-grey)" />
+              </button>
+            );
+          })}
           {s.customHighlightColors.length < MAX_CUSTOM_COLORS ? <button type="button" className="bs-palette__row" onClick={add}><span className="bs-palette__plus"><Feather name="plus" size={18} color="var(--bs-primary)" /></span><span className="bs-palette__name">Add a color</span></button> : null}
         </div>
       </Sheet>

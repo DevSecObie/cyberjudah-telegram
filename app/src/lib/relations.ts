@@ -22,7 +22,9 @@ export type NoteEndpoint = { type: "note"; verseKey: string; label: string };
 export type EntryEndpoint = { type: "entry"; url: string; kind: string; label: string };
 export type DictionaryEndpoint = { type: "dictionary"; slug: string; label: string };
 export type LinkEndpoint = { type: "link"; url: string; label: string };
-export type Endpoint = VerseEndpoint | NoteEndpoint | EntryEndpoint | DictionaryEndpoint | LinkEndpoint;
+/** A word mark (Bible Strong's createAnnotationEndpoint): its id, the first verse it covers, its words. */
+export type AnnotationEndpoint = { type: "annotation"; id: string; verseKey: string; label: string };
+export type Endpoint = VerseEndpoint | NoteEndpoint | EntryEndpoint | DictionaryEndpoint | LinkEndpoint | AnnotationEndpoint;
 export type Relation = { id: string; type: RelationType; direction: RelationDirection; endpoints: [Endpoint, Endpoint]; label?: string; createdAt: number; updatedAt: number };
 
 export const RELATION_TYPES: RelationType[] = ["linked", "references", "explains", "contrasts", "mentions"];
@@ -33,7 +35,7 @@ export const isDirectional = (t: RelationType) => DIRECTIONAL.includes(t);
 const TYPE_TEXT: Record<string, string> = { linked: "linked to", references: "refers to", explains: "explains", contrasts: "contrasts with", mentions: "mentions", referencedBy: "referenced by", explainedBy: "explained by", mentionedBy: "mentioned by" };
 const TITLE_TEXT: Record<string, string> = { linked: "is linked to", references: "refers to", explains: "explains", contrasts: "contrasts with", mentions: "mentions", referencedBy: "is referenced by", explainedBy: "is explained by", mentionedBy: "is mentioned by" };
 const PASSIVE: Record<string, string> = { references: "referencedBy", explains: "explainedBy", mentions: "mentionedBy" };
-export const ENDPOINT_TYPE_LABEL: Record<Endpoint["type"], string> = { verse: "Scripture", note: "Note", entry: "Library", dictionary: "Dictionary", link: "Link" };
+export const ENDPOINT_TYPE_LABEL: Record<Endpoint["type"], string> = { verse: "Scripture", note: "Note", entry: "Library", dictionary: "Dictionary", link: "Link", annotation: "Annotation" };
 
 export const verseKey = (slug: string, ch: number, v: number) => `${slug}-${ch}-${v}`;
 export const parseVerseKey = (k: string) => { const m = /^(.+)-(\d+)-(\d+)$/.exec(k); return m ? { slug: m[1], chapter: +m[2], verse: +m[3] } : null; };
@@ -42,6 +44,7 @@ export function identity(e: Endpoint): string {
   switch (e.type) {
     case "verse": return `verse:${[...e.verseKeys].sort(byKey).join("/")}`;
     case "note": return `note:${e.verseKey}`;
+    case "annotation": return `annotation:${e.id}`;
     case "entry": return `entry:${e.url}`;
     case "dictionary": return `dictionary:${e.slug}`;
     case "link": return `link:${e.url}`;
@@ -63,7 +66,7 @@ export const otherEnd = (r: Relation, active: Endpoint): Endpoint => (endpointsM
 export function endpointHref(e: Endpoint): string {
   switch (e.type) {
     case "verse": { const p = parseVerseKey(e.verseKeys[0])!; const vs = e.verseKeys.map((k) => parseVerseKey(k)!.verse); return `/read/${p.slug}/${p.chapter}?v=${vs.join(",")}`; }
-    case "note": { const p = parseVerseKey(e.verseKey)!; return `/read/${p.slug}/${p.chapter}?v=${p.verse}`; }
+    case "note": case "annotation": { const p = parseVerseKey(e.verseKey)!; return `/read/${p.slug}/${p.chapter}?v=${p.verse}`; }
     case "entry": return toAppPath(e.url) ?? e.url;
     case "dictionary": return `/dictionary/${e.slug}`;
     case "link": return e.url;
@@ -74,7 +77,7 @@ const chapterKeyOf = (k: string) => { const p = parseVerseKey(k)!; return `rel_$
 /** The chapter keys a relation lives under: every chapter one of its passage endpoints touches. */
 function chapterKeys(r: Relation): string[] {
   const keys = new Set<string>();
-  for (const e of r.endpoints) { if (e.type === "verse") for (const k of e.verseKeys) keys.add(chapterKeyOf(k)); if (e.type === "note") keys.add(chapterKeyOf(e.verseKey)); }
+  for (const e of r.endpoints) { if (e.type === "verse") for (const k of e.verseKeys) keys.add(chapterKeyOf(k)); if (e.type === "note" || e.type === "annotation") keys.add(chapterKeyOf(e.verseKey)); }
   return [...keys];
 }
 
@@ -109,7 +112,7 @@ export async function deleteRelation(r: Relation) {
 
 /** A relation as it appears under one verse. */
 export type VerseRelationItem = { key: string; relation: Relation; active: VerseEndpoint; target: Endpoint; label: string; updatedAt: number };
-const TARGET_ORDER: Record<Endpoint["type"], number> = { note: 0, link: 1, entry: 2, verse: 3, dictionary: 6 };
+const TARGET_ORDER: Record<Endpoint["type"], number> = { note: 0, annotation: 0, link: 1, entry: 2, verse: 3, dictionary: 6 };
 
 /** Every relation touching this chapter, and the items to show under each verse. Inline mode anchors a range at its last verse, badge mode at its first (as Bible Strong does). */
 export function useChapterRelations(slug: string, ch: number, display: "inline" | "block") {
@@ -141,7 +144,7 @@ export function useEndpointRelations(endpoint: Endpoint | null) {
     (async () => {
       const keys = new Set<string>();
       if (endpoint.type === "verse") for (const k of endpoint.verseKeys) keys.add(chapterKeyOf(k));
-      else if (endpoint.type === "note") keys.add(chapterKeyOf(endpoint.verseKey));
+      else if (endpoint.type === "note" || endpoint.type === "annotation") keys.add(chapterKeyOf(endpoint.verseKey));
       else for (const k of await store.keys()) if (k.startsWith("rel_")) keys.add(k);
       const seen = new Set<string>();
       const exact: { relation: Relation; active: Endpoint; target: Endpoint }[] = [];

@@ -3,7 +3,15 @@ import { studySchema, type Study } from "./model";
 import { personalStore, store } from "@/tg/store";
 import { archiveSchema } from "@shared/studies";
 
-export type Annotation = { id: string; verseKey: string; start: number; end: number; quote: string; style: "highlight" | "underline" | "circle"; /** A highlight colour key (color1, a custom colour id); none draws the original phrase style. */ color?: string; created: string };
+export type AnnotationNote = { title: string; description: string; date: number };
+/**
+ * One verse's part of a word mark. A mark over several verses (Bible Strong's WordAnnotation with
+ * its ranges) is one record per verse sharing `group`; a record without one is a mark on its own.
+ * `color`, `note` and `tags` are carried by every record of the mark.
+ */
+export type Annotation = { id: string; verseKey: string; start: number; end: number; quote: string; style: "highlight" | "underline" | "circle"; /** A highlight colour key (color1, a custom colour id); none draws the original phrase style. */ color?: string; group?: string; note?: AnnotationNote; tags?: Record<string, true>; created: string };
+/** The mark a record belongs to. */
+export const markId = (a: Annotation) => a.group ?? a.id;
 interface StudyDB extends DBSchema {
   studies: { key: string; value: Study };
   annotations: { key: string; value: Annotation; indexes: { verse: string } };
@@ -60,11 +68,32 @@ export const verseAnnotations = async (key: string): Promise<Annotation[]> => {
   const sync = await personalStore();
   return sync ? (Object.values(JSON.parse(sync.get("wordAnnotations"))) as Annotation[]).filter(a => a.verseKey === key) : (await database()).getAllFromIndex("annotations", "verse", key);
 };
+/** Every word mark on this device or account. */
+export const allAnnotations = async (): Promise<Annotation[]> => {
+  const sync = await personalStore();
+  return sync ? Object.values(JSON.parse(sync.get("wordAnnotations"))) as Annotation[] : (await database()).getAll("annotations");
+};
+/** The word marks in one chapter. */
+export const chapterAnnotations = async (slug: string, chapter: number): Promise<Annotation[]> => {
+  const prefix = `${slug}-${chapter}-`;
+  return (await allAnnotations()).filter(a => a.verseKey.startsWith(prefix) && /^\d+$/.test(a.verseKey.slice(prefix.length)));
+};
+const validExtras = (a: Annotation) => (a.group === undefined || (typeof a.group === "string" && a.group.length > 0 && a.group.length <= 64))
+  && (a.note === undefined || (typeof a.note.title === "string" && typeof a.note.description === "string" && a.note.title.length <= 500 && a.note.description.length <= 20_000 && Number.isFinite(a.note.date)))
+  && (a.tags === undefined || Object.values(a.tags).every(v => v === true));
 export async function addAnnotation(a: Annotation, text: string) {
-  if (!Number.isInteger(a.start) || !Number.isInteger(a.end) || a.start < 0 || a.end <= a.start || a.end > text.length || text.slice(a.start, a.end) !== a.quote || !["highlight", "underline", "circle"].includes(a.style) || (a.color !== undefined && (typeof a.color !== "string" || !a.color || a.color.length > 40))) throw new Error("Select a phrase in this verse before saving.");
+  if (!validExtras(a) || !Number.isInteger(a.start) || !Number.isInteger(a.end) || a.start < 0 || a.end <= a.start || a.end > text.length || text.slice(a.start, a.end) !== a.quote || !["highlight", "underline", "circle"].includes(a.style) || (a.color !== undefined && (typeof a.color !== "string" || !a.color || a.color.length > 40))) throw new Error("Select a phrase in this verse before saving.");
   const sync = await personalStore();
   if (sync) await sync.set("wordAnnotations", JSON.stringify({ [a.id]: a }), JSON.stringify({ [a.id]: JSON.parse(sync.get("wordAnnotations"))[a.id] }));
   else await (await database()).put("annotations", a);
+  changed();
+}
+/** Rewrites a saved record's colour, kind, note or tags; its words and place never change here. */
+export async function updateAnnotation(a: Annotation) {
+  if (!validExtras(a) || !["highlight", "underline", "circle"].includes(a.style) || (a.color !== undefined && (!a.color || a.color.length > 40))) throw new Error("This mark could not be saved.");
+  const sync = await personalStore();
+  if (sync) { const previous = JSON.parse(sync.get("wordAnnotations"))[a.id]; if (!previous) return; await sync.set("wordAnnotations", JSON.stringify({ [a.id]: { ...a, start: previous.start, end: previous.end, quote: previous.quote, verseKey: previous.verseKey } }), JSON.stringify({ [a.id]: previous })); }
+  else { const d = await database(); const previous = await d.get("annotations", a.id); if (!previous) return; await d.put("annotations", { ...a, start: previous.start, end: previous.end, quote: previous.quote, verseKey: previous.verseKey }); }
   changed();
 }
 export async function removeAnnotation(id: string) {

@@ -15,14 +15,27 @@ import { HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGHT } from 
  * fast scroll down collapses it to 20 px (its controls fade, its texts lift 4 px).
  */
 export type MenuAction = "params" | "history" | "bookmark" | "export" | "search" | "newtab";
-export function Header({ bookLabel, version, onBook, onVersion, onVerses, selectedReference, focusedReference, onClearFocus, collapsed, onMenu, chapterBookmarkColor, onChapterBookmark, hasChapterBookmark, menuOpen, setMenuOpen }: {
+export function Header({ bookLabel, version, onBook, onVersion, onVerses, selectedReference, focusedReference, onClearFocus, collapsed, onMenu, chapterBookmarkColor, onChapterBookmark, hasChapterBookmark, menuOpen, setMenuOpen, annotating, onExitAnnotation }: {
   bookLabel: string; version: string; onBook: () => void; onVersion: () => void; onVerses: () => void;
   selectedReference: string | null; focusedReference: string | null; onClearFocus: () => void; collapsed: boolean;
   onMenu: (a: MenuAction) => void; chapterBookmarkColor?: string; onChapterBookmark: () => void; hasChapterBookmark: boolean; menuOpen: boolean; setMenuOpen: (v: boolean) => void;
+  /** Annotation mode: Bible Strong replaces the header with a primary bar, the passage and Done. */
+  annotating?: boolean; onExitAnnotation?: () => void;
 }) {
   const fade = { opacity: collapsed ? 0 : 1, transition: "opacity .3s" } as const;
   const lift = { transform: `translateY(${collapsed ? -4 : 0}px)`, transition: "transform .3s" } as const;
   const isCollapsed = collapsed && !selectedReference;
+  if (annotating) return (
+    <header className="bs-header bs-header--annotating" style={{ height: HEADER_HEIGHT, minHeight: HEADER_HEIGHT }}>
+      <div className="bs-header__row">
+        <span className="bs-annotbar__side" />
+        <b className="bs-annotbar__title">{`${focusedReference ?? bookLabel} - ${version}`}</b>
+        <span className="bs-annotbar__side bs-annotbar__side--end">
+          <button type="button" className="bs-annotbar__done" aria-label="Exit annotation mode" onClick={() => { haptic("select"); onExitAnnotation?.(); }}>Done</button>
+        </span>
+      </div>
+    </header>
+  );
   const short = bookLabel.length > 14 && window.innerWidth < 400 ? `${bookLabel.slice(0, 10)}…` : bookLabel;
   return (
     <header className="bs-header" style={{ height: isCollapsed ? HEADER_HEIGHT_MIN : HEADER_HEIGHT, minHeight: isCollapsed ? HEADER_HEIGHT_MIN : HEADER_HEIGHT }} data-selected={selectedReference ? "" : undefined}>

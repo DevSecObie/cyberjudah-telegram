@@ -102,6 +102,7 @@
 .bs-palette__row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 56px; padding: 8px 20px; border: 0; border-bottom: 1px solid var(--bs-border); background: none; cursor: pointer; text-align: left; }
 .bs-palette__name { flex: 1; font-size: 16px; }
 .bs-palette__row small { font-size: 12px; color: var(--bs-grey); }
+.bs-palette__pick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; min-height: 40px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .bs-palette__plus { width: 26px; height: 26px; border-radius: 9px; background: var(--bs-light-primary); display: grid; place-items: center; }
 .bs-coloredit { padding: 12px 20px; display: flex; flex-direction: column; gap: 14px; }
 .bs-coloredit__head { display: flex; align-items: center; gap: 12px; }
@@ -599,23 +600,41 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 
 .bs-export__footer { padding: 8px 16px; }
 
-/* SelectionHandle (BibleDOM/AnnotationMode/HighlightComponents.tsx): a 14 px system-blue dot,
-   above the first word with its stem down, below the last word with its stem up. The ::before
-   widens the touch target to 44 px without changing the look. */
-.bs-sel-handle { position: absolute; z-index: 20; width: 14px; height: 14px; border-radius: 50%; background: rgba(0, 122, 255, 1); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); touch-action: none; cursor: grab; }
+/* HighlightLayer / HighlightRectDiv / SelectionHandle (BibleDOM/AnnotationMode/HighlightComponents.tsx):
+   behind the text (the verses sit at z-index 1), faded to 0.3 while verses are selected. */
+@property --draw-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+@keyframes bs-hl-expand { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes bs-hl-draw { from { --draw-angle: 0deg; } to { --draw-angle: 360deg; } }
+.bs-hl-layer { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; transition: opacity 0.3s ease; }
+.bs-hl-layer[data-dimmed] { opacity: 0.3; }
+.bs-hl { position: absolute; border-radius: 2px; box-sizing: border-box; pointer-events: none; transition: background 0.1s ease, box-shadow 0.1s ease, opacity 0.3s ease; }
+.bs-hl[data-selected] { box-shadow: var(--bs-reverse) 0 0 0 2px, var(--bs-primary) 0 0 0 4px; }
+.bs-hl--background::before, .bs-hl--underline::before { content: ""; position: absolute; inset: 0; border-radius: 2px; transition: background 0.3s ease; background: var(--ink); animation: bs-hl-expand 0.4s ease-out var(--delay) both; }
+.bs-hl--underline::before { background-size: 100% 6px; background-position: bottom; background-repeat: no-repeat; }
+.bs-hl--circle { z-index: 1; border-radius: 4px; }
+.bs-hl--circle::before, .bs-hl--circle::after { content: ""; width: var(--cw); height: var(--ch); position: absolute; top: calc(var(--oy) * -1); left: calc(var(--ox) * -1); z-index: -1; border-radius: 100%; box-sizing: border-box; box-shadow: 0 0 8px var(--glow), inset 0 0 4px var(--glow);
+  -webkit-mask-image: conic-gradient(from -90deg, black var(--draw-angle), transparent var(--draw-angle)); mask-image: conic-gradient(from -90deg, black var(--draw-angle), transparent var(--draw-angle)); animation: bs-hl-draw 0.3s ease-in-out var(--delay) forwards; }
+.bs-hl--circle::before { border: 3px solid var(--soft); transform: rotate(calc(var(--rot) * -1)); }
+.bs-hl--circle::after { border: 1px solid var(--thin); transform: rotate(var(--rot)); animation-delay: calc(var(--delay) + 0.3s); }
+@media (prefers-reduced-motion: reduce) {
+  .bs-hl--background::before, .bs-hl--underline::before { animation: none; }
+  .bs-hl--circle::before, .bs-hl--circle::after { animation: none; --draw-angle: 360deg; }
+}
+/* getDisabledStyles: in annotation mode the inline controls of a verse stay drawn but inactive. */
+.bs-container[data-annotating] .bs-verse [data-ignore-verse-touch] { opacity: 0.3; pointer-events: none; }
+.bs-sel-handle { position: absolute; z-index: 20; width: 14px; height: 14px; border-radius: 50%; background: rgba(0, 122, 255, 1); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); pointer-events: auto; }
 .bs-sel-handle--start { transform: translate(-50%, -100%); }
 .bs-sel-handle--end { transform: translate(-50%, 0%); }
 .bs-sel-handle::after { content: ""; position: absolute; left: 50%; width: 2px; height: 8px; background: rgba(0, 122, 255, 1); transform: translateX(-50%); }
 .bs-sel-handle--start::after { bottom: -8px; }
 .bs-sel-handle--end::after { top: -8px; }
-.bs-sel-handle::before { content: ""; position: absolute; inset: -15px; }
 
 /* AnnotationToolbar (features/bible/AnnotationToolbar.tsx): the header row (18 px title, 14 px grey
    passage, 48 × 44 eraser), three 75 px kind buttons with 12 px corners, then 36 px colour circles. */
 .bs-annotate__head { display: flex; align-items: center; gap: 8px; padding: 14px 16px 14px; }
 .bs-annotate__title { flex: 1; min-width: 0; display: grid; gap: 4px; }
 .bs-annotate__title strong { font-size: 18px; font-weight: 700; color: var(--bs-default); }
-.bs-annotate__title span { font-size: 14px; color: var(--bs-grey); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bs-annotate__title span { font-size: 14px; color: var(--bs-grey); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .bs-annotate__erase { width: 48px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
 .bs-annotate__kinds { display: flex; gap: 8px; margin: 0 16px; }
 .bs-annotate__kind { flex: 1; min-width: 0; min-height: 75px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 10px 4px; border: 1px solid var(--bs-border); border-radius: 12px; background: transparent; color: var(--bs-default); font: inherit; cursor: pointer; }
@@ -625,6 +644,26 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-annotate__preview { position: relative; width: 68px; max-width: 100%; height: 30px; display: flex; align-items: center; justify-content: center; }
 .bs-annotate__ink { position: absolute; inset: 0 8px; pointer-events: none; }
 .bs-annotate__preview b { position: relative; font-size: 22px; line-height: 30px; }
-.bs-annotate__colors { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: 14px 16px calc(14px + var(--safe-bottom, 0px)); }
+.bs-annotate__colors { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; padding: 14px 16px; }
 .bs-annotate__color { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
 .bs-annotate__color span { width: 28px; height: 28px; border-radius: 50%; }
+.bs-annotate__color[data-on] { border: 2px solid var(--bs-primary); box-sizing: border-box; }
+.bs-annotate__color[data-on] span { width: 26px; height: 26px; }
+.bs-annotate__kind:disabled { opacity: 0.5; cursor: default; }
+.bs-annotate__more { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 15px; background: var(--bs-opacity5); cursor: pointer; }
+/* Note, Tags, Relations: three 44 px buttons between 1 px dividers above a border, faded to 0.35 without a selected mark. */
+.bs-annotate__links { display: flex; align-items: center; margin: 0 16px; padding: 12px 0 calc(12px + var(--safe-bottom, 0px)); border-top: 1px solid var(--bs-border); }
+.bs-annotate__links > i { width: 1px; height: 24px; background: var(--bs-border); }
+.bs-annotate__links button { position: relative; flex: 1; min-width: 0; height: 44px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0; border: 0; background: none; color: var(--bs-default); font: inherit; font-size: 13px; cursor: pointer; }
+.bs-annotate__links button:disabled { opacity: 0.35; cursor: default; }
+.bs-annotate__count { position: absolute; right: 0; top: 0; min-width: 14px; height: 14px; padding: 0 2px; box-sizing: border-box; border-radius: 7px; background: var(--bs-primary); color: var(--bs-reverse); font-size: 8px; font-weight: 700; line-height: 14px; text-align: center; }
+
+/* The annotation mode header (BibleHeader.tsx): a primary bar, the passage in 14 px bold reverse
+   ink between two 80 px sides, Done as a reverse 28 px pill with 8 px corners and 12 px bold text. */
+.bs .bs-header.bs-header--annotating { background: var(--bs-primary); border-bottom: 1px solid var(--bs-border); }
+.bs-header--annotating .bs-header__row { width: 100%; }
+.bs-annotbar__side { width: 80px; height: 40px; flex-shrink: 0; display: flex; align-items: center; }
+.bs-annotbar__side--end { justify-content: flex-end; }
+.bs-annotbar__title { flex: 1; min-width: 0; text-align: center; font-size: 14px; font-weight: 700; color: var(--bs-reverse); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bs-annotbar__done { height: 28px; padding: 0 12px; border: 0; border-radius: 8px; background: var(--bs-reverse); color: var(--bs-primary); font-size: 12px; font-weight: 700; line-height: 28px; cursor: pointer; }
+.bs-header.bs-header--annotating::before { inset: 0; background: var(--bs-primary); -webkit-backdrop-filter: none; backdrop-filter: none; -webkit-mask-image: none; mask-image: none; }

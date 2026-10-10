@@ -19,12 +19,16 @@ import { fmtDate } from "@/api/data";
 export function endpointFromParam(p: string | null, books: { slug: string; book: string }[] | undefined): Endpoint | null {
   if (!p) return null;
   if (p.startsWith("note:") && parseVerseKey(p.slice(5))) return { type: "note", verseKey: p.slice(5), label: `Note on ${verseLabel([p.slice(5)], books)}` };
+  // A word mark: annotation:<id>:<first verse key>.
+  const mark = /^annotation:([^:]+):(.+)$/.exec(p);
+  if (mark && parseVerseKey(mark[2])) return { type: "annotation", id: mark[1], verseKey: mark[2], label: `Annotation on ${verseLabel([mark[2]], books)}` };
   if (p.startsWith("dictionary:")) return { type: "dictionary", slug: p.slice(11), label: p.slice(11) };
   if (p.startsWith("entry:")) return { type: "entry", url: p.slice(6), kind: "", label: p.slice(6) };
   const keys = p.split(",").filter((k) => parseVerseKey(k));
   if (!keys.length) return null;
   return { type: "verse", verseKeys: keys, label: verseLabel(keys, books) };
 }
+export const annotationParam = (e: { id: string; verseKey: string }) => `annotation:${e.id}:${e.verseKey}`;
 export function verseLabel(keys: string[], books?: { slug: string; book: string }[]): string {
   const ps = keys.map((k) => parseVerseKey(k)!);
   const name = books?.find((b) => b.slug === ps[0].slug)?.book ?? ps[0].slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -76,8 +80,8 @@ export function Relations() {
   };
 
   if (!endpoint) return <Screen title="Your precepts">{saved.length ? <div className="nt-list">{saved.map((r) => <button type="button" className="nt-item" key={r.id} onClick={() => {
-    const e = r.endpoints.find((x) => x.type === "verse" || x.type === "note");
-    const key = e?.type === "verse" ? e.verseKeys.join(",") : e?.type === "note" ? `note:${e.verseKey}` : "";
+    const e = r.endpoints.find((x) => x.type === "verse" || x.type === "note" || x.type === "annotation");
+    const key = e?.type === "verse" ? e.verseKeys.join(",") : e?.type === "note" ? `note:${e.verseKey}` : e?.type === "annotation" ? annotationParam(e) : "";
     if (key) navigate(`/relations?endpoint=${encodeURIComponent(key)}`);
   }}><Icon name="precepts" /><span className="nt-item__body"><b>{r.endpoints[0].label}</b><small>{relationText(r, r.endpoints[0])} {r.endpoints[1].label}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="No precepts yet" action={{ label: "Open the Bible", href: "/bible" }}>Precept upon precept, line upon line (Isaiah 28:10): join a verse to another passage, a class, a note, a dictionary entry or a link, so they show together when you read. Select a verse and tap Relation to make one. In Telegram they follow your account to every device; in a browser they stay on this device.</Empty>}</Screen>;
   return (
@@ -104,7 +108,7 @@ export function Relations() {
             <div key={r.id} className="rel-row" data-last={i === s.data.length - 1 ? "" : undefined}>
               <button type="button" className="rel-row__body" onClick={() => open(target)}>
                 <span className="rel-row__title"><b>{relationText(r, active, true)}</b> <TargetIcon type={target.type} /> <b>{target.type === "note" ? "a note" : target.label}</b></span>
-                {target.type === "note" || target.type === "entry" ? <small>{target.label}</small> : null}
+                {target.type === "note" || target.type === "entry" || target.type === "annotation" ? <small>{target.label}</small> : null}
                 {r.label ? <small>{r.label}</small> : null}
               </button>
               <button type="button" className="icon-btn" aria-label="Options" title="Options" onClick={() => void edit(r, active)}>···</button>
