@@ -20,6 +20,9 @@ function usePlayer() {
   const [repeat, setRepeat] = useState(false);
   // The audio controls follow the one shared player across reader mounts and tabs.
   const [expanded, setExpanded] = useState(false);
+  // Bible Strong's sleep timer (AudioSleepButton): playback stops at this time; pausing or stopping clears it.
+  const [sleep, setSleepState] = useState({ minutes: 0, at: 0 });
+  const setSleep = (minutes: number) => setSleepState(minutes ? { minutes, at: Date.now() + minutes * 60_000 } : { minutes: 0, at: 0 });
   const intent = useRef(new AudioIntent());
   const active = useRef(false), loading = useRef(false);
   const target = useRef<AudioChapter | null>(null);
@@ -27,7 +30,7 @@ function usePlayer() {
   const engine = useRef(speech); engine.current = speech;
   const stop = () => {
     intent.current.stop(); active.current = false; loading.current = false;
-    setPending(false); setLoadPaused(false); setNotice(""); engine.current.stop();
+    setPending(false); setLoadPaused(false); setNotice(""); setSleep(0); engine.current.stop();
   };
   const prepare = (value: Selection) => {
     // A failed media start reports its notice before the player's own effect clears `active`
@@ -63,12 +66,12 @@ function usePlayer() {
   const toggle = () => {
     if (loading.current) {
       intent.current.paused = !intent.current.paused; setLoadPaused(intent.current.paused);
-      if (intent.current.paused) ambient.stop();
+      if (intent.current.paused) { ambient.stop(); setSleep(0); }
       else {
         ambient.begin();
         if (selection?.command && intent.current.owns(selection.command.generation)) setSelection({ ...selection });
       }
-    } else if (speech.playing) engine.current.toggle();
+    } else if (speech.playing) { if (!speech.paused) setSleep(0); engine.current.toggle(); }
     else if (target.current) start(target.current);
   };
   const skip = (direction: number) => {
@@ -94,6 +97,11 @@ function usePlayer() {
   }, [speech.playing, speech.notice]);
   const controls = useRef({ toggle, stop, skip, start, speech, pending, loadPaused });
   controls.current = { toggle, stop, skip, start, speech, pending, loadPaused };
+  useEffect(() => {
+    if (!sleep.at) return;
+    const timer = setTimeout(() => { controls.current.stop(); setNotice("Sleep timer ended."); }, Math.max(0, sleep.at - Date.now()));
+    return () => clearTimeout(timer);
+  }, [sleep.at]);
   useEffect(() => bindMediaSession(navigator.mediaSession, {
     play: () => { const c = controls.current; if (c.pending ? c.loadPaused : !c.speech.playing || c.speech.paused) c.toggle(); },
     pause: () => { const c = controls.current; if (c.pending ? !c.loadPaused : c.speech.playing && !c.speech.paused) c.toggle(); },
@@ -112,7 +120,7 @@ function usePlayer() {
   return { speech: { ...speech, playing: pending || speech.playing, paused: pending ? loadPaused : speech.paused,
     loading: pending || speech.loading, notice: notice || speech.notice, stop, toggle,
     play: (from = 1) => { if (selection && !loading.current) { active.current = true; setNotice(""); engine.current.play(from); } } },
-    selection, pending, prepare, start, skip, repeat, setRepeat, expanded, setExpanded,
+    selection, pending, prepare, start, skip, repeat, setRepeat, expanded, setExpanded, sleep, setSleep,
     previous: adjacentChapter(books.data ?? [], target.current, -1), next: adjacentChapter(books.data ?? [], target.current, 1) };
 }
 type Player = ReturnType<typeof usePlayer>;

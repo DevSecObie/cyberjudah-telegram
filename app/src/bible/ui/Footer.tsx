@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { AUDIO_RATES } from "@/lib/audio-intent.mjs";
 import { AmbientSheet } from "./AmbientSheet";
 import { useAmbient } from "@/lib/ambient";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { haptic } from "@/tg/sdk";
 import type { Narrator } from "@/lib/recordings";
@@ -15,10 +15,13 @@ import { Sheet } from "./Sheet";
 /**
  * BibleFooter: the previous and next chapter buttons (40 px circles at the sides), and the
  * play pill at the bottom centre. Playing opens the audio card (AudioTTSFooter): the
- * reference being read, chapter skips, previous/next verse, play/stop, and the Speed and
- * Repeat chips. In fullscreen the arrows slide off and the pill drops by the header height.
+ * reference being read, chapter skips, previous/next verse, play/stop, and the Speed,
+ * Repeat and sleep Timer chips. In fullscreen the arrows slide off and the pill drops by the header height.
  */
 export type Speech = { supported: boolean; loading?: boolean; playing: boolean; paused: boolean; current: number | null; rate: number; setRate: (r: number) => void; pitch: number; setPitch: (p: number) => void; pitchSupported: boolean; play: (from?: number) => void; stop: () => void; toggle: () => void; voices: SpeechSynthesisVoice[]; voice: string | null; setVoice: (name: string | null) => void; currentVoice: string | null; narrators: Narrator[]; narratorsLoading: boolean; narratorsError: boolean; narratorsRefetch: () => void; notice: string };
+
+/** Bible Strong's AudioSleepButton choices, in minutes (0 is Off). */
+const SLEEP_CHOICES: [number, string][] = [[0, "Off"], [5, "5 minutes"], [10, "10 minutes"], [15, "15 minutes"], [30, "30 minutes"], [60, "1 hour"], [120, "2 hours"]];
 
 export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, hidden, bottomBar, reference, verseCount, repeat, setRepeat, expanded, setExpanded }: {
   hasPrev: boolean; hasNext: boolean; onPrev: () => void; onNext: () => void; speech: Speech; fullscreen: boolean; hidden: boolean; bottomBar: number; reference: string; verseCount: number; repeat: boolean; setRepeat: (v: boolean) => void; expanded: boolean; setExpanded: (v: boolean) => void;
@@ -31,7 +34,17 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
   const [voices, setVoices] = useState(false);
   const [adjust, setAdjust] = useState<"Speed" | "Pitch" | null>(null);
   const aiVoices = useAiVoices();
+  const [timerOpen, setTimerOpen] = useState(false);
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (!player.sleep.at) return;
+    setNow(Date.now());
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(tick);
+  }, [player.sleep.at]);
   if (hidden) return null;
+  const left = Math.max(0, Math.round((player.sleep.at - now) / 1000));
+  const timerLabel = player.sleep.at ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : "Timer";
   const arrowsY = fullscreen ? HEADER_HEIGHT + 60 + bottomBar : 0;
   const centerY = fullscreen ? HEADER_HEIGHT : 0;
   const RATES = AUDIO_RATES;
@@ -64,6 +77,7 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
             <button type="button" className="bs-chip" disabled={!speech.pitchSupported} title={!speech.pitchSupported ? "Pitch is available with device voices" : undefined} onClick={() => setAdjust("Pitch")}><Feather name="sliders" size={12} />Pitch {speech.pitch}x</button>
             <button type="button" className="bs-chip" onClick={() => setAmbientOpen(true)} aria-label={ambient.error ? "Ambient unavailable" : "Ambient"} title={ambient.error ? "Ambient unavailable" : "Ambient"}><Feather name={ambient.error ? "alert-circle" : "music"} size={12} />Ambient</button>
             <button type="button" className="bs-chip" aria-pressed={repeat} onClick={() => setRepeat(!repeat)}><Feather name="repeat" size={12} />Repeat</button>
+            <button type="button" className="bs-chip" aria-pressed={!!player.sleep.at} aria-label={player.sleep.at ? `Sleep timer, ${timerLabel} left` : "Sleep timer"} onClick={() => setTimerOpen(true)}><Feather name="watch" size={12} />{timerLabel}</button>
           </div>
 
         </div>
@@ -78,6 +92,9 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
           <AmbientSheet open={ambientOpen} onClose={() => setAmbientOpen(false)} />
           <Sheet open={adjust !== null} onClose={() => setAdjust(null)} title={adjust ?? "Audio"}>
             <div className="bs-fontlist">{RATES.map((value) => <button key={value} type="button" role="radio" aria-checked={value === (adjust === "Pitch" ? speech.pitch : speech.rate)} className="bs-fontrow" onClick={() => { if (adjust === "Pitch") speech.setPitch(value); else speech.setRate(value); setAdjust(null); }}><span>{value}x</span>{value === (adjust === "Pitch" ? speech.pitch : speech.rate) ? <Feather name="check" size={18} color="var(--bs-primary)" /> : null}</button>)}</div>
+          </Sheet>
+          <Sheet open={timerOpen} onClose={() => setTimerOpen(false)} title="Sleep timer">
+            <div className="bs-fontlist">{SLEEP_CHOICES.map(([minutes, label]) => <button key={minutes} type="button" role="radio" aria-checked={minutes === player.sleep.minutes} className="bs-fontrow" onClick={() => { player.setSleep(minutes); setTimerOpen(false); }}><span>{label}</span>{minutes === player.sleep.minutes ? <Feather name="check" size={18} color="var(--bs-primary)" /> : null}</button>)}</div>
           </Sheet>
           <Sheet open={voices} onClose={() => setVoices(false)} title="Voice" subTitle={aiVoices.data?.length ? `${aiVoices.data.length} reading voices, and ${speech.voices.length} on this device` : speech.voices.length ? `${speech.voices.length} English voices on this device` : "No English voice on this device"} height="half">
             <div className="bs-fontlist">
