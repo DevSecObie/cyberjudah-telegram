@@ -13,6 +13,7 @@ import { createStrongIdentity } from '~helpers/strongIdentities'
 import { unifiedTagsModalAtom } from '~state/app'
 import type { StrongDetailRouteContext } from './strongDetailRoutes'
 import { useStrongLexiconLanguage } from './useStrongLexiconLanguage'
+import { CYBERJUDAH_SITE_URL } from '~helpers/cyberjudahLinks'
 type Props = {
   context: StrongDetailRouteContext
   entry: StrongLexiconEntry
@@ -45,7 +46,7 @@ const StrongEntryMenu = ({ context, entry }: Props) => {
       `${stepStrongCode} — ${entry.gloss}`,
       `${entry.original} · ${entry.transliteration}`,
       entry.definitionHtml ? stripHtml(entry.definitionHtml) : '',
-      'https://bible-strong.app',
+      CYBERJUDAH_SITE_URL,
     ].filter(Boolean)
     Share.share({ message: lines.join('\n\n') })
   }

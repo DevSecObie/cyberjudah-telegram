@@ -46,6 +46,7 @@ import {
   resourceFailureFromAccessError,
   resourceFailureFromAvailability,
 } from '~features/resources/resourceFailure'
+import { CYBERJUDAH_SITE_URL } from '~helpers/cyberjudahLinks'
 interface NaveDetailScreenProps {
   naveAtom: PrimitiveAtom<NaveTab>
   isFormSheet?: boolean
@@ -198,7 +199,7 @@ const NaveDetailScreen = ({ naveAtom, isFormSheet = false }: NaveDetailScreenPro
         .text.replace(/&#/g, '\\')
         .replace(/\\x([0-9A-F]+);/gi, (_, hex: string) => {
           return String.fromCharCode(parseInt(hex, 16))
-        })} \n\nLa suite sur https://bible-strong.app`
+        })} \n\n${CYBERJUDAH_SITE_URL}`
       Share.share({ message })
     } catch (e) {
       toast.error('Erreur lors du partage.')

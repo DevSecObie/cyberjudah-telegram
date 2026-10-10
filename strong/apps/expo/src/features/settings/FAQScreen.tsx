@@ -11,6 +11,7 @@ import Container from '~common/ui/Container'
 import Paragraph from '~common/ui/Paragraph'
 import ScrollView from '~common/ui/ScrollView'
 import Text from '~common/ui/Text'
+import { CYBERJUDAH_BIBLE_APP_URL, CYBERJUDAH_SUPPORT_URL } from '~helpers/cyberjudahLinks'
 
 const FAQScreen = () => {
   const stylingTheme = useStylingTheme()
@@ -25,7 +26,7 @@ const FAQScreen = () => {
       id: 'availability',
       question: t('faq.availabilityQuestion'),
       answer: t('faq.availabilityAnswer'),
-      link: { href: 'https://web.bible-strong.app/home', label: t('faq.openWeb') },
+      link: { href: CYBERJUDAH_BIBLE_APP_URL, label: t('faq.openWeb') },
     },
     { id: 'free', question: t('faq.freeQuestion'), answer: t('faq.freeAnswer') },
     { id: 'account', question: t('faq.accountQuestion'), answer: t('faq.accountAnswer') },
@@ -64,7 +65,7 @@ const FAQScreen = () => {
       id: 'support',
       question: t('faq.supportQuestion'),
       answer: t('faq.supportAnswer'),
-      link: { href: 'https://bible-strong.app/give', label: t('faq.donate') },
+      link: { href: CYBERJUDAH_SUPPORT_URL, label: t('faq.donate') },
     },
     { id: 'author', question: t('faq.authorQuestion'), answer: t('faq.authorAnswer') },
   ]
