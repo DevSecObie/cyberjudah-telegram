@@ -9640,6 +9640,106 @@
    "events": [
     "saint-vincent-and-the-grenadines-independence-1979"
    ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Little_Rock_crisis",
+   "title": "Little Rock Crisis",
+   "status": "reviewed",
+   "note": "read in full via fetch",
+   "events": [
+    "little-rock-nine-1957"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Little_Rock_Nine",
+   "title": "Little Rock Nine",
+   "status": "reviewed",
+   "note": "read in full via fetch",
+   "events": [
+    "little-rock-nine-1957"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Freedom_Rides",
+   "title": "Freedom Rides",
+   "status": "reviewed",
+   "note": "read in full via fetch",
+   "events": [
+    "freedom-rides-1961"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Sit-in",
+   "title": "Sit-in",
+   "status": "reviewed",
+   "note": "read in full via fetch",
+   "events": [
+    "sit-in-movement-1960"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/March_on_Washington_for_Jobs_and_Freedom",
+   "title": "March on Washington for Jobs and Freedom",
+   "status": "reviewed",
+   "note": "read in full via fetch",
+   "events": [
+    "march-washington-1963"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/I_Have_a_Dream",
+   "title": "I Have a Dream",
+   "status": "reviewed",
+   "note": "read in full via fetch",
+   "events": [
+    "march-washington-1963"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Selma_to_Montgomery_marches",
+   "title": "Selma to Montgomery marches",
+   "status": "reviewed",
+   "note": "read in full via fetch",
+   "events": [
+    "selma-montgomery-march-1965"
+   ]
+  },
+  {
+   "kind": "web",
+   "ref": "https://en.wikipedia.org/wiki/Voting_Rights_Act_of_1965",
+   "title": "Voting Rights Act of 1965",
+   "status": "reviewed",
+   "note": "read in full via fetch",
+   "events": [
+    "selma-montgomery-march-1965"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "Bb3r5SDV3PI",
+   "title": "INTEGRATING INTO A BURNING HOUSE",
+   "status": "reviewed",
+   "note": "read from 3:45 onward",
+   "events": [
+    "little-rock-nine-1957"
+   ]
+  },
+  {
+   "kind": "class",
+   "ref": "2iTTN9QdCgc",
+   "title": "The Evolution Of Revolutionaries",
+   "status": "reviewed",
+   "note": "read from 1:15:00 onward",
+   "events": [
+    "march-washington-1963"
+   ]
   }
  ],
  "gaps": [
