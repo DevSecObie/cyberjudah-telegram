@@ -123,7 +123,9 @@ commentaries.get('/:collection/:language/coverage', async c => {
 commentaries.get('/:collection/:language/chapters/:book/:chapter', async c => {
   collection(c);
   const book = bookById(c.req.param('book')).id, chapter = integer(c.req.param('chapter'), 0, 200), got = await reading(c, book, chapter);
-  return c.json({ resource: got.resource, book, chapter, serializedComments: JSON.stringify(got.comments) });
+  // One HTML string per verse, its parts divided by <hr>, as Bible Strong's commentary reader reads it.
+  const serialized = Object.fromEntries(Object.entries(got.comments).map(([verse, parts]) => [verse, parts.join('<hr>')]));
+  return c.json({ resource: got.resource, book, chapter, serializedComments: JSON.stringify(serialized) });
 });
 // CyberJudah: the precepts read with each verse of a chapter, shown in the reader after the verse.
 commentaries.get('/:collection/:language/precepts/:book/:chapter', async c => {

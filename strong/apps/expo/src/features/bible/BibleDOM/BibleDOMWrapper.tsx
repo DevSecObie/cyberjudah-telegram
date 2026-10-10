@@ -1,3 +1,4 @@
+import { isPhoneUI } from '~helpers/cyberjudahPhoneUI'
 import { getPassageContextHeaderHeight } from '../passagePreviewPresentation'
 import type { LabeledCommentaryChip } from './InlineCommentaryChips'
 import { OPEN_INLINE_COMMENTARY, OPEN_PRECEPT } from './dispatch'
@@ -772,7 +773,7 @@ export const BibleDOMWrapper = ({
         const linkId = getStringPayload(action.payload)
         if (linkId) {
           const open = () => openLink?.(linkId)
-          if (Platform.OS === 'web') {
+          if (!isPhoneUI()) {
             setPreviewHistory([{ kind: 'link', linkId, title: t('Lien'), open }])
           } else open()
         }

@@ -1,3 +1,4 @@
+import { isPhoneUI } from '~helpers/cyberjudahPhoneUI'
 import { previewHistoryAtom } from '~features/bibleReferencePreview/state'
 import { getCommentaryByPublicationId } from '@bible-strong/resource-catalog/commentaries'
 import { getInlineCommentaryResources } from '~features/commentaries/inlineCommentarySelection'
@@ -1369,7 +1370,7 @@ const BibleViewer = ({
             sectionId: id,
           },
         })
-      if (Platform.OS !== 'web') {
+      if (isPhoneUI()) {
         openCommentary()
         return
       }
@@ -1416,7 +1417,7 @@ const BibleViewer = ({
             sectionId,
           },
         })
-      if (Platform.OS !== 'web') {
+      if (isPhoneUI()) {
         openCommentary()
         return
       }

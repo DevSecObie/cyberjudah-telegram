@@ -222,7 +222,10 @@ test('commentary sections agree with the upstream section builder, maintain rank
   data.set('/api/concordance/john/1.json', variant);
   // Source text remains from CyberJudah; role labels vary to verify sorting.
   const actual = (await request('/v1/commentaries/cyberjudah/en/chapters/43/1', Supplementary.CommentaryChapterResponseDto)).json;
-  const comments = JSON.parse(actual.serializedComments);
+  const serialized: Record<string, string> = JSON.parse(actual.serializedComments);
+  // The app's reader takes one string per verse (commentaryAccess.ts decodeSerializedComments).
+  assert.ok(Object.values(serialized).every(value => typeof value === 'string'));
+  const comments = Object.fromEntries(Object.entries(serialized).map(([verse, html]) => [verse, html.split('<hr>')]));
   assert.match(comments['1'][0], /Bishop Example/);
   assert.match(comments['1'][1], /Deacon Example/);
   assert.match(comments['1'][2], /Captain Example/);
