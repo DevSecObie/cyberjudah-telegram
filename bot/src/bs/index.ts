@@ -5,7 +5,6 @@ import { lexicon, strongBibles } from './strongs';
 import { naves } from './topics';
 import { commentaries } from './commentary';
 import { type App, BOOKS, FeedError, invalid, limit, load, metadata, missing, sha, verseKey } from './core';
-import { precepts } from './precepts';
 
 export const bs = new Hono<App>();
 bs.use('*', async (c, next) => {
@@ -40,7 +39,6 @@ bs.route('/v1/dictionaries', dictionaries);
 bs.route('/v1/strong-lexicon', lexicon);
 bs.route('/v1/strong-bibles', strongBibles);
 bs.route('/v1/naves', naves);
-bs.route('/v1/commentaries', precepts);
 bs.route('/v1/commentaries', commentaries);
 bs.get('/v1/cross-references/:language/verses/:verseKey', async c => {
   // Upstream's request schema hardcodes "fr"; the identifiers themselves are language-neutral.

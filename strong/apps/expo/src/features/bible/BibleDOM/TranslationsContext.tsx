@@ -25,7 +25,6 @@ export interface BibleDOMTranslations {
   passageMediaBookName: string
   passageMediaChapter: number
   passageMediaSections: {
-    readInClass: string
     introduction: string
     passages: string
     chapterResources: string

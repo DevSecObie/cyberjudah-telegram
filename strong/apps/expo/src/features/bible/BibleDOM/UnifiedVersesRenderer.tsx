@@ -35,7 +35,6 @@ import {
   shouldRenderVerseInFocusedContext,
 } from './verseRenderingModel'
 import type { ResolvedPassageMediaChapter } from '../passageMedia'
-import type { PreceptChip } from './PreceptsText'
 import type { PassageMediaGallerySection } from './passageMediaGallery'
 
 // ============================================================================
@@ -138,7 +137,6 @@ export interface UnifiedVersesRendererProps {
   // Red words data
   redWords?: Record<string, { start: number; end: number }[]> | null
   passageMediaAfterVerses: ResolvedPassageMediaChapter['afterVerses']
-  preceptsAfterVerses?: Record<number, PreceptChip[]>
   passageMediaGallerySections: PassageMediaGallerySection[]
 }
 
@@ -295,7 +293,6 @@ export function UnifiedVersesRenderer({
   parallelDisplayMode = 'horizontal',
   redWords,
   passageMediaAfterVerses,
-  preceptsAfterVerses,
   passageMediaGallerySections,
 }: UnifiedVersesRendererProps) {
   // Pre-compute numeric focus verses once to avoid repeated .map(Number) calls
@@ -383,7 +380,6 @@ export function UnifiedVersesRenderer({
                 hasNonHighlightTags={versesWithNonHighlightTags?.[verseNumber]}
                 redWords={redWords}
                 passageMedia={passageMediaAfterVerses[verseNumber]}
-                precepts={preceptsAfterVerses?.[verseNumber]}
                 passageMediaGallerySections={passageMediaGallerySections}
               />
             </Span>
@@ -463,7 +459,6 @@ export function UnifiedVersesRenderer({
               parallelDisplayMode={parallelDisplayMode}
               redWords={redWords}
               passageMedia={passageMediaAfterVerses[verseNumber]}
-                precepts={preceptsAfterVerses?.[verseNumber]}
               passageMediaGallerySections={passageMediaGallerySections}
             />
             <InlineCommentaryChips

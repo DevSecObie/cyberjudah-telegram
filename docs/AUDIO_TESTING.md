@@ -6,17 +6,15 @@ async ordering, selection, saved preferences and UI state. These are **emulated*
 checks, not listening tests or certification of Telegram on iOS or Android.
 
 Run `node --test app/tests/audio-intent.test.mjs` for playback intent and saved-value
-validation. Run `npm run test:e2e --workspace app -- recordings.spec.ts`
-for Chromium, WebKit and Firefox (since the Bible became Bible Strong's reader, the browser
-suite covers the Settings flows and credits; the reader's old player and ambient sheet
-are gone). The normal configuration builds the app and starts
+validation. Run `npm run test:e2e --workspace app -- recordings.spec.ts ambient.spec.ts`
+for Chromium, WebKit and Firefox. The normal configuration builds the app and starts
 a local Worker. It does not deploy.
 
 On the Paperclip Linux runner, run through the shared capacity/port guard:
 
 ```sh
 cd app
-bash /data/.cache/playwright-sysdeps/run.sh npx playwright test recordings.spec.ts --workers=1
+bash /data/.cache/playwright-sysdeps/run.sh npx playwright test recordings.spec.ts ambient.spec.ts --workers=1
 ```
 
 The wrapper supplies libraries, fonts and the filtered GIO TLS module directory.

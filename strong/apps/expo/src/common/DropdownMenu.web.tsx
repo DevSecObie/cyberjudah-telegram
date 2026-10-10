@@ -1,4 +1,3 @@
-import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import ContextualPanel from './ContextualPanel'
@@ -8,7 +7,7 @@ import Text from './ui/Text'
 import { FeatherIcon } from './ui/Icon'
 import type { DropdownMenuProps } from './DropdownMenu'
 
-function WebDropdownMenu<T extends string | number = string>({
+export default function DropdownMenu<T extends string | number = string>({
   currentValue,
   setValue,
   choices,
@@ -77,11 +76,3 @@ function WebDropdownMenu<T extends string | number = string>({
     />
   )
 }
-
-// CyberJudah: inside the Telegram app the reader is on a phone, so it behaves as Bible Strong's
-// phone app does (DropdownMenu.phone.tsx).
-// Loaded only there: the website, and its tests, never load the phone version.
-export default (isEmbeddedInCyberJudah()
-  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-    (require('./DropdownMenu.phone') as typeof import('./DropdownMenu.phone')).default
-  : WebDropdownMenu) as typeof WebDropdownMenu

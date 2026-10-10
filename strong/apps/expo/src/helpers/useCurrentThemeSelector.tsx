@@ -1,9 +1,8 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useState } from 'react'
 import { Appearance } from 'react-native'
 import { useSelector } from 'react-redux'
 import { useThemeSelectionOverride } from '~common/ThemeSelectionOverrideContext'
 import { RootState } from '~redux/modules/reducer'
-import { getAppColorScheme, subscribeAppColorScheme } from './cyberjudahBridge'
 
 const useCurrentThemeSelector = () => {
   const themeSelectionOverride = useThemeSelectionOverride()
@@ -33,11 +32,9 @@ const useCurrentThemeSelector = () => {
     })
   }, [preferredColorScheme])
 
-  // CyberJudah: inside the Telegram app, "auto" follows Telegram's light or dark.
-  const appColorScheme = useSyncExternalStore(subscribeAppColorScheme, getAppColorScheme)
   const computedTheme = (() => {
     if (preferredColorScheme === 'auto') {
-      if ((appColorScheme ?? systemColorScheme) === 'dark') {
+      if (systemColorScheme === 'dark') {
         return preferredDarkTheme
       }
       return preferredLightTheme

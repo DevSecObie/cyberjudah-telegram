@@ -1,7 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import { filteredSurfaces } from "./material-surfaces";
-import { bibleAt, bibleReady } from "./telegram-harness";
 
 test.use({ hasTouch: true });
 
@@ -64,7 +63,7 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
   test(`glass: ${theme} uses one material behind crisp, reachable controls`, async ({ page }) => {
     await setup(page, theme);
     await page.goto(`/read/genesis/1${LAUNCH}`);
-    await bibleReady(page);
+    await expect(page.locator("#verset-1")).toBeVisible();
     const dock = page.getByRole("navigation", { name: "Sections" });
     await expect(page.locator("html")).toHaveAttribute("data-palette", theme);
     // Palette changes can start color transitions; sample the settled theme without
@@ -161,7 +160,7 @@ test("glass: reduced motion keeps the selection and icons steady while dragging 
 test("glass: Reduce transparency keeps the reader's dock opaque, including while pressed", async ({ page }) => {
   await setup(page, "sepia", true);
   await page.goto(`/read/genesis/1${LAUNCH}`);
-  await bibleReady(page);
+  await expect(page.locator("#verset-1")).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("data-transparency", "reduced");
   const dock = await dragStart(page);
   const material = await dock.evaluate(nav => {
@@ -178,7 +177,7 @@ test("glass: increased contrast removes transparency and marks selection with an
   await page.emulateMedia({ contrast: "more" });
   await setup(page, "dark");
   await page.goto(`/read/genesis/1${LAUNCH}`);
-  await bibleReady(page);
+  await expect(page.locator("#verset-1")).toBeVisible();
   const material = await page.locator("nav.tabs").evaluate(nav => {
     const s = getComputedStyle(nav, "::before");
     return { background: s.backgroundColor, canvas: getComputedStyle(document.body).backgroundColor, filter: s.backdropFilter || s.getPropertyValue("-webkit-backdrop-filter"), outline: getComputedStyle(nav.querySelector(".tabs__pill")!).outlineStyle };
@@ -225,7 +224,7 @@ test("glass: transferring touch capture from the button to the dock does not can
 
 for (const theme of ["default", "dark", "sepia"]) {
   for (const mode of ["system", "app", "contrast", "forced"] as const) {
-    test(`materials: ${theme} ${mode} keeps headers, dock and pictures opaque`, async ({ page, browserName }) => {
+    test(`materials: ${theme} ${mode} keeps headers, dock, menus and selection opaque`, async ({ page, browserName }) => {
       test.skip(mode === "system" && browserName !== "chromium", "Playwright only exposes this OS preference through Chromium CDP");
       if (mode === "system") {
         const cdp = await page.context().newCDPSession(page);
@@ -237,14 +236,22 @@ for (const theme of ["default", "dark", "sepia"]) {
       for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
         await page.setViewportSize(viewport);
         await page.goto(`/read/genesis/1${LAUNCH}`);
-        // The Bible's own header, menus and selection are Bible Strong's, inside its frame.
-        await bibleReady(page);
+        await expect(page.locator("#verset-1")).toBeVisible();
         if (mode === "system") expect(await page.evaluate(() => matchMedia("(prefers-reduced-transparency: reduce)").matches)).toBe(true);
-        for (const material of await materials(page, [[".tabs", "::before"]])) {
+        await page.getByRole("button", { name: "Scripture options" }).click();
+        await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
+        for (const material of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) {
           expect(material.filter, material.selector).toBe("none");
           expect(material.alpha, material.selector).toBe(255);
         }
+        await page.keyboard.press("Escape");
+        await page.locator("#verset-1").click();
+        await expect(page.locator(".bs-selected")).toBeVisible();
+        expect((await materials(page, [[".bs-selected"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
         await expect.poll(() => filteredSurfaces(page)).toEqual([]);
+        // Selection is saved with the reader tab; clear it before checking the next viewport.
+        await page.locator("#verset-1").click();
+        await expect(page.locator(".bs-selected")).toHaveCount(0);
       }
       await page.goto(`/books/materials${LAUNCH}`);
       await expect(page.locator(".book__figure")).toBeVisible();
@@ -256,6 +263,50 @@ for (const theme of ["default", "dark", "sepia"]) {
     });
   }
 }
+
+test("materials: header, menu and selection stay within budget without stacked glass", async ({ page, browserName }) => {
+  await setup(page);
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
+  await page.getByRole("button", { name: "Scripture options" }).click();
+  const menu = page.getByRole("menu", { name: "Passage options" });
+  await expect(menu).toBeVisible();
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(3);
+  expect(await menu.evaluate(element => {
+    for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+      const style = getComputedStyle(parent);
+      const filter = style.backdropFilter || style.getPropertyValue("-webkit-backdrop-filter");
+      if (filter && filter !== "none") return false;
+    }
+    return true;
+  })).toBe(true);
+  const header = (await page.locator(".bs-header").boundingBox())!;
+  expect((await menu.boundingBox())!.y).toBeGreaterThanOrEqual(header.y + header.height);
+  await page.keyboard.press("Escape");
+  await page.locator("#verset-1").click();
+  await expect(page.locator(".bs-selected")).toBeVisible();
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
+  // The mobile action row scrolls without turning the action page or selecting an action.
+  const row = page.locator("#sv-panel-0 .bs-actions");
+  await expect.poll(() => row.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
+  await page.locator(".bs-selected").evaluate(async el => { await Promise.all(el.getAnimations().map(a => a.finished.catch(() => {}))); });
+  const bounds = (await row.boundingBox())!;
+  const x = bounds.x + bounds.width - 24, y = bounds.y + bounds.height / 2;
+  if (browserName === "chromium") {
+    const session = await page.context().newCDPSession(page);
+    await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    for (let i = 1; i <= 10; i++) await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x - i * 18, y }] });
+    await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await session.detach();
+  } else {
+    await page.mouse.move(x, y); await page.mouse.wheel(300, 0);
+  }
+  await expect.poll(() => row.evaluate(el => el.scrollLeft)).toBeGreaterThan(0);
+  await expect(page.getByRole("tab", { name: "Annotate", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(row.getByRole("button", { name: "Focus", exact: true })).toBeInViewport({ ratio: 1 });
+  await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
+});
 
 test("materials: content stays unfiltered at 200% shared text size with reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -306,10 +357,10 @@ test("pictures: Escape closes the viewer and returns keyboard focus", async ({ p
   await expect(figure).toBeFocused();
 });
 
-test("materials: unsupported-filter CSS branch yields an opaque dock over the Bible", async ({ page }) => {
+test("materials: unsupported-filter CSS branch yields opaque reader surfaces", async ({ page }) => {
   await setup(page, "sepia");
   await page.goto(`/read/genesis/1${LAUNCH}`);
-  await bibleReady(page);
+  await expect(page.locator("#verset-1")).toBeVisible();
   // CSS support cannot be disabled by Playwright. Activate the real fallback blocks in place,
   // preserving their cascade order, so this verifies their declarations rather than a test copy.
   const changed = await page.evaluate(() => {
@@ -328,7 +379,9 @@ test("materials: unsupported-filter CSS branch yields an opaque dock over the Bi
     return changed;
   });
   expect(changed).toBeGreaterThan(0);
-  for (const material of await materials(page, [[".tabs", "::before"]])) expect(material).toMatchObject({ filter: "none", alpha: 255 });
+  await page.getByRole("button", { name: "Scripture options" }).click();
+  await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
+  for (const material of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) expect(material).toMatchObject({ filter: "none", alpha: 255 });
 });
 
 for (const theme of ["default", "dark", "sepia"]) {
@@ -384,14 +437,33 @@ for (const theme of ["default", "dark", "sepia"]) {
         expect(bounds.y + bounds.height).toBeLessThanOrEqual(height - 30);
         // Navigate in-app to retain 200% text; a reload would silently reset the style tag.
         await dock.getByRole("button", { name: "Bible", exact: true }).click();
-        await expect(page).toHaveURL(/\/(read|bible)/);
-        await bibleReady(page);
-        await expect(page.locator(".strong-reader")).not.toHaveClass(/strong-reader--away/);
+        await expect(page.locator("#verset-1")).toBeVisible();
+        await page.getByRole("button", { name: "Scripture options" }).click();
+        const menu = page.getByRole("menu", { name: "Passage options" });
+        await expect(menu).toBeVisible();
+        await expect.poll(() => menu.getByRole("menuitem").first().evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBe(30);
+        for (const item of await menu.getByRole("menuitem").all()) {
+          await item.scrollIntoViewIfNeeded();
+          const b = (await item.boundingBox())!;
+          expect(b.width).toBeGreaterThanOrEqual(44); expect(b.height).toBeGreaterThanOrEqual(44);
+          expect(b.x).toBeGreaterThanOrEqual(14); expect(b.x + b.width).toBeLessThanOrEqual(width - 20);
+        }
         if (["system", "app", "contrast", "forced"].includes(preference)) {
-          for (const m of await materials(page, [[".tabs", "::before"]])) {
+          for (const m of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) {
             expect(m.filter).toBe("none"); expect(m.alpha).toBe(255);
           }
         }
+        await page.keyboard.press("Escape");
+        await page.locator("#verset-1").click();
+        const sheet = page.locator(".bs-selected");
+        await expect(sheet).toBeVisible();
+        // Every label fits its own action at large text; do not merely hide overflow.
+        const clipped = await sheet.locator(".bs-action:visible").evaluateAll(buttons => buttons.flatMap(button => {
+          const label = button.querySelector(".bs-action__label")!, b = button.getBoundingClientRect(), l = label.getBoundingClientRect();
+          return l.left < b.left - 1 || l.right > b.right + 1 || label.scrollWidth > label.clientWidth + 1 ? [label.textContent] : [];
+        }));
+        expect(clipped).toEqual([]);
+        expect(await sheet.evaluate(e => e.scrollWidth <= e.clientWidth + 1)).toBe(true);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       }
     });
@@ -406,7 +478,7 @@ test("controls: an overflowing rail scrolls natively and restores drag after res
   // Rail labels keep to one line at 200%, so the window is short enough for the rail to overflow.
   await page.setViewportSize({ width: 1280, height: 450 });
   await page.goto(`/read/genesis/1${LAUNCH}`);
-  await bibleReady(page);
+  await expect(page.locator("#verset-1")).toBeVisible();
   await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
   const dock = page.getByRole("navigation", { name: "Sections" });
   await expect(dock).toHaveAttribute("data-scrollable", "");
@@ -445,10 +517,40 @@ test("controls: an overflowing rail scrolls natively and restores drag after res
   await expect(page).toHaveURL(/\/search/);
 });
 
+for (const theme of ["default", "dark", "sepia"]) {
+  test(`controls: ${theme} nested sheet actions share accessible accent ink and keyboard behavior`, async ({ page }) => {
+    await setup(page, theme);
+    await page.goto(`/read/genesis/1${LAUNCH}`);
+    await page.getByRole("button", { name: "Scripture options" }).click();
+    await page.getByRole("menuitem", { name: /Font and settings/ }).click();
+    await page.getByRole("button", { name: "Color palette", exact: true }).click();
+    await page.locator(".bs-palette__row").first().click();
+    const sheet = page.getByRole("dialog", { name: "Edit color", exact: true });
+    const save = sheet.getByRole("button", { name: "Save", exact: true });
+    await expect(save).toBeVisible();
+    await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+    await expect.poll(() => save.evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBe(30);
+    expect(await sheet.evaluate(e => e.scrollWidth <= e.clientWidth + 1)).toBe(true);
+    const contrast = await save.evaluate(button => {
+      const style = getComputedStyle(button), canvas = document.createElement("canvas"), ctx = canvas.getContext("2d")!;
+      const lum = (color: string) => {
+        ctx.fillStyle = color; ctx.fillRect(0, 0, 1, 1);
+        return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3).map(v => v / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4).reduce((s, v, i) => s + v * [.2126, .7152, .0722][i], 0);
+      };
+      const a = lum(style.color), b = lum(style.backgroundColor);
+      return (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+    });
+    expect(contrast).toBeGreaterThanOrEqual(4.5);
+    await save.focus(); await page.keyboard.press("Enter");
+    await expect(sheet).toHaveCount(0);
+  });
+}
+
+
 for (const reduced of [false, true]) {
   test(`controls: every active bar shares a material-only scroll fade (reduced=${reduced})`, async ({ page }) => {
     await setup(page, "default", reduced);
-    for (const [path, selector] of [["/settings", ".screen > .head"], ["/search", ".srch__bar"], ["/ask", ".chat2__bar"], ["/timeline", ".tlh"]]) {
+    for (const [path, selector] of [["/settings", ".screen > .head"], ["/search", ".srch__bar"], ["/ask", ".chat2__bar"], ["/read/genesis/1", ".bs-header"], ["/timeline", ".tlh"]]) {
       await page.goto(`${path}${LAUNCH}`);
       await expect(page.locator(selector)).toBeVisible();
       for (const bar of [selector, ".tabs"]) {
@@ -554,20 +656,20 @@ test("navigation: resizing a minimized dock restores keyboard and first-click na
   await page.mouse.wheel(0, 300);
   await expect(nav).not.toHaveAttribute("data-mini");
   await nav.getByRole("button", { name: "Bible", exact: true }).click();
-  // The Bible tab opens the Bible screen (/bible), where the one reader is where it was left.
-  await expect(page).toHaveURL(/\/(read|bible)(\/|$)/);
+  await expect(page).toHaveURL(/\/read\//);
 });
 
-test("navigation: document and Timeline scrolls minimize down and expand up", async ({ page }) => {
+test("navigation: document, Bible and Timeline scrolls minimize down and expand up", async ({ page }) => {
   await setup(page, "sepia");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   const nav = page.getByRole("navigation", { name: "Sections" });
-  for (const [path, selector] of [["/settings", "html"], ["/timeline", "html"], ["/timeline/0", ".tl-scroll"]]) {
+  for (const [path, selector] of [["/settings", "html"], ["/read/genesis/1", ".bs-scroll"], ["/timeline", "html"], ["/timeline/0", ".tl-scroll"]]) {
     await page.goto(`${path}${LAUNCH}`);
     const scroller = page.locator(selector);
     await expect(scroller).toBeVisible();
     if (selector === "html") await expect(page.getByRole("heading", { name: path === "/settings" ? "Settings" : "The Bible Timeline", exact: true })).toBeVisible();
+    if (selector === ".bs-scroll") await expect(page.locator("#verset-1")).toBeVisible();
     await scroller.hover({ position: { x: 250, y: 300 } });
     const travel = await scroller.evaluate(el => Math.min(180, (el.scrollHeight - el.clientHeight) / 2));
     expect(travel, path).toBeGreaterThan(48);
@@ -617,11 +719,60 @@ for (const preference of ["normal", "app", "contrast", "forced"] as const) {
   });
 }
 
+for (const mode of ["native", "fallback", "reduced"] as const) {
+  test(`menus: ${mode} keeps origin, keyboard actions and focus when opening and closing`, async ({ page }) => {
+    await setup(page);
+    if (mode === "reduced") await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.addInitScript(mode => {
+      const original = document.startViewTransition?.bind(document);
+      (window as any).__popoverTransitions = 0;
+      (window as any).__popoverFrames = [];
+      if (mode === "fallback") Object.defineProperty(document, "startViewTransition", { value: undefined });
+      else if (original) document.startViewTransition = (...args) => { (window as any).__popoverTransitions++; return original(...args); };
+      const animate = Element.prototype.animate;
+      Element.prototype.animate = function (frames, options) {
+        if (this.hasAttribute("data-popover")) (window as any).__popoverFrames.push(frames);
+        return animate.call(this, frames, options);
+      };
+    }, mode);
+    await page.goto(`/read/genesis/1${LAUNCH}`);
+    const trigger = page.getByRole("button", { name: "Scripture options" });
+    await trigger.click();
+    const menu = page.getByRole("menu", { name: "Passage options" });
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole("menuitem").first()).toBeFocused();
+    await page.keyboard.press("ArrowDown");
+    await expect(menu.getByRole("menuitem", { name: "Search the Scriptures" })).toBeFocused();
+    await page.keyboard.press("End");
+    await expect(menu.getByRole("menuitem", { name: "Open in new tab" })).toBeFocused();
+    for (const name of ["search", "share", "bookmark"]) await expect(menu.locator(`[data-icon="${name}"]`)).toHaveCount(1);
+    await expect.poll(() => menu.evaluate(el => el.style.transformOrigin)).not.toBe("");
+    expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".bs-dropdown")).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    const pickerTrigger = page.getByRole("button", { name: /Choose book and chapter/ });
+    await pickerTrigger.click();
+    const picker = page.getByRole("dialog", { name: "Books", exact: true });
+    await expect(picker).toBeVisible();
+    await picker.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(page.locator(".bs-picker")).toHaveCount(0);
+    await expect(pickerTrigger).toBeFocused();
+    const motion = await page.evaluate(() => ({ native: !!document.startViewTransition, calls: (window as any).__popoverTransitions, frames: (window as any).__popoverFrames }));
+    if (mode === "native" && motion.native) expect(motion.calls).toBeGreaterThanOrEqual(4);
+    else expect(motion.calls).toBe(0);
+    if (mode === "reduced") {
+      expect(motion.frames.length).toBeGreaterThanOrEqual(4);
+      expect(motion.frames.flat().every((frame: { transform: string }) => frame.transform === "none")).toBe(true);
+    }
+  });
+}
+
 test("menus: main routes expose named buttons and tooltips for icon-only controls", async ({ page }) => {
   await setup(page);
   for (const path of ["/", "/read/genesis/1", "/classes", "/books", "/timeline", "/people", "/ask", "/settings", "/bookmarks"]) {
     await page.goto(`${path}${LAUNCH}`);
-    if (path.includes("/read/")) { await bibleReady(page); await bibleAt(page, "Genesis 1").waitFor(); }
+    if (path.includes("/read/")) await page.locator("#verset-1").waitFor();
     else await page.locator(".route").getByRole("heading").first().waitFor();
     const buttons = page.locator("button:visible");
     expect(await buttons.count(), path).toBeGreaterThan(0);
@@ -633,6 +784,28 @@ test("menus: main routes expose named buttons and tooltips for icon-only control
       }
     }
   }
+});
+
+test("menus: collapsed Bible header removes its hidden controls and restores whole groups", async ({ page }) => {
+  await setup(page); await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.clock.install();
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await page.locator("#verset-1").waitFor();
+  await page.clock.runFor(1000);
+  await page.locator("#verset-3").hover(); await page.mouse.wheel(0, 80);
+  await expect.poll(() => page.locator(".bs-scroll").evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+  await page.mouse.wheel(0, 500);
+  await expect(page.locator(".bs-header")).toHaveCSS("height", "20px");
+  await expect(page.locator(".bs-header button")).toHaveCount(0);
+  await expect(page.locator(".bs-header__summary")).toHaveText("Genesis 1 · KJV");
+  await expect.poll(() => page.locator(".bs-scroll").evaluate(el => el.scrollTop)).toBeGreaterThanOrEqual(579);
+  await page.clock.runFor(1000);
+  const down = await page.locator(".bs-scroll").evaluate(el => el.scrollTop);
+  await page.mouse.wheel(0, -80);
+  await expect.poll(() => page.locator(".bs-scroll").evaluate(el => el.scrollTop)).toBeLessThanOrEqual(down - 79);
+  await page.mouse.wheel(0, -300);
+  await expect(page.getByRole("group", { name: "Passage", exact: true })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Scripture actions", exact: true })).toBeVisible();
 });
 
 for (const reduced of [false, true]) {
@@ -697,7 +870,7 @@ for (const theme of ["default", "dark", "sepia"]) {
     await setup(page, theme);
     for (const path of ["/", "/read/genesis/1", "/classes", "/books", "/timeline", "/people", "/ask", "/settings", "/bookmarks", "/search", "/tabs", "/plan", "/precepts", "/settings/reminders"]) {
       await page.goto(`${path}${LAUNCH}`);
-      if (path.includes("/read/")) { await bibleReady(page); await bibleAt(page, "Genesis 1").waitFor(); }
+      if (path.includes("/read/")) await page.locator("#verset-1").waitFor();
       else if (path === "/tabs") await page.getByRole("toolbar", { name: "Tabs" }).waitFor();
       else if (path === "/search") await page.getByRole("searchbox", { name: "Search CyberJudah" }).waitFor();
       else await page.locator(".route").getByRole("heading").first().waitFor();
@@ -707,6 +880,61 @@ for (const theme of ["default", "dark", "sepia"]) {
         await expect.poll(() => page.locator(".route").evaluate(el => el.scrollWidth <= el.clientWidth + 1), `${path} at ${width}`).toBe(true);
       }
     }
+  });
+}
+
+for (const reduced of [false, true]) {
+  test(`sheets: half expands to full with safe insets and ${reduced ? "reduced" : "normal"} motion`, async ({ page }) => {
+    await setup(page);
+    if (reduced) await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK.replace(
+      'safeAreaInset: { top: 0, bottom: 0, left: 0, right: 0 }, contentSafeAreaInset: { top: 0, bottom: 0, left: 0, right: 0 }',
+      'safeAreaInset: { top: 24, bottom: 30, left: 14, right: 20 }, contentSafeAreaInset: { top: 0, bottom: 0, left: 0, right: 0 }',
+    ) }));
+    await page.addInitScript(() => {
+      (window as any).__sheetFrames = [];
+      const animate = Element.prototype.animate;
+      Element.prototype.animate = function (frames, options) {
+        if (this.classList.contains("bs-sheet")) (window as any).__sheetFrames.push(frames);
+        return animate.call(this, frames, options);
+      };
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/read/genesis/1${LAUNCH}`); await page.locator("#verset-1").click();
+    const selection = page.locator(".bs-selected");
+    await expect(selection).toBeVisible();
+    await selection.focus();
+    await expect(selection).toHaveCSS("border-top-left-radius", "36px");
+    await expect(selection).toHaveCSS("border-bottom-right-radius", "36px");
+    await expect(page.locator(".bs-scrim--clear")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(page.locator(".bs-scrim--clear")).toHaveCSS("pointer-events", "none");
+    await expect.poll(async () => Math.round((await selection.boundingBox())!.x)).toBe(22);
+    await expect.poll(async () => { const r = (await selection.boundingBox())!; return Math.round(844 - r.y - r.height); }).toBe(38);
+    const rect = (await selection.boundingBox())!;
+    expect(Math.round(390 - rect.x - rect.width)).toBe(28);
+    await page.getByRole("button", { name: "Tag", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "Edit tags", exact: true });
+    await expect(sheet).toHaveCSS("border-bottom-left-radius", "36px");
+    await expect(sheet).toHaveClass(/bs-sheet--half/);
+    await sheet.evaluate(async el => { await Promise.all(el.getAnimations().map(a => a.finished.catch(() => {}))); });
+    const handle = (await sheet.locator(".bs-sheet__handle").boundingBox())!;
+    await page.mouse.move(handle.x + handle.width / 2, handle.y + 2); await page.mouse.down();
+    await page.mouse.move(handle.x + handle.width / 2, handle.y - 100, { steps: 6 }); await page.mouse.up();
+    await expect(sheet).toHaveClass(/bs-sheet--full/);
+    await expect(sheet).toHaveCSS("border-bottom-left-radius", "0px");
+    await expect.poll(async () => Math.round((await sheet.boundingBox())!.width)).toBe(390);
+    await expect.poll(async () => Math.round((await sheet.boundingBox())!.x)).toBe(0);
+    const frames = await page.evaluate(() => (window as any).__sheetFrames);
+    expect(frames).toHaveLength(1);
+    expect(frames[0].every((f: object) => Object.keys(f).every(k => ["transform", "opacity", "offset", "easing", "composite"].includes(k)))).toBe(true);
+    if (reduced) expect(frames[0].every((f: { transform: string }) => f.transform === "none")).toBe(true);
+    expect((await materials(page, [[".bs-sheet--full"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
+    await sheet.getByRole("button", { name: "Collapse sheet", exact: true }).focus(); await page.keyboard.press("Enter");
+    await expect(sheet).toHaveClass(/bs-sheet--half/);
+    await expect(sheet.getByRole("button", { name: "Expand sheet", exact: true })).toBeFocused();
+    await sheet.getByRole("button", { name: "Expand sheet", exact: true }).click();
+    await expect(sheet).toHaveClass(/bs-sheet--full/);
+    await sheet.getByRole("button", { name: "Close", exact: true }).click(); await expect(sheet).toHaveCount(0);
   });
 }
 
@@ -745,6 +973,33 @@ for (const width of [390, 768, 1280]) {
   });
 }
 
+// The native snapshot can arrive after the selector's parent effects have run.
+// The current book must scroll when the list actually mounts, including slow snapshots.
+test("menus: a delayed picker mount still brings the current book into view", async ({ page }) => {
+  await setup(page);
+  await page.route(`${DATA_ORIGIN}/api/kjv/books.json`, r => r.fulfill({ json: Array.from({ length: 41 }, (_, i) => ({
+    book: i === 40 ? "Genesis" : `Book fixture ${i + 1}`, slug: i === 40 ? "genesis" : `fixture-${i}`, chapters: 50, verses: 1533, testament: "Old Testament", url: "/bible/genesis", chapterIds: [1],
+  })) }));
+  await page.addInitScript(() => {
+    const original = document.startViewTransition?.bind(document);
+    document.startViewTransition = ((update: () => void | Promise<void>) => {
+      const gate = new Promise<void>(resolve => { (window as any).__releasePicker = resolve; });
+      const run = async () => { (window as any).__pickerSnapshotWaiting = true; await gate; await update(); };
+      if (original) return original(run);
+      const finished = run();
+      return { finished, ready: finished, updateCallbackDone: finished, skipTransition() {} };
+    }) as typeof document.startViewTransition;
+  });
+  await page.goto(`/read/genesis/1${LAUNCH}`); await page.locator("#verset-1").waitFor();
+  await page.getByRole("button", { name: /Choose book and chapter/ }).click();
+  await page.waitForFunction(() => (window as any).__pickerSnapshotWaiting);
+  // Let the parent's already-queued effects/timers finish before releasing the mount.
+  await page.evaluate(() => new Promise<void>(resolve => setTimeout(resolve, 0)));
+  await page.evaluate(() => (window as any).__releasePicker());
+  await expect(page.getByRole("dialog", { name: "Books", exact: true })).toBeVisible();
+  await expect(page.locator(".bs-bookrow[data-current]")).toBeInViewport();
+});
+
 for (const theme of ["default", "dark", "sepia"]) {
   test(`sheets: ${theme} photo framing and full forms fit resized windows`, async ({ page }) => {
     await setup(page, theme);
@@ -771,6 +1026,11 @@ for (const theme of ["default", "dark", "sepia"]) {
     const chats = page.getByRole("dialog", { name: "Your chats", exact: true });
     await expect(chats).toHaveCSS("border-top-left-radius", "36px"); await expect(chats).toHaveCSS("border-bottom-left-radius", "0px");
     await chats.getByRole("button", { name: "Close", exact: true }).click();
+    await page.goto(`/read/genesis/1${LAUNCH}`); await page.getByRole("button", { name: "Scripture options" }).click();
+    await page.getByRole("menuitem", { name: "Font and settings", exact: true }).click();
+    const settings = page.getByRole("dialog", { name: "Font and settings", exact: true });
+    await expect(settings).toBeVisible(); await expect(settings).toHaveCSS("border-bottom-left-radius", "0px");
+    expect(await settings.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
   });
 }
 

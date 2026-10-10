@@ -63,7 +63,7 @@ export default function CommentarySectionCard({
             reference={
               start === 0
                 ? t('commentaries.resource.introduction')
-                : `${getBook(book) ? t(getBook(book)!.Nom) : book} ${chapter}:${start}${end !== start ? `–${end}` : ''}`
+                : `${getBook(book)?.Nom ?? book} ${chapter}:${start}${end !== start ? `–${end}` : ''}`
             }
             referenceDisabled={start === 0}
             onReferencePress={() => {

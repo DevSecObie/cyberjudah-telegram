@@ -1,4 +1,3 @@
-import { isPhoneUI } from '~helpers/cyberjudahPhoneUI'
 import HorizontalControlScrollView from '~common/HorizontalControlScrollView'
 import StrongSelectionContainer from './StrongSelectionContainer'
 import { twMerge } from '~common/ui/classNames'
@@ -89,7 +88,7 @@ const StrongSelectionSheet = ({
   const { t } = useTranslation()
   const theme = useTheme()
   const { width: viewportWidth } = useWindowDimensions()
-  const windowWidth = !isPhoneUI() ? Math.min(440, viewportWidth - 32) : viewportWidth
+  const windowWidth = Platform.OS === 'web' ? Math.min(440, viewportWidth - 32) : viewportWidth
   const pushRouteOnce = usePushRouteOnce()
   const resources = useResourceAccess()
   const previewPagerRef = useRef<ScrollView>(null)

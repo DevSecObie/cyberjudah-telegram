@@ -40,6 +40,26 @@ test("competing study edits report a conflict without overwriting either draft",
   await expect(other.getByLabel("Study title", { exact: true })).toHaveValue("Second window");
   await page.reload(); await expect(page.getByLabel("Study title", { exact: true })).toHaveValue("First window"); await other.close();
 });
+test("reader keeps Link and Relation, adds Scripture to studies and preserves existing word marks", async ({ page }) => {
+  await setup(page); await page.goto("/read/genesis/1"); await page.locator("#verset-1 .bs-text").click();
+  const selected = page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true }); await expect(selected).toBeVisible();
+  await expect(selected.getByRole("button", { name: "Link", exact: true })).toBeVisible(); await expect(selected.getByRole("button", { name: "Relation", exact: true })).toBeVisible();
+  await expect(selected.getByRole("button", { name: "Mark phrase", exact: true })).toHaveCount(0);
+  // Removing the custom form must not remove a reader's marks from the old data model.
+  await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => { const r = indexedDB.open("cyberjudah-personal-study", 1); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction("annotations", "readwrite");
+      tx.objectStore("annotations").put({ id: "fe47a55e-15f4-42db-8a95-809b314b3c11", verseKey: "genesis-1-1", start: 7, end: 20, quote: "beginning God", style: "underline", created: "2026-10-08T18:00:00.000Z" });
+      tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  });
+  await selected.getByRole("tab", { name: "Annotate", exact: true }).click(); await selected.getByRole("button", { name: "Add to study", exact: true }).click();
+  await page.getByRole("dialog", { name: "Add to study", exact: true }).getByRole("button", { name: "New study", exact: true }).click();
+  await expect(page.locator(".study-block blockquote")).toContainText("In the beginning God created");
+  await page.goto("/read/genesis/1"); await expect(page.locator("#verset-1 .phrase-underline")).toHaveText("beginning God");
+});
 test("browser backup includes locally saved reader notes", async ({ page }) => {
   await setup(page); await page.goto("/settings");
   await page.evaluate(() => localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({ "1": { id: "note1", title: "Creation", description: "Keep this note", date: 1 } })));

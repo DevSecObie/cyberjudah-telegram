@@ -109,9 +109,7 @@ commentaries.get('/:collection/:language/coverage', async c => {
 commentaries.get('/:collection/:language/chapters/:book/:chapter', async c => {
   collection(c);
   const book = bookById(c.req.param('book')).id, chapter = integer(c.req.param('chapter'), 0, 200), got = await reading(c, book, chapter);
-  // One HTML string per verse, its parts divided by <hr>, as Bible Strong's commentary reader reads it.
-  const serialized = Object.fromEntries(Object.entries(got.comments).map(([verse, parts]) => [verse, parts.join('<hr>')]));
-  return c.json({ resource: got.resource, book, chapter, serializedComments: JSON.stringify(serialized) });
+  return c.json({ resource: got.resource, book, chapter, serializedComments: JSON.stringify(got.comments) });
 });
 commentaries.get('/:collection/:language/verses/:verseKey', async c => {
   collection(c);

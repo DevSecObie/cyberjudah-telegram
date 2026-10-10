@@ -1,4 +1,3 @@
-import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import InlineCommentarySettings, {
   InlineCommentaryManageAction,
 } from '~features/commentaries/InlineCommentarySettings'
@@ -25,7 +24,7 @@ type Props = ComponentProps<typeof MenuView> & {
   chapter: number
   version: string
 }
-function WebBibleOptionsMenu({
+export default function BibleOptionsMenu({
   bookNumber,
   chapter,
   version,
@@ -174,11 +173,3 @@ function WebBibleOptionsMenu({
     />
   )
 }
-
-// CyberJudah: inside the Telegram app the reader is on a phone, so it behaves as Bible Strong's
-// phone app does (BibleOptionsMenu.phone.tsx).
-// Loaded only there: the website, and its tests, never load the phone version.
-export default (isEmbeddedInCyberJudah()
-  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-    (require('./BibleOptionsMenu.phone') as typeof import('./BibleOptionsMenu.phone')).default
-  : WebBibleOptionsMenu)

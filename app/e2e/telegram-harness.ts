@@ -34,11 +34,3 @@ export async function setup(page: Page) {
 
 /** In-app navigation (a reload would reset the mock's cloud storage). */
 export const goInApp = (page: Page, to: string) => page.evaluate((t) => { history.pushState({ idx: (history.state?.idx ?? 0) + 1 }, "", t); dispatchEvent(new PopStateEvent("popstate")); }, to);
-
-/** The Bible: Bible Strong's reader in the one frame the app keeps loaded (src/bible/BibleFrame.tsx). */
-export const bibleFrame = (page: Page) => page.frameLocator('iframe[title="Bible"]');
-/** Waits until the Bible's lion has gone: the reader has said it is ready. */
-export const bibleReady = (page: Page) => page.locator(".strong-reader__splash[data-done]").waitFor({ state: "attached", timeout: 45_000 });
-/** The reader's book trigger, which names the chapter it shows ("John 3"). */
-export const bibleAt = (page: Page, passage: string) =>
-  bibleFrame(page).getByRole("button", { name: `Choose book and chapter. Current selection: ${passage}`, exact: true });

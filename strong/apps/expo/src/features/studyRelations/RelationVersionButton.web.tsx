@@ -1,4 +1,3 @@
-import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import { useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PanelNavigationContext } from '~common/ContextualPanel/NavigationContext'
@@ -53,7 +52,7 @@ function VersionChoices({
     </>
   )
 }
-function WebRelationVersionButton({
+export default function RelationVersionButton({
   version,
   onVersionChange,
   onPress,
@@ -76,11 +75,3 @@ function WebRelationVersionButton({
     />
   )
 }
-
-// CyberJudah: inside the Telegram app the reader is on a phone, so it behaves as Bible Strong's
-// phone app does (RelationVersionButton.phone.tsx).
-// Loaded only there: the website, and its tests, never load the phone version.
-export default (isEmbeddedInCyberJudah()
-  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-    (require('./RelationVersionButton.phone') as typeof import('./RelationVersionButton.phone')).default
-  : WebRelationVersionButton)

@@ -29,7 +29,7 @@ interface Props {
   isDisabled?: boolean
 }
 
-export const RelationTag = styled('span')<RootStyles & { isParallel?: boolean }>(
+const RelationTag = styled('span')<RootStyles & { isParallel?: boolean }>(
   ({ isParallel, settings: { fontSizeScale, theme, colors, fontFamily } }) => ({
     fontFamily,
     padding: '0px 4px',
@@ -53,7 +53,7 @@ export const RelationTag = styled('span')<RootStyles & { isParallel?: boolean }>
   })
 )
 
-export const RelationIconWrapper = styled('span')<RootStyles>(({ settings: { fontFamily } }) => ({
+const RelationIconWrapper = styled('span')<RootStyles>(({ settings: { fontFamily } }) => ({
   fontFamily,
   display: 'inline-flex',
   alignItems: 'center',
@@ -62,7 +62,7 @@ export const RelationIconWrapper = styled('span')<RootStyles>(({ settings: { fon
   flexShrink: 0,
 }))
 
-export const RelationLabel = styled('span')<RootStyles>(({ settings: { fontFamily } }) => ({
+const RelationLabel = styled('span')<RootStyles>(({ settings: { fontFamily } }) => ({
   fontFamily,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
@@ -71,7 +71,7 @@ export const RelationLabel = styled('span')<RootStyles>(({ settings: { fontFamil
   ...noSelect,
 }))
 
-export const ExpandButton = styled('div')<RootStyles>(
+const ExpandButton = styled('div')<RootStyles>(
   ({ settings: { theme, colors, fontSizeScale, fontFamily } }) => ({
     fontFamily,
     padding: '0px 4px',
@@ -90,7 +90,7 @@ export const ExpandButton = styled('div')<RootStyles>(
   })
 )
 
-export const IconButton = styled('div')<RootStyles>(
+const IconButton = styled('div')<RootStyles>(
   ({ settings: { theme, colors, fontSizeScale, fontFamily } }) => ({
     fontFamily,
     padding: '2px 4px',
@@ -145,7 +145,7 @@ const SvgMaskIcon = ({
   )
 }
 
-export const RelationIcon = ({
+const RelationIcon = ({
   item,
   settings,
 }: {

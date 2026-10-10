@@ -222,10 +222,7 @@ test('commentary sections agree with the upstream section builder, maintain rank
   data.set('/api/concordance/john/1.json', variant);
   // Source text remains from CyberJudah; role labels vary to verify sorting.
   const actual = (await request('/v1/commentaries/cyberjudah/en/chapters/43/1', Supplementary.CommentaryChapterResponseDto)).json;
-  const serialized: Record<string, string> = JSON.parse(actual.serializedComments);
-  // The app's reader takes one string per verse (commentaryAccess.ts decodeSerializedComments).
-  assert.ok(Object.values(serialized).every(value => typeof value === 'string'));
-  const comments = Object.fromEntries(Object.entries(serialized).map(([verse, html]) => [verse, html.split('<hr>')]));
+  const comments = JSON.parse(actual.serializedComments);
   assert.match(comments['1'][0], /Bishop Example/);
   assert.match(comments['1'][1], /Deacon Example/);
   assert.match(comments['1'][2], /Captain Example/);
@@ -248,24 +245,6 @@ test('commentary sections agree with the upstream section builder, maintain rank
   const fragment = '<p>CyberJudah</p>';
   const runs = makeSections({ 1: [fragment], 3: [fragment] }, 43, 1);
   assert.deepEqual(runs.map(s => [s.rangeStartVerse, s.rangeEndVerse]), [[1, 1], [3, 3]]);
-});
-
-test('precepts show under a verse as the app shows them: the note, each precept, each class; the note says why', async () => {
-  data.set('/api/concordance/john/1.json', structuredClone(originals.get('/api/concordance/john/1.json')));
-  const { json: chapter } = await request('/v1/commentaries/cyberjudah/en/precepts/43/1', Schema.Unknown);
-  assert.deepEqual(chapter.verses['3'].slice(0, 2), [{ kind: 'why', label: 'Precept' }, { kind: 'precept', label: 'Isaiah 9:6-7', osis: 'Isa.9.6-Isa.9.7' }]);
-  assert.deepEqual(chapter.verses['45'][1], { kind: 'precept', label: 'Matthew 13:55-56', osis: 'Matt.13.55-Matt.13.56' });
-  const classes = Object.values(chapter.verses as Record<string, { kind: string; path?: string }[]>).flat().filter(chip => chip.kind === 'class');
-  assert.ok(classes.length > 0 && classes.every(chip => /^\/watch\/[\w-]{11}\?t=\d+$/.test(chip.path ?? '')));
-  const { json: why } = await request('/v1/commentaries/cyberjudah/en/precepts/43/1/45', Schema.Unknown);
-  assert.equal(why.reference, 'John 1:45');
-  assert.equal(why.title, 'Precept');
-  assert.equal(why.items[0].label, 'Matthew 13:55-56');
-  assert.equal(why.items[0].kind, 'opened');
-  assert.match(why.items[0].why, /son of Joseph/);
-  assert.match(why.items[0].class.path, /^\/note\/classes\/2026\/2026-09-08-.+\?t=20327$/);
-  const { json: none } = await request('/v1/commentaries/cyberjudah/en/precepts/43/1/10', Schema.Unknown);
-  assert.deepEqual(none.items, []);
 });
 
 test('cross references, empty timelines and unsupported resources use the documented schemas', async () => {

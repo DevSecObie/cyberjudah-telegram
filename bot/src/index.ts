@@ -28,7 +28,7 @@ import { bookLabel, validVerseDate } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
 import { resources } from "./resources";
 import { bs } from "./bs";
-import { buildCatalog, emptyCatalog, SLUGS, type PassageMediaMoment, type PassageMediaReading } from "./passage-media.mjs";
+import { buildCatalog, emptyCatalog, SLUGS, type PassageMediaMoment } from "./passage-media.mjs";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
 import { CHAT_ID, deleteChat, getChat, getPending, listChats, moveLegacy, setActionState } from "./chats";
 import { askedBy, closeRequest, getRequest, listRequests, requestNotes, validVideo } from "./requests";
@@ -650,8 +650,8 @@ app.get("/app/strong/_media/:book/:chapter", async (c) => {
   if (!Number.isInteger(book) || !Number.isInteger(chapter)) return c.notFound();
   const slug = SLUGS[book - 1];
   const ok = slug && chapter >= 1 && chapter <= 200;
-  const data = ok ? await dataJson<{ moments?: PassageMediaMoment[]; read?: Record<string, PassageMediaReading[]> }>(c.env, `/api/concordance/${slug}/${chapter}.json`, c.executionCtx) : null;
-  const catalog = ok ? buildCatalog(book, chapter, data?.moments ?? [], data?.read ?? {}) : emptyCatalog();
+  const data = ok ? await dataJson<{ moments?: PassageMediaMoment[] }>(c.env, `/api/concordance/${slug}/${chapter}.json`, c.executionCtx) : null;
+  const catalog = ok ? buildCatalog(book, chapter, data?.moments ?? []) : emptyCatalog();
   return c.json(catalog, 200, { "cache-control": "public, max-age=3600" });
 });
 app.get("/app/strong/*", async (c) => {

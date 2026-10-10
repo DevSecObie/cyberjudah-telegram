@@ -1,4 +1,3 @@
-import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import {
   useEffect,
   useEffectEvent,
@@ -15,7 +14,7 @@ import { webThemeVariables } from '~themes/webThemeVariables'
 import type { SheetProps, SheetRef } from '~common/sheet'
 import '~common/FiltersHeader.web.css'
 
-function WebStrongSelectionContainer({
+export default function StrongSelectionContainer({
   ref,
   children,
   header,
@@ -108,11 +107,3 @@ function WebStrongSelectionContainer({
     </Popover>
   )
 }
-
-// CyberJudah: inside the Telegram app the reader is on a phone, so it behaves as Bible Strong's
-// phone app does (StrongSelectionContainer.phone.tsx).
-// Loaded only there: the website, and its tests, never load the phone version.
-export default (isEmbeddedInCyberJudah()
-  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-    (require('./StrongSelectionContainer.phone') as typeof import('./StrongSelectionContainer.phone')).default
-  : WebStrongSelectionContainer)

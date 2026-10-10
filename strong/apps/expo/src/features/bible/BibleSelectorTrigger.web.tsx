@@ -1,4 +1,3 @@
-import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import { BookSelectorParams } from './BookSelectorSheet/BookSelectorParams'
 import FiltersHeader from '~common/FiltersHeader'
 import { useRef, useState } from 'react'
@@ -272,14 +271,6 @@ function BookPanel({
   )
 }
 
-function WebBibleSelectorTrigger(props: BibleSelectorTriggerProps) {
+export default function BibleSelectorTrigger(props: BibleSelectorTriggerProps) {
   return props.kind === 'version' ? <VersionPanel {...props} /> : <BookPanel {...props} />
 }
-
-// CyberJudah: inside the Telegram app the reader is on a phone, so it behaves as Bible Strong's
-// phone app does (BibleSelectorTrigger.phone.tsx).
-// Loaded only there: the website, and its tests, never load the phone version.
-export default (isEmbeddedInCyberJudah()
-  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-    (require('./BibleSelectorTrigger.phone') as typeof import('./BibleSelectorTrigger.phone')).default
-  : WebBibleSelectorTrigger)
