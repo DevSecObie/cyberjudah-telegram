@@ -219,8 +219,8 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
 
       <h2 className="shelf">Study</h2>
       <div className="widgets" aria-label="Of the day">
-        <StrongOfTheDay lang="greek" />
-        <StrongOfTheDay lang="hebrew" />
+        <StrongOfTheDay lang="greek" compact={drawer} />
+        <StrongOfTheDay lang="hebrew" compact={drawer} />
         <TopicOfTheDay />
         <WordOfTheDay />
         <PersonOfTheDay />
