@@ -302,8 +302,6 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 
 
 /* A verse settles when it is picked */
-@keyframes bs-pick { 0% { transform: scale(1); } 45% { transform: scale(1.012); } 100% { transform: scale(1); } }
-.bs-verse[data-selected] { animation: bs-pick .28s var(--ease, cubic-bezier(.2,.8,.2,1)); transform-origin: left center; }
 .bs-verse { transition: none; }
 
 /* Compare: the verse on top, its precepts or cross references written out beneath. */

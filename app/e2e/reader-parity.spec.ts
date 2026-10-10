@@ -123,6 +123,16 @@ test("reader focus loss cancels a held press and the next click still works", as
   await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
 });
 
+test("reader pressing a verse shows no touch light, as in Bible Strong", async ({ page }) => {
+  await gestureClock(page);
+  const lit = () => page.locator("#verset-1 .bs-text").evaluate(el => getComputedStyle(el.parentElement!).backgroundColor);
+  const before = await lit();
+  await touchVerse(page, "touchstart", 1);
+  await page.clock.runFor(200);
+  expect(await lit()).toBe(before);
+  await touchVerse(page, "touchend", 1);
+});
+
 test("reader chapter changes stay in place: Back leaves the reader and a collapsed header holds", async ({ page }) => {
   // Long chapters, so the reader can scroll far enough to collapse its header.
   const long = Array.from({ length: 40 }, (_, i) => ({ verse: i + 1, text: "And the light shineth in darkness; and the darkness comprehended it not. ".repeat(3) }));
