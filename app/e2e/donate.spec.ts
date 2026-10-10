@@ -23,13 +23,15 @@ const sign = (id: number) => {
 const launch = (n: number) => `#tgWebAppData=${encodeURIComponent(sign(RUN + n))}&tgWebAppVersion=9.1&tgWebAppPlatform=ios`;
 /** Friday 30 October 2026 at 9:30 pm in New York, after full dark: the Sabbath has begun there. */
 const FRIDAY_NIGHT = "2026-10-31T01:30:00Z";
+/** Wednesday 28 October 2026 at noon in New York: giving is open. The screen must not depend on the day the suite runs. */
+const WEEKDAY = "2026-10-28T16:00:00Z";
 
 test.use({ viewport: { width: 390, height: 844 }, timezoneId: "America/New_York" });
 test.skip(!!process.env.PLAYWRIGHT_BASE_URL, "needs the local Worker started by playwright.config.ts");
 
 async function setup(page: Page, opts: { now?: string } = {}) {
   await page.route("https://telegram.org/**", (r) => r.fulfill({ contentType: "application/javascript", body: MOCK }));
-  if (opts.now) { const now = opts.now; await page.route(/\/api\/(donations|invoice)/, (r) => r.continue({ headers: { ...r.request().headers(), "x-e2e-now": now } })); }
+  { const now = opts.now ?? WEEKDAY; await page.route(/\/api\/(donations|invoice)/, (r) => r.continue({ headers: { ...r.request().headers(), "x-e2e-now": now } })); }
 }
 
 test("Settings and More each reach Support CyberJudah, and it shows the presets and a custom amount within the server's bounds", async ({ page }) => {
