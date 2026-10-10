@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
+import { bibleAt, bibleFrame, bibleReady } from "./telegram-harness";
 
 const MOCK = fs.readFileSync(new URL("./telegram-mock.js", import.meta.url), "utf8");
 const DATA = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
@@ -44,8 +45,18 @@ async function setup(page: Page, mode = "normal") {
     return r.fulfill({ status: 404, body: "" });
   });
   await page.goto(`/read/genesis/1${LAUNCH}`);
-  await expect(page.locator("#verset-1")).toBeVisible();
+  await bibleReady(page);
+  await expect(bibleAt(page, "Genesis 1")).toBeVisible();
 }
+
+/** The Bible's reading column, inside its frame: sets its scroll position when given one, and reads it. */
+const readerScroll = (page: Page, top?: number) => bibleFrame(page).locator("[data-verse-key]").first().evaluate((verse, top) => {
+  let el = verse.parentElement;
+  while (el && !(el.scrollHeight > el.clientHeight && /auto|scroll/.test(getComputedStyle(el).overflowY))) el = el.parentElement;
+  if (!el) throw new Error("No reading column");
+  if (top !== undefined) el.scrollTop = top;
+  return el.scrollTop;
+}, top);
 
 async function overview(page: Page) {
   await page.getByRole("button", { name: "8 Tabs open", exact: true }).click();
@@ -56,7 +67,7 @@ async function overview(page: Page) {
 for (const mode of ["normal", "fallback", "reduced", "rejected"]) {
   test(`tab flow: ${mode} collapses and reopens the selected reader without losing its place`, async ({ page }) => {
     await setup(page, mode);
-    await page.locator(".bs-scroll").evaluate(e => { e.scrollTop = 740; });
+    await readerScroll(page, 740);
     await overview(page);
     await expect(page.locator('.tabcard[data-current]')).toBeInViewport();
     await expect(page.locator(".tabcard")).toHaveCount(8);
@@ -65,7 +76,8 @@ for (const mode of ["normal", "fallback", "reduced", "rejected"]) {
     await expect(page.locator("head style").filter({ hasText: /--tab-from:\s*translate/ })).toHaveCount(0);
     await expect(page).toHaveURL(/\/read\/genesis\/1/);
     // Firefox can retain a fractional CSS pixel after the transformed viewport settles.
-    await expect.poll(() => page.locator(".bs-scroll").evaluate(e => Math.abs(e.scrollTop - 740))).toBeLessThanOrEqual(1);
+    await expect(page.locator(".strong-reader")).not.toHaveClass(/strong-reader--away/);
+    await expect.poll(async () => Math.abs(await readerScroll(page) - 740)).toBeLessThanOrEqual(1);
     const motion = await page.evaluate(() => {
       const s = window as unknown as { __tabAnimations: Keyframe[][]; __tabTransitions: number; __tabReady: boolean[] };
       return { frames: s.__tabAnimations, native: s.__tabTransitions, ready: s.__tabReady, supported: !!document.startViewTransition };
