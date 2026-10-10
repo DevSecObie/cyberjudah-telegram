@@ -458,3 +458,27 @@ test("Mac shortcuts cycle recent tabs and do not interrupt a note editor", async
   await expect(page.getByRole("dialog", { name: "Find a tab or tool" })).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Description", exact: true })).toHaveValue("Keep my writing");
 });
+
+test("notes list searches and sorts as Bible Strong's AllNotesTabScreen, and filters by tag", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("cj:bs_tags", JSON.stringify({ t1: { id: "t1", name: "Light", date: 1 } }));
+    localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({
+      "3": { id: "n1", title: "Light was the first", description: "The fair light out of God's treasures.", date: 3000, tags: { t1: true } },
+      "1": { id: "n2", title: "Beginning", description: "In the beginning, Christ.", date: 1000 },
+    }));
+    localStorage.setItem("cj:bs_n_john_1", JSON.stringify({ "4": { id: "n3", title: "Ark of the word", description: "The life was the light of men.", date: 2000 } }));
+  });
+  await page.goto("/bookmarks?tab=notes");
+  const order = () => page.getByRole("link").filter({ hasText: /Light was the first|Beginning|Ark of the word/ }).allInnerTexts().then(t => t.map(s => /Light was the first|Beginning|Ark of the word/.exec(s)![0]));
+  await expect.poll(order).toEqual(["Light was the first", "Ark of the word", "Beginning"]);
+  await page.getByRole("button", { name: "Title A–Z", exact: true }).click();
+  await expect.poll(order).toEqual(["Ark of the word", "Beginning", "Light was the first"]);
+  await page.getByRole("button", { name: "Oldest", exact: true }).click();
+  await expect.poll(order).toEqual(["Beginning", "Ark of the word", "Light was the first"]);
+  // Fuzzy search over titles and text, as upstream's searchWithMatches.
+  await page.getByRole("searchbox", { name: "Search notes" }).fill("beginning");
+  await expect.poll(order).toEqual(["Beginning"]);
+  await page.getByRole("searchbox", { name: "Search notes" }).fill("");
+  await page.getByRole("button", { name: "Light", exact: true }).click();
+  await expect.poll(order).toEqual(["Light was the first"]);
+});
