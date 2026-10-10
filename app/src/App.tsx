@@ -26,7 +26,8 @@ const Classes = lazy(() => import("@/screens/Classes").then((m) => ({ default: m
 const NoteScreen = lazy(() => import("@/screens/Note").then((m) => ({ default: m.NoteScreen })));
 const Watch = lazy(() => import("@/screens/Watch").then((m) => ({ default: m.Watch })));
 const Ask = lazy(() => import("@/screens/Ask").then((m) => ({ default: m.Ask })));
-const BibleTab = lazy(() => import("@/bible/BibleTab").then((m) => ({ default: m.BibleTab })));
+// The Bible is Bible Strong's reader (strong/, at /app/strong).
+const BibleTab = lazy(() => import("@/bible/StrongReader").then((m) => ({ default: m.StrongReader })));
 const More = lazy(() => import("@/screens/More").then((m) => ({ default: m.More })));
 const ResourceInstaller = lazy(() => import("@/screens/ResourceInstaller").then((m) => ({ default: m.ResourceInstaller })));
 const ResourceReader = lazy(() => import("@/screens/ResourceReader").then((m) => ({ default: m.ResourceReader })));

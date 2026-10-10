@@ -29,6 +29,7 @@ import { useWebAuthStatus } from './useWebAuthStatus'
 import { isPublicContentPath } from '~navigation/publicContentRoutes'
 import { PublicShellProvider } from '~navigation/PublicShellContext'
 import { resolvePublicShellMode } from './publicShellPolicy'
+import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 
 const NavigationTracking = () => {
   const pathname = usePathname()
@@ -56,7 +57,8 @@ const FullAppRuntime = ({ theme }: { theme: Theme }) => {
   const panel = useWorkspaceRoutePanel()
   const pathname = usePathname()
   const authStatus = useWebAuthStatus()
-  const [guestWorkspaceRequested, setGuestWorkspaceRequested] = useState(false)
+  // CyberJudah: inside the Telegram app a chapter link opens the reader itself, not the public page.
+  const [guestWorkspaceRequested, setGuestWorkspaceRequested] = useState(isEmbeddedInCyberJudah)
   const publicPath = isPublicContentPath(pathname)
   const publicShellMode = resolvePublicShellMode({
     publicPath,
