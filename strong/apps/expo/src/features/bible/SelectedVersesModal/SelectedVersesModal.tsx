@@ -1,7 +1,7 @@
 import { SheetView } from '~common/sheet'
 import Sheet from './SelectionSheet'
 import { useAtom } from 'jotai/react'
-import { useRef } from 'react'
+import { Fragment, useRef } from 'react'
 import { Platform } from 'react-native'
 import { useTranslation } from 'react-i18next'
 import Animated from 'react-native-reanimated'
@@ -9,6 +9,7 @@ import atomWithAsyncStorage from '~helpers/atomWithAsyncStorage'
 import Box, { HStack } from '~common/ui/Box'
 import Text from '~common/ui/Text'
 import { BOTTOM_INSET } from '~helpers/constants'
+import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import verseToReference from '../../../helpers/verseToReference'
 import ColorCirclesBar from '../ColorCirclesBar'
 import TouchableIcon from '../TouchableIcon'
@@ -96,7 +97,10 @@ const SelectedVersesModal = ({
     onChangeResourceType,
   })
 
-  const expanded = Platform.OS === 'web'
+  // CyberJudah: inside the Telegram app the reader is always on a phone, so it keeps the phone app's
+  // sheet (one row of actions, Annotate / Study / Share tabs) instead of the desktop grid.
+  const expanded = Platform.OS === 'web' && !isEmbeddedInCyberJudah()
+  const Groups = expanded ? SelectionGroups : Fragment
   const groupWidth = expanded ? SELECTION_GROUP_WIDTH : screenWidth
 
   const moreThanOneVerseSelected = Object.keys(selectedVerses).length > 1
@@ -143,7 +147,7 @@ const SelectedVersesModal = ({
                 removeHighlight={removeHighlight}
                 onClose={close}
               />
-              <SelectionGroups>
+              <Groups>
                 <Animated.View
                   key={expanded ? 'expanded' : 'tabs'}
                   style={[
@@ -211,8 +215,8 @@ const SelectedVersesModal = ({
                     />
                   </Box>
                 </Animated.View>
-              </SelectionGroups>
-              {Platform.OS !== 'web' && (
+              </Groups>
+              {!expanded && (
                 <VersesModalFooter
                   onContainerWidthChange={setTabContainerWidth}
                   panGesture={panGesture}

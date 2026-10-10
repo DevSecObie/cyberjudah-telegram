@@ -36,7 +36,7 @@ export function useBibleBookmarkScreens(
   )
   const [name, setName] = useState('')
   const [color, setColor] = useState('#cc0000')
-  const destination = `${books.find(item => item.Numero === book)?.Nom ?? book} ${chapter}${verse ? `:${verse}` : ''}`
+  const destination = `${t(books.find(item => item.Numero === book)?.Nom ?? String(book))} ${chapter}${verse ? `:${verse}` : ''}`
   const passageHeader = (
     <Box className="flex-row items-center gap-2 px-3 pt-1 pb-3">
       <IonIcon name="bookmark-outline" size={16} color="primary" />
@@ -134,7 +134,7 @@ export function useBibleBookmarkScreens(
                       {item.name}
                     </Text>
                     <Text className="text-[12px] text-grey">
-                      {`${books.find(book => book.Numero === item.book)?.Nom ?? item.book} ${item.chapter}${verse !== undefined ? ':' + verse : ''}${item.version ? ' · ' + item.version : ''}`}
+                      {`${t(books.find(book => book.Numero === item.book)?.Nom ?? String(item.book))} ${item.chapter}${verse !== undefined ? ':' + verse : ''}${item.version ? ' · ' + item.version : ''}`}
                     </Text>
                   </Box>
                   <FeatherIcon name="arrow-right" size={15} color="tertiary" />

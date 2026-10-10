@@ -78,3 +78,6 @@ export const isPersonalBibleDataAction = (actionType: string): boolean =>
   PERSONAL_BIBLE_DATA_ACTIONS.has(actionType)
 
 export const OPEN_INLINE_COMMENTARY = 'OPEN_INLINE_COMMENTARY'
+
+// CyberJudah: open the class's breakdown of a precept shown after a verse.
+export const OPEN_PRECEPT = 'OPEN_PRECEPT'
