@@ -1,3 +1,4 @@
+import { isPhoneUI } from '~helpers/cyberjudahPhoneUI'
 import { previewHistoryAtom } from '~features/bibleReferencePreview/state'
 import { getCommentaryByPublicationId } from '@bible-strong/resource-catalog/commentaries'
 import { getInlineCommentaryResources } from '~features/commentaries/inlineCommentarySelection'
@@ -9,7 +10,7 @@ import type { InlineCommentaryRequest } from '~features/commentaries/InlineComme
 import { useConfirmDialog } from '~common/ConfirmDialog/useConfirmDialog'
 import * as Sentry from '@sentry/react-native'
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Platform, type LayoutChangeEvent } from 'react-native'
+import { Linking, Platform, type LayoutChangeEvent } from 'react-native'
 import { useDispatch, useSelector } from 'react-redux'
 import Box, { TouchableBox } from '~common/ui/Box'
 import Text from '~common/ui/Text'
@@ -149,6 +150,10 @@ import {
   shouldDismissStrongSelectionForViewerState,
 } from './strongSelectionLifecycle'
 import { fetchPassageMediaChapter, resolvePassageMediaChapter } from './passageMedia'
+import { fetchChapterPrecepts, preceptsAfterVerses } from './precepts'
+import PreceptsWhySheet from './PreceptsWhySheet'
+import { getCommentaryBibleViewRoute } from '~features/commentaries/commentaryReferenceNavigation'
+import { sendToApp } from '~helpers/cyberjudahBridge'
 import {
   getSelectionAnnotationDeletionImpact,
   requiresSelectionAnnotationDeletionConfirmation,
@@ -641,6 +646,30 @@ const BibleViewer = ({
         : EMPTY_PASSAGE_MEDIA,
     [contextualInformationDisplay, passageMediaCatalog, displayedBook, displayedChapter, lang]
   )
+
+  // CyberJudah: the precepts the classes read with each verse, shown after it like a note.
+  const { data: chapterPrecepts } = useQuery({
+    queryKey: ['cyberjudah-precepts', displayedBook, displayedChapter],
+    queryFn: () => fetchChapterPrecepts(displayedBook, displayedChapter),
+    enabled: displayedChapter > 0,
+    staleTime: 60 * 60 * 1000,
+  })
+  const preceptMarkers = useMemo(() => preceptsAfterVerses(chapterPrecepts), [chapterPrecepts])
+  const preceptWhyRef = useRef<SheetRef>(null)
+  const [preceptWhy, setPreceptWhy] = useState<{ book: number; chapter: number; verse: number } | null>(
+    null
+  )
+  const readPrecept = (osis: string) => {
+    const route = getCommentaryBibleViewRoute(osis)
+    if (!route) return
+    preceptWhyRef.current?.dismiss()
+    pushRouteOnce(route)
+  }
+  // A class opens in the app around the reader; on its own, on the CyberJudah website.
+  const openClass = (path: string) => {
+    preceptWhyRef.current?.dismiss()
+    if (!sendToApp({ type: 'navigate', path })) void Linking.openURL(`https://cyberjudah.io/app${path}`)
+  }
 
   // Handler for entering annotation mode (from SelectedVersesModal)
   const handleEnterAnnotationMode = useCallback(() => {
@@ -1341,6 +1370,17 @@ const BibleViewer = ({
     // Red words
     redWords: settings.redWordsDisplay ? redWords : null,
     inlineCommentaries,
+    preceptsAfterVerses: preceptMarkers,
+    // CyberJudah: under a verse, "Precept(s)" opens why each is there, a precept opens its
+    // scripture, a class opens its recording in the app.
+    onOpenPrecept: action => {
+      if (action.kind === 'why') {
+        setPreceptWhy({ book: displayedBook, chapter: displayedChapter, verse: action.verse })
+        requestAnimationFrame(() => preceptWhyRef.current?.present())
+      } else if (action.kind === 'precept') {
+        if (action.osis) readPrecept(action.osis)
+      } else openClass(action.path)
+    },
     onOpenInlineCommentary: summary => {
       const chip = [
         ...inlinePlacement.introduction,
@@ -1365,7 +1405,7 @@ const BibleViewer = ({
             sectionId,
           },
         })
-      if (Platform.OS !== 'web') {
+      if (isPhoneUI()) {
         openCommentary()
         return
       }
@@ -1624,6 +1664,12 @@ const BibleViewer = ({
           isInTab={isInTab}
         />
       )}
+      <PreceptsWhySheet
+        ref={preceptWhyRef}
+        target={preceptWhy}
+        onRead={readPrecept}
+        onOpenClass={openClass}
+      />
       {!hidePersonalBibleData && (
         <SelectedVersesModal
           ref={versesModal.getRef()}

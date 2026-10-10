@@ -1,3 +1,4 @@
+import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { readSheetHeader } from '../readSheetHeader'
 import ContextualPanel from './index'
@@ -5,7 +6,7 @@ import type { ContextualSheetProps } from './ContextualSheet'
 import type { SheetFooterProps } from '~common/sheet'
 
 /** Keeps existing imperative actions while sharing the web panel renderer. */
-export default function ContextualSheet({
+function WebContextualSheet({
   ref,
   children,
   header,
@@ -123,3 +124,11 @@ export default function ContextualSheet({
     </>
   )
 }
+
+// CyberJudah: inside the Telegram app the reader is on a phone, so it behaves as Bible Strong's
+// phone app does (ContextualSheet.phone.tsx).
+// Loaded only there: the website, and its tests, never load the phone version.
+export default (isEmbeddedInCyberJudah()
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require('./ContextualSheet.phone') as typeof import('./ContextualSheet.phone')).default
+  : WebContextualSheet)

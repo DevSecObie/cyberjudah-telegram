@@ -1,3 +1,4 @@
+import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import { useTranslation } from 'react-i18next'
 import ContextualPanel from '~common/ContextualPanel'
 import Box from '~common/ui/Box'
@@ -10,7 +11,7 @@ import { ACTION_ITEM_WIDTH, ICON_BOX_SIZE, ICON_SIZE } from '../constants'
 import ActionItem from './ActionItem'
 import type { VerseBookmarkActionProps } from './VerseBookmarkAction'
 
-export default function VerseBookmarkAction({
+function WebVerseBookmarkAction({
   selectedVerses,
   version,
   disabled,
@@ -61,3 +62,11 @@ export default function VerseBookmarkAction({
     />
   )
 }
+
+// CyberJudah: inside the Telegram app the reader is on a phone, so it behaves as Bible Strong's
+// phone app does (VerseBookmarkAction.phone.tsx).
+// Loaded only there: the website, and its tests, never load the phone version.
+export default (isEmbeddedInCyberJudah()
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require('./VerseBookmarkAction.phone') as typeof import('./VerseBookmarkAction.phone')).default
+  : WebVerseBookmarkAction)

@@ -1,8 +1,9 @@
+import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import { useTranslation } from 'react-i18next'
 import CommentaryMenu from './CommentaryMenu.web'
 import Box from '~common/ui/Box'
 import Text from '~common/ui/Text'
-export default function CommentaryManageButton(_props: { onPress: () => void }) {
+function WebCommentaryManageButton(_props: { onPress: () => void }) {
   const { t } = useTranslation()
   return (
     <CommentaryMenu
@@ -18,3 +19,11 @@ export default function CommentaryManageButton(_props: { onPress: () => void }) 
     </CommentaryMenu>
   )
 }
+
+// CyberJudah: inside the Telegram app the reader is on a phone, so it behaves as Bible Strong's
+// phone app does (CommentaryManageButton.phone.tsx).
+// Loaded only there: the website, and its tests, never load the phone version.
+export default (isEmbeddedInCyberJudah()
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require('./CommentaryManageButton.phone') as typeof import('./CommentaryManageButton.phone')).default
+  : WebCommentaryManageButton)

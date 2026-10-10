@@ -20,8 +20,6 @@ export const SLUGS = [
   "1-maccabees", "2-maccabees",
 ];
 
-/** At most this many classes after one verse, so a much-taught verse stays readable. */
-const PER_VERSE = 6;
 const VIDEO = /^[A-Za-z0-9_-]{11}$/;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -44,33 +42,42 @@ export const emptyCatalog = () => ({
 });
 
 /**
- * The catalog for one chapter from its concordance moments.
+ * The catalog for one chapter, as the app has always shown its classes (app/src/lib/taught.ts):
+ * after each verse, every class that taught it (Bishops, then Deacons, then others, newest
+ * first), then every other class that read it aloud in a recording; and at the end of the
+ * chapter, each recording once, those that taught it ("classroom") before those that read it
+ * ("read-aloud").
  * @param {number} book @param {number} chapter
  * @param {{ verses?: string, label?: string, date?: string, teacher?: string, video?: string, t?: number, ts?: string }[]} list
+ * @param {Record<string, { video?: string, t?: number, ts?: string, title?: string, date?: string, teacher?: string }[]>} [read]
  */
-export function buildCatalog(book, chapter, list) {
+export function buildCatalog(book, chapter, list, read = {}) {
   const catalog = emptyCatalog();
-  const moments = (list ?? [])
-    .filter((m) => VIDEO.test(m.video ?? "") && Number.isInteger(m.t) && m.t >= 0 && span(m.verses))
-    .sort((a, b) => rank(a.teacher) - rank(b.teacher) || (b.date ?? "").localeCompare(a.date ?? "") || a.t - b.t);
+  const ok = (m) => VIDEO.test(m.video ?? "") && Number.isInteger(m.t) && m.t >= 0;
+  const order = (a, b) => rank(a.teacher) - rank(b.teacher) || (b.date ?? "").localeCompare(a.date ?? "") || a.t - b.t;
+  const moments = (list ?? []).filter((m) => ok(m) && span(m.verses)).sort(order);
+  const readings = Object.entries(read ?? {})
+    .flatMap(([verse, rows]) => (/^\d+$/.test(verse) && Number(verse) > 0 ? (rows ?? []).map((r) => ({ ...r, label: r.title, verses: verse })) : []))
+    .filter(ok)
+    .sort(order);
 
   /** @type {Map<string, any>} */
   const works = new Map();
-  /** @type {Map<number, number>} */
-  const perVerse = new Map();
-  const videosSeen = new Set();
-  for (const m of moments) {
+  const atVerse = new Set();
+  const inChapter = new Set();
+  const taught = new Set(moments.map((m) => m.video));
+  const add = (m, category) => {
     const [start, end] = span(m.verses);
-    const shown = perVerse.get(end) ?? 0;
-    const firstOfVideo = !videosSeen.has(m.video);
-    if (shown >= PER_VERSE && !firstOfVideo) continue;
+    // A recording once after each verse, at its best-ranked moment there.
+    if (atVerse.has(`${end}:${m.video}`)) return;
+    atVerse.add(`${end}:${m.video}`);
     const id = `cj-${m.video}-${m.t}`;
     let work = works.get(id);
     if (!work) {
       const subtitle = [m.teacher, day(m.date)].filter(Boolean).join(" · ");
       work = {
         id,
-        categories: ["classroom"],
+        categories: [category],
         editions: {
           en: {
             id: `${id}:en`, language: "en", provider: "youtube", providerId: m.video,
@@ -83,16 +90,15 @@ export function buildCatalog(book, chapter, list) {
       };
       works.set(id, work);
     }
-    if (shown < PER_VERSE) {
-      work.anchors.push({ kind: "passage", book, chapterStart: chapter, chapterEnd: chapter, verseStart: start, verseEnd: end, placement: "after-range", relevance: "primary" });
-      perVerse.set(end, shown + 1);
-    }
-    // Each recording once in the chapter's list, at its best-ranked moment.
-    if (firstOfVideo) {
-      videosSeen.add(m.video);
+    work.anchors.push({ kind: "passage", book, chapterStart: chapter, chapterEnd: chapter, verseStart: start, verseEnd: end, placement: "after-range", relevance: "primary" });
+    // Each recording once in the chapter's list.
+    if (!inChapter.has(m.video)) {
+      inChapter.add(m.video);
       work.anchors.push({ kind: "passage", book, chapterStart: chapter, chapterEnd: chapter, placement: "chapter-resources", relevance: "primary" });
     }
-  }
+  };
+  for (const m of moments) add(m, "classroom");
+  for (const r of readings) add(r, taught.has(r.video) ? "classroom" : "read-aloud");
   catalog.works = [...works.values()];
   catalog.indexes.chapters[`${book}:${chapter}`] = catalog.works.map((w) => w.id);
   return catalog;

@@ -211,7 +211,7 @@ const CommentaryChapterScreen = ({
   }
 
   const { entry, projection, book, chapter } = parsed
-  const bookLabel = getBook(book)?.Nom ?? String(book)
+  const bookLabel = (getBook(book) ? t(getBook(book)!.Nom) : String(book))
   const visibleSections = getCommentarySectionsForVerse(query.data?.sections ?? [], focusVerse)
   const chapterContextKey = `${projection.projectionId}:${book}:${chapter}:${focusVerse ?? 'all'}`
   const chapterContextExpanded = expandedChapterContextKey === chapterContextKey
