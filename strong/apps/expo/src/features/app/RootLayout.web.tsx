@@ -7,7 +7,7 @@ import * as Sentry from '@sentry/react-native'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { setAutoFreeze } from 'immer'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, View } from 'react-native'
+import { Image, View } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { Provider as ReduxProvider, useSelector } from 'react-redux'
@@ -28,9 +28,14 @@ import { setI18n } from '../../../i18n'
 installCyberJudahBridge()
 setAutoFreeze(false)
 
+// CyberJudah: the lion while the reader starts, as the app shows when it starts.
 const Loading = () => (
   <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-    <ActivityIndicator />
+    <Image
+      source={require('~assets/images/cyberjudah-lion.webp')}
+      style={{ width: 96, height: 96 }}
+      accessibilityLabel="CyberJudah"
+    />
   </View>
 )
 

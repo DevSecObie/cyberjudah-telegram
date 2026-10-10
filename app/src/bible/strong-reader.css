@@ -3,3 +3,9 @@
 /* Off the Bible tab it stays loaded and laid out (so it opens at once, where it was), unseen. */
 .strong-reader--away { visibility: hidden; pointer-events: none; z-index: -1; }
 .strong-reader__frame { display: block; width: 100%; height: 100%; border: 0; }
+/* The lion while the reader starts, as when the app starts (index.html). */
+.strong-reader__splash { position: absolute; inset: 0; display: grid; place-items: center; background: var(--canvas); transition: opacity 0.25s ease, visibility 0s linear 0.25s; }
+.strong-reader__splash[data-done] { opacity: 0; visibility: hidden; pointer-events: none; }
+.strong-reader__splash img { width: 96px; height: 96px; animation: boot-breathe 1.6s ease-in-out infinite; }
+@keyframes boot-breathe { 50% { transform: scale(1.04); opacity: 0.85; } }
+@media (prefers-reduced-motion: reduce) { .strong-reader__splash img { animation: none; } }

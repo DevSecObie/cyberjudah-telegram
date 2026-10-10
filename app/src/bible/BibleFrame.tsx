@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router";
 
 import { useTheme } from "@/tg/hooks";
 import { haptic, openLink } from "@/tg/sdk";
+import { assetUrl } from "@/lib/asset";
 import { useBibleSettings, type BibleSettings } from "./settings";
 import "./strong-reader.css";
 
@@ -65,6 +66,8 @@ export function BibleFrame() {
   }, [scheme, preferredColorScheme, preferredLightTheme, preferredDarkTheme]);
 
   const ref = useRef<HTMLIFrameElement | null>(null);
+  // The lion covers the reader until it says it is ready, then fades away.
+  const [loaded, setLoaded] = useState(ready);
   useEffect(() => {
     frame = ref.current;
     const onMessage = (event: MessageEvent<{ source?: string } & FromReader>) => {
@@ -73,6 +76,7 @@ export function BibleFrame() {
       if (m?.source !== "cj-bible") return;
       if (m.type === "ready") {
         ready = true;
+        setLoaded(true);
         const pending = queue; queue = [];
         pending.forEach(sendToReader);
       } else if (m.type === "navigate" && typeof m.path === "string" && m.path.startsWith("/")) navigate(m.path);
@@ -93,6 +97,9 @@ export function BibleFrame() {
   return (
     <div className={shown ? "strong-reader" : "strong-reader strong-reader--away"} aria-hidden={!shown}>
       <iframe ref={ref} className="strong-reader__frame" src="/app/strong/" title="Bible" allow="clipboard-write; web-share; fullscreen" />
+      <div className="strong-reader__splash" data-done={loaded ? "" : undefined} aria-hidden="true">
+        <img src={assetUrl("brand/cyber-lion.webp")} alt="" width={96} height={96} />
+      </div>
     </div>
   );
 }
