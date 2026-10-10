@@ -1,0 +1,7 @@
+/* WordAnnotationsScreen: grey section titles, then cards with 8 px corners: the words in 16 px
+   (three lines at most), the passage and version in 13 px tertiary ink. */
+.ann-list { display: grid; gap: 0; padding-bottom: 24px; }
+.ann-group { margin: 12px 0 4px; padding: 0; font-size: 14px; font-weight: 700; color: var(--text-3); }
+.ann-card { display: grid; gap: 8px; width: 100%; box-sizing: border-box; margin: 8px 0; padding: 16px; border: 1px solid var(--hairline); border-radius: 8px; background: var(--surface-1); color: var(--text-1); font: inherit; text-align: start; cursor: pointer; }
+.ann-card__text { font-size: 16px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ann-card__meta { font-size: 13px; color: var(--text-3); }

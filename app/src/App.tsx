@@ -54,6 +54,7 @@ const DictionaryEntry = lazy(() => import("@/screens/Dictionary").then((m) => ({
 const Person = lazy(() => import("@/screens/Person").then((m) => ({ default: m.Person })));
 const Relations = lazy(() => import("@/screens/Relations").then((m) => ({ default: m.Relations })));
 const Bookmarks = lazy(() => import("@/screens/Bookmarks").then((m) => ({ default: m.Bookmarks })));
+const Annotations = lazy(() => import("@/screens/Annotations"));
 const Sabbath = lazy(() => import("@/screens/Sabbath").then((m) => ({ default: m.Sabbath })));
 const Books = lazy(() => import("@/screens/Books").then((m) => ({ default: m.Books })));
 const BookScreen = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookScreen })));
@@ -165,6 +166,7 @@ export function App() {
         <Route path="/books/:slug/p/:page" element={<BookPageLink />} />
         <Route path="/books/:slug/:k" element={<BookChapterScreen />} />
         <Route path="/bookmarks" element={<Bookmarks />} />
+        <Route path="/annotations" element={<Annotations />} />
         <Route path="/sabbath" element={<Sabbath />} />
         <Route path="/studies" element={<PersonalStudies />} />
         <Route path="/studies/:id" element={<PersonalStudies />} />

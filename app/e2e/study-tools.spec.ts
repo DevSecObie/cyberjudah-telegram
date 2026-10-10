@@ -58,7 +58,8 @@ test("reader keeps Link and Relation, adds Scripture to studies and preserves ex
   await selected.getByRole("tab", { name: "Annotate", exact: true }).click(); await selected.getByRole("button", { name: "Add to study", exact: true }).click();
   await page.getByRole("dialog", { name: "Add to study", exact: true }).getByRole("button", { name: "New study", exact: true }).click();
   await expect(page.locator(".study-block blockquote")).toContainText("In the beginning God created");
-  await page.goto("/read/genesis/1"); await expect(page.locator("#verset-1 .phrase-underline")).toHaveText("beginning God");
+  // The old mark is drawn as Bible Strong draws an underline, over the words it was saved on.
+  await page.goto("/read/genesis/1"); await expect(page.locator('.bs-hl--underline[data-annotation="fe47a55e-15f4-42db-8a95-809b314b3c11"]')).toHaveCount(1);
 });
 test("browser backup includes locally saved reader notes", async ({ page }) => {
   await setup(page); await page.goto("/settings");

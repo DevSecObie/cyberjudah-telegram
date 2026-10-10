@@ -158,3 +158,28 @@ test("a mouse drag over the text enters free mode with those words selected", as
   await expect(toolbar(page)).toBeVisible();
   await expect.poll(() => selectedWords(page)).toBe("darkness was upon");
 });
+
+test("the Annotations screen lists marks by verse, filters them and opens the passage", async ({ page }, info) => {
+  await page.goto("/read/genesis/1");
+  await doubleTap(page, 1, "heaven");
+  await toolbar(page).getByRole("group", { name: "Mark colour" }).getByRole("button").first().click();
+  await expect(page.locator(".bs-hl--background")).toHaveCount(1);
+  await tap(page, 2, "darkness");
+  await expect.poll(() => selectedWords(page)).toBe("darkness");
+  await toolbar(page).getByRole("radio", { name: "Circle" }).click();
+  await toolbar(page).getByRole("group", { name: "Mark colour" }).getByRole("button").nth(1).click();
+  await expect(page.locator(".bs-hl--circle")).toHaveCount(1);
+  await page.getByRole("button", { name: "Exit annotation mode" }).click();
+
+  await page.goto("/annotations");
+  await expect(page.getByRole("heading", { name: "Genesis 1:1" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Genesis 1:2" })).toBeVisible();
+  await expect(page.locator(".ann-card")).toHaveCount(2);
+  await page.screenshot({ path: info.outputPath("annotations-screen.png") });
+  await page.getByRole("button", { name: "Style: All" }).click();
+  await page.getByRole("button", { name: "Circled" }).click();
+  await expect(page.locator(".ann-card")).toHaveCount(1);
+  await expect(page.locator(".ann-card")).toContainText("darkness");
+  await page.locator(".ann-card").click();
+  await expect(page).toHaveURL(/\/read\/genesis\/1\?v=2$/);
+});

@@ -60,6 +60,7 @@ export function MoreBody() {
         { icon: "book", label: "My studies", color: C.blue, href: "/studies" },
         { icon: "check", label: "Reading plans", color: C.green, href: "/plans" },
         { icon: "bookmark", label: "Bookmarks, highlights & notes", color: C.amber, href: "/bookmarks" },
+        { icon: "note", label: "Annotations", color: C.amber, href: "/annotations" },
         { icon: "tag", label: "Tags", color: C.rose, href: "/tags" },
         { icon: "clock", label: "History", color: C.blue, href: "/history" },
         { icon: "sun", label: "Sabbath", color: C.amber, href: "/sabbath" },
