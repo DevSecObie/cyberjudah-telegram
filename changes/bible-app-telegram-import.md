@@ -1,0 +1,1 @@
+The first time you open the Bible app on a device, it brings in what you saved in the CyberJudah Telegram app: highlights (with their tags), notes, links, bookmarks, tags and your own highlight colours, including the earliest highlights and notes. It only adds: anything you already made in the Bible app stays as it is, and nothing in the Telegram app changes.

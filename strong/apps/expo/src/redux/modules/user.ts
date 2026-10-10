@@ -14,6 +14,7 @@ import {
   Tag,
   TagsObj,
 } from '~common/types'
+import type { ImportedBibleData } from '~features/cyberjudah/telegramImport'
 import type { FireAuthProfile } from '~helpers/FireAuth'
 import { collection, firebaseDb, getDocs, limit, orderBy, query, where } from '~helpers/firebase'
 import { getNoteTitle } from '~helpers/getNoteTitle'
@@ -506,6 +507,8 @@ export interface ImportDataPayload {
 }
 
 export interface UserState {
+  /** CyberJudah: when this device brought in the reader's data from the Telegram app. */
+  telegramImport?: { version: number; at: number; count: number }
   id: string
   email: string
   displayName: string
@@ -1003,6 +1006,31 @@ const userSlice = createSlice({
         const store = getDefaultStore()
         store.set(tabGroupsAtom, tabGroups)
       }
+    },
+    // CyberJudah: adds what the reader saved in the Telegram app, never replacing what is here.
+    mergeImportedBibleData(state, action: PayloadAction<{ data: ImportedBibleData; version: number; count: number }>) {
+      const { data, version, count } = action.payload
+      const bible = state.bible
+      for (const [key, value] of Object.entries(data.highlights)) bible.highlights[key] ??= value
+      for (const [key, value] of Object.entries(data.notes)) bible.notes[key] ??= value
+      for (const [key, value] of Object.entries(data.links)) bible.links[key] ??= value
+      for (const [key, value] of Object.entries(data.bookmarks)) bible.bookmarks[key] ??= value
+      for (const [id, tag] of Object.entries(data.tags)) {
+        const existing = bible.tags[id]
+        if (!existing) {
+          bible.tags[id] = tag
+          continue
+        }
+        for (const kind of ['highlights', 'notes', 'links'] as const) {
+          if (tag[kind]) existing[kind] = { ...tag[kind], ...(existing[kind] ?? {}) }
+        }
+      }
+      const colors = bible.settings.customHighlightColors
+      for (const color of data.customHighlightColors) {
+        if (colors.length >= MAX_CUSTOM_COLORS) break
+        if (!colors.some(c => c.id === color.id)) colors.push(color)
+      }
+      state.telegramImport = { version, at: Date.now(), count }
     },
     setNotificationVOD(state, action: PayloadAction<string>) {
       state.notifications.verseOfTheDay = action.payload
@@ -1569,6 +1597,7 @@ export const {
   markUserDataSyncCollectionLoaded,
   receiveSubcollectionUpdates,
   importData,
+  mergeImportedBibleData,
   setNotificationVOD,
   setDailyMeditation,
   setNotificationId,

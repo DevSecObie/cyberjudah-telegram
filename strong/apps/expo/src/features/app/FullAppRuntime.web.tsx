@@ -15,6 +15,7 @@ import ChangelogModal from '~common/Changelog'
 import ColorChangeModal from '~common/ColorChangeModal'
 import ColorPickerModal from '~common/ColorPickerModal'
 import InitHooks from '~common/InitHooks'
+import TelegramDataImport from '~features/cyberjudah/TelegramDataImport'
 import { SheetProvider } from '~common/sheet'
 import ThemedToaster from '~common/ThemedToaster'
 import UnifiedTagsModal from '~common/UnifiedTagsModal'
@@ -111,6 +112,8 @@ const FullAppRuntime = ({ theme }: { theme: Theme }) => {
           <BookSelectorSheetProvider>
             <StrongAudioProvider>
               <InitHooks />
+              {/* CyberJudah: the reader's data from the Telegram app, once per device. */}
+              <TelegramDataImport />
               <NavigationTracking />
               <PublicShellProvider
                 active={publicShellActive}
