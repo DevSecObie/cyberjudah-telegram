@@ -67,7 +67,7 @@ export class BibleSearchQuery extends Schema.Class<BibleSearchQuery>('BibleSearc
   book: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.between(1, 77))),
   section: Schema.optional(Schema.Literal('ot', 'nt')),
   canon: Schema.optional(
-    Schema.Literal('protestant-66', 'catholic-73', 'clementine-vulgate', 'theotex-septuagint')
+    Schema.Literal('protestant-66', 'catholic-73', 'clementine-vulgate', 'theotex-septuagint', 'kjv-1611')
   ),
   sortOrder: Schema.optional(Schema.Literal('relevance', 'book')),
   limit: Schema.optional(Schema.NumberFromString.pipe(Schema.int(), Schema.between(1, 100))),

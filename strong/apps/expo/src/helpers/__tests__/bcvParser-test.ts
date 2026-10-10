@@ -189,30 +189,23 @@ describe('bcvParser', () => {
       })
     })
 
-    it('maps deuterocanonical OSIS codes to stable app book ids', () => {
+    // CyberJudah: 67-81 are the King James Apocrypha, in 1611 order.
+    it('maps the King James Apocrypha OSIS codes to stable app book ids', () => {
       expect(osisToBibleReferenceTarget('Tob.2.3')).toEqual({
-        book: 67,
+        book: 69,
         chapter: 2,
         verse: 3,
         focusVerses: [3],
         osis: 'Tob.2.3',
       })
+      expect(osisToBibleReferenceTarget('1Esd.2.3')?.book).toBe(67)
+      expect(osisToBibleReferenceTarget('PrMan.1.1')?.book).toBe(79)
+      expect(osisToBibleReferenceTarget('2Macc.1.1')?.book).toBe(81)
     })
 
-    it('maps additional Septuagint OSIS codes to stable app book ids', () => {
-      expect(osisToBibleReferenceTarget('1Esd.2.3')).toEqual({
-        book: 74,
-        chapter: 2,
-        verse: 3,
-        focusVerses: [3],
-        osis: '1Esd.2.3',
-      })
-      expect(osisToBibleReferenceTarget('4Macc.18.24')?.book).toBe(76)
-      expect(osisToBibleReferenceTarget('PssSol.1.1')?.book).toBe(77)
-    })
-
-    it('rejects apocryphal OSIS codes outside the supported Clementine canon', () => {
-      expect(osisToBibleReferenceTarget('PrMan.1.1')).toBeUndefined()
+    it('rejects apocryphal OSIS codes outside the King James Apocrypha', () => {
+      expect(osisToBibleReferenceTarget('4Macc.18.24')).toBeUndefined()
+      expect(osisToBibleReferenceTarget('PssSol.1.1')).toBeUndefined()
     })
   })
 })

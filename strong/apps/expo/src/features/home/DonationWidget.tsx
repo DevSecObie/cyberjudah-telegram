@@ -9,6 +9,7 @@ import Link from '~common/Link'
 import Box from '~common/ui/Box'
 import Text from '~common/ui/Text'
 import useLanguage from '~helpers/useLanguage'
+import { CYBERJUDAH_SUPPORT_URL } from '~helpers/cyberjudahLinks'
 const LinkBox = (props: React.ComponentProps<typeof Box> & React.ComponentProps<typeof Link>) => (
   <Box
     as={Link}
@@ -32,7 +33,7 @@ const DonationWidget = () => {
     <Box className="overflow-hidden border-continuous bg-light-grey px-[20px] pt-[20px] pb-[20px]">
       <LinkBox
         className="p-[20px] h-[130px] relative rounded-[30px] bg-primary items-center justify-center overflow-visible"
-        href={`https://bible-strong.app/${lang === 'fr' ? 'fr/' : ''}give`}
+        href={CYBERJUDAH_SUPPORT_URL}
         style={{
           shadowColor: 'rgb(89,131,240)',
           shadowOffset: { width: 0, height: 2 },
