@@ -149,6 +149,8 @@ jobs:
           WORKER_URL: ${{ steps.deploy.outputs.url }}
           BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
           EXPECTED_SEARCH_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8"
+          # Every staged pull request spends staging's free daily answer allowance.
+          ALLOW_ANSWER_LIMIT: "true"
         run: node scripts/verify-release.mjs
 
   verify-current:
