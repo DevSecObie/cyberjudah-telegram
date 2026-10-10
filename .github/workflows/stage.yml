@@ -141,7 +141,7 @@ jobs:
           curl -sf -o /dev/null -w "app: %{http_code}\n" "$URL/"
           # The Bible Strong fork at /app/strong, and a deep link inside it, get the fork's page.
           curl -sf "$URL/app/strong/" | grep -q "/app/strong/_expo/static/js/web/entry-"
-          curl -sf "$URL/app/strong/bible" | grep -q "/app/strong/_expo/static/js/web/entry-"
+          curl -sf "$URL/app/strong/bible/kjv/john/3" | grep -q "/app/strong/_expo/static/js/web/entry-"
           echo "fork: ok"
       - name: Verify authenticated search and provider consent
         working-directory: bot

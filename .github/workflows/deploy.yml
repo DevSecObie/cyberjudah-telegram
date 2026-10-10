@@ -72,6 +72,15 @@ jobs:
         env:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
           CYBERJUDAH_APP_BASE: /app/
+      # The Bible app: the Bible Strong fork with CyberJudah's content, served at /app/strong
+      # beside the Telegram app (prepare-assets.sh copies strong/dist when it exists).
+      - name: Cache the Bible Strong fork's packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.yarn/berry/cache
+          key: strong-yarn-${{ hashFiles('strong/yarn.lock') }}
+      - name: Build the Bible app (Bible Strong fork, at /app/strong)
+        run: bash strong/build-web.sh
       - name: Upload the app's pictures to R2
         working-directory: bot
         env:
@@ -172,6 +181,17 @@ jobs:
             echo "::error::Set both TELEGRAM_LOGIN_CLIENT_ID and TELEGRAM_LOGIN_CLIENT_SECRET."; exit 1
           else echo "No Telegram Login credentials: browser sign-in stays disabled unless configured directly on the Worker."; fi
           node scripts/setup.mjs
+      - name: Verify the Bible app
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          set -e
+          # The Bible app's page, and a chapter link inside it, are the fork's own page.
+          curl -sf "$URL/app/strong/" | grep -q "/app/strong/_expo/static/js/web/entry-"
+          curl -sf "$URL/app/strong/bible/kjv/john/3" | grep -q "/app/strong/_expo/static/js/web/entry-"
+          # Its content feed answers, the Apocrypha included.
+          curl -sf -o /dev/null "$URL/bs/v1/bibles/KJV/books/69/chapters/1"
+          echo "Bible app: ok"
       - name: Verify the deployed app and authenticated search
         working-directory: bot
         env:
