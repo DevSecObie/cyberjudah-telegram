@@ -69,17 +69,22 @@ const CANONICAL_OSIS_BOOK_IDS = [
 
 const SUPPORTED_OSIS_BOOK_ENTRIES: readonly (readonly [string, number])[] = [
   ...CANONICAL_OSIS_BOOK_IDS.map((book, index): [string, number] => [book, index + 1]),
-  ['Tob', 67],
-  ['Jdt', 68],
-  ['Wis', 69],
-  ['Sir', 70],
-  ['Bar', 71],
-  ['1Macc', 72],
-  ['2Macc', 73],
-  ['1Esd', 74],
-  ['3Macc', 75],
-  ['4Macc', 76],
-  ['PssSol', 77],
+  // CyberJudah: the King James Version's Apocrypha, in 1611 order (the CyberJudah feed's numbering).
+  ['1Esd', 67],
+  ['2Esd', 68],
+  ['Tob', 69],
+  ['Jdt', 70],
+  ['AddEsth', 71],
+  ['Wis', 72],
+  ['Sir', 73],
+  ['Bar', 74],
+  ['EpJer', 75],
+  ['PrAzar', 76],
+  ['Sus', 77],
+  ['Bel', 78],
+  ['PrMan', 79],
+  ['1Macc', 80],
+  ['2Macc', 81],
 ]
 
 const SUPPORTED_OSIS_BOOK_NUMBERS = new Map(SUPPORTED_OSIS_BOOK_ENTRIES)

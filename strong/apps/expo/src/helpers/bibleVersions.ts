@@ -351,6 +351,8 @@ export const versions: Record<string, Version> = {
     hasAudio: true,
     getAudioUrl: getWordPocketKjvAudioUrl,
     strongDatasetId: 'KJV',
+    // CyberJudah: the 1611 King James Version, with its Apocrypha.
+    canonId: 'kjv-1611',
   },
   BSB: {
     id: 'BSB',

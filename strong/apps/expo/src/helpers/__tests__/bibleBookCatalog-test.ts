@@ -7,21 +7,20 @@ import {
 } from '../bibleBookCatalog'
 
 describe('bibleBookCatalog', () => {
-  it('exposes stable identities for the seven deuterocanonical books', () => {
-    expect(getBook(67)?.Nom).toBe('Tobie')
-    expect(getBook(73)?.Nom).toBe('2 Maccabées')
+  // CyberJudah: 67-81 are the King James Version's Apocrypha, in 1611 order.
+  it('exposes the fifteen King James Apocrypha books as 67-81', () => {
+    expect(getBook(67)?.Nom).toBe('1 Esdras')
+    expect(getBook(69)?.Nom).toBe('Tobit')
+    expect(getBook(81)?.Nom).toBe('2 Maccabees')
     expect(getBookCorpus(67)).toBe('deuterocanonical')
+    expect(getBookCorpus(81)).toBe('deuterocanonical')
   })
 
-  it('exposes and orders the additional ThéoTeX Septuagint books', () => {
-    expect(getBook(74)?.Nom).toBe('1 Esdras')
-    expect(getBook(77)?.Nom).toBe('Psaumes de Salomon')
-    expect(getBookCorpus(74)).toBe('septuagint')
-
-    const bookNumbers = getBooksForCanon('theotex-septuagint').map(book => book.Numero)
-    expect(bookNumbers).toHaveLength(50)
-    expect(bookNumbers.slice(14, 19)).toEqual([74, 15, 16, 17, 68])
-    expect(bookNumbers.slice(20, 27)).toEqual([72, 73, 75, 76, 19, 20, 21])
+  it('orders the KJV 1611 canon with the Apocrypha between the Testaments', () => {
+    const bookNumbers = getBooksForCanon('kjv-1611').map(book => book.Numero)
+    expect(bookNumbers).toHaveLength(81)
+    expect(bookNumbers.slice(38, 41)).toEqual([39, 67, 68])
+    expect(bookNumbers.slice(52, 55)).toEqual([80, 81, 40])
   })
 
   it('keeps the Protestant canon limited to the existing 66 books', () => {
