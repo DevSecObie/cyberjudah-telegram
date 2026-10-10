@@ -1,0 +1,1 @@
+- Dragging the class notes to full screen and back down now keeps the sheet (and its drag grip) moving continuously between the two docked positions, so the grip never lands out of reach above the top of the screen partway through the motion.

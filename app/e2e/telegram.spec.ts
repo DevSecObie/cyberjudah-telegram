@@ -403,6 +403,31 @@ test("what was on the screen: a frame lands in the notes where the teacher point
   expect(opened).toEqual([]);
 });
 
+test("the notes' grip stays inside the screen the instant a drag ends, so the next drag can still reach it", async ({ page }) => {
+  await page.route(`${DATA_ORIGIN}/api/notes/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement.json`, (r) => r.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({ kind: "class", title: "The Art of War - Rules of Engagement", url: "/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement", date: "2026-09-26", teacher: "Captain Joel", videoId: "eNMvid6j-qk", body: "## Scriptures Opened\n\nSomething was said." }),
+  }));
+  await page.goto(`/note/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement${LAUNCH}`);
+  await expect(page.locator(".nsheet[data-open]")).toBeVisible();
+  const docked = (await page.locator(".nsheet").boundingBox())!.y;
+  expect(docked).toBeGreaterThan(150);
+  const dragFrom = async (box: { x: number; y: number; width: number; height: number }, dy: number) => {
+    const x = box.x + box.width / 2, y = box.y + box.height / 2;
+    await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x, y + dy / 2); await page.mouse.move(x, y + dy); await page.mouse.up();
+  };
+  const grip = async () => (await page.locator(".nsheet__grip").boundingBox())!;
+  await dragFrom(await grip(), -120);
+  await expect(page.locator(".nsheet[data-full]")).toBeVisible();
+  // The grip must be inside the viewport the instant this drag ends: the very next gesture
+  // (another drag, to undock) starts from wherever the grip renders right then, with no wait.
+  const releasedGrip = await grip();
+  expect(releasedGrip.y).toBeGreaterThanOrEqual(0);
+  await dragFrom(releasedGrip, 120);
+  await expect(page.locator(".nsheet[data-full]")).toHaveCount(0);
+  await expect.poll(async () => (await page.locator(".nsheet").boundingBox())!.y).toBeGreaterThan(150);
+});
+
 liveDataTest("the recordings search works as the site's: matches lit, a moment to watch, notes alongside", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
   await page.fill("#q", "Most High");
