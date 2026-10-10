@@ -30,6 +30,7 @@ import { isPublicContentPath } from '~navigation/publicContentRoutes'
 import { PublicShellProvider } from '~navigation/PublicShellContext'
 import { resolvePublicShellMode } from './publicShellPolicy'
 import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
+import CyberJudahAppBridge from './CyberJudahAppBridge'
 
 const NavigationTracking = () => {
   const pathname = usePathname()
@@ -114,6 +115,7 @@ const FullAppRuntime = ({ theme }: { theme: Theme }) => {
             <StrongAudioProvider>
               <InitHooks />
               <NavigationTracking />
+              <CyberJudahAppBridge />
               <PublicShellProvider
                 active={publicShellActive}
                 openWorkspace={() => setGuestWorkspaceRequested(true)}

@@ -18,6 +18,7 @@ import { ScreenBoundary } from "@/ui/boundary";
 import { ThemeApplier, useAppTheme } from "@/ui/theme";
 import { Home } from "@/screens/Home";
 import { Tabs as TabsScreen, NewTab } from "@/screens/Tabs";
+import { BibleFrame } from "@/bible/BibleFrame";
 const NoteRequests = lazy(() => import("@/screens/NoteRequests").then((m) => ({ default: m.NoteRequests })));
 // Every other screen loads on first visit, so the first paint stays small: one chunk per
 // screen module, shared by the routes that use it, cached by the browser afterwards.
@@ -192,6 +193,7 @@ export function App() {
       </Suspense>
       </ScreenBoundary>
       </div>
+      <BibleFrame />
       <Suspense fallback={null}><ReminderSync /></Suspense>
       <AudioPlayerBar />
       <PageActions />

@@ -30,9 +30,27 @@ export const html = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;'
 export const paragraphs = (s: string) => s.split(/\n\s*\n/).filter(Boolean).map(p => `<p>${html(p).replace(/\n/g, '<br>')}</p>`).join('');
 export const cmp = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 export const teacherRank = (s: string) => /\bbishop\b/i.test(s) ? 0 : /\bdeacon\b/i.test(s) ? 1 : 2;
+// OSIS book ids in the feed's book order (bs-books.json): 1-66, then the Apocrypha in 1611 order.
+const OSIS = ['Gen', 'Exod', 'Lev', 'Num', 'Deut', 'Josh', 'Judg', 'Ruth', '1Sam', '2Sam', '1Kgs', '2Kgs', '1Chr', '2Chr', 'Ezra', 'Neh', 'Esth', 'Job', 'Ps', 'Prov', 'Eccl', 'Song', 'Isa', 'Jer', 'Lam', 'Ezek', 'Dan', 'Hos', 'Joel', 'Amos', 'Obad', 'Jonah', 'Mic', 'Nah', 'Hab', 'Zeph', 'Hag', 'Zech', 'Mal', 'Matt', 'Mark', 'Luke', 'John', 'Acts', 'Rom', '1Cor', '2Cor', 'Gal', 'Eph', 'Phil', 'Col', '1Thess', '2Thess', '1Tim', '2Tim', 'Titus', 'Phlm', 'Heb', 'Jas', '1Pet', '2Pet', '1John', '2John', '3John', 'Jude', 'Rev', '1Esd', '2Esd', 'Tob', 'Jdt', 'AddEsth', 'Wis', 'Sir', 'Bar', 'EpJer', 'PrAzar', 'Sus', 'Bel', 'PrMan', '1Macc', '2Macc'];
+/** "Matthew 13:55-56" at /bible/matthew/13 → bible://Matt.13.55-Matt.13.56, which Bible Strong opens in its reader. */
+export function scriptureHref(url: string, label: string) {
+  const m = url.match(/^\/bible\/([a-z0-9-]+)\/(\d+)(?:#v(\d+))?$/);
+  const index = m ? BOOKS.findIndex(b => b.slug === m[1]) : -1;
+  if (!m || index < 0 || !OSIS[index]) return undefined;
+  const book = OSIS[index], chapter = m[2];
+  const named = label.match(/(\d+):(\d+(?:\s*[-,]\s*\d+)*)\s*$/);
+  const verses = named && named[1] === chapter ? named[2].replace(/\s/g, '') : m[3];
+  if (!verses) return `bible://${book}.${chapter}`;
+  return `bible://${verses.split(',').map(part => part.split('-').map(v => `${book}.${chapter}.${v}`).join('-')).join(',')}`;
+}
 export function siteLink(url: string, label: string) {
   // Only our own site-relative links can be promoted into HTML, never a supplied scheme.
-  return /^\/(?!\/)[a-zA-Z0-9/?#=_%&.,:-]*$/.test(url) ? `<a href="https://cyberjudah.io${html(url)}">${html(label)}</a>` : html(label);
+  if (!/^\/(?!\/)[a-zA-Z0-9/?#=_%&.,:-]*$/.test(url)) return html(label);
+  // In the app a scripture opens in the reader, and a class opens in the app's class screen.
+  const scripture = scriptureHref(url, label);
+  if (scripture) return `<a href="${html(scripture)}">${html(label)}</a>`;
+  const target = url.startsWith('/classes/') ? `/app/note${url}` : url;
+  return `<a href="https://cyberjudah.io${html(target)}">${html(label)}</a>`;
 }
 export function youtube(video: string | null | undefined, t: number | undefined, label: string) {
   return video && /^[A-Za-z0-9_-]{11}$/.test(video) && Number.isFinite(t) && t! >= 0 ? `<a href="https://www.youtube.com/watch?v=${video}&amp;t=${Math.floor(t!)}s">${html(label)}</a>` : '';

@@ -1,3 +1,4 @@
+import { sendToApp } from '~helpers/cyberjudahBridge'
 import { isPhoneUI } from '~helpers/cyberjudahPhoneUI'
 import { getPassageContextHeaderHeight } from '../passagePreviewPresentation'
 import type { LabeledCommentaryChip } from './InlineCommentaryChips'
@@ -747,7 +748,7 @@ export const BibleDOMWrapper = ({
       case TOGGLE_SELECTED_VERSE: {
         if (Platform.OS === 'ios') {
           Haptics.selectionAsync()
-        }
+        } else sendToApp({ type: 'haptic', kind: 'select' })
         const verseId = getStringPayload(action.payload)
         if (!verseId) break
 

@@ -18,10 +18,14 @@ import { ResourceAccessProvider } from '~features/resources/resourceAccess'
 import { configureQueryManagers, queryClient } from '~helpers/queryClient'
 import { initializeResourceAppCheck } from '~helpers/resourceAppCheck'
 import useCurrentThemeSelector from '~helpers/useCurrentThemeSelector'
+import { installCyberJudahBridge } from '~helpers/cyberjudahBridge'
 import type { RootState } from '~redux/modules/reducer'
 import { persistor, startPersistence, store } from '~redux/store'
 import getTheme, { baseTheme } from '~themes/index'
 import { setI18n } from '../../../i18n'
+
+// CyberJudah: inside the Telegram app, links and haptics go through the app (cyberjudahBridge).
+installCyberJudahBridge()
 setAutoFreeze(false)
 
 const Loading = () => (

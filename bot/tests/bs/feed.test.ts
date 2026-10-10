@@ -261,6 +261,9 @@ test('each precept sits after the last verse it explains and opens its own comme
     assert.ok(section && section.rangeStartVerse <= p.verse && p.verse <= section.rangeEndVerse);
     const { json: detail } = await request('/v1/commentaries/reading-section', Commentary.CommentaryReadingSectionResponse, { body: { book: 43, chapter: 1, resourceId: 'cyberjudah', language: 'en', revision: json.resource.revision, sectionId: p.sectionId } });
     assert.ok(detail.section.content.includes(p.label));
+    // Inside the app a scripture opens in the reader and a class in the app, never the website.
+    assert.match(detail.section.content, /href="bible:\/\/(Matt|Isa)\.\d+\.\d+-\1\.\d+\.\d+"|href="bible:\/\/Matt\.1\.21"/);
+    assert.match(detail.section.content, /href="https:\/\/cyberjudah\.io\/app\/note\/classes\//);
   }
 });
 
