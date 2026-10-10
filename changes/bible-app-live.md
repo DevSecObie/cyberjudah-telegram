@@ -1,1 +1,1 @@
-The CyberJudah Bible app, Bible Strong's reader and study tools carrying the King James Version with the Apocrypha and the classes' teaching, is published with every release at cyberjudah.io/app/strong. The Telegram app and everything in it are unchanged.
+The Bible Strong reader that the CyberJudah app's Bible screen shows is now published with every release, at cyberjudah.io/app/strong.
