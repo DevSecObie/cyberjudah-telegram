@@ -1,4 +1,3 @@
-import i18n from '~i18n'
 import BookmarkOptionsPanel from './BookmarkOptionsPanel'
 import { getBookmarkVerse } from './bookmarkVerse'
 import React, { useState } from 'react'
@@ -22,7 +21,7 @@ import { useCanGoBackInStack } from '~navigation/useCanGoBackInStack'
 import { usePushRouteOnce } from '~navigation/usePushRouteOnce'
 const getBookName = (bookNumber: number): string => {
   const bookData = books.find(b => b.Numero === bookNumber)
-  return bookData ? i18n.t(bookData.Nom) : `Livre ${bookNumber}`
+  return bookData?.Nom || `Livre ${bookNumber}`
 }
 
 const formatReference = (bookmark: Bookmark): string => {

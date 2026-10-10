@@ -17,8 +17,7 @@ concurrency:
 jobs:
   browser-tests:
     runs-on: ubuntu-latest
-    # The Bible's reader is built first (a few minutes), then the suite runs.
-    timeout-minutes: 45
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
@@ -31,15 +30,6 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps ${{ matrix.browser }}
-      # The Bible is Bible Strong's reader, served at /app/strong from strong/dist
-      # (bot/scripts/prepare-assets.sh copies it): without it the Bible never loads.
-      - name: Cache the Bible Strong fork's packages
-        uses: actions/cache@v6
-        with:
-          path: ~/.yarn/berry/cache
-          key: strong-yarn-${{ hashFiles('strong/yarn.lock') }}
-      - name: Build the Bible Strong fork (staged at /app/strong)
-        run: bash strong/build-web.sh
       - run: npm run test:e2e --workspace app -- --project=${{ matrix.browser }}
         env:
           CI: "true"

@@ -1,9 +1,8 @@
-import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import { Switch } from '@heroui/react/switch'
 import type { SwitchProps } from 'react-native'
 import { useTheme } from '~themes/ThemeProvider'
 
-function WebInlineCommentarySwitch({
+export default function InlineCommentarySwitch({
   value,
   onValueChange,
   disabled,
@@ -58,11 +57,3 @@ function WebInlineCommentarySwitch({
     </Switch>
   )
 }
-
-// CyberJudah: inside the Telegram app the reader is on a phone, so it behaves as Bible Strong's
-// phone app does (InlineCommentarySwitch.phone.tsx).
-// Loaded only there: the website, and its tests, never load the phone version.
-export default (isEmbeddedInCyberJudah()
-  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
-    (require('./InlineCommentarySwitch.phone') as typeof import('./InlineCommentarySwitch.phone')).default
-  : WebInlineCommentarySwitch)

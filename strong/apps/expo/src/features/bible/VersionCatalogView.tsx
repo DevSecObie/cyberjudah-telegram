@@ -1,4 +1,3 @@
-import { isPhoneUI } from '~helpers/cyberjudahPhoneUI'
 import PanelSearch from '~common/ContextualPanel/PanelSearch'
 import { PanelNavigationContext } from '~common/ContextualPanel/NavigationContext'
 import type { PanelNavigation } from '~common/ContextualPanel/types'
@@ -333,7 +332,7 @@ export const VersionCatalogList = ({
 }: VersionCatalogListProps) => {
   const panelNavigation = React.useContext(PanelNavigationContext)
   const { height: windowHeight } = useWindowDimensions()
-  const isWebPanel = !isPhoneUI() && Boolean(panelNavigation)
+  const isWebPanel = Platform.OS === 'web' && Boolean(panelNavigation)
   const { t } = useTranslation()
   const listRef = React.useRef<SectionList<VersionCatalogItem, VersionCatalogSection>>(null)
   const listHeightRef = React.useRef(0)

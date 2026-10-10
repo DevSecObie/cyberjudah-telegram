@@ -1,4 +1,3 @@
-import { isPhoneUI } from '~helpers/cyberjudahPhoneUI'
 import { Platform } from 'react-native'
 import { useResponsiveWorkspace } from '~features/app-switcher/utils/useResponsiveWorkspace'
 import { useAtomValue } from 'jotai/react'
@@ -77,7 +76,7 @@ const BackToAudioFooter = ({
           { opacity: disabled || !hasPreviousChapter ? 0.6 : 1 },
           [
             {
-              bottom: !isPhoneUI() ? '50%' : isWide ? '25%' : 10 + bottomBarHeight,
+              bottom: Platform.OS === 'web' ? '50%' : isWide ? '25%' : 10 + bottomBarHeight,
               opacity: disabled || !hasPreviousChapter ? 0.6 : 1,
             },
             {
@@ -122,7 +121,7 @@ const BackToAudioFooter = ({
           { opacity: disabled || !hasNextChapter ? 0.6 : 1 },
           [
             {
-              bottom: !isPhoneUI() ? '50%' : isWide ? '25%' : 10 + bottomBarHeight,
+              bottom: Platform.OS === 'web' ? '50%' : isWide ? '25%' : 10 + bottomBarHeight,
               opacity: disabled || !hasNextChapter ? 0.6 : 1,
             },
             {

@@ -1,0 +1,1 @@
+- Reverted the Bible Strong reader change: the Bible screen is back to its previous state.

@@ -1,4 +1,12 @@
-// CyberJudah: the phone app's version lives in VerseTagsAction.phone.tsx, so the web build can use it
-// inside the Telegram app (VerseTagsAction.web.tsx).
-export * from './VerseTagsAction.phone'
-export { default } from './VerseTagsAction.phone'
+import { useTranslation } from 'react-i18next'
+import type { VerseIds } from '~common/types'
+import ActionItem from './ActionItem'
+export type VerseTagsActionProps = {
+  selectedVerses: VerseIds
+  reference?: string
+  onPress: () => void
+}
+export default function VerseTagsAction({ onPress }: VerseTagsActionProps) {
+  const { t } = useTranslation()
+  return <ActionItem name="tag" label={t('Tag')} onPress={onPress} />
+}

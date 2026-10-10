@@ -3,7 +3,6 @@ import { build } from "esbuild";
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { bibleFrame, bibleReady } from "./telegram-harness";
 
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 const DATA_ORIGIN = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
@@ -21,11 +20,8 @@ async function setup(page: Page) {
     return r.fulfill({ json: path === "/api/kjv/books.json" ? [book] : path === "/api/kjv/obadiah/1.json" ? chapter : {} });
   });
   await page.goto("/read/obadiah/1");
-  await bibleReady(page);
-  await expect(obadiah(page)).toContainText("The vision of Obadiah");
+  await expect(page.locator("#verset-1")).toContainText("The vision of Obadiah");
 }
-/** Obadiah 1:1 in the Bible's frame (Bible Strong's reader). */
-const obadiah = (page: Page) => bibleFrame(page).locator('[data-verse-key="31-1-1"]').first();
 async function harness(page: Page) {
   const output = await build({ stdin: { contents: `import * as api from ${JSON.stringify(fileURLToPath(new URL("../src/resources/storage.ts", import.meta.url)))}; window.__resources=api;`, resolveDir: fileURLToPath(new URL("..", import.meta.url)) }, bundle: true, write: false, format: "iife", platform: "browser", tsconfig: fileURLToPath(new URL("../tsconfig.json", import.meta.url)) });
   await page.addScriptTag({ content: output.outputFiles[0].text });
@@ -56,7 +52,7 @@ test("resource activation survives reload, failed updates, rollback and independ
   expect((await page.evaluate(() => window.__resources.readResource("test-resource", "entry")))?.release).toBe("v1");
   await page.evaluate(() => window.__resources.deactivateResource("test-resource"));
   expect(await page.evaluate(() => window.__resources.readResource("test-resource", "entry"))).toBe(null);
-  await expect(obadiah(page)).toContainText("The vision of Obadiah");
+  await expect(page.locator("#verset-1")).toContainText("The vision of Obadiah");
 });
 
 for (const action of ["deactivateResource", "removeResource"] as const) test(`an in-flight installation cannot resurrect a resource after ${action}`, async ({ page }) => {
@@ -103,8 +99,6 @@ test("a failed later shard never exposes partially imported records", async ({ p
 
 test.describe("offline shell", () => {
 test.use({ serviceWorkers: "allow" });
-// The app's shell relaunches offline and keeps a chapter downloaded for the old reader. (The Bible
-// itself is now Bible Strong's reader, which the service worker leaves to the network.)
 test("production shell relaunches offline and preserves a legacy downloaded chapter", async ({ page, context, browserName }) => {
   test.skip(browserName === "webkit" && process.platform === "linux", "Playwright Linux WebKit rejects offline navigation even with a minimal responding service worker; run this case on Safari/macOS.");
   // Seed the actual old cache layout before application startup to exercise migration.
@@ -123,8 +117,8 @@ test("production shell relaunches offline and preserves a legacy downloaded chap
   await page.unrouteAll({ behavior: "wait" });
   await context.setOffline(true);
   const reopened = await context.newPage();
-  await reopened.goto("/settings");
-  await expect(reopened.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+  await reopened.goto("/read/obadiah/1");
+  await expect(reopened.locator("#verset-1")).toContainText("The vision of Obadiah");
   expect(await reopened.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
   expect(await reopened.evaluate(async (origin) => (await (await (await caches.open("cj-offline-v1")).match(`${origin}/api/kjv/obadiah/1.json`))!.json()).verses[0].text, DATA_ORIGIN)).toBe(chapter.verses[0].text);
   expect(await reopened.evaluate(async () => caches.match(`${location.origin}/api/me`).then(Boolean))).toBe(false);

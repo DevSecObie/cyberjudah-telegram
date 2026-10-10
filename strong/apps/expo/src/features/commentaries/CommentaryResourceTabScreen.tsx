@@ -111,7 +111,7 @@ const CommentaryResourceTabScreen = ({
     ? query.data?.sections.find(candidate => candidate.id === tab.data.sectionId)
     : undefined
   useAssistantResourceContext(`tab:${tab.id}`, commentaryContext(tab.data, titleSection))
-  const titleBookLabel = parsed ? (getBook(parsed.book) ? t(getBook(parsed.book)!.Nom) : String(parsed.book)) : undefined
+  const titleBookLabel = parsed ? (getBook(parsed.book)?.Nom ?? String(parsed.book)) : undefined
   const desiredTabTitle =
     parsed && titleBookLabel
       ? formatCommentaryResourceTabTitle({
@@ -190,7 +190,7 @@ const CommentaryResourceTabScreen = ({
     sectionIndex !== undefined && sectionIndex >= 0
       ? query.data?.sections[sectionIndex + 1]
       : undefined
-  const bookLabel = (getBook(book) ? t(getBook(book)!.Nom) : String(book))
+  const bookLabel = getBook(book)?.Nom ?? String(book)
   const passage = section
     ? `${bookLabel} ${chapter}:${formatRange(section.rangeStartVerse, section.rangeEndVerse)}`
     : undefined

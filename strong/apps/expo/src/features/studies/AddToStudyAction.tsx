@@ -1,4 +1,11 @@
-// CyberJudah: the phone app's version lives in AddToStudyAction.phone.tsx, so the web build can use it
-// inside the Telegram app (AddToStudyAction.web.tsx).
-export * from './AddToStudyAction.phone'
-export { default } from './AddToStudyAction.phone'
+import { useTranslation } from 'react-i18next'
+import ActionItem from '~features/bible/SelectedVersesModal/components/ActionItem'
+export type AddToStudyActionProps = {
+  onPress: () => void
+  onSelect?: (studyId: string, format: 'inline' | 'block') => Promise<void>
+  reference?: string
+}
+export default function AddToStudyAction({ onPress }: AddToStudyActionProps) {
+  const { t } = useTranslation()
+  return <ActionItem name="feather" label={t('study.addToStudy')} onPress={onPress} />
+}

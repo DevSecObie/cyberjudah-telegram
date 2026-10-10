@@ -3,7 +3,7 @@ import type { ResolvedPassageMedia, ResolvedPassageMediaChapter } from '../passa
 export type PassageMediaGalleryItem = ResolvedPassageMedia
 
 export type PassageMediaGallerySection = {
-  id: 'introduction' | 'passages' | 'chapter-resources' | 'read-in-class'
+  id: 'introduction' | 'passages' | 'chapter-resources'
   title: string
   items: PassageMediaGalleryItem[]
 }
@@ -30,7 +30,6 @@ type GetPassageMediaGallerySectionsInput = {
     introduction: string
     passages: string
     chapterResources: string
-    readInClass?: string
   }
 }
 
@@ -40,17 +39,10 @@ export const getPassageMediaGallerySections = ({
 }: GetPassageMediaGallerySectionsInput): PassageMediaGallerySection[] => {
   return (
     [
-      // CyberJudah: as the app shows a chapter's classes, those that taught it, then those that
-      // only read it aloud in class.
       {
         id: 'chapter-resources',
         title: sectionTitles.chapterResources,
-        items: passageMedia.chapterResources.filter(item => !item.readAloud),
-      },
-      {
-        id: 'read-in-class',
-        title: sectionTitles.readInClass ?? sectionTitles.chapterResources,
-        items: passageMedia.chapterResources.filter(item => item.readAloud),
+        items: passageMedia.chapterResources,
       },
       {
         id: 'passages',

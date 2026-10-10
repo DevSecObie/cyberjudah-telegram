@@ -14,7 +14,6 @@ describe('commentary catalog filters', () => {
     expect(COMMENTARY_TRADITIONS).toEqual([
       'Catholicisme',
       'Christianisme ancien',
-      'Israelite',
       'Judaïsme',
       'Protestantisme',
     ])

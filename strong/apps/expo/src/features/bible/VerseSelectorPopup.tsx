@@ -1,4 +1,3 @@
-import { isPhoneUI } from '~helpers/cyberjudahPhoneUI'
 import ContextualPanel from '~common/ContextualPanel'
 import { Sheet, SheetHeader, SheetScrollView, type SheetRef } from '~common/sheet'
 import { useAtomValue } from 'jotai/react'
@@ -63,7 +62,7 @@ export const VerseSelectorPopup = ({
     sheetRef.current?.dismiss()
   }
 
-  if (!isPhoneUI())
+  if (Platform.OS === 'web')
     return (
       <ContextualPanel
         width={400}

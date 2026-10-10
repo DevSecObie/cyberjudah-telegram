@@ -1,7 +1,4 @@
 export const COMMENTARY_DESCRIPTIONS = {
-  cyberjudah: {
-    en: 'What the CyberJudah classes taught about each scripture: the class’s own breakdown of the verse, and every precept read with it and why, with the moment in the class where it was taught. The Bishops’ and Deacons’ teaching comes first.',
-  },
   acbc: {
     fr: 'Commentaire méthodiste couvrant l’ensemble de la Bible, attentif au vocabulaire, aux langues anciennes et au contexte historique. Clarke associe explication du texte, discussion philologique et applications théologiques.',
     en: 'A Methodist commentary covering the whole Bible, with close attention to vocabulary, ancient languages, and historical context. Clarke combines textual explanation, philological discussion, and theological application.',

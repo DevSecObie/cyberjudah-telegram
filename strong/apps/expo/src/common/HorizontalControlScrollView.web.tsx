@@ -1,4 +1,3 @@
-import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import { useState, useRef, useEffect, useImperativeHandle, type Ref } from 'react'
 import { ScrollView, type ScrollViewProps } from 'react-native'
 import { useTranslation } from 'react-i18next'
@@ -6,7 +5,7 @@ import { useTheme } from '~themes/ThemeProvider'
 import { FeatherIcon } from '~common/ui/Icon'
 import { useHorizontalWheel } from './horizontalScroll/useHorizontalWheel.web'
 
-function WebHorizontalControlScrollView({
+export default function HorizontalControlScrollView({
   ref,
   ...props
 }: ScrollViewProps & { ref?: Ref<ScrollView> }) {
@@ -60,6 +59,3 @@ function WebHorizontalControlScrollView({
     </div>
   )
 }
-
-// CyberJudah: inside the Telegram app, a row scrolls by swiping, as in Bible Strong's phone app.
-export default isEmbeddedInCyberJudah() ? ScrollView : WebHorizontalControlScrollView

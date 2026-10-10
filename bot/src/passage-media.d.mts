@@ -6,6 +6,4 @@ export type PassageMediaCatalog = {
 };
 export const SLUGS: string[];
 export function emptyCatalog(): PassageMediaCatalog;
-/** A class reading a verse aloud in a recording (the concordance's `read`). */
-export type PassageMediaReading = { video?: string; t?: number; ts?: string; title?: string; date?: string; teacher?: string };
-export function buildCatalog(book: number, chapter: number, list: PassageMediaMoment[], read?: Record<string, PassageMediaReading[]>): PassageMediaCatalog;
+export function buildCatalog(book: number, chapter: number, list: PassageMediaMoment[]): PassageMediaCatalog;

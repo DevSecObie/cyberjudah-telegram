@@ -181,7 +181,6 @@ type Props = Pick<
   | 'selectedCode'
   | 'redWords'
   | 'inlineCommentaries'
-  | 'preceptsAfterVerses'
   | 'chapterEntities'
   | 'chapterEntitiesLoaded'
   | 'chapterEntityModuleStatus'
@@ -586,7 +585,6 @@ const LoadedBibleContent = ({
   dispatch,
   translations,
   inlineCommentaries,
-  preceptsAfterVerses,
   chapterEntities,
   chapterEntitiesLoaded,
   chapterEntityModuleStatus,
@@ -1400,7 +1398,6 @@ const LoadedBibleContent = ({
                 parallelDisplayMode={parallelDisplayMode}
                 redWords={redWords}
                 passageMediaAfterVerses={passageMedia.afterVerses}
-                preceptsAfterVerses={preceptsAfterVerses}
                 passageMediaGallerySections={passageMediaGallerySections}
               />
               <AnnotationInlineItems
