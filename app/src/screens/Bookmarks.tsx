@@ -9,7 +9,8 @@ import { json, store } from "@/tg/store";
 import { Ion } from "@/bible/icons";
 import { useAllNotes, useBookmarks, useTags, type Highlight } from "@/bible/store";
 import { paletteOf, resolveTheme, telegramScheme, useBibleSettings } from "@/bible/settings";
-import { Chip, Chips, Empty, List, Row, Screen, Segmented } from "@/ui/ui";
+import { Chip, Chips, Empty, List, Row, Screen, SearchField, Segmented } from "@/ui/ui";
+import { ENTITY_LIST_SORTS, queryEntityList, type EntityListSort } from "@/lib/entity-list";
 
 type Tab = "bookmarks" | "highlights" | "notes";
 type ChapterHl = { slug: string; chapter: number; verses: Record<string, Highlight> };
@@ -27,7 +28,11 @@ export function Bookmarks() {
   const bookName = (slug: string) => books.data?.find((b) => b.slug === slug)?.book ?? slug;
   const tagFilter = params.get("tag") ?? "";
   const { rows: allNotes } = useAllNotes();
-  const notes = useMemo(() => (tagFilter ? allNotes.filter((n) => n.note.tags?.[tagFilter]) : allNotes), [allNotes, tagFilter]);
+  // Bible Strong's AllNotesTabScreen: filter by tag, then search and sort (queryEntityList).
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<EntityListSort>("newest");
+  const tagged = useMemo(() => (tagFilter ? allNotes.filter((n) => n.note.tags?.[tagFilter]) : allNotes), [allNotes, tagFilter]);
+  const notes = useMemo(() => queryEntityList(tagged.map((n) => ({ ...n, id: `${n.slug}/${n.chapter}/${n.key}`, title: n.note.title || "Untitled note", description: n.note.description, date: n.note.date })), { query, sort }), [tagged, query, sort]);
   const [hl, setHl] = useState<ChapterHl[]>([]);
   useEffect(() => {
     void store.keys().then(async (keys) => {
@@ -40,7 +45,7 @@ export function Bookmarks() {
   const swatch = (h: Highlight) => (h.color.startsWith("color") ? (palette as unknown as Record<string, string>)[h.color] : settings.customHighlightColors.find((c) => c.id === h.color)?.hex) ?? "transparent";
   return (
     <Screen title={tab === "bookmarks" ? "Bookmarks" : tab === "highlights" ? "Highlights" : "Notes"} kicker="Synced with your Telegram account">
-      <Segmented label="Kind" value={tab} onChange={(t) => { setTab(t); setParams(t === "highlights" && tagFilter ? { tag: tagFilter } : {}, { replace: true }); }} options={[["bookmarks", `Bookmarks ${bookmarks.length}`], ["highlights", `Highlights ${hl.reduce((n, c) => n + Object.keys(c.verses).length, 0)}`], ["notes", `Notes ${notes.length}`]]} />
+      <Segmented label="Kind" value={tab} onChange={(t) => { setTab(t); setParams(t === "notes" ? (tagFilter ? { tab: "notes", tag: tagFilter } : { tab: "notes" }) : t === "highlights" && tagFilter ? { tag: tagFilter } : {}, { replace: true }); }} options={[["bookmarks", `Bookmarks ${bookmarks.length}`], ["highlights", `Highlights ${hl.reduce((n, c) => n + Object.keys(c.verses).length, 0)}`], ["notes", `Notes ${tagged.length}`]]} />
       {tab === "bookmarks" ? (
         !bookmarks.length ? <Empty title="No bookmarks yet" action={{ label: "Open the Bible", href: "/bible" }}>Select a verse and tap Bookmark, or add one to a chapter from its ⋮ menu.</Empty> : (
           <List>{[...bookmarks].sort((a, b) => b.date - a.date).map((b) => <Row key={b.id} href={`/read/${b.book}/${b.chapter}${b.verse ? `?v=${b.verse}` : ""}`} title={b.name} sub={`${bookName(b.book)} ${b.chapter}${b.verse ? `:${b.verse}` : ""}`} trailing={<span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}><Ion name="bookmark" size={20} color={b.color} /><button type="button" className="icon-btn" aria-label="Remove" title="Remove" onClick={async (e) => { e.preventDefault(); e.stopPropagation(); if (await confirm("Are you sure you want to delete this bookmark?")) setBookmarks(bookmarks.filter((x) => x.id !== b.id)); }}>×</button></span>} />)}</List>
@@ -53,8 +58,15 @@ export function Bookmarks() {
           )}
         </>
       ) : (
-        !notes.length ? <Empty title="No notes yet" action={{ label: "Open the Bible", href: "/bible" }}>Select a verse and tap Note.</Empty> : (
-          <List>{notes.map((n) => <Row key={`${n.slug}${n.chapter}${n.key}`} href={`/read/${n.slug}/${n.chapter}?v=${n.key.split("/")[0]}`} meta={`${bookName(n.slug)} ${n.chapter}:${n.key.replace("/", ",")}`} title={n.note.title || "Untitled note"} sub={n.note.description} />)}</List>
+        !allNotes.length ? <Empty title="No notes yet" action={{ label: "Open the Bible", href: "/bible" }}>Select a verse and tap Note.</Empty> : (
+          <>
+            <SearchField id="notes-search" value={query} onChange={setQuery} placeholder="Search notes" />
+            <Chips>{ENTITY_LIST_SORTS.map(([value, label]) => <Chip key={value} on={sort === value} onClick={() => setSort(value)}>{label}</Chip>)}</Chips>
+            {Object.keys(tags).length ? <Chips><Chip on={!tagFilter} onClick={() => setParams({ tab: "notes" }, { replace: true })}>All tags</Chip>{Object.values(tags).map((t) => <Chip key={t.id} on={tagFilter === t.id} onClick={() => setParams(tagFilter === t.id ? { tab: "notes" } : { tab: "notes", tag: t.id }, { replace: true })}>{t.name}</Chip>)}</Chips> : null}
+            {!notes.length ? <Empty title="No matching notes">Try another word, tag or order.</Empty> : (
+              <List>{notes.map((n) => <Row key={n.id} href={`/read/${n.slug}/${n.chapter}?v=${n.key.split("/")[0]}`} meta={`${bookName(n.slug)} ${n.chapter}:${n.key.replace("/", ",")}`} title={n.title} sub={n.note.description} />)}</List>
+            )}
+          </>
         )
       )}
     </Screen>
