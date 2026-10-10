@@ -4,7 +4,7 @@ import { verifyRelease } from "../scripts/verify-release.mjs";
 import { validateInitData } from "../src/initdata.mjs";
 import { MODELS } from "../../shared/ask-models.mjs";
 
-function fixture({ answerStatus = 200, sources = [{}], model = "google/test", expectedModel = "google/test", cachedConsent = false } = {}) {
+function fixture({ answerStatus = 200, answerError = "free-paused", sources = [{}], model = "google/test", expectedModel = "google/test", cachedConsent = false } = {}) {
   let answered = false, calls = 0;
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "private, no-store" } });
   return { count: () => calls, options: { url: "https://app.invalid", token: "test-token", expectedModel, log() {}, async fetcher(url, { headers }) {
@@ -17,7 +17,7 @@ function fixture({ answerStatus = 200, sources = [{}], model = "google/test", ex
     if (path === "/api/recordings/catalog") return json({ chapters: [{}] });
     if (!expectedModel.startsWith("@cf/") && !headers["x-ai-consent"] && !(cachedConsent && answered)) return json({ provider: "Google" }, 428);
     calls++; answered = true;
-    return json({ ok: true, answer: "A cited answer [1]", sources, model, provider: MODELS.find(m => m.id === expectedModel)?.provider ?? "Google", error: "free-paused" }, answerStatus);
+    return json({ ok: true, answer: "A cited answer [1]", sources, model, provider: MODELS.find(m => m.id === expectedModel)?.provider ?? "Google", error: answerError }, answerStatus);
   } } };
 }
 test("release verification signs a synthetic reader and makes only one consented provider request", async () => {
@@ -25,6 +25,14 @@ test("release verification signs a synthetic reader and makes only one consented
 });
 test("release verification fails on provider failure, empty citations or a different model", async () => {
   for (const options of [{ answerStatus: 429 }, { sources: [] }, { model: "other" }]) await assert.rejects(verifyRelease(fixture(options).options), /Search answer:/);
+});
+test("staging may report a spent daily answer allowance; production and every other failure still fail", async () => {
+  const logged = [];
+  const spent = fixture({ answerStatus: 429, answerError: "limit" });
+  await verifyRelease({ ...spent.options, allowAnswerLimit: true, log: m => logged.push(m) });
+  assert.ok(logged.some(m => /not checked, this Worker's daily answer allowance is used up/.test(m)));
+  await assert.rejects(verifyRelease(fixture({ answerStatus: 429, answerError: "limit" }).options), /HTTP 429 \(limit\)/);
+  for (const options of [{ answerStatus: 429 }, { answerStatus: 503, answerError: "limit" }, { sources: [] }]) await assert.rejects(verifyRelease({ ...fixture(options).options, allowAnswerLimit: true }), /Search answer:/);
 });
 test("release verification fails if cached answers bypass withdrawn consent", async () => {
   await assert.rejects(verifyRelease(fixture({ cachedConsent: true }).options), /Withdrawn consent/);
