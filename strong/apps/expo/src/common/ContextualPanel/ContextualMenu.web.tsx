@@ -1,9 +1,10 @@
+import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import { useTranslation } from 'react-i18next'
 import ContextualPanel from './index'
 import PanelAction from './PanelAction'
 import type { ContextualMenuProps } from './ContextualMenu'
 
-export default function ContextualMenu(props: ContextualMenuProps) {
+function WebContextualMenu(props: ContextualMenuProps) {
   const { t } = useTranslation()
   return (
     <ContextualPanel
@@ -64,3 +65,11 @@ export default function ContextualMenu(props: ContextualMenuProps) {
     />
   )
 }
+
+// CyberJudah: inside the Telegram app the reader is on a phone, so it behaves as Bible Strong's
+// phone app does (ContextualMenu.phone.tsx).
+// Loaded only there: the website, and its tests, never load the phone version.
+export default (isEmbeddedInCyberJudah()
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require('./ContextualMenu.phone') as typeof import('./ContextualMenu.phone')).default
+  : WebContextualMenu)

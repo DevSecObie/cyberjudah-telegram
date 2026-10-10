@@ -17,6 +17,8 @@ export type PassageMediaCategory =
   | 'podcast'
   | 'classroom'
   | 'long-form'
+  // CyberJudah: a class that read the passage aloud, without teaching it in its notes.
+  | 'read-aloud'
   | 'uncategorized'
 
 export type PassageMediaEdition = {
@@ -88,6 +90,8 @@ export type ResolvedPassageMedia = Pick<
   attributionLabel: string
   reference: string
   strongCodes: string[]
+  /** CyberJudah: a class that only read the passage aloud (shown under "Read in class"). */
+  readAloud?: boolean
 }
 
 export type ResolvedPassageMediaChapter = {
@@ -250,6 +254,7 @@ const resolveEdition = (
     startSeconds: edition.startSeconds,
     badge: edition.badge,
     subtitle: edition.subtitle,
+    ...(work.categories?.includes('read-aloud') ? { readAloud: true } : {}),
   }
 }
 
