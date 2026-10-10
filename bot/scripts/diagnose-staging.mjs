@@ -13,6 +13,15 @@ export function providerFailures(event, marker) {
 }
 const annotate = (level, message) => console.log(`::${level}::${String(message).replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")}`);
 
+/** Read only fixed login outcomes; discard request URLs, cookies, claims and arbitrary text. */
+export function loginResults(event) {
+  const allowed = new Set(["started", "completed", "cookie", "state", "exchange", "token", "claims", "nonce", "profile", "profile-id-missing", "profile-id-invalid", "profile-name", "storage", ...["iss", "aud", "exp", "iat", "sub", "nonce"].map(c => `claims-${c}`)]);
+  return (event.logs ?? []).flatMap(log => (log.message ?? []).flatMap(message => {
+    try { const row = JSON.parse(message); return row.event === "browser_login" && allowed.has(row.result) ? [row.result] : []; }
+    catch { return []; }
+  }));
+}
+
 async function diagnose() {
   const { CLOUDFLARE_API_TOKEN: token, CLOUDFLARE_ACCOUNT_ID: account } = process.env;
   if (!token || !account) throw new Error("Cloudflare credentials are required for staging diagnostics.");
@@ -25,12 +34,21 @@ async function diagnose() {
   };
   const tail = await call(base, "POST", {});
   const marker = crypto.randomUUID(), messages = new Set();
+  const loginOnly = process.env.DIAGNOSE_LOGIN === "true";
+  let loginFinished;
+  const loginResult = new Promise(resolve => { loginFinished = resolve; });
   const socket = new WebSocket(tail.url, "trace-v1");
   socket.binaryType = "arraybuffer";
   socket.addEventListener("message", event => {
     try {
       const text = typeof event.data === "string" ? event.data : new TextDecoder().decode(event.data);
-      for (const message of providerFailures(JSON.parse(text), marker)) messages.add(message);
+      const row = JSON.parse(text);
+      if (loginOnly) {
+        for (const result of loginResults(row)) {
+          annotate("notice", `Staging browser login: ${result}`);
+          if (result !== "started") loginFinished(result);
+        }
+      } else for (const message of providerFailures(row, marker)) messages.add(message);
     } catch { /* discard everything except recognized console events */ }
   });
   try {
@@ -39,8 +57,15 @@ async function diagnose() {
       socket.addEventListener("open", () => { clearTimeout(timer); socket.send(JSON.stringify({ debug: false })); resolve(); }, { once: true });
       socket.addEventListener("error", () => { clearTimeout(timer); reject(new Error("Staging diagnostic stream unavailable.")); }, { once: true });
     });
+    if (loginOnly) {
+      annotate("notice", "Staging login diagnostic is ready; waiting up to five minutes for one callback.");
+      let timer;
+      try { await Promise.race([loginResult, new Promise(resolve => { timer = setTimeout(() => { annotate("warning", "No completed login callback was observed during this diagnostic window."); resolve(); }, 300_000); })]); }
+      finally { clearTimeout(timer); }
+      return;
+    }
     try {
-      await verifyRelease({ url: process.env.WORKER_URL, token: process.env.BOT_TOKEN, expectedModel: process.env.EXPECTED_SEARCH_MODEL,
+      await verifyRelease({ url: process.env.WORKER_URL, token: process.env.BOT_TOKEN, expectedModel: process.env.EXPECTED_SEARCH_MODEL, verifySync: process.env.VERIFY_ACCOUNT_SYNC === "true",
         fetcher: (url, options) => fetch(url, { ...options, headers: { ...options.headers, "x-release-check": marker } }), log: message => annotate("notice", message) });
     } finally {
       await new Promise(resolve => setTimeout(resolve, 5000));

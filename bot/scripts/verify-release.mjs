@@ -2,7 +2,7 @@ import { pathToFileURL } from "node:url";
 import { signInitData } from "../src/initdata.mjs";
 
 /** A bounded live check: no messages, content writes or paid reader balance. */
-export async function verifyRelease({ url, token, expectedModel, fetcher = fetch, log = console.log }) {
+export async function verifyRelease({ url, token, expectedModel, verifySync = false, fetcher = fetch, log = console.log }) {
   if (!url || !token || !expectedModel) throw new Error("Set WORKER_URL, BOT_TOKEN and EXPECTED_SEARCH_MODEL for release verification.");
   const external = !expectedModel.startsWith("@cf/"), provider = external ? "Google" : "Cloudflare (Workers AI)";
   const origin = new URL(url).origin;
@@ -30,6 +30,17 @@ export async function verifyRelease({ url, token, expectedModel, fetcher = fetch
   // Same synthetic reader as the existing live browser suite; no real reader is impersonated.
   const launch = await signInitData({ user: { id: 1, first_name: "Release check" }, auth_date: String(Math.floor(Date.now() / 1000)) }, token);
   const headers = { authorization: `tma ${launch}` };
+  if (verifySync) {
+    const account = await get("/api/auth/status");
+    requireStatus(account, 200, "Browser sign-in status");
+    if (!(await account.json()).available) throw new Error("Browser sign-in: Telegram credentials are not configured on this Worker.");
+    const bridge = await fetcher(`${origin}/api/firebase/token`, { method: "POST", headers, redirect: "error", signal: AbortSignal.timeout(30_000) });
+    requireStatus(bridge, 200, "Firebase identity bridge");
+    const result = await bridge.json();
+    if (result.uid !== "tg_1" || typeof result.token !== "string" || result.token.split(".").length !== 3) throw new Error("Firebase identity bridge: unexpected response.");
+    // Mint only; never create a live Firebase account or expose the token in logs.
+    log("Browser sign-in configured; Firebase identity bridge mints the stable Telegram UID");
+  }
   for (const [path, field, label] of [["/api/resources/catalog", "resources", "Resource releases"], ["/api/recordings/catalog", "chapters", "Narration chapters"]]) {
     const response = await get(path, headers);
     requireStatus(response, 200, label);
@@ -63,7 +74,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   // Expose safe results as check annotations as well as logs, without launch data or answers.
   const annotation = (level, message) => process.env.GITHUB_ACTIONS
     ? `::${level}::${String(message).replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")}` : message;
-  verifyRelease({ url: process.env.WORKER_URL, token: process.env.BOT_TOKEN, expectedModel: process.env.EXPECTED_SEARCH_MODEL,
+  verifyRelease({ url: process.env.WORKER_URL, token: process.env.BOT_TOKEN, expectedModel: process.env.EXPECTED_SEARCH_MODEL, verifySync: process.env.VERIFY_ACCOUNT_SYNC === "true",
     log: message => console.log(annotation("notice", message)) })
     .catch(error => { console.error(annotation("error", error.message)); process.exitCode = 1; });
 }
