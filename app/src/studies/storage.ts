@@ -3,7 +3,7 @@ import { studySchema, type Study } from "./model";
 import { personalStore, store } from "@/tg/store";
 import { archiveSchema } from "@shared/studies";
 
-export type Annotation = { id: string; verseKey: string; start: number; end: number; quote: string; style: "highlight" | "underline" | "circle"; created: string };
+export type Annotation = { id: string; verseKey: string; start: number; end: number; quote: string; style: "highlight" | "underline" | "circle"; /** A highlight colour key (color1, a custom colour id); none draws the original phrase style. */ color?: string; created: string };
 interface StudyDB extends DBSchema {
   studies: { key: string; value: Study };
   annotations: { key: string; value: Annotation; indexes: { verse: string } };
@@ -61,7 +61,7 @@ export const verseAnnotations = async (key: string): Promise<Annotation[]> => {
   return sync ? (Object.values(JSON.parse(sync.get("wordAnnotations"))) as Annotation[]).filter(a => a.verseKey === key) : (await database()).getAllFromIndex("annotations", "verse", key);
 };
 export async function addAnnotation(a: Annotation, text: string) {
-  if (!Number.isInteger(a.start) || !Number.isInteger(a.end) || a.start < 0 || a.end <= a.start || a.end > text.length || text.slice(a.start, a.end) !== a.quote || !["highlight", "underline", "circle"].includes(a.style)) throw new Error("Select a phrase in this verse before saving.");
+  if (!Number.isInteger(a.start) || !Number.isInteger(a.end) || a.start < 0 || a.end <= a.start || a.end > text.length || text.slice(a.start, a.end) !== a.quote || !["highlight", "underline", "circle"].includes(a.style) || (a.color !== undefined && (typeof a.color !== "string" || !a.color || a.color.length > 40))) throw new Error("Select a phrase in this verse before saving.");
   const sync = await personalStore();
   if (sync) await sync.set("wordAnnotations", JSON.stringify({ [a.id]: a }), JSON.stringify({ [a.id]: JSON.parse(sync.get("wordAnnotations"))[a.id] }));
   else await (await database()).put("annotations", a);

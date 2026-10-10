@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from "react";
 
 import type { ClassMoment } from "@/api/data";
 import type { VerseRelationItem } from "@/lib/relations";
@@ -7,6 +7,9 @@ import { Feather } from "../icons";
 import type { BibleSettings } from "../settings";
 import type { Bookmark, Highlight, Tag } from "../store";
 import { isDarkTheme, type Palette, type ThemeName } from "../theme";
+import { findVerseContainer, getCaretInfoFromPoint } from "../annotation/domUtils";
+import { buildRangesFromSelection, type SelectionRange, type WordPosition } from "../annotation/selectionUtils";
+import { getWordIndexFromCharOffset, tokenizeVerseText } from "../annotation/wordTokenizer";
 import { useVerseGestures } from "./gestures";
 import { Verse, type VerseTagGroup } from "./Verse";
 
@@ -30,6 +33,8 @@ export type ChapterProps = {
   moments?: Record<number, ClassMoment[]>; deck?: { reference: string; from: string };
   headerHeight: number; fullscreen: boolean; canSwipe: boolean;
   onToggleVerse: (v: number) => void; onVerseDetail: (v: number) => void; onDoubleTap?: (v: number) => void;
+  /** Bible Strong's word annotation: a double tap selects a word, the handles extend it. */
+  wordSelection?: SelectionRange | null; onWordSelection?: (s: SelectionRange | null) => void; colorOf?: (key: string) => string | null;
   onSwipe: (dir: "left" | "right") => void; onFullscreen: (on: boolean) => void;
   onOpenBookmark: (b: Bookmark) => void; onOpenRelations: (v: number) => void; onOpenRelationItem: (it: VerseRelationItem) => void; onOpenTags: (v: number) => void; onOpenTag: (id: string) => void;
   /** Before verse 1 (a book's prologue); hidden while a passage is focused. */
@@ -111,12 +116,28 @@ export function Chapter(p: ChapterProps) {
   const bookmarkOf = useMemo(() => { const m = new Map<number, Bookmark>(); for (const b of p.bookmarks) if (b.book === slug && b.chapter === chapter && b.verse) m.set(b.verse, b); return m; }, [p.bookmarks, slug, chapter]);
 
   const verseOf = (vk: string) => Number(vk.split("-").pop());
+  // Word selection (BibleDOM/AnnotationMode): the words under a point, and the selection's pieces in each verse.
+  const wordRows = useMemo(() => p.verses.map((r) => ({ verseKey: makeKey(slug, chapter, r.verse), text: r.text })), [p.verses, slug, chapter]);
+  const tokensOf = useMemo(() => { const cache = new Map<string, ReturnType<typeof tokenizeVerseText>>(); return (vk: string, text: string) => { let t = cache.get(vk); if (!t) { t = tokenizeVerseText(text); cache.set(vk, t); } return t; }; }, [wordRows]); // eslint-disable-line react-hooks/exhaustive-deps
+  const wordAt = (x: number, y: number): WordPosition | null => {
+    const caret = getCaretInfoFromPoint(x, y); const vk = caret && (findVerseContainer(caret.targetElement) as HTMLElement | null)?.dataset.verseKey;
+    const row = vk ? wordRows.find((r) => r.verseKey === vk) : undefined; if (!caret || !row) return null;
+    const wordIndex = getWordIndexFromCharOffset(tokensOf(row.verseKey, row.text), caret.charOffset);
+    return wordIndex == null ? null : { verseKey: row.verseKey, wordIndex };
+  };
+  const wordSel = p.wordSelection ?? null;
+  const selecting = useMemo(() => {
+    const out = new Map<string, [number, number]>(); if (!wordSel) return out;
+    for (const r of buildRangesFromSelection(wordSel, wordRows, tokensOf)) out.set(r.verseKey, [r.charStart, r.charEnd]);
+    return out;
+  }, [wordSel, wordRows, tokensOf]);
   useVerseGestures(scrollRef, {
-    onTouchedVerseChange: setTouched,
-    onTapVerse: (vk) => { const v = verseOf(vk); if (p.onSeekVerse) { followRef.current = true; setReadingAway(null); p.onSeekVerse(v); return; } if (selectedMode || s.press === "longPress") p.onToggleVerse(v); else p.onVerseDetail(v); },
-    onLongPressVerse: (vk) => { const v = verseOf(vk); if (s.press === "shortPress") p.onToggleVerse(v); else p.onVerseDetail(v); },
-    onDoubleTapVerse: (vk) => p.onDoubleTap?.(verseOf(vk)),
-    onSwipe: (dir) => { if (p.canSwipe && !isContextFocused) p.onSwipe(dir); },
+    onTouchedVerseChange: (vk) => setTouched(wordSel ? null : vk),
+    onDoubleTapVerse: (vk, pos) => { if (!p.onWordSelection) { p.onDoubleTap?.(verseOf(vk)); return; } const w = wordAt(pos.x, pos.y); if (w) p.onWordSelection({ start: w, end: w }); },
+    onTapEmpty: () => { if (wordSel) p.onWordSelection?.(null); },
+    onTapVerse: (vk) => { if (wordSel) { p.onWordSelection?.(null); return; } const v = verseOf(vk); if (p.onSeekVerse) { followRef.current = true; setReadingAway(null); p.onSeekVerse(v); return; } if (selectedMode || s.press === "longPress") p.onToggleVerse(v); else p.onVerseDetail(v); },
+    onLongPressVerse: (vk) => { if (wordSel) return; const v = verseOf(vk); if (s.press === "shortPress") p.onToggleVerse(v); else p.onVerseDetail(v); },
+    onSwipe: (dir) => { if (wordSel) return; if (p.canSwipe && !isContextFocused) p.onSwipe(dir); },
   });
 
   // Scroll velocity above 400 px/s hides the header (SWIPE_DOWN) and shows it again (SWIPE_UP).
@@ -185,7 +206,7 @@ export function Chapter(p: ChapterProps) {
   return (
     <>
     <div ref={scrollRef} className="bs-scroll" style={{ background: "var(--bs-reverse)", color: "var(--bs-default)" }}>
-      <div className="bs-container" style={{ maxWidth: READING_TEXT_MAX_WIDTH + HORIZONTAL_PADDING * 2, padding: `${p.headerHeight + 10}px ${HORIZONTAL_PADDING}px 300px`, textAlign: s.alignContent, background: "var(--bs-reverse)", color: "var(--bs-default)" }}>
+      <div className="bs-container" style={{ position: "relative", maxWidth: READING_TEXT_MAX_WIDTH + HORIZONTAL_PADDING * 2, padding: `${p.headerHeight + 10}px ${HORIZONTAL_PADDING}px 300px`, textAlign: s.alignContent, background: "var(--bs-reverse)", color: "var(--bs-default)" }}>
         {isContextFocused && focus?.length ? null : p.header}
         {p.verses.map((row) => {
           const n = row.verse;
@@ -195,6 +216,7 @@ export function Chapter(p: ChapterProps) {
           const items = p.relationItems[n];
           return (
             <Verse key={vk} verseKey={vk} number={n} text={row.text} settings={s} palette={c} theme={theme}
+              selecting={selecting.get(vk)} colorOf={p.colorOf}
               isSelected={p.selected.includes(n)} isSelectedMode={selectedMode} isTouched={touched === vk}
               highlightedColor={p.highlights[String(n)]?.color} bookmark={bookmarkOf.get(n)}
               isVerseToScroll={!isContextFocused && p.verseToScroll === n && n !== 1} isFocused={isFocused}
@@ -205,6 +227,7 @@ export function Chapter(p: ChapterProps) {
           );
         })}
         {p.footer}
+        {wordSel ? <SelectionHandles scrollRef={scrollRef} selection={wordSel} wordAt={wordAt} onChange={(s) => p.onWordSelection?.(s)} /> : null}
       </div>
       <button type="button" className="bs-return" aria-label="Return to the selected verse" title="Return to the selected verse" onClick={() => scrollSelectedToMiddle()}
         style={{ top: returnPos === "top" ? HEADER_HEIGHT + 12 : undefined, bottom: returnPos === "bottom" ? RETURN_BOTTOM_OFFSET + 16 : undefined, transform: `translateX(-50%) scale(${returnPos ? 1 : 0.95})`, opacity: returnPos ? 1 : 0, pointerEvents: returnPos ? "auto" : "none", border: `1px solid var(--bs-border)`, background: "var(--bs-reverse)", color: "var(--bs-primary)", boxShadow: isDarkTheme(theme) ? "0 8px 24px rgba(0, 0, 0, 0.45)" : "0 8px 24px rgba(0, 0, 0, 0.18)" }}>
@@ -218,4 +241,47 @@ export function Chapter(p: ChapterProps) {
       </button>
     </>
   );
+}
+
+/**
+ * SelectionHandles (BibleDOM/AnnotationMode/SelectionHandles.tsx, HighlightComponents.tsx): a 14 px
+ * system-blue dot with its stem at each end of the word selection; dragging one moves that end to
+ * the word under the finger.
+ */
+function SelectionHandles({ scrollRef, selection, wordAt, onChange }: { scrollRef: React.RefObject<HTMLDivElement | null>; selection: SelectionRange; wordAt: (x: number, y: number) => WordPosition | null; onChange: (s: SelectionRange) => void }) {
+  const [pos, setPos] = useState<{ start: { x: number; y: number }; end: { x: number; y: number } } | null>(null);
+  const drag = useRef<{ which: "start" | "end"; dy: number } | null>(null);
+  useLayoutEffect(() => {
+    const root = scrollRef.current?.querySelector<HTMLElement>(".bs-container"); if (!root) return;
+    const measure = () => {
+      const a = root.querySelector("[data-sel-start]"), b = root.querySelector("[data-sel-end]"); if (!a || !b) { setPos(null); return; }
+      const o = root.getBoundingClientRect(), ra = a.getClientRects()[0], rbs = b.getClientRects(), rb = rbs[rbs.length - 1];
+      if (!ra || !rb) { setPos(null); return; }
+      setPos({ start: { x: ra.left - o.left, y: ra.top - o.top }, end: { x: rb.right - o.left, y: rb.bottom - o.top } });
+    };
+    measure();
+    // The pieces are drawn after the verse's marks load, and move when the text reflows.
+    const mo = new MutationObserver(measure); mo.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-sel-start", "data-sel-end"] });
+    const ro = new ResizeObserver(measure); ro.observe(root);
+    return () => { mo.disconnect(); ro.disconnect(); };
+  }, [scrollRef, selection]);
+  if (!pos) return null;
+  const down = (which: "start" | "end") => (e: RPointerEvent<HTMLSpanElement>) => {
+    e.preventDefault(); e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId);
+    const r = e.currentTarget.getBoundingClientRect();
+    // Aim at the line the handle is on: below the start dot, above the end dot.
+    drag.current = { which, dy: which === "start" ? r.bottom + 12 - e.clientY : r.top - 12 - e.clientY };
+  };
+  const move = (e: RPointerEvent<HTMLSpanElement>) => {
+    const d = drag.current; if (!d) return;
+    const w = wordAt(e.clientX, e.clientY + d.dy); if (!w) return;
+    const cur = selection[d.which]; if (cur.verseKey === w.verseKey && cur.wordIndex === w.wordIndex) return;
+    onChange({ ...selection, [d.which]: w });
+  };
+  const up = () => { drag.current = null; };
+  const handle = (which: "start" | "end", at: { x: number; y: number }) => (
+    <span key={which} data-ignore-verse-touch="" className={`bs-sel-handle bs-sel-handle--${which}`} aria-hidden="true" style={{ top: at.y, left: at.x }}
+      onPointerDown={down(which)} onPointerMove={move} onPointerUp={up} onPointerCancel={up} />
+  );
+  return <>{handle("start", pos.start)}{handle("end", pos.end)}</>;
 }

@@ -14,7 +14,7 @@ import { alert, app, haptic, openLink } from "@/tg/sdk";
 import { RelationTargetPicker } from "@/screens/Relations";
 import { Prologue } from "./dom/Prologue";
 import { Chapter, HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGHT } from "./dom/Chapter";
-import { colorItems, paletteOf, resolveTheme, telegramScheme, useBibleSettings, useSchemeChange } from "./settings";
+import { colorItems, highlightInfo, paletteOf, resolveTheme, telegramScheme, useBibleSettings, useSchemeChange } from "./settings";
 import { cssVars, isDarkTheme } from "./theme";
 import { useToast } from "@/ui/toast";
 import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
@@ -36,6 +36,9 @@ import { readerFullscreen, readerSession, saveReaderFullscreen, saveReaderSessio
 import { WhySheet } from "./ui/WhySheet";
 import { PassageExportSheet } from "./ui/PassageExportSheet";
 import { SelectedVersesSheet } from "./ui/SelectedVersesSheet";
+import { AnnotationToolbar } from "./ui/AnnotationToolbar";
+import { applyMarks, eraseMarks } from "./annotation/marks";
+import { normalizeRange, type SelectionRange } from "./annotation/selectionUtils";
 import "./bible.css";
 
 /**
@@ -103,6 +106,8 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const focus = useMemo(() => { const v = verseNumbers(params.get("v")); return v.length ? v : null; }, [params]);
   const [initial] = useState(() => readerSession(sessionKey, !!focus));
   const [selected, setSelected] = useState(initial.selected);
+  // The words selected by a double tap (Bible Strong's annotation mode); the verse selection and it never show together.
+  const [wordSel, setWordSel] = useState<SelectionRange | null>(null);
   const [contextMode, setContextMode] = useState(initial.contextMode);
   const [fullscreen, setFullscreen] = useState(readerFullscreen);
   useEffect(() => { saveReaderFullscreen(fullscreen); }, [fullscreen]);
@@ -165,8 +170,10 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
     if (sheet) { setSheet(null); return true; }
     if (menuOpen) { setMenuOpen(false); return true; }
     if (selected.length) { setSelected([]); return true; }
+    if (wordSel) { setWordSel(null); return true; }
     return false;
   });
+  useEffect(() => { setWordSel(null); }, [slug, ch]);
 
   // Selection.
   const toggleVerse = (v: number) => { haptic("select"); setSelected((s) => (s.includes(v) ? s.filter((x) => x !== v) : [...s, v])); };
@@ -255,6 +262,15 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const focusedReference = focus ? reference(focus) : null;
   const bottomBar = 64 + (Number(getComputedStyle(document.documentElement).getPropertyValue("--safe-bottom").replace("px", "")) || 0);
   const items = colorItems(settings, palette);
+  const colorOf = useCallback((key: string) => { const { hex } = highlightInfo(key, settings, palette); return hex === "transparent" ? null : hex; }, [settings, palette]);
+  const wordRows = verses.map((v) => ({ verseKey: verseKey(slug, ch, v.verse), text: v.text }));
+  const wordReference = (() => {
+    if (!wordSel) return "";
+    const { start, end } = normalizeRange(wordSel, wordRows);
+    const from = Number(start.verseKey.split("-").pop()), to = Number(end.verseKey.split("-").pop());
+    return reference(Array.from({ length: to - from + 1 }, (_, i) => from + i));
+  })();
+  const markWords = (run: () => Promise<void>) => { const s0 = wordSel; if (!s0) return; setWordSel(null); void run().catch((e: unknown) => say(e instanceof Error ? e.message : "The mark could not be saved.")); };
   const resource = verses.find((v) => v.verse === resourceVerse);
 
   return (
@@ -276,6 +292,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
           footer={<><ChapterPeople slug={slug} chapter={ch} palette={palette} resources={chapterDeck.length ? <MediaDeck items={chapterDeck} placement="chapter" palette={palette} fontScale={settings.fontSizeScale} reference={chapterLabel} from={`/read/${slug}/${ch}`}
             sections={[{ title: `Taught from ${chapterLabel}`, items: chapterGroups.taught }, { title: `Read in class`, items: chapterGroups.read }].filter((x) => x.items.length)} /> : null} /><ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
             onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} /></>}
+          wordSelection={wordSel} onWordSelection={(sel) => { if (sel) setSelected([]); setWordSel(sel); }} colorOf={colorOf}
           onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "words")}
           onSwipe={(dir) => step(dir === "left" ? next : prev)} onFullscreen={setFullscreen}
           onOpenBookmark={(b) => { setBookmarkTarget({ verse: b.verse, existing: b }); setSheet("bookmark"); }}
@@ -287,6 +304,8 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
       <WhySheet open={sheet === "why"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={whyAt} reference={`${chapterLabel}:${whyAt}`}
         onRead={(url, v) => { setSheet(null); const m = slugOfUrl(url); navigate(m ? `/read/${m[1]}/${m[2]}${v ? `?v=${v}` : ""}` : url); }}
         onOpenClass={(url, ts) => { setSheet(null); const t = ts ? ts.split(":").reduce((n, p) => n * 60 + Number(p || 0), 0) : 0; if (/^https?:/.test(url)) openLink(`${url}${t ? `&t=${t}s` : ""}`); else navigate(`/note${url}${t ? `?t=${t}` : ""}`); }} />
+      <AnnotationToolbar open={!!wordSel && !sheet} reference={wordReference} colors={items} onClose={() => setWordSel(null)}
+        onApply={(color, style) => markWords(() => applyMarks(wordSel!, wordRows, style, color))} onErase={() => markWords(() => eraseMarks(wordSel!, wordRows))} />
       <SelectedVersesSheet open={selected.length > 0 && !sheet} onDismiss={() => setSelected([])} reference={selectedReference ?? undefined}
         colors={items} selectedColor={selectedColor} onAddHighlight={addHighlight} onRemoveHighlight={removeHighlight} onAddColor={() => setSheet("params")} onEditColor={() => setSheet("params")}
         moreThanOne={selected.length > 1} hasBookmark={hasBookmark} hasFocus={hasFocus}
