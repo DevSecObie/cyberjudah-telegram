@@ -338,6 +338,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
             onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} /></>}
           annotationMode={annotating} marks={marks} selectedMark={selectedMarkId} colorOf={colorOf}
           wordSelection={wordSel} setWordSelection={setWordSelection} onEnterAnnotation={enterAnnotation} onSelectMark={selectMark}
+          markItems={rel.markItems} onOpenMarkTags={(id) => { selectMark(id); setSheet("markTags"); }}
           onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "words")}
           onSwipe={(dir) => step(dir === "left" ? next : prev)} onFullscreen={setFullscreen}
           onOpenBookmark={(b) => { setBookmarkTarget({ verse: b.verse, existing: b }); setSheet("bookmark"); }}

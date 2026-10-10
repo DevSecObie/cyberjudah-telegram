@@ -9,6 +9,7 @@ import type { Bookmark, Highlight, Tag } from "../store";
 import { isDarkTheme, type Palette, type ThemeName } from "../theme";
 import { findVerseContainer, getCaretInfoFromPoint } from "../annotation/domUtils";
 import { annotationAt, HighlightLayer, insideSelection, useAnnotationHighlights } from "../annotation/highlights";
+import { MarkInlineItems } from "../annotation/InlineItems";
 import type { Mark } from "../annotation/marks";
 import type { SelectionRange, WordPosition } from "../annotation/selectionUtils";
 import { getWordIndexFromCharOffset, tokenizeVerseText } from "../annotation/wordTokenizer";
@@ -39,6 +40,7 @@ export type ChapterProps = {
   annotationMode?: boolean; marks?: Mark[]; selectedMark?: string | null; colorOf?: (key: string) => string | null;
   wordSelection?: SelectionRange | null; setWordSelection?: (fn: (prev: SelectionRange | null) => SelectionRange | null) => void;
   onEnterAnnotation?: () => void; onSelectMark?: (id: string | null) => void;
+  markItems?: Record<string, VerseRelationItem[]>; onOpenMarkTags?: (markId: string) => void;
   onSwipe: (dir: "left" | "right") => void; onFullscreen: (on: boolean) => void;
   onOpenBookmark: (b: Bookmark) => void; onOpenRelations: (v: number) => void; onOpenRelationItem: (it: VerseRelationItem) => void; onOpenTags: (v: number) => void; onOpenTag: (id: string) => void;
   /** Before verse 1 (a book's prologue); hidden while a passage is focused. */
@@ -259,6 +261,8 @@ export function Chapter(p: ChapterProps) {
           );
         })}
         {p.footer}
+        {p.marks?.length ? <MarkInlineItems marks={p.marks} markItems={p.markItems ?? {}} tags={p.tags} settings={s} palette={c} theme={theme} contentKey={`${slug}-${chapter}-${p.verses.length}`}
+          onOpenRelationItem={p.onOpenRelationItem} onOpenTags={(id) => p.onOpenMarkTags?.(id)} onOpenTag={p.onOpenTag} /> : null}
         <HighlightLayer rects={highlightRects} selectedId={selectedMark} dimmed={!mode && selectedMode} handles={handles} showHandles={mode && !!wordSel} />
       </div>
       <button type="button" className="bs-return" aria-label="Return to the selected verse" title="Return to the selected verse" onClick={() => scrollSelectedToMiddle()}

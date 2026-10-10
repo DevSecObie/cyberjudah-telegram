@@ -332,6 +332,8 @@ function toGlobalCharOffset(textNode: Text, localOffset: number): number {
     if (node === textNode) {
       return offset + localOffset
     }
+    // Inline controls placed inside the text (a mark's tags and relations) are not verse text.
+    if (node.parentElement?.closest('[data-ignore-verse-touch]')) continue
     offset += node.textContent?.length || 0
   }
 

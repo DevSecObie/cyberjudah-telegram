@@ -97,7 +97,7 @@ function CountBadge({ theme, count, onClick, label, children }: { palette: Palet
 }
 
 /** VerseTags: the chip under the last verse of a highlight, a tag icon, the first tag, "+N". */
-function VerseTags({ tags, settings: s, theme, onOpenTags, onOpenTag }: { tags: Tag[]; settings: BibleSettings; palette: Palette; theme: ThemeName; onOpenTags: () => void; onOpenTag: (id: string) => void }) {
+export function VerseTags({ tags, settings: s, theme, onOpenTags, onOpenTag }: { tags: Tag[]; settings: BibleSettings; palette: Palette; theme: ThemeName; onOpenTags: () => void; onOpenTag: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
   if (!tags.length) return null;
   const limit = 1, more = tags.length > limit, shown = expanded ? tags : tags.slice(0, limit);

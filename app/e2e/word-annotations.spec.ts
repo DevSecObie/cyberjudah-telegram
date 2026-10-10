@@ -112,6 +112,10 @@ test("a selected mark changes kind in place, takes a note and tags, and its dele
   await page.getByRole("button", { name: "Create « creation »" }).click();
   await page.getByRole("dialog", { name: "Edit tags" }).getByRole("button", { name: "Close" }).click();
   await expect(toolbar(page).getByRole("button", { name: "Tags, 1" })).toBeVisible();
+  // The tag shows right after the mark's last word, and words after it are still found by position.
+  const chip = page.locator('#verset-1 [data-annotation-inline-item] [role="button"]', { hasText: "creation" });
+  await expect(chip).toBeVisible();
+  expect(await page.locator("#verset-1 .bs-text").evaluate(el => { const item = el.querySelector("[data-annotation-inline-item]")!; return (item.previousSibling?.textContent ?? "").endsWith("heaven"); })).toBe(true);
 
   const asked: string[] = [];
   page.removeAllListeners("dialog");

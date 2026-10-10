@@ -111,7 +111,7 @@ export async function deleteRelation(r: Relation) {
 }
 
 /** A relation as it appears under one verse. */
-export type VerseRelationItem = { key: string; relation: Relation; active: VerseEndpoint; target: Endpoint; label: string; updatedAt: number };
+export type VerseRelationItem = { key: string; relation: Relation; active: VerseEndpoint | AnnotationEndpoint; target: Endpoint; label: string; updatedAt: number };
 const TARGET_ORDER: Record<Endpoint["type"], number> = { note: 0, annotation: 0, link: 1, entry: 2, verse: 3, dictionary: 6 };
 
 /** Every relation touching this chapter, and the items to show under each verse. Inline mode anchors a range at its last verse, badge mode at its first (as Bible Strong does). */
@@ -130,7 +130,18 @@ export function useChapterRelations(slug: string, ch: number, display: "inline" 
     for (const v of Object.values(out)) v.sort((a, b) => (TARGET_ORDER[a.target.type] - TARGET_ORDER[b.target.type]) || b.updatedAt - a.updatedAt);
     return out;
   }, [list, slug, ch, display]);
-  return { list, items, loaded };
+  // The relations of each word mark in the chapter, shown after its last word (AnnotationInlineItems).
+  const markItems = useMemo(() => {
+    const out: Record<string, VerseRelationItem[]> = {};
+    for (const r of list) for (const e of r.endpoints) {
+      if (e.type !== "annotation") continue;
+      const target = otherEnd(r, e);
+      (out[e.id] ??= []).push({ key: `${r.id}:${identity(e)}`, relation: r, active: e, target, label: target.label, updatedAt: r.updatedAt });
+    }
+    for (const v of Object.values(out)) v.sort((a, b) => (TARGET_ORDER[a.target.type] - TARGET_ORDER[b.target.type]) || b.updatedAt - a.updatedAt);
+    return out;
+  }, [list]);
+  return { list, items, markItems, loaded };
 }
 
 /** The relations of one endpoint (exact), plus, for a single verse, those of ranges starting there, in sections. */
