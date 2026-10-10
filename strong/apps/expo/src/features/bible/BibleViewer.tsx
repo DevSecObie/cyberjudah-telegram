@@ -149,6 +149,7 @@ import {
   shouldDismissStrongSelectionForViewerState,
 } from './strongSelectionLifecycle'
 import { fetchPassageMediaChapter, resolvePassageMediaChapter } from './passageMedia'
+import { fetchChapterPrecepts, preceptsAfterVerses } from './precepts'
 import {
   getSelectionAnnotationDeletionImpact,
   requiresSelectionAnnotationDeletionConfirmation,
@@ -641,6 +642,15 @@ const BibleViewer = ({
         : EMPTY_PASSAGE_MEDIA,
     [contextualInformationDisplay, passageMediaCatalog, displayedBook, displayedChapter, lang]
   )
+
+  // CyberJudah: the precepts the classes read with each verse, shown after it like a note.
+  const { data: chapterPrecepts } = useQuery({
+    queryKey: ['cyberjudah-precepts', displayedBook, displayedChapter],
+    queryFn: () => fetchChapterPrecepts(displayedBook, displayedChapter),
+    enabled: displayedChapter > 0,
+    staleTime: 60 * 60 * 1000,
+  })
+  const preceptMarkers = useMemo(() => preceptsAfterVerses(chapterPrecepts), [chapterPrecepts])
 
   // Handler for entering annotation mode (from SelectedVersesModal)
   const handleEnterAnnotationMode = useCallback(() => {
@@ -1341,6 +1351,47 @@ const BibleViewer = ({
     // Red words
     redWords: settings.redWordsDisplay ? redWords : null,
     inlineCommentaries,
+    preceptsAfterVerses: preceptMarkers,
+    // CyberJudah: a precept opens its breakdown in the commentary reader, as a commentary chip does.
+    onOpenPrecept: sectionId => {
+      if (!chapterPrecepts) return
+      const { resource, sections } = chapterPrecepts
+      const entry = getCommentaryByPublicationId(resource.resourceId, resource.language)
+      const section = sections.find(item => item.id === sectionId)
+      if (!entry || !section) return
+      const openCommentary = (id = sectionId) =>
+        pushRouteOnce({
+          pathname: '/commentary-entry',
+          params: {
+            projectionId: `${entry.id}:${resource.language}`,
+            book: String(displayedBook),
+            chapter: String(displayedChapter),
+            sectionId: id,
+          },
+        })
+      if (Platform.OS !== 'web') {
+        openCommentary()
+        return
+      }
+      const request: InlineCommentaryRequest = {
+        resourceId: resource.resourceId,
+        language: resource.language,
+        revision: resource.revision,
+        book: displayedBook,
+        chapter: displayedChapter,
+        sectionId,
+        sections: sections.map(item => ({
+          sectionId: item.id,
+          rangeStartVerse: item.rangeStartVerse,
+          rangeEndVerse: item.rangeEndVerse,
+          excerpt: item.excerpt,
+        })),
+        excerpt: section.excerpt,
+      }
+      setCommentaryPreview([
+        { kind: 'commentary', title: entry.shortName, request, open: openCommentary },
+      ])
+    },
     onOpenInlineCommentary: summary => {
       const chip = [
         ...inlinePlacement.introduction,

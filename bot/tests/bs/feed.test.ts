@@ -247,6 +247,20 @@ test('commentary sections agree with the upstream section builder, maintain rank
   assert.deepEqual(runs.map(s => [s.rangeStartVerse, s.rangeEndVerse]), [[1, 1], [3, 3]]);
 });
 
+test('each precept sits after the last verse it explains and opens its own commentary section', async () => {
+  data.set('/api/concordance/john/1.json', structuredClone(originals.get('/api/concordance/john/1.json')));
+  const { json } = await request('/v1/commentaries/cyberjudah/en/precepts/43/1', Schema.Unknown);
+  const { json: index } = await request('/v1/commentaries/reading-index', Commentary.CommentaryReadingIndexResponse, { body: { book: 43, chapter: 1, resources: [{ resourceId: 'cyberjudah', language: 'en' }] } });
+  assert.equal(json.resource.revision, index.indexes[0].resource.revision);
+  assert.deepEqual(json.precepts.map((p: { verse: number; label: string }) => [p.verse, p.label]), [[3, 'Isaiah 9:6-7'], [29, 'Matthew 1:21'], [45, 'Matthew 13:55-56']]);
+  for (const p of json.precepts) {
+    const section = json.sections.find((s: { id: string }) => s.id === p.sectionId);
+    assert.ok(section && section.rangeStartVerse <= p.verse && p.verse <= section.rangeEndVerse);
+    const { json: detail } = await request('/v1/commentaries/reading-section', Commentary.CommentaryReadingSectionResponse, { body: { book: 43, chapter: 1, resourceId: 'cyberjudah', language: 'en', revision: json.resource.revision, sectionId: p.sectionId } });
+    assert.ok(detail.section.content.includes(p.label));
+  }
+});
+
 test('cross references, empty timelines and unsupported resources use the documented schemas', async () => {
   const { json: refs } = await request('/v1/cross-references/fr/verses/43-1-1', Supplementary.CrossReferenceResponseDto);
   assert.ok(refs.references.includes('1-1-1'));

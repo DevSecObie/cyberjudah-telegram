@@ -1,6 +1,7 @@
 import { getPassageContextHeaderHeight } from '../passagePreviewPresentation'
 import type { LabeledCommentaryChip } from './InlineCommentaryChips'
-import { OPEN_INLINE_COMMENTARY } from './dispatch'
+import { OPEN_INLINE_COMMENTARY, OPEN_PRECEPT } from './dispatch'
+import type { PreceptMarker } from './PreceptsText'
 import { useResourcesLanguageValue } from '~state/resourcesLanguage'
 import { previewHistoryAtom } from '~features/bibleReferencePreview/state'
 import { createReaderPreview } from '~features/bibleReferencePreview/readerPreview'
@@ -290,6 +291,9 @@ export type WebViewProps = {
     afterVerses: Record<number, LabeledCommentaryChip[]>
   }
   onOpenInlineCommentary?: (chip: LabeledCommentaryChip) => void
+  // CyberJudah: the precepts after each verse, and opening one
+  preceptsAfterVerses?: Record<number, PreceptMarker[]>
+  onOpenPrecept?: (sectionId: string) => void
   chapterEntities: StrongLexiconChapterEntity[]
   chapterEntitiesLoaded: boolean
   chapterEntityModuleStatus: StrongLexiconModuleAvailability['status'] | null
@@ -410,6 +414,8 @@ export const BibleDOMWrapper = ({
   isFormSheet,
   redWords,
   inlineCommentaries,
+  preceptsAfterVerses,
+  onOpenPrecept,
   onOpenInlineCommentary,
   chapterEntities,
   chapterEntitiesLoaded,
@@ -900,6 +906,12 @@ export const BibleDOMWrapper = ({
         break
       }
 
+      case OPEN_PRECEPT: {
+        const payload = action.payload
+        if (isRecord(payload) && typeof payload.sectionId === 'string')
+          onOpenPrecept?.(payload.sectionId)
+        break
+      }
       case OPEN_INLINE_COMMENTARY: {
         const payload = action.payload
         if (isRecord(payload) && typeof payload.sectionId === 'string') {
@@ -1187,6 +1199,7 @@ export const BibleDOMWrapper = ({
         versesWithNonHighlightTags={versesWithNonHighlightTags}
         redWords={redWords}
         inlineCommentaries={inlineCommentaries}
+        preceptsAfterVerses={preceptsAfterVerses}
         chapterEntities={chapterEntities}
         chapterEntitiesLoaded={chapterEntitiesLoaded}
         chapterEntityModuleStatus={chapterEntityModuleStatus}

@@ -51,6 +51,7 @@ import { shouldHighlightOnlyVerseNumber } from './verseRenderingModel'
 import { getBibleTextFontSize } from './verseTypography'
 import type { ResolvedPassageMedia } from '../passageMedia'
 import PassageMediaThumbnails from './PassageMediaThumbnails'
+import PreceptsText, { type PreceptMarker } from './PreceptsText'
 import type { PassageMediaGallerySection } from './passageMediaGallery'
 
 const VerseText = styled('span')<RootStyles & { isParallel?: boolean }>(
@@ -502,6 +503,8 @@ interface Props {
   redWords?: Record<string, { start: number; end: number }[]> | null
   passageMedia?: ResolvedPassageMedia[]
   passageMediaGallerySections: PassageMediaGallerySection[]
+  // CyberJudah: the precepts read with this verse
+  precepts?: PreceptMarker[]
 }
 
 const Verse = ({
@@ -537,6 +540,7 @@ const Verse = ({
   redWords,
   passageMedia,
   passageMediaGallerySections,
+  precepts,
 }: Props) => {
   const dispatch = useDispatch()
   const translations = useTranslations()
@@ -695,6 +699,7 @@ const Verse = ({
                     isTouched={isTouched}
                     passageMedia={isMainVersion ? passageMedia : undefined}
                     passageMediaGallerySections={passageMediaGallerySections}
+                    precepts={isMainVersion ? precepts : undefined}
                   />
                 ) : null}
               </div>
@@ -767,6 +772,7 @@ const Verse = ({
                 isTouched={isTouched}
                 passageMedia={isMainVersion ? passageMedia : undefined}
                 passageMediaGallerySections={passageMediaGallerySections}
+                precepts={isMainVersion ? precepts : undefined}
               />
             </div>
           )
@@ -904,6 +910,14 @@ const Verse = ({
               isDisabled={annotationMode}
             />
           )}
+        {precepts && precepts.length > 0 && !isSelectionMode && (
+          <PreceptsText
+            precepts={precepts}
+            settings={settings}
+            isParallel={isParallel}
+            isDisabled={annotationMode}
+          />
+        )}
       </Wrapper>
     </>
   )
