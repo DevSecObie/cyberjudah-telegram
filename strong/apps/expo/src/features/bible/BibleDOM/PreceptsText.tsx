@@ -1,12 +1,15 @@
 import Feather from '@expo/vector-icons/Feather'
 import { useState } from 'react'
 import { RootState } from '~redux/modules/reducer'
+import type { VerseRelationItem } from './BibleDOMWrapper'
 import { useDispatch } from './DispatchProvider'
 import { OPEN_PRECEPT } from './dispatch'
 import { InlineItemContainer } from './InlineItem'
+import RelationsCount from './RelationsCount'
 import {
   ExpandButton,
   IconButton,
+  RelationIcon,
   RelationIconWrapper,
   RelationLabel,
   RelationTag,
@@ -14,23 +17,53 @@ import {
 import { scaleFontSize } from './scaleFontSize'
 import truncate from './truncate'
 
-/** CyberJudah: a scripture the classes read with this verse; it opens the class's breakdown. */
-export type PreceptMarker = { label: string; sectionId: string }
+/**
+ * CyberJudah: what the classes taught about a verse, as the app has always shown it under the
+ * verse: a "Precept(s)" note (why each is there), each precept's scripture, then each class
+ * that read the verse. They are drawn as Bible Strong's own relations under a verse.
+ */
+export type PreceptChip =
+  | { kind: 'why'; label: string }
+  | { kind: 'precept'; label: string; osis?: string }
+  | { kind: 'class'; label: string; path: string }
+export type PreceptAction = PreceptChip & { verse: number }
+
+// The relation each chip is drawn as: a note, a verse, a link.
+const TARGET: Record<PreceptChip['kind'], VerseRelationItem['targetType']> = {
+  why: 'note',
+  precept: 'verse',
+  class: 'externalLink',
+}
 
 interface Props {
-  precepts: PreceptMarker[]
+  verse: number
+  chips: PreceptChip[]
   settings: RootState['user']['bible']['settings']
   isParallel?: boolean
   isDisabled?: boolean
 }
 
-/** CyberJudah: the precepts after their verse, drawn like Bible Strong's notes (RelationsText). */
-const PreceptsText = ({ precepts, settings, isParallel, isDisabled }: Props) => {
+const PreceptsText = ({ verse, chips, settings, isParallel, isDisabled }: Props) => {
   const dispatch = useDispatch()
   const [isExpanded, setIsExpanded] = useState(false)
-  const visible = isExpanded ? precepts : precepts.slice(0, 3)
-  const hiddenCount = precepts.length - visible.length
-  const color = settings.colors[settings.theme].primary
+  const open = (chip: PreceptChip) =>
+    dispatch({ type: OPEN_PRECEPT, payload: { ...chip, verse } satisfies PreceptAction })
+  // As Bible Strong does with relations: a count badge when relations are shown as icons.
+  if ((settings.relationsDisplay || 'inline') !== 'inline') {
+    const why = chips.find(chip => chip.kind === 'why')
+    return (
+      <span data-ignore-verse-touch>
+        <RelationsCount
+          settings={settings}
+          count={chips.filter(chip => chip.kind === 'precept').length || chips.length}
+          onClick={() => open(why ?? chips[0])}
+          isDisabled={isDisabled}
+        />
+      </span>
+    )
+  }
+  const visible = isExpanded ? chips : chips.slice(0, 3)
+  const hiddenCount = chips.length - visible.length
   const toggle = (expanded: boolean) => (e: React.MouseEvent) => {
     e.stopPropagation()
     setIsExpanded(expanded)
@@ -38,46 +71,34 @@ const PreceptsText = ({ precepts, settings, isParallel, isDisabled }: Props) => 
       window.dispatchEvent(new CustomEvent('layoutChanged'))
     })
   }
-  const open = (precept: PreceptMarker) =>
-    dispatch({ type: OPEN_PRECEPT, payload: { sectionId: precept.sectionId } })
-
   return (
     <InlineItemContainer settings={settings} isDisabled={isDisabled} data-ignore-verse-touch>
-      {visible.map(precept => (
+      {visible.map((chip, index) => (
         <RelationTag
-          key={`${precept.sectionId}:${precept.label}`}
+          key={`${chip.kind}:${chip.label}:${index}`}
           settings={settings}
           isParallel={isParallel}
           role={isDisabled ? undefined : 'link'}
           tabIndex={isDisabled ? -1 : 0}
-          aria-label={`Precept ${precept.label}`}
+          aria-label={chip.kind === 'why' ? `${chip.label} for verse ${verse}` : chip.label}
           onKeyDown={(event: React.KeyboardEvent) => {
             if (isDisabled || event.key !== 'Enter') return
             event.preventDefault()
             event.stopPropagation()
-            open(precept)
+            open(chip)
           }}
           onClick={(e: React.MouseEvent) => {
             e.stopPropagation()
-            open(precept)
+            open(chip)
           }}
         >
           <RelationIconWrapper settings={settings}>
-            <span
-              style={{
-                color,
-                fontFamily: 'Georgia, serif',
-                fontWeight: 700,
-                fontSize: 15,
-                lineHeight: 1,
-                width: 16,
-                textAlign: 'center',
-              }}
-            >
-              P
-            </span>
+            <RelationIcon
+              item={{ targetType: TARGET[chip.kind] } as VerseRelationItem}
+              settings={settings}
+            />
           </RelationIconWrapper>
-          <RelationLabel settings={settings}>{truncate(precept.label, 40)}</RelationLabel>
+          <RelationLabel settings={settings}>{truncate(chip.label, 40)}</RelationLabel>
         </RelationTag>
       ))}
       {hiddenCount > 0 && (
@@ -85,7 +106,7 @@ const PreceptsText = ({ precepts, settings, isParallel, isDisabled }: Props) => 
           +{hiddenCount}
         </ExpandButton>
       )}
-      {isExpanded && precepts.length > 3 && (
+      {isExpanded && chips.length > 3 && (
         <IconButton settings={settings} onClick={toggle(false)}>
           <Feather
             name="chevron-left"

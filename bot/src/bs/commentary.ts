@@ -35,16 +35,16 @@ export function makeSections(comments: Record<string, string[]>, book: number, c
 }
 async function reading(c: Ctx, book: number, chapter: number) {
   const row = bookById(book);
-  if (chapter === 0) return { resource: { kind: 'commentary' as const, resourceId: COLLECTION, language: 'en' as const, revision: 'cj-commentary-v1-no-introductions' }, comments: {} as Record<string, string[]>, sections: [] as Section[], precepts: [] as Marker[] };
+  if (chapter === 0) return { resource: { kind: 'commentary' as const, resourceId: COLLECTION, language: 'en' as const, revision: 'cj-commentary-v1-no-introductions' }, comments: {} as Record<string, string[]>, sections: [] as Section[] };
   if (!metadata.chaptersByBook[book]?.includes(chapter)) return missing('SUPPLEMENTARY_CONTENT_NOT_FOUND');
   const data = await load<Concordance>(c, `/api/concordance/${row.slug}/${chapter}.json`);
   const notes = data.precepts?.length ? await load<Notes>(c, '/api/notes/index.json') : [];
-  const items: { verses: number[]; teacher: string; date: string; content: string; precept?: string }[] = [];
+  const items: { verses: number[]; teacher: string; date: string; content: string }[] = [];
   for (const p of data.precepts ?? []) {
     const moment = (data.moments ?? []).find(m => m.url === p.note.url && m.ts === p.ts);
     const video = moment?.video ?? notes.find(n => n.url === p.note.url)?.videoId;
     const content = `<h3>${html(p.kind === 'opened' ? 'Read with' : 'Precept')} ${siteLink(p.ref.url, p.ref.label)}</h3>${paragraphs(p.why || p.point || p.text)}${citation(p.note, p.ts, video, seconds(p.ts) ?? moment?.t)}`;
-    items.push({ verses: numbers(p.verses), teacher: p.note.teacher, date: p.note.date, content, precept: p.ref.label });
+    items.push({ verses: numbers(p.verses), teacher: p.note.teacher, date: p.note.date, content });
   }
   for (const p of data.commentary ?? []) {
     const content = `<h3>${html(p.passage)}</h3>${p.points.map(paragraphs).join('')}${citation(p.note, p.ts, p.video, p.t)}`;
@@ -57,21 +57,7 @@ async function reading(c: Ctx, book: number, chapter: number) {
     if (!parts.includes(item.content)) parts.push(item.content);
   }
   const resource = { kind: 'commentary' as const, resourceId: COLLECTION, language: 'en' as const, revision: `cj-commentary-v1-${await sha(comments)}` };
-  const sections = makeSections(comments, book, chapter);
-  return { resource, comments, sections, precepts: markers(items, sections) };
-}
-/** A precept marker sits after the last verse it explains, like a note, and opens its own section. One per scripture and verse: the best-ranked class's. */
-type Marker = { verse: number; label: string; sectionId: string };
-export function markers(items: { verses: number[]; content: string; precept?: string }[], sections: Section[]): Marker[] {
-  const out: Marker[] = [], seen = new Set<string>();
-  for (const item of items) {
-    if (!item.precept || !item.verses.length) continue;
-    const verse = Math.max(...item.verses), key = `${verse}:${item.precept}`;
-    const section = sections.find(s => s.content === item.content && s.rangeStartVerse <= verse && verse <= s.rangeEndVerse);
-    if (!section || seen.has(key)) continue;
-    seen.add(key); out.push({ verse, label: item.precept, sectionId: section.id });
-  }
-  return out.sort((a, b) => a.verse - b.verse);
+  return { resource, comments, sections: makeSections(comments, book, chapter) };
 }
 async function body(c: Ctx) {
   try {
@@ -126,13 +112,6 @@ commentaries.get('/:collection/:language/chapters/:book/:chapter', async c => {
   // One HTML string per verse, its parts divided by <hr>, as Bible Strong's commentary reader reads it.
   const serialized = Object.fromEntries(Object.entries(got.comments).map(([verse, parts]) => [verse, parts.join('<hr>')]));
   return c.json({ resource: got.resource, book, chapter, serializedComments: JSON.stringify(serialized) });
-});
-// CyberJudah: the precepts read with each verse of a chapter, shown in the reader after the verse.
-commentaries.get('/:collection/:language/precepts/:book/:chapter', async c => {
-  collection(c);
-  const book = bookById(c.req.param('book')).id, chapter = integer(c.req.param('chapter'), 1, 200), got = await reading(c, book, chapter);
-  const used = new Set(got.precepts.map(p => p.sectionId));
-  return c.json({ resource: got.resource, book, chapter, sections: got.sections.filter(s => used.has(s.id)).map(({ content, ...section }) => section), precepts: got.precepts });
 });
 commentaries.get('/:collection/:language/verses/:verseKey', async c => {
   collection(c);

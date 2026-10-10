@@ -250,21 +250,22 @@ test('commentary sections agree with the upstream section builder, maintain rank
   assert.deepEqual(runs.map(s => [s.rangeStartVerse, s.rangeEndVerse]), [[1, 1], [3, 3]]);
 });
 
-test('each precept sits after the last verse it explains and opens its own commentary section', async () => {
+test('precepts show under a verse as the app shows them: the note, each precept, each class; the note says why', async () => {
   data.set('/api/concordance/john/1.json', structuredClone(originals.get('/api/concordance/john/1.json')));
-  const { json } = await request('/v1/commentaries/cyberjudah/en/precepts/43/1', Schema.Unknown);
-  const { json: index } = await request('/v1/commentaries/reading-index', Commentary.CommentaryReadingIndexResponse, { body: { book: 43, chapter: 1, resources: [{ resourceId: 'cyberjudah', language: 'en' }] } });
-  assert.equal(json.resource.revision, index.indexes[0].resource.revision);
-  assert.deepEqual(json.precepts.map((p: { verse: number; label: string }) => [p.verse, p.label]), [[3, 'Isaiah 9:6-7'], [29, 'Matthew 1:21'], [45, 'Matthew 13:55-56']]);
-  for (const p of json.precepts) {
-    const section = json.sections.find((s: { id: string }) => s.id === p.sectionId);
-    assert.ok(section && section.rangeStartVerse <= p.verse && p.verse <= section.rangeEndVerse);
-    const { json: detail } = await request('/v1/commentaries/reading-section', Commentary.CommentaryReadingSectionResponse, { body: { book: 43, chapter: 1, resourceId: 'cyberjudah', language: 'en', revision: json.resource.revision, sectionId: p.sectionId } });
-    assert.ok(detail.section.content.includes(p.label));
-    // Inside the app a scripture opens in the reader and a class in the app, never the website.
-    assert.match(detail.section.content, /href="bible:\/\/(Matt|Isa)\.\d+\.\d+-\1\.\d+\.\d+"|href="bible:\/\/Matt\.1\.21"/);
-    assert.match(detail.section.content, /href="https:\/\/cyberjudah\.io\/app\/note\/classes\//);
-  }
+  const { json: chapter } = await request('/v1/commentaries/cyberjudah/en/precepts/43/1', Schema.Unknown);
+  assert.deepEqual(chapter.verses['3'].slice(0, 2), [{ kind: 'why', label: 'Precept' }, { kind: 'precept', label: 'Isaiah 9:6-7', osis: 'Isa.9.6-Isa.9.7' }]);
+  assert.deepEqual(chapter.verses['45'][1], { kind: 'precept', label: 'Matthew 13:55-56', osis: 'Matt.13.55-Matt.13.56' });
+  const classes = Object.values(chapter.verses as Record<string, { kind: string; path?: string }[]>).flat().filter(chip => chip.kind === 'class');
+  assert.ok(classes.length > 0 && classes.every(chip => /^\/watch\/[\w-]{11}\?t=\d+$/.test(chip.path ?? '')));
+  const { json: why } = await request('/v1/commentaries/cyberjudah/en/precepts/43/1/45', Schema.Unknown);
+  assert.equal(why.reference, 'John 1:45');
+  assert.equal(why.title, 'Precept');
+  assert.equal(why.items[0].label, 'Matthew 13:55-56');
+  assert.equal(why.items[0].kind, 'opened');
+  assert.match(why.items[0].why, /son of Joseph/);
+  assert.match(why.items[0].class.path, /^\/note\/classes\/2026\/2026-09-08-.+\?t=20327$/);
+  const { json: none } = await request('/v1/commentaries/cyberjudah/en/precepts/43/1/10', Schema.Unknown);
+  assert.deepEqual(none.items, []);
 });
 
 test('cross references, empty timelines and unsupported resources use the documented schemas', async () => {

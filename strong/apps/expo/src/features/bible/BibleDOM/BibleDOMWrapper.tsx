@@ -3,7 +3,7 @@ import { isPhoneUI } from '~helpers/cyberjudahPhoneUI'
 import { getPassageContextHeaderHeight } from '../passagePreviewPresentation'
 import type { LabeledCommentaryChip } from './InlineCommentaryChips'
 import { OPEN_INLINE_COMMENTARY, OPEN_PRECEPT } from './dispatch'
-import type { PreceptMarker } from './PreceptsText'
+import type { PreceptAction, PreceptChip } from './PreceptsText'
 import { useResourcesLanguageValue } from '~state/resourcesLanguage'
 import { previewHistoryAtom } from '~features/bibleReferencePreview/state'
 import { createReaderPreview } from '~features/bibleReferencePreview/readerPreview'
@@ -294,8 +294,8 @@ export type WebViewProps = {
   }
   onOpenInlineCommentary?: (chip: LabeledCommentaryChip) => void
   // CyberJudah: the precepts after each verse, and opening one
-  preceptsAfterVerses?: Record<number, PreceptMarker[]>
-  onOpenPrecept?: (sectionId: string) => void
+  preceptsAfterVerses?: Record<number, PreceptChip[]>
+  onOpenPrecept?: (action: PreceptAction) => void
   chapterEntities: StrongLexiconChapterEntity[]
   chapterEntitiesLoaded: boolean
   chapterEntityModuleStatus: StrongLexiconModuleAvailability['status'] | null
@@ -910,8 +910,8 @@ export const BibleDOMWrapper = ({
 
       case OPEN_PRECEPT: {
         const payload = action.payload
-        if (isRecord(payload) && typeof payload.sectionId === 'string')
-          onOpenPrecept?.(payload.sectionId)
+        if (isRecord(payload) && typeof payload.kind === 'string' && typeof payload.verse === 'number')
+          onOpenPrecept?.(payload as PreceptAction)
         break
       }
       case OPEN_INLINE_COMMENTARY: {

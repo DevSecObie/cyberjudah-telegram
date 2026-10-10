@@ -51,7 +51,7 @@ import { shouldHighlightOnlyVerseNumber } from './verseRenderingModel'
 import { getBibleTextFontSize } from './verseTypography'
 import type { ResolvedPassageMedia } from '../passageMedia'
 import PassageMediaThumbnails from './PassageMediaThumbnails'
-import PreceptsText, { type PreceptMarker } from './PreceptsText'
+import PreceptsText, { type PreceptChip } from './PreceptsText'
 import type { PassageMediaGallerySection } from './passageMediaGallery'
 
 const VerseText = styled('span')<RootStyles & { isParallel?: boolean }>(
@@ -504,7 +504,7 @@ interface Props {
   passageMedia?: ResolvedPassageMedia[]
   passageMediaGallerySections: PassageMediaGallerySection[]
   // CyberJudah: the precepts read with this verse
-  precepts?: PreceptMarker[]
+  precepts?: PreceptChip[]
 }
 
 const Verse = ({
@@ -912,7 +912,8 @@ const Verse = ({
           )}
         {precepts && precepts.length > 0 && !isSelectionMode && (
           <PreceptsText
-            precepts={precepts}
+            verse={Number(verse.Verset)}
+            chips={precepts}
             settings={settings}
             isParallel={isParallel}
             isDisabled={annotationMode}

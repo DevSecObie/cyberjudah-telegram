@@ -145,7 +145,7 @@ const SvgMaskIcon = ({
   )
 }
 
-const RelationIcon = ({
+export const RelationIcon = ({
   item,
   settings,
 }: {

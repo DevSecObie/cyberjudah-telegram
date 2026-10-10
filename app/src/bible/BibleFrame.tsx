@@ -66,6 +66,10 @@ export function BibleFrame() {
   }, [scheme, preferredColorScheme, preferredLightTheme, preferredDarkTheme]);
 
   const ref = useRef<HTMLIFrameElement | null>(null);
+  // The listener stays for the life of the frame: re-adding it on each route change would mark the
+  // reader not ready, and passages sent after that would wait forever.
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
   // The lion covers the reader until it says it is ready, then fades away.
   const [loaded, setLoaded] = useState(ready);
   useEffect(() => {
@@ -79,7 +83,7 @@ export function BibleFrame() {
         setLoaded(true);
         const pending = queue; queue = [];
         pending.forEach(sendToReader);
-      } else if (m.type === "navigate" && typeof m.path === "string" && m.path.startsWith("/")) navigate(m.path);
+      } else if (m.type === "navigate" && typeof m.path === "string" && m.path.startsWith("/")) navigateRef.current(m.path);
       else if (m.type === "open" && typeof m.url === "string" && /^https?:\/\//.test(m.url)) openLink(m.url);
       else if (m.type === "haptic") haptic(m.kind === "select" ? "select" : m.kind === "success" ? "success" : "tap");
       else if (m.type === "depth") { canGoBack = Boolean(m.canGoBack); changed(); }
@@ -91,7 +95,7 @@ export function BibleFrame() {
     };
     window.addEventListener("message", onMessage);
     return () => { window.removeEventListener("message", onMessage); frame = null; ready = false; };
-  }, [mounted, navigate]);
+  }, [mounted]);
 
   if (!mounted) return null;
   return (

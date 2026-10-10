@@ -35,7 +35,7 @@ import {
   shouldRenderVerseInFocusedContext,
 } from './verseRenderingModel'
 import type { ResolvedPassageMediaChapter } from '../passageMedia'
-import type { PreceptMarker } from './PreceptsText'
+import type { PreceptChip } from './PreceptsText'
 import type { PassageMediaGallerySection } from './passageMediaGallery'
 
 // ============================================================================
@@ -138,7 +138,7 @@ export interface UnifiedVersesRendererProps {
   // Red words data
   redWords?: Record<string, { start: number; end: number }[]> | null
   passageMediaAfterVerses: ResolvedPassageMediaChapter['afterVerses']
-  preceptsAfterVerses?: Record<number, PreceptMarker[]>
+  preceptsAfterVerses?: Record<number, PreceptChip[]>
   passageMediaGallerySections: PassageMediaGallerySection[]
 }
 
