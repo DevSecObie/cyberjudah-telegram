@@ -25,6 +25,16 @@ test("channel fallback reads only the selected tab and handles braces/quotes in 
   assert.deepEqual(parseChannelVideos(page([video()], 'window["ytInitialData"]'), NOW), found);
 });
 
+test("channel fallback keeps the page's order for same-day classes", () => {
+  // Both cards fall on Oct 4; the page lists B first even though its relative time is
+  // older. The page order is the taught order, so the fallback must not re-sort by time.
+  const cards = [
+    video(B, { publishedTimeText: { simpleText: "Streamed 5 hours ago" } }),
+    video(A, { publishedTimeText: { simpleText: "Streamed 1 hour ago" } }),
+  ];
+  assert.deepEqual(parseChannelVideos(page(cards), NOW).map((v) => v.video), [B, A]);
+});
+
 test("channel fallback skips scheduled/live streams, Shorts, invalid dates and invalid IDs", () => {
   const cards = [
     video(A, { upcomingEventData: { startTime: "9999999999" } }),
