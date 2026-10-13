@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The merge queue tests each queued PR on top of main before it lands (Settings → Branches).
+  merge_group:
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
