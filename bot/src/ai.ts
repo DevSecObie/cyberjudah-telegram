@@ -213,9 +213,13 @@ async function startMeterFor(env: Env, uid: number, model: AskModel, opts: Meter
   const limit = opts.maxMc ?? opts.caps?.[model.id];
   const accepted = limit && limit > 0 ? Math.round(limit) : null;
   if (accepted === null && est.maxMc > cfg.confirmAboveMc) return { ok: false, status: 409, body: { error: "confirm", model: model.id, name: model.name, typical_mc: typical, max_mc: est.maxMc } };
-  const cap = Math.min(est.maxMc, accepted ?? est.maxMc);
   // Enough to begin: half a typical answer (at least a tenth of a cent); with less it would be cut off.
-  const minMc = Math.min(cap, Math.max(1000, Math.ceil(typical / 2)));
+  const floor = Math.min(est.maxMc, Math.max(1000, Math.ceil(typical / 2)));
+  // A limit below that is not a price anyone can answer for: it is asked again, never held as
+  // nothing (a hold of 0 would charge 0 and leave the whole answer to the owner).
+  if (accepted !== null && accepted < floor) return { ok: false, status: 409, body: { error: "confirm", model: model.id, name: model.name, typical_mc: typical, max_mc: est.maxMc } };
+  const cap = Math.min(est.maxMc, accepted ?? est.maxMc);
+  const minMc = Math.min(cap, floor);
   const h = await hold(env, owner, request, cap, minMc, model.id);
   // Not enough: the free model is offered, and a top-up.
   if (!h.ok && "reason" in h) return { ok: false, status: 409, body: { error: "request-used", message: "This request already started. Wait for its answer or send a new request." } };
