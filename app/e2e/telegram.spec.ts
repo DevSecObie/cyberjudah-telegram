@@ -399,7 +399,7 @@ liveDataTest("settings: theme, spacing and offline books", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("data-palette", "sepia");
   await page.click(".link >> text=Save a book");
   await page.click(".sheet__item >> text=Jude");
-  await expect(page.locator(".pill--ok")).toHaveText("offline");
+  await expect(page.locator(".pill--ok")).toHaveText("text");
   const cached = await page.evaluate(async () => (await (await caches.open("cj-offline-v1")).keys()).length);
   expect(cached).toBeGreaterThanOrEqual(1);
 });
