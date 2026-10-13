@@ -36,7 +36,7 @@ export async function invoiceFor(env: Env, uid: number, item: string, tz: string
   if (!t) throw new Error("No such top-up");
   const link = await telegramApi(env).createInvoiceLink(
     `Ask CyberJudah · ${fmtUsd(t.usd * MC_PER_USD)} top-up`,
-    `Adds ${fmtUsd(t.mc, { floor: true })} to your Ask CyberJudah balance: what CyberJudah receives for ${t.stars} Stars after Telegram's share. Answers are charged only what they cost; CyberJudah makes no profit. Your balance never expires.`,
+    `Adds ${fmtUsd(t.mc, { floor: true })} to your Ask CyberJudah balance: about what CyberJudah receives for ${t.stars} Stars after Telegram's share, kept a little under it in case the Star's payout falls. Answers are charged only what they cost. Your balance never expires.`,
     payloadOf("pack", uid, t.stars, zoneOf(tz)), "", "XTR", [{ label: "Top-up", amount: t.stars }],
   );
   return { ok: true, link };

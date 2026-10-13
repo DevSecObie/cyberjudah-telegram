@@ -153,25 +153,25 @@ test("the top-up sheet: $1, $5 and $20 with their Stars, why a dollar costs that
   await expect(page.locator(".composer2__model")).toHaveAccessibleName("$0.00 left");
   await page.locator(".composer2__model").click();
   const sheet = page.getByRole("dialog", { name: "Balance" });
-  await expect(sheet.getByRole("button", { name: "Add $1.00 for 77 Stars" })).toBeVisible();
-  await expect(sheet.getByRole("button", { name: "Add $5.00 for 385 Stars" })).toBeVisible();
-  await expect(sheet.getByRole("button", { name: "Add $20.00 for 1539 Stars" })).toBeVisible();
-  await expect(sheet).toContainText("Telegram (and the app store, when you buy Stars) keeps a share of each Star, so $1 of balance costs about 77 Stars. CyberJudah makes no profit: you pay only what your answers cost.");
+  await expect(sheet.getByRole("button", { name: "Add $1.00 for 84 Stars" })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Add $5.00 for 417 Stars" })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Add $20.00 for 1667 Stars" })).toBeVisible();
+  await expect(sheet).toContainText("Telegram (and the app store, when you buy Stars) keeps a share of each Star, so $1 of balance costs about 84 Stars. Your answers are charged only what they cost; the balance a Star adds is kept a little under what CyberJudah receives for it, in case the Star's payout falls.");
   await expect(sheet).not.toContainText(/credit|plan|month/i);
   await shot(page, "2-top-up-sheet");
   // Buying opens Telegram's invoice for that many Stars, made with the reader's time zone.
   const t0 = Date.now();
-  await sheet.getByRole("button", { name: "Add $5.00 for 385 Stars" }).click();
+  await sheet.getByRole("button", { name: "Add $5.00 for 417 Stars" }).click();
   await expect.poll(async () => page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.filter((e) => e[0] === "invoice").length)).toBe(1);
   const made = ((await (await request.get(`${STAND_IN}/__log`)).json()) as Logged[]).filter((e) => e.at >= t0 && e.path.endsWith("/createInvoiceLink"));
   expect(made).toHaveLength(1);
   const inv = made[0].body as { payload: string; currency: string; prices: { amount: number }[]; description: string };
-  expect([inv.currency, inv.prices[0].amount, inv.payload]).toEqual(["XTR", 385, `ask:pack:${RUN + 3}:385:America/New_York`]);
-  expect(inv.description).toContain("CyberJudah makes no profit");
-  // Telegram delivers the payment to the bot: 385 Stars × $0.013 = $5.005 is added, once, even if delivered twice.
-  for (let i = 0; i < 2; i++) expect((await update(request, paid(3, 385, `e2e-charge-${RUN}`))).ok()).toBe(true);
-  expect((await account(request, 3)).wallet.total_mc).toBe(5_005_000);
-  expect((await books(3)).ledger).toBe(5_005_000);
+  expect([inv.currency, inv.prices[0].amount, inv.payload]).toEqual(["XTR", 417, `ask:pack:${RUN + 3}:417:America/New_York`]);
+  expect(inv.description).toContain("Answers are charged only what they cost");
+  // Telegram delivers the payment to the bot: 417 Stars × $0.012 = $5.004 is added, once, even if delivered twice.
+  for (let i = 0; i < 2; i++) expect((await update(request, paid(3, 417, `e2e-charge-${RUN}`))).ok()).toBe(true);
+  expect((await account(request, 3)).wallet.total_mc).toBe(5_004_000);
+  expect((await books(3)).ledger).toBe(5_004_000);
   await page.reload();
   await expect(page.locator(".composer2__model")).toHaveAccessibleName("$5.00 left");
 });
@@ -187,7 +187,7 @@ test("during the Sabbath the top-up buttons give way to when they open again, an
   await expect(sheet.getByRole("button", { name: /^Add \$/ })).toHaveCount(0);
   await shot(page, "3-sabbath");
   // The server refuses on its own, for any top-up.
-  const refused = await request.post("/api/ask/buy", { headers: { ...auth(4), "x-e2e-now": FRIDAY_NIGHT }, data: { item: "pack:77", tz: "America/New_York" } });
+  const refused = await request.post("/api/ask/buy", { headers: { ...auth(4), "x-e2e-now": FRIDAY_NIGHT }, data: { item: "pack:84", tz: "America/New_York" } });
   expect(refused.status()).toBe(423);
   expect((await refused.json()).message).toBe("Top-ups pause for the Sabbath — they open again after dark on Saturday");
   // After full dark on Saturday they are back.
