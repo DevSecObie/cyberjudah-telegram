@@ -73,6 +73,7 @@
       "vars": {
         "DATA_ORIGIN": "https://data.cyberjudah.io",
         "SITE_URL": "https://cyberjudah.io",
+        "D1_SIZE_ALERT_BYTES": "8000000000",
         "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr",
         "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "cloudflare",
         "ASK_USD_PER_STAR": "0.012", "ASK_MARGIN": "1", "ASK_TOPUPS_USD": "1,5,20",
@@ -89,6 +90,8 @@
   "vars": {
     "DATA_ORIGIN": "https://data.cyberjudah.io",
     "SITE_URL": "https://cyberjudah.io",
+    // The hourly check pages the admins past this D1 size: 80% of Cloudflare's 10 GB per-database limit.
+    "D1_SIZE_ALERT_BYTES": "8000000000",
     // The Mini App's direct link from @BotFather (/newapp). Shared links and buttons open the app.
     "APP_URL": "https://cyberjudah.io/app",
     // Ask CyberJudah's model when the ANTHROPIC_API_KEY secret is set (claude-sonnet-5 is the
