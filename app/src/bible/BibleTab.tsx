@@ -116,7 +116,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const markRecords = useChapterMarks(slug, ch);
   const marks = useMemo(() => groupMarks(markRecords), [markRecords]);
   const selectedMark = marks.find((m) => m.id === selectedMarkId) ?? null;
-  const enterAnnotation = () => { setSelected([]); setAnnotating(true); setFullscreen(false); };
+  const enterAnnotation = () => { setSelected([]); setAnnotating(true); };
   const exitAnnotation = () => { setAnnotating(false); setWordSel(null); setSelectedMarkId(null); };
   const selectMark = (id: string | null) => { if (id) setWordSel(null); setSelectedMarkId(id); };
   const setWordSelection = useCallback((fn: (prev: SelectionRange | null) => SelectionRange | null) => setWordSel((prev) => { const next = fn(prev); if (next) setSelectedMarkId(null); return next; }), []);
@@ -346,7 +346,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
             sections={[{ title: `Taught from ${chapterLabel}`, items: chapterGroups.taught }, { title: `Read in class`, items: chapterGroups.read }].filter((x) => x.items.length)} /> : null} /><ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
             onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} /></>}
           annotationMode={annotating} marks={marks} selectedMark={selectedMarkId} colorOf={colorOf}
-          wordSelection={wordSel} setWordSelection={setWordSelection} onEnterAnnotation={enterAnnotation} onSelectMark={selectMark} onExitAnnotation={exitAnnotation}
+          wordSelection={wordSel} setWordSelection={setWordSelection} onSelectMark={selectMark} onExitAnnotation={exitAnnotation}
           onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "words")}
           onSwipe={(dir) => step(dir === "left" ? next : prev)} onFullscreen={setFullscreen}
           onOpenBookmark={(b) => { setBookmarkTarget({ verse: b.verse, existing: b }); setSheet("bookmark"); }}
@@ -369,6 +369,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
       <SelectedVersesSheet open={selected.length > 0 && !sheet} onDismiss={() => setSelected([])} reference={selectedReference ?? undefined}
         colors={items} selectedColor={selectedColor} onAddHighlight={addHighlight} onRemoveHighlight={removeHighlight} onAddColor={() => setSheet("params")} onEditColor={() => setSheet("params")}
         moreThanOne={selected.length > 1} hasBookmark={hasBookmark} hasFocus={hasFocus}
+        onMarkWords={enterAnnotation}
         onNote={() => { setNoteEdit(null); setSheet("note"); }} onTag={() => { setTagsTarget(selectedSorted); setSheet("tags"); }} onLink={() => setSheet("link")} onRelation={() => setSheet("relation")}
         onBookmark={() => { setBookmarkTarget({ verse: first, existing: bookmarks.find((b) => b.book === slug && b.chapter === ch && b.verse === first) }); setSheet("bookmark"); }} onFocus={setFocus}
         onLexicon={() => openResources(first, "words")} onDictionary={() => openResources(first, "dictionary")} onThemes={() => openResources(first, "themes")} onReferences={() => openResources(first, "references")} onCommentary={() => openResources(first, "commentary")} onCompare={() => { setResourceVerse(first); setSheet("compare"); }}

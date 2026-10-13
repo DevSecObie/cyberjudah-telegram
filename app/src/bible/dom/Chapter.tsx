@@ -35,10 +35,10 @@ export type ChapterProps = {
   moments?: Record<number, ClassMoment[]>; deck?: { reference: string; from: string };
   headerHeight: number; fullscreen: boolean; canSwipe: boolean;
   onToggleVerse: (v: number) => void; onVerseDetail: (v: number) => void; onDoubleTap?: (v: number) => void;
-  /** Bible Strong's word annotation: a long press selects a word, the handles extend it. */
+  /** While annotating, a long press selects a word and the handles extend it. */
   annotationMode?: boolean; marks?: Mark[]; selectedMark?: string | null; colorOf?: (key: string) => string | null;
   wordSelection?: SelectionRange | null; setWordSelection?: (fn: (prev: SelectionRange | null) => SelectionRange | null) => void;
-  onEnterAnnotation?: () => void; onSelectMark?: (id: string | null) => void; onExitAnnotation?: () => void;
+  onSelectMark?: (id: string | null) => void; onExitAnnotation?: () => void;
   onSwipe: (dir: "left" | "right") => void; onFullscreen: (on: boolean) => void;
   onOpenBookmark: (b: Bookmark) => void; onOpenRelations: (v: number) => void; onOpenRelationItem: (it: VerseRelationItem) => void; onOpenTags: (v: number) => void; onOpenTag: (id: string) => void;
   /** Before verse 1 (a book's prologue); hidden while a passage is focused. */
@@ -139,27 +139,31 @@ export function Chapter(p: ChapterProps) {
   const wordOfTap = (vk: string, pos: { x: number; y: number }): SelectionRange | null => { const w = wordAt(pos.x, pos.y); return w && w.verseKey === vk ? { start: w, end: w } : null; };
   // handleTapVerseAnnotationMode: a mark selects (or deselects) it; inside the selection nothing;
   // otherwise the mark is let go, and an existing selection ends or the tapped word is selected.
-  const tapInMode = (vk: string, pos: { x: number; y: number }) => {
-    const hit = annotationAt(highlightRects, layerRef.current, pos);
+  const tapInMode = (vk: string, pos: { x: number; y: number }, target: EventTarget | null) => {
+    const hit = annotationAt(target);
     if (hit) { setSel(null); p.onSelectMark?.(hit === selectedMark ? null : hit); return; }
+    const w = wordOfTap(vk, pos);
+    if (!w) { p.onExitAnnotation?.(); return; }
     if (insideSelection(highlightRects, layerRef.current, pos)) return;
     if (selectedMark) p.onSelectMark?.(null);
     if (wordSel) { setSel(null); return; }
-    const w = wordOfTap(vk, pos); if (w) setSel(w);
+    setSel(w);
   };
   useVerseGestures(scrollRef, {
     onTouchedVerseChange: setTouched,
-    onTapVerse: (vk, pos) => {
-      if (mode) { if (!wordOfTap(vk, pos)) p.onExitAnnotation?.(); else tapInMode(vk, pos); return; }
-      const hit = annotationAt(highlightRects, layerRef.current, pos);
-      if (!selectedMode && hit && p.onEnterAnnotation) { p.onEnterAnnotation(); p.onSelectMark?.(hit); return; }
-      const v = verseOf(vk); if (p.onSeekVerse) { followRef.current = true; setReadingAway(null); p.onSeekVerse(v); return; } if (selectedMode || s.press === "longPress") p.onToggleVerse(v); else p.onVerseDetail(v);
+    onTapVerse: (vk, pos, target) => {
+      if (mode) { tapInMode(vk, pos, target); return; }
+      const v = verseOf(vk);
+      if (p.onSeekVerse) { followRef.current = true; setReadingAway(null); p.onSeekVerse(v); return; }
+      if (annotationAt(target) || selectedMode || s.press === "longPress") p.onToggleVerse(v); else p.onVerseDetail(v);
     },
     onDoubleTapVerse: (vk) => p.onDoubleTap?.(verseOf(vk)),
     onLongPressVerse: (vk, pos) => {
-      const w = wordOfTap(vk, pos);
-      if (w && p.onEnterAnnotation) { p.onEnterAnnotation(); p.onSelectMark?.(null); setSel(w); return; }
-      if (mode) { p.onExitAnnotation?.(); return; }
+      if (mode) {
+        const w = wordOfTap(vk, pos);
+        if (w) { p.onSelectMark?.(null); setSel(w); } else p.onExitAnnotation?.();
+        return;
+      }
       const v = verseOf(vk); if (s.press === "shortPress") p.onToggleVerse(v); else p.onVerseDetail(v);
     },
     onTapEmpty: () => { if (mode) p.onExitAnnotation?.(); },
@@ -172,6 +176,7 @@ export function Chapter(p: ChapterProps) {
     const el = scrollRef.current; if (!el) return;
     let lastTop = el.scrollTop, lastTime = Date.now(), canDown = true, canUp = true, reached = false;
     const onScroll = () => {
+      if (mode) return;
       const top = el.scrollTop, now = Date.now(), dt = now - lastTime, dy = top - lastTop;
       const velocity = Math.abs(dy / Math.max(dt, 1)); const total = el.scrollHeight - el.clientHeight;
       if (top < 0 || top > total) { if (!reached) p.onFullscreen(false); reached = true; return; }
@@ -184,7 +189,7 @@ export function Chapter(p: ChapterProps) {
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-  }, [p.onFullscreen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [p.onFullscreen, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A layout change (a new chapter, the focus bar, the header collapsing) moves the scroll position without a gesture; it must not read as a fast scroll.
   useEffect(() => { suppressRef.current = true; const t = setTimeout(() => { suppressRef.current = false; }, 600); return () => clearTimeout(t); }, [chapter, p.contextDisplayMode, p.headerHeight, hasVerses, focus?.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -1,4 +1,4 @@
-import { addAnnotation, markId, removeAnnotation, updateAnnotation, type Annotation, type AnnotationNote } from "@/studies/storage";
+import { changeAnnotations, markId, type Annotation, type AnnotationNote } from "@/studies/storage";
 import { buildRangesFromSelection, normalizeRange, type SelectionRange, type SelectionVerse } from "./selectionUtils";
 import { tokenizeVerseText } from "./wordTokenizer";
 
@@ -33,7 +33,8 @@ export function marksInSelection(marks: Mark[], selection: SelectionRange, verse
   return marks.filter((m) => m.records.some((a) => ranges.some((r) => r.verseKey === a.verseKey && a.start < r.charEnd && a.end > r.charStart)));
 }
 
-async function removeMark(m: Mark) { for (const r of m.records) await removeAnnotation(r.id); }
+const recordIds = (marks: Mark[]) => marks.flatMap(m => m.records.map(r => r.id));
+const removeMark = (m: Mark) => changeAnnotations({ remove: recordIds([m]) });
 
 /** CREATE_ANNOTATION: the new mark's id, after replacing the marks it covers. */
 export async function applyMark(marks: Mark[], selection: SelectionRange, verses: SelectionVerse[], style: MarkStyle, color: string): Promise<string | null> {
@@ -42,27 +43,28 @@ export async function applyMark(marks: Mark[], selection: SelectionRange, verses
   const replaced = marksInSelection(marks, selection, verses);
   const created = new Date().toISOString(), ids = ranges.map(() => crypto.randomUUID());
   const group = ranges.length > 1 ? crypto.randomUUID() : undefined;
-  for (const [i, r] of ranges.entries()) {
-    const text = verses.find((v) => v.verseKey === r.verseKey)!.text;
-    await addAnnotation({ id: ids[i], verseKey: r.verseKey, start: r.charStart, end: r.charEnd, quote: r.text, style, color, ...(group ? { group } : {}), created }, text);
-  }
-  for (const m of replaced) await removeMark(m);
+  const add = ranges.map((r, i) => ({
+    annotation: { id: ids[i], verseKey: r.verseKey, start: r.charStart, end: r.charEnd, quote: r.text, style, color, ...(group ? { group } : {}), created },
+    text: verses.find((v) => v.verseKey === r.verseKey)!.text,
+  }));
+  await changeAnnotations({ add, remove: recordIds(replaced) });
   return group ?? ids[0];
 }
 
 /** ERASE_SELECTION: every mark the selection touches goes, whole. */
 export async function eraseMarks(marks: Mark[], selection: SelectionRange, verses: SelectionVerse[]) {
-  for (const m of marksInSelection(marks, selection, verses)) await removeMark(m);
+  await changeAnnotations({ remove: recordIds(marksInSelection(marks, selection, verses)) });
 }
 
 export const deleteMark = removeMark;
 export async function updateMark(m: Mark, change: Partial<Pick<Annotation, "style" | "color" | "note" | "tags">>) {
-  for (const r of m.records) {
+  const update = m.records.map(r => {
     const next: Annotation = { ...r, ...change };
     if (change.note === undefined && "note" in change) delete next.note;
     if (change.tags === undefined && "tags" in change) delete next.tags;
-    await updateAnnotation(next);
-  }
+    return next;
+  });
+  await changeAnnotations({ update });
 }
 
 /** The mark's words, each verse's part trimmed and joined with " … " (wordAnnotationRanges.ts). */

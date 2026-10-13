@@ -1,4 +1,4 @@
-import type { Annotation } from "@/studies/storage";
+import { markId, type Annotation } from "@/studies/storage";
 import { AnnotatedText } from "@/studies/AnnotatedText";
 import { useState, type CSSProperties } from "react";
 
@@ -69,6 +69,7 @@ export function Verse(p: VerseProps) {
     const styles = [...new Set(records.map(a => a.style))];
     const color = records.find(a => a.color)?.color;
     return <span key={start} className={styles.length ? `bs-word-mark ${styles.map(s => `phrase-${s}`).join(" ")}` : undefined}
+      data-mark={records.length ? markId(records[0]) : undefined}
       data-coloured={color ? "" : undefined} style={color ? { "--word-ink": p.colorOf?.(color) ?? "var(--bs-primary)" } as CSSProperties : undefined}>{p.text.slice(start, end)}</span>;
   }) : <AnnotatedText verseKey={p.verseKey} text={p.text} />;
   const deck = !!(p.moments?.length && p.deck);

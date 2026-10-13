@@ -124,11 +124,9 @@ export function HighlightLayer({ rects, selectedId, dimmed, handles, showHandles
   );
 }
 
-/** findClickedAnnotationId: the first mark rect under the point. */
-export function annotationAt(rects: HighlightRect[], container: HTMLElement | null, p: { x: number; y: number }): string | null {
-  const c = container?.getBoundingClientRect(); if (!c) return null;
-  const x = p.x - c.left, y = p.y - c.top;
-  return rects.find((r) => r.type === "annotation" && r.annotationId && x >= r.left && x <= r.left + r.width && y >= r.top && y <= r.top + r.height)?.annotationId ?? null;
+/** Hit-test the rendered mark, even when fonts or inline content have moved it. */
+export function annotationAt(target: EventTarget | null): string | null {
+  return target instanceof Element ? target.closest<HTMLElement>("[data-mark]")?.dataset.mark ?? null : null;
 }
 /** isClickInsideSelection. */
 export function insideSelection(rects: HighlightRect[], container: HTMLElement | null, p: { x: number; y: number }): boolean {

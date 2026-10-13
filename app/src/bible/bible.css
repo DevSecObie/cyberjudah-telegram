@@ -598,6 +598,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-export__footer { padding: 8px 16px; }
 
 /* Word selection from #238; the reader's existing palette, fonts, Glass sheet and mark styles stay. */
+.bs-container[data-annotating] .bs-text, .bs-container[data-annotating] .bs-text * { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .bs-hl-layer { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
 .bs-hl { position: absolute; box-sizing: border-box; pointer-events: none; border-radius: 2px; }
 .bs-hl[data-selected] { outline: 2px solid var(--bs-primary); outline-offset: 2px; }

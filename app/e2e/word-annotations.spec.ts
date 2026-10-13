@@ -52,7 +52,16 @@ async function hold(page: Page, p: Point) {
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   } finally { await cdp.detach(); }
 }
+async function enterAnnotation(page: Page, verse = 1) {
+  if (!(await page.locator(".bs-selected").count())) await page.locator(`#verset-${verse} .bs-num`).tap();
+  const sheet = page.getByRole("dialog", { name: /^Selected:/ });
+  await sheet.getByRole("tab", { name: "Annotate", exact: true }).tap();
+  await sheet.getByRole("button", { name: "Mark words", exact: true }).tap();
+  await expect(toolbar(page)).toBeVisible();
+  await expect(sheet).toHaveCount(0);
+}
 async function selectWord(page: Page, verse = 1, word = "beginning") {
+  if (!(await toolbar(page).count())) await enterAnnotation(page);
   await hold(page, await wordPoint(page, verse, word));
   await expect(toolbar(page)).toBeVisible();
   await expect(page.locator(".bs-sel-handle")).toHaveCount(2);
@@ -88,7 +97,7 @@ async function done(page: Page) {
   await expect(toolbar(page)).toHaveCount(0);
 }
 
-test("1: long press selects one word; both handles extend, shrink and cross into the next verse", async ({ page }) => {
+test("1: in annotation mode a long press selects one word; both handles extend, shrink and cross into the next verse", async ({ page }) => {
   await open(page); await selectWord(page);
   await expect.poll(() => selectedWords(page)).toBe("beginning");
   await handle(page, "end", 1, "created");
@@ -137,11 +146,11 @@ test("3: each style saves exactly its word immediately and survives reload and c
   await expect(marked(page)).toHaveText(["beginning", "God", "created"]);
 });
 
-test("4: tapping a saved mark selects it for restyling, colour, a persistent note and deletion", async ({ page }) => {
+test("4: in annotation mode tapping a saved mark selects it for restyling, colour, a persistent note and deletion", async ({ page }) => {
   await open(page); await selectWord(page);
   await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
   await expect(marked(page)).toHaveText("beginning"); await done(page);
-  await marked(page).tap(); await expect(toolbar(page)).toBeVisible();
+  await enterAnnotation(page); await marked(page).tap(); await expect(toolbar(page)).toBeVisible();
   await toolbar(page).getByRole("radio", { name: "Circle", exact: true }).tap();
   await expect(marked(page)).toHaveClass(/phrase-circle/);
   const color = toolbar(page).getByRole("group", { name: "Mark colour" }).getByRole("button").nth(1);
@@ -155,7 +164,7 @@ test("4: tapping a saved mark selects it for restyling, colour, a persistent not
   await expect(toolbar(page)).toBeVisible(); await done(page);
   await page.reload(); await expect(marked(page)).toHaveText("beginning");
   await expect(marked(page)).toHaveCSS("border-color", ink);
-  await marked(page).tap(); await toolbar(page).getByRole("button", { name: "Note", exact: true }).tap();
+  await enterAnnotation(page); await marked(page).tap(); await toolbar(page).getByRole("button", { name: "Note", exact: true }).tap();
   await expect(note.getByLabel("Title", { exact: true })).toHaveValue("Creation");
   await expect(note.getByLabel("Description", { exact: true })).toHaveValue("A note on this word.");
   await note.getByRole("button", { name: "Cancel", exact: true }).tap();
@@ -202,6 +211,174 @@ test("6: a tap still selects the verse; a chapter swipe works only outside word 
   await done(page);
   await drag(page, { x: 330, y: 350 }, { x: 40, y: 350 }, 3);
   await expect(page).toHaveURL(/\/read\/genesis\/2/);
+});
+
+test("default long press on verse text opens resources without measuring words", async ({ page }) => {
+  await open(page);
+  const cdp = await page.context().newCDPSession(page);
+  const { result } = await cdp.send("Runtime.evaluate", { expression: 'document.querySelector(".bs-scroll")' });
+  const { listeners } = await cdp.send("DOMDebugger.getEventListeners", { objectId: result.objectId! });
+  const touch = listeners.filter(l => l.type.startsWith("touch"));
+  expect(touch.map(l => l.type)).toEqual(expect.arrayContaining(["touchstart", "touchmove", "touchend", "touchcancel"]));
+  expect(touch.every(l => l.passive)).toBe(true);
+  await cdp.detach();
+  // A reading gesture must not query word geometry, even when a long press fires.
+  await page.evaluate(() => {
+    for (const method of ["elementsFromPoint", "caretRangeFromPoint", "caretPositionFromPoint"]) {
+      Object.defineProperty(document, method, { configurable: true, value: () => { throw new Error(`Unexpected word measurement: ${method}`); } });
+    }
+  });
+  const errors: string[] = []; page.on("pageerror", e => errors.push(e.message));
+  await hold(page, await wordPoint(page, 1, "beginning"));
+  await expect(page.getByRole("dialog", { name: "Genesis 1:1", exact: true })).toBeVisible();
+  await expect(toolbar(page)).toHaveCount(0);
+  await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+async function shortPress(page: Page) {
+  await page.getByRole("button", { name: "Scripture options", exact: true }).tap();
+  await page.getByRole("menuitem", { name: "Font and settings", exact: true }).tap();
+  await page.getByRole("button", { name: "Showing strongs: Long press", exact: true }).tap();
+  await expect(page.getByRole("button", { name: "Showing strongs: Short press", exact: true })).toBeVisible();
+  await page.getByRole("dialog", { name: "Font and settings", exact: true }).getByRole("button", { name: "Close", exact: true }).tap();
+}
+
+test("shortPress long press on verse text still selects the verse", async ({ page }) => {
+  await open(page); await shortPress(page); await hold(page, await wordPoint(page, 1, "beginning"));
+  await expect(page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true })).toBeVisible();
+  await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
+  await expect(toolbar(page)).toHaveCount(0);
+  await enterAnnotation(page);
+  await hold(page, await wordPoint(page, 1, "beginning"));
+  await expect.poll(() => selectedWords(page)).toBe("beginning");
+});
+
+for (const press of ["longPress", "shortPress"]) test(`tapping a saved mark selects its verse in ${press} reading mode`, async ({ page }) => {
+  await open(page); await selectWord(page);
+  await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
+  await expect(marked(page)).toHaveText("beginning"); await done(page);
+  await page.reload(); await expect(marked(page)).toHaveText("beginning");
+  if (press === "shortPress") await shortPress(page);
+  await expect(marked(page)).toHaveAttribute("data-mark", /.+/);
+  await marked(page).tap();
+  await expect(page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true })).toBeVisible();
+  await expect(toolbar(page)).toHaveCount(0);
+  await expect(page.locator(".bs-sel-handle")).toHaveCount(0);
+});
+
+test("tapping a saved mark seeks first while audio is playing", async ({ page }) => {
+  await page.route("**/api/voices", r => r.fulfill({ json: { voices: [] } }));
+  await page.route("**/api/recordings/**", r => r.fulfill({ json: { narrators: [] } }));
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "SpeechSynthesisUtterance", { value: class { constructor(public text: string) {} } });
+    Object.defineProperty(window, "speechSynthesis", { value: {
+      getVoices: () => [{ name: "Test device", lang: "en-GB" }], addEventListener() {}, removeEventListener() {},
+      speak(u: { onstart?: () => void }) { u.onstart?.(); }, cancel() {}, pause() {}, resume() {},
+    } });
+  });
+  await open(page); await selectWord(page, 2, "without");
+  await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
+  await expect(marked(page)).toHaveText(["without"]); await done(page);
+  await page.getByRole("button", { name: "Start audio playback", exact: true }).tap();
+  await expect(page.getByRole("button", { name: "Stop audio playback", exact: true })).toBeVisible();
+  await marked(page).tap();
+  await expect(page.locator(".bs-verse[data-reading]")).toHaveAttribute("id", "verset-2");
+  await expect(page.locator(".bs-selected")).toHaveCount(0);
+  await expect(toolbar(page)).toHaveCount(0);
+});
+
+async function trackMarkWrites(page: Page) {
+  await page.evaluate(() => {
+    const state = { transactions: 0, broadcasts: 0 };
+    (window as unknown as { __markWrites: typeof state }).__markWrites = state;
+    const transaction = IDBDatabase.prototype.transaction;
+    IDBDatabase.prototype.transaction = function (...args) {
+      if (this.name === "cyberjudah-personal-study" && args[1] === "readwrite" && [args[0]].flat().includes("annotations")) state.transactions++;
+      return transaction.apply(this, args);
+    };
+    const post = BroadcastChannel.prototype.postMessage;
+    BroadcastChannel.prototype.postMessage = function (message) {
+      if (this.name === "cyberjudah-personal-study" && message === "changed") state.broadcasts++;
+      return post.call(this, message);
+    };
+  });
+}
+const markWrites = (page: Page) => page.evaluate(() => (window as unknown as { __markWrites: { transactions: number; broadcasts: number } }).__markWrites);
+
+test("saving, restyling and deleting a three-verse mark commits every part together", async ({ page }) => {
+  await open(page); await selectWord(page);
+  await handle(page, "end", 3, "God");
+  await expect.poll(() => selectedWords(page)).toContain("And God");
+  await trackMarkWrites(page);
+  await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
+  await expect(marked(page)).toHaveCount(3);
+  await expect.poll(() => markWrites(page)).toEqual({ transactions: 1, broadcasts: 1 });
+  const id = await marked(page).first().getAttribute("data-mark");
+  expect(await marked(page).evaluateAll(els => els.map(el => el.getAttribute("data-mark")))).toEqual([id, id, id]);
+  await toolbar(page).getByRole("radio", { name: "Circle", exact: true }).tap();
+  await expect(page.locator(".bs-word-mark.phrase-circle")).toHaveCount(3);
+  await expect.poll(() => markWrites(page)).toEqual({ transactions: 2, broadcasts: 2 });
+  await done(page); await page.reload();
+  await expect(marked(page)).toHaveCount(3);
+  await enterAnnotation(page); await marked(page).nth(1).tap();
+  await trackMarkWrites(page);
+  await toolbar(page).getByRole("button", { name: "Delete", exact: true }).tap();
+  await expect(marked(page)).toHaveCount(0);
+  await expect.poll(() => markWrites(page)).toEqual({ transactions: 1, broadcasts: 1 });
+  await page.reload(); await expect(marked(page)).toHaveCount(0);
+  await goInApp(page, "/settings/account");
+  expect((await backup(page)).annotations).toEqual([]);
+});
+
+test("replacing a multi-verse mark removes all old parts in the same save transaction", async ({ page }) => {
+  await open(page); await selectWord(page); await handle(page, "end", 3, "God");
+  await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
+  await expect(marked(page)).toHaveCount(3);
+  await selectWord(page, 2, "without");
+  await trackMarkWrites(page);
+  await toolbar(page).getByRole("radio", { name: "Underline", exact: true }).tap();
+  await expect(marked(page)).toHaveText(["without"]);
+  await expect.poll(() => markWrites(page)).toEqual({ transactions: 1, broadcasts: 1 });
+  await page.reload(); await expect(marked(page)).toHaveText(["without"]);
+});
+
+test("an aborted multi-verse replacement preserves the old mark and emits no change", async ({ page }) => {
+  await open(page); await selectWord(page);
+  await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
+  await expect(marked(page)).toHaveText("beginning");
+  await selectWord(page); await handle(page, "end", 3, "God");
+  await trackMarkWrites(page);
+  await page.evaluate(() => {
+    const put = IDBObjectStore.prototype.put;
+    let writes = 0;
+    IDBObjectStore.prototype.put = function (...args) {
+      const request = put.apply(this, args);
+      if (this.name === "annotations" && ++writes === 2) this.transaction.abort();
+      return request;
+    };
+  });
+  await toolbar(page).getByRole("radio", { name: "Circle", exact: true }).tap();
+  await expect(toolbar(page).getByRole("radio", { name: "Circle", exact: true })).toBeEnabled();
+  await expect.poll(() => markWrites(page)).toEqual({ transactions: 1, broadcasts: 0 });
+  await page.reload();
+  await expect(marked(page)).toHaveText("beginning");
+  await expect(marked(page)).toHaveClass(/phrase-highlight/);
+});
+
+test("annotation mode preserves the collapsed reader preference", async ({ page }) => {
+  await open(page);
+  // Allow the chapter's initial programmatic-scroll suppression to finish.
+  await page.waitForTimeout(650);
+  await page.locator(".bs-container").evaluate(el => (el as HTMLElement).style.paddingBottom = "900px");
+  await page.locator(".bs-scroll").evaluate(async el => { for (const top of [20, 80]) { el.scrollTop = top; await new Promise(r => setTimeout(r, 30)); } });
+  await expect(page.locator(".bs-header")).toHaveCSS("height", "20px");
+  await enterAnnotation(page, 3);
+  await expect(page.locator(".bs-header")).toHaveCSS("height", "54px");
+  await done(page);
+  await expect(page.locator(".bs-header")).toHaveCSS("height", "20px");
+  await goInApp(page, "/read/genesis/2");
+  await expect(page.locator(".bs-header")).toHaveCSS("height", "20px");
 });
 
 const oldMark = { id: "fe47a55e-15f4-42db-8a95-809b314b3c11", verseKey: "genesis-1-1", start: 7, end: 20, quote: "beginning God", style: "underline", created: "2026-10-08T18:00:00.000Z" };

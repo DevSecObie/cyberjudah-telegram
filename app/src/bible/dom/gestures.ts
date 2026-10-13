@@ -17,7 +17,7 @@ const AUTO_SCROLL_ZONE_TOP = 100, AUTO_SCROLL_ZONE_BOTTOM = 280, AUTO_SCROLL_SPE
 
 type Point = { x: number; y: number };
 export type GestureCallbacks = {
-  onTapVerse?: (verseKey: string, position: Point) => void;
+  onTapVerse?: (verseKey: string, position: Point, target: EventTarget | null) => void;
   onDoubleTapVerse?: (verseKey: string, position: Point) => void;
   onLongPressVerse?: (verseKey: string, position: Point) => void;
   onTouchedVerseChange?: (verseKey: string | null) => void;
@@ -46,6 +46,7 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
     if (!el) return;
     const st = { active: false, startPos: { x: 0, y: 0 }, startVerseKey: null as string | null, startWord: null as WordPosition | null, hasMoved: false, isSwipe: false, isDragging: false, dragHandle: null as "start" | "end" | null, longPressFired: false, startTime: 0, samples: [] as { time: number; x: number }[], lastTapTime: 0, lastTapVerseKey: null as string | null, lastTapPos: { x: 0, y: 0 }, longPressTimer: null as ReturnType<typeof setTimeout> | null, singleTapTimer: null as ReturnType<typeof setTimeout> | null };
     let lastTouchEndAt = 0, mouseIsDown = false, autoScroll: number | null = null, current: Point | null = null;
+    let startTarget: EventTarget | null = null, lastTapTarget: EventTarget | null = null;
     const clearTimers = () => { if (st.longPressTimer) { clearTimeout(st.longPressTimer); st.longPressTimer = null; } if (st.singleTapTimer) { clearTimeout(st.singleTapTimer); st.singleTapTimer = null; } };
     const stopAutoScroll = () => { if (autoScroll) { cancelAnimationFrame(autoScroll); autoScroll = null; } };
     const reset = () => { st.isDragging = false; st.isSwipe = false; st.hasMoved = false; st.dragHandle = null; st.startWord = null; st.startVerseKey = null; st.longPressFired = false; st.samples = []; };
@@ -86,15 +87,16 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
     /** Starts a gesture; true when it grabbed a selection handle (the caller then blocks scrolling). */
     const begin = (x: number, y: number, target: EventTarget | null): boolean => {
       const skip = ignored(target);
-      const word = skip ? null : sel.current?.wordAt(x, y) ?? null;
+      const word = !skip && sel.current?.annotationMode ? sel.current.wordAt(x, y) : null;
       const vk = skip ? null : word?.verseKey ?? verseKeyAt(target);
       // A second verse cannot form a double tap with the first. Deliver that completed tap
       // before replacing its timer so a quick passage selection keeps both verses.
       if (vk && st.singleTapTimer && st.lastTapVerseKey && st.lastTapVerseKey !== vk) {
-        cbs.current.onTapVerse?.(st.lastTapVerseKey, st.lastTapPos);
+        cbs.current.onTapVerse?.(st.lastTapVerseKey, st.lastTapPos, lastTapTarget);
         st.lastTapTime = 0; st.lastTapVerseKey = null;
       }
       clearTimers();
+      startTarget = target;
       const now = Date.now();
       st.active = !skip; st.startPos = { x, y }; st.isDragging = false; st.dragHandle = null; st.hasMoved = false; st.isSwipe = false; st.longPressFired = false; st.startTime = now; st.samples = [{ time: now, x }];
       current = { x, y };
@@ -170,8 +172,8 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
             const pos = { ...st.startPos }; st.lastTapTime = 0; st.lastTapVerseKey = null;
             cbs.current.onDoubleTapVerse?.(vk, pos);
           } else {
-            const pos = { ...st.startPos }; st.lastTapTime = now; st.lastTapVerseKey = vk; st.lastTapPos = pos;
-            st.singleTapTimer = setTimeout(() => { if (st.lastTapVerseKey === vk) { cbs.current.onTapVerse?.(vk, pos); st.lastTapVerseKey = null; } st.singleTapTimer = null; }, DOUBLE_TAP_DELAY);
+            const pos = { ...st.startPos }, target = startTarget; st.lastTapTime = now; st.lastTapVerseKey = vk; st.lastTapPos = pos; lastTapTarget = target;
+            st.singleTapTimer = setTimeout(() => { if (st.lastTapVerseKey === vk) { cbs.current.onTapVerse?.(vk, pos, target); st.lastTapVerseKey = null; } st.singleTapTimer = null; }, DOUBLE_TAP_DELAY);
           }
         } else cbs.current.onTapEmpty?.();
       }
@@ -187,10 +189,12 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
     const onMouseUp = (e: MouseEvent) => { if (!mouseIsDown) return; mouseIsDown = false; end(e.clientX); };
     // A right click on a verse opens no browser menu.
     const onContextMenu = (e: MouseEvent) => { if (verseKeyAt(e.target)) e.preventDefault(); };
-    el.addEventListener("touchstart", onTouchStart, { passive: false });
-    el.addEventListener("touchmove", onTouchMove, { passive: false });
-    el.addEventListener("touchend", onTouchEnd);
-    el.addEventListener("touchcancel", onTouchCancel);
+    // Only annotation drags need to block scrolling. Rebind when the mode changes.
+    const passive = !selection?.annotationMode;
+    el.addEventListener("touchstart", onTouchStart, { passive });
+    el.addEventListener("touchmove", onTouchMove, { passive });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchCancel, { passive: true });
     el.addEventListener("mousedown", onMouseDown);
     el.addEventListener("contextmenu", onContextMenu);
     window.addEventListener("mousemove", onMouseMove, { passive: false });
@@ -203,5 +207,5 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
       el.removeEventListener("mousedown", onMouseDown); el.removeEventListener("contextmenu", onContextMenu); window.removeEventListener("mousemove", onMouseMove); window.removeEventListener("mouseup", onMouseUp);
       window.removeEventListener("blur", cancel); document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [containerRef]);
+  }, [containerRef, selection?.annotationMode]);
 }

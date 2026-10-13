@@ -2041,7 +2041,7 @@ test("the verse-selection sheet keeps Bible Strong's size: one row of actions, t
   await expect(sheet).toBeVisible();
   await page.locator(".bs-tabsfooter__tab", { hasText: "Annotate" }).click();
   const actions = sheet.locator(".bs-page:not([aria-hidden=true]) .bs-action");
-  await expect(actions.locator(".bs-action__label")).toHaveText(["Note", "Tag", "Link", "Relation", "Bookmark", "Add to study", "Focus"]);
+  await expect(actions.locator(".bs-action__label")).toHaveText(["Mark words", "Note", "Tag", "Link", "Relation", "Bookmark", "Add to study", "Focus"]);
   const tops = new Set(await actions.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top))));
   expect(tops.size).toBe(1);
   const s = (await sheet.boundingBox())!;

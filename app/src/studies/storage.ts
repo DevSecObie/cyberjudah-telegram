@@ -81,27 +81,52 @@ export const chapterAnnotations = async (slug: string, chapter: number): Promise
 const validExtras = (a: Annotation) => (a.group === undefined || (typeof a.group === "string" && a.group.length > 0 && a.group.length <= 64))
   && (a.note === undefined || (typeof a.note.title === "string" && typeof a.note.description === "string" && a.note.title.length <= 500 && a.note.description.length <= 20_000 && Number.isFinite(a.note.date)))
   && (a.tags === undefined || Object.values(a.tags).every(v => v === true));
-export async function addAnnotation(a: Annotation, text: string) {
-  if (!validExtras(a) || !Number.isInteger(a.start) || !Number.isInteger(a.end) || a.start < 0 || a.end <= a.start || a.end > text.length || text.slice(a.start, a.end) !== a.quote || !["highlight", "underline", "circle"].includes(a.style) || (a.color !== undefined && (typeof a.color !== "string" || !a.color || a.color.length > 40))) throw new Error("Select a phrase in this verse before saving.");
+/** Commit a whole mark operation, including any overlapping marks it replaces, at once. */
+export async function changeAnnotations({ add = [], update = [], remove = [] }: {
+  add?: { annotation: Annotation; text: string }[]; update?: Annotation[]; remove?: string[];
+}) {
+  // Validate every part before opening a write transaction.
+  for (const { annotation: a, text } of add) {
+    if (!validExtras(a) || !Number.isInteger(a.start) || !Number.isInteger(a.end) || a.start < 0 || a.end <= a.start || a.end > text.length || text.slice(a.start, a.end) !== a.quote || !["highlight", "underline", "circle"].includes(a.style) || (a.color !== undefined && (typeof a.color !== "string" || !a.color || a.color.length > 40))) throw new Error("Select a phrase in this verse before saving.");
+  }
+  for (const a of update) {
+    if (!validExtras(a) || !["highlight", "underline", "circle"].includes(a.style) || (a.color !== undefined && (typeof a.color !== "string" || !a.color || a.color.length > 40))) throw new Error("This mark could not be saved.");
+  }
+  if (!add.length && !update.length && !remove.length) return;
+  const updated = (a: Annotation, previous: Annotation): Annotation => ({ ...a, start: previous.start, end: previous.end, quote: previous.quote, verseKey: previous.verseKey });
   const sync = await personalStore();
-  if (sync) await sync.set("wordAnnotations", JSON.stringify({ [a.id]: a }), JSON.stringify({ [a.id]: JSON.parse(sync.get("wordAnnotations"))[a.id] }));
-  else await (await database()).put("annotations", a);
+  if (sync) {
+    const records: Record<string, Annotation> = JSON.parse(sync.get("wordAnnotations"));
+    const ids = new Set([...add.map(({ annotation }) => annotation.id), ...update.map(a => a.id), ...remove]);
+    const before = Object.fromEntries([...ids].filter(id => records[id]).map(id => [id, records[id]]));
+    const after = { ...before };
+    for (const id of remove) delete after[id];
+    for (const { annotation } of add) after[annotation.id] = annotation;
+    for (const a of update) if (records[a.id]) after[a.id] = updated(a, records[a.id]);
+    // The personal store emits wordAnnotations once for this batch; its subscription calls changed().
+    await sync.set("wordAnnotations", JSON.stringify(after), JSON.stringify(before));
+    return;
+  }
+  const tx = (await database()).transaction("annotations", "readwrite");
+  try {
+    for (const id of remove) await tx.store.delete(id);
+    for (const { annotation } of add) await tx.store.put(annotation);
+    for (const a of update) {
+      const previous = await tx.store.get(a.id);
+      if (previous) await tx.store.put(updated(a, previous));
+    }
+    await tx.done;
+  } catch (error) {
+    try { tx.abort(); } catch { /* Already aborted by IndexedDB. */ }
+    await tx.done.catch(() => {});
+    throw error;
+  }
   changed();
 }
+export const addAnnotation = (annotation: Annotation, text: string) => changeAnnotations({ add: [{ annotation, text }] });
 /** Rewrites a saved record's colour, kind, note or tags; its words and place never change here. */
-export async function updateAnnotation(a: Annotation) {
-  if (!validExtras(a) || !["highlight", "underline", "circle"].includes(a.style) || (a.color !== undefined && (!a.color || a.color.length > 40))) throw new Error("This mark could not be saved.");
-  const sync = await personalStore();
-  if (sync) { const previous = JSON.parse(sync.get("wordAnnotations"))[a.id]; if (!previous) return; await sync.set("wordAnnotations", JSON.stringify({ [a.id]: { ...a, start: previous.start, end: previous.end, quote: previous.quote, verseKey: previous.verseKey } }), JSON.stringify({ [a.id]: previous })); }
-  else { const d = await database(); const previous = await d.get("annotations", a.id); if (!previous) return; await d.put("annotations", { ...a, start: previous.start, end: previous.end, quote: previous.quote, verseKey: previous.verseKey }); }
-  changed();
-}
-export async function removeAnnotation(id: string) {
-  const sync = await personalStore();
-  if (sync) await sync.set("wordAnnotations", null, JSON.stringify({ [id]: JSON.parse(sync.get("wordAnnotations"))[id] }));
-  else await (await database()).delete("annotations", id);
-  changed();
-}
+export const updateAnnotation = (annotation: Annotation) => changeAnnotations({ update: [annotation] });
+export const removeAnnotation = (id: string) => changeAnnotations({ remove: [id] });
 export async function exportPersonalStudies() {
   const sync = await personalStore();
   if (sync) return { app: "cyberjudah-studies", version: 1, studies: Object.values(JSON.parse(sync.get("studies"))) as Study[], annotations: Object.values(JSON.parse(sync.get("wordAnnotations"))) as Annotation[] };
