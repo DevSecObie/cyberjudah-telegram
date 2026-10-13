@@ -14,7 +14,7 @@ import { consented, withdraw } from "@/lib/ai-consent";
  * the other. Required by Telegram's Bot Developer Terms (section 4) and Standard Bot Privacy
  * Policy (7.3), and by Apple's App Review Guidelines 5.1.1(i) and 5.1.2(i).
  */
-export const PRIVACY_UPDATED = "2026-10-08";
+export const PRIVACY_UPDATED = "2026-10-13";
 /** Where privacy questions and requests go (the owner's address). */
 export const PRIVACY_CONTACT = "privacy@cyberjudah.io";
 
@@ -70,7 +70,7 @@ export function Privacy() {
       <Section title="What Stays with You">
         <p>Personal study documents and phrase marks are stored on your device. Account → Export all personal studies makes a file backup; Account also lets you delete these local records. If you choose Save cloud backup, an encrypted snapshot is kept on CyberJudah’s servers under your coded account ID until you replace or delete it. Account-data deletion removes that cloud snapshot and revokes browser sign-ins; it does not delete local documents or files you exported.</p>
         <p>Browser sign-in uses Telegram to verify your account. An encrypted session record and a secure, HTTP-only browser cookie keep you signed in for up to one day. Signing out removes that browser’s session; deleting your account data revokes all browser sessions.</p>
-        <p>{syncing ? "Signed in, your highlights, notes, bookmarks, tags, links and personal studies also follow your account between your devices and the website, kept in Google Firebase under your account's coded ID until Delete my data removes them. " : ""}Your reading history, reading plan and settings are kept on your device and in Telegram's own cloud storage for this app, not on CyberJudah's servers. A backup from Settings goes to your own chat with the bot.</p>
+        <p>{syncing ? "Signed in, your highlights, notes, bookmarks, tags, links and personal studies also follow your account between your devices and the website, kept in Google Firebase under your Telegram ID until Delete my data removes them. " : ""}Your reading history, reading plan and settings are kept on your device and in Telegram's own cloud storage for this app, not on CyberJudah's servers. A backup from Settings goes to your own chat with the bot.</p>
         <p>If you use the Sabbath screen, your location, rounded to three decimal places (about 100 metres), is kept the same way, in Telegram's cloud storage (in this browser when CyberJudah is opened outside Telegram), until you tap Forget. Sunset is worked out on your device, and the location is not kept on CyberJudah's servers; like your settings, it goes into a backup you send to your chat.</p>
       </Section>
 
@@ -78,13 +78,13 @@ export function Privacy() {
         <p>Only what a feature you use needs. Each record is filed under a coded ID, not your Telegram ID, and what it holds is encrypted, with the key kept apart from the data.</p>
         <ul>
           <li><b>Saved Ask chats:</b> your questions and the answers, so you can reopen them. Removed 180 days after you last use a chat, or when you delete it.</li>
-          <li><b>Reading reminder:</b> its time, time zone, where to send it and the chat or browser to send it to. Kept until you turn it off. A browser not linked to Telegram is forgotten after 180 days unused.</li>
+          <li><b>Reading reminder:</b> its time, time zone, where to send it and the chat or browser to send it to. Kept until you delete it (Settings → Reading reminders → Delete my reading reminder) or delete your data; turning it off keeps its settings so you can turn it back on. A browser not linked to Telegram is forgotten after 180 days unused.</li>
           <li><b>Daily verse:</b> the hour and the chat to send it to. Kept until you send /daily again.</li>
-          <li><b>Ask balance:</b> what is left, each top-up, and what each answer you paid for was charged. Kept until you delete your data. Which model wrote each answer and what it cost (never the question) is kept for 180 days.</li>
+          <li><b>Ask balance:</b> what is left, each top-up, and what each answer you paid for was charged. Kept until you delete your data; Download my data includes the latest 500 balance entries. Which model wrote each answer and what it cost (never the question) is kept for 180 days.</li>
           <li><b>Top-up reminder:</b> if you turned it on, your time zone and the chat to send it to. Kept until you turn it off.</li>
           <li><b>Stars payments and gifts:</b> Telegram's charge reference, what was bought or given, the amount and the date, for refunds and the accounts. Downloading your data includes both; deleting your data unlinks them from you.</li>
           <li><b>Class-note requests:</b> so each person counts once. Kept until the notes are written.</li>
-          <li><b>Counts:</b> how many times today you asked, used the search answer or the reading voice, shared or reported an answer (cleared daily), and whether you asked on a given day (30 days), for limits and costs.</li>
+          <li><b>Counts:</b> how many times today you asked, used the search answer or the reading voice, shared or reported an answer, for limits and costs. Cleared daily.</li>
           <li><b>Network address for Ask:</b> the address a question comes from, with a count, to limit abuse from one network. Never linked to you. Cleared within two days.</li>
           <li><b>New browsers for reminders:</b> how many browsers set up reminders from one network address today, filed under a keyed code of the address rather than the address itself. Cleared after two days.</li>
         </ul>
@@ -95,11 +95,12 @@ export function Privacy() {
           <li><b>Telegram</b> runs the platform: sign-in, messages and Stars payments, under Telegram's own privacy policy.</li>
           <li><b>Cloudflare</b> hosts CyberJudah and runs the Cloudflare-hosted AI models. CyberJudah has its per-request logs turned off, so the words you search for are not kept in them; the service's own log messages (never your ID or words) are kept for up to 7 days. Calls to AI models are logged without your words, or not logged at all.</li>
           <li><b>The AI provider of the model you choose</b> (for example Anthropic, OpenAI, Google or xAI) receives your question, the earlier questions in that chat, and passages from the library, so that it can write the answer. Only after you agree, in Ask or Search, to that provider. Search sends only the current query and matching passages; its answers are shared in a cache for two minutes. Your name and Telegram ID are not sent. If you ask about your saved chats or your reading reminder, it also receives the titles and dates of your other saved chats, or your reminder's settings: its time, time zone, where it is sent and where you are in the reading plan. Each provider handles what it receives under its own terms.</li>
+          <li><b>Wikipedia and approved reference sites:</b> to answer, Ask may look up search words drawn from your question on Wikipedia, or read a page on one of the reference sites CyberJudah has approved. CyberJudah's server makes these requests; your name and Telegram ID are not sent.</li>
           <li><b>Typefaces</b> are served with the app. Loading them does not contact Google Fonts.</li>
           <li><b>YouTube</b> serves the classes' thumbnail pictures when you browse them, and plays a class in its privacy-enhanced player (youtube-nocookie.com) when you start one.</li>
           <li><b>The CyberJudah admins:</b> if you send /paysupport, they receive your name, @username, Telegram ID and your message, so they can answer you. If you report an answer, they are told only which answer it was and why, not who you are.</li>
           <li><b>Your browser's push service</b> (from Apple, Google or Mozilla), only if you turn on push reminders.</li>
-          {syncing ? <li><b>Google Firebase</b> keeps your synced highlights, notes, bookmarks, tags, links and personal studies, under your account's coded ID, so the same marks follow you to another device. Delete my data removes them.</li> : null}
+          {syncing ? <li><b>Google Firebase</b> keeps your synced highlights, notes, bookmarks, tags, links and personal studies, under your Telegram ID, so the same marks follow you to another device. Delete my data removes them.</li> : null}
         </ul>
         <p>CyberJudah does not sell your data or use it for advertising.</p>
       </Section>
