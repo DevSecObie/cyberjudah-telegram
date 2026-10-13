@@ -3,6 +3,9 @@ import crypto from "node:crypto";
 import { STAND_IN } from "./e2e/stand-ins";
 
 const liveBaseURL = process.env.PLAYWRIGHT_BASE_URL;
+// The live suite must reach a real Worker: without an address it would start an empty local one
+// and report on that instead.
+if (process.env.RUN_LIVE_E2E && !liveBaseURL) throw new Error("RUN_LIVE_E2E is set but PLAYWRIGHT_BASE_URL is empty");
 
 /**
  * The local Worker's own credentials for these tests, never a real bot's: a bot token the
