@@ -1,0 +1,10 @@
+- Reading reminders: the privacy policy now says a reminder turned off is kept so it can be turned back on, and is removed with Delete my reading reminder or Delete my data; `/stop` is no longer listed as deleting it.
+- Delete my data and Delete my reading reminder now also remove the credentials of browsers linked to the Telegram reminder, which the record now lists; a linked browser whose Telegram reminder no longer exists is refused (401) instead of recreating it, and its credential is removed.
+- The Privacy screen says synced marks are kept in Google Firebase under your Telegram ID, not a coded ID.
+- The Privacy screen and docs/PRIVACY.md say Ask may look up search words from your question on Wikipedia and approved reference sites, sent by CyberJudah's server without your identity.
+- docs/PRIVACY.md says a Cloudflare-hosted Search model needs no AI agreement and an external Search model without agreement is refused with 428.
+- docs/PRIVACY.md's inventory adds cloud study backups, browser sign-ins, the deleted-chat marker, the deletion confirmation, browser reminder credentials, link codes and Telegram update markers, with their retention.
+- `/deletemydata`'s confirmation and the deletion summary list what is actually deleted (top-up reminder, cloud study backup, browser sign-ins included; the stale plan wording removed); `/mydata`'s note says marks stay on the device unless account sync is on.
+- The Privacy screen says Download my data includes the latest 500 Ask balance entries.
+- The health alert failure log no longer records the admin's Telegram ID.
+- The "whether you asked on a given day" line is removed from the Privacy screen; docs/PRIVACY.md marks `usage_people` as legacy.
