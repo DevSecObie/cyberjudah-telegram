@@ -44,11 +44,11 @@ async function wordPoint(page: Page, verse: number, word: string): Promise<Point
     throw new Error(`${word} not found`);
   }, word);
 }
-async function hold(page: Page, p: Point) {
+async function hold(page: Page, p: Point, held?: () => Promise<void>) {
   const cdp = await page.context().newCDPSession(page);
   try {
     await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] });
-    await page.waitForTimeout(500);
+    if (held) await held(); else await page.waitForTimeout(500);
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   } finally { await cdp.detach(); }
 }
@@ -242,10 +242,16 @@ async function shortPress(page: Page) {
   await page.getByRole("button", { name: "Showing strongs: Long press", exact: true }).tap();
   await expect(page.getByRole("button", { name: "Showing strongs: Short press", exact: true })).toBeVisible();
   await page.getByRole("dialog", { name: "Font and settings", exact: true }).getByRole("button", { name: "Close", exact: true }).tap();
+  // Raw CDP touches do not wait for the settings scrim or its modal lock to disappear.
+  await expect(page.getByRole("dialog", { name: "Font and settings", exact: true })).toHaveCount(0);
+  await expect(page.locator("html")).not.toHaveAttribute("data-modal");
 }
 
 test("shortPress long press on verse text still selects the verse", async ({ page }) => {
-  await open(page); await shortPress(page); await hold(page, await wordPoint(page, 1, "beginning"));
+  await open(page); await shortPress(page);
+  await hold(page, await wordPoint(page, 1, "beginning"), async () => {
+    await expect(page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true })).toBeVisible();
+  });
   await expect(page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true })).toBeVisible();
   await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
   await expect(toolbar(page)).toHaveCount(0);
