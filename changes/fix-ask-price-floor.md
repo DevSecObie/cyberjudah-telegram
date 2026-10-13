@@ -1,0 +1,2 @@
+- Paid Ask refuses a price limit below what an answer can begin with and asks the reader to confirm again. Before, a limit that rounded to nothing let a paid answer run while charging nothing.
+- Paid models on the Messages and Responses formats may write only what the amount set aside for the answer pays for, as Claude already did.
