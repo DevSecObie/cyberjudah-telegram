@@ -68,10 +68,13 @@ const lit = (v) => `'${String(v).replace(/'/g, "''")}'`;
 
 await sql("CREATE TABLE IF NOT EXISTS embedded (id TEXT PRIMARY KEY, hash TEXT NOT NULL)");
 const known = new Map();
-for (let offset = 0; ; offset += 20000) {
-  const rows = await sql(`SELECT id, hash FROM embedded LIMIT 20000 OFFSET ${offset}`);
+// Paged by key, not by OFFSET: an OFFSET page re-reads every row before it, so two million marks
+// cost about a hundred million row reads, and D1 began to fail the run with "internal error".
+for (let last = ""; ; ) {
+  const rows = await sql(`SELECT id, hash FROM embedded WHERE id > ${lit(last)} ORDER BY id LIMIT 20000`);
   for (const r of rows) known.set(r.id, r.hash);
   if (rows.length < 20000) break;
+  last = rows[rows.length - 1].id;
 }
 console.error(`${known.size} passages embedded before`);
 const knownByVideo = new Map();
