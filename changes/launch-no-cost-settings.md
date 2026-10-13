@@ -1,0 +1,2 @@
+- Free Ask answers stay inside Cloudflare's free daily Workers AI allowance: $0.09 a day in production, on the cheapest model only (Llama 3.1 8B), and $0.01 a day on staging, which shares the allowance. The other Cloudflare models are paid from the reader's balance at their cost.
+- A Star now adds $0.012 to the balance, a little under what it pays out (about $0.013), so a fall in the Star's payout never leaves a paid answer to the owner. $1 is 84 Stars, $5 is 417 and $20 is 1667. The balance screen, the invoice and the Terms say so.
