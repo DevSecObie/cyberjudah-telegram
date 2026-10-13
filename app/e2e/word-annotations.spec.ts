@@ -294,6 +294,40 @@ test("tapping a saved mark seeks first while audio is playing", async ({ page })
   await expect(toolbar(page)).toHaveCount(0);
 });
 
+test("annotation mode hits the rendered mark after its text moves without a layout resize", async ({ page }) => {
+  await open(page); await selectWord(page);
+  await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
+  await expect(marked(page)).toHaveText("beginning"); await done(page);
+  await enterAnnotation(page);
+  await expect(toolbar(page).getByRole("button", { name: "Note", exact: true })).toBeDisabled();
+  // Relative positioning moves the target without resizing the observed container.
+  // Cached mark rectangles would still point at the original text position.
+  await marked(page).evaluate(el => { (el as HTMLElement).style.position = "relative"; (el as HTMLElement).style.left = "70px"; });
+  await marked(page).tap();
+  await expect(toolbar(page).getByRole("button", { name: "Note", exact: true })).toBeEnabled();
+  await toolbar(page).getByRole("radio", { name: "Underline", exact: true }).tap();
+  await expect(marked(page)).toHaveClass(/phrase-underline/);
+});
+
+test("touch listeners become passive again after leaving annotation mode", async ({ page }) => {
+  await open(page);
+  const cdp = await page.context().newCDPSession(page);
+  const listeners = async () => {
+    const { result } = await cdp.send("Runtime.evaluate", { expression: 'document.querySelector(".bs-scroll")' });
+    const { listeners } = await cdp.send("DOMDebugger.getEventListeners", { objectId: result.objectId! });
+    return listeners.filter(l => l.type.startsWith("touch"));
+  };
+  try {
+    expect((await listeners()).filter(l => l.type === "touchstart").map(l => l.passive)).toEqual([true]);
+    await enterAnnotation(page);
+    expect((await listeners()).filter(l => ["touchstart", "touchmove"].includes(l.type)).map(l => l.passive)).toEqual([false, false]);
+    await done(page);
+    const touch = await listeners();
+    expect(touch.map(l => l.type)).toEqual(expect.arrayContaining(["touchstart", "touchmove", "touchend", "touchcancel"]));
+    expect(touch.every(l => l.passive)).toBe(true);
+  } finally { await cdp.detach(); }
+});
+
 async function trackMarkWrites(page: Page) {
   await page.evaluate(() => {
     const state = { transactions: 0, broadcasts: 0 };
