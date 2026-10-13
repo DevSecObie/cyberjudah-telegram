@@ -1,4 +1,5 @@
 - Select a verse and choose Annotate → Mark words, then long-press a word, drag either handle across words and verses, and save a highlight, underline or circle with the reader's existing colours and styling.
 - In annotation mode, tap a saved word mark to change its style or colour, add a note or delete it. Done, an outside press and Telegram Back end word selection. Reading-mode long presses keep the configured resources/selection action; tapping a mark selects its verse or seeks during audio playback.
+- Closing Scripture options immediately returns touches to the reader, even while the old menu finishes fading out.
 - Save, restyle and delete every part of a multi-verse mark together. Annotation mode keeps the reader's fullscreen preference and suppresses the phone's native text-selection menu.
 - Preserve existing marks and restore older backups; optional colour, note, tags and multi-verse group fields survive backup and restore without a storage migration.

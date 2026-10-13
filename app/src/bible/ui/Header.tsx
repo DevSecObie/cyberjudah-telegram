@@ -94,7 +94,7 @@ function OptionsMenu({ open, hasChapterBookmark, onClose, onPick }: { open: bool
   if (!present) return null;
   return (
     <>
-      <div className="bs-dropdown__catch" onClick={onClose} />
+      {open ? <div className="bs-dropdown__catch" onClick={onClose} /> : null}
       <div ref={ref} className="bs-dropdown" data-popover="" inert={!open} aria-hidden={!open} role="menu" aria-label="Passage options" data-sheet-open=""
         onKeyDown={e => {
           const items = [...e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')];

@@ -260,6 +260,33 @@ test("shortPress long press on verse text still selects the verse", async ({ pag
   await expect.poll(() => selectedWords(page)).toBe("beginning");
 });
 
+test("a closing Scripture options menu cannot intercept a verse long press", async ({ page }) => {
+  await open(page);
+  // Hold the old menu in its visual exit. Settings can close before that animation finishes;
+  // its dismissed backdrop must already let real touches reach the verse underneath.
+  await page.evaluate(() => {
+    const animate = Element.prototype.animate;
+    Element.prototype.animate = function (keyframes, options) {
+      const animation = animate.call(this, keyframes, options);
+      if (this.matches(".bs-dropdown") && Array.isArray(keyframes) && keyframes[0]?.opacity === 1 && keyframes.at(-1)?.opacity === 0) animation.pause();
+      return animation;
+    };
+  });
+  await shortPress(page);
+  await expect(page.locator('.bs-dropdown[inert]')).toHaveCount(1);
+  const point = await wordPoint(page, 1, "beginning");
+  const target = await page.evaluate(p => {
+    const el = document.elementFromPoint(p.x, p.y);
+    return { verse: el?.closest("[data-vk]")?.id, className: el?.className };
+  }, point);
+  expect(target, `The closed menu must not capture the next touch: ${JSON.stringify(target)}`).toMatchObject({ verse: "verset-1" });
+  await hold(page, point, async () => {
+    await expect(page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true })).toBeVisible();
+  });
+  await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
+  await expect(toolbar(page)).toHaveCount(0);
+});
+
 for (const press of ["longPress", "shortPress"]) test(`tapping a saved mark selects its verse in ${press} reading mode`, async ({ page }) => {
   await open(page); await selectWord(page);
   await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
