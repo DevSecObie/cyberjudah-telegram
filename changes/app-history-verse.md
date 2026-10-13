@@ -1,0 +1,1 @@
+- Recently viewed now keeps the verse you went to, not just the chapter, and opens on that verse, as in Bible Strong.
