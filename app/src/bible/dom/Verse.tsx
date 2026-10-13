@@ -1,3 +1,4 @@
+import type { Annotation } from "@/studies/storage";
 import { AnnotatedText } from "@/studies/AnnotatedText";
 import { useState, type CSSProperties } from "react";
 
@@ -22,6 +23,7 @@ export type VerseProps = {
   verseKey: string; number: number; text: string;
   settings: BibleSettings; palette: Palette; theme: ThemeName;
   isSelected: boolean; isSelectedMode: boolean; isTouched: boolean;
+  wordMarks?: Annotation[]; colorOf?: (key: string) => string | null;
   highlightedColor?: string; bookmark?: Bookmark;
   isVerseToScroll: boolean; isFocused?: boolean; fadePosition?: "top" | "bottom";
   relationItems?: VerseRelationItem[]; relationCount?: number;
@@ -59,6 +61,16 @@ export function Verse(p: VerseProps) {
     // Bible Strong's ContainerText tracks the touched verse but paints nothing for it: a press shows
     // no light, and a selected verse is marked only by the dashed underline above.
   };
+  // The existing AnnotatedText character boundaries keep old marks on the same KJV words.
+  const valid = p.wordMarks?.filter(a => a.end <= p.text.length && a.start >= 0 && p.text.slice(a.start, a.end) === a.quote);
+  const boundaries = [...new Set([0, p.text.length, ...(valid ?? []).flatMap(a => [a.start, a.end])])].sort((a, b) => a - b);
+  const words = valid ? boundaries.slice(0, -1).map((start, i) => {
+    const end = boundaries[i + 1], records = valid.filter(a => a.start <= start && a.end >= end);
+    const styles = [...new Set(records.map(a => a.style))];
+    const color = records.find(a => a.color)?.color;
+    return <span key={start} className={styles.length ? `bs-word-mark ${styles.map(s => `phrase-${s}`).join(" ")}` : undefined}
+      data-coloured={color ? "" : undefined} style={color ? { "--word-ink": p.colorOf?.(color) ?? "var(--bs-primary)" } as CSSProperties : undefined}>{p.text.slice(start, end)}</span>;
+  }) : <AnnotatedText verseKey={p.verseKey} text={p.text} />;
   const deck = !!(p.moments?.length && p.deck);
   const tags = !!(p.tagGroup?.tags.length && s.tagsDisplay === "inline");
   const rels = !!(p.relationItems?.length && s.relationsDisplay === "inline");
@@ -69,7 +81,7 @@ export function Verse(p: VerseProps) {
         {p.bookmark ? <BookmarkIcon color={p.bookmark.color} onClick={() => p.onOpenBookmark(p.bookmark!)} /> : null}
         {p.relationCount && s.relationsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.relationCount} onClick={p.onOpenRelations} label={`${p.relationCount} ${p.relationCount === 1 ? "precept" : "precepts"}`}><Feather name="precepts" size={16} color={"var(--bs-primary)"} /></CountBadge> : null}
         {p.taggedItemsCount && s.tagsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.taggedItemsCount} onClick={p.onOpenTags} label={`${p.taggedItemsCount} tags`}><Feather name="tag" size={14} color={"var(--bs-primary)"} /></CountBadge> : null}
-        <span className="bs-text" data-verse-key={p.verseKey} style={{ fontSize: getBibleTextFontSize(false, s.fontSizeScale), lineHeight: scaleLineHeight(32, s.lineHeight, s.fontSizeScale), whiteSpace: "pre-line" }}><AnnotatedText verseKey={p.verseKey} text={p.text} /></span>
+        <span id={`verse-text-${p.verseKey}`} className="bs-text" data-verse-key={p.verseKey} style={{ fontSize: getBibleTextFontSize(false, s.fontSizeScale), lineHeight: scaleLineHeight(32, s.lineHeight, s.fontSizeScale), whiteSpace: "pre-line" }}>{words}</span>
         {deck ? <MediaDeck items={p.moments!} placement="inline" palette={c} fontScale={s.fontSizeScale} reference={p.deck!.reference} from={`${p.deck!.from}?v=${p.number}`} disabled={p.isSelectedMode} /> : null}
       </span>
       {tags ? <VerseTags tags={p.tagGroup!.tags} settings={s} palette={c} theme={theme} onOpenTags={p.onOpenTags} onOpenTag={p.onOpenTag} /> : null}

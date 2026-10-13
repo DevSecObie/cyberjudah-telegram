@@ -1,0 +1,3 @@
+- Long-press a word to select it, drag either handle across words and verses, and save a highlight, underline or circle with the reader's existing colours and styling.
+- Tap a saved word mark to change its style or colour, add a note or delete it; Done, an outside press and Telegram Back end word selection while ordinary verse taps and chapter swipes keep their existing behaviour.
+- Preserve existing marks and restore older backups; optional colour, note, tags and multi-verse group fields survive backup and restore without a storage migration.

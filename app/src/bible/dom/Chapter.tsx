@@ -7,6 +7,11 @@ import { Feather } from "../icons";
 import type { BibleSettings } from "../settings";
 import type { Bookmark, Highlight, Tag } from "../store";
 import { isDarkTheme, type Palette, type ThemeName } from "../theme";
+import { findVerseContainer, getCaretInfoFromPoint } from "../annotation/domUtils";
+import { annotationAt, HighlightLayer, insideSelection, useAnnotationHighlights } from "../annotation/highlights";
+import type { Mark } from "../annotation/marks";
+import { comparePositions, type SelectionRange, type WordPosition } from "../annotation/selectionUtils";
+import { getWordIndexFromCharOffset, tokenizeVerseText } from "../annotation/wordTokenizer";
 import { useVerseGestures } from "./gestures";
 import { Verse, type VerseTagGroup } from "./Verse";
 
@@ -30,6 +35,10 @@ export type ChapterProps = {
   moments?: Record<number, ClassMoment[]>; deck?: { reference: string; from: string };
   headerHeight: number; fullscreen: boolean; canSwipe: boolean;
   onToggleVerse: (v: number) => void; onVerseDetail: (v: number) => void; onDoubleTap?: (v: number) => void;
+  /** Bible Strong's word annotation: a long press selects a word, the handles extend it. */
+  annotationMode?: boolean; marks?: Mark[]; selectedMark?: string | null; colorOf?: (key: string) => string | null;
+  wordSelection?: SelectionRange | null; setWordSelection?: (fn: (prev: SelectionRange | null) => SelectionRange | null) => void;
+  onEnterAnnotation?: () => void; onSelectMark?: (id: string | null) => void; onExitAnnotation?: () => void;
   onSwipe: (dir: "left" | "right") => void; onFullscreen: (on: boolean) => void;
   onOpenBookmark: (b: Bookmark) => void; onOpenRelations: (v: number) => void; onOpenRelationItem: (it: VerseRelationItem) => void; onOpenTags: (v: number) => void; onOpenTag: (id: string) => void;
   /** Before verse 1 (a book's prologue); hidden while a passage is focused. */
@@ -111,13 +120,52 @@ export function Chapter(p: ChapterProps) {
   const bookmarkOf = useMemo(() => { const m = new Map<number, Bookmark>(); for (const b of p.bookmarks) if (b.book === slug && b.chapter === chapter && b.verse) m.set(b.verse, b); return m; }, [p.bookmarks, slug, chapter]);
 
   const verseOf = (vk: string) => Number(vk.split("-").pop());
+  // Word selection (BibleDOM/AnnotationMode): the words under a point, and the selection's pieces in each verse.
+  const wordRows = useMemo(() => p.verses.map((r) => ({ verseKey: makeKey(slug, chapter, r.verse), text: r.text })), [p.verses, slug, chapter]);
+  const tokensOf = useMemo(() => { const cache = new Map<string, ReturnType<typeof tokenizeVerseText>>(); return (vk: string, text: string) => { let t = cache.get(vk); if (!t) { t = tokenizeVerseText(text); cache.set(vk, t); } return t; }; }, [wordRows]); // eslint-disable-line react-hooks/exhaustive-deps
+  const wordAt = (x: number, y: number): WordPosition | null => {
+    const caret = getCaretInfoFromPoint(x, y); const vk = caret && (findVerseContainer(caret.targetElement) as HTMLElement | null)?.dataset.verseKey;
+    const row = vk ? wordRows.find((r) => r.verseKey === vk) : undefined; if (!caret || !row) return null;
+    const wordIndex = getWordIndexFromCharOffset(tokensOf(row.verseKey, row.text), caret.charOffset);
+    return wordIndex == null ? null : { verseKey: row.verseKey, wordIndex };
+  };
+  const wordSel = p.wordSelection ?? null, mode = !!p.annotationMode, selectedMark = p.selectedMark ?? null;
+  const setSel = (next: SelectionRange | null) => p.setWordSelection?.(() => next);
+  const layerRef = useRef<HTMLDivElement>(null);
+  const { highlightRects, handles } = useAnnotationHighlights({
+    containerRef: layerRef, marks: p.marks ?? [], verses: wordRows, selection: mode ? wordSel : null, colorOf: p.colorOf ?? (() => null),
+    chapterKey: `${slug}-${chapter}`, layoutKey: [s.fontSizeScale, s.lineHeight, s.fontFamily, s.textDisplay, s.showVerseNumbers, p.contextDisplayMode, focus?.join(","), p.headerHeight, p.verses.length].join("|"),
+  });
+  const wordOfTap = (vk: string, pos: { x: number; y: number }): SelectionRange | null => { const w = wordAt(pos.x, pos.y); return w && w.verseKey === vk ? { start: w, end: w } : null; };
+  // handleTapVerseAnnotationMode: a mark selects (or deselects) it; inside the selection nothing;
+  // otherwise the mark is let go, and an existing selection ends or the tapped word is selected.
+  const tapInMode = (vk: string, pos: { x: number; y: number }) => {
+    const hit = annotationAt(highlightRects, layerRef.current, pos);
+    if (hit) { setSel(null); p.onSelectMark?.(hit === selectedMark ? null : hit); return; }
+    if (insideSelection(highlightRects, layerRef.current, pos)) return;
+    if (selectedMark) p.onSelectMark?.(null);
+    if (wordSel) { setSel(null); return; }
+    const w = wordOfTap(vk, pos); if (w) setSel(w);
+  };
   useVerseGestures(scrollRef, {
     onTouchedVerseChange: setTouched,
-    onTapVerse: (vk) => { const v = verseOf(vk); if (p.onSeekVerse) { followRef.current = true; setReadingAway(null); p.onSeekVerse(v); return; } if (selectedMode || s.press === "longPress") p.onToggleVerse(v); else p.onVerseDetail(v); },
-    onLongPressVerse: (vk) => { const v = verseOf(vk); if (s.press === "shortPress") p.onToggleVerse(v); else p.onVerseDetail(v); },
+    onTapVerse: (vk, pos) => {
+      if (mode) { if (!wordOfTap(vk, pos)) p.onExitAnnotation?.(); else tapInMode(vk, pos); return; }
+      const hit = annotationAt(highlightRects, layerRef.current, pos);
+      if (!selectedMode && hit && p.onEnterAnnotation) { p.onEnterAnnotation(); p.onSelectMark?.(hit); return; }
+      const v = verseOf(vk); if (p.onSeekVerse) { followRef.current = true; setReadingAway(null); p.onSeekVerse(v); return; } if (selectedMode || s.press === "longPress") p.onToggleVerse(v); else p.onVerseDetail(v);
+    },
     onDoubleTapVerse: (vk) => p.onDoubleTap?.(verseOf(vk)),
-    onSwipe: (dir) => { if (p.canSwipe && !isContextFocused) p.onSwipe(dir); },
-  });
+    onLongPressVerse: (vk, pos) => {
+      const w = wordOfTap(vk, pos);
+      if (w && p.onEnterAnnotation) { p.onEnterAnnotation(); p.onSelectMark?.(null); setSel(w); return; }
+      if (mode) { p.onExitAnnotation?.(); return; }
+      const v = verseOf(vk); if (s.press === "shortPress") p.onToggleVerse(v); else p.onVerseDetail(v);
+    },
+    onTapEmpty: () => { if (mode) p.onExitAnnotation?.(); },
+    onDragStart: () => { if (selectedMark) p.onSelectMark?.(null); },
+    onSwipe: (dir) => { if (!mode && p.canSwipe && !isContextFocused) p.onSwipe(dir); },
+  }, p.setWordSelection ? { annotationMode: mode, reversed: !!wordSel && comparePositions(wordSel.start, wordSel.end, wordRows) > 0, selection: wordSel, setSelection: p.setWordSelection, wordAt, handles, layer: layerRef } : undefined);
 
   // Scroll velocity above 400 px/s hides the header (SWIPE_DOWN) and shows it again (SWIPE_UP).
   useEffect(() => {
@@ -185,7 +233,7 @@ export function Chapter(p: ChapterProps) {
   return (
     <>
     <div ref={scrollRef} className="bs-scroll" style={{ background: "var(--bs-reverse)", color: "var(--bs-default)" }}>
-      <div className="bs-container" style={{ maxWidth: READING_TEXT_MAX_WIDTH + HORIZONTAL_PADDING * 2, padding: `${p.headerHeight + 10}px ${HORIZONTAL_PADDING}px 300px`, textAlign: s.alignContent, background: "var(--bs-reverse)", color: "var(--bs-default)" }}>
+      <div ref={layerRef} className="bs-container" data-annotating={mode ? "" : undefined} style={{ position: "relative", maxWidth: READING_TEXT_MAX_WIDTH + HORIZONTAL_PADDING * 2, padding: `${p.headerHeight + 10}px ${HORIZONTAL_PADDING}px 300px`, textAlign: s.alignContent, background: "var(--bs-reverse)", color: "var(--bs-default)" }}>
         {isContextFocused && focus?.length ? null : p.header}
         {p.verses.map((row) => {
           const n = row.verse;
@@ -196,6 +244,7 @@ export function Chapter(p: ChapterProps) {
           return (
             <Verse key={vk} verseKey={vk} number={n} text={row.text} settings={s} palette={c} theme={theme}
               isSelected={p.selected.includes(n)} isSelectedMode={selectedMode} isTouched={touched === vk}
+              wordMarks={p.marks?.flatMap((m) => m.records).filter((r) => r.verseKey === vk)} colorOf={p.colorOf}
               highlightedColor={p.highlights[String(n)]?.color} bookmark={bookmarkOf.get(n)}
               isVerseToScroll={!isContextFocused && p.verseToScroll === n && n !== 1} isFocused={isFocused}
               relationItems={items} relationCount={items?.length || undefined}
@@ -205,6 +254,7 @@ export function Chapter(p: ChapterProps) {
           );
         })}
         {p.footer}
+        <HighlightLayer rects={highlightRects} selectedId={selectedMark} dimmed={!mode && selectedMode} handles={handles} showHandles={mode && !!wordSel} />
       </div>
       <button type="button" className="bs-return" aria-label="Return to the selected verse" title="Return to the selected verse" onClick={() => scrollSelectedToMiddle()}
         style={{ top: returnPos === "top" ? HEADER_HEIGHT + 12 : undefined, bottom: returnPos === "bottom" ? RETURN_BOTTOM_OFFSET + 16 : undefined, transform: `translateX(-50%) scale(${returnPos ? 1 : 0.95})`, opacity: returnPos ? 1 : 0, pointerEvents: returnPos ? "auto" : "none", border: `1px solid var(--bs-border)`, background: "var(--bs-reverse)", color: "var(--bs-primary)", boxShadow: isDarkTheme(theme) ? "0 8px 24px rgba(0, 0, 0, 0.45)" : "0 8px 24px rgba(0, 0, 0, 0.18)" }}>
