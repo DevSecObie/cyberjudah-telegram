@@ -20,6 +20,7 @@ export type SelectedVersesSheetProps = {
   colors: ColorItem[]; selectedColor: string | null;
   onAddHighlight: (key: string) => void; onRemoveHighlight: () => void; onAddColor: () => void; onEditColor: (key: string) => void;
   moreThanOne: boolean; hasBookmark: boolean; hasFocus: boolean;
+  onMarkWords: () => void;
   onNote: () => void; onTag: () => void; onLink: () => void; onRelation: () => void; onBookmark: () => void; onFocus: () => void;
   onLexicon: () => void; onDictionary: () => void; onThemes: () => void; onReferences: () => void; onCommentary: () => void; onCompare: () => void;
   onStudy: () => void;
@@ -64,6 +65,7 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
           <div className="bs-pages__track" style={{ width: width * TABS.length, transform: `translateX(${-tab * width}px)` }}>
             <div className="bs-page" style={{ width }} role="tabpanel" id={`sv-panel-0`} aria-labelledby={`sv-tab-0`} aria-hidden={tab !== 0} inert={tab !== 0}>
               <ActionsLayout>
+                <ActionItem name="edit-3" label="Mark words" onPress={p.onMarkWords} />
                 <ActionItem name="file-plus" label="Note" onPress={p.onNote} />
                 <ActionItem name="tag" label="Tag" onPress={p.onTag} />
                 <ActionItem name="link" label="Link" onPress={p.onLink} />

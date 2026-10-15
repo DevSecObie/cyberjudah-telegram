@@ -468,3 +468,23 @@ test("Mac shortcuts cycle recent tabs and do not interrupt a note editor", async
   await expect(page.getByRole("dialog", { name: "Find a tab or tool" })).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Description", exact: true })).toHaveValue("Keep my writing");
 });
+
+test("reader annotation mode suppresses native text selection and WebKit callouts", async ({ page, browserName }) => {
+  await page.goto("/read/genesis/1");
+  await page.locator("#verset-1 .bs-num").click();
+  const sheet = page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true });
+  await sheet.getByRole("tab", { name: "Annotate", exact: true }).click();
+  await sheet.getByRole("button", { name: "Mark words", exact: true }).click();
+  await expect(page.locator(".bs-container")).toHaveAttribute("data-annotating", "");
+  const text = page.locator("#verset-1 .bs-text");
+  await expect(text).toHaveCSS("user-select", "none");
+  if (browserName === "webkit") {
+    await expect(text).toHaveCSS("-webkit-user-select", "none");
+    // Desktop WebKit may omit the iOS-only property from computed styles.
+    const hrefs = await page.locator('link[rel="stylesheet"]').evaluateAll(links => links.map(link => (link as HTMLLinkElement).href));
+    const css = (await Promise.all(hrefs.map(async href => (await page.request.get(href)).text()))).join("\n");
+    expect(css).toMatch(/\.bs-container\[data-annotating\][^{]*\.bs-text[^{]*\{[^}]*-webkit-touch-callout:none/);
+  }
+  await page.getByRole("button", { name: "Exit annotation mode", exact: true }).click();
+  await expect(page.locator(".bs-container")).not.toHaveAttribute("data-annotating");
+});
