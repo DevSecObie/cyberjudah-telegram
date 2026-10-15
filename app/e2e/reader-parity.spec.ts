@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { bibleAt, bibleReady } from "./telegram-harness";
+import { bibleAt, bibleFrame, bibleReady } from "./telegram-harness";
 const DATA = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
 const verses = Array.from({ length: 31 }, (_, i) => ({ verse: i + 1, text: i === 0 ? "In the beginning God created the heaven and the earth." : `Verse ${i + 1}: And God said, Let there be light: and there was light.` }));
 async function setup(page: Page) {
@@ -19,7 +19,10 @@ async function setup(page: Page) {
     return r.fulfill({ status: 404, body: "" });
   });
   await page.route("**/api/verse-of-day*", r => r.fulfill({ json: { ref: new URL(r.request().url()).searchParams.has("date") ? "Genesis 1:2" : "Genesis 1:1", slug: "genesis", chapter: 1, verse: new URL(r.request().url()).searchParams.has("date") ? 2 : 1, text: "In the beginning God created the heaven and the earth." } }));
+  // Init scripts run in every frame, and the Bible's frame (/app/strong) shares the app's
+  // localStorage: seeding there too would undo what a test has since changed.
   await page.addInitScript(() => {
+    if (window !== window.top) return;
     if (!localStorage.getItem("cj:bs")) localStorage.setItem("cj:bs", JSON.stringify({ press: "longPress" }));
     localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "one", groups: [{ id: "one", name: "My tabs", color: "#2dd4bf", current: "bible-one", tabs: [{ id: "bible-one", path: "/read/genesis/1" }, { id: "bible-two", path: "/read/john/3?v=16-18" }] }] }));
   });
@@ -129,6 +132,7 @@ test("keyboard palette switches to an existing tab and opens a passage with its 
 
 test("plan completion can be corrected by keyboard and its read action stays inside the app", async ({ page }) => {
   await page.addInitScript(() => {
+    if (window !== window.top) return;
     localStorage.setItem("cj:plan", JSON.stringify({ startedAt: new Date().toISOString().slice(0, 10), day: 0, streak: 0, perDay: 1, books: ["john"], name: "John" }));
     localStorage.setItem("cj:read", JSON.stringify({ genesis: "1-2" }));
   });
@@ -145,15 +149,16 @@ test("plan completion can be corrected by keyboard and its read action stays ins
 });
 
 test("restarting a selected plan keeps its books and resets its streak date", async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("cj:plan", JSON.stringify({ startedAt: "2026-10-01", day: 1, streak: 3, lastDone: "2026-10-07", perDay: 1, books: ["john"], name: "John" })));
+  await page.addInitScript(() => { if (window === window.top) localStorage.setItem("cj:plan", JSON.stringify({ startedAt: "2026-10-01", day: 1, streak: 3, lastDone: "2026-10-07", perDay: 1, books: ["john"], name: "John" })); });
   await page.goto("/plan");
   page.once("dialog", d => d.accept());
   await page.getByRole("button", { name: "Start over", exact: true }).click();
   await expect(page.getByRole("link", { name: "John · Change plan", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "John 1", exact: true })).toBeVisible();
-  const plan = await page.evaluate(() => JSON.parse(localStorage.getItem("cj:plan")!));
-  expect(plan).toMatchObject({ day: 0, streak: 0, books: ["john"], name: "John" });
-  expect(plan.lastDone).toBeUndefined();
+  // The restart is saved after the confirm resolves; wait for the saved plan, not only the screen.
+  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem("cj:plan")!));
+  await expect.poll(saved).toMatchObject({ day: 0, streak: 0, books: ["john"], name: "John" });
+  expect((await saved()).lastDone).toBeUndefined();
 });
 
 test("the reading guide is reachable from Settings and has usable tab shortcuts", async ({ page }) => {
@@ -186,20 +191,25 @@ test("Mac shortcuts cycle recent tabs and do not interrupt a study editor", asyn
 
 test("reader annotation mode suppresses native text selection and WebKit callouts", async ({ page, browserName }) => {
   await page.goto("/read/genesis/1");
-  await page.locator("#verset-1 .bs-num").click();
-  const sheet = page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true });
-  await sheet.getByRole("tab", { name: "Annotate", exact: true }).click();
-  await sheet.getByRole("button", { name: "Mark words", exact: true }).click();
-  await expect(page.locator(".bs-container")).toHaveAttribute("data-annotating", "");
-  const text = page.locator("#verset-1 .bs-text");
+  await bibleReady(page);
+  const bible = bibleFrame(page);
+  // As a reader enters it in Bible Strong: tap the verse, then Free mode under Annotate.
+  await bible.locator('[data-verse-key="1-1-1"]').first().click();
+  await bible.getByRole("tab", { name: "Annotate", exact: true }).click();
+  await bible.getByRole("button", { name: "Free mode" }).click();
+  const finish = bible.getByRole("button", { name: "Finish annotation mode", exact: true });
+  await expect(finish).toBeVisible();
+  // The span that styles verse 1 and holds its words (BibleDOM/ContainerText.tsx).
+  const text = bible.locator('span:has(> [data-verse-key="1-1-1"])').first();
+  await expect(text).toContainText("In the beginning God created the heaven and the earth.");
   await expect(text).toHaveCSS("user-select", "none");
-  if (browserName === "webkit") {
-    await expect(text).toHaveCSS("-webkit-user-select", "none");
-    // Desktop WebKit may omit the iOS-only property from computed styles.
-    const hrefs = await page.locator('link[rel="stylesheet"]').evaluateAll(links => links.map(link => (link as HTMLLinkElement).href));
-    const css = (await Promise.all(hrefs.map(async href => (await page.request.get(href)).text()))).join("\n");
-    expect(css).toMatch(/\.bs-container\[data-annotating\][^{]*\.bs-text[^{]*\{[^}]*-webkit-touch-callout:none/);
-  }
-  await page.getByRole("button", { name: "Exit annotation mode", exact: true }).click();
-  await expect(page.locator(".bs-container")).not.toHaveAttribute("data-annotating");
+  if (browserName === "webkit") await expect(text).toHaveCSS("-webkit-user-select", "none");
+  // Desktop engines may omit the iOS-only property from computed styles: read the rule itself.
+  const rules = await text.evaluate(el => {
+    const css = Array.from(el.ownerDocument.querySelectorAll("style")).map(s => s.textContent ?? "").join("\n");
+    return Array.from(el.classList).flatMap(c => css.match(new RegExp(`\\.${c}\\{[^}]*\\}`, "g")) ?? []);
+  });
+  expect(rules.join("\n")).toMatch(/user-select:none;[^}]*-webkit-touch-callout:none/);
+  await finish.click();
+  await expect(finish).toHaveCount(0);
 });
