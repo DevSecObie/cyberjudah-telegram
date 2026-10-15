@@ -41,7 +41,7 @@ import {
   toggleCommentarySelection,
   type CommentaryProjectionId,
 } from './commentarySelection'
-import SelectedCommentariesHeader from './SelectedCommentariesHeader'
+import SelectedCommentariesHeader from './selectedCommentariesHeaderComponent'
 import type { RootState } from '~redux/modules/reducer'
 import {
   reorderSettingsCommentarySelection,

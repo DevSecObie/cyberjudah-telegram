@@ -19,7 +19,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import truncHTML from 'trunc-html'
 import { SheetHeader, SheetView, type SheetRef } from '~common/sheet'
-import StylizedHTMLView from '~common/StylizedHTMLView'
+import StylizedHTMLView from '~common/stylizedHTMLViewComponent'
 import Box, { FadingBox, HStack, VStack } from '~common/ui/Box'
 import { FeatherIcon } from '~common/ui/Icon'
 import Text from '~common/ui/Text'

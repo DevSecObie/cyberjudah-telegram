@@ -1,5 +1,5 @@
 import { identifyAnalyticsUser, trackAnalyticsEvent } from './analytics'
-import * as Sentry from '@sentry/react-native'
+import * as Sentry from '~helpers/sentry'
 import {
   createUserWithEmailAndPassword,
   EmailAuthProvider,

@@ -3,6 +3,9 @@
 /* Off the Bible tab it stays loaded and laid out (so it opens at once, where it was), unseen. */
 .strong-reader--away { visibility: hidden; pointer-events: none; z-index: -1; }
 .strong-reader__frame { display: block; width: 100%; height: 100%; border: 0; }
+/* The still copy of the reader’s last screen while it starts (readerSnapshot.ts): it sits exactly
+   over the frame and goes as soon as the reader is ready. */
+.strong-reader__still { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; pointer-events: none; }
 /* The lion while the reader starts, as when the app starts (index.html). */
 .strong-reader__splash { position: absolute; inset: 0; display: grid; place-items: center; background: var(--canvas); transition: opacity 0.25s ease, visibility 0s linear 0.25s; }
 .strong-reader__splash[data-done] { opacity: 0; visibility: hidden; pointer-events: none; }

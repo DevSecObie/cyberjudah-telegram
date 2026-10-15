@@ -15,7 +15,7 @@ import type { Theme as AppTheme } from '~themes'
 import { useTheme as useAppTheme } from '~themes/ThemeProvider'
 
 import books from '~assets/bible_versions/books-desc'
-import ColorPicker from '~common/ColorPicker'
+import ColorPicker from '~common/colorPickerComponent'
 import type { Bookmark } from '~common/types'
 import Box from '~common/ui/Box'
 import Button from '~common/ui/Button'

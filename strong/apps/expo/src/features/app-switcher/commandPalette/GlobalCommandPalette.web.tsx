@@ -11,9 +11,13 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai/react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { activeGroupAtom, activeTabIdAtom, appSwitcherModeAtom } from '~state/tabs'
-import CommandPalette from './CommandPalette.web'
+import { deferredComponent } from '~helpers/deferred'
 import { useTheme } from '~themes/ThemeProvider'
 import { webThemeVariables } from '~themes/webThemeVariables'
+
+// CyberJudah web build: the palette's contents load when it is first opened (or in the background
+// once the first chapter has painted).
+const CommandPalette = deferredComponent(() => import('./CommandPalette.web'))
 
 export default function GlobalCommandPalette() {
   const theme = useTheme()

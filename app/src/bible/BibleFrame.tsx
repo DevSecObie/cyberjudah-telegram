@@ -5,6 +5,8 @@ import { useTheme } from "@/tg/hooks";
 import { haptic, openLink } from "@/tg/sdk";
 import { assetUrl } from "@/lib/asset";
 import { useBibleSettings, type BibleSettings } from "./settings";
+import { loadSnapshot, restoreScroll, saveSnapshot, snapshotFits, takeSnapshot } from "./readerSnapshot";
+import { strongBookNumber } from "./strongRoutes";
 import "./strong-reader.css";
 
 /**
@@ -45,14 +47,27 @@ export function BibleFrame() {
   const location = useLocation();
   const navigate = useNavigate();
   const shown = isBiblePath(location.pathname);
-  // Loaded when the Bible is first opened, or quietly a moment after launch.
-  const [mounted, setMounted] = useState(shown);
+  // Started once the app's first screen has painted, whether or not the Bible is open: the reader
+  // runs on the app's own thread, and starting it in the first render would hold that screen back
+  // by seconds. Until then the Bible shows the still copy of its last screen (below).
+  const [mounted, setMounted] = useState(false);
+  // When the copy is up, the reader starts once it has painted, so the two do not compete.
+  const [stillShown, setStillShown] = useState(false);
   useEffect(() => {
     if (mounted) return;
-    if (shown) { setMounted(true); return; }
-    const id = window.setTimeout(() => setMounted(true), 2500);
-    return () => window.clearTimeout(id);
-  }, [mounted, shown]);
+    if (shown && stillFits && !stillShown) { const t = window.setTimeout(() => setStillShown(true), 1500); return () => window.clearTimeout(t); } // never wait on the copy for long
+    let id = 0;
+    const start = () => { id = window.setTimeout(() => setMounted(true), shown ? 0 : 150); };
+    const raf = requestAnimationFrame(() => requestAnimationFrame(start));
+    return () => { cancelAnimationFrame(raf); window.clearTimeout(id); };
+  }, [mounted, shown, stillShown]); // eslint-disable-line react-hooks/exhaustive-deps
+  // What is about to open: a passage (/read/john/3) or the reader's own last place (/bible).
+  const m = /^\/read\/([^/]+)\/(\d+)/.exec(location.pathname);
+  const book = m ? strongBookNumber(m[1]) : null;
+  const requested = m ? (book ? `${book}-${Number(m[2])}` : "none") : null;
+  // The still copy of the reader's last screen, shown while the reader starts (readerSnapshot.ts).
+  const [snapshot] = useState(loadSnapshot);
+  const stillFits = !!snapshot && snapshotFits(snapshot, requested, window.innerWidth);
 
   const [settings, setSettings] = useBibleSettings();
   const { scheme } = useTheme();
@@ -97,13 +112,30 @@ export function BibleFrame() {
     return () => { window.removeEventListener("message", onMessage); frame = null; ready = false; };
   }, [mounted]);
 
-  if (!mounted) return null;
+  // Keep a fresh copy of the reader whenever the Bible is left or the app goes to the background.
+  const wasShown = useRef(shown);
+  useEffect(() => {
+    const keep = () => { if (ready) saveSnapshot(takeSnapshot(ref.current)); };
+    if (wasShown.current && !shown) keep();
+    wasShown.current = shown;
+    const onHide = () => { if (document.visibilityState === "hidden") keep(); };
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", keep);
+    return () => { document.removeEventListener("visibilitychange", onHide); window.removeEventListener("pagehide", keep); };
+  }, [shown]);
+
+  const still = !loaded && stillFits ? snapshot : null;
+  if (!mounted && !(shown && still)) return null;
   return (
     <div className={shown ? "strong-reader" : "strong-reader strong-reader--away"} aria-hidden={!shown}>
-      <iframe ref={ref} className="strong-reader__frame" src="/app/strong/" title="Bible" allow="clipboard-write; web-share; fullscreen" />
-      <div className="strong-reader__splash" data-done={loaded ? "" : undefined} aria-hidden="true">
-        <img src={assetUrl("brand/cyber-lion.webp")} alt="" width={96} height={96} />
-      </div>
+      {mounted ? <iframe ref={ref} className="strong-reader__frame" src="/app/strong/" title="Bible" allow="clipboard-write; web-share; fullscreen" /> : null}
+      {still ? (
+        <iframe className="strong-reader__still" title="Bible (loading)" aria-hidden="true" tabIndex={-1} sandbox="allow-same-origin" srcDoc={still.html} onLoad={(e) => { restoreScroll(e.currentTarget); requestAnimationFrame(() => requestAnimationFrame(() => setStillShown(true))); }} />
+      ) : (
+        <div className="strong-reader__splash" data-done={loaded ? "" : undefined} aria-hidden="true">
+          <img src={assetUrl("brand/cyber-lion.webp")} alt="" width={96} height={96} />
+        </div>
+      )}
     </div>
   );
 }

@@ -10,7 +10,7 @@ import { SheetHeader, SheetTextInput, type SheetRef } from '~common/sheet'
 import type { Theme as AppTheme } from '~themes'
 import { useTheme as useAppTheme, useTheme } from '~themes/ThemeProvider'
 
-import ColorPicker from '~common/ColorPicker'
+import ColorPicker from '~common/colorPickerComponent'
 import Sheet from '~common/ContextualPanel/ContextualSheet'
 import Box, { HStack, TouchableBox } from '~common/ui/Box'
 import Button from '~common/ui/Button'

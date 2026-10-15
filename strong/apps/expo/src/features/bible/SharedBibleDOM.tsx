@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/react-native'
+import * as Sentry from '~helpers/sentry'
 import { useAtomValue } from 'jotai/react'
 import { atom } from 'jotai'
 import { useEffect, useRef } from 'react'

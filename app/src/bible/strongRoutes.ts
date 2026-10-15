@@ -87,6 +87,12 @@ const OSIS: Record<string, string> = {
   "2-maccabees": "2macc",
 };
 
+/** The reader's number for a book of the 66 (its verse keys are "book-chapter-verse": John 3:16 is 43-3-16). */
+export function strongBookNumber(slug: string): number | null {
+  const i = Object.keys(OSIS).indexOf(slug);
+  return i >= 0 && i < 66 ? i + 1 : null;
+}
+
 const STRONG_BASE = "/app/strong";
 
 /** The reader's address for a book, chapter and optional verses ("16" or "16-18"). */

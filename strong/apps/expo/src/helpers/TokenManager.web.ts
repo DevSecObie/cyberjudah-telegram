@@ -1,5 +1,5 @@
 import { getAuth } from 'firebase/auth'
-import * as Sentry from '@sentry/react-native'
+import * as Sentry from '~helpers/sentry'
 
 import { firebaseApp } from './firebaseApp.web'
 

@@ -8,7 +8,7 @@ import {
 } from '~features/commentaries/inlineCommentaryPlacement'
 import type { InlineCommentaryRequest } from '~features/commentaries/InlineCommentaryReader'
 import { useConfirmDialog } from '~common/ConfirmDialog/useConfirmDialog'
-import * as Sentry from '@sentry/react-native'
+import * as Sentry from '~helpers/sentry'
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Linking, Platform, type LayoutChangeEvent } from 'react-native'
 import { useDispatch, useSelector } from 'react-redux'

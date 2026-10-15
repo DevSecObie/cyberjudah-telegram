@@ -1,5 +1,5 @@
 import * as Icon from '@expo/vector-icons'
-import * as Sentry from '@sentry/react-native'
+import * as Sentry from '~helpers/sentry'
 import React, { PropsWithChildren, useEffect } from 'react'
 import { ScrollView, TextInput, Platform, ActivityIndicator } from 'react-native'
 import Clipboard from '@react-native-clipboard/clipboard'

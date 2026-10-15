@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/react-native'
+import * as Sentry from '~helpers/sentry'
 import type { Middleware } from '@reduxjs/toolkit'
 import { appLogger } from '~helpers/agentObservability'
 
