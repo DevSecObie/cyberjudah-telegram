@@ -13,6 +13,7 @@ import {
   setSettingsPreferredLightTheme,
 } from '~redux/modules/user/settings'
 import { activeTabIndexAtom, tabsAtom, tabsAtomsAtom, type BibleTab } from '~state/tabs'
+import { useTheme } from '~themes/ThemeProvider'
 
 /** CyberJudah: a message from the app around the reader (app/src/bible/StrongReader.tsx). */
 type AppMessage =
@@ -80,6 +81,12 @@ export default function CyberJudahAppBridge() {
     fromApp.current = { preferredColorScheme, preferredLightTheme, preferredDarkTheme }
     sendToApp({ type: 'appearance', preferredColorScheme, preferredLightTheme, preferredDarkTheme })
   }, [preferredColorScheme, preferredLightTheme, preferredDarkTheme])
+  // The app keeps the reader below Telegram's status bar and buttons, and paints that band the
+  // colour of the reader's header (bg-reverse, BibleHeader.tsx) so the two read as one.
+  const headerColor = useTheme().colors.reverse
+  useEffect(() => {
+    if (headerColor) sendToApp({ type: 'chrome', color: headerColor })
+  }, [headerColor])
   // The app shows Telegram's back button while the reader has a screen open over its Bible tab.
   useEffect(() => {
     sendToApp({ type: 'depth', canGoBack: router.canGoBack() })

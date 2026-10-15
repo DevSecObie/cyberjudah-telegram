@@ -1,11 +1,15 @@
-/* The reader fills the screen above the floating bottom bar. */
-.strong-reader { position: fixed; inset: 0 0 calc(var(--dock-h) + var(--dock-gap) + var(--safe-bottom)) 0; background: var(--bg, #fff); }
+/* The reader fills the screen above the floating bottom bar and below the top safe area: in
+   Telegram's full screen that is the status bar and Telegram's Close and ••• buttons (--safe-top,
+   kept current by tg/sdk.ts). The frame starts below it, so everything the reader shows (its
+   header, sheets, menus and toasts) fits the screen without the reader knowing about Telegram.
+   The band above the frame is painted the reader's own header colour, which the reader sends. */
+.strong-reader { position: fixed; inset: 0 0 calc(var(--dock-h) + var(--dock-gap) + var(--safe-bottom)) 0; box-sizing: border-box; padding-top: var(--safe-top); background: var(--reader-chrome, var(--canvas)); }
 /* Off the Bible tab it stays loaded and laid out (so it opens at once, where it was), unseen. */
 .strong-reader--away { visibility: hidden; pointer-events: none; z-index: -1; }
 .strong-reader__frame { display: block; width: 100%; height: 100%; border: 0; }
 /* The still copy of the reader’s last screen while it starts (readerSnapshot.ts): it sits exactly
    over the frame and goes as soon as the reader is ready. */
-.strong-reader__still { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; pointer-events: none; }
+.strong-reader__still { position: absolute; inset: var(--safe-top) 0 0 0; width: 100%; height: calc(100% - var(--safe-top)); border: 0; display: block; pointer-events: none; }
 /* The lion while the reader starts, as when the app starts (index.html). */
 .strong-reader__splash { position: absolute; inset: 0; display: grid; place-items: center; background: var(--canvas); transition: opacity 0.25s ease, visibility 0s linear 0.25s; }
 .strong-reader__splash[data-done] { opacity: 0; visibility: hidden; pointer-events: none; }

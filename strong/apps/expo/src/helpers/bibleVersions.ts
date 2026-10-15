@@ -685,8 +685,11 @@ Object.assign(versions.KJV, {
   sourceUrl: 'https://cyberjudah.io',
   hasRedWords: false,
   hasPericope: false,
-  hasAudio: false,
-  getAudioUrl: undefined,
+  // CyberJudah: Bible Strong's narrated King James (WordPocket) covers the 66 books, numbered 1-66 as here
+  // (Matthew is 40 in any order the reader shows). The Apocrypha (67 and up) has no recording:
+  // no address, so its chapters are read aloud by the device instead (BibleFooter.tsx).
+  getAudioUrl: (bookNum: number, chapterNum: number) =>
+    bookNum >= 1 && bookNum <= 66 ? getWordPocketKjvAudioUrl(bookNum, chapterNum) : '',
 })
 
 export const getBibleVersionCanonId = (versionId: string): BibleCanonId =>

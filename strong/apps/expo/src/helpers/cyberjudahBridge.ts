@@ -13,6 +13,8 @@ export type BridgeMessage =
   | { type: 'haptic'; kind: 'select' | 'tap' | 'success' }
   | { type: 'ready' }
   | { type: 'depth'; canGoBack: boolean }
+  // The colour of the reader's header: the app paints the band above the reader with it.
+  | { type: 'chrome'; color: string }
   | ({ type: 'appearance' } & Appearance)
 
 /** The reader's theme choice, the same three settings on both sides (app/src/bible/settings.ts). */
