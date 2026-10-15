@@ -14,6 +14,7 @@ import CachedTabScreens from '../CachedTabScreens'
 import { TabContextProvider } from '../context/TabContext'
 import TabPreviewCarousel from '../TabPreviewCarousel/TabPreviewCarousel'
 import TabGroupPager from './TabGroupPager'
+import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 type AppSwitcherScreenFuncs = {
   openMenu: () => void
   openHome: () => void
@@ -31,7 +32,8 @@ const AppSwitcherScreen = ({ openHome, openMenu }: AppSwitcherScreenFuncs) => (
       <CachedTabScreens />
       <SharedBibleDOM />
       <TabPreviewCarousel />
-      <BottomTabBar openMenu={openMenu} openHome={openHome} />
+      {/* CyberJudah: inside the Telegram app, its own bottom bar takes this place. */}
+      {!isEmbeddedInCyberJudah() && <BottomTabBar openMenu={openMenu} openHome={openHome} />}
     </Box>
   </TabContextProvider>
 )

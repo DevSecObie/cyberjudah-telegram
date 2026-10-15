@@ -1,3 +1,4 @@
+import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import { useImperativeHandle, useRef, useState } from 'react'
 import { Modal } from '@heroui/react/modal'
 import { useTranslation } from 'react-i18next'
@@ -9,7 +10,7 @@ import type { ModalSheetProps } from './ModalSheet'
 import './modal-sheet.css'
 import { readSheetHeader } from './readSheetHeader'
 
-export default function ModalSheet({
+function WebModalSheet({
   ref,
   children,
   header,
@@ -115,3 +116,11 @@ export default function ModalSheet({
     </Modal.Backdrop>
   )
 }
+
+// CyberJudah: inside the Telegram app the reader is on a phone, so it behaves as Bible Strong's
+// phone app does (ModalSheet.phone.tsx).
+// Loaded only there: the website, and its tests, never load the phone version.
+export default (isEmbeddedInCyberJudah()
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require('./ModalSheet.phone') as typeof import('./ModalSheet.phone')).default
+  : WebModalSheet)

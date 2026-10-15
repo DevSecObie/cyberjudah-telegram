@@ -1,26 +1,4 @@
-import type { ReactNode } from 'react'
-import { TouchableBox } from '~common/ui/Box'
-export type BibleBookmarkTriggerProps = {
-  children: ReactNode
-  book: number
-  chapter: number
-  version: string
-  onPress: () => void
-  accessibilityLabel: string
-}
-export default function BibleBookmarkTrigger({
-  children,
-  onPress,
-  accessibilityLabel,
-}: BibleBookmarkTriggerProps) {
-  return (
-    <TouchableBox
-      className="items-center justify-center h-[100%]"
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
-    >
-      {children}
-    </TouchableBox>
-  )
-}
+// CyberJudah: the phone app's version lives in BibleBookmarkTrigger.phone.tsx, so the web build can use it
+// inside the Telegram app (BibleBookmarkTrigger.web.tsx).
+export * from './BibleBookmarkTrigger.phone'
+export { default } from './BibleBookmarkTrigger.phone'

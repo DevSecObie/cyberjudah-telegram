@@ -1,3 +1,4 @@
+import i18n from '~i18n'
 import type { ComponentPropsWithRef as UIComponentProps } from 'react'
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -106,7 +107,7 @@ interface BookmarkModalProps {
 
 const getBookName = (bookNumber: number): string => {
   const bookData = books.find(b => b.Numero === bookNumber)
-  return bookData?.Nom || `Livre ${bookNumber}`
+  return bookData ? i18n.t(bookData.Nom) : `Livre ${bookNumber}`
 }
 
 const formatReference = (book: number, chapter: number, verse?: number): string => {

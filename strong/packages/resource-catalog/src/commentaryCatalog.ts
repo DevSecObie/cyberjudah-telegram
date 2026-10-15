@@ -26,6 +26,18 @@ const commentary = (entry: CommentaryCatalogInput): CommentaryCatalogEntry => ({
 })
 
 export const COMMENTARY_CATALOG = [
+  // CyberJudah: the classes' own breakdown of each scripture and the precepts read with it,
+  // served by the Worker (bot/src/bs/commentary.ts).
+  commentary({
+    id: 'cyberjudah',
+    shortName: 'CyberJudah',
+    title: 'CyberJudah Classes',
+    author: 'CyberJudah',
+    languages: ['en'],
+    tradition: 'Israelite',
+    tags: ['Precepts'],
+    rights: '© CyberJudah',
+  }),
   commentary({
     id: 'acbc',
     shortName: 'Clarke',

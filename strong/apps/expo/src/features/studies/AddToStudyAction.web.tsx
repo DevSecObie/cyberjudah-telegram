@@ -1,3 +1,4 @@
+import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
@@ -18,7 +19,7 @@ import { getDateLocale } from '~helpers/languageUtils'
 import useLanguage from '~helpers/useLanguage'
 import { useMountTime } from '~helpers/useMountTime'
 
-export default function AddToStudyAction({ onPress, onSelect, reference }: AddToStudyActionProps) {
+function WebAddToStudyAction({ onPress, onSelect, reference }: AddToStudyActionProps) {
   const { t } = useTranslation()
   const logged = useSelector(selectIsLogged)
   const studies = useSelector(selectStudyListRows)
@@ -155,3 +156,11 @@ export default function AddToStudyAction({ onPress, onSelect, reference }: AddTo
     />
   )
 }
+
+// CyberJudah: inside the Telegram app the reader is on a phone, so it behaves as Bible Strong's
+// phone app does (AddToStudyAction.phone.tsx).
+// Loaded only there: the website, and its tests, never load the phone version.
+export default (isEmbeddedInCyberJudah()
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require('./AddToStudyAction.phone') as typeof import('./AddToStudyAction.phone')).default
+  : WebAddToStudyAction)

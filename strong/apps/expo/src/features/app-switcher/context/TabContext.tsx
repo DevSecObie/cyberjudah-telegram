@@ -3,6 +3,7 @@ import { TabContextType } from './type'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useResponsiveWorkspace } from '../utils/useResponsiveWorkspace'
 import { TAB_ICON_SIZE } from '../utils/constants'
+import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 
 const TabContext = createContext<TabContextType>({
   isInTab: false,
@@ -20,7 +21,8 @@ export const useBottomBarHeightInTab = () => {
   const insets = useSafeAreaInsets()
   const { isInTab } = useTabContext()
   const isWide = useResponsiveWorkspace()
-  const bottomBarHeight = isInTab && !isWide ? TAB_ICON_SIZE + insets.bottom : insets.bottom
+  const bottomBarHeight =
+    isInTab && !isWide && !isEmbeddedInCyberJudah() ? TAB_ICON_SIZE + insets.bottom : insets.bottom
 
   return { bottomBarHeight }
 }

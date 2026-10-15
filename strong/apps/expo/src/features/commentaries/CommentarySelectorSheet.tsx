@@ -1,3 +1,4 @@
+import { isPhoneUI } from '~helpers/cyberjudahPhoneUI'
 import HeaderAction from '~common/ContextualPanel/HeaderAction'
 import PanelSearch from '~common/ContextualPanel/PanelSearch'
 import { twMerge } from '~common/ui/classNames'
@@ -268,7 +269,7 @@ const CommentarySelectorSheet = ({ sheetRef, inline = false, onOpenDetails }: Pr
   }
 
   const Container = inline ? InlineCommentaryContainer : Sheet
-  const isWebPanel = inline || Platform.OS === 'web'
+  const isWebPanel = inline || !isPhoneUI()
   const FilterPlacement = isWebPanel ? HeaderAction : React.Fragment
   return (
     <>
@@ -283,7 +284,7 @@ const CommentarySelectorSheet = ({ sheetRef, inline = false, onOpenDetails }: Pr
         }}
         header={
           <>
-            {Platform.OS === 'web' && !inline && (
+            {!isPhoneUI() && !inline && (
               <SheetHeader title={t('commentaries.selector.title')} />
             )}
             <FilterPlacement>

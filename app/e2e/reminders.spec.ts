@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { STAND_IN, type Logged } from "./stand-ins";
 import { open, pid, seal } from "../../bot/src/privacy.mjs";
+import { bibleAt, bibleReady } from "./telegram-harness";
 test.use({ serviceWorkers: "allow" });
 const KEYS = { PRIVACY_KEY: "e2e-privacy-key-not-secret" };
 
@@ -178,7 +179,8 @@ test("the deep links: Settings opens the reminders, and a reminder's Open lands 
   await setup(other);
   await other.goto(`/?tgWebAppStartParam=bible_genesis_3${launch(7003)}`);
   await expect(other).toHaveURL(/\/(read|bible)\/genesis\/3$/);
-  await expect(other.locator("#verset-1")).toBeVisible();
+  await bibleReady(other);
+  await expect(bibleAt(other, "Genesis 3")).toBeVisible();
   await other.close();
 });
 
