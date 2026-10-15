@@ -9,7 +9,7 @@ async function setup(page: Page) {
     if (path === "/api/kjv/genesis/1.json") return r.fulfill({ json: { book: "Genesis", chapter: 1, translation: "KJV", verses: [{ verse: 1, text: "In the beginning God created the heaven and the earth." }, { verse: 2, text: "And the earth was without form, and void." }] } });
     return r.fulfill({ status: 404, body: "" });
   });
-  await page.addInitScript(() => localStorage.setItem("cj:bs", JSON.stringify({ press: "longPress" })));
+  await page.addInitScript(() => { if (window !== window.top) return; localStorage.setItem("cj:bs", JSON.stringify({ press: "longPress" })); });
 }
 test("personal study persists, previews safe formatting and exports its actual draft", async ({ page }) => {
   await setup(page); await page.goto("/studies");

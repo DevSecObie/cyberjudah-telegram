@@ -1077,7 +1077,7 @@ test("outside Telegram there is no back guard: Back leaves the page as on any si
 });
 
 test("Telegram opens expanded, not full screen, its chrome first painted in the reader's saved colours", async ({ page }) => {
-  await page.addInitScript(() => { localStorage.setItem("cj:theme-pref", "light"); localStorage.setItem("cj:palette", JSON.stringify({ "--canvas": "#f4ecd8" })); });
+  await page.addInitScript(() => { if (window !== window.top) return; localStorage.setItem("cj:theme-pref", "light"); localStorage.setItem("cj:palette", JSON.stringify({ "--canvas": "#f4ecd8" })); });
   await page.goto(`/${LAUNCH}`);
   await expect(page.locator(".tabs")).toBeVisible();
   const log = await page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log);

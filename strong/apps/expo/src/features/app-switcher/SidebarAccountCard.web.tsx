@@ -146,8 +146,11 @@ export default function SidebarAccountCard({
             onPress={openAccount}
             className="flex-1 min-w-0 flex-row items-center gap-[9px] min-h-[44px] px-[4px] rounded-[8px] hover:bg-light-grey"
           >
+            {/* The sidebar is always on screen: a face that never stops moving repaints the
+                reader every frame (the CyberJudah app shares its thread), so it moves on hover. */}
             <UserAvatar
               size={38}
+              animate="hover"
               photoURL={user.photoURL}
               displayName={user.displayName}
               email={user.email}

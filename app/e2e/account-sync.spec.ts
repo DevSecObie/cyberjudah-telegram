@@ -23,6 +23,7 @@ async function fixture(page: Page, telegram: boolean) {
     return r.fulfill({ status: 404 });
   });
   await page.addInitScript(value => {
+    if (window !== window.top) return;
     (window as unknown as { __cloud: Record<string, string> }).__cloud = { bs_h_genesis_1: value };
     if (!localStorage.getItem("cj:bs_h_genesis_1")) localStorage.setItem("cj:bs_h_genesis_1", value);
   }, old);

@@ -48,6 +48,18 @@ async function setup(page: Page, theme = "default", reduced = false) {
   });
 }
 
+/**
+ * Wait until the page draws at its normal pace again. Restyling the page or resizing the window
+ * repaints the app and the Bible reader's frame, and while that runs in a software-drawn browser
+ * input waits for the slow frames: a swipe dispatched then reaches the page only after the 600 ms
+ * a long press takes, so the dock rightly reads it as a hold.
+ */
+const settled = (page: Page) => page.evaluate(() => new Promise<void>(resolve => {
+  let last = performance.now(), quick = 0;
+  const frame = (now: number) => { quick = now - last < 50 ? quick + 1 : 0; last = now; if (quick >= 5) resolve(); else requestAnimationFrame(frame); };
+  requestAnimationFrame(frame);
+}));
+
 async function dragStart(page: Page) {
   const dock = page.getByRole("navigation", { name: "Sections" });
   const from = (await dock.locator(".tab[data-on]").boundingBox())!;
@@ -410,6 +422,7 @@ test("controls: an overflowing rail scrolls natively and restores drag after res
   await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
   const dock = page.getByRole("navigation", { name: "Sections" });
   await expect(dock).toHaveAttribute("data-scrollable", "");
+  await settled(page);
   const bounds = (await dock.boundingBox())!, menu = dock.getByRole("button", { name: "Menu", exact: true });
   expect((await menu.boundingBox())!.y + (await menu.boundingBox())!.height).toBeGreaterThan(bounds.y + bounds.height);
   // Start on the selected Bible control: scrolling must not drag the pill to another route.
@@ -438,6 +451,7 @@ test("controls: an overflowing rail scrolls natively and restores drag after res
   await expect(dock).toHaveCSS("transform", "none");
   await page.setViewportSize({ width: 1280, height: 900 });
   await expect(dock).not.toHaveAttribute("data-scrollable");
+  await settled(page);
   const from = (await dock.getByRole("button", { name: "Bible", exact: true }).boundingBox())!;
   const to = (await dock.getByRole("button", { name: "Search", exact: true }).boundingBox())!;
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2); await page.mouse.down();

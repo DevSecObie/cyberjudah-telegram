@@ -132,6 +132,9 @@ test("audio settings are reachable from Settings without starting playback", asy
   expect((await audios(page)).length).toBe(0);
   await page.getByRole("button", { name: "Audio settings" }).click();
   await expect(page).toHaveURL(/\/settings\/audio/);
+  // The address changes before the screen does (it loads on demand, beside the Bible reader's
+  // frame): until it shows, "Voice" would also name Settings' own "Audio settings" row.
+  await expect(page.getByRole("heading", { name: "Audio settings", exact: true, level: 1 })).toBeVisible();
   expect((await audios(page)).length).toBe(0);
   // Choosing a voice and a speed here, while nothing is playing, must never start playback.
   await page.getByRole("button", { name: "Voice" }).click();
@@ -146,7 +149,7 @@ test("audio settings are reachable from Settings without starting playback", asy
 test("an unavailable saved voice shows an explicit fallback instead of silently switching, and keeps the preference until it's changed", async ({ page }) => {
   await setup(page);
   await page.route("**/api/recordings/catalog", (r) => r.fulfill({ json: { chapters: [] } }));
-  await page.addInitScript(() => localStorage.setItem("ttsVoice", "Ghost Voice"));
+  await page.addInitScript(() => { if (window !== window.top) return; localStorage.setItem("ttsVoice", "Ghost Voice"); });
   await page.goto("/settings/audio");
   await expect(page.getByRole("status")).toContainText("no longer on this device");
   expect(await page.evaluate(() => localStorage.getItem("ttsVoice"))).toBe("Ghost Voice");
