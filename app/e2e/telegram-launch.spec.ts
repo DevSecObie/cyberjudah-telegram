@@ -8,6 +8,9 @@ for (const root of ["/", "/app/"]) {
   test(`root launch: Telegram opens Home at ${root}`, async ({ page }) => {
     await page.goto(`${root}${LAUNCH}`);
     await expect(page.getByRole("heading", { name: "What do you want to learn?" })).toBeVisible();
+    await expect(page.getByRole("searchbox", { name: "Search the teachings" })).toBeVisible();
+    await expect(page.getByRole("searchbox", { name: "Ask CyberJudah" })).toBeVisible();
+    await expect(page.locator(".welcome .today-card, .welcome .stats")).toHaveCount(0);
     expect(new URL(page.url()).pathname).toBe(root);
     expect(await page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.filter(([name]) => name === "openTelegramLink"))).toEqual([]);
   });
@@ -15,6 +18,9 @@ for (const root of ["/", "/app/"]) {
   test(`root launch: a plain browser opens Home at ${root}`, async ({ page }) => {
     await page.goto(root);
     await expect(page.getByRole("heading", { name: "What do you want to learn?" })).toBeVisible();
+    await expect(page.getByRole("searchbox", { name: "Search the teachings" })).toBeVisible();
+    await expect(page.getByRole("searchbox", { name: "Ask CyberJudah" })).toBeVisible();
+    await expect(page.locator(".welcome .today-card, .welcome .stats")).toHaveCount(0);
     expect(new URL(page.url()).pathname).toBe(root);
   });
 
