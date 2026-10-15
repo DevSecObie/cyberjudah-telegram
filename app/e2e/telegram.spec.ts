@@ -313,7 +313,7 @@ test("liquid glass: pressing the current section lifts its pill, dragging carrie
 
 test("tabs are roots, detail screens push, and the back button walks them", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
-  await expect(page.locator(".hello h1")).toHaveText("What do you want to learn?");
+  await expect(page.getByRole("heading", { name: "What do you want to learn?" })).toBeVisible();
   expect((await state(page)).back).toBe(false);
   await page.click('.tab[aria-label="Bible"]');
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
@@ -399,7 +399,8 @@ liveDataTest("settings: theme, spacing and offline books", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("data-palette", "sepia");
   await page.click(".link >> text=Save a book");
   await page.click(".sheet__item >> text=Jude");
-  await expect(page.locator(".pill--ok")).toHaveText("offline");
+  // A saved book shows its text as kept on this device; narration is a separate, optional download.
+  await expect(page.locator(".pill--ok").first()).toHaveText("text");
   const cached = await page.evaluate(async () => (await (await caches.open("cj-offline-v1")).keys()).length);
   expect(cached).toBeGreaterThanOrEqual(1);
 });
@@ -529,24 +530,34 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   await expect(page.locator(".mcard__head")).toHaveText(["Yours", "Resources", "The Law", "Settings", "CyberJudah"]);
 });
 
-test("Home is the front door: one field, search the classes or ask CyberJudah", async ({ page }) => {
+test("welcome keeps Search and Ask separate, with the dashboard in the Home drawer", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
-  await expect(page.locator(".shero__prompt[data-on]")).toBeVisible();
-  // No plan yet: Meditate offers to start one (Bible Strong's PlanHome), and the study shelves are all in front.
-  await expect(page.locator('.home a[href="/plan"]')).toHaveText(/Start a reading plan/);
-  await expect(page.locator(".shelf")).toHaveText(["Learn", "Study", "Meditate", "Go further"]);
-  await expect(page.locator(".widget")).toHaveCount(6);
-  await expect(page.locator('.tools a[href="/lexicon"]')).toBeVisible();
-  await expect(page.locator(".tab")).toHaveCount(7); // Home, Search, Bible, Classes, Ask, Tabs, and the menu
-  await page.fill("#q", "Why do we keep the Passover?");
-  await page.click(".door__btn--ask");
+  const welcome = page.locator(".welcome");
+  const search = welcome.getByRole("searchbox", { name: "Search the teachings" });
+  const question = welcome.getByRole("searchbox", { name: "Ask CyberJudah" });
+  await expect(welcome.getByRole("button", { name: "Search the teachings", exact: true })).toBeDisabled();
+  await expect(welcome.getByRole("button", { name: "Ask your question" })).toBeDisabled();
+  await expect(welcome.locator(".today-card, .stats, .shelf, .widgets")).toHaveCount(0);
+  await expect(page.locator(".tab")).toHaveCount(7);
+  await search.fill("Seattle");
+  await question.fill("Why do we keep the Passover?");
+  await expect(search).toHaveValue("Seattle");
+  await welcome.getByRole("button", { name: "Ask your question" }).click();
   await expect(page).toHaveURL(/\/ask/);
   await expect(page.locator(".msg--me .msg__bubble")).toHaveText("Why do we keep the Passover?");
   await page.goBack();
-  await page.fill("#q", "Seattle");
-  await page.press("#q", "Enter");
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  const home = page.locator(".drawer--home[data-open]");
+  // The shelves, daily scripture and saved-item counters remain in the existing Home drawer.
+  await expect(home.locator(".today-card[data-active]")).toBeVisible();
+  await expect(home.locator(".stats__cell")).toHaveCount(6);
+  await expect(home.locator('.home a[href="/plan"]')).toHaveText(/Start a reading plan/);
+  await expect(home.locator(".shelf")).toHaveText(["Learn", "Study", "Meditate", "Go further"]);
+  await expect(home.locator(".widget")).toHaveCount(6);
+  await home.getByRole("button", { name: "Close Home" }).click();
+  await search.fill("Seattle");
+  await search.press("Enter");
   await expect(page).toHaveURL(/\/search\?q=Seattle/);
-  // Bible Strong's search: no title, the field and the collections in a strip on top.
   await expect(page.locator(".srch__bar #q")).toHaveValue("Seattle");
   await expect(page.locator(".srch__scope").first()).toHaveText("Top");
 });
@@ -1422,12 +1433,15 @@ test("a topic's thread strings the scriptures its classes opened, in Bible order
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/thread.png` });
 });
 
-test("Home shows what landed lately: passes, books and classes", async ({ page }) => {
+test("welcome loads the teaching dashboard only when Home is opened", async ({ page }) => {
+  let classes = 0;
+  await page.route(`${DATA_ORIGIN}/search/classes.json`, r => { classes++; return r.fulfill({ json: [] }); });
   await page.goto(`/${LAUNCH}`);
-  await expect(page.locator(".whatsnew__card").first()).toBeVisible();
-  await expect(page.locator(".whatsnew__card[data-kind='book']").first()).toBeVisible();
-  // Precept passes are working data behind the verse notes; Home does not list them.
-  await expect(page.locator(".whatsnew__card[data-kind='pass']")).toHaveCount(0);
+  await expect(page.getByRole("searchbox", { name: "Ask CyberJudah" })).toBeVisible();
+  expect(classes).toBe(0);
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect(page.locator(".drawer--home[data-open]")).toBeVisible();
+  await expect.poll(() => classes).toBe(1);
 });
 
 test("an Apocrypha verse shows its Greek from Swete's Septuagint where the 66 books show Strong's", async ({ page }) => {
@@ -2040,7 +2054,7 @@ test("the verse-selection sheet keeps Bible Strong's size: one row of actions, t
   await expect(sheet).toBeVisible();
   await page.locator(".bs-tabsfooter__tab", { hasText: "Annotate" }).click();
   const actions = sheet.locator(".bs-page:not([aria-hidden=true]) .bs-action");
-  await expect(actions.locator(".bs-action__label")).toHaveText(["Note", "Tag", "Link", "Relation", "Bookmark", "Add to study", "Focus"]);
+  await expect(actions.locator(".bs-action__label")).toHaveText(["Mark words", "Note", "Tag", "Link", "Relation", "Bookmark", "Add to study", "Focus"]);
   const tops = new Set(await actions.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top))));
   expect(tops.size).toBe(1);
   const s = (await sheet.boundingBox())!;

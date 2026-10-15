@@ -49,6 +49,14 @@ export async function researchOpen(
       const room = spend.outputTokensLeft(model, spend.inputUsd({ input_tokens: tokens }, model));
       if (room < 64 || spend.unreported) throw new Error("The answer has used its reserved budget.");
       input = { ...(input as Record<string, unknown>), max_tokens: Math.min(4096, model.maxOutput ?? 4096, room) };
+    } else if ((model.format === "messages" || model.format === "responses") && spend?.budgetUsd != null) {
+      // A paid answer is held to what was set aside for it, as Claude's is (agent.ts): each call may
+      // write only what the rest of the budget pays for, with enough room to finish a sentence.
+      const tokens = new TextEncoder().encode(JSON.stringify(input)).length + 1024;
+      const room = spend.outputTokensLeft(model, spend.inputUsd({ input_tokens: tokens }, model));
+      const key = model.format === "responses" ? "max_output_tokens" : "max_tokens";
+      const asked = Number((input as Record<string, unknown>)[key] ?? 8000);
+      input = { ...(input as Record<string, unknown>), [key]: Math.max(256, Math.min(asked, model.maxOutput ?? asked, room)) };
     }
     try {
       // Not logged: the request carries the reader's question (providers.ts viaGateway).

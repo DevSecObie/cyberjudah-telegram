@@ -296,7 +296,7 @@ test("materials: header, menu and selection stay within budget without stacked g
   if (browserName === "chromium") {
     const session = await page.context().newCDPSession(page);
     await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
-    for (let i = 1; i <= 10; i++) await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x - i * 18, y }] });
+    for (let i = 1; i <= 14; i++) await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x - i * 18, y }] });
     await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await session.detach();
   } else {

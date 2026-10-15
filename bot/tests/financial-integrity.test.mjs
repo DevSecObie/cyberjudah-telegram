@@ -232,3 +232,32 @@ test('overlapping webhook deliveries do not run twice; crashed claims recover an
   await api.sweepWebhookUpdates(env, Date.now() + 8 * 86400_000);
   assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM webhook_updates').get().n, 0);
 });
+
+test('a price limit below what an answer can begin with is asked again, never held as nothing', async t => {
+  const { env } = financialDb(t), uid = 77, owner = await api.ownerOfUser(env, uid);
+  await api.grantPayment(env, owner, { charge: 'floor-topup', kind: 'pack', stars: 77, mc: 1_000_000 });
+  for (const caps of [{ [paidModel.id]: 0.4 }, { [paidModel.id]: 1 }, { [paidModel.id]: 999 }]) {
+    const r = await api.startMeter(env, uid, paidModel, { caps });
+    assert.equal(r.ok, false);
+    assert.equal(r.status, 409);
+    assert.equal(r.body.error, 'confirm');
+  }
+  assert.equal((await api.wallet(env, owner)).total_mc, 1_000_000);
+  const ok = await api.startMeter(env, uid, paidModel, { caps: { [paidModel.id]: 500_000 } });
+  assert.equal(ok.ok, true);
+  assert.ok(ok.meter.held > 0);
+});
+
+test('a paid model on the Messages or Responses format may write only what its budget pays for', async t => {
+  const seen = [];
+  const env = { AI_GATEWAY: 'g', AI: { run: async (_id, input) => { seen.push(input); return { content: [{ type: 'text', text: 'ok' }], stop_reason: 'end_turn', status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: 'ok' }] }], usage: { input_tokens: 10, output_tokens: 10 } }; } } };
+  for (const format of ['messages', 'responses']) {
+    seen.length = 0;
+    const model = { id: `test/${format}`, name: 't', provider: 'openai', format, input: 2, output: 10 };
+    const spend = api.makeSpend({ budgetUsd: 0.01 });
+    await api.researchOpen(env, model, 'sys', [{ role: 'user', content: 'q' }], [], new Map(), async () => ({ content: '' }), () => {}, 1, spend);
+    const key = format === 'responses' ? 'max_output_tokens' : 'max_tokens';
+    assert.ok(seen[0][key] < 1000, `${format}: ${seen[0][key]}`);
+    assert.ok(seen[0][key] >= 256);
+  }
+});

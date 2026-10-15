@@ -6,15 +6,15 @@ import { useLocation, useNavigate, useParams, useSearchParams } from "react-rout
 import { compressVerses, data, verseNumbers } from "@/api/data";
 import { isRead, markRead, pushHistory, unmarkRead, useHistory, useLast, usePlan, useProgress } from "@/lib/marks";
 import { advance, planDay } from "@/lib/plan";
-import { createRelation, deleteRelation, endpointHref, useChapterRelations, verseKey, type Endpoint, type Relation, type VerseEndpoint, type VerseRelationItem } from "@/lib/relations";
+import { annotationEndpoint, annotationParam, createRelation, deleteRelation, endpointHref, useChapterRelations, useEndpointRelations, verseKey, type Endpoint, type Relation, type VerseEndpoint, type VerseRelationItem } from "@/lib/relations";
 import { share } from "@/lib/share";
 import { useReaderSpeech, useAudioPlayer } from "@/lib/AudioPlayer";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
-import { alert, app, haptic, openLink } from "@/tg/sdk";
+import { alert, app, confirm, haptic, openLink } from "@/tg/sdk";
 import { RelationTargetPicker } from "@/screens/Relations";
 import { Prologue } from "./dom/Prologue";
 import { Chapter, HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGHT } from "./dom/Chapter";
-import { colorItems, paletteOf, resolveTheme, telegramScheme, useBibleSettings, useSchemeChange } from "./settings";
+import { colorItems, highlightInfo, paletteOf, resolveTheme, telegramScheme, useBibleSettings, useSchemeChange } from "./settings";
 import { cssVars, isDarkTheme } from "./theme";
 import { useToast } from "@/ui/toast";
 import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
@@ -36,6 +36,11 @@ import { readerFullscreen, readerSession, saveReaderFullscreen, saveReaderSessio
 import { WhySheet } from "./ui/WhySheet";
 import { PassageExportSheet } from "./ui/PassageExportSheet";
 import { SelectedVersesSheet } from "./ui/SelectedVersesSheet";
+import { AnnotationToolbar } from "./ui/AnnotationToolbar";
+import { applyMark, deleteMark, eraseMarks, groupMarks, marksInSelection, markText, selectionVerses, updateMark, type Mark } from "./annotation/marks";
+import { kindOfStyle, styleOfKind } from "./annotation/highlights";
+import type { SelectionRange } from "./annotation/selectionUtils";
+import { useChapterMarks } from "./annotation/useChapterMarks";
 import "./bible.css";
 
 /**
@@ -103,6 +108,18 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const focus = useMemo(() => { const v = verseNumbers(params.get("v")); return v.length ? v : null; }, [params]);
   const [initial] = useState(() => readerSession(sessionKey, !!focus));
   const [selected, setSelected] = useState(initial.selected);
+  // Bible Strong's annotation mode (hooks/annotationSession.ts): per tab, never saved. The word
+  // selection and the selected mark never coexist, and neither with a verse selection.
+  const [annotating, setAnnotating] = useState(false);
+  const [wordSel, setWordSel] = useState<SelectionRange | null>(null);
+  const [selectedMarkId, setSelectedMarkId] = useState<string | null>(null);
+  const markRecords = useChapterMarks(slug, ch);
+  const marks = useMemo(() => groupMarks(markRecords), [markRecords]);
+  const selectedMark = marks.find((m) => m.id === selectedMarkId) ?? null;
+  const enterAnnotation = () => { setSelected([]); setAnnotating(true); };
+  const exitAnnotation = () => { setAnnotating(false); setWordSel(null); setSelectedMarkId(null); };
+  const selectMark = (id: string | null) => { if (id) setWordSel(null); setSelectedMarkId(id); };
+  const setWordSelection = useCallback((fn: (prev: SelectionRange | null) => SelectionRange | null) => setWordSel((prev) => { const next = fn(prev); if (next) setSelectedMarkId(null); return next; }), []);
   const [contextMode, setContextMode] = useState(initial.contextMode);
   const [fullscreen, setFullscreen] = useState(readerFullscreen);
   useEffect(() => { saveReaderFullscreen(fullscreen); }, [fullscreen]);
@@ -140,7 +157,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   }, [plan, list, progress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sheets.
-  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare" | "study">(null);
+  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare" | "study" | "markNote" | "markTags">(null);
   // The classes that taught each verse: pictures after the verses, as Bible Strong shows its videos.
   // Every class that read each verse: those with notes first, then every other the transcripts find.
   const classMoments = useClassesByVerse(slug, ch);
@@ -165,8 +182,20 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
     if (sheet) { setSheet(null); return true; }
     if (menuOpen) { setMenuOpen(false); return true; }
     if (selected.length) { setSelected([]); return true; }
+    if (annotating) { exitAnnotation(); return true; }
     return false;
   });
+  useEffect(() => { exitAnnotation(); }, [slug, ch]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!annotating || sheet) return;
+    const outside = (e: PointerEvent) => {
+      if (!(e.target instanceof Element) || e.target.closest(".bs-annotate, .bs-sel-handle, .bs-annotbar__done")) return;
+      if (e.target.closest(".bs-scroll") && !e.target.closest("[data-ignore-verse-touch]")) return;
+      exitAnnotation();
+    };
+    document.addEventListener("pointerup", outside, true);
+    return () => document.removeEventListener("pointerup", outside, true);
+  }, [annotating, sheet]);
 
   // Selection.
   const toggleVerse = (v: number) => { haptic("select"); setSelected((s) => (s.includes(v) ? s.filter((x) => x !== v) : [...s, v])); };
@@ -251,10 +280,60 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const chapterBookmark = bookmarks.find((b) => b.book === slug && b.chapter === ch && !b.verse);
   const formatBookmark = (b: Bookmark) => `${bookName(b.book)} ${b.chapter}${b.verse ? `:${b.verse}` : ""}`;
 
-  const headerHeight = (fullscreen ? HEADER_HEIGHT_MIN : HEADER_HEIGHT) + (focus && contextMode ? PASSAGE_CONTEXT_HEADER_HEIGHT : 0);
+  const headerHeight = annotating ? HEADER_HEIGHT : (fullscreen ? HEADER_HEIGHT_MIN : HEADER_HEIGHT) + (focus && contextMode ? PASSAGE_CONTEXT_HEADER_HEIGHT : 0);
   const focusedReference = focus ? reference(focus) : null;
   const bottomBar = 64 + (Number(getComputedStyle(document.documentElement).getPropertyValue("--safe-bottom").replace("px", "")) || 0);
   const items = colorItems(settings, palette);
+  const colorOf = useCallback((key: string) => { const { hex } = highlightInfo(key, settings, palette); return hex === "transparent" ? null : hex; }, [settings, palette]);
+  const wordRows = useMemo(() => verses.map((v) => ({ verseKey: verseKey(slug, ch, v.verse), text: v.text })), [verses, slug, ch]);
+  const verseOfKey = (k: string) => Number(k.slice(k.lastIndexOf("-") + 1));
+  const toolbarReference = selectedMark ? reference([verseOfKey(selectedMark.records[0].verseKey)]) : wordSel ? reference(selectionVerses(wordSel, wordRows)) : null;
+  const [savingMark, setSavingMark] = useState(false);
+  const savingMarkRef = useRef(false);
+  const run = (job: () => Promise<unknown>) => {
+    if (savingMarkRef.current) return;
+    savingMarkRef.current = true; setSavingMark(true);
+    void job().catch((e: unknown) => say(e instanceof Error ? e.message : "The mark could not be saved."))
+      .finally(() => { savingMarkRef.current = false; setSavingMark(false); });
+  };
+  // The selected mark as a relation endpoint (Bible Strong's selectedAnnotationEndpoint), and its relations.
+  const markEndpoint = useMemo(() => (selectedMark ? annotationEndpoint(selectedMark.id, selectedMark.records[0].verseKey, markText(selectedMark)) : null), [selectedMark]);
+  const markRelations = useEndpointRelations(markEndpoint);
+  const markTagsCount = Object.keys(selectedMark?.tags ?? {}).length;
+  const toggleMarkTag = (tagId: string) => {
+    const m = selectedMark; if (!m) return;
+    const t = { ...(m.tags ?? {}) }; if (t[tagId]) delete t[tagId]; else t[tagId] = true;
+    run(() => updateMark(m, { tags: Object.keys(t).length ? t : undefined }));
+  };
+  const openMarkRelations = () => { const e = markEndpoint; if (e) navigate(`/relations?endpoint=${encodeURIComponent(annotationParam(e))}&label=${encodeURIComponent(e.label)}`); };
+  // What a mark carries besides its words, named as Bible Strong's deletion warnings name them.
+  const attached = (m: Mark) => [m.note ? "a note" : "", Object.keys(m.tags ?? {}).length ? "tags" : "", m.id === selectedMark?.id && markRelations.count ? "relations" : ""].filter(Boolean);
+  /** ERASE_SELECTION, and CREATE_ANNOTATION over marks: the marks it replaces are confirmed first. */
+  const confirmReplacing = async (hits: Mark[]) => {
+    if (!hits.length) return true;
+    const items = [...new Set(hits.flatMap(attached))];
+    const head = hits.length === 1 ? "This will delete 1 annotation" : `This will delete ${hits.length} annotations`;
+    return confirm(`${head}${items.length ? `, with ${items.join(" and ")} attached` : ""}. Continue?`);
+  };
+  const applyToSelection = (color: string, kind: ReturnType<typeof kindOfStyle>) => run(async () => {
+    const s0 = wordSel; if (!s0) return;
+    const hits = marksInSelection(marks, s0, wordRows);
+    if (!(await confirmReplacing(hits))) return;
+    const id = await applyMark(marks, s0, wordRows, styleOfKind(kind), color);
+    setWordSel(null); if (id) setSelectedMarkId(id);
+  });
+  const eraseSelection = () => run(async () => {
+    const s0 = wordSel; if (!s0) return;
+    const hits = marksInSelection(marks, s0, wordRows);
+    if (!(await confirmReplacing(hits))) return;
+    await eraseMarks(marks, s0, wordRows); setWordSel(null);
+  });
+  const deleteSelectedMark = () => run(async () => {
+    const m = selectedMark; if (!m) return;
+    const items = attached(m);
+    if (items.length && !(await confirm(`This annotation has ${items.join(" and ")} attached. Do you really want to delete it?`))) return;
+    await deleteMark(m); setSelectedMarkId(null);
+  });
   const resource = verses.find((v) => v.verse === resourceVerse);
 
   return (
@@ -262,8 +341,8 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
       {chapterLabel ? <h1 className="sr-only">{chapterLabel}, KJV</h1> : null}
       <Header bookLabel={chapterLabel} version="KJV" onBook={() => setSheet("books")} onVersion={() => setSheet("version")} onVerses={() => setSheet("verses")}
         selectedReference={selectedReference} focusedReference={focusedReference} onClearFocus={clearFocus} collapsed={fullscreen}
-        onMenu={onMenu} hasChapterBookmark={!!chapterBookmark} chapterBookmarkColor={chapterBookmark?.color} onChapterBookmark={() => { setBookmarkTarget({ existing: chapterBookmark }); setSheet("bookmark"); }} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
-      {focus ? <PassageContextBar focused={contextMode === "focused"} collapsed={fullscreen} onExpand={() => setContextMode("fullChapter")} onCollapse={() => { setContextMode("focused"); setNavRequest((n) => n + 1); }} onExit={clearFocus} /> : null}
+        onMenu={onMenu} hasChapterBookmark={!!chapterBookmark} chapterBookmarkColor={chapterBookmark?.color} onChapterBookmark={() => { setBookmarkTarget({ existing: chapterBookmark }); setSheet("bookmark"); }} menuOpen={menuOpen} setMenuOpen={setMenuOpen} annotating={annotating} onExitAnnotation={exitAnnotation} />
+      {focus && !annotating ? <PassageContextBar focused={contextMode === "focused"} collapsed={fullscreen} onExpand={() => setContextMode("fullChapter")} onCollapse={() => { setContextMode("focused"); setNavRequest((n) => n + 1); }} onExit={clearFocus} /> : null}
       {text.isError ? (
         <div className="bs-error" style={{ paddingTop: headerHeight + 100 }}><span className="bs-error__icon"><Feather2 /></span><p>This chapter did not load. Check your connection, or save this book for offline reading in Settings.</p><button type="button" className="bs-btn" onClick={() => void text.refetch()}>Retry</button></div>
       ) : (
@@ -271,11 +350,13 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
           readingVerse={speech.current} onSeekVerse={speech.playing ? speech.play : undefined} selected={selected} focusVerses={focus} contextDisplayMode={contextMode} verseToScroll={verseToScroll} navigationRequest={navRequest}
           highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={relItems}
           moments={classMoments.data} deck={{ reference: chapterLabel, from: `/read/${slug}/${ch}` }}
-          headerHeight={headerHeight} fullscreen={fullscreen} canSwipe
+          headerHeight={headerHeight} fullscreen={fullscreen} canSwipe={!annotating}
           header={text.data?.prologue?.length ? <Prologue items={text.data.prologue} settings={settings} palette={palette} /> : null}
           footer={<><ChapterPeople slug={slug} chapter={ch} palette={palette} resources={chapterDeck.length ? <MediaDeck items={chapterDeck} placement="chapter" palette={palette} fontScale={settings.fontSizeScale} reference={chapterLabel} from={`/read/${slug}/${ch}`}
             sections={[{ title: `Taught from ${chapterLabel}`, items: chapterGroups.taught }, { title: `Read in class`, items: chapterGroups.read }].filter((x) => x.items.length)} /> : null} /><ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
             onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} /></>}
+          annotationMode={annotating} marks={marks} selectedMark={selectedMarkId} colorOf={colorOf}
+          wordSelection={wordSel} setWordSelection={setWordSelection} onSelectMark={selectMark} onExitAnnotation={exitAnnotation}
           onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "words")}
           onSwipe={(dir) => step(dir === "left" ? next : prev)} onFullscreen={setFullscreen}
           onOpenBookmark={(b) => { setBookmarkTarget({ verse: b.verse, existing: b }); setSheet("bookmark"); }}
@@ -287,9 +368,20 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
       <WhySheet open={sheet === "why"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={whyAt} reference={`${chapterLabel}:${whyAt}`}
         onRead={(url, v) => { setSheet(null); const m = slugOfUrl(url); navigate(m ? `/read/${m[1]}/${m[2]}${v ? `?v=${v}` : ""}` : url); }}
         onOpenClass={(url, ts) => { setSheet(null); const t = ts ? ts.split(":").reduce((n, p) => n * 60 + Number(p || 0), 0) : 0; if (/^https?:/.test(url)) openLink(`${url}${t ? `&t=${t}s` : ""}`); else navigate(`/note${url}${t ? `?t=${t}` : ""}`); }} />
+      <AnnotationToolbar open={annotating && !sheet} enabled={annotating && !savingMark} reference={toolbarReference} hasSelection={!!wordSel} colors={items} onClose={exitAnnotation}
+        selected={selectedMark ? { id: selectedMark.id, kind: kindOfStyle(selectedMark.style), color: selectedMark.color ?? "", hex: (selectedMark.color && colorOf(selectedMark.color)) || "#d9a625", hasNote: !!selectedMark.note } : null}
+        onApply={applyToSelection} onChangeMark={(color, kind) => { const m = selectedMark; if (m) run(() => updateMark(m, { color, style: styleOfKind(kind) })); }}
+        onErase={eraseSelection} onDelete={deleteSelectedMark}
+        onAddColor={() => setSheet("params")} onNote={() => setSheet("markNote")} onTags={() => setSheet("markTags")} onRelations={openMarkRelations}
+        tagsCount={markTagsCount} relationsCount={markRelations.count} />
+      {selectedMark ? <TagsPanel open={sheet === "markTags"} onClose={() => setSheet(null)} reference={markText(selectedMark).slice(0, 80)} tags={tags} setTags={setTags} selected={selectedMark.tags ?? {}} onToggle={toggleMarkTag} /> : null}
+      {selectedMark ? <NoteSheet open={sheet === "markNote"} onClose={() => setSheet(null)} reference={markText(selectedMark).slice(0, 80)} initial={selectedMark.note ? { title: selectedMark.note.title, description: selectedMark.note.description } : undefined}
+        onSave={(v) => { const m = selectedMark; setSheet(null); run(() => updateMark(m, { note: { title: v.title, description: v.description, date: Date.now() } })); }}
+        onRemove={selectedMark.note ? () => { const m = selectedMark; setSheet(null); run(() => updateMark(m, { note: undefined })); } : undefined} /> : null}
       <SelectedVersesSheet open={selected.length > 0 && !sheet} onDismiss={() => setSelected([])} reference={selectedReference ?? undefined}
         colors={items} selectedColor={selectedColor} onAddHighlight={addHighlight} onRemoveHighlight={removeHighlight} onAddColor={() => setSheet("params")} onEditColor={() => setSheet("params")}
         moreThanOne={selected.length > 1} hasBookmark={hasBookmark} hasFocus={hasFocus}
+        onMarkWords={enterAnnotation}
         onNote={() => { setNoteEdit(null); setSheet("note"); }} onTag={() => { setTagsTarget(selectedSorted); setSheet("tags"); }} onLink={() => setSheet("link")} onRelation={() => setSheet("relation")}
         onBookmark={() => { setBookmarkTarget({ verse: first, existing: bookmarks.find((b) => b.book === slug && b.chapter === ch && b.verse === first) }); setSheet("bookmark"); }} onFocus={setFocus}
         onLexicon={() => openResources(first, "words")} onDictionary={() => openResources(first, "dictionary")} onThemes={() => openResources(first, "themes")} onReferences={() => openResources(first, "references")} onCommentary={() => openResources(first, "commentary")} onCompare={() => { setResourceVerse(first); setSheet("compare"); }}
