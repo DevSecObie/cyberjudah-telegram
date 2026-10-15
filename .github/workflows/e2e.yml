@@ -2,6 +2,8 @@ name: end-to-end
 
 on:
   pull_request:
+  # The merge queue tests each queued PR on top of main before it lands (Settings → Branches).
+  merge_group:
   push:
     branches: [main]
   workflow_dispatch:

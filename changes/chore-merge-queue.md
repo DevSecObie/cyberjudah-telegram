@@ -1,0 +1,1 @@
+- The checks that guard main also run in GitHub's merge queue, so pull requests can be queued and tested on top of the latest main before they land instead of being updated and re-tested one by one.
