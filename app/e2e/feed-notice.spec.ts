@@ -89,14 +89,17 @@ for (const available of [true, false]) {
       pZs5reAzxi4: { date: day, broadcastAt: `${day}T21:56:00Z` },
     } }) : r.fulfill({ status: 503, body: 'unavailable' }));
     await page.goto(`/classes${LAUNCH}`);
+    // Verified broadcast starts order the day. Without them the channel feed's listing order
+    // decides: Morning class (CO-THOc-IhQ) is the only one of the day the feed lists, so it leads
+    // and the rest keep source order. Its upload time (15:00Z) is never read as a broadcast start.
     await expect(page.locator('.post__title')).toHaveText(available
       ? ['Newest day', 'Haiti evening class', 'Afternoon class', 'Midday class', 'Morning class', 'Previous week']
-      : ['Newest day', 'Haiti evening class', 'Afternoon class', 'Midday class', 'Morning class', 'Previous week']);
+      : ['Newest day', 'Haiti evening class', 'Morning class', 'Afternoon class', 'Midday class', 'Previous week']);
     await expect(page.getByRole('link', { name: 'Morning class', exact: true })).toHaveAttribute('href', '/note/classes/CO-THOc-IhQ');
     await expect(page.getByRole('link', { name: 'Haiti evening class', exact: true })).toHaveAttribute('href', '/watch/pZs5reAzxi4');
     await page.getByRole('searchbox').fill('class');
     await expect(page.locator('.post__title')).toHaveText(available
       ? ['Haiti evening class', 'Afternoon class', 'Midday class', 'Morning class']
-      : ['Haiti evening class', 'Afternoon class', 'Midday class', 'Morning class']);
+      : ['Haiti evening class', 'Morning class', 'Afternoon class', 'Midday class']);
   });
 }
