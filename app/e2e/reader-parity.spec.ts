@@ -308,15 +308,17 @@ test("daily verses have five days, sharing and images on Home", async ({ page, b
     { n: "G2", lemma: "Ἀαρών", xlit: "Aaron", def: "Aaron", count: 10 },
   ] }));
   await page.goto("/");
-  const card = page.getByRole("region", { name: "Daily scripture" });
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  const days = page.getByRole("region", { name: "Daily scripture" });
+  const card = days.locator(".today-card[data-active]");
   await expect(card).toContainText("Genesis 1:1");
   await expect(card.getByRole("button", { name: "Share", exact: true })).toBeEnabled();
-  await card.getByRole("button", { name: "Previous day's scripture" }).click();
+  await days.press("ArrowRight");
   await expect(card).toContainText("Yesterday"); await expect(card).toContainText("Genesis 1:2");
   await card.getByRole("button", { name: "Image", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Verse image" }).getByRole("img")).toHaveAttribute("src", "/card/genesis/1/2.svg");
   await page.getByRole("button", { name: "Close", exact: true }).click();
-  await card.getByRole("button", { name: "Today's scripture", exact: true }).click();
+  await days.press("ArrowLeft");
   await expect(card).toContainText("Genesis 1:1");
 
   await page.goto("/read/genesis/1");
