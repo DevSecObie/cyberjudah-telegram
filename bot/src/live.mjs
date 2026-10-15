@@ -40,6 +40,18 @@ export function cleanTitle(raw) {
 /** @typedef {{ video: string; title: string; published: string; views: number | null }} RecentVideo */
 
 /**
+ * Newest day first, and nothing finer. Within a day the source's own order stands:
+ * YouTube lists a day's classes in the order they were taught, while the published
+ * timestamps are upload times and can run the other way (Oct 10, 2026: the Ear Gate
+ * class is listed first but carries the earlier timestamp). Sorting by the full
+ * timestamp flipped same-day classes away from the taught order. Array.sort is
+ * stable, so comparing only the UTC day keeps the source order within the day.
+ * @param {RecentVideo} a
+ * @param {RecentVideo} b
+ */
+export const byDay = (a, b) => b.published.slice(0, 10).localeCompare(a.published.slice(0, 10));
+
+/**
  * The channel's latest uploads from its public RSS feed (the fifteen newest), newest first.
  * @param {string} xml
  * @returns {RecentVideo[]}
@@ -54,7 +66,7 @@ export function parseFeed(xml) {
     const views = /<media:statistics views="(\d+)"/.exec(e)?.[1];
     if (video && title && Number.isFinite(Date.parse(published))) out.push({ video, title: cleanTitle(title), published, views: views ? Number(views) : null });
   }
-  return out.sort((a, b) => b.published.localeCompare(a.published));
+  return out.sort(byDay);
 }
 
 /** Read a JSON assignment without evaluating page scripts or cutting at braces in titles.
@@ -180,5 +192,5 @@ export function parseChannelVideos(html, now = Date.now()) {
     for (const child of Object.values(node)) walk(child);
   };
   walk(selected);
-  return [...out.values()].sort((a, b) => b.published.localeCompare(a.published)).slice(0, 15);
+  return [...out.values()].sort(byDay).slice(0, 15);
 }
