@@ -92,9 +92,15 @@ const selectedWords = (page: Page) => page.evaluate(() => {
   }
   return words.join(" ");
 });
+/** Bible Strong's toolbar has no Done: the mode ends from the header. */
 async function done(page: Page) {
-  await toolbar(page).getByRole("button", { name: "Done", exact: true }).tap();
+  await page.getByRole("button", { name: "Exit annotation mode", exact: true }).tap();
   await expect(toolbar(page)).toHaveCount(0);
+}
+/** A kind only arms itself; a colour applies the armed kind (Bible Strong's AnnotationToolbar). */
+async function style(page: Page, kind: string, colour = 0) {
+  await toolbar(page).getByRole("radio", { name: kind, exact: true }).tap();
+  await toolbar(page).getByRole("group", { name: "Mark colour" }).getByRole("button").nth(colour).tap();
 }
 
 test("1: in annotation mode a long press selects one word; both handles extend, shrink and cross into the next verse", async ({ page }) => {
@@ -115,26 +121,29 @@ test("1: in annotation mode a long press selects one word; both handles extend, 
   await expect.poll(() => selectedWords(page)).toBe("God created the heaven");
   await handle(page, "end", 2, "earth");
   await expect.poll(() => selectedWords(page)).toBe("God created the heaven and the earth. And the earth");
-  await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
+  await style(page, "Highlight");
   await expect(marked(page)).toHaveText(["God created the heaven and the earth.", "And the earth"]);
 });
 
-test("2: word selection offers only the requested styles, colours, Note, Delete and Done", async ({ page }) => {
+test("2: word selection offers Bible Strong's styles, colours with +, Note, Tags, Relations and Delete, and no Done", async ({ page }) => {
   await open(page); await selectWord(page);
   await expect(toolbar(page).getByRole("radio")).toHaveCount(3);
   for (const name of ["Highlight", "Underline", "Circle"]) await expect(toolbar(page).getByRole("radio", { name, exact: true })).toBeVisible();
-  await expect(toolbar(page).getByRole("group", { name: "Mark colour" }).getByRole("button")).toHaveCount(5);
-  for (const name of ["Note", "Delete", "Done"]) await expect(toolbar(page).getByRole("button", { name, exact: true })).toBeVisible();
-  await expect(toolbar(page).getByRole("button", { name: /Tags|Relations|More colours/ })).toHaveCount(0);
+  await expect(toolbar(page).getByRole("group", { name: "Mark colour" }).getByRole("button")).toHaveCount(6);
+  await expect(toolbar(page).getByRole("button", { name: "Add a colour", exact: true })).toBeVisible();
+  for (const name of ["Note", "Delete"]) await expect(toolbar(page).getByRole("button", { name, exact: true })).toBeVisible();
+  // Note, Tags and Relations belong to a saved mark: shown, but off while only words are selected.
+  for (const name of ["Note", "Tags, 0", "Relations, 0"]) await expect(toolbar(page).getByRole("button", { name, exact: true })).toBeDisabled();
+  await expect(toolbar(page).getByRole("button", { name: "Done", exact: true })).toHaveCount(0);
   await expect(page.getByRole("dialog", { name: /^Selected:/ })).toHaveCount(0);
 });
 
 test("3: each style saves exactly its word immediately and survives reload and chapter navigation", async ({ page }) => {
   await open(page);
-  for (const [word, style] of [["beginning", "Highlight"], ["God", "Underline"], ["created", "Circle"]]) {
+  for (const [word, kind] of [["beginning", "Highlight"], ["God", "Underline"], ["created", "Circle"]]) {
     await selectWord(page, 1, word);
-    await toolbar(page).getByRole("radio", { name: style, exact: true }).tap();
-    await expect(marked(page).filter({ hasText: new RegExp(`^${word}$`) })).toHaveClass(new RegExp(`phrase-${style.toLowerCase()}`));
+    await style(page, kind);
+    await expect(marked(page).filter({ hasText: new RegExp(`^${word}$`) })).toHaveClass(new RegExp(`phrase-${kind.toLowerCase()}`));
     await done(page);
   }
   await page.reload();
@@ -148,13 +157,14 @@ test("3: each style saves exactly its word immediately and survives reload and c
 
 test("4: in annotation mode tapping a saved mark selects it for restyling, colour, a persistent note and deletion", async ({ page }) => {
   await open(page); await selectWord(page);
-  await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
+  await style(page, "Highlight");
   await expect(marked(page)).toHaveText("beginning"); await done(page);
   await enterAnnotation(page); await marked(page).tap(); await expect(toolbar(page)).toBeVisible();
   await toolbar(page).getByRole("radio", { name: "Circle", exact: true }).tap();
-  await expect(marked(page)).toHaveClass(/phrase-circle/);
+  await expect(marked(page)).toHaveClass(/phrase-highlight/);
   const color = toolbar(page).getByRole("group", { name: "Mark colour" }).getByRole("button").nth(1);
   await color.tap(); await expect(color).toHaveAttribute("aria-pressed", "true");
+  await expect(marked(page)).toHaveClass(/phrase-circle/);
   const ink = await marked(page).evaluate(el => getComputedStyle(el).borderColor);
   await toolbar(page).getByRole("button", { name: "Note", exact: true }).tap();
   const note = page.getByRole("dialog", { name: "Note", exact: true });
@@ -173,15 +183,19 @@ test("4: in annotation mode tapping a saved mark selects it for restyling, colou
   await page.reload(); await expect(marked(page)).toHaveCount(0);
 });
 
-test("5: outside tap, outside long press, both Done controls and Telegram Back end word selection", async ({ page }) => {
+test("5: outside tap, outside long press, swiping the sheet down, the header and Telegram Back end word selection", async ({ page }) => {
   await page.addInitScript(() => { (window as unknown as { __cloud: Record<string, string> }).__cloud = { bs_bm: JSON.stringify([{ id: "existing-bookmark", name: "Creation", book: "genesis", chapter: 1, verse: 1, color: "#0984e3", date: 1 }]) }; });
   await open(page);
-  for (const exit of ["outside tap", "outside hold", "Done", "header", "Telegram"]) {
+  for (const exit of ["outside tap", "outside hold", "swipe down", "header", "Telegram"]) {
     await test.step(exit, async () => {
       await selectWord(page);
       if (exit === "outside tap") await page.touchscreen.tap(3, 160);
       if (exit === "outside hold") await hold(page, { x: 3, y: 160 });
-      if (exit === "Done") await toolbar(page).getByRole("button", { name: "Done", exact: true }).tap();
+      if (exit === "swipe down") {
+        const grab = (await toolbar(page).locator(".bs-sheet__grab").boundingBox())!;
+        await page.mouse.move(grab.x + 20, grab.y + grab.height / 2); await page.mouse.down();
+        await page.mouse.move(grab.x + 20, grab.y + grab.height / 2 + 150, { steps: 6 }); await page.mouse.up();
+      }
       if (exit === "header") await page.getByRole("button", { name: "Exit annotation mode", exact: true }).tap();
       if (exit === "Telegram") await page.evaluate(() => (window as unknown as { __tg: { press(s: string): void } }).__tg.press("back"));
       await expect(toolbar(page)).toHaveCount(0); await expect(page.locator(".bs-sel-handle")).toHaveCount(0);
@@ -289,7 +303,7 @@ test("a closing Scripture options menu cannot intercept a verse long press", asy
 
 for (const press of ["longPress", "shortPress"]) test(`tapping a saved mark selects its verse in ${press} reading mode`, async ({ page }) => {
   await open(page); await selectWord(page);
-  await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
+  await style(page, "Highlight");
   await expect(marked(page)).toHaveText("beginning"); await done(page);
   await page.reload(); await expect(marked(page)).toHaveText("beginning");
   if (press === "shortPress") await shortPress(page);
@@ -311,7 +325,7 @@ test("tapping a saved mark seeks first while audio is playing", async ({ page })
     } });
   });
   await open(page); await selectWord(page, 2, "without");
-  await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
+  await style(page, "Highlight");
   await expect(marked(page)).toHaveText(["without"]); await done(page);
   await page.getByRole("button", { name: "Start audio playback", exact: true }).tap();
   await expect(page.getByRole("button", { name: "Stop audio playback", exact: true })).toBeVisible();
@@ -323,7 +337,7 @@ test("tapping a saved mark seeks first while audio is playing", async ({ page })
 
 test("annotation mode hits the rendered mark after its text moves without a layout resize", async ({ page }) => {
   await open(page); await selectWord(page);
-  await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
+  await style(page, "Highlight");
   await expect(marked(page)).toHaveText("beginning"); await done(page);
   await enterAnnotation(page);
   await expect(toolbar(page).getByRole("button", { name: "Note", exact: true })).toBeDisabled();
@@ -332,7 +346,7 @@ test("annotation mode hits the rendered mark after its text moves without a layo
   await marked(page).evaluate(el => { (el as HTMLElement).style.position = "relative"; (el as HTMLElement).style.left = "70px"; });
   await marked(page).tap();
   await expect(toolbar(page).getByRole("button", { name: "Note", exact: true })).toBeEnabled();
-  await toolbar(page).getByRole("radio", { name: "Underline", exact: true }).tap();
+  await style(page, "Underline");
   await expect(marked(page)).toHaveClass(/phrase-underline/);
 });
 
@@ -378,12 +392,12 @@ test("saving, restyling and deleting a three-verse mark commits every part toget
   await handle(page, "end", 3, "God");
   await expect.poll(() => selectedWords(page)).toContain("And God");
   await trackMarkWrites(page);
-  await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
+  await style(page, "Highlight");
   await expect(marked(page)).toHaveCount(3);
   await expect.poll(() => markWrites(page)).toEqual({ transactions: 1, broadcasts: 1 });
   const id = await marked(page).first().getAttribute("data-mark");
   expect(await marked(page).evaluateAll(els => els.map(el => el.getAttribute("data-mark")))).toEqual([id, id, id]);
-  await toolbar(page).getByRole("radio", { name: "Circle", exact: true }).tap();
+  await style(page, "Circle");
   await expect(page.locator(".bs-word-mark.phrase-circle")).toHaveCount(3);
   await expect.poll(() => markWrites(page)).toEqual({ transactions: 2, broadcasts: 2 });
   await done(page); await page.reload();
@@ -400,11 +414,11 @@ test("saving, restyling and deleting a three-verse mark commits every part toget
 
 test("replacing a multi-verse mark removes all old parts in the same save transaction", async ({ page }) => {
   await open(page); await selectWord(page); await handle(page, "end", 3, "God");
-  await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
+  await style(page, "Highlight");
   await expect(marked(page)).toHaveCount(3);
   await selectWord(page, 2, "without");
   await trackMarkWrites(page);
-  await toolbar(page).getByRole("radio", { name: "Underline", exact: true }).tap();
+  await style(page, "Underline");
   await expect(marked(page)).toHaveText(["without"]);
   await expect.poll(() => markWrites(page)).toEqual({ transactions: 1, broadcasts: 1 });
   await page.reload(); await expect(marked(page)).toHaveText(["without"]);
@@ -412,7 +426,7 @@ test("replacing a multi-verse mark removes all old parts in the same save transa
 
 test("an aborted multi-verse replacement preserves the old mark and emits no change", async ({ page }) => {
   await open(page); await selectWord(page);
-  await toolbar(page).getByRole("radio", { name: "Highlight", exact: true }).tap();
+  await style(page, "Highlight");
   await expect(marked(page)).toHaveText("beginning");
   await selectWord(page); await handle(page, "end", 3, "God");
   await trackMarkWrites(page);
@@ -425,7 +439,7 @@ test("an aborted multi-verse replacement preserves the old mark and emits no cha
       return request;
     };
   });
-  await toolbar(page).getByRole("radio", { name: "Circle", exact: true }).tap();
+  await style(page, "Circle");
   await expect(toolbar(page).getByRole("radio", { name: "Circle", exact: true })).toBeEnabled();
   await expect.poll(() => markWrites(page)).toEqual({ transactions: 1, broadcasts: 0 });
   await page.reload();
@@ -479,4 +493,23 @@ test("a mark with color, note, tags and group round-trips through backup and res
   expect(second.annotations[0]).toEqual({ ...full, id: expect.any(String) });
   await goInApp(page, "/read/genesis/1");
   await expect(page.locator(".phrase-underline")).toHaveText("beginning God");
+});
+
+test("a saved mark takes tags and relations from the card, with their counts, as Bible Strong's", async ({ page }) => {
+  await open(page); await selectWord(page);
+  await style(page, "Highlight");
+  await expect(marked(page)).toHaveText("beginning");
+  await toolbar(page).getByRole("button", { name: "Tags, 0", exact: true }).tap();
+  const tagsSheet = page.getByRole("dialog", { name: "Edit tags", exact: true });
+  await tagsSheet.getByLabel("Search tags", { exact: true }).fill("Creation");
+  await tagsSheet.getByRole("button", { name: "Create « Creation »", exact: true }).tap();
+  await expect(tagsSheet.getByRole("checkbox", { name: "Creation", exact: true })).toHaveAttribute("aria-checked", "true");
+  await tagsSheet.getByRole("button", { name: "Close", exact: true }).tap();
+  await expect(toolbar(page).getByRole("button", { name: "Tags, 1", exact: true })).toBeVisible();
+  await page.reload(); await enterAnnotation(page); await marked(page).tap();
+  await expect(toolbar(page).getByRole("button", { name: "Tags, 1", exact: true })).toBeVisible();
+  await toolbar(page).getByRole("button", { name: "Relations, 0", exact: true }).tap();
+  await expect(page).toHaveURL(/\/relations\?endpoint=annotation%3Agenesis-1-1%3A/);
+  await expect(page.getByText("beginning", { exact: true })).toBeVisible();
+  await expect(page.getByText("No precepts yet", { exact: true })).toBeVisible();
 });

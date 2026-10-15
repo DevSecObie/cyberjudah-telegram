@@ -6,7 +6,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from "react-rout
 import { compressVerses, data, verseNumbers } from "@/api/data";
 import { isRead, markRead, pushHistory, unmarkRead, useHistory, useLast, usePlan, useProgress } from "@/lib/marks";
 import { advance, planDay } from "@/lib/plan";
-import { createRelation, deleteRelation, endpointHref, useChapterRelations, verseKey, type Endpoint, type Relation, type VerseEndpoint, type VerseRelationItem } from "@/lib/relations";
+import { annotationEndpoint, annotationParam, createRelation, deleteRelation, endpointHref, useChapterRelations, useEndpointRelations, verseKey, type Endpoint, type Relation, type VerseEndpoint, type VerseRelationItem } from "@/lib/relations";
 import { share } from "@/lib/share";
 import { useReaderSpeech, useAudioPlayer } from "@/lib/AudioPlayer";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
@@ -157,7 +157,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   }, [plan, list, progress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sheets.
-  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare" | "study" | "markNote">(null);
+  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare" | "study" | "markNote" | "markTags">(null);
   // The classes that taught each verse: pictures after the verses, as Bible Strong shows its videos.
   // Every class that read each verse: those with notes first, then every other the transcripts find.
   const classMoments = useClassesByVerse(slug, ch);
@@ -296,8 +296,18 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
     void job().catch((e: unknown) => say(e instanceof Error ? e.message : "The mark could not be saved."))
       .finally(() => { savingMarkRef.current = false; setSavingMark(false); });
   };
+  // The selected mark as a relation endpoint (Bible Strong's selectedAnnotationEndpoint), and its relations.
+  const markEndpoint = useMemo(() => (selectedMark ? annotationEndpoint(selectedMark.id, selectedMark.records[0].verseKey, markText(selectedMark)) : null), [selectedMark]);
+  const markRelations = useEndpointRelations(markEndpoint);
+  const markTagsCount = Object.keys(selectedMark?.tags ?? {}).length;
+  const toggleMarkTag = (tagId: string) => {
+    const m = selectedMark; if (!m) return;
+    const t = { ...(m.tags ?? {}) }; if (t[tagId]) delete t[tagId]; else t[tagId] = true;
+    run(() => updateMark(m, { tags: Object.keys(t).length ? t : undefined }));
+  };
+  const openMarkRelations = () => { const e = markEndpoint; if (e) navigate(`/relations?endpoint=${encodeURIComponent(annotationParam(e))}&label=${encodeURIComponent(e.label)}`); };
   // What a mark carries besides its words, named as Bible Strong's deletion warnings name them.
-  const attached = (m: Mark) => [m.note ? "a note" : ""].filter(Boolean);
+  const attached = (m: Mark) => [m.note ? "a note" : "", Object.keys(m.tags ?? {}).length ? "tags" : "", m.id === selectedMark?.id && markRelations.count ? "relations" : ""].filter(Boolean);
   /** ERASE_SELECTION, and CREATE_ANNOTATION over marks: the marks it replaces are confirmed first. */
   const confirmReplacing = async (hits: Mark[]) => {
     if (!hits.length) return true;
@@ -362,7 +372,9 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
         selected={selectedMark ? { id: selectedMark.id, kind: kindOfStyle(selectedMark.style), color: selectedMark.color ?? "", hex: (selectedMark.color && colorOf(selectedMark.color)) || "#d9a625", hasNote: !!selectedMark.note } : null}
         onApply={applyToSelection} onChangeMark={(color, kind) => { const m = selectedMark; if (m) run(() => updateMark(m, { color, style: styleOfKind(kind) })); }}
         onErase={eraseSelection} onDelete={deleteSelectedMark}
-        onNote={() => setSheet("markNote")} />
+        onAddColor={() => setSheet("params")} onNote={() => setSheet("markNote")} onTags={() => setSheet("markTags")} onRelations={openMarkRelations}
+        tagsCount={markTagsCount} relationsCount={markRelations.count} />
+      {selectedMark ? <TagsPanel open={sheet === "markTags"} onClose={() => setSheet(null)} reference={markText(selectedMark).slice(0, 80)} tags={tags} setTags={setTags} selected={selectedMark.tags ?? {}} onToggle={toggleMarkTag} /> : null}
       {selectedMark ? <NoteSheet open={sheet === "markNote"} onClose={() => setSheet(null)} reference={markText(selectedMark).slice(0, 80)} initial={selectedMark.note ? { title: selectedMark.note.title, description: selectedMark.note.description } : undefined}
         onSave={(v) => { const m = selectedMark; setSheet(null); run(() => updateMark(m, { note: { title: v.title, description: v.description, date: Date.now() } })); }}
         onRemove={selectedMark.note ? () => { const m = selectedMark; setSheet(null); run(() => updateMark(m, { note: undefined })); } : undefined} /> : null}

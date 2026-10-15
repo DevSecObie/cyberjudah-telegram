@@ -1,0 +1,3 @@
+- The annotation card now matches Bible Strong's: outlined Highlight, Underline and Circle cards, round colours with a + to add your own, and Note, Tags and Relations along the bottom with their counts.
+- As in Bible Strong, choosing Highlight, Underline or Circle picks the kind, and tapping a colour applies it. The card closes by swiping it down or from the header; it no longer has a Done button.
+- A word mark can now carry tags and relations, like a verse. Its Note icon fills once it has a note, and deleting a mark with a note, tags or relations asks first.
