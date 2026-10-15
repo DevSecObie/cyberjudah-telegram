@@ -9,9 +9,10 @@ import { Sheet } from "./Sheet";
  * Bible Strong's AnnotationToolbar (features/bible/AnnotationToolbar.tsx), the sheet that stays
  * open through annotation mode (closing it leaves the mode). Its header names the selected mark's
  * passage, the selection's, or asks for a selection, with a delete button while either exists.
- * Then the three kinds (highlight, underline, circle) as AnnotationPreview's ink strokes, the
- * colour row, Note and Done. A kind or colour applies immediately to the selection or selected
- * mark. It uses CyberJudah's existing Sheet, palette and control styles.
+ * Then the three kinds (highlight, underline, circle) as AnnotationPreview's ink strokes: a kind
+ * only arms itself, and a colour applies the armed kind to the selection or selected mark. The
+ * colour row ends with "+" for a colour of one's own. The last row is Note, Tags and Relations
+ * with their counts. There is no Done: the sheet closes by swiping it down.
  */
 export type ToolbarMark = { id: string; kind: MarkKind; color: string; hex: string; hasNote: boolean };
 const KINDS: { kind: MarkKind; label: string }[] = [{ kind: "background", label: "Highlight" }, { kind: "underline", label: "Underline" }, { kind: "circle", label: "Circle" }];
@@ -35,7 +36,7 @@ export function AnnotationToolbar(p: {
   open: boolean; enabled: boolean; reference: string | null; hasSelection: boolean; selected: ToolbarMark | null; colors: ColorItem[];
   onApply: (color: string, kind: MarkKind) => void; onChangeMark: (color: string, kind: MarkKind) => void;
   onErase: () => void; onDelete: () => void; onClose: () => void;
-  onNote: () => void;
+  onAddColor: () => void; onNote: () => void; onTags: () => void; onRelations: () => void; tagsCount: number; relationsCount: number;
 }) {
   const sel = p.selected;
   const disabled = !p.enabled || (!sel && !p.hasSelection);
@@ -54,14 +55,14 @@ export function AnnotationToolbar(p: {
           <span>{p.reference ?? "Select text in the Bible"}</span>
         </div>
         {sel || p.hasSelection ? (
-          <button type="button" disabled={!p.enabled} className="bs-annotate__erase" aria-label="Delete" title="Delete" onClick={sel ? p.onDelete : p.onErase}>
+          <button type="button" className="bs-annotate__erase" aria-label="Delete" title="Delete" onClick={sel ? p.onDelete : p.onErase}>
             <Feather name="trash-2" size={20} color="var(--bs-quart)" />
           </button>
         ) : null}
       </div>
       <div className="bs-annotate__kinds" role="radiogroup" aria-label="Kind of mark">
         {KINDS.map((k) => (
-          <button key={k.kind} type="button" role="radio" aria-checked={!disabled && active === k.kind} aria-label={k.label} disabled={disabled} className="bs-annotate__kind" data-on={!disabled && active === k.kind ? "" : undefined} onClick={() => { setArmed({ id: sel?.id, kind: k.kind }); const color = sel?.color || p.colors[0]?.key; if (color) apply(color, k.kind); }}>
+          <button key={k.kind} type="button" role="radio" aria-checked={!disabled && active === k.kind} aria-label={k.label} disabled={disabled} className="bs-annotate__kind" data-on={!disabled && active === k.kind ? "" : undefined} onClick={() => setArmed({ id: sel?.id, kind: k.kind })}>
             <AnnotationPreview kind={k.kind} color={colorFor(k.kind)} />
             <span className="bs-annotate__label">{k.label}</span>
           </button>
@@ -70,16 +71,28 @@ export function AnnotationToolbar(p: {
       <div className="bs-annotate__colors" role="group" aria-label="Mark colour">
         {p.colors.map((c, i) => (
           <button key={c.key} type="button" className="bs-annotate__color" data-on={selectedColor === c.key ? "" : undefined} aria-pressed={selectedColor === c.key}
-            disabled={disabled} aria-label={`${KINDS.find((k) => k.kind === active)!.label} in ${c.name || colourName(c.hex) || `colour ${i + 1}`}`} onClick={() => apply(c.key, active)}>
+            aria-label={`${KINDS.find((k) => k.kind === active)!.label} in ${c.name || colourName(c.hex) || `colour ${i + 1}`}`} onClick={() => apply(c.key, active)}>
             <span style={{ background: c.hex }} />
           </button>
         ))}
+        <button type="button" className="bs-annotate__add" aria-label="Add a colour" title="Add a colour" onClick={p.onAddColor}>
+          <Feather name="plus" size={16} color="var(--bs-primary)" />
+        </button>
       </div>
       <div className="bs-annotate__links">
         <button type="button" disabled={markDisabled} onClick={p.onNote} aria-label="Note">
-          <Feather name="file-plus" size={20} color={sel?.hasNote ? "var(--bs-primary)" : "var(--bs-grey)"} /><span>Note</span>
+          <Feather name={sel?.hasNote ? "file-text" : "file-plus"} size={20} color={sel?.hasNote ? "var(--bs-primary)" : "var(--bs-grey)"} /><span>Note</span>
         </button>
-        <button type="button" onClick={p.onClose} aria-label="Done"><Feather name="check" size={20} color="var(--bs-primary)" /><span>Done</span></button>
+        <i aria-hidden="true" />
+        <button type="button" disabled={markDisabled} onClick={p.onTags} aria-label={`Tags, ${p.tagsCount}`}>
+          <Feather name="tag" size={20} color={p.tagsCount > 0 ? "var(--bs-primary)" : "var(--bs-grey)"} /><span>Tags</span>
+          {p.tagsCount > 0 ? <b className="bs-annotate__count">{p.tagsCount}</b> : null}
+        </button>
+        <i aria-hidden="true" />
+        <button type="button" disabled={markDisabled} onClick={p.onRelations} aria-label={`Relations, ${p.relationsCount}`}>
+          <Feather name="git-merge" size={20} color={p.relationsCount > 0 ? "var(--bs-primary)" : "var(--bs-grey)"} /><span>Relations</span>
+          {p.relationsCount > 0 ? <b className="bs-annotate__count">{p.relationsCount}</b> : null}
+        </button>
       </div>
     </Sheet>
   );
