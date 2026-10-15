@@ -49,7 +49,7 @@ export function Lit({ text, needle, phrase }: { text: string; needle: string; ph
 }
 
 /** The search field, or in ask mode the question field: same box, the prompts and the button change. */
-export function SearchHero({ value, onChange, onSubmit, autoFocus, big, mode = "search", children }: { value: string; onChange: (v: string) => void; onSubmit: (q: string) => void; autoFocus?: boolean; big?: boolean; mode?: "search" | "ask"; children?: ReactNode }) {
+export function SearchHero({ value, onChange, onSubmit, autoFocus, big, mode = "search", id = "q", placeholder, children }: { value: string; onChange: (v: string) => void; onSubmit: (q: string) => void; autoFocus?: boolean; big?: boolean; mode?: "search" | "ask"; id?: string; placeholder?: string; children?: ReactNode }) {
   const [i, setI] = useState(0);
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,18 +58,18 @@ export function SearchHero({ value, onChange, onSubmit, autoFocus, big, mode = "
   // One pass through the prompts, then it rests on the first (WCAG 2.2.2: nothing moves for more
   // than five seconds unasked); with reduced motion it never moves at all.
   useEffect(() => {
-    if (value || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (placeholder || value || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     let steps = 0;
     const t = setInterval(() => { steps += 1; setI(steps % prompts.length); if (steps >= prompts.length) clearInterval(t); }, 3000);
     return () => clearInterval(t);
-  }, [value, prompts.length]);
+  }, [value, prompts.length, placeholder]);
   return (
     <form className={`shero${big ? " shero--big" : ""}`} data-focus={focused ? "" : undefined} data-mode={ask ? "ask" : undefined} role="search" onSubmit={(e) => { e.preventDefault(); hideKeyboard(); onSubmit(value); }}>
       <div className="shero__field">
         <Icon name={ask ? "note" : "search"} size={20} />
-        <input ref={inputRef} id="q" type="search" enterKeyHint={ask ? "send" : "search"} autoComplete="off" autoCorrect="off" spellCheck={false} value={value} autoFocus={autoFocus} aria-label={ask ? "Ask CyberJudah" : "Search the teachings"} placeholder=" "
+        <input ref={inputRef} id={id} type="search" enterKeyHint={ask ? "send" : "search"} autoComplete="off" autoCorrect="off" spellCheck={false} value={value} autoFocus={autoFocus} aria-label={ask ? "Ask CyberJudah" : "Search the teachings"} placeholder={placeholder ?? " "}
           onChange={(e) => onChange(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
-        {!value ? <span className="shero__prompts" aria-hidden="true">{prompts.map((p, k) => <span key={p} className="shero__prompt" data-on={k === i % prompts.length ? "" : undefined}>{p}</span>)}</span> : null}
+        {!value && !placeholder ? <span className="shero__prompts" aria-hidden="true">{prompts.map((p, k) => <span key={p} className="shero__prompt" data-on={k === i % prompts.length ? "" : undefined}>{p}</span>)}</span> : null}
         {value ? <button type="button" className="shero__clear" aria-label="Clear" title="Clear" onClick={() => { onChange(""); inputRef.current?.focus(); }}>×</button> : null}
         <button type="submit" className="shero__go" aria-label={ask ? "Ask" : "Search"} title={ask ? "Ask" : "Search"} disabled={!value.trim()}><Icon name="chevron" size={18} /></button>
       </div>
