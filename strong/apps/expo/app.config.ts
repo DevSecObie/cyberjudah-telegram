@@ -76,7 +76,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-sharing',
-    'expo-router',
+    // CyberJudah web build: each screen is its own chunk, loaded when it is first opened, so the
+    // reader starts without downloading the whole app (asyncRoutes is web-only in production).
+    ['expo-router', { asyncRoutes: { web: 'production', default: 'development' } }],
     'expo-asset',
     'expo-image',
     'expo-sqlite',

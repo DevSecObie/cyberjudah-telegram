@@ -1,7 +1,7 @@
 import { twMerge } from '~common/ui/classNames'
 import PageContent from '~common/ui/PageContent'
 import React, { forwardRef } from 'react'
-import * as Sentry from '@sentry/react-native'
+import * as Sentry from '~helpers/sentry'
 import {
   FlatList,
   Platform,

@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/react-native'
+import * as Sentry from '~helpers/sentry'
 
 type AgentLogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal'
 

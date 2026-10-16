@@ -1,7 +1,7 @@
 import { InteractionManager, type View } from 'react-native'
 import produceDraft from 'immer'
 import { useSetAtom } from 'jotai/react'
-import { captureRef } from 'react-native-view-shot'
+import { captureRef } from './viewShot'
 import useDynamicRefs from '~helpers/useDynamicRefs'
 import { tabsAtom } from '../../../state/tabs'
 

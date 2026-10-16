@@ -1,14 +1,4 @@
-import type { ComponentProps } from 'react'
-import { TouchableBox } from '~common/ui/Box'
-import type { VersionCode } from '~state/tabs'
-export type RelationVersionButtonProps = ComponentProps<typeof TouchableBox> & {
-  version: VersionCode
-  onVersionChange: (version: VersionCode) => void
-}
-export default function RelationVersionButton({
-  version: _,
-  onVersionChange: __,
-  ...props
-}: RelationVersionButtonProps) {
-  return <TouchableBox {...props} />
-}
+// CyberJudah: the phone app's version lives in RelationVersionButton.phone.tsx, so the web build can use it
+// inside the Telegram app (RelationVersionButton.web.tsx).
+export * from './RelationVersionButton.phone'
+export { default } from './RelationVersionButton.phone'

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useTheme } from '~themes/ThemeProvider'
 import Box from '~common/ui/Box'
 import Button from '~common/ui/Button'
-import ColorPicker from '~common/ColorPicker'
+import ColorPicker from '~common/colorPickerComponent'
 import { IonIcon } from '~common/ui/Icon'
 export default function BookmarkForm({
   name,

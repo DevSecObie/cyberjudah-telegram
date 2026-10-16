@@ -45,7 +45,7 @@ async function setup(page: Page) {
   // Paid models are paid from the reader's balance (credits.spec.ts tests that): each reader here
   // gets $5 from the admins once, as the app first loads their account, and has accepted the
   // default paid model's limit once, so these tests exercise Ask beyond its spending prompt.
-  await page.addInitScript(() => { try { if (!localStorage.getItem("cj:ai-limits")) localStorage.setItem("cj:ai-limits", JSON.stringify({ "anthropic/claude-opus-5": 2_000_000, "anthropic/claude-sonnet-5": 2_000_000 })); } catch { /* none */ } });
+  await page.addInitScript(() => { if (window !== window.top) return; try { if (!localStorage.getItem("cj:ai-limits")) localStorage.setItem("cj:ai-limits", JSON.stringify({ "anthropic/claude-opus-5": 2_000_000, "anthropic/claude-sonnet-5": 2_000_000 })); } catch { /* none */ } });
   await page.route("**/api/ask/account*", async (r) => {
     const data = (r.request().headers().authorization ?? "").replace(/^tma /, "");
     const id = Number(JSON.parse(new URLSearchParams(data).get("user") ?? "{}").id);

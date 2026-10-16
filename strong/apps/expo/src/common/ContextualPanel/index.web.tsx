@@ -1,3 +1,4 @@
+import { isEmbeddedInCyberJudah } from '~helpers/cyberjudahEmbed'
 import { useTabCommands } from '~common/useTabCommands'
 import { Popover } from '@heroui/react/popover'
 import { useImperativeHandle, useState, type ReactNode } from 'react'
@@ -12,7 +13,7 @@ import { usePanelNavigation } from './usePanelNavigation'
 import PanelTransition from './PanelTransition'
 import { PanelNavigationContext } from './NavigationContext'
 import '../FiltersHeader.web.css'
-export default function ContextualPanel(props: ContextualPanelProps) {
+function WebContextualPanel(props: ContextualPanelProps) {
   const theme = useTheme()
   const panel = usePanelNavigation(props)
   useTabCommands(props.commands?.actions, id => {
@@ -148,3 +149,11 @@ function PanelFrameLayout({
     </div>
   )
 }
+
+// CyberJudah: inside the Telegram app the reader is on a phone, so it behaves as Bible Strong's
+// phone app does (index.phone.tsx).
+// Loaded only there: the website, and its tests, never load the phone version.
+export default (isEmbeddedInCyberJudah()
+  ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require('./index.phone') as typeof import('./index.phone')).default
+  : WebContextualPanel)

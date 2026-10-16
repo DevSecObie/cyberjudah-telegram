@@ -249,7 +249,7 @@
   "Fermer": "Close",
   "bible.passageMedia.sections.introduction": "Introduction",
   "bible.passageMedia.sections.passages": "Taught on these verses",
-  "bible.passageMedia.sections.chapterResources": "Classes on this chapter",
+  "bible.passageMedia.sections.chapterResources": "Taught from {{book}} {{chapter}}",
   "bible.chapterEntities.title": "In this chapter",
   "bible.chapterEntities.people": "People",
   "bible.chapterEntities.places": "Places",
@@ -2574,5 +2574,6 @@
   "assistant.debug.context": "Context",
   "assistant.debug.copy": "Copy JSON",
   "assistant.debug.copied": "Copied",
-  "assistant.debug.nextRequest": "Send a new question to inspect its execution. Previous answers are not replayed."
+  "assistant.debug.nextRequest": "Send a new question to inspect its execution. Previous answers are not replayed.",
+  "bible.passageMedia.sections.readInClass": "Read in class"
 }

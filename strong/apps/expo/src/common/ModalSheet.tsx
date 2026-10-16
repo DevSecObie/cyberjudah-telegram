@@ -1,6 +1,4 @@
-import type { Ref } from 'react'
-import { Sheet, type SheetProps, type SheetRef } from './sheet'
-export type ModalSheetProps = SheetProps & { ref?: Ref<SheetRef>; modalTitle?: string }
-export default function ModalSheet({ modalTitle: _, ...props }: ModalSheetProps) {
-  return <Sheet {...props} />
-}
+// CyberJudah: the phone app's version lives in ModalSheet.phone.tsx, so the web build can use it
+// inside the Telegram app (ModalSheet.web.tsx).
+export * from './ModalSheet.phone'
+export { default } from './ModalSheet.phone'

@@ -8,19 +8,22 @@ import { runOnJS } from 'react-native-worklets'
 import Box from '~common/ui/Box'
 import Text from '~common/ui/Text'
 import BibleTabScreen from '~features/bible/BibleTabScreen'
-import CompareVersesTabScreen from '~features/bible/CompareVersesTabScreen'
-import StrongTabScreen from '~features/lexique/StrongTabScreen'
-import CommentariesTabScreen from '~features/commentaries/CommentariesTabScreen'
-import CommentaryResourceTabScreen from '~features/commentaries/CommentaryResourceTabScreen'
-import InvalidCommentaryTabScreen from '~features/commentaries/InvalidCommentaryTabScreen'
 import { isValidCommentaryVerse } from '~features/commentaries/commentaryTabValidation'
-import DictionaryTabScreen from '~features/dictionnary/DictionaryTabScreen'
-import NaveTabScreen from '~features/nave/NaveTabScreen'
-import { NotesTabScreen } from '~features/notes'
-import PlanTabScreen from '~features/plans/PlanTabScreen'
-import SearchTabScreen from '~features/search/SearchTabScreen'
-import StudiesTabScreen from '~features/studies/StudiesTabScreen'
-import TimelineTabScreen from '~features/timeline/TimelineTabScreen'
+import {
+  CommentariesTabScreen,
+  CommentaryResourceTabScreen,
+  CompareVersesTabScreen,
+  DictionaryTabScreen,
+  InvalidCommentaryTabScreen,
+  NaveTabScreen,
+  NewTabScreen,
+  NotesTabScreen,
+  PlanTabScreen,
+  SearchTabScreen,
+  StrongTabScreen,
+  StudiesTabScreen,
+  TimelineTabScreen,
+} from './tabScreenComponents'
 import {
   BibleTab,
   activeTabIdAtom,
@@ -40,7 +43,6 @@ import {
   TimelineTab,
 } from '../../../state/tabs'
 import { useAppSwitcherContext } from '../AppSwitcherContext'
-import NewTabScreen from './NewTab/NewTabScreen'
 import { useResponsiveWorkspace } from '../utils/useResponsiveWorkspace'
 import useScrollToActiveTab from '../utils/useScrollToActiveTab'
 import TabScreenWrapper from './TabScreenWrapper'

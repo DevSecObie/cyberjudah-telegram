@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { getDefaultStore } from 'jotai/vanilla'
 import debounce from 'debounce'
-import * as Sentry from '@sentry/react-native'
+import * as Sentry from '~helpers/sentry'
 
 import {
   tabGroupsAtom,

@@ -37,13 +37,31 @@ test("Bishops, then Deacons, then others; newest first within each", () => {
   assert.deepEqual(cat.works.map((w) => w.editions.en.providerId), ["ccccccccccc", "ddddddddddd", "bbbbbbbbbbb", "aaaaaaaaaaa"]);
 });
 
-test("at most six after one verse, but every recording still lists once for the chapter", () => {
+test("every class after a verse, as the app shows them; each recording once for the chapter", () => {
   const list = Array.from({ length: 9 }, (_, i) => m("5", `vid${String(i).padStart(8, "0")}`, i, "Captain X", `2026-01-0${i + 1}`));
   const cat = buildCatalog(1, 1, list);
   const after = cat.works.filter((w) => w.anchors.some((a) => a.placement === "after-range"));
   const chapter = cat.works.filter((w) => w.anchors.some((a) => a.placement === "chapter-resources"));
-  assert.equal(after.length, 6);
+  assert.equal(after.length, 9);
   assert.equal(chapter.length, 9);
+});
+
+test("classes that read a verse aloud follow those that taught it, once per recording", () => {
+  const read = {
+    5: [
+      { video: "aaaaaaaaaaa", t: 40, ts: "0:40", title: "Taught it too", date: "2026-01-01", teacher: "Bishop A" },
+      { video: "rrrrrrrrrrr", t: 90, ts: "1:30", title: "Read it", date: "2026-02-01", teacher: "Deacon B" },
+    ],
+    x: [{ video: "sssssssssss", t: 1, title: "Not a verse" }],
+  };
+  const cat = buildCatalog(1, 1, [m("4-5", "aaaaaaaaaaa", 10, "Bishop A", "2026-01-01", "A class")], read);
+  assert.deepEqual(cat.works.map((w) => [w.editions.en.providerId, w.categories[0]]), [["aaaaaaaaaaa", "classroom"], ["rrrrrrrrrrr", "read-aloud"]]);
+  const readWork = cat.works[1];
+  assert.equal(readWork.editions.en.title, "Read it");
+  assert.equal(readWork.editions.en.startSeconds, 90);
+  const after = readWork.anchors.find((a) => a.placement === "after-range");
+  assert.deepEqual([after.verseStart, after.verseEnd], [5, 5]);
+  assert.equal(cat.works.flatMap((w) => w.anchors).filter((a) => a.placement === "chapter-resources").length, 2);
 });
 
 test("bad video ids, missing times and verseless moments are dropped", () => {

@@ -1,6 +1,6 @@
 import { useConfirmDialog } from '~common/ConfirmDialog/useConfirmDialog'
 import { pageContentStyle } from '~common/ui/PageContent'
-import * as Sentry from '@sentry/react-native'
+import * as Sentry from '~helpers/sentry'
 import { useTheme } from '~themes/ThemeProvider'
 import { MenuView, type MenuAction } from '~common/ui/MenuView'
 import { useRouter } from 'expo-router'

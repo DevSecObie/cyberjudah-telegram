@@ -1,26 +1,4 @@
-import { useTranslation } from 'react-i18next'
-import type { VerseIds } from '~common/types'
-import ActionItem from './ActionItem'
-export type VerseBookmarkActionProps = {
-  selectedVerses: VerseIds
-  version: string
-  disabled?: boolean
-  isActive?: boolean
-  onPress: () => void
-}
-export default function VerseBookmarkAction({
-  onPress,
-  disabled,
-  isActive,
-}: VerseBookmarkActionProps) {
-  const { t } = useTranslation()
-  return (
-    <ActionItem
-      name="bookmark"
-      label={t('Marque-page')}
-      onPress={onPress}
-      disabled={disabled}
-      isActive={isActive}
-    />
-  )
-}
+// CyberJudah: the phone app's version lives in VerseBookmarkAction.phone.tsx, so the web build can use it
+// inside the Telegram app (VerseBookmarkAction.web.tsx).
+export * from './VerseBookmarkAction.phone'
+export { default } from './VerseBookmarkAction.phone'

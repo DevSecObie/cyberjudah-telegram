@@ -1,5 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy'
-import * as Sentry from '@sentry/react-native'
+import * as Sentry from '~helpers/sentry'
 import * as SQLite from 'expo-sqlite'
 import { getSharedSqliteDirPath } from '~helpers/databaseTypes'
 import { databaseBiblesName } from '~helpers/databases'

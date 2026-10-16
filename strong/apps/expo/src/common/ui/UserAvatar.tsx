@@ -10,9 +10,10 @@ interface UserAvatarProps {
   photoURL?: string
   displayName?: string
   email?: string
+  animate?: 'hover' | 'always'
 }
 
-const UserAvatar = ({ size = 60, photoURL, displayName, email }: UserAvatarProps) => {
+const UserAvatar = ({ size = 60, photoURL, displayName, email, animate }: UserAvatarProps) => {
   if (photoURL) {
     return <AvatarImage source={{ uri: photoURL }} size={size} />
   }
@@ -20,6 +21,7 @@ const UserAvatar = ({ size = 60, photoURL, displayName, email }: UserAvatarProps
   return (
     <GeneratedUserAvatar
       size={size}
+      animate={animate}
       name={displayName || email || 'user'}
       traits={{ shape: [0.11, 0.35, 0.54, 0.65, 0.888, 0.933], 'body.r': 0.999 }}
     />

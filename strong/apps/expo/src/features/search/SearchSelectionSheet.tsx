@@ -27,7 +27,7 @@ import { Fragment, type PropsWithChildren, Ref, useDeferredValue, useState, useR
 import { ActivityIndicator, FlatList, Platform, TextInput } from 'react-native'
 import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
-import AlphabetList from '~common/AlphabetList'
+import AlphabetList from '~common/alphabetListComponent'
 import SheetSearchInput from '~common/SheetSearchInput'
 import Empty from '~common/Empty'
 import Box, { VStack, TouchableBox } from '~common/ui/Box'

@@ -1,16 +1,4 @@
-import type { ComponentProps } from 'react'
-import type { PrimitiveAtom } from 'jotai/vanilla'
-import type { BibleTab } from '~state/tabs'
-import { AnimatedTouchableBox, TouchableBox } from '~common/ui/Box'
-export type DisplayModeTriggerProps = Omit<ComponentProps<typeof TouchableBox>, 'style'> & {
-  style?: ComponentProps<typeof AnimatedTouchableBox>['style']
-  kind: 'strong' | 'interlinear'
-  bibleAtom: PrimitiveAtom<BibleTab>
-}
-export default function DisplayModeTrigger({
-  kind: _kind,
-  bibleAtom: _atom,
-  ...props
-}: DisplayModeTriggerProps) {
-  return <AnimatedTouchableBox {...props} />
-}
+// CyberJudah: the phone app's version lives in DisplayModeTrigger.phone.tsx, so the web build can use it
+// inside the Telegram app (DisplayModeTrigger.web.tsx).
+export * from './DisplayModeTrigger.phone'
+export { default } from './DisplayModeTrigger.phone'

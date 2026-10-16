@@ -65,7 +65,7 @@ async function setup(page: Page, opts: { caps?: Record<string, number>; now?: st
   await page.route(/ytimg|youtube\.com|fonts\.g/, (r) => r.abort());
   if (DATA_ORIGIN !== "https://data.cyberjudah.io") await page.route("https://data.cyberjudah.io/**", (r) => r.continue({ url: r.request().url().replace("https://data.cyberjudah.io", DATA_ORIGIN) }));
   // A fixed paid model keeps cost assertions independent of account defaults.
-  await page.addInitScript(({ caps, model }) => { try { localStorage.setItem("cj:ai-limits", JSON.stringify(caps)); localStorage.setItem("cj:ask-model", model); } catch { /* none */ } }, { caps: opts.caps ?? { [OPUS]: 2_000_000 }, model: OPUS });
+  await page.addInitScript(({ caps, model }) => { if (window !== window.top) return; try { localStorage.setItem("cj:ai-limits", JSON.stringify(caps)); localStorage.setItem("cj:ask-model", model); } catch { /* none */ } }, { caps: opts.caps ?? { [OPUS]: 2_000_000 }, model: OPUS });
   // The Worker's clock for the balance and top-ups, when a test sets it.
   if (opts.now) { const now = opts.now; await page.route(/\/api\/ask\/(account|buy)/, (r) => r.continue({ headers: { ...r.request().headers(), "x-e2e-now": now } })); }
 }

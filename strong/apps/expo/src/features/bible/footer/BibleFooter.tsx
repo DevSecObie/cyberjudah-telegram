@@ -41,13 +41,20 @@ const BibleFooter = ({
 }: BibleFooterProps) => {
   const bibleTab = useAtomValue(bibleAtom)
   const bibleVersion = getVersions()[version] as Version
-  const canSwitch = bibleVersion?.hasAudio
+  // CyberJudah: a version's recording may not cover every book (the KJV's Apocrypha has none,
+  // bibleVersions.ts); such a chapter is read aloud by the device, as a version without audio is.
+  const canSwitch = Boolean(
+    bibleVersion?.hasAudio && bibleVersion.getAudioUrl?.(book.Numero, chapter)
+  )
   const [audioPreference, setAudioPreference] = React.useState<{
     version: VersionCode
     mode: 'url' | 'tts'
   }>()
-  const audioMode =
-    audioPreference?.version === version ? audioPreference.mode : canSwitch ? 'url' : 'tts'
+  const audioMode = !canSwitch
+    ? 'tts'
+    : audioPreference?.version === version
+      ? audioPreference.mode
+      : 'url'
   const setAudioMode = (mode: 'url' | 'tts') => setAudioPreference({ version, mode })
   const playingBibleTabId = useAtomValue(playingBibleTabIdAtom)
   // Use stable tab.id instead of atom.toString()

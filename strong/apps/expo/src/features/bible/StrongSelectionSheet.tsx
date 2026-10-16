@@ -1,3 +1,4 @@
+import { isPhoneUI } from '~helpers/cyberjudahPhoneUI'
 import HorizontalControlScrollView from '~common/HorizontalControlScrollView'
 import StrongSelectionContainer from './StrongSelectionContainer'
 import { twMerge } from '~common/ui/classNames'
@@ -18,7 +19,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import truncHTML from 'trunc-html'
 import { SheetHeader, SheetView, type SheetRef } from '~common/sheet'
-import StylizedHTMLView from '~common/StylizedHTMLView'
+import StylizedHTMLView from '~common/stylizedHTMLViewComponent'
 import Box, { FadingBox, HStack, VStack } from '~common/ui/Box'
 import { FeatherIcon } from '~common/ui/Icon'
 import Text from '~common/ui/Text'
@@ -88,7 +89,7 @@ const StrongSelectionSheet = ({
   const { t } = useTranslation()
   const theme = useTheme()
   const { width: viewportWidth } = useWindowDimensions()
-  const windowWidth = Platform.OS === 'web' ? Math.min(440, viewportWidth - 32) : viewportWidth
+  const windowWidth = !isPhoneUI() ? Math.min(440, viewportWidth - 32) : viewportWidth
   const pushRouteOnce = usePushRouteOnce()
   const resources = useResourceAccess()
   const previewPagerRef = useRef<ScrollView>(null)

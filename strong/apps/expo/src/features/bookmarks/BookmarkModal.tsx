@@ -1,3 +1,4 @@
+import i18n from '~i18n'
 import type { ComponentPropsWithRef as UIComponentProps } from 'react'
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -14,7 +15,7 @@ import type { Theme as AppTheme } from '~themes'
 import { useTheme as useAppTheme } from '~themes/ThemeProvider'
 
 import books from '~assets/bible_versions/books-desc'
-import ColorPicker from '~common/ColorPicker'
+import ColorPicker from '~common/colorPickerComponent'
 import type { Bookmark } from '~common/types'
 import Box from '~common/ui/Box'
 import Button from '~common/ui/Button'
@@ -106,7 +107,7 @@ interface BookmarkModalProps {
 
 const getBookName = (bookNumber: number): string => {
   const bookData = books.find(b => b.Numero === bookNumber)
-  return bookData?.Nom || `Livre ${bookNumber}`
+  return bookData ? i18n.t(bookData.Nom) : `Livre ${bookNumber}`
 }
 
 const formatReference = (book: number, chapter: number, verse?: number): string => {

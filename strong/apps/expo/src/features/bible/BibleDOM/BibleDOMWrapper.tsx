@@ -1,6 +1,9 @@
+import { sendToApp } from '~helpers/cyberjudahBridge'
+import { isPhoneUI } from '~helpers/cyberjudahPhoneUI'
 import { getPassageContextHeaderHeight } from '../passagePreviewPresentation'
 import type { LabeledCommentaryChip } from './InlineCommentaryChips'
-import { OPEN_INLINE_COMMENTARY } from './dispatch'
+import { OPEN_INLINE_COMMENTARY, OPEN_PRECEPT } from './dispatch'
+import type { PreceptAction, PreceptChip } from './PreceptsText'
 import { useResourcesLanguageValue } from '~state/resourcesLanguage'
 import { previewHistoryAtom } from '~features/bibleReferencePreview/state'
 import { createReaderPreview } from '~features/bibleReferencePreview/readerPreview'
@@ -290,6 +293,9 @@ export type WebViewProps = {
     afterVerses: Record<number, LabeledCommentaryChip[]>
   }
   onOpenInlineCommentary?: (chip: LabeledCommentaryChip) => void
+  // CyberJudah: the precepts after each verse, and opening one
+  preceptsAfterVerses?: Record<number, PreceptChip[]>
+  onOpenPrecept?: (action: PreceptAction) => void
   chapterEntities: StrongLexiconChapterEntity[]
   chapterEntitiesLoaded: boolean
   chapterEntityModuleStatus: StrongLexiconModuleAvailability['status'] | null
@@ -410,6 +416,8 @@ export const BibleDOMWrapper = ({
   isFormSheet,
   redWords,
   inlineCommentaries,
+  preceptsAfterVerses,
+  onOpenPrecept,
   onOpenInlineCommentary,
   chapterEntities,
   chapterEntitiesLoaded,
@@ -550,7 +558,11 @@ export const BibleDOMWrapper = ({
     passageMediaSections: {
       introduction: t('bible.passageMedia.sections.introduction'),
       passages: t('bible.passageMedia.sections.passages'),
-      chapterResources: t('bible.passageMedia.sections.chapterResources'),
+      chapterResources: t('bible.passageMedia.sections.chapterResources', {
+        book: t(book.Nom),
+        chapter,
+      }),
+      readInClass: t('bible.passageMedia.sections.readInClass'),
     },
   }
   const chapterEntityTranslations = {
@@ -740,7 +752,7 @@ export const BibleDOMWrapper = ({
       case TOGGLE_SELECTED_VERSE: {
         if (Platform.OS === 'ios') {
           Haptics.selectionAsync()
-        }
+        } else sendToApp({ type: 'haptic', kind: 'select' })
         const verseId = getStringPayload(action.payload)
         if (!verseId) break
 
@@ -766,7 +778,7 @@ export const BibleDOMWrapper = ({
         const linkId = getStringPayload(action.payload)
         if (linkId) {
           const open = () => openLink?.(linkId)
-          if (Platform.OS === 'web') {
+          if (!isPhoneUI()) {
             setPreviewHistory([{ kind: 'link', linkId, title: t('Lien'), open }])
           } else open()
         }
@@ -900,6 +912,12 @@ export const BibleDOMWrapper = ({
         break
       }
 
+      case OPEN_PRECEPT: {
+        const payload = action.payload
+        if (isRecord(payload) && typeof payload.kind === 'string' && typeof payload.verse === 'number')
+          onOpenPrecept?.(payload as PreceptAction)
+        break
+      }
       case OPEN_INLINE_COMMENTARY: {
         const payload = action.payload
         if (isRecord(payload) && typeof payload.sectionId === 'string') {
@@ -1187,6 +1205,7 @@ export const BibleDOMWrapper = ({
         versesWithNonHighlightTags={versesWithNonHighlightTags}
         redWords={redWords}
         inlineCommentaries={inlineCommentaries}
+        preceptsAfterVerses={preceptsAfterVerses}
         chapterEntities={chapterEntities}
         chapterEntitiesLoaded={chapterEntitiesLoaded}
         chapterEntityModuleStatus={chapterEntityModuleStatus}
