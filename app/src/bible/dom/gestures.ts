@@ -187,7 +187,7 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
     };
     const onTouchStart = (e: TouchEvent) => { lastTouchEndAt = Date.now(); if (e.touches.length !== 1) { cancel(); return; } const t = e.touches[0]; if (begin(t.clientX, t.clientY, e.target)) e.preventDefault(); };
     const onTouchMove = (e: TouchEvent) => { if (e.touches.length !== 1) { cancel(); return; } const t = e.touches[0]; if (moveTouch(t.clientX, t.clientY)) e.preventDefault(); };
-    const onTouchEnd = (e: TouchEvent) => { lastTouchEndAt = Date.now(); if (e.touches.length) { cancel(); return; } const t = e.changedTouches[0]; const long = st.active && st.longPressFired; end(t?.clientX ?? st.startPos.x); if (long && e.cancelable) e.preventDefault(); };
+    const onTouchEnd = (e: TouchEvent) => { lastTouchEndAt = Date.now(); if (e.touches.length) { cancel(); return; } const t = e.changedTouches[0]; end(t?.clientX ?? st.startPos.x); };
     const onTouchCancel = () => { lastTouchEndAt = Date.now(); cancel(); };
     const onVisibilityChange = () => { if (document.hidden) cancel(); };
     const onMouseDown = (e: MouseEvent) => { if (e.button !== 0 || Date.now() - lastTouchEndAt < 700) return; mouseIsDown = true; if (begin(e.clientX, e.clientY, e.target)) e.preventDefault(); };
@@ -199,7 +199,7 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
     const passive = !selection?.annotationMode;
     el.addEventListener("touchstart", onTouchStart, { passive });
     el.addEventListener("touchmove", onTouchMove, { passive });
-    el.addEventListener("touchend", onTouchEnd, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
     document.addEventListener("click", swallowClick, true);
     el.addEventListener("touchcancel", onTouchCancel, { passive: true });
     el.addEventListener("mousedown", onMouseDown);

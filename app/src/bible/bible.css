@@ -101,10 +101,10 @@
 .bs-preview { margin: 16px 0; padding: 20px; border-radius: var(--r-lg); background: var(--bs-light-grey); }
 .bs-preview__label { display: block; font-size: 11px; color: var(--bs-tertiary); margin-bottom: 12px; }
 .bs-preview p { margin: 0; font-size: 16px; line-height: 1.5; white-space: pre-wrap; }
-/* ColorPickerModal: section titles, one row per colour (its indicator, name, how many highlights use
+/* ColorPickerModal (its section titles in sentence case: the app never forces capitals): section titles, one row per colour (its indicator, name, how many highlights use
    it, reset and edit), then "Add a color". */
 .bs-palette { padding: 0 0 20px; }
-.bs-palette__section { margin: 15px 0 10px 15px; font-size: 12px; font-weight: 400; text-transform: uppercase; color: var(--bs-tertiary); }
+.bs-palette__section { margin: 15px 0 10px 15px; font-size: 12px; font-weight: 400; color: var(--bs-tertiary); }
 .bs-palette__row { display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid var(--bs-border); }
 #root .bs-palette__pick, .bs-palette__pick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 0; border: 0; background: none; color: var(--bs-default); font: inherit; text-align: left; cursor: pointer; }
 .bs-palette__pick:disabled { cursor: default; opacity: 1; }
@@ -549,7 +549,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
   --sel-tile: var(--bs-light-grey);
   --sel-accent: var(--bs-primary);
 }
-.bs-sheet.bs-selected, .bs-sheet.bs-selected:not(.bs-sheet--full) { width: 100%; max-width: 640px; margin: 0 auto; border-radius: var(--r-sheet) var(--r-sheet) 0 0; border-bottom: 0; padding-bottom: calc(4px + var(--safe-bottom)); }
+.bs-sheet.bs-selected, .bs-sheet.bs-selected:not(.bs-sheet--full) { width: 100%; max-width: 640px; margin: 0 auto; border-radius: var(--r-sheet) var(--r-sheet) 0 0; border-bottom: 0; padding: 0 var(--safe-right) calc(4px + var(--safe-bottom)) var(--safe-left); }
 .bs-selected .bs-sheet__handle { width: 36px; height: 5px; border-radius: 3px; margin: 6px auto 0; background: color-mix(in srgb, var(--bs-default) 45%, transparent); }
 .bs-selected .bs-sheet__grab { padding-bottom: 4px; }
 .bs-selected__inner { overflow: hidden; }
