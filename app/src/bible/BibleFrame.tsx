@@ -51,6 +51,30 @@ const CHROME_KEY = "cj:bible-chrome";
 const isColor = (c: unknown): c is string => typeof c === "string" && c.length < 64 && /^(#[0-9a-f]{3,8}|(rgba?|hsla?)\([\d\s.,%/]+\))$/i.test(c);
 const savedChrome = () => { try { const c = localStorage.getItem(CHROME_KEY); return isColor(c) ? c : null; } catch { return null; } };
 
+/**
+ * When the reader was last pressed or typed at, and whether a pointer is held. Starting the reader
+ * keeps this thread busy for a second or more (several on a slow phone): begun under a finger, it
+ * holds back that gesture, and a drag along the dock reaches it only after its long-press time, as a
+ * hold. So off the Bible the reader starts only once the app has been left alone for a moment.
+ */
+let lastInput = 0;
+const held = new Map<number, number>();
+const QUIET = 1000;
+if (typeof window !== "undefined") {
+  const press = (e: PointerEvent) => { held.set(e.pointerId, performance.now()); lastInput = performance.now(); };
+  const release = (e: PointerEvent) => { held.delete(e.pointerId); lastInput = performance.now(); };
+  addEventListener("pointerdown", press, true);
+  addEventListener("pointerup", release, true);
+  addEventListener("pointercancel", release, true);
+  addEventListener("keydown", () => { lastInput = performance.now(); }, true);
+}
+/** How long until the app has been left alone for QUIET ms; a press held over 10 s is not waited on. */
+const untilQuiet = () => {
+  const now = performance.now();
+  for (const [id, at] of held) if (now - at > 10_000) held.delete(id);
+  return held.size ? QUIET : Math.max(0, lastInput + QUIET - now);
+};
+
 export const useReaderCanGoBack = () => useSyncExternalStore((l) => { listeners.add(l); return () => listeners.delete(l); }, () => canGoBack);
 
 export function BibleFrame() {
@@ -66,10 +90,17 @@ export function BibleFrame() {
   useEffect(() => {
     if (mounted) return;
     if (shown && stillFits && !stillShown) { const t = window.setTimeout(() => setStillShown(true), 1500); return () => window.clearTimeout(t); } // never wait on the copy for long
-    let id = 0;
-    const start = () => { id = window.setTimeout(() => setMounted(true), shown ? 0 : 150); };
+    let id = 0, idle = 0;
+    // On the Bible, at once. Elsewhere, once the first screen has had a quiet moment (untilQuiet).
+    const later = () => {
+      const wait = untilQuiet();
+      if (wait > 0) { id = window.setTimeout(later, wait); return; }
+      if ("requestIdleCallback" in window) idle = requestIdleCallback(() => setMounted(true), { timeout: 1000 });
+      else setMounted(true);
+    };
+    const start = () => { if (shown) setMounted(true); else { lastInput = Math.max(lastInput, performance.now()); later(); } };
     const raf = requestAnimationFrame(() => requestAnimationFrame(start));
-    return () => { cancelAnimationFrame(raf); window.clearTimeout(id); };
+    return () => { cancelAnimationFrame(raf); window.clearTimeout(id); if (idle) cancelIdleCallback(idle); };
   }, [mounted, shown, stillShown]); // eslint-disable-line react-hooks/exhaustive-deps
   // What is about to open: a passage (/read/john/3) or the reader's own last place (/bible).
   const m = /^\/read\/([^/]+)\/(\d+)/.exec(location.pathname);
