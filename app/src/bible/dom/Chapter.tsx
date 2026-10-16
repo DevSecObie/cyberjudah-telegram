@@ -34,7 +34,9 @@ export type ChapterProps = {
   /** The classes that taught each verse, by the last verse they taught. */
   moments?: Record<number, ClassMoment[]>; deck?: { reference: string; from: string };
   headerHeight: number; fullscreen: boolean; canSwipe: boolean;
-  onToggleVerse: (v: number) => void; onVerseDetail: (v: number) => void; onDoubleTap?: (v: number) => void;
+  onToggleVerse: (v: number) => void; onVerseDetail: (v: number) => void;
+  /** A double tap on a verse, with nothing selected, enters annotation mode (BibleViewer's handleEnterAnnotationModeFromDoubleTap). */
+  onEnterAnnotation?: () => void;
   /** While annotating, a long press selects a word and the handles extend it. */
   annotationMode?: boolean; marks?: Mark[]; selectedMark?: string | null; colorOf?: (key: string) => string | null;
   wordSelection?: SelectionRange | null; setWordSelection?: (fn: (prev: SelectionRange | null) => SelectionRange | null) => void;
@@ -157,7 +159,21 @@ export function Chapter(p: ChapterProps) {
       if (p.onSeekVerse) { followRef.current = true; setReadingAway(null); p.onSeekVerse(v); return; }
       if (annotationAt(target) || selectedMode || s.press === "longPress") p.onToggleVerse(v); else p.onVerseDetail(v);
     },
-    onDoubleTapVerse: (vk) => p.onDoubleTap?.(verseOf(vk)),
+    // handleDoubleTapVerse: in annotation mode a double tap selects (or lets go of) the mark under
+    // it, or selects the word; while reading, with no verse selected, it enters annotation mode with
+    // that mark or that word selected.
+    onDoubleTapVerse: (vk, pos) => {
+      const hit = annotationAt(document.elementFromPoint(pos.x, pos.y));
+      const w = wordOfTap(vk, pos);
+      if (mode) {
+        if (hit) { setSel(null); p.onSelectMark?.(hit === selectedMark ? null : hit); }
+        else if (w) { if (selectedMark) p.onSelectMark?.(null); setSel(w); }
+        return;
+      }
+      if (selectedMode || !p.onEnterAnnotation) return;
+      p.onEnterAnnotation();
+      if (hit) p.onSelectMark?.(hit); else if (w) setSel(w);
+    },
     onLongPressVerse: (vk, pos) => {
       if (mode) {
         const w = wordOfTap(vk, pos);
