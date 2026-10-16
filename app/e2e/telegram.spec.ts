@@ -297,6 +297,9 @@ test("the colour row's arrow opens the palette to pick from, and a long press ed
 });
 
 test("relations: a verse linked to a passage shows as a tag under the verse, with edit and delete", async ({ page }) => {
+  // The library's own precepts (the classes') share the tag row under a verse, and live data adds
+  // them as precept passes merge: keep these two chapters free of them so only the reader's relation is counted.
+  for (const ch of ["psalms/23", "john/10"]) await page.route(`**/api/concordance/${ch}.json`, (r) => r.fulfill({ json: { cited_by: [], precepts: [], moments: [], read: {}, people: {} } }));
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await tapVerse(page, 1);
   await page.click(".bs-action >> text=Relation");
