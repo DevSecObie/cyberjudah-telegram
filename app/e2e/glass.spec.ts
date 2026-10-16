@@ -286,7 +286,10 @@ test("materials: header, menu and selection stay within budget without stacked g
   await page.keyboard.press("Escape");
   await page.locator("#verset-1").click();
   await expect(page.locator(".bs-selected")).toBeVisible();
-  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
+  // While verses are selected Bible Strong's header is solid (the page colour, no glass), so the
+  // selection sheet is the one frosted surface.
+  await expect.poll(() => filteredSurfaces(page)).toEqual(["bs-sheet bs-sheet--auto bs-selected"]);
+  expect(await page.locator(".bs-header").evaluate(e => getComputedStyle(e, "::before").content)).toBe("none");
   // The mobile action row scrolls without turning the action page or selecting an action.
   const row = page.locator("#sv-panel-0 .bs-actions");
   await expect.poll(() => row.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
