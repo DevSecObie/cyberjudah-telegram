@@ -476,7 +476,7 @@ test("reader annotation mode suppresses native text selection and WebKit callout
   await page.locator("#verset-1 .bs-num").click();
   const sheet = page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true });
   await sheet.getByRole("tab", { name: "Annotate", exact: true }).click();
-  await sheet.getByRole("button", { name: "Mark words", exact: true }).click();
+  await sheet.getByRole("button", { name: "Free mode", exact: true }).click();
   await expect(page.locator(".bs-container")).toHaveAttribute("data-annotating", "");
   const text = page.locator("#verset-1 .bs-text");
   await expect(text).toHaveCSS("user-select", "none");
