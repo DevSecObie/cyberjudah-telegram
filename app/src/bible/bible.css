@@ -121,16 +121,17 @@
 .bs-coloredit__grid button { width: 30px; height: 30px; border-radius: var(--r-sm); border: 0; cursor: pointer; justify-self: center; }
 .bs-coloredit__hex { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--bs-grey); }
 .bs-coloredit__hex input { width: 40px; height: 32px; border: 0; background: none; padding: 0; }
-/* ColorEditModal: the picker, the name, the highlight type, the preview, Validate. */
+/* ColorEditModal at the sizes of its web (inline) layout, so it fits a phone with Validate in view:
+   a 190 px picker and 16 px around the highlight type. */
 .bs-coloredit { padding: 0 20px 20px; display: flex; flex-direction: column; }
-.bs-colorpicker { display: flex; flex-direction: column; gap: 16px; padding: 10px 0; height: 250px; box-sizing: border-box; }
+.bs-colorpicker { display: flex; flex-direction: column; gap: 16px; padding: 10px 0; height: 190px; box-sizing: border-box; }
 .bs-colorpicker__panel { position: relative; flex: 1; border-radius: 12px; touch-action: none; cursor: crosshair; background: linear-gradient(to bottom, transparent, #fff), linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); }
 .bs-colorpicker__bar { position: relative; flex: none; height: 30px; border-radius: 15px; touch-action: none; cursor: pointer; }
 .bs-colorpicker__thumb { position: absolute; width: 26px; height: 26px; border-radius: 50%; box-sizing: border-box; border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .35); transform: translate(-50%, -50%); pointer-events: none; }
 .bs-colorpicker__panel:focus-visible, .bs-colorpicker__bar:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
 .bs-coloredit__name { box-sizing: border-box; width: 100%; padding: 10px 12px; border: 0; border-radius: 8px; background: var(--bs-opacity5); color: var(--bs-default); font: inherit; font-size: 16px; }
 .bs-coloredit__name::placeholder { color: var(--bs-grey); }
-.bs-coloredit__type { margin: 40px 0; }
+.bs-coloredit__type { margin: 16px 0; }
 .bs-coloredit__label { font-size: 12px; color: var(--bs-tertiary); }
 .bs-coloredit__types { display: flex; margin-top: 10px; }
 #root .bs-coloredit__types button, .bs-coloredit__types button { flex: 1; padding: 10px 8px; border: 0; border-radius: 0; background: var(--bs-opacity5); color: var(--bs-default); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }

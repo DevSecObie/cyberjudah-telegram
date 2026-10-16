@@ -50,7 +50,7 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
     // long press opened is under it now, so that click must not land (Bible Strong's long press
     // fires once and the lift does nothing more).
     let swallowClickUntil = 0;
-    const swallowClick = (e: MouseEvent) => { if (Date.now() < swallowClickUntil) { swallowClickUntil = 0; e.preventDefault(); e.stopPropagation(); } };
+    const swallowClick = (e: MouseEvent) => { if (Date.now() < swallowClickUntil) { swallowClickUntil = 0; e.preventDefault(); e.stopImmediatePropagation(); } };
     let startTarget: EventTarget | null = null, lastTapTarget: EventTarget | null = null;
     const clearTimers = () => { if (st.longPressTimer) { clearTimeout(st.longPressTimer); st.longPressTimer = null; } if (st.singleTapTimer) { clearTimeout(st.singleTapTimer); st.singleTapTimer = null; } };
     const stopAutoScroll = () => { if (autoScroll) { cancelAnimationFrame(autoScroll); autoScroll = null; } };
@@ -200,7 +200,7 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
     el.addEventListener("touchstart", onTouchStart, { passive });
     el.addEventListener("touchmove", onTouchMove, { passive });
     el.addEventListener("touchend", onTouchEnd, { passive: true });
-    document.addEventListener("click", swallowClick, true);
+    window.addEventListener("click", swallowClick, true);
     el.addEventListener("touchcancel", onTouchCancel, { passive: true });
     el.addEventListener("mousedown", onMouseDown);
     el.addEventListener("contextmenu", onContextMenu);
@@ -212,7 +212,7 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
       clearTimers(); stopAutoScroll();
       el.removeEventListener("touchstart", onTouchStart); el.removeEventListener("touchmove", onTouchMove); el.removeEventListener("touchend", onTouchEnd); el.removeEventListener("touchcancel", onTouchCancel);
       el.removeEventListener("mousedown", onMouseDown); el.removeEventListener("contextmenu", onContextMenu); window.removeEventListener("mousemove", onMouseMove); window.removeEventListener("mouseup", onMouseUp);
-      window.removeEventListener("blur", cancel); document.removeEventListener("visibilitychange", onVisibilityChange); document.removeEventListener("click", swallowClick, true);
+      window.removeEventListener("blur", cancel); document.removeEventListener("visibilitychange", onVisibilityChange); window.removeEventListener("click", swallowClick, true);
     };
   }, [containerRef, selection?.annotationMode]);
 }
