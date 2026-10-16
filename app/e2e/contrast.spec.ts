@@ -92,8 +92,10 @@ for (const theme of ["default", "dark", "sepia", "nature", "sunset", "black", "m
     await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
     await expect(page.locator("#verset-2")).not.toHaveAttribute("data-selected");
     // The other verses fade to 0.3 as Bible Strong does; the selected verse and the panels stay readable.
-    await expect(page.locator("#verset-2")).toHaveCSS("opacity", "0.3");
-    await check(true);
+    // Increased contrast keeps every verse at full opacity (where the browser applies it).
+    const more = await page.evaluate(() => matchMedia("(prefers-contrast: more)").matches);
+    await expect(page.locator("#verset-2")).toHaveCSS("opacity", more ? "1" : "0.3");
+    await check(!more);
     await page.keyboard.press("Escape");
     await expect(page.locator(".bs-selected")).toHaveCount(0);
     await page.locator(".bs-pill--version").click();
