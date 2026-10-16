@@ -14,7 +14,7 @@ import { alert, app, confirm, haptic, openLink } from "@/tg/sdk";
 import { RelationTargetPicker } from "@/screens/Relations";
 import { Prologue } from "./dom/Prologue";
 import { Chapter, HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGHT } from "./dom/Chapter";
-import { colorItems, highlightInfo, paletteOf, resolveTheme, telegramScheme, useBibleSettings, useSchemeChange } from "./settings";
+import { colorItems, DEFAULT_COLOR_KEYS, highlightInfo, paletteOf, resolveTheme, telegramScheme, useBibleSettings, useSchemeChange, type DefaultColorKey, type HighlightType } from "./settings";
 import { cssVars, isDarkTheme } from "./theme";
 import { useToast } from "@/ui/toast";
 import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
@@ -36,6 +36,7 @@ import { readerFullscreen, readerSession, saveReaderFullscreen, saveReaderSessio
 import { WhySheet } from "./ui/WhySheet";
 import { PassageExportSheet } from "./ui/PassageExportSheet";
 import { SelectedVersesSheet } from "./ui/SelectedVersesSheet";
+import { ColorEditSheet, ColorPaletteSheet, type PaletteRequest } from "./ui/ColorPalette";
 import { AnnotationToolbar } from "./ui/AnnotationToolbar";
 import { applyMark, deleteMark, eraseMarks, groupMarks, marksInSelection, markText, selectionVerses, updateMark, type Mark } from "./annotation/marks";
 import { kindOfStyle, styleOfKind } from "./annotation/highlights";
@@ -157,7 +158,12 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   }, [plan, list, progress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sheets.
-  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare" | "study" | "markNote" | "markTags">(null);
+  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare" | "study" | "markNote" | "markTags" | "palette" | "colorEdit">(null);
+  // The colour palette as a picker (ColorPickerModal's atom): what is selected, and where a pick goes.
+  const [paletteRequest, setPaletteRequest] = useState<PaletteRequest | null>(null);
+  const openPalette = (request: PaletteRequest) => { setPaletteRequest(request); setSheet("palette"); };
+  // ColorCirclesBar's long press: that colour in the editor.
+  const [colorEdit, setColorEdit] = useState<{ key: string; hex: string; name?: string; type: HighlightType } | null>(null);
   // The classes that taught each verse: pictures after the verses, as Bible Strong shows its videos.
   // Every class that read each verse: those with notes first, then every other the transcripts find.
   const classMoments = useClassesByVerse(slug, ch);
@@ -335,6 +341,8 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
     await deleteMark(m); setSelectedMarkId(null);
   });
   const resource = verses.find((v) => v.verse === resourceVerse);
+  const [compareVerses, setCompareVerses] = useState<number[]>([]);
+  const compared = verses.filter((v) => compareVerses.includes(v.verse));
 
   return (
     <main ref={rootRef} className="bs" data-dark={isDarkTheme(theme) ? "" : undefined} style={{ ...cssVars(palette), background: palette.reverse, color: palette.default }}>
@@ -357,7 +365,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
             onToggle={(on) => { haptic(on ? "success" : "select"); setProgress(on ? markRead(progress, slug, ch) : unmarkRead(progress, slug, ch)); }} /></>}
           annotationMode={annotating} marks={marks} selectedMark={selectedMarkId} colorOf={colorOf}
           wordSelection={wordSel} setWordSelection={setWordSelection} onSelectMark={selectMark} onExitAnnotation={exitAnnotation}
-          onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "words")}
+          onToggleVerse={toggleVerse} onVerseDetail={(v) => openResources(v, "words")} onEnterAnnotation={enterAnnotation}
           onSwipe={(dir) => step(dir === "left" ? next : prev)} onFullscreen={setFullscreen}
           onOpenBookmark={(b) => { setBookmarkTarget({ verse: b.verse, existing: b }); setSheet("bookmark"); }}
           onOpenRelations={(v) => navigate(`/relations?endpoint=${verseKey(slug, ch, v)}`)} onOpenRelationItem={(it) => void openRelationItem(it)}
@@ -372,19 +380,21 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
         selected={selectedMark ? { id: selectedMark.id, kind: kindOfStyle(selectedMark.style), color: selectedMark.color ?? "", hex: (selectedMark.color && colorOf(selectedMark.color)) || "#d9a625", hasNote: !!selectedMark.note } : null}
         onApply={applyToSelection} onChangeMark={(color, kind) => { const m = selectedMark; if (m) run(() => updateMark(m, { color, style: styleOfKind(kind) })); }}
         onErase={eraseSelection} onDelete={deleteSelectedMark}
-        onAddColor={() => setSheet("params")} onNote={() => setSheet("markNote")} onTags={() => setSheet("markTags")} onRelations={openMarkRelations}
+        onAddColor={(selectedColor, pick) => openPalette({ selectedColor, onSelectColor: pick })} onNote={() => setSheet("markNote")} onTags={() => setSheet("markTags")} onRelations={openMarkRelations}
         tagsCount={markTagsCount} relationsCount={markRelations.count} />
       {selectedMark ? <TagsPanel open={sheet === "markTags"} onClose={() => setSheet(null)} reference={markText(selectedMark).slice(0, 80)} tags={tags} setTags={setTags} selected={selectedMark.tags ?? {}} onToggle={toggleMarkTag} /> : null}
       {selectedMark ? <NoteSheet open={sheet === "markNote"} onClose={() => setSheet(null)} reference={markText(selectedMark).slice(0, 80)} initial={selectedMark.note ? { title: selectedMark.note.title, description: selectedMark.note.description } : undefined}
         onSave={(v) => { const m = selectedMark; setSheet(null); run(() => updateMark(m, { note: { title: v.title, description: v.description, date: Date.now() } })); }}
         onRemove={selectedMark.note ? () => { const m = selectedMark; setSheet(null); run(() => updateMark(m, { note: undefined })); } : undefined} /> : null}
       <SelectedVersesSheet open={selected.length > 0 && !sheet} onDismiss={() => setSelected([])} reference={selectedReference ?? undefined}
-        colors={items} selectedColor={selectedColor} onAddHighlight={addHighlight} onRemoveHighlight={removeHighlight} onAddColor={() => setSheet("params")} onEditColor={() => setSheet("params")}
+        colors={items} selectedColor={selectedColor} onAddHighlight={addHighlight} onRemoveHighlight={removeHighlight}
+        onAddColor={() => openPalette({ selectedColor: selectedColor ?? undefined, onSelectColor: addHighlight })}
+        onEditColor={(key) => { const c = items.find((x) => x.key === key); if (!c) return; setColorEdit({ key, hex: c.hex, name: c.name, type: c.type }); setSheet("colorEdit"); }}
         moreThanOne={selected.length > 1} hasBookmark={hasBookmark} hasFocus={hasFocus}
-        onMarkWords={enterAnnotation}
+        onFreeMode={enterAnnotation}
         onNote={() => { setNoteEdit(null); setSheet("note"); }} onTag={() => { setTagsTarget(selectedSorted); setSheet("tags"); }} onLink={() => setSheet("link")} onRelation={() => setSheet("relation")}
         onBookmark={() => { setBookmarkTarget({ verse: first, existing: bookmarks.find((b) => b.book === slug && b.chapter === ch && b.verse === first) }); setSheet("bookmark"); }} onFocus={setFocus}
-        onLexicon={() => openResources(first, "words")} onDictionary={() => openResources(first, "dictionary")} onThemes={() => openResources(first, "themes")} onReferences={() => openResources(first, "references")} onCommentary={() => openResources(first, "commentary")} onCompare={() => { setResourceVerse(first); setSheet("compare"); }}
+        onLexicon={() => openResources(first, "words")} onDictionary={() => openResources(first, "dictionary")} onThemes={() => openResources(first, "themes")} onReferences={() => openResources(first, "references")} onCommentary={() => openResources(first, "commentary")} onCompare={() => { setCompareVerses(selectedSorted); setSheet("compare"); }}
         onStudy={() => setSheet("study")}
         onCopy={() => void copy()} onShare={shareSel} onExport={() => void exportSel("selection")} onSelectAll={() => setSelected(verses.map((v) => v.verse))} />
 
@@ -395,13 +405,20 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
       <VersionSheet open={sheet === "version"} onClose={() => setSheet(null)} />
       <VerseJump root={rootRef} label={chapterLabel} count={verses.length} onNavigate={(v) => { setVerseToScroll(v); setNavRequest((n) => n + 1); }} />
       <VersePopup open={sheet === "verses"} onClose={() => setSheet(null)} count={verses.length} selected={verseToScroll} onSelect={(v) => { setVerseToScroll(v); setNavRequest((n) => n + 1); }} />
-      <ParamsSheet open={sheet === "params"} onClose={() => setSheet(null)} settings={settings} set={setSettings} palette={palette} />
+      <ParamsSheet open={sheet === "params"} onClose={() => setSheet(null)} settings={settings} set={setSettings} palette={palette} theme={theme} />
       <BookmarkSheet open={sheet === "bookmark"} onClose={() => setSheet(null)} reference={bookmarkTarget.verse ? reference([bookmarkTarget.verse]) : chapterLabel} location={{ book: slug, chapter: ch, verse: bookmarkTarget.verse }} existing={bookmarkTarget.existing} bookmarks={bookmarks} setBookmarks={setBookmarks} formatReference={formatBookmark} />
       <TagsPanel open={sheet === "tags"} onClose={() => setSheet(null)} reference={reference(tagsTarget)} tags={tags} setTags={setTags} selected={tagsSelected} onToggle={toggleTag} />
       <NoteSheet open={sheet === "note"} onClose={() => { setSheet(null); setNoteEdit(null); }} reference={noteEdit ? `${bookName(slug)} ${ch}:${noteEdit.key.replace("/", ",")}` : selectedReference ?? ""} initial={noteEdit?.note} onSave={(v) => void saveNote(v)} onRemove={noteEdit ? () => void removeNote() : undefined} />
       <LinkSheet open={sheet === "link"} onClose={() => setSheet(null)} reference={selectedReference ?? ""} onSave={(v) => void saveLink(v)} />
       {sheet === "relation" ? <RelationTargetPicker source={verseEndpoint() as Endpoint} onClose={() => setSheet(null)} onCreated={() => { setSheet(null); setSelected([]); }} /> : null}
-      {resource ? <CompareSheet open={sheet === "compare"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verse={resource.verse} text={resource.text} reference={reference([resource.verse])} books={list} onRead={(s, c, v) => go({ slug: s, ch: c }, v)} /> : null}
+      {compared.length ? <CompareSheet open={sheet === "compare"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verses={compared} reference={reference(compared.map((v) => v.verse))} books={list} onRead={(s, c, v) => go({ slug: s, ch: c }, v)} /> : null}
+      <ColorPaletteSheet open={sheet === "palette"} request={paletteRequest} onClose={() => { setSheet(null); setPaletteRequest(null); }} settings={settings} set={setSettings} palette={palette} theme={theme} />
+      {colorEdit ? <ColorEditSheet open={sheet === "colorEdit"} mode="edit" initial={{ hex: colorEdit.hex, name: colorEdit.name, type: colorEdit.type }} titleName={colorEdit.name || (DEFAULT_COLOR_KEYS.includes(colorEdit.key as DefaultColorKey) ? `Color ${DEFAULT_COLOR_KEYS.indexOf(colorEdit.key as DefaultColorKey) + 1}` : `Custom color ${settings.customHighlightColors.findIndex((c) => c.id === colorEdit.key) + 1}`)} onClose={() => { setSheet(null); setColorEdit(null); }}
+        onSave={(hex, name, type) => {
+          const k = colorEdit.key;
+          if (DEFAULT_COLOR_KEYS.includes(k as DefaultColorKey)) setSettings({ colors: { ...settings.colors, [k]: hex }, defaultColorNames: { ...settings.defaultColorNames, [k]: name }, defaultColorTypes: { ...settings.defaultColorTypes, [k]: type } });
+          else setSettings({ customHighlightColors: settings.customHighlightColors.map((c) => (c.id === k ? { ...c, hex, name, type } : c)) });
+        }} /> : null}
       {resource ? <ResourcesSheet open={sheet === "resources"} onClose={() => setSheet(null)} tab={resourceTab} setTab={setResourceTab} slug={slug} chapter={ch} verse={resource.verse} text={resource.text} reference={reference([resource.verse])} books={list} /> : null}
     </main>
   );

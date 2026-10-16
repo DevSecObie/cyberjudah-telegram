@@ -56,7 +56,7 @@ async function enterAnnotation(page: Page, verse = 1) {
   if (!(await page.locator(".bs-selected").count())) await page.locator(`#verset-${verse} .bs-num`).tap();
   const sheet = page.getByRole("dialog", { name: /^Selected:/ });
   await sheet.getByRole("tab", { name: "Annotate", exact: true }).tap();
-  await sheet.getByRole("button", { name: "Mark words", exact: true }).tap();
+  await sheet.getByRole("button", { name: "Free mode", exact: true }).tap();
   await expect(toolbar(page)).toBeVisible();
   await expect(sheet).toHaveCount(0);
 }
@@ -125,12 +125,48 @@ test("1: in annotation mode a long press selects one word; both handles extend, 
   await expect(marked(page)).toHaveText(["God created the heaven and the earth.", "And the earth"]);
 });
 
+// BibleDOMComponent's handleDoubleTapVerse: with no verse selected, a double tap on a word enters
+// annotation mode (Free mode) with that word selected; with verses selected it does nothing.
+test("a double tap on a word enters Free mode with the word selected", async ({ page }) => {
+  await open(page);
+  const p = await wordPoint(page, 1, "created");
+  const cdp = await page.context().newCDPSession(page);
+  const tap = async () => { await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [p] }); await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); };
+  await tap(); await page.waitForTimeout(60); await tap();
+  await expect(toolbar(page)).toBeVisible();
+  await expect(page.locator(".bs-header--annotating")).toBeVisible();
+  await expect.poll(() => selectedWords(page)).toBe("created");
+  await expect(page.locator(".bs-sel-handle")).toHaveCount(2);
+  await done(page);
+  // With a verse selected, a double tap is not Free mode.
+  await page.locator("#verset-2 .bs-num").tap();
+  await expect(page.getByRole("dialog", { name: /^Selected:/ })).toBeVisible();
+  await tap(); await page.waitForTimeout(60); await tap();
+  await page.waitForTimeout(400);
+  await expect(toolbar(page)).toHaveCount(0);
+  await cdp.detach();
+});
+
+// AnnotationToolbar's "+": the colour palette as a picker; the colour picked marks the selection.
+test("Free mode's + opens the colour palette, and the colour picked there marks the words", async ({ page }) => {
+  await open(page); await selectWord(page);
+  await toolbar(page).getByRole("radio", { name: "Underline", exact: true }).tap();
+  await toolbar(page).getByRole("button", { name: "Add a color", exact: true }).tap();
+  const palette = page.getByRole("dialog", { name: "Color palette", exact: true });
+  await expect(palette).toBeVisible();
+  await palette.locator(".bs-palette__pick", { hasText: "Color 2" }).tap();
+  await expect(palette).toHaveCount(0);
+  await expect(toolbar(page)).toBeVisible();
+  await expect(marked(page)).toHaveText(["beginning"]);
+  await expect(marked(page).first()).toHaveClass(/phrase-underline/);
+});
+
 test("2: word selection offers Bible Strong's styles, colours with +, Note, Tags, Relations and Delete, and no Done", async ({ page }) => {
   await open(page); await selectWord(page);
   await expect(toolbar(page).getByRole("radio")).toHaveCount(3);
   for (const name of ["Highlight", "Underline", "Circle"]) await expect(toolbar(page).getByRole("radio", { name, exact: true })).toBeVisible();
   await expect(toolbar(page).getByRole("group", { name: "Mark colour" }).getByRole("button")).toHaveCount(6);
-  await expect(toolbar(page).getByRole("button", { name: "Add a colour", exact: true })).toBeVisible();
+  await expect(toolbar(page).getByRole("button", { name: "Add a color", exact: true })).toBeVisible();
   for (const name of ["Note", "Delete"]) await expect(toolbar(page).getByRole("button", { name, exact: true })).toBeVisible();
   // Note, Tags and Relations belong to a saved mark: shown, but off while only words are selected.
   for (const name of ["Note", "Tags, 0", "Relations, 0"]) await expect(toolbar(page).getByRole("button", { name, exact: true })).toBeDisabled();

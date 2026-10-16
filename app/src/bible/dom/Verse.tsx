@@ -51,11 +51,13 @@ export function Verse(p: VerseProps) {
   const wrapper: CSSProperties = {
     display: block ? "block" : "inline", transition: "opacity 0.3s ease", position: "relative", zIndex: 1,
     ...(block ? { marginBottom: 5 } : {}),
-    ...(p.isSelectedMode && !p.isSelected ? { color: "var(--bs-tertiary)" } : {}),
+    // VerseContainer: while verses are selected, every other verse (its text, highlights, precept
+    // chips, class pictures and badges) fades to 0.3.
+    ...(p.isSelectedMode && !p.isSelected ? { opacity: 0.3 } : {}),
     ...(p.fadePosition ? { pointerEvents: "none", filter: "blur(4px)" } : {}),
   };
   const container: CSSProperties = {
-    fontFamily: font, ...(p.isFocused === false && !p.isSelectedMode ? { color: "var(--bs-tertiary)" } : {}), ...hl, padding: 4, WebkitBoxDecorationBreak: "clone", boxDecorationBreak: "clone",
+    fontFamily: font, ...hl, ...(p.isFocused === false ? { opacity: 0.55 } : {}), padding: 4, WebkitBoxDecorationBreak: "clone", boxDecorationBreak: "clone",
     borderBottom: p.isSelected ? `2px dashed var(--bs-default)` : "none", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none",
     ...(p.isVerseToScroll ? { animation: "bs-zoom 0.5s ease 0s 3 normal none running" } : {}),
     // Bible Strong's ContainerText tracks the touched verse but paints nothing for it: a press shows

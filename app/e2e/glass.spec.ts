@@ -286,7 +286,10 @@ test("materials: header, menu and selection stay within budget without stacked g
   await page.keyboard.press("Escape");
   await page.locator("#verset-1").click();
   await expect(page.locator(".bs-selected")).toBeVisible();
-  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
+  // While verses are selected Bible Strong's header is solid (the page colour, no glass), so the
+  // selection sheet is the one frosted surface.
+  await expect.poll(() => filteredSurfaces(page)).toEqual(["bs-sheet bs-sheet--auto bs-selected"]);
+  expect(await page.locator(".bs-header").evaluate(e => getComputedStyle(e, "::before").content)).toBe("none");
   // The mobile action row scrolls without turning the action page or selecting an action.
   const row = page.locator("#sv-panel-0 .bs-actions");
   await expect.poll(() => row.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
@@ -524,9 +527,9 @@ for (const theme of ["default", "dark", "sepia"]) {
     await page.getByRole("button", { name: "Scripture options" }).click();
     await page.getByRole("menuitem", { name: /Font and settings/ }).click();
     await page.getByRole("button", { name: "Color palette", exact: true }).click();
-    await page.locator(".bs-palette__row").first().click();
-    const sheet = page.getByRole("dialog", { name: "Edit color", exact: true });
-    const save = sheet.getByRole("button", { name: "Save", exact: true });
+    await page.getByRole("button", { name: "Edit Color 1", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "Edit Color 1", exact: true });
+    const save = sheet.getByRole("button", { name: "Validate", exact: true });
     await expect(save).toBeVisible();
     await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
     await expect.poll(() => save.evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBe(30);
@@ -904,14 +907,22 @@ for (const reduced of [false, true]) {
     const selection = page.locator(".bs-selected");
     await expect(selection).toBeVisible();
     await selection.focus();
+    // Bible Strong's selection sheet (a TrueSheet) runs edge to edge along the bottom: rounded on
+    // top only, its content kept inside the safe insets.
     await expect(selection).toHaveCSS("border-top-left-radius", "36px");
-    await expect(selection).toHaveCSS("border-bottom-right-radius", "36px");
+    await expect(selection).toHaveCSS("border-top-right-radius", "36px");
+    await expect(selection).toHaveCSS("border-bottom-right-radius", "0px");
     await expect(page.locator(".bs-scrim--clear")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     await expect(page.locator(".bs-scrim--clear")).toHaveCSS("pointer-events", "none");
-    await expect.poll(async () => Math.round((await selection.boundingBox())!.x)).toBe(22);
-    await expect.poll(async () => { const r = (await selection.boundingBox())!; return Math.round(844 - r.y - r.height); }).toBe(38);
+    await expect.poll(async () => Math.round((await selection.boundingBox())!.x)).toBe(0);
+    await expect.poll(async () => { const r = (await selection.boundingBox())!; return Math.round(844 - r.y - r.height); }).toBe(0);
     const rect = (await selection.boundingBox())!;
-    expect(Math.round(390 - rect.x - rect.width)).toBe(28);
+    expect(Math.round(rect.width)).toBe(390);
+    await expect(selection).toHaveCSS("padding-left", "14px");
+    await expect(selection).toHaveCSS("padding-right", "20px");
+    expect(parseFloat(await selection.evaluate(e => getComputedStyle(e).paddingBottom))).toBeGreaterThanOrEqual(30);
+    // It keeps its content's height: there is no expanding it, only a grabber.
+    await expect(selection.getByRole("button", { name: "Expand sheet", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Tag", exact: true }).click();
     const sheet = page.getByRole("dialog", { name: "Edit tags", exact: true });
     await expect(sheet).toHaveCSS("border-bottom-left-radius", "36px");
