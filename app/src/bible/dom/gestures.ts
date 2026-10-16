@@ -46,6 +46,11 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
     if (!el) return;
     const st = { active: false, startPos: { x: 0, y: 0 }, startVerseKey: null as string | null, startWord: null as WordPosition | null, hasMoved: false, isSwipe: false, isDragging: false, dragHandle: null as "start" | "end" | null, longPressFired: false, startTime: 0, samples: [] as { time: number; x: number }[], lastTapTime: 0, lastTapVerseKey: null as string | null, lastTapPos: { x: 0, y: 0 }, longPressTimer: null as ReturnType<typeof setTimeout> | null, singleTapTimer: null as ReturnType<typeof setTimeout> | null };
     let lastTouchEndAt = 0, mouseIsDown = false, autoScroll: number | null = null, current: Point | null = null;
+    // The click a browser sends when the finger (or mouse) lifts after a long press: whatever the
+    // long press opened is under it now, so that click must not land (Bible Strong's long press
+    // fires once and the lift does nothing more).
+    let swallowClickUntil = 0;
+    const swallowClick = (e: MouseEvent) => { if (Date.now() < swallowClickUntil) { swallowClickUntil = 0; e.preventDefault(); e.stopPropagation(); } };
     let startTarget: EventTarget | null = null, lastTapTarget: EventTarget | null = null;
     const clearTimers = () => { if (st.longPressTimer) { clearTimeout(st.longPressTimer); st.longPressTimer = null; } if (st.singleTapTimer) { clearTimeout(st.singleTapTimer); st.singleTapTimer = null; } };
     const stopAutoScroll = () => { if (autoScroll) { cancelAnimationFrame(autoScroll); autoScroll = null; } };
@@ -155,6 +160,7 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
     };
     const end = (x: number) => {
       if (!st.active) return;
+      if (st.longPressFired) swallowClickUntil = Date.now() + 600;
       st.active = false; stopAutoScroll(); current = null;
       const now = Date.now();
       stopLongPress();
@@ -181,7 +187,7 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
     };
     const onTouchStart = (e: TouchEvent) => { lastTouchEndAt = Date.now(); if (e.touches.length !== 1) { cancel(); return; } const t = e.touches[0]; if (begin(t.clientX, t.clientY, e.target)) e.preventDefault(); };
     const onTouchMove = (e: TouchEvent) => { if (e.touches.length !== 1) { cancel(); return; } const t = e.touches[0]; if (moveTouch(t.clientX, t.clientY)) e.preventDefault(); };
-    const onTouchEnd = (e: TouchEvent) => { lastTouchEndAt = Date.now(); if (e.touches.length) { cancel(); return; } const t = e.changedTouches[0]; end(t?.clientX ?? st.startPos.x); };
+    const onTouchEnd = (e: TouchEvent) => { lastTouchEndAt = Date.now(); if (e.touches.length) { cancel(); return; } const t = e.changedTouches[0]; const long = st.active && st.longPressFired; end(t?.clientX ?? st.startPos.x); if (long && e.cancelable) e.preventDefault(); };
     const onTouchCancel = () => { lastTouchEndAt = Date.now(); cancel(); };
     const onVisibilityChange = () => { if (document.hidden) cancel(); };
     const onMouseDown = (e: MouseEvent) => { if (e.button !== 0 || Date.now() - lastTouchEndAt < 700) return; mouseIsDown = true; if (begin(e.clientX, e.clientY, e.target)) e.preventDefault(); };
@@ -193,7 +199,8 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
     const passive = !selection?.annotationMode;
     el.addEventListener("touchstart", onTouchStart, { passive });
     el.addEventListener("touchmove", onTouchMove, { passive });
-    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: false });
+    document.addEventListener("click", swallowClick, true);
     el.addEventListener("touchcancel", onTouchCancel, { passive: true });
     el.addEventListener("mousedown", onMouseDown);
     el.addEventListener("contextmenu", onContextMenu);
@@ -205,7 +212,7 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
       clearTimers(); stopAutoScroll();
       el.removeEventListener("touchstart", onTouchStart); el.removeEventListener("touchmove", onTouchMove); el.removeEventListener("touchend", onTouchEnd); el.removeEventListener("touchcancel", onTouchCancel);
       el.removeEventListener("mousedown", onMouseDown); el.removeEventListener("contextmenu", onContextMenu); window.removeEventListener("mousemove", onMouseMove); window.removeEventListener("mouseup", onMouseUp);
-      window.removeEventListener("blur", cancel); document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("blur", cancel); document.removeEventListener("visibilitychange", onVisibilityChange); document.removeEventListener("click", swallowClick, true);
     };
   }, [containerRef, selection?.annotationMode]);
 }
