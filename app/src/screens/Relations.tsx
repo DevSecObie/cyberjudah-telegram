@@ -5,7 +5,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { data } from "@/api/data";
 import { referencePath } from "@/screens/Search";
 import { RELATION_TYPES, annotationParam, createRelation, deleteRelation, endpointHref, endpointsMatch, isDirectional, parseVerseKey, relationText, updateRelation, useSavedRelations, useEndpointRelations, verseKey, type Endpoint, type Relation, type RelationDirection, type RelationType } from "@/lib/relations";
-import { useBackButton, useBottomButtons } from "@/tg/hooks";
+import { sheetOpened, useBackButton, useBottomButtons } from "@/tg/hooks";
 import { alert, api, confirm, haptic, openLink } from "@/tg/sdk";
 import { store } from "@/tg/store";
 import { useModal } from "@/ui/modal";
@@ -177,6 +177,8 @@ export function RelationTargetPicker({ source, onClose, onCreated }: { source: E
   };
   const box = useRef<HTMLDivElement>(null);
   useModal(box, true, onClose);
+  // An open sheet: Telegram's back button shows while it is up and closes it (tg/hooks).
+  useEffect(() => sheetOpened(), []);
   const loading = (refKeys && refText.isPending) || (library.isFetching && !library.data) || (dict.isFetching && !dict.data);
   return (
     <div className="sheet__scrim" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
