@@ -678,11 +678,12 @@ test("large titles: the title shrinks into the bar under scroll and returns at t
   await page.evaluate(() => { document.documentElement.scrollTop = 120; });
   await expect(head).toHaveAttribute("data-compact", "");
   const compact = await layout();
-  expect(Math.abs(compact.at - before.at)).toBeLessThan(0.5);
+  // Within a pixel: engines round the bar's margin to their own layout units.
+  expect(Math.abs(compact.at - before.at)).toBeLessThan(1);
   expect(Math.abs(compact.height - before.height)).toBeLessThan(1);
   await page.evaluate(() => { document.documentElement.scrollTop = 0; });
   await expect(head).not.toHaveAttribute("data-compact");
-  expect(Math.abs((await layout()).at - before.at)).toBeLessThan(0.5);
+  expect(Math.abs((await layout()).at - before.at)).toBeLessThan(1);
 });
 
 test("navigation: document, Bible and Timeline scrolls minimize down and expand up", async ({ page }) => {
