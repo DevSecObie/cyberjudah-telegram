@@ -73,14 +73,14 @@ for (const theme of ["default", "dark", "sepia", "nature", "sunset", "black", "m
     await page.addInitScript(theme => { (window as any).__cloud = { bs: JSON.stringify({ preferredColorScheme: ["dark", "black", "mauve", "night"].includes(theme) ? "dark" : "light", preferredLightTheme: theme, preferredDarkTheme: theme }) }; }, theme);
     await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
     await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
-    const check = async () => {
+    const check = async (fadedContext = false) => {
       if (await page.locator(".bs-gallery").count()) {
         const canvas = await page.locator("body").evaluate(el => getComputedStyle(el).backgroundColor);
         await expect(page.locator(".bs-gallery")).toHaveCSS("background-color", canvas);
       }
       await page.evaluate(async () => { await Promise.all(document.getAnimations().filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))); });
       await expect(async () => {
-        const result = await page.evaluate(auditContrast, { includePanels: true });
+        const result = await page.evaluate(auditContrast, { includePanels: true, fadedContext });
         expect(result.textNodes).toBeGreaterThan(20);
         expect(result.failures).toEqual([]);
       }).toPass({ timeout: 5000, intervals: [100, 250, 500] });
@@ -91,7 +91,11 @@ for (const theme of ["default", "dark", "sepia", "nature", "sunset", "black", "m
     await expect(page.locator(".bs-selected")).toBeVisible();
     await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
     await expect(page.locator("#verset-2")).not.toHaveAttribute("data-selected");
-    await check();
+    // The other verses fade to 0.3 as Bible Strong does; the selected verse and the panels stay readable.
+    // Increased contrast keeps every verse at full opacity (where the browser applies it).
+    const more = await page.evaluate(() => matchMedia("(prefers-contrast: more)").matches);
+    await expect(page.locator("#verset-2")).toHaveCSS("opacity", more ? "1" : "0.3");
+    await check(!more);
     await page.keyboard.press("Escape");
     await expect(page.locator(".bs-selected")).toHaveCount(0);
     await page.locator(".bs-pill--version").click();

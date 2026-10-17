@@ -1,0 +1,1 @@
+- A day's classes now sit in the order they were taught. On Home and in the Classes feed, classes from the same day follow the order the channel lists them in, so the newest class shown is the last one taught that day.

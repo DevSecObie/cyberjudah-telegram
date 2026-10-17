@@ -40,6 +40,7 @@ import app from '../../../package.json'
 
 import { useRouter } from 'expo-router'
 import { MainStackProps } from '~navigation/type'
+import { CYBERJUDAH_PRIVACY_URL, CYBERJUDAH_SOURCE_URL, CYBERJUDAH_SUPPORT_URL, CYBERJUDAH_TERMS_URL } from '~helpers/cyberjudahLinks'
 
 export const LinkItem = (
   componentProps: Omit<
@@ -413,9 +414,7 @@ export const More = ({ closeMenu, inWorkspace = false }: MoreProps) => {
           </CardLinkItem>
           {!appleIsReviewing && (
             <CardLinkItem
-              href={
-                lang === 'fr' ? 'https://bible-strong.app/fr/give' : 'https://bible-strong.app/give'
-              }
+              href={CYBERJUDAH_SUPPORT_URL}
             >
               <IconCircle bg="rgba(236, 72, 153, 0.1)">
                 <FeatherIcon name="heart" size={20} color="color2" />
@@ -424,7 +423,7 @@ export const More = ({ closeMenu, inWorkspace = false }: MoreProps) => {
               <FeatherIcon name="chevron-right" size={20} color="grey" />
             </CardLinkItem>
           )}
-          <CardLinkItem href="https://github.com/smontlouis/bible-strong" isLast>
+          <CardLinkItem href={CYBERJUDAH_SOURCE_URL} isLast>
             <IconCircle bg="rgba(107, 114, 128, 0.1)">
               <FeatherIcon name="github" size={20} color="grey" />
             </IconCircle>
@@ -436,19 +435,13 @@ export const More = ({ closeMenu, inWorkspace = false }: MoreProps) => {
         <Box className="overflow-hidden border-continuous px-[20px] py-[8px]">
           <LinkItem
             style={{ paddingVertical: 10, paddingHorizontal: 0 }}
-            href={
-              lang === 'fr'
-                ? 'https://bible-strong.app/politique-de-confidentialite'
-                : 'https://bible-strong.app/privacy-policy'
-            }
+            href={CYBERJUDAH_PRIVACY_URL}
           >
             <Text className="text-[14px] text-grey">{t('Politique de confidentialité')}</Text>
           </LinkItem>
           <LinkItem
             style={{ paddingVertical: 10, paddingHorizontal: 0 }}
-            href={
-              lang === 'fr' ? 'https://bible-strong.app/eula' : 'https://bible-strong.app/eula-en'
-            }
+            href={CYBERJUDAH_TERMS_URL}
           >
             <Text className="text-[14px] text-grey">{t("Conditions d'utilisation")}</Text>
           </LinkItem>

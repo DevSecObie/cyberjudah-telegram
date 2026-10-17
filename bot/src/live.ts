@@ -1,5 +1,5 @@
 import type { Env, Exec } from "./env";
-import { parseChannelVideos, parseFeed, parseLive } from "./live.mjs";
+import { byDay, parseChannelVideos, parseFeed, parseLive } from "./live.mjs";
 export { parseLive };
 
 export type { LiveNow, RecentVideo } from "./live.mjs";
@@ -69,7 +69,7 @@ export async function recentVideos(env: Env, ctx?: Exec): Promise<{ videos: Rece
     const saved = await env.SUBS.get<{ checked: number; videos: RecentVideo[] }>(savedKey, "json").catch(() => null);
     if (saved && now - saved.checked < 7 * 86400_000 && Array.isArray(saved.videos)) out.unshift(...saved.videos);
     out = [...new Map(out.map((v) => [v.video, v])).values()]
-      .sort((a, b) => b.published.localeCompare(a.published)).slice(0, 15);
+      .sort(byDay).slice(0, 15);
   }
   const body = { videos: out, ok };
   // Failed refreshes retry after one minute and never replace/extend the last-good snapshot.

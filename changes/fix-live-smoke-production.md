@@ -1,0 +1,2 @@
+- The daily live check now runs against the production Worker. Its address variable was never set, so since late September it had been testing an empty local copy and failing on missing data. It falls back to the account's workers.dev address and refuses to run without one.
+- The offline-books check expects the "text" label that saved books have shown since October 7.

@@ -2,6 +2,7 @@ import { VerseIds, VerseRefContent } from '~common/types'
 import { VersionCode } from '../state/tabs'
 import verseToReference from './verseToReference'
 import { appLogger } from '~helpers/agentObservability'
+import { CYBERJUDAH_SITE_URL } from '~helpers/cyberjudahLinks'
 
 export type LoadVerseTexts = (
   version: string,
@@ -80,7 +81,7 @@ export default async ({
     version,
     content: versesContent,
     all: `${versesContent} \n${reference} ${version} ${
-      hasAppName ? '\n\nhttps://bible-strong.app' : ''
+      hasAppName ? `\n\n${CYBERJUDAH_SITE_URL}` : ''
     }`,
   }
 }

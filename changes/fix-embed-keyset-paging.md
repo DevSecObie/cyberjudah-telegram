@@ -1,0 +1,1 @@
+- Ask's search takes in new classes and notes every night again: the nightly indexing had stopped on 12 October with a database error.

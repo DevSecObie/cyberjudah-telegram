@@ -23,7 +23,7 @@ a change to the other.
 | Apple App Review Guidelines 5.1.1(i) | Privacy policy in the app: what, how, uses, third parties, retention, how to delete or revoke | The Privacy screen |
 | Apple 5.1.1(ii), 5.1.2(i) | Consent before collection; explicit permission before sharing with third-party AI | The AI agreement |
 | Apple 5.1.1(iii) | Data minimisation | The inventory below |
-| Apple 5.1.1(v), account deletion | Deletion in the app, confirmation when done, subscriptions explained | Delete my data (confirmation shown; the plan's renewal is cancelled in Telegram, as the summary says) |
+| Apple 5.1.1(v), account deletion | Deletion in the app, confirmation when done, subscriptions explained | Delete my data and `/deletemydata` list what is deleted (saved chats, reading reminder, daily verse, Ask balance, top-up reminder, class-note requests, cloud study backup, synced marks when account sync is on, browser sign-ins) and confirm with a summary when done. Plans were withdrawn, so there is no subscription to cancel; a legacy plan that renews is cancelled with Telegram then (`billing.ts` `applyPayment`). `/mydata`'s note says highlights, notes and reading history stay on the device unless account sync is on |
 | Cloudflare AI Gateway logging | Logs keep prompts and responses unless told not to | Claude: `cf-aig-collect-log-payload: false`; binding calls with a reader's words: `collectLog: false` (`providers.ts`, `agent-open.ts`) |
 | Cloudflare Workers Logs | Requests and `console.log` kept 3–7 days | Invocation logs are off (`wrangler.jsonc` `observability.logs.invocation_logs: false`), so request URLs, which carry search words (`/api/search?q=`, `/api/search/answer?q=`, `/api/similar?q=`), are not logged; `console` logs carry event names and counts, never a person's ID or words |
 | MDN Push API | A subscription endpoint is a capability URL | Endpoints are kept only inside the sealed reminder record; the lookup index holds their SHA-256 |
@@ -37,8 +37,10 @@ record holding anything personal is sealed for its owner (AES-GCM, a key derived
 |---|---|---|---|---|
 | Saved Ask chats | KV `chats:<pid>`, `chat:<pid>:<id>`, sealed | Questions, answers, source links | 180 days from last use (`CHAT_TTL`) | The reader (one chat, or all), Delete my data |
 | Answer in progress | KV `chatpending:<pid>:<id>`, sealed | The question | 10 minutes | Itself |
-| Reading reminder | KV `remind:tg:<pid>` / `remind:dev:<id>`, sealed; readable metadata: on, hour, minute, zone, channels, pause date | Time, zone, chat ID or push subscriptions, plan position | Until turned off; a browser not linked to Telegram 180 days unused | Settings → Reading reminders, `/stop`, Delete my data |
+| Reading reminder | KV `remind:tg:<pid>` / `remind:dev:<id>`, sealed; readable metadata: on, hour, minute, zone, channels, pause date | Time, zone, chat ID or push subscriptions, plan position, the ids of browsers linked to a Telegram record (`devices`, up to 20) | Until deleted (Settings → Reading reminders → Delete my reading reminder) or Delete my data; turning it off (Settings, `/stop`, the Stop button) keeps the record so it can be turned back on; a browser not linked to Telegram 180 days unused | Settings → Reading reminders → Delete my reading reminder, Delete my data (both also remove the `remdev:` credentials of linked browsers) |
 | Push lookup | KV `pushep:<sha256(endpoint)>` | The reminder's ID | 180 days | With the reminder |
+| Browser reminder credential | KV `remdev:<id>` (`remind.ts`) | SHA-256 of the browser's secret, the reminder's ID, last day used | 180 days from last use (`IDLE_TTL`) | Forget this browser; deleting a Telegram reminder or Delete my data removes the linked browsers' credentials; a linked browser whose Telegram reminder is gone is refused and its credential removed |
+| Browser link code | KV `remlink:<code>` | The browser's credential id | 15 minutes (`LINK_TTL`) | Used once by `/start remind_<code>` |
 | Daily verse | KV `sub:<pid>`, sealed | Hour, offset, chat ID | Until `/daily` again | `/daily`, Delete my data, Telegram blocking the bot |
 | Ask balance | D1 `credit_lots`, `credit_ledger`, `credit_holds`, `credit_meta` (`user_id` = pid); the old `accounts` row it was carried over from | Balance, each top-up, refund and adjustment, and what each paid answer was charged | Until Delete my data | Delete my data |
 | Per-answer usage | D1 `credit_usage` (`user_id` = pid) | Each paid answer's model, steps, cost and charge (never the question) | 180 days (`CREDIT_USAGE_RETENTION_DAYS`, `pruneBilling` hourly) | Delete my data, or the prune |
@@ -48,11 +50,16 @@ record holding anything personal is sealed for its owner (AES-GCM, a key derived
 | Telegram delivery claims | D1 `webhook_updates` | Update sequence id, random processing claim, state and time; no reader id or message | Seven days, swept hourly | Expires on its own |
 | Free-answer reservations | D1 `free_spend_holds` | Server-generated random id, UTC day, amount, state; no reader id or question | Seven days, swept hourly | Expires on its own |
 | Aggregate free-answer spend | D1 `free_spend_daily` | UTC day and total estimated cost; no reader id or question | Aggregate operational history | Not linked to a reader |
-| Who asked on a day | D1 `usage_people` (pid) | pid, day | 30 days | Delete my data |
+| Who asked on a day (legacy) | D1 `usage_people` (pid) | pid, day; nothing writes it any more, old rows only | Pruned after 30 days (`billing.ts`) | Delete my data |
 | Daily limits | D1 `rate_counts` (`name:pid:day`: `ask`, `search_ai`, `ttsg`, `share`, `report`) | A count | Swept daily | Delete my data |
 | Ask limit per network | D1 `rate_counts` (`ask_ip:<IP address>:day`) | The IP address the question came from, and a count, never linked to a pid | Swept daily (kept up to two days) | Expires on its own |
 | New reminder browsers per network | KV `remcreate:<HMAC of IP address>:day` (`remind.ts`; `privacy.mjs` `keyedHash`, keyed from `PRIVACY_KEY`) | A count of new browser credentials from that address | Two days (`expirationTtl`) | Expires on its own |
 | Class-note requests | KV `notereq:<video>` | Count, pids (once each) | Until the notes are written | Delete my data (the reader's pid and vote) |
+| Cloud study backup | D1 `study_backups` (`owner` = pid; `study-backup.ts`) | The personal-study archive, sealed; revision, last update | Until replaced or deleted | The reader, Delete my data |
+| Browser sign-in | D1 `browser_sessions` (`owner` = pid, `token_hash` = keyed hash of the cookie; `browser-auth.ts`) | Name, @username and Telegram ID, sealed; expiry | 1 day (`expires`; expired rows removed at the next sign-in) | Sign out, Delete my data |
+| Deleted-chat marker | KV `chatgone:<pid>:<id>` (`chats.ts`) | `1`, so an answer still being written is not saved into a deleted chat | 1 day (`expirationTtl`) | Expires on its own |
+| Deletion confirmation | KV `privacydel:<token>` (`mydata.ts`) | The Telegram ID, sealed, for `/deletemydata`'s button | 10 minutes (`expirationTtl`) | Used once, or expires |
+| Telegram update seen | KV `webhook:<update_id>` (`bot.ts`) | `1`, so a redelivered update is handled once; no reader id or message | 1 day (`expirationTtl`) | Expires on its own |
 
 The rows below exist only for a reader signed in to account sync (`VITE_ACCOUNT_SYNC`; off in
 production until [docs/PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md) §2 is done). Each is
@@ -92,8 +99,10 @@ a bounded amount each hour, until none are left. Chats also move the first time 
 - **The AI provider of the model the reader chooses** (Anthropic, OpenAI, Google, xAI, DeepSeek,
   Alibaba, Moonshot AI, MiniMax, Thinking Machines, Unbiased, or Cloudflare for the hosted models):
   the question, the earlier questions in the chat, library passages. Never the name or Telegram ID.
-  Only after the reader agrees to that provider (`lib/ai-consent.ts`; the server answers 428
-  otherwise, including before Search cache lookups). Search sends only the current query and
+  An external provider is used only after the reader agrees to it (`lib/ai-consent.ts`; the server
+  answers 428 otherwise, including before Search cache lookups). Search's model, when hosted on
+  Cloudflare (`@cf/`), needs no agreement, because Cloudflare is the host; an external Search model
+  without the reader's agreement is refused with 428 (`search-answer.ts`, `ai.ts` `answerSearch`). Search sends only the current query and
   matching library passages; answers are cached for two minutes, keyed by question and model,
   with no reader identity. Search is not saved as an Ask conversation. Ask also discloses the
   provider's home country when `shared/ask-models.mjs` `PROVIDER_COUNTRY`
@@ -104,6 +113,10 @@ a bounded amount each hour, until none are left. Chats also move the first time 
   pause date and the reading-plan day, or whether it follows the last chapter read. The AI agreement
   in Ask says so before the first question. When Claude is unavailable, the backup answer
   is written by Workers AI on Cloudflare, the host.
+- **Wikipedia and approved reference sites:** Ask's outside-source tool (`ask-tools.ts`) may send
+  search words drawn from the reader's question to Wikipedia's search API, or fetch a page on an
+  approved host (`source-policy.ts`: `data/ask-sources.json`, or the reviewed list in KV
+  `ask:sources`). The request comes from CyberJudah's server with no reader identity.
 - **Typefaces:** self-hosted with the app (`app/src/fonts`); loading them does not contact Google Fonts.
 - **YouTube:** class thumbnails (`img.youtube.com`) when classes are listed, and the player
   (`youtube-nocookie.com`) when a class is played.

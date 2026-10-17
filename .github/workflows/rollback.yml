@@ -30,6 +30,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # The repository's own wrangler, not whatever npx would fetch that day.
+      - run: npm ci --no-audit --no-fund
       - working-directory: bot
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

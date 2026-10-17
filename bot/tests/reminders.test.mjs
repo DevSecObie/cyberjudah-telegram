@@ -278,3 +278,47 @@ test("plan days are counted in the app's book order, the Apocrypha as the app na
   ];
   assert.deepEqual(flatChapters(books).map((c) => c.book), ["Malachi", "Matthew", "Tobit", "Ecclesiasticus"]);
 });
+
+test("Delete my data also forgets the browsers linked to the Telegram reminder, which cannot make it again", async () => {
+  const { build } = await import("esbuild");
+  // remind.ts imports the bot's other modules without file extensions (as Workers bundles them), so it is bundled for Node first.
+  const out = new URL("./.build/remind.mjs", import.meta.url).pathname;
+  await build({ stdin: { contents: 'export { linkDevice, forgetReminder, loadReminder, tgRid, reminders } from "./src/remind.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
+  const { linkDevice, forgetReminder, loadReminder, tgRid, reminders } = await import(out);
+  const m = new Map();
+  const SUBS = {
+    m,
+    get: async (k, t) => (m.has(k) ? (t === "json" ? JSON.parse(m.get(k)) : m.get(k)) : null),
+    put: async (k, v) => { m.set(k, v); },
+    delete: async (k) => { m.delete(k); },
+  };
+  const env = { SUBS, PRIVACY_KEY: "test-key", BOT_TOKEN: "1:x" };
+  const put = (headers, json) => reminders.request("/", { method: "PUT", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(json) }, env);
+
+  // A browser sets up a reminder and is given a credential.
+  const made = await (await put({}, { settings: { on: true, hour: 7, channels: { push: false, telegram: true } } })).json();
+  const dev = made.device.split(".")[0];
+  assert.ok(m.has(`remdev:${dev}`));
+  // It is linked to the reader's Telegram chat through /start remind_<code>.
+  m.set("remlink:" + "c".repeat(32), dev);
+  assert.equal(await linkDevice(env, "c".repeat(32), 77), true);
+  const rid = await tgRid(env, 77);
+  assert.equal(JSON.parse(m.get(`remdev:${dev}`)).rid, rid);
+  assert.deepEqual((await loadReminder(env, rid)).devices, [dev]);
+
+  // Delete my data: the reminder and the linked browser's credential both go.
+  assert.equal(await forgetReminder(env, 77), true);
+  assert.equal(m.has(`remind:${rid}`), false);
+  assert.equal(m.has(`remdev:${dev}`), false, "the linked browser's credential is gone");
+  const again = await put({ "x-cj-device": made.device }, { settings: { on: true } });
+  assert.equal(again.status, 401);
+  assert.equal(m.has(`remind:${rid}`), false, "the browser cannot make the reminder again");
+
+  // A link made before browsers were listed on the record is refused too, and forgotten.
+  const old = await (await put({}, { settings: { on: true, hour: 7, channels: { push: false, telegram: true } } })).json();
+  const oldDev = old.device.split(".")[0];
+  m.set(`remdev:${oldDev}`, JSON.stringify({ ...JSON.parse(m.get(`remdev:${oldDev}`)), rid }));
+  assert.equal((await put({ "x-cj-device": old.device }, { settings: { on: true } })).status, 401);
+  assert.equal(m.has(`remind:${rid}`), false);
+  assert.equal(m.has(`remdev:${oldDev}`), false);
+});
