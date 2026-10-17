@@ -1,0 +1,2 @@
+- A screen's large title shrinks into its bar once the page scrolls under it, and returns at the top, as on iOS 26; the page does not jump.
+- When the tab bar minimizes, the audio player moves down beside it as a compact capsule (Play or Pause), and moves back up when the bar returns.
