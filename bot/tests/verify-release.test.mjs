@@ -34,3 +34,8 @@ test("the existing hosted provider is verified with one call and no external con
   const f = fixture({ model: id, expectedModel: id });
   await verifyRelease(f.options); assert.equal(f.count(), 1);
 });
+test("staging may report a spent free answer budget; production and other failures still fail", async () => {
+  await verifyRelease({ ...fixture({ answerStatus: 429 }).options, allowPaused: true });
+  await assert.rejects(verifyRelease(fixture({ answerStatus: 429 }).options), /free-paused/);
+  await assert.rejects(verifyRelease({ ...fixture({ answerStatus: 503 }).options, allowPaused: true }), /Search answer:/);
+});

@@ -662,6 +662,47 @@ test("navigation: resizing a minimized dock restores keyboard and first-click na
   await expect(page).toHaveURL(/\/read\//);
 });
 
+test("large titles: the title shrinks into the bar under scroll and returns at the top, and the page under it never moves", async ({ page }) => {
+  await setup(page, "sepia");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  // Every measure of the bar, with its state at that moment, so a failure says when the full height was taken.
+  await page.addInitScript(() => {
+    const log: unknown[] = ((window as unknown as { __bar: unknown[] }).__bar = []);
+    const rect = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      const r = rect.call(this);
+      if (this.matches(".screen > .head")) log.push({ t: Math.round(performance.now()), h: +r.height.toFixed(2), compact: this.hasAttribute("data-compact"), mb: (this as HTMLElement).style.marginBottom, y: Math.round(scrollY) });
+      return r;
+    };
+  });
+  await page.goto(`/settings${LAUNCH}`);
+  const head = page.locator(".screen > .head");
+  const bar = () => page.evaluate(() => JSON.stringify((window as unknown as { __bar: unknown[] }).__bar.slice(-12)));
+  await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+  // The full bar's height can change after the page first lays out (a web font arriving, as in
+  // Firefox); the bar must make up for the height it has when it shrinks, not the first one.
+  const plain = await head.evaluate(el => (el as HTMLElement).offsetHeight);
+  await page.addStyleTag({ content: ".screen > .head:not([data-compact]) .title { padding-block: 10px; }" });
+  // WebKit can lay the new padding out after the tag resolves; measure only once the bar has grown.
+  await expect.poll(() => head.evaluate(el => (el as HTMLElement).offsetHeight)).toBeGreaterThan(plain + 10);
+  // Where the first thing under the bar sits in the document, and how tall the document is.
+  const layout = () => page.evaluate(() => { const next = document.querySelector(".screen > .head")!.nextElementSibling!; const bar = document.querySelector(".screen > .head") as HTMLElement; return { at: next.getBoundingClientRect().top + scrollY, height: document.documentElement.scrollHeight, bar: bar.offsetHeight, mb: bar.style.marginBottom }; });
+  const before = await layout();
+  await page.evaluate(() => { document.documentElement.scrollTop = 120; });
+  await expect(head).toHaveAttribute("data-compact", "");
+  const compact = await layout();
+  // Within a pixel: engines round the bar's margin to their own layout units.
+  expect(Math.abs(compact.at - before.at), `${JSON.stringify({ before, compact })} ${await bar()}`).toBeLessThan(1);
+  expect(Math.abs(compact.height - before.height)).toBeLessThanOrEqual(1);
+  await page.evaluate(() => { document.documentElement.scrollTop = 0; });
+  await expect(head).not.toHaveAttribute("data-compact");
+  // Firefox can measure the bar a frame before the full title is laid out again; the page must
+  // settle back where it was, so wait for that, and report the layout if it never does.
+  const settled = await expect.poll(async () => Math.abs((await layout()).at - before.at), { timeout: 3000 }).toBeLessThan(1).then(() => true, () => false);
+  if (!settled) { const top = await layout(); expect(Math.abs(top.at - before.at), `${JSON.stringify({ before, compact, top, y: await page.evaluate(() => scrollY) })} ${await bar()}`).toBeLessThan(1); }
+});
+
 test("navigation: document, Bible and Timeline scrolls minimize down and expand up", async ({ page }) => {
   await setup(page, "sepia");
   await page.setViewportSize({ width: 390, height: 844 });

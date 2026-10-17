@@ -359,6 +359,17 @@ html[data-actions] .toasts { bottom: calc(var(--dock-space) + var(--h-md) + var(
 html[data-transparency="reduced"] .rail-background { display: none; }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) { .rail-background { display: none; } }
 
+/* iOS 26's large title, shrunk into the bar once the page scrolls under it (ui.tsx, useLargeTitle). */
+/* The bar makes up for its own change in height (useLargeTitle), so scroll anchoring must not make
+   up for it a second time: Firefox adjusts for the frame before the bar settles and keeps the
+   adjustment, leaving a scroll short by the difference. */
+.screen, .screen * { overflow-anchor: none; }
+.screen > .head[data-compact] { align-items: center; padding-top: calc(var(--sp-1) + var(--safe-top)); padding-bottom: var(--sp-1); min-height: calc(var(--touch) + var(--sp-2)); }
+.screen > .head[data-compact] .kicker { display: none; }
+.screen > .head[data-compact] > div:first-child { flex: 1; text-align: center; }
+.screen > .head[data-compact] .title { font-size: var(--fs-callout); font-weight: 600; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: title-in var(--dur-2) var(--ease); }
+@keyframes title-in { from { opacity: 0; transform: translateY(4px); } }
+
 /* ── Adaptive glass (iOS 26) ─────────────────────────────────────────────────────────────────
    Small glass flips with the content under it (ui/adaptive-bars.ts): a light dock over light
    content in the dark scheme, a dark one over dark content in the light scheme. Contrast and
