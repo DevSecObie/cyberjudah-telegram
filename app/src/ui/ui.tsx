@@ -330,9 +330,10 @@ function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
     };
     fit();
     // The bar can still settle after it changes (Firefox lays the compact bar out again a frame
-    // later): follow its size, before paint, for as long as it is shown.
+    // later): follow its size, before paint, for as long as it is shown. The border box, since the
+    // compact bar's padding changes too, which the default content box never reports.
     const watch = new ResizeObserver(fit);
-    watch.observe(el);
+    watch.observe(el, { box: "border-box" });
     return () => watch.disconnect();
   }, [compact, head]);
   return compact;
