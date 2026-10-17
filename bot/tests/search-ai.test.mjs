@@ -250,3 +250,15 @@ test("route applies the per-reader quota before any new provider call", async t 
   assert.equal((await denied.json()).error, "limit");
   assert.equal(sent.length, count);
 });
+
+test("a reader listed in SEARCH_AI_QUOTA_EXEMPT skips the per-reader count; others still hit it", async t => {
+  const { env } = fixture(t);
+  env.SEARCH_AI_DAILY_LIMIT = "1";
+  env.SEARCH_AI_QUOTA_EXEMPT = "1";
+  const exempt = routeFixture(t, env, 1);
+  assert.equal((await exempt.request("Melchizedek", "Google")).status, 200);
+  assert.equal((await exempt.request("king of Salem", "Google")).status, 200);
+  const other = routeFixture(t, env, 7);
+  assert.equal((await other.request("priest of the most high", "Google")).status, 200);
+  assert.equal((await other.request("bread and wine", "Google")).status, 429);
+});
