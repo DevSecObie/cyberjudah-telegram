@@ -4,12 +4,13 @@ import { pid } from "./privacy.mjs";
 /**
  * Requests for class notes. Writing notes from a transcript costs money, so not every class gets
  * them: a reader asks for the class they want, one vote each, and the admins see the classes most
- * asked for first and draft those (the draft-notes workflow takes their video ids). A request is
+ * asked for first, and each class asked for has an issue the scheduled notes job works from
+ * (request-issues.ts). A request is
  * kept until an admin marks it done. Who asked is kept only to count each reader once, as
  * pseudonymous IDs (privacy.mjs); Telegram IDs from before are converted when the request is
  * next touched.
  */
-export type NoteRequest = { video: string; title: string; count: number; users: (string | number)[]; first: string; last: string };
+export type NoteRequest = { video: string; title: string; count: number; users: (string | number)[]; first: string; last: string; issue?: number };
 type Keys = Pick<Env, "SUBS" | "PRIVACY_KEY" | "BOT_TOKEN">;
 const asPids = async (env: Keys, users: (string | number)[]) => Promise.all(users.map((u) => (typeof u === "number" ? pid(env, u) : u)));
 
