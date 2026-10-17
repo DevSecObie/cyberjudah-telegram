@@ -39,8 +39,11 @@
 }
 .head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-3); min-width: 0; }
 .head > div { min-width: 0; }
-.head__back { flex: none; margin-inline-start: calc(-1 * var(--sp-2)); }
 .head__back + div { flex: 1; }
+/* The ← sits over the bar's padding, out of its flow, so it never changes the bar's height (the
+   large title's collapse keeps the page still by those heights). */
+.head__back { position: absolute; inset-inline-start: calc(var(--gutter) - var(--sp-2)); bottom: var(--sp-2); }
+.screen > .head:has(> .head__back) > div { padding-inline-start: calc(var(--touch) + var(--sp-1)); }
 .head__actions { display: flex; gap: var(--sp-2); flex: none; }
 
 /* The header bar: sticky, full bleed, on the navigation glass with a scroll edge that lets the page
@@ -368,7 +371,9 @@ html[data-transparency="reduced"] .rail-background { display: none; }
 .screen, .screen * { overflow-anchor: none; }
 .screen > .head[data-compact] { align-items: center; padding-top: calc(var(--sp-1) + var(--safe-top)); padding-bottom: var(--sp-1); min-height: calc(var(--touch) + var(--sp-2)); }
 .screen > .head[data-compact] .kicker { display: none; }
-.screen > .head[data-compact] > div:first-child { flex: 1; text-align: center; }
+.screen > .head[data-compact] > div:first-of-type { flex: 1; text-align: center; }
+.screen > .head[data-compact] .head__back { top: var(--safe-top); bottom: 0; margin-block: auto; }
+.screen > .head[data-compact]:has(> .head__back) > div { padding-inline: calc(var(--touch) + var(--sp-1)); }
 .screen > .head[data-compact] .title { font-size: var(--fs-callout); font-weight: 600; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: title-in var(--dur-2) var(--ease); }
 @keyframes title-in { from { opacity: 0; transform: translateY(4px); } }
 

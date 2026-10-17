@@ -325,19 +325,14 @@ function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
   useLayoutEffect(() => {
     const el = head.current; if (!el) return;
     const fit = () => {
-      if (!el.hasAttribute("data-compact")) { for (const p of ["margin-bottom", "min-height", "box-sizing"]) el.style.removeProperty(p); full.current = el.getBoundingClientRect().height; return; }
-      // The compact bar is never shorter than the title it replaces (Firefox lays it out a few px
-      // shorter when the bar has a ←): only a negative margin then makes up the difference, which
-      // every engine applies.
-      if (el.getBoundingClientRect().height < full.current) { el.style.boxSizing = "border-box"; el.style.minHeight = `${full.current}px`; }
-      el.style.marginBottom = `${Math.min(0, full.current - el.getBoundingClientRect().height)}px`;
+      if (!el.hasAttribute("data-compact")) { el.style.removeProperty("margin-bottom"); full.current = el.getBoundingClientRect().height; return; }
+      el.style.marginBottom = `${full.current - el.getBoundingClientRect().height}px`;
     };
     fit();
     // The bar can still settle after it changes (Firefox lays the compact bar out again a frame
-    // later): follow its size, before paint, for as long as it is shown. The border box, since the
-    // compact bar's padding changes too, which the default content box never reports.
+    // later): follow its size, before paint, for as long as it is shown.
     const watch = new ResizeObserver(fit);
-    watch.observe(el, { box: "border-box" });
+    watch.observe(el);
     return () => watch.disconnect();
   }, [compact, head]);
   return compact;
