@@ -2,7 +2,12 @@ import { pathToFileURL } from "node:url";
 import { signInitData } from "../src/initdata.mjs";
 
 /** A bounded live check: no messages, content writes or paid reader balance. */
-export async function verifyRelease({ url, token, expectedModel, fetcher = fetch, log = console.log }) {
+/**
+ * allowPaused: staging only. Its free answer budget is small and shared by every staging run, so a
+ * day's budget spent is reported, not failed. Production leaves it off: there a paused budget means
+ * readers get no answers.
+ */
+export async function verifyRelease({ url, token, expectedModel, fetcher = fetch, log = console.log, allowPaused = false }) {
   if (!url || !token || !expectedModel) throw new Error("Set WORKER_URL, BOT_TOKEN and EXPECTED_SEARCH_MODEL for release verification.");
   const external = !expectedModel.startsWith("@cf/"), provider = external ? "Google" : "Cloudflare (Workers AI)";
   const origin = new URL(url).origin;
@@ -47,6 +52,7 @@ export async function verifyRelease({ url, token, expectedModel, fetcher = fetch
   if (response.status !== 200) {
     const body = await response.json().catch(() => ({}));
     const reason = ["free-paused", "limit", "unavailable", "empty"].includes(body.error) ? body.error : "unexpected-response";
+    if (allowPaused && response.status === 429 && reason === "free-paused") { log("Search answer: today's free answer budget is spent; the provider was not called"); return; }
     throw new Error(`Search answer: HTTP ${response.status} (${reason}). Check the gateway funding, allowance and provider configuration.`);
   }
   const answer = await response.json();
@@ -64,6 +70,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const annotation = (level, message) => process.env.GITHUB_ACTIONS
     ? `::${level}::${String(message).replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")}` : message;
   verifyRelease({ url: process.env.WORKER_URL, token: process.env.BOT_TOKEN, expectedModel: process.env.EXPECTED_SEARCH_MODEL,
-    log: message => console.log(annotation("notice", message)) })
+    allowPaused: process.env.ALLOW_FREE_PAUSED === "1", log: message => console.log(annotation("notice", message)) })
     .catch(error => { console.error(annotation("error", error.message)); process.exitCode = 1; });
 }
