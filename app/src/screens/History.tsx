@@ -11,7 +11,7 @@ function ago(at: number): string {
 }
 
 export function History() {
-  useBackButton(false);
+  useBackButton();
   const [rows, setRows] = useHistory();
   return (
     <Screen title="Recently viewed" kicker="The last thirty chapters you opened" action={rows.length ? <button type="button" className="link" onClick={async () => { if (await confirm("Clear your history?")) setRows([]); }}>Clear</button> : undefined}>

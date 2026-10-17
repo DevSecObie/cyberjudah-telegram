@@ -27,7 +27,7 @@ function useTagCounts() {
  * a tag opens to its highlights and notes, can be renamed, and can be deleted.
  */
 export function Tags() {
-  useBackButton(true);
+  useBackButton();
   const [tags, setTags] = useTags();
   const { hl, nt } = useTagCounts();
   const [adding, setAdding] = useState("");
@@ -52,7 +52,7 @@ export function Tags() {
 export function TagScreen() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  useBackButton(false);
+  useBackButton();
   const [tags, setTags] = useTags();
   const tag = tags[id];
   const [name, setName] = useState(tag?.name ?? "");

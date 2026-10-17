@@ -19,7 +19,7 @@ const plans: { name: string; description: string; select: (b: Book) => boolean }
   { name: "The Law", description: "Genesis, Exodus, Leviticus, Numbers and Deuteronomy.", select: b => ["genesis", "exodus", "leviticus", "numbers", "deuteronomy"].includes(b.slug) },
 ];
 export function ReadingPlans() {
-  useBackButton(true);
+  useBackButton();
   const navigate = useNavigate(), [plan, setPlan] = usePlan(), [pace, setPace] = useState(1), [selectedBook, setSelectedBook] = useState("");
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const start = async (name: string, selected: Book[]) => {

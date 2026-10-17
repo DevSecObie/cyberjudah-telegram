@@ -19,7 +19,7 @@ const LAW_HITS = 30;
  * the words of any law in it, with a part picked to narrow it. A section opens its laws one by one.
  */
 export function LawIndex() {
-  useBackButton(false);
+  useBackButton();
   const { part } = useParams();
   const sheet = useSheet();
   const laws = useQuery({ queryKey: ["laws"], queryFn: data.laws, staleTime: Infinity, retry: 1 });
@@ -123,7 +123,7 @@ const CASES_FIRST = 4;
 export function LawSectionScreen() {
   const { section = "" } = useParams();
   const location = useLocation();
-  useBackButton(false);
+  useBackButton();
   const sec = useQuery({ queryKey: ["law", section], queryFn: () => data.law(section), staleTime: Infinity, retry: 1 });
   const [casesShown, setCasesShown] = useVisitState("cases", CASES_FIRST);
   useKeptScroll(!!sec.data);

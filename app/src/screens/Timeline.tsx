@@ -177,7 +177,7 @@ function SectionCard({ s, direction }: { s: TimelineSection; direction?: "previo
 
 /** TimelineHomeScreen: the periods, each as its card (TimelineItem) over its picture. */
 export function Timeline() {
-  useBackButton(false);
+  useBackButton();
   const navigate = useNavigate();
   const [about, setAbout] = useState(false);
   const menu = useMenu(() => setAbout(true), "/timeline");
@@ -209,7 +209,7 @@ export function Timeline() {
  * opened focused, and skips the entrance, as their stack keeps the period under the event.
  */
 export function TimelinePeriod() {
-  useBackButton(false);
+  useBackButton();
   const { n = "0" } = useParams();
   const [params] = useSearchParams();
   const { key } = useLocation();
@@ -401,7 +401,7 @@ const TRY = ["Solomon", "Moses", "Ahaziah", "Esther", "853", "Cain"];
  * picture, title and date, and the reign and case studies under it.
  */
 export function TimelineSearch() {
-  useBackButton(false);
+  useBackButton();
   const [params, setParams] = useSearchParams();
   const q = params.get("q") ?? "";
   const [input, setInput] = useState(q);
@@ -495,7 +495,7 @@ const reignLabel = (r: NonNullable<TimelineEvent["reign"]>) => `${r.approx ? "c.
  * three of each passage, as theirs, opening the Bible at it); and the events linked to it.
  */
 export function TimelineEventScreen() {
-  useBackButton(false);
+  useBackButton();
   const { slug = "" } = useParams();
   const [about, setAbout] = useState(false);
   const menu = useMenu(() => setAbout(true), `/timeline/event/${slug}`);

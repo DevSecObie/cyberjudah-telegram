@@ -10,7 +10,7 @@ import { useBackButton } from "@/tg/hooks";
 export const TERMS_UPDATED = "2026-10-07";
 
 export function Terms() {
-  useBackButton(true);
+  useBackButton();
   const navigate = useNavigate();
   const go = (path: string) => (e: { preventDefault(): void }) => { e.preventDefault(); navigate(path); };
   return (

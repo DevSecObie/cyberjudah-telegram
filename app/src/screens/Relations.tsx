@@ -46,7 +46,7 @@ export function verseLabel(keys: string[], books?: { slug: string; book: string 
  * label) or deletes.
  */
 export function Relations() {
-  useBackButton(false);
+  useBackButton();
   const [params] = useSearchParams();
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const saved = useSavedRelations();

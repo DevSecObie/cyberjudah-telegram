@@ -35,7 +35,7 @@ function useLicensedNarrators() {
  * takes effect there, and vice versa. Nothing on this screen calls play() or toggle().
  */
 export function AudioSettings() {
-  useBackButton(true);
+  useBackButton();
   const player = useAudioPlayer();
   const { speech } = player;
   const aiVoices = useAiVoices();

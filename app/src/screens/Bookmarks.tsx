@@ -16,8 +16,9 @@ type ChapterHl = { slug: string; chapter: number; verses: Record<string, Highlig
 
 /** Bible Strong's lists: Bookmarks (with their colour), Highlights (by chapter, with the tags) and Notes. */
 export function Bookmarks() {
-  useBackButton(false);
+  useBackButton();
   const [params, setParams] = useSearchParams();
+  // The list shown is kept in the address (tab), so Back from an item returns to the same list.
   const [tab, setTab] = useState<Tab>((params.get("tab") as Tab) || (params.get("tag") ? "highlights" : "bookmarks"));
   const [bookmarks, setBookmarks] = useBookmarks();
   const [tags] = useTags();
@@ -40,14 +41,14 @@ export function Bookmarks() {
   const swatch = (h: Highlight) => (h.color.startsWith("color") ? (palette as unknown as Record<string, string>)[h.color] : settings.customHighlightColors.find((c) => c.id === h.color)?.hex) ?? "transparent";
   return (
     <Screen title={tab === "bookmarks" ? "Bookmarks" : tab === "highlights" ? "Highlights" : "Notes"} kicker="Synced with your Telegram account">
-      <Segmented label="Kind" value={tab} onChange={(t) => { setTab(t); setParams(t === "highlights" && tagFilter ? { tag: tagFilter } : {}, { replace: true }); }} options={[["bookmarks", `Bookmarks ${bookmarks.length}`], ["highlights", `Highlights ${hl.reduce((n, c) => n + Object.keys(c.verses).length, 0)}`], ["notes", `Notes ${notes.length}`]]} />
+      <Segmented label="Kind" value={tab} onChange={(t) => { setTab(t); setParams(t === "highlights" && tagFilter ? { tab: t, tag: tagFilter } : { tab: t }, { replace: true }); }} options={[["bookmarks", `Bookmarks ${bookmarks.length}`], ["highlights", `Highlights ${hl.reduce((n, c) => n + Object.keys(c.verses).length, 0)}`], ["notes", `Notes ${notes.length}`]]} />
       {tab === "bookmarks" ? (
         !bookmarks.length ? <Empty title="No bookmarks yet" action={{ label: "Open the Bible", href: "/bible" }}>Select a verse and tap Bookmark, or add one to a chapter from its ⋮ menu.</Empty> : (
           <List>{[...bookmarks].sort((a, b) => b.date - a.date).map((b) => <Row key={b.id} href={`/read/${b.book}/${b.chapter}${b.verse ? `?v=${b.verse}` : ""}`} title={b.name} sub={`${bookName(b.book)} ${b.chapter}${b.verse ? `:${b.verse}` : ""}`} trailing={<span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}><Ion name="bookmark" size={20} color={b.color} /><button type="button" className="icon-btn" aria-label="Remove" title="Remove" onClick={async (e) => { e.preventDefault(); e.stopPropagation(); if (await confirm("Are you sure you want to delete this bookmark?")) setBookmarks(bookmarks.filter((x) => x.id !== b.id)); }}>×</button></span>} />)}</List>
         )
       ) : tab === "highlights" ? (
         <>
-          {Object.keys(tags).length ? <Chips><Chip on={!tagFilter} onClick={() => setParams({}, { replace: true })}>All</Chip>{Object.values(tags).map((t) => <Chip key={t.id} on={tagFilter === t.id} onClick={() => setParams(tagFilter === t.id ? {} : { tag: t.id }, { replace: true })}>{t.name}</Chip>)}</Chips> : null}
+          {Object.keys(tags).length ? <Chips><Chip on={!tagFilter} onClick={() => setParams({ tab: "highlights" }, { replace: true })}>All</Chip>{Object.values(tags).map((t) => <Chip key={t.id} on={tagFilter === t.id} onClick={() => setParams(tagFilter === t.id ? { tab: "highlights" } : { tab: "highlights", tag: t.id }, { replace: true })}>{t.name}</Chip>)}</Chips> : null}
           {!shownHl.length ? <Empty title="No highlights yet" action={{ label: "Open the Bible", href: "/bible" }}>Select a verse and tap a colour.</Empty> : (
             <List>{shownHl.map((c) => { const vs = Object.keys(c.verses).map(Number).sort((a, b) => a - b); return <Row key={`${c.slug}${c.chapter}`} href={`/read/${c.slug}/${c.chapter}?v=${vs[0]}`} title={`${bookName(c.slug)} ${c.chapter}`} sub={`Verses ${vs.join(", ")}`} trailing={<span style={{ display: "flex", gap: 4 }}>{[...new Set(Object.values(c.verses).map(swatch))].filter((x) => x !== "transparent").map((x) => <i key={x} style={{ width: 12, height: 12, borderRadius: 4, background: x }} />)}</span>} />; })}</List>
           )}
