@@ -18,7 +18,7 @@
     "build:bs-topics-index": "node scripts/build-bs-topics-index.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.131.0",
+    "@anthropic-ai/sdk": "^0.133.0",
     "entities": "^8.1.0",
     "grammy": "^1.38.0",
     "hono": "^4.13.12",
