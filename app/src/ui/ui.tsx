@@ -330,10 +330,13 @@ function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
     };
     fit();
     // The bar can still settle after it changes (Firefox lays the compact bar out again a frame
-    // later): follow its size, before paint, for as long as it is shown.
+    // later, and can restyle the title after the bar): follow the bar's and the title's sizes,
+    // before paint, for as long as it is shown, and measure again once the next frame is laid out.
     const watch = new ResizeObserver(fit);
-    watch.observe(el);
-    return () => watch.disconnect();
+    watch.observe(el, { box: "border-box" });
+    const title = el.querySelector(".title"); if (title) watch.observe(title, { box: "border-box" });
+    let frame = requestAnimationFrame(() => { frame = requestAnimationFrame(fit); });
+    return () => { cancelAnimationFrame(frame); watch.disconnect(); };
   }, [compact, head]);
   return compact;
 }
