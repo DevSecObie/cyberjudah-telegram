@@ -58,11 +58,11 @@ describe('public Bible routes', () => {
       buildPublicBiblePath({
         version: 'LSG',
         presentation: 'text',
-        book: getBook(67)!,
+        book: getBook(69)!,
         chapter: 1,
       })
     ).toBe('/bible/lsg/tob/1')
-    expect(parsePublicBibleRoute(['lsg', 'tobie', '1'])?.book).toEqual(getBook(67))
+    expect(parsePublicBibleRoute(['lsg', 'tobit', '1'])?.book).toEqual(getBook(69))
   })
 
   it('round-trips reverse-interlinear routes with a gloss language', () => {

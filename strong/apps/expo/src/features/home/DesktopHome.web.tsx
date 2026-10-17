@@ -30,6 +30,7 @@ import ResumeBookmark from './ResumeBookmark'
 import { LoginPrompt } from './UserWidget'
 import VerseOfTheDay from './VerseOfTheDay'
 import { VISIBLE_VERSE_OF_THE_DAY_OFFSETS } from './verseOfTheDayPolicy'
+import { CYBERJUDAH_SUPPORT_URL } from '~helpers/cyberjudahLinks'
 
 const illustrations = {
   audio: require('~assets/images/home/illustrations/audibible-reader.png'),
@@ -265,16 +266,10 @@ export default function DesktopHome() {
             </div>
           </div>
           <HStack className="items-center flex-wrap gap-[24px] border-t border-border pt-[16px]">
-            <ResourceLink href={`https://bible-strong.app/${lang === 'fr' ? 'fr/' : ''}give`}>
+            <ResourceLink href={CYBERJUDAH_SUPPORT_URL}>
               {t('home.desktop.support')}
             </ResourceLink>
             <ResourceLink route="FAQ">{t('FAQ')}</ResourceLink>
-            <ResourceLink href="https://www.facebook.com/fr.bible.strong">
-              {t('Suivre')}
-            </ResourceLink>
-            <ResourceLink href="https://bible-strong.app">
-              {t('home.desktop.downloadApp')}
-            </ResourceLink>
           </HStack>
         </div>
       </ScrollView>

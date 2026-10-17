@@ -88,7 +88,7 @@ export async function tellAdmins(env: Env, text: string): Promise<void> {
   // Plain text: check details carry server error text, which must not be parsed as HTML.
   const results = await Promise.allSettled(ids.map((id) => api.sendMessage(id, text)));
   for (const [i, r] of results.entries()) {
-    if (r.status === "rejected") console.error(JSON.stringify({ event: "health_alert_failed", admin: ids[i], message: err(r.reason) }));
+    if (r.status === "rejected") console.error(JSON.stringify({ event: "health_alert_failed", message: err(r.reason) }));
   }
 }
 

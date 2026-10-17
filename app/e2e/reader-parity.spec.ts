@@ -123,6 +123,16 @@ test("reader focus loss cancels a held press and the next click still works", as
   await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
 });
 
+test("reader pressing a verse shows no touch light, as in Bible Strong", async ({ page }) => {
+  await gestureClock(page);
+  const lit = () => page.locator("#verset-1 .bs-text").evaluate(el => getComputedStyle(el.parentElement!).backgroundColor);
+  const before = await lit();
+  await touchVerse(page, "touchstart", 1);
+  await page.clock.runFor(200);
+  expect(await lit()).toBe(before);
+  await touchVerse(page, "touchend", 1);
+});
+
 test("reader chapter changes stay in place: Back leaves the reader and a collapsed header holds", async ({ page }) => {
   // Long chapters, so the reader can scroll far enough to collapse its header.
   const long = Array.from({ length: 40 }, (_, i) => ({ verse: i + 1, text: "And the light shineth in darkness; and the darkness comprehended it not. ".repeat(3) }));
@@ -172,6 +182,32 @@ test("book picker long press opens the chapter in a new tab, as Bible Strong's w
   await expect(page.locator(".bs-picker")).toHaveCount(0);
 });
 
+test("Go to verse never collapses the header, even when the jump's scroll lands after its settle time", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await page.waitForTimeout(800);
+  await page.evaluate(() => {
+    // The jump's 400 ms settle runs out before the browser hands over the jump's scroll event, as
+    // WebKit's can: here the settle ends as soon as it starts.
+    const later = window.setTimeout.bind(window);
+    window.setTimeout = ((fn: TimerHandler, ms?: number, ...rest: unknown[]) => {
+      if (ms === 400 && typeof fn === "function") { queueMicrotask(() => fn()); return 0; }
+      return later(fn, ms, ...rest);
+    }) as typeof window.setTimeout;
+    // A collapse the clamp at the chapter's end undoes a frame later still counts.
+    new MutationObserver(() => { if (document.querySelector(".bs-header__summary")) document.documentElement.dataset.collapsed = ""; }).observe(document.body, { childList: true, subtree: true });
+  });
+  await page.keyboard.press("v");
+  const dialog = page.getByRole("dialog", { name: "Go to verse" });
+  await dialog.getByRole("textbox", { name: "Verse" }).fill("28");
+  await dialog.getByRole("button", { name: "Go" }).click();
+  await expect(page.locator("#verset-28")).toBeInViewport();
+  await page.waitForTimeout(300);
+  await expect(page.locator("html")).not.toHaveAttribute("data-collapsed");
+  await expect(page.locator(".bs-pill--book")).toBeVisible();
+});
+
 test("reader v opens Go to verse and jumps to a valid verse, as Bible Strong's web reader does", async ({ page }) => {
   await page.goto("/read/genesis/1");
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
@@ -189,6 +225,26 @@ test("reader v opens Go to verse and jumps to a valid verse, as Bible Strong's w
   await page.locator(".bs-pill--book").click();
   await page.getByRole("textbox", { name: "Search books" }).press("v");
   await expect(page.getByRole("dialog", { name: "Go to verse" })).toHaveCount(0);
+});
+
+test("reader keeps the current chapter on screen until the next one arrives, as Bible Strong's keepPreviousData", async ({ page }) => {
+  let release!: () => void;
+  const held = new Promise<void>(done => { release = done; });
+  await page.route(`${DATA}/api/kjv/john/*.json`, async r => {
+    const n = +/(\d+)\.json/.exec(r.request().url())![1];
+    if (n === 2) await held;
+    await r.fulfill({ json: { book: "john", chapter: n, translation: "KJV", verses: [{ verse: 1, text: `John chapter ${n} first verse.` }, { verse: 2, text: `John chapter ${n} second verse.` }] } });
+  });
+  await page.goto("/read/john/1");
+  await expect(page.locator("#verset-1 .bs-text")).toHaveText("John chapter 1 first verse.");
+  await page.click('.bs-chapterbtn[aria-label="Next chapter"]');
+  await expect(page).toHaveURL(/\/read\/john\/2$/);
+  // While John 2 loads, John 1 stays up and the arrows wait.
+  await expect(page.locator(".bs-chapterbtn[aria-label='Next chapter']")).toBeDisabled();
+  await expect(page.locator("#verset-1 .bs-text")).toHaveText("John chapter 1 first verse.");
+  release();
+  await expect(page.locator("#verset-1 .bs-text")).toHaveText("John chapter 2 first verse.");
+  await expect(page.locator(".bs-chapterbtn[aria-label='Next chapter']")).toBeEnabled();
 });
 
 test("reader press preference still swaps resources and verse selection", async ({ page }) => {
@@ -298,15 +354,17 @@ test("daily verses have five days, sharing and images on Home", async ({ page, b
     { n: "G2", lemma: "Ἀαρών", xlit: "Aaron", def: "Aaron", count: 10 },
   ] }));
   await page.goto("/");
-  const card = page.getByRole("region", { name: "Daily scripture" });
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  const days = page.getByRole("region", { name: "Daily scripture" });
+  const card = days.locator(".today-card[data-active]");
   await expect(card).toContainText("Genesis 1:1");
   await expect(card.getByRole("button", { name: "Share", exact: true })).toBeEnabled();
-  await card.getByRole("button", { name: "Previous day's scripture" }).click();
+  await days.press("ArrowRight");
   await expect(card).toContainText("Yesterday"); await expect(card).toContainText("Genesis 1:2");
   await card.getByRole("button", { name: "Image", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Verse image" }).getByRole("img")).toHaveAttribute("src", "/card/genesis/1/2.svg");
   await page.getByRole("button", { name: "Close", exact: true }).click();
-  await card.getByRole("button", { name: "Today's scripture", exact: true }).click();
+  await days.press("ArrowLeft");
   await expect(card).toContainText("Genesis 1:1");
 
   await page.goto("/read/genesis/1");
@@ -481,4 +539,24 @@ test("notes list searches and sorts as Bible Strong's AllNotesTabScreen, and fil
   await page.getByRole("searchbox", { name: "Search notes" }).fill("");
   await page.getByRole("button", { name: "Light", exact: true }).click();
   await expect.poll(order).toEqual(["Light was the first"]);
+});
+
+test("reader annotation mode suppresses native text selection and WebKit callouts", async ({ page, browserName }) => {
+  await page.goto("/read/genesis/1");
+  await page.locator("#verset-1 .bs-num").click();
+  const sheet = page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true });
+  await sheet.getByRole("tab", { name: "Annotate", exact: true }).click();
+  await sheet.getByRole("button", { name: "Free mode", exact: true }).click();
+  await expect(page.locator(".bs-container")).toHaveAttribute("data-annotating", "");
+  const text = page.locator("#verset-1 .bs-text");
+  await expect(text).toHaveCSS("user-select", "none");
+  if (browserName === "webkit") {
+    await expect(text).toHaveCSS("-webkit-user-select", "none");
+    // Desktop WebKit may omit the iOS-only property from computed styles.
+    const hrefs = await page.locator('link[rel="stylesheet"]').evaluateAll(links => links.map(link => (link as HTMLLinkElement).href));
+    const css = (await Promise.all(hrefs.map(async href => (await page.request.get(href)).text()))).join("\n");
+    expect(css).toMatch(/\.bs-container\[data-annotating\][^{]*\.bs-text[^{]*\{[^}]*-webkit-touch-callout:none/);
+  }
+  await page.getByRole("button", { name: "Exit annotation mode", exact: true }).click();
+  await expect(page.locator(".bs-container")).not.toHaveAttribute("data-annotating");
 });

@@ -13,6 +13,8 @@ import { connectPersonalStore } from "./tg/store";
 import { installBackGuard } from "./lib/backguard";
 import { routerBasename } from "@shared/basename.mjs";
 import { registerOfflineShell } from "./resources/offline-shell";
+import { installAdaptiveBars } from "./ui/adaptive-bars";
+import { installGlassLight } from "./ui/glass-light";
 import "@telegram-apps/telegram-ui/dist/styles.css";
 import "./styles.css";
 
@@ -27,6 +29,8 @@ boot({ bg: canvas, header: canvas, bottomBar: canvas });
 // Only inside Telegram: in a plain browser, Back must be free to leave the site.
 if (app) installBackGuard();
 if (!native) registerOfflineShell(basename);
+installAdaptiveBars();
+installGlassLight();
 
 // Use the existing account UI. The reader keeps the same components and stored value shapes.
 if (import.meta.env.VITE_ACCOUNT_SYNC === "true") connectPersonalStore(import("./sync/account").then(m => m.startAccountSync()));

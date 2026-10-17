@@ -4,8 +4,8 @@ import { useNavigate, useSearchParams } from "react-router";
 
 import { data } from "@/api/data";
 import { referencePath } from "@/screens/Search";
-import { RELATION_TYPES, createRelation, deleteRelation, endpointHref, endpointsMatch, isDirectional, parseVerseKey, relationText, updateRelation, useSavedRelations, useEndpointRelations, verseKey, type Endpoint, type Relation, type RelationDirection, type RelationType } from "@/lib/relations";
-import { useBackButton, useBottomButtons } from "@/tg/hooks";
+import { RELATION_TYPES, annotationParam, createRelation, deleteRelation, endpointHref, endpointsMatch, isDirectional, parseVerseKey, relationText, updateRelation, useSavedRelations, useEndpointRelations, verseKey, type Endpoint, type Relation, type RelationDirection, type RelationType } from "@/lib/relations";
+import { sheetOpened, useBackButton, useBottomButtons } from "@/tg/hooks";
 import { alert, api, confirm, haptic, openLink } from "@/tg/sdk";
 import { store } from "@/tg/store";
 import { useModal } from "@/ui/modal";
@@ -16,8 +16,14 @@ import { preceptsForVerse, slugOfUrl, useTaughtPrecepts } from "@/lib/taught";
 import { fmtDate } from "@/api/data";
 
 /** Parses `?endpoint=` (a verse endpoint as `john-3-16,john-3-17`, or an identity) into an endpoint. */
-export function endpointFromParam(p: string | null, books: { slug: string; book: string }[] | undefined): Endpoint | null {
+export function endpointFromParam(p: string | null, books: { slug: string; book: string }[] | undefined, label?: string | null): Endpoint | null {
   if (!p) return null;
+  if (p.startsWith("annotation:")) {
+    // annotation:<verse key>:<mark id>, labelled by the mark's words (`&label=`), as Bible Strong's annotation endpoint.
+    const rest = p.slice(11), at = rest.lastIndexOf(":");
+    const key = rest.slice(0, at), markId = rest.slice(at + 1);
+    return at > 0 && markId && parseVerseKey(key) ? { type: "annotation", markId, verseKey: key, label: label || "Annotation" } : null;
+  }
   if (p.startsWith("note:") && parseVerseKey(p.slice(5))) return { type: "note", verseKey: p.slice(5), label: `Note on ${verseLabel([p.slice(5)], books)}` };
   if (p.startsWith("dictionary:")) return { type: "dictionary", slug: p.slice(11), label: p.slice(11) };
   if (p.startsWith("entry:")) return { type: "entry", url: p.slice(6), kind: "", label: p.slice(6) };
@@ -44,7 +50,7 @@ export function Relations() {
   const [params] = useSearchParams();
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const saved = useSavedRelations();
-  const endpoint = useMemo(() => endpointFromParam(params.get("endpoint"), books.data), [params, books.data]);
+  const endpoint = useMemo(() => endpointFromParam(params.get("endpoint"), books.data, params.get("label")), [params, books.data]);
   const { sections, reload, count } = useEndpointRelations(endpoint);
   // The library's own relations for a verse: the precepts the classes lined up with it.
   const first = endpoint?.type === "verse" ? parseVerseKey(endpoint.verseKeys[0]) : null;
@@ -76,9 +82,9 @@ export function Relations() {
   };
 
   if (!endpoint) return <Screen title="Your precepts">{saved.length ? <div className="nt-list">{saved.map((r) => <button type="button" className="nt-item" key={r.id} onClick={() => {
-    const e = r.endpoints.find((x) => x.type === "verse" || x.type === "note");
-    const key = e?.type === "verse" ? e.verseKeys.join(",") : e?.type === "note" ? `note:${e.verseKey}` : "";
-    if (key) navigate(`/relations?endpoint=${encodeURIComponent(key)}`);
+    const e = r.endpoints.find((x) => x.type === "verse" || x.type === "note" || x.type === "annotation");
+    const key = e?.type === "verse" ? e.verseKeys.join(",") : e?.type === "note" ? `note:${e.verseKey}` : e?.type === "annotation" ? annotationParam(e) : "";
+    if (key) navigate(`/relations?endpoint=${encodeURIComponent(key)}${e?.type === "annotation" ? `&label=${encodeURIComponent(e.label)}` : ""}`);
   }}><Icon name="precepts" /><span className="nt-item__body"><b>{r.endpoints[0].label}</b><small>{relationText(r, r.endpoints[0])} {r.endpoints[1].label}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="No precepts yet" action={{ label: "Open the Bible", href: "/bible" }}>Precept upon precept, line upon line (Isaiah 28:10): join a verse to another passage, a class, a note, a dictionary entry or a link, so they show together when you read. Select a verse and tap Relation to make one. In Telegram they follow your account to every device; in a browser they stay on this device.</Empty>}</Screen>;
   return (
     <Screen title="Precepts" kicker={endpoint.label} action={<button type="button" className="icon-btn" aria-label="Add a precept" title="Add a precept" onClick={() => setPicking(true)}>+</button>}>
@@ -171,6 +177,8 @@ export function RelationTargetPicker({ source, onClose, onCreated }: { source: E
   };
   const box = useRef<HTMLDivElement>(null);
   useModal(box, true, onClose);
+  // An open sheet: Telegram's back button shows while it is up and closes it (tg/hooks).
+  useEffect(() => sheetOpened(), []);
   const loading = (refKeys && refText.isPending) || (library.isFetching && !library.data) || (dict.isFetching && !dict.data);
   return (
     <div className="sheet__scrim" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>

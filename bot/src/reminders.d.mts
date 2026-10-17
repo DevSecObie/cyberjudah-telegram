@@ -22,6 +22,8 @@ export type Reminder = {
   notice?: "push-fallback";
   tgMessage?: { date: string; id: number };
   tgBlocked?: { on: boolean };
+  /** Browsers linked to a Telegram record (their remdev ids), so deleting it removes their credentials. */
+  devices?: string[];
 };
 export type Meta = { o: 0 | 1; h: number; n?: number; z: string; t: 0 | 1; p: 0 | 1; u: string };
 export type Portion = { kind: "plan" | "last"; day?: number; label: string; slug: string; chapter: number; chapters: { slug: string; chapter: number }[]; param: string };
