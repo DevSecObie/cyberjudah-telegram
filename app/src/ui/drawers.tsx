@@ -7,6 +7,9 @@ import { sheetOpened } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { Icon } from "@/ui/ui";
 
+/** History entries (by index) that a page was opened over from a drawer, and which drawer. */
+const cameFrom = new Map<number, DrawerSide>();
+
 // The menu loads with its first opening (the More screen's module, shared with /more).
 const MoreBody = lazy(() => import("@/screens/More").then((m) => ({ default: m.MoreBody })));
 
@@ -25,7 +28,16 @@ export function Drawers() {
   // A navigation from inside a drawer (a link, a search) closes it. A screen correcting its own
   // address (the Bible settling /bible on its chapter) is a replace, and must not.
   const navType = useNavigationType();
-  useEffect(() => { if (navType !== "REPLACE") setDrawer(null); }, [pathname, search]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const idx: number = window.history.state?.idx ?? 0;
+    if (navType === "PUSH") {
+      // A page opened from a drawer remembers it: Back to the entry under it opens the drawer
+      // again, as Bible Strong's drawer stays open under the page pushed over it.
+      if (side) cameFrom.set(idx - 1, side); else cameFrom.delete(idx - 1);
+    }
+    if (navType === "POP" && cameFrom.has(idx)) { setDrawer(cameFrom.get(idx)!); cameFrom.delete(idx); return; }
+    if (navType !== "REPLACE") setDrawer(null);
+  }, [pathname, search]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (side) { setShown(side); if (side === "home") setHasOpenedHome(true); return sheetOpened(); }
     const t = window.setTimeout(() => setShown(null), SLIDE_MS);

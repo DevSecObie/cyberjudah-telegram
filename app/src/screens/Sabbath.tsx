@@ -13,7 +13,7 @@ type Loc = { lat: number; lng: number; name?: string };
  * The location is kept in CloudStorage so every device shows the same time.
  */
 export function Sabbath() {
-  useBackButton(false);
+  useBackButton();
   const [loc, setLoc] = useStored<Loc | null>("loc", null);
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => new Date());

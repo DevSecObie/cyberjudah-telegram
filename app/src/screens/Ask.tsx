@@ -241,7 +241,7 @@ export function Ask() {
   const boxRef = useRef<HTMLTextAreaElement>(null);
   const stick = useRef(true);
   // Ask is a tab: Telegram's back button closes the app from here, as on the other tabs.
-  useBackButton(true);
+  useBackButton();
   useBottomButtons(null, null);
   // While the question is being typed the tab bar steps aside for the keyboard, as in Messages.
   const typing = (on: boolean) => { if (on) document.documentElement.dataset.typing = ""; else delete document.documentElement.dataset.typing; };

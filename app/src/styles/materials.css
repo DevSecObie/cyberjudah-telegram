@@ -39,6 +39,8 @@
 }
 .head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-3); min-width: 0; }
 .head > div { min-width: 0; }
+.head__back { flex: none; margin-inline-start: calc(-1 * var(--sp-2)); }
+.head__back + div { flex: 1; }
 .head__actions { display: flex; gap: var(--sp-2); flex: none; }
 
 /* The header bar: sticky, full bleed, on the navigation glass with a scroll edge that lets the page

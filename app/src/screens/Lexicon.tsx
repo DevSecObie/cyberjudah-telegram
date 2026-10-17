@@ -33,7 +33,7 @@ const fold = (s: string) => s.normalize("NFD").replace(/[̀-ְͯ-ׇʼ']/g, "").t
  * of the day and a random word, each opening its full word study.
  */
 export function Lexicon() {
-  useBackButton(true);
+  useBackButton();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const lang = (params.get("lang") === "greek" ? "greek" : "hebrew") as Lang;
@@ -97,7 +97,7 @@ export function LexiconEntry() {
   const [resourceParams] = useSearchParams();
   const release = resourceParams.get("release") ?? undefined;
   const { number = "" } = useParams();
-  useBackButton(false);
+  useBackButton();
   const n = number.toUpperCase();
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const e = useStrongs(n, true, release).data;
