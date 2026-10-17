@@ -666,8 +666,19 @@ test("large titles: the title shrinks into the bar under scroll and returns at t
   await setup(page, "sepia");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
+  // Every measure of the bar, with its state at that moment, so a failure says when the full height was taken.
+  await page.addInitScript(() => {
+    const log: unknown[] = ((window as unknown as { __bar: unknown[] }).__bar = []);
+    const rect = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      const r = rect.call(this);
+      if (this.matches(".screen > .head")) log.push({ t: Math.round(performance.now()), h: +r.height.toFixed(2), compact: this.hasAttribute("data-compact"), mb: (this as HTMLElement).style.marginBottom, y: Math.round(scrollY) });
+      return r;
+    };
+  });
   await page.goto(`/settings${LAUNCH}`);
   const head = page.locator(".screen > .head");
+  const bar = () => page.evaluate(() => JSON.stringify((window as unknown as { __bar: unknown[] }).__bar.slice(-12)));
   await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
   // The full bar's height can change after the page first lays out (a web font arriving, as in
   // Firefox); the bar must make up for the height it has when it shrinks, not the first one.
@@ -679,7 +690,7 @@ test("large titles: the title shrinks into the bar under scroll and returns at t
   await expect(head).toHaveAttribute("data-compact", "");
   const compact = await layout();
   // Within a pixel: engines round the bar's margin to their own layout units.
-  expect(Math.abs(compact.at - before.at)).toBeLessThan(1);
+  expect(Math.abs(compact.at - before.at), `${JSON.stringify({ before, compact })} ${await bar()}`).toBeLessThan(1);
   expect(Math.abs(compact.height - before.height)).toBeLessThan(1);
   await page.evaluate(() => { document.documentElement.scrollTop = 0; });
   await expect(head).not.toHaveAttribute("data-compact");
