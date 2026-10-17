@@ -81,7 +81,9 @@ export function Sheet({ open, onClose, backdrop = true, height = "auto", title, 
         style={drag > 0 ? { transform: `translateY(${drag}px)`, transition: "none" } : drag < 0 ? grow(drag) : undefined}
         data-drag-anywhere={dragAnywhere ? "" : undefined} onPointerDown={bodyDown} onPointerMove={bodyMove} onPointerUp={bodyUp} onPointerCancel={bodyCancel}
         onClickCapture={(e) => { if (swallow.current) { swallow.current = false; e.preventDefault(); e.stopPropagation(); } }}>
-        <div className="bs-sheet__grab" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; setDrag(0); }}>
+        {/* The empty click handler makes the strip a tap target of its own: without one, Android's
+            touch adjustment moves a tap here onto the nearest button below (a highlight colour). */}
+        <div className="bs-sheet__grab" onClick={() => {}} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; setDrag(0); }}>
           {height === "full" || !expandable ? <div className="bs-sheet__handle" aria-hidden="true" /> : <button type="button" className="bs-sheet__resize" aria-label={tall ? "Collapse sheet" : "Expand sheet"} title={tall ? "Collapse sheet" : "Expand sheet"} aria-expanded={tall} onClick={e => { if (e.detail && dragged.current) return; previousTop.current = box.current?.getBoundingClientRect().top ?? null; setTall(!tall); }}><span className="bs-sheet__handle" aria-hidden="true" /></button>}
           {title !== undefined ? (
             <div className="bs-sheet__header">
