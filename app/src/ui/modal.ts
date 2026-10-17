@@ -17,13 +17,19 @@ export function useModal(ref: RefObject<HTMLElement | null>, open: boolean, onCl
   const { lock = true, trap = true } = opts;
   const close = useRef(onClose);
   close.current = onClose;
+  // A dialog that stays open while its lock or trap changes (an anchored menu turning into a
+  // modal form) keeps its focus and its original trigger across the re-run.
+  const stillOpen = useRef(open);
+  stillOpen.current = open;
+  const carried = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!open) return;
     const me = {};
     stack.push(me);
     const root = document.documentElement;
     const active = document.activeElement as HTMLElement | null;
-    const trigger = active && !ref.current?.contains(active) ? active : outside;
+    const trigger = carried.current ?? (active && !ref.current?.contains(active) ? active : outside);
+    carried.current = null;
     if (lock) { locks++; root.dataset.modal = ""; }
     // Into the dialog: an element asking for it (autofocus), else the dialog itself.
     const el = ref.current;
@@ -45,6 +51,7 @@ export function useModal(ref: RefObject<HTMLElement | null>, open: boolean, onCl
       document.removeEventListener("keydown", onKey, true);
       stack.splice(stack.indexOf(me), 1);
       if (lock && --locks <= 0) { locks = 0; delete root.dataset.modal; }
+      if (stillOpen.current) { carried.current = trigger; return; }
       // A nonmodal panel leaves the page usable; preserve a later focus choice outside it.
       const focused = document.activeElement;
       if (trigger?.isConnected && (trap || focused === document.body || el?.contains(focused))) trigger.focus({ preventScroll: true });
