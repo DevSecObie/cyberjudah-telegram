@@ -684,7 +684,7 @@ test("large titles: the title shrinks into the bar under scroll and returns at t
   // Firefox); the bar must make up for the height it has when it shrinks, not the first one.
   await page.addStyleTag({ content: ".screen > .head:not([data-compact]) .title { padding-block: 10px; }" });
   // Where the first thing under the bar sits in the document, and how tall the document is.
-  const layout = () => page.evaluate(() => { const next = document.querySelector(".screen > .head")!.nextElementSibling!; return { at: next.getBoundingClientRect().top + scrollY, height: document.documentElement.scrollHeight }; });
+  const layout = () => page.evaluate(() => { const next = document.querySelector(".screen > .head")!.nextElementSibling!; const bar = document.querySelector(".screen > .head") as HTMLElement; return { at: next.getBoundingClientRect().top + scrollY, height: document.documentElement.scrollHeight, bar: bar.offsetHeight, mb: bar.style.marginBottom }; });
   const before = await layout();
   await page.evaluate(() => { document.documentElement.scrollTop = 120; });
   await expect(head).toHaveAttribute("data-compact", "");

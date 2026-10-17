@@ -321,8 +321,16 @@ function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
   }, [head]);
   useLayoutEffect(() => {
     const el = head.current; if (!el) return;
-    if (!compact) { el.style.removeProperty("margin-bottom"); return; }
-    el.style.marginBottom = `${full.current - el.getBoundingClientRect().height}px`;
+    const fit = () => {
+      if (!el.hasAttribute("data-compact")) { el.style.removeProperty("margin-bottom"); full.current = el.getBoundingClientRect().height; return; }
+      el.style.marginBottom = `${full.current - el.getBoundingClientRect().height}px`;
+    };
+    fit();
+    // The bar can still settle after it changes (Firefox lays the compact bar out again a frame
+    // later): follow its size, before paint, for as long as it is shown.
+    const watch = new ResizeObserver(fit);
+    watch.observe(el);
+    return () => watch.disconnect();
   }, [compact, head]);
   return compact;
 }
