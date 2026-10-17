@@ -10,7 +10,7 @@ const Glyph = ({ item }: { item: NavItem }) => item.icon === "count" ? <span cla
  * (icons only, the menu last); the choice is each reader's, kept with their other settings.
  */
 export function NavEditor() {
-  useBackButton(true);
+  useBackButton();
   const [storedIds, setIds] = useNav();
   const ids = storedIds.filter(id => id !== "search");
   const full = ids.length >= MAX_NAV;

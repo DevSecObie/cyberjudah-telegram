@@ -2,8 +2,8 @@ import { NativeLifecycle } from "@/native/NativeLifecycle";
 import { WorkspaceCommands } from "@/ui/WorkspaceCommands";
 import { AudioPlayerProvider, AudioPlayerBar } from "@/lib/AudioPlayer";
 import { useResourceSync } from "@/resources/hooks";
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
-import { Route, Routes, useLocation, useNavigate } from "react-router";
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Route, Routes, useLocation, useNavigate, useNavigationType } from "react-router";
 
 import { initialLaunchPath } from "@/tg/launch.mjs";
 import { isTabPath, recordPath } from "@/lib/tabs";
@@ -94,6 +94,24 @@ export function App() {
   const navigate = useNavigate();
   useSettingsButton();
 
+  // Opening a page slides it in a little from the right and Back from the left, crossfading, as
+  // Bible Strong's web page transition (220 ms, 10 px). Tab changes have their own motion (tab-motion).
+  const navType = useNavigationType();
+  const route = useRef<HTMLDivElement>(null);
+  const firstPage = useRef(true);
+  useLayoutEffect(() => {
+    if (firstPage.current) { firstPage.current = false; return; }
+    if (navType === "REPLACE" || "tabMotion" in document.documentElement.dataset || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    route.current?.animate([{ opacity: 0, transform: `translateX(${navType === "POP" ? -10 : 10}px)` }, { opacity: 1, transform: "none" }], { duration: 220, easing: "ease-out" });
+  }, [location.key]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The bar's own screens load once the app is idle, so a first switch to one never waits on its code.
+  useEffect(() => {
+    const load = () => { void import("@/screens/Search"); void import("@/bible/BibleTab"); void import("@/screens/Classes"); void import("@/screens/Ask"); };
+    if ("requestIdleCallback" in window) { const id = requestIdleCallback(load, { timeout: 3000 }); return () => cancelIdleCallback(id); }
+    const t = globalThis.setTimeout(load, 1500); return () => globalThis.clearTimeout(t);
+  }, []);
+
   // Consume the launch once per app mount, not once per webview session. Telegram may
   // reuse that session for another shared link. Explicit routes survive refreshes.
   const launchHandled = useRef(false);
@@ -117,7 +135,7 @@ export function App() {
       <NativeLifecycle />
       <WorkspaceCommands />
       <Lock />
-      <div className="route" data-location-key={location.key} key={location.pathname.split("/").slice(0, 2).join("/")}>
+      <div ref={route} className="route" data-location-key={location.key} key={location.pathname.split("/").slice(0, 2).join("/")}>
       <ScreenBoundary resetKey={location.pathname}>
       <Suspense fallback={<Screen className="route-loading"><Skeleton rows={8} /></Screen>}>
       <Routes>

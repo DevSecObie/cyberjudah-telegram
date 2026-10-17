@@ -6,7 +6,7 @@ import { useBackButton } from "@/tg/hooks";
 import { openLink } from "@/tg/sdk";
 
 export function Credits() {
-  useBackButton(true);
+  useBackButton();
   const catalog = useQuery({ queryKey: ["recording-credits"], queryFn: () => recordingJson<{ chapters: RecordingCredit[] }>("/api/recordings/catalog"), staleTime: 300_000 });
   const credits = [...new Map((catalog.data?.chapters ?? []).map((r) => [`${r.readerId}:${r.source}`, r])).values()];
   return <Screen title="Credits"><Section title="Human Narrators">

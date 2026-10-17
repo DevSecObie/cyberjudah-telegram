@@ -11,7 +11,7 @@ import './ResourceInstaller.css';
 type PageRow = { key: string; volume: number; page: number; image: number; title: string };
 type SourcePage = PageRow & { text: string; scan: string; links: ScriptureLink[] };
 export function ResourceReader() {
-  useBackButton(false);
+  useBackButton();
   const { id = '', release = '' } = useParams();
   const [params, setParams] = useSearchParams();
   const [term, setTerm] = useState(''), [search, setSearch] = useState('');

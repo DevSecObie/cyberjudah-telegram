@@ -14,7 +14,7 @@ import { saveFile } from "@/studies/files";
 import "@/studies/studies.css";
 
 export function PersonalStudies() {
-  useBackButton(true);
+  useBackButton();
   const { id } = useParams();
   return id ? <StudyEditor key={id} id={id} /> : <StudyList />;
 }
