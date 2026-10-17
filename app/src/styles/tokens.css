@@ -201,6 +201,8 @@ html[data-palette="default"], html[data-palette="sepia"] { --mat-density: 80%; }
 @media (prefers-reduced-transparency: reduce) {
   :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; --mat-scroll-edge-up: none; --mat-scroll-edge-depth: 0px; }
 }
+/* iOS 26.1's Tinted glass: the same frost, carried by a denser tint, so bars read more easily. */
+html[data-transparency="tinted"] { --mat-density: 97%; --mat-elevated-density: 98%; }
 html[data-transparency="reduced"] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; --mat-scroll-edge-up: none; --mat-scroll-edge-depth: 0px; }
 
 /* No backdrop filter at all: a solid ground keeps text readable. */
