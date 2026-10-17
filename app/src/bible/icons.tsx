@@ -6,7 +6,7 @@ export type FeatherName =
   | "music" | "alert-circle" | "feather"
   | "file-plus" | "file-text" | "tag" | "link" | "git-merge" | "precepts" | "bookmark" | "crosshair" | "edit-2" | "copy" | "share-2" | "download" | "check-square" | "layers"
   | "sun" | "moon" | "sunrise" | "type" | "align-left" | "align-justify" | "arrow-right" | "corner-down-right" | "chevron-right" | "chevron-down" | "chevron-up" | "chevron-left" | "chevrons-left" | "chevrons-right" | "chevrons-down"
-  | "more-vertical" | "arrow-left" | "x" | "list" | "hash" | "grid" | "arrow-right-circle" | "book" | "book-open" | "search" | "plus" | "check" | "clock" | "settings" | "trash-2" | "film" | "external-link" | "play" | "pause" | "skip-back" | "skip-forward" | "volume-2" | "edit-3" | "square" | "mic" | "sliders" | "users" | "repeat" | "arrow-up" | "arrow-down" | "heart" | "rotate-ccw" | "user" | "map-pin" | "globe" | "play-circle" | "watch";
+  | "more-vertical" | "arrow-left" | "x" | "list" | "hash" | "grid" | "arrow-right-circle" | "book" | "book-open" | "search" | "plus" | "check" | "clock" | "settings" | "trash-2" | "film" | "external-link" | "play" | "pause" | "skip-back" | "skip-forward" | "volume-2" | "edit-3" | "square" | "mic" | "sliders" | "users" | "repeat" | "arrow-up" | "arrow-down" | "heart" | "rotate-ccw" | "user" | "map-pin" | "globe" | "play-circle" | "watch" | "refresh-cw";
 
 const P: Record<FeatherName, string> = {
   feather: '<path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/>',
@@ -78,12 +78,17 @@ const P: Record<FeatherName, string> = {
   "volume-2": '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>',
   square: '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>',
   mic: '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>',
+  "refresh-cw": '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
   sliders: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
 };
 
-export function Feather({ name, size = 20, color = "currentColor", style, fill }: { name: FeatherName; size?: number; color?: string; style?: CSSProperties; fill?: string }) {
+/**
+ * `raw` draws Feather's own glyph even where the app shares a common icon (share-2 is the app's
+ * upload arrow elsewhere): Bible Strong's action tiles use Feather's glyphs as they are.
+ */
+export function Feather({ name, size = 20, color = "currentColor", style, fill, raw }: { name: FeatherName; size?: number; color?: string; style?: CSSProperties; fill?: string; raw?: boolean }) {
   const common: Partial<Record<FeatherName, IconName>> = { copy: "copy", "share-2": "share", bookmark: "bookmark", "edit-2": "compose", "edit-3": "compose", "trash-2": "trash", "external-link": "open", search: "search" };
-  const shared = common[name];
+  const shared = raw ? undefined : common[name];
   if (shared) return <Icon name={shared} size={size} color={color} style={style} fill={fill} />;
   return <svg width={size} height={size} viewBox="0 0 24 24" fill={fill ?? "none"} stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={style} aria-hidden="true" dangerouslySetInnerHTML={{ __html: P[name] }} />;
 }

@@ -11,7 +11,7 @@ import { Sheet } from "./Sheet";
  * passage, the selection's, or asks for a selection, with a delete button while either exists.
  * Then the three kinds (highlight, underline, circle) as AnnotationPreview's ink strokes: a kind
  * only arms itself, and a colour applies the armed kind to the selection or selected mark. The
- * colour row ends with "+" for a colour of one's own. The last row is Note, Tags and Relations
+ * colour row ends with "+", which opens the colour palette to pick any colour, the reader's own too. The last row is Note, Tags and Relations
  * with their counts. There is no Done: the sheet closes by swiping it down.
  */
 export type ToolbarMark = { id: string; kind: MarkKind; color: string; hex: string; hasNote: boolean };
@@ -36,7 +36,8 @@ export function AnnotationToolbar(p: {
   open: boolean; enabled: boolean; reference: string | null; hasSelection: boolean; selected: ToolbarMark | null; colors: ColorItem[];
   onApply: (color: string, kind: MarkKind) => void; onChangeMark: (color: string, kind: MarkKind) => void;
   onErase: () => void; onDelete: () => void; onClose: () => void;
-  onAddColor: () => void; onNote: () => void; onTags: () => void; onRelations: () => void; tagsCount: number; relationsCount: number;
+  /** "+": the colour palette as a picker; the colour picked is applied as the armed kind. */
+  onAddColor: (selectedColor: string | undefined, pick: (key: string) => void) => void; onNote: () => void; onTags: () => void; onRelations: () => void; tagsCount: number; relationsCount: number;
 }) {
   const sel = p.selected;
   const disabled = !p.enabled || (!sel && !p.hasSelection);
@@ -75,7 +76,7 @@ export function AnnotationToolbar(p: {
             <span style={{ background: c.hex }} />
           </button>
         ))}
-        <button type="button" className="bs-annotate__add" aria-label="Add a colour" title="Add a colour" onClick={p.onAddColor}>
+        <button type="button" className="bs-annotate__add" aria-label="Add a color" title="Add a color" onClick={() => p.onAddColor(selectedColor, (key) => apply(key, active))}>
           <Feather name="plus" size={16} color="var(--bs-primary)" />
         </button>
       </div>

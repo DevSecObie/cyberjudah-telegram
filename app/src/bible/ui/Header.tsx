@@ -11,7 +11,8 @@ import { HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGHT } from 
 /**
  * BibleHeader: 54 px on the page background with a bottom border. Normally the book and
  * chapter pill joined to the version pill, the verse chevrons, and the ⋮ menu; with verses
- * selected only their reference, centred; with a focus the reference and the version. A
+ * selected only their reference, centred, on the solid page colour; in annotation mode the
+ * accent, the passage and Done as a pill; with a focus the reference and the version. A
  * fast scroll down collapses it to 20 px (its controls fade, its texts lift 4 px).
  */
 export type MenuAction = "params" | "history" | "bookmark" | "export" | "search" | "newtab";
@@ -31,7 +32,7 @@ export function Header({ bookLabel, version, onBook, onVersion, onVerses, select
         <span className="bs-annotbar__side" />
         <b className="bs-annotbar__title">{`${focusedReference ?? bookLabel} - ${version}`}</b>
         <span className="bs-annotbar__side bs-annotbar__side--end">
-          <button type="button" className="bs-annotbar__done" aria-label="Exit annotation mode" onClick={() => { haptic("select"); onExitAnnotation?.(); }}>Done</button>
+          <button type="button" className="bs-annotbar__done" aria-label="Exit annotation mode" onClick={() => { haptic("select"); onExitAnnotation?.(); }}><span>Done</span></button>
         </span>
       </div>
     </header>

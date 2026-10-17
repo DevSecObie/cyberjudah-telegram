@@ -61,7 +61,8 @@ export function NotesSheet({ open, onClose, full = false, onFull, title = "Class
     const measure = () => {
       const el = document.querySelector<HTMLElement>(".player:not([data-pip])");
       setTop(el ? Math.round(el.getBoundingClientRect().bottom) : 0);
-      setSafeTop(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-top")) || 0);
+      // A device inset is never negative; clamp defensively.
+      setSafeTop(Math.max(0, parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-top")) || 0));
     };
     measure();
     const raf = requestAnimationFrame(measure);
@@ -75,6 +76,7 @@ export function NotesSheet({ open, onClose, full = false, onFull, title = "Class
     return () => { document.documentElement.style.overflow = prev; };
   }, [open]);
   useEffect(() => { if (!open && full) onFull?.(false); }, [open, full, onFull]);
+  const docked = full ? safeTop : top;
   const down = (e: RPointerEvent) => {
     if ((e.target as HTMLElement).closest("button")) return;
     from.current = { y: e.clientY, id: e.pointerId };
@@ -90,13 +92,30 @@ export function NotesSheet({ open, onClose, full = false, onFull, title = "Class
     if (!from.current || from.current.id !== e.pointerId) return;
     const dy = e.clientY - from.current.y;
     from.current = null;
+    let goFull = full;
+    let doClose = false;
+    if (Math.abs(dy) < 8) goFull = !full;
+    else if (dy < -50 && !full) goFull = true;
+    else if (dy > 50 && full) goFull = false;
+    else if (dy > 90 && !full) doClose = true;
+    if (goFull !== full) {
+      haptic("select");
+      // `top` jumps straight to the new dock position (the player's edge or the screen's top
+      // differ a lot, and nothing animates `top` itself); without carrying the release point
+      // across as a starting transform, the sheet (and its grip) would render at the new top
+      // plus the old drag offset — potentially off the top of the screen, out of the next
+      // gesture's reach. Painting one frame at the exact release point, with no transition,
+      // then releasing it to the CSS transition keeps the motion continuous instead.
+      const currentY = docked + Math.max(safeTop - docked, drag ?? 0);
+      const newDocked = goFull ? safeTop : top;
+      onFull?.(goFull);
+      setDrag(currentY - newDocked);
+      requestAnimationFrame(() => requestAnimationFrame(() => setDrag(null)));
+      return;
+    }
     setDrag(null);
-    if (Math.abs(dy) < 8) { haptic("select"); onFull?.(!full); return; }
-    if (dy < -50 && !full) { haptic("select"); onFull?.(true); }
-    else if (dy > 50 && full) { haptic("select"); onFull?.(false); }
-    else if (dy > 90 && !full) { haptic("select"); onClose(); }
+    if (doClose) { haptic("select"); onClose(); }
   };
-  const docked = full ? safeTop : top;
   const style = drag !== null ? { top: docked, transform: `translateY(${Math.max(safeTop - docked, drag)}px)`, transition: "none", willChange: "transform" } : { top: docked };
   return (
     <section className="nsheet" data-open={open ? "" : undefined} data-full={full ? "" : undefined} aria-hidden={!open} style={style} role="dialog" aria-label={title}>

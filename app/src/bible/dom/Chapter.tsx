@@ -34,7 +34,9 @@ export type ChapterProps = {
   /** The classes that taught each verse, by the last verse they taught. */
   moments?: Record<number, ClassMoment[]>; deck?: { reference: string; from: string };
   headerHeight: number; fullscreen: boolean; canSwipe: boolean;
-  onToggleVerse: (v: number) => void; onVerseDetail: (v: number) => void; onDoubleTap?: (v: number) => void;
+  onToggleVerse: (v: number) => void; onVerseDetail: (v: number) => void;
+  /** A double tap on a verse, with nothing selected, enters annotation mode (BibleViewer's handleEnterAnnotationModeFromDoubleTap). */
+  onEnterAnnotation?: () => void;
   /** While annotating, a long press selects a word and the handles extend it. */
   annotationMode?: boolean; marks?: Mark[]; selectedMark?: string | null; colorOf?: (key: string) => string | null;
   wordSelection?: SelectionRange | null; setWordSelection?: (fn: (prev: SelectionRange | null) => SelectionRange | null) => void;
@@ -54,6 +56,7 @@ export function Chapter(p: ChapterProps) {
   const [touched, setTouched] = useState<string | null>(null);
   const [returnPos, setReturnPos] = useState<"top" | "bottom" | null>(null);
   const suppressRef = useRef(false);
+  const jumpRef = useRef<number | null>(null);
   const selectedMode = p.selected.length > 0;
   const hasVerses = p.verses.length > 0;
   const isContextFocused = p.contextDisplayMode === "focused";
@@ -157,7 +160,21 @@ export function Chapter(p: ChapterProps) {
       if (p.onSeekVerse) { followRef.current = true; setReadingAway(null); p.onSeekVerse(v); return; }
       if (annotationAt(target) || selectedMode || s.press === "longPress") p.onToggleVerse(v); else p.onVerseDetail(v);
     },
-    onDoubleTapVerse: (vk) => p.onDoubleTap?.(verseOf(vk)),
+    // handleDoubleTapVerse: in annotation mode a double tap selects (or lets go of) the mark under
+    // it, or selects the word; while reading, with no verse selected, it enters annotation mode with
+    // that mark or that word selected.
+    onDoubleTapVerse: (vk, pos) => {
+      const hit = annotationAt(document.elementFromPoint(pos.x, pos.y));
+      const w = wordOfTap(vk, pos);
+      if (mode) {
+        if (hit) { setSel(null); p.onSelectMark?.(hit === selectedMark ? null : hit); }
+        else if (w) { if (selectedMark) p.onSelectMark?.(null); setSel(w); }
+        return;
+      }
+      if (selectedMode || !p.onEnterAnnotation) return;
+      p.onEnterAnnotation();
+      if (hit) p.onSelectMark?.(hit); else if (w) setSel(w);
+    },
     onLongPressVerse: (vk, pos) => {
       if (mode) {
         const w = wordOfTap(vk, pos);
@@ -181,6 +198,11 @@ export function Chapter(p: ChapterProps) {
       const velocity = Math.abs(dy / Math.max(dt, 1)); const total = el.scrollHeight - el.clientHeight;
       if (top < 0 || top > total) { if (!reached) p.onFullscreen(false); reached = true; return; }
       reached = false;
+      // The reader's own jump to a verse has no velocity, as React Native reports none for a
+      // programmatic scroll, even when its scroll event arrives after the jump's settle time.
+      const landed = jumpRef.current !== null && Math.abs(top - jumpRef.current) < 2;
+      jumpRef.current = null;
+      if (landed) { lastTop = top; lastTime = now; return; }
       if (velocity * 1000 > 400 && !suppressRef.current) {
         if (dy > 0 && canDown) { p.onFullscreen(true); canDown = false; canUp = true; }
         else if (dy < 0 && canUp) { p.onFullscreen(false); canUp = false; canDown = true; }
@@ -199,7 +221,7 @@ export function Chapter(p: ChapterProps) {
     if (!scrollTarget || !hasVerses || scrollTarget === 1) return;
     requestAnimationFrame(() => {
       const el = scrollRef.current?.querySelector<HTMLElement>(`#verset-${scrollTarget}`); const sc = scrollRef.current;
-      if (el && sc) { suppressRef.current = true; sc.scrollTo({ top: sc.scrollTop + el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 100 }); setTimeout(() => { suppressRef.current = false; }, 400); }
+      if (el && sc) { suppressRef.current = true; const top = Math.max(0, Math.min(sc.scrollHeight - sc.clientHeight, sc.scrollTop + el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 100)); jumpRef.current = Math.abs(top - sc.scrollTop) < 2 ? null : top; sc.scrollTo({ top }); setTimeout(() => { suppressRef.current = false; }, 400); }
     });
   }, [scrollTarget, hasVerses, p.contextDisplayMode, focus?.join(","), p.navigationRequest]); // eslint-disable-line react-hooks/exhaustive-deps
 

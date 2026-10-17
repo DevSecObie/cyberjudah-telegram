@@ -197,3 +197,13 @@ input[type="range"]:disabled { opacity: var(--disabled-opacity); cursor: default
 }
 
 #root :is(.sheet, .bs-sheet) .card { --r-outer: var(--sheet-card-radius); border-radius: var(--r-outer); }
+
+/* iOS 26: the segmented control's selection lifts into glass under the finger and springs between
+   segments; the slider's knob is a narrow capsule that turns to glass while it is dragged. */
+#root .seg > div > [aria-hidden] { transition: transform var(--dur-3) var(--ease-spring), scale var(--dur-2) var(--ease-spring), background var(--dur-1) ease, box-shadow var(--dur-1) ease; }
+#root .seg:active > div > [aria-hidden] { scale: var(--glass-press-scale, 1.06); background: color-mix(in srgb, var(--text-1) 22%, transparent); box-shadow: var(--control-lift-shadow); }
+@media (prefers-contrast: more), (prefers-reduced-transparency: reduce), (forced-colors: active) { #root .seg:active > div > [aria-hidden] { background: var(--tgui--segmented_control_active_bg); } }
+html[data-transparency="reduced"] #root .seg:active > div > [aria-hidden] { background: var(--tgui--segmented_control_active_bg); }
+input[type="range"]::-webkit-slider-thumb { width: 38px; height: 24px; margin-top: -10px; }
+input[type="range"]::-moz-range-thumb { width: 36px; height: 22px; }
+@media (prefers-reduced-motion: reduce) { #root .seg:active > div > [aria-hidden] { scale: 1; } }

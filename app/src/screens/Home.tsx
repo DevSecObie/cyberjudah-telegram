@@ -75,7 +75,7 @@ export function useTeachings() {
     if (!notes.data) return notes.data;
     const have = new Set(notes.data.map((t) => t.video ?? videoOfThumb(t.thumb)).filter(Boolean));
     const extra = (recent.data?.videos ?? []).filter((v) => !have.has(v.video)).map<Teaching>((v) => ({ kind: "class", url: `/watch/${v.video}`, title: v.title, date: v.published.slice(0, 10), teacher: "", thumb: thumbOf(v.video), topics: [], books: [], video: v.video, pending: true }));
-    const all = orderTeachings([...notes.data, ...extra], broadcasts.data);
+    const all = orderTeachings([...notes.data, ...extra], broadcasts.data, undefined, (recent.data?.videos ?? []).map((v) => v.video));
     // A class taught as one of a run, or on one of the shows, carries that name, read from the titles.
     const series = seriesOf(all.filter((t) => t.kind === "class").map((t) => t.title));
     return all.map((t) => {

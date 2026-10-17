@@ -244,7 +244,62 @@ test("a verse's precepts lead with one note, Precepts: why each is there, from t
   await expect(page).toHaveURL(/\/read\/2-esdras\/6\?v=38/);
 });
 
+// Annotate → Relation opens "Add relation" over the reader; Telegram's Back button must show and
+// close it (it did nothing: the picker was not counted as an open sheet), keeping the selection.
+test("relations: Telegram's Back button closes the Add relation picker", async ({ page }) => {
+  await page.goto(`/read/psalms/23${LAUNCH}`);
+  await tapVerse(page, 1);
+  await page.click(".bs-action >> text=Relation");
+  const picker = page.getByRole("dialog", { name: "Add relation", exact: true });
+  await expect(picker).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { Telegram: { WebApp: { BackButton: { isVisible: boolean } } } }).Telegram.WebApp.BackButton.isVisible)).toBe(true);
+  await press(page, "back");
+  await expect(picker).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "Selected: Psalms 23:1", exact: true })).toBeVisible();
+});
+
+// Bible Strong's ColorCirclesBar: the circled arrow opens the colour palette as a picker (the
+// default and the reader's own colours, with their usage), a colour picked there highlights the
+// selection and the palette closes; a long press on a colour opens that colour's editor.
+test("the colour row's arrow opens the palette to pick from, and a long press edits a colour", async ({ page }) => {
+  await page.goto(`/read/psalms/23${LAUNCH}`);
+  await tapVerse(page, 1);
+  await page.getByRole("button", { name: "Add a color", exact: true }).click();
+  const palette = page.getByRole("dialog", { name: "Color palette", exact: true });
+  await expect(palette).toBeVisible();
+  await expect(palette.locator(".bs-palette__section")).toHaveText(["Default colors", "My colors"]);
+  await expect(palette.locator(".bs-palette__name")).toHaveText(["Color 1", "Color 2", "Color 3", "Color 4", "Color 5"]);
+  await expect(palette.locator(".bs-palette__count").first()).toHaveText("0 highlight(s)");
+  await expect(palette.getByText("No custom colors", { exact: true })).toBeVisible();
+  await expect(palette.getByRole("button", { name: "Add a color", exact: true })).toBeVisible();
+  await palette.locator(".bs-palette__pick", { hasText: "Color 4" }).click();
+  await expect(palette).toHaveCount(0);
+  await expect(page.locator("#verset-1 > span").first()).toHaveCSS("background-color", "rgba(116, 185, 255, 0.9)");
+  expect(JSON.parse((await cloud(page)).bs_h_psalms_23)["1"].color).toBe("color4");
+  // Back in the selection, colour 4 is ringed (3 px of page, 5 px of accent) with no check mark.
+  const cell = page.locator(".bs-selected .bs-colors__cell").nth(3);
+  await expect(cell).toHaveAttribute("aria-pressed", "true");
+  expect(await cell.locator(".bs-colors__swatch > span").first().evaluate(e => getComputedStyle(e).boxShadow)).toMatch(/0px 0px 0px 3px.*0px 0px 0px 5px/);
+  await expect(page.locator(".bs-colors__check")).toHaveCount(0);
+  // Long press colour 2: its editor, with the name, the highlight type and Validate.
+  const b = (await page.locator(".bs-selected .bs-colors__cell").nth(1).boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await page.waitForTimeout(700); await page.mouse.up();
+  const editor = page.getByRole("dialog", { name: "Edit Color 2", exact: true });
+  await expect(editor).toBeVisible();
+  await expect(editor.getByRole("radio")).toHaveText(["Background", "Text", "Underline"]);
+  await editor.getByRole("radio", { name: "Underline", exact: true }).click();
+  await editor.getByRole("textbox", { name: "Color name (optional)" }).fill("Promise");
+  await editor.getByRole("button", { name: "Validate", exact: true }).click();
+  await expect(editor).toHaveCount(0);
+  const bs = JSON.parse((await cloud(page)).bs);
+  expect(bs.defaultColorTypes.color2).toBe("underline");
+  expect(bs.defaultColorNames.color2).toBe("Promise");
+});
+
 test("relations: a verse linked to a passage shows as a tag under the verse, with edit and delete", async ({ page }) => {
+  // The library's own precepts (the classes') share the tag row under a verse, and live data adds
+  // them as precept passes merge: keep these two chapters free of them so only the reader's relation is counted.
+  for (const ch of ["psalms/23", "john/10"]) await page.route(`**/api/concordance/${ch}.json`, (r) => r.fulfill({ json: { cited_by: [], precepts: [], moments: [], read: {}, people: {} } }));
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await tapVerse(page, 1);
   await page.click(".bs-action >> text=Relation");
@@ -658,6 +713,31 @@ test("what was on the screen: a frame lands in the notes where the teacher point
   expect(page.url()).toBe(url);
   const opened = await page.evaluate(() => (window as unknown as { __tg: { log: unknown[][] } }).__tg.log.filter((l) => l[0] === "openLink"));
   expect(opened).toEqual([]);
+});
+
+test("the notes' grip stays inside the screen the instant a drag ends, so the next drag can still reach it", async ({ page }) => {
+  await page.route(`${DATA_ORIGIN}/api/notes/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement.json`, (r) => r.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({ kind: "class", title: "The Art of War - Rules of Engagement", url: "/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement", date: "2026-09-26", teacher: "Captain Joel", videoId: "eNMvid6j-qk", body: "## Scriptures Opened\n\nSomething was said." }),
+  }));
+  await page.goto(`/note/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement${LAUNCH}`);
+  await expect(page.locator(".nsheet[data-open]")).toBeVisible();
+  const docked = (await page.locator(".nsheet").boundingBox())!.y;
+  expect(docked).toBeGreaterThan(150);
+  const dragFrom = async (box: { x: number; y: number; width: number; height: number }, dy: number) => {
+    const x = box.x + box.width / 2, y = box.y + box.height / 2;
+    await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x, y + dy / 2); await page.mouse.move(x, y + dy); await page.mouse.up();
+  };
+  const grip = async () => (await page.locator(".nsheet__grip").boundingBox())!;
+  await dragFrom(await grip(), -120);
+  await expect(page.locator(".nsheet[data-full]")).toBeVisible();
+  // The grip must be inside the viewport the instant this drag ends: the very next gesture
+  // (another drag, to undock) starts from wherever the grip renders right then, with no wait.
+  const releasedGrip = await grip();
+  expect(releasedGrip.y).toBeGreaterThanOrEqual(0);
+  await dragFrom(releasedGrip, 120);
+  await expect(page.locator(".nsheet[data-full]")).toHaveCount(0);
+  await expect.poll(async () => (await page.locator(".nsheet").boundingBox())!.y).toBeGreaterThan(150);
 });
 
 liveDataTest("the recordings search works as the site's: matches lit, a moment to watch, notes alongside", async ({ page }) => {
@@ -1407,12 +1487,12 @@ test("a verse's Comments list every class that read it aloud, from the transcrip
   await expect(page).toHaveURL(/\/(watch|note)\/.*[?&]t=\d+/);
 });
 
-test("Side by side puts a verse beside its precepts and its cross references, each written out", async ({ page }) => {
+test("Compare puts a verse beside its precepts and its cross references, each written out", async ({ page }) => {
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   await tapVerse(page, 1);
   await page.click(".bs-tabsfooter__tab >> text=Study");
-  await page.click(".bs-action >> text=Side by side");
+  await page.click(".bs-action >> text=Compare");
   await expect(page.locator(".bs-compare__verse")).toContainText("The Lord is my shepherd");
   await page.click('.bs-compare__lanes button >> text=Cross references');
   await expect(page.locator(".bs-compare__item").first()).toBeVisible();
@@ -1420,6 +1500,22 @@ test("Side by side puts a verse beside its precepts and its cross references, ea
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/compare.png` });
   await page.locator(".bs-compare__ref").first().click();
   await expect(page).toHaveURL(/\/read\//);
+});
+
+// Bible Strong's Compare works on several verses; here it is the precepts and cross references of each.
+test("Compare takes several selected verses together", async ({ page }) => {
+  await page.goto(`/read/psalms/23${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await tapVerse(page, 1); await tapVerse(page, 2);
+  await page.click(".bs-tabsfooter__tab >> text=Study");
+  await expect(page.locator(".bs-action", { hasText: "Lexicon" })).toBeDisabled();
+  await expect(page.locator(".bs-action", { hasText: "Compare" })).toBeEnabled();
+  await page.click(".bs-action >> text=Compare");
+  await expect(page.locator(".bs-compare__verse")).toContainText("Psalms 23:1-2");
+  await expect(page.locator(".bs-compare__verse")).toContainText("The Lord is my shepherd");
+  await expect(page.locator(".bs-compare__verse")).toContainText("green pastures");
+  await page.click('.bs-compare__lanes button >> text=Cross references');
+  await expect(page.locator(".bs-compare__item").first()).toBeVisible();
 });
 
 test("a topic's thread strings the scriptures its classes opened, in Bible order, with the classes and precepts under each", async ({ page }) => {
@@ -2054,7 +2150,7 @@ test("the verse-selection sheet keeps Bible Strong's size: one row of actions, t
   await expect(sheet).toBeVisible();
   await page.locator(".bs-tabsfooter__tab", { hasText: "Annotate" }).click();
   const actions = sheet.locator(".bs-page:not([aria-hidden=true]) .bs-action");
-  await expect(actions.locator(".bs-action__label")).toHaveText(["Mark words", "Note", "Tag", "Link", "Relation", "Bookmark", "Add to study", "Focus"]);
+  await expect(actions.locator(".bs-action__label")).toHaveText(["Note", "Tag", "Link", "Relation", "Bookmark", "To study", "Focus", "Free mode"]);
   const tops = new Set(await actions.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top))));
   expect(tops.size).toBe(1);
   const s = (await sheet.boundingBox())!;

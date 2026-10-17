@@ -1,0 +1,1 @@
+- A tap on the verse sheet's grabber no longer highlights the verse on Android.
