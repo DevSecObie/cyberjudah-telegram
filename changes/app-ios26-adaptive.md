@@ -1,0 +1,2 @@
+- The tab bar adapts to what passes under it, as iOS 26's small glass does: over light content in a dark theme it turns to light glass with dark icons, and over dark content in a light theme to dark glass. Pictures and video keep the theme's bar; contrast and solid-glass settings keep their own.
+- Notices appear as glass that gathers from a soft blur as it grows into place, rather than only fading in.

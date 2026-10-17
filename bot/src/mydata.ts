@@ -58,7 +58,7 @@ export async function exportData(env: Env, uid: number): Promise<MyData> {
   const sub = await open<{ hour: number; tz: number }>(env, subKey, await env.SUBS.get(subKey));
   return {
     generated: new Date().toISOString(),
-    note: "Everything CyberJudah keeps about you, including an optional personal-study cloud backup. Reader highlights, notes, bookmarks and reading history stay on your device and in Telegram's storage.",
+    note: "Everything CyberJudah keeps about you, including an optional personal-study cloud backup. Reader highlights, notes, bookmarks and reading history stay on your device and in Telegram's storage, unless account sync is on (then highlights, notes, bookmarks and studies are also kept in Google Firebase and listed under accountSync).",
     personalStudyBackup: await readStudyBackup(env, uid),
     savedChats: chats,
     readingReminder: rec ? publicView(rec) : null,

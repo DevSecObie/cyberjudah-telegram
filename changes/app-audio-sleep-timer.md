@@ -1,0 +1,1 @@
+- The audio player has a sleep timer, as in Bible Strong: choose 5 minutes to 2 hours from the Timer chip, watch it count down, and the reading stops when it ends. Pausing or stopping clears it.

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { coordsOf, DEFAULT_ZONE, eveOfHolyDay, fullDark, fullDarkIn, HOLY_DAYS, holyDay, pauseMessage, topupPause, zoneOf } from "../../shared/holy-days.mjs";
-import { compare, parseTime, pickDays, summary } from "../scripts/holy-days.mjs";
+import { compare, parseTime, pickDays, RULE, SOURCE, summary, worthWriting } from "../scripts/holy-days.mjs";
 
 const at = (iso) => Date.parse(iso);
 const near = (ms, iso, minutes, what) => assert.ok(Math.abs(ms - at(iso)) <= minutes * 60000, `${what}: ${new Date(ms).toISOString()} is not within ${minutes} min of ${iso}`);
@@ -122,4 +122,17 @@ test("the pull request lists what was added, removed and changed, by date", () =
   assert.deepEqual(c.changed.map((x) => x.date), ["2026-10-06"]);
   assert.match(summary(c), /\*\*Added\*\*\n- 2026-10-27: newmoon: New Moon/);
   assert.equal(summary(compare(before, before)), "No dates changed.");
+});
+
+test("the weekly read rewrites the calendar only for a real change from today on", () => {
+  const before = { source: SOURCE, rule: RULE, days: [{ date: "2026-10-06", kind: "feast", name: "Day of Atonement" }, { date: "2026-10-17", kind: "feast", name: "Feast of Tabernacles (closing day)" }] };
+  const today = (b) => b.days.filter((d) => d.date >= "2026-10-12");
+  // A day only falling into the past: nothing the app does changes, so no rewrite and no pull request.
+  assert.equal(worthWriting(before, compare(today(before), [before.days[1]])), false);
+  // A date added, removed or renamed from today on is written.
+  assert.equal(worthWriting(before, compare(today(before), [before.days[1], { date: "2026-11-01", kind: "new-moon", name: "New Moon" }])), true);
+  assert.equal(worthWriting(before, compare(today(before), [])), true);
+  assert.equal(worthWriting(before, compare(today(before), [{ ...before.days[1], name: "Last Great Day" }])), true);
+  // So is a new rule.
+  assert.equal(worthWriting({ ...before, rule: "old" }, compare(today(before), [before.days[1]])), true);
 });

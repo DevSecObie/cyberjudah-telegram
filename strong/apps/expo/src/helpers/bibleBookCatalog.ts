@@ -85,11 +85,19 @@ const THEOTEX_SEPTUAGINT_BOOK_ORDER = [
   27,
 ]
 
+/** CyberJudah: the King James Version of 1611, its Apocrypha (67-81) between the Testaments. */
+const KJV_1611_BOOK_ORDER = [
+  ...Array.from({ length: 39 }, (_, index) => index + 1),
+  ...Array.from({ length: 15 }, (_, index) => index + 67),
+  ...NEW_TESTAMENT,
+]
+
 const BOOK_ORDER_BY_CANON: Record<BibleCanonId, number[]> = {
   'protestant-66': PROTESTANT_BOOK_ORDER,
   'catholic-73': CATHOLIC_BOOK_ORDER,
   'clementine-vulgate': CLEMENTINE_BOOK_ORDER,
   'theotex-septuagint': THEOTEX_SEPTUAGINT_BOOK_ORDER,
+  'kjv-1611': KJV_1611_BOOK_ORDER,
 }
 
 const booksById = new Map<number, Book>(books.map(book => [book.Numero, book]))
@@ -99,8 +107,8 @@ export const getBook = (bookId: number) => booksById.get(bookId)
 export const getBookCorpus = (bookId: number): BibleBookCorpus | undefined => {
   if (bookId >= 1 && bookId <= 39) return 'old'
   if (bookId >= 40 && bookId <= 66) return 'new'
-  if (bookId >= 67 && bookId <= 73) return 'deuterocanonical'
-  if (bookId >= 74 && bookId <= 77) return 'septuagint'
+  // CyberJudah: 67-81 are the King James Apocrypha.
+  if (bookId >= 67 && bookId <= 81) return 'deuterocanonical'
   return undefined
 }
 

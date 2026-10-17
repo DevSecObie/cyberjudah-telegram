@@ -29,7 +29,7 @@
           var pal = JSON.parse(localStorage.getItem("cj:palette") || "null");
           if (pal && pref === t) for (var k in pal) d.style.setProperty(k, pal[k]);
           var tr = localStorage.getItem("cj:transparency");
-          if (tr === "reduced") d.setAttribute("data-transparency", "reduced");
+          if (tr === "reduced" || tr === "tinted") d.setAttribute("data-transparency", tr);
         } catch (e) { /* storage blocked: the app sets the theme once it starts */ }
       })();
     </script>
