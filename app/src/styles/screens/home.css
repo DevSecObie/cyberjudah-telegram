@@ -222,3 +222,23 @@
 .today-card__arrows { display: flex; margin-left: auto; }
 .today-card__arrows button { min-width: 48px; min-height: 48px; border: 0; background: transparent; color: var(--text-2); font-size: 24px; }
 .today-card__arrows button:disabled { opacity: var(--disabled-opacity); }
+
+/* Welcome option B: the existing Search and Ask forms, separate from the Home dashboard. */
+.screen.welcome { max-width: 480px; gap: 18px; padding: calc(28px + var(--safe-top)) calc(24px + var(--safe-right)) 24px calc(24px + var(--safe-left)); }
+.welcome .hello { padding: 0; gap: 12px; }
+.welcome .hello img { width: 38px; height: 38px; }
+.welcome .hello b { color: var(--text-1); font-size: 16px; }
+.welcome__intro { margin: 14px 0 4px; }
+.welcome__intro h1 { margin: 0 0 10px; color: var(--text-1); font: 700 30px/1.3 var(--font-ui); letter-spacing: -.02em; }
+.welcome__intro p, .welcome__panel p { margin: 0; color: var(--text-3); font-size: 14px; }
+.welcome__panel { padding: 18px 18px 6px; border-radius: 24px; border: .5px solid var(--mat-edge); background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 4%, var(--surface-1)), var(--surface-1) 70%); box-shadow: var(--mat-highlight), var(--shadow-1); }
+.welcome__panel h2 { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; color: var(--text-1); font: 700 19px/1.4 var(--font-ui); }
+.welcome__panel h2 svg { flex: none; color: var(--accent); }
+.welcome__panel p { margin-bottom: 16px; }
+.welcome .shero__field { border-radius: 16px; background: var(--canvas); padding-right: 12px; }
+.welcome .shero__field input { font-size: 14px; }
+.welcome .shero__field input::placeholder { opacity: 1; color: var(--text-3); }
+.welcome .shero__go { display: none; }
+#root .welcome__action { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 50px; margin-top: 6px; padding: 6px 0; border: 0; background: none; color: var(--accent); font: 600 14px/1.4 var(--font-ui); text-align: start; cursor: pointer; }
+.welcome__action svg { flex: none; transform: rotate(90deg); }
+#root .welcome__action:disabled { color: var(--text-3); cursor: default; }

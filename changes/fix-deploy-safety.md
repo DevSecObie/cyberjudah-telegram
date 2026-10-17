@@ -1,0 +1,3 @@
+- A production deploy that goes live and then fails a later step (secrets, setup, the Bible app check or the release check) is now rolled back automatically to the version that was serving before.
+- The rollback workflow installs the repository's own wrangler instead of fetching whatever version is newest.
+- The D1 size alert fires at 8 GB, 80% of Cloudflare's 10 GB per-database limit.

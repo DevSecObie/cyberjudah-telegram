@@ -10,8 +10,20 @@ import { HeaderPicker } from "./HeaderPicker";
 type Sort = "classical" | "alphabetical"; type Layout = "list" | "grid"; type Verses = "without-verses" | "with-verses";
 const pref = <T extends string>(k: string, d: T): T => { try { return (localStorage.getItem(k) as T) || d; } catch { return d; } };
 const setPref = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
+/** React Native Web's TouchableBox onLongPress (500 ms): the press that fires it does not also click. */
+function longPress(onLong?: () => void) {
+  if (!onLong) return {};
+  let timer: ReturnType<typeof setTimeout> | null = null, fired = false;
+  const clear = () => { if (timer) clearTimeout(timer); timer = null; };
+  return {
+    onPointerDown: () => { fired = false; clear(); timer = setTimeout(() => { fired = true; haptic("select"); onLong(); }, 500); },
+    onPointerUp: clear, onPointerLeave: clear, onPointerCancel: clear,
+    onClickCapture: (e: { preventDefault: () => void; stopPropagation: () => void }) => { if (fired) { e.preventDefault(); e.stopPropagation(); fired = false; } },
+    onContextMenu: (e: { preventDefault: () => void }) => e.preventDefault(),
+  };
+}
 
-export function BookSelectorSheet({ open, onClose, books, current, onSelect, loadVerseCount, progress = {} }: { progress?: Progress; open: boolean; onClose: () => void; books: Book[]; current: { slug: string; chapter: number }; onSelect: (slug: string, chapter: number, verse?: number) => void; loadVerseCount: (slug: string, chapter: number) => Promise<number> }) {
+export function BookSelectorSheet({ open, onClose, books, current, onSelect, onLongSelect, loadVerseCount, progress = {} }: { progress?: Progress; open: boolean; onClose: () => void; books: Book[]; current: { slug: string; chapter: number }; onSelect: (slug: string, chapter: number, verse?: number) => void; onLongSelect?: (slug: string, chapter: number, verse: number) => void; loadVerseCount: (slug: string, chapter: number) => Promise<number> }) {
   const [sort, setSort] = useState<Sort>(() => pref("bookSelectorSort", "classical"));
   const [layout, setLayout] = useState<Layout>(() => pref("bookSelectorSelectionMode", "list"));
   const [verses, setVerses] = useState<Verses>(() => pref("bookSelectorVerses", "without-verses"));
@@ -54,7 +66,7 @@ export function BookSelectorSheet({ open, onClose, books, current, onSelect, loa
             <Filter icon="grid" label="Display" value={layout === "list" ? "List" : "Grid"} options={[["list", "List"], ["grid", "Grid"]]} current={layout} onSelect={set.layout} />
           </div>
         ) : null}
-        {grid ? <ChapterGrid book={gridBook!} read={readOf(gridBook!)} selectedChapter={gridBook!.slug === current.slug ? current.chapter : undefined} onPick={(c) => void pick(gridBook!, c)} /> : layout === "grid" ? (
+        {grid ? <ChapterGrid book={gridBook!} read={readOf(gridBook!)} selectedChapter={gridBook!.slug === current.slug ? current.chapter : undefined} onPick={(c) => void pick(gridBook!, c)} onLongPick={onLongSelect ? (c) => { onLongSelect(gridBook!.slug, c, 1); onClose(); } : undefined} /> : layout === "grid" ? (
           <div ref={listRef} className="bs-bookgrid">
             {data.map((b) => <button key={b.slug} type="button" className="bs-bookshort" data-current={b.slug === current.slug ? "" : undefined} aria-label={b.book} title={b.book} aria-pressed={b.slug === current.slug} style={{ color: b.slug === current.slug ? "var(--bs-primary)" : b.testament === "New Testament" ? "var(--bs-quart)" : b.testament === "Apocrypha" ? "var(--bs-tertiary)" : "var(--bs-default)", fontWeight: b.slug === current.slug ? "bold" : "normal" }} onClick={() => setGridBook(b)}>{b.book.replace(/^(Rest|Wisdom|Epistle|Song|History|Prayer) of (the )?/, "").replace(/\s/g, "").slice(0, 3)}<BookBar read={readOf(b).size} total={b.chapterIds.length} /></button>)}
           </div>
@@ -72,7 +84,7 @@ export function BookSelectorSheet({ open, onClose, books, current, onSelect, loa
       {verseSheet ? (
         <HeaderPicker open={open} onClose={onClose} onBack={() => setVerseSheet(null)} title="Go to verse">
           <div className="bs-versegrid">
-            {Array.from({ length: verseSheet.count }, (_, i) => i + 1).map((v) => <button key={v} type="button" aria-label={`Verse ${v}`} title={`Verse ${v}`} className="bs-versetile bs-versetile--48" onClick={() => { haptic("select"); onSelect(verseSheet.book.slug, verseSheet.chapter, v); setVerseSheet(null); onClose(); }}>{v}</button>)}
+            {Array.from({ length: verseSheet.count }, (_, i) => i + 1).map((v) => <button key={v} type="button" aria-label={`Verse ${v}`} title={`Verse ${v}`} className="bs-versetile bs-versetile--48" onClick={() => { haptic("select"); onSelect(verseSheet.book.slug, verseSheet.chapter, v); setVerseSheet(null); onClose(); }} {...longPress(onLongSelect && (() => { onLongSelect(verseSheet.book.slug, verseSheet.chapter, v); setVerseSheet(null); onClose(); }))}>{v}</button>)}
           </div>
         </HeaderPicker>
       ) : null}
@@ -90,8 +102,8 @@ function Filter<T extends string>({ icon, label, value, options, current, onSele
   );
 }
 
-function ChapterGrid({ book, read, selectedChapter, onPick }: { book: Book; read: Set<number>; selectedChapter?: number; onPick: (c: number) => void }) {
-  return <div className="bs-chaptergrid">{book.chapterIds.map((c) => <button key={c} type="button" aria-label={`Chapter ${c}`} title={`Chapter ${c}`} aria-pressed={c === selectedChapter} data-read={read.has(c) ? "" : undefined} className="bs-chaptertile bs-chaptertile--48" style={{ background: c === selectedChapter ? "var(--bs-light-grey)" : undefined, color: c === selectedChapter ? "var(--bs-primary)" : undefined, fontWeight: c === selectedChapter ? "bold" : undefined }} onClick={() => onPick(c)}>{c}</button>)}</div>;
+function ChapterGrid({ book, read, selectedChapter, onPick, onLongPick }: { book: Book; read: Set<number>; selectedChapter?: number; onPick: (c: number) => void; onLongPick?: (c: number) => void }) {
+  return <div className="bs-chaptergrid">{book.chapterIds.map((c) => <button key={c} type="button" aria-label={`Chapter ${c}`} title={`Chapter ${c}`} aria-pressed={c === selectedChapter} data-read={read.has(c) ? "" : undefined} className="bs-chaptertile bs-chaptertile--48" style={{ background: c === selectedChapter ? "var(--bs-light-grey)" : undefined, color: c === selectedChapter ? "var(--bs-primary)" : undefined, fontWeight: c === selectedChapter ? "bold" : undefined }} onClick={() => onPick(c)} {...longPress(onLongPick && (() => onLongPick(c)))}>{c}</button>)}</div>;
 }
 
 /** How far through a book: "18/50" beside a small ring, a check when it is all read. */

@@ -3,13 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { data, fmtDate, type FeedRow, type HistoryRow, type Opened } from "@/api/data";
-import { toAppPath } from "@shared/links.mjs";
 import { orderTeachings } from "@shared/teaching-order.mjs";
-const toApp = (sitePath: string) => toAppPath(sitePath) ?? sitePath;
 import { pullStyle, usePullToRefresh } from "@/lib/pull";
 import { planDay, schedule } from "@/lib/plan";
 import { share } from "@/lib/share";
-import { useLast, useLastNote, usePlan, useProgress } from "@/lib/marks";
+import { usePlan, useProgress } from "@/lib/marks";
 import { countdown, sabbath } from "@/lib/sun";
 import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
 import { api } from "@/tg/sdk";
@@ -77,7 +75,7 @@ export function useTeachings() {
     if (!notes.data) return notes.data;
     const have = new Set(notes.data.map((t) => t.video ?? videoOfThumb(t.thumb)).filter(Boolean));
     const extra = (recent.data?.videos ?? []).filter((v) => !have.has(v.video)).map<Teaching>((v) => ({ kind: "class", url: `/watch/${v.video}`, title: v.title, date: v.published.slice(0, 10), teacher: "", thumb: thumbOf(v.video), topics: [], books: [], video: v.video, pending: true }));
-    const all = orderTeachings([...notes.data, ...extra], broadcasts.data);
+    const all = orderTeachings([...notes.data, ...extra], broadcasts.data, undefined, (recent.data?.videos ?? []).map((v) => v.video));
     // A class taught as one of a run, or on one of the shows, carries that name, read from the titles.
     const series = seriesOf(all.filter((t) => t.kind === "class").map((t) => t.title));
     return all.map((t) => {
@@ -109,22 +107,47 @@ const TOOLS: [string, string, IconName][] = [
   ["/lexicon", "Lexicon", "spark"], ["/dictionary", "Dictionary", "type"], ["/people", "People", "star"], ["/relations", "Your precepts", "precepts"], ["/bookmarks", "Kept", "bookmark"], ["/tags", "Tags", "tag"],
 ];
 
-/**
- * Home is the front door: the search of what was said in the classes, Ask CyberJudah, then
- * where you left off, this week's class and the latest teachings.
- */
+/** The welcome page offers Search and Ask; the dashboard lives in the Home drawer. */
 export function Home() {
   useBackButton(true);
   useBottomButtons(null, null);
-  return <HomeBody />;
+  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+  const [question, setQuestion] = useState("");
+  const open = (path: "search" | "ask", value: string) => {
+    const q = value.trim();
+    if (q) { haptic("select"); navigate(`/${path}?q=${encodeURIComponent(q)}`); }
+  };
+  return (
+    <Screen className="welcome">
+      <div className="hello">
+        <img src={assetUrl("brand/cyber-lion.webp")} alt="" width={38} height={38} />
+        <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><b>CyberJudah</b></div>
+      </div>
+      <div className="welcome__intro">
+        <h1>What do you<br />want to learn?</h1>
+        <p>A question or a passage. Start here.</p>
+      </div>
+      <section className="welcome__panel surface" aria-labelledby="welcome-search">
+        <h2 id="welcome-search"><Icon name="search" size={24} /> Search</h2>
+        <p>Find where it was taught.</p>
+        <SearchHero value={search} onChange={setSearch} onSubmit={(q) => open("search", q)} placeholder="A word, name or Scripture">
+          <button type="submit" className="welcome__action" disabled={!search.trim()}>Search the teachings<Icon name="arrowUp" size={20} /></button>
+        </SearchHero>
+      </section>
+      <section className="welcome__panel surface" aria-labelledby="welcome-ask">
+        <h2 id="welcome-ask"><Icon name="chat" size={24} /> Ask CyberJudah</h2>
+        <p>Ask a question. See its sources.</p>
+        <SearchHero id="welcome-question" mode="ask" value={question} onChange={setQuestion} onSubmit={(q) => open("ask", q)} placeholder="What would you like to know?">
+          <button type="submit" className="welcome__action" disabled={!question.trim()}>Ask your question<Icon name="arrowUp" size={20} /></button>
+        </SearchHero>
+      </section>
+    </Screen>
+  );
 }
 
-/** Home's content, on its own page or in Bible Strong's Home drawer over the current tab. */
+/** Bible Strong's Home drawer over the current tab. */
 export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; active?: boolean }) {
-  const navigate = useNavigate();
-  const [q, setQ] = useState("");
-  const [last] = useLast();
-  const [lastNote] = useLastNote();
   const [plan] = usePlan();
   const [progress] = useProgress();
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
@@ -133,76 +156,22 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
   const sched = plan && books.data ? schedule(plan, books.data, progress) : null;
   const today = plan && books.data ? planDay(plan, books.data, progress) : null;
   const todayRead = today ? today.chapters.filter((c) => c.read).length : 0;
-  const lastBook = last && books.data ? books.data.find((b) => b.slug === last.slug) : null;
-  const lastRead = last ? (progress[last.slug] ? String(progress[last.slug]).split(",").reduce((n, r) => { const [a, b] = r.split("-").map(Number); return n + (b ? b - a + 1 : 1); }, 0) : 0) : 0;
   const [loc] = useStored<{ lat: number; lng: number } | null>("loc", null);
   const verse = useQuery({ queryKey: ["votd", new Date().toISOString().slice(0, 10)], queryFn: async () => { const r = await fetch("/api/verse-of-day"); if (!r.ok) throw new Error("Daily verse unavailable"); return r.json() as Promise<Verse>; }, staleTime: 60 * 60_000 });
   const feed = useTeachings();
-  const stats = useQuery({ queryKey: ["stats"], queryFn: data.stats, staleTime: 60 * 60_000 });
-  const live = useLive();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30_000); return () => clearInterval(t); }, []);
   const sab = loc ? sabbath(now, loc.lat, loc.lng) : null;
-  const search = (text: string) => { const t = text.trim(); if (t) navigate(`/search?q=${encodeURIComponent(t)}`); };
 
   const random = useRandomVerse();
-  // Precept passes are working data behind the verse notes, not something to read on their own.
-  const whatsNew = useMemo(() => (stats.data?.whatsNew ?? []).filter((w) => w.kind !== "pass"), [stats.data]);
   const latestClass = feed.data?.find((t) => t.kind === "class");
   const rows = useMemo(() => (feed.data ?? []).filter((t) => t.url !== latestClass?.url).slice(0, 8), [feed.data, latestClass]);
 
   return (
     <Screen className="home">
       <div className="pull" style={{ height: ps.height, opacity: ps.opacity }} aria-hidden="true">{ps.label}</div>
-      {drawer ? <TodayCard verse={verse.data} failed={verse.isError} stacked /> : <>
-      <div className="hello">
-        <img src={assetUrl("brand/cyber-lion.webp")} alt="" width={44} height={44} onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
-        <div><p>{user?.first_name ? `Shalom, ${user.first_name}` : "Shalom"}</p><h1>What do you want to learn?</h1></div>
-      </div>
-      <TodayCard verse={verse.data} failed={verse.isError} />
-      <SearchHero value={q} onChange={setQ} onSubmit={search} big />
-      <div className="door">
-        <button type="button" className="btn btn--bordered door__btn" onClick={() => { if (q.trim()) search(q); else document.getElementById("q")?.focus(); }}><Icon name="search" size={18} /> Search</button>
-        <button type="button" className="btn btn--bordered door__btn door__btn--ask" onClick={() => { haptic("select"); navigate(q.trim() ? `/ask?q=${encodeURIComponent(q.trim())}` : "/ask"); }}><Icon name="note" size={18} /> Ask CyberJudah</button>
-      </div>
-      <p className="hint hint--center">Search finds the moment a word, a name or a Scripture was said in a class. Ask answers your question from the teachings, with its sources.</p>
-      </>}
+      <TodayCard verse={verse.data} failed={verse.isError} stacked={drawer} />
       <StudyStats expanded={drawer} active={active} />
-      {!drawer ? <>
-      {whatsNew.length ? (
-        <div className="whatsnew" aria-label="New in CyberJudah">
-          {whatsNew.slice(0, 8).map((w) => (
-            <Link key={`${w.kind}:${w.url}`} to={toApp(w.url)} className="whatsnew__card" data-kind={w.kind} onClick={() => haptic("select")}>
-              <small>{w.kind === "pass" ? "New precept pass" : w.kind === "book" ? "New in the library" : w.kind === "captains" ? "New from the Captains" : "New class"}</small>
-              <b>{w.title}</b>
-              <span>{[w.sub, fmtDate(w.date)].filter(Boolean).join(" · ")}</span>
-            </Link>
-          ))}
-        </div>
-      ) : null}
-
-      {live.data?.live && live.data.video ? (
-        <Link to={`/watch/${encodeURIComponent(live.data.video)}?live=1`} className="live-card">
-          <span className="live-card__dot" aria-hidden="true" />
-          <span><small>Live now</small><b>{live.data.title || "Sabbath class"}</b></span>
-          <Icon name="play" size={20} />
-        </Link>
-      ) : live.data?.upcoming && live.data.video && live.data.starts && new Date(live.data.starts).getTime() - Date.now() > -15 * 60_000 && new Date(live.data.starts).getTime() - Date.now() < 6 * 3600_000 ? (
-        <Link to={`/watch/${encodeURIComponent(live.data.video)}?live=1`} className="live-card live-card--soon">
-          <span className="live-card__dot" aria-hidden="true" />
-          <span><small>Starting {new Date(live.data.starts).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</small><b>{live.data.title || "Sabbath class"}</b></span>
-          <Icon name="play" size={20} />
-        </Link>
-      ) : null}
-
-      {(lastNote || last) ? (
-        <div className="resume">
-          {lastNote ? <Link to={lastNote.href} className="resume__item"><span className="resume__icon"><Icon name="play" size={18} /></span><span><small>Continue watching</small><b>{lastNote.title}</b></span></Link> : null}
-          {last ? <Link to={`/read/${last.slug}/${last.chapter}`} className="resume__item"><span className="resume__icon"><Icon name="book" size={18} /></span><span><small>Continue reading{lastBook ? ` · ${lastRead} of ${lastBook.chapters} chapters` : ""}</small><b>{last.name}</b>{lastBook ? <span className="resume__bar"><i style={{ width: `${Math.round((lastRead / Math.max(1, lastBook.chapters)) * 100)}%` }} /></span> : null}</span></Link> : null}
-        </div>
-      ) : null}
-
-      </> : null}
       <h2 className="shelf">Learn</h2>
       {feed.isPending ? <Skeleton rows={1} thumb /> : latestClass ? (
         <Link to={teachingTo(latestClass)} className="feature">

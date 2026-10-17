@@ -55,6 +55,7 @@ export function usePassageFilterChoices(canon: SearchCanon, resolvedSelectedVers
     'catholic-73': t('search.canon.catholic'),
     'clementine-vulgate': t('search.canon.clementine'),
     'theotex-septuagint': t('search.canon.septuagint'),
+    'kjv-1611': 'King James Version 1611',
   }
   const availableCanons = Array.from(
     new Set(searchableVersions.map(version => getBibleVersionCanonId(version)))

@@ -1,0 +1,1 @@
+- Titles that shrink into the bar under scroll no longer move the page beneath them.

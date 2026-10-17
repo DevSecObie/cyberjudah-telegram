@@ -84,6 +84,15 @@ export function compare(before, after) {
   return { added, removed, changed };
 }
 
+/**
+ * Whether the file needs rewriting: a date from today on added, removed or changed, or a new rule
+ * or source. Days only falling into the past change nothing the app does, so they do not rewrite
+ * it (that proposed a pull request every week for no change).
+ */
+export function worthWriting(before, c) {
+  return Boolean(c.added.length || c.removed.length || c.changed.length || before.rule !== RULE || before.source !== SOURCE);
+}
+
 /** The change as Markdown, for the pull request's description. */
 export function summary(c) {
   const line = (x) => `- ${x.date}: ${x.entries.join("; ")}`;
@@ -124,8 +133,8 @@ async function main() {
   const before = JSON.parse(readFileSync(file, "utf8"));
   const days = pickDays(await fetchEvents(get), since);
   if (!days.length) throw new Error("The calendar gave no dates from today on: not written.");
-  writeFileSync(file, `${JSON.stringify({ source: SOURCE, rule: RULE, days }, null, 1)}\n`);
   const c = compare((before.days ?? []).filter((d) => d.date >= since), days);
+  if (worthWriting(before, c)) writeFileSync(file, `${JSON.stringify({ source: SOURCE, rule: RULE, days }, null, 1)}\n`);
   const out = arg("--summary");
   if (out) writeFileSync(out, `${summary(c)}\n`);
   console.log(summary(c));

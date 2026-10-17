@@ -41,6 +41,29 @@ test('timezone offsets compare as instants', () => {
   const broadcasts = { late: { date: day, broadcastAt: '2026-10-03T23:05:00Z' }, early: { date: day, broadcastAt: '2026-10-03T17:56:00-04:00' } };
   assert.deepEqual(orderTeachings(rows, broadcasts, NY).map(r => r.video), ['late', 'early']);
 });
+test('same-day classes with no verified start follow the channel feed order when it is given', () => {
+  // 2026-10-10 in notes-file order; the feed lists the day in taught order.
+  const input = [
+    { video: 'dominican', date: '2026-10-10' }, { video: 'tabernacles', date: '2026-10-10' },
+    { video: 'ear-gate', date: '2026-10-10' }, { video: 'true-unity', date: '2026-10-10' },
+  ];
+  const feed = ['tabernacles', 'ear-gate', 'dominican', 'true-unity'];
+  assert.deepEqual(orderTeachings(input, {}, NY, feed).map(r => r.video), feed);
+  assert.deepEqual(orderTeachings(input, {}, NY).map(r => r.video), ['dominican', 'tabernacles', 'ear-gate', 'true-unity'], 'no feed given, source order stands');
+});
+test('a verified broadcast start still outranks the feed order', () => {
+  const input = [{ video: 'ear-gate', date: '2026-10-10' }, { video: 'dominican', date: '2026-10-10' }];
+  const broadcasts = { dominican: { date: '2026-10-10', broadcastAt: '2026-10-10T19:18:00Z' } };
+  assert.deepEqual(orderTeachings(input, broadcasts, NY, ['ear-gate', 'dominican']).map(r => r.video), ['dominican', 'ear-gate']);
+});
+test('feed-listed classes lead their day in feed order, the rest follow in source order, never across days', () => {
+  const input = [
+    { video: 'ear-gate', date: '2026-10-10' }, { video: 'off-channel', date: '2026-10-10' },
+    { video: 'dominican', date: '2026-10-10' }, { video: 'feed-only-older', date: '2026-10-03' },
+  ];
+  const feed = ['feed-only-older', 'dominican', 'ear-gate'];
+  assert.deepEqual(orderTeachings(input, {}, NY, feed).map(r => r.video), ['dominican', 'ear-gate', 'off-channel', 'feed-only-older']);
+});
 test('invalid metadata cannot replace a class date or hide a class', () => {
   const rows = [{ video: 'one', date: day, pending: true }, { video: 'two', date: day }];
   assert.deepEqual(orderTeachings(rows, { one: { date: '2026-02-30', broadcastAt: 'bad' }, two: { date: day, broadcastAt: day } }), rows);

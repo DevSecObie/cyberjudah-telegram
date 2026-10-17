@@ -1,0 +1,1 @@
+- Give the welcome page separate Search and Ask panels; keep the daily scripture, saved-item counts and teaching shelves in the Home drawer.
