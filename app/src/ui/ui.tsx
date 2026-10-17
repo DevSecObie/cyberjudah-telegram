@@ -297,8 +297,9 @@ export function PageActions() {
 
 /**
  * iOS 26's large title: it stands large at the top of the page and, once the page scrolls under the
- * bar, shrinks to a standard title in the bar; back at the top it returns. The bar keeps the space
- * it gave up as a margin, so the page under it never jumps.
+ * bar, shrinks to a standard title in the bar; back at the top it returns. A margin makes up the
+ * difference in the bar's height either way (a short header can grow to the bar's touch height),
+ * so the page under it never moves while it scrolls.
  */
 function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
   const [compact, setCompact] = useState(false);
@@ -306,15 +307,30 @@ function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
   useEffect(() => {
     const el = head.current; if (!el) return;
     let frame = 0;
-    const check = () => { frame = 0; const main = el.parentElement; if (!main) return; const scrolled = -main.getBoundingClientRect().top; setCompact(c => c ? scrolled > 24 : scrolled > 56); };
+    const check = () => {
+      frame = 0; const main = el.parentElement; if (!main) return;
+      // The full bar is measured as it stands, just before it can shrink: fonts and wrapping can
+      // change its height after the page first lays out.
+      if (!el.hasAttribute("data-compact")) full.current = el.getBoundingClientRect().height;
+      const scrolled = -main.getBoundingClientRect().top;
+      setCompact(c => c ? scrolled > 24 : scrolled > 56);
+    };
     const onScroll = () => { if (!frame) frame = requestAnimationFrame(check); };
     addEventListener("scroll", onScroll, { capture: true, passive: true }); check();
     return () => { cancelAnimationFrame(frame); removeEventListener("scroll", onScroll, { capture: true }); };
   }, [head]);
   useLayoutEffect(() => {
     const el = head.current; if (!el) return;
-    if (!compact) { el.style.removeProperty("margin-bottom"); full.current = el.offsetHeight; return; }
-    el.style.marginBottom = `${Math.max(0, full.current - el.offsetHeight)}px`;
+    const fit = () => {
+      if (!el.hasAttribute("data-compact")) { el.style.removeProperty("margin-bottom"); full.current = el.getBoundingClientRect().height; return; }
+      el.style.marginBottom = `${full.current - el.getBoundingClientRect().height}px`;
+    };
+    fit();
+    // The bar can still settle after it changes (Firefox lays the compact bar out again a frame
+    // later): follow its size, before paint, for as long as it is shown.
+    const watch = new ResizeObserver(fit);
+    watch.observe(el);
+    return () => watch.disconnect();
   }, [compact, head]);
   return compact;
 }
