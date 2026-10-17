@@ -40,7 +40,7 @@ async function diagnose() {
       socket.addEventListener("error", () => { clearTimeout(timer); reject(new Error("Staging diagnostic stream unavailable.")); }, { once: true });
     });
     try {
-      await verifyRelease({ url: process.env.WORKER_URL, token: process.env.BOT_TOKEN, expectedModel: process.env.EXPECTED_SEARCH_MODEL,
+      await verifyRelease({ url: process.env.WORKER_URL, token: process.env.BOT_TOKEN, expectedModel: process.env.EXPECTED_SEARCH_MODEL, allowAnswerLimit: true,
         fetcher: (url, options) => fetch(url, { ...options, headers: { ...options.headers, "x-release-check": marker } }), log: message => annotate("notice", message) });
     } finally {
       await new Promise(resolve => setTimeout(resolve, 5000));

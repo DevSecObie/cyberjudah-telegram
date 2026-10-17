@@ -2,7 +2,7 @@ import { pathToFileURL } from "node:url";
 import { signInitData } from "../src/initdata.mjs";
 
 /** A bounded live check: no messages, content writes or paid reader balance. */
-export async function verifyRelease({ url, token, expectedModel, fetcher = fetch, log = console.log }) {
+export async function verifyRelease({ url, token, expectedModel, allowAnswerLimit = false, fetcher = fetch, log = console.log }) {
   if (!url || !token || !expectedModel) throw new Error("Set WORKER_URL, BOT_TOKEN and EXPECTED_SEARCH_MODEL for release verification.");
   const external = !expectedModel.startsWith("@cf/"), provider = external ? "Google" : "Cloudflare (Workers AI)";
   const origin = new URL(url).origin;
@@ -47,6 +47,9 @@ export async function verifyRelease({ url, token, expectedModel, fetcher = fetch
   if (response.status !== 200) {
     const body = await response.json().catch(() => ({}));
     const reason = ["free-paused", "limit", "unavailable", "empty"].includes(body.error) ? body.error : "unexpected-response";
+    // Staging shares one free daily allowance across every pull request it deploys; once spent,
+    // the answer cannot be checked until it resets. Production never allows this.
+    if (allowAnswerLimit && response.status === 429 && reason === "limit") { log("Search answer: not checked, this Worker's daily answer allowance is used up"); return; }
     throw new Error(`Search answer: HTTP ${response.status} (${reason}). Check the gateway funding, allowance and provider configuration.`);
   }
   const answer = await response.json();
@@ -63,7 +66,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   // Expose safe results as check annotations as well as logs, without launch data or answers.
   const annotation = (level, message) => process.env.GITHUB_ACTIONS
     ? `::${level}::${String(message).replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")}` : message;
-  verifyRelease({ url: process.env.WORKER_URL, token: process.env.BOT_TOKEN, expectedModel: process.env.EXPECTED_SEARCH_MODEL,
+  verifyRelease({ url: process.env.WORKER_URL, token: process.env.BOT_TOKEN, expectedModel: process.env.EXPECTED_SEARCH_MODEL, allowAnswerLimit: process.env.ALLOW_ANSWER_LIMIT === "true",
     log: message => console.log(annotation("notice", message)) })
     .catch(error => { console.error(annotation("error", error.message)); process.exitCode = 1; });
 }
