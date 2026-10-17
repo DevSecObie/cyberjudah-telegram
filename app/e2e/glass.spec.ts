@@ -669,6 +669,9 @@ test("large titles: the title shrinks into the bar under scroll and returns at t
   await page.goto(`/settings${LAUNCH}`);
   const head = page.locator(".screen > .head");
   await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+  // The full bar's height can change after the page first lays out (a web font arriving, as in
+  // Firefox); the bar must make up for the height it has when it shrinks, not the first one.
+  await page.addStyleTag({ content: ".screen > .head:not([data-compact]) .title { padding-block: 10px; }" });
   // Where the first thing under the bar sits in the document, and how tall the document is.
   const layout = () => page.evaluate(() => { const next = document.querySelector(".screen > .head")!.nextElementSibling!; return { at: next.getBoundingClientRect().top + scrollY, height: document.documentElement.scrollHeight }; });
   const before = await layout();

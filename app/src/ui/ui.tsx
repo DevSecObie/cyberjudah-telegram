@@ -307,14 +307,21 @@ function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
   useEffect(() => {
     const el = head.current; if (!el) return;
     let frame = 0;
-    const check = () => { frame = 0; const main = el.parentElement; if (!main) return; const scrolled = -main.getBoundingClientRect().top; setCompact(c => c ? scrolled > 24 : scrolled > 56); };
+    const check = () => {
+      frame = 0; const main = el.parentElement; if (!main) return;
+      // The full bar is measured as it stands, just before it can shrink: fonts and wrapping can
+      // change its height after the page first lays out.
+      if (!el.hasAttribute("data-compact")) full.current = el.getBoundingClientRect().height;
+      const scrolled = -main.getBoundingClientRect().top;
+      setCompact(c => c ? scrolled > 24 : scrolled > 56);
+    };
     const onScroll = () => { if (!frame) frame = requestAnimationFrame(check); };
     addEventListener("scroll", onScroll, { capture: true, passive: true }); check();
     return () => { cancelAnimationFrame(frame); removeEventListener("scroll", onScroll, { capture: true }); };
   }, [head]);
   useLayoutEffect(() => {
     const el = head.current; if (!el) return;
-    if (!compact) { el.style.removeProperty("margin-bottom"); full.current = el.getBoundingClientRect().height; return; }
+    if (!compact) { el.style.removeProperty("margin-bottom"); return; }
     el.style.marginBottom = `${full.current - el.getBoundingClientRect().height}px`;
   }, [compact, head]);
   return compact;
