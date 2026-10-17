@@ -549,3 +549,17 @@ test("a saved mark takes tags and relations from the card, with their counts, as
   await expect(page.getByText("beginning", { exact: true })).toBeVisible();
   await expect(page.getByText("No precepts yet", { exact: true })).toBeVisible();
 });
+
+test("a tap on the verse sheet's grabber does nothing, even just above the colours", async ({ page }) => {
+  await open(page);
+  await page.locator("#verset-1 .bs-num").tap();
+  const sheet = page.getByRole("dialog", { name: /^Selected:/ });
+  await expect(sheet).toBeVisible();
+  const grab = (await sheet.locator(".bs-sheet__grab").boundingBox())!;
+  for (const dy of [2, 6, 10, 14]) {
+    await page.touchscreen.tap(grab.x + grab.width / 2, grab.y + Math.min(dy, grab.height - 1));
+    await page.waitForTimeout(300);
+    await expect(sheet).toBeVisible();
+    await expect(sheet.locator('.bs-colors__cell[aria-pressed="true"]')).toHaveCount(0);
+  }
+});
