@@ -182,6 +182,32 @@ test("book picker long press opens the chapter in a new tab, as Bible Strong's w
   await expect(page.locator(".bs-picker")).toHaveCount(0);
 });
 
+test("Go to verse never collapses the header, even when the jump's scroll lands after its settle time", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await page.waitForTimeout(800);
+  await page.evaluate(() => {
+    // The jump's 400 ms settle runs out before the browser hands over the jump's scroll event, as
+    // WebKit's can: here the settle ends as soon as it starts.
+    const later = window.setTimeout.bind(window);
+    window.setTimeout = ((fn: TimerHandler, ms?: number, ...rest: unknown[]) => {
+      if (ms === 400 && typeof fn === "function") { queueMicrotask(() => fn()); return 0; }
+      return later(fn, ms, ...rest);
+    }) as typeof window.setTimeout;
+    // A collapse the clamp at the chapter's end undoes a frame later still counts.
+    new MutationObserver(() => { if (document.querySelector(".bs-header__summary")) document.documentElement.dataset.collapsed = ""; }).observe(document.body, { childList: true, subtree: true });
+  });
+  await page.keyboard.press("v");
+  const dialog = page.getByRole("dialog", { name: "Go to verse" });
+  await dialog.getByRole("textbox", { name: "Verse" }).fill("28");
+  await dialog.getByRole("button", { name: "Go" }).click();
+  await expect(page.locator("#verset-28")).toBeInViewport();
+  await page.waitForTimeout(300);
+  await expect(page.locator("html")).not.toHaveAttribute("data-collapsed");
+  await expect(page.locator(".bs-pill--book")).toBeVisible();
+});
+
 test("reader v opens Go to verse and jumps to a valid verse, as Bible Strong's web reader does", async ({ page }) => {
   await page.goto("/read/genesis/1");
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
@@ -199,6 +225,26 @@ test("reader v opens Go to verse and jumps to a valid verse, as Bible Strong's w
   await page.locator(".bs-pill--book").click();
   await page.getByRole("textbox", { name: "Search books" }).press("v");
   await expect(page.getByRole("dialog", { name: "Go to verse" })).toHaveCount(0);
+});
+
+test("reader keeps the current chapter on screen until the next one arrives, as Bible Strong's keepPreviousData", async ({ page }) => {
+  let release!: () => void;
+  const held = new Promise<void>(done => { release = done; });
+  await page.route(`${DATA}/api/kjv/john/*.json`, async r => {
+    const n = +/(\d+)\.json/.exec(r.request().url())![1];
+    if (n === 2) await held;
+    await r.fulfill({ json: { book: "john", chapter: n, translation: "KJV", verses: [{ verse: 1, text: `John chapter ${n} first verse.` }, { verse: 2, text: `John chapter ${n} second verse.` }] } });
+  });
+  await page.goto("/read/john/1");
+  await expect(page.locator("#verset-1 .bs-text")).toHaveText("John chapter 1 first verse.");
+  await page.click('.bs-chapterbtn[aria-label="Next chapter"]');
+  await expect(page).toHaveURL(/\/read\/john\/2$/);
+  // While John 2 loads, John 1 stays up and the arrows wait.
+  await expect(page.locator(".bs-chapterbtn[aria-label='Next chapter']")).toBeDisabled();
+  await expect(page.locator("#verset-1 .bs-text")).toHaveText("John chapter 1 first verse.");
+  release();
+  await expect(page.locator("#verset-1 .bs-text")).toHaveText("John chapter 2 first verse.");
+  await expect(page.locator(".bs-chapterbtn[aria-label='Next chapter']")).toBeEnabled();
 });
 
 test("reader press preference still swaps resources and verse selection", async ({ page }) => {
