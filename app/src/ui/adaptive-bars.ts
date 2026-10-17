@@ -16,10 +16,12 @@ function luminance(color: string): number | null {
   return .2126 * r + .7152 * g + .0722 * b;
 }
 
-/** The luminance of the first opaque content under a point, or null over media or nothing. */
+/** The luminance of the first opaque content under a point, or null over media or nothing. The
+ * overlays above the content take no hits while sampling (html[data-bar-sampling]), so a single
+ * hit test lands on the content itself; this never measures words. */
 function under(x: number, y: number): number | null {
-  for (const el of document.elementsFromPoint(x, y)) {
-    if (el.closest(SKIP)) continue;
+  for (let el = document.elementFromPoint(x, y); el && el !== document.documentElement; el = el.parentElement) {
+    if (el.closest(SKIP)) return null;
     if (el instanceof HTMLImageElement || el instanceof HTMLVideoElement || el instanceof HTMLCanvasElement || el instanceof HTMLIFrameElement) return null;
     const l = luminance(getComputedStyle(el).backgroundColor);
     if (l !== null) return l;
@@ -33,7 +35,10 @@ function update() {
     const r = bar.getBoundingClientRect();
     if (!r.width) continue;
     const y = r.top + r.height / 2;
+    const root = document.documentElement;
+    root.setAttribute("data-bar-sampling", "");
     const samples = [.2, .5, .8].map(f => under(r.left + r.width * f, y)).filter((l): l is number => l !== null);
+    root.removeAttribute("data-bar-sampling");
     const l = samples.length ? samples.reduce((a, b) => a + b, 0) / samples.length : null;
     const over = l === null ? null : dark && l > .45 ? "light" : !dark && l < .08 ? "dark" : null;
     if (over) bar.dataset.over = over; else delete bar.dataset.over;
