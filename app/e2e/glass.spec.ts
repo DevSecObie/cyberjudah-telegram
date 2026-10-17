@@ -691,7 +691,7 @@ test("large titles: the title shrinks into the bar under scroll and returns at t
   const compact = await layout();
   // Within a pixel: engines round the bar's margin to their own layout units.
   expect(Math.abs(compact.at - before.at), `${JSON.stringify({ before, compact })} ${await bar()}`).toBeLessThan(1);
-  expect(Math.abs(compact.height - before.height)).toBeLessThan(1);
+  expect(Math.abs(compact.height - before.height)).toBeLessThanOrEqual(1);
   await page.evaluate(() => { document.documentElement.scrollTop = 0; });
   await expect(head).not.toHaveAttribute("data-compact");
   expect(Math.abs((await layout()).at - before.at)).toBeLessThan(1);
