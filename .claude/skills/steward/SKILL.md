@@ -38,6 +38,7 @@ On a push to main, `deploy` runs the same browser checks, then waits for the own
 ## Known causes that are not the PR's code
 
 - **`stage` fails with `Search answer: HTTP 429 (limit)`.** The release check signs in as one synthetic reader (id 1). That reader's 20 search answers per UTC day (`SEARCH_AI_DAILY_LIMIT`) run out after many staging runs, and reset at 00:00 UTC. `SEARCH_AI_QUOTA_EXEMPT` on staging removes this once it is merged (PR #274). It is not the AI provider's limit.
+- **`stage` fails with `HTTP 429 (free-paused)`.** Staging's shared daily free-answer budget (`ASK_FREE_DAILY_USD_CAP`) is spent. With PR #274, `stage.yml` sets `ALLOW_FREE_PAUSED=1`, so this becomes a notice. Never raise the cap or get around it without the owner: it limits real spending.
 - **`playwright` red with every engine green or cancelled:** a newer push superseded the run. Wait for the run on the new head.
 - **`bot/tests/privacy-migrate.test.mjs`, "the subscription is sealed at rest":** the test looks for the text `333` inside random ciphertext, which occasionally contains it. It is a real flake with a known cause. Don't count it against a PR; propose the fix (check for `"chatId"` instead) in its own PR.
 
