@@ -56,6 +56,7 @@ export function Chapter(p: ChapterProps) {
   const [touched, setTouched] = useState<string | null>(null);
   const [returnPos, setReturnPos] = useState<"top" | "bottom" | null>(null);
   const suppressRef = useRef(false);
+  const jumpRef = useRef<number | null>(null);
   const selectedMode = p.selected.length > 0;
   const hasVerses = p.verses.length > 0;
   const isContextFocused = p.contextDisplayMode === "focused";
@@ -197,9 +198,11 @@ export function Chapter(p: ChapterProps) {
       const velocity = Math.abs(dy / Math.max(dt, 1)); const total = el.scrollHeight - el.clientHeight;
       if (top < 0 || top > total) { if (!reached) p.onFullscreen(false); reached = true; return; }
       reached = false;
-      // A gesture scrolls every frame. One move after a pause is a jump (a verse, a restored place),
-      // which has no velocity of its own, as React Native reports none for a programmatic scroll.
-      if (dt > 100) { lastTop = top; lastTime = now; return; }
+      // The reader's own jump to a verse has no velocity, as React Native reports none for a
+      // programmatic scroll, even when its scroll event arrives after the jump's settle time.
+      const landed = jumpRef.current !== null && Math.abs(top - jumpRef.current) < 2;
+      jumpRef.current = null;
+      if (landed) { lastTop = top; lastTime = now; return; }
       if (velocity * 1000 > 400 && !suppressRef.current) {
         if (dy > 0 && canDown) { p.onFullscreen(true); canDown = false; canUp = true; }
         else if (dy < 0 && canUp) { p.onFullscreen(false); canUp = false; canDown = true; }
@@ -218,7 +221,7 @@ export function Chapter(p: ChapterProps) {
     if (!scrollTarget || !hasVerses || scrollTarget === 1) return;
     requestAnimationFrame(() => {
       const el = scrollRef.current?.querySelector<HTMLElement>(`#verset-${scrollTarget}`); const sc = scrollRef.current;
-      if (el && sc) { suppressRef.current = true; sc.scrollTo({ top: sc.scrollTop + el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 100 }); setTimeout(() => { suppressRef.current = false; }, 400); }
+      if (el && sc) { suppressRef.current = true; const top = Math.max(0, Math.min(sc.scrollHeight - sc.clientHeight, sc.scrollTop + el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 100)); jumpRef.current = Math.abs(top - sc.scrollTop) < 2 ? null : top; sc.scrollTo({ top }); setTimeout(() => { suppressRef.current = false; }, 400); }
     });
   }, [scrollTarget, hasVerses, p.contextDisplayMode, focus?.join(","), p.navigationRequest]); // eslint-disable-line react-hooks/exhaustive-deps
 

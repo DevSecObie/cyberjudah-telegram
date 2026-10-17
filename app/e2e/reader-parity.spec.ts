@@ -182,16 +182,30 @@ test("book picker long press opens the chapter in a new tab, as Bible Strong's w
   await expect(page.locator(".bs-picker")).toHaveCount(0);
 });
 
-test("one jump after a pause keeps the header open; only a gesture's speed collapses it", async ({ page }) => {
+test("Go to verse never collapses the header, even when the jump's scroll lands after its settle time", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/read/genesis/1");
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
-  // Past the reader's settle time, so nothing suppresses the scroll: the jump itself must not read as a swipe.
-  await page.waitForTimeout(1500);
-  await page.locator(".bs-scroll").evaluate(el => { el.scrollTop = 500; });
+  await page.waitForTimeout(800);
+  await page.evaluate(() => {
+    // The jump's 400 ms settle runs out before the browser hands over the jump's scroll event, as
+    // WebKit's can: here the settle ends as soon as it starts.
+    const later = window.setTimeout.bind(window);
+    window.setTimeout = ((fn: TimerHandler, ms?: number, ...rest: unknown[]) => {
+      if (ms === 400 && typeof fn === "function") { queueMicrotask(() => fn()); return 0; }
+      return later(fn, ms, ...rest);
+    }) as typeof window.setTimeout;
+    // A collapse the clamp at the chapter's end undoes a frame later still counts.
+    new MutationObserver(() => { if (document.querySelector(".bs-header__summary")) document.documentElement.dataset.collapsed = ""; }).observe(document.body, { childList: true, subtree: true });
+  });
+  await page.keyboard.press("v");
+  const dialog = page.getByRole("dialog", { name: "Go to verse" });
+  await dialog.getByRole("textbox", { name: "Verse" }).fill("28");
+  await dialog.getByRole("button", { name: "Go" }).click();
+  await expect(page.locator("#verset-28")).toBeInViewport();
   await page.waitForTimeout(300);
+  await expect(page.locator("html")).not.toHaveAttribute("data-collapsed");
   await expect(page.locator(".bs-pill--book")).toBeVisible();
-  await page.locator(".bs-scroll").evaluate(async el => { for (const top of [540, 620, 1000]) { el.scrollTop = top; await new Promise(r => setTimeout(r, 30)); } });
-  await expect(page.locator(".bs-header__summary")).toBeVisible();
 });
 
 test("reader v opens Go to verse and jumps to a valid verse, as Bible Strong's web reader does", async ({ page }) => {
