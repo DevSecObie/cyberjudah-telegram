@@ -29,7 +29,9 @@ searchAnswers.get("/", async (c) => {
   const hit = await cache.match(key.toString()).catch(() => undefined);
   if (hit) return new Response(hit.body, { headers: { "content-type": "application/json", "cache-control": "private, no-store" } });
   const limit = Math.max(1, Math.floor(Number(c.env.SEARCH_AI_DAILY_LIMIT ?? 20)));
-  if (!isAdmin(c.env, uid) && !(await takeQuota(c.env, "search_ai", uid, limit))) return c.json({ ok: false, error: "limit" }, 429);
+  // Staging lists the release check's synthetic reader here, so repeated release checks don't spend its daily allowance.
+  const exempt = (c.env.SEARCH_AI_QUOTA_EXEMPT ?? "").split(",").map((s) => s.trim()).includes(String(uid));
+  if (!exempt && !isAdmin(c.env, uid) && !(await takeQuota(c.env, "search_ai", uid, limit))) return c.json({ ok: false, error: "limit" }, 429);
   const r = await answerSearch(c.env, q, uid, consent);
   if (!r.ok) return c.json({ ok: false, error: r.reason }, r.reason === "too-short" ? 400 : r.reason === "consent" ? 428 : r.reason === "free-paused" ? 429 : 503);
   const res = c.json(r);
