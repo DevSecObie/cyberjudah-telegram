@@ -21,6 +21,10 @@ export type Env = {
   /** Server-only signing credential for the existing Telegram account. */
   FIREBASE_SERVICE_ACCOUNT?: string;
   FIREBASE_AUTH_LIMIT?: RateLimit;
+  /** End-to-end tests only: a loopback Firestore emulator (127.0.0.1:…, app/firebase/firebase.json), read
+   * and written by mydata.ts's account-sync export and deletion instead of real Firestore. Ignored unless
+   * loopback. */
+  FIRESTORE_EMULATOR_HOST?: string;
   /** Telegram OIDC website login; register the exact HTTPS callback with BotFather. */
   TELEGRAM_LOGIN_CLIENT_ID?: string;
   TELEGRAM_LOGIN_CLIENT_SECRET?: string;

@@ -38,7 +38,11 @@ jobs:
           git checkout -B "$BRANCH"
           git add shared/holy-days.json
           git commit -m "Holy days: update from the IUIC calendar"
-          git push --force-with-lease origin "$BRANCH"
+          # The lease names the branch's last proposal as read from GitHub: the checkout holds only
+          # main, so a bare --force-with-lease has nothing to compare and every run after the first
+          # was rejected as stale. Empty when the branch is new; a change made since is not overwritten.
+          EXPECTED=$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)
+          git push --force-with-lease="refs/heads/$BRANCH:$EXPECTED" origin "$BRANCH"
           {
             echo "The weekly read of the IUIC calendar (https://israelunite.org/high-holy-days/calendar/) found these changes to the days Ask CyberJudah pauses top-ups (shared/holy-days.json):"
             echo

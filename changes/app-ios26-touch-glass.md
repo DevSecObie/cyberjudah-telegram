@@ -1,0 +1,2 @@
+- Glass lights up under your finger, as on iOS 26: the tab bar, header bars and their buttons, menus, sheets and floating buttons. The light follows the finger and fades when it lifts; it is off with Reduce Transparency or Increase Contrast.
+- Glass buttons in header bars and the floating page actions swell slightly while pressed and spring back with a small bounce.

@@ -20,11 +20,39 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
+      # The suite runs at the Worker's root (the app is served at both / and /app/ there), so it
+      # needs the workers.dev address, not cyberjudah.io. Without an address Playwright starts a
+      # local Worker with empty storage instead, and the "production" check tests nothing real.
+      - name: Resolve the production worker address
+        id: address
+        env:
+          WORKER_URL: ${{ vars.WORKER_URL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, urllib.request
+          url = os.environ.get('WORKER_URL', '').strip().rstrip('/')
+          if not url:
+              account = os.environ['CLOUDFLARE_ACCOUNT_ID']
+              req = urllib.request.Request(f'https://api.cloudflare.com/client/v4/accounts/{account}/workers/subdomain', headers={'Authorization': 'Bearer ' + os.environ['CLOUDFLARE_API_TOKEN']})
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  result = json.load(response)
+              subdomain = result.get('result', {}).get('subdomain', '')
+              if not result.get('success') or not re.fullmatch(r'[a-z0-9-]+', subdomain):
+                  raise SystemExit('Could not resolve the production Worker address.')
+              url = f'https://cyberjudah-telegram.{subdomain}.workers.dev'
+          if not url.startswith('https://'):
+              raise SystemExit(f'Refusing to run the live suite against {url!r}.')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'url={url}\n')
+          print('Production:', url)
+          PY
       - name: Exercise production user journeys
         run: npm run test:e2e --workspace app -- --project=chromium
         env:
           RUN_LIVE_E2E: "1"
-          PLAYWRIGHT_BASE_URL: ${{ vars.WORKER_URL }}
+          PLAYWRIGHT_BASE_URL: ${{ steps.address.outputs.url }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
       - name: Upload Playwright traces
         if: always()

@@ -1,0 +1,1 @@
+- The weekly holy-days check proposes a change only when a coming feast day or New Moon changes, and no longer fails when its last proposal is still open.

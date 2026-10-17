@@ -35,6 +35,11 @@ test("hashed build assets are cached as immutable, and nothing else is", () => {
     // Workers Static Assets reads _headers at the root only: one rule per path, then its headers.
     const rules = readFileSync(join(root, ".deploy/_headers"), "utf8").split(/\n(?=\S)/).map((r) => r.trim().split("\n"));
     assert.deepEqual(rules.filter((r) => r.some((h) => /immutable/.test(h))).map((r) => r[0]), ["/assets/*", "/app/assets/*"]);
-    assert.equal(rules.length, 2);
+    assert.equal(rules.length, 3);
+    // Every response also carries the security headers, framing allowed only for the site and Telegram's web clients.
+    const all = rules.find((r) => r[0] === "/*");
+    assert.ok(all.includes("  X-Content-Type-Options: nosniff"));
+    assert.ok(all.includes("  Content-Security-Policy: frame-ancestors 'self' https://web.telegram.org https://*.telegram.org"));
+    assert.ok(!all.some((h) => /X-Frame-Options/i.test(h)), "X-Frame-Options would block Telegram Web");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

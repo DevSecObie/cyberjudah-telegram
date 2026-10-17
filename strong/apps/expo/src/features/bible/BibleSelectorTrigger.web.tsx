@@ -164,12 +164,13 @@ export function useBookPanelScreens({
         content: nav => (
           <>
             {[...books]
-              .sort((a, b) => (sort === 'alphabetical' ? a.Nom.localeCompare(b.Nom) : 0))
-              .filter(item => item.Nom.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
+              // CyberJudah: the names in the reader's language, as the native book selector shows them (BookItem).
+              .sort((a, b) => (sort === 'alphabetical' ? t(a.Nom).localeCompare(t(b.Nom)) : 0))
+              .filter(item => t(item.Nom).toLocaleLowerCase().includes(query.toLocaleLowerCase()))
               .map(item => (
                 <PanelAction
                   key={item.Numero}
-                  label={item.Nom}
+                  label={t(item.Nom)}
                   nested
                   onPress={() => {
                     setBook(item)
@@ -181,7 +182,7 @@ export function useBookPanelScreens({
         ),
       },
       chapters: {
-        title: book.Nom,
+        title: t(book.Nom),
         content: nav => (
           <Box
             testID="bible-selector-number-grid"
@@ -214,7 +215,7 @@ export function useBookPanelScreens({
         ),
       },
       verses: {
-        title: book.Nom + ' ' + chapter,
+        title: t(book.Nom) + ' ' + chapter,
         content: nav => (
           <Box
             testID="bible-selector-number-grid"

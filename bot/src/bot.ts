@@ -149,7 +149,7 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
   bot.command("deletemydata", async (ctx) => {
     if (ctx.chat.type !== "private" || !ctx.from) return ctx.reply("Send /deletemydata in a private chat with me.");
     const token = await deletionToken(env, ctx.from.id);
-    await ctx.reply("This deletes everything CyberJudah keeps about you: your saved Ask chats, your reading reminder, the daily verse, your Ask allowance (any Stars credit or plan left is lost) and your class-note requests. It cannot be undone. Your highlights and notes on your device are not touched.", {
+    await ctx.reply("This deletes everything CyberJudah keeps about you: your saved Ask chats, reading reminder, daily verse, Ask balance (any balance left is lost), top-up reminder, class-note requests, cloud study backup, synced highlights, notes and studies (if account sync is on) and browser sign-ins. It cannot be undone. Highlights, notes and studies kept only on your device are not touched.", {
       reply_markup: new InlineKeyboard().text("Delete everything", `privacydel:${token}`).text("Cancel", "privacydel:no"),
     });
   });
@@ -335,6 +335,7 @@ export function deletedSummary(d: Deleted): string {
     d.classNoteRequests ? `${d.classNoteRequests} class-note ${d.classNoteRequests === 1 ? "request" : "requests"}` : "",
     `your Ask balance${d.askBalanceUsd ? ` (${fmtUsd(Math.round(d.askBalanceUsd * 1e6), { floor: true })})` : ""}`,
     d.topupReminder ? "your top-up reminder" : "",
+    d.accountSyncRecords ? `${d.accountSyncRecords} synced reading ${d.accountSyncRecords === 1 ? "mark" : "marks"}` : "",
   ].filter(Boolean);
-  return `Done. Deleted: ${parts.join(", ")}. Payment records keep only Telegram's charge reference, not who paid.`;
+  return `Done. Deleted: ${parts.join(", ")}, any cloud study backup, and your browser sign-ins. Payment records keep only Telegram's charge reference, not who paid.`;
 }

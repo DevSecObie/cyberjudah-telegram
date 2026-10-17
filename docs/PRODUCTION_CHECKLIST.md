@@ -31,6 +31,7 @@ Repository secrets (production deploys fail by name without the first four):
 | `ANTHROPIC_API_KEY` | Optional: Ask CyberJudah answers with Claude when set, Llama 3.3 70B otherwise |
 | `CYBERJUDAH_TOKEN` | Optional: a fine-grained GitHub token (contents write on `DevSecObie/cyberjudah`) — enables in-app note edits |
 | `ADMIN_IDS` | Optional: comma-separated Telegram user ids that can edit notes and receive health pages |
+| `FIREBASE_SERVICE_ACCOUNT` | Required once account sync is turned on for production builds (`VITE_ACCOUNT_SYNC`, below): the Firebase service account JSON the Worker signs Firestore access with (`bot/src/firebase-auth.ts`, `bot/src/firestore-admin.ts`). `deploy.yml` runs `wrangler secret list` before deploying and refuses the run — the Worker is not deployed — if `VITE_ACCOUNT_SYNC` is on and this secret is absent, so no reader signs in to a Worker that cannot verify them |
 
 Repository variables:
 
@@ -39,9 +40,26 @@ Repository variables:
 | `TELEGRAM_APP_URL` | The production Mini App URL, baked into the app build |
 | `WORKER_URL` | Optional: override for the worker's public URL |
 
+Build-time flags set directly in `deploy.yml` (not repository secrets or variables, so there is
+nothing to add in GitHub's Settings for these two):
+
+- `VITE_ACCOUNT_SYNC` — bakes account sync (cross-device highlights, notes, bookmarks and
+  personal studies through Firebase) into the production app build. Flip it off in `deploy.yml`
+  to ship without account sync; flip it on only once `FIREBASE_SERVICE_ACCOUNT` is set, or the
+  `wrangler secret list` check above stops the deploy.
+- `VERIFY_ACCOUNT_SYNC` — tells the post-deploy smoke test (`bot/scripts/verify-release.mjs`) to
+  also check the Firebase identity bridge (`POST /api/firebase/token` mints a real custom token
+  for a synthetic reader); on only when `VITE_ACCOUNT_SYNC` is on.
+
 Do **not** set `ADMIN_IDS` on the staging worker — staging's hourly self-check would page
 you about staging's own (expected) differences. Staging keeps its own `health:state` in its
 own KV namespace.
+
+- [ ] **Before turning on `VITE_ACCOUNT_SYNC` in production:** restrict the Firebase web API
+      key (`app/src/sync/account.ts`) to the app's own origins, in the Google Cloud console
+      (APIs & Services → Credentials → the key → Application restrictions → HTTP referrers).
+      The key is public in the client bundle by design (Firebase's own model); restricting it
+      to CyberJudah's origins is what keeps another site from billing requests against it.
 
 ## 3. Branch and environment protection
 

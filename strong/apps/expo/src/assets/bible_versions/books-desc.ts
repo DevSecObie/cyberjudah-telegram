@@ -226,67 +226,82 @@ export const sections = [
     ],
   },
   {
-    title: 'Livres deutérocanoniques',
+    title: 'Apocryphes',
     data: [
       {
         Numero: 67,
-        Nom: 'Tobie',
-        Chapitres: 14,
-      },
-      {
-        Numero: 68,
-        Nom: 'Judith',
-        Chapitres: 16,
-      },
-      {
-        Numero: 69,
-        Nom: 'Sagesse',
-        Chapitres: 19,
-      },
-      {
-        Numero: 70,
-        Nom: 'Siracide',
-        Chapitres: 51,
-      },
-      {
-        Numero: 71,
-        Nom: 'Baruch',
-        Chapitres: 6,
-      },
-      {
-        Numero: 72,
-        Nom: '1 Maccabées',
-        Chapitres: 16,
-      },
-      {
-        Numero: 73,
-        Nom: '2 Maccabées',
-        Chapitres: 15,
-      },
-    ],
-  },
-  {
-    title: 'Autres livres de la Septante',
-    data: [
-      {
-        Numero: 74,
         Nom: '1 Esdras',
         Chapitres: 9,
       },
       {
-        Numero: 75,
-        Nom: '3 Maccabées',
+        Numero: 68,
+        Nom: '2 Esdras',
+        Chapitres: 16,
+      },
+      {
+        Numero: 69,
+        Nom: 'Tobit',
+        Chapitres: 14,
+      },
+      {
+        Numero: 70,
+        Nom: 'Judith',
+        Chapitres: 16,
+      },
+      {
+        Numero: 71,
+        Nom: 'Rest of Esther',
         Chapitres: 7,
       },
       {
+        Numero: 72,
+        Nom: 'Wisdom of Solomon',
+        Chapitres: 19,
+      },
+      {
+        Numero: 73,
+        Nom: 'Ecclesiasticus',
+        Chapitres: 51,
+      },
+      {
+        Numero: 74,
+        Nom: 'Baruch',
+        Chapitres: 5,
+      },
+      {
+        Numero: 75,
+        Nom: 'Epistle of Jeremiah',
+        Chapitres: 1,
+      },
+      {
         Numero: 76,
-        Nom: '4 Maccabées',
-        Chapitres: 18,
+        Nom: 'Song of the Three Holy Children',
+        Chapitres: 1,
       },
       {
         Numero: 77,
-        Nom: 'Psaumes de Salomon',
-        Chapitres: 18,
+        Nom: 'History of Susanna',
+        Chapitres: 1,
+      },
+      {
+        Numero: 78,
+        Nom: 'Bel and the Dragon',
+        Chapitres: 1,
+      },
+      {
+        Numero: 79,
+        Nom: 'Prayer of Manasses',
+        Chapitres: 1,
+      },
+      {
+        Numero: 80,
+        Nom: '1 Maccabees',
+        Chapitres: 16,
+      },
+      {
+        Numero: 81,
+        Nom: '2 Maccabees',
+        Chapitres: 15,
       },
     ],
   },
@@ -785,58 +800,78 @@ const books = [
   },
   {
     Numero: 67,
-    Nom: 'Tobie',
-    Chapitres: 14,
-  },
-  {
-    Numero: 68,
-    Nom: 'Judith',
-    Chapitres: 16,
-  },
-  {
-    Numero: 69,
-    Nom: 'Sagesse',
-    Chapitres: 19,
-  },
-  {
-    Numero: 70,
-    Nom: 'Siracide',
-    Chapitres: 51,
-  },
-  {
-    Numero: 71,
-    Nom: 'Baruch',
-    Chapitres: 6,
-  },
-  {
-    Numero: 72,
-    Nom: '1 Maccabées',
-    Chapitres: 16,
-  },
-  {
-    Numero: 73,
-    Nom: '2 Maccabées',
-    Chapitres: 15,
-  },
-  {
-    Numero: 74,
     Nom: '1 Esdras',
     Chapitres: 9,
   },
   {
-    Numero: 75,
-    Nom: '3 Maccabées',
+    Numero: 68,
+    Nom: '2 Esdras',
+    Chapitres: 16,
+  },
+  {
+    Numero: 69,
+    Nom: 'Tobit',
+    Chapitres: 14,
+  },
+  {
+    Numero: 70,
+    Nom: 'Judith',
+    Chapitres: 16,
+  },
+  {
+    Numero: 71,
+    Nom: 'Rest of Esther',
     Chapitres: 7,
   },
   {
+    Numero: 72,
+    Nom: 'Wisdom of Solomon',
+    Chapitres: 19,
+  },
+  {
+    Numero: 73,
+    Nom: 'Ecclesiasticus',
+    Chapitres: 51,
+  },
+  {
+    Numero: 74,
+    Nom: 'Baruch',
+    Chapitres: 5,
+  },
+  {
+    Numero: 75,
+    Nom: 'Epistle of Jeremiah',
+    Chapitres: 1,
+  },
+  {
     Numero: 76,
-    Nom: '4 Maccabées',
-    Chapitres: 18,
+    Nom: 'Song of the Three Holy Children',
+    Chapitres: 1,
   },
   {
     Numero: 77,
-    Nom: 'Psaumes de Salomon',
-    Chapitres: 18,
+    Nom: 'History of Susanna',
+    Chapitres: 1,
+  },
+  {
+    Numero: 78,
+    Nom: 'Bel and the Dragon',
+    Chapitres: 1,
+  },
+  {
+    Numero: 79,
+    Nom: 'Prayer of Manasses',
+    Chapitres: 1,
+  },
+  {
+    Numero: 80,
+    Nom: '1 Maccabees',
+    Chapitres: 16,
+  },
+  {
+    Numero: 81,
+    Nom: '2 Maccabees',
+    Chapitres: 15,
   },
 ] as const
 

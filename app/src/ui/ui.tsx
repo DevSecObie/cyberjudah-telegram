@@ -1,4 +1,4 @@
-import { Children, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
+import { Children, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
 
@@ -183,6 +183,8 @@ export function TabBar() {
   useBarScroll(pathname);
   // Ask keeps the full bar: its composer sits on it, as a chat app keeps its input in place.
   const mini = useBarMini() && !drawer && pathname !== "/ask";
+  // The audio player sits beside a minimized bar, as iOS 26's bottom accessory does (materials.css).
+  useEffect(() => { document.documentElement.toggleAttribute("data-dock-mini", mini); return () => document.documentElement.removeAttribute("data-dock-mini"); }, [mini]);
   const bar = useRef<HTMLElement>(null);
   useEffect(() => {
     const nav = bar.current; if (!nav) return;
@@ -293,10 +295,52 @@ export function PageActions() {
   return <div className="pageactions" role="toolbar" aria-label="Actions">{secondary ? button(secondary, true) : null}{main ? button(main, false) : null}</div>;
 }
 
+/**
+ * iOS 26's large title: it stands large at the top of the page and, once the page scrolls under the
+ * bar, shrinks to a standard title in the bar; back at the top it returns. A margin makes up the
+ * difference in the bar's height either way (a short header can grow to the bar's touch height),
+ * so the page under it never moves while it scrolls.
+ */
+function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
+  const [compact, setCompact] = useState(false);
+  const full = useRef(0);
+  useEffect(() => {
+    const el = head.current; if (!el) return;
+    let frame = 0;
+    const check = () => {
+      frame = 0; const main = el.parentElement; if (!main) return;
+      // The full bar is measured as it stands, just before it can shrink: fonts and wrapping can
+      // change its height after the page first lays out.
+      if (!el.hasAttribute("data-compact")) full.current = el.getBoundingClientRect().height;
+      const scrolled = -main.getBoundingClientRect().top;
+      setCompact(c => c ? scrolled > 24 : scrolled > 56);
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(check); };
+    addEventListener("scroll", onScroll, { capture: true, passive: true }); check();
+    return () => { cancelAnimationFrame(frame); removeEventListener("scroll", onScroll, { capture: true }); };
+  }, [head]);
+  useLayoutEffect(() => {
+    const el = head.current; if (!el) return;
+    const fit = () => {
+      if (!el.hasAttribute("data-compact")) { el.style.removeProperty("margin-bottom"); full.current = el.getBoundingClientRect().height; return; }
+      el.style.marginBottom = `${full.current - el.getBoundingClientRect().height}px`;
+    };
+    fit();
+    // The bar can still settle after it changes (Firefox lays the compact bar out again a frame
+    // later): follow its size, before paint, for as long as it is shown.
+    const watch = new ResizeObserver(fit);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [compact, head]);
+  return compact;
+}
+
 export function Screen({ title, kicker, action, children, className }: { title?: ReactNode; kicker?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
+  const head = useRef<HTMLElement>(null);
+  const compact = useLargeTitle(head);
   return (
     <main className={`screen${className ? ` ${className}` : ""}`}>
-      {title ? <header className="head"><div>{kicker ? <p className="kicker">{kicker}</p> : null}<h1 className="title">{title}</h1></div>{action}</header> : null}
+      {title ? <header ref={head} className="head" data-compact={compact ? "" : undefined}><div>{kicker ? <p className="kicker">{kicker}</p> : null}<h1 className="title">{title}</h1></div>{action}</header> : null}
       {children}
     </main>
   );

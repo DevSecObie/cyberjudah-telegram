@@ -59,6 +59,7 @@ import { getCommentaryBibleViewRoute } from '~features/commentaries/commentaryRe
 import { createStrongDetailRoute } from '~features/lexique/strongDetailRoutes'
 import { findDirectoryItemForArticle } from './dictionaryExperience'
 import { createDictionaryInternalLinkRoute } from './dictionaryInternalNavigation'
+import { CYBERJUDAH_SITE_URL } from '~helpers/cyberjudahLinks'
 interface DictionaryDetailScreenProps {
   dictionaryAtom: PrimitiveAtom<DictionaryTab>
   isFormSheet?: boolean
@@ -325,7 +326,7 @@ const DictionnaryDetailScreen = ({
         .text.replace(/&#/g, '\\')
         .replace(/\\x([0-9A-F]+);/gi, (_, hex: string) => {
           return String.fromCharCode(parseInt(hex, 16))
-        })} \n\nLa suite sur https://bible-strong.app`
+        })} \n\n${CYBERJUDAH_SITE_URL}`
       Share.share({ message })
     } catch (e) {
       toast.error('Erreur lors du partage.')

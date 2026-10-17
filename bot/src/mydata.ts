@@ -8,6 +8,7 @@ import { forgetReminder, loadReminder, tgRid } from "./remind";
 import { publicView } from "./reminders.mjs";
 import { open, pid, seal } from "./privacy.mjs";
 import type { NoteRequest } from "./requests";
+import { deleteAccountSyncMarks, exportAccountSyncMarks } from "./firestore-admin";
 
 /**
  * A reader's rights over what CyberJudah keeps about them (docs/PRIVACY.md; Telegram's Standard
@@ -27,6 +28,10 @@ export type MyData = {
   askTopupReminder: unknown;
   classNoteRequests: string[];
   personalStudyBackup: unknown;
+  /** Highlights, notes, links, bookmarks, tags, relations, studies and word annotations account sync
+   * keeps in Firestore under users/tg_<id>, with each note's or study's revision history. null when this
+   * Worker has no Firestore access configured (production sync stays off until it does). */
+  accountSync: Record<string, unknown[]> | null;
 };
 
 async function noteRequestsOf(env: Env, uid: number): Promise<{ video: string; r: NoteRequest; meta: unknown }[]> {
@@ -53,7 +58,7 @@ export async function exportData(env: Env, uid: number): Promise<MyData> {
   const sub = await open<{ hour: number; tz: number }>(env, subKey, await env.SUBS.get(subKey));
   return {
     generated: new Date().toISOString(),
-    note: "Everything CyberJudah keeps about you, including an optional personal-study cloud backup. Reader highlights, notes, bookmarks and reading history stay on your device and in Telegram's storage.",
+    note: "Everything CyberJudah keeps about you, including an optional personal-study cloud backup. Reader highlights, notes, bookmarks and reading history stay on your device and in Telegram's storage, unless account sync is on (then highlights, notes, bookmarks and studies are also kept in Google Firebase and listed under accountSync).",
     personalStudyBackup: await readStudyBackup(env, uid),
     savedChats: chats,
     readingReminder: rec ? publicView(rec) : null,
@@ -61,10 +66,11 @@ export async function exportData(env: Env, uid: number): Promise<MyData> {
     ask: await billingRecord(env, uid),
     askTopupReminder: await getTopupReminder(env, uid),
     classNoteRequests: (await noteRequestsOf(env, uid)).map((x) => x.video),
+    accountSync: await exportAccountSyncMarks(env, uid),
   };
 }
 
-export type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse: boolean; classNoteRequests: number; askBalanceUsd: number; topupReminder: boolean };
+export type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse: boolean; classNoteRequests: number; askBalanceUsd: number; topupReminder: boolean; accountSyncRecords: number };
 
 export async function deleteData(env: Env, uid: number): Promise<Deleted> {
   const me = await pid(env, uid);
@@ -90,8 +96,9 @@ export async function deleteData(env: Env, uid: number): Promise<Deleted> {
     env.DB.prepare("CREATE TABLE IF NOT EXISTS rate_counts (key TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)"),
     env.DB.prepare("DELETE FROM rate_counts WHERE key LIKE ?").bind(`%:${me}:%`),
   ]);
+  const accountSyncRecords = await deleteAccountSyncMarks(env, uid);
   await revokeBrowserSessions(env, uid);
-  return { savedChats, readingReminder, dailyVerse, classNoteRequests: reqs.length, askBalanceUsd: billing.balanceUsd, topupReminder };
+  return { savedChats, readingReminder, dailyVerse, classNoteRequests: reqs.length, askBalanceUsd: billing.balanceUsd, topupReminder, accountSyncRecords };
 }
 
 /** A confirmation for Delete my data, kept 10 minutes, so a deletion asked for in the bot is confirmed with one tap. */

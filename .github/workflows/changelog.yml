@@ -6,12 +6,15 @@ name: changelog
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
+  # Checked on the pull request itself; in the merge queue it reports a pass so the queue can move.
+  merge_group:
 
 permissions:
   contents: read
 
 jobs:
   changelog:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

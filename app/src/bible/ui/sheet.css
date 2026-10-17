@@ -49,3 +49,7 @@
 .bs-sheet__close { width: 32px; height: 32px; border-radius: 50%; background: var(--bs-light-grey); display: grid; place-items: center; color: var(--bs-tertiary); }
 .bs-sheet__close--float { position: absolute; right: 12px; top: 8px; }
 @media (prefers-reduced-motion: reduce) { .bs-sheet, .bs-scrim { animation: none; transition: none; } }
+/* A sheet that drags down from anywhere: vertical moves are the sheet's, sideways ones scroll its rows.
+   Every box inside says so too: a scrolling row (or any clipping box) would otherwise start its own
+   touch behaviour and the browser would take the vertical move from the sheet. */
+.bs-sheet[data-drag-anywhere], .bs-sheet[data-drag-anywhere] * { touch-action: pan-x; }
