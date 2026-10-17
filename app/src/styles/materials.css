@@ -326,7 +326,7 @@ html[data-modal] { overflow: hidden; }
 html[data-actions] .toasts { bottom: calc(var(--dock-space) + var(--h-md) + var(--sp-5)); }
 .toast { pointer-events: auto; position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; max-width: min(100%, 440px); padding: 12px 14px; border-radius: var(--r-lg);
   background: var(--mat-overlay); color: var(--text-1); border: .5px solid var(--mat-edge); box-shadow: var(--mat-highlight), var(--shadow-3);
-  font: 500 var(--fs-sub)/var(--lh-snug) var(--font-ui); animation: toast-in var(--dur-3) var(--ease); }
+  font: 500 var(--fs-sub)/var(--lh-snug) var(--font-ui); animation: materialize var(--dur-3) var(--ease-spring); }
 .toast[data-tone="error"] { border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
 .toast__icon { flex: none; display: grid; color: var(--accent); }
 .toast[data-tone="error"] .toast__icon { color: var(--danger); }
@@ -358,6 +358,20 @@ html[data-actions] .toasts { bottom: calc(var(--dock-space) + var(--h-md) + var(
 }
 html[data-transparency="reduced"] .rail-background { display: none; }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) { .rail-background { display: none; } }
+
+/* ── Adaptive glass (iOS 26) ─────────────────────────────────────────────────────────────────
+   Small glass flips with the content under it (ui/adaptive-bars.ts): a light dock over light
+   content in the dark scheme, a dark one over dark content in the light scheme. Contrast and
+   solid-glass preferences keep their own fixed dock. */
+@media not ((prefers-contrast: more) or (forced-colors: active) or (prefers-reduced-transparency: reduce)) {
+  html:not([data-transparency="reduced"]) .tabs[data-over="light"] { --dock-tint-override: color-mix(in srgb, #f5f5f7 var(--mat-density), transparent); --dock-ink-override: #3a3a3c; --text-1: #1c1c1e; --text-2: #3a3a3c; --text-3: #636366; --mat-selected: color-mix(in srgb, #000 9%, transparent); --mat-edge: color-mix(in srgb, #000 10%, transparent); color-scheme: light; color: #1c1c1e; }
+  html:not([data-transparency="reduced"]) .tabs[data-over="dark"] { --dock-tint-override: color-mix(in srgb, #1c1c1e var(--mat-density), transparent); --dock-ink-override: #d1d1d6; --text-1: #f5f5f7; --text-2: #d1d1d6; --text-3: #aeaeb2; --mat-selected: color-mix(in srgb, #fff 13%, transparent); --mat-edge: color-mix(in srgb, #fff 14%, transparent); color-scheme: dark; color: #f5f5f7; }
+}
+/* Glass materializes rather than fades: it gathers from a soft blur as it grows into place. */
+@keyframes materialize { from { opacity: 0; transform: scale(.92); filter: blur(6px); } 60% { filter: blur(0); } to { opacity: 1; transform: none; filter: none; } }
+@media (prefers-reduced-motion: reduce) { @keyframes materialize { from { opacity: 0; } to { opacity: 1; } } }
+/* While the dock samples what is under it (ui/adaptive-bars.ts), the floating layers take no hits. */
+html[data-bar-sampling] :is(.tabs, .tabs *, .glass-light, .pageactions, .pageactions *, .audio-player, .audio-player *, .toasts, .toasts *) { pointer-events: none !important; }
 
 /* ── Interactive glass (iOS 26) ──────────────────────────────────────────────────────────────
    The light under the finger (ui/glass-light.ts): drawn over the touched glass surface, clipped
