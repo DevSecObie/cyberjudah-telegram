@@ -1,0 +1,1 @@
+- Every page and file the app serves now tells browsers not to guess file types, not to send its full address to other sites, and to show it inside a frame only on CyberJudah itself or Telegram's web clients.

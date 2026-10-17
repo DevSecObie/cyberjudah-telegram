@@ -1,0 +1,12 @@
+- While you select verses, the other verses now fade back (their highlights, precept chips and class pictures with them), as in Bible Strong. Verses outside a focused passage fade a little too.
+- Double-tap a word to go straight into Free mode with that word selected (or the mark you tapped). It works when no verse is selected.
+- The arrow at the end of the colour row opens the colour palette: the five colours and your own, how many highlights use each, and "Add a color". Tap a colour there to apply it. The + in Free mode opens the same palette.
+- Press and hold a colour to edit it: pick a new shade, name it, and choose whether it fills the background, colours the text or underlines it.
+- The verse sheet now runs edge to edge along the bottom of the screen and stays the height of its content. Drag it down from anywhere on it to close it and clear the selection.
+- Annotate now reads Note, Tag, Link, Relation, Bookmark, To study, Focus, and Free mode last, highlighted. "Mark words" is now Free mode, and "Add to study" is now To study.
+- Study now has Compare (it was "Side by side"), and it works with several verses selected. The study tiles use Bible Strong's icons and colours. Share uses the three-dot share icon.
+- The chosen colour is now marked by a ring alone.
+- While verses are selected, the header is solid with the passage in the middle. In Free mode the header turns the accent colour, with Done as a button.
+- Telegram's Back button now closes the "Add relation" picker.
+- Lifting your finger after holding a verse no longer also taps a word in the sheet that just opened.
+- In Font and settings, the Verse numbers row now lines up with the other rows.

@@ -1,0 +1,1 @@
+- The reader's relations check no longer breaks when the classes' own precepts are added to a verse it uses: it now counts only the relation it makes, as the app has always shown it.

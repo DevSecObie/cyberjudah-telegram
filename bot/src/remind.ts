@@ -25,6 +25,9 @@ import { keyedHash, open, pid, seal } from "./privacy.mjs";
  *                         (a reader has up to PUSH_DEVICES subscriptions, one per browser)
  *   remlink:<code>        a one-time code (15 minutes) that links a browser to the bot's chat
  *
+ * A Telegram record lists the browsers linked to it (`devices`), so deleting it also removes
+ * their remdev credentials and a linked browser cannot bring the deleted reminder back.
+ *
  * Each record carries its on/hour/zone/channels as KV metadata, so the hourly run lists them
  * without opening every one and the admin page counts them the same way.
  */
@@ -41,6 +44,8 @@ const LINK_TTL = 15 * 60;
 const IDLE_TTL = 180 * 86400;
 /** New browser credentials one address may make in a day (beside the per-minute rate limit). */
 const CREATE_PER_DAY = 100;
+/** Linked browsers a Telegram record remembers (the oldest is let go past this). */
+const LINKED_DEVICES = 20;
 
 async function sha256(s: string): Promise<string> {
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
@@ -186,9 +191,21 @@ export async function linkDevice(env: Env, code: string, uid: number): Promise<b
     for (const sub of mine.pushes ?? []) rec = await addPushTo(env, rid, rec, sub);
     await env.SUBS.delete(recKey(cred.rid));
   }
+  // Every browser linked to this record is remembered, so deleting it can remove their credentials too.
+  const linked = [...(theirs?.devices ?? []), ...(rec.devices ?? [])].filter((d) => d !== dev);
+  rec.devices = [...new Set(linked), dev].slice(-LINKED_DEVICES);
   await saveReminder(env, rid, rec);
   await env.SUBS.put(`remdev:${dev}`, JSON.stringify({ ...cred, rid }), { expirationTtl: IDLE_TTL });
   return true;
+}
+
+/** The credentials of the browsers linked to a deleted Telegram record, where they still point at it. */
+async function forgetLinkedDevices(env: Env, rid: string, rec: Reminder): Promise<void> {
+  for (const dev of rec.devices ?? []) {
+    if (!/^[0-9a-f]{32}$/.test(dev)) continue;
+    const cred = await env.SUBS.get<{ rid?: string }>(`remdev:${dev}`, "json");
+    if (cred?.rid === rid) await env.SUBS.delete(`remdev:${dev}`);
+  }
 }
 
 const PAUSE_LABEL: Record<string, string> = { 1: "Paused until tomorrow.", 7: "Paused for a week.", forever: "Paused until you resume it." };
@@ -275,7 +292,13 @@ reminders.put("/", async (c) => {
     device = `${id}.${secret}`;
   }
   const now = new Date();
-  let rec = (await loadReminder(c.env, w.rid)) ?? blank();
+  const saved = await loadReminder(c.env, w.rid);
+  // A browser linked to a Telegram reminder that has since been deleted may not make it again.
+  if (!saved && w.kind === "device" && w.rid.startsWith("tg:")) {
+    await c.env.SUBS.delete(`remdev:${w.dev}`);
+    return c.json({ ok: false, error: "unauthorized" }, 401);
+  }
+  let rec = saved ?? blank();
   if (w.kind === "telegram") rec.chatId = w.uid;
   rec = applySettings(rec, body.settings, now);
   rec = applyContent(rec, body.content);
@@ -293,6 +316,7 @@ export async function forgetReminder(env: Env, uid: number): Promise<boolean> {
   const rec = await loadReminder(env, rid);
   if (!rec) return false;
   for (const p of rec.pushes ?? []) await env.SUBS.delete(`pushep:${await sha256(p.endpoint)}`);
+  await forgetLinkedDevices(env, rid, rec);
   await env.SUBS.delete(recKey(rid));
   return true;
 }
@@ -309,6 +333,7 @@ reminders.delete("/", async (c) => {
   const forgetAll = w.kind === "telegram" || w.rid.startsWith("dev:");
   if (rec && forgetAll) {
     for (const p of rec.pushes ?? []) await c.env.SUBS.delete(`pushep:${await sha256(p.endpoint)}`);
+    if (w.rid.startsWith("tg:")) await forgetLinkedDevices(c.env, w.rid, rec);
     await c.env.SUBS.delete(recKey(w.rid));
   } else if (rec && typeof body?.endpoint === "string" && body.endpoint.length <= 1024) {
     await saveReminder(c.env, w.rid, await removePushFrom(c.env, rec, body.endpoint));

@@ -75,7 +75,12 @@ What a production deploy does, in order (`deploy.yml`, job `deploy`), and what t
    `CLOUDFLARE_ACCOUNT_ID`, `BOT_TOKEN`, `WEBHOOK_SECRET`), finds or creates the D1
    databases, KV namespace, Vectorize index and R2 bucket, and writes their ids into
    `wrangler.jsonc` in the runner only. Optional secrets (`ANTHROPIC_API_KEY`,
-   `CYBERJUDAH_TOKEN`, `ADMIN_IDS`) are pushed to the Worker when present.
+   `CYBERJUDAH_TOKEN`, `ADMIN_IDS`) are pushed to the Worker when present. The app build
+   carries `VITE_ACCOUNT_SYNC` (bakes account sync, through Firebase, into the production
+   build; `docs/PRODUCTION_CHECKLIST.md` §2). When it is on, the job also runs
+   `wrangler secret list` and refuses the deploy — the Worker is never published — if
+   `FIREBASE_SERVICE_ACCOUNT` is not already a Worker secret, so production never serves a
+   sign-in no reader can complete.
 4. **Schema:** there is no migration step. Tables are created on first use with
    `CREATE TABLE IF NOT EXISTS` (`bot/src/billing.ts`, `bot/src/ai.ts`). A schema change must
    be additive (new tables or nullable columns) so the previous Worker still runs against it
@@ -96,6 +101,9 @@ What a production deploy does, in order (`deploy.yml`, job `deploy`), and what t
    - `https://cyberjudah.io/app` and `https://cyberjudah.io/app/read/john/3` render.
    - The bot's menu button opens the app (the Worker's root).
    - In Telegram: a search, an Ask question, opening a verse and a class.
+   - When `VITE_ACCOUNT_SYNC` is on: `VERIFY_ACCOUNT_SYNC` makes `verify-release.mjs` also
+     check the Firebase identity bridge (`POST /api/firebase/token` mints a real custom token
+     for a synthetic reader, never a live account).
    - The nightly `live-smoke` workflow runs the end-to-end suite against `vars.WORKER_URL`; a
      manual run (Actions → live-smoke → Run workflow) gives the same check on demand.
 10. **Roll back** if a check fails: see below. The search index is not part of a rollback;

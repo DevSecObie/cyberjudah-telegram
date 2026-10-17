@@ -3,18 +3,18 @@ import { useState, type ReactNode } from "react";
 
 import { haptic } from "@/tg/sdk";
 import { Feather, LineHeightIcon, PressIcon, type FeatherName } from "../icons";
-import { colorItems, DEFAULT_COLOR_KEYS, FONTS, MAX_CUSTOM_COLORS, webFontFamily, type BibleSettings, type DefaultColorKey, type HighlightType } from "../settings";
-import { DARK_THEMES, LIGHT_THEMES, type Palette } from "../theme";
-import { uuid, versesContent } from "../store";
-import { Button, Sheet, Switch } from "./Sheet";
-import { HighlightTypeIndicator } from "./SelectedVersesSheet";
+import { FONTS, webFontFamily, type BibleSettings } from "../settings";
+import { DARK_THEMES, LIGHT_THEMES, type Palette, type ThemeName } from "../theme";
+import { versesContent } from "../store";
+import { Sheet, Switch } from "./Sheet";
+import { ColorPaletteSheet } from "./ColorPalette";
 
 /**
  * "Font and settings" (BibleParamsModal): one row per setting, its value in bold beside the
  * label and the controls on the right; then Fonts, Color palette and Share options, which
  * open their own sheets. Every label and choice is Bible Strong's.
  */
-export function ParamsSheet({ open, onClose, settings: s, set, palette }: { open: boolean; onClose: () => void; settings: BibleSettings; set: (p: Partial<BibleSettings>) => void; palette: Palette }) {
+export function ParamsSheet({ open, onClose, settings: s, set, palette, theme }: { open: boolean; onClose: () => void; settings: BibleSettings; set: (p: Partial<BibleSettings>) => void; palette: Palette; theme: ThemeName }) {
   const navigate = useNavigate();
   const [sub, setSub] = useState<"fonts" | "palette" | "share" | null>(null);
   const align = { left: "Left", justify: "Justified" }[s.alignContent];
@@ -78,7 +78,7 @@ export function ParamsSheet({ open, onClose, settings: s, set, palette }: { open
           ))}
         </div>
       </Sheet>
-      <PaletteSheet open={open && sub === "palette"} onClose={() => setSub(null)} settings={s} set={set} palette={palette} />
+      <ColorPaletteSheet open={open && sub === "palette"} onClose={() => setSub(null)} settings={s} set={set} palette={palette} theme={theme} hasBack />
       <Sheet open={open && sub === "share"} onClose={() => setSub(null)} title="Share options" hasBack onBack={() => setSub(null)}>
         <ShareOptions settings={s} set={set} />
       </Sheet>
@@ -113,59 +113,5 @@ function ShareOptions({ settings: s, set }: { settings: BibleSettings; set: (p: 
       <Switch label="CyberJudah signature" on={o.hasAppName} onChange={() => toggle("hasAppName")} />
       <div className="bs-preview"><span className="bs-preview__label">Preview</span><p style={{ fontFamily: webFontFamily(s.fontFamily) }}>{preview}</p></div>
     </div>
-  );
-}
-
-/** Color palette: the five default colours and the custom ones, each editable (hex, name, type). */
-export function PaletteSheet({ open, onClose, settings: s, set, palette, editing: startEditing }: { open: boolean; onClose: () => void; settings: BibleSettings; set: (p: Partial<BibleSettings>) => void; palette: Palette; editing?: string | null }) {
-  const items = colorItems(s, palette);
-  const [editing, setEditing] = useState<string | null>(startEditing ?? null);
-  const item = items.find((c) => c.key === editing);
-  const save = (key: string, hex: string, name: string, type: HighlightType) => {
-    if (DEFAULT_COLOR_KEYS.includes(key as DefaultColorKey)) {
-      const k = key as DefaultColorKey;
-      set({ colors: { ...s.colors, [k]: hex }, defaultColorNames: { ...s.defaultColorNames, [k]: name || undefined }, defaultColorTypes: { ...s.defaultColorTypes, [k]: type } });
-    } else set({ customHighlightColors: s.customHighlightColors.map((c) => (c.id === key ? { ...c, hex, name: name || undefined, type } : c)) });
-    setEditing(null);
-  };
-  const add = () => { if (s.customHighlightColors.length >= MAX_CUSTOM_COLORS) return; const id = `custom-${uuid()}`; set({ customHighlightColors: [...s.customHighlightColors, { id, hex: "#ff7675", type: "background" }] }); setEditing(id); };
-  const remove = (id: string) => { set({ customHighlightColors: s.customHighlightColors.filter((c) => c.id !== id) }); setEditing(null); };
-  return (
-    <>
-      <Sheet open={open && !item} onClose={onClose} title="Color palette" hasBack onBack={onClose}>
-        <div className="bs-palette">
-          {items.map((c, i) => (
-            <button key={c.key} type="button" className="bs-palette__row" onClick={() => setEditing(c.key)}>
-              <HighlightTypeIndicator color={c.hex} type={c.type} size={26} />
-              <span className="bs-palette__name">{c.name || (c.key.startsWith("color") ? `Color ${i + 1}` : "Custom color")}</span>
-              <small>{c.hex}</small>
-              <Feather name="chevron-right" size={18} color="var(--bs-grey)" />
-            </button>
-          ))}
-          {s.customHighlightColors.length < MAX_CUSTOM_COLORS ? <button type="button" className="bs-palette__row" onClick={add}><span className="bs-palette__plus"><Feather name="plus" size={18} color="var(--bs-primary)" /></span><span className="bs-palette__name">Add a color</span></button> : null}
-        </div>
-      </Sheet>
-      {item ? <ColorEditSheet open={open} initial={item} onClose={() => setEditing(null)} onSave={(hex, name, type) => save(item.key, hex, name, type)} onRemove={item.key.startsWith("custom-") ? () => remove(item.key) : undefined} /> : null}
-    </>
-  );
-}
-
-/** ColorEditModal: the colour, its name and its type (Highlight, Text color, Underline). */
-export function ColorEditSheet({ open, initial, onClose, onSave, onRemove }: { open: boolean; initial: { hex: string; name?: string; type: HighlightType }; onClose: () => void; onSave: (hex: string, name: string, type: HighlightType) => void; onRemove?: () => void }) {
-  const [hex, setHex] = useState(initial.hex);
-  const [name, setName] = useState(initial.name ?? "");
-  const [type, setType] = useState<HighlightType>(initial.type);
-  const PRESETS = ["#81ecec", "#ff7675", "#fdcb6e", "#74b9ff", "#95afc0", "#9b59b6", "#55efc4", "#fab1a0", "#ffeaa7", "#a29bfe", "#fd79a8", "#e17055", "#00b894", "#0984e3", "#d63031", "#636e72"];
-  return (
-    <Sheet open={open} onClose={onClose} title="Edit color" hasBack onBack={onClose} footer={<div className="bs-sheet__actions">{onRemove ? <Button reverse onClick={onRemove}>Remove</Button> : null}<Button onClick={() => onSave(hex, name.trim(), type)}>Save</Button></div>}>
-      <div className="bs-coloredit">
-        <div className="bs-coloredit__head"><HighlightTypeIndicator color={hex} type={type} size={34} /><input className="bs-input" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} maxLength={30} aria-label="Name" /></div>
-        <div className="bs-coloredit__grid">{PRESETS.map((c) => <button key={c} type="button" aria-label={c} title={c} aria-pressed={hex.toLowerCase() === c} style={{ background: c, boxShadow: hex.toLowerCase() === c ? "0 0 0 3px var(--bs-reverse), 0 0 0 5px var(--bs-primary)" : undefined }} onClick={() => setHex(c)} />)}</div>
-        <label className="bs-coloredit__hex">Color <input type="color" value={/^#[0-9a-f]{6}$/i.test(hex) ? hex : "#ff7675"} onChange={(e) => setHex(e.target.value)} /><span>{hex}</span></label>
-        <div className="bs-coloredit__types" role="radiogroup" aria-label="Type">
-          {([["background", "Highlight"], ["textColor", "Text color"], ["underline", "Underline"]] as const).map(([t, l]) => <button key={t} type="button" role="radio" aria-checked={type === t} onClick={() => setType(t)}><HighlightTypeIndicator color={hex} type={t} size={22} isSelected={type === t} /><span>{l}</span></button>)}
-        </div>
-      </div>
-    </Sheet>
   );
 }

@@ -50,12 +50,13 @@ test("Download my data: everything kept about the reader, readable, in one file"
   assert.deepEqual(d.dailyVerse, { hour: 8, tzOffsetMinutes: 0 });
   assert.deepEqual(d.classNoteRequests, ["AAAAAAAAAAA"]);
   assert.match(d.note, /stay on your device/);
+  assert.equal(d.accountSync, null, "no Firestore access is configured on this Worker");
 });
 
 test("Delete my data: every record about the reader goes, and other readers' are untouched", async () => {
   const env = await reader();
   const d = await deleteData(env, 77);
-  assert.deepEqual(d, { savedChats: 1, readingReminder: true, dailyVerse: true, classNoteRequests: 1, askBalanceUsd: 0, topupReminder: false });
+  assert.deepEqual(d, { savedChats: 1, readingReminder: true, dailyVerse: true, classNoteRequests: 1, askBalanceUsd: 0, topupReminder: false, accountSyncRecords: 0 });
   const me = await pid(env, 77);
   const left = [...env.SUBS.m.keys()].filter((k) => !k.startsWith("chatgone:"));
   assert.deepEqual(left, ["notereq:AAAAAAAAAAA"], "only the class request remains, for the other reader");
@@ -65,6 +66,31 @@ test("Delete my data: every record about the reader goes, and other readers' are
   assert.ok(sql.some(([q, a]) => /DELETE FROM rate_counts/.test(q) && a[0] === `%:${me}:%`), "daily limits counted for the reader go too");
   const again = await exportData(env, 77);
   assert.deepEqual([again.savedChats, again.readingReminder, again.dailyVerse, again.classNoteRequests], [[], null, null, []]);
+});
+
+test("Download and Delete my data reach the Firestore marks account sync writes (docs/PRIVACY.md)", async () => {
+  const env = { ...(await reader()), FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" };
+  const highlightName = "projects/demo-cyberjudah/databases/(default)/documents/users/tg_77/highlights/mark1";
+  let highlightDeleted = false;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const u = new URL(url);
+    if (u.pathname.endsWith(":batchWrite")) { highlightDeleted = true; return new Response(JSON.stringify({ writeResults: [{}] }), { status: 200 }); }
+    const marker = "/documents/";
+    const path = u.pathname.slice(u.pathname.indexOf(marker) + marker.length);
+    if (path === "users/tg_77/highlights" && !highlightDeleted) {
+      return new Response(JSON.stringify({ documents: [{ name: highlightName, fields: { entry: { stringValue: "1" }, value: { stringValue: "color2" } } }] }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ documents: [] }), { status: 200 });
+  };
+  try {
+    const exported = await exportData(env, 77);
+    assert.deepEqual(exported.accountSync.highlights, [{ id: "mark1", entry: "1", value: "color2" }]);
+    const deleted = await deleteData(env, 77);
+    assert.equal(deleted.accountSyncRecords, 1);
+    assert.equal(highlightDeleted, true);
+    assert.equal((await exportData(env, 77)).accountSync, null, "nothing is left to export once deleted");
+  } finally { globalThis.fetch = originalFetch; }
 });
 
 test("the bot's Delete everything button works once, for the reader who asked, within ten minutes", async () => {
