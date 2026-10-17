@@ -46,6 +46,8 @@ export type Env = {
   ASK_IP_DAILY_LIMIT?: string; CREDIT_USAGE_RETENTION_DAYS?: string; CREDITS_CONTENTION_ALERT?: string;
   /** Search AI answers per reader per day (20), counted under the pseudonymous ID. */
   SEARCH_AI_DAILY_LIMIT?: string;
+  /** Reader IDs, comma-separated, that skip that per-reader count. Staging lists the release check's synthetic reader (1); production lists none. */
+  SEARCH_AI_QUOTA_EXEMPT?: string;
   /** Catalog model for the owner-funded, library-only search answer. Unset uses ASK_FREE_MODEL. */
   SEARCH_AI_MODEL?: string;
   SEARCH_AI_FREE_ONLY?: string;
