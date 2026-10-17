@@ -297,8 +297,9 @@ export function PageActions() {
 
 /**
  * iOS 26's large title: it stands large at the top of the page and, once the page scrolls under the
- * bar, shrinks to a standard title in the bar; back at the top it returns. The bar keeps the space
- * it gave up as a margin, so the page under it never jumps.
+ * bar, shrinks to a standard title in the bar; back at the top it returns. A margin makes up the
+ * difference in the bar's height either way (a short header can grow to the bar's touch height),
+ * so the page under it never moves while it scrolls.
  */
 function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
   const [compact, setCompact] = useState(false);
@@ -313,8 +314,8 @@ function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
   }, [head]);
   useLayoutEffect(() => {
     const el = head.current; if (!el) return;
-    if (!compact) { el.style.removeProperty("margin-bottom"); full.current = el.offsetHeight; return; }
-    el.style.marginBottom = `${Math.max(0, full.current - el.offsetHeight)}px`;
+    if (!compact) { el.style.removeProperty("margin-bottom"); full.current = el.getBoundingClientRect().height; return; }
+    el.style.marginBottom = `${full.current - el.getBoundingClientRect().height}px`;
   }, [compact, head]);
   return compact;
 }

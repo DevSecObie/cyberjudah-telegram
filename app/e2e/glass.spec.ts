@@ -662,6 +662,26 @@ test("navigation: resizing a minimized dock restores keyboard and first-click na
   await expect(page).toHaveURL(/\/read\//);
 });
 
+test("large titles: the title shrinks into the bar under scroll and returns at the top, and the page under it never moves", async ({ page }) => {
+  await setup(page, "sepia");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(`/settings${LAUNCH}`);
+  const head = page.locator(".screen > .head");
+  await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+  // Where the first thing under the bar sits in the document, and how tall the document is.
+  const layout = () => page.evaluate(() => { const next = document.querySelector(".screen > .head")!.nextElementSibling!; return { at: next.getBoundingClientRect().top + scrollY, height: document.documentElement.scrollHeight }; });
+  const before = await layout();
+  await page.evaluate(() => { document.documentElement.scrollTop = 120; });
+  await expect(head).toHaveAttribute("data-compact", "");
+  const compact = await layout();
+  expect(Math.abs(compact.at - before.at)).toBeLessThan(0.5);
+  expect(Math.abs(compact.height - before.height)).toBeLessThan(1);
+  await page.evaluate(() => { document.documentElement.scrollTop = 0; });
+  await expect(head).not.toHaveAttribute("data-compact");
+  expect(Math.abs((await layout()).at - before.at)).toBeLessThan(0.5);
+});
+
 test("navigation: document, Bible and Timeline scrolls minimize down and expand up", async ({ page }) => {
   await setup(page, "sepia");
   await page.setViewportSize({ width: 390, height: 844 });
