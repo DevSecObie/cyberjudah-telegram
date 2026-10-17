@@ -47,14 +47,21 @@ export function useModal(ref: RefObject<HTMLElement | null>, open: boolean, onCl
       else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
     };
     document.addEventListener("keydown", onKey, true);
+    // Where the focus last went: a closing panel turns inert and some engines then drop the focus
+    // to nothing at all, which must still count as "inside" rather than a later choice elsewhere.
+    let inside = !!el?.contains(document.activeElement);
+    const onFocus = (e: FocusEvent) => { inside = !!ref.current?.contains(e.target as Node); };
+    document.addEventListener("focusin", onFocus, true);
     return () => {
       document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("focusin", onFocus, true);
       stack.splice(stack.indexOf(me), 1);
       if (lock && --locks <= 0) { locks = 0; delete root.dataset.modal; }
-      if (stillOpen.current) { carried.current = trigger; return; }
+      // Still open and still on the page: only the lock or trap changed (an unmount removes it first).
+      if (stillOpen.current && el?.isConnected) { carried.current = trigger; return; }
       // A nonmodal panel leaves the page usable; preserve a later focus choice outside it.
       const focused = document.activeElement;
-      if (trigger?.isConnected && (trap || focused === document.body || el?.contains(focused))) trigger.focus({ preventScroll: true });
+      if (trigger?.isConnected && (trap || inside || !focused || focused === document.body || el?.contains(focused))) trigger.focus({ preventScroll: true });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, lock, trap]);
