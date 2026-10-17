@@ -682,7 +682,10 @@ test("large titles: the title shrinks into the bar under scroll and returns at t
   await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
   // The full bar's height can change after the page first lays out (a web font arriving, as in
   // Firefox); the bar must make up for the height it has when it shrinks, not the first one.
+  const plain = await head.evaluate(el => (el as HTMLElement).offsetHeight);
   await page.addStyleTag({ content: ".screen > .head:not([data-compact]) .title { padding-block: 10px; }" });
+  // WebKit can lay the new padding out after the tag resolves; measure only once the bar has grown.
+  await expect.poll(() => head.evaluate(el => (el as HTMLElement).offsetHeight)).toBeGreaterThan(plain + 10);
   // Where the first thing under the bar sits in the document, and how tall the document is.
   const layout = () => page.evaluate(() => { const next = document.querySelector(".screen > .head")!.nextElementSibling!; const bar = document.querySelector(".screen > .head") as HTMLElement; return { at: next.getBoundingClientRect().top + scrollY, height: document.documentElement.scrollHeight, bar: bar.offsetHeight, mb: bar.style.marginBottom }; });
   const before = await layout();
