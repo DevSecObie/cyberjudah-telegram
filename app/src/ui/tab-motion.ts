@@ -69,7 +69,8 @@ function routeCommitted() {
 type Mode = "overview" | "expand" | "slide";
 
 /** Bible Strong's collapse/expand flow, using ephemeral browser snapshots where supported. */
-export function moveTab(update: () => void | false, mode: Mode, id = currentTab().id) {
+/** dir: for a slide, the side the new tab comes from (1 from the right, -1 from the left, 0 rising in place). */
+export function moveTab(update: () => void | false, mode: Mode, id = currentTab().id, dir = 0) {
   cancelMotion?.(); cancelRestore?.();
   rememberTabPosition();
   const root = document.documentElement;
@@ -114,7 +115,7 @@ export function moveTab(update: () => void | false, mode: Mode, id = currentTab(
     const target = document.querySelector<HTMLElement>(mode === "overview" ? ".switcher__grid" : ".route");
     if (!target) { clean(); return; }
     animation = target.animate(
-      reduced() ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: mode === "overview" ? "translateY(24px) scale(.97)" : "translateY(12px) scale(.985)" }, { opacity: 1, transform: "none" }],
+      reduced() ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: mode === "overview" ? "translateY(24px) scale(.97)" : dir ? `translateX(${dir * 24}px)` : "translateY(12px) scale(.985)" }, { opacity: 1, transform: "none" }],
       motionTiming,
     );
     void animation.finished.catch(() => {}).then(clean);

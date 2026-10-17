@@ -21,7 +21,7 @@ export const PRIVACY_CONTACT = "privacy@cyberjudah.io";
 type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse: boolean; classNoteRequests: number; askBalanceUsd: number; topupReminder: boolean; accountSyncRecords: number };
 
 export function Privacy() {
-  useBackButton(true);
+  useBackButton();
   const navigate = useNavigate();
   const [status, setStatus] = useState<string>("");
   const [busy, setBusy] = useState<"" | "export" | "delete">("");

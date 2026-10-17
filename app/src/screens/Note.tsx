@@ -56,7 +56,7 @@ export function NoteScreen() {
   const [notes, setNotes] = useState(at === null || !!location.hash);
   // Admins edit a note in place: the teacher, the title, a spelling. /api/me says who may.
   const who = useQuery({ queryKey: ["me"], queryFn: () => api<{ admin?: boolean }>("/api/me"), staleTime: 600_000, retry: false });
-  useBackButton(false, () => { if (notes && video && at !== null) { setNotes(false); return true; } });
+  useBackButton(() => { if (notes && video && at !== null) { setNotes(false); return true; } });
   const seek = (t: number) => { setStart(t); setPlaying(true); setNotes(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
   useBottomButtons(

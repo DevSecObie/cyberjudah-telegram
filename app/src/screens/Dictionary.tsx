@@ -18,7 +18,7 @@ const STOP = new Set("the and for that with unto them they thou thee thy his him
  * search. Entries cite scripture in the dictionary's own abbreviated form.
  */
 export function Dictionary() {
-  useBackButton(false);
+  useBackButton();
   const [params, setParams] = useSearchParams();
   const from = params.get("from") ?? "";
   const letter = params.get("letter") ?? "";
@@ -55,7 +55,7 @@ export function Dictionary() {
 
 export function DictionaryEntry() {
   const { slug = "" } = useParams();
-  useBackButton(false);
+  useBackButton();
   const e = useQuery({ queryKey: ["dict-entry", slug], queryFn: () => fetch(`/api/dictionary/${slug}`).then((r) => r.json() as Promise<Entry>) });
   useBottomButtons(e.data ? { text: "Share", onClick: () => void share({ kind: "note", title: `${e.data!.term} · Easton's Bible Dictionary`, text: e.data!.definitions[0].slice(0, 300), sitePath: `/dictionary/${slug}` }) } : null);
   if (e.isPending) return <Screen title="…"><Skeleton rows={3} /></Screen>;
