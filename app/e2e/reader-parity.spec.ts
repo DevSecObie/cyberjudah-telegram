@@ -182,6 +182,18 @@ test("book picker long press opens the chapter in a new tab, as Bible Strong's w
   await expect(page.locator(".bs-picker")).toHaveCount(0);
 });
 
+test("one jump after a pause keeps the header open; only a gesture's speed collapses it", async ({ page }) => {
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  // Past the reader's settle time, so nothing suppresses the scroll: the jump itself must not read as a swipe.
+  await page.waitForTimeout(1500);
+  await page.locator(".bs-scroll").evaluate(el => { el.scrollTop = 500; });
+  await page.waitForTimeout(300);
+  await expect(page.locator(".bs-pill--book")).toBeVisible();
+  await page.locator(".bs-scroll").evaluate(async el => { for (const top of [540, 620, 1000]) { el.scrollTop = top; await new Promise(r => setTimeout(r, 30)); } });
+  await expect(page.locator(".bs-header__summary")).toBeVisible();
+});
+
 test("reader v opens Go to verse and jumps to a valid verse, as Bible Strong's web reader does", async ({ page }) => {
   await page.goto("/read/genesis/1");
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();

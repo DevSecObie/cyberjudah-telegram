@@ -197,6 +197,9 @@ export function Chapter(p: ChapterProps) {
       const velocity = Math.abs(dy / Math.max(dt, 1)); const total = el.scrollHeight - el.clientHeight;
       if (top < 0 || top > total) { if (!reached) p.onFullscreen(false); reached = true; return; }
       reached = false;
+      // A gesture scrolls every frame. One move after a pause is a jump (a verse, a restored place),
+      // which has no velocity of its own, as React Native reports none for a programmatic scroll.
+      if (dt > 100) { lastTop = top; lastTime = now; return; }
       if (velocity * 1000 > 400 && !suppressRef.current) {
         if (dy > 0 && canDown) { p.onFullscreen(true); canDown = false; canUp = true; }
         else if (dy < 0 && canUp) { p.onFullscreen(false); canUp = false; canDown = true; }
