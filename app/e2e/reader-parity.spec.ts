@@ -656,3 +656,48 @@ test("the verse sheet stays put under a resting finger and a verse in view barel
   expect(Math.abs((await top()) - rest)).toBeLessThan(1);
   await page.mouse.up();
 });
+
+// Bible Strong's Pressable: the pressed look comes 50 ms after the finger lands, a scroll takes it
+// away, and a tap shorter than that still shows it briefly (ui/press.ts).
+test("the pressed look waits 50 ms, a scroll cancels it, and a quick tap still shows it", async ({ page }) => {
+  await gestureClock(page);
+  const button = page.getByRole("button", { name: "Scripture options", exact: true });
+  const send = (type: string) => button.evaluate((el, type) => {
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent(type, { bubbles: true, isPrimary: true, button: 0, pointerId: 3, pointerType: "touch", clientX: r.x + 5, clientY: r.y + 5 }));
+  }, type);
+  await send("pointerdown");
+  await expect(button).not.toHaveAttribute("data-pressed");
+  await page.clock.runFor(60);
+  await expect(button).toHaveAttribute("data-pressed", "");
+  await page.locator(".bs-scroll").evaluate(el => el.dispatchEvent(new Event("scroll")));
+  await expect(button).not.toHaveAttribute("data-pressed");
+  await send("pointerup");
+  await send("pointerdown"); await page.clock.runFor(20); await send("pointerup");
+  await expect(button).toHaveAttribute("data-pressed", "");
+  await page.clock.runFor(150);
+  await expect(button).not.toHaveAttribute("data-pressed");
+});
+
+// On a phone the browser takes a horizontal pan over the drawer's scroller and cancels the pointer;
+// the swipe still closes the drawer from its touchend, unless it scrolled a row of cards.
+test("a touch swipe closes Home even when the browser cancels its pointer, but not one that scrolls the shelf", async ({ page }) => {
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  const home = page.locator(".drawer--home");
+  const swipe = (selector: string, scroll = false) => home.locator(selector).first().evaluate((el, scroll) => {
+    const r = el.getBoundingClientRect(), y = r.y + Math.min(20, r.height / 2), x0 = r.x + r.width - 30, x1 = x0 - 160;
+    el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, isPrimary: true, button: 0, pointerId: 9, pointerType: "touch", clientX: x0, clientY: y }));
+    el.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, isPrimary: true, pointerId: 9, pointerType: "touch" }));
+    if (scroll) { const row = el.closest<HTMLElement>(".widgets")!; row.scrollLeft += 80; }
+    el.dispatchEvent(Object.assign(new Event("touchend", { bubbles: true, cancelable: true }), { touches: [], changedTouches: [{ clientX: x1, clientY: y }] }));
+  }, scroll);
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect(home).toHaveAttribute("data-open", "");
+  await expect(home.locator(".feed__card--skel")).toHaveCount(0);
+  await home.locator(".widgets").scrollIntoViewIfNeeded();
+  await swipe(".widgets .widget", true);
+  await expect(home).toHaveAttribute("data-open", "");
+  await swipe(".stats--six");
+  await expect(home).not.toHaveAttribute("data-open");
+});
