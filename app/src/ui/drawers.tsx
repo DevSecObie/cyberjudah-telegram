@@ -101,6 +101,7 @@ function useSwipeClose(side: DrawerSide) {
   // so a touch is finished on touchend, which still comes; a sideways row it scrolled is not a swipe.
   const start = useRef<{ x: number; y: number; touch: boolean; row: HTMLElement | null; left: number } | null>(null);
   const swiped = useRef(false);
+  /** Consume the gesture and close on a swipe toward this drawer's edge unless its row scrolled. */
   const finish = (x: number, y: number) => {
     const s = start.current; start.current = null; if (!s || (s.row && s.row.scrollLeft !== s.left)) return;
     const dx = x - s.x, dy = y - s.y;

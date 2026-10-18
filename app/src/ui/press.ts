@@ -9,17 +9,21 @@ const DELAY = 50, SLOP = 10, FLASH = 100;
 let marked: Element[] = [];
 let timer = 0, flash = 0, pointer = -1, x = 0, y = 0, target: Element | null = null, key = "";
 
+/** Clear earlier feedback, then mark the element and its ancestors as pressed. */
 function mark(el: Element | null) {
   clear();
   for (let e = el; e; e = e.parentElement) { e.setAttribute("data-pressed", ""); marked.push(e); }
 }
+/** Cancel pending feedback timers and remove every pressed marker. */
 function clear() {
   clearTimeout(timer); clearTimeout(flash); timer = 0;
   for (const e of marked) e.removeAttribute("data-pressed");
   marked = [];
 }
+/** Whether the element or an ancestor disables interaction. */
 const disabled = (el: Element) => Boolean(el.closest(":disabled, [aria-disabled='true']"));
 
+/** Start delayed feedback for a primary press unless disabled or stopping a touch scroll. */
 function down(e: PointerEvent) {
   if (!e.isPrimary || e.button !== 0 || !(e.target instanceof Element)) return;
   clear(); pointer = e.pointerId; x = e.clientX; y = e.clientY; target = null; key = "";
@@ -28,9 +32,11 @@ function down(e: PointerEvent) {
   target = e.target;
   timer = window.setTimeout(() => { timer = 0; mark(target); }, DELAY);
 }
+/** Cancel feedback when the tracked pointer moves beyond the press tolerance. */
 function move(e: PointerEvent) {
   if (e.pointerId === pointer && target && Math.hypot(e.clientX - x, e.clientY - y) > SLOP) { target = null; clear(); }
 }
+/** End the tracked press, briefly flashing feedback for taps shorter than the delay. */
 function up(e: PointerEvent) {
   if (e.pointerId !== pointer) return;
   pointer = -1;
@@ -38,9 +44,11 @@ function up(e: PointerEvent) {
   if (timer && target && e.type === "pointerup") { mark(target); flash = window.setTimeout(clear, FLASH); } else clear();
   target = null;
 }
+/** Reset the tracked pointer and target and clear all pending or visible feedback. */
 function cancel() { target = null; pointer = -1; clear(); }
 
 let installed = false;
+/** Install global pointer, keyboard, scroll and focus feedback listeners once in the browser. */
 export function installPress() {
   if (installed || typeof document === "undefined") return;
   installed = true;
