@@ -27,12 +27,17 @@ export function Sheet({ open, onClose, backdrop = true, height = "auto", title, 
   const dragged = useRef(false);
   useEffect(() => { if (open) return sheetOpened(); }, [open]);
   useEffect(() => { if (!open) { setDrag(0); setTall(false); } }, [open]);
+  // As vaul's drawer (Bible Strong's sheets): a sheet does not follow the finger in its first
+  // 500 ms, so the touch that opened it, or a finger still resting on it, does not move it.
+  const openedAt = useRef(0);
+  useEffect(() => { if (open) openedAt.current = performance.now(); }, [open]);
+  const settled = () => performance.now() - openedAt.current >= 500;
   // Swipe by the handle or the title bar: down follows the finger and closes past 90 px; up
   // opens a shorter sheet to full height.
   // Where the sheet sat when the drag began: dragging up stretches it toward the screen's edges.
   const rest = useRef<DOMRect | null>(null);
   const down = (e: RPointerEvent) => { if ((e.target as HTMLElement).closest("button:not(.bs-sheet__resize)")) return; dragged.current = false; start.current = e.clientY; rest.current = box.current?.getBoundingClientRect() ?? null; ((e.target as HTMLElement).closest(".bs-sheet__resize") ?? e.currentTarget).setPointerCapture(e.pointerId); };
-  const move = (e: RPointerEvent) => { if (start.current !== null) { const dy = e.clientY - start.current; if (Math.abs(dy) > 6) dragged.current = true; setDrag(dy); } };
+  const move = (e: RPointerEvent) => { if (start.current !== null && settled()) { const dy = e.clientY - start.current; if (Math.abs(dy) > 6) dragged.current = true; setDrag(dy); } };
   const up = (e: RPointerEvent) => { if (start.current === null) return; const dy = e.clientY - start.current; start.current = null; if (Math.abs(dy) > 6) dragged.current = true; if (dy > 90) onClose(); else if (dy < -60 && height !== "full" && !tall && expandable) { previousTop.current = box.current?.getBoundingClientRect().top ?? null; setTall(true); } setDrag(0); };
   // A drag that starts anywhere on the sheet: it becomes the sheet's once it moves 8 px more down
   // than sideways (a sideways move stays the row's scroll or the tabs' swipe); then the sheet
@@ -41,7 +46,7 @@ export function Sheet({ open, onClose, backdrop = true, height = "auto", title, 
   const swallow = useRef(false);
   const bodyDown = (e: RPointerEvent) => { swallow.current = false; if (!dragAnywhere || (e.target as HTMLElement).closest(".bs-sheet__grab, input, textarea")) return; body.current = { x: e.clientX, y: e.clientY, id: e.pointerId, on: false }; };
   const bodyMove = (e: RPointerEvent) => {
-    const b = body.current; if (!b || b.id !== e.pointerId) return;
+    const b = body.current; if (!b || b.id !== e.pointerId || !settled()) return;
     const dx = e.clientX - b.x, dy = e.clientY - b.y;
     if (!b.on) {
       if (Math.abs(dx) > 8 && Math.abs(dx) >= Math.abs(dy)) { body.current = null; return; }
@@ -65,10 +70,10 @@ export function Sheet({ open, onClose, backdrop = true, height = "auto", title, 
   }, [tall]);
   // iOS 26: pulled up, an inset sheet gradually stretches to the screen's edges and loses its
   // bottom corners, growing a little as it goes; past 60 px it opens to full height. A sheet that
-  // cannot grow only gives a little under the finger.
+  // cannot grow stays put, as vaul's drawer damps an upward pull on a sheet with nowhere to go.
   const grow = (dy: number) => {
     const lift = -Math.sqrt(-dy) * 3, r = rest.current;
-    if (!expandable || tall || height === "full" || !r) return { transform: `translateY(${lift}px)`, transition: "none" };
+    if (!expandable || tall || height === "full" || !r) return undefined;
     const p = Math.min(1, -dy / 160), side = (innerWidth - r.width) / 2, below = innerHeight - r.bottom;
     return { transform: `translateY(${lift * (1 - p) + p * below}px) scaleX(${1 + p * 2 * Math.max(0, side) / r.width})`, transformOrigin: "50% 100%",
       borderBottomLeftRadius: `calc(var(--r-outer) * ${1 - p})`, borderBottomRightRadius: `calc(var(--r-outer) * ${1 - p})`, transition: "none" };

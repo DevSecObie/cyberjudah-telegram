@@ -1,4 +1,5 @@
 import { Children, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { stoppingScroll } from "./fling";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
 
@@ -132,6 +133,9 @@ export function TabBar() {
   const hold = {
     onPointerDown: (e: React.PointerEvent) => {
       if (!e.isPrimary || e.button !== 0 || pointer.current !== null) return;
+      // A finger that stops a moving page is not a tap on the dock (fling.ts): leave it to the
+      // browser, which drops that click, so it neither opens a section nor starts a long press.
+      if (e.pointerType === "touch" && stoppingScroll()) return;
       pointer.current = e.pointerId; touchClick.current = null;
       touchTarget.current = e.pointerType === "touch" ? (e.target as Element).closest<HTMLButtonElement>("button.tab") : null;
       long.current = false; eatClick.current = false; swipe.current = { x: e.clientX, y: e.clientY };

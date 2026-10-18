@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
+import { stoppingScroll } from "@/ui/fling";
 
 import type { SelectionRange, WordPosition } from "../annotation/selectionUtils";
 
@@ -91,7 +92,8 @@ export function useVerseGestures(containerRef: RefObject<HTMLElement | null>, ca
     };
     /** Starts a gesture; true when it grabbed a selection handle (the caller then blocks scrolling). */
     const begin = (x: number, y: number, target: EventTarget | null): boolean => {
-      const skip = ignored(target);
+      // A touch that stops a moving page is not a tap on the verse under it.
+      const skip = ignored(target) || stoppingScroll();
       const word = !skip && sel.current?.annotationMode ? sel.current.wordAt(x, y) : null;
       const vk = skip ? null : word?.verseKey ?? verseKeyAt(target);
       // A second verse cannot form a double tap with the first. Deliver that completed tap
