@@ -121,8 +121,8 @@ app.post("/webhook", async (c) => {
 app.get("/api/health", async (c) => {
   const probe = async (f: () => Promise<unknown>) => { const t0 = Date.now(); try { await f(); return { ok: true, ms: Date.now() - t0 }; } catch (e) { return { ok: false, ms: Date.now() - t0, error: (e as Error).message?.slice(0, 80) }; } };
   const [search, teachings] = await Promise.all([
-    probe(() => c.env.DB.prepare("SELECT count(*) AS n FROM search_docs LIMIT 1").first()),
-    probe(() => c.env.TEACH.prepare("SELECT count(*) AS n FROM teaching_passages LIMIT 1").first()),
+    probe(() => c.env.DB.prepare("SELECT 1 AS n FROM search_docs LIMIT 1").first()),
+    probe(() => c.env.TEACH.prepare("SELECT 1 AS n FROM teaching_passages LIMIT 1").first()),
   ]);
   return c.json({ ok: search.ok && teachings.ok, search, teachings, ask: { model: hasClaude(c.env) ? c.env.CLAUDE_MODEL : "workers-ai", billing: unifiedBilling(c.env) ? "cloudflare" : hasClaude(c.env) ? "anthropic" : "none" }, at: new Date().toISOString() }, { headers: { "cache-control": "no-store" } });
 });
