@@ -95,17 +95,25 @@ export function Search() {
   const q = params.get("q") ?? "";
   const feed = params.get("feed") ?? "", page = Math.max(0, Number(params.get("page")) || 0);
   const scope = (SCOPES.find(([s]) => s === params.get("in"))?.[0] ?? "top") as Scope;
-  const [input, setInput] = useState(q);
+  // What is typed but not yet searched stays in the address (typed), so coming back from a result
+  // shows the same words and results, as Bible Strong's search tab keeps its value.
+  const [input, setInput] = useState(params.get("typed") ?? q);
   const [recent, setRecent] = useRecentSearches();
   const results = useRef<HTMLDivElement>(null);
-  useEffect(() => { setInput(q); }, [q]);
-  useBackButton(false, () => { if (q || input) { setInput(""); setParams({}, { replace: true }); return true; } });
+  const shownQ = useRef(q);
+  useEffect(() => { if (q !== shownQ.current) { shownQ.current = q; setInput(q); } }, [q]);
+  useBackButton(() => { if (q || input) { setInput(""); setParams({}, { replace: true }); return true; } }, Boolean(q || input));
   useBottomButtons(null, null);
 
   // Results follow the words as they are typed; Enter keeps them.
   const settled = useSettled(input, 220);
   const term = input.trim() === q.trim() ? q : settled;
   const live = term.trim() !== q.trim();
+  useEffect(() => {
+    const typed = settled.trim() && settled.trim() !== q.trim() ? settled : "";
+    if (typed === (params.get("typed") ?? "")) return;
+    setParams((p) => { const n = new URLSearchParams(p); if (typed) n.set("typed", typed); else n.delete("typed"); return n; }, { replace: true });
+  }, [settled]); // eslint-disable-line react-hooks/exhaustive-deps
   const library = useLibrary(term, live);
   const spoken = useTeachingsSearch(term, feed, scope === "spoken" ? page : 0);
   const ref = referencePath(term);

@@ -17,8 +17,9 @@ type ChapterHl = { slug: string; chapter: number; verses: Record<string, Highlig
 
 /** Bible Strong's lists: Bookmarks (with their colour), Highlights (by chapter, with the tags) and Notes. */
 export function Bookmarks() {
-  useBackButton(false);
+  useBackButton();
   const [params, setParams] = useSearchParams();
+  // The list shown is kept in the address (tab), so Back from an item returns to the same list.
   const [tab, setTab] = useState<Tab>((params.get("tab") as Tab) || (params.get("tag") ? "highlights" : "bookmarks"));
   const [bookmarks, setBookmarks] = useBookmarks();
   const [tags] = useTags();
@@ -52,7 +53,7 @@ export function Bookmarks() {
         )
       ) : tab === "highlights" ? (
         <>
-          {Object.keys(tags).length ? <Chips><Chip on={!tagFilter} onClick={() => setParams({}, { replace: true })}>All</Chip>{Object.values(tags).map((t) => <Chip key={t.id} on={tagFilter === t.id} onClick={() => setParams(tagFilter === t.id ? {} : { tag: t.id }, { replace: true })}>{t.name}</Chip>)}</Chips> : null}
+          {Object.keys(tags).length ? <Chips><Chip on={!tagFilter} onClick={() => setParams({ tab: "highlights" }, { replace: true })}>All</Chip>{Object.values(tags).map((t) => <Chip key={t.id} on={tagFilter === t.id} onClick={() => setParams(tagFilter === t.id ? { tab: "highlights" } : { tab: "highlights", tag: t.id }, { replace: true })}>{t.name}</Chip>)}</Chips> : null}
           {!shownHl.length ? <Empty title="No highlights yet" action={{ label: "Open the Bible", href: "/bible" }}>Select a verse and tap a colour.</Empty> : (
             <List>{shownHl.map((c) => { const vs = Object.keys(c.verses).map(Number).sort((a, b) => a - b); return <Row key={`${c.slug}${c.chapter}`} href={`/read/${c.slug}/${c.chapter}?v=${vs[0]}`} title={`${bookName(c.slug)} ${c.chapter}`} sub={`Verses ${vs.join(", ")}`} trailing={<span style={{ display: "flex", gap: 4 }}>{[...new Set(Object.values(c.verses).map(swatch))].filter((x) => x !== "transparent").map((x) => <i key={x} style={{ width: 12, height: 12, borderRadius: 4, background: x }} />)}</span>} />; })}</List>
           )}

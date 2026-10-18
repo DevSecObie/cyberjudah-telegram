@@ -109,7 +109,7 @@ const TOOLS: [string, string, IconName][] = [
 
 /** The welcome page offers Search and Ask; the dashboard lives in the Home drawer. */
 export function Home() {
-  useBackButton(true);
+  useBackButton();
   useBottomButtons(null, null);
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -188,8 +188,8 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
 
       <h2 className="shelf">Study</h2>
       <div className="widgets" aria-label="Of the day">
-        <StrongOfTheDay lang="greek" />
-        <StrongOfTheDay lang="hebrew" />
+        <StrongOfTheDay lang="greek" compact={drawer} />
+        <StrongOfTheDay lang="hebrew" compact={drawer} />
         <TopicOfTheDay />
         <WordOfTheDay />
         <PersonOfTheDay />

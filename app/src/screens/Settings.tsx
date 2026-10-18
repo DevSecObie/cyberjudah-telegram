@@ -29,7 +29,7 @@ function Toggle({ on, onChange, title, sub, disabled }: { on: boolean; onChange:
 
 export function Settings() {
   const navigate = useNavigate();
-  useBackButton(false);
+  useBackButton();
   const sheet = useSheet();
   const [size, setSize] = useStored<"compact" | "regular" | "large">("size", "regular");
   const [transparency, setTransparency] = useStored<"system" | "tinted" | "reduced">("transparency", "system");

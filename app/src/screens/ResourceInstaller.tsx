@@ -12,7 +12,7 @@ import './ResourceInstaller.css';
 const size = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 const label = (id: string) => id === 'CC-BY-SA-unversioned' ? 'CC BY-SA · version unstated' : id === 'public-domain' ? 'Public domain edition' : id;
 export function ResourceInstaller() {
-  useBackButton(false);
+  useBackButton();
   const client = useQueryClient();
   const catalog = useQuery({ queryKey: ['resource-catalog'], queryFn: () => resourceCatalog() });
   const installed = useQuery({ queryKey: ['resource-installed'], queryFn: installedResources });

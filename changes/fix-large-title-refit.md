@@ -1,0 +1,1 @@
+- When a page's big title shrinks into the bar as you scroll, the page under it no longer jumps a few pixels in some browsers.

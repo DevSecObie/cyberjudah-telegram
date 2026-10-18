@@ -22,7 +22,7 @@ function Quote({ r }: { r: ResolvedRef }) {
 }
 
 export function Precepts() {
-  useBackButton(false);
+  useBackButton();
   const rows = useQuery({ queryKey: ["precepts"], queryFn: data.precepts });
   const [q, setQ] = useState("");
   const list = (rows.data ?? []).filter((p) => !q || p.title.toLowerCase().includes(q.toLowerCase()));
@@ -36,7 +36,7 @@ export function Precepts() {
 
 export function PreceptScreen() {
   const { slug = "" } = useParams();
-  useBackButton(false);
+  useBackButton();
   const p = useQuery({ queryKey: ["precept", slug], queryFn: () => data.precept(slug) });
   useBottomButtons(p.data ? { text: "Share", onClick: () => void share({ kind: "note", title: `Precept: ${p.data!.title}`, text: `${p.data!.refs.length} scriptures · CyberJudah`, sitePath: p.data!.url }) } : null);
   if (p.isPending) return <Screen title="…"><Skeleton /></Screen>;
@@ -49,7 +49,7 @@ export function PreceptScreen() {
 }
 
 export function Topics() {
-  useBackButton(false);
+  useBackButton();
   const rows = useQuery({ queryKey: ["topics"], queryFn: data.topics });
   const [q, setQ] = useState("");
   const list = (rows.data ?? []).filter((t) => (t.notes || t.cases) && !t.slug.startsWith("verdict-") && (!q || t.label.toLowerCase().includes(q.toLowerCase())));
@@ -63,7 +63,7 @@ export function Topics() {
 
 export function TopicScreen() {
   const { slug = "" } = useParams();
-  useBackButton(false);
+  useBackButton();
   const t = useQuery({ queryKey: ["topic", slug], queryFn: () => data.topic(slug) });
   if (t.isPending) return <Screen title="…"><Skeleton /></Screen>;
   if (!t.data) return <Screen title="Topic"><Empty title="This topic did not load" /></Screen>;
@@ -111,7 +111,7 @@ function Thread({ stops }: { stops: ThreadStop[] }) {
 
 /** 4 Chapters a Day: the study notes, by book, with the reading plan's next chapter first. */
 export function Study() {
-  useBackButton(false);
+  useBackButton();
   const notes = useQuery({ queryKey: ["notes"], queryFn: data.notes });
   const [q, setQ] = useState("");
   const studies = (notes.data ?? []).filter((n) => n.kind === "study" && (!q || n.title.toLowerCase().includes(q.toLowerCase())));
@@ -126,7 +126,7 @@ export function Study() {
 }
 
 export function Encyclopedia() {
-  useBackButton(false);
+  useBackButton();
   const rows = useQuery({ queryKey: ["encyclopedia"], queryFn: data.encyclopedia });
   return (
     <Screen title="Encyclopedia" kicker="Standing subjects, walked through book by book">
@@ -149,7 +149,7 @@ const glossaryHit = (e: GlossaryEntry, q: string) =>
 
 /** The words the classes use, A to Z: each defined, with its scripture, where to read more, and the moments it is taught. */
 export function Glossary() {
-  useBackButton(false);
+  useBackButton();
   const location = useLocation();
   const g = useQuery({ queryKey: ["glossary"], queryFn: data.glossary, staleTime: 3_600_000 });
   const [q, setQ] = useState("");
@@ -208,7 +208,7 @@ const verseList = (vv: string[]) => compressVerses(vv.flatMap((v) => { const [a,
 
 /** The concordance, book by book: how much of each book the library cites. */
 export function Concordance() {
-  useBackButton(false);
+  useBackButton();
   const rows = useQuery({ queryKey: ["concordance-index"], queryFn: data.concordanceIndex, staleTime: 3_600_000 });
   const [q, setQ] = useState("");
   if (rows.isError) return <Screen title="Concordance"><Empty title="The concordance did not load" action={{ label: "Try again", onClick: () => void rows.refetch() }}>Check your connection.</Empty></Screen>;
@@ -230,7 +230,7 @@ export function Concordance() {
 export function ConcordanceBookScreen() {
   const { book = "" } = useParams();
   const location = useLocation();
-  useBackButton(false);
+  useBackButton();
   const b = useQuery({ queryKey: ["concordance-book", book], queryFn: () => data.concordanceBook(book), staleTime: 3_600_000 });
   // "/concordance/genesis#ch-3" lands on chapter 3, once per visit.
   const went = useRef("");
