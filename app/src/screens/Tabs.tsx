@@ -39,7 +39,7 @@ const LIBRARY: Item[] = [
 ];
 
 export function NewTab() {
-  useBackButton(true);
+  useBackButton();
   const navigate = useNavigate();
   const open = (to: string) => { haptic("select"); navigate(to, { replace: true }); };
   const Row = ({ item: [to, title, description, icon] }: { item: Item }) => (
@@ -148,7 +148,7 @@ export function Tabs() {
   const navigate = useNavigate();
   const { tabs, current } = useTabs();
   const go = (id: string) => { haptic("select"); moveTab(() => { navigate(selectTab(id), { replace: true }); }, "expand", id); };
-  useBackButton(false, () => { go(current); return true; });
+  useBackButton(() => { go(current); return true; }, true);
   useEffect(() => {
     const back = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !document.querySelector("[data-sheet-open]")) { event.preventDefault(); go(current); }

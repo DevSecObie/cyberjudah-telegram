@@ -17,7 +17,7 @@ type Donations = { open: boolean; presets: number[]; minStars: number; maxStars:
  * to read is ever behind this: it is reachable only from Settings and More.
  */
 export function Donate() {
-  useBackButton(true);
+  useBackButton();
   const q = useQuery({ queryKey: ["donations"], queryFn: () => api<Donations>(`/api/donations?tz=${encodeURIComponent(timeZone())}`), staleTime: 30_000 });
   const d = q.data;
   const [custom, setCustom] = useState("");

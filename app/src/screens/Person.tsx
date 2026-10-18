@@ -28,7 +28,7 @@ const fold = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace
 export function Person() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  useBackButton(false);
+  useBackButton();
   const p = useQuery({ queryKey: ["person", id], queryFn: () => data.person(id), staleTime: Infinity, retry: 1 });
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const [taughtShown, setTaughtShown] = useVisitState("taught", TAUGHT_FIRST);

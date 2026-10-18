@@ -28,7 +28,7 @@ const LAW: [string, string, string, IconName][] = [
 ];
 
 export function More() {
-  useBackButton(true);
+  useBackButton();
   return <Screen title="More"><MoreBody /></Screen>;
 }
 

@@ -366,6 +366,32 @@ test("liquid glass: pressing the current section lifts its pill, dragging carrie
   await expect(page).toHaveURL(/\/search/);
 });
 
+test("Back as in Bible Strong: every page but the main places has a ←, and a page opened by a link goes back to its parent", async ({ page }) => {
+  // Opened straight from a link, with no history: Back still shows and goes to the page above it.
+  await page.goto(`/settings/audio${LAUNCH}`);
+  await expect(page.locator("h1.title")).toBeVisible();
+  await expect.poll(async () => (await state(page)).back).toBe(true);
+  await press(page, "back");
+  await expect(page).toHaveURL(/\/settings(\?|$)/);
+  await expect(page.locator("h1.title")).toHaveText("Settings");
+  // The ← in the header is the same Back.
+  await page.getByText("Help & reading guide").click();
+  await expect(page).toHaveURL(/\/settings\/help/);
+  await page.locator(".screen > .head").getByRole("button", { name: "Back" }).click();
+  await expect(page).toHaveURL(/\/settings(\?|$)/);
+  // Main places have none.
+  await page.goto(`/search${LAUNCH}`);
+  await expect(page.locator(".srch__bar #q")).toBeVisible();
+  expect((await state(page)).back).toBe(false);
+  await expect(page.locator(".screen > .head").getByRole("button", { name: "Back" })).toHaveCount(0);
+  // On Search, Back first clears a typed question, then hides again.
+  await page.fill("#q", "Melchizedek");
+  await expect.poll(async () => (await state(page)).back).toBe(true);
+  await press(page, "back");
+  await expect(page.locator(".srch__bar #q")).toHaveValue("");
+  await expect.poll(async () => (await state(page)).back).toBe(false);
+});
+
 test("tabs are roots, detail screens push, and the back button walks them", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
   await expect(page.getByRole("heading", { name: "What do you want to learn?" })).toBeVisible();
@@ -388,6 +414,31 @@ test("tabs are roots, detail screens push, and the back button walks them", asyn
   await expect.poll(async () => (await state(page)).back).toBe(true);
   await press(page, "back");
   await expect(page).toHaveURL(/\/(bible|read)/);
+  // The menu it was opened from is open again, as in Bible Strong; Back then closes it.
+  await expect(page.locator(".drawer--more[data-open]")).toBeVisible();
+  await press(page, "back");
+  await expect(page.locator(".drawer--more[data-open]")).toHaveCount(0);
+});
+
+test("coming back keeps your place: typed search words, the menu a page was opened from, and the chosen Bookmarks list", async ({ page }) => {
+  await page.goto(`/search${LAUNCH}`);
+  // Words typed but not yet searched are kept, as Bible Strong's search tab keeps its value.
+  await page.fill("#q", "John 3:16");
+  await expect(page).toHaveURL(/typed=John/);
+  await page.click('.tab[aria-label="Menu"]');
+  await page.click(".mcard__row >> text=Settings");
+  await expect(page).toHaveURL(/\/settings/);
+  await expect(page.locator(".drawer[data-open]")).toHaveCount(0);
+  await page.waitForTimeout(500);
+  await press(page, "back");
+  await expect(page).toHaveURL(/\/search/);
+  await expect(page.locator(".srch__bar #q")).toHaveValue("John 3:16");
+  await expect(page.locator(".drawer--more[data-open]")).toBeVisible();
+  await page.goto(`/bookmarks${LAUNCH}`);
+  await page.getByRole("tab", { name: /^Highlights/ }).click();
+  await expect(page).toHaveURL(/tab=highlights/);
+  await page.reload();
+  await expect(page.getByRole("tab", { name: /^Highlights/ })).toHaveAttribute("aria-selected", "true");
 });
 
 test("Home is Bible Strong's drawer: it slides the app aside and closes with a swipe", async ({ page }) => {

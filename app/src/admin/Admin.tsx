@@ -18,7 +18,7 @@ import { ResourceAdmin } from './ResourceAdmin';
 import './admin.css';
 
 export function Admin() {
-  useBackButton(false);
+  useBackButton();
   const who = useQuery({ queryKey: ['me'], queryFn: () => api<{ admin?: boolean }>('/api/me'), retry: false });
   if (who.isPending) return <Screen title="Settings"><p>Checking access…</p></Screen>;
   if (!who.isSuccess || !who.data?.admin) return <Screen title="Settings"><p>This area is available to admins only.</p></Screen>;

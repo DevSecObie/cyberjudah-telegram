@@ -15,7 +15,7 @@ const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ']/g, "").toLowerC
  * and what the classes taught where they come up.
  */
 export function People() {
-  useBackButton(true);
+  useBackButton();
   const [q, setQ] = useVisitState("q", "");
   const [debounced, setDebounced] = useState(() => fold(q.trim()));
   useEffect(() => { const t = setTimeout(() => setDebounced(fold(q.trim())), 150); return () => clearTimeout(t); }, [q]);
