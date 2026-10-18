@@ -440,7 +440,7 @@ test("daily verses have five days, sharing and images on Home", async ({ page, b
   await expect(word.locator(".widget__body")).toHaveAttribute("href", "/lexicon/G2");
   await expect.poll(() => home.evaluate(el => [el.querySelector(".drawer__scroll")!.scrollTop, el.querySelector(".widgets")!.scrollLeft])).toEqual(position);
   // A chapter first saved while Home is closed must join its displayed totals on reopening.
-  const highlights = home.locator(".stats__cell").filter({ hasText: "Highlights" }).locator("b");
+  const highlights = home.locator(".stats__cell").filter({ hasText: "Highlight" }).locator("b");
   await expect(highlights).toHaveText("0");
   await home.getByRole("button", { name: "Close Home" }).click();
   await touchVerse(page, "touchstart", 1);
@@ -700,4 +700,32 @@ test("a touch swipe closes Home even when the browser cancels its pointer, but n
   await expect(home).toHaveAttribute("data-open", "");
   await swipe(".stats--six");
   await expect(home).not.toHaveAttribute("data-open");
+});
+
+// Bible Strong's drawers: Events at the top of Home (here the class on the air), the offline notice,
+// the menu's account card and legal links, each drawer kept where it was, and a new tab closing them.
+test("the drawers show the live class, the offline notice, the account and legal links, and keep their place", async ({ page, context }) => {
+  await page.route("**/api/live", r => r.fulfill({ json: { live: true, upcoming: false, video: "abcdefghijk", title: "The Sabbath class", starts: null } }));
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  const home = page.locator(".drawer--home");
+  await expect(home.locator(".live-card")).toContainText("Live now");
+  await expect(home.locator(".live-card")).toHaveAttribute("href", "/watch/abcdefghijk?live=1");
+  await context.setOffline(true);
+  await expect(home.getByRole("status").filter({ hasText: "You are offline" })).toBeVisible();
+  await context.setOffline(false);
+  await expect(home.getByText("You are offline")).toHaveCount(0);
+  await home.getByRole("button", { name: "Close Home" }).click();
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  const more = page.locator(".drawer--more");
+  await expect(more.locator(".more__account")).toHaveAttribute("href", "/settings/account");
+  await expect(more.getByRole("navigation", { name: "Legal" }).getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
+  await expect(more.getByRole("link", { name: "Downloads" })).toHaveAttribute("href", "/resources");
+  // The menu opens again where it was scrolled, as Bible Strong keeps it mounted.
+  await more.locator(".drawer__scroll").evaluate(el => { el.scrollTop = 300; });
+  await more.getByRole("button", { name: "Close the menu" }).click();
+  await expect(more).not.toHaveAttribute("data-open");
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await expect.poll(() => more.locator(".drawer__scroll").evaluate(el => el.scrollTop)).toBe(300);
 });

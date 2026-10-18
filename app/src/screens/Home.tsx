@@ -99,7 +99,6 @@ const LAW: [string, string, string, IconName][] = [
   ["/law", "The Law", "Every law with its scripture", "law"],
   ["/precepts", "Precepts", "Every subject scripture speaks to", "quote"],
   ["/cases", "Case studies", "Judgments, and those who were blessed", "folder"],
-  ["/timeline", "Bible timeline", "Periods and events by year", "clock"],
   ["/topics", "Topics", "Classes and episodes by subject", "tag"],
 ];
 /** The Study shelf: the reference works, each browsable on its own. */
@@ -146,6 +145,44 @@ export function Home() {
   );
 }
 
+/**
+ * In Bible Strong's Events place at the top of Home: the class on the air now, or the next one
+ * within six hours (and for 15 minutes after its start, while it may still be starting).
+ */
+function LiveBanner({ active }: { active: boolean }) {
+  const live = useLive(active);
+  const l = live.data;
+  if (!l?.video) return null;
+  const to = `/watch/${encodeURIComponent(l.video)}?live=1`;
+  if (l.live) return (
+    <Link to={to} className="live-card" onClick={() => haptic("select")}>
+      <span className="live-card__dot" aria-hidden="true" />
+      <span><small>Live now</small><b>{l.title || "Sabbath class"}</b></span>
+      <Icon name="play" size={20} />
+    </Link>
+  );
+  const wait = l.upcoming && l.starts ? new Date(l.starts).getTime() - Date.now() : NaN;
+  if (!(wait > -15 * 60_000 && wait < 6 * 3600_000)) return null;
+  return (
+    <Link to={to} className="live-card live-card--soon" onClick={() => haptic("select")}>
+      <span className="live-card__dot" aria-hidden="true" />
+      <span><small>Starting {new Date(l.starts!).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</small><b>{l.title || "Sabbath class"}</b></span>
+      <Icon name="play" size={20} />
+    </Link>
+  );
+}
+
+/** Bible Strong's OfflineNotice: a small pill while the device has no connection. */
+function OfflinePill() {
+  const [online, setOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine);
+  useEffect(() => {
+    const on = () => setOnline(true), off = () => setOnline(false);
+    addEventListener("online", on); addEventListener("offline", off);
+    return () => { removeEventListener("online", on); removeEventListener("offline", off); };
+  }, []);
+  return online ? null : <p className="offline-pill" role="status"><Icon name="alert" size={14} /> You are offline</p>;
+}
+
 /** Bible Strong's Home drawer over the current tab. */
 export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; active?: boolean }) {
   const [plan] = usePlan();
@@ -166,10 +203,18 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
   const random = useRandomVerse();
   const latestClass = feed.data?.find((t) => t.kind === "class");
   const rows = useMemo(() => (feed.data ?? []).filter((t) => t.url !== latestClass?.url).slice(0, 8), [feed.data, latestClass]);
+  // In Bible Strong's Meditations place: the newest class series, to be followed part by part.
+  const series = useMemo(() => {
+    const newest = (feed.data ?? []).find((t) => t.series);
+    if (!newest?.series) return null;
+    return { name: newest.series.name, parts: (feed.data ?? []).filter((t) => t.series?.name === newest.series!.name).length };
+  }, [feed.data]);
 
   return (
     <Screen className="home">
       <div className="pull" style={{ height: ps.height, opacity: ps.opacity }} aria-hidden="true">{ps.label}</div>
+      <LiveBanner active={active} />
+      <OfflinePill />
       <TodayCard verse={verse.data} failed={verse.isError} stacked={drawer} />
       <StudyStats expanded={drawer} active={active} />
       <h2 className="shelf">Learn</h2>
@@ -179,6 +224,12 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
           <span className="feature__body"><small>{[weekLabel(latestClass.date), fmtDate(latestClass.date), latestClass.teacher].filter(Boolean).join(" · ")}{latestClass.pending ? <span className="soon">Notes coming soon</span> : null}</small><b>{latestClass.title}</b>{latestClass.books.length ? <span className="feed__books">{latestClass.books.slice(0, 4).map((b) => <em key={b}>{b}</em>)}</span> : null}</span>
         </Link>
       ) : null}
+      {/* Bible Strong's pair of tall cards (The Bible Project's plan and the timeline): the daily
+          reading in the plan's place, and the timeline. */}
+      <div className="duo">
+        <Link to="/study" className="duo__card duo__card--plan" onClick={() => haptic("select")}><Icon name="book" size={26} /><b>4 Chapters a Day</b><span>The daily reading, a note for every chapter</span></Link>
+        <Link to="/timeline" className="duo__card duo__card--time" onClick={() => haptic("select")}><Icon name="clock" size={26} /><b>Bible timeline</b><span>Periods and events by year</span></Link>
+      </div>
       <div className="shelf-grid">
         {LEARN.map(([to, title, sub, icon]) => <Link key={to} to={to} className="shelf-card" onClick={() => haptic("select")}><span className="shelf-card__icon"><Icon name={icon} size={20} /></span><b>{title}</b><span>{sub}</span></Link>)}
       </div>
@@ -211,7 +262,8 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
       ) : (
         <Card href="/plan" className="plan-start"><span className="resume__icon"><Icon name="check" /></span><span><b>Start a reading plan</b><span>The whole library, a few chapters a day, at your pace</span></span><Icon name="chevron" size={18} /></Card>
       )}
-      <Card href="/study" className="plan-start"><span className="resume__icon"><Icon name="book" /></span><span><b>4 Chapters a Day</b><span>The daily reading, a note for every chapter</span></span><Icon name="chevron" size={18} /></Card>
+      <Link to="/plans" className="shelf-more" onClick={() => haptic("select")}>Explore reading plans<Icon name="chevron" size={16} /></Link>
+      {series ? <Card href={`/classes?series=${encodeURIComponent(series.name)}`} className="plan-start"><span className="resume__icon"><Icon name="play" /></span><span><b>{series.name}</b><span>A class series · {series.parts} {series.parts === 1 ? "part" : "parts"}, in order</span></span><Icon name="chevron" size={18} /></Card> : null}
       {sab ? <Card href="/sabbath" className="sabbath"><span className="sabbath__icon"><Icon name="sun" /></span><span><b>{sab.sabbath ? "Shabbat shalom" : `Sabbath in ${countdown(sab.next, now)}`}</b><span>{sab.label} · {sab.next.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}</span></span></Card> : <Card href="/sabbath" className="sabbath"><span className="sabbath__icon"><Icon name="sun" /></span><span><b>Sabbath</b><span>Sunset where you are, and the countdown</span></span></Card>}
 
       <Section title="Latest Teachings" action={<Link to="/classes">All classes</Link>}>
@@ -226,7 +278,10 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
       </Section>
 
       <h2 className="shelf">Go further</h2>
+      {/* Bible Strong's DonationWidget. */}
+      <Card href="/settings/donate" className="plan-start donate-card"><span className="resume__icon"><Icon name="star" /></span><span><b>Support CyberJudah</b><span>Keep the classes, notes and app free for everyone</span></span><Icon name="chevron" size={18} /></Card>
       <div className="door">
+        <Link to="/settings/help" className="btn btn--bordered door__btn" onClick={() => haptic("select")}><Icon name="info" size={18} /> FAQ</Link>
         <Link to="/more" className="btn btn--bordered door__btn" onClick={() => haptic("select")}><Icon name="more" size={18} /> Everything else</Link>
         <button type="button" className="btn btn--bordered door__btn" onClick={() => void share({ kind: "app", title: "CyberJudah", text: "The KJV with the Apocrypha, and everything taught from it, in Telegram.", sitePath: "/" })}><Icon name="share" size={18} /> Share the app</button>
       </div>

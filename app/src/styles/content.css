@@ -120,6 +120,17 @@
 .mcard__icon { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-inner); }
 .mcard__label { flex: 1; min-width: 0; }
 .mcard__chev { display: grid; color: var(--text-4); }
+.more__account { display: flex; align-items: center; gap: var(--sp-3); margin: 0 var(--sp-5) var(--sp-4); padding: var(--sp-3) 14px; border-radius: var(--group-radius); background: var(--surface-2); box-shadow: var(--card-edge); color: var(--text-1); text-decoration: none; }
+.screen .more__account, .drawer .screen .more__account, .drawer .more .more__account { margin-inline: 0; }
+.more__account > span:nth-child(2) { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.more__account b { font: 600 var(--fs-body) var(--font-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.more__account small { color: var(--text-3); font: 400 var(--fs-sub) var(--font-ui); }
+.more__account > svg { color: var(--text-3); }
+#root .more__account[data-pressed] { background: var(--state-press); }
+.more__avatar { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font: 700 var(--fs-callout) var(--font-ui); }
+.more__avatar img { width: 100%; height: 100%; object-fit: cover; }
+.more__legal { display: flex; justify-content: center; gap: var(--sp-5); margin-top: var(--sp-2); }
+.more__legal a { color: var(--text-2); font: 500 var(--fs-sub) var(--font-ui); }
 .more__foot { margin: var(--sp-2) var(--sp-5) 0; color: var(--text-3); font: 400 var(--fs-sub)/1.4 var(--font-ui); text-align: center; }
 /* A row's count after its title (People: the verses a person is named in), quiet beside the name. */
 .row__count { display: inline-flex; align-items: center; gap: 4px; flex: none; font: 500 var(--fs-caption)/1.3 var(--font-ui); color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }

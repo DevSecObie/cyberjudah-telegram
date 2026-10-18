@@ -87,7 +87,7 @@
   border: .5px solid var(--dock-edge-override, var(--mat-edge));
   box-shadow: var(--mat-highlight), var(--mat-shadow);
   touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
-  transition: transform var(--dur-4) var(--drawer-ease);
+  transition: transform var(--drawer-dur) var(--drawer-ease);
 }
 /* One regular material behind the controls, in Safari as well as Chromium. The selection is a
    fill on this surface, never a second backdrop filter over the labels. */
@@ -236,7 +236,7 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 /* ── Page actions: the screen's buttons, floating just above the dock ────────────────────── */
 .pageactions { position: fixed; z-index: var(--z-actions); left: var(--gutter); right: var(--gutter); max-width: 600px; margin: 0 auto;
   bottom: calc(var(--dock-space) + var(--sp-3)); display: flex; gap: var(--sp-2); justify-content: center; pointer-events: none;
-  transition: transform var(--dur-4) var(--drawer-ease); }
+  transition: transform var(--drawer-dur) var(--drawer-ease); }
 #root .pageaction { pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); flex: 1 1 0; max-width: 320px; height: var(--h-md); padding: 0 18px;
   border-radius: var(--r-pill); border: .5px solid color-mix(in srgb, #ffffff 22%, transparent); cursor: pointer;
   background: var(--accent); color: var(--on-accent); font: 600 15px var(--font-ui);
@@ -252,15 +252,18 @@ html[data-typing] .pageactions { display: none; }
 @media (min-width: 900px) { .pageactions { left: calc(var(--rail-space) + var(--gutter)); } }
 
 /* ── Drawers: Home and the menu, pushing the app aside ────────────────────────────────────── */
-:root { --drawer-w: min(95vw, 450px); --drawer-ease: cubic-bezier(.2, .9, .25, 1); }
-#shell .route { transition: transform var(--dur-4) var(--drawer-ease); }
+/* Bible Strong's drawer moves on Reanimated 4's default spring (mass 4, stiffness 900, damping 120:
+   critically damped, so it eases in without a bounce and rests after about 600 ms), sampled here. */
+:root { --drawer-w: min(95vw, 450px); --drawer-dur: 600ms;
+  --drawer-ease: linear(0, .055 4.2%, .1734 8.3%, .3101 12.5%, .4422 16.7%, .5591 20.8%, .6575 25%, .7374 29.2%, .8009 33.3%, .8503 37.5%, .8883 41.7%, .9172 45.8%, .9389 50%, .9551 54.2%, .9672 58.3%, .9761 62.5%, .9826 66.7%, .9874 70.8%, .9909 75%, .9935 79.2%, .9953 83.3%, .9966 87.5%, .9976 91.7%, .9983 95.8%, 1); }
+#shell .route { transition: transform var(--drawer-dur) var(--drawer-ease); }
 html[data-drawer-pin] #shell .route { position: fixed; top: var(--drawer-y, 0); left: 0; right: 0; min-height: 100dvh; }
 html[data-drawer="home"] #shell .route, html[data-drawer="home"] .tabs, html[data-drawer="home"] .pageactions { transform: translateX(var(--drawer-w)); }
 html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[data-drawer="more"] .pageactions { transform: translateX(calc(-1 * var(--drawer-w))); }
 .drawer { position: fixed; top: 0; bottom: 0; z-index: var(--z-drawer); width: var(--drawer-w); display: flex; flex-direction: column;
   background: var(--surface-1); color: var(--text-2); overscroll-behavior: contain;
-  box-shadow: var(--shadow-3); transition: transform var(--dur-4) var(--drawer-ease), visibility 0s linear var(--dur-4); visibility: hidden; }
-.drawer[data-open] { visibility: visible; transition: transform var(--dur-4) var(--drawer-ease); }
+  box-shadow: var(--shadow-3); transition: transform var(--drawer-dur) var(--drawer-ease), visibility 0s linear var(--drawer-dur); visibility: hidden; }
+.drawer[data-open] { visibility: visible; transition: transform var(--drawer-dur) var(--drawer-ease); }
 .drawer--home { left: 0; transform: translateX(-100%); border-right: .5px solid var(--mat-edge); }
 .drawer--more { right: 0; transform: translateX(100%); border-left: .5px solid var(--mat-edge); }
 .drawer[data-open] { transform: none; }
