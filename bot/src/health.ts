@@ -15,18 +15,30 @@ const REMIND_MS = 6 * 3600 * 1000;
 /** A daily send whose failures pass this share of attempts pages the admins. */
 const DAILY_FAIL_SHARE = 0.2;
 
+/** How long to wait before the one retry of a failed D1 probe. */
+export const RETRY_MS = 5000;
+
+/**
+ * D1 sometimes refuses a query for a moment ("D1 DB is overloaded. Requests queued for too
+ * long."). A probe is tried once more after RETRY_MS, so a passing hiccup does not page the admins.
+ */
+async function again<T>(probe: () => Promise<T>, wait = RETRY_MS): Promise<T> {
+  try { return await probe(); } catch { await new Promise((r) => setTimeout(r, wait)); return probe(); }
+}
+
 const err = (e: unknown) => (e instanceof Error ? e.message?.slice(0, 120) : String(e).slice(0, 120));
 
 /** What the worker depends on, probed directly: the indexes, the vectors, and headroom. */
-export async function selfCheck(env: Env, now = Date.now()): Promise<{ ok: boolean; checks: Check[] }> {
+export async function selfCheck(env: Env, now = Date.now(), retryMs = RETRY_MS): Promise<{ ok: boolean; checks: Check[] }> {
   const checks: Check[] = [];
+  // One row is enough to show the index is loaded; counting every row scans the whole table.
   try {
-    const r = await env.DB.prepare("SELECT count(*) AS n FROM search_docs").first<{ n: number }>();
-    checks.push({ name: "d1-search", ok: (r?.n ?? 0) > 0, detail: `${r?.n ?? 0} docs` });
+    const r = await again(() => env.DB.prepare("SELECT 1 AS n FROM search_docs LIMIT 1").first<{ n: number }>(), retryMs);
+    checks.push({ name: "d1-search", ok: Boolean(r), detail: r ? "loaded" : "empty" });
   } catch (e) { checks.push({ name: "d1-search", ok: false, detail: err(e) }); }
   try {
-    const r = await env.TEACH.prepare("SELECT count(*) AS n FROM teaching_passages").first<{ n: number }>();
-    checks.push({ name: "d1-teachings", ok: (r?.n ?? 0) > 0, detail: `${r?.n ?? 0} passages` });
+    const r = await again(() => env.TEACH.prepare("SELECT 1 AS n FROM teaching_passages LIMIT 1").first<{ n: number }>(), retryMs);
+    checks.push({ name: "d1-teachings", ok: Boolean(r), detail: r ? "loaded" : "empty" });
   } catch (e) { checks.push({ name: "d1-teachings", ok: false, detail: err(e) }); }
   try {
     const d = await env.VEC.describe();
@@ -35,7 +47,7 @@ export async function selfCheck(env: Env, now = Date.now()): Promise<{ ok: boole
   try {
     // D1 does not allow the page_count/page_size pragmas (SQLITE_AUTH); every result's
     // metadata carries the database size in bytes after the statement instead.
-    const r = await env.DB.prepare("SELECT 1").run();
+    const r = await again(() => env.DB.prepare("SELECT 1").run(), retryMs);
     const bytes = Number((r.meta as { size_after?: number }).size_after ?? 0);
     // D1's per-database storage has a documented ceiling; alert at 80% of it so there is
     // room to act. Override with the D1_SIZE_ALERT_BYTES var when Cloudflare moves it.
