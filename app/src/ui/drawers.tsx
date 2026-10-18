@@ -21,9 +21,10 @@ const MoreBody = lazy(() => import("@/screens/More").then((m) => ({ default: m.M
 export function Drawers() {
   const side = useDrawer();
   const { pathname, search } = useLocation();
-  const [shown, setShown] = useState<DrawerSide | null>(side);
-  // Bible Strong 1dfaa0d keeps Home mounted after its first opening.
+  // Bible Strong keeps each drawer mounted after its first opening (hasOpenedHome, hasOpenedMenu),
+  // so it opens again where it was scrolled.
   const [hasOpenedHome, setHasOpenedHome] = useState(side === "home");
+  const [hasOpenedMore, setHasOpenedMore] = useState(side === "more");
   const scrimSwipe = useSwipeClose(side ?? "home");
   // A navigation from inside a drawer (a link, a search) closes it. A screen correcting its own
   // address (the Bible settling /bible on its chapter) is a replace, and must not.
@@ -39,9 +40,9 @@ export function Drawers() {
     if (navType !== "REPLACE") setDrawer(null);
   }, [pathname, search]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (side) { setShown(side); if (side === "home") setHasOpenedHome(true); return sheetOpened(); }
-    const t = window.setTimeout(() => setShown(null), SLIDE_MS);
-    return () => window.clearTimeout(t);
+    if (!side) return;
+    if (side === "home") setHasOpenedHome(true); else setHasOpenedMore(true);
+    return sheetOpened();
   }, [side]);
   // The app slides aside with the drawer, as one row. The page is pinned where it was scrolled for
   // the slide (a moving page must not scroll under the finger) and given back, in place, after.
@@ -77,7 +78,7 @@ export function Drawers() {
         ) : null}
       </Panel>
       <Panel side="more" open={side === "more"}>
-        {shown === "more" ? (
+        {hasOpenedMore ? (
           <>
             <header className="drawer__head">
               <button type="button" className="drawer__back" aria-label="Close the menu" title="Close the menu" onClick={() => { haptic("select"); setDrawer(null); }}><Icon name="back" size={22} /></button>
@@ -91,7 +92,8 @@ export function Drawers() {
   );
 }
 
-const SLIDE_MS = 380;
+/** The drawer spring's length (--drawer-dur): the page behind is given back after it. */
+const SLIDE_MS = 600;
 
 /** A horizontal swipe toward the drawer's own edge closes it, as Bible Strong's pan does. */
 function useSwipeClose(side: DrawerSide) {
@@ -107,6 +109,8 @@ function useSwipeClose(side: DrawerSide) {
   };
   return {
     onPointerDown: (e: React.PointerEvent) => {
+      // A second finger is not part of the swipe: it ends the gesture, so lifting either is no swipe.
+      if (!e.isPrimary) { start.current = null; return; }
       // From any element, an icon's SVG included, to the nearest horizontally scrolling row.
       let el = e.target instanceof Element ? e.target : null;
       while (el && !(el instanceof HTMLElement && el.scrollWidth > el.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(el).overflowX))) el = el.parentElement;

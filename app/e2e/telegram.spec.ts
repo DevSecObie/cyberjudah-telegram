@@ -606,7 +606,8 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   const home = page.locator(".drawer--home");
   await expect(home.locator(".today-card[data-active]")).toContainText("Genesis 1:1");
   await expect(home.locator(".hello, .search-hero, .door__btn--ask")).toHaveCount(0);
-  await expect(home.locator(".stats__cell small")).toHaveText(["Highlights", "Bookmarks", "Notes", "Studies", "Precepts", "Tags"]);
+  // One highlight and one note take the singular label, as Bible Strong counts them.
+  await expect(home.locator(".stats__cell small")).toHaveText(["Highlight", "Bookmarks", "Note", "Studies", "Precepts", "Tags"]);
   // A reading plan is not a personal study.
   await expect(home.locator('.stats__cell[href="/studies"] b')).toHaveText("0");
   await expect(home.locator('.stats__cell[href="/bookmarks?tab=highlights"] b')).toHaveText("1");

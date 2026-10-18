@@ -7,7 +7,7 @@ import { stoppingScroll } from "./fling";
 
 const DELAY = 50, SLOP = 10, FLASH = 100;
 let marked: Element[] = [];
-let timer = 0, flash = 0, pointer = -1, x = 0, y = 0, target: Element | null = null;
+let timer = 0, flash = 0, pointer = -1, x = 0, y = 0, target: Element | null = null, key = "";
 
 /** Clear earlier feedback, then mark the element and its ancestors as pressed. */
 function mark(el: Element | null) {
@@ -26,7 +26,7 @@ const disabled = (el: Element) => Boolean(el.closest(":disabled, [aria-disabled=
 /** Start delayed feedback for a primary press unless disabled or stopping a touch scroll. */
 function down(e: PointerEvent) {
   if (!e.isPrimary || e.button !== 0 || !(e.target instanceof Element)) return;
-  clear(); pointer = e.pointerId; x = e.clientX; y = e.clientY; target = null;
+  clear(); pointer = e.pointerId; x = e.clientX; y = e.clientY; target = null; key = "";
   // A finger that stops a gliding page presses nothing (fling.ts).
   if ((e.pointerType === "touch" && stoppingScroll()) || disabled(e.target)) return;
   target = e.target;
@@ -60,9 +60,10 @@ export function installPress() {
   // A press that becomes a scroll is not a press.
   addEventListener("scroll", () => { if (target || marked.length) cancel(); }, opts);
   // The keyboard's press (Space or Enter on a control) shows the same look while the key is down.
-  addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat && e.target instanceof Element && e.target.matches("button, a, [role=button], [role=tab], input[type=range]")) mark(e.target); }, true);
-  addEventListener("keyup", () => { if (marked.length) clear(); }, true);
+  addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat && !target && e.target instanceof Element && e.target.matches("button, a, [role=button], [role=tab], input[type=range]")) { key = e.key; mark(e.target); } }, true);
+  // Only the key that pressed lifts the press, and never a finger's press.
+  addEventListener("keyup", (e) => { if (key && e.key === key) { key = ""; if (!target) clear(); } }, true);
   // Focus moving between controls must not end a pointer press that is waiting out DELAY;
   // only the window losing focus does. A key press's look goes with its control's focus.
-  addEventListener("blur", (e) => { if (e.target === window) cancel(); else if (!target && marked.length) clear(); }, true);
+  addEventListener("blur", (e) => { if (e.target === window) cancel(); else if (!target && marked.length) { key = ""; clear(); } }, true);
 }

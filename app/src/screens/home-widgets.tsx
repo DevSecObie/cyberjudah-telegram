@@ -133,6 +133,7 @@ export function useStudyCounts(active = true) {
   return { highlights: totals?.highlights ?? 0, bookmarks: bookmarks.length, notes: totals?.notes ?? 0, tags: Object.keys(tags).length, ready: totals !== null };
 }
 
+const SINGULAR: Record<string, string> = { Highlights: "Highlight", Bookmarks: "Bookmark", Notes: "Note", Studies: "Study", Precepts: "Precept", Tags: "Tag" };
 export function StudyStats({ expanded = false, active = true }: { expanded?: boolean; active?: boolean }) {
   const c = useStudyCounts(active);
   const [studyCount, setStudyCount] = useState(0);
@@ -152,7 +153,7 @@ export function StudyStats({ expanded = false, active = true }: { expanded?: boo
   ];
   return (
     <div className={`stats${expanded ? " stats--six" : ""}`} aria-label="What you have kept">
-      {cells.map(([label, n, to, icon]) => <Link key={label} to={to} className="stats__cell" onClick={() => haptic("select")}><span className="stats__value">{expanded ? <Icon name={icon} size={18} /> : null}<b>{n.toLocaleString()}</b></span><small>{label}</small></Link>)}
+      {cells.map(([label, n, to, icon]) => <Link key={label} to={to} className="stats__cell" onClick={() => haptic("select")}><span className="stats__value">{expanded ? <Icon name={icon} size={18} /> : null}<b>{n.toLocaleString()}</b></span><small>{n === 1 ? SINGULAR[label] ?? label : label}</small></Link>)}
     </div>
   );
 }
