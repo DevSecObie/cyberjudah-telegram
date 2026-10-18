@@ -424,7 +424,8 @@ test("daily verses have five days, sharing and images on Home", async ({ page, b
   const shelf = home.locator(".widgets");
   await expect(home.locator(".feed__card--skel")).toHaveCount(0);
   await shelf.evaluate(el => { el.scrollIntoView({ block: "center" }); el.scrollLeft = 200; });
-  await expect.poll(() => shelf.evaluate(el => el.scrollLeft)).toBeGreaterThan(20);
+  // The shelf can rest between cards instead of snapping to the next entry.
+  await expect.poll(() => shelf.evaluate(el => el.scrollLeft)).toBeCloseTo(200, 0);
   const position = await home.evaluate(el => [el.querySelector(".drawer__scroll")!.scrollTop, el.querySelector(".widgets")!.scrollLeft]);
   await home.getByRole("button", { name: "Close Home" }).click();
   await expect(home).toHaveAttribute("inert", "");
@@ -448,6 +449,16 @@ test("daily verses have five days, sharing and images on Home", async ({ page, b
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Home", exact: true }).click();
   await expect(highlights).toHaveText("1");
+  // Entry, resource footer and shuffle remain independent controls in the shorter card.
+  await word.locator(".widget__foot").click();
+  await expect(page).toHaveURL(/\/lexicon\?lang=greek$/);
+  await expect(home).toHaveAttribute("inert", "");
+  // Back from a page opened from Home opens Home again, as Bible Strong's drawer stays open under the page.
+  await page.goBack();
+  await expect(home).toHaveAttribute("data-open", "");
+  await word.locator(".widget__body").click();
+  await expect(page).toHaveURL(/\/lexicon\/G2$/);
+  await expect(home).toHaveAttribute("inert", "");
 });
 
 test("keyboard palette switches to an existing tab and opens a passage with its range", async ({ page }) => {
