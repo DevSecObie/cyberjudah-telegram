@@ -426,7 +426,8 @@ for (const theme of ["default", "dark", "sepia"]) {
         const restShadow = await knob.evaluate(e => getComputedStyle(e, "::after").boxShadow);
         await toggle.hover(); await page.mouse.down();
         await expect.poll(() => knob.evaluate(e => new DOMMatrix(getComputedStyle(e, "::after").transform).a)).toBeCloseTo(preference === "motion" ? 1 : 1.2, 5);
-        if (preference !== "forced") expect(await knob.evaluate(e => getComputedStyle(e, "::after").boxShadow)).not.toBe(restShadow);
+        // The pressed look waits out the 50 ms press delay (ui/press.ts).
+        if (preference !== "forced") await expect.poll(() => knob.evaluate(e => getComputedStyle(e, "::after").boxShadow)).not.toBe(restShadow);
         if (["system", "app", "contrast", "forced"].includes(preference)) expect((await materials(page, [[".switch", "::after"]]))[0].alpha).toBe(255);
         await page.mouse.up();
         const label = (await toggle.locator("b").boundingBox())!, thumb = (await toggle.locator(".switch").boundingBox())!;
