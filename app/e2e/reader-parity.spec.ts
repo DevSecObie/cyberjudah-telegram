@@ -599,3 +599,60 @@ test("reader annotation mode suppresses native text selection and WebKit callout
   await page.getByRole("button", { name: "Exit annotation mode", exact: true }).click();
   await expect(page.locator(".bs-container")).not.toHaveAttribute("data-annotating");
 });
+
+// A finger put on a page still gliding from a swipe stops it and taps nothing, as in Bible Strong,
+// where the browser decides tap or scroll: not a verse, and not the dock's sections (ui/fling.ts).
+async function glide(page: Page) {
+  await page.evaluate(() => {
+    const fire = (type: string, target: EventTarget) => target.dispatchEvent(Object.assign(new Event(type, { bubbles: true, cancelable: true }), { touches: [], changedTouches: [] }));
+    const scroller = document.querySelector(".bs-scroll")!;
+    fire("touchstart", document.body); scroller.dispatchEvent(new Event("scroll"));
+    fire("touchend", document.body); scroller.dispatchEvent(new Event("scroll"));
+  });
+}
+async function tapTab(page: Page, name: string) {
+  await page.locator("nav.tabs").getByRole("button", { name, exact: true }).evaluate(el => {
+    const r = el.getBoundingClientRect(), at = { clientX: r.x + r.width / 2, clientY: r.y + r.height / 2, bubbles: true, cancelable: true, pointerId: 7, pointerType: "touch", isPrimary: true, button: 0 };
+    el.dispatchEvent(new PointerEvent("pointerdown", at)); el.dispatchEvent(new PointerEvent("pointerup", at));
+    el.dispatchEvent(Object.assign(new Event("touchend", { bubbles: true, cancelable: true }), { touches: [], changedTouches: [] }));
+  });
+}
+test("a touch that stops a gliding page taps neither the verse nor the dock under it", async ({ page }) => {
+  await gestureClock(page);
+  await glide(page);
+  await touchVerse(page, "touchstart", 1, 3); await touchVerse(page, "touchend", 0, 3);
+  await page.clock.runFor(300);
+  await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
+  await glide(page);
+  await tapTab(page, "Classes");
+  await page.clock.runFor(300);
+  await expect(page).toHaveURL(/\/read\/genesis\/1/);
+  // Once the page has come to rest, the same taps work.
+  await page.clock.runFor(200);
+  await touchVerse(page, "touchstart", 1, 3); await touchVerse(page, "touchend", 0, 3);
+  await page.clock.runFor(300);
+  await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(1);
+});
+
+test("the verse sheet stays put under a resting finger and a verse in view barely moves, as Bible Strong's", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gestureClock(page);
+  // How far the verse's middle sits from the middle of the reader.
+  const offCentre = async () => page.locator("#verset-12").evaluate(el => { const r = el.getBoundingClientRect(), sc = el.closest(".bs-scroll")!, s = sc.getBoundingClientRect(); return Math.abs(r.top + r.height / 2 - (s.top + sc.clientHeight / 2)); });
+  await touchVerse(page, "touchstart", 1, 12); await touchVerse(page, "touchend", 0, 12);
+  await page.clock.runFor(300);
+  const sheet = page.getByRole("dialog", { name: "Selected: Genesis 1:12", exact: true });
+  await expect(sheet).toBeVisible();
+  // Bible Strong centres the verse in the reader, not in what the sheet leaves showing.
+  await page.clock.runFor(600);
+  // Within the header's give: centring above the sheet put it about half the sheet higher.
+  await expect.poll(offCentre).toBeLessThan(60);
+  const top = async () => (await sheet.boundingBox())!.y;
+  const rest = await top();
+  const grab = (await sheet.locator(".bs-sheet__grab").boundingBox())!;
+  // Pulled up, a sheet that cannot grow does not move at all (vaul damps it to nothing).
+  await page.mouse.move(grab.x + 20, grab.y + 8); await page.mouse.down();
+  await page.mouse.move(grab.x + 20, grab.y - 30, { steps: 4 });
+  expect(Math.abs((await top()) - rest)).toBeLessThan(1);
+  await page.mouse.up();
+});

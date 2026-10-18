@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { haptic } from "@/tg/sdk";
 import { Feather, type FeatherName } from "../icons";
@@ -46,7 +46,8 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
     dock.inert = true;
     return () => { dock.inert = false; };
   }, [p.open]);
-  useEffect(() => { if (!p.open) return; const el = ref.current; if (!el) return; const ro = new ResizeObserver(() => setWidth(el.clientWidth)); ro.observe(el); setWidth(el.clientWidth); return () => ro.disconnect(); }, [p.open]);
+  // Measured before the first paint, so the pages open at their width instead of sliding into it.
+  useLayoutEffect(() => { if (!p.open) return; const el = ref.current; if (!el) return; const ro = new ResizeObserver(() => setWidth(el.clientWidth)); ro.observe(el); setWidth(el.clientWidth); return () => ro.disconnect(); }, [p.open]);
   // A horizontal swipe over the footer or the pages moves between tabs.
   const swipe = useRef<{ x: number; t: number; first?: boolean; last?: boolean } | null>(null);
   const onStart = (x: number, row?: Element | null) => {
