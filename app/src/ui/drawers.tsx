@@ -108,6 +108,8 @@ function useSwipeClose(side: DrawerSide) {
   };
   return {
     onPointerDown: (e: React.PointerEvent) => {
+      // A second finger is not part of the swipe: it ends the gesture, so lifting either is no swipe.
+      if (!e.isPrimary) { start.current = null; return; }
       // From any element, an icon's SVG included, to the nearest horizontally scrolling row.
       let el = e.target instanceof Element ? e.target : null;
       while (el && !(el instanceof HTMLElement && el.scrollWidth > el.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(el).overflowX))) el = el.parentElement;
