@@ -1,0 +1,1 @@
+- Notes can be searched, sorted (newest, oldest, title A–Z or Z–A) and filtered by tag, as in Bible Strong.
