@@ -137,9 +137,10 @@ test("reader chapter changes stay in place: Back leaves the reader and a collaps
   // Long chapters, so the reader can scroll far enough to collapse its header.
   const long = Array.from({ length: 40 }, (_, i) => ({ verse: i + 1, text: "And the light shineth in darkness; and the darkness comprehended it not. ".repeat(3) }));
   await page.route(`${DATA}/api/kjv/john/*.json`, r => r.fulfill({ json: { book: "john", chapter: +/(\d+)\.json/.exec(r.request().url())![1], translation: "KJV", verses: long } }));
+  await page.goto("/more");
   await page.goto("/read/genesis/1");
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
-  // A jump from the book picker is its own step in history, as before.
+  // A jump from the book picker changes the chapter in place too, as Bible Strong's picker does.
   await page.locator(".bs-pill--book").click();
   await page.locator(".bs-picker").getByRole("button", { name: "John", exact: true }).click();
   await page.getByRole("button", { name: "Chapter 1", exact: true }).click();
@@ -162,9 +163,9 @@ test("reader chapter changes stay in place: Back leaves the reader and a collaps
   await expect(page).toHaveURL(/\/read\/john\/3$/);
   await expect(page.locator("#verset-1 .bs-num")).toBeAttached();
   await expect(page.locator(".bs-header__summary")).toBeVisible();
-  // Paging chapters left no trail: Back returns to the passage before John.
+  // Picking and paging chapters left no trail: Back leaves the reader.
   await page.goBack();
-  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  await expect(page).toHaveURL(/\/more$/);
 });
 
 test("book picker long press opens the chapter in a new tab, as Bible Strong's web picker does", async ({ page }) => {
@@ -310,6 +311,17 @@ test("export saves the chosen scope and notes, and supports a whole book", async
   expect(await fs.readFile((await (await whole).path())!, "utf8")).toContain("Genesis 2 · Scripture");
 });
 
+test("the book picker changes the chapter in place, so Back from it does not step back a chapter", async ({ page }) => {
+  await page.goto("/more");
+  await page.goto("/read/genesis/1");
+  await page.locator(".bs-pill--book").click();
+  await page.locator(".bs-picker").getByRole("button", { name: "John", exact: true }).click();
+  await page.getByRole("button", { name: "Chapter 3", exact: true }).click();
+  await expect(page).toHaveURL(/\/read\/john\/3/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/more$/);
+});
+
 test("search applies filters on the server, pages, sorts, and preserves a typed verse range", async ({ page }) => {
   const queries: URLSearchParams[] = [];
   await page.route("**/bs/v1/bibles/KJV/search?*", r => {
@@ -412,7 +424,8 @@ test("daily verses have five days, sharing and images on Home", async ({ page, b
   const shelf = home.locator(".widgets");
   await expect(home.locator(".feed__card--skel")).toHaveCount(0);
   await shelf.evaluate(el => { el.scrollIntoView({ block: "center" }); el.scrollLeft = 200; });
-  await expect.poll(() => shelf.evaluate(el => el.scrollLeft)).toBeGreaterThan(20);
+  // The shelf can rest between cards instead of snapping to the next entry.
+  await expect.poll(() => shelf.evaluate(el => el.scrollLeft)).toBeCloseTo(200, 0);
   const position = await home.evaluate(el => [el.querySelector(".drawer__scroll")!.scrollTop, el.querySelector(".widgets")!.scrollLeft]);
   await home.getByRole("button", { name: "Close Home" }).click();
   await expect(home).toHaveAttribute("inert", "");
@@ -436,6 +449,16 @@ test("daily verses have five days, sharing and images on Home", async ({ page, b
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Home", exact: true }).click();
   await expect(highlights).toHaveText("1");
+  // Entry, resource footer and shuffle remain independent controls in the shorter card.
+  await word.locator(".widget__foot").click();
+  await expect(page).toHaveURL(/\/lexicon\?lang=greek$/);
+  await expect(home).toHaveAttribute("inert", "");
+  // Back from a page opened from Home opens Home again, as Bible Strong's drawer stays open under the page.
+  await page.goBack();
+  await expect(home).toHaveAttribute("data-open", "");
+  await word.locator(".widget__body").click();
+  await expect(page).toHaveURL(/\/lexicon\/G2$/);
+  await expect(home).toHaveAttribute("inert", "");
 });
 
 test("keyboard palette switches to an existing tab and opens a passage with its range", async ({ page }) => {

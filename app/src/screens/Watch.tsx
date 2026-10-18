@@ -31,7 +31,7 @@ export function Watch() {
   const [playing, setPlaying] = useState(false);
   const [full, setFull] = useState(false);
   const [notes, setNotes] = useState(false);
-  useBackButton(false, () => { if (notes) { setNotes(false); return true; } });
+  useBackButton(() => { if (notes) { setNotes(false); return true; } });
   const res = useTranscriptAround(isLive ? null : video, t);
   const live = useLive(isLive);
   const r = res.data;

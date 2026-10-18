@@ -28,7 +28,7 @@ type BookHit = { kind: string; title: string; url: string; sub: string; snippet:
 type BookSearch = { ok: true; hits: BookHit[]; counts: Record<string, number> } | { ok: false; reason: string };
 
 export function Books() {
-  useBackButton(false);
+  useBackButton();
   const lib = useQuery({ queryKey: ["library"], queryFn: data.library, staleTime: Infinity });
   // Search inside every book: the pages as printed, from the library's own index.
   const [q, setQ] = useState("");
@@ -63,7 +63,7 @@ export function BookScreen() {
   const [figure, setFigure] = useState<BookFigure | null>(null);
   const [allReads, setAllReads] = useState(false);
   const [allFigures, setAllFigures] = useState(false);
-  useBackButton(false, () => { if (figure) { setFigure(null); return true; } });
+  useBackButton(() => { if (figure) { setFigure(null); return true; } });
   if (book.isPending) return <Screen title="…"><Skeleton rows={6} /></Screen>;
   if (!book.data) return <Screen title="Library"><Empty title="This book did not load" /></Screen>;
   const b = book.data;
@@ -148,7 +148,7 @@ export function BookChapterScreen() {
   const [scans, setScans] = useState<Set<number>>(new Set());
   const [open, setOpen] = useState<Set<number>>(new Set());
   const [figure, setFigure] = useState<BookFigure | null>(null);
-  useBackButton(false, () => { if (figure) { setFigure(null); return true; } });
+  useBackButton(() => { if (figure) { setFigure(null); return true; } });
   useEffect(() => {
     if (!ch.data) return;
     const el = at ? document.getElementById(`pg-${at}`) : null;

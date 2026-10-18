@@ -108,9 +108,9 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const loading = text.isFetching;
   const next = book && ch < book.chapters ? { slug, ch: ch + 1 } : list[idx + 1] ? { slug: list[idx + 1].slug, ch: 1 } : null;
   const prev = book && ch > 1 ? { slug, ch: ch - 1 } : idx > 0 ? { slug: list[idx - 1].slug, ch: list[idx - 1].chapters } : null;
-  const go = (t: { slug: string; ch: number } | null, verse?: number) => { if (t) navigate(`/read/${t.slug}/${t.ch}${verse && verse > 1 ? `?v=${verse}` : ""}`); };
-  // Bible Strong's previous/next and swipe change the tab's chapter in place (state/tabs.ts), so Back
-  // returns to where reading began instead of stepping through every chapter read.
+  const go = (t: { slug: string; ch: number } | null, verse?: number, replace = false) => { if (t) navigate(`/read/${t.slug}/${t.ch}${verse && verse > 1 ? `?v=${verse}` : ""}`, { replace }); };
+  // Bible Strong's previous/next, swipe and book picker change the tab's chapter in place (state/tabs.ts),
+  // so Back returns to where reading began instead of stepping through every chapter read.
   const step = (t: { slug: string; ch: number } | null) => { if (t) navigate(`/read/${t.slug}/${t.ch}`, { replace: true }); };
 
   // Per-tab state.
@@ -195,7 +195,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const { repeat, setRepeat, expanded: audioOpen, setExpanded: setAudioOpen } = player;
 
   useBottomButtons(null, null);
-  useBackButton(true, () => {
+  useBackButton(() => {
     if (sheet) { setSheet(null); return true; }
     if (menuOpen) { setMenuOpen(false); return true; }
     if (selected.length) { setSelected([]); return true; }
@@ -411,7 +411,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
 
       {sheet === "export" && book ? <PassageExportSheet book={book} chapter={ch} selected={exportSelection} reference={reference(exportSelection)} onClose={() => setSheet(null)} /> : null}
       {sheet === "study" ? <AddToStudy onClose={() => setSheet(null)} blocks={[{ id: crypto.randomUUID(), kind: "scripture", book: slug, chapter: ch, reference: selectedReference ?? chapterLabel, verses: selectedText() }]} /> : null}
-      <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v)} onLongSelect={(s, c, v) => navigate(newTab(`/read/${s}/${c}${v > 1 ? `?v=${v}` : ""}`), { replace: true })} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />
+      <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v, true)} onLongSelect={(s, c, v) => navigate(newTab(`/read/${s}/${c}${v > 1 ? `?v=${v}` : ""}`), { replace: true })} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />
       <SearchSheet open={sheet === "search"} initial={searchSeed} onClose={() => { setSheet(null); setSearchSeed(""); }} books={list} onGo={(s, c, v, end) => navigate(`/read/${s}/${c}${v ? `?v=${v}${end ? `-${end}` : ""}` : ""}`)} />
       <VersionSheet open={sheet === "version"} onClose={() => setSheet(null)} />
       <VerseJump root={rootRef} label={chapterLabel} count={verses.length} onNavigate={(v) => { setVerseToScroll(v); setNavRequest((n) => n + 1); }} />

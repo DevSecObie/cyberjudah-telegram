@@ -23,7 +23,7 @@ const verdictName = (v: string) => v.charAt(0).toUpperCase() + v.slice(1);
 const kindName = (k: CaseRow["kind"]) => (k === "blessing" ? "Blessing" : "Judgment");
 
 export function Cases() {
-  useBackButton(false);
+  useBackButton();
   const [params, setParams] = useSearchParams();
   const kind = params.get("kind") === "blessing" ? "blessing" : params.get("kind") === "judgment" ? "judgment" : "all";
   const era = params.get("era") ?? "";
@@ -81,7 +81,7 @@ const SCRIPTURE_FIRST = 4, SCRIPTURE_MORE = 6, SHOWN_VERSES = 8;
 
 export function CaseScreen() {
   const { slug = "" } = useParams();
-  useBackButton(false);
+  useBackButton();
   const c = useQuery({ queryKey: ["case", slug], queryFn: () => data.case(slug), staleTime: Infinity, retry: 1 });
   const people = useQuery({ queryKey: ["people-index"], queryFn: data.people, staleTime: Infinity });
   const [shown, setShown] = useVisitState("scripture", SCRIPTURE_FIRST);
