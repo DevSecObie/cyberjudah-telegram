@@ -246,7 +246,8 @@
 
 /* Bible Strong's pair of tall cards on Home (TheBibleProject, Timeline): 174 px, side by side. */
 .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.duo__card { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; min-height: 174px; padding: 16px; border-radius: 20px; color: #fff; text-decoration: none; box-shadow: var(--card-edge); transition: transform var(--dur-1) var(--ease); }
+.duo__card { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; min-height: 174px; padding: 16px; border-radius: 20px; text-decoration: none; box-shadow: var(--card-edge); transition: transform var(--dur-1) var(--ease); }
+#root .duo__card { color: #fff; }
 .duo__card b { font: 700 17px/1.2 var(--font-ui); }
 .duo__card span { font: 400 var(--fs-footnote)/1.3 var(--font-ui); opacity: .85; }
 .duo__card svg { margin-bottom: auto; }
