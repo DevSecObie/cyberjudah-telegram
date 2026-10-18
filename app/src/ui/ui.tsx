@@ -307,6 +307,9 @@ export function PageActions() {
 function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
   const [compact, setCompact] = useState(false);
   const full = useRef(0);
+  // The page's own top padding, read once before the bar ever changes it: WebKit can report the
+  // padding just removed as still there, which stacked the correction on itself.
+  const base = useRef<number | null>(null);
   useEffect(() => {
     const el = head.current; if (!el) return;
     let frame = 0;
@@ -328,10 +331,9 @@ function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
     // leave a changed margin on the sticky bar out of the page's layout.
     const main = el.parentElement; if (!main) return;
     const fit = () => {
+      if (base.current === null && !main.style.paddingTop) base.current = parseFloat(getComputedStyle(main).paddingTop) || 0;
       if (!el.hasAttribute("data-compact")) { main.style.removeProperty("padding-top"); full.current = el.getBoundingClientRect().height; return; }
-      main.style.removeProperty("padding-top");
-      const top = parseFloat(getComputedStyle(main).paddingTop) || 0;
-      main.style.paddingTop = `${Math.max(0, top + full.current - el.getBoundingClientRect().height)}px`;
+      main.style.paddingTop = `${Math.max(0, (base.current ?? 0) + full.current - el.getBoundingClientRect().height)}px`;
     };
     fit();
     // The bar can still settle after it changes (Firefox lays the compact bar out again a frame
