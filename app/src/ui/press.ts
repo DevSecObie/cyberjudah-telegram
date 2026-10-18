@@ -54,5 +54,7 @@ export function installPress() {
   // The keyboard's press (Space or Enter on a control) shows the same look while the key is down.
   addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat && e.target instanceof Element && e.target.matches("button, a, [role=button], [role=tab], input[type=range]")) mark(e.target); }, true);
   addEventListener("keyup", () => { if (marked.length) clear(); }, true);
-  addEventListener("blur", clear, true);
+  // Focus moving between controls must not end a pointer press that is waiting out DELAY;
+  // only the window losing focus does. A key press's look goes with its control's focus.
+  addEventListener("blur", (e) => { if (e.target === window) cancel(); else if (!target && marked.length) clear(); }, true);
 }

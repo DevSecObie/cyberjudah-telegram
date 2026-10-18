@@ -106,8 +106,10 @@ function useSwipeClose(side: DrawerSide) {
   };
   return {
     onPointerDown: (e: React.PointerEvent) => {
-      let row = e.target instanceof HTMLElement ? e.target : null;
-      while (row && !(row.scrollWidth > row.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(row).overflowX))) row = row.parentElement;
+      // From any element, an icon's SVG included, to the nearest horizontally scrolling row.
+      let el = e.target instanceof Element ? e.target : null;
+      while (el && !(el instanceof HTMLElement && el.scrollWidth > el.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(el).overflowX))) el = el.parentElement;
+      const row = el instanceof HTMLElement ? el : null;
       start.current = { x: e.clientX, y: e.clientY, touch: e.pointerType === "touch", row, left: row?.scrollLeft ?? 0 }; swiped.current = false;
     },
     onPointerUp: (e: React.PointerEvent) => finish(e.clientX, e.clientY),
