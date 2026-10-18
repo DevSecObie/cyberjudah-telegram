@@ -453,8 +453,9 @@ test("daily verses have five days, sharing and images on Home", async ({ page, b
   await word.locator(".widget__foot").click();
   await expect(page).toHaveURL(/\/lexicon\?lang=greek$/);
   await expect(home).toHaveAttribute("inert", "");
+  // Back from a page opened from Home opens Home again, as Bible Strong's drawer stays open under the page.
   await page.goBack();
-  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect(home).toHaveAttribute("data-open", "");
   await word.locator(".widget__body").click();
   await expect(page).toHaveURL(/\/lexicon\/G2$/);
   await expect(home).toHaveAttribute("inert", "");
