@@ -159,7 +159,7 @@ a.tl-major:focus-visible, a.tl-minor:focus-visible { outline: 2px solid var(--ac
 .fc-cite b { font-weight: 600; font-size: 14px; }
 .fc-cite small { color: var(--text-2); font-size: 12px; }
 .fc-cite svg { color: var(--accent); flex: none; }
-.fc-cite:active { background: var(--fill-1); }
+.fc-cite[data-pressed] { background: var(--fill-1); }
 .fc-why { margin: 10px 0 0; line-height: 1.55; color: var(--text-1); }
 .fc-differ { margin: 0 0 12px; padding: 14px 16px; border-radius: 16px; background: var(--fill-1); }
 .tl-event__section p.fc-differ__point { margin: 0 0 6px; font-weight: 600; }

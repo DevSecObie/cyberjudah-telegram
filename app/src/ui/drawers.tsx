@@ -95,16 +95,25 @@ const SLIDE_MS = 380;
 
 /** A horizontal swipe toward the drawer's own edge closes it, as Bible Strong's pan does. */
 function useSwipeClose(side: DrawerSide) {
-  const start = useRef<{ x: number; y: number } | null>(null);
+  // A touch swipe usually ends in pointercancel (the browser takes the pan to scroll the drawer),
+  // so a touch is finished on touchend, which still comes; a sideways row it scrolled is not a swipe.
+  const start = useRef<{ x: number; y: number; touch: boolean; row: HTMLElement | null; left: number } | null>(null);
   const swiped = useRef(false);
+  const finish = (x: number, y: number) => {
+    const s = start.current; start.current = null; if (!s || (s.row && s.row.scrollLeft !== s.left)) return;
+    const dx = x - s.x, dy = y - s.y;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && (side === "home" ? dx < 0 : dx > 0)) { swiped.current = true; haptic("select"); setDrawer(null); }
+  };
   return {
-    onPointerDown: (e: React.PointerEvent) => { start.current = { x: e.clientX, y: e.clientY }; swiped.current = false; },
-    onPointerUp: (e: React.PointerEvent) => {
-      const s = start.current; start.current = null; if (!s) return;
-      const dx = e.clientX - s.x, dy = e.clientY - s.y;
-      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && (side === "home" ? dx < 0 : dx > 0)) { swiped.current = true; haptic("select"); setDrawer(null); }
+    onPointerDown: (e: React.PointerEvent) => {
+      let row = e.target instanceof HTMLElement ? e.target : null;
+      while (row && !(row.scrollWidth > row.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(row).overflowX))) row = row.parentElement;
+      start.current = { x: e.clientX, y: e.clientY, touch: e.pointerType === "touch", row, left: row?.scrollLeft ?? 0 }; swiped.current = false;
     },
-    onPointerCancel: () => { start.current = null; },
+    onPointerUp: (e: React.PointerEvent) => finish(e.clientX, e.clientY),
+    onPointerCancel: () => { if (!start.current?.touch) start.current = null; },
+    onTouchEnd: (e: React.TouchEvent) => { const t = e.changedTouches[0]; if (start.current?.touch && t) finish(t.clientX, t.clientY); },
+    onTouchCancel: () => { start.current = null; },
     // A swipe that starts on a link (the day's verse fills much of Home) would become the
     // browser's own link drag, which cancels the pointer: the swipe never saw its end.
     onDragStart: (e: React.DragEvent) => { e.preventDefault(); },
