@@ -691,9 +691,12 @@ test("large titles: the title shrinks into the bar under scroll and returns at t
   const before = await layout();
   await page.evaluate(() => { document.documentElement.scrollTop = 120; });
   await expect(head).toHaveAttribute("data-compact", "");
+  // Firefox can restyle the title a frame after the bar turns compact, and lay the correction out
+  // after that; the page must settle where it was (within a pixel: engines round the padding above
+  // the bar to their own layout units), so wait for that, and report the layout if it never does.
+  const still = await expect.poll(async () => { const l = await layout(); return Math.max(Math.abs(l.at - before.at), Math.abs(l.height - before.height)); }, { timeout: 3000 }).toBeLessThan(1).then(() => true, () => false);
   const compact = await layout();
-  // Within a pixel: engines round the padding above the bar to their own layout units.
-  expect(Math.abs(compact.at - before.at), `${JSON.stringify({ before, compact })} ${await bar()}`).toBeLessThan(1);
+  if (!still) expect(Math.abs(compact.at - before.at), `${JSON.stringify({ before, compact })} ${await bar()}`).toBeLessThan(1);
   expect(Math.abs(compact.height - before.height)).toBeLessThanOrEqual(1);
   await page.evaluate(() => { document.documentElement.scrollTop = 0; });
   await expect(head).not.toHaveAttribute("data-compact");
