@@ -22,15 +22,45 @@ function useSheetsOpen() {
   return n;
 }
 
-/** Telegram's back button walks the app's own history; on a root tab it becomes Close. */
-export function useBackButton(root: boolean, onBack?: () => boolean | void) {
+/**
+ * The app's main places: Home, a new tab, the menu page, the tabs overview, Search, the Bible,
+ * Classes and Ask. Like Bible Strong's tabs they have no back of their own; every other page
+ * does, both as Telegram's back button and as the ← in its header.
+ */
+const ROOTS = /^\/(|new|more|tabs|search|classes|ask|bible(\/.*)?|read\/.*)$/;
+export const isRootPath = (path: string) => ROOTS.test(path);
+
+/** Where Back goes from a page opened without history (a link or a reload), as Bible Strong's goBackOrHome. */
+const PARENTS: [RegExp, string][] = [
+  [/^\/person\/.+$/, "/people"],
+  [/^\/(note|watch)\/.+$/, "/classes"],
+  [/^\/settings\/.+$/, "/settings"],
+  [/^\/settings$/, "/more"],
+  [/^\/(books|law)\/([^/]+)\/.+$/, "/$1/$2"],
+  [/^\/([^/]+)\/.+$/, "/$1"],
+];
+export function parentPath(path: string): string {
+  const hit = PARENTS.find(([re]) => re.test(path));
+  return hit ? path.replace(hit[0], hit[1]) : "/";
+}
+
+/** The current screen's back, for the ← in its header (ui/ui.tsx). */
+let backNow: (() => void) | null = null;
+export const goBack = () => backNow?.();
+
+/**
+ * Telegram's back button walks the app's own history. On a main place it hides, unless a sheet is
+ * open or the screen has something of its own for Back to undo (pending: a search query to clear).
+ */
+export function useBackButton(onBack?: () => boolean | void, pending = false) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const root = isRootPath(pathname);
   const handler = useRef(onBack);
   handler.current = onBack;
   const canGoBack = (window.history.state?.idx ?? 0) > 0;
   const sheets = useSheetsOpen();
   useEffect(() => {
-    if (!has("6.1")) return;
     const cb = () => {
       haptic("select");
       // An open sheet closes first, like a phone app.
@@ -43,12 +73,15 @@ export function useBackButton(root: boolean, onBack?: () => boolean | void) {
         return;
       }
       if (handler.current?.() === true) return;
-      if (canGoBack) navigate(-1); else navigate("/", { replace: true });
+      if (canGoBack) navigate(-1); else navigate(root ? "/" : parentPath(pathname), { replace: true });
     };
-    const show = !root || canGoBack || sheets > 0;
-    if (show) { app!.BackButton.onClick(cb); app!.BackButton.show(); } else app!.BackButton.hide();
-    return () => { app!.BackButton.offClick(cb); };
-  }, [root, canGoBack, navigate, sheets]);
+    backNow = cb;
+    if (has("6.1")) {
+      const show = !root || canGoBack || sheets > 0 || pending;
+      if (show) { app!.BackButton.onClick(cb); app!.BackButton.show(); } else app!.BackButton.hide();
+    }
+    return () => { if (backNow === cb) backNow = null; if (has("6.1")) app!.BackButton.offClick(cb); };
+  }, [root, canGoBack, navigate, sheets, pathname, pending]);
 }
 
 export type Action = { text: string; onClick: () => void; quiet?: boolean; progress?: boolean; disabled?: boolean; shine?: boolean };

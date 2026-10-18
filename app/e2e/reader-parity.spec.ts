@@ -137,9 +137,10 @@ test("reader chapter changes stay in place: Back leaves the reader and a collaps
   // Long chapters, so the reader can scroll far enough to collapse its header.
   const long = Array.from({ length: 40 }, (_, i) => ({ verse: i + 1, text: "And the light shineth in darkness; and the darkness comprehended it not. ".repeat(3) }));
   await page.route(`${DATA}/api/kjv/john/*.json`, r => r.fulfill({ json: { book: "john", chapter: +/(\d+)\.json/.exec(r.request().url())![1], translation: "KJV", verses: long } }));
+  await page.goto("/more");
   await page.goto("/read/genesis/1");
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
-  // A jump from the book picker is its own step in history, as before.
+  // A jump from the book picker changes the chapter in place too, as Bible Strong's picker does.
   await page.locator(".bs-pill--book").click();
   await page.locator(".bs-picker").getByRole("button", { name: "John", exact: true }).click();
   await page.getByRole("button", { name: "Chapter 1", exact: true }).click();
@@ -162,9 +163,9 @@ test("reader chapter changes stay in place: Back leaves the reader and a collaps
   await expect(page).toHaveURL(/\/read\/john\/3$/);
   await expect(page.locator("#verset-1 .bs-num")).toBeAttached();
   await expect(page.locator(".bs-header__summary")).toBeVisible();
-  // Paging chapters left no trail: Back returns to the passage before John.
+  // Picking and paging chapters left no trail: Back leaves the reader.
   await page.goBack();
-  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  await expect(page).toHaveURL(/\/more$/);
 });
 
 test("book picker long press opens the chapter in a new tab, as Bible Strong's web picker does", async ({ page }) => {
@@ -308,6 +309,17 @@ test("export saves the chosen scope and notes, and supports a whole book", async
   await expect(sheet.locator("pre")).toContainText("Genesis 1");
   const whole = page.waitForEvent("download"); await sheet.getByRole("button", { name: "Save text file" }).click();
   expect(await fs.readFile((await (await whole).path())!, "utf8")).toContain("Genesis 2 · Scripture");
+});
+
+test("the book picker changes the chapter in place, so Back from it does not step back a chapter", async ({ page }) => {
+  await page.goto("/more");
+  await page.goto("/read/genesis/1");
+  await page.locator(".bs-pill--book").click();
+  await page.locator(".bs-picker").getByRole("button", { name: "John", exact: true }).click();
+  await page.getByRole("button", { name: "Chapter 3", exact: true }).click();
+  await expect(page).toHaveURL(/\/read\/john\/3/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/more$/);
 });
 
 test("search applies filters on the server, pages, sorts, and preserves a typed verse range", async ({ page }) => {

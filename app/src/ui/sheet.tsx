@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { haptic, hideKeyboard } from "@/tg/sdk";
 
@@ -6,8 +6,6 @@ import { useModal } from "./modal";
 import { Icon } from "./icons";
 import { popoverTrigger, usePopover } from "./popover";
 
-const wide = matchMedia("(min-width: 768px)");
-const subscribeWidth = (notify: () => void) => { wide.addEventListener("change", notify); return () => wide.removeEventListener("change", notify); };
 
 /**
  * A bottom sheet, the app's own: Telegram's showPopup takes three buttons at most, and a
@@ -40,9 +38,10 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   const ctx = useMemo(() => ({ open, close: () => answer(null), isOpen }), [open, answer, isOpen]);
   const box = useRef<HTMLDivElement>(null);
   const present = usePopover(isOpen, box);
-  const isWide = useSyncExternalStore(subscribeWidth, () => wide.matches);
   const actions = !!spec?.items?.length && !spec.text && !spec.colors;
-  const anchored = isWide && actions && !!anchor.current?.isConnected;
+  // iOS 26: an action menu springs from the control that opened it, on phones too, and the rest
+  // of the page stays usable; tapping outside closes it, so it needs no Cancel row.
+  const anchored = actions && !!anchor.current?.isConnected;
   useModal(box, isOpen && present, () => answer(null), { lock: !anchored, trap: !anchored });
   useLayoutEffect(() => {
     const el = box.current, trigger = anchor.current;
@@ -96,7 +95,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
                 {[...spec.items].sort((a, b) => Number(!!a.destructive) - Number(!!b.destructive)).map((it) => <button key={it.id} type="button" className="sheet__item" data-destructive={it.destructive ? "" : undefined} onClick={() => answer({ id: it.id })}>{it.icon || it.destructive ? <span className="sheet__icon">{it.icon ?? <Icon name="trash" size={18} />}</span> : null}<span><b>{it.text}</b>{it.hint ? <small>{it.hint}</small> : null}</span></button>)}
               </div>
             ) : null}
-            {!spec.text ? <button type="button" className="sheet__cancel" onClick={() => answer(null)}>Cancel</button> : null}
+            {!spec.text && !anchored ? <button type="button" className="sheet__cancel" onClick={() => answer(null)}>Cancel</button> : null}
           </div>
         </div>
       ) : null}

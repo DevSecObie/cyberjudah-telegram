@@ -1,0 +1,1 @@
+- Asking for notes on a class now puts it in the queue for the notes job, so the classes asked for most get their notes first. The admin message links the request, or says it wasn't queued.

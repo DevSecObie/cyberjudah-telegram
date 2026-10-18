@@ -14,7 +14,7 @@ const WORKFLOW = "https://github.com/DevSecObie/cyberjudah-telegram/actions/work
  * workflow, and mark a class done once its notes are in (or to turn it down).
  */
 export function NoteRequests() {
-  useBackButton(true);
+  useBackButton();
   const navigate = useNavigate();
   const list = useNoteRequests(true);
   const close = useCloseRequest();

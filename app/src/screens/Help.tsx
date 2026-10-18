@@ -3,7 +3,7 @@ import { useBackButton } from "@/tg/hooks";
 import { Card, Screen, Section } from "@/ui/ui";
 
 export function Help() {
-  useBackButton(true);
+  useBackButton();
   return <Screen title="Help & reading guide">
     <Section title="Getting around"><Card>
       <p>Open the Bible from the bottom bar. Tap its book name to choose a book and chapter. Swipe across the text or use the arrows to move between chapters.</p>

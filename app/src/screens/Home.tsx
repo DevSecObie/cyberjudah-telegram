@@ -109,7 +109,7 @@ const TOOLS: [string, string, IconName][] = [
 
 /** The welcome page offers Search and Ask; the dashboard lives in the Home drawer. */
 export function Home() {
-  useBackButton(true);
+  useBackButton();
   useBottomButtons(null, null);
   const navigate = useNavigate();
   const [search, setSearch] = useState("");

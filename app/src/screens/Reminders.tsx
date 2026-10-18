@@ -50,7 +50,7 @@ function Choice({ checked, disabled, onPick, title, children }: { checked: boole
 }
 
 export function Reminders() {
-  useBackButton(true);
+  useBackButton();
   const sheet = useSheet();
   const content = useContent();
   const [plan] = usePlan();

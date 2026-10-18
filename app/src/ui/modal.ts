@@ -17,13 +17,19 @@ export function useModal(ref: RefObject<HTMLElement | null>, open: boolean, onCl
   const { lock = true, trap = true } = opts;
   const close = useRef(onClose);
   close.current = onClose;
+  // A dialog that stays open while its lock or trap changes (an anchored menu turning into a
+  // modal form) keeps its focus and its original trigger across the re-run.
+  const stillOpen = useRef(open);
+  stillOpen.current = open;
+  const carried = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!open) return;
     const me = {};
     stack.push(me);
     const root = document.documentElement;
     const active = document.activeElement as HTMLElement | null;
-    const trigger = active && !ref.current?.contains(active) ? active : outside;
+    const trigger = carried.current ?? (active && !ref.current?.contains(active) ? active : outside);
+    carried.current = null;
     if (lock) { locks++; root.dataset.modal = ""; }
     // Into the dialog: an element asking for it (autofocus), else the dialog itself.
     const el = ref.current;
@@ -41,13 +47,21 @@ export function useModal(ref: RefObject<HTMLElement | null>, open: boolean, onCl
       else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
     };
     document.addEventListener("keydown", onKey, true);
+    // Where the focus last went: a closing panel turns inert and some engines then drop the focus
+    // to nothing at all, which must still count as "inside" rather than a later choice elsewhere.
+    let inside = !!el?.contains(document.activeElement);
+    const onFocus = (e: FocusEvent) => { inside = !!ref.current?.contains(e.target as Node); };
+    document.addEventListener("focusin", onFocus, true);
     return () => {
       document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("focusin", onFocus, true);
       stack.splice(stack.indexOf(me), 1);
       if (lock && --locks <= 0) { locks = 0; delete root.dataset.modal; }
+      // Still open and still on the page: only the lock or trap changed (an unmount removes it first).
+      if (stillOpen.current && el?.isConnected) { carried.current = trigger; return; }
       // A nonmodal panel leaves the page usable; preserve a later focus choice outside it.
       const focused = document.activeElement;
-      if (trigger?.isConnected && (trap || focused === document.body || el?.contains(focused))) trigger.focus({ preventScroll: true });
+      if (trigger?.isConnected && (trap || inside || !focused || focused === document.body || el?.contains(focused))) trigger.focus({ preventScroll: true });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, lock, trap]);

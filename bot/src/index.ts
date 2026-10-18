@@ -1,6 +1,6 @@
 import { sweepWebhookUpdates } from "./webhook-updates";
 import { sweepFreeBudget } from "./free-budget";
-import { CmsError } from "./cms-github";
+import { CmsError, CONTENT_REPO } from "./cms-github";
 import { cms } from "./cms";
 import { ResourcePinsSchema } from "../../shared/resources";
 import { recordings, recordingAudio } from "./recordings";
@@ -33,6 +33,7 @@ import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit"
 import { CHAT_ID, deleteChat, getChat, getPending, listChats, moveLegacy, setActionState } from "./chats";
 import { askedBy, closeRequest, getRequest, listRequests, requestNotes, validVideo } from "./requests";
 import { tellAdmins } from "./health";
+import { syncRequestIssue } from "./request-issues";
 import { reportMessage } from "./report.mjs";
 import { notePdf, pdfName } from "./pdf.mjs";
 import { donationsConfig, invoiceFor, invoiceForDonation, pruneBilling, refundStars } from "./billing";
@@ -447,7 +448,14 @@ app.post("/api/requests/:video", async (c) => {
   const body = await c.req.json().catch(() => ({})) as { title?: unknown };
   const title = typeof body.title === "string" ? body.title.replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 200) : "";
   const res = await requestNotes(c.env, video, c.get("tma").user!.id, title, new Date(), (r) => {
-    c.executionCtx.waitUntil(tellAdmins(c.env, `Notes requested ${r.count === 1 ? "for the first time" : `${r.count} times`}: ${r.title || video}\nhttps://www.youtube.com/watch?v=${video}\nDraft them from the draft-notes workflow with this video id: ${video}`));
+    c.executionCtx.waitUntil((async () => {
+      // Queue the class for the notes job: only a class with a transcript, titled from it.
+      const t = await loadTranscript(c.env, video, c.executionCtx).catch(() => null);
+      const issue = t && "file" in t && t.kind === "class"
+        ? await syncRequestIssue(c.env, r, { title: t.file.cleanTitle || t.file.title || "", date: t.file.date ?? "" }).catch(() => null)
+        : null;
+      await tellAdmins(c.env, `Notes requested ${r.count === 1 ? "for the first time" : `${r.count} times`}: ${r.title || video}\nhttps://www.youtube.com/watch?v=${video}\n${issue ? `Queued for the notes job: https://github.com/${CONTENT_REPO}/issues/${issue}` : `Not queued (no class transcript, or GitHub refused). Video id: ${video}`}`);
+    })());
   });
   return c.json({ ok: true, ...res });
 });
