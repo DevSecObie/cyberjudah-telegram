@@ -672,7 +672,7 @@ test("large titles: the title shrinks into the bar under scroll and returns at t
     const rect = Element.prototype.getBoundingClientRect;
     Element.prototype.getBoundingClientRect = function (this: Element) {
       const r = rect.call(this);
-      if (this.matches(".screen > .head")) log.push({ t: Math.round(performance.now()), h: +r.height.toFixed(2), compact: this.hasAttribute("data-compact"), mb: (this as HTMLElement).style.marginBottom, y: Math.round(scrollY) });
+      if (this.matches(".screen > .head")) log.push({ t: Math.round(performance.now()), h: +r.height.toFixed(2), compact: this.hasAttribute("data-compact"), pad: (this.parentElement as HTMLElement).style.paddingTop, y: Math.round(scrollY) });
       return r;
     };
   });
@@ -687,12 +687,12 @@ test("large titles: the title shrinks into the bar under scroll and returns at t
   // WebKit can lay the new padding out after the tag resolves; measure only once the bar has grown.
   await expect.poll(() => head.evaluate(el => (el as HTMLElement).offsetHeight)).toBeGreaterThan(plain);
   // Where the first thing under the bar sits in the document, and how tall the document is.
-  const layout = () => page.evaluate(() => { const next = document.querySelector(".screen > .head")!.nextElementSibling!; const bar = document.querySelector(".screen > .head") as HTMLElement; return { at: next.getBoundingClientRect().top + scrollY, height: document.documentElement.scrollHeight, bar: bar.offsetHeight, mb: bar.style.marginBottom }; });
+  const layout = () => page.evaluate(() => { const next = document.querySelector(".screen > .head")!.nextElementSibling!; const bar = document.querySelector(".screen > .head") as HTMLElement; return { at: next.getBoundingClientRect().top + scrollY, height: document.documentElement.scrollHeight, bar: bar.offsetHeight, pad: (bar.parentElement as HTMLElement).style.paddingTop }; });
   const before = await layout();
   await page.evaluate(() => { document.documentElement.scrollTop = 120; });
   await expect(head).toHaveAttribute("data-compact", "");
   const compact = await layout();
-  // Within a pixel: engines round the bar's margin to their own layout units.
+  // Within a pixel: engines round the padding above the bar to their own layout units.
   expect(Math.abs(compact.at - before.at), `${JSON.stringify({ before, compact })} ${await bar()}`).toBeLessThan(1);
   expect(Math.abs(compact.height - before.height)).toBeLessThanOrEqual(1);
   await page.evaluate(() => { document.documentElement.scrollTop = 0; });

@@ -324,16 +324,24 @@ function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
   }, [head]);
   useLayoutEffect(() => {
     const el = head.current; if (!el) return;
+    // The height the bar loses is given back above it, as the page's own top padding: Firefox can
+    // leave a changed margin on the sticky bar out of the page's layout.
+    const main = el.parentElement; if (!main) return;
     const fit = () => {
-      if (!el.hasAttribute("data-compact")) { el.style.removeProperty("margin-bottom"); full.current = el.getBoundingClientRect().height; return; }
-      el.style.marginBottom = `${full.current - el.getBoundingClientRect().height}px`;
+      if (!el.hasAttribute("data-compact")) { main.style.removeProperty("padding-top"); full.current = el.getBoundingClientRect().height; return; }
+      main.style.removeProperty("padding-top");
+      const top = parseFloat(getComputedStyle(main).paddingTop) || 0;
+      main.style.paddingTop = `${Math.max(0, top + full.current - el.getBoundingClientRect().height)}px`;
     };
     fit();
     // The bar can still settle after it changes (Firefox lays the compact bar out again a frame
-    // later): follow its size, before paint, for as long as it is shown.
+    // later, and can restyle the title after the bar): follow the bar's and the title's sizes,
+    // before paint, for as long as it is shown, and measure again once the next frame is laid out.
     const watch = new ResizeObserver(fit);
-    watch.observe(el);
-    return () => watch.disconnect();
+    watch.observe(el, { box: "border-box" });
+    const title = el.querySelector(".title"); if (title) watch.observe(title, { box: "border-box" });
+    let frame = requestAnimationFrame(() => { frame = requestAnimationFrame(fit); });
+    return () => { cancelAnimationFrame(frame); watch.disconnect(); main.style.removeProperty("padding-top"); };
   }, [compact, head]);
   return compact;
 }
