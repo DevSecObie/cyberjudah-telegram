@@ -61,7 +61,11 @@ test("the lexicon files every word by its meaning, opens on A, and filters by la
   // The filter: Hebrew only.
   await page.getByRole("button", { name: "Filter", exact: true }).click();
   await page.getByRole("button", { name: /Lexicon/ }).click();
-  await page.getByRole("button", { name: "Hebrew", exact: true }).click();
+  // The language sheet replaces the filters sheet; choose in it once it is open, and see it close.
+  const languages = page.getByRole("dialog", { name: "Lexicon" });
+  await expect(languages.getByRole("button", { name: "Hebrew", exact: true })).toBeVisible();
+  await languages.getByRole("button", { name: "Hebrew", exact: true }).click();
+  await expect(page).toHaveURL(/lang=hebrew/);
   await expect(page.locator("a[href='/lexicon/G26']")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "1 filter", exact: true })).toBeVisible();
   // A typed number is found whatever the filter.
