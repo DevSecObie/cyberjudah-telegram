@@ -114,8 +114,9 @@ export function Sheet({ open, onClose, backdrop = true, height, snapPoints, dimF
     el.addEventListener("touchstart", onStart, { passive: true });
     el.addEventListener("touchmove", onMove, { passive: false });
     el.addEventListener("touchend", onEnd);
-    el.addEventListener("touchcancel", () => { t = null; setDrag(0); });
-    return () => { el.removeEventListener("touchstart", onStart); el.removeEventListener("touchmove", onMove); el.removeEventListener("touchend", onEnd); };
+    const onCancel = () => { t = null; setDrag(0); };
+    el.addEventListener("touchcancel", onCancel);
+    return () => { el.removeEventListener("touchstart", onStart); el.removeEventListener("touchmove", onMove); el.removeEventListener("touchend", onEnd); el.removeEventListener("touchcancel", onCancel); };
   });
   useModal(box, open, canDismiss ? onClose : undefined, { lock: dimmed, trap: dimmed });
   if (!open) return null;
