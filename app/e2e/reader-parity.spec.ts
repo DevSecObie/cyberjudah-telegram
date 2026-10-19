@@ -746,6 +746,13 @@ test("opening the app at its root reopens the tab that was current", async ({ pa
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
 });
 
+test("opening the app at its root stays on Home when the kept tabs cannot be read", async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "gone", groups: [] })); localStorage.removeItem("cj:tabs"); });
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("#verset-1")).toHaveCount(0);
+});
+
 test("going back to verse 1 of the same chapter scrolls the reader back to the top", async ({ page }) => {
   await page.goto("/read/genesis/1?at=28");
   await expect(page.locator("#verset-28")).toBeInViewport();

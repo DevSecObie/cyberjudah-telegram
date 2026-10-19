@@ -25,22 +25,23 @@ const uid = () => `t${Date.now().toString(36)}${Math.random().toString(36).slice
 const freshGroup = (name: string, color: string, path = "/new"): Group => { const t = { id: uid(), path }; return { id: uid(), name, color, tabs: [t], current: t.id }; };
 const valid = (g: Group) => Array.isArray(g.tabs) && g.tabs.length > 0 && g.tabs.some((t) => t.id === g.current);
 
+// Whether tabs were kept from an earlier visit; a first launch, or a kept state too damaged to read, has none to reopen.
+let kept = false;
 function load(): State {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) ?? "null") as State | null;
-    if (s && Array.isArray(s.groups) && s.groups.length && s.groups.every(valid) && s.groups.some((g) => g.id === s.group)) return s;
+    if (s && Array.isArray(s.groups) && s.groups.length && s.groups.every(valid) && s.groups.some((g) => g.id === s.group)) { kept = true; return s; }
     // Tabs kept before groups existed become the first group.
     const old = JSON.parse(localStorage.getItem(OLD_KEY) ?? "null") as { tabs: Tab[]; current: string } | null;
     if (old && Array.isArray(old.tabs) && old.tabs.length && old.tabs.some((t) => t.id === old.current)) {
       const g = { id: uid(), name: "My tabs", color: GROUP_COLORS[0], tabs: old.tabs, current: old.current };
+      kept = true;
       return { groups: [g], group: g.id };
     }
   } catch { /* private mode */ }
   const g = freshGroup("My tabs", GROUP_COLORS[0], "/bible");
   return { groups: [g], group: g.id };
 }
-// Whether tabs were kept from an earlier visit; a first launch has none to reopen.
-const kept = (() => { try { return localStorage.getItem(KEY) !== null || localStorage.getItem(OLD_KEY) !== null; } catch { return false; } })();
 let state = load();
 const listeners = new Set<() => void>();
 const set = (next: State) => { state = next; try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* private mode */ } listeners.forEach((l) => l()); };
