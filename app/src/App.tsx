@@ -236,6 +236,9 @@ function Lock() {
     const ask = () => bm.authenticate({ reason: "Unlock CyberJudah" }, (ok) => { if (ok) setLocked(false); });
     if (bm.isInited) ask(); else bm.init(ask);
   }, [locked]);
+  // Until the preference is read, a device that can lock is covered, so no screen (a reopened tab
+  // included) shows before the lock has had its say.
+  if (locked === null) return features.biometrics && features.secureStorage ? <div className="lock" data-checking="" aria-hidden="true" /> : null;
   if (!locked) return null;
   return (
     <div className="lock" role="dialog" aria-label="Locked">

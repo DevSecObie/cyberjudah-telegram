@@ -745,3 +745,21 @@ test("opening the app at its root reopens the tab that was current", async ({ pa
   await expect(page).toHaveURL(/\/read\/genesis\/1$/);
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
 });
+
+test("going back to verse 1 of the same chapter scrolls the reader back to the top", async ({ page }) => {
+  await page.goto("/read/genesis/1?at=28");
+  await expect(page.locator("#verset-28")).toBeInViewport();
+  await page.evaluate(() => { history.pushState({}, "", "/read/genesis/1"); dispatchEvent(new PopStateEvent("popstate")); });
+  await expect(page.locator("#verset-1")).toBeInViewport();
+});
+
+test("a verse opened while the last chapter stands in is scrolled to again when its chapter arrives", async ({ page }) => {
+  // John 3 is slow and longer than Genesis 1, so its verse 18 sits far lower than the stand-in's.
+  const long = Array.from({ length: 36 }, (_, i) => ({ verse: i + 1, text: `Verse ${i + 1}: ${"For God so loved the world, that he gave his only begotten Son. ".repeat(6)}` }));
+  await page.route(`${DATA}/api/kjv/john/3.json`, async r => { await new Promise(res => setTimeout(res, 800)); await r.fulfill({ json: { book: "john", chapter: 3, translation: "KJV", verses: long } }); });
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await page.evaluate(() => { history.pushState({}, "", "/read/john/3?at=18"); dispatchEvent(new PopStateEvent("popstate")); });
+  await expect(page.locator("#verset-18 .bs-text")).toContainText("For God so loved");
+  await expect(page.locator("#verset-18")).toBeInViewport();
+});

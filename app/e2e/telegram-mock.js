@@ -14,9 +14,10 @@
   const cloud = { ...(window.__cloud || {}) }, device = {}, secureStore = {};
   const log = [];
   let popupCb = null;
+  // window.__secureDelay (ms) makes SecureStorage answer late, as a slow device can.
   const mkStorage = (store) => ({
     setItem(k, v, cb) { store[k] = v; cb && cb(null, true); return this; },
-    getItem(k, cb) { cb(null, store[k]); return this; },
+    getItem(k, cb) { const late = store === secureStore && window.__secureDelay; if (late) setTimeout(() => cb(null, store[k]), late); else cb(null, store[k]); return this; },
     getItems(ks, cb) { cb(null, Object.fromEntries(ks.map((k) => [k, store[k] || ""]))); return this; },
     removeItem(k, cb) { delete store[k]; cb && cb(null, true); return this; },
     removeItems(ks, cb) { ks.forEach((k) => delete store[k]); cb && cb(null, true); return this; },

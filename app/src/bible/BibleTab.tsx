@@ -137,8 +137,21 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const at = Number(params.get("at")) || undefined;
   const [verseToScroll, setVerseToScroll] = useState<number | undefined>(focus?.[0] ?? at);
   const [navRequest, setNavRequest] = useState(0);
-  // Picking another verse in the same chapter replaces `at` in place: scroll to it again.
-  useEffect(() => { if (at) { setVerseToScroll(at); setNavRequest((n) => n + 1); } }, [at]);
+  // Picking another verse in the same chapter replaces `at` in place: scroll to it again. Verse 1
+  // drops `at`, so a reader that was at another verse goes back to the top.
+  const lastAt = useRef(at);
+  useEffect(() => {
+    const before = lastAt.current; lastAt.current = at;
+    if (at) { setVerseToScroll(at); setNavRequest((n) => n + 1); }
+    else if (before && !focus) { setVerseToScroll(1); setNavRequest((n) => n + 1); }
+  }, [at]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The tab's last chapter stands in while the next one loads; once the real chapter replaces it,
+  // scroll to the verse again, as the first scroll may have run on the stand-in.
+  const wasPlaceholder = useRef(text.isPlaceholderData);
+  useEffect(() => {
+    if (wasPlaceholder.current && !text.isPlaceholderData && verseToScroll) setNavRequest((n) => n + 1);
+    wasPlaceholder.current = text.isPlaceholderData;
+  }, [text.isPlaceholderData]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { saveReaderSession(sessionKey, { selected, contextMode, fullscreen }); }, [sessionKey, selected, contextMode, fullscreen]);
 
   // Study data.

@@ -47,3 +47,16 @@ for (const root of ["/", "/app/"]) {
   });
 }
 
+
+test("a reopened tab stays covered until the app lock's preference is read", async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __secureDelay: number }).__secureDelay = 1500;
+    localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "one", groups: [{ id: "one", name: "My tabs", color: "#2dd4bf", current: "mine", tabs: [{ id: "mine", path: "/bookmarks" }] }] }));
+  });
+  await page.goto(`/${LAUNCH}`);
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/bookmarks");
+  // The lock is still being checked: the cover hides the reopened screen.
+  await expect(page.locator(".lock[data-checking]")).toBeVisible();
+  // The lock is off: the cover lifts and the screen shows.
+  await expect(page.locator(".lock")).toHaveCount(0);
+});
