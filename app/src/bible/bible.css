@@ -182,12 +182,12 @@
 .bs-bmcount { text-align: center; font-size: 12px; color: var(--bs-grey); }
 .bs-bmform { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
 .bs-bmform__row { display: flex; align-items: center; gap: 10px; }
-.bs-tags { padding: 4px 12px 16px; }
+.bs-tags { padding: 0; }
 .bs-search { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: var(--r-sm); background: var(--bs-light-grey); margin-bottom: 6px; }
 .bs-search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 0.9375rem; color: var(--bs-default); }
-.bs-tagrow { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: 0; border-radius: var(--r-sm); background: none; text-align: left; cursor: pointer; font-size: 15px; }
+.bs-tagrow { display: flex; align-items: center; gap: 12px; width: 100%; padding: 16px; border: 0; border-bottom: 1px solid var(--bs-border); border-radius: 0; background: none; text-align: left; cursor: pointer; font-size: 16px; color: var(--bs-default); }
 .bs-tagrow[data-pressed] { background: var(--bs-light-grey); }
-.bs-tagrow--create { color: var(--bs-primary); font-weight: 600; }
+.bs-tagrow--create { gap: 10px; color: var(--bs-primary); font-weight: 700; }
 .bs-noteeditor { display: flex; flex-direction: column; gap: 10px; padding: 12px 20px; max-width: 600px; margin: 0 auto; height: 100%; box-sizing: border-box; }
 .bs-noteeditor__title { border: 0; border-bottom: 1px solid var(--bs-border); background: none; font-size: 20px; font-weight: 700; padding: 8px 0; outline: none; color: var(--bs-default); }
 .bs-noteeditor__desc { flex: 1; min-height: 220px; border: 0; background: none; font: 16px/1.55 inherit; font-family: inherit; padding: 8px 0; outline: none; resize: none; color: var(--bs-default); }
@@ -661,3 +661,11 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
    (or the back arrow) and its filters (or a 54 px space). */
 .bs-picker-sheet__spacer { flex: none; width: 60px; }
 .bs-picker-sheet__spacer--right { width: 54px; }
+
+/* UnifiedTagsModal's header extras: the chosen tags as primary chips, and the first-tag prompt. */
+.bs-tagchosen { padding: 8px 16px; border-top: 1px solid var(--bs-border); }
+.bs-tagchosen small { display: block; margin-bottom: 6px; font-size: 12px; color: var(--bs-tertiary); }
+.bs-tagchosen > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.bs-tagchip { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 20px; background: var(--bs-primary); color: var(--bs-reverse); font-size: 14px; max-width: 224px; }
+.bs-tagchip button { display: grid; place-items: center; margin-left: 6px; padding: 0; border: 0; background: none; color: inherit; cursor: pointer; }
+.bs-tags__first { width: 200px; margin: 20px auto; text-align: center; font-weight: 700; color: color-mix(in srgb, var(--bs-primary) 60%, transparent); }

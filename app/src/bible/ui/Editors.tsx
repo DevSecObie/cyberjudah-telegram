@@ -4,6 +4,7 @@ import { confirm, haptic } from "@/tg/sdk";
 import { Feather, Ion } from "../icons";
 import { DEFAULT_BOOKMARK_COLOR, MAX_BOOKMARKS, detectLinkType, type Bookmark, type Tag } from "../store";
 import { Button, Checkbox, Sheet } from "./Sheet";
+import { SheetSearchInput } from "./SheetSearchInput";
 
 /**
  * The editors the selected-verses sheet opens: the bookmark sheet (BookmarkModal), the tags
@@ -52,20 +53,32 @@ export function BookmarkSheet({ open, onClose, reference, location, existing, bo
 }
 
 /** "Edit tags": a search field, the tags as checkbox rows, and "Create « x »" for a new one. */
+/**
+ * Bible Strong's UnifiedTagsModal in select mode: a 70% sheet titled "Tags for <the reference>",
+ * "Search or create a tag" in its header, the chosen tags as removable chips under it, then a row
+ * per tag (16 px, a checkbox) and, when the search finds none, a row to create it. Creating a tag
+ * only adds it; it is chosen with its row, as there.
+ */
 export function TagsPanel({ open, onClose, reference, tags, setTags, selected, onToggle }: { open: boolean; onClose: () => void; reference?: string; tags: Record<string, Tag>; setTags: (t: Record<string, Tag>) => void; selected: Record<string, true>; onToggle: (tagId: string) => void }) {
   const [q, setQ] = useState("");
   useEffect(() => { if (!open) setQ(""); }, [open]);
   const all = Object.values(tags).filter((t) => t && typeof t.name === "string").sort((a, b) => a.name.localeCompare(b.name));
-  const matches = all.filter((t) => t.name.toLowerCase().includes(q.trim().toLowerCase()));
-  const canCreate = !!q.trim() && !all.some((t) => t.name.toLowerCase() === q.trim().toLowerCase());
-  const create = () => { const id = `t_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`; setTags({ ...tags, [id]: { id, name: q.trim(), date: Date.now() } }); onToggle(id); setQ(""); };
+  const keyword = q.trim();
+  const result = all.filter((t) => t.name.toLowerCase().includes(keyword.toLowerCase()));
+  const chosen = all.filter((t) => selected[t.id]);
+  const save = () => { if (!keyword) return; const id = `t_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`; setTags({ ...tags, [id]: { id, name: keyword, date: Date.now() } }); setQ(""); };
+  const title = reference ? `Tags for ${reference}` : "Tags";
   return (
-    <Sheet open={open} onClose={onClose} title="Edit tags" subTitle={reference} snapPoints={[0.7]}>
+    <Sheet open={open} onClose={onClose} title={title} label={title} snapPoints={[0.7]}
+      headerChildren={<>
+        <div className="bs-sheet__searchbox"><SheetSearchInput value={q} onChange={setQ} placeholder="Search or create a tag" label="Search tags" onSubmit={() => { if (!result.length) save(); }} /></div>
+        {chosen.length ? <div className="bs-tagchosen"><small>{chosen.length === 1 ? "1 tag selected" : `${chosen.length} tags selected`}</small><div>{chosen.map((t) => <span key={t.id} className="bs-tagchip">{t.name}<button type="button" aria-label={`Remove tag ${t.name}`} title={`Remove tag ${t.name}`} onClick={() => onToggle(t.id)}><Feather name="x" size={14} /></button></span>)}</div></div> : null}
+      </>}>
       <div className="bs-tags">
-        <div className="bs-search"><Feather name="search" size={16} color="var(--bs-grey)" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" aria-label="Search tags" /></div>
-        {matches.map((t) => <button key={t.id} type="button" role="checkbox" aria-checked={!!selected[t.id]} className="bs-tagrow" onClick={() => { haptic("select"); onToggle(t.id); }}><Checkbox checked={!!selected[t.id]} /><span>{t.name}</span></button>)}
-        {canCreate ? <button type="button" className="bs-tagrow bs-tagrow--create" onClick={create}><Feather name="plus" size={18} color="var(--bs-primary)" /><span>Create « {q.trim()} »</span></button> : null}
-        {!matches.length && !canCreate ? <p className="bs-loading">No tags yet. Type a name to create one.</p> : null}
+        {result.length || !keyword ? <>
+          {result.map((t) => <button key={t.id} type="button" role="checkbox" aria-checked={!!selected[t.id]} className="bs-tagrow" onClick={() => { haptic("select"); onToggle(t.id); }}><Checkbox checked={!!selected[t.id]} /><span>{t.name}</span></button>)}
+          {!result.length && !keyword ? <p className="bs-tags__first">Create your first tag, then select it!</p> : null}
+        </> : <button type="button" className="bs-tagrow bs-tagrow--create" onClick={save}><Feather name="tag" size={20} color="var(--bs-primary)" /><span>Create "{keyword}"</span></button>}
       </div>
     </Sheet>
   );

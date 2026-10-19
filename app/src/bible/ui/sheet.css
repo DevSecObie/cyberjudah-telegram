@@ -65,3 +65,18 @@ button.bs-sheet__grabber { height: 22px; cursor: ns-resize; }
 .sheet-head__titles p { margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 400 12px/1.3 var(--font-ui); color: var(--bs-tertiary); }
 .sheet-head > :last-child:not(.sheet-head__titles) { flex: none; }
 .route-sheet .bs-sheet__grab { min-height: 0; }
+/* SheetSearchInput, under a SheetHeader's title in a 20 px padded box. */
+.bs-sheet__searchbox { padding: 0 20px 10px; }
+.bs-sheetsearch { display: flex; align-items: center; height: 44px; margin-bottom: 5px; padding: 0 14px; border-radius: 14px; background: rgba(0, 0, 0, .1); color: var(--bs-default); }
+.bs-sheetsearch > svg { flex: none; margin-right: 8px; }
+.bs-sheetsearch input { flex: 1; min-width: 0; height: 100%; border: 0; padding: 0; background: none; color: inherit; font: 400 15px var(--font-ui); outline: none; }
+.bs-sheetsearch input::placeholder { color: var(--bs-tertiary); }
+.bs-sheetsearch button { flex: none; display: grid; place-items: center; min-width: 44px; min-height: 44px; margin-right: -14px; padding: 0; border: 0; background: none; color: inherit; cursor: pointer; }
+/* useSheet's action sheet as Bible Strong's: SheetItem rows (common/sheet.tsx), and RenameModal's field. */
+.action-sheet .action-sheet__item { display: flex; min-height: 0; gap: 0; border-radius: 0; align-items: center; width: 100%; padding: 20px; border: 0; border-bottom: 1px solid var(--bs-border); background: none; color: var(--bs-default); text-align: left; font: 400 16px/1.3 var(--font-ui); cursor: pointer; }
+.action-sheet .action-sheet__item small { display: block; margin-top: 2px; font-size: 13px; color: var(--bs-tertiary); }
+.action-sheet .action-sheet__item[data-destructive] { color: var(--bs-quart, var(--danger)); }
+.action-sheet__form { padding: 20px; }
+.action-sheet .sheet__colors { padding: 20px; }
+.action-sheet__form input { box-sizing: border-box; width: 100%; height: 48px; padding: 0 15px; border: 2px solid var(--bs-border); border-radius: 10px; background: none; color: var(--bs-default); font: 400 16px var(--font-ui); outline: none; }
+.action-sheet .bs-sheet__footer .btn { width: 100%; }

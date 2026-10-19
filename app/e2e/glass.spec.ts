@@ -807,10 +807,11 @@ for (const mode of ["native", "fallback", "reduced"] as const) {
     await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
     await expect(pickerTrigger).toBeFocused();
     const motion = await page.evaluate(() => ({ native: !!document.startViewTransition, calls: (window as any).__popoverTransitions, frames: (window as any).__popoverFrames }));
-    if (mode === "native" && motion.native) expect(motion.calls).toBeGreaterThanOrEqual(4);
+    // The ⋮ menu opens and closes by a morph (2 transitions); the book picker is a bottom sheet and rises instead.
+    if (mode === "native" && motion.native) expect(motion.calls).toBeGreaterThanOrEqual(2);
     else expect(motion.calls).toBe(0);
     if (mode === "reduced") {
-      expect(motion.frames.length).toBeGreaterThanOrEqual(4);
+      expect(motion.frames.length).toBeGreaterThanOrEqual(2);
       expect(motion.frames.flat().every((frame: { transform: string }) => frame.transform === "none")).toBe(true);
     }
   });
@@ -880,8 +881,9 @@ for (const reduced of [false, true]) {
     expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
     await menu.getByRole("button", { name: "New group", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "New group", exact: true }).getByRole("textbox", { name: "Name" })).toBeFocused();
-    await page.getByRole("button", { name: "Cancel", exact: true }).click();
-    await expect(page.locator(".sheet[data-popover]")).toHaveCount(0);
+    // Bible Strong's RenameModal has no Cancel: Escape (a swipe or a tap outside on a phone) closes it.
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".sheet[data-popover], .action-sheet")).toHaveCount(0);
     await expect(groups).toBeFocused();
   });
 }
@@ -970,7 +972,7 @@ for (const reduced of [false, true]) {
     await expect(selection.getByRole("button", { name: "Expand sheet", exact: true })).toHaveCount(0);
     // Bible Strong's tags sheet keeps one detent (70%): a pull up does not grow it.
     await page.getByRole("button", { name: "Tag", exact: true }).click();
-    const tags = page.getByRole("dialog", { name: "Edit tags", exact: true });
+    const tags = page.getByRole("dialog", { name: /^Tags for / });
     await expect(tags).toHaveCSS("border-bottom-left-radius", "36px");
     await expect(tags.getByRole("button", { name: "Expand sheet", exact: true })).toHaveCount(0);
     await page.keyboard.press("Escape"); await expect(tags).toHaveCount(0);
@@ -1033,27 +1035,13 @@ for (const width of [390, 768, 1280]) {
 
 // The native snapshot can arrive after the selector's parent effects have run.
 // The current book must scroll when the list actually mounts, including slow snapshots.
-test("menus: a delayed picker mount still brings the current book into view", async ({ page }) => {
+test("menus: the book picker brings the current book into view, however long the list", async ({ page }) => {
   await setup(page);
   await page.route(`${DATA_ORIGIN}/api/kjv/books.json`, r => r.fulfill({ json: Array.from({ length: 41 }, (_, i) => ({
     book: i === 40 ? "Genesis" : `Book fixture ${i + 1}`, slug: i === 40 ? "genesis" : `fixture-${i}`, chapters: 50, verses: 1533, testament: "Old Testament", url: "/bible/genesis", chapterIds: [1],
   })) }));
-  await page.addInitScript(() => {
-    const original = document.startViewTransition?.bind(document);
-    document.startViewTransition = ((update: () => void | Promise<void>) => {
-      const gate = new Promise<void>(resolve => { (window as any).__releasePicker = resolve; });
-      const run = async () => { (window as any).__pickerSnapshotWaiting = true; await gate; await update(); };
-      if (original) return original(run);
-      const finished = run();
-      return { finished, ready: finished, updateCallbackDone: finished, skipTransition() {} };
-    }) as typeof document.startViewTransition;
-  });
   await page.goto(`/read/genesis/1${LAUNCH}`); await page.locator("#verset-1").waitFor();
   await page.getByRole("button", { name: /Choose book and chapter/ }).click();
-  await page.waitForFunction(() => (window as any).__pickerSnapshotWaiting);
-  // Let the parent's already-queued effects/timers finish before releasing the mount.
-  await page.evaluate(() => new Promise<void>(resolve => setTimeout(resolve, 0)));
-  await page.evaluate(() => (window as any).__releasePicker());
   await expect(page.getByRole("dialog", { name: "Books", exact: true })).toBeVisible();
   await expect(page.locator(".bs-bookrow[data-current]")).toBeInViewport();
 });

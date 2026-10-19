@@ -536,9 +536,11 @@ test("a saved mark takes tags and relations from the card, with their counts, as
   await style(page, "Highlight");
   await expect(marked(page)).toHaveText("beginning");
   await toolbar(page).getByRole("button", { name: "Tags, 0", exact: true }).tap();
-  const tagsSheet = page.getByRole("dialog", { name: "Edit tags", exact: true });
+  const tagsSheet = page.getByRole("dialog", { name: /^Tags/ });
   await tagsSheet.getByLabel("Search tags", { exact: true }).fill("Creation");
-  await tagsSheet.getByRole("button", { name: "Create « Creation »", exact: true }).tap();
+  // As Bible Strong's: Create adds the tag; its row then chooses it.
+  await tagsSheet.getByRole("button", { name: 'Create "Creation"', exact: true }).tap();
+  await tagsSheet.getByRole("checkbox", { name: "Creation", exact: true }).tap();
   await expect(tagsSheet.getByRole("checkbox", { name: "Creation", exact: true })).toHaveAttribute("aria-checked", "true");
   await page.keyboard.press("Escape");
   await expect(toolbar(page).getByRole("button", { name: "Tags, 1", exact: true })).toBeVisible();

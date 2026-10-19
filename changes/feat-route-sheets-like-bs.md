@@ -1,3 +1,0 @@
-- A dictionary word, a theme, a precept, a tag, a study or a timeline event opened in the app slides up as a sheet over the page it was opened from, as Bible Strong's do on the iPhone: at 45% with that page still usable behind it, pulling up to full height. A Strong's entry or a person opens as a full-height sheet. Closing it goes back to the page, which stays the tab's place.
-- In a sheet these screens use Bible Strong's header: the title in 14 px bold with its subtitle under it, a back arrow only when the sheet has a screen before this one.
-- Opened from a link outside the app, they are pages, as before.
