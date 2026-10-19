@@ -44,11 +44,11 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
     const hits = await Promise.all(words.map((w) => fetch(`/api/dictionary/lookup?word=${encodeURIComponent(w)}`).then((r) => (r.ok ? (r.json() as Promise<Entry>) : null)).catch(() => null)));
     const seen = new Set<string>(); return hits.filter((h): h is Entry => !!h && !seen.has(h.slug) && seen.add(h.slug) !== undefined);
   } });
-  const xref = useQuery({ queryKey: ["xref", slug, chapter], enabled: open && tab === "references", queryFn: () => data.xref(slug, chapter).catch(() => ({})) });
-  const cites = useQuery({ queryKey: ["cites", slug, chapter], enabled: open && (tab === "commentary" || tab === "themes"), queryFn: () => data.concordance(slug, chapter).then((c) => c.cited_by).catch(() => [] as Citation[]) });
+  const xref = useQuery({ queryKey: ["xref", slug, chapter], enabled: open && tab === "references", queryFn: () => data.xref(slug, chapter).catch(none({})) });
+  const cites = useQuery({ queryKey: ["cites", slug, chapter], enabled: open && (tab === "commentary" || tab === "themes"), queryFn: () => data.concordance(slug, chapter).then((c) => c.cited_by).catch(none([] as Citation[])) });
   const taught = useTaughtPrecepts(open && tab === "precepts" ? slug : "", chapter);
   const precepts = preceptsForVerse(taught.data, verse).sort((a, b) => teacherRank(a.note.teacher) - teacherRank(b.note.teacher));
-  const topicHits = useQuery({ queryKey: ["cites", slug, chapter], enabled: open && tab === "precepts", queryFn: () => data.concordance(slug, chapter).then((c) => c.cited_by).catch(() => [] as Citation[]) });
+  const topicHits = useQuery({ queryKey: ["cites", slug, chapter], enabled: open && tab === "precepts", queryFn: () => data.concordance(slug, chapter).then((c) => c.cited_by).catch(none([] as Citation[])) });
   const topics = (topicHits.data ?? []).filter((c) => c.kind === "precept" && (!c.verses || verseNumbers(c.verses).includes(verse)));
   const named = usePeopleNamed(open && tab === "people" ? slug : "", chapter);
   const everyone = useQuery({ queryKey: ["people-index"], enabled: open && tab === "people", staleTime: Infinity, queryFn: () => data.people() });
@@ -61,7 +61,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   // "Also taught in": one row per note that cites this verse itself (not only its chapter),
   // leaving out the notes whose breakdown is already shown above.
   // The classes' own breakdowns of this verse, newest class first.
-  const said = useQuery({ queryKey: ["commentary", slug, chapter], enabled: open && tab === "commentary", queryFn: () => data.concordance(slug, chapter).then((c) => c.commentary ?? []).catch(() => [] as VerseComment[]) });
+  const said = useQuery({ queryKey: ["commentary", slug, chapter], enabled: open && tab === "commentary", queryFn: () => data.concordance(slug, chapter).then((c) => c.commentary ?? []).catch(none([] as VerseComment[])) });
   const breakdowns = (said.data ?? []).filter((c) => verseNumbers(c.verses).includes(verse)).sort((a, b) => teacherRank(a.note.teacher) - teacherRank(b.note.teacher) || b.note.date.localeCompare(a.note.date));
   // Every class that read this verse aloud, from the transcripts: Bishops first, then newest first.
   const readings = useReadings(open && tab === "commentary" ? slug : "", chapter);
@@ -92,7 +92,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
             : <span key={i} className="bs-words__plain">{t}</span>)}</div>
           {word ? <WordSheet number={word} open onClose={() => { setWord(null); onClose(); }} onBack={() => setWord(null)} books={books} here={{ slug, chapter, verse }} /> : null}
         </>) : null}
-        {tab === "precepts" ? (taught.isPending ? <p className="bs-loading">Loading...</p> : !precepts.length && !topics.length ? <p className="bs-loading">No class has lined a precept up with this verse yet.</p> : <>
+        {tab === "precepts" ? (taught.isError || topicHits.isError ? <Failed onRetry={() => { void taught.refetch(); void topicHits.refetch(); }} /> : taught.isPending ? <p className="bs-loading">Loading...</p> : !precepts.length && !topics.length ? <p className="bs-loading">No class has lined a precept up with this verse yet.</p> : <>
           {precepts.map((r, i) => (
             <button key={i} type="button" className="bs-resrow bs-precept" data-kind={r.kind} onClick={() => readRef(r.ref.url, r.ref.verses)}>
               <b><span className="bs-precept__kind">{r.kind === "precept" ? "Precept" : "Opened at"}</span> {r.ref.label}</b>
@@ -105,9 +105,9 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
         </>) : null}
         {tab === "people" ? (named.isPending || everyone.isPending ? <p className="bs-loading">Loading...</p> : !here.length ? <p className="bs-loading">No one is named in this verse.</p> : here.map((p) => <button key={p.id} type="button" className="bs-resrow bs-resrow--person" onClick={() => { onClose(); navigate(`/person/${p.id}`); }}><EntityAvatar id={p.id} name={p.name} kind={avatarKind(p.type)} size={40} ink={avatarKind(p.type) === "female" ? "var(--bs-quart)" : "var(--bs-primary)"} base="var(--bs-reverse)" /><span><b>{p.name}</b><small>{p.description}{p.verses ? ` · named in ${p.verses} ${p.verses === 1 ? "verse" : "verses"}` : ""}</small></span></button>)) : null}
         {tab === "dictionary" ? (dict.isPending && words.length ? <p className="bs-loading">Loading...</p> : !dict.data?.length ? <p className="bs-loading">No dictionary entry for the words in this verse.</p> : dict.data.map((e) => <button key={e.slug} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(`/dictionary/${e.slug}`); }}><b>{e.term}</b><small>{e.definitions[0]}</small></button>)) : null}
-        {tab === "themes" ? (cites.isPending ? <p className="bs-loading">Loading...</p> : !themes.length ? <p className="bs-loading">No law, precept, case or topic cites this verse.</p> : themes.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(withFrom(toApp(c.url))); }}><b>{c.label}</b><small>{shelf(c.url, c.kind)}</small></button>)) : null}
-        {tab === "references" ? (xref.isPending ? <p className="bs-loading">Loading...</p> : !refs.length ? <p className="bs-loading">No cross references for this verse.</p> : <div className="bs-resources__xrefs"><Xrefs refs={refs} books={books} /></div>) : null}
-        {tab === "commentary" ? (cites.isPending || said.isPending ? <p className="bs-loading">Loading...</p> : !also.length && !breakdowns.length && !readHere.length ? <p className="bs-loading">No class or study note teaches from this verse yet.</p> : <>
+        {tab === "themes" ? (cites.isError ? <Failed onRetry={() => void cites.refetch()} /> : cites.isPending ? <p className="bs-loading">Loading...</p> : !themes.length ? <p className="bs-loading">No law, precept, case or topic cites this verse.</p> : themes.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(withFrom(toApp(c.url))); }}><b>{c.label}</b><small>{shelf(c.url, c.kind)}</small></button>)) : null}
+        {tab === "references" ? (xref.isError ? <Failed onRetry={() => void xref.refetch()} /> : xref.isPending ? <p className="bs-loading">Loading...</p> : !refs.length ? <p className="bs-loading">No cross references for this verse.</p> : <div className="bs-resources__xrefs"><Xrefs refs={refs} books={books} /></div>) : null}
+        {tab === "commentary" ? (cites.isError || said.isError ? <Failed onRetry={() => { void cites.refetch(); void said.refetch(); }} /> : cites.isPending || said.isPending ? <p className="bs-loading">Loading...</p> : !also.length && !breakdowns.length && !readHere.length ? <p className="bs-loading">No class or study note teaches from this verse yet.</p> : <>
           {breakdowns.map((c, i) => (
             <div key={`${c.note.url}${c.ts}${i}`} className="bs-comment">
               <button type="button" className="bs-comment__class" onClick={() => { if (/^https?:/.test(c.note.url)) { openLink(`${c.note.url}${c.t ? `&t=${c.t}s` : ""}`); return; } onClose(); navigate(passageLink(c).replace("#", `?${from}#`).replace(/\?t=(\d+)\?/, "?t=$1&")); }}>
@@ -142,6 +142,12 @@ import { toAppPath } from "@shared/links.mjs";
 const toApp = (sitePath: string) => toAppPath(sitePath) ?? sitePath;
 /** A note opened right where it breaks down this passage, and a class's recording at that second. */
 const passageLink = (c: VerseComment) => `${toApp(c.note.url)}${c.t ? `?t=${c.t}` : ""}#p-${c.passage.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+
+/** A missing file means there is nothing for this chapter; any other failure is shown, with Retry. */
+const none = <T,>(fallback: T) => (e: unknown): T => { if (e instanceof Error && e.message.startsWith("404 ")) return fallback; throw e; };
+function Failed({ onRetry }: { onRetry: () => void }) {
+  return <p className="bs-loading" role="status">This did not load. <button type="button" className="bs-link" onClick={onRetry}>Retry</button></p>;
+}
 
 /** A precept topic from the reference work that lists this verse, with its other scriptures a tap away. */
 function TopicPrecepts({ cite, onRead, onOpen }: { cite: Citation; onRead: (url: string, verses: string) => void; onOpen: () => void }) {

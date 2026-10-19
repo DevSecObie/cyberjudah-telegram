@@ -598,7 +598,7 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
     bs_n_genesis_1: JSON.stringify({ "1": { id: "note1", title: "Beginning", description: "", date: 1 } }),
     plan: JSON.stringify({ startedAt: "2026-09-30", day: 1, streak: 0, perDay: 4 }),
   });
-  await page.route("**/api/verse-of-day", (r) => r.fulfill({ json: { ref: "Genesis 1:1", slug: "genesis", chapter: 1, verse: 1, text: "In the beginning God created the heaven and the earth." } }));
+  await page.route("**/api/verse-of-day*", (r) => r.fulfill({ json: { ref: "Genesis 1:1", slug: "genesis", chapter: 1, verse: 1, text: "In the beginning God created the heaven and the earth." } }));
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await page.getByRole("button", { name: "Home", exact: true }).click();
   const home = page.locator(".drawer--home");

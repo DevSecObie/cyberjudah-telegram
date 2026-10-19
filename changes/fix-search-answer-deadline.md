@@ -1,0 +1,3 @@
+- A search's AI answer now gives up after 55 seconds when the model stalls and says the answer is unavailable, leaving the keyword results, instead of keeping the reader waiting.
+- The release check tries a slow or unavailable answer once more before failing, so one stalled model reply no longer fails a pull request's staging check.
+- The Worker logs how long each search answer spends finding passages and writing the answer (search_answer_timing), and the release check reports the answer's time, so the 30-50 second answers seen in production can be traced.
