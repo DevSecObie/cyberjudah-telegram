@@ -123,3 +123,36 @@
 .thread__precepts { display: flex; flex-wrap: wrap; gap: 6px; }
 .thread__more { padding-left: 26px; list-style: none; }
 #root .thread__more button { min-height: var(--touch); padding: 0; border: 0; background: none; font: 600 var(--fs-sub) var(--font-ui); color: var(--accent); cursor: pointer; }
+
+/* Bible Strong's DictionaryListScreen and LexiqueListScreen: rows under the letter's disc, the
+   alphabet carousel along the bottom (SectionTitle, DictionnaireItem, LexiqueItem, AlphabetList). */
+.bs-list__loading { margin: 40px 0; text-align: center; font: 400 15px var(--font-ui); color: var(--text-3); }
+.bs-list__body { padding-top: 20px; }
+.screen.bs-list { --gutter: 20px; }
+.bs-section { position: sticky; top: var(--section-top, 0px); z-index: 1; height: 50px; pointer-events: none; }
+.bs-section span { display: grid; place-items: center; width: 30px; height: 30px; margin-top: 10px; border-radius: 15px; color: var(--canvas); font: 700 16px var(--font-ui); }
+.bs-dictitem, .bs-lexitem { box-sizing: border-box; display: flex; justify-content: center; border-bottom: 1px solid var(--hairline); color: var(--text-1); text-decoration: none; }
+.bs-dictitem { flex-direction: column; height: 60px; }
+.bs-dictitem span { padding-right: 20px; font: 600 18px var(--font-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bs-lexitem { flex-direction: column; align-items: flex-start; height: 80px; }
+.bs-lexitem__chips { display: flex; }
+.bs-lexchip { margin-bottom: 3px; padding: 2px 5px; border-radius: 10px; background: var(--hairline); font: 400 10px var(--font-ui); color: var(--text-1); }
+.bs-lexchip + .bs-lexchip { margin-left: 5px; }
+.bs-lexchip--hebrew { background: var(--accent-soft); }
+.bs-lexitem__line { display: flex; width: 100%; }
+.bs-lexitem__line b { flex: 1; min-width: 0; padding-right: 20px; font: 600 18px var(--font-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bs-lexitem__line span { font-size: 18px; }
+.bs-alpha { position: sticky; bottom: var(--dock-space); z-index: 2; margin: 0 calc(-1 * var(--gutter)); padding-bottom: 7px; border-top: 1px solid var(--hairline); background: var(--canvas); }
+.bs-alpha__track { display: flex; overflow-x: auto; padding: 5px calc(50% - 18px) 0; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.bs-alpha__track::-webkit-scrollbar { display: none; }
+#root .bs-alpha__letter { flex: none; width: 36px; height: 44px; margin: 0; padding: 0; border: 0; background: none; color: var(--text-1); font: 400 26px var(--font-ui); transform: scale(.75); transition: transform var(--dur-2) var(--ease); scroll-snap-align: center; cursor: pointer; }
+#root .bs-alpha__letter[aria-checked="true"] { font-weight: 700; transform: none; }
+.bs-alpha__bar { display: block; width: 30px; height: 8px; margin: 5px auto 0; border-radius: 5px; }
+/* Bible Strong's FilterHeaderButton: the filter icon, or the active filter's icon in a pill. */
+#root .bs-filter { display: grid; place-items: center; width: 48px; height: 48px; margin-right: 10px; padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
+#root .bs-filter--on { width: auto; padding: 0 15px; margin-right: 0; }
+.bs-filter__pill { display: flex; align-items: stretch; min-width: 50px; height: 22px; border-radius: 13px; background: var(--accent); color: var(--canvas); }
+.bs-filter__pill > span { display: flex; align-items: center; justify-content: center; }
+.bs-filter__pill > span:first-child { min-width: 28px; padding: 0 6px 0 8px; box-sizing: border-box; }
+.bs-filter__pill > span:last-child { padding: 0 6px 0 4px; border-left: 2px solid var(--canvas); }
+.bs-filter__blank { display: inline-block; width: 18px; }

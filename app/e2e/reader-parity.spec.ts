@@ -790,7 +790,7 @@ test("the dictionary pages through every entry of a letter, and says when a page
     return r.fulfill({ json: { count: 70, page: p, pages: 2, rows: all.slice((p - 1) * 60, p * 60), related: [], total: 3963 } });
   });
   await page.goto("/dictionary?letter=A");
-  await expect(page.getByText("70 entries")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Aentry 1", exact: true })).toBeVisible();
   await page.locator(".list-more").scrollIntoViewIfNeeded();
   await expect(page.getByRole("link", { name: "Aentry 70" })).toBeVisible();
   // A failed list is a failure with Retry, not an empty letter.
@@ -808,7 +808,7 @@ test("a typed Strong's number is searched as written, whatever the language tab"
   ] }));
   await page.goto("/lexicon?lang=hebrew");
   await page.fill("#lex-q", "G26");
-  await expect(page.locator(".row, a[href='/lexicon/G26']").filter({ hasText: "agape" }).first()).toBeVisible();
+  await expect(page.locator("a[href='/lexicon/G26']").filter({ hasText: "love" })).toBeVisible();
   await expect(page.locator("a[href='/lexicon/H26']")).toHaveCount(0);
 });
 
