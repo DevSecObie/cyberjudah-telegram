@@ -7,7 +7,7 @@ import { signInitData } from "../src/initdata.mjs";
  * day's budget spent is reported, not failed. Production leaves it off: there a paused budget means
  * readers get no answers.
  */
-export async function verifyRelease({ url, token, expectedModel, fetcher = fetch, log = console.log, allowPaused = false }) {
+export async function verifyRelease({ url, token, expectedModel, fetcher = fetch, log = console.log, allowPaused = false, retryMs = 5_000 }) {
   if (!url || !token || !expectedModel) throw new Error("Set WORKER_URL, BOT_TOKEN and EXPECTED_SEARCH_MODEL for release verification.");
   const external = !expectedModel.startsWith("@cf/"), provider = external ? "Google" : "Cloudflare (Workers AI)";
   const origin = new URL(url).origin;
@@ -48,7 +48,19 @@ export async function verifyRelease({ url, token, expectedModel, fetcher = fetch
     if ((await consent.json()).provider !== provider) throw new Error("Provider consent: unexpected provider.");
     log("External provider consent: enforced");
   }
-  const response = await get(query, { ...headers, ...(external ? { "x-ai-consent": provider } : {}) });
+  // One more try after a pause: a single slow or unavailable answer from the model is not a broken
+  // release (the Worker gives up on an answer at 30 s and says it is unavailable). Two in a row fail.
+  const ask = () => get(query, { ...headers, ...(external ? { "x-ai-consent": provider } : {}) }).catch(e => {
+    if (e?.name === "TimeoutError") return null;
+    throw e;
+  });
+  let response = await ask();
+  if (!response || response.status === 503) {
+    log(`Search answer: ${response ? "unavailable" : "no reply within 60 s"}; trying once more`);
+    await new Promise(r => setTimeout(r, retryMs));
+    response = await ask();
+    if (!response) throw new Error("Search answer: no reply within 60 s, twice. Check the provider's status and the Worker's search_answer logs.");
+  }
   if (response.status !== 200) {
     const body = await response.json().catch(() => ({}));
     const reason = ["free-paused", "limit", "unavailable", "empty"].includes(body.error) ? body.error : "unexpected-response";

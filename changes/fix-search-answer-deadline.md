@@ -1,0 +1,2 @@
+- A search's AI answer now gives up after 30 seconds when the model stalls and says the answer is unavailable, leaving the keyword results, instead of keeping the reader waiting.
+- The release check tries a slow or unavailable answer once more before failing, so one stalled model reply no longer fails a pull request's staging check.

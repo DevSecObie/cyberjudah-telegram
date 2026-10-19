@@ -8,7 +8,7 @@ import { financialDb } from "./helpers/financial-db.mjs";
 // ai.ts is bundled for Node first (as Workers bundles it).
 const out = new URL("./.build/search-ai.mjs", import.meta.url).pathname;
 await build({ stdin: { contents: 'export * from "./src/ai.ts"; export * from "./src/credits.ts"; export { searchAnswers } from "./src/search-answer.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
-const { answerSearch, freeSpendToday, searchModel, startMeter, searchAnswers, ownerOfUser, grantPayment, wallet } = await import(out);
+const { answerSearch, withDeadline, DeadlineError, freeSpendToday, searchModel, startMeter, searchAnswers, ownerOfUser, grantPayment, wallet } = await import(out);
 
 /** A D1 close enough for the meter and spend tables, backed by real SQLite. */
 const d1 = () => {
@@ -73,6 +73,26 @@ test("with nothing in the library it says so, on the default free model, and rep
   assert.ok(!("q" in usage) && !("question" in usage) && !("uid" in usage));
   const spent = await freeSpendToday(e);
   assert.ok(spent > 0 && spent < 0.001, `the nominal research cost is metered for the breaker (got $${spent})`);
+});
+
+test("withDeadline passes a prompt result through and rejects late work with a DeadlineError", async () => {
+  assert.equal(await withDeadline(Promise.resolve(4), 50), 4);
+  await assert.rejects(withDeadline(new Promise(() => {}), 20), (e) => e instanceof DeadlineError);
+});
+
+test("a stalled model is given up on at the deadline: the answer is unavailable, and logged as a timeout", async () => {
+  // Workers AI that never replies: the embedding (and so retrieval) stalls.
+  const e = { ...shared, AI: { run: () => new Promise(() => {}) }, VEC: { query: async () => ({ matches: [] }) } };
+  const lines = [];
+  const original = console.error;
+  console.error = (...args) => lines.push(args.join(" "));
+  const t0 = Date.now();
+  let r;
+  try { r = await answerSearch(e, "melchizedek", 8, [], 50); } finally { console.error = original; }
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, "unavailable");
+  assert.ok(Date.now() - t0 < 5_000, "the reader is not kept waiting on the stalled model");
+  assert.ok(lines.some((l) => l.includes('"search_answer_timeout"')), lines.join("\n"));
 });
 
 test("admin searches share the daily free-tier allowance", async () => {

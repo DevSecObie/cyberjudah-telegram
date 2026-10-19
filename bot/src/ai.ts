@@ -314,7 +314,20 @@ export function searchModel(env: Env): AskModel | null {
  * external provider requires consent before retrieval or metering. No reader balance is held,
  * and no tools or web searches are offered to the model. Admin searches share the daily limit.
  */
-export async function answerSearch(env: Env, q: string, uid: number, consent: string[] = []): Promise<SearchAnswer> {
+/**
+ * How long a search answer may take, retrieval and model together. Past it the reader is told the
+ * answer is unavailable, and the keyword results stand, rather than waiting on a stalled model.
+ */
+export const SEARCH_ANSWER_DEADLINE_MS = 30_000;
+export class DeadlineError extends Error { constructor(ms: number) { super(`deadline of ${ms} ms passed`); this.name = "DeadlineError"; } }
+/** The work's result, or a DeadlineError once `ms` have passed (the work itself is not cancelled). */
+export function withDeadline<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new DeadlineError(ms)), ms); });
+  return Promise.race([work, late]).finally(() => clearTimeout(timer));
+}
+
+export async function answerSearch(env: Env, q: string, uid: number, consent: string[] = [], deadlineMs = SEARCH_ANSWER_DEADLINE_MS): Promise<SearchAnswer> {
   const t0 = Date.now();
   const question = q.trim().slice(0, 200);
   if (question.length < 2) return { ok: false, reason: "too-short" };
@@ -326,7 +339,7 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
   const meter = started.meter;
   const spend = meter.spend;
   try {
-    const passages = answerCandidates(question, await retrieve(env, question, 12, spend), 8);
+    const passages = answerCandidates(question, await withDeadline(retrieve(env, question, 12, spend), deadlineMs), 8);
     if (!passages.length) {
       await finishMeter(env, meter, "empty", Date.now() - t0);
       return { ok: true, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], model: model.id, provider: model.provider, ms: Date.now() - t0 };
@@ -335,15 +348,15 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
     const prompt = buildPrompt(question, passages);
     const system = prompt.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
     const messages = prompt.filter((m): m is { role: "user" | "assistant"; content: string } => m.role !== "system");
-    const ran = await researchOpen(env, { ...model, format: "plain" }, system, messages,
-      [], new Map(), async () => ({ content: "No tools are available." }), () => undefined, 1, spend);
+    const ran = await withDeadline(researchOpen(env, { ...model, format: "plain" }, system, messages,
+      [], new Map(), async () => ({ content: "No tools are available." }), () => undefined, 1, spend), Math.max(0, deadlineMs - (Date.now() - t0)));
     const { answer } = splitFollowups(ran.text);
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, "ok", Date.now() - t0);
     return { ok: true, answer, sources: sourcesOf(answer, passages), model: model.id, provider: model.provider, ms: Date.now() - t0 };
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
-    console.error(JSON.stringify({ event: "search_answer_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 160) }));
+    console.error(JSON.stringify({ event: e instanceof DeadlineError ? "search_answer_timeout" : "search_answer_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 160) }));
     return { ok: false, reason: "unavailable" };
   }
 }
