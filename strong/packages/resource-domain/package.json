@@ -20,9 +20,9 @@
     "test": "tsx --test src/**/*.node-test.ts"
   },
   "dependencies": {
-    "@babel/runtime": "^7.28.4",
-    "effect": "3.22.1",
-    "htmlparser2": "^10.0.0"
+    "@babel/runtime": "^8.0.7",
+    "effect": "4.0.5",
+    "htmlparser2": "^12.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.29",

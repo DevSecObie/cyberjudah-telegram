@@ -16,7 +16,7 @@
     "test": "tsx --test src/**/*.node-test.ts"
   },
   "dependencies": {
-    "@babel/runtime": "^7.28.4"
+    "@babel/runtime": "^8.0.7"
   },
   "devDependencies": {
     "@types/node": "^22.15.29",
