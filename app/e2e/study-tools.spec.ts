@@ -48,6 +48,19 @@ test("the formatting bar writes the study's Markdown on the line or selection be
   await page.getByRole("button", { name: "More", exact: true }).click();
   await page.getByRole("button", { name: "Bulleted list", exact: true }).click();
   await expect(writing).toHaveValue("- **Light**");
+  // A heading takes the place of a list marker, not beside it.
+  await page.getByRole("button", { name: /^Normal/ }).click();
+  await page.getByRole("menuitem", { name: "Subtitle", exact: true }).click();
+  await expect(writing).toHaveValue("## **Light**");
+  // A quote or a list marks every selected line, and Undo takes a toolbar change back.
+  await writing.fill("Light\nDarkness");
+  await writing.evaluate((el: HTMLTextAreaElement) => { el.focus(); el.setSelectionRange(0, el.value.length); });
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "Quote", exact: true }).click();
+  await expect(writing).toHaveValue("> Light\n> Darkness");
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(writing).toHaveValue("Light\nDarkness");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("menuitem", { name: "Add writing", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Writing 2", exact: true })).toBeVisible();

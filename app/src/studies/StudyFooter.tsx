@@ -24,18 +24,25 @@ export function StudyFooter({ target, header, onAdd }: { target: WritingTarget |
     if (!target) return;
     const { el, onChange } = target;
     const [next, start, end] = fn(el.value, el.selectionStart, el.selectionEnd);
-    onChange(next);
+    // A block holds at most its maxLength; a change past it would leave a draft that cannot save.
+    if (el.maxLength > 0 && next.length > el.maxLength) return;
+    // Through the browser's own editing, so Undo and Redo step over toolbar changes too.
+    el.focus(); el.setSelectionRange(0, el.value.length);
+    if (!document.execCommand("insertText", false, next) || el.value !== next) onChange(next);
     requestAnimationFrame(() => { el.focus(); el.setSelectionRange(start, end); });
   };
   const wrap = (mark: string) => edit((v, s, e) => [v.slice(0, s) + mark + v.slice(s, e) + mark + v.slice(e), s + mark.length, e + mark.length]);
-  // A line's prefix (a heading, a quote, a list) replaces the one it has, or comes off if it is the same.
-  const prefix = (p: string, toggle = true, kinds = /^(#{1,6} |> |- |\d+\. )/) => edit((v, s, e) => {
-    const from = v.lastIndexOf("\n", s - 1) + 1;
-    const line = v.slice(from);
-    const had = kinds.exec(line)?.[0] ?? "";
-    const put = toggle && had === p ? "" : p;
-    const shift = put.length - had.length;
-    return [v.slice(0, from) + put + v.slice(from + had.length), Math.max(from, s + shift), Math.max(from, e + shift)];
+  // Each selected line's prefix (a heading, a quote, a list) replaces the one it has; if every
+  // line already has this one, it comes off.
+  const prefix = (p: string, toggle = true) => edit((v, s, e) => {
+    const kinds = /^(#{1,6} |> |- |\d+\. )/;
+    const from = v.lastIndexOf("\n", s - 1) + 1, endAt = v.indexOf("\n", Math.max(s, e - 1)), to = endAt < 0 ? v.length : endAt;
+    const lines = v.slice(from, to).split("\n");
+    const had = lines.map(l => kinds.exec(l)?.[0] ?? "");
+    const put = toggle && had.every(h => h === p) ? "" : p;
+    const out = lines.map((l, i) => put + l.slice(had[i].length));
+    const first = put.length - had[0].length, all = out.join("\n").length - (to - from);
+    return [v.slice(0, from) + out.join("\n") + v.slice(to), Math.max(from, s + first), Math.max(from, e + all)];
   });
   const divider = () => edit((v, s) => { const add = `${s && v[s - 1] !== "\n" ? "\n" : ""}\n---\n\n`; return [v.slice(0, s) + add + v.slice(s), s + add.length, s + add.length]; });
   const history = (command: "undo" | "redo") => { target?.el.focus(); document.execCommand(command); };
@@ -49,7 +56,7 @@ export function StudyFooter({ target, header, onAdd }: { target: WritingTarget |
           <button type="button" className="study-footer__heading" aria-haspopup="menu" aria-expanded={menu === "heading"} {...hold} onClick={() => toggle("heading")}>
             <b>{HEADINGS[header][0]}</b><span><Feather name="chevron-up" size={18} color="var(--canvas)" /></span>
           </button>
-          {menu === "heading" ? <Popover left={0} width={220}>{HEADINGS.map(([label, level]) => <Item key={label} icon="type" label={label} on={header === level} onClick={() => { prefix(level === 0 ? "" : level === 1 ? "# " : "## ", false, /^#{1,6} /); close(); }} />)}</Popover> : null}
+          {menu === "heading" ? <Popover left={0} width={220}>{HEADINGS.map(([label, level]) => <Item key={label} icon="type" label={label} on={header === level} onClick={() => { prefix(level === 0 ? "" : level === 1 ? "# " : "## ", false); close(); }} />)}</Popover> : null}
         </div>
         <Format label="Bold" onClick={() => wrap("**")}><Feather name="bold" size={16} color="var(--accent)" /></Format>
         <Format label="Italic" onClick={() => wrap("*")}><Feather name="italic" size={16} color="var(--accent)" /></Format>
