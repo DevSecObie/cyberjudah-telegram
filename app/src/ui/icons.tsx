@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 
-export type IconName = "edit-line" | "bookmark-outline" | "note-outline" | "feather" | "chain" | "tag-outline" | "sliders" | "share-nodes" | "bell-outline" | "home" | "search" | "play" | "book" | "book-open" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "precepts" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus" | "close" | "image" | "alert" | "info" | "shield" | "highlight" | "open";
+export type IconName = "edit-line" | "bookmark-outline" | "note-outline" | "feather" | "chain" | "tag-outline" | "sliders" | "share-nodes" | "bell-outline" | "home" | "search" | "play" | "book" | "book-open" | "more" | "chevron" | "back" | "share" | "clock" | "bookmark" | "bookmarkFill" | "sun" | "star" | "check" | "copy" | "qr" | "bell" | "link" | "note" | "law" | "list" | "merge" | "precepts" | "gear" | "type" | "layers" | "tag" | "quote" | "folder" | "compose" | "spark" | "arrowUp" | "retry" | "history" | "trash" | "chat" | "download" | "plus" | "close" | "image" | "alert" | "info" | "shield" | "highlight" | "open" | "arrow-left";
 const paths: Record<IconName, ReactNode> = {
     "edit-line": <><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></>,
     "bookmark-outline": <><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></>,
@@ -24,6 +24,7 @@ const paths: Record<IconName, ReactNode> = {
     more: <><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></>,
     chevron: <path d="m9 5 7 7-7 7" />,
     back: <path d="m15 5-7 7 7 7" />,
+    "arrow-left": <><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></>,
     share: <><path d="M12 3v13" /><path d="m7 8 5-5 5 5" /><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></>,
     clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
     bookmark: <path d="M6 3h12v18l-6-4-6 4z" />,
