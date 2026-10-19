@@ -576,7 +576,7 @@ test("history keeps the verse gone to and opens on it, as Bible Strong's history
   await expect(page.getByRole("link", { name: /Genesis 1:28$/ })).toBeVisible();
   await expect(page.getByRole("link", { name: /Genesis 1$/ })).toBeVisible();
   await page.getByRole("link", { name: /Genesis 1:28$/ }).click();
-  await expect(page).toHaveURL(/\/read\/genesis\/1\?v=28$/);
+  await expect(page).toHaveURL(/\/read\/genesis\/1\?at=28$/);
   await expect(page.locator("#verset-28")).toBeVisible();
 });
 
@@ -728,4 +728,20 @@ test("the drawers show the live class, the offline notice, the account and legal
   await expect(more).not.toHaveAttribute("data-open");
   await page.getByRole("button", { name: "Menu", exact: true }).click();
   await expect.poll(() => more.locator(".drawer__scroll").evaluate(el => el.scrollTop)).toBe(300);
+});
+
+test("a verse picked from History opens the whole chapter at that verse, not a focused passage", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("cj:hist", JSON.stringify([{ slug: "genesis", chapter: 1, verse: 18, name: "Genesis 1", at: Date.now() }])));
+  await page.goto("/history");
+  await page.getByRole("link", { name: /Genesis 1:18/ }).click();
+  await expect(page).toHaveURL(/\/read\/genesis\/1\?at=18$/);
+  await expect(page.locator("#verset-18")).toBeInViewport();
+  await expect(page.locator("#verset-1")).toHaveCount(1);
+  await expect(page.locator(".bs-context")).toHaveCount(0);
+});
+
+test("opening the app at its root reopens the tab that was current", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
 });

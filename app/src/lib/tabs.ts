@@ -39,6 +39,8 @@ function load(): State {
   const g = freshGroup("My tabs", GROUP_COLORS[0], "/bible");
   return { groups: [g], group: g.id };
 }
+// Whether tabs were kept from an earlier visit; a first launch has none to reopen.
+const kept = (() => { try { return localStorage.getItem(KEY) !== null || localStorage.getItem(OLD_KEY) !== null; } catch { return false; } })();
 let state = load();
 const listeners = new Set<() => void>();
 const set = (next: State) => { state = next; try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* private mode */ } listeners.forEach((l) => l()); };
@@ -54,6 +56,8 @@ export const useTabs = () => {
   return { tabs: g.tabs, current: g.current, group: g, groups: s.groups };
 };
 export const currentTab = () => { const g = group(); return g.tabs.find((t) => t.id === g.current) ?? g.tabs[0]; };
+/** The tab to reopen at launch: the current one, if tabs were kept from an earlier visit. */
+export const keptTab = () => (kept ? currentTab() : undefined);
 
 export const isTabPath = (path: string) => !NOT_TABS.test(path);
 /**
