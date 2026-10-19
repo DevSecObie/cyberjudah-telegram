@@ -19,8 +19,8 @@
     "@babel/runtime": "^7.28.4"
   },
   "devDependencies": {
-    "@types/node": "^22.15.29",
-    "tsx": "4.20.6",
+    "@types/node": "^26.6.5",
+    "tsx": "4.23.15",
     "typescript": "~6.0.3"
   }
 }
