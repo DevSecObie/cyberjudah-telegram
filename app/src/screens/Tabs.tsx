@@ -128,9 +128,9 @@ export function SwitcherBar() {
   const named = !isDefault(group);
   return (
     <div className="switcherbar" role="toolbar" aria-label="Tabs">
-      <button type="button" className="switcherbar__add" aria-label="Add a tab" title="Add a tab" onClick={add}><Icon name="plus" size={24} /></button>
+      <button type="button" className="switcherbar__add" aria-label="Add a tab" title="Add a tab" onClick={add}><Icon name="plus" size={23} /></button>
       <button type="button" className="switcherbar__group" aria-label={`${groupLabel(group)}. Groups`} title={`${groupLabel(group)}. Groups`} onClick={() => void openGroups()}
-        style={named ? { ["--group" as string]: group.color } : undefined}>
+        style={named ? { ["--group" as string]: group.color, ["--group-ink" as string]: contrastInk(group.color) } : undefined}>
         <span>{groupLabel(group)}</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
       </button>
@@ -190,9 +190,9 @@ export function Tabs() {
             <div key={t.id} className="tabcard" data-tab-id={t.id} data-current={t.id === current ? "" : undefined} style={{ width: size.w, height: size.h }}>
               <button type="button" className="tabcard__open" onClick={() => go(t.id)} aria-label={`Open ${title}`} title={`Open ${title}`}>
                 <TabPreview path={t.path} />
-                <span className="tabcard__icon"><Icon name={icon as IconName} size={30} /></span>
+                <span className="tabcard__icon" style={{ color: tabColor(t.path) }}><Icon name={icon as IconName} size={30} /></span>
               </button>
-              <span className="tabcard__title"><Icon name={icon as IconName} size={16} /><b>{title}</b></span>
+              <span className="tabcard__title" style={{ color: tabColor(t.path) }}><Icon name={icon as IconName} size={16} /><b>{title}</b></span>
               <button type="button" className="tabcard__close" aria-label={`Close ${title}`} title={`Close ${title}`} onClick={() => {
                 haptic("select"); reflowTabs(() => closeTab(t.id));
                 document.querySelector<HTMLButtonElement>(".tabcard[data-current] .tabcard__open")?.focus({ preventScroll: true });
@@ -205,6 +205,19 @@ export function Tabs() {
       </div>
     </main>
   );
+}
+/** A tab's icon in its universe's colour (getIconByTabType): the Lexicon primary, the Dictionary secondary, the rest tertiary. */
+function tabColor(path: string) {
+  if (path.startsWith("/lexicon")) return "var(--accent)";
+  if (path.startsWith("/dictionary")) return "rgb(255, 188, 0)";
+  return "var(--text-3)";
+}
+/** The group's name on its colour (getContrastTextColor): in dark, black on a light colour; in light, white on a dark one. */
+function contrastInk(hex: string) {
+  const rgb = hex.replace("#", "");
+  const luminance = 0.2126 * (parseInt(rgb.slice(0, 2), 16) / 255) + 0.7152 * (parseInt(rgb.slice(2, 4), 16) / 255) + 0.0722 * (parseInt(rgb.slice(4, 6), 16) / 255);
+  if (document.documentElement.dataset.theme === "dark") return luminance > 0.5 ? "#000000" : undefined;
+  return luminance < 0.6 ? "#FFFFFF" : undefined;
 }
 function cardSize(width = window.innerWidth) {
   const W = width, H = window.innerHeight, perRow = W > 600 ? 4 : 2;
