@@ -1,0 +1,2 @@
+- A study now opens to read, as in Bible Strong. Tap the round pencil to write in it, and the green check when you are done. Tap its title to rename it; ⋮ holds Edit tags, Rename, Export and Delete.
+- While writing, Bible Strong's formatting bar sits at the bottom. It offers Normal, Title or Subtitle, bold and italic. Under ⋯ are quote, lists, a divider, undo and redo. The + adds writing, Scripture or a Strong's entry.
