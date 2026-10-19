@@ -48,8 +48,8 @@ doctrines or contradicts the classes. The
 passages are embedded with Workers AI (bge-m3) into a Vectorize index by
 `bot/scripts/embed.mjs`, nightly and on demand from the deploy workflow ("Also embed");
 `/api/ask` retrieves the closest ones and reranks them (bge-reranker-base). With Claude (an
-`ANTHROPIC_API_KEY` secret; `CLAUDE_MODEL` in wrangler.jsonc, `claude-opus-5` by default,
-`claude-sonnet-5` the cheaper one), the model then researches on its own before it writes
+`ANTHROPIC_API_KEY` secret; `CLAUDE_MODEL` in wrangler.jsonc, `claude-sonnet-5` by default,
+the cheaper one, and `claude-opus-5` the strongest), the model then researches on its own before it writes
 (`bot/src/agent.ts`): it searches the library again in its own words and reads the verses it
 will quote (tools `search_library` and `read_scripture`, up to five rounds), and the app shows
 each step as it happens. Without the key, Llama 3.3 70B on Workers AI answers from the best
@@ -82,7 +82,7 @@ Settings (`bot/wrangler.jsonc` vars, the same in both environments):
 | Setting | Value | What it is |
 | --- | --- | --- |
 | `ASK_BILLING` | `"on"` | Paid models use the balance; off, a 100-a-day cap for everyone |
-| `ASK_USD_PER_STAR` | `"0.013"` | What one Star pays out after Telegram's share |
+| `ASK_USD_PER_STAR` | `"0.012"` | A little under what one Star pays out after Telegram's share (about $0.013) |
 | `ASK_MARGIN` | `"1"` | At cost: no profit |
 | `ASK_TOPUPS_USD` | `"1,5,20"` | The top-ups on sale, in dollars |
 | `ASK_UNIFIED_BILLING_FEE` | `"0.05"` | Cloudflare's fee on Unified Billing models |
