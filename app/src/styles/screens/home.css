@@ -99,6 +99,7 @@
 /* A class on the air. */
 .live-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--sp-3); padding: var(--sp-3) 14px; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), inset 0 0 0 1px color-mix(in srgb, var(--danger) 40%, transparent); }
 .live-card--soon { box-shadow: var(--card-edge); }
+.offline-pill { display: flex; align-items: center; gap: 6px; align-self: center; margin: 0; padding: 6px 12px; border-radius: var(--r-pill); background: var(--fill-2); color: var(--text-2); font: 600 var(--fs-caption) var(--font-ui); }
 .live-card__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 22%, transparent); animation: pulse 1.6s ease-in-out infinite; }
 .live-card--soon .live-card__dot { background: var(--text-3); box-shadow: none; animation: none; }
 .live-card small { display: block; font: 600 var(--fs-caption) var(--font-ui); color: var(--danger); }
@@ -126,6 +127,17 @@
 #root .widget__foot { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; box-sizing: border-box; min-height: var(--touch); border: 0; border-top: 8px solid transparent; background: rgba(0, 0, 0, .2) padding-box; color: var(--widget-ink); font: 700 var(--fs-caption) var(--font-ui); cursor: pointer; }
 /* A 44px tap area around the same 32px disc, centred where it always was. */
 #root .widget__shuffle { position: absolute; top: 0; right: 0; z-index: 1; display: grid; place-items: center; box-sizing: border-box; width: var(--touch); height: var(--touch); padding: 6px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .22) content-box; color: var(--widget-ink); cursor: pointer; }
+/* Bible Strong 1dfaa0d: widget.tsx, StrongOfTheDay and RandomButton. */
+.drawer--home .widgets { gap: 16px; padding-inline: 20px; scroll-snap-type: none; }
+.drawer--home .widget { flex-basis: min(50vw, 300px); height: 120px; border-radius: 20px; scroll-snap-align: none; }
+.drawer--home .widget__body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0; padding: 20px 10px 0; gap: 0; }
+.drawer--home .widget__label { margin: 0; padding: 3px 5px; font-size: 10px; line-height: 12px; background: rgba(0, 0, 0, .1); }
+.drawer--home .widget__title { display: block; white-space: nowrap; text-overflow: ellipsis; font-size: 15px; font-weight: 400; line-height: 23px; }
+.drawer--home .widget__sub { display: block; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; line-height: 15px; opacity: .5; }
+#root .drawer--home .widget__shuffle { left: 0; right: auto; background: none; }
+#root .drawer--home .widget__shuffle svg { width: 15px; height: 15px; }
+#root .drawer--home .widget__foot { height: 44px; border: 0; background: rgba(0, 0, 0, .04); font-size: 12px; }
+.drawer--home .widget__foot svg { width: 20px; height: 20px; }
 .tools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-2); }
 #root .tools__btn { display: grid; justify-items: center; gap: 5px; min-height: 64px; padding: 10px 2px var(--sp-2); border: 0; border-radius: var(--r-md); background: var(--surface-1); box-shadow: var(--card-edge); color: var(--text-2); font: 500 .75rem var(--font-ui); text-align: center; cursor: pointer; }
 #root .tools__btn:hover { background: color-mix(in srgb, var(--text-1) 4%, var(--surface-1)); }
@@ -143,7 +155,7 @@
 
 /* The teaching feed (Home, and lists of classes elsewhere). */
 .feature { display: block; overflow: hidden; border-radius: var(--r-xl); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); transition: transform var(--dur-1) var(--ease); }
-.feature:active { transform: scale(.98); }
+.feature[data-pressed] { transform: scale(.98); }
 .feature__img { position: relative; display: block; aspect-ratio: 16 / 9; background: var(--surface-2); }
 .feature__img img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .feature__body { display: block; padding: 14px var(--sp-4) var(--sp-4); }
@@ -152,7 +164,7 @@
 .feed { display: grid; gap: 14px; }
 .feed__card { display: grid; grid-template-columns: 124px minmax(0, 1fr); gap: var(--sp-3); align-items: start; padding: 4px; border-radius: var(--r-lg); transition: transform var(--dur-1) var(--ease); }
 .feed__card:hover { background: var(--state-hover); }
-.feed__card:active { transform: scale(.98); }
+.feed__card[data-pressed] { transform: scale(.98); }
 .feed__card--skel { pointer-events: none; }
 .feed__card .feed__thumb, .feed__card--skel .feed__thumb { aspect-ratio: 16 / 9; border-radius: var(--r-md); overflow: hidden; background: var(--surface-2); }
 .feed__img { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: var(--r-md); overflow: hidden; background: var(--surface-2); }
@@ -189,7 +201,7 @@
 .live__label span { margin-left: 2px; color: var(--accent); }
 .live__row { display: flex; flex-direction: column; gap: 2px; padding: var(--sp-2) var(--sp-4) 10px; }
 .live__row:hover { background: var(--state-hover); }
-.live__row:active { background: var(--state-press); }
+.live__row[data-pressed] { background: var(--state-press); }
 .live__title { font: 500 15px/1.3 var(--font-ui); color: var(--text-1); }
 .live__title small { font: 500 var(--fs-caption) var(--font-ui); color: var(--text-3); }
 .live__snip { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 400 var(--fs-footnote)/1.4 var(--font-ui); color: var(--text-3); }
@@ -211,3 +223,41 @@
 .today-card__arrows { display: flex; margin-left: auto; }
 .today-card__arrows button { min-width: 48px; min-height: 48px; border: 0; background: transparent; color: var(--text-2); font-size: 24px; }
 .today-card__arrows button:disabled { opacity: var(--disabled-opacity); }
+
+/* Welcome option B: the existing Search and Ask forms, separate from the Home dashboard. */
+.screen.welcome { max-width: 480px; gap: 18px; padding: calc(28px + var(--safe-top)) calc(24px + var(--safe-right)) 24px calc(24px + var(--safe-left)); }
+.welcome .hello { padding: 0; gap: 12px; }
+.welcome .hello img { width: 38px; height: 38px; }
+.welcome .hello b { color: var(--text-1); font-size: 16px; }
+.welcome__intro { margin: 14px 0 4px; }
+.welcome__intro h1 { margin: 0 0 10px; color: var(--text-1); font: 700 30px/1.3 var(--font-ui); letter-spacing: -.02em; }
+.welcome__intro p, .welcome__panel p { margin: 0; color: var(--text-3); font-size: 14px; }
+.welcome__panel { padding: 18px 18px 6px; border-radius: 24px; border: .5px solid var(--mat-edge); background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 4%, var(--surface-1)), var(--surface-1) 70%); box-shadow: var(--mat-highlight), var(--shadow-1); }
+.welcome__panel h2 { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; color: var(--text-1); font: 700 19px/1.4 var(--font-ui); }
+.welcome__panel h2 svg { flex: none; color: var(--accent); }
+.welcome__panel p { margin-bottom: 16px; }
+.welcome .shero__field { border-radius: 16px; background: var(--canvas); padding-right: 12px; }
+.welcome .shero__field input { font-size: 14px; }
+.welcome .shero__field input::placeholder { opacity: 1; color: var(--text-3); }
+.welcome .shero__go { display: none; }
+#root .welcome__action { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 50px; margin-top: 6px; padding: 6px 0; border: 0; background: none; color: var(--accent); font: 600 14px/1.4 var(--font-ui); text-align: start; cursor: pointer; }
+.welcome__action svg { flex: none; transform: rotate(90deg); }
+#root .welcome__action:disabled { color: var(--text-3); cursor: default; }
+
+/* Bible Strong's pair of tall cards on Home (TheBibleProject, Timeline): 174 px, side by side. */
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.duo__card { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; min-height: 174px; padding: 16px; border-radius: 20px; text-decoration: none; box-shadow: var(--card-edge); transition: transform var(--dur-1) var(--ease); }
+#root .duo__card { color: #fff; }
+.duo__card b { font: 700 17px/1.2 var(--font-ui); }
+.duo__card span { font: 400 var(--fs-footnote)/1.3 var(--font-ui); opacity: .85; }
+.duo__card svg { margin-bottom: auto; }
+.duo__card--plan { background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 85%, #000), color-mix(in srgb, var(--accent) 55%, #000)); }
+.duo__card--time { background: linear-gradient(160deg, color-mix(in srgb, var(--gold) 85%, #000), color-mix(in srgb, var(--gold) 50%, #000)); }
+.duo__card[data-pressed] { transform: scale(.975); }
+.shelf-more { display: flex; align-items: center; justify-content: flex-end; gap: 2px; margin-top: -4px; color: var(--accent); font: 600 var(--fs-sub) var(--font-ui); text-decoration: none; }
+@media (prefers-reduced-motion: reduce) { .duo__card { transition: none; } }
+.today-card__skel { display: grid; gap: 8px; padding: 4px 0; }
+.today-card__skel i { display: block; height: 14px; border-radius: 7px; background: var(--fill-2); animation: skel-pulse 1.2s ease-in-out infinite alternate; }
+.today-card__skel i:last-child { width: 60%; }
+@keyframes skel-pulse { from { opacity: .45; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .today-card__skel i { animation: none; } }

@@ -1,0 +1,3 @@
+- Pulling a sheet up stretches it toward the screen's edges and squares its bottom corners as it goes, then opens it full height, as iOS 26 sheets do.
+- Action menus open attached to the button that opened them on phones too, without a Cancel row; tapping outside closes them, and the page stays usable.
+- A form opened from an attached menu (such as New group) now keeps the focus in its field.

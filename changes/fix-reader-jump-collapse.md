@@ -1,0 +1,1 @@
+- The Bible reader keeps its header open after a jump to a verse; only a fast swipe hides it.

@@ -1,10 +1,11 @@
-import { Children, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
+import { Children, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { stoppingScroll } from "./fling";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
 
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
-import { usePageActions } from "@/tg/hooks";
+import { goBack, isRootPath, usePageActions } from "@/tg/hooks";
 import { adjacentTab, askTabPath, bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { expandBar, useBarMini, useBarScroll } from "@/lib/barscroll";
@@ -40,14 +41,17 @@ export function TabBar() {
   const press = useRef<number | undefined>(undefined);
   const swipe = useRef<{ x: number; y: number } | null>(null);
   const long = useRef(false);
-  const go = (to: string | (() => string), overview = false) => {
+  const go = (to: string | (() => string), overview = false, toId = "") => {
     if (long.current) return;
+    // The new tab slides in from its side of the bar, as Bible Strong's tab carousel does.
+    const order: string[] = [...ids, "more", "search"], from = order.indexOf(current), at = order.indexOf(toId);
+    const dir = from < 0 || at < 0 || at === from ? 0 : at > from ? 1 : -1;
     haptic("select"); setDrawer(null);
     moveTab(() => {
       const target = typeof to === "function" ? to() : to;
       if (target === pathname) { window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); return false; }
       else navigate(target, { replace: true });
-    }, overview ? "overview" : "slide");
+    }, overview ? "overview" : "slide", undefined, dir);
   };
   // Home and the menu are drawers, as in Bible Strong; the same button closes its own drawer.
   const toggle = (side: DrawerSide) => { if (long.current) return; haptic("select"); setDrawer(drawer === side ? null : side); };
@@ -129,6 +133,9 @@ export function TabBar() {
   const hold = {
     onPointerDown: (e: React.PointerEvent) => {
       if (!e.isPrimary || e.button !== 0 || pointer.current !== null) return;
+      // A finger that stops a moving page is not a tap on the dock (fling.ts): leave it to the
+      // browser, which drops that click, so it neither opens a section nor starts a long press.
+      if (e.pointerType === "touch" && stoppingScroll()) return;
       pointer.current = e.pointerId; touchClick.current = null;
       touchTarget.current = e.pointerType === "touch" ? (e.target as Element).closest<HTMLButtonElement>("button.tab") : null;
       long.current = false; eatClick.current = false; swipe.current = { x: e.clientX, y: e.clientY };
@@ -174,7 +181,7 @@ export function TabBar() {
       moveTab(() => {
         const to = adjacentTab(dx < 0 ? 1 : -1); if (!to) return false;
         long.current = true; window.setTimeout(() => { long.current = false; }, 50); haptic("select"); setDrawer(null); navigate(to, { replace: true });
-      }, "slide");
+      }, "slide", undefined, dx < 0 ? 1 : -1);
     },
     onPointerLeave: (e: React.PointerEvent) => { if (pointer.current === e.pointerId && !bar.current?.hasPointerCapture(e.pointerId)) cancelPress(); },
     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
@@ -183,6 +190,8 @@ export function TabBar() {
   useBarScroll(pathname);
   // Ask keeps the full bar: its composer sits on it, as a chat app keeps its input in place.
   const mini = useBarMini() && !drawer && pathname !== "/ask";
+  // The audio player sits beside a minimized bar, as iOS 26's bottom accessory does (materials.css).
+  useEffect(() => { document.documentElement.toggleAttribute("data-dock-mini", mini); return () => document.documentElement.removeAttribute("data-dock-mini"); }, [mini]);
   const bar = useRef<HTMLElement>(null);
   useEffect(() => {
     const nav = bar.current; if (!nav) return;
@@ -244,17 +253,17 @@ export function TabBar() {
     return () => { ro.disconnect(); placePill.current = null; };
   });
   // While the switcher is open the bar becomes its controls, as in Bible Strong.
-  if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /><button type="button" className="tab tab--search" aria-label="Search" title="Search" onClick={() => go(searchTabPath)}><Icon name="search" size={22} /></button></nav>;
+  if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /><button type="button" className="tab tab--search" aria-label="Search" title="Search" onClick={() => go(searchTabPath, false, "search")}><Icon name="search" size={22} /></button></nav>;
   const count = tabs.length > 100 ? ":)" : String(tabs.length);
   const items: { id: NavId | "more"; label: string; aria: string; glyph: ReactNode; onClick: () => void }[] = [
     ...ids.filter(id => id !== "search").map((id) => {
       const item = navItem(id);
       return { id, label: id === "tabs" ? "Tabs" : item.label, aria: id === "tabs" ? `${count} Tabs open` : item.label,
         glyph: item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={22} />,
-        onClick: () => id === "home" ? toggle("home") : go(() => navPath(id), id === "tabs") };
+        onClick: () => id === "home" ? toggle("home") : go(() => navPath(id), id === "tabs", id) };
     }),
     { id: "more", label: "Menu", aria: "Menu", glyph: <Icon name="more" size={24} />, onClick: () => toggle("more") },
-    { id: "search", label: "Search", aria: "Search", glyph: <Icon name="search" size={22} />, onClick: () => go(searchTabPath) },
+    { id: "search", label: "Search", aria: "Search", glyph: <Icon name="search" size={22} />, onClick: () => go(searchTabPath, false, "search") },
   ];
   const button = (it: typeof items[number]) => {
     const on = current === it.id;
@@ -293,10 +302,64 @@ export function PageActions() {
   return <div className="pageactions" role="toolbar" aria-label="Actions">{secondary ? button(secondary, true) : null}{main ? button(main, false) : null}</div>;
 }
 
+/**
+ * iOS 26's large title: it stands large at the top of the page and, once the page scrolls under the
+ * bar, shrinks to a standard title in the bar; back at the top it returns. A margin makes up the
+ * difference in the bar's height either way (a short header can grow to the bar's touch height),
+ * so the page under it never moves while it scrolls.
+ */
+function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
+  const [compact, setCompact] = useState(false);
+  const full = useRef(0);
+  // The page's own top padding, read once before the bar ever changes it: WebKit can report the
+  // padding just removed as still there, which stacked the correction on itself.
+  const base = useRef<number | null>(null);
+  useEffect(() => {
+    const el = head.current; if (!el) return;
+    let frame = 0;
+    const check = () => {
+      frame = 0; const main = el.parentElement; if (!main) return;
+      // The full bar is measured as it stands, just before it can shrink: fonts and wrapping can
+      // change its height after the page first lays out.
+      if (!el.hasAttribute("data-compact")) full.current = el.getBoundingClientRect().height;
+      const scrolled = -main.getBoundingClientRect().top;
+      setCompact(c => c ? scrolled > 24 : scrolled > 56);
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(check); };
+    addEventListener("scroll", onScroll, { capture: true, passive: true }); check();
+    return () => { cancelAnimationFrame(frame); removeEventListener("scroll", onScroll, { capture: true }); };
+  }, [head]);
+  useLayoutEffect(() => {
+    const el = head.current; if (!el) return;
+    // The height the bar loses is given back above it, as the page's own top padding: Firefox can
+    // leave a changed margin on the sticky bar out of the page's layout.
+    const main = el.parentElement; if (!main) return;
+    const fit = () => {
+      if (base.current === null && !main.style.paddingTop) base.current = parseFloat(getComputedStyle(main).paddingTop) || 0;
+      if (!el.hasAttribute("data-compact")) { main.style.removeProperty("padding-top"); full.current = el.getBoundingClientRect().height; return; }
+      main.style.paddingTop = `${Math.max(0, (base.current ?? 0) + full.current - el.getBoundingClientRect().height)}px`;
+    };
+    fit();
+    // The bar can still settle after it changes (Firefox lays the compact bar out again a frame
+    // later, and can restyle the title after the bar): follow the bar's and the title's sizes,
+    // before paint, for as long as it is shown, and measure again once the next frame is laid out.
+    const watch = new ResizeObserver(fit);
+    watch.observe(el, { box: "border-box" });
+    const title = el.querySelector(".title"); if (title) watch.observe(title, { box: "border-box" });
+    let frame = requestAnimationFrame(() => { frame = requestAnimationFrame(fit); });
+    return () => { cancelAnimationFrame(frame); watch.disconnect(); main.style.removeProperty("padding-top"); };
+  }, [compact, head]);
+  return compact;
+}
+
 export function Screen({ title, kicker, action, children, className }: { title?: ReactNode; kicker?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
+  const head = useRef<HTMLElement>(null);
+  const compact = useLargeTitle(head);
+  // Every page but the main places has its own ←, as Bible Strong's Header does; it is the same Back as Telegram's.
+  const back = !isRootPath(useLocation().pathname);
   return (
     <main className={`screen${className ? ` ${className}` : ""}`}>
-      {title ? <header className="head"><div>{kicker ? <p className="kicker">{kicker}</p> : null}<h1 className="title">{title}</h1></div>{action}</header> : null}
+      {title ? <header ref={head} className="head" data-compact={compact ? "" : undefined}>{back ? <button type="button" className="icon-btn head__back" aria-label="Back" title="Back" onClick={goBack}><Icon name="back" size={20} /></button> : null}<div>{kicker ? <p className="kicker">{kicker}</p> : null}<h1 className="title">{title}</h1></div>{action}</header> : null}
       {children}
     </main>
   );

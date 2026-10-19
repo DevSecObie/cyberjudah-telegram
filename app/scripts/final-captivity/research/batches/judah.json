@@ -1,0 +1,1393 @@
+{
+  "period": "multi",
+  "events": [
+    {
+      "slug": "little-rock-nine-1957",
+      "title": "Little Rock integration crisis, 1957",
+      "start": 1957,
+      "end": 1957,
+      "date": {
+        "text": "September 1957",
+        "precision": "month"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Civil rights",
+      "place": "Little Rock, Arkansas",
+      "region": "Southern United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [],
+      "summary": "Nine African American students attempted to attend Little Rock Central High School on September 4, 1957, challenging segregation. Arkansas governor Orval Faubus mobilized the National Guard to prevent their entry, and President Eisenhower eventually dispatched federal troops to enforce desegregation.",
+      "account": [
+        "On September 4, 1957, nine African American students\u2014later known as the 'Little Rock Nine'\u2014arrived at Little Rock Central High School to integrate the school following the Brown v. Board decision. The school's principal, Jess Matthews, and the city's superintendent were instructed by Governor Orval Faubus, who had announced he would use the National Guard to prevent integration.",
+        "Governor Faubus mobilized the Arkansas National Guard on September 3, 1957, declaring his intent to prevent the integration. When the nine students arrived, the National Guard turned them away. The incident drew national media attention and provoked a constitutional crisis between state and federal authority.",
+        "President Dwight Eisenhower, reluctant to intervene, eventually sent U.S. Army troops and the 101st Airborne Division to Little Rock on September 24, 1957, to enforce the students' right to attend the school. The troops escorted the students into the school and remained stationed in the city throughout the school year."
+      ],
+      "teaching": [
+        {
+          "points": [
+            "The integration of schools was a major test of federal power to enforce the Constitution against state resistance."
+          ],
+          "source": {
+            "kind": "class",
+            "id": "Bb3r5SDV3PI",
+            "title": "INTEGRATING INTO A BURNING HOUSE",
+            "date": "2019-02-17",
+            "ts": "3:45",
+            "url": "https://youtu.be/Bb3r5SDV3PI?t=225"
+          }
+        }
+      ],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Little Rock Crisis",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Little_Rock_crisis",
+          "accessed": "2026-10-09",
+          "supports": "dates, events, and National Guard/Army involvement"
+        },
+        {
+          "title": "Little Rock Nine",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Little_Rock_Nine",
+          "accessed": "2026-10-09",
+          "supports": "the nine students, September 4 date, Governor Faubus, Eisenhower's response"
+        }
+      ],
+      "uncertainty": "Exact timestamps of specific events within September 1957",
+      "status": "published"
+    },
+    {
+      "slug": "freedom-rides-1961",
+      "title": "Freedom Rides begin, 1961",
+      "start": 1961,
+      "end": 1961,
+      "date": {
+        "text": "May 1961",
+        "precision": "month"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Civil rights",
+      "place": "Southern United States",
+      "region": "Southern United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [],
+      "summary": "The Freedom Rides began on May 4, 1961, when civil rights activists boarded buses in Washington, D.C., traveling through the Deep South to challenge segregation of interstate transportation. The riders faced violent mobs and police arrests throughout the journey.",
+      "account": [
+        "The Freedom Rides began on May 4, 1961, when a group of interracial civil rights activists, organized by the Congress of Racial Equality (CORE), departed Washington, D.C., on two buses bound for the Deep South. Their goal was to test compliance with the 1960 Supreme Court decision Boynton v. Virginia, which had ruled that segregation of interstate bus terminals was unconstitutional.",
+        "The riders encountered violent opposition in Alabama. In Anniston, Alabama, on May 14, a mob of approximately 200 white residents attacked one of the buses with a firebomb, forcing the driver to abandon it. In Birmingham, on May 15, another mob attacked the second bus, and riders were beaten by white assailants while police made no attempt to intervene.",
+        "Despite the violence, the Freedom Rides continued, with hundreds of additional riders joining subsequent journeys throughout the summer and fall of 1961. The riders were arrested in Jackson, Mississippi, and imprisoned in the state penitentiary, but their courage and persistence brought national attention to the segregation of interstate transportation."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Freedom Rides",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Freedom_Rides",
+          "accessed": "2026-10-09",
+          "supports": "May 4, 1961 start date, Washington D.C. departure, Anniston and Birmingham attacks, Boynton v. Virginia reference"
+        }
+      ],
+      "uncertainty": "Exact number in the initial mob in Anniston",
+      "status": "published"
+    },
+    {
+      "slug": "sit-in-movement-1960",
+      "title": "Lunch counter sit-ins begin, 1960",
+      "start": 1960,
+      "end": 1960,
+      "date": {
+        "text": "February 1, 1960",
+        "precision": "day"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Civil rights",
+      "place": "Greensboro, North Carolina",
+      "region": "Southern United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Ezell Blair Jr.",
+        "David Richmond",
+        "Franklin McCain",
+        "Joseph McNeil"
+      ],
+      "summary": "On February 1, 1960, four African American college students sat at a segregated lunch counter in Greensboro, North Carolina, refusing to leave until served. This act of nonviolent civil disobedience sparked a nationwide movement of sit-ins that spread to hundreds of cities.",
+      "account": [
+        "On February 1, 1960, four freshmen from North Carolina Agricultural and Technical College\u2014Ezell Blair Jr., David Richmond, Franklin McCain, and Joseph McNeil\u2014entered the Woolworth's Five and Dime store in Greensboro, North Carolina. They purchased items at other counters, then sat at the segregated lunch counter and requested service. The waitress refused, citing the store's segregation policy, but the four remained seated until closing time.",
+        "Word of the sit-in spread quickly. On February 2, the group returned with more students; by February 3, nearly 70 students participated; by February 5, over 300 students sat in at the Greensboro Woolworth's and other lunch counters downtown. Similar sit-ins began in other North Carolina cities and soon spread throughout the South.",
+        "Within two months, sit-ins had been organized in approximately 100 cities across the South and the Border states, involving an estimated 50,000 to 70,000 young people of both races. Though arrests and violence occurred, the sit-in movement demonstrated the power of nonviolent mass action and revitalized the civil rights movement."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Sit-in",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Sit-in",
+          "accessed": "2026-10-09",
+          "supports": "February 1, 1960 date, Greensboro location, four students, Woolworth's, spread to 100 cities"
+        }
+      ],
+      "uncertainty": "Exact estimates of participation numbers across all sit-ins",
+      "status": "published"
+    },
+    {
+      "slug": "march-washington-1963",
+      "title": "March on Washington for Jobs and Freedom, 1963",
+      "start": 1963,
+      "end": 1963,
+      "date": {
+        "text": "August 28, 1963",
+        "precision": "day"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Civil rights",
+      "place": "Washington, D.C.",
+      "region": "Northeastern United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Martin Luther King Jr.",
+        "Malcolm X",
+        "James Baldwin"
+      ],
+      "summary": "On August 28, 1963, approximately 250,000 people marched on Washington, D.C., demanding civil rights, federal legislation against segregation, and economic opportunity. The March is remembered for Martin Luther King Jr.'s 'I Have a Dream' speech delivered from the Lincoln Memorial.",
+      "account": [
+        "The March on Washington for Jobs and Freedom took place on August 28, 1963, in the nation's capital. It was organized by a coalition of civil rights, labor, and religious organizations and called for immediate passage of the Civil Rights Act, voting rights legislation, federal enforcement of school desegregation, and a major federal program to address unemployment.",
+        "An estimated 250,000 people participated, making it one of the largest demonstrations in American history. The demonstrators gathered at the Lincoln Memorial, where prominent civil rights leaders and activists spoke, including John Lewis, Malcolm X, Rosa Parks, James Farmer, Bayard Rustin, and Martin Luther King Jr.",
+        "Martin Luther King Jr. delivered his now-famous 'I Have a Dream' speech, in which he expressed his vision of racial equality and harmony. The March is credited with galvanizing public opinion in favor of civil rights legislation, and Congress passed the Civil Rights Act of 1964 the following year."
+      ],
+      "teaching": [
+        {
+          "points": [
+            "The demonstration showed the power of mass peaceful assembly and the vision of the civil rights movement for integration and equality."
+          ],
+          "source": {
+            "kind": "class",
+            "id": "2iTTN9QdCgc",
+            "title": "The Evolution Of Revolutionaries",
+            "date": "2018-01-20",
+            "ts": "1:15:00",
+            "url": "https://youtu.be/2iTTN9QdCgc?t=4500"
+          }
+        }
+      ],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "March on Washington for Jobs and Freedom",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/March_on_Washington_for_Jobs_and_Freedom",
+          "accessed": "2026-10-09",
+          "supports": "August 28, 1963 date, 250,000 participants, King's speech, organizing coalition, specific speakers"
+        },
+        {
+          "title": "I Have a Dream",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/I_Have_a_Dream",
+          "accessed": "2026-10-09",
+          "supports": "King's speech and its content"
+        }
+      ],
+      "uncertainty": "Precise attendance estimate (sources vary slightly)",
+      "status": "published"
+    },
+    {
+      "slug": "selma-montgomery-march-1965",
+      "title": "Selma to Montgomery marches, 1965",
+      "start": 1965,
+      "end": 1965,
+      "date": {
+        "text": "March 1965",
+        "precision": "month"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Civil rights",
+      "place": "Selma and Montgomery, Alabama",
+      "region": "Southern United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Jimmie Lee Jackson",
+        "Martin Luther King Jr."
+      ],
+      "summary": "In March 1965, civil rights marchers began a 54-mile march from Selma to Montgomery, Alabama, to demand voting rights. The march was marked by police violence, most notably on March 7, 1965 ('Bloody Sunday'), when state troopers beat marchers with clubs and tear gas.",
+      "account": [
+        "Selma, Alabama had become a focal point for voting rights activism. Despite being over 50% Black, the town had registered only 1% of Black voters due to discriminatory literacy tests and poll taxes. In early 1965, civil rights organizations led by the Southern Christian Leadership Conference (SCLC) and the Student Nonviolent Coordinating Committee (SNCC) launched a voting rights campaign in Selma.",
+        "On March 7, 1965, approximately 600 marchers, led by SNCC chairman John Lewis and SCLC official Hosea Williams, gathered to march toward Montgomery. As they crossed the Edmund Pettus Bridge, state police and Alabama National Guard troops blocked their path. The officers, led by Major John Cloud, ordered the marchers to disperse. When they refused, troopers advanced on the crowd, clubbing marchers with billy clubs and whips, while releasing tear gas into the crowd. Seventeen marchers were hospitalized, and dozens more were injured.",
+        "The violence, broadcast on national television, shocked Americans and accelerated support for voting rights legislation. A week later, King led a successful march of about 3,200 people from Selma to Montgomery, protected by federalized Alabama National Guard troops ordered by President Johnson. The march culminated in a speech by King at the state capitol in Montgomery on March 25, 1965, when he announced: 'I know you are asking today, \"How long will it take?\"'",
+        "The Voting Rights Act was signed into law by President Johnson on August 6, 1965, suspending literacy tests and authorizing federal examiners to register voters in areas with patterns of discrimination."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Selma to Montgomery marches",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Selma_to_Montgomery_marches",
+          "accessed": "2026-10-09",
+          "supports": "March 7 Bloody Sunday, police violence, bridge name, troop involvement, casualty numbers, King's speeches"
+        },
+        {
+          "title": "Voting Rights Act of 1965",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Voting_Rights_Act_of_1965",
+          "accessed": "2026-10-09",
+          "supports": "August 6, 1965 signing date, provisions"
+        }
+      ],
+      "uncertainty": "Exact number of marchers on March 7 (sources vary slightly)",
+      "status": "published"
+    },
+    {
+      "slug": "rodney-king-acquittal-1992",
+      "title": "Rodney King acquittal and LA uprising, 1992",
+      "start": 1992,
+      "end": 1992,
+      "date": {
+        "text": "April-May 1992",
+        "precision": "month"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Civil rights",
+      "place": "Los Angeles, California",
+      "region": "Western United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Rodney King",
+        "George Holliday"
+      ],
+      "summary": "On April 29, 1992, a jury acquitted four Los Angeles police officers charged in the beating of motorist Rodney King, despite video evidence of the assault. The acquittals sparked the LA uprising, in which thousands of residents protested police violence through six days of unrest.",
+      "account": [
+        "On March 3, 1991, Los Angeles police officers pulled over Rodney King, a 25-year-old African American motorist. After a high-speed chase, officers struck King repeatedly with batons, fracturing his skull and breaking numerous bones. Nearby resident George Holliday recorded the beating on video, capturing approximately 81 seconds of the assault.",
+        "The LAPD officers involved were charged with assault. However, on April 29, 1992, a predominantly white jury in Simi Valley acquitted three of the four officers and deadlocked on the fourth. The acquittals, despite the video evidence, sparked immediate and widespread anger among Los Angeles residents.",
+        "Beginning that evening, residents in South Los Angeles and surrounding areas took to the streets in protest. Over the following six days, the uprising spread across the city, involving thousands of residents. Fires were set, stores were looted, and clashes erupted between protesters and police. The National Guard and federal troops were mobilized to suppress the unrest.",
+        "By May 4, 1992, the uprising had subsided. The violence resulted in 63 deaths, over 2,000 injuries, and approximately $1 billion in property damage. The incident exposed tensions over police brutality and racial justice that had long simmered in Los Angeles and other American cities."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "1992 Los Angeles riots",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/1992_Los_Angeles_riots",
+          "accessed": "2026-10-09",
+          "supports": "April 29 acquittal date, deaths, injuries, property damage, six-day duration"
+        },
+        {
+          "title": "Rodney King",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Rodney_King",
+          "accessed": "2026-10-09",
+          "supports": "March 3, 1991 beating date, video evidence, injuries, officer identities"
+        }
+      ],
+      "uncertainty": "Exact death toll estimates vary between 60-70",
+      "status": "published"
+    },
+    {
+      "slug": "16th-street-baptist-church-bombing-1963",
+      "title": "16th Street Baptist Church bombing, 1963",
+      "start": 1963,
+      "end": 1963,
+      "date": {
+        "text": "September 15, 1963",
+        "precision": "day"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Other atrocities",
+      "place": "Birmingham, Alabama",
+      "region": "Southern United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Addie Mae Collins",
+        "Cynthia Wesley",
+        "Carole Denise McNair",
+        "Carol Denise Carrol"
+      ],
+      "summary": "On September 15, 1963, the 16th Street Baptist Church in Birmingham, Alabama, was bombed, killing four young girls. The church was targeted because it served as a rallying point for the civil rights movement in Birmingham.",
+      "account": [
+        "The 16th Street Baptist Church in Birmingham, Alabama, was a center of civil rights activism in 1963. The church hosted mass meetings and marches organized by Martin Luther King Jr. and other civil rights leaders. In September 1963, after the church hosted a youth day, the building was targeted.",
+        "At 10:59 a.m. on September 15, 1963, a bomb exploded beneath the church's eastern exterior wall. The blast killed four young girls: Addie Mae Collins (14), Cynthia Wesley (14), Carole Denise McNair (11), and Carol Denise Carrol (14). Twenty-two other people were injured by the blast.",
+        "The bombing was carried out by members of the Ku Klux Klan, though convictions were delayed for decades. The incident shocked the nation and strengthened support for the Civil Rights Act of 1964. The bombing is remembered as one of the most horrific acts of racial violence in American history."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "16th Street Baptist Church bombing",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/16th_Street_Baptist_Church_bombing",
+          "accessed": "2026-10-09",
+          "supports": "September 15, 1963 date, Birmingham location, four victims, blast details, KKK responsibility"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "montgomery-bus-boycott-1955-1956",
+      "title": "Montgomery bus boycott, 1955\u20131956",
+      "start": 1955,
+      "end": 1956,
+      "date": {
+        "text": "December 5, 1955 \u2013 December 20, 1956",
+        "precision": "range"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Civil rights",
+      "place": "Montgomery, Alabama",
+      "region": "Southern United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Rosa Parks",
+        "Martin Luther King Jr.",
+        "Jo Ann Robinson"
+      ],
+      "summary": "On December 5, 1955, African Americans in Montgomery, Alabama, began a boycott of the city's segregated bus system following Rosa Parks's arrest for refusing to give up her seat. The 381-day boycott became a pivotal moment in the civil rights movement.",
+      "account": [
+        "On December 1, 1955, Rosa Parks, a 42-year-old seamstress and civil rights activist, boarded a Montgomery bus. When a white passenger boarded, the driver ordered Parks to give up her seat, as required by Montgomery's segregation laws. Parks refused and was arrested and charged with violating the city's segregation ordinance.",
+        "Word of Parks's arrest spread quickly through the Black community. Civil rights activists, including a young minister named Martin Luther King Jr., organized a response. On December 5, 1955, Montgomery's African American citizens began a boycott of the city's bus system, refusing to ride the buses until segregation was ended.",
+        "The boycott lasted 381 days. Despite economic hardship and harassment, Black residents found alternative transportation, carpooling and walking rather than riding segregated buses. The boycott attracted national attention and brought King to prominence as a civil rights leader.",
+        "On December 20, 1956, the U.S. Supreme Court ruled in Browder v. Gayle that bus segregation was unconstitutional, forcing Montgomery to desegregate its buses. The boycott's success demonstrated the power of nonviolent direct action and became a model for future civil rights campaigns."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Montgomery bus boycott",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Montgomery_bus_boycott",
+          "accessed": "2026-10-09",
+          "supports": "December 1, 1955 Rosa Parks arrest, December 5 boycott start, 381-day duration, December 20, 1956 end, Browder v. Gayle ruling"
+        },
+        {
+          "title": "Rosa Parks",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Rosa_Parks",
+          "accessed": "2026-10-09",
+          "supports": "Rosa Parks's background, age, activism"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "elijah-mccoy-inventor",
+      "title": "Elijah McCoy, inventor of automatic lubrication, c.1844\u20131929",
+      "start": 1872,
+      "end": 1920,
+      "date": {
+        "text": "c.1872\u20131920",
+        "precision": "range"
+      },
+      "period": "jim-crow",
+      "group": "Achievements",
+      "place": "United States",
+      "region": "United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Elijah McCoy"
+      ],
+      "summary": "Elijah McCoy (c.1844\u20131929) was an African American inventor who created an automatic lubrication device for steam engines. His invention revolutionized railroad and steam-powered machinery maintenance and made him one of the most prolific Black inventors of the nineteenth century.",
+      "account": [
+        "Elijah McCoy was born around 1844 in Colchester, Ontario, Canada, the son of enslaved people who had escaped to freedom. His family moved to Michigan when he was a boy. Lacking access to formal education suitable for Black students, McCoy worked as a fireman on railroad locomotives and observed the inefficiency of manually lubricating moving machinery.",
+        "In 1872, McCoy patented an automatic oilcup (lubricating device) that could oil moving machinery without shutting down the equipment. This invention dramatically improved the efficiency of steam engines and railroad locomotives. Over his lifetime, McCoy received at least 50 patents for his lubricating devices and other innovations, many of which were used widely by American industries.",
+        "McCoy's work was so well-regarded that railroad companies and manufacturers developed a reputation for demanding 'the real McCoy'\u2014his genuine products\u2014rather than inferior imitations. His success as an inventor and entrepreneur made him one of the most successful African American businessmen of the nineteenth century, though his race prevented him from receiving widespread public recognition during his lifetime."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Elijah McCoy",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Elijah_McCoy",
+          "accessed": "2026-10-09",
+          "supports": "birth year c.1844, death year 1929, automatic lubrication invention 1872, 50+ patents, 'the real McCoy' phrase origin"
+        }
+      ],
+      "uncertainty": "Exact birth year (listed as c.1844 in sources)",
+      "status": "published"
+    },
+    {
+      "slug": "garrett-morgan-traffic-signal",
+      "title": "Garrett Morgan's traffic signal patent, 1923",
+      "start": 1923,
+      "end": 1923,
+      "date": {
+        "text": "1923",
+        "precision": "year"
+      },
+      "period": "jim-crow",
+      "group": "Achievements",
+      "place": "United States",
+      "region": "United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Garrett Morgan"
+      ],
+      "summary": "Garrett Morgan received a patent for an improved three-position traffic signal in 1923. Morgan, an African American inventor, created a device that improved traffic safety in urban areas where automobile traffic was increasing.",
+      "account": [
+        "Garrett Morgan (1877\u20131963) was an African American inventor born in Paris, Kentucky. In the early twentieth century, as automobile traffic increased, the need for better traffic control became apparent. Existing traffic signals, which consisted of simple red and green lights, were inadequate for managing the growing complexity of urban intersections.",
+        "Morgan designed an improved traffic signal with three positions: 'stop,' 'all go,' and a 'caution' mode that stopped traffic in all directions temporarily, allowing pedestrians and vehicles to clear the intersection safely. His design was a significant improvement over existing systems.",
+        "Morgan received a patent for his traffic signal design in 1923 (U.S. Patent No. 1,475,024). The device was later purchased by the General Electric Company and used in many American cities. Morgan's traffic signal became a model for modern traffic control systems."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Garrett Morgan",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Garrett_Morgan",
+          "accessed": "2026-10-09",
+          "supports": "1877\u20131963 dates, traffic signal invention and 1923 patent, three-position design"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "lewis-latimer-electric-light",
+      "title": "Lewis Latimer and electric light innovations, c.1880s",
+      "start": 1880,
+      "end": 1900,
+      "date": {
+        "text": "c.1880\u20131900",
+        "precision": "range"
+      },
+      "period": "jim-crow",
+      "group": "Achievements",
+      "place": "United States",
+      "region": "United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Lewis Latimer",
+        "Thomas Edison",
+        "Alexander Graham Bell"
+      ],
+      "summary": "Lewis Latimer (1848\u20131928) was an African American inventor and engineer who made significant improvements to electric light bulbs and worked with Thomas Edison and Alexander Graham Bell. His innovations made electric lighting practical and affordable.",
+      "account": [
+        "Lewis Howard Latimer was born in 1848 in Chelsea, Massachusetts, to former enslaved parents. He worked his way from a humble background into technical work, learning drafting and engineering skills.",
+        "In 1880, Latimer patented an improved carbon filament for electric light bulbs, making them more efficient and longer-lasting than Thomas Edison's earlier design. His improvement, using a carbon rod instead of carbon paper, extended the filament's lifespan significantly.",
+        "Latimer worked for both Edison's company and the United States Electric Lighting Company, where he helped develop and commercialize electric lighting systems. He was also employed by Alexander Graham Bell, for whom he prepared technical drawings for patenting innovations.",
+        "Latimer's work was crucial to making electric lighting practical for widespread use. He authored 'Incandescent Electric Lighting,' a technical manual that became an industry standard. His contributions helped establish the electrical industry in America."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Lewis Latimer",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Lewis_Latimer",
+          "accessed": "2026-10-09",
+          "supports": "1848\u20131928 dates, carbon filament patent, work with Edison and Bell, Incandescent Electric Lighting manual"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "granville-woods-rail-telegraph",
+      "title": "Granville Woods, railroad telegraph innovations, 1887\u20131901",
+      "start": 1887,
+      "end": 1901,
+      "date": {
+        "text": "1887\u20131901",
+        "precision": "range"
+      },
+      "period": "jim-crow",
+      "group": "Achievements",
+      "place": "United States",
+      "region": "United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Granville Woods",
+        "Thomas Edison"
+      ],
+      "summary": "Granville Woods (1852\u20131910) was an African American inventor who developed electrical improvements for railroads, including the synchronous multiplex railway telegraph. He received more than 60 patents and competed directly with Thomas Edison.",
+      "account": [
+        "Granville T. Woods was born in 1852 in Columbus, Ohio. He began his career as a railroad worker and gained practical knowledge of railroad operations and electrical systems.",
+        "In 1887, Woods invented the synchronous multiplex railway telegraph, which allowed train operators to communicate with each other and with stations. This innovation improved railroad safety by reducing collisions and enabling better coordination between trains.",
+        "Over his career, Woods received more than 60 patents for electrical and mechanical innovations, many related to railroads and electrical systems. Some of his patents were so valuable that Edison's company attempted to purchase them. Woods's work contributed significantly to the development of modern electrical systems.",
+        "Woods's life demonstrated both the technical brilliance of African American inventors and the racial barriers they faced. Despite his achievements, Woods remained largely unknown to the general public during his lifetime."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Granville Woods",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Granville_Woods",
+          "accessed": "2026-10-09",
+          "supports": "1852\u20131910 dates, synchronous multiplex railway telegraph 1887, 60+ patents, Edison competition"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "nat-turner-rebellion-remembered",
+      "title": "Nat Turner's rebellion and aftermath, 1831",
+      "start": 1831,
+      "end": 1831,
+      "date": {
+        "text": "August 1831",
+        "precision": "month"
+      },
+      "period": "house-of-bondage",
+      "group": "Resistance",
+      "place": "Southampton County, Virginia",
+      "region": "Southern United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Nat Turner"
+      ],
+      "summary": "Nat Turner led an uprising of enslaved people in Southampton County, Virginia, in August 1831, killing approximately 55 white people before being captured and executed. The rebellion shocked the nation and intensified debates over slavery.",
+      "account": [
+        "Nat Turner was an enslaved preacher in Southampton County, Virginia. He believed himself called by God to end slavery and planned a systematic uprising among enslaved people in the county.",
+        "On August 21-22, 1831, Turner and a group of approximately 70 enslaved men and women launched a coordinated attack on white households in Southampton County. Using axes, hatchets, and other weapons, they killed approximately 55 white people, including women and children.",
+        "Militia and federal troops were quickly mobilized to suppress the rebellion. Over the following weeks, most of the rebels were captured and executed. Turner remained at large for two months before being captured on October 30, 1831. He was tried, convicted, and executed on November 11, 1831.",
+        "The rebellion shocked white Southerners and led to even more repressive measures against Black people and enslaved populations. However, Turner's rebellion became a symbol of resistance to slavery and is remembered as a significant act of defiance against the institution."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Nat Turner",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Nat_Turner",
+          "accessed": "2026-10-09",
+          "supports": "August 21-22, 1831 dates, approximately 55 casualties, 70 participants, October 30 capture, November 11 execution"
+        },
+        {
+          "title": "Nat Turner's rebellion",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Nat_Turner's_rebellion",
+          "accessed": "2026-10-09",
+          "supports": "Southampton County location, rebellion details, aftermath"
+        }
+      ],
+      "uncertainty": "Exact casualty count (sources vary)",
+      "status": "published"
+    },
+    {
+      "slug": "dred-scott-supreme-court-1857",
+      "title": "Dred Scott v. Sandford Supreme Court decision, 1857",
+      "start": 1857,
+      "end": 1857,
+      "date": {
+        "text": "March 6, 1857",
+        "precision": "day"
+      },
+      "period": "house-of-bondage",
+      "group": "Other atrocities",
+      "place": "United States",
+      "region": "United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Dred Scott",
+        "Chief Justice Roger B. Taney"
+      ],
+      "summary": "On March 6, 1857, the U.S. Supreme Court, led by Chief Justice Roger B. Taney, ruled in Dred Scott v. Sandford that African Americans, whether enslaved or free, were not citizens of the United States and had no right to bring suit in federal court.",
+      "account": [
+        "Dred Scott was an enslaved man whose master had taken him to Illinois (a free state) and then to the Wisconsin Territory (where slavery was prohibited). Scott later sued for his freedom, arguing that his residence in free territory had made him free.",
+        "Scott's case reached the U.S. Supreme Court in 1857. Chief Justice Roger B. Taney, writing for the majority, ruled that Scott had no right to sue because African Americans, whether enslaved or free, were not citizens of the United States. Taney further ruled that the Constitution protected the right of slaveholders to hold property (enslaved people) even in free territories.",
+        "The Dred Scott decision was widely condemned in the North and contributed to rising tensions over slavery that ultimately led to the Civil War. The ruling was later overturned by the 13th and 14th Amendments.",
+        "The decision represented a major defeat for African Americans and abolitionists, but it also galvanized opposition to slavery and contributed to the Republican Party's rise to political power."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Dred Scott v. Sandford",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Dred_Scott_v._Sandford",
+          "accessed": "2026-10-09",
+          "supports": "March 6, 1857 decision date, Chief Justice Taney, ruling on citizenship, non-citizen status"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "denmark-vesey-plot-1822",
+      "title": "Denmark Vesey conspiracy, 1822",
+      "start": 1822,
+      "end": 1822,
+      "date": {
+        "text": "June 1822",
+        "precision": "month"
+      },
+      "period": "house-of-bondage",
+      "group": "Resistance",
+      "place": "Charleston, South Carolina",
+      "region": "Southern United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Denmark Vesey"
+      ],
+      "summary": "Denmark Vesey, a free Black carpenter in Charleston, South Carolina, planned a large-scale slave rebellion for June 1822. Though the plot was discovered before it could be executed, Vesey and others were tried, convicted, and executed.",
+      "account": [
+        "Denmark Vesey was a free Black carpenter who lived in Charleston, South Carolina. He had purchased his freedom in 1800 and acquired property and skills that gave him status in the Black community. However, he remained outraged by slavery and the oppression of Black people.",
+        "Beginning around 1820, Vesey planned a large-scale rebellion intended to involve thousands of enslaved and free Black people in Charleston and the surrounding area. He planned to seize weapons from a government arsenal and kill white people before escaping to Haiti.",
+        "In May 1822, a enslaved house servant revealed the plot to white authorities. A militia company arrested suspected conspirators, and trials began in June 1822. Vesey and five other alleged leaders were convicted and executed by hanging on July 2, 1822. Approximately 35 other Black people were convicted and either executed or transported out of the state.",
+        "The Vesey conspiracy terrified white Charlestonians and led to the implementation of even stricter controls on the Black population. Though the rebellion never occurred, Vesey's planning demonstrated significant resistance to slavery."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Denmark Vesey",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Denmark_Vesey",
+          "accessed": "2026-10-09",
+          "supports": "Charleston location, 1822 date, carpentry profession, plot discovery, June trials, July 2 execution, Haiti plan"
+        }
+      ],
+      "uncertainty": "Exact number of planned participants",
+      "status": "published"
+    },
+    {
+      "slug": "emmett-till-murder-1955",
+      "title": "Murder of Emmett Till, 1955",
+      "start": 1955,
+      "end": 1955,
+      "date": {
+        "text": "August 28, 1955",
+        "precision": "day"
+      },
+      "period": "jim-crow",
+      "group": "Other atrocities",
+      "place": "Money, Mississippi",
+      "region": "Southern United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Emmett Till",
+        "Carolyn Bryant",
+        "Roy Bryant",
+        "J. W. Milam"
+      ],
+      "summary": "Emmett Till, a 14-year-old African American from Chicago, was murdered in Money, Mississippi, on August 28, 1955. He was killed for allegedly flirting with a white woman. The men acquitted of his murder faced no justice.",
+      "account": [
+        "Emmett Till was a 14-year-old African American boy visiting family in Money, Mississippi, in August 1955. On August 24, Till allegedly flirted with Carolyn Bryant, a white woman working at a local store. Though accounts of what happened differ, Till's words offended Bryant and her husband Roy.",
+        "On August 28, 1955, Roy Bryant and his half-brother J. W. Milam kidnapped Till from his great-uncle's home. They beat him severely and shot him in the head. They weighted his body with a cotton gin fan and threw it into the Tallahatchie River.",
+        "Till's body was recovered three days later. His mother, Mamie Till-Mobley, insisted that the coffin be opened so that the world could see the brutality of her son's murder. Photographs of Till's mutilated face were published in Black newspapers and magazines, shocking the nation.",
+        "Bryant and Milam were arrested, tried, and acquitted by an all-white jury in September 1955, despite overwhelming evidence of their guilt. The acquittal shocked the nation and galvanized the civil rights movement. Till's murder became a symbol of racial violence and the failure of the justice system."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Murder of Emmett Till",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Murder_of_Emmett_Till",
+          "accessed": "2026-10-09",
+          "supports": "August 28, 1955 date, Money Mississippi location, age 14, flirting allegation, kidnapping and murder, acquittal"
+        }
+      ],
+      "uncertainty": "Exact words Till spoke to Carolyn Bryant",
+      "status": "published"
+    },
+    {
+      "slug": "black-codes-reconstruction-1865",
+      "title": "Black Codes enacted during Reconstruction, 1865\u20131868",
+      "start": 1865,
+      "end": 1868,
+      "date": {
+        "text": "1865\u20131868",
+        "precision": "range"
+      },
+      "period": "jim-crow",
+      "group": "Reconstruction and Jim Crow",
+      "place": "Southern United States",
+      "region": "Southern United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [],
+      "summary": "Following the Civil War, Southern states enacted Black Codes restricting the freedoms and rights of formerly enslaved people. These laws required freedmen to sign labor contracts, limited their property rights, and restricted their mobility.",
+      "account": [
+        "After the Civil War ended in 1865, Confederate states were reconstructed under President Andrew Johnson's lenient Reconstruction policy. One of the first actions of newly reconstructed Southern legislatures was to enact 'Black Codes'\u2014laws designed to control the newly freed population and restore white economic dominance.",
+        "Black Codes required freedmen and freedwomen to sign labor contracts with white employers, often for terms of a year or more. Laborers who left before the contract expired could be arrested and fined. Convict labor provisions allowed impoverished freedmen to be arrested and forced to work.",
+        "The codes restricted freedmen's property rights: in some states, freedmen could own property only in restricted areas. Curfews prevented freedmen from gathering after dark. Vagrancy laws authorized the arrest of unemployed freedmen. In some areas, freedmen were barred from owning weapons or attending school.",
+        "Northern Republicans condemned the Black Codes as a betrayal of the Civil War's purpose and the freedmen's expectations. The codes contributed to the rise of Radical Reconstruction and Reconstruction Act of 1867."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Black Codes",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Black_Codes_(United_States)",
+          "accessed": "2026-10-09",
+          "supports": "1865\u20131868 period, labor contracts, property restrictions, vagrancy laws, Northern opposition"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "great-migration-1916-1970",
+      "title": "Great Migration of African Americans, 1916\u20131970",
+      "start": 1916,
+      "end": 1955,
+      "date": {
+        "text": "1916\u20131955",
+        "precision": "range"
+      },
+      "period": "jim-crow",
+      "group": "Civil rights",
+      "place": "United States",
+      "region": "United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [],
+      "summary": "During the Great Migration, approximately 6 million African Americans moved from the South to northern and western cities between 1916 and 1970, seeking economic opportunity and escape from Jim Crow segregation.",
+      "account": [
+        "Beginning around 1916, African Americans began migrating from the South in large numbers, drawn by job opportunities in northern factories and cities and seeking to escape the harsh conditions of Jim Crow segregation.",
+        "World War I labor demand accelerated the migration: northern factories needed workers for military production, and Southern cotton remained devastated by the boll weevil infestation. An estimated 500,000 African Americans migrated north during World War I alone.",
+        "The migration continued through the 1920s, 1930s, and beyond. By the 1970s, approximately 6 million African Americans had relocated from the rural South to urban centers in the North and West, including Chicago, Detroit, Pittsburgh, New York, Los Angeles, and San Francisco.",
+        "The Great Migration transformed American cities. It led to the development of vibrant African American neighborhoods and cultural centers. However, migrants also faced discrimination in housing, employment, and public services in the North, leading to residential segregation through redlining and police violence in many Northern cities."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Great Migration (African American)",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Great_Migration_(African_American)",
+          "accessed": "2026-10-09",
+          "supports": "1916\u20131970 dates, 6 million migrants, WWI labor demand, boll weevil, northern city destinations"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "garvey-universal-negro-improvement-1920",
+      "title": "Marcus Garvey and the Universal Negro Improvement Association, 1920s",
+      "start": 1920,
+      "end": 1930,
+      "date": {
+        "text": "c.1920\u20131930",
+        "precision": "range"
+      },
+      "period": "jim-crow",
+      "group": "Forerunners",
+      "place": "United States",
+      "region": "United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Marcus Garvey"
+      ],
+      "summary": "Marcus Garvey led the Universal Negro Improvement Association (UNIA) in the 1920s, promoting Black nationalism, African repatriation, and economic self-sufficiency. His movement influenced millions of Black Americans.",
+      "account": [
+        "Marcus Garvey, born in Jamaica, founded the Universal Negro Improvement Association in 1914. He migrated to the United States in 1916 and established the UNIA in Harlem, New York, in 1917.",
+        "Garvey's movement promoted Black nationalism, pride in African heritage, and economic independence. He established the Black Star Line, a shipping company intended to facilitate commerce and repatriation to Africa. He advocated for Black businesses and educational institutions.",
+        "At its peak in the 1920s, the UNIA claimed millions of members across the United States, Africa, and the Caribbean. Garvey held massive meetings in New York and other cities, attracting tens of thousands of supporters.",
+        "In 1927, Garvey was deported to Jamaica following conviction on fraud charges related to the Black Star Line. Despite his deportation, his movement inspired pan-African consciousness and influenced subsequent civil rights and Black nationalist movements."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Marcus Garvey",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Marcus_Garvey",
+          "accessed": "2026-10-09",
+          "supports": "UNIA founding, Harlem establishment, Black Star Line, 1920s prominence, 1927 deportation"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "rosa-parks-birth-and-activism",
+      "title": "Rosa Parks, civil rights activist",
+      "start": 1955,
+      "end": 2004,
+      "date": {
+        "text": "1913\u20132005 (activism peak 1955)",
+        "precision": "range"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Achievements",
+      "place": "United States",
+      "region": "United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Rosa Parks"
+      ],
+      "summary": "Rosa Parks (1913\u20132005) was a civil rights activist best known for her refusal to give up her bus seat in 1955, which sparked the Montgomery bus boycott and became a catalyst for the civil rights movement.",
+      "account": [
+        "Rosa Louise McCauley Parks was born in Tuskegee, Alabama, in 1913. She grew up in a household that valued education and racial dignity despite the constraints of Jim Crow segregation.",
+        "Parks became a seamstress and activist in Montgomery, Alabama. She worked with the NAACP and the Women's Political Council, organizations fighting for civil rights.",
+        "On December 1, 1955, Parks was arrested for violating Montgomery's segregation law by refusing to give up her seat on a city bus. Her arrest sparked the Montgomery bus boycott, which lasted 381 days and became a pivotal moment in the civil rights movement.",
+        "Parks became a national symbol of resistance to segregation. She remained active in civil rights work throughout her life, speaking and writing about the movement. She received numerous honors, including the Presidential Medal of Freedom in 1996. She died in 2005 at age 92."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Rosa Parks",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Rosa_Parks",
+          "accessed": "2026-10-09",
+          "supports": "1913 birth, Tuskegee Alabama, December 1 1955 arrest, boycott connection, 2005 death, Medal of Freedom"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "african-american-astronauts-1983",
+      "title": "Guion Bluford becomes first African American astronaut in space, 1983",
+      "start": 1983,
+      "end": 1983,
+      "date": {
+        "text": "August 30, 1983",
+        "precision": "day"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Achievements",
+      "place": "United States",
+      "region": "United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Guion Bluford Jr.",
+        "Sally Ride"
+      ],
+      "summary": "On August 30, 1983, Guion Bluford Jr. became the first African American to travel to space, aboard the Space Shuttle Challenger. His achievement broke barriers in space exploration and science.",
+      "account": [
+        "Guion Stewart Bluford Jr. was born in 1942 in Philadelphia. He earned a Ph.D. in aerospace engineering and became a highly qualified astronaut candidate.",
+        "On August 30, 1983, Bluford launched aboard the Space Shuttle Challenger as a mission specialist on the STS-8 mission. His successful space mission made him the first African American astronaut to reach space.",
+        "The timing of Bluford's flight was historically significant: just eight days later, Sally Ride would become the first American woman in space. Together, their achievements represented progress in diversifying the space program.",
+        "Bluford flew on four shuttle missions and logged more than 688 hours in space. His achievements helped inspire a new generation of African American scientists and astronauts."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Guion Bluford",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Guion_Bluford",
+          "accessed": "2026-10-09",
+          "supports": "August 30, 1983 flight date, Challenger mission, first African American in space, four shuttle missions, 688+ hours"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "marian-anderson-lincoln-memorial-1939",
+      "title": "Marian Anderson concert at Lincoln Memorial, 1939",
+      "start": 1939,
+      "end": 1939,
+      "date": {
+        "text": "April 9, 1939",
+        "precision": "day"
+      },
+      "period": "jim-crow",
+      "group": "Achievements",
+      "place": "Washington, D.C.",
+      "region": "Northeastern United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Marian Anderson"
+      ],
+      "summary": "On April 9, 1939, African American opera singer Marian Anderson performed a concert at the Lincoln Memorial after being denied access to Constitution Hall because of her race. The concert became a symbol of resistance to segregation.",
+      "account": [
+        "Marian Anderson was a world-class opera singer who had performed throughout Europe. However, in the United States, she faced discrimination due to segregation laws and racial attitudes.",
+        "In 1939, the Daughters of the American Revolution (DAR) refused to allow Anderson to perform at Constitution Hall in Washington, D.C., because of a policy prohibiting Black performers. The decision sparked national outrage.",
+        "First Lady Eleanor Roosevelt publicly resigned from the DAR in protest. A group of prominent citizens organized an alternative concert for Anderson at the Lincoln Memorial on April 9, 1939. An estimated 75,000 people attended the concert.",
+        "Anderson's concert became a powerful symbol of resistance to segregation and racial discrimination. She went on to perform at the Metropolitan Opera House in 1955, breaking the color line in American opera. Her achievements inspired the civil rights movement."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Marian Anderson",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Marian_Anderson",
+          "accessed": "2026-10-09",
+          "supports": "April 9, 1939 Lincoln Memorial concert, DAR refusal, Eleanor Roosevelt resignation, 75,000 attendance estimate"
+        }
+      ],
+      "uncertainty": "Exact attendance figure",
+      "status": "published"
+    },
+    {
+      "slug": "jesse-owens-1936-olympics",
+      "title": "Jesse Owens wins four gold medals at 1936 Berlin Olympics",
+      "start": 1936,
+      "end": 1936,
+      "date": {
+        "text": "August 1936",
+        "precision": "month"
+      },
+      "period": "jim-crow",
+      "group": "Achievements",
+      "place": "Berlin, Germany",
+      "region": "Europe",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Jesse Owens"
+      ],
+      "summary": "African American athlete Jesse Owens won four gold medals at the 1936 Berlin Olympics, breaking world records and disproving Nazi racial theories. His achievements were a significant moment in sports and racial progress.",
+      "account": [
+        "Jesse Owens was born in 1913 in Alabama. He became an exceptional track and field athlete, breaking multiple world records in high jump, long jump, and sprint events.",
+        "At the 1936 Berlin Olympics, held in Nazi Germany, Owens competed for the United States. He won four gold medals: in the 100 meters, 200 meters, long jump, and 4x100 meter relay. He set Olympic records in three of these events.",
+        "Owens's achievements were historically significant for two reasons. First, they demonstrated the athletic excellence of African Americans despite segregation and discrimination in the United States. Second, they contradicted Nazi theories of racial superiority, though Hitler did not acknowledge Owens's achievements.",
+        "Owens returned to a segregated America, where he continued to face discrimination despite his Olympic success. However, his achievements became a symbol of racial pride and helped inspire the civil rights movement. He was awarded the Presidential Medal of Freedom in 1976."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Jesse Owens",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Jesse_Owens",
+          "accessed": "2026-10-09",
+          "supports": "1913 birth, 1936 Berlin Olympics, four gold medals, 100m, 200m, long jump, 4x100 relay, Olympic records, Presidential Medal of Freedom 1976"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "13th-amendment-ratified-1865",
+      "title": "13th Amendment ratified, abolishing slavery nationwide, 1865",
+      "start": 1865,
+      "end": 1865,
+      "date": {
+        "text": "December 18, 1865",
+        "precision": "day"
+      },
+      "period": "house-of-bondage",
+      "group": "Abolition",
+      "place": "United States",
+      "region": "United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [],
+      "summary": "The 13th Amendment, abolishing slavery throughout the United States, was ratified on December 18, 1865. The amendment declared that 'neither slavery nor involuntary servitude' could exist in the United States.",
+      "account": [
+        "Congress passed the 13th Amendment on January 31, 1865, and it was sent to the states for ratification. The amendment read: 'Neither slavery nor involuntary servitude, except as a punishment for crime whereof the party shall have been duly convicted, shall exist within the United States, or any place subject to their jurisdiction.'",
+        "The states ratified the amendment rapidly. Georgia became the final state needed to ratify, providing the three-fourths majority on December 18, 1865. Secretary of State William H. Seward officially proclaimed the amendment ratified on December 18, 1865.",
+        "The 13th Amendment legally ended the institution of slavery in the United States, though it permitted involuntary servitude as punishment for crime. This provision was used to justify convict leasing and chain gang labor in the South.",
+        "The ratification of the 13th Amendment represented the formal end of slavery but did not end racial discrimination or ensure Black freedom and equality. It was followed by the 14th Amendment (ratified 1868) guaranteeing citizenship and equal protection, and the 15th Amendment (ratified 1870) prohibiting race-based voting restrictions."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Thirteenth Amendment to the United States Constitution",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Thirteenth_Amendment_to_the_United_States_Constitution",
+          "accessed": "2026-10-09",
+          "supports": "January 31, 1865 congressional passage, December 18, 1865 ratification, Georgia as final ratifying state, Seward proclamation, amendment text"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "booker-t-washington-atlanta-compromise-1895",
+      "title": "Booker T. Washington's Atlanta Compromise address, 1895",
+      "start": 1895,
+      "end": 1895,
+      "date": {
+        "text": "September 18, 1895",
+        "precision": "day"
+      },
+      "period": "jim-crow",
+      "group": "Achievements",
+      "place": "Atlanta, Georgia",
+      "region": "Southern United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Booker T. Washington"
+      ],
+      "summary": "On September 18, 1895, Booker T. Washington delivered his famous Atlanta Compromise address, advocating accommodation with segregation and focusing on economic self-improvement rather than political rights.",
+      "account": [
+        "Booker T. Washington was the principal of Tuskegee Institute, an African American educational institution in Alabama. He advocated a controversial approach to race relations based on economic development and vocational education rather than political activism.",
+        "On September 18, 1895, Washington addressed the Cotton States and International Exposition in Atlanta. In his speech, which became known as the Atlanta Compromise, he argued that African Americans should focus on economic advancement and education rather than demand political and social equality immediately.",
+        "Washington's speech included the famous metaphor: 'In all things that are purely social we can be as separate as the fingers, yet one as the hand in all things essential to mutual progress.' This statement was interpreted as accepting segregation.",
+        "Washington's approach was controversial. Some, including W. E. B. Du Bois, criticized his accommodation with segregation as a betrayal of Black rights. Others praised his pragmatism. Washington's philosophy dominated Black education and leadership for a generation."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Atlanta Compromise",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Atlanta_Compromise",
+          "accessed": "2026-10-09",
+          "supports": "September 18, 1895 date, Cotton States exposition, separate fingers metaphor, Washington's accommodation philosophy"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "thurgood-marshall-supreme-court-1967",
+      "title": "Thurgood Marshall appointed to Supreme Court, 1967",
+      "start": 1967,
+      "end": 1967,
+      "date": {
+        "text": "June 13, 1967",
+        "precision": "day"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Achievements",
+      "place": "United States",
+      "region": "United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Thurgood Marshall"
+      ],
+      "summary": "On June 13, 1967, President Lyndon B. Johnson nominated Thurgood Marshall to the Supreme Court, making him the first African American justice. Marshall was confirmed by the Senate on August 30, 1967.",
+      "account": [
+        "Thurgood Marshall was a legendary civil rights lawyer who had argued Brown v. Board of Education before the Supreme Court in 1954, successfully challenging school segregation.",
+        "President Johnson nominated Marshall to the Supreme Court on June 13, 1967, during the height of the civil rights movement. At the time, no African American had ever served on the Court.",
+        "Marshall's nomination sparked debate in the Senate. Some senators opposed his confirmation based on his civil rights advocacy. After confirmation hearings, the Senate Judiciary Committee approved Marshall on July 24, 1967, and the full Senate confirmed him on August 30, 1967, by a vote of 69\u201311.",
+        "Marshall served on the Court for 24 years (1967\u20131991), becoming a powerful voice for civil rights, criminal justice reform, and voting rights. His appointment was a historic moment, though it came after decades of struggle by the civil rights movement."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Thurgood Marshall",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Thurgood_Marshall",
+          "accessed": "2026-10-09",
+          "supports": "June 13, 1967 nomination, August 30, 1967 confirmation, 69-11 Senate vote, first African American justice, 24 years service"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "george-floyd-murder-minneapolis-2020",
+      "title": "Murder of George Floyd, Minneapolis, 2020",
+      "start": 2020,
+      "end": 2020,
+      "date": {
+        "text": "May 25, 2020",
+        "precision": "day"
+      },
+      "period": "unto-this-day",
+      "group": "Civil rights",
+      "place": "Minneapolis, Minnesota",
+      "region": "Central United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "George Floyd",
+        "Derek Chauvin"
+      ],
+      "summary": "On May 25, 2020, George Floyd, a 46-year-old African American man, was killed by Minneapolis police officer Derek Chauvin. Floyd's murder sparked the largest racial justice protests in American history.",
+      "account": [
+        "On May 25, 2020, Minneapolis police officers responded to a report of a counterfeit $20 bill at a grocery store. They detained George Floyd, a 46-year-old man known in the neighborhood.",
+        "During the detention, officer Derek Chauvin pinned Floyd to the ground and pressed his knee against Floyd's neck for approximately 9 minutes and 29 seconds, even as Floyd said he could not breathe and became unresponsive. Paramedics pronounced Floyd dead at the hospital.",
+        "Video recordings of Floyd's killing were widely shared on social media. The footage sparked immediate protests in Minneapolis and across the country, with demonstrations in all 50 states and internationally. The protests called for police accountability and systemic racial justice.",
+        "Officer Chauvin was arrested and charged with murder and manslaughter. He was convicted on April 20, 2021, of second-degree murder, third-degree murder, and second-degree manslaughter, and sentenced to 22.5 years in prison. Floyd's death became a watershed moment in conversations about police violence and systemic racism."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Murder of George Floyd",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Murder_of_George_Floyd",
+          "accessed": "2026-10-09",
+          "supports": "May 25, 2020 date, Minneapolis location, Derek Chauvin officer, 9:29 knee restraint, April 20 2021 conviction, 22.5 year sentence, nationwide protests"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    },
+    {
+      "slug": "jackson-pollock-abstract-expressionism",
+      "title": "Jackson Pollock and African American cultural independence, 1940s\u20131950s",
+      "start": 1953,
+      "end": 1960,
+      "date": {
+        "text": "1953\u20131960",
+        "precision": "range"
+      },
+      "period": "civil-rights-awakening",
+      "group": "Achievements",
+      "place": "United States",
+      "region": "United States",
+      "peoples": [
+        "Black"
+      ],
+      "tribes": [
+        "Judah"
+      ],
+      "people": [
+        "Aaron Douglas"
+      ],
+      "summary": "African American artists and writers of the 1940s\u20131950s developed independent cultural traditions, including visual arts, literature, and music, contributing to the Harlem Renaissance legacy and civil rights consciousness.",
+      "account": [
+        "During the 1940s and 1950s, African American artists, writers, and musicians developed sophisticated cultural traditions that challenged racial stereotypes and asserted Black artistic excellence.",
+        "Visual artists like Aaron Douglas created powerful works reflecting African American history and identity. Writers like James Baldwin and Ralph Ellison published significant novels exploring the African American experience. Musicians in jazz, blues, and early R&B developed distinctly African American musical forms.",
+        "These cultural movements were deeply connected to the civil rights struggle. Art, literature, and music became vehicles for expressing African American identity, pride, and political consciousness.",
+        "The achievements of African American cultural figures in this period helped lay the groundwork for the civil rights movement by asserting that African Americans had a rich cultural heritage and contemporary artistic achievement worthy of respect and recognition."
+      ],
+      "teaching": [],
+      "scriptures": [],
+      "sources": [
+        {
+          "title": "Aaron Douglas (painter)",
+          "publisher": "Wikipedia",
+          "url": "https://en.wikipedia.org/wiki/Aaron_Douglas_(painter)",
+          "accessed": "2026-10-09",
+          "supports": "1940s\u20131950s period, visual arts, Harlem Renaissance legacy"
+        }
+      ],
+      "uncertainty": null,
+      "status": "published"
+    }
+  ],
+  "drafts": [],
+  "ledger": [
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/Little_Rock_crisis",
+      "title": "Little Rock Crisis",
+      "status": "reviewed",
+      "note": "read in full via fetch",
+      "events": [
+        "little-rock-nine-1957"
+      ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/Little_Rock_Nine",
+      "title": "Little Rock Nine",
+      "status": "reviewed",
+      "note": "read in full via fetch",
+      "events": [
+        "little-rock-nine-1957"
+      ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/Freedom_Rides",
+      "title": "Freedom Rides",
+      "status": "reviewed",
+      "note": "read in full via fetch",
+      "events": [
+        "freedom-rides-1961"
+      ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/Sit-in",
+      "title": "Sit-in",
+      "status": "reviewed",
+      "note": "read in full via fetch",
+      "events": [
+        "sit-in-movement-1960"
+      ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/March_on_Washington_for_Jobs_and_Freedom",
+      "title": "March on Washington for Jobs and Freedom",
+      "status": "reviewed",
+      "note": "read in full via fetch",
+      "events": [
+        "march-washington-1963"
+      ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/I_Have_a_Dream",
+      "title": "I Have a Dream",
+      "status": "reviewed",
+      "note": "read in full via fetch",
+      "events": [
+        "march-washington-1963"
+      ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/Selma_to_Montgomery_marches",
+      "title": "Selma to Montgomery marches",
+      "status": "reviewed",
+      "note": "read in full via fetch",
+      "events": [
+        "selma-montgomery-march-1965"
+      ]
+    },
+    {
+      "kind": "web",
+      "ref": "https://en.wikipedia.org/wiki/Voting_Rights_Act_of_1965",
+      "title": "Voting Rights Act of 1965",
+      "status": "reviewed",
+      "note": "read in full via fetch",
+      "events": [
+        "selma-montgomery-march-1965"
+      ]
+    },
+    {
+      "kind": "class",
+      "ref": "Bb3r5SDV3PI",
+      "title": "INTEGRATING INTO A BURNING HOUSE",
+      "status": "reviewed",
+      "note": "read from 3:45 onward",
+      "events": [
+        "little-rock-nine-1957"
+      ]
+    },
+    {
+      "kind": "class",
+      "ref": "2iTTN9QdCgc",
+      "title": "The Evolution Of Revolutionaries",
+      "status": "reviewed",
+      "note": "read from 1:15:00 onward",
+      "events": [
+        "march-washington-1963"
+      ]
+    }
+  ],
+  "gaps": [
+    "More civil rights era events needed: 16th Street Church bombing (1963), Medgar Evers assassination (1963), more on police violence and brutality",
+    "Inventors and achievers: Elijah McCoy, Granville Woods, Garrett Morgan, Frederick McKinley Jones in Jim Crow era",
+    "Modern policing and resistance: Rodney King (1991), LA Rebellion (1992), post-2000 police violence events",
+    "Early Jim Crow reconstruction era: Black Wall Street, Mound Bayou, more massacre events",
+    "Additional civil disobedience: more sit-in details, Freedom Summer, other protest movements"
+  ]
+}

@@ -1,0 +1,9 @@
+- Every page except Home, Search, the Bible, Classes, Ask and Tabs now has a ← in its header, as in Bible Strong. It does the same as Telegram's Back button.
+- A page opened from a link (for example Settings → Audio) goes back to the page above it instead of leaving you stuck.
+- Telegram's Back button no longer shows on Search, the Bible, Classes or Ask when there is nothing to go back to. On Search it first clears what you typed.
+- Picking a chapter from the book picker no longer adds a step to Back. Back returns to where you started reading, as with next and previous.
+- Going back to a page you opened from the menu or Home opens that drawer again.
+- Search keeps the words you typed, and their results, when you come back from a result.
+- Bookmarks, Highlights and Notes remember which list you were on.
+- Switching tabs from the bar slides the new tab in from its side, and the bar's screens load ahead of time, so you no longer see loading rows the first time.
+- Opening a page slides it in slightly from the right, and Back slides in from the left, as in Bible Strong.

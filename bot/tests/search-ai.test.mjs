@@ -8,7 +8,7 @@ import { financialDb } from "./helpers/financial-db.mjs";
 // ai.ts is bundled for Node first (as Workers bundles it).
 const out = new URL("./.build/search-ai.mjs", import.meta.url).pathname;
 await build({ stdin: { contents: 'export * from "./src/ai.ts"; export * from "./src/credits.ts"; export { searchAnswers } from "./src/search-answer.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
-const { answerSearch, freeSpendToday, searchModel, startMeter, searchAnswers, ownerOfUser, grantPayment, wallet } = await import(out);
+const { answerSearch, withDeadline, DeadlineError, freeSpendToday, searchModel, startMeter, searchAnswers, ownerOfUser, grantPayment, wallet } = await import(out);
 
 /** A D1 close enough for the meter and spend tables, backed by real SQLite. */
 const d1 = () => {
@@ -75,6 +75,26 @@ test("with nothing in the library it says so, on the default free model, and rep
   assert.ok(spent > 0 && spent < 0.001, `the nominal research cost is metered for the breaker (got $${spent})`);
 });
 
+test("withDeadline passes a prompt result through and rejects late work with a DeadlineError", async () => {
+  assert.equal(await withDeadline(Promise.resolve(4), 50), 4);
+  await assert.rejects(withDeadline(new Promise(() => {}), 20), (e) => e instanceof DeadlineError);
+});
+
+test("a stalled model is given up on at the deadline: the answer is unavailable, and logged as a timeout", async () => {
+  // Workers AI that never replies: the embedding (and so retrieval) stalls.
+  const e = { ...shared, AI: { run: () => new Promise(() => {}) }, VEC: { query: async () => ({ matches: [] }) } };
+  const lines = [];
+  const original = console.error;
+  console.error = (...args) => lines.push(args.join(" "));
+  const t0 = Date.now();
+  let r;
+  try { r = await answerSearch(e, "melchizedek", 8, [], 50); } finally { console.error = original; }
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, "unavailable");
+  assert.ok(Date.now() - t0 < 5_000, "the reader is not kept waiting on the stalled model");
+  assert.ok(lines.some((l) => l.includes('"search_answer_timeout"')), lines.join("\n"));
+});
+
 test("admin searches share the daily free-tier allowance", async () => {
   const e = { ...shared, ADMIN_IDS: "7" };
   const before = await freeSpendToday(e);
@@ -124,8 +144,17 @@ test("search routes one bounded call through the gateway, cites the library and 
   const { env, sql, sent } = fixture(t);
   const owner = await ownerOfUser(env, 7);
   await grantPayment(env, owner, { charge: "search-credit", kind: "pack", stars: 10, mc: 130_000 });
-  const r = await answerSearch(env, "Melchizedek", 7, ["Google"]);
+  const lines = [];
+  const original = console.log;
+  console.log = (...args) => { lines.push(args.join(" ")); };
+  let r;
+  try { r = await answerSearch(env, "Melchizedek", 7, ["Google"]); } finally { console.log = original; }
   assert.equal(r.ok, true);
+  // Where the time went, in numbers only: no question, no reader.
+  const timing = lines.map((l) => { try { return JSON.parse(l); } catch { return null; } }).find((o) => o?.event === "search_answer_timing");
+  assert.ok(timing, "expected a search_answer_timing event");
+  for (const k of ["retrieveMs", "modelMs", "totalMs"]) assert.ok(Number.isFinite(timing[k]) && timing[k] >= 0, k);
+  assert.deepEqual(Object.keys(timing).sort(), ["event", "modelMs", "retrieveMs", "totalMs"]);
   assert.equal(r.model, GOOGLE);
   assert.equal(r.provider, "Google");
   assert.equal(r.sources[0].title, "Genesis 14:18");
@@ -249,4 +278,16 @@ test("route applies the per-reader quota before any new provider call", async t 
   assert.equal(denied.status, 429);
   assert.equal((await denied.json()).error, "limit");
   assert.equal(sent.length, count);
+});
+
+test("a reader listed in SEARCH_AI_QUOTA_EXEMPT skips the per-reader count; others still hit it", async t => {
+  const { env } = fixture(t);
+  env.SEARCH_AI_DAILY_LIMIT = "1";
+  env.SEARCH_AI_QUOTA_EXEMPT = "1";
+  const exempt = routeFixture(t, env, 1);
+  assert.equal((await exempt.request("Melchizedek", "Google")).status, 200);
+  assert.equal((await exempt.request("king of Salem", "Google")).status, 200);
+  const other = routeFixture(t, env, 7);
+  assert.equal((await other.request("priest of the most high", "Google")).status, 200);
+  assert.equal((await other.request("bread and wine", "Google")).status, 429);
 });

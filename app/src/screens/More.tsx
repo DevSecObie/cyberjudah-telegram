@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
-import { share } from "@/lib/share";
+import { APP_URL, share } from "@/lib/share";
 import { useBackButton } from "@/tg/hooks";
-import { addToHomeScreen, app, downloadFile, homeScreenStatus, openLink } from "@/tg/sdk";
+import { addToHomeScreen, app, downloadFile, homeScreenStatus, openLink, user } from "@/tg/sdk";
 import { DATA_ORIGIN, SITE_URL } from "@/api/data";
 import { Icon, Screen, type IconName } from "@/ui/ui";
 import { haptic } from "@/tg/sdk";
@@ -28,7 +28,7 @@ const LAW: [string, string, string, IconName][] = [
 ];
 
 export function More() {
-  useBackButton(true);
+  useBackButton();
   return <Screen title="More"><MoreBody /></Screen>;
 }
 
@@ -56,6 +56,12 @@ export function MoreBody() {
   useEffect(() => { void homeScreenStatus().then((s) => setPin(s === "missed" || s === "unknown")); }, []);
   return (
     <div className="more">
+      {/* Bible Strong's account card at the top of the menu: who is signed in (here, the Telegram user). */}
+      <Link className="more__account" to="/settings/account" onClick={() => haptic("select")}>
+        <span className="more__avatar" aria-hidden="true">{user?.photo_url ? <img src={user.photo_url} alt="" /> : (user?.first_name?.[0] ?? "?")}</span>
+        <span><b>{user ? [user.first_name, user.last_name].filter(Boolean).join(" ") : "Your account"}</b><small>{user?.username ? `@${user.username}` : "Synced with your Telegram account"}</small></span>
+        <Icon name="chevron" size={20} />
+      </Link>
       <Card icon="bookmark" title="Yours" items={[
         { icon: "book", label: "My studies", color: C.blue, href: "/studies" },
         { icon: "check", label: "Reading plans", color: C.green, href: "/plans" },
@@ -71,19 +77,22 @@ export function MoreBody() {
       ]} />
       <Card icon="law" title="The Law" items={LAW.map(([href, label, , icon], k) => ({ href, label, icon, color: [C.amber, C.teal, C.slate][k % 3] }))} />
       <Card icon="gear" title="Settings" items={[
-        { icon: "gear", label: "Account", color: C.blue, href: "/settings/account" },
         { icon: "gear", label: "Settings", color: C.slate, href: "/settings" },
+        { icon: "download", label: "Downloads", color: C.green, href: "/resources" },
         { icon: "list", label: "Bottom bar", color: C.blue, href: "/settings/bar" },
         pin ? { icon: "star", label: "Add to Home Screen", color: C.amber, onClick: addToHomeScreen } : null,
         { icon: "download", label: "Download the vault", color: C.green, onClick: () => downloadFile(`${DATA_ORIGIN}/downloads/vault.zip`, "cyberjudah-vault.zip") },
       ]} />
       <Card icon="star" title="CyberJudah" items={[
         { icon: "book", label: "Help & reading guide", color: C.teal, href: "/settings/help" },
+        // Bible Strong's "Contact the developer": here, a chat with the bot (the Mini App's own bot).
+        { icon: "chat", label: "Contact us", color: C.blue, onClick: () => openLink(APP_URL.replace(/\/[^/]+$/, "")) },
         { icon: "star", label: "Support CyberJudah", color: C.amber, href: "/settings/donate" },
         { icon: "share", label: "Share the app", color: C.teal, onClick: () => void share({ kind: "app", title: "CyberJudah", text: "The KJV with the Apocrypha, and everything taught from it, in Telegram.", sitePath: "/" }) },
         { icon: "link", label: "Open the full website", color: C.blue, onClick: () => openLink(SITE_URL) },
         { icon: "link", label: "The notes on GitHub", color: C.slate, onClick: () => openLink("https://github.com/DevSecObie/cyberjudah") },
       ]} />
+      <nav className="more__legal" aria-label="Legal"><Link to="/privacy">Privacy</Link><Link to="/terms">Terms</Link></nav>
       <p className="more__foot">The Bible text is the public-domain King James Version (1769) with the Apocrypha.{app ? ` · Telegram ${app.version} · ${app.platform}` : ""}</p>
     </div>
   );

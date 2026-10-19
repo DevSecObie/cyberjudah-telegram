@@ -1,0 +1,3 @@
+- Putting your finger on the page to stop it scrolling no longer opens what is under it: not a verse, and not a section of the bar.
+- Tapping a verse no longer scrolls the chapter away from your finger: the verse stays where it was, as in Bible Strong.
+- The verse sheet opens with its tools already in place, and no longer moves under a finger resting on it.

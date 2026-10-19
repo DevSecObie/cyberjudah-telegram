@@ -27,7 +27,7 @@ export function Classes() {
   const [params, setParams] = useSearchParams();
   const feed = (FEEDS.some(([f]) => f === params.get("feed")) ? params.get("feed") : "all") as Feed;
   const teacher = params.get("teacher") ?? "", year = params.get("year") ?? "", series = params.get("series") ?? "";
-  useBackButton(true);
+  useBackButton();
   useBottomButtons(null, null);
   const sheet = useSheet();
   const [q, setQ] = useVisitState("q", "");

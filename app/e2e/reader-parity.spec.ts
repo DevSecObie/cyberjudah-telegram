@@ -123,13 +123,24 @@ test("reader focus loss cancels a held press and the next click still works", as
   await expect(page.locator("#verset-1")).toHaveAttribute("data-selected", "");
 });
 
+test("reader pressing a verse shows no touch light, as in Bible Strong", async ({ page }) => {
+  await gestureClock(page);
+  const lit = () => page.locator("#verset-1 .bs-text").evaluate(el => getComputedStyle(el.parentElement!).backgroundColor);
+  const before = await lit();
+  await touchVerse(page, "touchstart", 1);
+  await page.clock.runFor(200);
+  expect(await lit()).toBe(before);
+  await touchVerse(page, "touchend", 1);
+});
+
 test("reader chapter changes stay in place: Back leaves the reader and a collapsed header holds", async ({ page }) => {
   // Long chapters, so the reader can scroll far enough to collapse its header.
   const long = Array.from({ length: 40 }, (_, i) => ({ verse: i + 1, text: "And the light shineth in darkness; and the darkness comprehended it not. ".repeat(3) }));
   await page.route(`${DATA}/api/kjv/john/*.json`, r => r.fulfill({ json: { book: "john", chapter: +/(\d+)\.json/.exec(r.request().url())![1], translation: "KJV", verses: long } }));
+  await page.goto("/more");
   await page.goto("/read/genesis/1");
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
-  // A jump from the book picker is its own step in history, as before.
+  // A jump from the book picker changes the chapter in place too, as Bible Strong's picker does.
   await page.locator(".bs-pill--book").click();
   await page.locator(".bs-picker").getByRole("button", { name: "John", exact: true }).click();
   await page.getByRole("button", { name: "Chapter 1", exact: true }).click();
@@ -152,9 +163,9 @@ test("reader chapter changes stay in place: Back leaves the reader and a collaps
   await expect(page).toHaveURL(/\/read\/john\/3$/);
   await expect(page.locator("#verset-1 .bs-num")).toBeAttached();
   await expect(page.locator(".bs-header__summary")).toBeVisible();
-  // Paging chapters left no trail: Back returns to the passage before John.
+  // Picking and paging chapters left no trail: Back leaves the reader.
   await page.goBack();
-  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  await expect(page).toHaveURL(/\/more$/);
 });
 
 test("book picker long press opens the chapter in a new tab, as Bible Strong's web picker does", async ({ page }) => {
@@ -170,6 +181,32 @@ test("book picker long press opens the chapter in a new tab, as Bible Strong's w
   await expect(page).toHaveURL(/\/read\/john\/2$/);
   await expect(page.getByRole("button", { name: "3 Tabs open", exact: true })).toBeVisible();
   await expect(page.locator(".bs-picker")).toHaveCount(0);
+});
+
+test("Go to verse never collapses the header, even when the jump's scroll lands after its settle time", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await page.waitForTimeout(800);
+  await page.evaluate(() => {
+    // The jump's 400 ms settle runs out before the browser hands over the jump's scroll event, as
+    // WebKit's can: here the settle ends as soon as it starts.
+    const later = window.setTimeout.bind(window);
+    window.setTimeout = ((fn: TimerHandler, ms?: number, ...rest: unknown[]) => {
+      if (ms === 400 && typeof fn === "function") { queueMicrotask(() => fn()); return 0; }
+      return later(fn, ms, ...rest);
+    }) as typeof window.setTimeout;
+    // A collapse the clamp at the chapter's end undoes a frame later still counts.
+    new MutationObserver(() => { if (document.querySelector(".bs-header__summary")) document.documentElement.dataset.collapsed = ""; }).observe(document.body, { childList: true, subtree: true });
+  });
+  await page.keyboard.press("v");
+  const dialog = page.getByRole("dialog", { name: "Go to verse" });
+  await dialog.getByRole("textbox", { name: "Verse" }).fill("28");
+  await dialog.getByRole("button", { name: "Go" }).click();
+  await expect(page.locator("#verset-28")).toBeInViewport();
+  await page.waitForTimeout(300);
+  await expect(page.locator("html")).not.toHaveAttribute("data-collapsed");
+  await expect(page.locator(".bs-pill--book")).toBeVisible();
 });
 
 test("reader v opens Go to verse and jumps to a valid verse, as Bible Strong's web reader does", async ({ page }) => {
@@ -189,6 +226,26 @@ test("reader v opens Go to verse and jumps to a valid verse, as Bible Strong's w
   await page.locator(".bs-pill--book").click();
   await page.getByRole("textbox", { name: "Search books" }).press("v");
   await expect(page.getByRole("dialog", { name: "Go to verse" })).toHaveCount(0);
+});
+
+test("reader keeps the current chapter on screen until the next one arrives, as Bible Strong's keepPreviousData", async ({ page }) => {
+  let release!: () => void;
+  const held = new Promise<void>(done => { release = done; });
+  await page.route(`${DATA}/api/kjv/john/*.json`, async r => {
+    const n = +/(\d+)\.json/.exec(r.request().url())![1];
+    if (n === 2) await held;
+    await r.fulfill({ json: { book: "john", chapter: n, translation: "KJV", verses: [{ verse: 1, text: `John chapter ${n} first verse.` }, { verse: 2, text: `John chapter ${n} second verse.` }] } });
+  });
+  await page.goto("/read/john/1");
+  await expect(page.locator("#verset-1 .bs-text")).toHaveText("John chapter 1 first verse.");
+  await page.click('.bs-chapterbtn[aria-label="Next chapter"]');
+  await expect(page).toHaveURL(/\/read\/john\/2$/);
+  // While John 2 loads, John 1 stays up and the arrows wait.
+  await expect(page.locator(".bs-chapterbtn[aria-label='Next chapter']")).toBeDisabled();
+  await expect(page.locator("#verset-1 .bs-text")).toHaveText("John chapter 1 first verse.");
+  release();
+  await expect(page.locator("#verset-1 .bs-text")).toHaveText("John chapter 2 first verse.");
+  await expect(page.locator(".bs-chapterbtn[aria-label='Next chapter']")).toBeEnabled();
 });
 
 test("reader press preference still swaps resources and verse selection", async ({ page }) => {
@@ -254,6 +311,17 @@ test("export saves the chosen scope and notes, and supports a whole book", async
   expect(await fs.readFile((await (await whole).path())!, "utf8")).toContain("Genesis 2 · Scripture");
 });
 
+test("the book picker changes the chapter in place, so Back from it does not step back a chapter", async ({ page }) => {
+  await page.goto("/more");
+  await page.goto("/read/genesis/1");
+  await page.locator(".bs-pill--book").click();
+  await page.locator(".bs-picker").getByRole("button", { name: "John", exact: true }).click();
+  await page.getByRole("button", { name: "Chapter 3", exact: true }).click();
+  await expect(page).toHaveURL(/\/read\/john\/3/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/more$/);
+});
+
 test("search applies filters on the server, pages, sorts, and preserves a typed verse range", async ({ page }) => {
   const queries: URLSearchParams[] = [];
   await page.route("**/bs/v1/bibles/KJV/search?*", r => {
@@ -298,15 +366,17 @@ test("daily verses have five days, sharing and images on Home", async ({ page, b
     { n: "G2", lemma: "Ἀαρών", xlit: "Aaron", def: "Aaron", count: 10 },
   ] }));
   await page.goto("/");
-  const card = page.getByRole("region", { name: "Daily scripture" });
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  const days = page.getByRole("region", { name: "Daily scripture" });
+  const card = days.locator(".today-card[data-active]");
   await expect(card).toContainText("Genesis 1:1");
   await expect(card.getByRole("button", { name: "Share", exact: true })).toBeEnabled();
-  await card.getByRole("button", { name: "Previous day's scripture" }).click();
+  await days.press("ArrowRight");
   await expect(card).toContainText("Yesterday"); await expect(card).toContainText("Genesis 1:2");
   await card.getByRole("button", { name: "Image", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Verse image" }).getByRole("img")).toHaveAttribute("src", "/card/genesis/1/2.svg");
   await page.getByRole("button", { name: "Close", exact: true }).click();
-  await card.getByRole("button", { name: "Today's scripture", exact: true }).click();
+  await days.press("ArrowLeft");
   await expect(card).toContainText("Genesis 1:1");
 
   await page.goto("/read/genesis/1");
@@ -354,7 +424,8 @@ test("daily verses have five days, sharing and images on Home", async ({ page, b
   const shelf = home.locator(".widgets");
   await expect(home.locator(".feed__card--skel")).toHaveCount(0);
   await shelf.evaluate(el => { el.scrollIntoView({ block: "center" }); el.scrollLeft = 200; });
-  await expect.poll(() => shelf.evaluate(el => el.scrollLeft)).toBeGreaterThan(20);
+  // The shelf can rest between cards instead of snapping to the next entry.
+  await expect.poll(() => shelf.evaluate(el => el.scrollLeft)).toBeCloseTo(200, 0);
   const position = await home.evaluate(el => [el.querySelector(".drawer__scroll")!.scrollTop, el.querySelector(".widgets")!.scrollLeft]);
   await home.getByRole("button", { name: "Close Home" }).click();
   await expect(home).toHaveAttribute("inert", "");
@@ -369,7 +440,7 @@ test("daily verses have five days, sharing and images on Home", async ({ page, b
   await expect(word.locator(".widget__body")).toHaveAttribute("href", "/lexicon/G2");
   await expect.poll(() => home.evaluate(el => [el.querySelector(".drawer__scroll")!.scrollTop, el.querySelector(".widgets")!.scrollLeft])).toEqual(position);
   // A chapter first saved while Home is closed must join its displayed totals on reopening.
-  const highlights = home.locator(".stats__cell").filter({ hasText: "Highlights" }).locator("b");
+  const highlights = home.locator(".stats__cell").filter({ hasText: "Highlight" }).locator("b");
   await expect(highlights).toHaveText("0");
   await home.getByRole("button", { name: "Close Home" }).click();
   await touchVerse(page, "touchstart", 1);
@@ -378,6 +449,16 @@ test("daily verses have five days, sharing and images on Home", async ({ page, b
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Home", exact: true }).click();
   await expect(highlights).toHaveText("1");
+  // Entry, resource footer and shuffle remain independent controls in the shorter card.
+  await word.locator(".widget__foot").click();
+  await expect(page).toHaveURL(/\/lexicon\?lang=greek$/);
+  await expect(home).toHaveAttribute("inert", "");
+  // Back from a page opened from Home opens Home again, as Bible Strong's drawer stays open under the page.
+  await page.goBack();
+  await expect(home).toHaveAttribute("data-open", "");
+  await word.locator(".widget__body").click();
+  await expect(page).toHaveURL(/\/lexicon\/G2$/);
+  await expect(home).toHaveAttribute("inert", "");
 });
 
 test("keyboard palette switches to an existing tab and opens a passage with its range", async ({ page }) => {
@@ -457,4 +538,194 @@ test("Mac shortcuts cycle recent tabs and do not interrupt a note editor", async
   await page.keyboard.press("Meta+k");
   await expect(page.getByRole("dialog", { name: "Find a tab or tool" })).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Description", exact: true })).toHaveValue("Keep my writing");
+});
+
+test("notes list searches and sorts as Bible Strong's AllNotesTabScreen, and filters by tag", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("cj:bs_tags", JSON.stringify({ t1: { id: "t1", name: "Light", date: 1 } }));
+    localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({
+      "3": { id: "n1", title: "Light was the first", description: "The fair light out of God's treasures.", date: 3000, tags: { t1: true } },
+      "1": { id: "n2", title: "Beginning", description: "In the beginning, Christ.", date: 1000 },
+    }));
+    localStorage.setItem("cj:bs_n_john_1", JSON.stringify({ "4": { id: "n3", title: "Ark of the word", description: "The life was the light of men.", date: 2000 } }));
+  });
+  await page.goto("/bookmarks?tab=notes");
+  const order = () => page.getByRole("link").filter({ hasText: /Light was the first|Beginning|Ark of the word/ }).allInnerTexts().then(t => t.map(s => /Light was the first|Beginning|Ark of the word/.exec(s)![0]));
+  await expect.poll(order).toEqual(["Light was the first", "Ark of the word", "Beginning"]);
+  await page.getByRole("button", { name: "Title A–Z", exact: true }).click();
+  await expect.poll(order).toEqual(["Ark of the word", "Beginning", "Light was the first"]);
+  await page.getByRole("button", { name: "Oldest", exact: true }).click();
+  await expect.poll(order).toEqual(["Beginning", "Ark of the word", "Light was the first"]);
+  // Fuzzy search over titles and text, as upstream's searchWithMatches.
+  await page.getByRole("searchbox", { name: "Search notes" }).fill("beginning");
+  await expect.poll(order).toEqual(["Beginning"]);
+  await page.getByRole("searchbox", { name: "Search notes" }).fill("");
+  await page.getByRole("button", { name: "Light", exact: true }).click();
+  await expect.poll(order).toEqual(["Light was the first"]);
+});
+
+test("history keeps the verse gone to and opens on it, as Bible Strong's history does", async ({ page }) => {
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await page.keyboard.press("v");
+  await page.getByRole("dialog", { name: "Go to verse" }).getByRole("textbox", { name: "Verse" }).fill("28");
+  await page.getByRole("dialog", { name: "Go to verse" }).getByRole("button", { name: "Go" }).click();
+  await expect(page.locator("#verset-28")).toBeInViewport();
+  await page.goto("/history");
+  // One row per passage: the chapter itself and verse 28 of it.
+  await expect(page.getByRole("link", { name: /Genesis 1:28$/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Genesis 1$/ })).toBeVisible();
+  await page.getByRole("link", { name: /Genesis 1:28$/ }).click();
+  await expect(page).toHaveURL(/\/read\/genesis\/1\?v=28$/);
+  await expect(page.locator("#verset-28")).toBeVisible();
+});
+
+test("reader annotation mode suppresses native text selection and WebKit callouts", async ({ page, browserName }) => {
+  await page.goto("/read/genesis/1");
+  await page.locator("#verset-1 .bs-num").click();
+  const sheet = page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true });
+  await sheet.getByRole("tab", { name: "Annotate", exact: true }).click();
+  await sheet.getByRole("button", { name: "Free mode", exact: true }).click();
+  await expect(page.locator(".bs-container")).toHaveAttribute("data-annotating", "");
+  const text = page.locator("#verset-1 .bs-text");
+  await expect(text).toHaveCSS("user-select", "none");
+  if (browserName === "webkit") {
+    await expect(text).toHaveCSS("-webkit-user-select", "none");
+    // Desktop WebKit may omit the iOS-only property from computed styles.
+    const hrefs = await page.locator('link[rel="stylesheet"]').evaluateAll(links => links.map(link => (link as HTMLLinkElement).href));
+    const css = (await Promise.all(hrefs.map(async href => (await page.request.get(href)).text()))).join("\n");
+    expect(css).toMatch(/\.bs-container\[data-annotating\][^{]*\.bs-text[^{]*\{[^}]*-webkit-touch-callout:none/);
+  }
+  await page.getByRole("button", { name: "Exit annotation mode", exact: true }).click();
+  await expect(page.locator(".bs-container")).not.toHaveAttribute("data-annotating");
+});
+
+// A finger put on a page still gliding from a swipe stops it and taps nothing, as in Bible Strong,
+// where the browser decides tap or scroll: not a verse, and not the dock's sections (ui/fling.ts).
+async function glide(page: Page) {
+  await page.evaluate(() => {
+    const fire = (type: string, target: EventTarget) => target.dispatchEvent(Object.assign(new Event(type, { bubbles: true, cancelable: true }), { touches: [], changedTouches: [] }));
+    const scroller = document.querySelector(".bs-scroll")!;
+    fire("touchstart", document.body); scroller.dispatchEvent(new Event("scroll"));
+    fire("touchend", document.body); scroller.dispatchEvent(new Event("scroll"));
+  });
+}
+async function tapTab(page: Page, name: string) {
+  await page.locator("nav.tabs").getByRole("button", { name, exact: true }).evaluate(el => {
+    const r = el.getBoundingClientRect(), at = { clientX: r.x + r.width / 2, clientY: r.y + r.height / 2, bubbles: true, cancelable: true, pointerId: 7, pointerType: "touch", isPrimary: true, button: 0 };
+    el.dispatchEvent(new PointerEvent("pointerdown", at)); el.dispatchEvent(new PointerEvent("pointerup", at));
+    el.dispatchEvent(Object.assign(new Event("touchend", { bubbles: true, cancelable: true }), { touches: [], changedTouches: [] }));
+  });
+}
+test("a touch that stops a gliding page taps neither the verse nor the dock under it", async ({ page }) => {
+  await gestureClock(page);
+  await glide(page);
+  await touchVerse(page, "touchstart", 1, 3); await touchVerse(page, "touchend", 0, 3);
+  await page.clock.runFor(300);
+  await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
+  await glide(page);
+  await tapTab(page, "Classes");
+  await page.clock.runFor(300);
+  await expect(page).toHaveURL(/\/read\/genesis\/1/);
+  // Once the page has come to rest, the same taps work.
+  await page.clock.runFor(200);
+  await touchVerse(page, "touchstart", 1, 3); await touchVerse(page, "touchend", 0, 3);
+  await page.clock.runFor(300);
+  await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(1);
+});
+
+test("the verse sheet stays put under a resting finger and a verse in view barely moves, as Bible Strong's", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gestureClock(page);
+  // How far the verse's middle sits from the middle of the reader.
+  const offCentre = async () => page.locator("#verset-12").evaluate(el => { const r = el.getBoundingClientRect(), sc = el.closest(".bs-scroll")!, s = sc.getBoundingClientRect(); return Math.abs(r.top + r.height / 2 - (s.top + sc.clientHeight / 2)); });
+  await touchVerse(page, "touchstart", 1, 12); await touchVerse(page, "touchend", 0, 12);
+  await page.clock.runFor(300);
+  const sheet = page.getByRole("dialog", { name: "Selected: Genesis 1:12", exact: true });
+  await expect(sheet).toBeVisible();
+  // Bible Strong centres the verse in the reader, not in what the sheet leaves showing.
+  await page.clock.runFor(600);
+  // Within the header's give: centring above the sheet put it about half the sheet higher.
+  await expect.poll(offCentre).toBeLessThan(60);
+  const top = async () => (await sheet.boundingBox())!.y;
+  const rest = await top();
+  const grab = (await sheet.locator(".bs-sheet__grab").boundingBox())!;
+  // Pulled up, a sheet that cannot grow does not move at all (vaul damps it to nothing).
+  await page.mouse.move(grab.x + 20, grab.y + 8); await page.mouse.down();
+  await page.mouse.move(grab.x + 20, grab.y - 30, { steps: 4 });
+  expect(Math.abs((await top()) - rest)).toBeLessThan(1);
+  await page.mouse.up();
+});
+
+// Bible Strong's Pressable: the pressed look comes 50 ms after the finger lands, a scroll takes it
+// away, and a tap shorter than that still shows it briefly (ui/press.ts).
+test("the pressed look waits 50 ms, a scroll cancels it, and a quick tap still shows it", async ({ page }) => {
+  await gestureClock(page);
+  const button = page.getByRole("button", { name: "Scripture options", exact: true });
+  const send = (type: string) => button.evaluate((el, type) => {
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent(type, { bubbles: true, isPrimary: true, button: 0, pointerId: 3, pointerType: "touch", clientX: r.x + 5, clientY: r.y + 5 }));
+  }, type);
+  await send("pointerdown");
+  await expect(button).not.toHaveAttribute("data-pressed");
+  await page.clock.runFor(60);
+  await expect(button).toHaveAttribute("data-pressed", "");
+  await page.locator(".bs-scroll").evaluate(el => el.dispatchEvent(new Event("scroll")));
+  await expect(button).not.toHaveAttribute("data-pressed");
+  await send("pointerup");
+  await send("pointerdown"); await page.clock.runFor(20); await send("pointerup");
+  await expect(button).toHaveAttribute("data-pressed", "");
+  await page.clock.runFor(150);
+  await expect(button).not.toHaveAttribute("data-pressed");
+});
+
+// On a phone the browser takes a horizontal pan over the drawer's scroller and cancels the pointer;
+// the swipe still closes the drawer from its touchend, unless it scrolled a row of cards.
+test("a touch swipe closes Home even when the browser cancels its pointer, but not one that scrolls the shelf", async ({ page }) => {
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  const home = page.locator(".drawer--home");
+  const swipe = (selector: string, scroll = false) => home.locator(selector).first().evaluate((el, scroll) => {
+    const r = el.getBoundingClientRect(), y = r.y + Math.min(20, r.height / 2), x0 = r.x + r.width - 30, x1 = x0 - 160;
+    el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, isPrimary: true, button: 0, pointerId: 9, pointerType: "touch", clientX: x0, clientY: y }));
+    el.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, isPrimary: true, pointerId: 9, pointerType: "touch" }));
+    if (scroll) { const row = el.closest<HTMLElement>(".widgets")!; row.scrollLeft += 80; }
+    el.dispatchEvent(Object.assign(new Event("touchend", { bubbles: true, cancelable: true }), { touches: [], changedTouches: [{ clientX: x1, clientY: y }] }));
+  }, scroll);
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect(home).toHaveAttribute("data-open", "");
+  await expect(home.locator(".feed__card--skel")).toHaveCount(0);
+  await home.locator(".widgets").scrollIntoViewIfNeeded();
+  await swipe(".widgets .widget", true);
+  await expect(home).toHaveAttribute("data-open", "");
+  await swipe(".stats--six");
+  await expect(home).not.toHaveAttribute("data-open");
+});
+
+// Bible Strong's drawers: Events at the top of Home (here the class on the air), the offline notice,
+// the menu's account card and legal links, each drawer kept where it was, and a new tab closing them.
+test("the drawers show the live class, the offline notice, the account and legal links, and keep their place", async ({ page, context }) => {
+  await page.route("**/api/live", r => r.fulfill({ json: { live: true, upcoming: false, video: "abcdefghijk", title: "The Sabbath class", starts: null } }));
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  const home = page.locator(".drawer--home");
+  await expect(home.locator(".live-card")).toContainText("Live now");
+  await expect(home.locator(".live-card")).toHaveAttribute("href", "/watch/abcdefghijk?live=1");
+  await context.setOffline(true);
+  await expect(home.getByRole("status").filter({ hasText: "You are offline" })).toBeVisible();
+  await context.setOffline(false);
+  await expect(home.getByText("You are offline")).toHaveCount(0);
+  await home.getByRole("button", { name: "Close Home" }).click();
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  const more = page.locator(".drawer--more");
+  await expect(more.locator(".more__account")).toHaveAttribute("href", "/settings/account");
+  await expect(more.getByRole("navigation", { name: "Legal" }).getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
+  await expect(more.getByRole("link", { name: "Downloads" })).toHaveAttribute("href", "/resources");
+  // The menu opens again where it was scrolled, as Bible Strong keeps it mounted.
+  await more.locator(".drawer__scroll").evaluate(el => { el.scrollTop = 300; });
+  await more.getByRole("button", { name: "Close the menu" }).click();
+  await expect(more).not.toHaveAttribute("data-open");
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await expect.poll(() => more.locator(".drawer__scroll").evaluate(el => el.scrollTop)).toBe(300);
 });

@@ -10,18 +10,18 @@ import { useBackButton } from "@/tg/hooks";
 export const TERMS_UPDATED = "2026-10-07";
 
 export function Terms() {
-  useBackButton(true);
+  useBackButton();
   const navigate = useNavigate();
   const go = (path: string) => (e: { preventDefault(): void }) => { e.preventDefault(); navigate(path); };
   return (
     <Screen title="Terms" kicker={`Last updated ${TERMS_UPDATED}`} className="privacy">
       <Section title="What Your Balance Buys">
-        <p>Your Ask CyberJudah balance pays for answers from the paid AI models. Each answer is charged what it cost to write, at the chosen model's own price: longer answers and deeper research cost more. CyberJudah makes no profit: you pay only what your answers cost. The free model, your chats, search, reading and PDFs stay free.</p>
+        <p>Your Ask CyberJudah balance pays for answers from the paid AI models. Each answer is charged what it cost to write, at the chosen model's own price: longer answers and deeper research cost more. You pay only what your answers cost. The free model, your chats, search, reading and PDFs stay free.</p>
       </Section>
 
       <Section title="Top-Ups">
         <ul>
-          <li>Top-ups are bought with Telegram Stars, and Telegram handles the payment. Each adds to your balance what CyberJudah receives for those Stars after Telegram's share.</li>
+          <li>Top-ups are bought with Telegram Stars, and Telegram handles the payment. Each adds to your balance about what CyberJudah receives for those Stars after Telegram's share, kept a little under it in case the Star's payout falls.</li>
           <li>Credit you buy never expires.</li>
           <li>Top-ups are not sold from full dark before a Sabbath, feast day or New Moon until full dark at its end, where you are. A balance you already have can be used on those days.</li>
           <li>Gifts sent with /support are gifts: they do not add to your balance.</li>

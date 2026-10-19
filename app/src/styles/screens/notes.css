@@ -57,7 +57,7 @@
 /* With the recording on screen, a passage is a tap from its place in it. */
 .note--seek [data-at] { border-radius: var(--r-xs); cursor: pointer; transition: none; }
 .note--seek [data-at]:hover { background: var(--accent-softer); }
-.note--seek [data-at]:active { background: var(--accent-soft); }
+.note--seek [data-at][data-pressed] { background: var(--accent-soft); }
 /* What was on the screen at a moment. */
 .note .shown { margin: 14px 0 18px; padding: 0; cursor: pointer; }
 .note .shown a { display: block; color: inherit; text-decoration: none; }

@@ -7,7 +7,7 @@ import { MODELS } from "../../shared/ask-models.mjs";
 function fixture({ answerStatus = 200, sources = [{}], model = "google/test", expectedModel = "google/test", cachedConsent = false } = {}) {
   let answered = false, calls = 0;
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "private, no-store" } });
-  return { count: () => calls, options: { url: "https://app.invalid", token: "test-token", expectedModel, verifySync: true, log() {}, async fetcher(url, { headers }) {
+  return { count: () => calls, options: { url: "https://app.invalid", token: "test-token", expectedModel, verifySync: true, retryMs: 0, log() {}, async fetcher(url, { headers }) {
     const path = new URL(url).pathname;
     if (path === "/api/health") return json({ ok: true });
     if (["/app/", "/app/read/genesis/1"].includes(path)) return new Response('<div id="root"></div>', { headers: { "content-type": "text/html" } });
@@ -35,4 +35,49 @@ test("the existing hosted provider is verified with one call and no external con
   const id = "@cf/meta/llama-3.1-8b-instruct-fp8";
   const f = fixture({ model: id, expectedModel: id });
   await verifyRelease(f.options); assert.equal(f.count(), 1);
+});
+test("staging may report a spent free answer budget; production and other failures still fail", async () => {
+  await verifyRelease({ ...fixture({ answerStatus: 429 }).options, allowPaused: true });
+  await assert.rejects(verifyRelease(fixture({ answerStatus: 429 }).options), /free-paused/);
+  await assert.rejects(verifyRelease({ ...fixture({ answerStatus: 503 }).options, allowPaused: true }), /Search answer:/);
+});
+test("a single slow or unavailable answer is tried once more; two in a row fail", async () => {
+  const id = "@cf/meta/llama-3.1-8b-instruct-fp8";
+  const timeout = () => Object.assign(new Error("The operation was aborted due to timeout"), { name: "TimeoutError" });
+  // Each answer request, in turn: throw (timeout), a status to return, or pass through to the fixture.
+  const flaky = (plan) => {
+    const f = fixture({ model: id, expectedModel: id });
+    let n = 0;
+    const inner = f.options.fetcher;
+    f.options.fetcher = async (url, init) => {
+      if (new URL(url).pathname !== "/api/search/answer" || !init.headers.authorization) return inner(url, init);
+      const step = plan[n++] ?? "pass";
+      if (step === "timeout") throw timeout();
+      if (typeof step === "number") return new Response(JSON.stringify({ ok: false, error: "unavailable" }), { status: step });
+      return inner(url, init);
+    };
+    return { ...f, asked: () => n };
+  };
+  for (const plan of [["timeout"], [503]]) { const f = flaky(plan); await verifyRelease(f.options); assert.equal(f.asked(), 2); }
+  await assert.rejects(verifyRelease(flaky(["timeout", "timeout"]).options), /no reply within 75 s, twice/);
+  await assert.rejects(verifyRelease(flaky([503, 503]).options), /HTTP 503 \(unavailable\)/);
+  // Any other failure is not retried.
+  const f = flaky([500]); await assert.rejects(verifyRelease(f.options), /HTTP 500/); assert.equal(f.asked(), 1);
+});
+test("the answer request has its own wait, longer than the other requests'", async () => {
+  const id = "@cf/meta/llama-3.1-8b-instruct-fp8";
+  // A reply that takes 150 ms: within an 80 ms wait it never arrives (two tries, then the check
+  // fails), within a 300 ms wait it does. The other requests are unaffected either way.
+  const slow = (answerWaitMs) => {
+    const f = fixture({ model: id, expectedModel: id });
+    const inner = f.options.fetcher;
+    f.options = { ...f.options, answerWaitMs, fetcher: (url, init) => new URL(url).pathname !== "/api/search/answer" || !init.headers.authorization ? inner(url, init)
+      : new Promise((resolve, reject) => {
+        const t = setTimeout(() => resolve(inner(url, init)), 150);
+        init.signal.addEventListener("abort", () => { clearTimeout(t); reject(init.signal.reason); });
+      }) };
+    return f;
+  };
+  await assert.rejects(verifyRelease(slow(80).options), /no reply within 0.08 s, twice/);
+  await verifyRelease(slow(300).options);
 });

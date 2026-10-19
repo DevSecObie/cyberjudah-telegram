@@ -10,7 +10,7 @@ import { StudyFilePicker, StudyNotice } from "@/studies/controls";
 import "@/studies/studies.css";
 
 export function Account() {
-  useBackButton(true);
+  useBackButton();
   const [state, setState] = useState<{ available: boolean; user: { first_name: string } | null }>(), [error, setError] = useState(""), [message, setMessage] = useState("");
   useEffect(() => { if (app) { setState({ available: true, user: app.initDataUnsafe.user ?? null }); return; } void api<typeof state>("/api/auth/status").then(setState).catch(() => setError("Account status could not be loaded. Try again when you are online.")); }, []);
   const logout = async () => { try { await api("/api/auth/logout", { method: "POST" }); if (import.meta.env.VITE_ACCOUNT_SYNC === "true") await (await import("@/sync/account")).stopAccountSync(); setState(s => s ? { ...s, user: null } : s); setError(""); } catch { setError("Sign-out could not finish. Please try again."); } };

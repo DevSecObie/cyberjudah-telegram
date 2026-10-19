@@ -2,7 +2,7 @@
 .chapters { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: var(--sp-2); padding: 4px 14px 14px; }
 .chapters a { display: grid; place-items: center; height: 46px; border-radius: var(--r-sm); background: var(--fill-1); font: 500 15px var(--font-ui); color: var(--text-1); font-variant-numeric: tabular-nums; transition: transform var(--dur-1) var(--ease); }
 .chapters a:hover { background: var(--fill-2); }
-.chapters a:active { transform: scale(.95); }
+.chapters a[data-pressed] { transform: scale(.95); }
 .chapters a[data-last] { background: var(--accent); color: var(--on-accent); }
 
 .reader { box-sizing: border-box; max-width: var(--w-read); margin: 0 auto; padding: calc(var(--sp-2) + var(--safe-top)) 18px 40px; animation: fade-in var(--dur-2) ease-out; }
@@ -59,7 +59,7 @@ html[data-tg="yes"] .steps { display: none; }
 :root { --rel-verse: var(--accent); --rel-note: #ff9f1c; --rel-entry: #a78bfa; --rel-dictionary: #3ddc84; --rel-link: #ff2d78; }
 .rel-inline { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 2px 4px var(--sp-2) 14px; padding: 4px var(--sp-2) 4px 4px; border-radius: var(--r-sm); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); font-family: var(--font-ui); font-size: .78em; line-height: 1.6; vertical-align: middle; }
 .rel-tag, .rel-more { display: inline-flex; align-items: center; gap: 5px; max-width: 190px; padding: 0 5px; border: 0; border-radius: var(--r-xs); background: var(--fill-1); color: var(--text-2); font: inherit; cursor: pointer; }
-.rel-tag:active, .rel-more:active { opacity: .5; }
+.rel-tag[data-pressed], .rel-more[data-pressed] { opacity: .5; }
 /* Hit areas larger than the pills (WCAG 2.5.8): a transparent 2px border above and below, cancelled by
    a negative margin, makes each box at least 24px without moving anything, and an overlay reaches
    44px tall. The container is its own stacking context so the overlays sit above its background
@@ -110,7 +110,7 @@ html[data-tg="yes"] .steps { display: none; }
 .daystrip__day[data-today] { box-shadow: inset 0 0 0 2px var(--accent); }
 .daystrip__day[aria-pressed="true"] { background: var(--accent); }
 .daystrip__day[aria-pressed="true"] small, .daystrip__day[aria-pressed="true"] b { color: var(--on-accent); }
-.daystrip__day:active { transform: scale(.96); }
+.daystrip__day[data-pressed] { transform: scale(.96); }
 .catchup { margin-top: var(--sp-3); min-height: 40px; padding: 0 var(--sp-4); border: 0; border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent); font: 600 var(--fs-sub) var(--font-ui); cursor: pointer; }
-.catchup:active { opacity: .7; }
+.catchup[data-pressed] { opacity: .7; }
 .plan-done { margin: 0; padding: var(--sp-3) 4px 0; font: 600 15px var(--font-ui); color: var(--accent); animation: pop-in var(--dur-3) var(--ease-spring); }

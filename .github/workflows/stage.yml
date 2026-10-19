@@ -168,6 +168,10 @@ jobs:
           # The app shell serves at the root (SPA fallback).
           curl -sf -o /dev/null -w "app: %{http_code}\n" "$URL/"
           curl -sf "$URL/app/" | grep -q "/assets/"
+          # The Bible Strong fork at /app/strong, and a deep link inside it, get the fork's page.
+          curl -sf "$URL/app/strong/" | grep -q "/app/strong/_expo/static/js/web/entry-"
+          curl -sf "$URL/app/strong/bible/kjv/john/3" | grep -q "/app/strong/_expo/static/js/web/entry-"
+          echo "fork: ok"
       - name: Verify authenticated search and provider consent
         working-directory: bot
         env:
@@ -175,6 +179,8 @@ jobs:
           BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
           EXPECTED_SEARCH_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8"
           VERIFY_ACCOUNT_SYNC: "true"
+          # Staging's small free answer budget is shared by every run; a spent day is reported, not failed.
+          ALLOW_FREE_PAUSED: "1"
         run: node scripts/verify-release.mjs
 
   verify-current:

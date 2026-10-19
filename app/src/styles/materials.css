@@ -39,6 +39,11 @@
 }
 .head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-3); min-width: 0; }
 .head > div { min-width: 0; }
+.head__back + div { flex: 1; }
+/* The ← sits over the bar's padding, out of its flow, so it never changes the bar's height (the
+   large title's collapse keeps the page still by those heights). */
+.head__back { position: absolute; inset-inline-start: calc(var(--gutter) - var(--sp-2)); bottom: var(--sp-2); }
+.screen > .head:has(> .head__back) > div { padding-inline-start: calc(var(--touch) + var(--sp-1)); }
 .head__actions { display: flex; gap: var(--sp-2); flex: none; }
 
 /* The header bar: sticky, full bleed, on the navigation glass with a scroll edge that lets the page
@@ -82,7 +87,7 @@
   border: .5px solid var(--dock-edge-override, var(--mat-edge));
   box-shadow: var(--mat-highlight), var(--mat-shadow);
   touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
-  transition: transform var(--dur-4) var(--drawer-ease);
+  transition: transform var(--drawer-dur) var(--drawer-ease);
 }
 /* One regular material behind the controls, in Safari as well as Chromium. The selection is a
    fill on this surface, never a second backdrop filter over the labels. */
@@ -114,7 +119,7 @@ html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__ba
   border: 0; border-radius: var(--r-inner); background: none; color: var(--dock-ink-override, var(--text-2)); cursor: pointer;
 }
 .tab__glyph { display: grid; place-items: center; height: 26px; transition: transform var(--dur-1) var(--ease); }
-.tabs .tab:active .tab__glyph { transform: scale(.88); }
+.tabs .tab[data-pressed] .tab__glyph { transform: scale(.88); }
 .tab__label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font: 500 .65625rem/1.1 var(--font-ui); letter-spacing: -.01em; }
 /* With large text a label no longer fits its tab: rather than break mid-word, the phone dock's tab
    keeps its glyph alone (each tab is named by aria-label); the desktop rail grows, its labels
@@ -172,7 +177,7 @@ html[data-transparency="reduced"] .tabs::after { display: none; }
   .tabs[data-lift] .tabs__pill { transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)); }
   .tabs__pill, .tabs .tab__glyph { scale: none; }
   .tabs .tab__glyph { transform: none; }
-  .tabs .tab:active .tab__glyph { transform: none; }
+  .tabs .tab[data-pressed] .tab__glyph { transform: none; }
   .tabs__pill[data-flow]::after { animation: none; }
   .tabs::after { display: none; }
 }
@@ -231,13 +236,13 @@ html:has([data-sheet-open]) .tabs { z-index: 40; }
 /* ── Page actions: the screen's buttons, floating just above the dock ────────────────────── */
 .pageactions { position: fixed; z-index: var(--z-actions); left: var(--gutter); right: var(--gutter); max-width: 600px; margin: 0 auto;
   bottom: calc(var(--dock-space) + var(--sp-3)); display: flex; gap: var(--sp-2); justify-content: center; pointer-events: none;
-  transition: transform var(--dur-4) var(--drawer-ease); }
+  transition: transform var(--drawer-dur) var(--drawer-ease); }
 #root .pageaction { pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); flex: 1 1 0; max-width: 320px; height: var(--h-md); padding: 0 18px;
   border-radius: var(--r-pill); border: .5px solid color-mix(in srgb, #ffffff 22%, transparent); cursor: pointer;
   background: var(--accent); color: var(--on-accent); font: 600 15px var(--font-ui);
   box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 28%, transparent), var(--shadow-2);
   transition: transform var(--dur-1) var(--ease), opacity var(--dur-2) ease; }
-#root .pageaction:active { transform: scale(.97); }
+#root .pageaction[data-pressed] { transform: scale(.97); }
 #root .pageaction:disabled { opacity: var(--disabled-opacity); cursor: default; }
 /* The quiet one is a content-tinted capsule (no filter of its own: the dock is already frosted). */
 #root .pageaction--quiet { background: var(--mat-overlay); color: var(--text-1); border-color: var(--mat-edge); box-shadow: var(--mat-highlight), var(--shadow-2); }
@@ -247,15 +252,18 @@ html[data-typing] .pageactions { display: none; }
 @media (min-width: 900px) { .pageactions { left: calc(var(--rail-space) + var(--gutter)); } }
 
 /* ── Drawers: Home and the menu, pushing the app aside ────────────────────────────────────── */
-:root { --drawer-w: min(95vw, 450px); --drawer-ease: cubic-bezier(.2, .9, .25, 1); }
-#shell .route { transition: transform var(--dur-4) var(--drawer-ease); }
+/* Bible Strong's drawer moves on Reanimated 4's default spring (mass 4, stiffness 900, damping 120:
+   critically damped, so it eases in without a bounce and rests after about 600 ms), sampled here. */
+:root { --drawer-w: min(95vw, 450px); --drawer-dur: 600ms;
+  --drawer-ease: linear(0, .055 4.2%, .1734 8.3%, .3101 12.5%, .4422 16.7%, .5591 20.8%, .6575 25%, .7374 29.2%, .8009 33.3%, .8503 37.5%, .8883 41.7%, .9172 45.8%, .9389 50%, .9551 54.2%, .9672 58.3%, .9761 62.5%, .9826 66.7%, .9874 70.8%, .9909 75%, .9935 79.2%, .9953 83.3%, .9966 87.5%, .9976 91.7%, .9983 95.8%, 1); }
+#shell .route { transition: transform var(--drawer-dur) var(--drawer-ease); }
 html[data-drawer-pin] #shell .route { position: fixed; top: var(--drawer-y, 0); left: 0; right: 0; min-height: 100dvh; }
 html[data-drawer="home"] #shell .route, html[data-drawer="home"] .tabs, html[data-drawer="home"] .pageactions { transform: translateX(var(--drawer-w)); }
 html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[data-drawer="more"] .pageactions { transform: translateX(calc(-1 * var(--drawer-w))); }
 .drawer { position: fixed; top: 0; bottom: 0; z-index: var(--z-drawer); width: var(--drawer-w); display: flex; flex-direction: column;
   background: var(--surface-1); color: var(--text-2); overscroll-behavior: contain;
-  box-shadow: var(--shadow-3); transition: transform var(--dur-4) var(--drawer-ease), visibility 0s linear var(--dur-4); visibility: hidden; }
-.drawer[data-open] { visibility: visible; transition: transform var(--dur-4) var(--drawer-ease); }
+  box-shadow: var(--shadow-3); transition: transform var(--drawer-dur) var(--drawer-ease), visibility 0s linear var(--drawer-dur); visibility: hidden; }
+.drawer[data-open] { visibility: visible; transition: transform var(--drawer-dur) var(--drawer-ease); }
 .drawer--home { left: 0; transform: translateX(-100%); border-right: .5px solid var(--mat-edge); }
 .drawer--more { right: 0; transform: translateX(100%); border-left: .5px solid var(--mat-edge); }
 .drawer[data-open] { transform: none; }
@@ -295,7 +303,7 @@ html[data-modal] { overflow: hidden; }
 .sheet__items { border-radius: var(--r-lg); background: var(--surface-2); overflow: hidden; }
 .sheet__item { display: flex; align-items: center; gap: var(--sp-3); width: 100%; min-height: var(--h-lg); padding: 10px 14px; border: 0; background: none; text-align: left; cursor: pointer; font: inherit; color: inherit; transition: none; }
 .sheet__item:hover { background: var(--state-hover); }
-.sheet__item:active { background: var(--state-press); }
+.sheet__item[data-pressed] { background: var(--state-press); }
 .sheet__item + .sheet__item { border-top: .5px solid var(--hairline); }
 .sheet__item b { display: block; font: 500 var(--fs-body) var(--font-ui); color: var(--text-1); }
 .sheet__item small { display: block; font-size: var(--fs-footnote); color: var(--text-3); }
@@ -326,7 +334,7 @@ html[data-modal] { overflow: hidden; }
 html[data-actions] .toasts { bottom: calc(var(--dock-space) + var(--h-md) + var(--sp-5)); }
 .toast { pointer-events: auto; position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; max-width: min(100%, 440px); padding: 12px 14px; border-radius: var(--r-lg);
   background: var(--mat-overlay); color: var(--text-1); border: .5px solid var(--mat-edge); box-shadow: var(--mat-highlight), var(--shadow-3);
-  font: 500 var(--fs-sub)/var(--lh-snug) var(--font-ui); animation: toast-in var(--dur-3) var(--ease); }
+  font: 500 var(--fs-sub)/var(--lh-snug) var(--font-ui); animation: materialize var(--dur-3) var(--ease-spring); }
 .toast[data-tone="error"] { border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
 .toast__icon { flex: none; display: grid; color: var(--accent); }
 .toast[data-tone="error"] .toast__icon { color: var(--danger); }
@@ -358,3 +366,46 @@ html[data-actions] .toasts { bottom: calc(var(--dock-space) + var(--h-md) + var(
 }
 html[data-transparency="reduced"] .rail-background { display: none; }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) { .rail-background { display: none; } }
+
+/* iOS 26's large title, shrunk into the bar once the page scrolls under it (ui.tsx, useLargeTitle). */
+/* The bar makes up for its own change in height (useLargeTitle), so scroll anchoring must not make
+   up for it a second time: Firefox adjusts for the frame before the bar settles and keeps the
+   adjustment, leaving a scroll short by the difference. */
+.screen, .screen * { overflow-anchor: none; }
+.screen > .head[data-compact] { align-items: center; padding-top: calc(var(--sp-1) + var(--safe-top)); padding-bottom: var(--sp-1); min-height: calc(var(--touch) + var(--sp-2)); }
+.screen > .head[data-compact] .kicker { display: none; }
+.screen > .head[data-compact] > div:first-of-type { flex: 1; text-align: center; }
+.screen > .head[data-compact] .head__back { top: var(--safe-top); bottom: 0; margin-block: auto; }
+.screen > .head[data-compact]:has(> .head__back) > div { padding-inline: calc(var(--touch) + var(--sp-1)); }
+.screen > .head[data-compact] .title { font-size: var(--fs-callout); font-weight: 600; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: title-in var(--dur-2) var(--ease); }
+@keyframes title-in { from { opacity: 0; transform: translateY(4px); } }
+
+/* ── Adaptive glass (iOS 26) ─────────────────────────────────────────────────────────────────
+   Small glass flips with the content under it (ui/adaptive-bars.ts): a light dock over light
+   content in the dark scheme, a dark one over dark content in the light scheme. Contrast and
+   solid-glass preferences keep their own fixed dock. */
+@media not ((prefers-contrast: more) or (forced-colors: active) or (prefers-reduced-transparency: reduce)) {
+  html:not([data-transparency="reduced"]) .tabs[data-over="light"] { --dock-tint-override: color-mix(in srgb, #f5f5f7 var(--mat-density), transparent); --dock-ink-override: #3a3a3c; --text-1: #1c1c1e; --text-2: #3a3a3c; --text-3: #636366; --mat-selected: color-mix(in srgb, #000 9%, transparent); --mat-edge: color-mix(in srgb, #000 10%, transparent); color-scheme: light; color: #1c1c1e; }
+  html:not([data-transparency="reduced"]) .tabs[data-over="dark"] { --dock-tint-override: color-mix(in srgb, #1c1c1e var(--mat-density), transparent); --dock-ink-override: #d1d1d6; --text-1: #f5f5f7; --text-2: #d1d1d6; --text-3: #aeaeb2; --mat-selected: color-mix(in srgb, #fff 13%, transparent); --mat-edge: color-mix(in srgb, #fff 14%, transparent); color-scheme: dark; color: #f5f5f7; }
+}
+/* Glass materializes rather than fades: it gathers from a soft blur as it grows into place. */
+@keyframes materialize { from { opacity: 0; transform: scale(.92); filter: blur(6px); } 60% { filter: blur(0); } to { opacity: 1; transform: none; filter: none; } }
+@media (prefers-reduced-motion: reduce) { @keyframes materialize { from { opacity: 0; } to { opacity: 1; } } }
+/* While the dock samples what is under it (ui/adaptive-bars.ts), the floating layers take no hits. */
+html[data-bar-sampling] :is(.tabs, .tabs *, .glass-light, .pageactions, .pageactions *, .audio-player, .audio-player *, .toasts, .toasts *) { pointer-events: none !important; }
+
+/* ── Interactive glass (iOS 26) ──────────────────────────────────────────────────────────────
+   The light under the finger (ui/glass-light.ts): drawn over the touched glass surface, clipped
+   to its shape, following the finger and fading out when it lifts. */
+.glass-light {
+  position: fixed; z-index: 2147483000; pointer-events: none; overflow: hidden; opacity: 0; transition: opacity .35s ease-out;
+  background: radial-gradient(circle var(--light-r, 120px) at var(--light-x, 50%) var(--light-y, 50%), color-mix(in srgb, white 14%, transparent), color-mix(in srgb, white 4%, transparent) 55%, transparent 100%);
+}
+.glass-light[data-on] { opacity: 1; transition-duration: .12s; }
+html[data-theme="light"] .glass-light, html[data-theme="sepia"] .glass-light { mix-blend-mode: plus-lighter; }
+html[data-transparency="reduced"] .glass-light { display: none; }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) { .glass-light { display: none; } }
+/* Glass controls swell a little under the finger and spring back with a small bounce when it lifts,
+   where content controls press in. The overshoot comes from the spring curve on the way back. */
+#root :is(.screen > .head, .srch__bar, .chat2__bar, .reader__bar, .tlh, .pv__bar) :is(.icon-btn, .btn), #root .pageaction { transition: transform var(--dur-4) var(--ease-spring), opacity var(--dur-2) ease; }
+#root :is(.screen > .head, .srch__bar, .chat2__bar, .reader__bar, .tlh, .pv__bar) :is(.icon-btn, .btn)[data-pressed]:not(:disabled), #root .pageaction[data-pressed]:not(:disabled) { transform: scale(var(--glass-press-scale)); transition-duration: var(--dur-1); transition-timing-function: var(--ease); }

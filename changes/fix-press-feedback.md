@@ -1,0 +1,2 @@
+- Buttons and rows light up a moment after your finger lands, as in Bible Strong, and no longer flash when you only meant to scroll.
+- A swipe toward the edge closes the Home and Menu drawers on a phone too.

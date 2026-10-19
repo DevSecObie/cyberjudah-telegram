@@ -13,10 +13,12 @@ import { Button as ControlButton } from "@/ui/Button";
  * leaves the page tappable behind it, as the selected-verses sheet does. Telegram's back
  * button shows while it is open and closes it first (tg/hooks), and it can always be closed
  * with its ✕ (unless `closable` is false: Bible Strong's selection sheet has none) or by swiping
- * it down by the handle or the title.
+ * it down by the handle or the title. `expandable` false keeps it at its content's height (Bible
+ * Strong's sheets are auto-height unless given snap points); `dragAnywhere` lets a downward drag
+ * from anywhere on it close it, as a native sheet does, while sideways gestures stay its content's.
  */
-export function Sheet({ open, onClose, backdrop = true, height = "auto", title, subTitle, hasBack, onBack, right, left, children, footer, className, label, closable = true, actions = false }: {
-  open: boolean; onClose: () => void; backdrop?: boolean; closable?: boolean; height?: "auto" | "half" | "full" | "40"; title?: ReactNode; subTitle?: ReactNode; hasBack?: boolean; onBack?: () => void; right?: ReactNode; left?: ReactNode; children?: ReactNode; footer?: ReactNode; className?: string; label?: string; actions?: boolean;
+export function Sheet({ open, onClose, backdrop = true, height = "auto", title, subTitle, hasBack, onBack, right, left, children, footer, className, label, closable = true, actions = false, expandable = true, dragAnywhere = false }: {
+  open: boolean; onClose: () => void; backdrop?: boolean; closable?: boolean; height?: "auto" | "half" | "full" | "40"; title?: ReactNode; subTitle?: ReactNode; hasBack?: boolean; onBack?: () => void; right?: ReactNode; left?: ReactNode; children?: ReactNode; footer?: ReactNode; className?: string; label?: string; actions?: boolean; expandable?: boolean; dragAnywhere?: boolean;
 }) {
   const [drag, setDrag] = useState(0);
   const [tall, setTall] = useState(false);
@@ -25,11 +27,36 @@ export function Sheet({ open, onClose, backdrop = true, height = "auto", title, 
   const dragged = useRef(false);
   useEffect(() => { if (open) return sheetOpened(); }, [open]);
   useEffect(() => { if (!open) { setDrag(0); setTall(false); } }, [open]);
+  // As vaul's drawer (Bible Strong's sheets): a sheet does not follow the finger in its first
+  // 500 ms, so the touch that opened it, or a finger still resting on it, does not move it.
+  const openedAt = useRef(0);
+  useEffect(() => { if (open) openedAt.current = performance.now(); }, [open]);
+  const settled = () => performance.now() - openedAt.current >= 500;
   // Swipe by the handle or the title bar: down follows the finger and closes past 90 px; up
   // opens a shorter sheet to full height.
-  const down = (e: RPointerEvent) => { if ((e.target as HTMLElement).closest("button:not(.bs-sheet__resize)")) return; dragged.current = false; start.current = e.clientY; ((e.target as HTMLElement).closest(".bs-sheet__resize") ?? e.currentTarget).setPointerCapture(e.pointerId); };
-  const move = (e: RPointerEvent) => { if (start.current !== null) { const dy = e.clientY - start.current; if (Math.abs(dy) > 6) dragged.current = true; setDrag(dy); } };
-  const up = (e: RPointerEvent) => { if (start.current === null) return; const dy = e.clientY - start.current; start.current = null; if (Math.abs(dy) > 6) dragged.current = true; if (dy > 90) onClose(); else if (dy < -60 && height !== "full" && !tall) { previousTop.current = box.current?.getBoundingClientRect().top ?? null; setTall(true); } setDrag(0); };
+  // Where the sheet sat when the drag began: dragging up stretches it toward the screen's edges.
+  const rest = useRef<DOMRect | null>(null);
+  const down = (e: RPointerEvent) => { if ((e.target as HTMLElement).closest("button:not(.bs-sheet__resize)")) return; dragged.current = false; start.current = e.clientY; rest.current = box.current?.getBoundingClientRect() ?? null; ((e.target as HTMLElement).closest(".bs-sheet__resize") ?? e.currentTarget).setPointerCapture(e.pointerId); };
+  const move = (e: RPointerEvent) => { if (start.current !== null && settled()) { const dy = e.clientY - start.current; if (Math.abs(dy) > 6) dragged.current = true; setDrag(dy); } };
+  const up = (e: RPointerEvent) => { if (start.current === null) return; const dy = e.clientY - start.current; start.current = null; if (Math.abs(dy) > 6) dragged.current = true; if (dy > 90) onClose(); else if (dy < -60 && height !== "full" && !tall && expandable) { previousTop.current = box.current?.getBoundingClientRect().top ?? null; setTall(true); } setDrag(0); };
+  // A drag that starts anywhere on the sheet: it becomes the sheet's once it moves 8 px more down
+  // than sideways (a sideways move stays the row's scroll or the tabs' swipe); then the sheet
+  // follows the finger, closes past 90 px, and the press it began with does not also click.
+  const body = useRef<{ x: number; y: number; id: number; on: boolean } | null>(null);
+  const swallow = useRef(false);
+  const bodyDown = (e: RPointerEvent) => { swallow.current = false; if (!dragAnywhere || (e.target as HTMLElement).closest(".bs-sheet__grab, input, textarea")) return; body.current = { x: e.clientX, y: e.clientY, id: e.pointerId, on: false }; };
+  const bodyMove = (e: RPointerEvent) => {
+    const b = body.current; if (!b || b.id !== e.pointerId || !settled()) return;
+    const dx = e.clientX - b.x, dy = e.clientY - b.y;
+    if (!b.on) {
+      if (Math.abs(dx) > 8 && Math.abs(dx) >= Math.abs(dy)) { body.current = null; return; }
+      if (dy > 8 && dy > Math.abs(dx)) { b.on = true; swallow.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* the pointer already ended */ } }
+      else return;
+    }
+    setDrag(Math.max(0, dy));
+  };
+  const bodyUp = (e: RPointerEvent) => { const b = body.current; body.current = null; if (!b?.on || b.id !== e.pointerId) return; const dy = e.clientY - b.y; setDrag(0); if (dy > 90) onClose(); };
+  const bodyCancel = () => { if (body.current?.on) setDrag(0); body.current = null; };
   // A sheet over a dimmed page holds the focus; one that leaves the page usable (no backdrop) does not.
   const box = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -41,14 +68,28 @@ export function Sheet({ open, onClose, backdrop = true, height = "auto", title, 
     const animation = el.animate([{ transform: reduced ? "none" : `translateY(${from - el.getBoundingClientRect().top}px)`, opacity: .8 }, { transform: "none", opacity: 1 }], { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" });
     return () => animation.cancel();
   }, [tall]);
+  // iOS 26: pulled up, an inset sheet gradually stretches to the screen's edges and loses its
+  // bottom corners, growing a little as it goes; past 60 px it opens to full height. A sheet that
+  // cannot grow stays put, as vaul's drawer damps an upward pull on a sheet with nowhere to go.
+  const grow = (dy: number) => {
+    const lift = -Math.sqrt(-dy) * 3, r = rest.current;
+    if (!expandable || tall || height === "full" || !r) return undefined;
+    const p = Math.min(1, -dy / 160), side = (innerWidth - r.width) / 2, below = innerHeight - r.bottom;
+    return { transform: `translateY(${lift * (1 - p) + p * below}px) scaleX(${1 + p * 2 * Math.max(0, side) / r.width})`, transformOrigin: "50% 100%",
+      borderBottomLeftRadius: `calc(var(--r-outer) * ${1 - p})`, borderBottomRightRadius: `calc(var(--r-outer) * ${1 - p})`, transition: "none" };
+  };
   useModal(box, open, onClose, { lock: backdrop, trap: backdrop });
   if (!open) return null;
   return (
     <div className={`sheet__scrim bs-scrim${backdrop ? "" : " bs-scrim--clear"}`} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div ref={box} className={`bs-sheet bs-sheet--${tall ? "full" : height}${className ? ` ${className}` : ""}`} role="dialog" aria-modal={backdrop} aria-label={label ?? (typeof title === "string" ? title : "Sheet")} data-sheet-open="" data-actions={actions && !tall && height !== "full" ? "" : undefined}
-        style={drag > 0 ? { transform: `translateY(${drag}px)`, transition: "none" } : undefined}>
-        <div className="bs-sheet__grab" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; setDrag(0); }}>
-          {height === "full" ? <div className="bs-sheet__handle" aria-hidden="true" /> : <button type="button" className="bs-sheet__resize" aria-label={tall ? "Collapse sheet" : "Expand sheet"} title={tall ? "Collapse sheet" : "Expand sheet"} aria-expanded={tall} onClick={e => { if (e.detail && dragged.current) return; previousTop.current = box.current?.getBoundingClientRect().top ?? null; setTall(!tall); }}><span className="bs-sheet__handle" aria-hidden="true" /></button>}
+        style={drag > 0 ? { transform: `translateY(${drag}px)`, transition: "none" } : drag < 0 ? grow(drag) : undefined}
+        data-drag-anywhere={dragAnywhere ? "" : undefined} onPointerDown={bodyDown} onPointerMove={bodyMove} onPointerUp={bodyUp} onPointerCancel={bodyCancel}
+        onClickCapture={(e) => { if (swallow.current) { swallow.current = false; e.preventDefault(); e.stopPropagation(); } }}>
+        {/* The empty click handler makes the strip a tap target of its own: without one, Android's
+            touch adjustment moves a tap here onto the nearest button below (a highlight colour). */}
+        <div className="bs-sheet__grab" onClick={() => {}} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; setDrag(0); }}>
+          {height === "full" || !expandable ? <div className="bs-sheet__handle" aria-hidden="true" /> : <button type="button" className="bs-sheet__resize" aria-label={tall ? "Collapse sheet" : "Expand sheet"} title={tall ? "Collapse sheet" : "Expand sheet"} aria-expanded={tall} onClick={e => { if (e.detail && dragged.current) return; previousTop.current = box.current?.getBoundingClientRect().top ?? null; setTall(!tall); }}><span className="bs-sheet__handle" aria-hidden="true" /></button>}
           {title !== undefined ? (
             <div className="bs-sheet__header">
               <div className="bs-sheet__side">{hasBack ? <button type="button" className="bs-iconbtn" aria-label="Back" title="Back" onClick={onBack ?? onClose}><Feather name="arrow-left" size={20} /></button> : left}</div>

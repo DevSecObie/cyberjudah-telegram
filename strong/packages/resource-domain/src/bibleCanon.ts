@@ -3,12 +3,14 @@ export type BibleCanonId =
   | 'catholic-73'
   | 'clementine-vulgate'
   | 'theotex-septuagint'
+  | 'kjv-1611'
 
 export const BIBLE_CANON_IDS = [
   'protestant-66',
   'catholic-73',
   'clementine-vulgate',
   'theotex-septuagint',
+  'kjv-1611',
 ] as const satisfies readonly BibleCanonId[]
 
 export const isBibleCanonId = (value: string): value is BibleCanonId =>

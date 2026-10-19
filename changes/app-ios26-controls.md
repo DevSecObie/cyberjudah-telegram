@@ -1,0 +1,3 @@
+- Segmented controls: the selection lifts into clear glass under the finger and springs between segments, as on iOS 26.
+- Sliders have iOS 26's narrow capsule knob, which turns to glass while dragged.
+- Settings › Glass offers Clear (the default), Tinted (iOS 26.1's more opaque glass) and Solid (no transparency), replacing the Reduce transparency switch; the saved choice carries over.

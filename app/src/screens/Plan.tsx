@@ -18,7 +18,7 @@ import { Card, Empty, Screen, Section, Skeleton } from "@/ui/ui";
  * offers to catch up or to move the schedule to today.
  */
 export function Plan() {
-  useBackButton(false);
+  useBackButton();
   const sheet = useSheet();
   const navigate = useNavigate();
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });

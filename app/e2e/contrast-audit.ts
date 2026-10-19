@@ -1,5 +1,8 @@
 /** Runs in the page: canvas resolves browser color syntax and composites real alpha values. */
-export function auditContrast(options?: { includePanels?: boolean }) {
+export function auditContrast(options?: { includePanels?: boolean; fadedContext?: boolean }) {
+  // While verses are selected, Bible Strong fades every other verse to 0.3 on purpose so the
+  // selection stands out; with fadedContext those verses are left out and the selection is audited.
+  const selecting = !!options?.fadedContext && !!document.querySelector('[id^="verset-"][data-selected]');
   const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
   const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
   const sample = (...colors: string[]) => {
@@ -48,6 +51,7 @@ export function auditContrast(options?: { includePanels?: boolean }) {
     if (!Array.from(element.childNodes).some(n => n.nodeType === Node.TEXT_NODE && n.textContent?.trim())) continue;
     const rect = element.getBoundingClientRect(), style = getComputedStyle(element);
     if (!rect.width || !rect.height || style.visibility !== "visible" || element.closest('[inert], [aria-hidden="true"], :disabled, .tabs') || (!options?.includePanels && element.closest('.bs-header, .sheet, .bs-sheet'))) continue;
+    if (selecting && element.closest('[id^="verset-"]:not([data-selected])')) continue;
     const stack: HTMLElement[] = []; let ancestor: HTMLElement | null = element, opacity = 1;
     while (ancestor) { stack.unshift(ancestor); opacity *= Number(getComputedStyle(ancestor).opacity); ancestor = ancestor.parentElement; }
     if (!opacity) continue;

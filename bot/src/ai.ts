@@ -213,9 +213,13 @@ async function startMeterFor(env: Env, uid: number, model: AskModel, opts: Meter
   const limit = opts.maxMc ?? opts.caps?.[model.id];
   const accepted = limit && limit > 0 ? Math.round(limit) : null;
   if (accepted === null && est.maxMc > cfg.confirmAboveMc) return { ok: false, status: 409, body: { error: "confirm", model: model.id, name: model.name, typical_mc: typical, max_mc: est.maxMc } };
-  const cap = Math.min(est.maxMc, accepted ?? est.maxMc);
   // Enough to begin: half a typical answer (at least a tenth of a cent); with less it would be cut off.
-  const minMc = Math.min(cap, Math.max(1000, Math.ceil(typical / 2)));
+  const floor = Math.min(est.maxMc, Math.max(1000, Math.ceil(typical / 2)));
+  // A limit below that is not a price anyone can answer for: it is asked again, never held as
+  // nothing (a hold of 0 would charge 0 and leave the whole answer to the owner).
+  if (accepted !== null && accepted < floor) return { ok: false, status: 409, body: { error: "confirm", model: model.id, name: model.name, typical_mc: typical, max_mc: est.maxMc } };
+  const cap = Math.min(est.maxMc, accepted ?? est.maxMc);
+  const minMc = Math.min(cap, floor);
   const h = await hold(env, owner, request, cap, minMc, model.id);
   // Not enough: the free model is offered, and a top-up.
   if (!h.ok && "reason" in h) return { ok: false, status: 409, body: { error: "request-used", message: "This request already started. Wait for its answer or send a new request." } };
@@ -310,7 +314,23 @@ export function searchModel(env: Env): AskModel | null {
  * external provider requires consent before retrieval or metering. No reader balance is held,
  * and no tools or web searches are offered to the model. Admin searches share the daily limit.
  */
-export async function answerSearch(env: Env, q: string, uid: number, consent: string[] = []): Promise<SearchAnswer> {
+/**
+ * How long a search answer may take, retrieval and model together. Past it the reader is told the
+ * answer is unavailable, and the keyword results stand, rather than waiting on a stalled model.
+ * Uncached answers take 30-50 s in production today (live-smoke's search-answer-latency), so this
+ * only cuts off answers that would not come: 55 s. The release check waits 75 s for an answer, which
+ * leaves room for the metering before and after.
+ */
+export const SEARCH_ANSWER_DEADLINE_MS = 55_000;
+export class DeadlineError extends Error { constructor(ms: number) { super(`deadline of ${ms} ms passed`); this.name = "DeadlineError"; } }
+/** The work's result, or a DeadlineError once `ms` have passed (the work itself is not cancelled). */
+export function withDeadline<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new DeadlineError(ms)), ms); });
+  return Promise.race([work, late]).finally(() => clearTimeout(timer));
+}
+
+export async function answerSearch(env: Env, q: string, uid: number, consent: string[] = [], deadlineMs = SEARCH_ANSWER_DEADLINE_MS): Promise<SearchAnswer> {
   const t0 = Date.now();
   const question = q.trim().slice(0, 200);
   if (question.length < 2) return { ok: false, reason: "too-short" };
@@ -321,8 +341,13 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
   if (!started.ok) return { ok: false, reason: started.body.error === "free-paused" ? "free-paused" : "unavailable" };
   const meter = started.meter;
   const spend = meter.spend;
+  // One clock for retrieval and the model: it starts when retrieval does.
+  const tRetrieve = Date.now();
+  const deadlineAt = tRetrieve + deadlineMs;
+  let retrieveMs = 0;
   try {
-    const passages = answerCandidates(question, await retrieve(env, question, 12, spend), 8);
+    const passages = answerCandidates(question, await withDeadline(retrieve(env, question, 12, spend), deadlineMs), 8);
+    retrieveMs = Date.now() - tRetrieve;
     if (!passages.length) {
       await finishMeter(env, meter, "empty", Date.now() - t0);
       return { ok: true, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], model: model.id, provider: model.provider, ms: Date.now() - t0 };
@@ -331,15 +356,20 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
     const prompt = buildPrompt(question, passages);
     const system = prompt.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
     const messages = prompt.filter((m): m is { role: "user" | "assistant"; content: string } => m.role !== "system");
-    const ran = await researchOpen(env, { ...model, format: "plain" }, system, messages,
-      [], new Map(), async () => ({ content: "No tools are available." }), () => undefined, 1, spend);
+    const left = deadlineAt - Date.now();
+    if (left <= 0) throw new DeadlineError(deadlineMs);
+    const tModel = Date.now();
+    const ran = await withDeadline(researchOpen(env, { ...model, format: "plain" }, system, messages,
+      [], new Map(), async () => ({ content: "No tools are available." }), () => undefined, 1, spend), left);
+    // Where the time goes, for tuning: finding the passages, and the model writing the answer.
+    console.log(JSON.stringify({ event: "search_answer_timing", retrieveMs, modelMs: Date.now() - tModel, totalMs: Date.now() - t0 }));
     const { answer } = splitFollowups(ran.text);
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, "ok", Date.now() - t0);
     return { ok: true, answer, sources: sourcesOf(answer, passages), model: model.id, provider: model.provider, ms: Date.now() - t0 };
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
-    console.error(JSON.stringify({ event: "search_answer_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 160) }));
+    console.error(JSON.stringify({ event: e instanceof DeadlineError ? "search_answer_timeout" : "search_answer_failed", elapsedMs: Date.now() - t0, retrieveMs, message: (e as Error).message?.slice(0, 160) }));
     return { ok: false, reason: "unavailable" };
   }
 }

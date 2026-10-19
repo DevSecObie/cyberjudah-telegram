@@ -3,7 +3,15 @@ import { studySchema, type Study } from "./model";
 import { personalStore, store } from "@/tg/store";
 import { archiveSchema } from "@shared/studies";
 
-export type Annotation = { id: string; verseKey: string; start: number; end: number; quote: string; style: "highlight" | "underline" | "circle"; created: string };
+export type AnnotationNote = { title: string; description: string; date: number };
+/**
+ * One verse's part of a word mark. A mark over several verses (Bible Strong's WordAnnotation with
+ * its ranges) is one record per verse sharing `group`; a record without one is a mark on its own.
+ * `color`, `note` and `tags` are carried by every record of the mark.
+ */
+export type Annotation = { id: string; verseKey: string; start: number; end: number; quote: string; style: "highlight" | "underline" | "circle"; /** A highlight colour key (color1, a custom colour id); none draws the original phrase style. */ color?: string; group?: string; note?: AnnotationNote; tags?: Record<string, true>; created: string };
+/** The mark a record belongs to. */
+export const markId = (a: Annotation) => a.group ?? a.id;
 interface StudyDB extends DBSchema {
   studies: { key: string; value: Study };
   annotations: { key: string; value: Annotation; indexes: { verse: string } };
@@ -60,19 +68,65 @@ export const verseAnnotations = async (key: string): Promise<Annotation[]> => {
   const sync = await personalStore();
   return sync ? (Object.values(JSON.parse(sync.get("wordAnnotations"))) as Annotation[]).filter(a => a.verseKey === key) : (await database()).getAllFromIndex("annotations", "verse", key);
 };
-export async function addAnnotation(a: Annotation, text: string) {
-  if (!Number.isInteger(a.start) || !Number.isInteger(a.end) || a.start < 0 || a.end <= a.start || a.end > text.length || text.slice(a.start, a.end) !== a.quote || !["highlight", "underline", "circle"].includes(a.style)) throw new Error("Select a phrase in this verse before saving.");
+/** Every word mark on this device or account. */
+export const allAnnotations = async (): Promise<Annotation[]> => {
   const sync = await personalStore();
-  if (sync) await sync.set("wordAnnotations", JSON.stringify({ [a.id]: a }), JSON.stringify({ [a.id]: JSON.parse(sync.get("wordAnnotations"))[a.id] }));
-  else await (await database()).put("annotations", a);
+  return sync ? Object.values(JSON.parse(sync.get("wordAnnotations"))) as Annotation[] : (await database()).getAll("annotations");
+};
+/** The word marks in one chapter. */
+export const chapterAnnotations = async (slug: string, chapter: number): Promise<Annotation[]> => {
+  const prefix = `${slug}-${chapter}-`;
+  return (await allAnnotations()).filter(a => a.verseKey.startsWith(prefix) && /^\d+$/.test(a.verseKey.slice(prefix.length)));
+};
+const validExtras = (a: Annotation) => (a.group === undefined || (typeof a.group === "string" && a.group.length > 0 && a.group.length <= 64))
+  && (a.note === undefined || (typeof a.note.title === "string" && typeof a.note.description === "string" && a.note.title.length <= 500 && a.note.description.length <= 20_000 && Number.isFinite(a.note.date)))
+  && (a.tags === undefined || Object.values(a.tags).every(v => v === true));
+/** Commit a whole mark operation, including any overlapping marks it replaces, at once. */
+export async function changeAnnotations({ add = [], update = [], remove = [] }: {
+  add?: { annotation: Annotation; text: string }[]; update?: Annotation[]; remove?: string[];
+}) {
+  // Validate every part before opening a write transaction.
+  for (const { annotation: a, text } of add) {
+    if (!validExtras(a) || !Number.isInteger(a.start) || !Number.isInteger(a.end) || a.start < 0 || a.end <= a.start || a.end > text.length || text.slice(a.start, a.end) !== a.quote || !["highlight", "underline", "circle"].includes(a.style) || (a.color !== undefined && (typeof a.color !== "string" || !a.color || a.color.length > 40))) throw new Error("Select a phrase in this verse before saving.");
+  }
+  for (const a of update) {
+    if (!validExtras(a) || !["highlight", "underline", "circle"].includes(a.style) || (a.color !== undefined && (typeof a.color !== "string" || !a.color || a.color.length > 40))) throw new Error("This mark could not be saved.");
+  }
+  if (!add.length && !update.length && !remove.length) return;
+  const updated = (a: Annotation, previous: Annotation): Annotation => ({ ...a, start: previous.start, end: previous.end, quote: previous.quote, verseKey: previous.verseKey });
+  const sync = await personalStore();
+  if (sync) {
+    const records: Record<string, Annotation> = JSON.parse(sync.get("wordAnnotations"));
+    const ids = new Set([...add.map(({ annotation }) => annotation.id), ...update.map(a => a.id), ...remove]);
+    const before = Object.fromEntries([...ids].filter(id => records[id]).map(id => [id, records[id]]));
+    const after = { ...before };
+    for (const id of remove) delete after[id];
+    for (const { annotation } of add) after[annotation.id] = annotation;
+    for (const a of update) if (records[a.id]) after[a.id] = updated(a, records[a.id]);
+    // The personal store emits wordAnnotations once for this batch; its subscription calls changed().
+    await sync.set("wordAnnotations", JSON.stringify(after), JSON.stringify(before));
+    return;
+  }
+  const tx = (await database()).transaction("annotations", "readwrite");
+  try {
+    for (const id of remove) await tx.store.delete(id);
+    for (const { annotation } of add) await tx.store.put(annotation);
+    for (const a of update) {
+      const previous = await tx.store.get(a.id);
+      if (previous) await tx.store.put(updated(a, previous));
+    }
+    await tx.done;
+  } catch (error) {
+    try { tx.abort(); } catch { /* Already aborted by IndexedDB. */ }
+    await tx.done.catch(() => {});
+    throw error;
+  }
   changed();
 }
-export async function removeAnnotation(id: string) {
-  const sync = await personalStore();
-  if (sync) await sync.set("wordAnnotations", null, JSON.stringify({ [id]: JSON.parse(sync.get("wordAnnotations"))[id] }));
-  else await (await database()).delete("annotations", id);
-  changed();
-}
+export const addAnnotation = (annotation: Annotation, text: string) => changeAnnotations({ add: [{ annotation, text }] });
+/** Rewrites a saved record's colour, kind, note or tags; its words and place never change here. */
+export const updateAnnotation = (annotation: Annotation) => changeAnnotations({ update: [annotation] });
+export const removeAnnotation = (id: string) => changeAnnotations({ remove: [id] });
 export async function exportPersonalStudies() {
   const sync = await personalStore();
   if (sync) return { app: "cyberjudah-studies", version: 1, studies: Object.values(JSON.parse(sync.get("studies"))) as Study[], annotations: Object.values(JSON.parse(sync.get("wordAnnotations"))) as Annotation[] };

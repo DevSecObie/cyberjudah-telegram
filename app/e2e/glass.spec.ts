@@ -286,7 +286,10 @@ test("materials: header, menu and selection stay within budget without stacked g
   await page.keyboard.press("Escape");
   await page.locator("#verset-1").click();
   await expect(page.locator(".bs-selected")).toBeVisible();
-  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
+  // While verses are selected Bible Strong's header is solid (the page colour, no glass), so the
+  // selection sheet is the one frosted surface.
+  await expect.poll(() => filteredSurfaces(page)).toEqual(["bs-sheet bs-sheet--auto bs-selected"]);
+  expect(await page.locator(".bs-header").evaluate(e => getComputedStyle(e, "::before").content)).toBe("none");
   // The mobile action row scrolls without turning the action page or selecting an action.
   const row = page.locator("#sv-panel-0 .bs-actions");
   await expect.poll(() => row.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
@@ -296,7 +299,7 @@ test("materials: header, menu and selection stay within budget without stacked g
   if (browserName === "chromium") {
     const session = await page.context().newCDPSession(page);
     await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
-    for (let i = 1; i <= 10; i++) await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x - i * 18, y }] });
+    for (let i = 1; i <= 14; i++) await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x - i * 18, y }] });
     await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
     await session.detach();
   } else {
@@ -423,7 +426,8 @@ for (const theme of ["default", "dark", "sepia"]) {
         const restShadow = await knob.evaluate(e => getComputedStyle(e, "::after").boxShadow);
         await toggle.hover(); await page.mouse.down();
         await expect.poll(() => knob.evaluate(e => new DOMMatrix(getComputedStyle(e, "::after").transform).a)).toBeCloseTo(preference === "motion" ? 1 : 1.2, 5);
-        if (preference !== "forced") expect(await knob.evaluate(e => getComputedStyle(e, "::after").boxShadow)).not.toBe(restShadow);
+        // The pressed look waits out the 50 ms press delay (ui/press.ts).
+        if (preference !== "forced") await expect.poll(() => knob.evaluate(e => getComputedStyle(e, "::after").boxShadow)).not.toBe(restShadow);
         if (["system", "app", "contrast", "forced"].includes(preference)) expect((await materials(page, [[".switch", "::after"]]))[0].alpha).toBe(255);
         await page.mouse.up();
         const label = (await toggle.locator("b").boundingBox())!, thumb = (await toggle.locator(".switch").boundingBox())!;
@@ -524,9 +528,9 @@ for (const theme of ["default", "dark", "sepia"]) {
     await page.getByRole("button", { name: "Scripture options" }).click();
     await page.getByRole("menuitem", { name: /Font and settings/ }).click();
     await page.getByRole("button", { name: "Color palette", exact: true }).click();
-    await page.locator(".bs-palette__row").first().click();
-    const sheet = page.getByRole("dialog", { name: "Edit color", exact: true });
-    const save = sheet.getByRole("button", { name: "Save", exact: true });
+    await page.getByRole("button", { name: "Edit Color 1", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "Edit Color 1", exact: true });
+    const save = sheet.getByRole("button", { name: "Validate", exact: true });
     await expect(save).toBeVisible();
     await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
     await expect.poll(() => save.evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBe(30);
@@ -657,6 +661,50 @@ test("navigation: resizing a minimized dock restores keyboard and first-click na
   await expect(nav).not.toHaveAttribute("data-mini");
   await nav.getByRole("button", { name: "Bible", exact: true }).click();
   await expect(page).toHaveURL(/\/read\//);
+});
+
+test("large titles: the title shrinks into the bar under scroll and returns at the top, and the page under it never moves", async ({ page }) => {
+  await setup(page, "sepia");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  // Every measure of the bar, with its state at that moment, so a failure says when the full height was taken.
+  await page.addInitScript(() => {
+    const log: unknown[] = ((window as unknown as { __bar: unknown[] }).__bar = []);
+    const rect = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      const r = rect.call(this);
+      if (this.matches(".screen > .head")) log.push({ t: Math.round(performance.now()), h: +r.height.toFixed(2), compact: this.hasAttribute("data-compact"), pad: (this.parentElement as HTMLElement).style.paddingTop, y: Math.round(scrollY) });
+      return r;
+    };
+  });
+  await page.goto(`/settings${LAUNCH}`);
+  const head = page.locator(".screen > .head");
+  const bar = () => page.evaluate(() => JSON.stringify((window as unknown as { __bar: unknown[] }).__bar.slice(-12)));
+  await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+  // The full bar's height can change after the page first lays out (a web font arriving, as in
+  // Firefox); the bar must make up for the height it has when it shrinks, not the first one.
+  const plain = await head.evaluate(el => (el as HTMLElement).offsetHeight);
+  await page.addStyleTag({ content: ".screen > .head:not([data-compact]) .title { padding-block: 10px; }" });
+  // WebKit can lay the new padding out after the tag resolves; measure only once the bar has grown.
+  await expect.poll(() => head.evaluate(el => (el as HTMLElement).offsetHeight)).toBeGreaterThan(plain);
+  // Where the first thing under the bar sits in the document, and how tall the document is.
+  const layout = () => page.evaluate(() => { const next = document.querySelector(".screen > .head")!.nextElementSibling!; const bar = document.querySelector(".screen > .head") as HTMLElement; return { at: next.getBoundingClientRect().top + scrollY, height: document.documentElement.scrollHeight, bar: bar.offsetHeight, pad: (bar.parentElement as HTMLElement).style.paddingTop }; });
+  const before = await layout();
+  await page.evaluate(() => { document.documentElement.scrollTop = 120; });
+  await expect(head).toHaveAttribute("data-compact", "");
+  // Firefox can restyle the title a frame after the bar turns compact, and lay the correction out
+  // after that; the page must settle where it was (within a pixel: engines round the padding above
+  // the bar to their own layout units), so wait for that, and report the layout if it never does.
+  const still = await expect.poll(async () => { const l = await layout(); return Math.max(Math.abs(l.at - before.at), Math.abs(l.height - before.height)); }, { timeout: 3000 }).toBeLessThan(1).then(() => true, () => false);
+  const compact = await layout();
+  if (!still) expect(Math.abs(compact.at - before.at), `${JSON.stringify({ before, compact })} ${await bar()}`).toBeLessThan(1);
+  expect(Math.abs(compact.height - before.height)).toBeLessThanOrEqual(1);
+  await page.evaluate(() => { document.documentElement.scrollTop = 0; });
+  await expect(head).not.toHaveAttribute("data-compact");
+  // Firefox can measure the bar a frame before the full title is laid out again; the page must
+  // settle back where it was, so wait for that, and report the layout if it never does.
+  const settled = await expect.poll(async () => Math.abs((await layout()).at - before.at), { timeout: 3000 }).toBeLessThan(1).then(() => true, () => false);
+  if (!settled) { const top = await layout(); expect(Math.abs(top.at - before.at), `${JSON.stringify({ before, compact, top, y: await page.evaluate(() => scrollY) })} ${await bar()}`).toBeLessThan(1); }
 });
 
 test("navigation: document, Bible and Timeline scrolls minimize down and expand up", async ({ page }) => {
@@ -904,14 +952,22 @@ for (const reduced of [false, true]) {
     const selection = page.locator(".bs-selected");
     await expect(selection).toBeVisible();
     await selection.focus();
+    // Bible Strong's selection sheet (a TrueSheet) runs edge to edge along the bottom: rounded on
+    // top only, its content kept inside the safe insets.
     await expect(selection).toHaveCSS("border-top-left-radius", "36px");
-    await expect(selection).toHaveCSS("border-bottom-right-radius", "36px");
+    await expect(selection).toHaveCSS("border-top-right-radius", "36px");
+    await expect(selection).toHaveCSS("border-bottom-right-radius", "0px");
     await expect(page.locator(".bs-scrim--clear")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     await expect(page.locator(".bs-scrim--clear")).toHaveCSS("pointer-events", "none");
-    await expect.poll(async () => Math.round((await selection.boundingBox())!.x)).toBe(22);
-    await expect.poll(async () => { const r = (await selection.boundingBox())!; return Math.round(844 - r.y - r.height); }).toBe(38);
+    await expect.poll(async () => Math.round((await selection.boundingBox())!.x)).toBe(0);
+    await expect.poll(async () => { const r = (await selection.boundingBox())!; return Math.round(844 - r.y - r.height); }).toBe(0);
     const rect = (await selection.boundingBox())!;
-    expect(Math.round(390 - rect.x - rect.width)).toBe(28);
+    expect(Math.round(rect.width)).toBe(390);
+    await expect(selection).toHaveCSS("padding-left", "14px");
+    await expect(selection).toHaveCSS("padding-right", "20px");
+    expect(parseFloat(await selection.evaluate(e => getComputedStyle(e).paddingBottom))).toBeGreaterThanOrEqual(30);
+    // It keeps its content's height: there is no expanding it, only a grabber.
+    await expect(selection.getByRole("button", { name: "Expand sheet", exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Tag", exact: true }).click();
     const sheet = page.getByRole("dialog", { name: "Edit tags", exact: true });
     await expect(sheet).toHaveCSS("border-bottom-left-radius", "36px");
@@ -939,35 +995,30 @@ for (const reduced of [false, true]) {
 }
 
 for (const width of [390, 768, 1280]) {
-  test(`sheets: actions at ${width} anchor and keep the page usable on large screens`, async ({ page }) => {
+  test(`sheets: actions at ${width} anchor to their control and keep the page usable`, async ({ page }) => {
     await setup(page); await page.setViewportSize({ width, height: 844 });
     await page.goto(`/tabs${LAUNCH}`);
     const trigger = page.getByRole("button", { name: /\. Groups$/ }); await trigger.click();
     const menu = page.getByRole("dialog", { name: "Groups", exact: true });
-    await expect(menu).toBeVisible(); await expect(menu).toHaveAttribute("aria-modal", String(width < 768));
-    if (width >= 768) {
-      await expect(page.locator("html")).not.toHaveAttribute("data-modal");
-      const from = (await trigger.boundingBox())!;
-      // This trigger is at the bottom, so the anchored menu opens immediately above it.
-      await expect.poll(async () => { const r = (await menu.boundingBox())!; return Math.abs(from.y - r.y - r.height - 8); }).toBeLessThanOrEqual(1);
-      await page.getByRole("button", { name: "Add a tab", exact: true }).click();
-      await expect(menu).toHaveCount(0); await expect(page).toHaveURL(/\/new/);
-      await expect(page.getByRole("heading", { name: "What would you like to explore?" })).toBeVisible();
-      await page.goto(`/tabs${LAUNCH}`);
-      await trigger.click(); await expect(menu).toBeVisible();
-      const outside = page.getByRole("button", { name: "Add a tab", exact: true });
-      await outside.focus(); await page.keyboard.press("Escape"); await expect(menu).toHaveCount(0);
-      await expect(outside).toBeFocused();
-    } else {
-      await expect(page.locator("html")).toHaveAttribute("data-modal", "");
-      await expect.poll(async () => Math.round((await menu.boundingBox())!.x)).toBe(8);
-      await page.keyboard.press("Escape"); await expect(menu).toHaveCount(0); await expect(trigger).toBeFocused();
-    }
+    await expect(menu).toBeVisible(); await expect(menu).toHaveAttribute("aria-modal", "false");
+    // iOS 26: tapping outside closes an anchored menu, so it has no Cancel row.
+    await expect(menu.getByRole("button", { name: "Cancel", exact: true })).toHaveCount(0);
+    await expect(page.locator("html")).not.toHaveAttribute("data-modal");
+    const from = (await trigger.boundingBox())!;
+    // This trigger is at the bottom, so the anchored menu opens immediately above it.
+    await expect.poll(async () => { const r = (await menu.boundingBox())!; return Math.abs(from.y - r.y - r.height - 8); }).toBeLessThanOrEqual(1);
+    await page.getByRole("button", { name: "Add a tab", exact: true }).click();
+    await expect(menu).toHaveCount(0); await expect(page).toHaveURL(/\/new/);
+    await expect(page.getByRole("heading", { name: "What would you like to explore?" })).toBeVisible();
+    await page.goto(`/tabs${LAUNCH}`);
+    await trigger.click(); await expect(menu).toBeVisible();
+    const outside = page.getByRole("button", { name: "Add a tab", exact: true });
+    await outside.focus(); await page.keyboard.press("Escape"); await expect(menu).toHaveCount(0);
+    await expect(outside).toBeFocused();
     await trigger.click(); await expect(menu).toBeVisible();
     await page.setViewportSize({ width: width < 768 ? 1280 : 390, height: 844 });
-    await expect(menu).toHaveAttribute("aria-modal", String(width >= 768));
-    if (width >= 768) await expect(page.locator("html")).toHaveAttribute("data-modal", "");
-    else await expect(page.locator("html")).not.toHaveAttribute("data-modal");
+    await expect(menu).toHaveAttribute("aria-modal", "false");
+    await expect(page.locator("html")).not.toHaveAttribute("data-modal");
     await page.keyboard.press("Escape"); await expect(menu).toHaveCount(0);
     await expect(page.locator("html")).not.toHaveAttribute("data-modal"); await expect(trigger).toBeFocused();
   });
