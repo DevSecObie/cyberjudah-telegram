@@ -5,6 +5,7 @@ import { haptic, hideKeyboard } from "@/tg/sdk";
 import { useModal } from "./modal";
 import { Icon } from "./icons";
 import { popoverTrigger, usePopover } from "./popover";
+import { Button, Sheet } from "@/bible/ui/Sheet";
 
 
 /**
@@ -42,7 +43,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
   // iOS 26: an action menu springs from the control that opened it, on phones too, and the rest
   // of the page stays usable; tapping outside closes it, so it needs no Cancel row.
   const anchored = actions && !!anchor.current?.isConnected;
-  useModal(box, isOpen && present, () => answer(null), { lock: !anchored, trap: !anchored });
+  useModal(box, isOpen && present && anchored, () => answer(null), { lock: false, trap: false });
   useLayoutEffect(() => {
     const el = box.current, trigger = anchor.current;
     if (!present || !anchored || !el || !trigger) return;
@@ -70,35 +71,37 @@ export function SheetProvider({ children }: { children: ReactNode }) {
     document.addEventListener("click", outside, true);
     return () => document.removeEventListener("click", outside, true);
   }, [isOpen, anchored, answer]);
+  const items = spec?.items?.length ? [...spec.items].sort((x, y) => Number(!!x.destructive) - Number(!!y.destructive)) : [];
   return (
     <SheetContext.Provider value={ctx}>
       {children}
-      {present && spec ? (
-        <div className="sheet__scrim" data-anchored={anchored ? "" : undefined} onClick={(e) => { if (e.target === e.currentTarget) answer(null); }}>
-          <div ref={box} className="sheet" data-popover="" data-actions={actions ? "" : undefined} inert={!isOpen} aria-hidden={!isOpen} role="dialog" aria-modal={!anchored} aria-label={spec.title ?? "Options"} data-sheet-open="">
-            <div className="sheet__grip" aria-hidden="true" />
+      {present && spec && anchored ? (
+        <div className="sheet__scrim" data-anchored="" onClick={(e) => { if (e.target === e.currentTarget) answer(null); }}>
+          <div ref={box} className="sheet" data-popover="" data-actions="" inert={!isOpen} aria-hidden={!isOpen} role="dialog" aria-modal={false} aria-label={spec.title ?? "Options"} data-sheet-open="">
             {spec.title ? <p className="sheet__title">{spec.title}</p> : null}
-            {spec.colors ? (
-              <div className="sheet__colors" role="group" aria-label="Highlight colour">
-                {spec.colors.map((c) => <button key={c.id} type="button" className="swatch" aria-pressed={c.on} aria-label={c.label} title={c.label} style={{ background: c.css }} onClick={() => answer({ id: c.id })} />)}
-              </div>
-            ) : null}
-            {spec.text ? (
-              <form className="sheet__form" onSubmit={(e) => { e.preventDefault(); hideKeyboard(); answer({ id: "text", value: text.trim() }); }}>
-                <label htmlFor="sheet-text">{spec.text.label}</label>
-                <textarea id="sheet-text" rows={4} value={text} placeholder={spec.text.placeholder} onChange={(e) => setText(e.target.value)} autoFocus maxLength={1500} />
-                <div className="btn--row"><button type="button" className="btn btn--quiet" onClick={() => answer(null)}>Cancel</button><button type="submit" className="btn">{spec.text.submit}</button></div>
-              </form>
-            ) : null}
-            {spec.items?.length ? (
-              <div className="sheet__items">
-                {[...spec.items].sort((a, b) => Number(!!a.destructive) - Number(!!b.destructive)).map((it) => <button key={it.id} type="button" className="sheet__item" data-destructive={it.destructive ? "" : undefined} onClick={() => answer({ id: it.id })}>{it.icon || it.destructive ? <span className="sheet__icon">{it.icon ?? <Icon name="trash" size={18} />}</span> : null}<span><b>{it.text}</b>{it.hint ? <small>{it.hint}</small> : null}</span></button>)}
-              </div>
-            ) : null}
-            {!spec.text && !anchored ? <button type="button" className="sheet__cancel" onClick={() => answer(null)}>Cancel</button> : null}
+            <div className="sheet__items">
+              {items.map((it) => <button key={it.id} type="button" className="sheet__item" data-destructive={it.destructive ? "" : undefined} onClick={() => answer({ id: it.id })}>{it.icon || it.destructive ? <span className="sheet__icon">{it.icon ?? <Icon name="trash" size={18} />}</span> : null}<span><b>{it.text}</b>{it.hint ? <small>{it.hint}</small> : null}</span></button>)}
+            </div>
           </div>
         </div>
       ) : null}
+      {/* Otherwise Bible Strong's auto sheet: SheetHeader with the title, SheetItem rows (20 px, a
+          line under each) and no Cancel: a swipe or a tap outside closes it. A text field is its
+          RenameModal: the field in a 20 px box and Save in the footer. */}
+      <Sheet open={!!spec && isOpen && !anchored} onClose={() => answer(null)} title={spec?.title} label={spec?.title ?? "Options"} className="action-sheet"
+        footer={spec?.text ? <Button onClick={() => { hideKeyboard(); if (text.trim()) answer({ id: "text", value: text.trim() }); }} disabled={!text.trim()}>{spec.text.submit}</Button> : undefined}>
+        {spec?.colors ? (
+          <div className="sheet__colors" role="group" aria-label="Highlight colour">
+            {spec.colors.map((c) => <button key={c.id} type="button" className="swatch" aria-pressed={c.on} aria-label={c.label} title={c.label} style={{ background: c.css }} onClick={() => answer({ id: c.id })} />)}
+          </div>
+        ) : null}
+        {spec?.text ? (
+          <form className="action-sheet__form" onSubmit={(e) => { e.preventDefault(); hideKeyboard(); if (text.trim()) answer({ id: "text", value: text.trim() }); }}>
+            <input id="sheet-text" aria-label={spec.text.label} value={text} placeholder={spec.text.placeholder ?? spec.text.label} onChange={(e) => setText(e.target.value)} autoFocus maxLength={1500} enterKeyHint="send" />
+          </form>
+        ) : null}
+        {items.map((it) => <button key={it.id} type="button" className="sheet__item action-sheet__item" data-destructive={it.destructive ? "" : undefined} onClick={() => answer({ id: it.id })}><span>{it.text}{it.hint ? <small>{it.hint}</small> : null}</span></button>)}
+      </Sheet>
     </SheetContext.Provider>
   );
 }

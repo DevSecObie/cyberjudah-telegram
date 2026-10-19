@@ -90,13 +90,13 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
         </div>
       )}
           <AmbientSheet open={ambientOpen} onClose={() => setAmbientOpen(false)} />
-          <Sheet open={adjust !== null} onClose={() => setAdjust(null)} title={adjust ?? "Audio"}>
+          <Sheet open={adjust !== null} onClose={() => setAdjust(null)} title={adjust ?? "Audio"} centerTitle>
             <div className="bs-fontlist">{RATES.map((value) => <button key={value} type="button" role="radio" aria-checked={value === (adjust === "Pitch" ? speech.pitch : speech.rate)} className="bs-fontrow" onClick={() => { if (adjust === "Pitch") speech.setPitch(value); else speech.setRate(value); setAdjust(null); }}><span>{value}x</span>{value === (adjust === "Pitch" ? speech.pitch : speech.rate) ? <Feather name="check" size={18} color="var(--bs-primary)" /> : null}</button>)}</div>
           </Sheet>
-          <Sheet open={timerOpen} onClose={() => setTimerOpen(false)} title="Sleep timer">
+          <Sheet open={timerOpen} onClose={() => setTimerOpen(false)} title="Sleep timer" centerTitle>
             <div className="bs-fontlist">{SLEEP_CHOICES.map(([minutes, label]) => <button key={minutes} type="button" role="radio" aria-checked={minutes === player.sleep.minutes} className="bs-fontrow" onClick={() => { player.setSleep(minutes); setTimerOpen(false); }}><span>{label}</span>{minutes === player.sleep.minutes ? <Feather name="check" size={18} color="var(--bs-primary)" /> : null}</button>)}</div>
           </Sheet>
-          <Sheet open={voices} onClose={() => setVoices(false)} title="Voice" subTitle={aiVoices.data?.length ? `${aiVoices.data.length} reading voices, and ${speech.voices.length} on this device` : speech.voices.length ? `${speech.voices.length} English voices on this device` : "No English voice on this device"} height="half">
+          <Sheet open={voices} onClose={() => setVoices(false)} snapPoints={[1]} centerTitle title="Voice" subTitle={aiVoices.data?.length ? `${aiVoices.data.length} reading voices, and ${speech.voices.length} on this device` : speech.voices.length ? `${speech.voices.length} English voices on this device` : "No English voice on this device"}>
             <div className="bs-fontlist">
               <h3 className="bs-audio__group">Narrators</h3>
               {speech.narratorsLoading ? <p className="bs-audio__notice">Finding recordings…</p> : !speech.narrators.length ? (

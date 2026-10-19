@@ -12,7 +12,7 @@
   background: var(--accent); color: var(--on-accent); font: 600 var(--control-font)/1.3 var(--font-ui); text-decoration: none; text-align: center; overflow-wrap: anywhere; cursor: pointer;
   transition: transform var(--dur-1) var(--ease), opacity var(--dur-2) ease;
 }
-#root .btn:active, #root :is(.empty__act, .crash__btn, .trouble__act, .paywall__go):active { transform: scale(.97); }
+#root .btn[data-pressed], #root :is(.empty__act, .crash__btn, .trouble__act, .paywall__go)[data-pressed] { transform: scale(.97); }
 #root .btn:disabled, #root :is(.crash__btn, .trouble__act):disabled { opacity: var(--disabled-opacity); cursor: default; transform: none; }
 #root .btn--bordered, #root .btn--quiet, #root .btn--glass, #root .crash__btn:not(.crash__btn--main), #root .trouble__act:not(.trouble__act--primary) { background: var(--fill-1); color: var(--text-1); border-color: var(--control-edge); }
 #root .btn--plain { background: transparent; color: var(--accent); border-color: transparent; }
@@ -38,7 +38,7 @@
   font: 600 var(--control-font) var(--font-ui) !important; transition: transform var(--dur-1) var(--ease);
 }
 .icon-btn:hover { background: var(--fill-2); }
-.icon-btn:active { transform: scale(.94); background: var(--fill-3); }
+.icon-btn[data-pressed] { transform: scale(.94); background: var(--fill-3); }
 .icon-btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent) !important; }
 .icon-btn:disabled { opacity: var(--disabled-opacity); cursor: default; }
 
@@ -46,6 +46,7 @@
 .more-btn { display: block; width: 100%; min-height: var(--h-md); border: 0; border-top: .5px solid var(--hairline); background: none; color: var(--accent); font: 600 var(--control-font) var(--font-ui); cursor: pointer; }
 .more-btn:hover { background: var(--state-hover); }
 #root .bookpage__more, #root .section__more, #root .bs-word__more { min-height: var(--touch); border: 0; background: none; padding: 0; color: var(--accent); font: 600 var(--fs-sub) var(--font-ui); cursor: pointer; }
+#root .list-more { display: flex; justify-content: center; min-height: var(--touch); align-items: center; color: var(--text-3); font: var(--fs-footnote) var(--font-ui); }
 /* The heading's text action keeps its line but takes a 44px tall tap area. */
 .section__head a, .section__head .link { display: inline-flex; align-items: center; min-height: var(--touch); margin-block: calc((var(--touch) - 1.25em) / -2); font: 600 var(--fs-sub) var(--font-ui); color: var(--accent); }
 
@@ -61,7 +62,7 @@
 }
 #root .chip * { color: inherit; }
 #root .chip:hover { background: var(--fill-2); }
-#root .chip:active { transform: scale(.96); }
+#root .chip[data-pressed] { transform: scale(.96); }
 #root .chip[aria-pressed="true"] { background: var(--text-1); color: var(--canvas); box-shadow: none; }
 .chip__n { margin-left: 6px; font-weight: 500; font-variant-numeric: tabular-nums; }
 
@@ -160,8 +161,8 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgu
 #root .seg button { border-radius: var(--r-inner); height: auto; white-space: normal; }
 #root .bs-dropdown { --r-outer: var(--r-lg); --inset: 6px; --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset))); padding: var(--inset); border-radius: var(--r-outer); max-width: calc(100vw - var(--safe-left) - var(--safe-right) - 24px); max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - var(--dock-h) - 90px); overflow-y: auto; }
 #root .bs-dropdown__item { border-radius: var(--r-inner); padding: var(--sp-2) 10px; font-size: var(--control-font); }
-#root .bs-picker { --r-outer: var(--r-lg); --inset: var(--sp-3); --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset))); }
-#root .bs-picker .bs-search { border-radius: var(--r-inner); }
+#root .bs-picker-sheet { --r-outer: var(--r-lg); --inset: var(--sp-3); --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset))); }
+#root .bs-picker-sheet .bs-search { border-radius: var(--r-inner); }
 #root .bs-chip { min-height: var(--h-sm); height: auto; padding-block: var(--sp-2); border-radius: var(--r-pill); font-size: var(--fs-footnote); }
 #root .bs-chip[aria-pressed="true"], #root .bs-ambient-tabs [aria-selected="true"] { background: var(--accent); color: var(--on-accent); }
 #root .srch__field { min-height: var(--h-lg); height: auto; }
@@ -169,13 +170,13 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgu
 /* Pressed knobs borrow the light rim and lift of the navigation selection. Their
    fill changes immediately; only transform springs, with no extra backdrop filter. */
 .switch::after, .bs-switch span { transition: transform var(--dur-2) var(--ease-spring); }
-:is(.toggle, .bs-switchrow):active:not(:disabled) { --knob-fill: color-mix(in srgb, var(--switch-thumb) var(--control-lift-density), transparent); --knob-shadow: var(--control-lift-shadow); }
-.toggle:active:not(:disabled) .switch::after, .bs-switchrow:active:not(:disabled) .bs-switch span {
+:is(.toggle, .bs-switchrow)[data-pressed]:not(:disabled) { --knob-fill: color-mix(in srgb, var(--switch-thumb) var(--control-lift-density), transparent); --knob-shadow: var(--control-lift-shadow); }
+.toggle[data-pressed]:not(:disabled) .switch::after, .bs-switchrow[data-pressed]:not(:disabled) .bs-switch span {
   background: var(--knob-fill); box-shadow: var(--knob-shadow);
   transform: scale(var(--control-lift-scale));
 }
-.toggle[aria-checked="true"]:active:not(:disabled) .switch::after { transform: translateX(20px) scale(var(--control-lift-scale)); }
-.bs-switchrow:active:not(:disabled) .bs-switch[data-on] span { transform: translateX(14px) scale(var(--control-lift-scale)); }
+.toggle[aria-checked="true"][data-pressed]:not(:disabled) .switch::after { transform: translateX(20px) scale(var(--control-lift-scale)); }
+.bs-switchrow[data-pressed]:not(:disabled) .bs-switch[data-on] span { transform: translateX(14px) scale(var(--control-lift-scale)); }
 /* Keep the native range element's value, focus, keyboard and touch behavior. */
 input[type="range"] { appearance: none; -webkit-appearance: none; min-width: 0; min-height: var(--touch); background: transparent; cursor: pointer; }
 input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: var(--r-pill); background: var(--control-edge); }
@@ -188,7 +189,7 @@ input[type="range"]::-moz-range-thumb {
   width: 20px; height: 20px; border: 1px solid var(--control-edge); border-radius: var(--r-pill);
   background: var(--knob-fill, var(--switch-thumb)); box-shadow: var(--knob-shadow, var(--switch-shadow)); transform: scale(var(--knob-scale, 1)); transition: transform var(--dur-2) var(--ease-spring);
 }
-input[type="range"]:active:not(:disabled) { --knob-scale: var(--control-lift-scale); --knob-fill: color-mix(in srgb, var(--switch-thumb) var(--control-lift-density), transparent); --knob-shadow: var(--control-lift-shadow); }
+input[type="range"][data-pressed]:not(:disabled) { --knob-scale: var(--control-lift-scale); --knob-fill: color-mix(in srgb, var(--switch-thumb) var(--control-lift-density), transparent); --knob-shadow: var(--control-lift-shadow); }
 input[type="range"]:disabled { opacity: var(--disabled-opacity); cursor: default; }
 @media (forced-colors: active) {
   #root .btn, #root .chip, #root .seg, .switch, .bs-switch { border: 1px solid ButtonText; }
@@ -201,9 +202,9 @@ input[type="range"]:disabled { opacity: var(--disabled-opacity); cursor: default
 /* iOS 26: the segmented control's selection lifts into glass under the finger and springs between
    segments; the slider's knob is a narrow capsule that turns to glass while it is dragged. */
 #root .seg > div > [aria-hidden] { transition: transform var(--dur-3) var(--ease-spring), scale var(--dur-2) var(--ease-spring), background var(--dur-1) ease, box-shadow var(--dur-1) ease; }
-#root .seg:active > div > [aria-hidden] { scale: var(--glass-press-scale, 1.06); background: color-mix(in srgb, var(--text-1) 22%, transparent); box-shadow: var(--control-lift-shadow); }
-@media (prefers-contrast: more), (prefers-reduced-transparency: reduce), (forced-colors: active) { #root .seg:active > div > [aria-hidden] { background: var(--tgui--segmented_control_active_bg); } }
-html[data-transparency="reduced"] #root .seg:active > div > [aria-hidden] { background: var(--tgui--segmented_control_active_bg); }
+#root .seg[data-pressed] > div > [aria-hidden] { scale: var(--glass-press-scale, 1.06); background: color-mix(in srgb, var(--text-1) 22%, transparent); box-shadow: var(--control-lift-shadow); }
+@media (prefers-contrast: more), (prefers-reduced-transparency: reduce), (forced-colors: active) { #root .seg[data-pressed] > div > [aria-hidden] { background: var(--tgui--segmented_control_active_bg); } }
+html[data-transparency="reduced"] #root .seg[data-pressed] > div > [aria-hidden] { background: var(--tgui--segmented_control_active_bg); }
 input[type="range"]::-webkit-slider-thumb { width: 38px; height: 24px; margin-top: -10px; }
 input[type="range"]::-moz-range-thumb { width: 36px; height: 22px; }
-@media (prefers-reduced-motion: reduce) { #root .seg:active > div > [aria-hidden] { scale: 1; } }
+@media (prefers-reduced-motion: reduce) { #root .seg[data-pressed] > div > [aria-hidden] { scale: 1; } }

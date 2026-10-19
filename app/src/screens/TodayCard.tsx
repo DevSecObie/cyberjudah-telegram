@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { useQueries } from "@tanstack/react-query";
 import { useBibleSettings, webFontFamily } from "@/bible/settings";
 import { share } from "@/lib/share";
+import { dayKey } from "@/lib/marks";
 import { sheetOpened } from "@/tg/hooks";
 import { useModal } from "@/ui/modal";
 import { Icon } from "@/ui/ui";
@@ -41,7 +42,8 @@ export function TodayCard({ verse: today, failed: todayFailed, stacked = false }
   const drag = useRef<{ id: number; x: number; y: number; from: number; width: number; lastX: number; time: number; velocity: number; moved: boolean } | null>(null);
   const swiped = useRef(false);
   const [settings] = useBibleSettings();
-  const dates = Array.from({ length: 5 }, (_, i) => { const date = new Date(); date.setUTCDate(date.getUTCDate() - 4 + i); return date.toISOString().slice(0, 10); });
+  // The reader's own calendar days, as Bible Strong's daily meditation (toCivilDate), not UTC.
+  const dates = Array.from({ length: 5 }, (_, i) => { const date = new Date(); date.setDate(date.getDate() - 4 + i); return dayKey(date); });
   const previous = useQueries({ queries: dates.slice(0, 4).map((date, i) => ({ queryKey: ["votd", date], enabled: stacked || i === offset + 4, staleTime: Infinity, queryFn: async () => {
     const response = await fetch(`/api/verse-of-day?date=${date}`);
     if (!response.ok) throw new Error("Daily verse unavailable");
@@ -113,7 +115,7 @@ export function TodayCard({ verse: today, failed: todayFailed, stacked = false }
       const label = !stacked && i < 3 ? new Date(`${date}T12:00:00Z`).toLocaleDateString([], { weekday: "long", timeZone: "UTC" }) : ["Four days ago", "Three days ago", "Two days ago", "Yesterday", "Today"][i];
       return <article key={date} className="today-card" data-active={i === offset + 4 ? "" : undefined} aria-hidden={i !== offset + 4} inert={i !== offset + 4} style={stacked ? stackStyle(i - position) : undefined}>
       <header><b>{label}</b>{!stacked ? <span className="today-card__arrows"><button type="button" aria-label="Previous day's scripture" disabled={offset === -4} onClick={() => settle(i - 1)}>‹</button><button type="button" aria-label="Next day's scripture" disabled={offset === 0} onClick={() => settle(i + 1)}>›</button></span> : null}<Link to="/settings" aria-label="Daily verse settings"><Icon name={stacked ? "sliders" : "gear"} size={18} /></Link></header>
-      <Link to={entry ? `/read/${entry.slug}/${entry.chapter}?v=${entry.verse}` : "/bible"} className="today-card__verse" style={{ fontFamily: webFontFamily(settings.fontFamily) }}>{entry ? <><p style={{ fontFamily: "inherit", fontSize: `${(stacked ? 16 : 19) * (1 + settings.fontSizeScale * .1)}px` }}>{entry.text}</p><b>{entry.ref}{stacked ? " - " : " "}<small>KJV</small></b></> : <p role="status">{failed ? "The day's verse is unavailable. Open the Bible." : "Loading the day's verse…"}</p>}</Link>
+      <Link to={entry ? `/read/${entry.slug}/${entry.chapter}?v=${entry.verse}` : "/bible"} className="today-card__verse" style={{ fontFamily: webFontFamily(settings.fontFamily) }}>{entry ? <><p style={{ fontFamily: "inherit", fontSize: `${(stacked ? 16 : 19) * (1 + settings.fontSizeScale * .1)}px` }}>{entry.text}</p><b>{entry.ref}{stacked ? " - " : " "}<small>KJV</small></b></> : (failed ? <p role="status">The day's verse is unavailable. Open the Bible.</p> : <span className="today-card__skel" role="status" aria-label="Loading the day's verse"><i /><i /><i /></span>)}</Link>
       {!stacked ? <div className="today-card__days" role="group" aria-label="Daily scripture days">
         {dates.map((d, j) => <button key={d} type="button" aria-label={j === 4 ? "Today's scripture" : `Scripture for ${d}`} aria-pressed={offset === j - 4} onClick={() => settle(j)}><span aria-hidden="true">{j === 4 ? "•" : new Date(`${d}T12:00:00Z`).toLocaleDateString([], { weekday: "narrow", timeZone: "UTC" })}</span></button>)}
       </div> : null}
@@ -129,9 +131,21 @@ export function TodayCard({ verse: today, failed: todayFailed, stacked = false }
       <div ref={box} className="sheet today-image" role="dialog" aria-modal="true" aria-label="Verse image" data-sheet-open="">
         <p className="sheet__title">{verse.ref}</p>
         <img src={src} alt={`${verse.ref}: ${verse.text}`} />
-        <a className="btn" href={src} download={`${verse.slug}-${verse.chapter}-${verse.verse}.svg`}>Save image</a>
+        {/* Bible Strong's image sheet shares the picture itself; where files cannot be shared, the verse. */}
+        <button type="button" className="btn" onClick={() => void shareImage(src, `${verse.slug}-${verse.chapter}-${verse.verse}.svg`, () => share({ kind: "verse", title: verse.ref, text: verse.text, sitePath: `/bible/${verse.slug}/${verse.chapter}`, verses: String(verse.verse) }))}><Icon name="share" size={17} /> Share image</button>
+        <a className="btn btn--bordered" href={src} download={`${verse.slug}-${verse.chapter}-${verse.verse}.svg`}>Save image</a>
         <button type="button" className="sheet__cancel" data-autofocus onClick={() => setImage(false)}>Close</button>
       </div>
     </div>, document.getElementById("root")!) : null}
   </>;
+}
+
+/** Shares the verse picture as a file where the device can, else falls back (to sharing the verse). */
+async function shareImage(src: string, name: string, fallback: () => unknown) {
+  try {
+    const blob = await (await fetch(src)).blob();
+    const file = new File([blob], name, { type: blob.type || "image/svg+xml" });
+    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file] }); return; }
+  } catch (e) { if ((e as DOMException)?.name === "AbortError") return; }
+  await fallback();
 }

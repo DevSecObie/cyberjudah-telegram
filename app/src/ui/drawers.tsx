@@ -21,9 +21,10 @@ const MoreBody = lazy(() => import("@/screens/More").then((m) => ({ default: m.M
 export function Drawers() {
   const side = useDrawer();
   const { pathname, search } = useLocation();
-  const [shown, setShown] = useState<DrawerSide | null>(side);
-  // Bible Strong 1dfaa0d keeps Home mounted after its first opening.
+  // Bible Strong keeps each drawer mounted after its first opening (hasOpenedHome, hasOpenedMenu),
+  // so it opens again where it was scrolled.
   const [hasOpenedHome, setHasOpenedHome] = useState(side === "home");
+  const [hasOpenedMore, setHasOpenedMore] = useState(side === "more");
   const scrimSwipe = useSwipeClose(side ?? "home");
   // A navigation from inside a drawer (a link, a search) closes it. A screen correcting its own
   // address (the Bible settling /bible on its chapter) is a replace, and must not.
@@ -39,9 +40,9 @@ export function Drawers() {
     if (navType !== "REPLACE") setDrawer(null);
   }, [pathname, search]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (side) { setShown(side); if (side === "home") setHasOpenedHome(true); return sheetOpened(); }
-    const t = window.setTimeout(() => setShown(null), SLIDE_MS);
-    return () => window.clearTimeout(t);
+    if (!side) return;
+    if (side === "home") setHasOpenedHome(true); else setHasOpenedMore(true);
+    return sheetOpened();
   }, [side]);
   // The app slides aside with the drawer, as one row. The page is pinned where it was scrolled for
   // the slide (a moving page must not scroll under the finger) and given back, in place, after.
@@ -77,7 +78,7 @@ export function Drawers() {
         ) : null}
       </Panel>
       <Panel side="more" open={side === "more"}>
-        {shown === "more" ? (
+        {hasOpenedMore ? (
           <>
             <header className="drawer__head">
               <button type="button" className="drawer__back" aria-label="Close the menu" title="Close the menu" onClick={() => { haptic("select"); setDrawer(null); }}><Icon name="back" size={22} /></button>
@@ -91,20 +92,35 @@ export function Drawers() {
   );
 }
 
-const SLIDE_MS = 380;
+/** The drawer spring's length (--drawer-dur): the page behind is given back after it. */
+const SLIDE_MS = 600;
 
 /** A horizontal swipe toward the drawer's own edge closes it, as Bible Strong's pan does. */
 function useSwipeClose(side: DrawerSide) {
-  const start = useRef<{ x: number; y: number } | null>(null);
+  // A touch swipe usually ends in pointercancel (the browser takes the pan to scroll the drawer),
+  // so a touch is finished on touchend, which still comes; a sideways row it scrolled is not a swipe.
+  const start = useRef<{ x: number; y: number; touch: boolean; row: HTMLElement | null; left: number } | null>(null);
   const swiped = useRef(false);
+  /** Consume the gesture and close on a swipe toward this drawer's edge unless its row scrolled. */
+  const finish = (x: number, y: number) => {
+    const s = start.current; start.current = null; if (!s || (s.row && s.row.scrollLeft !== s.left)) return;
+    const dx = x - s.x, dy = y - s.y;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && (side === "home" ? dx < 0 : dx > 0)) { swiped.current = true; haptic("select"); setDrawer(null); }
+  };
   return {
-    onPointerDown: (e: React.PointerEvent) => { start.current = { x: e.clientX, y: e.clientY }; swiped.current = false; },
-    onPointerUp: (e: React.PointerEvent) => {
-      const s = start.current; start.current = null; if (!s) return;
-      const dx = e.clientX - s.x, dy = e.clientY - s.y;
-      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && (side === "home" ? dx < 0 : dx > 0)) { swiped.current = true; haptic("select"); setDrawer(null); }
+    onPointerDown: (e: React.PointerEvent) => {
+      // A second finger is not part of the swipe: it ends the gesture, so lifting either is no swipe.
+      if (!e.isPrimary) { start.current = null; return; }
+      // From any element, an icon's SVG included, to the nearest horizontally scrolling row.
+      let el = e.target instanceof Element ? e.target : null;
+      while (el && !(el instanceof HTMLElement && el.scrollWidth > el.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(el).overflowX))) el = el.parentElement;
+      const row = el instanceof HTMLElement ? el : null;
+      start.current = { x: e.clientX, y: e.clientY, touch: e.pointerType === "touch", row, left: row?.scrollLeft ?? 0 }; swiped.current = false;
     },
-    onPointerCancel: () => { start.current = null; },
+    onPointerUp: (e: React.PointerEvent) => finish(e.clientX, e.clientY),
+    onPointerCancel: () => { if (!start.current?.touch) start.current = null; },
+    onTouchEnd: (e: React.TouchEvent) => { const t = e.changedTouches[0]; if (start.current?.touch && t) finish(t.clientX, t.clientY); },
+    onTouchCancel: () => { start.current = null; },
     // A swipe that starts on a link (the day's verse fills much of Home) would become the
     // browser's own link drag, which cancels the pointer: the swipe never saw its end.
     onDragStart: (e: React.DragEvent) => { e.preventDefault(); },

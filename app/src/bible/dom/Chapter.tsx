@@ -240,10 +240,9 @@ export function Chapter(p: ChapterProps) {
     if (!el || !sc) return;
     const r = el.getBoundingClientRect(), s0 = sc.getBoundingClientRect();
     suppressRef.current = true;
-    // The middle of what the selection sheet leaves showing, so the verse is never under it.
-    const sheet = document.querySelector<HTMLElement>(".bs-sheet.bs-selected");
-    const covered = sheet ? Math.max(0, s0.bottom - sheet.getBoundingClientRect().top) : 0;
-    sc.scrollTo({ top: sc.scrollTop + (r.top - s0.top) - (sc.clientHeight - covered) / 2 + r.height / 2, behavior });
+    // The middle of the reader, as Bible Strong's scrollSelectedVerseToMiddle: a verse already in
+    // view barely moves under the finger that chose it.
+    sc.scrollTo({ top: sc.scrollTop + (r.top - s0.top) - sc.clientHeight / 2 + r.height / 2, behavior });
     setReturnPos(null);
     setTimeout(() => { suppressRef.current = false; setReturnPos(returnPosition()); }, 450);
   };

@@ -1,0 +1,2 @@
+- Opening the app with no link now reopens the tab you were last on, as Bible Strong does, instead of always starting at Home.
+- History and bookmarks open the whole chapter scrolled to the verse, as Bible Strong's selected verse does, instead of showing that verse alone.

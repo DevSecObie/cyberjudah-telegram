@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { haptic } from "@/tg/sdk";
 import { Feather, type FeatherName } from "../icons";
@@ -46,7 +46,8 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
     dock.inert = true;
     return () => { dock.inert = false; };
   }, [p.open]);
-  useEffect(() => { if (!p.open) return; const el = ref.current; if (!el) return; const ro = new ResizeObserver(() => setWidth(el.clientWidth)); ro.observe(el); setWidth(el.clientWidth); return () => ro.disconnect(); }, [p.open]);
+  // Measured before the first paint, so the pages open at their width instead of sliding into it.
+  useLayoutEffect(() => { if (!p.open) return; const el = ref.current; if (!el) return; const ro = new ResizeObserver(() => setWidth(el.clientWidth)); ro.observe(el); setWidth(el.clientWidth); return () => ro.disconnect(); }, [p.open]);
   // A horizontal swipe over the footer or the pages moves between tabs.
   const swipe = useRef<{ x: number; t: number; first?: boolean; last?: boolean } | null>(null);
   const onStart = (x: number, row?: Element | null) => {
@@ -61,7 +62,7 @@ export function SelectedVersesSheet(p: SelectedVersesSheetProps) {
   };
 
   return (
-    <Sheet open={p.open} onClose={p.onDismiss} backdrop={false} closable={false} expandable={false} dragAnywhere actions label={p.reference ? `Selected: ${p.reference}` : "Selected verses"} className="bs-selected">
+    <Sheet open={p.open} onClose={p.onDismiss} backdrop={false} actions label={p.reference ? `Selected: ${p.reference}` : "Selected verses"} className="bs-selected">
       <div className="bs-selected__inner">
         <ColorCirclesBar colors={p.colors} selected={p.selectedColor} onSelect={(k) => (p.selectedColor === k ? p.onRemoveHighlight() : p.onAddHighlight(k))} onLongPress={p.onEditColor} onAdd={p.onAddColor} />
         <div ref={ref} className="bs-pages" onTouchStart={(e) => onStart(e.touches[0].clientX, (e.target as Element).closest(".bs-actions"))} onTouchEnd={(e) => onEnd(e.changedTouches[0].clientX)}>

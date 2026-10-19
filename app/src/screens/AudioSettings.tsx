@@ -90,7 +90,7 @@ export function AudioSettings() {
         {ambientState.error ? <p className="hint" role="status">Ambient sound is unavailable. Reading can continue without it.</p> : null}
       </Section>
 
-      <Sheet open={voiceSheet} onClose={() => setVoiceSheet(false)} title="Voice" subTitle={aiVoices.data?.length ? `${aiVoices.data.length} reading voices, and ${speech.voices.length} on this device` : speech.voices.length ? `${speech.voices.length} English voices on this device` : "No English voice on this device"} height="half">
+      <Sheet open={voiceSheet} onClose={() => setVoiceSheet(false)} snapPoints={[1]} centerTitle title="Voice" subTitle={aiVoices.data?.length ? `${aiVoices.data.length} reading voices, and ${speech.voices.length} on this device` : speech.voices.length ? `${speech.voices.length} English voices on this device` : "No English voice on this device"}>
         <div className="bs-fontlist">
           <h3 className="bs-audio__group">Licensed narrators</h3>
           {narrators.isPending ? <p className="bs-audio__notice">Finding recordings…</p> : narrators.isError ? <p className="bs-audio__notice">Recordings are unavailable right now. <button type="button" className="link" onClick={() => void narrators.refetch()}>Retry</button></p> : !narrators.data?.length ? <p className="bs-audio__notice">No licensed narrators yet.</p> : null}
@@ -110,7 +110,7 @@ export function AudioSettings() {
         </div>
       </Sheet>
 
-      <Sheet open={adjust !== null} onClose={() => setAdjust(null)} title={adjust ?? "Audio"}>
+      <Sheet open={adjust !== null} onClose={() => setAdjust(null)} title={adjust ?? "Audio"} centerTitle>
         <div className="bs-fontlist">{AUDIO_RATES.map((value) => <button key={value} type="button" role="radio" aria-checked={value === (adjust === "Pitch" ? speech.pitch : speech.rate)} className="bs-fontrow" onClick={() => { if (adjust === "Pitch") speech.setPitch(value); else speech.setRate(value); setAdjust(null); }}><span>{value}x</span>{value === (adjust === "Pitch" ? speech.pitch : speech.rate) ? <Feather name="check" size={18} color="var(--bs-primary)" /> : null}</button>)}</div>
       </Sheet>
 

@@ -49,7 +49,7 @@ export function AnnotationToolbar(p: {
   const apply = (color: string, kind: MarkKind) => (sel ? p.onChangeMark(color, kind) : p.onApply(color, kind));
   const selectedColor = sel?.kind === active ? sel.color : undefined;
   return (
-    <Sheet open={p.open} onClose={p.onClose} backdrop={false} closable={false} label="Free mode" className="bs-annotate">
+    <Sheet open={p.open} onClose={p.onClose} backdrop={false} label="Free mode" className="bs-annotate">
       <div className="bs-annotate__head">
         <div className="bs-annotate__title">
           <strong>Free mode</strong>

@@ -46,12 +46,14 @@ export function Lexicon() {
   const hits = useMemo(() => {
     const t = debounced;
     if (!t) return [...rows].sort((a, b) => b.count - a.count);
-    const num = /^[hg]?\s*(\d+)$/i.exec(t)?.[1];
-    if (num) { const n = `${lang === "hebrew" ? "H" : "G"}${+num}`; return rows.filter((r) => r.n === n || r.n.startsWith(n)).sort((a, b) => a.n.length - b.n.length || +a.n.slice(1) - +b.n.slice(1)); }
+    // A number is searched as typed: "G26" finds the Greek word even on the Hebrew tab, and a bare
+    // number uses the tab's language.
+    const code = /^([hg])?\s*(\d+)$/i.exec(t);
+    if (code) { const n = `${code[1] ? code[1].toUpperCase() : lang === "hebrew" ? "H" : "G"}${+code[2]}`; return (code[1] ? idx.data ?? [] : rows).filter((r) => r.n === n || r.n.startsWith(n)).sort((a, b) => a.n.length - b.n.length || +a.n.slice(1) - +b.n.slice(1)); }
     const f = fold(t);
     const score = (r: StrongsRow) => { const x = fold(r.xlit), d = fold(r.def); return r.lemma.includes(t) ? 0 : x === f ? 1 : x.startsWith(f) ? 2 : d.split(/\W+/).includes(f) ? 3 : x.includes(f) ? 4 : d.includes(f) ? 5 : 9; };
     return rows.map((r) => [score(r), r] as const).filter(([s]) => s < 9).sort((a, b) => a[0] - b[0] || b[1].count - a[1].count).map(([, r]) => r);
-  }, [rows, debounced, lang]);
+  }, [rows, debounced, lang, idx.data]);
   const ofDay = strongOfDay(idx.data, lang);
   const random = () => { if (!rows.length) return; haptic("select"); navigate(`/lexicon/${rows[pickRandom(rows.length)].n}`); };
   const set = (patch: Record<string, string>) => setParams({ lang, ...(q ? { q } : {}), ...patch }, { replace: true });
