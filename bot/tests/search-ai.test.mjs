@@ -144,8 +144,17 @@ test("search routes one bounded call through the gateway, cites the library and 
   const { env, sql, sent } = fixture(t);
   const owner = await ownerOfUser(env, 7);
   await grantPayment(env, owner, { charge: "search-credit", kind: "pack", stars: 10, mc: 130_000 });
-  const r = await answerSearch(env, "Melchizedek", 7, ["Google"]);
+  const lines = [];
+  const original = console.log;
+  console.log = (...args) => { lines.push(args.join(" ")); };
+  let r;
+  try { r = await answerSearch(env, "Melchizedek", 7, ["Google"]); } finally { console.log = original; }
   assert.equal(r.ok, true);
+  // Where the time went, in numbers only: no question, no reader.
+  const timing = lines.map((l) => { try { return JSON.parse(l); } catch { return null; } }).find((o) => o?.event === "search_answer_timing");
+  assert.ok(timing, "expected a search_answer_timing event");
+  for (const k of ["retrieveMs", "modelMs", "totalMs"]) assert.ok(Number.isFinite(timing[k]) && timing[k] >= 0, k);
+  assert.deepEqual(Object.keys(timing).sort(), ["event", "modelMs", "retrieveMs", "totalMs"]);
   assert.equal(r.model, GOOGLE);
   assert.equal(r.provider, "Google");
   assert.equal(r.sources[0].title, "Genesis 14:18");

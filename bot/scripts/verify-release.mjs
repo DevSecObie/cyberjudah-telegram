@@ -49,7 +49,7 @@ export async function verifyRelease({ url, token, expectedModel, fetcher = fetch
     log("External provider consent: enforced");
   }
   // One more try after a pause: a single slow or unavailable answer from the model is not a broken
-  // release (the Worker gives up on an answer at 30 s and says it is unavailable). Two in a row fail.
+  // release (the Worker gives up on an answer at 55 s and says it is unavailable). Two in a row fail.
   const ask = () => get(query, { ...headers, ...(external ? { "x-ai-consent": provider } : {}) }).catch(e => {
     if (e?.name === "TimeoutError") return null;
     throw e;
@@ -74,7 +74,7 @@ export async function verifyRelease({ url, token, expectedModel, fetcher = fetch
   if (response.headers.get("cache-control") !== "private, no-store") throw new Error("Search answer: browser caching is not disabled.");
   // Reusing a cached question after withdrawing consent must still be refused.
   if (external) { requireStatus(await get(query, headers), 428, "Withdrawn consent"); log("External provider consent: enforced after caching"); }
-  log(`Search answer: configured ${provider} provider verified, ${answer.sources.length} citations`);
+  log(`Search answer: configured ${provider} provider verified, ${answer.sources.length} citations${Number.isFinite(answer.ms) ? `, ${Math.round(answer.ms / 1000)} s` : ""}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
