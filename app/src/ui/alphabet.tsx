@@ -45,9 +45,12 @@ export function AlphabetList({ letter, setLetter, color = "var(--accent)" }: { l
   );
 }
 
-/** Bible Strong's SectionTitle: the letter, 16 px bold on a 30 px disc in the list's colour, held at the top of its section. */
-export function SectionTitle({ color, children }: { color: string; children: ReactNode }) {
-  return <div className="bs-section"><span style={{ background: color }}>{children}</span></div>;
+/**
+ * Bible Strong's SectionTitle: the letter, 16 px bold on a 30 px disc in the list's colour, held at
+ * the top of its section. The letter is in the page colour, or white on the Nave lists.
+ */
+export function SectionTitle({ color, ink, children }: { color: string; ink?: string; children: ReactNode }) {
+  return <div className="bs-section"><span style={{ background: color, color: ink }}>{children}</span></div>;
 }
 
 /** The first letter a list files a word under, without its accents ("ʼâb" under A). */

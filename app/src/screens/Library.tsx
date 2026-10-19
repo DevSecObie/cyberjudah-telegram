@@ -4,6 +4,7 @@ import { Link, useLocation, useParams, useSearchParams } from "react-router";
 
 import { compressVerses, data, fmtDate, type ConcordanceBook, type GlossaryEntry, type ResolvedRef, type ThreadStop } from "@/api/data";
 import { haptic } from "@/tg/sdk";
+import { AlphabetList, SectionTitle, firstLetter, sections, useHeaderOffset } from "@/ui/alphabet";
 import { toAppPath } from "@shared/links.mjs";
 import { share } from "@/lib/share";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
@@ -21,17 +22,44 @@ function Quote({ r }: { r: ResolvedRef }) {
   return <blockquote className="verse-quote">{r.text.map((v) => <span key={v.verse}><sup>{v.verse}</sup>{v.text} </span>)}{r.more ? <em>… {r.more} more</em> : null}</blockquote>;
 }
 
+/**
+ * Bible Strong's NaveListScreen, which our A–Z lists (the precepts and the topics) follow: the
+ * rows of one letter filed under its disc, the alphabet along the bottom, and a search that
+ * replaces the letters. The letter is kept in the address, so Back returns to it.
+ */
+function NaveList({ title, rows, color, failed, retry }: { title: string; rows: { key: string; name: string; href: string }[] | undefined; color: string; failed: boolean; retry: () => void }) {
+  const [params, setParams] = useSearchParams();
+  const letter = (params.get("letter") ?? "a").toLowerCase();
+  const setLetter = (l: string) => setParams((p) => { const next = new URLSearchParams(p); next.set("letter", l); return next; }, { replace: true });
+  const [q, setQ] = useState(params.get("q") ?? "");
+  const needle = q.trim().toLowerCase();
+  const shown = useMemo(() => (rows ?? []).filter((r) => (needle ? r.name.toLowerCase().includes(needle) : firstLetter(r.name) === letter)), [rows, needle, letter]);
+  const top = useHeaderOffset();
+  return (
+    <Screen title={title} className="bs-list">
+      <SearchField id={`${title.toLowerCase()}-q`} value={q} onChange={setQ} placeholder="Search by word" />
+      {!rows && !failed ? <p className="bs-list__loading">Loading...</p> : failed && !rows ? (
+        <Empty title={`The ${title.toLowerCase()} did not load`} action={{ label: "Retry", onClick: retry }}>Check your connection.</Empty>
+      ) : shown.length ? (
+        <div className="bs-list__body" style={{ ["--section-top" as string]: `${top}px` }}>
+          {sections(shown, (r) => r.name).map((section) => (
+            <section key={section.title}>
+              <SectionTitle color={color} ink="white">{section.title.toUpperCase()}</SectionTitle>
+              {section.data.map((r) => <Link key={r.key} to={r.href} className="bs-dictitem" onClick={() => haptic("select")}><span>{r.name}</span></Link>)}
+            </section>
+          ))}
+        </div>
+      ) : <Empty title="No word found..." />}
+      {!q ? <AlphabetList color={color} letter={letter} setLetter={setLetter} /> : null}
+    </Screen>
+  );
+}
+
 export function Precepts() {
   useBackButton();
   const rows = useQuery({ queryKey: ["precepts"], queryFn: data.precepts });
-  const [q, setQ] = useState("");
-  const list = (rows.data ?? []).filter((p) => !q || p.title.toLowerCase().includes(q.toLowerCase()));
-  return (
-    <Screen title="Precepts" kicker="Every subject scripture speaks to, A to Z">
-      <SearchField id="pr-q" value={q} onChange={setQ} placeholder="Find a precept" />
-      {rows.isPending ? <Skeleton rows={12} /> : <List>{list.slice(0, 300).map((p) => <Row key={p.slug} href={p.url} title={p.title} trailing={<span className="row__count">{p.refs}</span>} />)}</List>}
-    </Screen>
-  );
+  const list = useMemo(() => rows.data?.map((p) => ({ key: p.slug, name: p.title, href: toApp(p.url) })), [rows.data]);
+  return <NaveList title="Precepts" rows={list} color="var(--bs-quart, var(--accent))" failed={rows.isError} retry={() => void rows.refetch()} />;
 }
 
 export function PreceptScreen() {
@@ -51,14 +79,8 @@ export function PreceptScreen() {
 export function Topics() {
   useBackButton();
   const rows = useQuery({ queryKey: ["topics"], queryFn: data.topics });
-  const [q, setQ] = useState("");
-  const list = (rows.data ?? []).filter((t) => (t.notes || t.cases) && !t.slug.startsWith("verdict-") && (!q || t.label.toLowerCase().includes(q.toLowerCase())));
-  return (
-    <Screen title="Topics" kicker="Classes and episodes by what they cover">
-      <SearchField id="topic-q" value={q} onChange={setQ} placeholder="Find a topic" />
-      {rows.isPending ? <Skeleton rows={12} /> : <List>{list.map((t) => <Row key={t.slug} href={t.url} title={t.label} trailing={<span className="row__count">{t.notes + t.cases}</span>} />)}</List>}
-    </Screen>
-  );
+  const list = useMemo(() => rows.data?.filter((t) => (t.notes || t.cases) && !t.slug.startsWith("verdict-")).map((t) => ({ key: t.slug, name: t.label, href: toApp(t.url) })), [rows.data]);
+  return <NaveList title="Topics" rows={list} color="var(--bs-quint, var(--accent))" failed={rows.isError} retry={() => void rows.refetch()} />;
 }
 
 export function TopicScreen() {
