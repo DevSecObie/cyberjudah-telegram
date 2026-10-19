@@ -749,7 +749,7 @@ test("the dictionary pages through every entry of a letter, and says when a page
     return r.fulfill({ json: { count: 70, page: p, pages: 2, rows: all.slice((p - 1) * 60, p * 60), related: [], total: 3963 } });
   });
   await page.goto("/dictionary?letter=A");
-  await expect(page.getByText("70 entries")).toBeVisible();
+  await expect(page.getByRole("region", { name: "70 entries" })).toBeVisible();
   await page.locator(".list-more").scrollIntoViewIfNeeded();
   await expect(page.getByRole("link", { name: "Aentry 70" })).toBeVisible();
   // A failed list is a failure with Retry, not an empty letter.
@@ -811,4 +811,78 @@ test("a saved relation between two non-verse items opens from the saved list", a
   await page.locator(".nt-item", { hasText: "Eden" }).click();
   await expect(page).toHaveURL(/endpoint=dictionary%3Aeden/);
   await expect(page.locator(".rel-row", { hasText: "A class" })).toBeVisible();
+});
+
+test("the dictionary opens on the list at A, as Bible Strong's, with the letters along the bottom", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const asked: string[] = [];
+  await page.route("**/api/dictionary?*", r => {
+    const url = new URL(r.request().url()), l = url.searchParams.get("letter") ?? "", q = url.searchParams.get("q") ?? "";
+    asked.push(`${l}|${q}`);
+    const rows = q ? [{ slug: "aaron", term: "Aaron" }, { slug: "babel", term: "Babel" }] : Array.from({ length: 12 }, (_, i) => ({ slug: `${l.toLowerCase()}${i}`, term: `${l}word ${i + 1}` }));
+    return r.fulfill({ json: { count: rows.length, page: 1, pages: 1, rows, related: [], total: 3963 } });
+  });
+  await page.goto("/dictionary");
+  const first = page.getByRole("link", { name: "Aword 1", exact: true });
+  await expect(first).toBeVisible();
+  expect(asked[0]).toBe("A|");
+  await expect(page.locator(".abc-section__badge").first()).toHaveText("A");
+  // The list leads: its first row is near the top, as Bible Strong's (y≈150 there).
+  expect((await first.boundingBox())!.y).toBeLessThan(320);
+  const h = (await first.boundingBox())!.height;
+  expect(h).toBeGreaterThanOrEqual(59);
+  expect(h).toBeLessThanOrEqual(64);
+  // One tap from the menu to an entry: the row opens it.
+  const strip = page.getByRole("navigation", { name: "Letters" });
+  await expect(strip.getByRole("button", { name: "Letter A" })).toHaveAttribute("aria-pressed", "true");
+  await strip.getByRole("button", { name: "Letter B" }).click();
+  await expect(page).toHaveURL(/letter=B/);
+  await expect(page.getByRole("link", { name: "Bword 1", exact: true })).toBeVisible();
+  // A search replaces the letters, and its results are filed under their letters too.
+  await page.fill("#dict-q", "a");
+  await expect(page.getByRole("link", { name: "Aaron" })).toBeVisible();
+  await expect(strip).toHaveCount(0);
+  await expect(page.locator(".abc-section__badge")).toHaveText(["A", "B"]);
+});
+
+test("the lexicon opens on the list at A, as Bible Strong's: All, Hebrew or Greek, two-line rows and the letters along the bottom", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route(`${DATA}/api/strongs/index.json`, r => r.fulfill({ json: [
+    { n: "H1", lemma: "אָב", xlit: "ʼâb", def: "father, in a literal and immediate, or figurative and remote application", count: 1215 },
+    { n: "H430", lemma: "אֱלֹהִים", xlit: "ʼĕlôhîym", def: "gods in the ordinary sense", count: 2602 },
+    { n: "H1121", lemma: "בֵּן", xlit: "bên", def: "a son", count: 4906 },
+    { n: "G26", lemma: "ἀγάπη", xlit: "agapē", def: "love", count: 116 },
+    { n: "G2316", lemma: "θεός", xlit: "theós", def: "a deity", count: 1343 },
+  ] }));
+  await page.goto("/lexicon");
+  const list = page.locator(".lex-list");
+  await expect(page.locator(".abc-section__badge").first()).toHaveText("A");
+  // Under All, A holds the Hebrew ʼâb and the Greek agapē, by transliteration (ʼĕlôhîym files under E).
+  await expect(list.locator("a.row")).toHaveCount(2);
+  await expect(list.locator("a.row").first()).toHaveAttribute("href", "/lexicon/H1");
+  await expect(list.locator("a[href='/lexicon/H1'] .lex-chip")).toHaveText(["Hebrew", "H1"]);
+  const box = (await list.locator("a.row").first().boundingBox())!;
+  expect(box.y).toBeLessThan(360);
+  expect(box.height).toBeGreaterThanOrEqual(79);
+  expect(box.height).toBeLessThanOrEqual(84);
+  await expect(page.getByText("Word of the Day")).toHaveCount(0);
+  const strip = page.getByRole("navigation", { name: "Letters" });
+  await expect(strip.getByRole("button")).toHaveText(["A", "B", "E", "T"]);
+  await strip.getByRole("button", { name: "Letter B" }).click();
+  await expect(list.locator("a.row")).toHaveCount(1);
+  await expect(list.locator("a.row")).toHaveAttribute("href", "/lexicon/H1121");
+  await page.getByRole("button", { name: /^Greek/ }).click();
+  await expect(strip.getByRole("button")).toHaveText(["A", "T"]);
+  await page.getByRole("button", { name: "Most used" }).click();
+  await expect(strip).toHaveCount(0);
+  await expect(list.locator("a.row").first()).toHaveAttribute("href", "/lexicon/G2316");
+});
+
+test("a dictionary entry shares from its header, as Bible Strong's, leaving no action bar over the dock", async ({ page }) => {
+  await page.route("**/api/dictionary/eden", r => r.fulfill({ json: { slug: "eden", term: "Eden", definitions: ["Delight; the garden in which our first parents dwelt."] } }));
+  await page.goto("/dictionary/eden");
+  await expect(page.getByRole("heading", { name: "Eden" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Share", exact: true })).toBeVisible();
+  await expect(page.locator(".pageaction")).toHaveCount(0);
+  await expect(page.locator("html")).not.toHaveAttribute("data-actions", "");
 });

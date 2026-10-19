@@ -123,3 +123,16 @@
 .thread__precepts { display: flex; flex-wrap: wrap; gap: 6px; }
 .thread__more { padding-left: 26px; list-style: none; }
 #root .thread__more button { min-height: var(--touch); padding: 0; border: 0; background: none; font: 600 var(--fs-sub) var(--font-ui); color: var(--accent); cursor: pointer; }
+
+/* Bible Strong's LexiqueItem: about 80px; a chip line (the language, tinted for Hebrew, and the number), then
+   the meaning in 18px bold on one line with the word itself at the end. */
+#root .lex-list .list .row { min-height: 80px; padding-block: 6px; }
+/* The cell's own 16px inset would take the row past Bible Strong's 80px. */
+#root .lex-list .list .row > div { padding-block: 0; }
+.lex-row__chips { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.lex-row__chips small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 12px var(--font-ui); color: var(--text-3); }
+.lex-chip { flex: none; padding: 2px 5px; border-radius: 10px; background: var(--fill-2); color: var(--text-2); font: 500 11px/1.3 var(--font-ui); }
+.lex-chip[data-heb] { background: var(--accent-soft); }
+.lex-list .lex-row { align-items: center; }
+.lex-row__def { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 18px/1.3 var(--font-ui); color: var(--text-1); }
+.lex-list .lex-row__lemma { flex: none; }

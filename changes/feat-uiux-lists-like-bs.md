@@ -1,0 +1,4 @@
+- The Dictionary opens straight on its list at A, grouped under a letter disc, with the letters along the bottom as Bible Strong's, instead of a grid of letters to pick first. Rows are Bible Strong's 60 px, with the word in 18 px bold.
+- The Lexicon opens on its list at A too, with All, Hebrew, Greek and Most used filters and the letters along the bottom. Each row is Bible Strong's two lines in 80 px: the language, the number, the transliteration and how often it is used, then the meaning and the word itself.
+- A dictionary entry and a word study share from a button in their header instead of a bar over the dock.
+- Word of the Day is no longer repeated at the top of the Lexicon; it stays on Home.

@@ -2,27 +2,30 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 
-import { useBackButton, useBottomButtons } from "@/tg/hooks";
+import { useBackButton } from "@/tg/hooks";
 import { share } from "@/lib/share";
-import { Chip, Chips, Empty, List, Row, Screen, SearchField, Section, Skeleton } from "@/ui/ui";
+import { AlphabetBar, byLetter, LetterSection } from "@/ui/alphabet";
+import { ShareButton } from "@/ui/ShareButton";
+import { Empty, List, Row, Screen, SearchField, Section, Skeleton } from "@/ui/ui";
 
 type RowT = { slug: string; term: string };
 type Page = { count: number; page: number; pages: number; rows: RowT[]; related: RowT[]; total: number };
 type Entry = { slug: string; term: string; definitions: string[] };
-const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const STOP = new Set("the and for that with unto them they thou thee thy his him her she you your our this these those from into upon shall will hath have had not but which whom who whose what when where there their were was are had said saith came come went also then than all any every because before after more most such very over under out off yet let did doth till until against among".split(" "));
 
 /**
- * Easton's Bible Dictionary: names, places, words. Opened from a verse (`?from=` carries
- * the verse text: the words in it that have entries are offered first), by letter, or by
- * search. Entries cite scripture in the dictionary's own abbreviated form.
+ * Easton's Bible Dictionary: names, places, words. As Bible Strong's DictionaryListScreen, it
+ * opens on the list itself, at A, under a letter disc, with the letters along the bottom; a
+ * search replaces the letters. Opened from a verse (`?from=` carries the verse text), the words
+ * in it that have entries come first. Entries cite scripture in the dictionary's own form.
  */
 export function Dictionary() {
   useBackButton();
   const [params, setParams] = useSearchParams();
   const from = params.get("from") ?? "";
-  const letter = params.get("letter") ?? "";
   const [q, setQ] = useState(params.get("q") ?? "");
+  // Browsing starts at A, as Bible Strong's does; a search or a verse's words take its place.
+  const letter = q.trim() || from ? "" : (/^[A-Z]$/.test(params.get("letter") ?? "") ? params.get("letter")! : "A");
   const [debounced, setDebounced] = useState(q);
   useEffect(() => { const t = setTimeout(() => setDebounced(q.trim()), 200); return () => clearTimeout(t); }, [q]);
   // The API serves 60 rows a page; the next page loads as the list's end scrolls into view, as
@@ -53,9 +56,7 @@ export function Dictionary() {
   } });
   return (
     <Screen title="Dictionary" kicker="Easton's Bible Dictionary · 3,963 entries">
-      <SearchField id="dict-q" value={q} onChange={(v) => { setQ(v); if (letter) setParams({}, { replace: true }); }} placeholder="A name, a place, a word" autoFocus={!from && !letter} />
-      {!q && !letter && !from ? <div className="letters">{LETTERS.map((l) => <button key={l} type="button" aria-pressed={letter === l} onClick={() => setParams({ letter: l }, { replace: true })}>{l}</button>)}</div> : null}
-      {letter ? <Chips><Chip on onClick={() => setParams({}, { replace: true })}>{letter} ×</Chip></Chips> : null}
+      <SearchField id="dict-q" value={q} onChange={setQ} placeholder="A name, a place, a word" />
       {from && !q ? (
         <Section title="In These Verses">
           {found.isPending ? <Skeleton rows={3} /> : !found.data?.length ? <Empty title="No dictionary entry for these words">Search for a name or a place instead.</Empty> : <List>{found.data.map((e) => <Row key={e.slug} href={`/dictionary/${e.slug}`} title={e.term} sub={e.definitions[0]} />)}</List>}
@@ -66,14 +67,15 @@ export function Dictionary() {
       ) : first ? (
         <>
           {rows.length ? (
-            <Section title={`${first.count.toLocaleString()} ${first.count === 1 ? "entry" : "entries"}`}>
-              <List>{rows.map((r) => <Row key={r.slug} href={`/dictionary/${r.slug}`} title={r.term} />)}</List>
+            <div className="dict-list" aria-label={`${first.count.toLocaleString()} ${first.count === 1 ? "entry" : "entries"}`} role="region">
+              {byLetter(rows, (r) => r.term).map((g) => <LetterSection key={g.letter} letter={g.letter} tone="gold"><List>{g.rows.map((r) => <Row key={r.slug} href={`/dictionary/${r.slug}`} title={r.term} />)}</List></LetterSection>)}
               {hasNextPage ? <div ref={end} className="list-more" role="status">{isFetchNextPageError ? <button type="button" className="section__more" onClick={() => void fetchNextPage()}>The next entries did not load. Retry</button> : "Loading more…"}</div> : null}
-            </Section>
+            </div>
           ) : <Empty title={`No entry called “${debounced}”`} />}
           {first.related.length ? <Section title="Mentioned in"><List>{first.related.map((r) => <Row key={r.slug} href={`/dictionary/${r.slug}`} title={r.term} />)}</List></Section> : null}
         </>
       ) : null) : null}
+      {letter ? <AlphabetBar letter={letter} tone="gold" onChange={(l) => { setParams({ letter: l }, { replace: true }); window.scrollTo({ top: 0 }); }} /> : null}
     </Screen>
   );
 }
@@ -82,12 +84,12 @@ export function DictionaryEntry() {
   const { slug = "" } = useParams();
   useBackButton();
   const e = useQuery({ queryKey: ["dict-entry", slug], queryFn: async () => { const r = await fetch(`/api/dictionary/${slug}`); if (r.status === 404) return null; if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() as Promise<Entry>; } });
-  useBottomButtons(e.data ? { text: "Share", onClick: () => void share({ kind: "note", title: `${e.data!.term} · Easton's Bible Dictionary`, text: e.data!.definitions[0].slice(0, 300), sitePath: `/dictionary/${slug}` }) } : null);
+  const onShare = e.data ? () => void share({ kind: "note", title: `${e.data!.term} · Easton's Bible Dictionary`, text: e.data!.definitions[0].slice(0, 300), sitePath: `/dictionary/${slug}` }) : undefined;
   if (e.isPending) return <Screen title="…"><Skeleton rows={3} /></Screen>;
   if (e.isError) return <Screen title="Dictionary"><Empty title="This entry did not load" action={{ label: "Retry", onClick: () => void e.refetch() }}>Check your connection.</Empty></Screen>;
   if (!e.data?.term) return <Screen title="Dictionary"><Empty title="No such entry" /></Screen>;
   return (
-    <Screen title={e.data.term} kicker="Easton's Bible Dictionary">
+    <Screen title={e.data.term} kicker="Easton's Bible Dictionary" action={onShare ? <ShareButton onClick={onShare} /> : undefined}>
       <div className="dict">{e.data.definitions.map((d, i) => <p key={i}>{d}</p>)}</div>
       <p className="hint">Easton's Bible Dictionary, 1897, public domain.</p>
     </Screen>

@@ -114,6 +114,19 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgu
 .letters button:hover { background: var(--fill-2) padding-box; }
 .letters button[aria-pressed="true"] { background: var(--accent) padding-box; color: var(--on-accent); }
 
+/* Bible Strong's AlphabetList: a strip of 44px letters above the dock, the chosen one bold with a
+   30x8 bar under it; and its SectionTitle, the letter in a 30px disc over the rows it heads. */
+.abc { position: sticky; bottom: var(--dock-space); z-index: 2; margin: var(--sp-3) calc(-1 * var(--gutter)) 0; background: var(--canvas); border-top: .5px solid var(--hairline); }
+.abc__strip { display: flex; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; padding: 3px var(--gutter) 7px; }
+.abc__strip::-webkit-scrollbar { display: none; }
+.abc button { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: var(--touch); height: var(--touch); padding: 0; border: 0; background: none; color: var(--text-3); font: 400 var(--fs-body) var(--font-ui); cursor: pointer; }
+.abc button span { width: 30px; height: 8px; border-radius: 5px; background: transparent; }
+.abc button[aria-pressed="true"] { color: var(--text-1); font-weight: 700; }
+.abc button[aria-pressed="true"] span { background: var(--accent); }
+.abc[data-tone="gold"] button[aria-pressed="true"] span { background: var(--gold); }
+.abc-section__badge { display: grid; place-items: center; width: 30px; height: 30px; margin: var(--sp-2) 0 var(--sp-1) 4px; border-radius: 15px; background: var(--accent); color: var(--on-accent); font: 700 16px/1 var(--font-ui); }
+.abc-section__badge[data-tone="gold"] { background: var(--gold); color: var(--canvas); }
+
 /* ── Badges, tags, counts ──────────────────────────────────────────────────────────────────── */
 .pill { display: inline-block; padding: 2px 8px; border-radius: var(--r-xs); background: var(--fill-1); color: var(--text-2); font: 600 11px/1.5 var(--font-ui); }
 .pill--hot { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--text-1); }
@@ -208,3 +221,9 @@ html[data-transparency="reduced"] #root .seg[data-pressed] > div > [aria-hidden]
 input[type="range"]::-webkit-slider-thumb { width: 38px; height: 24px; margin-top: -10px; }
 input[type="range"]::-moz-range-thumb { width: 36px; height: 22px; }
 @media (prefers-reduced-motion: reduce) { #root .seg[data-pressed] > div > [aria-hidden] { scale: 1; } }
+
+/* Bible Strong's DictionnaireItem: 60px rows, the word in 18px bold. */
+/* Bible Strong's DictionnaireItem is 60px: the cell's own inset would take it past that. */
+#root .dict-list .list .row { min-height: 60px; padding-block: 6px; }
+#root .dict-list .list .row > div { padding-block: 0; }
+#root .dict-list .row__title { font: 600 18px/1.25 var(--font-ui); }
