@@ -1,7 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
+import fs from "node:fs";
 
 // Bible Strong's NaveListScreen, which the topics and the precepts follow: one letter at a time,
 // filed under its disc, the alphabet along the bottom, and a search that replaces the letters.
+const MOCK = fs.readFileSync(new URL("./telegram-mock.js", import.meta.url), "utf8");
+const LAUNCH = "#tgWebAppData=query_id%3Dnave-lists&tgWebAppVersion=9.1&tgWebAppPlatform=ios";
 const DATA = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
 async function setup(page: Page) {
   page.setDefaultTimeout(15_000);
@@ -51,4 +54,28 @@ test("precepts list every precept of a letter, with no cap", async ({ page }) =>
   await expect(page.locator(".bs-dictitem")).toHaveCount(310);
   await page.getByRole("radiogroup", { name: "Letters" }).getByRole("radio", { name: "Z" }).click();
   await expect(page.locator(".bs-dictitem")).toHaveCount(10);
+});
+
+test("the discs take the theme's own quart and quint, darkened only where their white letter would not read", async ({ page }) => {
+  const disc = async (path: string, letter: string) => {
+    await page.goto(`${path}?letter=${letter}${LAUNCH}`);
+    const span = page.locator(".bs-section span").first();
+    await expect(span).toHaveText(letter.toUpperCase());
+    return span.evaluate(el => { const s = getComputedStyle(el); return { bg: s.backgroundColor, ink: s.color }; });
+  };
+  const ratio = (a: string, b: string) => {
+    const lum = (c: string) => { const [r, g, bl] = (c.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * bl; };
+    const [x, y] = [lum(a), lum(b)]; return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  };
+  await setup(page);
+  await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
+  for (const theme of ["default", "night"]) {
+    await page.addInitScript(t => { (window as any).__cloud = { bs: JSON.stringify({ preferredColorScheme: t === "night" ? "dark" : "light", preferredLightTheme: t === "night" ? "default" : t, preferredDarkTheme: t === "night" ? t : "dark" }) }; }, theme);
+    await page.goto(`/precepts${LAUNCH}`);
+    await expect(page.locator("html")).toHaveAttribute("data-palette", theme);
+    const precepts = await disc("/precepts", "s"), topics = await disc("/topics", "a");
+    for (const d of [precepts, topics]) { expect(d.ink).toBe("rgb(255, 255, 255)"); expect(ratio(d.bg, d.ink)).toBeGreaterThanOrEqual(4.5); }
+    // Bible Strong's colours stand wherever they already read: quart on Paper, quint on Paper.
+    if (theme === "default") { expect(precepts.bg).toBe("rgb(194, 40, 57)"); expect(topics.bg).toBe("rgb(48, 51, 107)"); }
+  }
 });

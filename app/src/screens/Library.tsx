@@ -3,8 +3,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
 
 import { compressVerses, data, fmtDate, type ConcordanceBook, type GlossaryEntry, type ResolvedRef, type ThreadStop } from "@/api/data";
+import { PALETTES } from "@/bible/theme";
 import { haptic } from "@/tg/sdk";
 import { AlphabetList, SectionTitle, firstLetter, sections, useHeaderOffset } from "@/ui/alphabet";
+import { readableColor } from "@/ui/palette";
+import { useAppTheme } from "@/ui/theme";
 import { toAppPath } from "@shared/links.mjs";
 import { share } from "@/lib/share";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
@@ -27,7 +30,9 @@ function Quote({ r }: { r: ResolvedRef }) {
  * rows of one letter filed under its disc, the alphabet along the bottom, and a search that
  * replaces the letters. The letter is kept in the address, so Back returns to it.
  */
-function NaveList({ title, rows, color, failed, retry }: { title: string; rows: { key: string; name: string; href: string }[] | undefined; color: string; failed: boolean; retry: () => void }) {
+function NaveList({ title, rows, tone, failed, retry }: { title: string; rows: { key: string; name: string; href: string }[] | undefined; tone: "quart" | "quint"; failed: boolean; retry: () => void }) {
+  // The theme's own colour, darkened only where its white letter would not read (night's quart, the dark themes' quint).
+  const color = readableColor(PALETTES[useAppTheme().name][tone], [[255, 255, 255]]);
   const [params, setParams] = useSearchParams();
   const letter = (params.get("letter") ?? "a").toLowerCase();
   const setLetter = (l: string) => setParams((p) => { const next = new URLSearchParams(p); next.set("letter", l); return next; }, { replace: true });
@@ -59,7 +64,7 @@ export function Precepts() {
   useBackButton();
   const rows = useQuery({ queryKey: ["precepts"], queryFn: data.precepts });
   const list = useMemo(() => rows.data?.map((p) => ({ key: p.slug, name: p.title, href: toApp(p.url) })), [rows.data]);
-  return <NaveList title="Precepts" rows={list} color="var(--bs-quart, var(--accent))" failed={rows.isError} retry={() => void rows.refetch()} />;
+  return <NaveList title="Precepts" rows={list} tone="quart" failed={rows.isError} retry={() => void rows.refetch()} />;
 }
 
 export function PreceptScreen() {
@@ -80,7 +85,7 @@ export function Topics() {
   useBackButton();
   const rows = useQuery({ queryKey: ["topics"], queryFn: data.topics });
   const list = useMemo(() => rows.data?.filter((t) => (t.notes || t.cases) && !t.slug.startsWith("verdict-")).map((t) => ({ key: t.slug, name: t.label, href: toApp(t.url) })), [rows.data]);
-  return <NaveList title="Topics" rows={list} color="var(--bs-quint, var(--accent))" failed={rows.isError} retry={() => void rows.refetch()} />;
+  return <NaveList title="Topics" rows={list} tone="quint" failed={rows.isError} retry={() => void rows.refetch()} />;
 }
 
 export function TopicScreen() {
