@@ -444,7 +444,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs[data-dark] { --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent); }
 .bs-header { isolation: isolate; background: none; border-bottom: .5px solid var(--mat-edge); }
 /* Header material and scroll edge are shared in materials.css. */
-.bs-dropdown, .bs-picker { background: var(--mat-elevated); -webkit-backdrop-filter: var(--mat-blur-strong); backdrop-filter: var(--mat-blur-strong); border: .5px solid var(--mat-edge); border-radius: var(--r-lg); box-shadow: var(--mat-highlight), var(--shadow-3); }
+.bs-dropdown { background: var(--mat-elevated); -webkit-backdrop-filter: var(--mat-blur-strong); backdrop-filter: var(--mat-blur-strong); border: .5px solid var(--mat-edge); border-radius: var(--r-lg); box-shadow: var(--mat-highlight), var(--shadow-3); }
 .bs-dropdown { top: calc(100% + 6px); }
 .bs-dropdown__item + .bs-dropdown__item { border-top: .5px solid color-mix(in srgb, var(--bs-default) 10%, transparent); }
 #root .bs-chapterbtn, .bs-chapterbtn, .bs-playpill { background: var(--mat-overlay) !important; border: .5px solid var(--mat-edge) !important; box-shadow: var(--mat-highlight), 0 6px 18px rgba(0, 0, 0, .18); }
@@ -457,17 +457,12 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-gallery[data-open] { background: var(--deck-bg); }
 
 /* Header selectors use the same glass material as the existing sheets. */
-.bs-picker-scrim { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-start; justify-content: center; padding: calc(var(--safe-top, 0px) + 62px) 12px 12px; background: transparent; }
-.bs-picker { box-sizing: border-box; width: 100%; max-width: 400px; max-height: min(530px, calc(100dvh - var(--safe-top, 0px) - 86px)); display: flex; flex-direction: column; overflow: hidden; color: var(--bs-default); animation: bs-drop var(--dur-2) var(--ease); }
-.bs-picker__header { display: flex; align-items: center; padding: 4px 10px 4px 16px; min-height: 48px; flex: none; border-bottom: .5px solid var(--bs-border); }
-.bs-picker__header b { flex: 1; font-size: 16px; }
-.bs-picker__body { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
-.bs-picker .bs-search { margin: 12px; }
-.bs-picker .bs-chaptergrid { padding-bottom: 16px; }
-.bs-picker .bs-versegrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
-.bs-picker .bs-versetile { width: 100%; height: 44px; background: none; }
-.bs-picker .bs-versetile[data-pressed] { background: var(--bs-light-grey); }
-.bs-picker :focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
+.bs-picker-sheet .bs-search { margin: 12px; }
+.bs-picker-sheet .bs-chaptergrid { padding-bottom: 16px; }
+.bs-picker-sheet .bs-versegrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.bs-picker-sheet .bs-versetile { width: 100%; height: 44px; background: none; }
+.bs-picker-sheet .bs-versetile[data-pressed] { background: var(--bs-light-grey); }
+.bs-picker-sheet :focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
 .bs-versions__language { margin: 4px 16px 10px; color: var(--bs-tertiary); font-size: 13px; }
 .bs-dropdown__title { display: block; padding: 10px 16px; font-size: 0.8125rem; color: var(--bs-tertiary); }
 .bs-dropdown__item > span { flex: 1; }
@@ -661,3 +656,8 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-annotbar__title { flex: 1; min-width: 0; text-align: center; font-size: 14px; font-weight: 700; color: var(--bs-reverse); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #root .bs-annotbar__done, .bs-annotbar__done { min-height: 40px; padding: 0; border: 0; background: none; font: inherit; cursor: pointer; display: flex; align-items: center; }
 .bs-annotbar__done > span { display: flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 8px; background: var(--bs-reverse); color: var(--bs-primary); font-size: 12px; font-weight: 700; }
+
+/* The selectors' sheets: BookSelectorSheet's header keeps its title centred between a 60 px space
+   (or the back arrow) and its filters (or a 54 px space). */
+.bs-picker-sheet__spacer { flex: none; width: 60px; }
+.bs-picker-sheet__spacer--right { width: 54px; }

@@ -116,7 +116,7 @@ test("tapping verses selects them, the sheet highlights, notes, tags and bookmar
 test("the book pill opens Books; a chapter tile opens the chapter; the chevrons jump to a verse", async ({ page }) => {
   await page.goto(`/read/john/3${LAUNCH}`);
   await page.click(".bs-pill--book");
-  await expect(page.locator(".bs-picker__header b")).toHaveText("Books");
+  await expect(page.locator(".bs-picker-sheet .bs-sheet__titles b").last()).toHaveText("Books");
   await expect(page.locator(".bs-bookrow span", { hasText: /^John$/ })).toHaveCSS("font-weight", "700");
   // The book being read is scrolled into view, not left below the fold.
   await expect(page.locator(".bs-bookrow[data-current]")).toBeInViewport();
@@ -126,31 +126,29 @@ test("the book pill opens Books; a chapter tile opens the chapter; the chevrons 
   await expect(page).toHaveURL(/\/read\/psalms\/23/);
   await expect(page.locator(".bs-pill--book")).toHaveText("Psalms 23");
   await page.click(".bs-header__verses");
-  await expect(page.locator(".bs-picker__header b")).toHaveText("Go to verse");
+  await expect(page.locator(".bs-picker-sheet .bs-sheet__titles b").last()).toHaveText("Go to verse");
   await expect(page.locator(".bs-versetile")).toHaveCount(6);
   await page.click('.bs-versetile[aria-label="Verse 4"]');
-  await expect(page.locator(".bs-picker")).toHaveCount(0);
+  await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
   // Grid layout: three-letter books, New Testament in red.
   await page.click(".bs-pill--book");
   await page.click(".bs-filterbtn");
   await page.click('.bs-filter__opts button >> text=Grid');
   await expect(page.locator(".bs-bookshort >> text=Mat")).toHaveCSS("color", "rgb(237, 191, 196)");
   await page.click(".bs-bookshort >> text=Mat");
-  await expect(page.locator(".bs-picker__header b")).toHaveText("Matthew");
+  await expect(page.locator(".bs-picker-sheet .bs-sheet__titles b").last()).toHaveText("Matthew");
   await page.click('.bs-chaptertile[aria-label="Chapter 5"]');
   await expect(page).toHaveURL(/\/read\/matthew\/5/);
 });
 
-test("header cards search, keep chapter navigation in place, and close with Telegram Back", async ({ page }) => {
+test("the header's selectors are Bible Strong's sheets: they search, keep chapter navigation in place, and close with Telegram Back", async ({ page }) => {
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await page.click(".bs-pill--book");
   const card = page.getByRole("dialog", { name: "Books", exact: true });
   await expect(card).toBeVisible();
-  // Measure the full border box after the opening scale animation has finished.
-  await expect(card).toHaveCSS("transform", "none");
-  const bounds = (await card.boundingBox())!;
-  expect(bounds.y).toBeLessThan(130);
-  expect(bounds.height).toBeLessThanOrEqual(530);
+  // Bible Strong's BookSelectorSheet: a full-height bottom sheet, its title centred.
+  await expect(card).toHaveClass(/bs-sheet--full/);
+  await expect(card.locator(".bs-sheet__header")).toHaveAttribute("data-center", "");
   await page.getByRole("textbox", { name: "Search books" }).fill("maccabees");
   await expect(page.locator(".bs-bookrow")).toHaveCount(2);
   await page.locator(".bs-bookrow").first().click();
@@ -158,7 +156,7 @@ test("header cards search, keep chapter navigation in place, and close with Tele
   await page.getByRole("button", { name: "Back to books" }).click();
   await expect(page.getByRole("textbox", { name: "Search books" })).toHaveValue("maccabees");
   await press(page, "back");
-  await expect(page.locator(".bs-picker")).toHaveCount(0);
+  await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
   await expect(page.locator(".bs-pill--book")).toBeFocused();
   await page.click(".bs-pill--version");
   await expect(page.locator(".bs-versions__language")).toHaveText("English");
@@ -166,7 +164,7 @@ test("header cards search, keep chapter navigation in place, and close with Tele
   await page.getByRole("textbox", { name: "Search versions" }).fill("unknown");
   await expect(page.getByText("No versions found.")).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.locator(".bs-picker")).toHaveCount(0);
+  await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
   await page.click('.bs-iconbtn[aria-label="Scripture options"]');
   await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
   await expect(page.getByRole("menuitem")).toHaveText(["Font and settings", "Search the Scriptures", "Recently viewed", "Add bookmark", "Export…", "Open in new tab"]);
@@ -945,7 +943,7 @@ test("in the Bible, an open sheet shows Telegram's back button and closes with i
   await expect(page).toHaveURL(/\/read\/genesis\/4/);
   // The ✕ closes it.
   await page.click(".bs-pill--book");
-  await page.click('.bs-picker [aria-label="Close"]');
+  await page.keyboard.press("Escape");
   await expect(page.locator("[data-sheet-open]")).toHaveCount(0);
   // Other controls remain sheets: a swipe down closes Font and settings; a short one springs back.
   await page.click('.bs-iconbtn[aria-label="Scripture options"]');

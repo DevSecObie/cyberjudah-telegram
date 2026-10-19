@@ -142,7 +142,7 @@ test("reader chapter changes stay in place: Back leaves the reader and a collaps
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
   // A jump from the book picker changes the chapter in place too, as Bible Strong's picker does.
   await page.locator(".bs-pill--book").click();
-  await page.locator(".bs-picker").getByRole("button", { name: "John", exact: true }).click();
+  await page.locator(".bs-picker-sheet").getByRole("button", { name: "John", exact: true }).click();
   await page.getByRole("button", { name: "Chapter 1", exact: true }).click();
   await expect(page).toHaveURL(/\/read\/john\/1$/);
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
@@ -173,14 +173,14 @@ test("book picker long press opens the chapter in a new tab, as Bible Strong's w
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
   await expect(page.getByRole("button", { name: "2 Tabs open", exact: true })).toBeVisible();
   await page.locator(".bs-pill--book").click();
-  await page.locator(".bs-picker").getByRole("button", { name: "John", exact: true }).click();
+  await page.locator(".bs-picker-sheet").getByRole("button", { name: "John", exact: true }).click();
   const tile = page.getByRole("button", { name: "Chapter 2", exact: true });
   const t = (await tile.boundingBox())!;
   await page.mouse.move(t.x + t.width / 2, t.y + t.height / 2);
   await page.mouse.down(); await page.waitForTimeout(650); await page.mouse.up();
   await expect(page).toHaveURL(/\/read\/john\/2$/);
   await expect(page.getByRole("button", { name: "3 Tabs open", exact: true })).toBeVisible();
-  await expect(page.locator(".bs-picker")).toHaveCount(0);
+  await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
 });
 
 test("Go to verse never collapses the header, even when the jump's scroll lands after its settle time", async ({ page }) => {
@@ -315,7 +315,7 @@ test("the book picker changes the chapter in place, so Back from it does not ste
   await page.goto("/more");
   await page.goto("/read/genesis/1");
   await page.locator(".bs-pill--book").click();
-  await page.locator(".bs-picker").getByRole("button", { name: "John", exact: true }).click();
+  await page.locator(".bs-picker-sheet").getByRole("button", { name: "John", exact: true }).click();
   await page.getByRole("button", { name: "Chapter 3", exact: true }).click();
   await expect(page).toHaveURL(/\/read\/john\/3/);
   await page.goBack();

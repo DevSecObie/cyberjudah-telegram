@@ -803,8 +803,8 @@ for (const mode of ["native", "fallback", "reduced"] as const) {
     await pickerTrigger.click();
     const picker = page.getByRole("dialog", { name: "Books", exact: true });
     await expect(picker).toBeVisible();
-    await picker.getByRole("button", { name: "Close", exact: true }).click();
-    await expect(page.locator(".bs-picker")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
     await expect(pickerTrigger).toBeFocused();
     const motion = await page.evaluate(() => ({ native: !!document.startViewTransition, calls: (window as any).__popoverTransitions, frames: (window as any).__popoverFrames }));
     if (mode === "native" && motion.native) expect(motion.calls).toBeGreaterThanOrEqual(4);

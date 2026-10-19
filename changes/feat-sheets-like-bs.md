@@ -1,3 +1,4 @@
 - Sheets work as Bible Strong's do on the iPhone: no ✕ (a swipe down, a tap outside or Back closes them), Bible Strong's 54 px header with the title on the left and a line under it, its grabber over the top, and its sizes: Font and settings opens at 40% and pulls up to full height, tags at 70%, a note or a link at 45% with the reader still usable behind it, the verse's resources, export and a word study at full height.
 - Fonts, Share options and the colour palette open over Font and settings, as in Bible Strong, instead of replacing it.
 - Pulling a sheet's content down from its top moves the sheet, and pushing it up grows a sheet that has a taller size, as a native sheet does.
+- Books, Go to verse and Version open as bottom sheets, as Bible Strong's selectors do, instead of cards under the header: Books and Version at full height, Books' title centred with "Chapters" under a book's name, Go to verse from Books at half height over the books.
