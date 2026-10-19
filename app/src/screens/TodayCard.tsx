@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { useQueries } from "@tanstack/react-query";
 import { useBibleSettings, webFontFamily } from "@/bible/settings";
 import { share } from "@/lib/share";
+import { dayKey } from "@/lib/marks";
 import { sheetOpened } from "@/tg/hooks";
 import { useModal } from "@/ui/modal";
 import { Icon } from "@/ui/ui";
@@ -41,7 +42,8 @@ export function TodayCard({ verse: today, failed: todayFailed, stacked = false }
   const drag = useRef<{ id: number; x: number; y: number; from: number; width: number; lastX: number; time: number; velocity: number; moved: boolean } | null>(null);
   const swiped = useRef(false);
   const [settings] = useBibleSettings();
-  const dates = Array.from({ length: 5 }, (_, i) => { const date = new Date(); date.setUTCDate(date.getUTCDate() - 4 + i); return date.toISOString().slice(0, 10); });
+  // The reader's own calendar days, as Bible Strong's daily meditation (toCivilDate), not UTC.
+  const dates = Array.from({ length: 5 }, (_, i) => { const date = new Date(); date.setDate(date.getDate() - 4 + i); return dayKey(date); });
   const previous = useQueries({ queries: dates.slice(0, 4).map((date, i) => ({ queryKey: ["votd", date], enabled: stacked || i === offset + 4, staleTime: Infinity, queryFn: async () => {
     const response = await fetch(`/api/verse-of-day?date=${date}`);
     if (!response.ok) throw new Error("Daily verse unavailable");

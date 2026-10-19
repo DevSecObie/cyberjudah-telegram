@@ -46,6 +46,7 @@
 .more-btn { display: block; width: 100%; min-height: var(--h-md); border: 0; border-top: .5px solid var(--hairline); background: none; color: var(--accent); font: 600 var(--control-font) var(--font-ui); cursor: pointer; }
 .more-btn:hover { background: var(--state-hover); }
 #root .bookpage__more, #root .section__more, #root .bs-word__more { min-height: var(--touch); border: 0; background: none; padding: 0; color: var(--accent); font: 600 var(--fs-sub) var(--font-ui); cursor: pointer; }
+#root .list-more { display: flex; justify-content: center; min-height: var(--touch); align-items: center; color: var(--text-3); font: var(--fs-footnote) var(--font-ui); }
 /* The heading's text action keeps its line but takes a 44px tall tap area. */
 .section__head a, .section__head .link { display: inline-flex; align-items: center; min-height: var(--touch); margin-block: calc((var(--touch) - 1.25em) / -2); font: 600 var(--fs-sub) var(--font-ui); color: var(--accent); }
 
