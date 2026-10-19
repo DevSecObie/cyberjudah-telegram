@@ -18,7 +18,7 @@ const cloud = (page: Page) => page.evaluate(() => (window as unknown as { __tg: 
 const tapVerse = async (page: Page, n: number) => { await page.click(`#verset-${n} .bs-num`); await page.waitForTimeout(400); };
 const longPressVerse = async (page: Page, n: number) => { await page.locator(`#verset-${n} .bs-num`).evaluate((el) => el.scrollIntoView({ block: "center" })); await page.waitForTimeout(300); const b = (await page.locator(`#verset-${n} .bs-num`).boundingBox())!; await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await page.waitForTimeout(550); await page.mouse.up(); };
 /** A long press that must end in the resources sheet: the runner's first press can land while the text is still reflowing, so try again before giving up. */
-const openResources = async (page: Page, n: number) => { for (let i = 0; i < 3; i++) { await longPressVerse(page, n); if (await page.locator(".bs-resourcetabs").isVisible({ timeout: 4000 }).catch(() => false)) return; await page.waitForTimeout(500); } };
+const openResources = async (page: Page, n: number) => { for (let i = 0; i < 3; i++) { await longPressVerse(page, n); if (await page.locator(".bs-resfooter").isVisible({ timeout: 4000 }).catch(() => false)) return; await page.waitForTimeout(500); } };
 
 /** Where the person's screen is scrolled: in its sheet when opened from People, as Bible Strong's entity sheet. */
 const personY = (page: Page) => page.evaluate(() => Math.round(document.querySelector(".route-sheet .bs-sheet__body")?.scrollTop ?? scrollY));
@@ -201,13 +201,13 @@ test("a long press opens Strong's, with dictionary and references available", as
   await expect(page.locator("#verset-8")).toBeVisible();
   await longPressVerse(page, 8);
   await expect(page.locator(".bs-sheet__titles b")).toHaveText("Genesis 2:8");
-  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Lexicon", exact: true })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("tab", { name: "Dictionary", exact: true }).click();
   await expect(page.locator(".bs-sheet__titles small")).toHaveText("Dictionary");
   await expect(page.locator(".bs-resrow b", { hasText: /^Eden$/ })).toBeVisible();
-  await page.click('.bs-resourcetabs button >> text=References');
+  await page.click('.bs-resfooter button >> text=References');
   await expect(page.locator(".bs-resources .xref__chip").first()).toBeVisible();
-  await page.click('.bs-resourcetabs button >> text=Dictionary');
+  await page.click('.bs-resfooter button >> text=Dictionary');
   await page.locator(".bs-resrow", { has: page.locator("b", { hasText: /^Eden$/ }) }).click();
   await expect(page).toHaveURL(/\/dictionary\/eden/);
   await expect(page.locator(".dict p").first()).toContainText("Delight");
@@ -221,8 +221,8 @@ test("the precepts a class lined up with a verse: a tag under the verse, and a P
   await expect(tag).toBeVisible();
   await longPressVerse(page, 11);
   await expect(page.locator(".bs-sheet__titles b")).toHaveText("Isaiah 11:11");
-  await page.click('.bs-resourcetabs button >> text=Precepts');
-  await expect(page.locator(".bs-sheet__titles small")).toHaveText("Precepts taught with this verse");
+  await page.click('.bs-resfooter button >> text=Precepts');
+  await expect(page.locator(".bs-sheet__titles small")).toHaveText("Precepts");
   const row = page.locator(".bs-precept").first();
   await expect(row).toBeVisible();
   await expect(row.locator("small")).toContainText(/\S/);
@@ -922,7 +922,7 @@ test("a verse's Comments hold each class's own breakdown of it, and watch from t
   await page.goto(`/read/genesis/4${LAUNCH}`);
   await expect(page.locator("#verset-5")).toBeVisible();
   await longPressVerse(page, 5);
-  await page.click('.bs-resourcetabs button >> text=Comments');
+  await page.click('.bs-resfooter button >> text=Comments');
   const card = page.locator(".bs-comment", { hasText: "Bitterness: The Hidden Leaven" }).first();
   await expect(card.locator(".bs-comment__points li").first()).toContainText("Cain was very wroth, and his countenance fell");
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/comments.png` });
@@ -937,7 +937,7 @@ test("in the Bible, an open sheet shows Telegram's back button and closes with i
   expect((await state(page)).back).toBe(false);
   // Back button closes the open sheet, and hides again.
   await longPressVerse(page, 5);
-  await page.click('.bs-resourcetabs button >> text=Comments');
+  await page.click('.bs-resfooter button >> text=Comments');
   await expect(page.locator("[data-sheet-open]")).toHaveCount(1);
   await expect.poll(async () => (await state(page)).back).toBe(true);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/sheet-close.png` });
@@ -991,7 +991,7 @@ test("a verse's comment opens the note right where that passage is broken down",
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-7")).toBeVisible();
   await longPressVerse(page, 7);
-  await page.click('.bs-resourcetabs button >> text=Comments');
+  await page.click('.bs-resfooter button >> text=Comments');
   const card = page.locator(".bs-comment", { hasText: "The firmament is the sky" });
   await expect(card).toBeVisible();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/comment-g17.png` });
@@ -1006,7 +1006,7 @@ test("People: who is named in a verse, a page per person with family, the classe
   await page.goto(`/read/genesis/12${LAUNCH}`);
   await expect(page.locator("#verset-5")).toBeVisible();
   await openResources(page, 5);
-  await page.click('.bs-resourcetabs button >> text=People');
+  await page.click('.bs-resfooter button >> text=People');
   await expect(page.locator(".bs-resrow b")).toHaveText(["Abraham", "Lot", "Sarah"]);
   await page.locator(".bs-resrow", { hasText: "Abraham" }).click();
   await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
@@ -1513,10 +1513,12 @@ test("Strong's: a verse's words open the Hebrew or Greek behind them, with every
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   await longPressVerse(page, 1);
-  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator(".bs-words__w", { hasText: "God" }).first()).toContainText("H430");
+  await expect(page.getByRole("tab", { name: "Lexicon", exact: true })).toHaveAttribute("aria-selected", "true");
+  // Bible Strong's Lexicon: the word's pill brings its card, and the card opens the word.
+  await page.getByRole("button", { name: "God", exact: true }).click();
+  await expect(page.getByRole("button", { name: "God", exact: true })).toHaveAttribute("aria-pressed", "true");
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/strongs-words.png` });
-  await page.locator(".bs-words__w", { hasText: "God" }).first().click();
+  await page.getByRole("button", { name: "H430 · God", exact: true }).click();
   await expect(page.locator(".bs-word__lemma")).toHaveText("אֱלֹהִים");
   await expect(page.locator(".bs-word__meta b")).toHaveText("ʼĕlôhîym");
   await expect(page.locator(".bs-word__book").first()).toBeVisible();
@@ -1531,7 +1533,7 @@ test("a verse's Comments list every class that read it aloud, from the transcrip
   await page.goto(`/read/isaiah/61${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   await longPressVerse(page, 1);
-  await page.click('.bs-resourcetabs button >> text=Comments');
+  await page.click('.bs-resfooter button >> text=Comments');
   await expect(page.locator(".bs-resources__sub", { hasText: /^Read in / })).toBeVisible();
   const rows = page.locator(".bs-readin__row");
   await expect(rows.first()).toBeVisible();
@@ -1598,7 +1600,7 @@ test("an Apocrypha verse shows its Greek from Swete's Septuagint where the 66 bo
   await page.goto(`/read/tobit/1${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   await longPressVerse(page, 1);
-  await page.click('.bs-resourcetabs button >> text=Words');
+  await page.click('.bs-resfooter button >> text=Lexicon');
   await expect(page.locator(".bs-greek__text")).toContainText("ΒΙΒΛΟΣ");
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/greek.png` });
 });

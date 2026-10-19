@@ -1,0 +1,1 @@
+- A verse opened from History, Bookmarks or a link is scrolled to even when the chapter is still laying out as it opens: the reader tries again for a few frames until it reaches the verse, and stops if you touch the page first.
