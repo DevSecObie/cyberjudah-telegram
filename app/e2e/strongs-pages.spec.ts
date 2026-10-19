@@ -12,18 +12,21 @@ test("every number on a multi-number span opens its own word study", async ({ pa
     const path = new URL(r.request().url()).pathname;
     if (path === "/api/kjv/books.json") return r.fulfill({ json: await fixture("kjv/books.json") });
     if (path === "/api/kjv/genesis/1.json") return r.fulfill({ json: await fixture("kjv/genesis/1.json") });
+    const n = path.match(/^\/api\/strongs\/(H\d+)\.json$/)?.[1];
+    if (n) return r.fulfill({ json: { ...(await fixture("strongs/H1.json")), number: n } });
     return r.fulfill({ status: 404, body: "" });
   });
   await page.goto("/read/genesis/1");
   const verse = page.locator("#verset-1 .bs-num");
   await expect(verse).toBeVisible();
   await verse.hover(); await page.mouse.down(); await page.waitForTimeout(550); await page.mouse.up();
-  await page.getByRole("tab", { name: "Words", exact: true }).click();
+  await page.getByRole("tab", { name: "Lexicon", exact: true }).click();
   // Association unchanged from the pinned Genesis fixture; no invented alignment.
+  // Bible Strong's Lexicon: one pill for the span, one card for each of its numbers.
+  await page.getByRole("button", { name: "created", exact: true }).click();
   for (const number of ["H1254", "H853"]) {
-    const request = page.waitForRequest(`${origin}/api/strongs/${number}.json`);
-    await page.getByRole("button", { name: `created — ${number}`, exact: true }).click();
-    expect((await request).url()).toContain(number);
+    await page.getByRole("button", { name: `${number} · created`, exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "Word study" }).getByText(number).first()).toBeVisible();
     await page.getByRole("button", { name: "Back", exact: true }).last().click();
   }
 });

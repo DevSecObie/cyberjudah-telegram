@@ -1,0 +1,2 @@
+- The Dictionary and the Lexicon now work like Bible Strong's lists. Each opens straight on the words of A, filed under a coloured letter disc, with the alphabet along the bottom: tap a letter or swipe to it. A search replaces the alphabet.
+- Lexicon rows show the language and the Strong's number as chips, then the meaning and the original word, filed by meaning. A filter button chooses All, Hebrew or Greek, and a typed number such as G26 is found whatever the filter.

@@ -1,0 +1,2 @@
+- The tab switcher now looks like Bible Strong's. Tabs are white cards with a soft shadow on a light grey page, with each tab's content faint behind a white circle holding its icon. Icons are in their resource's colour. The current tab no longer has a coloured border.
+- A named group shows its name on its own colour in the bar under the tabs, as in Bible Strong.

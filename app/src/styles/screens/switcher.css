@@ -15,19 +15,20 @@
 .nt-hero__icon { width: 80px; height: 100px; background: none; }
 .nt-hero__body b { font: 700 var(--fs-title1)/1.1 var(--font-ui); color: var(--text-1); }
 
-/* The switcher: two cards a row, each a tinted surface (no filter: there are many of them). */
-.switcher { min-height: 100dvh; padding: calc(var(--safe-top) + var(--sp-5)) var(--sp-5) calc(var(--dock-space) + 40px); touch-action: pan-y; }
-.switcher__grid { display: grid; gap: var(--sp-5); justify-content: start; }
-.tabcard { position: relative; overflow: hidden; border-radius: var(--r-xl); background: var(--surface-1); box-shadow: var(--card-edge), inset 0 1px 0 var(--rim-highlight), var(--shadow-2); transition: transform var(--dur-2) var(--ease); }
+/* The switcher (TabGroupPage, TabPreview): two cards a row on the light grey, each on the page
+   colour with a soft shadow, its content faint under a fade, a round icon, the title bar and ✕. */
+.switcher { min-height: 100dvh; padding: calc(var(--safe-top) + 20px) 20px calc(var(--dock-space) + 40px); background: var(--surface-1); touch-action: pan-y; }
+.switcher__grid { display: grid; gap: 20px; justify-content: start; }
+.tabcard { position: relative; overflow: hidden; border-radius: 20px; background: var(--canvas); box-shadow: 0 4px 7px color-mix(in srgb, var(--text-1) 10%, transparent); transition: transform var(--dur-2) var(--ease); }
 .tabcard[data-pressed] { transform: scale(.97); }
-.tabcard[data-current] { box-shadow: var(--card-edge), inset 0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent), var(--shadow-2); }
 #root .tabcard__open { position: absolute; inset: 0; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
-.tabcard__icon { position: relative; z-index: 1; display: grid; place-items: center; width: 80px; height: 80px; border-radius: 40px; color: var(--accent); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline), inset 0 1px 0 var(--rim-highlight); }
-.tabcard__title { position: absolute; top: 0; left: 0; right: 40px; display: flex; align-items: center; gap: var(--sp-2); height: 40px; padding: 0 5px 0 14px; color: var(--text-3); pointer-events: none; }
-.tabcard__title b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 var(--fs-caption) var(--font-ui); color: var(--text-1); }
-#root .tabcard__close { position: absolute; top: 0; right: 0; display: grid; place-items: center; width: var(--touch); height: var(--touch); padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
-.tabcard__close span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 13px; background: var(--fill-2); }
-.tabcard__preview { position: absolute; inset: 48px var(--sp-3) 0; overflow: hidden; opacity: .5; color: var(--text-2); text-align: left; -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent); mask-image: linear-gradient(to bottom, #000 55%, transparent); font: 400 var(--fs-caption)/1.65 var(--font-read); pointer-events: none; }
+.tabcard__open::after { content: ""; position: absolute; inset: 0 0 auto; height: 60px; background: linear-gradient(var(--canvas), transparent); pointer-events: none; }
+.tabcard__icon { position: relative; z-index: 1; display: grid; place-items: center; width: 80px; height: 80px; border-radius: 40px; background: var(--canvas); }
+.tabcard__title { position: absolute; top: 0; left: 0; right: 40px; z-index: 1; display: flex; align-items: center; height: 40px; padding: 0 5px 0 14px; pointer-events: none; }
+.tabcard__title b { min-width: 0; margin-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 12px var(--font-ui); color: var(--text-1); }
+#root .tabcard__close { position: absolute; top: 0; right: 0; z-index: 1; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
+.tabcard__close span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 12px; background: var(--canvas); box-shadow: 0 2px 7px rgba(89, 131, 240, .1); }
+.tabcard__preview { position: absolute; inset: 0; overflow: hidden; padding: 40px 14px 0; opacity: .15; color: var(--text-1); text-align: left; font: 400 var(--fs-caption)/1.65 var(--font-read); pointer-events: none; }
 .tabcard__preview > span { display: block; margin-top: 6px; }
 .groupdot { flex: none; display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
 

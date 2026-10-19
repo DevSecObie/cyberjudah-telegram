@@ -72,14 +72,14 @@ test("an entry opened from outside the app is a page, as before", async ({ page 
 
 test("a Strong's entry opens at full height, dimmed, as Bible Strong's strong sheet", async ({ page }) => {
   await setup(page);
-  await page.goto("/lexicon");
+  await page.goto("/lexicon?letter=f");
   await page.locator('a[href="/lexicon/H1"]').first().click();
   await expect(page).toHaveURL(/\/lexicon\/H1$/);
   const sheet = page.getByRole("dialog");
   await expect(sheet).toHaveClass(/bs-sheet--full/);
   await expect(page.locator(".bs-scrim--clear")).toHaveCount(0);
   await page.keyboard.press("Escape");
-  await expect(page).toHaveURL(/\/lexicon$/);
+  await expect(page).toHaveURL(/\/lexicon\?letter=f$/);
 });
 
 // A native sheet moves with its content: pushed up it grows to its next detent, pulled down from
