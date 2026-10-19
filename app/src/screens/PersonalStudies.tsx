@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -72,8 +72,8 @@ function StudyEditor({ id }: { id: string }) {
   const blocks = (next: StudyBlock[]) => { if (doc) change({ ...doc, blocks: next }); };
   const exportDoc = async (format: "json" | "md") => { const current = draft.current; if (!current) return; try { await saveFile(`cyberjudah-study-${id}.${format}`, format === "json" ? JSON.stringify(current, null, 2) : studyMarkdown(current), format === "json" ? "application/json" : "text/markdown"); setExportError(""); } catch { setExportError("The export could not finish. Your draft is still here; please try again."); } };
   if (!doc) return <Screen title="My study" className="study-screen"><div className="personal-study"><StudyNotice error={!!error}>{error || status}</StudyNotice><Link to="/studies">All studies</Link></div></Screen>;
-  return <Screen title="My study" className="study-screen" action={<button type="button" className="icon-btn" aria-label="Study options" title="Study options" aria-haspopup="dialog" aria-expanded={optionsOpen} onClick={e => { e.currentTarget.focus({ preventScroll: true }); setOptionsOpen(true); }}><Icon name="more" /></button>}><div className="personal-study" data-study-editor="" data-preview={preview || undefined}>
-    <div className="study-editor-bar"><Link className="study-text-link" to="/studies"><Icon name="back" size={16} />All studies</Link><Button appearance="bordered" onClick={() => setPreview(!preview)}><Icon name={preview ? "compose" : "book-open"} size={18} />{preview ? "Edit" : "Preview"}</Button></div>
+  // Bible Strong's EditStudyHeader: the study's actions sit in the header (here Preview and the options), so the writing starts near the top.
+  return <Screen title="My study" className="study-screen" action={<span className="study-head-actions"><button type="button" className="icon-btn" aria-label={preview ? "Edit" : "Preview"} title={preview ? "Edit" : "Preview"} aria-pressed={preview} onClick={() => setPreview(!preview)}><Icon name={preview ? "compose" : "book-open"} size={20} /></button><button type="button" className="icon-btn" aria-label="Study options" title="Study options" aria-haspopup="dialog" aria-expanded={optionsOpen} onClick={e => { e.currentTarget.focus({ preventScroll: true }); setOptionsOpen(true); }}><Icon name="more" /></button></span>}><div className="personal-study" data-study-editor="" data-preview={preview || undefined}>
     {error && <div className="study-conflict" role="alert"><p>{error}</p><Button appearance="bordered" onClick={async () => { try { const copy = await saveStudy({ ...doc, id: crypto.randomUUID(), revision: 0, title: `${doc.title} (copy)` }); stopped.current = true; navigate(`/studies/${copy.id}`); } catch { setError("The copy could not be saved. Export your draft to keep your work."); } }}>Save draft as a new copy</Button></div>}
     {exportError && <StudyNotice error>{exportError}</StudyNotice>}
     <article className="study-paper">
@@ -91,10 +91,14 @@ function StudyEditor({ id }: { id: string }) {
   </div></Screen>;
 }
 
+/** Quill's toolbar as Bible Strong's editor shows it: one row of icons. */
+const FORMATS: [string, ReactNode, string, string][] = [
+  ["Bold", <b key="b">B</b>, "**", "**"], ["Italic", <i key="i">I</i>, "*", "*"], ["Heading", <Icon key="h" name="type" size={18} />, "\n## ", ""], ["List", <Icon key="l" name="list" size={18} />, "\n- ", ""], ["Quote", <Icon key="q" name="quote" size={18} />, "\n> ", ""],
+];
 function Writing({ value, onChange, label }: { value: string; onChange: (s: string) => void; label: string }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const format = (before: string, after = "") => { const el = ref.current; if (!el) return; const start = el.selectionStart, end = el.selectionEnd; onChange(value.slice(0, start) + before + value.slice(start, end) + after + value.slice(end)); requestAnimationFrame(() => { el.focus(); el.setSelectionRange(start + before.length, end + before.length); }); };
-  return <><div className="study-format" role="group" aria-label="Writing format"><button type="button" className="study-tool" onClick={() => format("**", "**")}>Bold</button><button type="button" className="study-tool" onClick={() => format("*", "*")}>Italic</button><button type="button" className="study-tool" onClick={() => format("\n## ")}>Heading</button><button type="button" className="study-tool" onClick={() => format("\n- ")}>List</button><button type="button" className="study-tool" onClick={() => format("\n> ")}>Quote</button></div><textarea ref={ref} aria-label={label} rows={9} placeholder="Start writing your observations…" maxLength={40_000} value={value} onChange={e => onChange(e.target.value)} /><small className="study-writing-hint">Markdown supported · Preview shows your formatted study</small></>;
+  return <><div className="study-format" role="toolbar" aria-label="Writing format">{FORMATS.map(([name, glyph, before, after]) => <button key={name} type="button" className="study-tool" aria-label={name} title={name} onClick={() => format(before, after)}>{glyph}</button>)}</div><textarea ref={ref} aria-label={label} rows={9} placeholder="Start writing your observations…" maxLength={40_000} value={value} onChange={e => onChange(e.target.value)} /><small className="study-writing-hint">Markdown supported · Preview shows your formatted study</small></>;
 }
 function StudyMarkdown({ text }: { text: string }) {
   const html = DOMPurify.sanitize(marked.parse(text, { async: false }) as string, { ALLOWED_TAGS: ["p", "br", "strong", "em", "h1", "h2", "h3", "h4", "ul", "ol", "li", "blockquote", "code", "pre", "hr", "a"], ALLOWED_ATTR: ["href", "title"], ALLOW_DATA_ATTR: false });

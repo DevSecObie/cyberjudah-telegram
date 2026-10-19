@@ -1,0 +1,2 @@
+- The study editor's Preview moves into the header beside Study options, as in Bible Strong's editor, so the writing starts near the top instead of below a row of its own.
+- The formatting tools are Bible Strong's one row of icons (bold, italic, heading, list, quote), each a full-size target, instead of words that wrapped onto two lines.

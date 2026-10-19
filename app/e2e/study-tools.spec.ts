@@ -76,3 +76,22 @@ test("a single-book plan starts only after choosing its start action", async ({ 
   await expect(page.getByRole("link", { name: "Genesis · Change plan", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Genesis 1", exact: true })).toBeVisible();
 });
+test("the study editor keeps its formatting on one row of icons and starts the writing near the top, as Bible Strong's", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page); await page.goto("/studies");
+  await page.getByRole("button", { name: "New study", exact: true }).click();
+  const bar = page.getByRole("toolbar", { name: "Writing format" });
+  const tools = bar.getByRole("button");
+  await expect(tools).toHaveCount(5);
+  const tops = await tools.evaluateAll(els => els.map(el => Math.round(el.getBoundingClientRect().top)));
+  expect(new Set(tops).size).toBe(1);
+  for (const t of await tools.all()) { const b = (await t.boundingBox())!; expect(b.width).toBeGreaterThanOrEqual(44); expect(b.height).toBeGreaterThanOrEqual(44); }
+  // Preview sits in the header, not in a row of its own above the study.
+  await expect(page.locator(".study-editor-bar")).toHaveCount(0);
+  const writing = page.getByRole("textbox", { name: "Writing 1", exact: true });
+  expect((await writing.boundingBox())!.y).toBeLessThan(480);
+  await writing.fill("light");
+  await writing.selectText();
+  await bar.getByRole("button", { name: "Bold" }).click();
+  await expect(writing).toHaveValue("**light**");
+});
