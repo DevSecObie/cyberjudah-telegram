@@ -1,7 +1,7 @@
 import { Children, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { stoppingScroll } from "./fling";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Cell, Chip as TgChip, Input, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
+import { Cell, Chip as TgChip, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
 
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
@@ -12,6 +12,7 @@ import { expandBar, useBarMini, useBarScroll } from "@/lib/barscroll";
 import { SwitcherBar } from "@/screens/Tabs";
 import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
 
+import { Feather } from "@/bible/icons";
 import { Icon, type IconName } from "./icons";
 import { useSheetRoute } from "./sheetRoute";
 import { moveTab } from "./tab-motion";
@@ -448,11 +449,17 @@ export function FormSection({ title, action, children }: { title?: string; actio
   </fieldset>;
 }
 
+/**
+ * Bible Strong's SearchInput (common/SearchInput.tsx): a 36 px pill on a 10% shade, the search
+ * icon at 20 px, the text at 15 px with a grey placeholder, and a ✕ in a 36 px square while there
+ * is text.
+ */
 export function SearchField({ value, onChange, onSubmit, placeholder, autoFocus, id, trailing }: { value: string; onChange: (v: string) => void; onSubmit?: () => void; placeholder: string; autoFocus?: boolean; id: string; trailing?: ReactNode }) {
   return (
-    <form className="field" role="search" onSubmit={(e) => { e.preventDefault(); (document.activeElement as HTMLElement | null)?.blur(); onSubmit?.(); }}>
-      <Input id={id} type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" spellCheck={false} value={value} placeholder={placeholder} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} aria-label={placeholder}
-        before={<Icon name="search" size={18} />} after={value ? <button type="button" className="field__clear" aria-label="Clear" title="Clear" onClick={() => onChange("")}>×</button> : trailing} />
+    <form className="field bs-searchinput" role="search" onSubmit={(e) => { e.preventDefault(); (document.activeElement as HTMLElement | null)?.blur(); onSubmit?.(); }}>
+      <Feather name="search" size={20} raw />
+      <input id={id} type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" spellCheck={false} value={value} placeholder={placeholder} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} aria-label={placeholder} />
+      {value ? <button type="button" className="bs-searchinput__clear" aria-label="Clear" title="Clear" onClick={() => onChange("")}><Feather name="x" size={20} /></button> : trailing}
     </form>
   );
 }
