@@ -804,3 +804,11 @@ test("the day's verse is asked for by the reader's own date", async ({ page }) =
   await page.getByRole("button", { name: "Home", exact: true }).click();
   await expect.poll(() => asked).toContain(await page.evaluate(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }));
 });
+
+test("a saved relation between two non-verse items opens from the saved list", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("cj:rel_other", JSON.stringify([{ id: "r1", type: "linked", direction: "none", endpoints: [{ type: "dictionary", slug: "eden", label: "Eden" }, { type: "entry", url: "/classes/2026/x", kind: "class", label: "A class" }], createdAt: 1, updatedAt: 1 }])));
+  await page.goto("/relations");
+  await page.locator(".nt-item", { hasText: "Eden" }).click();
+  await expect(page).toHaveURL(/endpoint=dictionary%3Aeden/);
+  await expect(page.locator(".rel-row", { hasText: "A class" })).toBeVisible();
+});

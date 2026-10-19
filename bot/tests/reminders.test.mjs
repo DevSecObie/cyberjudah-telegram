@@ -265,7 +265,8 @@ test("a plan of some books is reminded from those books, not from Genesis", () =
   assert.equal(portion(on("UTC", { plan: { day: 1, perDay: 2, books: ["exodus"] } }), BOOKS), null, "past the plan's last book: nothing from the rest of the library");
   const r = applyContent(blank(), { plan: { day: 0, perDay: 2, books: ["exodus"] } });
   assert.deepEqual(r.plan, { day: 0, perDay: 2, books: ["exodus"] });
-  assert.deepEqual(applyContent(blank(), { plan: { day: 0, perDay: 2, books: ["<x>"] } }).plan, { day: 0, perDay: 2 }, "malformed books are dropped");
+  assert.deepEqual(applyContent(r, { plan: { day: 5, perDay: 2, books: ["<x>"] } }).plan, { day: 0, perDay: 2, books: ["exodus"] }, "malformed books leave the plan as it was");
+  assert.deepEqual(applyContent(r, { plan: { day: 1, perDay: 2, books: [] } }).plan, { day: 1, perDay: 2 }, "no books: the whole library");
 });
 
 test("the app's place is taken only when well formed", () => {

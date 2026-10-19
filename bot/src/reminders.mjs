@@ -103,8 +103,9 @@ export function applyContent(rec, content) {
   if (p === null) next.plan = null;
   else if (p && Number.isInteger(p.day) && p.day >= 0 && p.day < 5000 && Number.isInteger(p.perDay) && p.perDay >= 1 && p.perDay <= 50) {
     // A plan of some books (the New Testament, one book) names them, so its days count through those books only.
-    const books = Array.isArray(p.books) && p.books.length <= 100 && p.books.every((b) => typeof b === "string" && /^[a-z0-9-]{1,40}$/.test(b)) ? p.books : null;
-    next.plan = books?.length ? { day: p.day, perDay: p.perDay, books } : { day: p.day, perDay: p.perDay };
+    // A books list that is present but malformed leaves the plan as it was, rather than widening it to the whole library.
+    const valid = (b) => Array.isArray(b) && b.length <= 100 && b.every((x) => typeof x === "string" && /^[a-z0-9-]{1,40}$/.test(x));
+    if (p.books === undefined || valid(p.books)) next.plan = p.books?.length ? { day: p.day, perDay: p.perDay, books: p.books } : { day: p.day, perDay: p.perDay };
   }
   const l = content.last;
   if (l === null) next.last = null;
