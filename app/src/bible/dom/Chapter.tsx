@@ -223,7 +223,7 @@ export function Chapter(p: ChapterProps) {
     // slower engine), leaving too little to scroll: try again for a few frames until the verse is
     // reached, unless the reader touches the page first.
     const sc0 = scrollRef.current; let raf = 0, tries = 0, stopped = false;
-    const stop = () => { stopped = true; };
+    const stop = () => { stopped = true; suppressRef.current = false; };
     const input = ["pointerdown", "wheel", "touchstart", "keydown"] as const;
     input.forEach((t) => sc0?.addEventListener(t, stop, { passive: true }));
     const attempt = () => {
