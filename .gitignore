@@ -13,6 +13,8 @@ strong/.yarn/cache/
 strong/.yarn/install-state.gz
 strong/.yarn/unplugged/
 strong/dist/
+# Playwright CLI page snapshots, written wherever it runs
+.playwright-cli/
 
 # Downloaded and prepared licensed audio
 .cache/

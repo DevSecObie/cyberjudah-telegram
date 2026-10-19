@@ -448,7 +448,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
           if (DEFAULT_COLOR_KEYS.includes(k as DefaultColorKey)) setSettings({ colors: { ...settings.colors, [k]: hex }, defaultColorNames: { ...settings.defaultColorNames, [k]: name }, defaultColorTypes: { ...settings.defaultColorTypes, [k]: type } });
           else setSettings({ customHighlightColors: settings.customHighlightColors.map((c) => (c.id === k ? { ...c, hex, name, type } : c)) });
         }} /> : null}
-      {resource ? <ResourcesSheet open={sheet === "resources"} onClose={() => setSheet(null)} tab={resourceTab} setTab={setResourceTab} slug={slug} chapter={ch} verse={resource.verse} text={resource.text} reference={reference([resource.verse])} books={list} /> : null}
+      {resource ? <ResourcesSheet open={sheet === "resources"} onClose={() => setSheet(null)} tab={resourceTab} setTab={setResourceTab} slug={slug} chapter={ch} verse={resource.verse} verses={verses[verses.length - 1]?.verse ?? 0} onVerse={setResourceVerse} text={resource.text} reference={reference([resource.verse])} books={list} /> : null}
     </main>
   );
 }
