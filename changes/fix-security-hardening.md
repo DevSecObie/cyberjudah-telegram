@@ -1,0 +1,1 @@
+- Tightened security headers and checks: note PDF links are checked in constant time, note previews decode text once, and the site now reports scripts from unexpected places.

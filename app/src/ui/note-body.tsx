@@ -5,6 +5,7 @@ import { useMemo, type MouseEvent } from "react";
 import { openLink } from "@/tg/sdk";
 import { useGo } from "@/ui/ui";
 import { frameStyleText, useBoard, useVisuals, type Board, type Visual } from "@/lib/frames";
+import { decodeEntities } from "@/lib/html-text";
 
 marked.setOptions({ gfm: true, breaks: false });
 
@@ -109,7 +110,7 @@ export function noteLede(md: string, max = 120): string {
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")                              // links keep their words
     .replace(/https?:\/\/\S+/g, " ");
   const withoutHtml = DOMPurify.sanitize(plain, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
-  const text = withoutHtml.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'").replace(/^#.*$/gm, " ").replace(/[*_`>#[\]]/g, " ").replace(/\(\/[^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  const text = decodeEntities(withoutHtml).replace(/^#.*$/gm, " ").replace(/[*_`>#[\]]/g, " ").replace(/\(\/[^)]*\)/g, " ").replace(/\s+/g, " ").trim();
   return text.length > max ? `${text.slice(0, max).replace(/\s+\S*$/, "")}…` : text;
 }
 /** The first moment the note marks in the recording, in seconds, so a preview can offer it apart from the words. */
