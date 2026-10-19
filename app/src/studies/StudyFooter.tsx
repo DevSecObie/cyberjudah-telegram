@@ -28,7 +28,9 @@ export function StudyFooter({ target, header, onAdd }: { target: WritingTarget |
     if (el.maxLength > 0 && next.length > el.maxLength) return;
     // Through the browser's own editing, so Undo and Redo step over toolbar changes too.
     el.focus(); el.setSelectionRange(0, el.value.length);
-    if (!document.execCommand("insertText", false, next) || el.value !== next) onChange(next);
+    // The command may not send an input event, so the draft is set from here either way.
+    document.execCommand("insertText", false, next);
+    onChange(next);
     requestAnimationFrame(() => { el.focus(); el.setSelectionRange(start, end); });
   };
   const wrap = (mark: string) => edit((v, s, e) => [v.slice(0, s) + mark + v.slice(s, e) + mark + v.slice(e), s + mark.length, e + mark.length]);

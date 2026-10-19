@@ -97,7 +97,7 @@ function StudyEditor({ id }: { id: string }) {
   };
   if (!doc) return <Screen title="My study" className="study-screen"><div className="personal-study"><StudyNotice error={!!error}>{error || status}</StudyNotice><Link to="/studies">All studies</Link></div></Screen>;
   const title = doc.title || "Untitled study";
-  const add = async (kind: "writing" | "scripture" | "strong") => { if (kind === "writing") { if (doc.blocks.length < 200) blocks([...doc.blocks, textBlock()]); return; } await persist(); if (stopped.current) return; navigate(kind === "scripture" ? "/read/genesis/1" : "/lexicon"); };
+  const add = async (kind: "writing" | "scripture" | "strong") => { if (kind === "writing") { if (doc.blocks.length < 200) blocks([...doc.blocks, textBlock()]); return; } do await persist(); while (!stopped.current && draft.current && draft.current !== saved.current); if (stopped.current) return; navigate(kind === "scripture" ? "/read/genesis/1" : "/lexicon"); };
   const body = <>
     {error && <div className="study-conflict" role="alert"><p>{error}</p><Button appearance="bordered" onClick={async () => { try { const copy = await saveStudy({ ...doc, id: crypto.randomUUID(), revision: 0, title: `${doc.title} (copy)` }); stopped.current = true; navigate(`/studies/${copy.id}`); } catch { setError("The copy could not be saved. Export your draft to keep your work."); } }}>Save draft as a new copy</Button></div>}
     {exportError && <StudyNotice error>{exportError}</StudyNotice>}
