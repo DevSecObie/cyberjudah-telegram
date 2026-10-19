@@ -8,28 +8,38 @@ import { data, shelf, type Book, type Citation, type VerseComment } from "@/api/
 import { openLink } from "@/tg/sdk";
 import { verseNumbers } from "@/api/data";
 import { Feather } from "../icons";
+import { ResourceIcon, type ResourceKind } from "./ResourceIcon";
 import { Sheet } from "./Sheet";
+import { VerseLexicon } from "./VerseLexicon";
 import { WordSheet } from "./WordSheet";
 import { Xrefs } from "@/ui/xrefs";
 import { preceptsForVerse, slugOfUrl, teacherRank, usePeopleNamed, useReadings, useTaughtPrecepts } from "@/lib/taught";
 import { fmtDate } from "@/api/data";
 
 /**
- * The resource sheet a long press (or the Study tab) opens for one verse: Dictionary,
- * Themes, References and Comments, on a bottom bar as Bible Strong's ResourcesModal (its
- * Lexicon and Compare tabs need Strong's numbers and a second version, which this library
- * does not carry).
+ * The resource sheet a long press (or the Study tab) opens for one verse, as Bible Strong's
+ * ResourcesModal: the verse in the header, the resource's name under it, and the resources on
+ * its footer bar (ResourcesModalFooter): Lexicon, Dictionary, Themes, References and Comments,
+ * then the classes' Precepts and People. Its Compare needs a second version, which this
+ * library does not carry.
  */
 export type ResourceTab = "words" | "precepts" | "people" | "dictionary" | "themes" | "references" | "commentary";
-const TABS: { id: ResourceTab; label: string; subtitle: string }[] = [
-  { id: "words", label: "Words", subtitle: "Strong's: the Hebrew and Greek behind each word" }, { id: "precepts", label: "Precepts", subtitle: "Precepts taught with this verse" }, { id: "people", label: "People", subtitle: "People named in this verse" }, { id: "dictionary", label: "Dictionary", subtitle: "Dictionary" }, { id: "themes", label: "Themes", subtitle: "By themes" }, { id: "references", label: "References", subtitle: "Cross References" }, { id: "commentary", label: "Comments", subtitle: "Comments" },
+const TABS: { id: ResourceTab; label: string; subtitle: string; icon: ResourceKind | "precepts" | "users"; color: string }[] = [
+  { id: "words", label: "Lexicon", subtitle: "Lexicon", icon: "strong", color: "var(--bs-primary)" },
+  { id: "dictionary", label: "Dictionary", subtitle: "Dictionary", icon: "dictionary", color: "var(--bs-secondary)" },
+  { id: "themes", label: "Themes", subtitle: "By themes", icon: "nave", color: "var(--bs-quint)" },
+  { id: "references", label: "References", subtitle: "Cross References", icon: "references", color: "var(--bs-quart)" },
+  { id: "commentary", label: "Comments", subtitle: "Comments", icon: "commentary", color: "#26A69A" },
+  { id: "precepts", label: "Precepts", subtitle: "Precepts", icon: "precepts", color: "var(--bs-tertiary)" },
+  { id: "people", label: "People", subtitle: "People", icon: "users", color: "var(--bs-tertiary)" },
 ];
 const STOP = new Set("the and for that with unto them they thou thee thy his him her she you your our this these those from into upon shall will hath have had not but which whom who whose what when where there their were was are said saith came come went also then than all any every because before after more most such very over under out off yet let did doth till until against among".split(" "));
 type Entry = { slug: string; term: string; definitions: string[] };
 
-export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, verse, text, reference, books }: { open: boolean; onClose: () => void; tab: ResourceTab; setTab: (t: ResourceTab) => void; slug: string; chapter: number; verse: number; text: string; reference: string; books: Book[] }) {
+export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, verse, verses, onVerse, text, reference, books }: { open: boolean; onClose: () => void; tab: ResourceTab; setTab: (t: ResourceTab) => void; slug: string; chapter: number; verse: number; verses: number; onVerse: (v: number) => void; text: string; reference: string; books: Book[] }) {
   const navigate = useNavigate();
   const [alignment, setAlignment] = useState(false);
+  const [menu, setMenu] = useState(false);
   const [word, setWord] = useState<string | null>(null);
   // Where the reader came from, so a note or teaching can offer the way back to this verse.
   const from = `from=${encodeURIComponent(`/read/${slug}/${chapter}?v=${verse}`)}`;
@@ -70,12 +80,26 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   const shown = new Set(breakdowns.map((c) => c.note.url));
   const also = [...new Map(comments.filter((c) => c.verses && !shown.has(c.url)).map((c) => [c.url, c] as const)).values()];
   return (
-    <Sheet open={open} onClose={onClose} snapPoints={[1]} background="reverse" title={reference} subTitle={TABS.find((t) => t.id === tab)?.subtitle} footer={
-      <div className="bs-resourcetabs" role="tablist">
-        {TABS.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} style={{ opacity: tab === t.id ? 1 : 0.3 }} onClick={() => setTab(t.id)}><Feather name={{ words: "hash", precepts: "precepts", people: "users", dictionary: "book", themes: "layers", references: "external-link", commentary: "edit-3" }[t.id] as "book"} size={18} color="var(--bs-primary)" /><span>{t.label}</span></button>)}
-      </div>
+    <Sheet open={open} onClose={onClose} snapPoints={[1]} background="reverse" className="bs-resources-sheet" title={reference} subTitle={TABS.find((t) => t.id === tab)?.subtitle} hasBack onBack={onClose}
+      right={tab === "words" && verseWords ? <div className="bs-resmenu">
+        <button type="button" className="bs-resmenu__btn" aria-label="More" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}><Feather name="more-vertical" size={18} color="var(--bs-default)" /></button>
+        {menu ? <><div className="bs-dropdown__catch" onClick={() => setMenu(false)} /><div className="bs-resmenu__list" role="menu"><button type="button" role="menuitem" onClick={() => { setAlignment(!alignment); setMenu(false); }}>{alignment ? "Hide word alignment" : "Show word alignment"}</button></div></> : null}
+      </div> : undefined}
+      footer={
+      <div className="bs-resfooter"><div className="bs-resfooter__scroll" role="tablist">
+        {TABS.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} style={{ opacity: tab === t.id ? 1 : 0.3 }} onClick={() => setTab(t.id)}>
+          {t.icon === "precepts" || t.icon === "users" ? <Feather name={t.icon} size={20} color={tab === t.id ? t.color : "var(--bs-grey)"} /> : <ResourceIcon kind={t.icon} size={20} color={tab === t.id ? t.color : "var(--bs-grey)"} />}
+          <span>{t.label}</span>
+        </button>)}
+      </div></div>
     }>
-      <div className="bs-resources">
+      {tab === "words" && verseWords ? (
+        <VerseLexicon verse={verse} words={verseWords} verses={verses} onVerse={onVerse} onOpen={setWord} onRead={onClose}>
+          {alignment ? <div className="bs-vdetail__align"><WordAlignment words={verseWords} onWord={setWord} /></div> : null}
+        </VerseLexicon>
+      ) : null}
+      {word ? <WordSheet number={word} open onClose={() => { setWord(null); onClose(); }} onBack={() => setWord(null)} books={books} here={{ slug, chapter, verse }} /> : null}
+      {tab === "words" && verseWords ? null : <div className="bs-resources">
         <p className="bs-resources__verse"><b>{verse}</b> {text}</p>
         {tab === "words" ? (spans.isPending ? <p className="bs-loading">Loading...</p> : !verseWords ? (lxx.isPending ? <p className="bs-loading">Loading...</p> : greek ? (
           <div className="bs-greek">
@@ -83,15 +107,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
             <p className="bs-greek__text" lang="grc">{greek}</p>
             <p className="bs-greek__src">Swete's Septuagint (1909), verse {verse} as Swete numbers it; the King James Apocrypha were translated from this Greek. Strong's numbers cover the 66 books only.</p>
           </div>
-        ) : <p className="bs-loading">Strong's numbers cover the 66 books; this verse has none.</p>) : <>
-          <button type="button" className="bs-btn" aria-expanded={alignment} onClick={() => setAlignment(!alignment)}>{alignment ? "Hide word alignment" : "Show word alignment"}</button>
-          {alignment && <WordAlignment words={verseWords} onWord={setWord} />}
-          <p className="bs-words__hint">Tap a word for the Hebrew or Greek behind it, what it means, and every verse that uses it.</p>
-          <div className="bs-words">{verseWords.map(([t, nums], i) => nums.length
-            ? <span key={i} className="bs-words__group">{[...new Set(nums)].map((n) => <button key={n} type="button" className="bs-words__w" aria-label={`${t} — ${n}`} onClick={() => setWord(n)}>{t}<small>{n}</small></button>)}</span>
-            : <span key={i} className="bs-words__plain">{t}</span>)}</div>
-          {word ? <WordSheet number={word} open onClose={() => { setWord(null); onClose(); }} onBack={() => setWord(null)} books={books} here={{ slug, chapter, verse }} /> : null}
-        </>) : null}
+        ) : <p className="bs-loading">Strong's numbers cover the 66 books; this verse has none.</p>) : null) : null}
         {tab === "precepts" ? (taught.isError || topicHits.isError ? <Failed onRetry={() => { void taught.refetch(); void topicHits.refetch(); }} /> : taught.isPending ? <p className="bs-loading">Loading...</p> : !precepts.length && !topics.length ? <p className="bs-loading">No class has lined a precept up with this verse yet.</p> : <>
           {precepts.map((r, i) => (
             <button key={i} type="button" className="bs-resrow bs-precept" data-kind={r.kind} onClick={() => readRef(r.ref.url, r.ref.verses)}>
@@ -133,7 +149,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
           {also.length ? <p className="bs-resources__sub">{breakdowns.length ? "Also taught in" : "Taught in"}</p> : null}
           {also.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(`${toApp(c.url)}#p-${`${reference.replace(/:.*$/, "")}:${c.verses}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`); }}><b>{c.label.replace(/^[^·]+·\s*/, "")}</b><small>{shelf(c.url, c.kind)} · {reference.replace(/:.*$/, "")}:{c.verses}</small></button>)}
         </>) : null}
-      </div>
+      </div>}
     </Sheet>
   );
 }

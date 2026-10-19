@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -41,5 +42,25 @@ test("hashed build assets are cached as immutable, and nothing else is", () => {
     assert.ok(all.includes("  X-Content-Type-Options: nosniff"));
     assert.ok(all.includes("  Content-Security-Policy: frame-ancestors 'self' https://web.telegram.org https://*.telegram.org"));
     assert.ok(!all.some((h) => /X-Frame-Options/i.test(h)), "X-Frame-Options would block Telegram Web");
+    // The script policy is only reported; the enforced policy above stays frame-ancestors alone.
+    assert.ok(all.includes("  Content-Security-Policy-Report-Only: script-src 'self' https://telegram.org https://apis.google.com; object-src 'none'; base-uri 'self'"));
+    assert.equal(all.filter((h) => /^\s*Content-Security-Policy:/.test(h)).length, 1);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("the report-only script policy names each inline script the staged pages carry, by hash", () => {
+  const root = mkdtempSync(join(tmpdir(), "cj-stage-"));
+  try {
+    mkdirSync(join(root, "bot/scripts"), { recursive: true });
+    cpSync(new URL("../scripts/prepare-assets.sh", import.meta.url), join(root, "bot/scripts/prepare-assets.sh"));
+    mkdirSync(join(root, "app/dist/assets"), { recursive: true });
+    mkdirSync(join(root, "strong/dist"), { recursive: true });
+    const theme = "\n      document.documentElement.setAttribute('data-theme', 'dark');\n    ";
+    writeFileSync(join(root, "app/dist/index.html"), `<script src="https://telegram.org/js/telegram-web-app.js?59"></script><script>${theme}</script><script type="module" crossorigin src="/app/assets/index-abc.js"></script>`);
+    writeFileSync(join(root, "strong/dist/index.html"), "<script>var strong = 1;</script><script>var strong = 1;</script><script src=\"/app/strong/x.js\" defer></script>");
+    execFileSync("sh", [join(root, "bot/scripts/prepare-assets.sh")], { stdio: "pipe" });
+    const line = readFileSync(join(root, ".deploy/_headers"), "utf8").split("\n").find((h) => h.startsWith("  Content-Security-Policy-Report-Only:"));
+    const hash = (s) => `'sha256-${createHash("sha256").update(s).digest("base64")}'`;
+    assert.equal(line, `  Content-Security-Policy-Report-Only: script-src 'self' https://telegram.org https://apis.google.com ${hash(theme)} ${hash("var strong = 1;")}; object-src 'none'; base-uri 'self'`);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

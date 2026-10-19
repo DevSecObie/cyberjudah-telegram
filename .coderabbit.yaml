@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit reviews code only. Timeline events, sources, readings and other
+# content record what the classes taught, in their own words; they are not
+# reviewed for wording, facts or reasoning.
+language: en-US
+reviews:
+  profile: chill
+  path_filters:
+    - "!app/scripts/**/*.json"
+    - "!app/scripts/**/research/**"
+    - "!app/src/data/**"
+    - "!app/public/people/**"
+    - "!app/e2e/review/**"
+    - "!bot/data/**"
+    - "!resources/**/*.json"
+    - "!docs/**"
+    - "!changes/**"
+    - "!**/*.md"
+    - "!**/*.tsv"
+    - "!**/*.txt"
+  path_instructions:
+    - path: "**/*"
+      instructions: |
+        Review only the code: bugs, security, performance, accessibility and
+        maintainability. Do not comment on the teaching, wording, history,
+        dates, names or reasoning in any text the code carries, quotes or
+        builds (timeline events, readings, Ask prompts and sources, UI copy
+        taken from the classes), and do not suggest editorial notes,
+        corrections or softer language.
