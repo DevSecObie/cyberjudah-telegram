@@ -219,10 +219,28 @@ export function Chapter(p: ChapterProps) {
   useEffect(() => { if (hasVerses && scrollTarget === 1) scrollRef.current?.scrollTo({ top: 0 }); }, [chapter, scrollTarget, hasVerses, p.navigationRequest]);
   useEffect(() => {
     if (!scrollTarget || !hasVerses || scrollTarget === 1) return;
-    requestAnimationFrame(() => {
+    // Bible Strong scrolls once, in the next frame. The chapter can still be laying out then (a
+    // slower engine), leaving too little to scroll: try again for a few frames until the verse is
+    // reached, unless the reader touches the page first.
+    const sc0 = scrollRef.current; let raf = 0, tries = 0, stopped = false;
+    const stop = () => { stopped = true; };
+    const input = ["pointerdown", "wheel", "touchstart", "keydown"] as const;
+    input.forEach((t) => sc0?.addEventListener(t, stop, { passive: true }));
+    const attempt = () => {
+      if (stopped) return;
       const el = scrollRef.current?.querySelector<HTMLElement>(`#verset-${scrollTarget}`); const sc = scrollRef.current;
-      if (el && sc) { suppressRef.current = true; const top = Math.max(0, Math.min(sc.scrollHeight - sc.clientHeight, sc.scrollTop + el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 100)); jumpRef.current = Math.abs(top - sc.scrollTop) < 2 ? null : top; sc.scrollTo({ top }); setTimeout(() => { suppressRef.current = false; }, 400); }
-    });
+      if (el && sc) {
+        suppressRef.current = true;
+        const want = sc.scrollTop + el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 100;
+        const top = Math.max(0, Math.min(sc.scrollHeight - sc.clientHeight, want));
+        jumpRef.current = Math.abs(top - sc.scrollTop) < 2 ? null : top; sc.scrollTo({ top });
+        setTimeout(() => { suppressRef.current = false; }, 400);
+        if (top >= want - 2) return;
+      }
+      if (++tries < 20) raf = requestAnimationFrame(attempt);
+    };
+    raf = requestAnimationFrame(attempt);
+    return () => { cancelAnimationFrame(raf); input.forEach((t) => sc0?.removeEventListener(t, stop)); };
   }, [scrollTarget, hasVerses, p.contextDisplayMode, focus?.join(","), p.navigationRequest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The last selected verse: scrolled to the middle when selected, and a button to return to it when it leaves the screen.
