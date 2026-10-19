@@ -11,13 +11,16 @@
   const version = params.get("tgWebAppVersion") || "9.1";
   const atLeast = (v) => { const a = version.split(".").map(Number), b = v.split(".").map(Number); for (let i = 0; i < Math.max(a.length, b.length); i++) { const x = a[i] || 0, y = b[i] || 0; if (x !== y) return x > y; } return true; };
   const events = {};
-  const cloud = { ...(window.__cloud || {}) }, device = {}, secureStore = {};
+  const cloud = { ...(window.__cloud || {}) }, device = {}, secureStore = { ...(window.__secure || {}) };
   const log = [];
   let popupCb = null;
-  // window.__secureDelay (ms) makes SecureStorage answer late, as a slow device can.
+  // window.__secureHold makes SecureStorage hold its answers, as a slow device can, until the test
+  // calls window.__releaseSecure().
+  const held = [];
+  window.__releaseSecure = () => { window.__secureHold = false; held.splice(0).forEach((f) => f()); };
   const mkStorage = (store) => ({
     setItem(k, v, cb) { store[k] = v; cb && cb(null, true); return this; },
-    getItem(k, cb) { const late = store === secureStore && window.__secureDelay; if (late) setTimeout(() => cb(null, store[k]), late); else cb(null, store[k]); return this; },
+    getItem(k, cb) { const answer = () => cb(null, store[k]); if (store === secureStore && window.__secureHold) held.push(answer); else answer(); return this; },
     getItems(ks, cb) { cb(null, Object.fromEntries(ks.map((k) => [k, store[k] || ""]))); return this; },
     removeItem(k, cb) { delete store[k]; cb && cb(null, true); return this; },
     removeItems(ks, cb) { ks.forEach((k) => delete store[k]); cb && cb(null, true); return this; },
@@ -39,7 +42,7 @@
     BackButton: Back, MainButton: Main, SecondaryButton: Second, SettingsButton: SettingsB,
     HapticFeedback: { impactOccurred(s) { log.push(["haptic", s]); }, notificationOccurred(t) { log.push(["haptic", t]); }, selectionChanged() { log.push(["haptic", "select"]); } },
     CloudStorage: mkStorage(cloud), DeviceStorage: mkStorage(device), SecureStorage: mkStorage(secureStore),
-    BiometricManager: { isInited: false, isBiometricAvailable: true, biometricType: "face", isAccessRequested: false, isAccessGranted: false, isBiometricTokenSaved: false, deviceId: "d", init(cb) { this.isInited = true; cb && cb(); return this; }, requestAccess(p, cb) { this.isAccessGranted = true; cb && cb(true); return this; }, authenticate(p, cb) { cb && cb(true, "t"); return this; }, updateBiometricToken(t, cb) { cb && cb(true); return this; }, openSettings() { return this; } },
+    BiometricManager: { isInited: false, isBiometricAvailable: true, biometricType: "face", isAccessRequested: false, isAccessGranted: false, isBiometricTokenSaved: false, deviceId: "d", init(cb) { this.isInited = true; cb && cb(); return this; }, requestAccess(p, cb) { this.isAccessGranted = true; cb && cb(true); return this; }, authenticate(p, cb) { if (window.__biometricHold) window.__releaseBiometric = () => { window.__biometricHold = false; cb && cb(true, "t"); }; else cb && cb(true, "t"); return this; }, updateBiometricToken(t, cb) { cb && cb(true); return this; }, openSettings() { return this; } },
     Accelerometer: { isStarted: false, x: null, y: null, z: null, start(p, cb) { cb && cb(true); return this; }, stop(cb) { cb && cb(true); return this; } },
     Gyroscope: { isStarted: false, x: null, y: null, z: null, start(p, cb) { cb && cb(true); return this; }, stop(cb) { cb && cb(true); return this; } },
     DeviceOrientation: { isStarted: false, absolute: false, alpha: null, beta: null, gamma: null, start(p, cb) { cb && cb(true); return this; }, stop(cb) { cb && cb(true); return this; } },

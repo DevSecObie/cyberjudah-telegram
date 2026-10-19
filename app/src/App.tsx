@@ -226,6 +226,26 @@ export function App() {
  */
 function Lock() {
   const [locked, setLocked] = useState<boolean | null>(null);
+  const cover = useRef<HTMLDivElement>(null);
+  // Whatever the cover hides is also out of reach: every part of the page except the lock itself
+  // (its route, drawers, sheets and the tab bar, and anything opened while it shows) is inert and
+  // hidden from assistive technology, so a screen reader cannot read behind it.
+  const covering = locked === true || (locked === null && features.biometrics && features.secureStorage);
+  useLayoutEffect(() => {
+    const el = cover.current;
+    if (!covering || !el) return;
+    const hidden: Element[] = [];
+    const hide = (n: Element) => {
+      if (n === el || n.contains(el) || n.hasAttribute("inert") || n.tagName === "SCRIPT" || n.tagName === "STYLE") return;
+      n.setAttribute("inert", ""); n.setAttribute("aria-hidden", "true"); hidden.push(n);
+    };
+    const chain: Element[] = [];
+    for (let n: Element | null = el.parentElement; n && n !== document.documentElement; n = n.parentElement) chain.push(n);
+    for (const parent of chain) for (const child of Array.from(parent.children)) hide(child);
+    const watch = new MutationObserver((records) => { for (const r of records) r.addedNodes.forEach((n) => { if (n instanceof Element) hide(n); }); });
+    for (const parent of chain) watch.observe(parent, { childList: true });
+    return () => { watch.disconnect(); for (const n of hidden) { n.removeAttribute("inert"); n.removeAttribute("aria-hidden"); } };
+  }, [covering]);
   useEffect(() => {
     if (!features.biometrics || !features.secureStorage) { setLocked(false); return; }
     void secure.get("lock").then((v) => setLocked(v === "on"));
@@ -238,16 +258,18 @@ function Lock() {
   }, [locked]);
   // Until the preference is read, a device that can lock is covered, so no screen (a reopened tab
   // included) shows before the lock has had its say.
-  if (locked === null) return features.biometrics && features.secureStorage ? <div className="lock" data-checking="" aria-hidden="true" /> : null;
-  if (!locked) return null;
+  if (!covering) return null;
+  // One element for checking and locked alike, so the page stays hidden across the change.
   return (
-    <div className="lock" role="dialog" aria-label="Locked">
-      <div>
-        <img src={assetUrl("brand/cyber-lion.webp")} alt="" />
-        <h1>CyberJudah</h1>
-        <p>Unlock with your fingerprint or face.</p>
-        <Button size="xl" onClick={() => app!.BiometricManager.authenticate({ reason: "Unlock CyberJudah" }, (ok) => { if (ok) setLocked(false); })}>Unlock</Button>
-      </div>
+    <div ref={cover} className="lock" data-checking={locked === null ? "" : undefined} role={locked ? "dialog" : undefined} aria-modal={locked ? "true" : undefined} aria-label={locked ? "Locked" : undefined} aria-hidden={locked ? undefined : "true"}>
+      {locked ? (
+        <div>
+          <img src={assetUrl("brand/cyber-lion.webp")} alt="" />
+          <h1>CyberJudah</h1>
+          <p>Unlock with your fingerprint or face.</p>
+          <Button size="xl" onClick={() => app!.BiometricManager.authenticate({ reason: "Unlock CyberJudah" }, (ok) => { if (ok) setLocked(false); })}>Unlock</Button>
+        </div>
+      ) : null}
     </div>
   );
 }
