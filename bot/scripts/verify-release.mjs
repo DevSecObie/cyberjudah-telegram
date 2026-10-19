@@ -7,11 +7,16 @@ import { signInitData } from "../src/initdata.mjs";
  * day's budget spent is reported, not failed. Production leaves it off: there a paused budget means
  * readers get no answers.
  */
-export async function verifyRelease({ url, token, expectedModel, fetcher = fetch, log = console.log, allowPaused = false, retryMs = 5_000 }) {
+/**
+ * answerWaitMs: how long one answer request may take. The Worker gives an answer 55 s
+ * (bot/src/ai.ts SEARCH_ANSWER_DEADLINE_MS) and meters it before and after, so the check waits
+ * longer than that: a slow meter is not a missing answer.
+ */
+export async function verifyRelease({ url, token, expectedModel, fetcher = fetch, log = console.log, allowPaused = false, retryMs = 5_000, answerWaitMs = 75_000 }) {
   if (!url || !token || !expectedModel) throw new Error("Set WORKER_URL, BOT_TOKEN and EXPECTED_SEARCH_MODEL for release verification.");
   const external = !expectedModel.startsWith("@cf/"), provider = external ? "Google" : "Cloudflare (Workers AI)";
   const origin = new URL(url).origin;
-  const get = (path, headers = {}) => fetcher(`${origin}${path}`, { headers, redirect: "error", signal: AbortSignal.timeout(60_000) });
+  const get = (path, headers = {}, waitMs = 60_000) => fetcher(`${origin}${path}`, { headers, redirect: "error", signal: AbortSignal.timeout(waitMs) });
   const requireStatus = (response, status, label) => {
     if (response.status !== status) throw new Error(`${label}: expected HTTP ${status}, received ${response.status}.`);
   };
@@ -50,16 +55,16 @@ export async function verifyRelease({ url, token, expectedModel, fetcher = fetch
   }
   // One more try after a pause: a single slow or unavailable answer from the model is not a broken
   // release (the Worker gives up on an answer at 55 s and says it is unavailable). Two in a row fail.
-  const ask = () => get(query, { ...headers, ...(external ? { "x-ai-consent": provider } : {}) }).catch(e => {
+  const ask = () => get(query, { ...headers, ...(external ? { "x-ai-consent": provider } : {}) }, answerWaitMs).catch(e => {
     if (e?.name === "TimeoutError") return null;
     throw e;
   });
   let response = await ask();
   if (!response || response.status === 503) {
-    log(`Search answer: ${response ? "unavailable" : "no reply within 60 s"}; trying once more`);
+    log(`Search answer: ${response ? "unavailable" : `no reply within ${answerWaitMs / 1000} s`}; trying once more`);
     await new Promise(r => setTimeout(r, retryMs));
     response = await ask();
-    if (!response) throw new Error("Search answer: no reply within 60 s, twice. Check the provider's status and the Worker's search_answer logs.");
+    if (!response) throw new Error(`Search answer: no reply within ${answerWaitMs / 1000} s, twice. Check the provider's status and the Worker's search_answer logs.`);
   }
   if (response.status !== 200) {
     const body = await response.json().catch(() => ({}));

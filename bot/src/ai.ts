@@ -318,7 +318,8 @@ export function searchModel(env: Env): AskModel | null {
  * How long a search answer may take, retrieval and model together. Past it the reader is told the
  * answer is unavailable, and the keyword results stand, rather than waiting on a stalled model.
  * Uncached answers take 30-50 s in production today (live-smoke's search-answer-latency), so this
- * only cuts off answers that would not come: 55 s, inside the release check's 60 s wait.
+ * only cuts off answers that would not come: 55 s. The release check waits 75 s for an answer, which
+ * leaves room for the metering before and after.
  */
 export const SEARCH_ANSWER_DEADLINE_MS = 55_000;
 export class DeadlineError extends Error { constructor(ms: number) { super(`deadline of ${ms} ms passed`); this.name = "DeadlineError"; } }

@@ -57,8 +57,25 @@ test("a single slow or unavailable answer is tried once more; two in a row fail"
     return { ...f, asked: () => n };
   };
   for (const plan of [["timeout"], [503]]) { const f = flaky(plan); await verifyRelease(f.options); assert.equal(f.asked(), 2); }
-  await assert.rejects(verifyRelease(flaky(["timeout", "timeout"]).options), /no reply within 60 s, twice/);
+  await assert.rejects(verifyRelease(flaky(["timeout", "timeout"]).options), /no reply within 75 s, twice/);
   await assert.rejects(verifyRelease(flaky([503, 503]).options), /HTTP 503 \(unavailable\)/);
   // Any other failure is not retried.
   const f = flaky([500]); await assert.rejects(verifyRelease(f.options), /HTTP 500/); assert.equal(f.asked(), 1);
+});
+test("the answer request has its own wait, longer than the other requests'", async () => {
+  const id = "@cf/meta/llama-3.1-8b-instruct-fp8";
+  // A reply that takes 150 ms: within an 80 ms wait it never arrives (two tries, then the check
+  // fails), within a 300 ms wait it does. The other requests are unaffected either way.
+  const slow = (answerWaitMs) => {
+    const f = fixture({ model: id, expectedModel: id });
+    const inner = f.options.fetcher;
+    f.options = { ...f.options, answerWaitMs, fetcher: (url, init) => new URL(url).pathname !== "/api/search/answer" || !init.headers.authorization ? inner(url, init)
+      : new Promise((resolve, reject) => {
+        const t = setTimeout(() => resolve(inner(url, init)), 150);
+        init.signal.addEventListener("abort", () => { clearTimeout(t); reject(init.signal.reason); });
+      }) };
+    return f;
+  };
+  await assert.rejects(verifyRelease(slow(80).options), /no reply within 0.08 s, twice/);
+  await verifyRelease(slow(300).options);
 });
