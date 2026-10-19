@@ -20,6 +20,8 @@ const longPressVerse = async (page: Page, n: number) => { await page.locator(`#v
 /** A long press that must end in the resources sheet: the runner's first press can land while the text is still reflowing, so try again before giving up. */
 const openResources = async (page: Page, n: number) => { for (let i = 0; i < 3; i++) { await longPressVerse(page, n); if (await page.locator(".bs-resourcetabs").isVisible({ timeout: 4000 }).catch(() => false)) return; await page.waitForTimeout(500); } };
 
+/** Where the person's screen is scrolled: in its sheet when opened from People, as Bible Strong's entity sheet. */
+const personY = (page: Page) => page.evaluate(() => Math.round(document.querySelector(".route-sheet .bs-sheet__body")?.scrollTop ?? scrollY));
 test.beforeEach(async ({ page }) => setup(page));
 
 test("note HTML is sanitized before it reaches the page", async ({ page }) => {
@@ -82,8 +84,10 @@ test("tapping verses selects them, the sheet highlights, notes, tags and bookmar
   // Tags: a new tag on the highlight shows as a chip under the last verse of the group.
   await tapVerse(page, 1);
   await page.click(".bs-action >> text=Tag");
-  await page.fill(".bs-search input", "promises");
+  await page.fill(".bs-sheetsearch input", "promises");
   await page.click(".bs-tagrow--create");
+  // As in Bible Strong, a new tag is created unselected; a tap selects it.
+  await page.click(".bs-tagrow[role=checkbox]");
   await expect(page.locator(".bs-tagrow[role=checkbox]")).toHaveAttribute("aria-checked", "true");
   await page.mouse.click(195, 60); // the backdrop dismisses the sheet
   await expect(page.locator("#verset-2 .bs-inline-item")).toContainText("promises");
@@ -322,7 +326,7 @@ test("relations: a verse linked to a passage shows as a tag under the verse, wit
   await page.click(".sheet__item >> text=refers to");
   await page.click(".sheet__item >> nth=0");
   await page.fill("#sheet-text", "The shepherd");
-  await page.click(".sheet__form button[type=submit]");
+  await page.press("#sheet-text", "Enter");
   await expect(page.locator(".rel-row__title")).toContainText("refers to");
   await page.click('.rel-row .icon-btn[aria-label="Options"]');
   await page.click(".sheet__item >> text=Remove");
@@ -555,9 +559,9 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   // A new group starts with its own New Tab page; the first group keeps its Bible tab.
   await page.click(".switcherbar__group");
   await page.click(".sheet__item >> text=New group");
-  await page.locator(".sheet textarea").fill("Revelation");
-  await page.click(".sheet button[type=submit]");
-  await page.locator(".sheet .swatch").nth(2).click();
+  await page.locator(".action-sheet #sheet-text").fill("Revelation");
+  await page.press(".action-sheet #sheet-text", "Enter");
+  await page.locator(".action-sheet .swatch").nth(2).click();
   await expect(page.locator(".switcherbar__group")).toHaveText("Revelation");
   await expect(page.locator(".tabcard__title b").first()).toHaveText("New tab");
   if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/tabs-groups.png` }); }
@@ -1075,7 +1079,7 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     await expect(card.locator(".scard__text")).toHaveText(/\w{3,}/);
     const ref = await card.locator(".scard__ref").innerText();
     const [, c, v] = /(\d+):(\d+)$/.exec(ref)!;
-    const y = await page.evaluate(() => Math.round(scrollY));
+    const y = await personY(page);
     expect(y).toBeGreaterThan(200);
     await card.getByRole("link", { name: /^Go to verse/ }).click();
     await expect(page).toHaveURL(new RegExp(`/read/[a-z0-9-]+/${c}\\?v=${v}$`));
@@ -1086,14 +1090,14 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     await press(page, "back");
     await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
     await expect(verses.locator(".scard")).toHaveCount(15);
-    await expect.poll(() => page.evaluate(() => Math.round(scrollY))).toBeGreaterThan(y - 40);
-    expect(await page.evaluate(() => Math.round(scrollY))).toBeLessThan(y + 40);
+    await expect.poll(() => personY(page)).toBeGreaterThan(y - 40);
+    expect(await personY(page)).toBeLessThan(y + 40);
     // A relative's profile from the graph, and back again.
     await page.getByRole("region", { name: "Relationships" }).getByRole("button", { name: "Father, Terah" }).click();
     await page.getByRole("button", { name: "View Terah's profile" }).click();
     await expect(page).toHaveURL(/\/person\/terah-gen-11-24/);
     await expect(page.getByRole("heading", { level: 1, name: "Terah" })).toBeVisible();
-    await expect.poll(() => page.evaluate(() => Math.round(scrollY))).toBeLessThan(5);
+    await expect.poll(() => personY(page)).toBeLessThan(5);
     await press(page, "back");
     await expect(page.getByRole("heading", { level: 1, name: "Abraham" })).toBeVisible();
     // Back to everyone: the search is as it was.

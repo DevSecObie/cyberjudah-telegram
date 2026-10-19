@@ -97,7 +97,7 @@ export function SheetProvider({ children }: { children: ReactNode }) {
         ) : null}
         {spec?.text ? (
           <form className="action-sheet__form" onSubmit={(e) => { e.preventDefault(); hideKeyboard(); if (text.trim()) answer({ id: "text", value: text.trim() }); }}>
-            <input aria-label={spec.text.label} value={text} placeholder={spec.text.placeholder ?? spec.text.label} onChange={(e) => setText(e.target.value)} autoFocus maxLength={1500} enterKeyHint="send" />
+            <input id="sheet-text" aria-label={spec.text.label} value={text} placeholder={spec.text.placeholder ?? spec.text.label} onChange={(e) => setText(e.target.value)} autoFocus maxLength={1500} enterKeyHint="send" />
           </form>
         ) : null}
         {items.map((it) => <button key={it.id} type="button" className="sheet__item action-sheet__item" data-destructive={it.destructive ? "" : undefined} onClick={() => answer({ id: it.id })}><span>{it.text}{it.hint ? <small>{it.hint}</small> : null}</span></button>)}

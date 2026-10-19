@@ -217,7 +217,7 @@ export function App() {
       <div ref={route} className="route" data-location-key={page.key} key={page.pathname.split("/").slice(0, 2).join("/")}>
       <ScreenBoundary resetKey={page.pathname}>
       <Suspense fallback={<Screen className="route-loading"><Skeleton rows={8} /></Screen>}>
-      <UnderSheetContext.Provider value={!!sheet}><Routes location={page}>{routes}</Routes></UnderSheetContext.Provider>
+      <UnderSheetContext.Provider value={!!sheet}><Routes location={sheet ? page : undefined}>{routes}</Routes></UnderSheetContext.Provider>
       </Suspense>
       </ScreenBoundary>
       </div>
