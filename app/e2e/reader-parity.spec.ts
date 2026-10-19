@@ -578,7 +578,7 @@ test("history keeps the verse gone to and opens on it, as Bible Strong's history
   await expect(page.getByRole("link", { name: /Genesis 1:28$/ })).toBeVisible();
   await expect(page.getByRole("link", { name: /Genesis 1$/ })).toBeVisible();
   await page.getByRole("link", { name: /Genesis 1:28$/ }).click();
-  await expect(page).toHaveURL(/\/read\/genesis\/1\?v=28$/);
+  await expect(page).toHaveURL(/\/read\/genesis\/1\?at=28$/);
   await expect(page.locator("#verset-28")).toBeVisible();
 });
 
@@ -730,6 +730,47 @@ test("the drawers show the live class, the offline notice, the account and legal
   await expect(more).not.toHaveAttribute("data-open");
   await page.getByRole("button", { name: "Menu", exact: true }).click();
   await expect.poll(() => more.locator(".drawer__scroll").evaluate(el => el.scrollTop)).toBe(300);
+});
+
+test("a verse picked from History opens the whole chapter at that verse, not a focused passage", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("cj:hist", JSON.stringify([{ slug: "genesis", chapter: 1, verse: 18, name: "Genesis 1", at: Date.now() }])));
+  await page.goto("/history");
+  await page.getByRole("link", { name: /Genesis 1:18/ }).click();
+  await expect(page).toHaveURL(/\/read\/genesis\/1\?at=18$/);
+  await expect(page.locator("#verset-18")).toBeInViewport();
+  await expect(page.locator("#verset-1")).toHaveCount(1);
+  await expect(page.locator(".bs-context")).toHaveCount(0);
+});
+
+test("opening the app at its root reopens the tab that was current", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+});
+
+test("opening the app at its root stays on Home when the kept tabs cannot be read", async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "gone", groups: [] })); localStorage.removeItem("cj:tabs"); });
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("#verset-1")).toHaveCount(0);
+});
+
+test("going back to verse 1 of the same chapter scrolls the reader back to the top", async ({ page }) => {
+  await page.goto("/read/genesis/1?at=28");
+  await expect(page.locator("#verset-28")).toBeInViewport();
+  await page.evaluate(() => { history.pushState({}, "", "/read/genesis/1"); dispatchEvent(new PopStateEvent("popstate")); });
+  await expect(page.locator("#verset-1")).toBeInViewport();
+});
+
+test("a verse opened while the last chapter stands in is scrolled to again when its chapter arrives", async ({ page }) => {
+  // John 3 is slow and longer than Genesis 1, so its verse 18 sits far lower than the stand-in's.
+  const long = Array.from({ length: 36 }, (_, i) => ({ verse: i + 1, text: `Verse ${i + 1}: ${"For God so loved the world, that he gave his only begotten Son. ".repeat(6)}` }));
+  await page.route(`${DATA}/api/kjv/john/3.json`, async r => { await new Promise(res => setTimeout(res, 800)); await r.fulfill({ json: { book: "john", chapter: 3, translation: "KJV", verses: long } }); });
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await page.evaluate(() => { history.pushState({}, "", "/read/john/3?at=18"); dispatchEvent(new PopStateEvent("popstate")); });
+  await expect(page.locator("#verset-18 .bs-text")).toContainText("For God so loved");
+  await expect(page.locator("#verset-18")).toBeInViewport();
 });
 
 test("the relation picker offers the notes written in the reader", async ({ page }) => {

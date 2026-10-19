@@ -19,3 +19,12 @@ test("an explicit route wins over a launch parameter retained by the SDK", () =>
     assert.equal(initialLaunchPath(pathname, "john_3_16"), null);
   }
 });
+
+test("a bare launch reopens the tab that was current, never somewhere off the app", () => {
+  assert.equal(initialLaunchPath("/", undefined, "/read/romans/8?at=28"), "/read/romans/8?at=28");
+  assert.equal(initialLaunchPath("/", "", "/lexicon/H430"), "/lexicon/H430");
+  assert.equal(initialLaunchPath("/", undefined, "/history"), "/history", "an app path is not mapped as a website path");
+  assert.equal(initialLaunchPath("/", "john_3_16", "/lexicon/H430"), "/read/john/3?v=16", "a shared link still wins");
+  for (const last of [undefined, "", "/", "/new", "/new?q=x", "//example.com", "https://example.com"]) assert.equal(initialLaunchPath("/", undefined, last), null, String(last));
+  assert.equal(initialLaunchPath("/settings", undefined, "/lexicon/H430"), null, "an explicit route stays");
+});

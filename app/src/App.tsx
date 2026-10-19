@@ -6,7 +6,7 @@ import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "re
 import { Route, Routes, useLocation, useNavigate, useNavigationType } from "react-router";
 
 import { initialLaunchPath } from "@/tg/launch.mjs";
-import { isTabPath, recordPath } from "@/lib/tabs";
+import { isTabPath, keptTab, recordPath } from "@/lib/tabs";
 import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
@@ -118,7 +118,7 @@ export function App() {
   useEffect(() => {
     if (launchHandled.current) return;
     launchHandled.current = true;
-    const to = initialLaunchPath(location.pathname, startParam);
+    const to = initialLaunchPath(location.pathname, startParam, location.search ? undefined : keptTab()?.path);
     if (to) navigate(to, { replace: true });
   }, [location.pathname, navigate]);
 
@@ -226,6 +226,26 @@ export function App() {
  */
 function Lock() {
   const [locked, setLocked] = useState<boolean | null>(null);
+  const cover = useRef<HTMLDivElement>(null);
+  // Whatever the cover hides is also out of reach: every part of the page except the lock itself
+  // (its route, drawers, sheets and the tab bar, and anything opened while it shows) is inert and
+  // hidden from assistive technology, so a screen reader cannot read behind it.
+  const covering = locked === true || (locked === null && features.biometrics && features.secureStorage);
+  useLayoutEffect(() => {
+    const el = cover.current;
+    if (!covering || !el) return;
+    const hidden: Element[] = [];
+    const hide = (n: Element) => {
+      if (n === el || n.contains(el) || n.hasAttribute("inert") || n.tagName === "SCRIPT" || n.tagName === "STYLE") return;
+      n.setAttribute("inert", ""); n.setAttribute("aria-hidden", "true"); hidden.push(n);
+    };
+    const chain: Element[] = [];
+    for (let n: Element | null = el.parentElement; n && n !== document.documentElement; n = n.parentElement) chain.push(n);
+    for (const parent of chain) for (const child of Array.from(parent.children)) hide(child);
+    const watch = new MutationObserver((records) => { for (const r of records) r.addedNodes.forEach((n) => { if (n instanceof Element) hide(n); }); });
+    for (const parent of chain) watch.observe(parent, { childList: true });
+    return () => { watch.disconnect(); for (const n of hidden) { n.removeAttribute("inert"); n.removeAttribute("aria-hidden"); } };
+  }, [covering]);
   useEffect(() => {
     if (!features.biometrics || !features.secureStorage) { setLocked(false); return; }
     void secure.get("lock").then((v) => setLocked(v === "on"));
@@ -236,15 +256,20 @@ function Lock() {
     const ask = () => bm.authenticate({ reason: "Unlock CyberJudah" }, (ok) => { if (ok) setLocked(false); });
     if (bm.isInited) ask(); else bm.init(ask);
   }, [locked]);
-  if (!locked) return null;
+  // Until the preference is read, a device that can lock is covered, so no screen (a reopened tab
+  // included) shows before the lock has had its say.
+  if (!covering) return null;
+  // One element for checking and locked alike, so the page stays hidden across the change.
   return (
-    <div className="lock" role="dialog" aria-label="Locked">
-      <div>
-        <img src={assetUrl("brand/cyber-lion.webp")} alt="" />
-        <h1>CyberJudah</h1>
-        <p>Unlock with your fingerprint or face.</p>
-        <Button size="xl" onClick={() => app!.BiometricManager.authenticate({ reason: "Unlock CyberJudah" }, (ok) => { if (ok) setLocked(false); })}>Unlock</Button>
-      </div>
+    <div ref={cover} className="lock" data-checking={locked === null ? "" : undefined} role={locked ? "dialog" : undefined} aria-modal={locked ? "true" : undefined} aria-label={locked ? "Locked" : undefined} aria-hidden={locked ? undefined : "true"}>
+      {locked ? (
+        <div>
+          <img src={assetUrl("brand/cyber-lion.webp")} alt="" />
+          <h1>CyberJudah</h1>
+          <p>Unlock with your fingerprint or face.</p>
+          <Button size="xl" onClick={() => app!.BiometricManager.authenticate({ reason: "Unlock CyberJudah" }, (ok) => { if (ok) setLocked(false); })}>Unlock</Button>
+        </div>
+      ) : null}
     </div>
   );
 }
