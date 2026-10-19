@@ -1,0 +1,3 @@
+- A verse's resource sheet now looks and works like Bible Strong's. The resources sit on its rounded footer bar, with its icons: Lexicon, Dictionary, Themes, References and Comments, then Precepts and People.
+- The Lexicon shows the verse with each word that has a Strong's number as a pill, and the verse's Strong's entries as cards to swipe through. Tapping a pill brings up its card; swiping to a card highlights its word. A card opens the full word study.
+- Previous verse and Next verse move the sheet through the chapter. Word alignment is now in the sheet's ⋮ menu.
