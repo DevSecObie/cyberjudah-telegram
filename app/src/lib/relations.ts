@@ -13,7 +13,8 @@ import { json, store } from "@/tg/store";
  *
  * Storage: CloudStorage, one key per chapter (`rel_<book>_<chapter>`) holding every relation
  * with a passage endpoint in that chapter; a passage-to-passage relation across chapters is
- * written under both, with the same id, so each end shows it.
+ * written under both, with the same id, so each end shows it. One with no passage at either end
+ * (a dictionary entry to a class) goes under `rel_other`.
  */
 export type RelationType = "linked" | "references" | "explains" | "contrasts" | "mentions";
 export type RelationDirection = "none" | "forward" | "backward";
@@ -75,11 +76,13 @@ export function endpointHref(e: Endpoint): string {
 }
 
 const chapterKeyOf = (k: string) => { const p = parseVerseKey(k)!; return `rel_${p.slug}_${p.chapter}`; };
-/** The chapter keys a relation lives under: every chapter one of its passage endpoints touches. */
+/** Relations with no passage at either end (a dictionary entry to a class, say) live here. */
+const OTHER_KEY = "rel_other";
+/** The chapter keys a relation lives under: every chapter one of its passage endpoints touches, else OTHER_KEY. */
 function chapterKeys(r: Relation): string[] {
   const keys = new Set<string>();
   for (const e of r.endpoints) { if (e.type === "verse") for (const k of e.verseKeys) keys.add(chapterKeyOf(k)); if (e.type === "note" || e.type === "annotation") keys.add(chapterKeyOf(e.verseKey)); }
-  return [...keys];
+  return keys.size ? [...keys] : [OTHER_KEY];
 }
 
 async function readChapter(key: string): Promise<Relation[]> { return json.get<Relation[]>(key, []); }

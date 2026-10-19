@@ -14,7 +14,9 @@ export type ReminderView = {
   pending: Pending[]; notice: "push-fallback" | null; publicKey: string | null;
   identity?: "telegram" | "device" | "none"; linked?: boolean; device?: string;
 };
-export type Content = { plan: { day: number; perDay: number } | null; last: { slug: string; chapter: number } | null };
+export type Content = { plan: { day: number; perDay: number; books?: string[] } | null; last: { slug: string; chapter: number } | null };
+/** The plan as the reminder needs it: the day, the pace and, for a plan of some books, which ones (so it names the right chapters). */
+export const planContent = (p: { day: number; perDay: number; books?: string[] } | null | undefined): Content["plan"] => (p ? { day: p.day, perDay: p.perDay, ...(p.books?.length ? { books: p.books } : {}) } : null);
 
 const DEVICE = "cj:remind-device";
 const device = (): string | null => { try { return localStorage.getItem(DEVICE); } catch { return null; } };
