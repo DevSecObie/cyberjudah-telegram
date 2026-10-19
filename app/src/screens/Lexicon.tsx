@@ -1,15 +1,17 @@
 import { useResourceRelease } from "@/resources/hooks";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router";
 
 import { data, type StrongsRow } from "@/api/data";
 import { WordStudy, useStrongs } from "@/bible/ui/WordStudy";
-import { pickOfDay, pickRandom } from "@/lib/ofday";
+import { pickOfDay } from "@/lib/ofday";
+import { AlphabetList, SectionTitle, firstLetter, sections, useHeaderOffset } from "@/ui/alphabet";
+import { useSheet } from "@/ui/sheet";
 import { share } from "@/lib/share";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
-import { Empty, Icon, List, Row, Screen, SearchField, Section, Segmented, Skeleton } from "@/ui/ui";
+import { Empty, Icon, Screen, SearchField } from "@/ui/ui";
 
 type Lang = "hebrew" | "greek";
 const isLang = (r: StrongsRow, l: Lang) => r.n.startsWith(l === "hebrew" ? "H" : "G");
@@ -27,71 +29,96 @@ export function strongOfDay(rows: StrongsRow[] | undefined, lang: Lang): Strongs
 /** Strip accents for search: "ʼâb" matches "ab". */
 const fold = (s: string) => s.normalize("NFD").replace(/[̀-ְͯ-ׇʼ']/g, "").toLowerCase();
 
+type Filter = "all" | Lang;
+const FILTERS: [Filter, string][] = [["all", "All"], ["hebrew", "Hebrew"], ["greek", "Greek"]];
+/** The word a row is filed under (Bible Strong's gloss): the meaning's first clause, "father", "to create". */
+export const gloss = (r: StrongsRow) => (r.def.replace(/^[^A-Za-z(]+/, "").replace(/^\([^)]*\)\s*/, "").replace(/^(?:a|an|the|to)\s+/i, "").split(/[;,:({}"]/)[0] ?? "").trim().replace(/\s+(?:or|and|of)$/, "") || r.xlit || r.n;
+const PAGE = 50;
+
 /**
- * The Lexicon (Bible Strong's "lexique"): every Hebrew and Greek word of the King James,
- * browsed by language, searched by number, word, transliteration or meaning, with the word
- * of the day and a random word, each opening its full word study.
+ * The Lexicon as Bible Strong's LexiqueListScreen: every Hebrew and Greek word of the King James,
+ * filed by meaning under the letter's disc, opening on A with the alphabet along the bottom, a
+ * filter for the language, and a search by number or word, each row opening its word study.
  */
 export function Lexicon() {
   useBackButton();
-  const navigate = useNavigate();
+  const sheet = useSheet();
   const [params, setParams] = useSearchParams();
-  const lang = (params.get("lang") === "greek" ? "greek" : "hebrew") as Lang;
+  const filter: Filter = params.get("lang") === "hebrew" ? "hebrew" : params.get("lang") === "greek" ? "greek" : "all";
+  const letter = (params.get("letter") ?? "a").toLowerCase();
+  const set = (key: string, value: string | null) => setParams((p) => { const next = new URLSearchParams(p); if (value) next.set(key, value); else next.delete(key); return next; }, { replace: true });
   const [q, setQ] = useState(params.get("q") ?? "");
   const [debounced, setDebounced] = useState(q);
   useEffect(() => { const t = setTimeout(() => setDebounced(q.trim()), 150); return () => clearTimeout(t); }, [q]);
-  const [limit, setLimit] = useState(60);
   const idx = useStrongsIndex();
-  const rows = useMemo(() => (idx.data ?? []).filter((r) => isLang(r, lang)), [idx.data, lang]);
+  const rows = useMemo(() => (idx.data ?? []).filter((r) => filter === "all" || isLang(r, filter)), [idx.data, filter]);
   const hits = useMemo(() => {
     const t = debounced;
-    if (!t) return [...rows].sort((a, b) => b.count - a.count);
-    // A number is searched as typed: "G26" finds the Greek word even on the Hebrew tab, and a bare
-    // number uses the tab's language.
+    if (!t) return rows.filter((r) => firstLetter(gloss(r)) === letter).sort((a, b) => gloss(a).localeCompare(gloss(b), "en", { sensitivity: "base" }));
+    // A number is searched as typed: "G26" finds the Greek word whatever the filter, and a bare
+    // number searches the filter's languages.
     const code = /^([hg])?\s*(\d+)$/i.exec(t);
-    if (code) { const n = `${code[1] ? code[1].toUpperCase() : lang === "hebrew" ? "H" : "G"}${+code[2]}`; return (code[1] ? idx.data ?? [] : rows).filter((r) => r.n === n || r.n.startsWith(n)).sort((a, b) => a.n.length - b.n.length || +a.n.slice(1) - +b.n.slice(1)); }
+    if (code) {
+      const pool = code[1] ? idx.data ?? [] : rows;
+      const ns = code[1] ? [`${code[1].toUpperCase()}${+code[2]}`] : ["H", "G"].map((l) => `${l}${+code[2]}`);
+      return pool.filter((r) => ns.some((n) => r.n === n || r.n.startsWith(n))).sort((a, b) => a.n.length - b.n.length || +a.n.slice(1) - +b.n.slice(1));
+    }
     const f = fold(t);
     const score = (r: StrongsRow) => { const x = fold(r.xlit), d = fold(r.def); return r.lemma.includes(t) ? 0 : x === f ? 1 : x.startsWith(f) ? 2 : d.split(/\W+/).includes(f) ? 3 : x.includes(f) ? 4 : d.includes(f) ? 5 : 9; };
     return rows.map((r) => [score(r), r] as const).filter(([s]) => s < 9).sort((a, b) => a[0] - b[0] || b[1].count - a[1].count).map(([, r]) => r);
-  }, [rows, debounced, lang, idx.data]);
-  const ofDay = strongOfDay(idx.data, lang);
-  const random = () => { if (!rows.length) return; haptic("select"); navigate(`/lexicon/${rows[pickRandom(rows.length)].n}`); };
-  const set = (patch: Record<string, string>) => setParams({ lang, ...(q ? { q } : {}), ...patch }, { replace: true });
+  }, [rows, debounced, letter, idx.data]);
+  // Fifty rows at a time, the next fifty as the end of the list comes into view.
+  const [limit, setLimit] = useState(PAGE);
+  useEffect(() => setLimit(PAGE), [debounced, letter, filter]);
+  const end = useRef<HTMLDivElement>(null);
+  const more = hits.length > limit;
+  useEffect(() => {
+    const el = end.current; if (!el || !more) return;
+    const io = new IntersectionObserver((seen) => { if (seen.some((x) => x.isIntersecting)) setLimit((n) => n + PAGE); }, { rootMargin: "600px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [more, limit]);
+  const top = useHeaderOffset();
+  // Bible Strong's FiltersHeader: the filters, then a filter's choices.
+  const openFilters = async () => {
+    const pick = await sheet.open({ title: "Filters", items: [{ id: "lexicon", text: "Lexicon", hint: FILTERS.find(([f]) => f === filter)![1], icon: <Icon name="book-open" size={20} /> }] });
+    if (!pick) return;
+    const choice = await sheet.open({ title: "Lexicon", items: FILTERS.map(([f, label]) => ({ id: f, text: label, icon: f === filter ? <Icon name="check" size={18} /> : <span className="bs-filter__blank" /> })) });
+    if (choice) set("lang", choice.id === "all" ? null : choice.id);
+  };
+  const active = filter !== "all";
   return (
-    <Screen title="Lexicon" kicker="Strong's Hebrew and Greek · every word of the King James" action={<button type="button" className="icon-btn" aria-label="A random word" title="A random word" onClick={random}><Icon name="retry" size={20} /></button>}>
-      <Segmented label="Language" value={lang} onChange={(l) => { setLimit(60); set({ lang: l }); }} options={[["hebrew", `Hebrew ${idx.data ? (idx.data.length - rows.length && lang === "greek" ? idx.data.filter((r) => r.n[0] === "H").length : rows.length).toLocaleString() : ""}`], ["greek", `Greek ${idx.data ? idx.data.filter((r) => r.n[0] === "G").length.toLocaleString() : ""}`]]} />
-      <SearchField id="lex-q" value={q} onChange={(v) => { setQ(v); setLimit(60); }} placeholder={lang === "hebrew" ? "A number (H430), a word, elohim, or a meaning" : "A number (G26), a word, agape, or a meaning"} />
-      {!debounced && ofDay ? (
-        <Section title="Word of the Day">
-          <Link to={`/lexicon/${ofDay.n}`} className="lex-day" onClick={() => haptic("select")}>
-            <span className="lex-day__lemma" lang={lang === "hebrew" ? "he" : "el"} dir={lang === "hebrew" ? "rtl" : "ltr"}>{ofDay.lemma}</span>
-            <span className="lex-day__body"><b>{ofDay.xlit || ofDay.n}</b><span>{preview(ofDay.def)}</span><small>Strong's {ofDay.n} · {ofDay.count.toLocaleString()} times</small></span>
-            <Icon name="chevron" size={18} />
-          </Link>
-        </Section>
-      ) : null}
-      {idx.isPending ? <Skeleton rows={8} /> : idx.isError ? <Empty title="The lexicon did not load" action={{ label: "Retry", onClick: () => void idx.refetch() }} /> : !hits.length ? <Empty title={`Nothing called “${debounced}” in the ${lang === "hebrew" ? "Hebrew" : "Greek"}`}>Try the number, the transliteration (ʼâb, agapē) or a word from the meaning.</Empty> : (
-        <Section title={debounced ? `${hits.length.toLocaleString()} ${hits.length === 1 ? "word" : "words"}` : "Most used"}>
-          <List>{hits.slice(0, limit).map((r) => <StrongRow key={r.n} row={r} />)}</List>
-          {hits.length > limit ? <button type="button" className="btn btn--plain more-btn" onClick={() => setLimit((n) => n + 100)}>More · {(hits.length - limit).toLocaleString()} left</button> : null}
-        </Section>
+    <Screen title="Lexicon" className="bs-list" action={
+      <button type="button" className={`bs-filter${active ? " bs-filter--on" : ""}`} aria-label={active ? "1 filter" : "Filter"} title={active ? "1 filter" : "Filter"} onClick={() => void openFilters()}>
+        {active ? <span className="bs-filter__pill"><span><Icon name="book-open" size={14} /></span><span><Icon name="chevron-down" size={13} /></span></span> : <Icon name="filter" size={20} />}
+      </button>
+    }>
+      <SearchField id="lex-q" value={q} onChange={setQ} placeholder="Search by code or by word" />
+      {idx.isPending ? <p className="bs-list__loading">Loading...</p> : idx.isError ? <Empty title="The lexicon did not load" action={{ label: "Retry", onClick: () => void idx.refetch() }} /> : !hits.length ? <Empty title="No Strong's found...">Try the number, the transliteration (ʼâb, agapē) or a word from the meaning.</Empty> : (
+        <div className="bs-list__body" style={{ ["--section-top" as string]: `${top}px` }}>
+          {sections(hits.slice(0, limit), gloss).map((section) => (
+            <section key={section.title}>
+              <SectionTitle color="var(--accent)">{section.title.toUpperCase()}</SectionTitle>
+              {section.data.map((r) => <LexiqueItem key={r.n} row={r} />)}
+            </section>
+          ))}
+          {more ? <div ref={end} className="list-more" role="status">Loading more…</div> : null}
+        </div>
       )}
-      <p className="hint">Strong's Exhaustive Concordance (1890), public domain; the Hebrew and Greek behind every King James word in the 66 books, and the Greek of the Apocrypha from the Septuagint.</p>
+      {!q ? <AlphabetList letter={letter} setLetter={(l) => set("letter", l)} /> : null}
     </Screen>
   );
 }
 
-/** The index keeps the first 90 characters of a definition; a cut one ends at a whole word, with an ellipsis. */
-const INDEX_DEF_CAP = 90;
-const preview = (def: string) => {
-  if (def.length < INDEX_DEF_CAP) return def;
-  const cut = def.slice(0, def.lastIndexOf(" ") > 40 ? def.lastIndexOf(" ") : def.length).replace(/[\s,;:.(-]+$/, "");
-  return `${cut}…`;
-};
-
-export function StrongRow({ row }: { row: StrongsRow }) {
+/** Bible Strong's LexiqueItem: the language and the number as chips, then the meaning and the original word. */
+function LexiqueItem({ row }: { row: StrongsRow }) {
   const heb = row.n[0] === "H";
-  return <Row href={`/lexicon/${row.n}`} title={<span className="lex-row"><span className="lex-row__lemma" lang={heb ? "he" : "el"} dir={heb ? "rtl" : "ltr"}>{row.lemma}</span><span>{row.xlit || row.n}</span></span>} sub={preview(row.def)} meta={<span className="lex-row__meta"><b>{row.n}</b><small>{row.count.toLocaleString()}</small></span>} />;
+  return (
+    <Link to={`/lexicon/${row.n}`} className="bs-lexitem" onClick={() => haptic("select")}>
+      <span className="bs-lexitem__chips"><span className={heb ? "bs-lexchip bs-lexchip--hebrew" : "bs-lexchip"}>{heb ? "Hebrew" : "Greek"}</span><span className="bs-lexchip">{row.n}</span></span>
+      <span className="bs-lexitem__line"><b>{gloss(row)}</b><span lang={heb ? "he" : "el"}>{row.lemma}</span></span>
+    </Link>
+  );
 }
 
 /** One word's full study, as a screen: `/lexicon/H430`. */
