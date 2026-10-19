@@ -102,8 +102,8 @@ test("reader adding a second finger cancels the pending long press", async ({ pa
   await page.clock.runFor(500);
   await touchVerse(page, "touchend", 0);
   await page.clock.runFor(250);
-  await expect(page.locator(".bs-resourcetabs")).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".bs-resfooter")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Lexicon", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
 });
 
@@ -255,15 +255,15 @@ test("reader press preference still swaps resources and verse selection", async 
   await page.getByRole("button", { name: "Showing strongs: Long press", exact: true }).click();
   await page.keyboard.press("Escape");
   await page.locator("#verset-1 .bs-num").click();
-  await expect(page.locator(".bs-resourcetabs")).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".bs-resfooter")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Lexicon", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
   await page.keyboard.press("Escape");
   const b = (await page.locator("#verset-1 .bs-num").boundingBox())!;
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
   await page.mouse.down(); await page.waitForTimeout(550); await page.mouse.up();
   await expect(page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true })).toBeVisible();
-  await expect(page.locator(".bs-resourcetabs")).toHaveCount(0);
+  await expect(page.locator(".bs-resfooter")).toHaveCount(0);
 });
 
 test("reader selections and expanded passage context belong to their own tabs", async ({ page }) => {

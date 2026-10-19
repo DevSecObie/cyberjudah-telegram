@@ -44,7 +44,8 @@ jobs:
 
   stage:
     # CMS review branches require an owner workflow_dispatch to stage, even when ready.
-    if: ${{ !inputs.verify_only && (github.event_name == 'workflow_dispatch' || (github.event.pull_request.draft == false && !startsWith(github.head_ref, 'cms/') && !startsWith(github.head_ref, 'codex/cms-'))) }}
+    # Dependabot's pull request runs get no repository secrets, so they cannot deploy to staging.
+    if: ${{ !inputs.verify_only && github.actor != 'dependabot[bot]' && github.event.pull_request.user.login != 'dependabot[bot]' && (github.event_name == 'workflow_dispatch' || (github.event.pull_request.draft == false && !startsWith(github.head_ref, 'cms/') && !startsWith(github.head_ref, 'codex/cms-'))) }}
     needs: check
     runs-on: ubuntu-latest
     steps:

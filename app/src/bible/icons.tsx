@@ -6,7 +6,7 @@ export type FeatherName =
   | "music" | "alert-circle" | "feather"
   | "file-plus" | "file-text" | "tag" | "link" | "git-merge" | "precepts" | "bookmark" | "crosshair" | "edit-2" | "copy" | "share-2" | "download" | "check-square" | "layers"
   | "sun" | "moon" | "sunrise" | "type" | "align-left" | "align-justify" | "arrow-right" | "corner-down-right" | "chevron-right" | "chevron-down" | "chevron-up" | "chevron-left" | "chevrons-left" | "chevrons-right" | "chevrons-down"
-  | "more-vertical" | "arrow-left" | "x" | "list" | "hash" | "grid" | "arrow-right-circle" | "book" | "book-open" | "search" | "plus" | "check" | "clock" | "settings" | "trash-2" | "film" | "external-link" | "play" | "pause" | "skip-back" | "skip-forward" | "volume-2" | "edit-3" | "square" | "mic" | "sliders" | "users" | "repeat" | "arrow-up" | "arrow-down" | "heart" | "rotate-ccw" | "user" | "map-pin" | "globe" | "play-circle" | "watch" | "refresh-cw" | "home" | "more-horizontal";
+  | "more-vertical" | "arrow-left" | "x" | "list" | "hash" | "grid" | "arrow-left-circle" | "arrow-right-circle" | "book" | "book-open" | "search" | "plus" | "check" | "clock" | "settings" | "trash-2" | "film" | "external-link" | "play" | "pause" | "skip-back" | "skip-forward" | "volume-2" | "edit-3" | "square" | "mic" | "sliders" | "users" | "repeat" | "arrow-up" | "arrow-down" | "heart" | "rotate-ccw" | "user" | "map-pin" | "globe" | "play-circle" | "watch" | "refresh-cw" | "home" | "more-horizontal";
 
 const P: Record<FeatherName, string> = {
   feather: '<path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/>',
@@ -56,6 +56,7 @@ const P: Record<FeatherName, string> = {
   list: '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
   hash: '<line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>',
   grid: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+  "arrow-left-circle": '<circle cx="12" cy="12" r="10"/><polyline points="12 8 8 12 12 16"/><line x1="16" y1="12" x2="8" y2="12"/>',
   "arrow-right-circle": '<circle cx="12" cy="12" r="10"/><polyline points="12 16 16 12 12 8"/><line x1="8" y1="12" x2="16" y2="12"/>',
   book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
   "book-open": '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
