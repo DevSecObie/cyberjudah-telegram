@@ -5,6 +5,7 @@ import { useResourceSync } from "@/resources/hooks";
 import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation, useNavigate, useNavigationType } from "react-router";
 
+import { RouteSheet, useSheetEntry } from "@/ui/routeSheet";
 import { initialLaunchPath } from "@/tg/launch.mjs";
 import { isTabPath, recordPath } from "@/lib/tabs";
 import { assetUrl } from "@/lib/asset";
@@ -80,30 +81,107 @@ const Tags = lazy(() => import("@/screens/Tags").then((m) => ({ default: m.Tags 
 const TagScreen = lazy(() => import("@/screens/Tags").then((m) => ({ default: m.TagScreen })));
 
 
+/** Every screen, by its address: for the page, and again for a route sheet over it (ui/routeSheet). */
+const routes = (
+  <>
+    <Route path="/" element={<Home />} />
+    <Route path="/settings/admin/*" element={<AdminGate />} />
+    <Route path="/settings/credits" element={<Credits />} />
+    <Route path="/settings/reminders" element={<Reminders />} />
+    <Route path="/settings/donate" element={<Donate />} />
+    <Route path="/privacy" element={<Privacy />} />
+    <Route path="/terms" element={<Terms />} />
+    <Route path="/search" element={<Search />} />
+    <Route path="/classes" element={<Classes />} />
+    <Route path="/bible" element={<BibleTab />} />
+    <Route path="/bible/:book" element={<BibleTab />} />
+    <Route path="/bible/:book/:chapter" element={<BibleTab />} />
+    <Route path="/more" element={<More />} />
+    <Route path="/read/:book/:chapter" element={<BibleTab />} />
+    <Route path="/note/*" element={<NoteScreen />} />
+    <Route path="/watch/:video" element={<Watch />} />
+    <Route path="/ask" element={<Ask />} />
+    <Route path="/resources" element={<ResourceInstaller />} />
+    <Route path="/resources/:id/:release" element={<ResourceReader />} />
+    <Route path="/settings/account" element={<Account />} />
+    <Route path="/settings" element={<Settings />} />
+    <Route path="/settings/help" element={<Help />} />
+    <Route path="/settings/audio" element={<AudioSettings />} />
+    <Route path="/settings/bar" element={<NavEditor />} />
+    <Route path="/settings/requests" element={<NoteRequests />} />
+    <Route path="/plans" element={<ReadingPlans />} />
+    <Route path="/plan" element={<Plan />} />
+    <Route path="/relations" element={<Relations />} />
+    <Route path="/history" element={<History />} />
+    <Route path="/dictionary" element={<Dictionary />} />
+    <Route path="/dictionary/:slug" element={<DictionaryEntry />} />
+    <Route path="/tabs" element={<TabsScreen />} />
+    <Route path="/new" element={<NewTab />} />
+    <Route path="/lexicon" element={<Lexicon />} />
+    <Route path="/lexicon/:number" element={<LexiconEntry />} />
+    <Route path="/people" element={<People />} />
+    <Route path="/person/:id" element={<Person />} />
+    <Route path="/tags" element={<Tags />} />
+    <Route path="/tags/:id" element={<TagScreen />} />
+    <Route path="/books" element={<Books />} />
+    <Route path="/books/:slug" element={<BookScreen />} />
+    <Route path="/books/:slug/p/:page" element={<BookPageLink />} />
+    <Route path="/books/:slug/:k" element={<BookChapterScreen />} />
+    <Route path="/bookmarks" element={<Bookmarks />} />
+    <Route path="/sabbath" element={<Sabbath />} />
+    <Route path="/studies" element={<PersonalStudies />} />
+    <Route path="/studies/:id" element={<PersonalStudies />} />
+    <Route path="/study" element={<Study />} />
+    <Route path="/encyclopedia" element={<Encyclopedia />} />
+    <Route path="/glossary" element={<Glossary />} />
+    <Route path="/concordance" element={<Concordance />} />
+    <Route path="/concordance/:book" element={<ConcordanceBookScreen />} />
+    <Route path="/law" element={<LawIndex />} />
+    <Route path="/law/:part/:section" element={<LawSectionScreen />} />
+    <Route path="/law/:part" element={<LawIndex />} />
+    <Route path="/precepts" element={<Precepts />} />
+    <Route path="/precepts/:slug" element={<PreceptScreen />} />
+    <Route path="/timeline" element={<Timeline />} />
+    <Route path="/timeline/search" element={<TimelineSearch />} />
+    <Route path="/timeline/event/:slug" element={<TimelineEventScreen />} />
+    <Route path="/timeline/:n" element={<TimelinePeriod />} />
+    <Route path="/cases" element={<Cases />} />
+    <Route path="/cases/:era/:slug" element={<CaseScreen />} />
+    <Route path="/topics" element={<Topics />} />
+    <Route path="/topics/:slug" element={<TopicScreen />} />
+    <Route path="*" element={<Home />} />
+  </>
+);
+
 export function App() {
   useResourceSync();
   const location = useLocation();
-  // Bible Strong's tabs: where the app is becomes the current tab's place (lib/tabs.ts).
+  const navType = useNavigationType();
+  // A route sheet (a dictionary word, a theme, a Strong's entry…) over the page it was opened from.
+  const sheet = useSheetEntry(location, navType);
+  const page = sheet?.background ?? location;
+  // Bible Strong's tabs: where the app is becomes the current tab's place (lib/tabs.ts); a sheet
+  // over it does not move the tab.
   const prevPath = useRef<string | null>(null);
   useEffect(() => {
+    if (sheet) return;
     const path = location.pathname + location.search;
     const prev = prevPath.current;
     recordPath(path, prev !== null && !isTabPath(prev));
     prevPath.current = path;
-  }, [location.pathname, location.search]);
+  }, [location.pathname, location.search, sheet]);
   const navigate = useNavigate();
   useSettingsButton();
 
   // Opening a page slides it in a little from the right and Back from the left, crossfading, as
   // Bible Strong's web page transition (220 ms, 10 px). Tab changes have their own motion (tab-motion).
-  const navType = useNavigationType();
   const route = useRef<HTMLDivElement>(null);
   const firstPage = useRef(true);
   useLayoutEffect(() => {
     if (firstPage.current) { firstPage.current = false; return; }
     if (navType === "REPLACE" || "tabMotion" in document.documentElement.dataset || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     route.current?.animate([{ opacity: 0, transform: `translateX(${navType === "POP" ? -10 : 10}px)` }, { opacity: 1, transform: "none" }], { duration: 220, easing: "ease-out" });
-  }, [location.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [page.key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The bar's own screens load once the app is idle, so a first switch to one never waits on its code.
   useEffect(() => {
@@ -135,80 +213,14 @@ export function App() {
       <NativeLifecycle />
       <WorkspaceCommands />
       <Lock />
-      <div ref={route} className="route" data-location-key={location.key} key={location.pathname.split("/").slice(0, 2).join("/")}>
-      <ScreenBoundary resetKey={location.pathname}>
+      <div ref={route} className="route" data-location-key={page.key} key={page.pathname.split("/").slice(0, 2).join("/")}>
+      <ScreenBoundary resetKey={page.pathname}>
       <Suspense fallback={<Screen className="route-loading"><Skeleton rows={8} /></Screen>}>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/settings/admin/*" element={<AdminGate />} />
-        <Route path="/settings/credits" element={<Credits />} />
-        <Route path="/settings/reminders" element={<Reminders />} />
-        <Route path="/settings/donate" element={<Donate />} />
-        <Route path="/privacy" element={<Privacy />} />
-        <Route path="/terms" element={<Terms />} />
-        <Route path="/search" element={<Search />} />
-        <Route path="/classes" element={<Classes />} />
-        <Route path="/bible" element={<BibleTab />} />
-        <Route path="/bible/:book" element={<BibleTab />} />
-        <Route path="/bible/:book/:chapter" element={<BibleTab />} />
-        <Route path="/more" element={<More />} />
-        <Route path="/read/:book/:chapter" element={<BibleTab />} />
-        <Route path="/note/*" element={<NoteScreen />} />
-        <Route path="/watch/:video" element={<Watch />} />
-        <Route path="/ask" element={<Ask />} />
-        <Route path="/resources" element={<ResourceInstaller />} />
-        <Route path="/resources/:id/:release" element={<ResourceReader />} />
-        <Route path="/settings/account" element={<Account />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/settings/help" element={<Help />} />
-        <Route path="/settings/audio" element={<AudioSettings />} />
-        <Route path="/settings/bar" element={<NavEditor />} />
-        <Route path="/settings/requests" element={<NoteRequests />} />
-        <Route path="/plans" element={<ReadingPlans />} />
-        <Route path="/plan" element={<Plan />} />
-        <Route path="/relations" element={<Relations />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/dictionary" element={<Dictionary />} />
-        <Route path="/dictionary/:slug" element={<DictionaryEntry />} />
-        <Route path="/tabs" element={<TabsScreen />} />
-        <Route path="/new" element={<NewTab />} />
-        <Route path="/lexicon" element={<Lexicon />} />
-        <Route path="/lexicon/:number" element={<LexiconEntry />} />
-        <Route path="/people" element={<People />} />
-        <Route path="/person/:id" element={<Person />} />
-        <Route path="/tags" element={<Tags />} />
-        <Route path="/tags/:id" element={<TagScreen />} />
-        <Route path="/books" element={<Books />} />
-        <Route path="/books/:slug" element={<BookScreen />} />
-        <Route path="/books/:slug/p/:page" element={<BookPageLink />} />
-        <Route path="/books/:slug/:k" element={<BookChapterScreen />} />
-        <Route path="/bookmarks" element={<Bookmarks />} />
-        <Route path="/sabbath" element={<Sabbath />} />
-        <Route path="/studies" element={<PersonalStudies />} />
-        <Route path="/studies/:id" element={<PersonalStudies />} />
-        <Route path="/study" element={<Study />} />
-        <Route path="/encyclopedia" element={<Encyclopedia />} />
-        <Route path="/glossary" element={<Glossary />} />
-        <Route path="/concordance" element={<Concordance />} />
-        <Route path="/concordance/:book" element={<ConcordanceBookScreen />} />
-        <Route path="/law" element={<LawIndex />} />
-        <Route path="/law/:part/:section" element={<LawSectionScreen />} />
-        <Route path="/law/:part" element={<LawIndex />} />
-        <Route path="/precepts" element={<Precepts />} />
-        <Route path="/precepts/:slug" element={<PreceptScreen />} />
-        <Route path="/timeline" element={<Timeline />} />
-        <Route path="/timeline/search" element={<TimelineSearch />} />
-        <Route path="/timeline/event/:slug" element={<TimelineEventScreen />} />
-        <Route path="/timeline/:n" element={<TimelinePeriod />} />
-        <Route path="/cases" element={<Cases />} />
-        <Route path="/cases/:era/:slug" element={<CaseScreen />} />
-        <Route path="/topics" element={<Topics />} />
-        <Route path="/topics/:slug" element={<TopicScreen />} />
-        <Route path="*" element={<Home />} />
-      </Routes>
+      <Routes location={page}>{routes}</Routes>
       </Suspense>
       </ScreenBoundary>
       </div>
+      {sheet ? <RouteSheet entry={sheet} path={location.pathname} label="Sheet"><ScreenBoundary resetKey={location.pathname}><Suspense fallback={<Skeleton rows={6} />}><Routes location={location}>{routes}</Routes></Suspense></ScreenBoundary></RouteSheet> : null}
       <Suspense fallback={null}><ReminderSync /></Suspense>
       <AudioPlayerBar />
       <PageActions />

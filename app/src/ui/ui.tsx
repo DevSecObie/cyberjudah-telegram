@@ -13,6 +13,7 @@ import { SwitcherBar } from "@/screens/Tabs";
 import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
 
 import { Icon, type IconName } from "./icons";
+import { useSheetRoute } from "./sheetRoute";
 import { moveTab } from "./tab-motion";
 export { Icon, type IconName } from "./icons";
 
@@ -353,6 +354,30 @@ function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
 }
 
 export function Screen({ title, kicker, action, children, className }: { title?: ReactNode; kicker?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
+  const sheet = useSheetRoute();
+  if (sheet) return <SheetScreen title={title} kicker={kicker} action={action} className={className} sheet={sheet}>{children}</SheetScreen>;
+  return <PageScreen title={title} kicker={kicker} action={action} className={className}>{children}</PageScreen>;
+}
+
+/**
+ * A screen in a route sheet, under Bible Strong's route Header (common/Header.tsx): 54 px, the
+ * title in 14 px bold with the subtitle in 12 px grey under it, a back arrow only when the sheet
+ * has a screen before this one, the screen's actions on the right, and a line under it.
+ */
+function SheetScreen({ title, kicker, action, children, className, sheet }: { title?: ReactNode; kicker?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; sheet: { depth: number; back: () => void } }) {
+  return (
+    <div className={`screen screen--sheet${className ? ` ${className}` : ""}`}>
+      {title ? <header className="sheet-head">
+        {sheet.depth > 1 ? <button type="button" className="sheet-head__back" aria-label="Back" title="Back" onClick={sheet.back}><Icon name="back" size={20} /></button> : <span className="sheet-head__pad" />}
+        <div className="sheet-head__titles"><h1>{title}</h1>{kicker ? <p>{kicker}</p> : null}</div>
+        {action}
+      </header> : null}
+      {children}
+    </div>
+  );
+}
+
+function PageScreen({ title, kicker, action, children, className }: { title?: ReactNode; kicker?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
   const head = useRef<HTMLElement>(null);
   const compact = useLargeTitle(head);
   // Every page but the main places has its own ←, as Bible Strong's Header does; it is the same Back as Telegram's.
