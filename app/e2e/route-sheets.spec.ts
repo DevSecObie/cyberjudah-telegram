@@ -29,6 +29,10 @@ test("a dictionary word opens as a sheet at 45% over the list, which stays usabl
   await expect(title).toHaveCSS("font-size", "14px");
   await expect(sheet.getByText("Easton's Bible Dictionary", { exact: true })).toBeVisible();
   await expect(sheet.getByRole("button", { name: "Back", exact: true })).toHaveCount(0);
+  // The native grabber shows over the header, as on every Bible Strong sheet.
+  const grabber = sheet.getByRole("button", { name: "Expand sheet" });
+  await expect(grabber).toBeVisible();
+  expect(await grabber.evaluate((el) => { const r = el.getBoundingClientRect(); return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)); })).toBe(true);
   const max = 844 - 8;
   await expect.poll(async () => Math.round((await sheet.boundingBox())!.height)).toBe(Math.round(.45 * max));
   // The list is still there behind, not dimmed.

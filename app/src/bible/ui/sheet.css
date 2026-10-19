@@ -64,7 +64,7 @@ button.bs-sheet__grabber { height: 22px; cursor: ns-resize; }
 .sheet-head__titles h1 { margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 700 14px/1.3 var(--font-ui); color: var(--bs-default); }
 .sheet-head__titles p { margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 400 12px/1.3 var(--font-ui); color: var(--bs-tertiary); }
 .sheet-head > :last-child:not(.sheet-head__titles) { flex: none; }
-.route-sheet .bs-sheet__grab { min-height: 0; }
+.route-sheet .bs-sheet__grab { min-height: 0; z-index: 3; }
 /* SheetSearchInput, under a SheetHeader's title in a 20 px padded box. */
 .bs-sheet__searchbox { padding: 0 20px 10px; }
 .bs-sheetsearch { display: flex; align-items: center; height: 44px; margin-bottom: 5px; padding: 0 14px; border-radius: 14px; background: rgba(0, 0, 0, .1); color: var(--bs-default); }
