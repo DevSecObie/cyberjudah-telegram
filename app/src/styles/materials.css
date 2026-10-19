@@ -47,6 +47,8 @@
 .head .title { margin: 0; font: 700 .875rem/1.3 var(--font-ui); letter-spacing: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .head .kicker { margin: 0; font: 400 .75rem/1.3 var(--font-ui); color: var(--bs-grey, var(--text-3)); letter-spacing: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .head__actions { display: flex; gap: var(--sp-2); flex: none; }
+/* Its icon actions are plain icons in 54 px squares, as Bible Strong's header buttons are. */
+#root .screen > .head .icon-btn { min-width: 54px; height: 54px; padding: 0; border-radius: 0; background: none; }
 
 /* The header bar: sticky, full bleed, on the navigation glass with a scroll edge that lets the page
    fade out beneath it. The glass is a pseudo-element so it can run edge to edge past the column. */
@@ -399,5 +401,5 @@ html[data-transparency="reduced"] .glass-light { display: none; }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) { .glass-light { display: none; } }
 /* Glass controls swell a little under the finger and spring back with a small bounce when it lifts,
    where content controls press in. The overshoot comes from the spring curve on the way back. */
-#root :is(.screen > .head, .srch__bar, .chat2__bar, .reader__bar, .tlh, .pv__bar) :is(.icon-btn, .btn), #root .pageaction { transition: transform var(--dur-4) var(--ease-spring), opacity var(--dur-2) ease; }
-#root :is(.screen > .head, .srch__bar, .chat2__bar, .reader__bar, .tlh, .pv__bar) :is(.icon-btn, .btn)[data-pressed]:not(:disabled), #root .pageaction[data-pressed]:not(:disabled) { transform: scale(var(--glass-press-scale)); transition-duration: var(--dur-1); transition-timing-function: var(--ease); }
+#root :is(.srch__bar, .chat2__bar, .reader__bar, .tlh, .pv__bar) :is(.icon-btn, .btn), #root .pageaction { transition: transform var(--dur-4) var(--ease-spring), opacity var(--dur-2) ease; }
+#root :is(.srch__bar, .chat2__bar, .reader__bar, .tlh, .pv__bar) :is(.icon-btn, .btn)[data-pressed]:not(:disabled), #root .pageaction[data-pressed]:not(:disabled) { transform: scale(var(--glass-press-scale)); transition-duration: var(--dur-1); transition-timing-function: var(--ease); }
