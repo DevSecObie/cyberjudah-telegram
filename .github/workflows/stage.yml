@@ -86,6 +86,13 @@ jobs:
           VITE_ACCOUNT_SYNC: "true"
           VITE_ACCOUNT_SYNC_SCOPE: staging
           CYBERJUDAH_APP_BASE: /app/
+      - name: Cache the Bible Strong fork's packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.yarn/berry/cache
+          key: strong-yarn-${{ hashFiles('strong/yarn.lock') }}
+      - name: Build the Bible Strong fork (staged at /app/strong)
+        run: bash strong/build-web.sh
       - name: Deploy the staging worker
         id: deploy
         working-directory: bot
