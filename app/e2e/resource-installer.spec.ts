@@ -46,7 +46,7 @@ test('installer rejects damage, updates, rolls back and removes only its own dat
   for (const card of [strong, reference]) { await card.getByRole('button', { name: 'Install', exact: true }).click(); await expect(card).toContainText('Available offline'); }
   await strong.getByRole('button', { name: /Strong's synthetic/ }).click();
   await expect(page.getByRole('dialog')).toContainText('Synthetic fixture notice');
-  await page.getByRole('button', { name: 'Close', exact: true }).last().click();
+  await page.keyboard.press('Escape');
   fixture.update(); fixture.corrupt(true);
   await page.getByRole('button', { name: 'Refresh catalog' }).click();
   await strong.getByRole('button', { name: 'Install update' }).click();

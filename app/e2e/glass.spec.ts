@@ -1114,8 +1114,10 @@ for (const theme of ["default", "dark", "sepia"]) {
         if (scene === "more" || scene === "chats") { const label = page.locator(scene === "more" ? ".mcard__label" : ".chats__open b").first(); expect(await label.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBe((scene === "more" ? 15 : 15.5) * scale / 100); }
         for (const row of await rows.all()) {
           const rect = (await row.boundingBox())!;
-          expect(rect.height, `${scene} at ${width}/${scale}`).toBeGreaterThanOrEqual(44);
-          expect(rect.width).toBeGreaterThanOrEqual(44);
+          // 44 px targets; a hundredth of a pixel allows for float error in a sheet's layout (Firefox
+          // reports 43.99999 for a 44 px row).
+          expect(rect.height, `${scene} at ${width}/${scale}`).toBeGreaterThanOrEqual(43.99);
+          expect(rect.width).toBeGreaterThanOrEqual(43.99);
         }
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         const caps = await page.locator("h2, h3, .eyebrow, .mcard__head").evaluateAll(els => els.filter(el => getComputedStyle(el).textTransform === "uppercase").map(el => el.textContent));
