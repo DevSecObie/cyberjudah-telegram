@@ -29,6 +29,24 @@ updates:
     labels:
       - dependencies
 
+  # The Bible Strong fork is its own Yarn (Berry) workspace with strong/yarn.lock; the npm
+  # ecosystem reads Yarn Berry lockfiles.
+  - package-ecosystem: npm
+    directory: /strong
+    schedule:
+      interval: weekly
+      day: monday
+      time: "10:00"
+      timezone: America/Los_Angeles
+    open-pull-requests-limit: 5
+    groups:
+      production:
+        dependency-type: production
+      development:
+        dependency-type: development
+    labels:
+      - dependencies
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
