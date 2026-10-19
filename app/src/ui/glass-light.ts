@@ -3,9 +3,9 @@
 // One light is drawn over the touched glass surface from outside the React tree, clipped to its
 // shape, so no component has to carry it. Touch and pen only; a mouse gets the hover states.
 
-/** The glass surfaces that light up: navigation bars, the dock, glass controls, menus and sheets. */
+/** The glass surfaces that light up: navigation bars, glass controls, menus and sheets. */
 export const GLASS_SURFACES = [
-  ".tabs", ".screen > .head", ".srch__bar", ".chat2__bar", ".reader__bar", ".tlh", ".pv__bar",
+  ".screen > .head", ".srch__bar", ".chat2__bar", ".reader__bar", ".tlh", ".pv__bar",
   ".glass", ".glass--elevated", ".pageaction", ".sheet", ".bs-sheet", ".bs-dropdown", ".bs-picker",
   ".bs-chapterbtn", ".bs-playpill", ".toast",
 ].join(", ");

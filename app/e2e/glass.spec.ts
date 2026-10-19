@@ -47,68 +47,42 @@ async function setup(page: Page, theme = "default", reduced = false) {
   });
 }
 
-async function dragStart(page: Page) {
-  const dock = page.getByRole("navigation", { name: "Sections" });
-  const from = (await dock.locator(".tab[data-on]").boundingBox())!;
-  const to = (await dock.getByRole("button", { name: "Classes", exact: true }).boundingBox())!;
-  await dock.evaluate(nav => nav.addEventListener("pointerdown", e => nav.setAttribute("data-test-pointer", String((e as PointerEvent).pointerId)), { once: true }));
-  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
-  await expect(dock).toHaveAttribute("data-drag", "");
-  return dock;
-}
-
 for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "mauve", "night"]) {
-  test(`glass: ${theme} uses one material behind crisp, reachable controls`, async ({ page }) => {
+  test(`bar: ${theme} is Bible Strong's flat bar, on the page colour, with legible 48 px icon buttons`, async ({ page }) => {
     await setup(page, theme);
     await page.goto(`/read/genesis/1${LAUNCH}`);
     await expect(page.locator("#verset-1")).toBeVisible();
-    const dock = page.getByRole("navigation", { name: "Sections" });
+    const bar = page.getByRole("navigation", { name: "Sections" });
     await expect(page.locator("html")).toHaveAttribute("data-palette", theme);
-    // Palette changes can start color transitions; sample the settled theme without
-    // changing the contrast threshold.
-    await dock.evaluate(async nav => {
-      await Promise.all(nav.getAnimations({ subtree: true }).filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {})));
+    const style = await bar.evaluate(nav => {
+      const s = getComputedStyle(nav), filters = [nav, ...nav.querySelectorAll("*")].map(el => getComputedStyle(el).backdropFilter || getComputedStyle(el).getPropertyValue("-webkit-backdrop-filter"));
+      return { background: s.backgroundColor, page: getComputedStyle(document.querySelector(".bs")!).backgroundColor, line: s.borderTopWidth, filters };
     });
-    const material = await dock.evaluate(nav => {
-      const get = (el: Element, pseudo?: string) => getComputedStyle(el, pseudo);
-      const layers = [...nav.querySelectorAll("*")].map(el => ({ filter: get(el).filter, backdrop: get(el).backdropFilter || get(el).getPropertyValue("-webkit-backdrop-filter") }));
-      return { backdrop: get(nav, "::before").backdropFilter || get(nav, "::before").getPropertyValue("-webkit-backdrop-filter"), layers };
-    });
-    expect(material.backdrop).toContain("blur(");
-    expect(material.layers.every(s => s.filter === "none" && (!s.backdrop || s.backdrop === "none"))).toBe(true);
-    await expect(dock.getByRole("button", { name: "Bible", exact: true })).toHaveAttribute("aria-current", "page");
-    // The tabs fade their ink when the theme applies (transition: color); measure them at rest,
-    // not mid-fade, which WebKit can catch right after load.
+    expect(style.background).toBe(style.page);
+    expect(style.line).toBe("1px");
+    expect(style.filters.every(f => !f || f === "none")).toBe(true);
+    const box = (await bar.boundingBox())!;
+    expect(box.x).toBe(0); expect(box.width).toBe(page.viewportSize()!.width);
+    expect(box.y + box.height).toBe(page.viewportSize()!.height); expect(box.height).toBe(48);
+    // Home, Search, Bible, the reader's own buttons, Tabs and then Menu, as Bible Strong orders them.
+    expect(await bar.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "classes", "ask", "tabs", "more"]);
+    await expect(bar.getByRole("button", { name: "Bible", exact: true })).toHaveAttribute("aria-current", "page");
     await page.waitForFunction(() => document.getAnimations().every(a => !(a instanceof CSSTransition) || a.playState !== "running"));
-    // Check actual computed material/ink colours against both extreme backdrops. A translucent
-    // selection must remain legible even when a bright picture or dark passage moves underneath.
-    const minimumContrast = await dock.evaluate(nav => {
+    const minimumContrast = await bar.evaluate(nav => {
       const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
       const ctx = canvas.getContext("2d")!;
-      const sample = (...colours: string[]) => {
-        ctx.clearRect(0, 0, 1, 1);
-        for (const colour of colours) { ctx.fillStyle = colour; ctx.fillRect(0, 0, 1, 1); }
-        return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3);
-      };
+      const sample = (colour: string) => { ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = colour; ctx.fillRect(0, 0, 1, 1); return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3); };
       const lum = (rgb: number[]) => rgb.map(v => v / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4).reduce((s, v, i) => s + v * [.2126, .7152, .0722][i], 0);
-      const material = getComputedStyle(nav, "::before").backgroundColor;
-      const selected = getComputedStyle(nav.querySelector(".tabs__pill")!).backgroundColor;
-      return Math.min(...["#000", "#fff"].flatMap(backdrop => [...nav.querySelectorAll(".tab")].map(button => {
-        const ink = lum(sample(getComputedStyle(button).color));
-        const ground = lum(sample(backdrop, material, ...(button.hasAttribute("data-on") ? [selected] : [])));
-        return (Math.max(ink, ground) + .05) / (Math.min(ink, ground) + .05);
-      })));
+      const ground = lum(sample(getComputedStyle(nav).backgroundColor));
+      return Math.min(...[...nav.querySelectorAll(".tab")].map(button => { const ink = lum(sample(getComputedStyle(button).color)); return (Math.max(ink, ground) + .05) / (Math.min(ink, ground) + .05); }));
     });
-    expect(minimumContrast).toBeGreaterThanOrEqual(4.5);
-
-    for (const button of await dock.getByRole("button").all()) {
-      const box = (await button.boundingBox())!;
-      expect(box.width).toBeGreaterThanOrEqual(44);
-      expect(box.height).toBeGreaterThanOrEqual(44);
+    // Icon buttons: the non-text minimum, 3:1, in Bible Strong's own palettes.
+    expect(minimumContrast).toBeGreaterThanOrEqual(3);
+    for (const button of await bar.getByRole("button").all()) {
+      const b = (await button.boundingBox())!;
+      expect(b.width).toBe(48); expect(b.height).toBe(48);
     }
-    await dock.getByRole("button", { name: "Search", exact: true }).click();
+    await bar.getByRole("button", { name: "Search", exact: true }).click();
     await expect(page).toHaveURL(/\/search/);
   });
 }
@@ -120,106 +94,38 @@ test("glass: the selected Menu still responds to an ordinary tap", async ({ page
   await expect(menu).toHaveAttribute("aria-current", "page");
   await menu.click();
   await expect(page.locator(".drawer--more")).toHaveAttribute("data-open", "");
-  // The drawer pushes the dock offscreen; Escape closes it and returns to its trigger.
+  // The drawer pushes the bar offscreen; Escape closes it and returns to its trigger.
   await page.keyboard.press("Escape");
   await expect(page.locator(".drawer--more")).not.toHaveAttribute("data-open");
   await menu.click();
   await expect(page.locator(".drawer--more")).toHaveAttribute("data-open", "");
 });
 
-test("glass: a canceled drag restores selection and the next keyboard activation works", async ({ page }) => {
-  await setup(page);
-  await page.goto(`/search${LAUNCH}`);
-  const dock = await dragStart(page);
-  await dock.evaluate(nav => nav.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: Number(nav.getAttribute("data-test-pointer")), isPrimary: true })));
-  await page.mouse.up();
-  await expect(dock).not.toHaveAttribute("data-lift");
-  await expect(page).toHaveURL(/\/search/);
-  await dock.getByRole("button", { name: "Classes", exact: true }).focus();
-  await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/\/classes/);
-});
-
-test("glass: reduced motion keeps the selection and icons steady while dragging still navigates", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await setup(page);
-  await page.goto(`/search${LAUNCH}`);
-  const dock = await dragStart(page);
-  const styles = await dock.evaluate(nav => {
-    const pill = getComputedStyle(nav.querySelector(".tabs__pill")!);
-    const matrix = new DOMMatrix(pill.transform);
-    return { scale: pill.scale, x: matrix.a, y: matrix.d, icons: [...nav.querySelectorAll(".tab__glyph")].map(el => getComputedStyle(el).scale) };
+for (const preference of ["app", "contrast"] as const) {
+  test(`bar: ${preference === "app" ? "Reduce transparency" : "increased contrast"} keeps it on the page colour with nothing frosted`, async ({ page }) => {
+    if (preference === "contrast") await page.emulateMedia({ contrast: "more" });
+    await setup(page, "dark", preference === "app");
+    await page.goto(`/settings${LAUNCH}`);
+    await expect(page.getByRole("switch", { name: "Justify the text", exact: true })).toBeVisible();
+    const style = await page.locator("nav.tabs").evaluate(nav => ({ background: getComputedStyle(nav).backgroundColor, canvas: getComputedStyle(document.body).backgroundColor, filter: getComputedStyle(nav).backdropFilter || getComputedStyle(nav).getPropertyValue("-webkit-backdrop-filter") }));
+    expect(style.background).toBe(style.canvas);
+    expect(style.filter).toBe("none");
   });
-  expect(styles.scale).toBe("none");
-  expect(styles.x).toBe(1); expect(styles.y).toBe(1);
-  expect(styles.icons.every(scale => scale === "none")).toBe(true);
-  await page.mouse.up();
-  await expect(page).toHaveURL(/\/classes/);
-});
+}
 
-test("glass: Reduce transparency keeps the reader's dock opaque, including while pressed", async ({ page }) => {
-  await setup(page, "sepia", true);
-  await page.goto(`/read/genesis/1${LAUNCH}`);
-  await expect(page.locator("#verset-1")).toBeVisible();
-  await expect(page.locator("html")).toHaveAttribute("data-transparency", "reduced");
-  const dock = await dragStart(page);
-  const material = await dock.evaluate(nav => {
-    const s = getComputedStyle(nav, "::before");
-    return { background: s.backgroundColor, canvas: getComputedStyle(document.body).backgroundColor, filter: s.backdropFilter || s.getPropertyValue("-webkit-backdrop-filter") };
-  });
-  expect(material.background).toBe(material.canvas);
-  expect(material.filter).toBe("none");
-  await page.mouse.up();
-  await expect(page).toHaveURL(/\/classes/);
-});
-
-test("glass: increased contrast removes transparency and marks selection with an outline", async ({ page }) => {
-  await page.emulateMedia({ contrast: "more" });
-  await setup(page, "dark");
-  await page.goto(`/read/genesis/1${LAUNCH}`);
-  await expect(page.locator("#verset-1")).toBeVisible();
-  const material = await page.locator("nav.tabs").evaluate(nav => {
-    const s = getComputedStyle(nav, "::before");
-    return { background: s.backgroundColor, canvas: getComputedStyle(document.body).backgroundColor, filter: s.backdropFilter || s.getPropertyValue("-webkit-backdrop-filter"), outline: getComputedStyle(nav.querySelector(".tabs__pill")!).outlineStyle };
-  });
-  expect(material.background).toBe(material.canvas);
-  expect(material.filter).toBe("none");
-  expect(material.outline).toBe("solid");
-});
-
-test("glass: the desktop rail drags vertically and the next tap still works", async ({ page }) => {
+test("bar: wide windows keep Bible Strong's bar along the bottom, and its buttons navigate", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await setup(page);
   await page.goto(`/search${LAUNCH}`);
-  const dock = await dragStart(page);
-  await page.mouse.up();
+  const bar = page.getByRole("navigation", { name: "Sections" });
+  const box = (await bar.boundingBox())!;
+  expect(box.x).toBe(0); expect(box.width).toBe(1280); expect(box.y + box.height).toBe(900);
+  await bar.getByRole("button", { name: "Classes", exact: true }).click();
   await expect(page).toHaveURL(/\/classes/);
-  await expect(dock.getByRole("button", { name: "Classes", exact: true })).toHaveAttribute("aria-current", "page");
-  await dock.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(bar.getByRole("button", { name: "Classes", exact: true })).toHaveAttribute("aria-current", "page");
+  await bar.getByRole("button", { name: "Search", exact: true }).focus();
+  await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/search/);
-});
-
-test("glass: transferring touch capture from the button to the dock does not cancel a drag", async ({ page, browserName }) => {
-  test.skip(browserName !== "chromium", "Real touch dispatch uses Chromium's device input protocol; WebKit covers pointer interactions above.");
-  await setup(page);
-  await page.goto(`/search${LAUNCH}`);
-  const dock = page.getByRole("navigation", { name: "Sections" });
-  const from = (await dock.locator(".tab[data-on]").boundingBox())!;
-  const to = (await dock.getByRole("button", { name: "Classes", exact: true }).boundingBox())!;
-  const session = await page.context().newCDPSession(page);
-  const y = from.y + from.height / 2;
-  await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: from.x + from.width / 2, y }] });
-  for (let i = 1; i <= 8; i++) {
-    await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: from.x + from.width / 2 + (to.x - from.x) * i / 8, y }] });
-  }
-  await expect(dock).toHaveAttribute("data-drag", "");
-  await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await expect(page).toHaveURL(/\/classes/);
-  // Let the selection settle before starting a separate touch gesture.
-  await expect(dock.locator(".tabs__pill")).not.toHaveAttribute("data-flow");
-  await dock.getByRole("button", { name: "Search", exact: true }).tap();
-  await expect(page).toHaveURL(/\/search/);
-  await session.detach();
 });
 
 for (const theme of ["default", "dark", "sepia"]) {
@@ -240,7 +146,7 @@ for (const theme of ["default", "dark", "sepia"]) {
         if (mode === "system") expect(await page.evaluate(() => matchMedia("(prefers-reduced-transparency: reduce)").matches)).toBe(true);
         await page.getByRole("button", { name: "Scripture options" }).click();
         await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
-        for (const material of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) {
+        for (const material of await materials(page, [[".bs-header", "::before"], [".tabs"], [".bs-dropdown"]])) {
           expect(material.filter, material.selector).toBe("none");
           expect(material.alpha, material.selector).toBe(255);
         }
@@ -268,11 +174,11 @@ test("materials: header, menu and selection stay within budget without stacked g
   await setup(page);
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
-  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(1);
   await page.getByRole("button", { name: "Scripture options" }).click();
   const menu = page.getByRole("menu", { name: "Passage options" });
   await expect(menu).toBeVisible();
-  await expect.poll(() => filteredSurfaces(page)).toHaveLength(3);
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
   expect(await menu.evaluate(element => {
     for (let parent = element.parentElement; parent; parent = parent.parentElement) {
       const style = getComputedStyle(parent);
@@ -321,7 +227,7 @@ test("materials: content stays unfiltered at 200% shared text size with reduced 
   await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
   await expect.poll(() => title.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBe(normal * 2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
-  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(1);
   expect((await materials(page, [[".book__figure"]]))[0].filter).toBe("none");
   await page.locator(".book__figure").click();
   await expect(page.locator(".pv__bar")).toBeVisible();
@@ -384,7 +290,7 @@ test("materials: unsupported-filter CSS branch yields opaque reader surfaces", a
   expect(changed).toBeGreaterThan(0);
   await page.getByRole("button", { name: "Scripture options" }).click();
   await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
-  for (const material of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) expect(material).toMatchObject({ filter: "none", alpha: 255 });
+  for (const material of await materials(page, [[".bs-header", "::before"], [".tabs"], [".bs-dropdown"]])) expect(material).toMatchObject({ filter: "none", alpha: 255 });
 });
 
 for (const theme of ["default", "dark", "sepia"]) {
@@ -432,13 +338,15 @@ for (const theme of ["default", "dark", "sepia"]) {
         await page.mouse.up();
         const label = (await toggle.locator("b").boundingBox())!, thumb = (await toggle.locator(".switch").boundingBox())!;
         expect(label.x + label.width).toBeLessThanOrEqual(thumb.x);
+        // Bible Strong's bar spans the bottom, its 48 px row above Telegram's bottom inset.
         const dock = page.locator("nav.tabs");
-        if (await dock.getAttribute("data-mini") !== null) await dock.click();
-        await expect(dock).not.toHaveAttribute("data-mini");
         const bounds = (await dock.boundingBox())!;
-        expect(bounds.x).toBeGreaterThanOrEqual(14);
-        expect(bounds.x + bounds.width).toBeLessThanOrEqual(width - 20);
-        expect(bounds.y + bounds.height).toBeLessThanOrEqual(height - 30);
+        expect(bounds.x).toBe(0); expect(bounds.width).toBe(width);
+        expect(bounds.y + bounds.height).toBe(height); expect(bounds.height).toBeGreaterThan(48);
+        for (const button of await dock.getByRole("button").all()) {
+          const b = (await button.boundingBox())!;
+          expect(b.x).toBeGreaterThanOrEqual(0); expect(b.x + b.width).toBeLessThanOrEqual(width); expect(b.y).toBeGreaterThanOrEqual(bounds.y);
+        }
         // Navigate in-app to retain 200% text; a reload would silently reset the style tag.
         await dock.getByRole("button", { name: "Bible", exact: true }).click();
         await expect(page.locator("#verset-1")).toBeVisible();
@@ -453,7 +361,7 @@ for (const theme of ["default", "dark", "sepia"]) {
           expect(b.x).toBeGreaterThanOrEqual(14); expect(b.x + b.width).toBeLessThanOrEqual(width - 20);
         }
         if (["system", "app", "contrast", "forced"].includes(preference)) {
-          for (const m of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) {
+          for (const m of await materials(page, [[".bs-header", "::before"], [".tabs"], [".bs-dropdown"]])) {
             expect(m.filter).toBe("none"); expect(m.alpha).toBe(255);
           }
         }
@@ -473,53 +381,6 @@ for (const theme of ["default", "dark", "sepia"]) {
     });
   }
 }
-
-test("controls: an overflowing rail scrolls natively and restores drag after resizing", async ({ page, browserName }) => {
-  await setup(page);
-  await page.addInitScript(() => {
-    (window as unknown as { __cloud: Record<string, string> }).__cloud.nav = JSON.stringify(["plan", "bookmarks", "precepts", "library", "bible", "search"]);
-  });
-  // Rail labels keep to one line at 200%, so the window is short enough for the rail to overflow.
-  await page.setViewportSize({ width: 1280, height: 450 });
-  await page.goto(`/read/genesis/1${LAUNCH}`);
-  await expect(page.locator("#verset-1")).toBeVisible();
-  await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
-  const dock = page.getByRole("navigation", { name: "Sections" });
-  await expect(dock).toHaveAttribute("data-scrollable", "");
-  const bounds = (await dock.boundingBox())!, menu = dock.getByRole("button", { name: "Menu", exact: true });
-  expect((await menu.boundingBox())!.y + (await menu.boundingBox())!.height).toBeGreaterThan(bounds.y + bounds.height);
-  // Start on the selected Bible control: scrolling must not drag the pill to another route.
-  const selected = (await dock.getByRole("button", { name: "Bible", exact: true }).boundingBox())!;
-  const x = selected.x + selected.width / 2, y = selected.y + selected.height / 2;
-  if (browserName === "chromium") {
-    const session = await page.context().newCDPSession(page);
-    await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
-    for (let i = 1; i <= 12; i++) await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: y - i * 20 }] });
-    await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-    await session.detach();
-  } else {
-    // Playwright exposes native wheel input in WebKit, but no touch-move protocol.
-    await expect(dock).toHaveCSS("touch-action", "pan-y");
-    await page.mouse.move(x, y); await page.mouse.wheel(0, 500);
-  }
-  await expect.poll(() => dock.evaluate(e => e.scrollTop)).toBeGreaterThan(0);
-  await expect(page).toHaveURL(/\/read\/genesis\/1/);
-  await expect(dock).not.toHaveAttribute("data-lift");
-  await expect.poll(async () => { const m = (await menu.boundingBox())!; return m.y + m.height; }).toBeLessThanOrEqual(bounds.y + bounds.height);
-  const m = (await menu.boundingBox())!;
-  // Coordinate input cannot secretly scroll an offscreen target into view.
-  await page.touchscreen.tap(m.x + m.width / 2, m.y + m.height / 2);
-  await expect(page.locator(".drawer--more")).toHaveAttribute("data-open", "");
-  await page.keyboard.press("Escape");
-  await expect(dock).toHaveCSS("transform", "none");
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await expect(dock).not.toHaveAttribute("data-scrollable");
-  const from = (await dock.getByRole("button", { name: "Bible", exact: true }).boundingBox())!;
-  const to = (await dock.getByRole("button", { name: "Search", exact: true }).boundingBox())!;
-  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2); await page.mouse.down();
-  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 }); await page.mouse.up();
-  await expect(page).toHaveURL(/\/search/);
-});
 
 for (const theme of ["default", "dark", "sepia"]) {
   test(`controls: ${theme} nested sheet actions share accessible accent ink and keyboard behavior`, async ({ page }) => {
@@ -557,7 +418,7 @@ for (const reduced of [false, true]) {
     for (const [path, selector] of [["/settings", ".screen > .head"], ["/search", ".srch__bar"], ["/ask", ".chat2__bar"], ["/read/genesis/1", ".bs-header"], ["/timeline", ".tlh"]]) {
       await page.goto(`${path}${LAUNCH}`);
       await expect(page.locator(selector)).toBeVisible();
-      for (const bar of [selector, ".tabs"]) {
+      for (const bar of [selector]) {
         const masks = await page.locator(bar).evaluate(e => ({ material: getComputedStyle(e, "::before").maskImage, content: getComputedStyle(e).maskImage }));
         expect(masks.content).toBe("none");
         if (reduced) expect(masks.material).toBe("none"); else expect(masks.material).toContain("linear-gradient");
@@ -607,7 +468,7 @@ for (const preference of ["normal", "motion", "app", "forced"] as const) {
 }
 
 for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "mauve", "night"]) {
-  test(`navigation: ${theme} reserves the remaining width and keeps every sidebar control reachable`, async ({ page }) => {
+  test(`navigation: ${theme} keeps the same bar along the bottom at every width, every button reachable`, async ({ page }) => {
     await setup(page, theme);
     await page.setViewportSize({ width: 899, height: 844 });
     await page.goto(`/settings${LAUNCH}`);
@@ -616,11 +477,9 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
     await expect(nav).toBeVisible();
     const labels = await nav.locator(".tab").evaluateAll(buttons => buttons.map(b => b.getAttribute("aria-label")));
     const badge = await nav.locator(".tab__count").innerText();
-    await expect(nav).toHaveCSS("flex-direction", "row");
-    for (const width of [900, 1280]) {
+    for (const width of [899, 900, 1280]) {
       await page.setViewportSize({ width, height: 800 });
-      await expect(nav).toHaveCSS("flex-direction", "column");
-      await expect(nav).not.toHaveAttribute("data-mini");
+      await expect(nav).toHaveCSS("flex-direction", "row");
       expect(await nav.locator(".tab").evaluateAll(buttons => buttons.map(b => b.getAttribute("aria-label")))).toEqual(labels);
       await expect(nav.locator(".tab__count")).toHaveText(badge);
       for (const button of await nav.getByRole("button").all()) {
@@ -628,40 +487,15 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
         const box = (await button.boundingBox())!;
         expect(box.width).toBeGreaterThanOrEqual(44); expect(box.height).toBeGreaterThanOrEqual(44);
       }
-      const rail = (await nav.boundingBox())!, content = (await page.locator(".route > .screen").boundingBox())!;
-      expect(content.x).toBeGreaterThanOrEqual(rail.x + rail.width);
+      const bar = (await nav.boundingBox())!, content = (await page.locator(".route > .screen").boundingBox())!;
+      expect(bar.x).toBe(0); expect(bar.width).toBe(width); expect(bar.y + bar.height).toBe(800);
+      expect(content.x).toBeGreaterThanOrEqual(0);
       expect(content.x + content.width).toBeLessThanOrEqual(width);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(2);
     }
   });
 }
-
-test("navigation: resizing a minimized dock restores keyboard and first-click navigation", async ({ page }) => {
-  await setup(page);
-  await page.setViewportSize({ width: 899, height: 844 });
-  await page.goto(`/settings${LAUNCH}`);
-    await expect(page.getByRole("switch", { name: "Justify the text", exact: true })).toBeVisible();
-  const nav = page.getByRole("navigation", { name: "Sections" });
-  await page.getByRole("switch", { name: "Justify the text", exact: true }).hover();
-  await page.mouse.wheel(0, 300);
-  await expect(nav).toHaveAttribute("data-mini", "");
-  const mini = (await nav.boundingBox())!;
-  expect(mini.width).toBeGreaterThanOrEqual(44); expect(mini.height).toBeGreaterThanOrEqual(44);
-  await page.setViewportSize({ width: 900, height: 844 });
-  await expect(nav).not.toHaveAttribute("data-mini");
-  const classes = nav.getByRole("button", { name: "Classes", exact: true });
-  await expect(classes).not.toHaveAttribute("tabindex", "-1");
-  await classes.focus(); await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/\/classes/);
-  await page.goto(`/settings${LAUNCH}`);
-    await expect(page.getByRole("switch", { name: "Justify the text", exact: true })).toBeVisible();
-  await page.getByRole("switch", { name: "Justify the text", exact: true }).hover();
-  await page.mouse.wheel(0, 300);
-  await expect(nav).not.toHaveAttribute("data-mini");
-  await nav.getByRole("button", { name: "Bible", exact: true }).click();
-  await expect(page).toHaveURL(/\/read\//);
-});
 
 test("large titles: the title shrinks into the bar under scroll and returns at the top, and the page under it never moves", async ({ page }) => {
   await setup(page, "sepia");
@@ -707,65 +541,33 @@ test("large titles: the title shrinks into the bar under scroll and returns at t
   if (!settled) { const top = await layout(); expect(Math.abs(top.at - before.at), `${JSON.stringify({ before, compact, top, y: await page.evaluate(() => scrollY) })} ${await bar()}`).toBeLessThan(1); }
 });
 
-test("navigation: document, Bible and Timeline scrolls minimize down and expand up", async ({ page }) => {
+test("navigation: the bar stays put while pages scroll, and slides away while the Bible is full screen", async ({ page }) => {
   await setup(page, "sepia");
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  const nav = page.getByRole("navigation", { name: "Sections" });
-  for (const [path, selector] of [["/settings", "html"], ["/read/genesis/1", ".bs-scroll"], ["/timeline", "html"], ["/timeline/0", ".tl-scroll"]]) {
-    await page.goto(`${path}${LAUNCH}`);
-    const scroller = page.locator(selector);
-    await expect(scroller).toBeVisible();
-    if (selector === "html") await expect(page.getByRole("heading", { name: path === "/settings" ? "Settings" : "The Bible Timeline", exact: true })).toBeVisible();
-    if (selector === ".bs-scroll") await expect(page.locator("#verset-1")).toBeVisible();
-    await scroller.hover({ position: { x: 250, y: 300 } });
-    const travel = await scroller.evaluate(el => Math.min(180, (el.scrollHeight - el.clientHeight) / 2));
-    expect(travel, path).toBeGreaterThan(48);
-    await page.mouse.wheel(0, travel);
-    await expect(nav, path).toHaveAttribute("data-mini", "");
-    const mini = (await nav.boundingBox())!;
-    expect(mini.width).toBeGreaterThanOrEqual(44); expect(mini.height).toBeGreaterThanOrEqual(44);
-    // The first wheel is asynchronous, even with reduced CSS motion. Reverse after
-    // its real scroll reaches the requested position, then verify upward travel too.
-    await expect.poll(() => scroller.evaluate(el => el.scrollTop), path).toBeGreaterThanOrEqual(travel - 1);
-    const down = await scroller.evaluate(el => el.scrollTop);
-    await page.mouse.wheel(0, -80);
-    await expect.poll(() => scroller.evaluate(el => el.scrollTop), path).toBeLessThan(down - 14);
-    await expect(nav, path).not.toHaveAttribute("data-mini");
-  }
-  await page.goto(`/timeline/0${LAUNCH}`);
-  const canvas = page.locator(".tl-scroll");
-  await canvas.hover();
-  await expect(nav).not.toHaveAttribute("data-mini");
-  const vertical = await canvas.evaluate(el => el.scrollTop);
-  await page.mouse.wheel(700, 0);
-  await expect.poll(() => canvas.evaluate(el => el.scrollLeft)).toBeGreaterThan(0);
-  expect(await canvas.evaluate(el => el.scrollTop)).toBe(vertical);
-  await expect(nav).not.toHaveAttribute("data-mini");
+  // By class: while it is out of sight it is out of the accessibility tree, so a role finds nothing.
+  const nav = page.locator("nav.tabs");
+  await page.goto(`/settings${LAUNCH}`);
+  await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+  await page.getByRole("switch", { name: "Justify the text", exact: true }).hover();
+  await page.mouse.wheel(0, 300);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
+  await expect(nav).not.toHaveAttribute("data-hidden");
+  expect((await nav.boundingBox())!.height).toBe(48);
+  await nav.getByRole("button", { name: "Bible", exact: true }).click();
+  await expect(page.locator("#verset-1")).toBeVisible();
+  // Bible Strong's isFullScreenBible: scrolling down the chapter collapses the header and slides the bar out.
+  await page.waitForTimeout(800);
+  await page.locator(".bs-scroll").evaluate(async el => { for (const top of [40, 120, 600]) { el.scrollTop = top; await new Promise(r => setTimeout(r, 30)); } });
+  await expect(page.locator(".bs-header__summary")).toBeVisible();
+  await expect(nav).toHaveAttribute("data-hidden", "");
+  await expect(nav).toBeHidden();
+  await expect.poll(() => nav.evaluate(el => el.getBoundingClientRect().top)).toBeGreaterThanOrEqual(844);
+  // The reader holds still for 600 ms after its header changes height, then follows the scroll again.
+  await page.waitForTimeout(800);
+  await page.locator(".bs-scroll").evaluate(async el => { for (const top of [560, 480, 300]) { el.scrollTop = top; await new Promise(r => setTimeout(r, 30)); } });
+  await expect(nav).not.toHaveAttribute("data-hidden");
+  await expect.poll(async () => { const b = (await nav.boundingBox())!; return b.y + b.height; }).toBe(844);
 });
-
-for (const preference of ["normal", "app", "contrast", "forced"] as const) {
-  test(`navigation: approved period art extends behind the sidebar without another backdrop (${preference})`, async ({ page }) => {
-    await setup(page, "default", preference === "app");
-    await page.route("**/api/photos", r => r.fulfill({ json: {} }));
-    await page.emulateMedia({ contrast: preference === "contrast" ? "more" : "no-preference", forcedColors: preference === "forced" ? "active" : "none" });
-    await page.setViewportSize({ width: 900, height: 800 });
-    await page.goto(`/timeline/0${LAUNCH}`);
-    const extension = page.locator(".rail-background");
-    await expect(extension).toHaveAttribute("aria-hidden", "true");
-    await expect(extension.locator("img")).toHaveAttribute("src", /timeline\/periods\/1\.webp$/);
-    if (preference === "normal") {
-      await expect(extension).toBeVisible();
-      expect(await extension.locator("img").evaluate(e => new DOMMatrix(getComputedStyle(e).transform).a)).toBe(-1);
-      const rail = (await page.locator("nav.tabs").boundingBox())!, content = (await page.locator(".tl-period").boundingBox())!;
-      expect(content.x).toBeGreaterThanOrEqual(rail.x + rail.width);
-    } else await expect(extension).toBeHidden();
-    expect(await extension.evaluate(e => getComputedStyle(e).backdropFilter || getComputedStyle(e).getPropertyValue("-webkit-backdrop-filter"))).toBe("none");
-    expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(2);
-    await page.setViewportSize({ width: 390, height: 844 });
-    await expect(extension).toBeHidden();
-  });
-}
 
 for (const mode of ["native", "fallback", "reduced"] as const) {
   test(`menus: ${mode} keeps origin, keyboard actions and focus when opening and closing`, async ({ page }) => {

@@ -36,14 +36,12 @@ export function auditContrast(options?: { includePanels?: boolean; fadedContext?
     }
   }
   probe.remove();
-  // Navigation material is sampled against both possible extreme backdrops, including its pill.
+  // Bible Strong's bottom bar is opaque: each icon button's ink is checked on the bar's own
+  // colour, at the non-text minimum.
   const dock = document.querySelector('nav.tabs[aria-label="Sections"]');
   if (dock) {
-    const material = getComputedStyle(dock, "::before").backgroundColor;
-    const selected = getComputedStyle(dock.querySelector(".tabs__pill")!).backgroundColor;
-    for (const button of dock.querySelectorAll(".tab")) for (const backdrop of ["#000", "#fff"]) {
-      check(`dock ${button.getAttribute("aria-label")} ${backdrop}`, getComputedStyle(button).color, [backdrop, material, ...(button.hasAttribute("data-on") ? [selected] : [])]);
-    }
+    const bar = getComputedStyle(dock).backgroundColor;
+    for (const button of dock.querySelectorAll(".tab")) check(`bar ${button.getAttribute("aria-label")}`, getComputedStyle(button).color, [bar], 3);
   }
   // Actual text on flat content surfaces catches component-level color/opacity overrides.
   let textNodes = 0; const manual: string[] = [];

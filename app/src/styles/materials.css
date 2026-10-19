@@ -5,12 +5,13 @@
    content; standard materials inside the content layer; never glass on glass):
      canvas      the page itself (base.css)
      content     .surface / cards: tinted, edged, no backdrop filter
-     navigation  .glass: the header bar and the dock, the only two frosted layers on a screen
+     navigation  .glass: the header bars, the frosted layers on a screen; the bottom bar is
+                 Bible Strong's, flat on the page colour
      elevated    menus and popovers: a denser glass, transient
      overlay     content sheets, Home drawer and dialogs: opaque over a dimming scrim, no blur
 
-   Budget: at most two backdrop filters are visible at rest (the header and the dock); a transient
-   menu may make three. Repeated items never carry a filter, and nothing animates a blur.
+   Budget: at most two backdrop filters are visible at rest; a transient menu may make three.
+   Repeated items never carry a filter, and nothing animates a blur.
    ───────────────────────────────────────────────────────────────────────────────────────────── */
 
 /* The navigation glass: tint, frost, a fine rim, a top highlight and a soft lift. */
@@ -74,164 +75,40 @@
   background: var(--mat-edge);
 }
 
-/* ── The dock ────────────────────────────────────────────────────────────────────────────────
-   A floating glass capsule. Every section keeps a fixed slot with its icon and name, so nothing
-   moves when the selection changes; a filled selection and bolder name mark the current section. Scrolling down shrinks it to the current section alone. */
+/* ── The bottom bar ──────────────────────────────────────────────────────────────────────────
+   Bible Strong's BottomTabBar: flat across the bottom on the page colour, a line above it, 48 px
+   plus the safe area, a row of 48 px icon buttons spread evenly between 20 px sides. The icons are
+   tertiary; the tabs count is a 20 px box with a 2 px border. It slides down out of sight in
+   300 ms while the Bible is full screen. */
 .tabs {
-  position: fixed; z-index: var(--z-dock); left: var(--safe-left); right: var(--safe-right); bottom: calc(var(--dock-gap) + var(--safe-bottom));
-  box-sizing: border-box; width: min(calc(100% - 20px - var(--safe-left) - var(--safe-right)), 560px); height: var(--dock-h); margin: 0 auto; padding: 6px;
-  display: flex; align-items: center; gap: 0;
-  --r-outer: calc(var(--dock-h) / 2); --inset: 6px; --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset)));
-  border-radius: var(--r-outer);
-  background: transparent;
-  border: .5px solid var(--dock-edge-override, var(--mat-edge));
-  box-shadow: var(--mat-highlight), var(--mat-shadow);
+  position: fixed; z-index: var(--z-dock); left: 0; right: 0; bottom: 0;
+  box-sizing: border-box; height: calc(48px + var(--safe-bottom)); margin: 0; padding: 0 calc(20px + var(--safe-right)) var(--safe-bottom) calc(20px + var(--safe-left));
+  display: flex; align-items: center; justify-content: space-around;
+  border-top: 1px solid var(--dock-line, var(--hairline)); background: var(--dock-bg, var(--canvas)); color: var(--dock-ink, var(--bs-tertiary, var(--text-3)));
   touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
-  transition: transform var(--drawer-dur) var(--drawer-ease);
+  transition: transform 300ms ease;
 }
-/* One regular material behind the controls, in Safari as well as Chromium. The selection is a
-   fill on this surface, never a second backdrop filter over the labels. */
-.tabs::before {
-  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
-  top: calc(-1 * var(--mat-scroll-edge-depth));
-  -webkit-mask-image: var(--mat-scroll-edge-up); mask-image: var(--mat-scroll-edge-up);
-  background: var(--dock-tint-override, var(--mat-nav));
-  -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
-}
-/* A floating selection sheet can cover the dock. Keep its underlying surface solid, including
-   on desktop where part of the rail remains visible; only the header and sheet then blur. */
-html:has(.bs-selected) .tabs::before { background: var(--dock-base-override, var(--mat-base)); -webkit-backdrop-filter: none; backdrop-filter: none; }
-/* Full-screen media already covers the app's navigation. Do not keep hidden filters running. */
-html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__bar, .tlh)::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
-/* A specular edge brightens during a press without distorting the text or sampling a
-   second backdrop. The highlight fades into the material, not into a coloured fringe. */
-.tabs::after {
-  content: ""; position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none;
-  padding: 1px; opacity: .5; transition: opacity var(--dur-1) ease;
-  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, white 65%, transparent), transparent 70%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
-}
-.tabs[data-lift]::after { opacity: 1; }
+/* Out of sight, it is out of reach too, once it has slid away. */
+.tabs[data-hidden] { transform: translateY(100%); visibility: hidden; transition: transform 300ms ease, visibility 0s 300ms; }
 .tabs .tab {
-  position: relative; z-index: 1; flex: 1 1 0; min-width: var(--touch); height: calc(var(--dock-h) - 12px); padding: 0;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  border: 0; border-radius: var(--r-inner); background: none; color: var(--dock-ink-override, var(--text-2)); cursor: pointer;
+  flex: 0 1 48px; min-width: 0; height: 48px; padding: 0; margin: 0;
+  display: grid; place-items: center; border: 0; border-radius: 0; background: none; color: inherit; cursor: pointer;
 }
-.tab__glyph { display: grid; place-items: center; height: 26px; transition: transform var(--dur-1) var(--ease); }
-.tabs .tab[data-pressed] .tab__glyph { transform: scale(.88); }
-.tab__label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font: 500 .65625rem/1.1 var(--font-ui); letter-spacing: -.01em; }
-/* With large text a label no longer fits its tab: rather than break mid-word, the phone dock's tab
-   keeps its glyph alone (each tab is named by aria-label); the desktop rail grows, its labels
-   ellipsize. Queried in rem, so it follows the reader's size. */
-.tabs .tab { container: tab / inline-size; }
-@media (max-width: 899px) { @container tab (max-width: 2.75rem) { .tabs .tab .tab__label { display: none; } } }
-.tabs .tab[data-on] { color: var(--dock-ink-override, var(--text-1)); }
-.tabs .tab[data-on] .tab__label { font-weight: 700; }
-/* Search shares the group's single material, with its own round control and fixed gap. */
-.tabs__main { display: flex; flex: 1 1 0; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-.tabs .tab--search { flex: none; width: calc(var(--dock-h) - 12px); aspect-ratio: 1; margin-left: var(--sp-2); border-radius: 50%; background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--control-edge); }
-/* Search's circle stops growing with the text (its glyph does not), so at 200% every tab still fits. */
-.tabs .tab--search { max-width: 64px; max-height: 64px; align-self: center; }
-.tabs .tab--search .tab__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.tabs[data-search-current] .tabs__pill { border-radius: 50%; }
-.tabs .tab--search[data-on] { background: transparent; }
-/* Concentric selection inside the dock. It shares the dock's material and keeps all glyphs
-   and labels crisp. Transforms provide press/drag feedback; blur itself never animates. */
-.tabs__pill {
-  position: absolute; z-index: 0; left: 0; top: 0; width: var(--pill-w, 44px); height: var(--pill-h, 48px);
-  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(var(--pill-sx, 1), var(--pill-sy, 1)); border-radius: var(--r-inner); pointer-events: none;
-  background: var(--dock-selected-override, var(--mat-selected));
-  box-shadow: inset 0 1px 0 color-mix(in srgb, white 14%, transparent), 0 1px 3px rgb(0 0 0 / .06);
-  transition: transform var(--dur-3) var(--ease-spring), opacity var(--dur-2) ease;
-}
-.tabs[data-lift] .tabs__pill {
-  will-change: transform;
-  transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)) scale(calc(var(--pill-sx, 1) * var(--control-lift-scale)), calc(var(--pill-sy, 1) * var(--control-lift-scale)));
-  background: color-mix(in srgb, var(--dock-base-override, var(--mat-base)) 82%, var(--dock-ink-override, var(--text-1)));
-  box-shadow: var(--control-lift-shadow);
-  transition: transform var(--dur-2) var(--ease-spring), opacity var(--dur-2) ease;
-}
-.tabs[data-drag] .tabs__pill { transition: opacity var(--dur-2) ease; }
-.tabs[data-drag] { cursor: grabbing; }
-.tabs__pill::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--rim-highlight); opacity: 0; pointer-events: none; }
-.tabs__pill[data-flow]::after { animation: pill-release var(--dur-3) var(--ease); }
-@keyframes pill-release { 0%, 100% { opacity: 0; } 40% { opacity: 1; } }
-.tabs .tab__glyph { transform: scale(var(--mag, 1)); transition: transform var(--dur-1) var(--ease); }
-.tabs[data-drag] .tab { color: var(--dock-ink-override, var(--text-1)); }
-/* The reader's palette overrides must not bypass transparency/contrast preferences. */
-html[data-transparency="reduced"] .tabs::before { background: var(--dock-base-override, var(--mat-base)); -webkit-backdrop-filter: none; backdrop-filter: none; }
-html[data-transparency="reduced"] .tabs::after { display: none; }
-@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .tabs::before { background: var(--dock-base-override, var(--mat-base)); -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .tabs::after { display: none; }
-}
-@media (prefers-contrast: more) {
-  .tabs { border: 1px solid var(--dock-ink-override, var(--text-1)); }
-  .tabs__pill { outline: 2px solid var(--dock-ink-override, var(--text-1)); outline-offset: -2px; }
-}
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .tabs::before { background: var(--dock-base-override, var(--mat-base)); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .tabs[data-lift] .tabs__pill { transform: translate(var(--pill-x, 6px), var(--pill-y, 6px)); }
-  .tabs__pill, .tabs .tab__glyph { scale: none; }
-  .tabs .tab__glyph { transform: none; }
-  .tabs .tab[data-pressed] .tab__glyph { transform: none; }
-  .tabs__pill[data-flow]::after { animation: none; }
-  .tabs::after { display: none; }
-}
-@media (forced-colors: active) {
-  .tabs::before { background: Canvas; -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .tabs::after { display: none; }
-  .tabs__pill, .tabs[data-lift] .tabs__pill { background: Highlight; forced-color-adjust: none; box-shadow: none; }
-  .tabs .tab[data-on] { color: HighlightText; forced-color-adjust: none; }
-}
-.tabs[data-pill="none"] .tabs__pill { opacity: 0; }
-.tabs .tab__count { display: grid; place-items: center; box-sizing: border-box; min-width: 22px; height: 22px; padding: 0 4px; border: 1.75px solid currentColor; border-radius: 6px; font: 700 11.5px/1 var(--font-ui); font-variant-numeric: tabular-nums; }
+.tabs .tab:active { opacity: .6; }
+.tabs .tab__count { display: grid; place-items: center; box-sizing: border-box; min-width: 20px; height: 20px; padding: 0 2px; border: 2px solid currentColor; border-radius: 5px; font: 400 12px/15px var(--font-ui); font-variant-numeric: tabular-nums; }
 .tabs .tab__count[style*="--group"] { background: var(--group); border-color: var(--group); color: #fff; }
-/* Collapsed phones keep the current section and the fixed trailing Search control. */
-@media (max-width: 899px) {
-  .tabs[data-scrollable] { touch-action: pan-x; }
-  .tabs[data-mini] { width: calc(97px + var(--sp-2)); height: 48px; padding: 0; border-radius: 24px; cursor: pointer; }
-  .tabs[data-mini][data-search-current] { width: 48px; }
-  .tabs[data-mini][data-search-current] .tabs__main { display: none; }
-  .tabs[data-mini] .tabs__pill { opacity: 0; }
-  .tabs[data-mini] .tab:not([data-kept]):not(.tab--search) { display: none; }
-  .tabs[data-mini] .tab[data-kept] { flex: none; width: 48px; height: 48px; }
-  .tabs[data-mini] .tab--search { width: 48px; height: 48px; }
-  .tabs[data-mini][data-search-current] .tab--search { margin-left: 0; }
-  .tabs[data-mini] .tab__label { display: none; }
-}
 html[data-typing] .tabs { display: none; }
-/* A sheet, drawer or gallery always sits over the dock. */
+/* A sheet, drawer or gallery always sits over the bar. */
 html:has([data-sheet-open]) .tabs { z-index: 40; }
+/* Full-screen media already covers the app's navigation. Do not keep hidden filters running. */
+html:has(.pv) :is(.bs-header, .head, .srch__bar, .chat2__bar, .reader__bar, .tlh)::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
 
-/* The switcher's controls take the dock's place and glass. */
-.tabs--switcher { padding: 0 8px; }
+/* The switcher's controls take the bar's place, as Bible Strong's list mode does. */
 .switcherbar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex: 1; min-width: 0; min-height: 52px; }
 #root .switcherbar__add, #root .switcherbar__ok { display: grid; place-items: center; min-width: var(--touch); height: var(--touch); padding: 0 6px; border: 0; border-radius: var(--r-pill); background: none; color: var(--text-1); cursor: pointer; }
 #root button.switcherbar__ok { font: 700 15px var(--font-ui); }
 #root .switcherbar__group { display: inline-flex; align-items: center; gap: 4px; max-width: 50vw; min-height: var(--touch); padding: 0 14px; border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: none; color: var(--group, var(--text-1)); font: 500 14px var(--font-ui); cursor: pointer; }
 #root .switcherbar__group span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* Desktop: the dock stands as a rail on the left, the page keeps its reading width beside it. */
-@media (min-width: 900px) {
-  :root { --dock-space: 0px; --rail-space: calc(112px + var(--safe-left)); }
-  .tabs:not(.tabs--switcher) {
-    left: calc(var(--sp-5) + var(--safe-left)); right: auto; top: var(--safe-top); bottom: var(--safe-bottom); margin: auto 0; width: 76px; height: fit-content; max-height: calc(100dvh - 40px - var(--safe-top) - var(--safe-bottom));
-    flex-direction: column; padding: 8px 6px; gap: 4px; --r-outer: 30px; border-radius: var(--r-outer); overflow-y: auto; scrollbar-width: none;
-  }
-  .tabs:not(.tabs--switcher) .tab { flex: none; width: 64px; min-height: 56px; height: auto; padding-block: 6px; border-radius: var(--r-inner); }
-  .tabs__main { display: contents; }
-  .tabs:not(.tabs--switcher) .tab--search { width: 56px; height: 56px; border-radius: 50%; margin: var(--sp-2) 0 0; }
-  .tabs:not(.tabs--switcher) .tabs__pill { border-radius: var(--r-inner); }
-  .tabs:not(.tabs--switcher) .tab__label { font-size: .6875rem; }
-  .tabs[data-scrollable] { touch-action: pan-y; overscroll-behavior-y: contain; }
-  .tabs[data-scrollable]::before { bottom: auto; height: var(--rail-content-h); }
-  #root [data-tabs] { padding-bottom: var(--sp-7); }
-  #shell .route { box-sizing: border-box; padding-left: var(--rail-space); }
-}
 
 /* ── Page actions: the screen's buttons, floating just above the dock ────────────────────── */
 .pageactions { position: fixed; z-index: var(--z-actions); left: var(--gutter); right: var(--gutter); max-width: 600px; margin: 0 auto;
@@ -355,17 +232,8 @@ html[data-actions] .toasts { bottom: calc(var(--dock-space) + var(--h-md) + var(
 
 /* Off-screen panels keep no filter running. */
 .drawer:not([data-open]) { -webkit-backdrop-filter: none; backdrop-filter: none; }
-@media (prefers-reduced-motion: reduce) { #shell .route, .tabs, .pageactions, .drawer, .drawer-scrim, .tabs__pill, .nsheet { transition: none; } .sheet, .sheet__scrim { animation: none; } }
+@media (prefers-reduced-motion: reduce) { #shell .route, .tabs, .tabs[data-hidden], .pageactions, .drawer, .drawer-scrim, .nsheet { transition: none; } .sheet, .sheet__scrim { animation: none; } }
 
-/* A decorative mirror of an existing hero's leading edge behind the sidebar. This
-   filters only its own image pixels; it never samples or distorts text underneath. */
-.rail-background { display: none; }
-@media (min-width: 900px) {
-  .rail-background { display: block; position: fixed; z-index: 0; inset: var(--safe-top) auto var(--safe-bottom) 0; width: var(--rail-space); overflow: hidden; pointer-events: none; }
-  .rail-background img { position: absolute; inset: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; object-position: left; transform: scaleX(-1); filter: blur(18px); opacity: .3; }
-}
-html[data-transparency="reduced"] .rail-background { display: none; }
-@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) { .rail-background { display: none; } }
 
 /* iOS 26's large title, shrunk into the bar once the page scrolls under it (ui.tsx, useLargeTitle). */
 /* The bar makes up for its own change in height (useLargeTitle), so scroll anchoring must not make
@@ -380,19 +248,9 @@ html[data-transparency="reduced"] .rail-background { display: none; }
 .screen > .head[data-compact] .title { font-size: var(--fs-callout); font-weight: 600; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: title-in var(--dur-2) var(--ease); }
 @keyframes title-in { from { opacity: 0; transform: translateY(4px); } }
 
-/* ── Adaptive glass (iOS 26) ─────────────────────────────────────────────────────────────────
-   Small glass flips with the content under it (ui/adaptive-bars.ts): a light dock over light
-   content in the dark scheme, a dark one over dark content in the light scheme. Contrast and
-   solid-glass preferences keep their own fixed dock. */
-@media not ((prefers-contrast: more) or (forced-colors: active) or (prefers-reduced-transparency: reduce)) {
-  html:not([data-transparency="reduced"]) .tabs[data-over="light"] { --dock-tint-override: color-mix(in srgb, #f5f5f7 var(--mat-density), transparent); --dock-ink-override: #3a3a3c; --text-1: #1c1c1e; --text-2: #3a3a3c; --text-3: #636366; --mat-selected: color-mix(in srgb, #000 9%, transparent); --mat-edge: color-mix(in srgb, #000 10%, transparent); color-scheme: light; color: #1c1c1e; }
-  html:not([data-transparency="reduced"]) .tabs[data-over="dark"] { --dock-tint-override: color-mix(in srgb, #1c1c1e var(--mat-density), transparent); --dock-ink-override: #d1d1d6; --text-1: #f5f5f7; --text-2: #d1d1d6; --text-3: #aeaeb2; --mat-selected: color-mix(in srgb, #fff 13%, transparent); --mat-edge: color-mix(in srgb, #fff 14%, transparent); color-scheme: dark; color: #f5f5f7; }
-}
 /* Glass materializes rather than fades: it gathers from a soft blur as it grows into place. */
 @keyframes materialize { from { opacity: 0; transform: scale(.92); filter: blur(6px); } 60% { filter: blur(0); } to { opacity: 1; transform: none; filter: none; } }
 @media (prefers-reduced-motion: reduce) { @keyframes materialize { from { opacity: 0; } to { opacity: 1; } } }
-/* While the dock samples what is under it (ui/adaptive-bars.ts), the floating layers take no hits. */
-html[data-bar-sampling] :is(.tabs, .tabs *, .glass-light, .pageactions, .pageactions *, .audio-player, .audio-player *, .toasts, .toasts *) { pointer-events: none !important; }
 
 /* ── Interactive glass (iOS 26) ──────────────────────────────────────────────────────────────
    The light under the finger (ui/glass-light.ts): drawn over the touched glass surface, clipped

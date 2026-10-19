@@ -344,30 +344,6 @@ test("Link and Relation are their own verse actions: a link saved from Link show
   await expect(page.locator("#verset-1 .rel-inline .rel-tag", { hasText: "The shepherd class" })).toBeVisible();
 });
 
-test("liquid glass: pressing the current section lifts its pill, dragging carries it along the bar, letting go opens where it lands", async ({ page }) => {
-  await page.goto(`/search${LAUNCH}`);
-  const dock = page.locator("nav.tabs");
-  const from = await dock.locator(".tab[data-on]").boundingBox();
-  const to = await dock.locator(".tab", { hasText: "Classes" }).boundingBox();
-  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
-  await page.mouse.down();
-  await expect(dock).toHaveAttribute("data-lift", "");
-  for (let i = 1; i <= 8; i++) await page.mouse.move(from!.x + from!.width / 2 + ((to!.x - from!.x) * i) / 8, from!.y + from!.height / 2);
-  await expect(dock).toHaveAttribute("data-drag", "");
-  // Feedback is present but restrained, so icons stay inside their navigation targets.
-  const magnification = Number(await dock.locator(".tab", { hasText: "Classes" }).evaluate((b) => b.style.getPropertyValue("--mag")));
-  expect(magnification).toBeGreaterThan(1);
-  expect(magnification).toBeLessThanOrEqual(1.06);
-  if (process.env.SHOTS) await dock.screenshot({ path: `${process.env.SHOTS}/liquid-drag.png` });
-  await page.mouse.up();
-  await expect(page).toHaveURL(/\/classes/);
-  await expect(dock).not.toHaveAttribute("data-lift", "");
-  await expect(dock.locator(".tab[data-on]")).toContainText("Classes");
-  // A plain tap on another section still opens it.
-  await dock.locator(".tab", { hasText: "Search" }).click();
-  await expect(page).toHaveURL(/\/search/);
-});
-
 test("Back as in Bible Strong: every page but the main places has a ←, and a page opened by a link goes back to its parent", async ({ page }) => {
   // Opened straight from a link, with no history: Back still shows and goes to the page above it.
   await page.goto(`/settings/audio${LAUNCH}`);
@@ -1198,25 +1174,6 @@ test("Case studies: a person's related case opens it, and the case links back; a
   await expect(page.getByRole("link", { name: "browse every case" })).toHaveAttribute("href", "/cases");
 });
 
-test("the collapsed bar keeps the section or Menu beside the fixed Search circle", async ({ page }) => {
-  await page.goto(`/cases/02-patriarchal/abraham${LAUNCH}`);
-  await expect(page.getByRole("heading", { level: 1, name: "Abraham" })).toBeVisible();
-  const bar = page.locator("nav.tabs");
-  await page.mouse.move(195, 400);
-  for (let i = 0; i < 8 && !(await bar.getAttribute("data-mini")); i++) { await page.mouse.wheel(0, 300); await page.waitForTimeout(120); }
-  await expect(bar).toHaveAttribute("data-mini", "");
-  await expect.poll(() => bar.evaluate((n) => { const r = n.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; })).toBe("105x48");
-  const kept = bar.locator(".tab[data-kept]");
-  await expect(kept).toHaveCount(1);
-  await expect(kept).toHaveAttribute("aria-label", "Menu");
-  const box = await kept.boundingBox(), outer = await bar.boundingBox();
-  expect(box!.width).toBeGreaterThanOrEqual(44);
-  expect(outer!.width).toBeGreaterThan(box!.width);
-  await expect(bar.getByRole("button", { name: "Search", exact: true })).toBeVisible();
-  await kept.click();
-  await expect(bar).not.toHaveAttribute("data-mini");
-});
-
 for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 }]) {
   test(`The Law: parts and sections, a section's laws with their scripture, its cases, and the way back (${viewport.width}px)`, async ({ page }) => {
     await page.setViewportSize(viewport);
@@ -1750,9 +1707,8 @@ test("the bottom bar sits above the Bible, and each reader chooses its buttons",
   await page.click('[aria-label="Move Library up"]');
   await expect(page.locator(".tabs .tab")).toHaveCount(8);
   const labels = await page.locator(".tabs .tab").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  expect(labels).toEqual(["Home", "Bible", "Classes", "Ask", "Library", expect.stringMatching(/Tabs open$/), "Menu", "Search"]);
-  // Scrolling the editor may have shrunk the bar to its capsule: a tap on it opens it first.
-  if (await page.locator("nav.tabs[data-mini]").count()) await page.locator("nav.tabs .tab[data-on]").click();
+  // Search sits second, where Bible Strong has it, and Menu ends the row.
+  expect(labels).toEqual(["Home", "Search", "Bible", "Classes", "Ask", "Library", expect.stringMatching(/Tabs open$/), "Menu"]);
   await page.click('.tab[aria-label="Library"]');
   await expect(page).toHaveURL(/\/books/);
   // The choice is kept with the reader's other settings, in Telegram's cloud.
@@ -2116,32 +2072,25 @@ test("Books opens on the book being read even when the book list arrives late", 
 });
 
 
-test("the bar follows the reading: a capsule while scrolling down, back on scroll up or a tap, the current section named", async ({ page }) => {
+test("the bar is Bible Strong's: icons only, it stays while a page scrolls and slides away while the Bible is full screen", async ({ page }) => {
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-3")).toBeVisible();
   const bar = page.locator("nav.tabs");
-  // The current section sits on the pill, with its name.
-  await expect(bar.locator(".tab[data-on] .tab__label")).toHaveText("Bible");
-  await expect(bar.locator(".tab[data-on] .tab__label")).toBeVisible();
-  await expect(bar).not.toHaveAttribute("data-mini");
-  // Scrolling down into the chapter shrinks it to the Bible beside the fixed Search control.
-  await page.mouse.move(195, 400);
-  await page.mouse.wheel(0, 600);
-  await expect(bar).toHaveAttribute("data-mini", "");
-  await expect(bar.getByRole("button", { name: "Search" })).toBeVisible();
-  // Scrolling back up brings it back.
-  await page.mouse.wheel(0, -150);
-  await expect(bar).not.toHaveAttribute("data-mini");
-  // Down again, then a tap on the capsule opens it rather than navigating.
-  await page.mouse.wheel(0, 600);
-  await expect(bar).toHaveAttribute("data-mini", "");
-  await bar.locator(".tab[data-on]").click();
-  await expect(bar).not.toHaveAttribute("data-mini");
-  await expect(page).toHaveURL(/\/read\/genesis\/1/);
-  // Another section: the pill and the name move to it.
-  await bar.getByRole("button", { name: "Search" }).click();
+  await expect(bar.locator(".tab__label")).toHaveCount(0);
+  await expect(bar.getByRole("button", { name: "Bible", exact: true })).toHaveAttribute("aria-current", "page");
+  // Scrolling down the chapter makes the Bible full screen: the header collapses and the bar slides out.
+  await page.waitForTimeout(800);
+  await page.locator(".bs-scroll").evaluate(async (el) => { for (const top of [40, 120, 600]) { el.scrollTop = top; await new Promise((r) => setTimeout(r, 30)); } });
+  await expect(page.locator(".bs-header__summary")).toBeVisible();
+  await expect(bar).toBeHidden();
+  // Scrolling back up brings both back.
+  await page.waitForTimeout(800);
+  await page.locator(".bs-scroll").evaluate(async (el) => { for (const top of [560, 480, 300]) { el.scrollTop = top; await new Promise((r) => setTimeout(r, 30)); } });
+  await expect(bar).toBeVisible();
+  // Another section: the bar stays where it is while that page scrolls.
+  await bar.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page).toHaveURL(/\/search/);
-  await expect(bar.locator(".tab[data-on] .tab__label")).toHaveText("Search");
+  await expect(bar.getByRole("button", { name: "Search", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
 test("a class without notes says so on its page, and its notes can be requested", async ({ page }) => {
