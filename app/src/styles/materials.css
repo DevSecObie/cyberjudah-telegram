@@ -105,10 +105,11 @@ html:has(.pv) :is(.bs-header, .head, .srch__bar, .chat2__bar, .reader__bar, .tlh
 
 /* The switcher's controls take the bar's place, as Bible Strong's list mode does. */
 .switcherbar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex: 1; min-width: 0; min-height: 52px; }
-#root .switcherbar__add, #root .switcherbar__ok { display: grid; place-items: center; min-width: var(--touch); height: var(--touch); padding: 0 6px; border: 0; border-radius: var(--r-pill); background: none; color: var(--text-1); cursor: pointer; }
+#root .switcherbar__add, #root .switcherbar__ok { display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 0; border-radius: var(--r-pill); background: none; color: var(--text-1); cursor: pointer; }
+#root .switcherbar__add { color: var(--text-3); }
 #root button.switcherbar__ok { font: 700 15px var(--font-ui); }
-#root .switcherbar__group { display: inline-flex; align-items: center; gap: 4px; max-width: 50vw; min-height: var(--touch); padding: 0 14px; border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: none; color: var(--group, var(--text-1)); font: 500 14px var(--font-ui); cursor: pointer; }
-#root .switcherbar__group span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#root .switcherbar__group { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border: 0; border-radius: 20px; background: var(--group, transparent); box-shadow: none; color: var(--group-ink, var(--text-1)); font: 400 14px var(--font-ui); cursor: pointer; }
+#root .switcherbar__group span { max-width: 50vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ── Page actions: the screen's buttons, floating just above the dock ────────────────────── */
 .pageactions { position: fixed; z-index: var(--z-actions); left: var(--gutter); right: var(--gutter); max-width: 600px; margin: 0 auto;
