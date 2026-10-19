@@ -6,6 +6,7 @@ import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "re
 import { Route, Routes, useLocation, useNavigate, useNavigationType } from "react-router";
 
 import { RouteSheet, useSheetEntry } from "@/ui/routeSheet";
+import { UnderSheetContext } from "@/ui/sheetRoute";
 import { initialLaunchPath } from "@/tg/launch.mjs";
 import { isTabPath, recordPath } from "@/lib/tabs";
 import { assetUrl } from "@/lib/asset";
@@ -216,7 +217,7 @@ export function App() {
       <div ref={route} className="route" data-location-key={page.key} key={page.pathname.split("/").slice(0, 2).join("/")}>
       <ScreenBoundary resetKey={page.pathname}>
       <Suspense fallback={<Screen className="route-loading"><Skeleton rows={8} /></Screen>}>
-      <Routes location={page}>{routes}</Routes>
+      <UnderSheetContext.Provider value={!!sheet}><Routes location={page}>{routes}</Routes></UnderSheetContext.Provider>
       </Suspense>
       </ScreenBoundary>
       </div>

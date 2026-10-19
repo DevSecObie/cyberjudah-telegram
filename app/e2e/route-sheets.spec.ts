@@ -43,6 +43,17 @@ test("a dictionary word opens as a sheet at 45% over the list, which stays usabl
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
+test("after a sheet closes, the page under it still goes back with its own ←", async ({ page }) => {
+  await setup(page);
+  await page.goto("/dictionary?q=a");
+  await page.getByRole("link", { name: "Aaron", exact: true }).click();
+  await expect(page.getByRole("dialog").getByRole("heading", { name: "Aaron" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/\/dictionary\?q=a$/);
+  await page.locator(".head__back").click();
+  await expect(page).not.toHaveURL(/\/dictionary/);
+});
+
 test("the sheet does not move the tab: the tab stays on the page behind it", async ({ page }) => {
   await setup(page);
   await page.goto("/dictionary?q=a");
