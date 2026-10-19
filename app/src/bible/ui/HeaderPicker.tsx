@@ -1,29 +1,22 @@
-import { useEffect, useRef, type ReactNode } from "react";
-import { sheetOpened } from "@/tg/hooks";
-import { useModal } from "@/ui/modal";
-import { usePopover } from "@/ui/popover";
+import type { ReactNode } from "react";
 import { Feather } from "../icons";
+import { Sheet, type SnapPoint } from "./Sheet";
 
-/** Header selectors share a bounded, scrolling card and Telegram's overlay back behavior. */
-export function HeaderPicker({ open, onClose, title, onBack, right, children }: {
-  open: boolean; onClose: () => void; title: string; onBack?: () => void; right?: ReactNode; children: ReactNode;
+/**
+ * The header's selectors (books, verses, versions) as Bible Strong shows them on the iPhone:
+ * bottom sheets (BookSelectorSheet, VerseSheet, VerseSelectorPopup, VersionSelectorSheet), not
+ * cards under the header. Each says its detents and header; the book list and the version list
+ * are full height on the page colour, the verse grids sized to them.
+ */
+export function HeaderPicker({ open, onClose, title, subTitle, onBack, right, children, snapPoints = ["auto"], reverse = false, centerTitle = false }: {
+  open: boolean; onClose: () => void; title: string; subTitle?: string; onBack?: () => void; right?: ReactNode; children: ReactNode;
+  snapPoints?: SnapPoint[]; reverse?: boolean; centerTitle?: boolean;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (open) return sheetOpened(); }, [open]);
-  const present = usePopover(open, ref);
-  useModal(ref, open && present, onClose);
-  if (!present) return null;
   return (
-    <div className="sheet__scrim bs-picker-scrim" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div ref={ref} className="bs-picker" data-popover="" inert={!open} aria-hidden={!open} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} data-sheet-open=""
->
-        <div className="bs-picker__header">
-          {onBack ? <button type="button" className="bs-iconbtn" aria-label="Back to books" title="Back to books" onClick={onBack}><Feather name="arrow-left" size={20} /></button> : null}
-          <b>{title}</b>{right}
-          <button type="button" className="bs-iconbtn" aria-label="Close" title="Close" onClick={onClose}><Feather name="x" size={18} /></button>
-        </div>
-        <div className="bs-picker__body">{children}</div>
-      </div>
-    </div>
+    <Sheet open={open} onClose={onClose} snapPoints={snapPoints} background={reverse ? "reverse" : "glass"} title={title} subTitle={subTitle} centerTitle={centerTitle} label={title} className="bs-picker-sheet"
+      left={onBack ? <button type="button" className="bs-sheet__back" aria-label="Back to books" title="Back to books" onClick={onBack}><Feather name="arrow-left" size={20} /></button> : centerTitle ? <span className="bs-picker-sheet__spacer" /> : undefined}
+      right={right ?? (centerTitle ? <span className="bs-picker-sheet__spacer bs-picker-sheet__spacer--right" /> : undefined)}>
+      <div className="bs-picker__body">{children}</div>
+    </Sheet>
   );
 }

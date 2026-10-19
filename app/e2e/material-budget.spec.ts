@@ -31,7 +31,7 @@ for (const width of [390, 1280]) for (const theme of ["default", "dark", "sepia"
       if (menu === "Books") await page.locator(".bs-pill--book").click();
       else if (menu === "Selection") await page.locator("#verset-1").click();
       else await page.getByRole("button", { name: menu, exact: true }).click();
-      const panel = page.locator(menu === "Books" ? ".bs-picker" : menu === "Selection" ? ".bs-selected" : ".bs-dropdown");
+      const panel = page.locator(menu === "Books" ? ".bs-picker-sheet" : menu === "Selection" ? ".bs-selected" : ".bs-dropdown");
       await panel.waitFor();
       const surfaces = await filteredSurfaces(page); report.push({ route: menu, surfaces });
       expect(surfaces.length, `${menu}: ${surfaces.join(", ")}`).toBeLessThanOrEqual(3);

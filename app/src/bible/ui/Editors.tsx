@@ -4,6 +4,7 @@ import { confirm, haptic } from "@/tg/sdk";
 import { Feather, Ion } from "../icons";
 import { DEFAULT_BOOKMARK_COLOR, MAX_BOOKMARKS, detectLinkType, type Bookmark, type Tag } from "../store";
 import { Button, Checkbox, Sheet } from "./Sheet";
+import { SheetSearchInput } from "./SheetSearchInput";
 
 /**
  * The editors the selected-verses sheet opens: the bookmark sheet (BookmarkModal), the tags
@@ -52,20 +53,32 @@ export function BookmarkSheet({ open, onClose, reference, location, existing, bo
 }
 
 /** "Edit tags": a search field, the tags as checkbox rows, and "Create « x »" for a new one. */
+/**
+ * Bible Strong's UnifiedTagsModal in select mode: a 70% sheet titled "Tags for <the reference>",
+ * "Search or create a tag" in its header, the chosen tags as removable chips under it, then a row
+ * per tag (16 px, a checkbox) and, when the search finds none, a row to create it. Creating a tag
+ * only adds it; it is chosen with its row, as there.
+ */
 export function TagsPanel({ open, onClose, reference, tags, setTags, selected, onToggle }: { open: boolean; onClose: () => void; reference?: string; tags: Record<string, Tag>; setTags: (t: Record<string, Tag>) => void; selected: Record<string, true>; onToggle: (tagId: string) => void }) {
   const [q, setQ] = useState("");
   useEffect(() => { if (!open) setQ(""); }, [open]);
   const all = Object.values(tags).filter((t) => t && typeof t.name === "string").sort((a, b) => a.name.localeCompare(b.name));
-  const matches = all.filter((t) => t.name.toLowerCase().includes(q.trim().toLowerCase()));
-  const canCreate = !!q.trim() && !all.some((t) => t.name.toLowerCase() === q.trim().toLowerCase());
-  const create = () => { const id = `t_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`; setTags({ ...tags, [id]: { id, name: q.trim(), date: Date.now() } }); onToggle(id); setQ(""); };
+  const keyword = q.trim();
+  const result = all.filter((t) => t.name.toLowerCase().includes(keyword.toLowerCase()));
+  const chosen = all.filter((t) => selected[t.id]);
+  const save = () => { if (!keyword) return; const id = `t_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`; setTags({ ...tags, [id]: { id, name: keyword, date: Date.now() } }); setQ(""); };
+  const title = reference ? `Tags for ${reference}` : "Tags";
   return (
-    <Sheet open={open} onClose={onClose} title="Edit tags" subTitle={reference} height="half">
+    <Sheet open={open} onClose={onClose} title={title} label={title} snapPoints={[0.7]}
+      headerChildren={<>
+        <div className="bs-sheet__searchbox"><SheetSearchInput value={q} onChange={setQ} placeholder="Search or create a tag" label="Search tags" onSubmit={() => { if (!result.length) save(); }} /></div>
+        {chosen.length ? <div className="bs-tagchosen"><small>{chosen.length === 1 ? "1 tag selected" : `${chosen.length} tags selected`}</small><div>{chosen.map((t) => <span key={t.id} className="bs-tagchip">{t.name}<button type="button" aria-label={`Remove tag ${t.name}`} title={`Remove tag ${t.name}`} onClick={() => onToggle(t.id)}><Feather name="x" size={14} /></button></span>)}</div></div> : null}
+      </>}>
       <div className="bs-tags">
-        <div className="bs-search"><Feather name="search" size={16} color="var(--bs-grey)" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" aria-label="Search tags" /></div>
-        {matches.map((t) => <button key={t.id} type="button" role="checkbox" aria-checked={!!selected[t.id]} className="bs-tagrow" onClick={() => { haptic("select"); onToggle(t.id); }}><Checkbox checked={!!selected[t.id]} /><span>{t.name}</span></button>)}
-        {canCreate ? <button type="button" className="bs-tagrow bs-tagrow--create" onClick={create}><Feather name="plus" size={18} color="var(--bs-primary)" /><span>Create « {q.trim()} »</span></button> : null}
-        {!matches.length && !canCreate ? <p className="bs-loading">No tags yet. Type a name to create one.</p> : null}
+        {result.length || !keyword ? <>
+          {result.map((t) => <button key={t.id} type="button" role="checkbox" aria-checked={!!selected[t.id]} className="bs-tagrow" onClick={() => { haptic("select"); onToggle(t.id); }}><Checkbox checked={!!selected[t.id]} /><span>{t.name}</span></button>)}
+          {!result.length && !keyword ? <p className="bs-tags__first">Create your first tag, then select it!</p> : null}
+        </> : <button type="button" className="bs-tagrow bs-tagrow--create" onClick={save}><Feather name="tag" size={20} color="var(--bs-primary)" /><span>Create "{keyword}"</span></button>}
       </div>
     </Sheet>
   );
@@ -77,7 +90,7 @@ export function NoteSheet({ open, onClose, reference, initial, onSave, onRemove 
   const [desc, setDesc] = useState("");
   useEffect(() => { if (open) { setTitle(initial?.title ?? ""); setDesc(initial?.description ?? ""); } }, [open, initial]);
   return (
-    <Sheet open={open} onClose={onClose} height="full" title="Note" subTitle={reference} footer={<div className="bs-sheet__actions">{onRemove ? <Button reverse onClick={async () => { if (await confirm("Are you sure you want to delete this note?")) onRemove(); }}>Remove</Button> : null}<Button reverse onClick={onClose}>Cancel</Button><Button onClick={() => onSave({ title: title.trim(), description: desc.trim() })} disabled={!title.trim() && !desc.trim()}>Save</Button></div>}>
+    <Sheet open={open} onClose={onClose} snapPoints={[0.45, 1]} dimFrom={1} background="reverse" title="Note" subTitle={reference} footer={<div className="bs-sheet__actions">{onRemove ? <Button reverse onClick={async () => { if (await confirm("Are you sure you want to delete this note?")) onRemove(); }}>Remove</Button> : null}<Button reverse onClick={onClose}>Cancel</Button><Button onClick={() => onSave({ title: title.trim(), description: desc.trim() })} disabled={!title.trim() && !desc.trim()}>Save</Button></div>}>
       <div className="bs-noteeditor">
         <input className="bs-noteeditor__title" placeholder="Title (optional)" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} aria-label="Title" />
         <textarea className="bs-noteeditor__desc" placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} maxLength={3000} aria-label="Description" autoFocus />
@@ -94,7 +107,7 @@ export function LinkSheet({ open, onClose, reference, onSave }: { open: boolean;
   const valid = /^https?:\/\/\S+$/i.test(url.trim());
   const type = detectLinkType(url.trim());
   return (
-    <Sheet open={open} onClose={onClose} title="Add a link" subTitle={reference} footer={<div className="bs-sheet__actions"><Button reverse onClick={onClose}>Cancel</Button><Button disabled={!valid} onClick={() => onSave({ url: url.trim(), title: title.trim() || (() => { try { return new URL(url.trim()).hostname.replace(/^www\./, ""); } catch { return "Untitled link"; } })(), linkType: type })}>Save</Button></div>}>
+    <Sheet open={open} onClose={onClose} snapPoints={[0.45, 1]} dimFrom={1} background="reverse" title="Add a link" subTitle={reference} footer={<div className="bs-sheet__actions"><Button reverse onClick={onClose}>Cancel</Button><Button disabled={!valid} onClick={() => onSave({ url: url.trim(), title: title.trim() || (() => { try { return new URL(url.trim()).hostname.replace(/^www\./, ""); } catch { return "Untitled link"; } })(), linkType: type })}>Save</Button></div>}>
       <div className="bs-linkform">
         <label>Link URL<input className="bs-input" placeholder="https://" value={url} onChange={(e) => setUrl(e.target.value)} inputMode="url" autoFocus /></label>
         <label>Title<input className="bs-input" placeholder="Untitled link" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} /></label>

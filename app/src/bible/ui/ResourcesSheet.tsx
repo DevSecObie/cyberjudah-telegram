@@ -70,7 +70,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   const shown = new Set(breakdowns.map((c) => c.note.url));
   const also = [...new Map(comments.filter((c) => c.verses && !shown.has(c.url)).map((c) => [c.url, c] as const)).values()];
   return (
-    <Sheet open={open} onClose={onClose} height="full" title={reference} subTitle={TABS.find((t) => t.id === tab)?.subtitle} footer={
+    <Sheet open={open} onClose={onClose} snapPoints={[1]} background="reverse" title={reference} subTitle={TABS.find((t) => t.id === tab)?.subtitle} footer={
       <div className="bs-resourcetabs" role="tablist">
         {TABS.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} style={{ opacity: tab === t.id ? 1 : 0.3 }} onClick={() => setTab(t.id)}><Feather name={{ words: "hash", precepts: "precepts", people: "users", dictionary: "book", themes: "layers", references: "external-link", commentary: "edit-3" }[t.id] as "book"} size={18} color="var(--bs-primary)" /><span>{t.label}</span></button>)}
       </div>

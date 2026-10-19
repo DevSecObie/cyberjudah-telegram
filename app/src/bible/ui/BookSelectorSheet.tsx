@@ -56,7 +56,7 @@ export function BookSelectorSheet({ open, onClose, books, current, onSelect, onL
   const readOf = (b: Book) => expand(progress[b.slug]);
   return (
     <>
-      <HeaderPicker open={open && !verseSheet} onClose={onClose} title={grid ? gridBook!.book : "Books"} onBack={grid ? () => setGridBook(null) : undefined}
+      <HeaderPicker open={open} onClose={onClose} snapPoints={[1]} reverse centerTitle title={grid ? gridBook!.book : "Books"} subTitle={grid ? "Chapters" : undefined} onBack={grid ? () => setGridBook(null) : undefined}
         right={grid ? null : <button type="button" className="bs-filterbtn" aria-label="Filters" title="Filters" aria-expanded={filters} onClick={() => setFilters(!filters)}><Feather name="sliders" size={18} color="var(--bs-primary)" /></button>}>
         {!grid ? <label className="bs-search"><Feather name="search" size={18} /><input aria-label="Search books" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} /></label> : null}
         {!grid && filters ? (
@@ -82,7 +82,7 @@ export function BookSelectorSheet({ open, onClose, books, current, onSelect, onL
         {!grid && !data.length ? <p className="bs-tip">No books found.</p> : null}
       </HeaderPicker>
       {verseSheet ? (
-        <HeaderPicker open={open} onClose={onClose} onBack={() => setVerseSheet(null)} title="Go to verse">
+        <HeaderPicker open={open} onClose={() => setVerseSheet(null)} snapPoints={[0.5]} centerTitle title="Go to verse">
           <div className="bs-versegrid">
             {Array.from({ length: verseSheet.count }, (_, i) => i + 1).map((v) => <button key={v} type="button" aria-label={`Verse ${v}`} title={`Verse ${v}`} className="bs-versetile bs-versetile--48" onClick={() => { haptic("select"); onSelect(verseSheet.book.slug, verseSheet.chapter, v); setVerseSheet(null); onClose(); }} {...longPress(onLongSelect && (() => { onLongSelect(verseSheet.book.slug, verseSheet.chapter, v); setVerseSheet(null); onClose(); }))}>{v}</button>)}
           </div>
@@ -123,7 +123,7 @@ function BookBar({ read, total }: { read: number; total: number }) {
 /** The chevrons in the header open the six-column verse grid. */
 export function VersePopup({ open, onClose, count, selected, onSelect }: { open: boolean; onClose: () => void; count: number; selected?: number; onSelect: (v: number) => void }) {
   return (
-    <HeaderPicker open={open} onClose={onClose} title="Go to verse">
+    <HeaderPicker open={open} onClose={onClose} centerTitle title="Go to verse">
       <div className="bs-versegrid">
         {count ? Array.from({ length: count }, (_, i) => i + 1).map((v) => <button key={v} type="button" aria-label={`Verse ${v}`} title={`Verse ${v}`} aria-pressed={v === selected} className="bs-versetile" onClick={() => { haptic("select"); onSelect(v); onClose(); }}>{v}</button>) : <p className="bs-loading">Loading...</p>}
       </div>
