@@ -1,3 +1,4 @@
+import { Button } from "@/ui/Button";
 import { AddToStudy } from "@/studies/AddToStudy";
 import { useResourceRelease } from "@/resources/hooks";
 import { ReferenceText } from "@/resources/ReferenceText";
@@ -65,7 +66,7 @@ export function WordStudy({ number, books, here, onRead, enabled = true, release
               <small>Strong's {e.number} · {e.language} · {e.count.toLocaleString()} {e.count === 1 ? "time" : "times"} in {e.verses.toLocaleString()} {e.verses === 1 ? "verse" : "verses"}</small>
             </div>
           </header>
-          <button type="button" className="bs-btn" onClick={() => setAdding(true)}>Add to study</button>
+          <Button appearance="bordered" onClick={() => setAdding(true)}>Add to study</Button>
           {adding ? <AddToStudy onClose={() => setAdding(false)} blocks={[{ id: crypto.randomUUID(), kind: "strongs", number: e.number, lemma: e.lemma, definition: e.def ?? "" }]} /> : null}
           {e.def ? <section className="bs-word__sec"><h3>Meaning</h3><p><ReferenceText text={e.def} links={e.scripture?.def} onRead={onRead} /></p></section> : null}
           {e.derivation ? <section className="bs-word__sec"><h3>Derivation</h3><p><ReferenceText text={e.derivation} links={e.scripture?.derivation} onRead={onRead} /></p></section> : null}

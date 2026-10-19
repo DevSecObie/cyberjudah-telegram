@@ -1,3 +1,4 @@
+import { Button } from "@/ui/Button";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { avatarKind, EntityAvatar } from "@/ui/avatar";
 import { useEffect, useRef, useState } from "react";
@@ -93,7 +94,7 @@ export function SearchSheet({ open, initial = "", onClose, books, onGo }: { open
             <span><Mark text={h.snippet} terms={terms} /></span>
           </button>
         ))}
-        {found.hasNextPage && <button type="button" className="bs-btn" disabled={found.isFetchingNextPage} onClick={() => void found.fetchNextPage()}>{found.isFetchingNextPage ? "Loading more…" : "More verses"}</button>}
+        {found.hasNextPage && <Button appearance="bordered" disabled={found.isFetchingNextPage} onClick={() => void found.fetchNextPage()}>{found.isFetchingNextPage ? "Loading more…" : "More verses"}</Button>}
       </div>
     </Sheet>
   );

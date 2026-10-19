@@ -23,6 +23,20 @@ export function Value({ children }: { children: string }) {
   return <span className="row__value">{children}<Icon name="chevron" size={16} /></span>;
 }
 
+/** Bible Strong's ThemeScreen colour row: the colour's name, then a 28px disc per colour, ringed in the
+ *  primary colour when chosen. Each disc sits in a 44px target. */
+function Swatches<T extends string>({ title, sub, themes, value, onChange }: { title: string; sub?: string; themes: { id: T; label: string; swatch: string }[]; value: T; onChange: (id: T) => void }) {
+  const current = themes.find((t) => t.id === value)?.label ?? "";
+  return (
+    <div className="swatch-row" role="radiogroup" aria-label={title}>
+      <span className="swatch-row__text"><b>{title}</b><small>{sub ? `${current} · ${sub}` : current}</small></span>
+      <span className="swatch-row__discs">
+        {themes.map((t) => <button key={t.id} type="button" role="radio" aria-checked={t.id === value} aria-label={t.label} title={t.label} className="theme-disc" onClick={() => { haptic("select"); onChange(t.id); }}><span style={{ background: t.swatch }} /></button>)}
+      </span>
+    </div>
+  );
+}
+
 function Toggle({ on, onChange, title, sub, disabled }: { on: boolean; onChange: (v: boolean) => void; title: string; sub?: string; disabled?: boolean }) {
   return <button type="button" className="toggle" role="switch" aria-checked={on} disabled={disabled} onClick={() => { haptic("select"); onChange(!on); }}><span><b>{title}</b>{sub ? <small>{sub}</small> : null}</span><span className="switch" /></button>;
 }
@@ -133,8 +147,8 @@ export function Settings() {
         <Segmented label="Theme" value={bible.preferredColorScheme} onChange={(v) => setBible({ preferredColorScheme: v })} options={[["auto", "Automatic"], ["light", "Day"], ["dark", "Night"]]} />
         <List>
           {/* The Bible's own colours, worn by the whole app: the same choice as Font and settings in the reader. */}
-          <Row onClick={() => { const i = LIGHT_THEMES.findIndex((t) => t.id === bible.preferredLightTheme); setBible({ preferredLightTheme: LIGHT_THEMES[(i + 1) % LIGHT_THEMES.length].id }); }} title="Day colour" sub="The whole app takes the Bible’s colours" trailing={<Value>{LIGHT_THEMES.find((t) => t.id === bible.preferredLightTheme)?.label ?? ""}</Value>} />
-          <Row onClick={() => { const i = DARK_THEMES.findIndex((t) => t.id === bible.preferredDarkTheme); setBible({ preferredDarkTheme: DARK_THEMES[(i + 1) % DARK_THEMES.length].id }); }} title="Night colour" trailing={<Value>{DARK_THEMES.find((t) => t.id === bible.preferredDarkTheme)?.label ?? ""}</Value>} />
+          <Swatches title="Day colour" sub="The whole app takes the Bible’s colours" themes={LIGHT_THEMES} value={bible.preferredLightTheme} onChange={(id) => setBible({ preferredLightTheme: id })} />
+          <Swatches title="Night colour" themes={DARK_THEMES} value={bible.preferredDarkTheme} onChange={(id) => setBible({ preferredDarkTheme: id })} />
           <Row onClick={() => setSize(size === "compact" ? "regular" : size === "regular" ? "large" : "compact")} title="Text size" trailing={<Value>{{ compact: "Small", regular: "Regular", large: "Large" }[size]}</Value>} />
           <Row onClick={() => { const serif = face !== "Newsreader"; setFont(serif ? "serif" : "sans"); setBible({ fontFamily: serif ? "Newsreader" : "System" }); }} title="Typeface" sub={face === "Newsreader" || face === "System" ? undefined : "Chosen in the Bible’s own settings"} trailing={<Value>{face}</Value>} />
           <Row onClick={() => setSpacing(spacing === "tight" ? "regular" : spacing === "regular" ? "airy" : "tight")} title="Line spacing" trailing={<Value>{{ tight: "Tight", regular: "Regular", airy: "Airy" }[spacing]}</Value>} />

@@ -729,3 +729,77 @@ test("the drawers show the live class, the offline notice, the account and legal
   await page.getByRole("button", { name: "Menu", exact: true }).click();
   await expect.poll(() => more.locator(".drawer__scroll").evaluate(el => el.scrollTop)).toBe(300);
 });
+
+/** Whether a tap at (x, y) lands on the element (or inside it). */
+const lands = (page: Page, sel: string, x: number, y: number) => page.evaluate(({ sel, x, y }) => { const el = document.querySelector(sel); const hit = document.elementFromPoint(x, y); return !!el && !!hit && (el === hit || el.contains(hit)); }, { sel, x, y });
+
+test("the verse resources sheet: styled buttons, a 44px close and tabs that scroll instead of cutting their labels, as Bible Strong's iPhone app", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await touchVerse(page, "touchstart", 1);
+  await touchVerse(page, "touchend", 0);
+  await page.getByRole("tab", { name: "Study" }).click();
+  await page.getByRole("button", { name: "References", exact: true }).click();
+  const sheet = page.locator(".bs-sheet").filter({ has: page.locator(".bs-resourcetabs") });
+  await expect(sheet).toBeVisible();
+  const close = sheet.locator(".bs-sheet__close").first();
+  const box = (await close.boundingBox())!;
+  expect(box.width).toBeGreaterThanOrEqual(44);
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  // The chosen tab is in view, though the row is wider than the sheet.
+  const strip = (await sheet.locator(".bs-resourcetabs").boundingBox())!, chosen = (await sheet.getByRole("tab", { name: "References" }).boundingBox())!;
+  expect(chosen.x).toBeGreaterThanOrEqual(strip.x - 1);
+  expect(chosen.x + chosen.width).toBeLessThanOrEqual(strip.x + strip.width + 1);
+  for (const tab of await sheet.getByRole("tab").all()) {
+    const fits = await tab.locator("span").evaluate((el) => el.scrollWidth <= el.clientWidth + 1);
+    expect(fits, await tab.innerText()).toBe(true);
+    expect((await tab.boundingBox())!.width).toBeGreaterThanOrEqual(Math.round(390 * 0.18) - 1);
+  }
+});
+
+test("the reader's Retry is the app's own button, not a bare browser one", async ({ page }) => {
+  await page.route(`${DATA}/api/kjv/genesis/2.json`, r => r.fulfill({ status: 500, body: "" }));
+  await page.goto("/read/genesis/2");
+  const retry = page.getByRole("button", { name: "Retry", exact: true });
+  await expect(retry).toBeVisible();
+  expect((await retry.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await expect(retry).toHaveClass(/\bbtn\b/);
+  expect(await retry.evaluate((el) => getComputedStyle(el).borderTopStyle)).not.toBe("outset");
+});
+
+test("a precept chip under a verse takes a tap across a full 44px", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem("cj:rel_genesis_1", JSON.stringify([{ id: "r1", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-1"], label: "Genesis 1:1" }, { type: "verse", verseKeys: ["john-1-1"], label: "John 1:1" }], createdAt: 1, updatedAt: 1 }])));
+  await page.goto("/read/genesis/1");
+  const chip = page.locator("#verset-1 .rel-tag").first();
+  await expect(chip).toBeVisible();
+  const b = (await chip.boundingBox())!;
+  const cx = b.x + b.width / 2, cy = b.y + b.height / 2;
+  for (const dy of [-21, 21]) expect(await lands(page, "#verset-1 .rel-tag", cx, cy + dy), `${dy}px from the centre`).toBe(true);
+});
+
+test("Settings shows the day and night colours as Bible Strong's discs, each a 44px target", async ({ page }) => {
+  await page.goto("/settings");
+  const day = page.getByRole("radiogroup", { name: "Day colour" });
+  await expect(day.getByRole("radio")).toHaveCount(4);
+  await expect(page.getByRole("radiogroup", { name: "Night colour" }).getByRole("radio")).toHaveCount(4);
+  for (const r of await day.getByRole("radio").all()) { const b = (await r.boundingBox())!; expect(b.width).toBeGreaterThanOrEqual(44); expect(b.height).toBeGreaterThanOrEqual(44); }
+  await day.getByRole("radio", { name: "Sepia" }).click();
+  await expect(day.getByRole("radio", { name: "Sepia" })).toHaveAttribute("aria-checked", "true");
+  await expect(day.getByText("Sepia", { exact: false }).first()).toBeVisible();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cj:bs") ?? "{}").preferredLightTheme)).toBe("sepia");
+});
+
+test("the menu puts Resources and then Settings first, as Bible Strong's, so Settings shows without scrolling", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/more");
+  const heads = page.locator(".mcard__head");
+  await expect(heads.nth(0)).toHaveText("Resources");
+  await expect(heads.nth(1)).toHaveText("Settings");
+  const settings = page.locator(".mcard__row", { hasText: /^Settings$/ });
+  await expect(settings).toBeVisible();
+  expect((await settings.boundingBox())!.y + 44).toBeLessThanOrEqual(844 - 80);
+  // Nothing was dropped on the way.
+  for (const name of ["My studies", "Bookmarks, highlights & notes", "Library", "People", "The Law", "Reading plans", "History", "Lexicon", "Dictionary", "Topics", "Classes"]) await expect(page.locator(".mcard__row", { hasText: name }).first()).toBeAttached();
+});

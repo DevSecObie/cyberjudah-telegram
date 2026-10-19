@@ -48,6 +48,11 @@ function Card({ icon, title, items }: { icon: IconName; title: string; items: (I
   );
 }
 
+/** Bible Strong's own resources (Lexique, Dictionnaire, Nave), first in the menu as there. */
+const BS_RESOURCES = STUDY.filter(([href]) => ["/lexicon", "/dictionary", "/topics"].includes(href));
+const STUDY_COLORS = ["var(--accent)", "var(--danger)", "var(--gold)", "var(--accent)", "var(--danger)", "var(--accent)", "var(--danger)", "var(--text-3)"];
+const res = ([href, label, , icon]: [string, string, string, IconName], k: number): Item => ({ href, label, icon, colored: ["/lexicon", "/dictionary"].includes(href), color: href === "/lexicon" ? "var(--accent)" : href === "/dictionary" ? "var(--gold)" : STUDY_COLORS[k % 8] });
+
 const C = { blue: "var(--accent)", teal: "var(--accent)", violet: "var(--danger)", amber: "var(--gold)", rose: "var(--danger)", green: "var(--accent)", red: "var(--danger)", slate: "var(--text-3)" };
 
 /** The menu's content (Bible Strong's MoreScreen), on its own page or in the menu drawer. */
@@ -62,20 +67,14 @@ export function MoreBody() {
         <span><b>{user ? [user.first_name, user.last_name].filter(Boolean).join(" ") : "Your account"}</b><small>{user?.username ? `@${user.username}` : "Synced with your Telegram account"}</small></span>
         <Icon name="chevron" size={20} />
       </Link>
-      <Card icon="bookmark" title="Yours" items={[
-        { icon: "book", label: "My studies", color: C.blue, href: "/studies" },
-        { icon: "check", label: "Reading plans", color: C.green, href: "/plans" },
-        { icon: "bookmark", label: "Bookmarks, highlights & notes", color: C.amber, href: "/bookmarks" },
-        { icon: "tag", label: "Tags", color: C.rose, href: "/tags" },
-        { icon: "clock", label: "History", color: C.blue, href: "/history" },
-        { icon: "sun", label: "Sabbath", color: C.amber, href: "/sabbath" },
-      ]} />
+      {/* Bible Strong's MoreScreen order: Resources, then Settings, near the top; our own sections follow. */}
       <Card icon="book" title="Resources" items={[
         { icon: "chat", label: "Ask CyberJudah", color: C.teal, href: "/ask" },
+        { icon: "clock", label: "History", color: C.blue, href: "/history" },
+        ...BS_RESOURCES.map(res),
+        { icon: "check", label: "Reading plans", color: C.green, href: "/plans" },
         { icon: "play", label: "Classes", color: C.red, href: "/classes" },
-        ...STUDY.map(([href, label, , icon], k) => ({ href, label, icon, colored: ["/lexicon", "/dictionary"].includes(href), color: href === "/lexicon" ? C.blue : href === "/dictionary" ? C.amber : [C.blue, C.violet, C.amber, C.green, C.rose, C.teal, C.violet, C.slate][k % 8] })),
       ]} />
-      <Card icon="law" title="The Law" items={LAW.map(([href, label, , icon], k) => ({ href, label, icon, color: [C.amber, C.teal, C.slate][k % 3] }))} />
       <Card icon="gear" title="Settings" items={[
         { icon: "gear", label: "Settings", color: C.slate, href: "/settings" },
         { icon: "download", label: "Downloads", color: C.green, href: "/resources" },
@@ -83,6 +82,14 @@ export function MoreBody() {
         pin ? { icon: "star", label: "Add to Home Screen", color: C.amber, onClick: addToHomeScreen } : null,
         { icon: "download", label: "Download the vault", color: C.green, onClick: () => downloadFile(`${DATA_ORIGIN}/downloads/vault.zip`, "cyberjudah-vault.zip") },
       ]} />
+      <Card icon="bookmark" title="Yours" items={[
+        { icon: "book", label: "My studies", color: C.blue, href: "/studies" },
+        { icon: "bookmark", label: "Bookmarks, highlights & notes", color: C.amber, href: "/bookmarks" },
+        { icon: "tag", label: "Tags", color: C.rose, href: "/tags" },
+        { icon: "sun", label: "Sabbath", color: C.amber, href: "/sabbath" },
+      ]} />
+      <Card icon="layers" title="Study" items={STUDY.filter(([href]) => !BS_RESOURCES.some(([h]) => h === href)).map(res)} />
+      <Card icon="law" title="The Law" items={LAW.map(([href, label, , icon], k) => ({ href, label, icon, color: [C.amber, C.teal, C.slate][k % 3] }))} />
       <Card icon="star" title="CyberJudah" items={[
         { icon: "book", label: "Help & reading guide", color: C.teal, href: "/settings/help" },
         // Bible Strong's "Contact the developer": here, a chat with the bot (the Mini App's own bot).

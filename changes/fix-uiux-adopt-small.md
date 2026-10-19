@@ -1,0 +1,5 @@
+- The reader's "Retry", "More verses", "Show word alignment" and "Add to study" buttons now look and size like the app's other buttons instead of bare browser buttons.
+- The verse resources sheet's close button and its tabs are full-size targets; the tabs scroll sideways, as in Bible Strong's iPhone app, instead of cutting their names, and the chosen tab stays in view.
+- Precept chips and the classes' pictures under a verse take a tap anywhere across 44 px.
+- Settings shows the day and night colours as Bible Strong's colour discs instead of their names.
+- The menu lists Resources and then Settings first, as Bible Strong's does, so Settings is in view without scrolling; our own sections follow.

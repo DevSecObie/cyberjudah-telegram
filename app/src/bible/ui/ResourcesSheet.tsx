@@ -1,7 +1,8 @@
+import { Button } from "@/ui/Button";
 import { WordAlignment } from "./WordAlignment";
 import { useQuery } from "@tanstack/react-query";
 import { avatarKind, EntityAvatar } from "@/ui/avatar";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { data, shelf, type Book, type Citation, type VerseComment } from "@/api/data";
@@ -69,9 +70,18 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   const [allRead, setAllRead] = useState(false);
   const shown = new Set(breakdowns.map((c) => c.note.url));
   const also = [...new Map(comments.filter((c) => c.verses && !shown.has(c.url)).map((c) => [c.url, c] as const)).values()];
+  // The row scrolls sideways, so the chosen tab is brought into view (only the row moves).
+  const tabStrip = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const strip = tabStrip.current, on = strip?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!strip || !on) return;
+    const left = on.offsetLeft - strip.offsetLeft, right = left + on.offsetWidth;
+    if (left < strip.scrollLeft) strip.scrollLeft = left;
+    else if (right > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = right - strip.clientWidth;
+  }, [tab, open]);
   return (
     <Sheet open={open} onClose={onClose} height="full" title={reference} subTitle={TABS.find((t) => t.id === tab)?.subtitle} footer={
-      <div className="bs-resourcetabs" role="tablist">
+      <div ref={tabStrip} className="bs-resourcetabs" role="tablist">
         {TABS.map((t) => <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} style={{ opacity: tab === t.id ? 1 : 0.3 }} onClick={() => setTab(t.id)}><Feather name={{ words: "hash", precepts: "precepts", people: "users", dictionary: "book", themes: "layers", references: "external-link", commentary: "edit-3" }[t.id] as "book"} size={18} color="var(--bs-primary)" /><span>{t.label}</span></button>)}
       </div>
     }>
@@ -84,7 +94,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
             <p className="bs-greek__src">Swete's Septuagint (1909), verse {verse} as Swete numbers it; the King James Apocrypha were translated from this Greek. Strong's numbers cover the 66 books only.</p>
           </div>
         ) : <p className="bs-loading">Strong's numbers cover the 66 books; this verse has none.</p>) : <>
-          <button type="button" className="bs-btn" aria-expanded={alignment} onClick={() => setAlignment(!alignment)}>{alignment ? "Hide word alignment" : "Show word alignment"}</button>
+          <Button appearance="bordered" aria-expanded={alignment} onClick={() => setAlignment(!alignment)}>{alignment ? "Hide word alignment" : "Show word alignment"}</Button>
           {alignment && <WordAlignment words={verseWords} onWord={setWord} />}
           <p className="bs-words__hint">Tap a word for the Hebrew or Greek behind it, what it means, and every verse that uses it.</p>
           <div className="bs-words">{verseWords.map(([t, nums], i) => nums.length

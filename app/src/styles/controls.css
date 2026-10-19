@@ -98,6 +98,17 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgu
 .toggle + .toggle::before, .toggle + .row::before, .row + .toggle::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; border-top: .5px solid var(--hairline); pointer-events: none; }
 .toggle b { display: block; font: 500 var(--fs-body)/1.3 var(--font-ui); color: var(--text-1); }
 .toggle small { display: block; margin-top: 2px; font-size: var(--fs-footnote); color: var(--text-3); }
+/* Bible Strong's colour rows (ThemeScreen): the name, then a 28px disc per colour in a 44px target. */
+.swatch-row { position: relative; display: flex; align-items: center; gap: var(--sp-2); min-height: 56px; padding: 6px 8px 6px 14px; }
+.swatch-row + .swatch-row::before, .swatch-row + .row::before, .row + .swatch-row::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; border-top: .5px solid var(--hairline); pointer-events: none; }
+.swatch-row__text { flex: 1; min-width: 0; }
+.swatch-row__text b { display: block; font: 500 var(--fs-body)/1.3 var(--font-ui); color: var(--text-1); }
+.swatch-row__text small { display: block; margin-top: 2px; font-size: var(--fs-footnote); color: var(--text-3); }
+.swatch-row__discs { flex: none; display: flex; }
+#root .theme-disc { width: var(--touch); height: var(--touch); display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; }
+.theme-disc span { width: 28px; height: 28px; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--control-edge); }
+.theme-disc[aria-checked="true"] span { border-color: var(--accent); }
+.theme-disc:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 50%; }
 .switch { flex: none; position: relative; width: 51px; height: 31px; border-radius: var(--r-pill); background: var(--fill-3); box-shadow: inset 0 0 0 1px var(--control-edge); transition: none; }
 .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: var(--switch-thumb); box-shadow: var(--switch-shadow); transition: transform var(--dur-2) var(--ease-spring); }
 .toggle[aria-checked="true"] .switch { background: var(--accent); box-shadow: none; }

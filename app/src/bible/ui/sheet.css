@@ -46,8 +46,10 @@
 /* Closing a sheet: the ✕, and a swipe down by the handle or title that springs back if short. */
 .bs-sheet { transition: transform .22s cubic-bezier(.2, .8, .2, 1); }
 .bs-sheet__grab { flex: none; position: relative; touch-action: none; cursor: grab; }
-.bs-sheet__close { width: 32px; height: 32px; border-radius: 50%; background: var(--bs-light-grey); display: grid; place-items: center; color: var(--bs-tertiary); }
-.bs-sheet__close--float { position: absolute; right: 12px; top: 8px; }
+/* A 32px disc, as Bible Strong draws it, inside a 44px target. */
+.bs-sheet__close { position: relative; isolation: isolate; width: var(--touch); height: var(--touch); border-radius: 50%; background: none; display: grid; place-items: center; color: var(--bs-tertiary); }
+.bs-sheet__close::before { content: ""; position: absolute; inset: calc((var(--touch) - 32px) / 2); z-index: -1; border-radius: 50%; background: var(--bs-light-grey); }
+.bs-sheet__close--float { position: absolute; right: 6px; top: 2px; }
 @media (prefers-reduced-motion: reduce) { .bs-sheet, .bs-scrim { animation: none; transition: none; } }
 /* A sheet that drags down from anywhere: vertical moves are the sheet's, sideways ones scroll its rows.
    Every box inside says so too: a scrolling row (or any clipping box) would otherwise start its own
