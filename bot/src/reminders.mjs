@@ -101,7 +101,11 @@ export function applyContent(rec, content) {
   if (!content || typeof content !== "object") return next;
   const p = content.plan;
   if (p === null) next.plan = null;
-  else if (p && Number.isInteger(p.day) && p.day >= 0 && p.day < 5000 && Number.isInteger(p.perDay) && p.perDay >= 1 && p.perDay <= 50) next.plan = { day: p.day, perDay: p.perDay };
+  else if (p && Number.isInteger(p.day) && p.day >= 0 && p.day < 5000 && Number.isInteger(p.perDay) && p.perDay >= 1 && p.perDay <= 50) {
+    // A plan of some books (the New Testament, one book) names them, so its days count through those books only.
+    const books = Array.isArray(p.books) && p.books.length <= 100 && p.books.every((b) => typeof b === "string" && /^[a-z0-9-]{1,40}$/.test(b)) ? p.books : null;
+    next.plan = books?.length ? { day: p.day, perDay: p.perDay, books } : { day: p.day, perDay: p.perDay };
+  }
   const l = content.last;
   if (l === null) next.last = null;
   else if (l && typeof l.slug === "string" && /^[a-z0-9-]{1,40}$/.test(l.slug) && Number.isInteger(l.chapter) && l.chapter >= 1 && l.chapter <= 200) next.last = { slug: l.slug, chapter: l.chapter };
@@ -194,7 +198,8 @@ export function portion(rec, books) {
   const all = flatChapters(books);
   if (rec.plan) {
     const per = rec.plan.perDay;
-    const slice = all.slice(rec.plan.day * per, rec.plan.day * per + per);
+    const own = rec.plan.books?.length ? flatChapters(books.filter((b) => rec.plan.books.includes(b.slug))) : all;
+    const slice = own.slice(rec.plan.day * per, rec.plan.day * per + per);
     if (slice.length) {
       const first = slice[0], last = slice[slice.length - 1];
       const label = first.slug === last.slug ? `${first.book} ${first.chapter}${last.chapter > first.chapter ? `–${last.chapter}` : ""}` : `${first.book} ${first.chapter} – ${last.book} ${last.chapter}`;

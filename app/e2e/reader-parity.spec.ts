@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs/promises";
+const today = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const DATA = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
 const verses = Array.from({ length: 31 }, (_, i) => ({ verse: i + 1, text: i === 0 ? "In the beginning God created the heaven and the earth." : `Verse ${i + 1}: And God said, Let there be light: and there was light.` }));
 async function setup(page: Page) {
@@ -18,7 +19,8 @@ async function setup(page: Page) {
     if (chapter) return r.fulfill({ json: { book: chapter[1], chapter: +chapter[2], translation: "KJV", verses } });
     return r.fulfill({ status: 404, body: "" });
   });
-  await page.route("**/api/verse-of-day*", r => r.fulfill({ json: { ref: new URL(r.request().url()).searchParams.has("date") ? "Genesis 1:2" : "Genesis 1:1", slug: "genesis", chapter: 1, verse: new URL(r.request().url()).searchParams.has("date") ? 2 : 1, text: "In the beginning God created the heaven and the earth." } }));
+  // Today's verse is Genesis 1:1, every earlier day's Genesis 1:2 (the app asks by the reader's own date).
+  await page.route("**/api/verse-of-day*", r => { const past = (new URL(r.request().url()).searchParams.get("date") ?? today()) < today(); return r.fulfill({ json: { ref: past ? "Genesis 1:2" : "Genesis 1:1", slug: "genesis", chapter: 1, verse: past ? 2 : 1, text: "In the beginning God created the heaven and the earth." } }); });
   await page.addInitScript(() => {
     if (!localStorage.getItem("cj:bs")) localStorage.setItem("cj:bs", JSON.stringify({ press: "longPress" }));
     localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "one", groups: [{ id: "one", name: "My tabs", color: "#2dd4bf", current: "bible-one", tabs: [{ id: "bible-one", path: "/read/genesis/1" }, { id: "bible-two", path: "/read/john/3?v=16-18" }] }] }));
@@ -728,4 +730,77 @@ test("the drawers show the live class, the offline notice, the account and legal
   await expect(more).not.toHaveAttribute("data-open");
   await page.getByRole("button", { name: "Menu", exact: true }).click();
   await expect.poll(() => more.locator(".drawer__scroll").evaluate(el => el.scrollTop)).toBe(300);
+});
+
+test("the relation picker offers the notes written in the reader", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({ "1/2": { id: "n", title: "Creation", description: "My saved note", date: 1 } })));
+  await page.goto("/relations?endpoint=john-3-16");
+  await page.getByRole("button", { name: "Add a precept" }).click();
+  const picker = page.getByRole("dialog", { name: "Add relation" });
+  await expect(picker.locator("text=Creation")).toBeVisible();
+});
+
+test("the dictionary pages through every entry of a letter, and says when a page did not load", async ({ page }) => {
+  let failNext = false;
+  await page.route("**/api/dictionary?*", r => {
+    const url = new URL(r.request().url()), p = +(url.searchParams.get("page") ?? 1);
+    if (p === 2 && failNext) { failNext = false; return r.fulfill({ status: 500, body: "" }); }
+    const all = Array.from({ length: 70 }, (_, i) => ({ slug: `a${i + 1}`, term: `Aentry ${i + 1}` }));
+    return r.fulfill({ json: { count: 70, page: p, pages: 2, rows: all.slice((p - 1) * 60, p * 60), related: [], total: 3963 } });
+  });
+  await page.goto("/dictionary?letter=A");
+  await expect(page.getByText("70 entries")).toBeVisible();
+  await page.locator(".list-more").scrollIntoViewIfNeeded();
+  await expect(page.getByRole("link", { name: "Aentry 70" })).toBeVisible();
+  // A failed list is a failure with Retry, not an empty letter.
+  await page.unroute("**/api/dictionary?*");
+  await page.route("**/api/dictionary?*", r => r.fulfill({ status: 503, body: "" }));
+  await page.goto("/dictionary?letter=B");
+  await expect(page.getByText("The dictionary did not load")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
+});
+
+test("a typed Strong's number is searched as written, whatever the language tab", async ({ page }) => {
+  await page.route(`${DATA}/api/strongs/index.json`, r => r.fulfill({ json: [
+    { n: "H26", lemma: "אֲבִיגַיִל", xlit: "Abigail", def: "Abigail", count: 17 },
+    { n: "G26", lemma: "ἀγάπη", xlit: "agape", def: "love", count: 116 },
+  ] }));
+  await page.goto("/lexicon?lang=hebrew");
+  await page.fill("#lex-q", "G26");
+  await expect(page.locator(".row, a[href='/lexicon/G26']").filter({ hasText: "agape" }).first()).toBeVisible();
+  await expect(page.locator("a[href='/lexicon/H26']")).toHaveCount(0);
+});
+
+test("a verse's references that fail to load say so, with Retry, instead of 'none'", async ({ page }) => {
+  let fail = true;
+  await page.route(`${DATA}/api/xref/genesis/1.json`, r => (fail ? r.fulfill({ status: 500, body: "" }) : r.fulfill({ json: { 1: [["john", 1, 1]] } })));
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await touchVerse(page, "touchstart", 1);
+  await touchVerse(page, "touchend", 0);
+  await page.getByRole("tab", { name: "Study" }).click();
+  await page.getByRole("button", { name: "References", exact: true }).click();
+  const sheet = page.locator(".bs-resources");
+  await expect(sheet.getByText("This did not load.")).toBeVisible();
+  await expect(sheet.getByText("No cross references for this verse.")).toHaveCount(0);
+  fail = false;
+  await sheet.getByRole("button", { name: "Retry" }).click();
+  await expect(sheet.getByText("This did not load.")).toHaveCount(0);
+});
+
+test("a running plan whose books fail to load says so, and never offers to start over", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("cj:plan", JSON.stringify({ startedAt: "2026-10-01", day: 3, streak: 2, perDay: 4, books: ["john"], name: "John" })));
+  await page.route(`${DATA}/api/kjv/books.json`, r => r.fulfill({ status: 500, body: "" }));
+  await page.goto("/plan");
+  await expect(page.getByText("Your plan did not load")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start the plan" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Start over" })).toHaveCount(0);
+});
+
+test("the day's verse is asked for by the reader's own date", async ({ page }) => {
+  const asked: string[] = [];
+  page.on("request", r => { if (r.url().includes("/api/verse-of-day")) asked.push(new URL(r.url()).searchParams.get("date") ?? ""); });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect.poll(() => asked).toContain(await page.evaluate(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }));
 });

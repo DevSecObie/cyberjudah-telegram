@@ -6,7 +6,7 @@ import { data } from "@/api/data";
 import { advance, planDay } from "@/lib/plan";
 import { markRead, useLast, usePlan, useProgress } from "@/lib/marks";
 import {
-  ackReminder, currentEndpoint, currentSubscription, forgetReminder, getReminder, hasDevice, linkLink, PAUSE_FOREVER, pushState, saveReminder, subscribePush, timeLabel, timeZone, unsubscribePush,
+  ackReminder, currentEndpoint, currentSubscription, forgetReminder, getReminder, hasDevice, linkLink, PAUSE_FOREVER, planContent, pushState, saveReminder, subscribePush, timeLabel, timeZone, unsubscribePush,
   type Channels, type Content, type PushState, type ReminderView,
 } from "@/lib/reminders";
 import { useBackButton, useStored } from "@/tg/hooks";
@@ -31,7 +31,7 @@ export function useContent(): Content | null {
   const [plan, , planLoaded] = usePlan();
   const [last, , lastLoaded] = useLast();
   if (!planLoaded || !lastLoaded) return null;
-  return { plan: plan ? { day: plan.day, perDay: plan.perDay } : null, last: last ? { slug: last.slug, chapter: last.chapter } : null };
+  return { plan: planContent(plan), last: last ? { slug: last.slug, chapter: last.chapter } : null };
 }
 
 /** A browser linked to Telegram reminds from the Telegram app's plan, so only the Telegram app (or an unlinked browser) sends its place. */
@@ -276,7 +276,7 @@ export function ReminderSync() {
       if (v.pending.length) { setProgress(prog); if (p !== plan) setPlan(p); await ackReminder(v.pending.map((x) => x.date)).catch(() => undefined); }
       // This browser's push subscription is sent again on every open, so a renewed one is never missed.
       const sub = !app && v.channels.push ? await currentSubscription() : null;
-      if (app || !v.linked || sub) await saveReminder({ ...(app || !v.linked ? { content: { plan: p ? { day: p.day, perDay: p.perDay } : null, last: last ? { slug: last.slug, chapter: last.chapter } : null } } : {}), ...(sub ? { push: sub } : {}) }).catch(() => undefined);
+      if (app || !v.linked || sub) await saveReminder({ ...(app || !v.linked ? { content: { plan: planContent(p), last: last ? { slug: last.slug, chapter: last.chapter } : null } } : {}), ...(sub ? { push: sub } : {}) }).catch(() => undefined);
       // The fallback notice, once on the next open (Settings also shows it once).
       try {
         if (v.notice === "push-fallback" && localStorage.getItem("cj:remind-notice") !== "seen") { localStorage.setItem("cj:remind-notice", "seen"); setNotice(true); }
@@ -287,14 +287,14 @@ export function ReminderSync() {
   }, [ready]);
 
   // Afterwards, a change of place (a plan day done, another chapter read) is sent.
-  const placeKey = `${plan?.day ?? "-"}/${plan?.perDay ?? "-"}/${last?.slug ?? "-"}/${last?.chapter ?? "-"}`;
+  const placeKey = `${plan?.day ?? "-"}/${plan?.perDay ?? "-"}/${plan?.books?.join(",") ?? "-"}/${last?.slug ?? "-"}/${last?.chapter ?? "-"}`;
   const firstKey = useRef<string | null>(null);
   useEffect(() => {
     if (!ready || !synced.current) return;
     if (firstKey.current === null) { firstKey.current = placeKey; return; }
     if (firstKey.current === placeKey || (!app && linked.current)) return;
     firstKey.current = placeKey;
-    const t = window.setTimeout(() => void saveReminder({ content: { plan: plan ? { day: plan.day, perDay: plan.perDay } : null, last: last ? { slug: last.slug, chapter: last.chapter } : null } }).catch(() => undefined), 1500);
+    const t = window.setTimeout(() => void saveReminder({ content: { plan: planContent(plan), last: last ? { slug: last.slug, chapter: last.chapter } : null } }).catch(() => undefined), 1500);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, placeKey]);

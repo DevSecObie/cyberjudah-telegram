@@ -45,9 +45,11 @@ export function Plan() {
     if (a) { setPlan(startPlan(+a.id)); haptic("success"); }
   };
   const reset = async () => { if (plan && await confirm(`Restart ${plan.name ?? "Whole Bible with Apocrypha"}? Your completed chapters stay marked.`)) { setPlan({ ...plan, ...startPlan(plan.perDay), lastDone: undefined }); setViewDay(null); } };
-  useBottomButtons(plan ? (today?.done ? { text: today.day + 1 === today.total ? "Complete plan" : "Tomorrow's reading", onClick: () => setPlan(advance(plan)) } : today?.chapters.find((c) => !c.read) ? { text: `Read ${today.chapters.find((c) => !c.read)!.book} ${today.chapters.find((c) => !c.read)!.chapter}`, onClick: () => { const c = today!.chapters.find((x) => !x.read)!; navigate(`/read/${c.slug}/${c.chapter}`); } } : null) : null, plan ? { text: "Start over", onClick: () => void reset() } : null);
+  useBottomButtons(plan ? (today?.done ? { text: today.day + 1 === today.total ? "Complete plan" : "Tomorrow's reading", onClick: () => setPlan(advance(plan)) } : today?.chapters.find((c) => !c.read) ? { text: `Read ${today.chapters.find((c) => !c.read)!.book} ${today.chapters.find((c) => !c.read)!.chapter}`, onClick: () => { const c = today!.chapters.find((x) => !x.read)!; navigate(`/read/${c.slug}/${c.chapter}`); } } : null) : null, plan && !books.isError ? { text: "Start over", onClick: () => void reset() } : null);
 
   if (books.isPending) return <Screen title="Reading plan"><Skeleton rows={4} /></Screen>;
+  // A running plan whose books did not load is still running: say so, never offer to start over.
+  if (plan && books.isError) return <Screen title="Reading plan"><Empty title="Your plan did not load" action={{ label: "Retry", onClick: () => void books.refetch() }}>Check your connection. Your plan and what you have read are safe.</Empty></Screen>;
   if (!plan || !today) return (
     <Screen title="Reading plan" kicker="Choose your reading pace">
       <Link to="/plans">Browse reading plans</Link>

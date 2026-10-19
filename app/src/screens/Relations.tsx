@@ -8,6 +8,7 @@ import { RELATION_TYPES, annotationParam, createRelation, deleteRelation, endpoi
 import { sheetOpened, useBackButton, useBottomButtons } from "@/tg/hooks";
 import { alert, api, confirm, haptic, openLink } from "@/tg/sdk";
 import { store } from "@/tg/store";
+import { versesOfKey, type Note } from "@/bible/store";
 import { useModal } from "@/ui/modal";
 import { useSheet } from "@/ui/sheet";
 import { Empty, Icon, Screen, SearchField, Skeleton } from "@/ui/ui";
@@ -150,7 +151,19 @@ export function RelationTargetPicker({ source, onClose, onCreated }: { source: E
   const library = useQuery({ queryKey: ["search", debounced, ""], enabled: debounced.length >= 2 && !refKeys, queryFn: () => api<{ ok: boolean; hits: { kind: string; title: string; url: string; sub: string; snippet: string }[] }>(`/api/search?q=${encodeURIComponent(debounced)}&limit=8`) });
   const dict = useQuery({ queryKey: ["dict", debounced, ""], enabled: debounced.length >= 2, queryFn: () => fetch(`/api/dictionary?q=${encodeURIComponent(debounced)}`).then((r) => r.json() as Promise<{ rows: { slug: string; term: string }[] }>) });
   const [notes, setNotes] = useState<Target[]>([]);
-  useEffect(() => { void store.keys().then(async (keys) => { const out: Target[] = []; for (const k of keys.filter((x) => x.startsWith("nt_"))) { const [, slug, ch] = k.split("_"); try { const v = JSON.parse((await store.get(k)) ?? "{}") as Record<string, string>; for (const [verse, text] of Object.entries(v)) { const key = verseKey(slug, +ch, +verse); out.push({ id: `note:${key}`, type: "note", title: text, subtitle: "Note", description: verseLabel([key], books.data), endpoint: { type: "note", verseKey: key, label: text.slice(0, 60) } }); } } catch { /* ignore */ } } setNotes(out); }); }, [books.data]);
+  // The reader's notes (bs_n_, keyed "16/17" by verse) and any left in the older per-verse store (nt_).
+  useEffect(() => { void store.keys().then(async (keys) => {
+    const out: Target[] = []; const seen = new Set<string>();
+    const add = (key: string, text: string) => { if (!text || seen.has(key)) return; seen.add(key); out.push({ id: `note:${key}`, type: "note", title: text, subtitle: "Note", description: verseLabel([key], books.data), endpoint: { type: "note", verseKey: key, label: text.slice(0, 60) } }); };
+    for (const k of keys) {
+      const m = /^(bs_n|nt)_(.+)_(\d+)$/.exec(k); if (!m) continue;
+      try {
+        const v = JSON.parse((await store.get(k)) ?? "{}") as Record<string, Note | string>;
+        for (const [verses, note] of Object.entries(v)) add(verseKey(m[2], +m[3], versesOfKey(verses)[0]), typeof note === "string" ? note : note.title || note.description);
+      } catch { /* ignore */ }
+    }
+    setNotes(out);
+  }); }, [books.data]);
 
   const sections = useMemo(() => {
     const out: { id: string; title: string; items: Target[] }[] = [];

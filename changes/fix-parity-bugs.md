@@ -1,0 +1,7 @@
+- Reading reminders name the chapters of the plan you follow (a New Testament or one-book plan no longer gets Genesis), and "Done" marks those chapters.
+- The day's verse changes at your own midnight, not at midnight UTC.
+- If your reading plan can't load, it says so with Retry, instead of offering to start a new plan over it.
+- The dictionary lists every entry of a letter, not only the first 60, and says when it can't load.
+- Typing a Strong's number with its letter (G26, H430) finds that word on either language tab.
+- A verse's references, themes, comments and precepts say when they couldn't load, with Retry, instead of "nothing here".
+- Notes you write in the reader can be chosen when linking items together, and links between two non-verse items (a dictionary entry and a class, say) are saved.
