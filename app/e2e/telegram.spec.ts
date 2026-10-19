@@ -929,7 +929,7 @@ test("a verse's Comments hold each class's own breakdown of it, and watch from t
   expect(opened.at(-1)?.[1]).toBe("https://www.youtube.com/watch?v=rBRp1JXmK6U&t=2035s");
 });
 
-test("in the Bible, an open sheet shows Telegram's back button and closes with it, its ✕ or a swipe down", async ({ page }) => {
+test("in the Bible, an open sheet shows Telegram's back button and closes with it or a swipe down", async ({ page }) => {
   await page.goto(`/read/genesis/4${LAUNCH}`);
   await expect(page.locator("#verset-5")).toBeVisible();
   expect((await state(page)).back).toBe(false);
@@ -956,15 +956,15 @@ test("in the Bible, an open sheet shows Telegram's back button and closes with i
   await expect(page.locator("[data-sheet-open]")).toHaveCount(1);
   await swipe(200);
   await expect(page.locator("[data-sheet-open]")).toHaveCount(0);
-  // A swipe up opens a half sheet to full height: the verse's tags.
-  await tapVerse(page, 1);
-  await page.locator(".bs-selected .bs-action", { hasText: /^Tags?$/ }).first().click();
-  const note = page.locator(".bs-sheet").filter({ has: page.locator(".bs-sheet__titles") }).last();
-  const before = (await note.boundingBox())!.height;
-  await page.waitForTimeout(350);
-  const t = (await note.locator(".bs-sheet__titles").boundingBox())!;
-  await page.mouse.move(t.x + t.width / 2, t.y + 10); await page.mouse.down(); await page.mouse.move(t.x + t.width / 2, t.y - 120, { steps: 8 }); await page.mouse.up();
-  await expect.poll(async () => (await note.boundingBox())!.height).toBeGreaterThan(before + 40);
+  // A swipe up takes a sheet with two detents to its taller one: Font and settings, 40% then full.
+  await page.click('.bs-iconbtn[aria-label="Scripture options"]');
+  await page.getByRole("menuitem", { name: "Font and settings", exact: true }).click();
+  const params = page.getByRole("dialog", { name: "Font and settings", exact: true });
+  const before = (await params.boundingBox())!.height;
+  await page.waitForTimeout(550);
+  const t = (await params.locator(".bs-sheet__handle").boundingBox())!;
+  await page.mouse.move(t.x + t.width / 2, t.y + 2); await page.mouse.down(); await page.mouse.move(t.x + t.width / 2, t.y - 120, { steps: 8 }); await page.mouse.up();
+  await expect.poll(async () => (await params.boundingBox())!.height).toBeGreaterThan(before + 40);
 });
 
 test("a sheet uses the release position even when a fast swipe finishes before the next render", async ({ page }) => {

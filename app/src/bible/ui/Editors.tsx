@@ -60,7 +60,7 @@ export function TagsPanel({ open, onClose, reference, tags, setTags, selected, o
   const canCreate = !!q.trim() && !all.some((t) => t.name.toLowerCase() === q.trim().toLowerCase());
   const create = () => { const id = `t_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`; setTags({ ...tags, [id]: { id, name: q.trim(), date: Date.now() } }); onToggle(id); setQ(""); };
   return (
-    <Sheet open={open} onClose={onClose} title="Edit tags" subTitle={reference} height="half">
+    <Sheet open={open} onClose={onClose} title="Edit tags" subTitle={reference} snapPoints={[0.7]}>
       <div className="bs-tags">
         <div className="bs-search"><Feather name="search" size={16} color="var(--bs-grey)" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" aria-label="Search tags" /></div>
         {matches.map((t) => <button key={t.id} type="button" role="checkbox" aria-checked={!!selected[t.id]} className="bs-tagrow" onClick={() => { haptic("select"); onToggle(t.id); }}><Checkbox checked={!!selected[t.id]} /><span>{t.name}</span></button>)}
@@ -77,7 +77,7 @@ export function NoteSheet({ open, onClose, reference, initial, onSave, onRemove 
   const [desc, setDesc] = useState("");
   useEffect(() => { if (open) { setTitle(initial?.title ?? ""); setDesc(initial?.description ?? ""); } }, [open, initial]);
   return (
-    <Sheet open={open} onClose={onClose} height="full" title="Note" subTitle={reference} footer={<div className="bs-sheet__actions">{onRemove ? <Button reverse onClick={async () => { if (await confirm("Are you sure you want to delete this note?")) onRemove(); }}>Remove</Button> : null}<Button reverse onClick={onClose}>Cancel</Button><Button onClick={() => onSave({ title: title.trim(), description: desc.trim() })} disabled={!title.trim() && !desc.trim()}>Save</Button></div>}>
+    <Sheet open={open} onClose={onClose} snapPoints={[0.45, 1]} dimFrom={1} background="reverse" title="Note" subTitle={reference} footer={<div className="bs-sheet__actions">{onRemove ? <Button reverse onClick={async () => { if (await confirm("Are you sure you want to delete this note?")) onRemove(); }}>Remove</Button> : null}<Button reverse onClick={onClose}>Cancel</Button><Button onClick={() => onSave({ title: title.trim(), description: desc.trim() })} disabled={!title.trim() && !desc.trim()}>Save</Button></div>}>
       <div className="bs-noteeditor">
         <input className="bs-noteeditor__title" placeholder="Title (optional)" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} aria-label="Title" />
         <textarea className="bs-noteeditor__desc" placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} maxLength={3000} aria-label="Description" autoFocus />
@@ -94,7 +94,7 @@ export function LinkSheet({ open, onClose, reference, onSave }: { open: boolean;
   const valid = /^https?:\/\/\S+$/i.test(url.trim());
   const type = detectLinkType(url.trim());
   return (
-    <Sheet open={open} onClose={onClose} title="Add a link" subTitle={reference} footer={<div className="bs-sheet__actions"><Button reverse onClick={onClose}>Cancel</Button><Button disabled={!valid} onClick={() => onSave({ url: url.trim(), title: title.trim() || (() => { try { return new URL(url.trim()).hostname.replace(/^www\./, ""); } catch { return "Untitled link"; } })(), linkType: type })}>Save</Button></div>}>
+    <Sheet open={open} onClose={onClose} snapPoints={[0.45, 1]} dimFrom={1} background="reverse" title="Add a link" subTitle={reference} footer={<div className="bs-sheet__actions"><Button reverse onClick={onClose}>Cancel</Button><Button disabled={!valid} onClick={() => onSave({ url: url.trim(), title: title.trim() || (() => { try { return new URL(url.trim()).hostname.replace(/^www\./, ""); } catch { return "Untitled link"; } })(), linkType: type })}>Save</Button></div>}>
       <div className="bs-linkform">
         <label>Link URL<input className="bs-input" placeholder="https://" value={url} onChange={(e) => setUrl(e.target.value)} inputMode="url" autoFocus /></label>
         <label>Title<input className="bs-input" placeholder="Untitled link" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} /></label>

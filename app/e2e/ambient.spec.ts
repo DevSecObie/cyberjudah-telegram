@@ -53,7 +53,7 @@ test("ambient selection, independent volume and previews persist without autopla
   await sheet.getByRole("slider", { name: /Ambient volume/ }).fill("40");
   expect(await page.evaluate(() => localStorage.getItem("ambientVolume"))).toBe("0.4");
   await page.screenshot({ animations: "disabled", path: testInfo.outputPath("ambient-sheet-390x780.png") });
-  await sheet.getByRole("button", { name: "Close", exact: true }).click();
+  await page.keyboard.press("Escape");
   await page.screenshot({ animations: "disabled", path: testInfo.outputPath("ambient-panel-390x780.png") });
   await page.getByRole("button", { name: "Stop audio playback", exact: true }).click();
   expect((await state(page)).ramps.at(-1)).toEqual([0, 1]);
@@ -73,7 +73,7 @@ test("failed ambient track leaves the reading running", async ({ page }) => {
   await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("radio", { name: "Soft piano", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Ambient sound is unavailable");
   await expect(page.getByRole("button", { name: "Ambient unavailable", exact: true })).toBeVisible();
-  await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Stop audio playback", exact: true })).toBeVisible();
   const before = (await state(page)).voices;
   await page.evaluate(() => (window as unknown as { __music: { finish(): void } }).__music.finish());
@@ -113,7 +113,7 @@ test("nature sounds preview independently, save the selected element and can be 
 test("music pauses in the background while device narration continues across verses", async ({ page }) => {
   await setup(page); await page.addInitScript(() => localStorage.setItem("ambientTrack", "soft-keys"));
   await panel(page);
-  await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect.poll(async () => (await state(page)).starts).toBe(1);
   await page.locator(".bs-audio").getByRole("button", { name: "Next chapter", exact: true }).click();
   await expect(page).toHaveURL(/\/psalms\/23/);
@@ -131,7 +131,7 @@ test("music pauses in the background while device narration continues across ver
   await expect(page.getByRole("button", { name: "Stop audio playback", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Ambient", exact: true }).click();
   await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("radio", { name: "Warm keys", exact: true }).click();
-  await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect.poll(async () => (await state(page)).starts).toBe(2);
   await page.getByRole("button", { name: "Next verse", exact: true }).click();
   await expect.poll(async () => (await state(page)).starts).toBe(2);
@@ -157,7 +157,7 @@ for (const voice of ["ai:asteria", "narrator:test-reader"]) {
       } });
     }, voice);
     await panel(page);
-    await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
+    await page.keyboard.press("Escape");
     await expect(page.locator("#verset-1")).toHaveAttribute("data-reading", "");
     await expect.poll(async () => (await state(page)).starts).toBe(1);
     await expect.poll(async () => (await state(page)).ramps.some(([gain]) => Math.abs(gain - .18) < .001)).toBe(true);
@@ -175,7 +175,7 @@ for (const voice of ["ai:asteria", "narrator:test-reader"]) {
 test("device speed and pitch changes stay paused until Resume and survive reload", async ({ page }) => {
   await setup(page);
   await panel(page);
-  await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Next verse", exact: true }).click();
   await expect(page.locator("#verset-2")).toHaveAttribute("data-reading", "");
   await page.getByRole("button", { name: "Pause audio playback", exact: true }).click();
@@ -201,7 +201,7 @@ for (const action of ["Pause", "Stop"]) {
   test(`ambient return never overrides ${action.toLowerCase()}`, async ({ page }) => {
     await setup(page); await page.addInitScript(() => localStorage.setItem("ambientTrack", "soft-keys"));
     await panel(page);
-    await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("button", { name: "Close", exact: true }).click();
+    await page.keyboard.press("Escape");
     await expect.poll(async () => (await state(page)).starts).toBe(1);
     await page.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, value: true }); document.dispatchEvent(new Event("visibilitychange")); });
     await page.getByRole("button", { name: `${action} audio playback`, exact: true }).click();

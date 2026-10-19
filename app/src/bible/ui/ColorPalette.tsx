@@ -56,9 +56,9 @@ async function removeColorEverywhere(colorId: string) {
   if (ids.length) await changeAnnotations({ remove: ids });
 }
 
-export function ColorPaletteSheet({ open, request, onClose, settings: s, set, palette, theme, hasBack }: {
+export function ColorPaletteSheet({ open, request, onClose, settings: s, set, palette, theme }: {
   open: boolean; request?: PaletteRequest | null; onClose: () => void;
-  settings: BibleSettings; set: (p: Partial<BibleSettings>) => void; palette: Palette; theme: ThemeName; hasBack?: boolean;
+  settings: BibleSettings; set: (p: Partial<BibleSettings>) => void; palette: Palette; theme: ThemeName;
 }) {
   const [editing, setEditing] = useState<Editing | null>(null);
   useEffect(() => { if (!open) setEditing(null); }, [open]);
@@ -93,7 +93,7 @@ export function ColorPaletteSheet({ open, request, onClose, settings: s, set, pa
   const count = (key: string) => <span className="bs-palette__count">{usage[key] ?? 0} highlight(s)</span>;
   return (
     <>
-      <Sheet open={open && !editing} onClose={onClose} title="Color palette" hasBack={hasBack} onBack={onClose} className="bs-palette-sheet">
+      <Sheet open={open} onClose={onClose} title="Color palette" className="bs-palette-sheet">
         <div className="bs-palette">
           <h3 className="bs-palette__section">Default colors</h3>
           {DEFAULT_COLOR_KEYS.map((key, i) => {
@@ -130,16 +130,16 @@ export function ColorPaletteSheet({ open, request, onClose, settings: s, set, pa
             : <p className="bs-palette__limit">Limit of 20 custom colors reached</p>}
         </div>
       </Sheet>
-      {editing ? <ColorEditSheet open={open} mode={editing.mode === "add" ? "add" : "edit"} initial={editing} hasBack onClose={() => setEditing(null)}
+      {editing ? <ColorEditSheet open={open} mode={editing.mode === "add" ? "add" : "edit"} initial={editing} onClose={() => setEditing(null)}
         onSave={(hex, name, type) => save(editing, hex, name, type)} onDelete={editing.mode === "edit-custom" ? () => void deleteCustom(editing.color) : undefined} /> : null}
     </>
   );
 }
 
 /** ColorEditModal: the colour on a picker, its name, its highlight type, a preview, Validate. */
-export function ColorEditSheet({ open, mode, initial, titleName, onClose, onSave, onDelete, hasBack, dark }: {
+export function ColorEditSheet({ open, mode, initial, titleName, onClose, onSave, onDelete, dark }: {
   open: boolean; mode: "add" | "edit"; initial: { hex: string; name?: string; type: HighlightType }; titleName?: string;
-  onClose: () => void; onSave: (hex: string, name: string | undefined, type: HighlightType) => void; onDelete?: () => void; hasBack?: boolean; dark?: boolean;
+  onClose: () => void; onSave: (hex: string, name: string | undefined, type: HighlightType) => void; onDelete?: () => void; dark?: boolean;
 }) {
   const [hex, setHex] = useState(initial.hex);
   const [name, setName] = useState(initial.name ?? "");
@@ -151,7 +151,7 @@ export function ColorEditSheet({ open, mode, initial, titleName, onClose, onSave
     : type === "textColor" ? { color: hex } : { borderBottom: `4px solid ${hex}99` };
   const title = mode === "add" ? "New color" : `Edit ${titleName ?? initial.name ?? ""}`.trim();
   return (
-    <Sheet open={open} onClose={onClose} title={title} label={title} hasBack={hasBack} onBack={onClose} className="bs-coloredit-sheet"
+    <Sheet open={open} onClose={onClose} title={title} label={title} className="bs-coloredit-sheet"
       right={onDelete ? <button type="button" className="bs-iconbtn" aria-label="Remove" title="Remove" onClick={onDelete}><Feather name="trash-2" size={16} color="var(--bs-quart)" /></button> : undefined}>
       <div className="bs-coloredit">
         <ColorPicker value={hex} onChange={setHex} />

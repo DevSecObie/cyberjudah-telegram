@@ -252,12 +252,12 @@ test("reader press preference still swaps resources and verse selection", async 
   await page.goto("/read/genesis/1");
   await menu(page, "Font and settings");
   await page.getByRole("button", { name: "Showing strongs: Long press", exact: true }).click();
-  await page.getByRole("dialog", { name: "Font and settings" }).getByRole("button", { name: "Close", exact: true }).click();
+  await page.keyboard.press("Escape");
   await page.locator("#verset-1 .bs-num").click();
   await expect(page.locator(".bs-resourcetabs")).toBeVisible();
   await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
-  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  await page.keyboard.press("Escape");
   const b = (await page.locator("#verset-1 .bs-num").boundingBox())!;
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
   await page.mouse.down(); await page.waitForTimeout(550); await page.mouse.up();
@@ -352,7 +352,7 @@ test("search applies filters on the server, pages, sorts, and preserves a typed 
 test("reader verse numbers can be hidden without hiding them from assistive technology", async ({ page }) => {
   await page.goto("/read/genesis/1"); await menu(page, "Font and settings");
   await page.getByRole("switch", { name: "Verse numbers", exact: true }).click();
-  await page.getByRole("dialog", { name: "Font and settings" }).getByRole("button", { name: "Close", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(page.locator("#verset-1 .bs-num")).toHaveCount(0);
   await expect(page.locator("#verset-1 .sr-only")).toHaveText("1");
   await page.reload(); await expect(page.locator("#verset-1")).toBeVisible();

@@ -291,7 +291,7 @@ async function shortPress(page: Page) {
   await page.getByRole("menuitem", { name: "Font and settings", exact: true }).tap();
   await page.getByRole("button", { name: "Showing strongs: Long press", exact: true }).tap();
   await expect(page.getByRole("button", { name: "Showing strongs: Short press", exact: true })).toBeVisible();
-  await page.getByRole("dialog", { name: "Font and settings", exact: true }).getByRole("button", { name: "Close", exact: true }).tap();
+  await page.keyboard.press("Escape");
   // Raw CDP touches do not wait for the settings scrim or its modal lock to disappear.
   await expect(page.getByRole("dialog", { name: "Font and settings", exact: true })).toHaveCount(0);
   await expect(page.locator("html")).not.toHaveAttribute("data-modal");
@@ -540,7 +540,7 @@ test("a saved mark takes tags and relations from the card, with their counts, as
   await tagsSheet.getByLabel("Search tags", { exact: true }).fill("Creation");
   await tagsSheet.getByRole("button", { name: "Create « Creation »", exact: true }).tap();
   await expect(tagsSheet.getByRole("checkbox", { name: "Creation", exact: true })).toHaveAttribute("aria-checked", "true");
-  await tagsSheet.getByRole("button", { name: "Close", exact: true }).tap();
+  await page.keyboard.press("Escape");
   await expect(toolbar(page).getByRole("button", { name: "Tags, 1", exact: true })).toBeVisible();
   await page.reload(); await enterAnnotation(page); await marked(page).tap();
   await expect(toolbar(page).getByRole("button", { name: "Tags, 1", exact: true })).toBeVisible();

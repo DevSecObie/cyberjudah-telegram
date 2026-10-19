@@ -26,7 +26,7 @@ export function ParamsSheet({ open, onClose, settings: s, set, palette, theme }:
   const press = { shortPress: "Short press", longPress: "Long press" }[s.press];
   return (
     <>
-      <Sheet open={open && !sub} onClose={onClose} height="full" label="Font and settings">
+      <Sheet open={open} onClose={onClose} snapPoints={[0.4, 1]} label="Font and settings">
         <div className="bs-params">
           <Row label="Theme" value={scheme}>
             <IconBtn name="sun" label="Day" selected={s.preferredColorScheme === "light"} onPress={() => set({ preferredColorScheme: "light" })} />
@@ -68,7 +68,7 @@ export function ParamsSheet({ open, onClose, settings: s, set, palette, theme }:
           <LinkRow label="Share options" onPress={() => setSub("share")} />
         </div>
       </Sheet>
-      <Sheet open={open && sub === "fonts"} onClose={() => setSub(null)} title="Fonts" hasBack onBack={() => setSub(null)}>
+      <Sheet open={open && sub === "fonts"} onClose={() => setSub(null)} title="Fonts">
         <div className="bs-fontlist">
           {FONTS.map((f) => (
             <button key={f} type="button" role="radio" aria-checked={f === s.fontFamily} className="bs-fontrow" onClick={() => { set({ fontFamily: f }); setSub(null); }}>
@@ -78,8 +78,8 @@ export function ParamsSheet({ open, onClose, settings: s, set, palette, theme }:
           ))}
         </div>
       </Sheet>
-      <ColorPaletteSheet open={open && sub === "palette"} onClose={() => setSub(null)} settings={s} set={set} palette={palette} theme={theme} hasBack />
-      <Sheet open={open && sub === "share"} onClose={() => setSub(null)} title="Share options" hasBack onBack={() => setSub(null)}>
+      <ColorPaletteSheet open={open && sub === "palette"} onClose={() => setSub(null)} settings={s} set={set} palette={palette} theme={theme} />
+      <Sheet open={open && sub === "share"} onClose={() => setSub(null)} title="Share options">
         <ShareOptions settings={s} set={set} />
       </Sheet>
     </>
