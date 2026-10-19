@@ -68,3 +68,14 @@ test("the lexicon files every word by its meaning, opens on A, and filters by la
   await page.fill("#lex-q", "G26");
   await expect(page.locator("a[href='/lexicon/G26']")).toBeVisible();
 });
+
+test("a letter with few words keeps the alphabet at the bottom of the screen, above the bar", async ({ page }) => {
+  await setup(page);
+  await page.route("**/api/dictionary?*", r => r.fulfill({ json: { count: 1, page: 1, pages: 1, rows: [{ slug: "aaron", term: "Aaron" }], related: [], total: 3963 } }));
+  await page.goto("/dictionary");
+  await expect(page.getByRole("link", { name: "Aaron", exact: true })).toBeVisible();
+  const strip = (await page.locator(".bs-alpha").boundingBox())!;
+  const bar = (await page.getByRole("navigation", { name: "Sections" }).boundingBox())!;
+  expect(Math.abs(strip.y + strip.height - bar.y)).toBeLessThanOrEqual(1);
+});
+
