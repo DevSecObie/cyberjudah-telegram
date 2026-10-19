@@ -35,7 +35,7 @@ export function WhySheet({ open, onClose, slug, chapter, verse, reference, onRea
     return c ? c.verses.filter((v) => want.has(v.verse)).map((v) => v.text).join(" ") : "";
   };
   return (
-    <Sheet open={open} onClose={onClose} height="full" title={reference} subTitle={items.length > 1 ? "Precepts" : "Precept"} className="why-sheet">
+    <Sheet open={open} onClose={onClose} snapPoints={[1]} background="reverse" title={reference} subTitle={items.length > 1 ? "Precepts" : "Precept"} className="why-sheet">
       <div className="why">
         {[...leads.values()].map((r) => (
           <div key={`lead|${r.point}`} className="why__lead">

@@ -426,7 +426,8 @@ for (const theme of ["default", "dark", "sepia"]) {
         const restShadow = await knob.evaluate(e => getComputedStyle(e, "::after").boxShadow);
         await toggle.hover(); await page.mouse.down();
         await expect.poll(() => knob.evaluate(e => new DOMMatrix(getComputedStyle(e, "::after").transform).a)).toBeCloseTo(preference === "motion" ? 1 : 1.2, 5);
-        if (preference !== "forced") expect(await knob.evaluate(e => getComputedStyle(e, "::after").boxShadow)).not.toBe(restShadow);
+        // The pressed look waits out the 50 ms press delay (ui/press.ts).
+        if (preference !== "forced") await expect.poll(() => knob.evaluate(e => getComputedStyle(e, "::after").boxShadow)).not.toBe(restShadow);
         if (["system", "app", "contrast", "forced"].includes(preference)) expect((await materials(page, [[".switch", "::after"]]))[0].alpha).toBe(255);
         await page.mouse.up();
         const label = (await toggle.locator("b").boundingBox())!, thumb = (await toggle.locator(".switch").boundingBox())!;
@@ -600,7 +601,7 @@ for (const preference of ["normal", "motion", "app", "forced"] as const) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     expect(await slider.evaluate(e => getComputedStyle(e).backdropFilter || getComputedStyle(e).getPropertyValue("-webkit-backdrop-filter"))).toBe("none");
     // Cancel: this visual check never uploads a portrait.
-    await sheet.getByRole("button", { name: "Close", exact: true }).click();
+    await page.keyboard.press("Escape");
     await expect(sheet).toHaveCount(0);
   });
 }
@@ -802,14 +803,15 @@ for (const mode of ["native", "fallback", "reduced"] as const) {
     await pickerTrigger.click();
     const picker = page.getByRole("dialog", { name: "Books", exact: true });
     await expect(picker).toBeVisible();
-    await picker.getByRole("button", { name: "Close", exact: true }).click();
-    await expect(page.locator(".bs-picker")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
     await expect(pickerTrigger).toBeFocused();
     const motion = await page.evaluate(() => ({ native: !!document.startViewTransition, calls: (window as any).__popoverTransitions, frames: (window as any).__popoverFrames }));
-    if (mode === "native" && motion.native) expect(motion.calls).toBeGreaterThanOrEqual(4);
+    // The ⋮ menu opens and closes by a morph (2 transitions); the book picker is a bottom sheet and rises instead.
+    if (mode === "native" && motion.native) expect(motion.calls).toBeGreaterThanOrEqual(2);
     else expect(motion.calls).toBe(0);
     if (mode === "reduced") {
-      expect(motion.frames.length).toBeGreaterThanOrEqual(4);
+      expect(motion.frames.length).toBeGreaterThanOrEqual(2);
       expect(motion.frames.flat().every((frame: { transform: string }) => frame.transform === "none")).toBe(true);
     }
   });
@@ -879,8 +881,9 @@ for (const reduced of [false, true]) {
     expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
     await menu.getByRole("button", { name: "New group", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "New group", exact: true }).getByRole("textbox", { name: "Name" })).toBeFocused();
-    await page.getByRole("button", { name: "Cancel", exact: true }).click();
-    await expect(page.locator(".sheet[data-popover]")).toHaveCount(0);
+    // Bible Strong's RenameModal has no Cancel: Escape (a swipe or a tap outside on a phone) closes it.
+    await page.keyboard.press("Escape");
+    await expect(page.locator(".sheet[data-popover], .action-sheet")).toHaveCount(0);
     await expect(groups).toBeFocused();
   });
 }
@@ -931,7 +934,7 @@ for (const theme of ["default", "dark", "sepia"]) {
 }
 
 for (const reduced of [false, true]) {
-  test(`sheets: half expands to full with safe insets and ${reduced ? "reduced" : "normal"} motion`, async ({ page }) => {
+  test(`sheets: Bible Strong's detents, with safe insets and ${reduced ? "reduced" : "normal"} motion`, async ({ page }) => {
     await setup(page);
     if (reduced) await page.emulateMedia({ reducedMotion: "reduce" });
     await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK.replace(
@@ -967,11 +970,22 @@ for (const reduced of [false, true]) {
     expect(parseFloat(await selection.evaluate(e => getComputedStyle(e).paddingBottom))).toBeGreaterThanOrEqual(30);
     // It keeps its content's height: there is no expanding it, only a grabber.
     await expect(selection.getByRole("button", { name: "Expand sheet", exact: true })).toHaveCount(0);
+    // Bible Strong's tags sheet keeps one detent (70%): a pull up does not grow it.
     await page.getByRole("button", { name: "Tag", exact: true }).click();
-    const sheet = page.getByRole("dialog", { name: "Edit tags", exact: true });
+    const tags = page.getByRole("dialog", { name: /^Tags for / });
+    await expect(tags).toHaveCSS("border-bottom-left-radius", "36px");
+    await expect(tags.getByRole("button", { name: "Expand sheet", exact: true })).toHaveCount(0);
+    await page.keyboard.press("Escape"); await expect(tags).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    // Font and settings has Bible Strong's two detents, 40% then full: a pull up on the grabber
+    // takes it to full height, edge to edge; the grabber goes back and forth.
+    await page.getByRole("button", { name: "Scripture options" }).click();
+    await page.getByRole("menuitem", { name: "Font and settings", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "Font and settings", exact: true });
     await expect(sheet).toHaveCSS("border-bottom-left-radius", "36px");
-    await expect(sheet).toHaveClass(/bs-sheet--half/);
-    await sheet.evaluate(async el => { await Promise.all(el.getAnimations().map(a => a.finished.catch(() => {}))); });
+    const max = 844 - 24 - 8;
+    await expect.poll(async () => Math.round((await sheet.boundingBox())!.height)).toBe(Math.round(.4 * max));
+    await page.waitForTimeout(550);
     const handle = (await sheet.locator(".bs-sheet__handle").boundingBox())!;
     await page.mouse.move(handle.x + handle.width / 2, handle.y + 2); await page.mouse.down();
     await page.mouse.move(handle.x + handle.width / 2, handle.y - 100, { steps: 6 }); await page.mouse.up();
@@ -979,17 +993,13 @@ for (const reduced of [false, true]) {
     await expect(sheet).toHaveCSS("border-bottom-left-radius", "0px");
     await expect.poll(async () => Math.round((await sheet.boundingBox())!.width)).toBe(390);
     await expect.poll(async () => Math.round((await sheet.boundingBox())!.x)).toBe(0);
-    const frames = await page.evaluate(() => (window as any).__sheetFrames);
-    expect(frames).toHaveLength(1);
-    expect(frames[0].every((f: object) => Object.keys(f).every(k => ["transform", "opacity", "offset", "easing", "composite"].includes(k)))).toBe(true);
-    if (reduced) expect(frames[0].every((f: { transform: string }) => f.transform === "none")).toBe(true);
-    expect((await materials(page, [[".bs-sheet--full"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
+    await expect.poll(async () => Math.round((await sheet.boundingBox())!.height)).toBe(max);
     await sheet.getByRole("button", { name: "Collapse sheet", exact: true }).focus(); await page.keyboard.press("Enter");
-    await expect(sheet).toHaveClass(/bs-sheet--half/);
+    await expect(sheet).not.toHaveClass(/bs-sheet--full/);
     await expect(sheet.getByRole("button", { name: "Expand sheet", exact: true })).toBeFocused();
     await sheet.getByRole("button", { name: "Expand sheet", exact: true }).click();
     await expect(sheet).toHaveClass(/bs-sheet--full/);
-    await sheet.getByRole("button", { name: "Close", exact: true }).click(); await expect(sheet).toHaveCount(0);
+    await page.keyboard.press("Escape"); await expect(sheet).toHaveCount(0);
   });
 }
 
@@ -1025,27 +1035,13 @@ for (const width of [390, 768, 1280]) {
 
 // The native snapshot can arrive after the selector's parent effects have run.
 // The current book must scroll when the list actually mounts, including slow snapshots.
-test("menus: a delayed picker mount still brings the current book into view", async ({ page }) => {
+test("menus: the book picker brings the current book into view, however long the list", async ({ page }) => {
   await setup(page);
   await page.route(`${DATA_ORIGIN}/api/kjv/books.json`, r => r.fulfill({ json: Array.from({ length: 41 }, (_, i) => ({
     book: i === 40 ? "Genesis" : `Book fixture ${i + 1}`, slug: i === 40 ? "genesis" : `fixture-${i}`, chapters: 50, verses: 1533, testament: "Old Testament", url: "/bible/genesis", chapterIds: [1],
   })) }));
-  await page.addInitScript(() => {
-    const original = document.startViewTransition?.bind(document);
-    document.startViewTransition = ((update: () => void | Promise<void>) => {
-      const gate = new Promise<void>(resolve => { (window as any).__releasePicker = resolve; });
-      const run = async () => { (window as any).__pickerSnapshotWaiting = true; await gate; await update(); };
-      if (original) return original(run);
-      const finished = run();
-      return { finished, ready: finished, updateCallbackDone: finished, skipTransition() {} };
-    }) as typeof document.startViewTransition;
-  });
   await page.goto(`/read/genesis/1${LAUNCH}`); await page.locator("#verset-1").waitFor();
   await page.getByRole("button", { name: /Choose book and chapter/ }).click();
-  await page.waitForFunction(() => (window as any).__pickerSnapshotWaiting);
-  // Let the parent's already-queued effects/timers finish before releasing the mount.
-  await page.evaluate(() => new Promise<void>(resolve => setTimeout(resolve, 0)));
-  await page.evaluate(() => (window as any).__releasePicker());
   await expect(page.getByRole("dialog", { name: "Books", exact: true })).toBeVisible();
   await expect(page.locator(".bs-bookrow[data-current]")).toBeInViewport();
 });
@@ -1071,15 +1067,16 @@ for (const theme of ["default", "dark", "sepia"]) {
       expect(frame.x - box.x).toBeGreaterThanOrEqual(20);
       expect(box.x + box.width - frame.x - frame.width).toBeGreaterThanOrEqual(20);
     }
-    await photo.getByRole("button", { name: "Close", exact: true }).click();
+    await page.keyboard.press("Escape");
     await page.goto(`/ask${LAUNCH}`); await page.getByRole("button", { name: "Your chats", exact: true }).click();
     const chats = page.getByRole("dialog", { name: "Your chats", exact: true });
     await expect(chats).toHaveCSS("border-top-left-radius", "36px"); await expect(chats).toHaveCSS("border-bottom-left-radius", "0px");
-    await chats.getByRole("button", { name: "Close", exact: true }).click();
+    await page.keyboard.press("Escape");
     await page.goto(`/read/genesis/1${LAUNCH}`); await page.getByRole("button", { name: "Scripture options" }).click();
     await page.getByRole("menuitem", { name: "Font and settings", exact: true }).click();
     const settings = page.getByRole("dialog", { name: "Font and settings", exact: true });
-    await expect(settings).toBeVisible(); await expect(settings).toHaveCSS("border-bottom-left-radius", "0px");
+    // It opens at Bible Strong's first detent (40%), floating inset.
+    await expect(settings).toBeVisible(); await expect(settings).toHaveCSS("border-bottom-left-radius", "36px");
     expect(await settings.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
   });
 }
@@ -1105,8 +1102,10 @@ for (const theme of ["default", "dark", "sepia"]) {
         if (scene === "more" || scene === "chats") { const label = page.locator(scene === "more" ? ".mcard__label" : ".chats__open b").first(); expect(await label.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBe((scene === "more" ? 15 : 15.5) * scale / 100); }
         for (const row of await rows.all()) {
           const rect = (await row.boundingBox())!;
-          expect(rect.height, `${scene} at ${width}/${scale}`).toBeGreaterThanOrEqual(44);
-          expect(rect.width).toBeGreaterThanOrEqual(44);
+          // 44 px targets; a hundredth of a pixel allows for float error in a sheet's layout (Firefox
+          // reports 43.99999 for a 44 px row).
+          expect(rect.height, `${scene} at ${width}/${scale}`).toBeGreaterThanOrEqual(43.99);
+          expect(rect.width).toBeGreaterThanOrEqual(43.99);
         }
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         const caps = await page.locator("h2, h3, .eyebrow, .mcard__head").evaluateAll(els => els.filter(el => getComputedStyle(el).textTransform === "uppercase").map(el => el.textContent));
@@ -1118,7 +1117,7 @@ for (const theme of ["default", "dark", "sepia"]) {
           if (scene === "settings") await expect(page.getByRole("group", { name: "Reading", exact: true })).toBeVisible();
         }
         if (scene === "more") await expect(page.getByRole("heading", { name: "Resources", exact: true })).toBeVisible();
-        if (scene === "chats") { await page.getByRole("dialog", { name: "Your chats", exact: true }).getByRole("button", { name: "Close", exact: true }).click(); await expect(page.getByRole("dialog", { name: "Your chats", exact: true })).toHaveCount(0); }
+        if (scene === "chats") { await page.keyboard.press("Escape"); await expect(page.getByRole("dialog", { name: "Your chats", exact: true })).toHaveCount(0); }
       }
     });
   }

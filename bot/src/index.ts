@@ -10,6 +10,7 @@ import { Api, webhookCallback } from "grammy";
 import type { InlineQueryResultArticle } from "grammy/types";
 import type { Env, Exec, Sub } from "./env";
 import { launchMaxAge, sameHex, validateInitData, type InitData } from "./initdata.mjs";
+import { pdfLinkOk, pdfSig } from "./pdf-link";
 import { createBot, deletedSummary, todaysVerse } from "./bot";
 import { chapter, dataJson, escapeHtml, openLink } from "./data";
 import { runSearch } from "./search";
@@ -121,8 +122,8 @@ app.post("/webhook", async (c) => {
 app.get("/api/health", async (c) => {
   const probe = async (f: () => Promise<unknown>) => { const t0 = Date.now(); try { await f(); return { ok: true, ms: Date.now() - t0 }; } catch (e) { return { ok: false, ms: Date.now() - t0, error: (e as Error).message?.slice(0, 80) }; } };
   const [search, teachings] = await Promise.all([
-    probe(() => c.env.DB.prepare("SELECT count(*) AS n FROM search_docs LIMIT 1").first()),
-    probe(() => c.env.TEACH.prepare("SELECT count(*) AS n FROM teaching_passages LIMIT 1").first()),
+    probe(() => c.env.DB.prepare("SELECT 1 AS n FROM search_docs LIMIT 1").first()),
+    probe(() => c.env.TEACH.prepare("SELECT 1 AS n FROM teaching_passages LIMIT 1").first()),
   ]);
   return c.json({ ok: search.ok && teachings.ok, search, teachings, ask: { model: hasClaude(c.env) ? c.env.CLAUDE_MODEL : "workers-ai", billing: unifiedBilling(c.env) ? "cloudflare" : hasClaude(c.env) ? "anthropic" : "none" }, at: new Date().toISOString() }, { headers: { "cache-control": "no-store" } });
 });
@@ -294,11 +295,6 @@ app.post("/api/ask", async (c) => {
 // person's chat with the bot. The link names the note and an expiry, signed with the bot token.
 const NOTE_PATH = /^\/(classes|captains|history|study|encyclopedia)\/[A-Za-z0-9_-][A-Za-z0-9._/-]{0,160}$/;
 const okNotePath = (p: string) => NOTE_PATH.test(p) && !p.includes("..");
-async function pdfSig(env: Env, path: string, exp: number): Promise<string> {
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(`pdf:${env.BOT_TOKEN}`), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${path}|${exp}`));
-  return [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 40);
-}
 type NoteJson = { kind?: string; title?: string; date?: string; teacher?: string; url?: string; body?: string };
 app.post("/api/notes/pdf", async (c) => {
   const body = await c.req.json<{ path?: string; send?: boolean }>().catch(() => null);
@@ -313,7 +309,7 @@ app.post("/api/notes/pdf", async (c) => {
     return c.json({ ok: true, sent: true });
   }
   const exp = Math.floor(Date.now() / 1000) + 900;
-  const url = `${new URL(c.req.url).origin}/api/pdf${path}?exp=${exp}&sig=${await pdfSig(c.env, path, exp)}`;
+  const url = `${new URL(c.req.url).origin}/api/pdf${path}?exp=${exp}&sig=${await pdfSig(c.env.BOT_TOKEN, path, exp)}`;
   return c.json({ ok: true, url, file: pdfName(note) });
 });
 // A backup of everything the reader kept (Bible Strong's Backup screen): the app sends its
@@ -335,7 +331,7 @@ app.post("/api/backup", async (c) => {
 app.get("/api/pdf/*", async (c) => {
   const path = c.req.path.slice("/api/pdf".length);
   const exp = Number(c.req.query("exp")), sig = c.req.query("sig") ?? "";
-  if (!okNotePath(path) || !(exp > Date.now() / 1000) || sig !== (await pdfSig(c.env, path, exp))) return c.text("This link has expired. Ask for the PDF again from the app.", 403);
+  if (!okNotePath(path) || !(await pdfLinkOk(c.env.BOT_TOKEN, path, exp, sig))) return c.text("This link has expired. Ask for the PDF again from the app.", 403);
   const note = await dataJson<NoteJson>(c.env, `/api/notes${path}.json`, c.executionCtx);
   if (!note?.body) return c.text("Not found", 404);
   const bytes = await notePdf(note, { site: c.env.SITE_URL });

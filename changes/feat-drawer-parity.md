@@ -1,0 +1,5 @@
+- Home shows the class when it is live, or when it starts within six hours, and says when you are offline.
+- Home has 4 Chapters a Day and the Bible timeline side by side, the newest class series, a link to every reading plan, Donate and Questions.
+- The daily verse image can be shared as a picture, and the card shows a placeholder while it loads.
+- The Menu starts with your account, adds Downloads, Contact us (a chat with the bot), Privacy and Terms, and opens again where you left it.
+- The Home and Menu drawers slide with Bible Strong's spring.

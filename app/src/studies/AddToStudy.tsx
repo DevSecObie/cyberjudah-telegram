@@ -21,7 +21,7 @@ export function AddToStudy({ blocks, onClose }: { blocks: StudyBlock[]; onClose:
       onClose(); navigate(`/studies/${saved.id}`);
     } catch (e) { setError(e instanceof Error ? e.message : "The study could not be saved."); } finally { setBusy(false); }
   };
-  return <Sheet open onClose={onClose} title="Add to study"><div className="personal-study">
+  return <Sheet open onClose={onClose} snapPoints={[1]} title="Add to study"><div className="personal-study">
     <p className="study-muted">Keep Scripture, word studies and your own writing together.</p>
     {error && <StudyNotice error>{error}</StudyNotice>}
     <Button disabled={busy} onClick={() => void add()}><Icon name="plus" size={18} />New study</Button>

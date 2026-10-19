@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigationType } from "react-router";
+import { useSheetRoute } from "@/ui/sheetRoute";
 
 /**
  * The reader's place on a screen, kept for this visit: how far down they were and what they had
@@ -39,18 +40,25 @@ export function useKeptScroll(ready: boolean) {
   const { key } = useLocation();
   const k = `visit:${key}:y`;
   const restored = useRef<string | null>(null);
+  // In a route sheet the sheet's body scrolls, not the page behind it.
+  const inSheet = !!useSheetRoute();
   useEffect(() => {
+    const el = scroller(inSheet);
     let raf = 0;
-    const save = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { if (restored.current === k) write(k, Math.round(window.scrollY)); }); };
-    window.addEventListener("scroll", save, { passive: true });
-    return () => { window.removeEventListener("scroll", save); cancelAnimationFrame(raf); };
-  }, [k]);
+    const save = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { if (restored.current === k) write(k, Math.round(topOf(el))); }); };
+    el.addEventListener("scroll", save, { passive: true });
+    return () => { el.removeEventListener("scroll", save); cancelAnimationFrame(raf); };
+  }, [k, inSheet]);
   useLayoutEffect(() => {
     if (!ready || restored.current === k) return;
+    const el = scroller(inSheet);
     const y = read<number>(k) ?? 0;
-    window.scrollTo(0, y);
+    el.scrollTo(0, y);
     // Content below may still be arriving (a card's verse); hold the place until it has.
-    if (y > 0) { let n = 0; const hold = () => { if (window.scrollY < y - 2 && n++ < 20) { window.scrollTo(0, y); requestAnimationFrame(hold); } else restored.current = k; }; requestAnimationFrame(hold); }
+    if (y > 0) { let n = 0; const hold = () => { if (topOf(el) < y - 2 && n++ < 20) { el.scrollTo(0, y); requestAnimationFrame(hold); } else restored.current = k; }; requestAnimationFrame(hold); }
     else restored.current = k;
-  }, [ready, k]);
+  }, [ready, k, inSheet]);
 }
+
+const scroller = (inSheet: boolean): HTMLElement | Window => (inSheet && document.querySelector<HTMLElement>(".route-sheet .bs-sheet__body")) || window;
+const topOf = (el: HTMLElement | Window) => (el instanceof Window ? el.scrollY : el.scrollTop);

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocation, useNavigate } from "react-router";
 
 import { app, features, haptic, has } from "./sdk";
+import { UnderSheetContext, sheetStep } from "@/ui/sheetRoute";
 import { json, store } from "./store";
 
 /**
@@ -60,13 +61,17 @@ export function useBackButton(onBack?: () => boolean | void, pending = false) {
   handler.current = onBack;
   const canGoBack = (window.history.state?.idx ?? 0) > 0;
   const sheets = useSheetsOpen();
+  const underSheet = useContext(UnderSheetContext);
   useEffect(() => {
+    if (underSheet) return;
     const cb = () => {
       haptic("select");
       // An open sheet closes first, like a phone app.
       const all = document.querySelectorAll<HTMLElement>("[data-sheet-open]");
       const sheet = all[all.length - 1];
       if (sheet) {
+        // A route sheet a screen deep steps back within itself, as Bible Strong's sheet stack does.
+        if (sheet.classList.contains("route-sheet") && sheetStep.back) { sheetStep.back(); return; }
         const scrim = sheet.closest(".sheet__scrim");
         // A sheet closes from its scrim; an overlay without one (the class gallery) listens for cj:close.
         if (scrim) scrim.dispatchEvent(new MouseEvent("click", { bubbles: true })); else sheet.dispatchEvent(new CustomEvent("cj:close"));
@@ -81,7 +86,7 @@ export function useBackButton(onBack?: () => boolean | void, pending = false) {
       if (show) { app!.BackButton.onClick(cb); app!.BackButton.show(); } else app!.BackButton.hide();
     }
     return () => { if (backNow === cb) backNow = null; if (has("6.1")) app!.BackButton.offClick(cb); };
-  }, [root, canGoBack, navigate, sheets, pathname, pending]);
+  }, [root, canGoBack, navigate, sheets, pathname, pending, underSheet]);
 }
 
 export type Action = { text: string; onClick: () => void; quiet?: boolean; progress?: boolean; disabled?: boolean; shine?: boolean };
@@ -101,7 +106,9 @@ export function useBottomButtons(main: Action | null, secondary: Action | null =
   const h = useRef({ main, secondary });
   h.current = { main, secondary };
   const key = JSON.stringify([main?.text, main?.quiet, main?.progress, main?.disabled, secondary?.text, secondary?.progress, secondary?.disabled]);
+  const underSheet = useContext(UnderSheetContext);
   useEffect(() => {
+    if (underSheet) return;
     // Telegram's own buttons stay hidden: the app shows the actions itself.
     if (app) { app.MainButton.hide(); if (features.secondaryButton) app.SecondaryButton.hide(); }
     const wrap = (which: "main" | "secondary"): Action | null => {
@@ -110,7 +117,7 @@ export function useBottomButtons(main: Action | null, secondary: Action | null =
     };
     setActions({ main: wrap("main"), secondary: wrap("secondary") });
     return () => setActions({ main: null, secondary: null });
-  }, [key]);
+  }, [key, underSheet]);
 }
 
 /** Telegram's ··· menu gets a Settings entry that opens the app's settings screen. */

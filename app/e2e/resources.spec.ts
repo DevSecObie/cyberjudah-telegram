@@ -4,6 +4,10 @@ import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
+// The harness injects its own inline script; the app's Report-Only script policy would report it,
+// and Firefox and WebKit surface that report as an error from addScriptTag.
+test.use({ bypassCSP: true });
+
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 const DATA_ORIGIN = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
 const book = { book: "Obadiah", slug: "obadiah", chapters: 1, verses: 1, testament: "Old Testament", url: "/bible/obadiah", chapterIds: [1] };
