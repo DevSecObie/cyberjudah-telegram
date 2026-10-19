@@ -222,7 +222,7 @@ test("the precepts a class lined up with a verse: a tag under the verse, and a P
   await longPressVerse(page, 11);
   await expect(page.locator(".bs-sheet__titles b")).toHaveText("Isaiah 11:11");
   await page.click('.bs-resfooter button >> text=Precepts');
-  await expect(page.locator(".bs-sheet__titles small")).toHaveText("Precepts taught with this verse");
+  await expect(page.locator(".bs-sheet__titles small")).toHaveText("Precepts");
   const row = page.locator(".bs-precept").first();
   await expect(row).toBeVisible();
   await expect(row.locator("small")).toContainText(/\S/);
