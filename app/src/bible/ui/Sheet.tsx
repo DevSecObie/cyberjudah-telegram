@@ -74,50 +74,54 @@ export function Sheet({ open, onClose, backdrop = true, height, snapPoints, dimF
   const follow = (dy: number) => (dy < 0 && index >= last ? 0 : dy < 0 ? -Math.sqrt(-dy) * 3 : dy);
   // The content's own drag (touch only, as a native sheet's): pulled down from the top of its
   // scroll it moves the sheet; pushed up before the last detent it grows the sheet. Anything
-  // sideways, or inside a field or a slider, stays the content's.
+  // sideways, or inside a field or a slider, stays the content's. The gesture lives in a ref and
+  // the listeners read the sheet's current state through one, so the renders a drag causes do not
+  // drop it halfway.
+  const touch = useRef<{ x: number; y: number; on: 0 | 1 | -1; scroller: HTMLElement | null } | null>(null);
+  const live = useRef({ index, last, canDismiss, settled, follow, release });
+  live.current = { index, last, canDismiss, settled, follow, release };
   useEffect(() => {
     const el = box.current; if (!el || !open || !draggable) return;
-    let t: { x: number; y: number; on: 0 | 1 | -1; scroller: HTMLElement | null } | null = null;
     const scrollerOf = (n: Element | null): HTMLElement | null => {
       for (let p = n as HTMLElement | null; p && p !== el; p = p.parentElement) { const o = getComputedStyle(p).overflowY; if ((o === "auto" || o === "scroll") && p.scrollHeight > p.clientHeight) return p; }
       return null;
     };
     const onStart = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
-      if (e.touches.length !== 1 || target.closest(".bs-sheet__grab, input, textarea, select, [contenteditable], [data-sheet-nodrag]")) { t = null; return; }
-      t = { x: e.touches[0].clientX, y: e.touches[0].clientY, on: 0, scroller: scrollerOf(target) };
+      if (e.touches.length !== 1 || target.closest(".bs-sheet__grab, input, textarea, select, [contenteditable], [data-sheet-nodrag]")) { touch.current = null; return; }
+      touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, on: 0, scroller: scrollerOf(target) };
     };
     const onMove = (e: TouchEvent) => {
-      if (!t || !settled()) return;
+      const t = touch.current, s = live.current;
+      if (!t || !s.settled()) return;
       const dx = e.touches[0].clientX - t.x, dy = e.touches[0].clientY - t.y;
       if (!t.on) {
-        if (Math.abs(dx) > 8 && Math.abs(dx) >= Math.abs(dy)) { t = null; return; }
+        if (Math.abs(dx) > 8 && Math.abs(dx) >= Math.abs(dy)) { touch.current = null; return; }
         if (Math.abs(dy) < 8) return;
         const atTop = !t.scroller || t.scroller.scrollTop <= 0;
-        if (dy > 0 && atTop && (index > 0 || canDismiss)) t.on = 1;
-        else if (dy < 0 && index < last) t.on = -1;
-        else { t = null; return; }
+        if (dy > 0 && atTop && (s.index > 0 || s.canDismiss)) t.on = 1;
+        else if (dy < 0 && s.index < s.last) t.on = -1;
+        else { touch.current = null; return; }
       }
       e.preventDefault();
-      setDrag(follow(dy));
+      setDrag(s.follow(dy));
     };
     const onEnd = (e: TouchEvent) => {
-      if (!t) return;
-      const on = t.on, dy = (e.changedTouches[0]?.clientY ?? t.y) - t.y; t = null;
-      if (!on) return;
-      release(dy);
+      const t = touch.current; touch.current = null;
+      if (!t?.on) return;
+      live.current.release((e.changedTouches[0]?.clientY ?? t.y) - t.y);
       // The touch that moved the sheet does not also tap what it started on.
       const swallow = (c: Event) => { c.preventDefault(); c.stopPropagation(); };
       el.addEventListener("click", swallow, { capture: true, once: true });
       setTimeout(() => el.removeEventListener("click", swallow, { capture: true }), 400);
     };
+    const onCancel = () => { touch.current = null; setDrag(0); };
     el.addEventListener("touchstart", onStart, { passive: true });
     el.addEventListener("touchmove", onMove, { passive: false });
     el.addEventListener("touchend", onEnd);
-    const onCancel = () => { t = null; setDrag(0); };
     el.addEventListener("touchcancel", onCancel);
     return () => { el.removeEventListener("touchstart", onStart); el.removeEventListener("touchmove", onMove); el.removeEventListener("touchend", onEnd); el.removeEventListener("touchcancel", onCancel); };
-  });
+  }, [open, draggable]);
   useModal(box, open, canDismiss ? onClose : undefined, { lock: dimmed, trap: dimmed });
   if (!open) return null;
   const header = title !== undefined || subTitle !== undefined || hasBack || left || right || headerChildren;
