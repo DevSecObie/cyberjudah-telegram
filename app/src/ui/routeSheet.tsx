@@ -1,8 +1,8 @@
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useNavigate, type Location, type NavigationType } from "react-router";
 
 import { Sheet, type SnapPoint } from "@/bible/ui/Sheet";
-import { SheetRouteContext } from "./sheetRoute";
+import { SheetRouteContext, sheetStep } from "./sheetRoute";
 
 /**
  * Bible Strong's route form sheets. On the iPhone a dictionary word, a theme, a tag, a study, a
@@ -61,6 +61,12 @@ export function RouteSheet({ entry, path, label, children }: { entry: SheetEntry
   const navigate = useNavigate();
   const kind = sheetKind(path) ?? EXPLORE;
   const close = () => navigate(-entry.depth);
+  useEffect(() => {
+    if (entry.depth < 2) return;
+    const back = () => navigate(-1);
+    sheetStep.back = back;
+    return () => { if (sheetStep.back === back) sheetStep.back = null; };
+  }, [entry.depth, navigate]);
   return (
     <Sheet open onClose={close} snapPoints={kind.snapPoints} dimFrom={kind.dimFrom} background="reverse" label={label} className="route-sheet">
       <SheetRouteContext.Provider value={{ depth: entry.depth, back: () => navigate(-1) }}>{children}</SheetRouteContext.Provider>

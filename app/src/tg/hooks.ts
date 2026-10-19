@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef, useState, useSyncExternalStore } from "r
 import { useLocation, useNavigate } from "react-router";
 
 import { app, features, haptic, has } from "./sdk";
-import { UnderSheetContext } from "@/ui/sheetRoute";
+import { UnderSheetContext, sheetStep } from "@/ui/sheetRoute";
 import { json, store } from "./store";
 
 /**
@@ -70,6 +70,8 @@ export function useBackButton(onBack?: () => boolean | void, pending = false) {
       const all = document.querySelectorAll<HTMLElement>("[data-sheet-open]");
       const sheet = all[all.length - 1];
       if (sheet) {
+        // A route sheet a screen deep steps back within itself, as Bible Strong's sheet stack does.
+        if (sheet.classList.contains("route-sheet") && sheetStep.back) { sheetStep.back(); return; }
         const scrim = sheet.closest(".sheet__scrim");
         // A sheet closes from its scrim; an overlay without one (the class gallery) listens for cj:close.
         if (scrim) scrim.dispatchEvent(new MouseEvent("click", { bubbles: true })); else sheet.dispatchEvent(new CustomEvent("cj:close"));
