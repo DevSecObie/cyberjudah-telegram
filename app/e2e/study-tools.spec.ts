@@ -11,34 +11,70 @@ async function setup(page: Page) {
   });
   await page.addInitScript(() => localStorage.setItem("cj:bs", JSON.stringify({ press: "longPress" })));
 }
-test("personal study persists, previews safe formatting and exports its actual draft", async ({ page }) => {
+test("personal study opens to read, writes after the pencil, renames from its title and exports its actual draft", async ({ page }) => {
   await setup(page); await page.goto("/studies");
   await page.getByRole("button", { name: "New study", exact: true }).click();
-  await page.getByLabel("Study title", { exact: true }).fill("Creation study");
+  // Bible Strong's EditStudyScreen: read-only first, the pencil to write, the check to finish.
+  await expect(page.getByRole("textbox", { name: "Writing 1", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Edit study", exact: true }).click();
   await page.getByRole("textbox", { name: "Writing 1", exact: true }).fill("**In the beginning**\n\n<script>window.__injected = true</script>\n\n[bad](javascript:alert(1))");
+  await expect(page.getByRole("toolbar", { name: "Formatting" })).toBeVisible();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.getByRole("button", { name: "Untitled study", exact: true }).click();
+  await page.getByLabel("Study title", { exact: true }).fill("Creation study");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved on this device" })).toBeVisible();
   const url = page.url(); await page.reload();
-  await expect(page.getByLabel("Study title", { exact: true })).toHaveValue("Creation study");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Creation study" })).toBeVisible();
   await expect(page.locator(".study-prose strong")).toHaveText("In the beginning");
   await expect(page.locator('.study-prose script, .study-prose [href^="javascript:"]')).toHaveCount(0);
   await page.getByRole("button", { name: "Study options", exact: true }).click();
   const download = page.waitForEvent("download"); await page.getByRole("button", { name: "Export study", exact: true }).click();
   const file = await download; const saved = JSON.parse(await fs.readFile((await file.path())!, "utf8"));
   expect(saved.title).toBe("Creation study"); expect(saved.blocks[0].text).toContain("**In the beginning**"); expect(url).toContain(saved.id);
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog", { name: "Study options" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Study options", exact: true })).toBeFocused();
+});
+test("the formatting bar writes the study's Markdown on the line or selection being written", async ({ page }) => {
+  await setup(page); await page.goto("/studies");
+  await page.getByRole("button", { name: "New study", exact: true }).click();
+  await page.getByRole("button", { name: "Edit study", exact: true }).click();
+  const writing = page.getByRole("textbox", { name: "Writing 1", exact: true });
+  await writing.fill("Light");
+  await writing.evaluate((el: HTMLTextAreaElement) => { el.focus(); el.setSelectionRange(0, 5); });
+  await page.getByRole("button", { name: "Bold", exact: true }).click();
+  await expect(writing).toHaveValue("**Light**");
+  await page.getByRole("button", { name: /^Normal/ }).click();
+  await page.getByRole("menuitem", { name: "Title", exact: true }).click();
+  await expect(writing).toHaveValue("# **Light**");
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "Bulleted list", exact: true }).click();
+  await expect(writing).toHaveValue("- **Light**");
+  // A heading takes the place of a list marker, not beside it.
+  await page.getByRole("button", { name: /^Normal/ }).click();
+  await page.getByRole("menuitem", { name: "Subtitle", exact: true }).click();
+  await expect(writing).toHaveValue("## **Light**");
+  // A quote or a list marks every selected line, and Undo takes a toolbar change back.
+  await writing.fill("Light\nDarkness");
+  await writing.evaluate((el: HTMLTextAreaElement) => { el.focus(); el.setSelectionRange(0, el.value.length); });
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "Quote", exact: true }).click();
+  await expect(writing).toHaveValue("> Light\n> Darkness");
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(writing).toHaveValue("Light\nDarkness");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Add writing", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Writing 2", exact: true })).toBeVisible();
 });
 test("competing study edits report a conflict without overwriting either draft", async ({ page, context }) => {
   await setup(page); await page.goto("/studies"); await page.getByRole("button", { name: "New study", exact: true }).click();
-  await expect(page.getByLabel("Study title", { exact: true })).toBeVisible();
-  const other = await context.newPage(); await setup(other); await other.goto(page.url()); await expect(other.getByLabel("Study title", { exact: true })).toBeVisible();
-  await page.getByLabel("Study title", { exact: true }).fill("First window"); await expect(page.getByRole("status").filter({ hasText: "Saved on this device" })).toBeVisible();
-  await other.getByLabel("Study title", { exact: true }).fill("Second window");
+  await page.getByRole("button", { name: "Edit study", exact: true }).click();
+  const other = await context.newPage(); await setup(other); await other.goto(page.url());
+  await other.getByRole("button", { name: "Edit study", exact: true }).click();
+  await page.getByRole("textbox", { name: "Writing 1", exact: true }).fill("First window"); await expect(page.getByRole("status").filter({ hasText: "Saved on this device" })).toBeVisible();
+  await other.getByRole("textbox", { name: "Writing 1", exact: true }).fill("Second window");
   await expect(other.getByRole("alert")).toContainText("changed in another window");
-  await expect(other.getByLabel("Study title", { exact: true })).toHaveValue("Second window");
-  await page.reload(); await expect(page.getByLabel("Study title", { exact: true })).toHaveValue("First window"); await other.close();
+  await expect(other.getByRole("textbox", { name: "Writing 1", exact: true })).toHaveValue("Second window");
+  await page.reload(); await expect(page.locator(".study-prose")).toHaveText("First window"); await other.close();
 });
 test("reader keeps Link and Relation, adds Scripture to studies and preserves existing word marks", async ({ page }) => {
   await setup(page); await page.goto("/read/genesis/1"); await page.locator("#verset-1 .bs-text").click();
