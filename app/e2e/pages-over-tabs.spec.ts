@@ -101,3 +101,21 @@ test("a bar swipe with no tab to go to leaves the page over the tab", async ({ p
   await page.goForward(); await expect(page).toHaveURL(/\/studies$/);
   expect(await tabs(page)).toBe(before);
 });
+
+test("after a tab switch, Forward to a page that was over the old tab is a page of the new tab", async ({ page }) => {
+  await setup(page);
+  await bar(page).getByRole("button", { name: "Main menu", exact: true }).click();
+  await page.locator(".drawer--more").getByRole("link", { name: "Settings", exact: true }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+  // Back to the menu the page came from, which is closed over the tab.
+  await page.goBack();
+  await expect(page).toHaveURL(/\/people(#|$)/);
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".drawer--more[data-open]")).toHaveCount(0);
+  await bar(page).getByRole("button", { name: "Tabs, 2 open", exact: true }).click();
+  await page.locator('.switcher__page[data-active] .tabcard[data-tab-id="n"]').click();
+  await expect(page).toHaveURL(/\/new(#|$)/);
+  await page.goForward();
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect.poll(() => tabs(page)).toBe("n n:/settings p:/people");
+});
