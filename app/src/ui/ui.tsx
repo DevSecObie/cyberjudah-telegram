@@ -6,7 +6,7 @@ import { Cell, Chip as TgChip, Placeholder, Section as TgSection, SegmentedContr
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
 import { goBack, isRootPath, usePageActions } from "@/tg/hooks";
-import { bibleTabPath, classesTabPath, currentTab, kindTabIndex, searchTabPath, selectTab, settleTabFloor, useTabs } from "@/lib/tabs";
+import { askTabPath, bibleTabPath, classesTabPath, currentTab, kindTabIndex, searchTabPath, selectTab, settleTabFloor, useTabs } from "@/lib/tabs";
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { useReaderFullscreen } from "@/bible/session";
 import { contrastInk, SwitcherBar } from "@/screens/Tabs";
@@ -24,18 +24,18 @@ export { Icon, type IconName } from "./icons";
 /**
  * Bible Strong's bottom bar (app-switcher/BottomTabBar): a flat full-width row of 48 px icon
  * buttons on the page colour with a line above it: Home, Search, the Bible, the tabs and Menu,
- * with our Classes before the tabs. Search, the Bible and Classes go to their tab (or open one);
- * the tabs button shows how many are open and opens the switcher.
+ * with our Classes and Ask before the tabs. Search, the Bible, Classes and Ask go to their tab (or
+ * open one); the tabs button shows how many are open and opens the switcher.
  */
 export function tabOf(path: string): string {
   if (path.startsWith("/more") || path.startsWith("/settings")) return "more";
   return NAV_ITEMS.find((i) => i.match.test(path))?.id ?? "";
 }
 
-/** BottomTabBar's row: HomeButton, SearchButton, BibleButton, TabButton, MenuButton, with Classes before the tabs. */
-const BUTTONS = ["home", "search", "bible", "classes", "tabs", "more"] as const;
+/** BottomTabBar's row: HomeButton, SearchButton, BibleButton, TabButton, MenuButton, with Classes and Ask before the tabs. */
+const BUTTONS = ["home", "search", "bible", "classes", "ask", "tabs", "more"] as const;
 type ButtonId = typeof BUTTONS[number];
-const LABELS = { home: "Home", search: "Search", bible: "Bible", classes: "Classes" };
+const LABELS = { home: "Home", search: "Search", bible: "Bible", classes: "Classes", ask: "Ask" };
 
 export function TabBar() {
   const { pathname, search } = useLocation();
@@ -58,7 +58,7 @@ export function TabBar() {
     // The tab slides in from its side, by its place in the group (Bible Strong's slideToIndex);
     // a button for the tab already showing does nothing.
     const from = tabs.findIndex((t) => t.id === currentTab()?.id);
-    const at = toId === "search" || toId === "bible" || toId === "classes" ? kindTabIndex(toId) : from;
+    const at = toId === "search" || toId === "bible" || toId === "classes" || toId === "ask" ? kindTabIndex(toId) : from;
     const dir = from < 0 || at === from ? 0 : at > from ? 1 : -1;
     setDrawer(null);
     // A page over the tab is left for the tab even when its path is the same.
@@ -155,10 +155,11 @@ export function TabBar() {
     if (id === "search") return <Feather name="search" size={23} raw />;
     if (id === "bible") return <Feather name="book-open" size={23} />;
     if (id === "classes") return <Feather name="play-circle" size={23} />;
+    if (id === "ask") return <Feather name="message-circle" size={23} />;
     return <span ref={countBox} className="tab__count" style={groupColor ? { ["--group" as string]: groupColor, ["--group-ink" as string]: contrastInk(groupColor) } : undefined} aria-hidden="true">{count}</span>;
   };
   const label = (id: ButtonId) => id === "more" ? (hasUnseenUpdates ? "Main menu, updates available" : "Main menu") : id === "tabs" ? `Tabs, ${count} open` : LABELS[id];
-  const path = (id: "search" | "bible" | "classes" | "tabs") => id === "search" ? searchTabPath() : id === "bible" ? bibleTabPath() : id === "classes" ? classesTabPath() : "/tabs";
+  const path = (id: "search" | "bible" | "classes" | "ask" | "tabs") => id === "search" ? searchTabPath() : id === "bible" ? bibleTabPath() : id === "classes" ? classesTabPath() : id === "ask" ? askTabPath() : "/tabs";
   const press1 = (id: ButtonId) => id === "more" ? toggle("more") : id === "home" ? toggle("home") : go(() => path(id), id === "tabs", id);
   return (
     <>{scrub.layer}<nav ref={bar} className="tabs" aria-label="Sections" data-hidden={hidden ? "" : undefined} {...hold}>
