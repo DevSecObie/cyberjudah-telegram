@@ -158,3 +158,18 @@ test("a new tab closed before it opens stays closed, and the switcher stays", as
   await expect(page).toHaveURL(/\/tabs/);
   expect((await saved(page)).groups[0].tabs.map((t) => t.id)).toEqual(["a", "b"]);
 });
+
+test("a mouse let go over the bar before its drag began does not move the pager when it comes back", async ({ page }) => {
+  await setup(page, [main, psalms]);
+  const box = (await page.locator(".switcher").boundingBox())!;
+  const bar = (await page.getByRole("navigation", { name: "Tabs" }).boundingBox())!;
+  // Down 5 px above the bar, onto it (within the 10 px a drag allows), and up there.
+  await page.mouse.move(box.x + 200, bar.y - 5); await page.mouse.down();
+  await page.mouse.move(box.x + 200, bar.y + 4, { steps: 3 });
+  await page.mouse.up();
+  // Back over the switcher at the same height with no button down, then sideways: the pager stays.
+  await page.mouse.move(box.x + 200, bar.y - 5, { steps: 3 });
+  await page.mouse.move(box.x + 40, bar.y - 5, { steps: 8 });
+  await expect(page.locator(".switcher__track")).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
+  expect((await saved(page)).group).toBe("default-group");
+});
