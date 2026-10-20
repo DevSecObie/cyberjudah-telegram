@@ -116,8 +116,9 @@ export function Tags() {
   const shown = queryTagList(rows, q);
   const rename = (tag: Tag, name: string) => setTags({ ...tags, [tag.id]: { ...tag, name } });
   const remove = async (tag: Tag) => {
+    await removeTagEverywhere(tag.id);
     const next = { ...tags }; delete next[tag.id]; setTags(next);
-    await removeTagEverywhere(tag.id); reload();
+    reload();
   };
   const add = async () => {
     const a = await sheet.open({ title: "New tag", text: { label: "Tag name", placeholder: "Tag name", submit: "Save" } });
@@ -171,8 +172,8 @@ export function TagScreen() {
     }
     if (a?.id === "create-group") createGroup(tag, data[id]);
     if (a?.id === "delete" && await confirmRemove("Yes")) {
-      const next = { ...tags }; delete next[id]; setTags(next);
       await removeTagEverywhere(id);
+      const next = { ...tags }; delete next[id]; setTags(next);
       goBack();
     }
   };

@@ -82,6 +82,8 @@ export function tagTabPaths(d: TagData | undefined): string[] {
 
 /** Bible Strong's removeTag: the tag goes, and with it its mark on every highlight, note, link and word mark. */
 export async function removeTagEverywhere(id: string) {
+  // Read first: if the word marks cannot be read, nothing is changed and the tag stays.
+  const marked = (await allAnnotations()).filter((a) => a.tags?.[id]);
   for (const k of await store.keys()) {
     if (!/^bs_[hnl]_/.test(k)) continue;
     const map = await json.get<Record<string, { tags?: Record<string, true> }>>(k, {});
@@ -89,6 +91,5 @@ export async function removeTagEverywhere(id: string) {
     for (const v of Object.values(map)) if (v.tags?.[id]) { delete v.tags[id]; changed = true; }
     if (changed) await json.set(k, map);
   }
-  const marked = (await allAnnotations().catch(() => [] as Annotation[])).filter((a) => a.tags?.[id]);
   if (marked.length) await changeAnnotations({ update: marked.map((a) => { const tags = { ...a.tags }; delete tags[id]; return { ...a, tags }; }) });
 }
