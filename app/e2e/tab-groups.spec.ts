@@ -173,3 +173,17 @@ test("a mouse let go over the bar before its drag began does not move the pager 
   await expect(page.locator(".switcher__track")).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
   expect((await saved(page)).group).toBe("default-group");
 });
+
+test("the create page stays on its edge when the width changes", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page, [main, psalms]);
+  await pill(page).click();
+  await menu(page).getByRole("button", { name: "New group" }).click();
+  await expect(page.getByRole("textbox", { name: "Group name" })).toBeFocused();
+  const left = async () => (await page.getByRole("region", { name: "New group" }).boundingBox())!.x;
+  await page.waitForTimeout(800);
+  const at = await left();
+  await page.setViewportSize({ width: 600, height: 844 });
+  await page.waitForTimeout(300);
+  expect(await left()).toBeCloseTo(at, 0);
+});
