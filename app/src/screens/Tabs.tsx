@@ -222,7 +222,7 @@ export function Tabs() {
 
   const drag = useRef<{ x: number; y: number; start: number; active: boolean; failed: boolean; id: number; samples: [number, number][] } | null>(null);
   const onPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0 || drag.current?.active) return;
+    if (e.button !== 0 || drag.current) return;
     drag.current = { x: e.clientX, y: e.clientY, start: x.current, active: false, failed: false, id: e.pointerId, samples: [[performance.now(), e.clientX]] };
   };
   const onPointerMove = (e: React.PointerEvent) => {
@@ -259,7 +259,7 @@ export function Tabs() {
           <section key={g.id} ref={(el) => { if (el) pages.current.set(g.id, el); else pages.current.delete(g.id); }} className="switcher__page"
             data-group-id={g.id} data-active={g.id === group.id ? "" : undefined} data-empty={g.tabs.length ? undefined : ""} style={{ width }}
             aria-hidden={g.id === group.id ? undefined : true} inert={g.id !== group.id}>
-            {!g.tabs.length ? <EmptyGroup /> : isDefault(g) ? null : <GroupHeader group={g} />}
+            {!g.tabs.length ? <EmptyGroup /> : isDefault(g) ? null : <GroupHeader group={g} width={width} />}
             <div className="switcher__grid" style={{ gridTemplateColumns: `repeat(${size.perRow}, ${size.w}px)` }}>
               {g.tabs.map((t) => {
                 const title = tabTitle(t.path);
@@ -288,7 +288,7 @@ export function Tabs() {
  * Bible Strong's GroupHeader (TabGroupPage), over a named group's tabs: its count on a 24 px
  * square of its colour, then its name at 30 px, made smaller to fit 70% of the screen, never under 20.
  */
-function GroupHeader({ group }: { group: Group }) {
+function GroupHeader({ group, width }: { group: Group; width: number }) {
   const name = useRef<HTMLSpanElement>(null);
   const [size, setSize] = useState(30);
   useLayoutEffect(() => {
@@ -296,12 +296,12 @@ function GroupHeader({ group }: { group: Group }) {
     el.style.fontSize = "30px";
     // The text's own line, as React Native's onTextLayout gives it, not the row it sits in.
     const range = document.createRange(); range.selectNodeContents(el);
-    const width = range.getBoundingClientRect().width, max = innerWidth * 0.7;
-    const next = width > max ? Math.max(30 * (max / width), 20) : 30;
+    const text = range.getBoundingClientRect().width, max = width * 0.7;
+    const next = text > max ? Math.max(30 * (max / text), 20) : 30;
     // Written back at once: React leaves the style alone when the size it holds has not changed.
     el.style.fontSize = `${next}px`;
     setSize(next);
-  }, [group.name]);
+  }, [group.name, width]);
   return (
     <header key={group.id} className="switcher__group">
       <span className="switcher__badge" style={{ background: group.color, color: contrastInk(group.color) }}>{group.tabs.length}</span>
@@ -363,14 +363,15 @@ function EmptyGroup() {
 function useAddTab() {
   const navigate = useNavigate();
   return () => {
+    const group = currentGroup().id;
     reflowTabs(() => newTab());
     // Bible Strong's useExpandNewTab: to the end of the list, a 300 ms pause, then the new card opens.
     // Each group's page scrolls on its own.
     const page = document.querySelector<HTMLElement>(".switcher__page[data-active]");
     page?.scrollTo({ top: page.scrollHeight, behavior: "instant" });
     window.setTimeout(() => {
-      // Left for another tab in the meantime: that tab keeps its place.
-      if (!location.pathname.startsWith("/tabs")) return;
+      // Left for another tab or group in the meantime: they keep their place.
+      if (!location.pathname.startsWith("/tabs") || currentGroup().id !== group) return;
       moveTab(() => { navigate("/new", { replace: true }); }, "expand");
     }, 300);
   };
