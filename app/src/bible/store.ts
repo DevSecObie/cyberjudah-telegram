@@ -70,6 +70,7 @@ export async function writeNote(slug: string, ch: number, key: string, note: Not
 /** Every note and link across the library, for the notes list and the relation picker. */
 export function useAllNotes() {
   const [rows, setRows] = useState<{ slug: string; chapter: number; key: string; note: Note }[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const reload = useCallback(() => {
     void store.keys().then(async (keys) => {
       const out: { slug: string; chapter: number; key: string; note: Note }[] = [];
@@ -78,11 +79,11 @@ export function useAllNotes() {
         const notes = await json.get<Record<string, Note>>(k, {});
         for (const [key, note] of Object.entries(notes)) out.push({ slug: m[1], chapter: +m[2], key, note });
       }
-      setRows(out.sort((a, b) => b.note.date - a.note.date));
+      setRows(out.sort((a, b) => b.note.date - a.note.date)); setLoaded(true);
     });
   }, []);
   useEffect(reload, [reload]);
-  return { rows, reload };
+  return { rows, loaded, reload };
 }
 
 /** Link types as Bible Strong detects them from the URL (helpers/linkTypeConfig). */
