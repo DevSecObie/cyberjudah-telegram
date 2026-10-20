@@ -99,9 +99,13 @@ test("a swipe along the bar to a tab on the same page starts that tab's Back the
   await openCredits(page);
   const bar = (await page.getByRole("navigation", { name: "Sections" }).boundingBox())!;
   const y = bar.y + bar.height / 2;
+  const key = await page.evaluate(() => history.state.key as string);
   await page.mouse.move(bar.x + 250, y); await page.mouse.down();
   await page.mouse.move(bar.x + 150, y, { steps: 5 }); await page.mouse.up();
   await expect.poll(async () => JSON.parse(await page.evaluate(() => localStorage.getItem("cj:tabgroups")!)).groups[0].current).toBe("b");
+  // The tab change has replaced the page before Back is pressed.
+  await expect.poll(() => page.evaluate(() => history.state.key as string)).not.toBe(key);
+  await expect(page.locator(".tabscrub")).toHaveCount(0);
   // Back in tab b goes up to Settings in place, not back through tab a's history.
   const idx = await page.evaluate(() => history.state.idx as number);
   await back(page);
