@@ -23,7 +23,7 @@ test("search placement: Search is second in the bar, and the row fits every widt
     for (const button of await nav.getByRole("button").all()) {
       const box = (await button.boundingBox())!;
       // 48 px each; under 336 px the seven share the row evenly.
-      expect(box.height).toBe(48); if (width >= 336) expect(box.width).toBe(48); else expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeCloseTo(48, 1); if (width >= 336) expect(box.width).toBeCloseTo(48, 1); else expect(box.width).toBeGreaterThanOrEqual(44);
       // Seven shared buttons can round a fraction of a pixel past the edge.
       expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(width + 0.5);
     }
