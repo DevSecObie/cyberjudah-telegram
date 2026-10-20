@@ -8,6 +8,9 @@ type Tg = { __tg: { press: (button: string) => void; state: () => { back: boolea
 
 async function setup(page: Page, tabs: { id: string; path: string }[]) {
   await page.addInitScript((tabs) => {
+    // Seeded once: a reload keeps what the test did.
+    if (sessionStorage.getItem("seeded")) return;
+    sessionStorage.setItem("seeded", "1");
     localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "one", groups: [{ id: "one", name: "My tabs", color: "#2dd4bf", current: tabs[0].id, tabs }] }));
   }, tabs);
   await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
@@ -64,4 +67,43 @@ test("a bar button for the tab already showing leaves Back as it was for the nex
   await expect.poll(() => backShown(page)).toBe(true);
   // The menu takes Back while it closes; then Back leaves Settings for the tab under it.
   await expect(async () => { await back(page); await expect(page).toHaveURL(/\/search/, { timeout: 500 }); }).toPass();
+});
+
+test("Ctrl+Alt+W closing the tab you are in leaves Back to the tab you land in", async ({ page }) => {
+  await setup(page, [{ id: "a", path: "/settings" }, { id: "b", path: "/search" }]);
+  await openCredits(page);
+  await page.keyboard.press("Control+Alt+KeyW");
+  await expect(page).toHaveURL(/\/search/);
+  await expect.poll(() => backShown(page)).toBe(false);
+  await back(page);
+  await expect(page).toHaveURL(/\/search/);
+  expect(await tabPaths(page)).toEqual({ b: "/search" });
+});
+
+test("after a reload, Back still stays in the tab", async ({ page }) => {
+  await setup(page, [{ id: "a", path: "/settings" }]);
+  await openCredits(page);
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page).toHaveURL(/\/search/);
+  await page.reload();
+  await expect(page).toHaveURL(/\/search/);
+  await expect.poll(() => backShown(page)).toBe(false);
+  await back(page);
+  await expect(page).toHaveURL(/\/search/);
+});
+
+test("a swipe along the bar to a tab on the same page starts that tab's Back there", async ({ page }) => {
+  await setup(page, [{ id: "a", path: "/settings" }, { id: "b", path: "/settings/credits" }]);
+  // Tab a goes on to Credits: both tabs now show the same page, a with a page behind it.
+  await openCredits(page);
+  const bar = (await page.getByRole("navigation", { name: "Sections" }).boundingBox())!;
+  const y = bar.y + bar.height / 2;
+  await page.mouse.move(bar.x + 250, y); await page.mouse.down();
+  await page.mouse.move(bar.x + 150, y, { steps: 5 }); await page.mouse.up();
+  await expect.poll(async () => JSON.parse(await page.evaluate(() => localStorage.getItem("cj:tabgroups")!)).groups[0].current).toBe("b");
+  // Back in tab b goes up to Settings in place, not back through tab a's history.
+  const idx = await page.evaluate(() => history.state.idx as number);
+  await back(page);
+  await expect(page).toHaveURL(/\/settings$/);
+  expect(await page.evaluate(() => history.state.idx as number)).toBe(idx);
 });
