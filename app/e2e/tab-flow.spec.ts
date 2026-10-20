@@ -95,7 +95,8 @@ test("tab flow: Escape and Telegram Back resume the selected tab; closing a card
   await overview(page);
   await page.locator('.tabcard[data-tab-id="tab-2"] .tabcard__close').click();
   await expect(page.locator(".tabcard")).toHaveCount(7);
-  await expect(page.locator('.tabcard[data-current]')).toHaveAttribute("data-tab-id", "tab-5");
+  // Bible Strong keeps the current position (useTabPreview, clampTabIndex): closing a card before it moves the selection on to the next tab.
+  await expect(page.locator('.tabcard[data-current]')).toHaveAttribute("data-tab-id", "tab-6");
   await page.getByRole("button", { name: "Add a tab", exact: true }).click();
   await expect(page.locator(".nt-heading")).toBeVisible();
   await expect(page.locator("html")).not.toHaveAttribute("data-tab-motion");
@@ -105,7 +106,7 @@ test("tab flow: Escape and Telegram Back resume the selected tab; closing a card
     return { current: group.current, count: group.tabs.length, source: (window as unknown as { __tabSources: (string | null)[] }).__tabSources.at(-1), native: !!document.startViewTransition };
   });
   expect(added.count).toBe(8);
-  expect(added.current).not.toBe("tab-5");
+  expect(added.current).not.toBe("tab-6");
   if (added.native) expect(added.source).toBe(added.current);
 });
 

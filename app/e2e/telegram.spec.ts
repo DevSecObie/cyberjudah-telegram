@@ -532,14 +532,15 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await expect(page.locator(".switcherbar__group")).toHaveText("2 tabs");
   await page.click('.tabcard__close[aria-label="Close Strong"]');
   await expect(page.locator(".tabcard")).toHaveCount(1);
-  // A new group starts with its own New Tab page; the first group keeps its Bible tab.
+  // A new group starts empty, with Bible Strong's Create a tab; the first group keeps its Bible tab.
   await page.click(".switcherbar__group");
   await page.click(".sheet__item >> text=New group");
   await page.locator(".action-sheet #sheet-text").fill("Revelation");
   await page.press(".action-sheet #sheet-text", "Enter");
   await page.locator(".action-sheet .swatch").nth(2).click();
   await expect(page.locator(".switcherbar__group")).toHaveText("Revelation");
-  await expect(page.locator(".tabcard__title b").first()).toHaveText("New tab");
+  await expect(page.locator(".tabcard")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Create a tab" })).toBeVisible();
   if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/tabs-groups.png` }); }
   await page.click(".switcherbar__group");
   await page.click(".sheet__item >> text=1 tab");

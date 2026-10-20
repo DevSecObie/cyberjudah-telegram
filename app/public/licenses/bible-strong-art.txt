@@ -1,0 +1,5 @@
+public/bs/tabs.svg
+From Bible Strong (https://github.com/smontlouis/bible-strong), apps/expo/src/assets/images/tabs.svg,
+used by its tab switcher's empty group. Bible Strong is licensed under the GNU GPL v3.
+The drawing is "Tabs" by Thea Graph from Noun Project; the credit lines inside the original file
+are removed here because Bible Strong's app does not draw them either.

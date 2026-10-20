@@ -656,7 +656,9 @@ for (const reduced of [false, true]) {
     const actions = (await materials(page, [[".sheet[data-actions]"]]))[0];
     if (reduced) expect(actions).toMatchObject({ filter: "none", alpha: 255 });
     else expect(actions.filter).toContain("blur(");
-    await expect(menu.locator(".sheet__item").last()).toHaveAttribute("data-destructive", "");
+    // Bible Strong's GroupActionsPopover opens on Close all tabs, which asks nothing and is not destructive.
+    await expect(menu.locator(".sheet__item").first()).toHaveText("Close all tabs");
+    await expect(menu.locator(".sheet__item").first()).not.toHaveAttribute("data-destructive", "");
     expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
     await menu.getByRole("button", { name: "New group", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "New group", exact: true }).getByRole("textbox", { name: "Name" })).toBeFocused();

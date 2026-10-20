@@ -35,10 +35,10 @@ const navPath = (id: NavId) => id === "search" ? searchTabPath() : id === "bible
 export function TabBar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { tabs, group, groups } = useTabs();
+  const { tabs, group } = useTabs();
   const [ids] = useNav();
   // The count takes its group's colour, as Bible Strong's does; the default group stays plain.
-  const groupColor = groups.indexOf(group) > 0 ? group.color : undefined;
+  const groupColor = group.isDefault ? undefined : group.color;
   const drawer = useDrawer();
   const current = drawer ?? tabOf(pathname);
   // Bible Strong slides the bar down out of sight while the Bible is full screen.

@@ -8,7 +8,7 @@ import { Route, Routes, useLocation, useNavigate, useNavigationType } from "reac
 import { RouteSheet, useSheetEntry } from "@/ui/routeSheet";
 import { UnderSheetContext } from "@/ui/sheetRoute";
 import { initialLaunchPath } from "@/tg/launch.mjs";
-import { isTabPath, keptTab, recordPath } from "@/lib/tabs";
+import { isTabPath, keptPath, recordPath } from "@/lib/tabs";
 import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
@@ -197,7 +197,7 @@ export function App() {
   useEffect(() => {
     if (launchHandled.current) return;
     launchHandled.current = true;
-    const to = initialLaunchPath(location.pathname, startParam, location.search ? undefined : keptTab()?.path);
+    const to = initialLaunchPath(location.pathname, startParam, location.search ? undefined : keptPath());
     if (to) navigate(to, { replace: true });
   }, [location.pathname, navigate]);
 
