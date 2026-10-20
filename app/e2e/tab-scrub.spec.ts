@@ -81,7 +81,8 @@ test("the cards stay on the chosen tab while the carousel fades", async ({ page 
   const at = await setup(page);
   await page.mouse.move(at.x, at.y);
   await page.mouse.down();
-  await page.mouse.move(at.x - 60, at.y, { steps: 2 });
+  // Past half a tab, so the release settles on Search whether or not it still counts as a flick.
+  await page.mouse.move(at.x - 180, at.y, { steps: 4 });
   await expect(page.locator(".tabscrub")).toBeVisible();
   // Every place the track is put after the finger lifts.
   await page.locator(".tabscrub__track").evaluate((track) => {
