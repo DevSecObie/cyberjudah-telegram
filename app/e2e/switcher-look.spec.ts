@@ -40,7 +40,8 @@ test("cards carry Bible Strong's tab icons and cut long titles in the middle", a
   await expect(page.locator('.tabcard[data-tab-id="a"] .tabcard__title .tabicon')).toHaveClass(/tabicon--primary/);
   await expect(page.locator('.tabcard[data-tab-id="b"] .tabcard__title .tabicon')).toHaveClass(/tabicon--tertiary/);
   const title = await page.locator('.tabcard[data-tab-id="c"] .tabcard__title b').textContent();
-  expect(title).toMatch(/^the .+….+ high$/);
+  // Where the cut falls depends on the font; it keeps the start and the end with … between.
+  expect(title).toMatch(/^the .*….*high$/);
 });
 
 test("a named group shows its count on its colour and its name at 30 px", async ({ page }) => {
