@@ -526,7 +526,7 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await expect(page.locator(".switcherbar__group")).toHaveText("1 tab");
   await page.click('[aria-label="Add a tab"]');
   await expect(page.locator(".nt-heading")).toHaveText("What would you like to explore?");
-  await page.click(".nt-item >> text=Strong");
+  await page.getByRole("button", { name: "Strong", exact: true }).click();
   await expect(page).toHaveURL(/\/lexicon/);
   await page.click('.tab[aria-label$="Tabs open"]');
   await expect(page.locator(".tabcard")).toHaveCount(2);
@@ -554,9 +554,10 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
 });
 
-test("the new-tab finder opens the chosen Search tool", async ({ page }) => {
+test("the finder opens the chosen Search tool", async ({ page }) => {
   await page.goto(`/new${LAUNCH}`);
-  await page.getByRole("button", { name: "A passage, a tab, a tool…" }).click();
+  await page.locator(".nt-heading").waitFor();
+  await page.keyboard.press("Control+k");
   const finder = page.getByRole("dialog", { name: "Find a tab or tool" });
   await expect(finder).toBeVisible();
   await finder.getByRole("combobox").fill("Search");

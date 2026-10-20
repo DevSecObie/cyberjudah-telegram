@@ -8,64 +8,91 @@ import { assetUrl } from "@/lib/asset";
 import { groupPager } from "@/ui/group-pager";
 import { CreateGroupPage, GroupActions, groupLabel } from "./tab-groups";
 import { useBackButton } from "@/tg/hooks";
-import { haptic } from "@/tg/sdk";
+import { Feather } from "@/bible/icons";
 import { Icon, Screen, type IconName } from "@/ui/ui";
 import { closeTabCard, moveTab, reflowTabs } from "@/ui/tab-motion";
 
-/** Bible Strong's New Tab page (TabScreen/NewTab/NewTabContent): every resource, by section, each opening in this tab. */
-type Item = [to: string, title: string, description: string, icon: IconName];
+/**
+ * Bible Strong's New Tab page (TabScreen/NewTab/NewTabContent): the heading, then Read and explore
+ * (the Bible card, then the reading cards), Studies and notes, and the Library, each card opening
+ * in this tab. Our own resources follow Bible Strong's in each section.
+ */
+type Item = [to: string, title: string, description: string];
 const READ: Item[] = [
-  ["/plans", "Reading plans", "Choose a plan or resume your reading", "check"],
-  ["/study", "4 Chapters a Day", "The daily reading, a note for every chapter", "book"],
-  ["/classes?feed=history", "Our Hidden History", "Explore our history, episode by episode", "history"],
+  ["/plans", "Reading plan", "Follow a reading plan"],
+  ["/timeline", "Timeline", "Explore biblical history"],
+  ["/study", "4 Chapters a Day", "The daily reading, a note for every chapter"],
+  ["/classes?feed=history", "Our Hidden History", "Explore our history, episode by episode"],
 ];
 const PERSONAL: Item[] = [
-  ["/studies", "My studies", "Your writing, scripture and word studies", "compose"],
-  ["/classes", "Classes", "Every Sabbath class, with its notes", "play"],
-  ["/bookmarks", "Kept", "Your highlights, notes and bookmarks", "bookmark"],
-  ["/ask", "Ask CyberJudah", "Answers from the teachings, with their sources", "chat"],
+  ["/studies", "Studies", "Find your studies"],
+  ["/bookmarks", "Kept", "Your highlights, notes and bookmarks"],
+  ["/classes", "Classes", "Every Sabbath class, with its notes"],
+  ["/ask", "Ask CyberJudah", "Answers from the teachings, with their sources"],
 ];
 const LIBRARY: Item[] = [
-  ["/lexicon", "Strong", "Explore Greek and Hebrew words", "spark"],
-  ["/topics", "Topics", "Explore what the classes taught, by theme", "tag"],
-  ["/concordance", "Concordance", "Who cites each chapter, book by book", "list"],
-  ["/dictionary", "Dictionary", "Look up definitions", "type"],
-  ["/precepts", "Precepts", "Every subject scripture speaks to", "quote"],
-  ["/people", "People", "Everyone named in the Bible", "star"],
-  ["/books", "Library", "The books the classes read from", "layers"],
-  ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book", "book"],
-  ["/glossary", "Glossary", "The words the classes use, defined", "type"],
-  ["/law", "The Law", "Every law with its scripture", "law"],
-  ["/cases", "Case studies", "Judgments, and those who were blessed", "folder"],
-  ["/timeline", "Bible timeline", "Periods and events by year", "clock"],
+  ["/lexicon", "Strong", "Explore Greek and Hebrew words"],
+  ["/topics", "Topics", "Explore what the classes taught, by theme"],
+  ["/dictionary", "Dictionary", "Look up definitions"],
+  ["/concordance", "Concordance", "Who cites each chapter, book by book"],
+  ["/precepts", "Precepts", "Every subject scripture speaks to"],
+  ["/people", "People", "Everyone named in the Bible"],
+  ["/books", "Library", "The books the classes read from"],
+  ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book"],
+  ["/glossary", "Glossary", "The words the classes use, defined"],
+  ["/law", "The Law", "Every law with its scripture"],
+  ["/cases", "Case studies", "Judgments, and those who were blessed"],
 ];
 
+/** Bible Strong's SectionHeading: 23 px, with its illustration standing on the cards below. */
+function SectionHeading({ title, image }: { title: string; image?: string }) {
+  return (
+    <div className="ntsection" data-image={image ? "" : undefined}>
+      <h2>{title}</h2>
+      {image ? <img className="ntsection__art" src={assetUrl(`bs/new-tab/${image}.webp`)} alt="" aria-hidden="true" /> : null}
+    </div>
+  );
+}
+
 export function NewTab() {
-  useBackButton();
+  useBackButton(() => true, false, true);
   const navigate = useNavigate();
-  const open = (to: string) => { haptic("select"); navigate(to, { replace: true }); };
-  const Row = ({ item: [to, title, description, icon] }: { item: Item }) => (
-    <button type="button" className="nt-item" onClick={() => open(to)}>
-      <span className="nt-item__icon"><Icon name={icon} size={22} /></span>
-      <span className="nt-item__body"><b>{title}</b><small>{description}</small></span>
-      <Icon name="chevron" size={18} />
+  const open = (to: string) => navigate(to, { replace: true });
+  /** Bible Strong's NewTabItem: the kind's icon, the title over its description, a chevron; dims while pressed. */
+  const Card = ({ item: [to, title, description], library }: { item: Item; library?: boolean }) => (
+    <button type="button" className="ntcard" aria-label={title} aria-description={description} onClick={() => open(to)}>
+      <span className="ntcard__row">
+        <TabIcon path={to} size={library ? 34 : 28} />
+        <span className="ntcard__body"><b>{title}</b><small>{description}</small></span>
+      </span>
+      <Feather name="chevron-right" size={18} raw />
     </button>
   );
   return (
     <Screen className="newtab">
-      <h1 className="nt-heading">What would you like to explore?</h1>
-      <button type="button" className="nt-search" onClick={() => window.dispatchEvent(new Event("cj:commands"))}><Icon name="search" size={20} /><span>A passage, a tab, a tool…</span></button>
-      <h2 className="shelf">Read and explore</h2>
-      <button type="button" className="nt-hero" onClick={() => open("/bible")}>
-        <span className="nt-hero__icon"><Icon name="book-open" size={64} /></span>
-        <span className="nt-hero__body"><b>Bible</b><small>Open the Bible and start reading</small></span>
-        <Icon name="chevron" size={22} />
-      </button>
-      <div className="nt-list">{READ.map((i) => <Row key={i[0]} item={i} />)}</div>
-      <h2 className="shelf">Classes and notes</h2>
-      <div className="nt-list">{PERSONAL.map((i) => <Row key={i[0]} item={i} />)}</div>
-      <h2 className="shelf">Library</h2>
-      <div className="nt-list">{LIBRARY.map((i) => <Row key={i[0]} item={i} />)}</div>
+      <div className="newtab__content">
+        <h1 className="nt-heading">What would you like to explore?</h1>
+        <SectionHeading title="Read and explore" />
+        <button type="button" className="ntcard ntcard--hero" aria-label="Bible" aria-description="Open the Bible and start reading" onClick={() => open("/bible")}>
+          <span className="ntcard__row">
+            <TabIcon path="/bible" size={40} />
+            <span className="ntcard__body"><b>Bible</b><small>Open the Bible and start reading</small></span>
+          </span>
+          <img className="ntcard__art" src={assetUrl("bs/new-tab/bible-reader.webp")} alt="" aria-hidden="true" />
+          <Feather name="chevron-right" size={22} raw />
+        </button>
+        <div className="ntgrid ntgrid--read">{READ.map((i) => <Card key={i[0]} item={i} />)}</div>
+        <div className="newtab__more">
+          <section>
+            <SectionHeading title="Studies and notes" image="notes-writer" />
+            <div className="ntgrid ntgrid--personal">{PERSONAL.map((i) => <Card key={i[0]} item={i} />)}</div>
+          </section>
+          <section>
+            <SectionHeading title="Library" image="library-reader" />
+            <div className="ntgrid ntgrid--library">{LIBRARY.map((i) => <Card key={i[0]} item={i} library />)}</div>
+          </section>
+        </div>
+      </div>
     </Screen>
   );
 }

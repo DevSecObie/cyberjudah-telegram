@@ -1,0 +1,9 @@
+- The New Tab page looks like Bible Strong's:
+  - The page is light grey, with white cards and Bible Strong's soft blue shadow.
+  - The sections are Read and explore, Studies and notes, and Library, with Bible Strong's cards first in each and our own after them.
+  - Each card shows its kind's icon in its own colour (Strong blue, Dictionary gold, Topics violet, Kept coral).
+  - Bible Strong's three illustrations stand by the Bible card and the section headings.
+  - On a wider screen the cards sit side by side.
+- A card dims while pressed instead of shrinking, and no longer buzzes.
+- The search pill at the top is gone, as Bible Strong has none on a phone; Ctrl+K still opens the finder.
+- Telegram's Back button no longer shows on the New Tab.
