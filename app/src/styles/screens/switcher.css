@@ -109,7 +109,8 @@ html[data-tab-motion] .route, .route[data-tab-animated] { animation: none; }
 .gedit input::placeholder { color: var(--bs-grey, var(--text-3)); }
 .gedit__footer { display: flex; justify-content: flex-end; }
 .gswatches { display: flex; align-items: center; }
-.gswatches--edit { gap: 12px; justify-content: space-between; }
+/* Spread across the sheet; nine 32 px circles and 12 px gaps are wider than a phone sheet, so the gaps give way. */
+.gswatches--edit { gap: 4px; justify-content: space-between; }
 .gswatches--create { gap: 8px; }
 #root .gswatch { flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 16px; cursor: pointer; transition: opacity .25s; }
 #root .gswatch:active { opacity: .2; transition-duration: .15s; }
@@ -144,4 +145,5 @@ html[data-theme="dark"] .gcard small { color: rgb(150, 150, 150); }
 #root .gcreate__ok:disabled { opacity: .6; color: var(--bs-border, var(--hairline)); cursor: default; }
 .gcreate__body { position: relative; display: grid; gap: 12px; padding: 0 20px; }
 .gcreate__name { box-sizing: border-box; width: 100%; height: 56px; padding: 0; border: 0; outline: none; background: none; color: var(--bs-default, var(--text-1)); font: 400 30px var(--font-ui); }
+#root .gcreate__name:focus-visible { outline: none; box-shadow: none; }
 .gcreate__name::placeholder { color: color-mix(in srgb, var(--bs-default, var(--text-1)) 50%, transparent); }
