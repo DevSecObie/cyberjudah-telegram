@@ -1,4 +1,4 @@
-import { clearOver, historyIdx, isOver, markOver } from "@/lib/over-page";
+import { clearOver, clearOverAhead, historyIdx, isOver, markOver } from "@/lib/over-page";
 import { flushSync } from "react-dom";
 import { currentTab } from "@/lib/tabs";
 
@@ -119,7 +119,8 @@ export function moveTab(update: () => void | false, mode: Mode, id = currentTab(
   cancelMotion?.(); cancelRestore?.();
   // Going to a tab leaves any page that was over the workspace (put back if nothing moves).
   const overIdx = historyIdx(), wasOver = isOver(overIdx);
-  clearOver(overIdx);
+  // Pages ahead in history belong to the tab left: Forward to one is not a page over the new tab.
+  clearOver(overIdx); const ahead = clearOverAhead(overIdx);
   rememberTabPosition();
   const root = document.documentElement;
   let canceled = false;
@@ -138,7 +139,7 @@ export function moveTab(update: () => void | false, mode: Mode, id = currentTab(
   const commit = async () => {
     let changed = true;
     flushSync(() => { changed = update() !== false; });
-    if (!changed) { if (wasOver) markOver(overIdx); return false; }
+    if (!changed) { if (wasOver) markOver(overIdx); ahead.forEach(markOver); return false; }
     await routeCommitted();
     if (canceled) return false;
     const route = document.querySelector<HTMLElement>(".route");

@@ -92,16 +92,32 @@ test("a bar swipe with no tab to go to leaves the page over the tab", async ({ p
   await page.locator(".drawer--home .stats__cell[href=\"/studies\"]").click();
   await expect(page).toHaveURL(/\/studies$/);
   // The current tab is the last, so a swipe toward the next one finds none.
-  await bar(page).evaluate((nav) => {
-    const r = nav.getBoundingClientRect(), y = r.y + 24, at = (x: number) => ({ clientX: x, clientY: y, bubbles: true, cancelable: true, pointerId: 9, pointerType: "mouse", isPrimary: true, button: 0 });
-    nav.dispatchEvent(new PointerEvent("pointerdown", at(r.right - 30)));
-    for (let x = r.right - 50; x > r.x + 30; x -= 20) nav.dispatchEvent(new PointerEvent("pointermove", at(x)));
-    nav.dispatchEvent(new PointerEvent("pointerup", at(r.x + 30)));
-  });
+  const box = (await bar(page).boundingBox())!, y = box.y + 24;
+  await page.mouse.move(box.x + box.width - 30, y); await page.mouse.down();
+  for (let x = box.x + box.width - 50; x > box.x + 30; x -= 20) await page.mouse.move(x, y);
+  await page.mouse.up();
   await page.waitForTimeout(400);
   await expect(page).toHaveURL(/\/studies$/);
   // Back to the tab and forward again: the page is still over it, not written into it.
   await page.goBack(); await expect(page).toHaveURL(/\/people(#|$)/);
   await page.goForward(); await expect(page).toHaveURL(/\/studies$/);
   expect(await tabs(page)).toBe(before);
+});
+
+test("after a tab switch, Forward to a page that was over the old tab is a page of the new tab", async ({ page }) => {
+  await setup(page);
+  await bar(page).getByRole("button", { name: "Main menu", exact: true }).click();
+  await page.locator(".drawer--more").getByRole("link", { name: "Settings", exact: true }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+  // Back to the menu the page came from, which is closed over the tab.
+  await page.goBack();
+  await expect(page).toHaveURL(/\/people(#|$)/);
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".drawer--more[data-open]")).toHaveCount(0);
+  await bar(page).getByRole("button", { name: "Tabs, 2 open", exact: true }).click();
+  await page.locator('.switcher__page[data-active] .tabcard[data-tab-id="n"]').click();
+  await expect(page).toHaveURL(/\/new(#|$)/);
+  await page.goForward();
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect.poll(() => tabs(page)).toBe("n n:/settings p:/people");
 });
