@@ -519,7 +519,8 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await page.click('.tab[aria-label$="Tabs open"]');
   await expect(page).toHaveURL(/\/tabs/);
   await expect(page.locator(".tabcard")).toHaveCount(1);
-  await expect(page.locator(".tabcard__title b").first()).toHaveText("Genesis 1 - KJV");
+  // The title is cut in the middle to fit the card (ellipsizeMode="middle"); the card keeps the whole name.
+  await expect(page.locator(".tabcard__open").first()).toHaveAttribute("aria-label", "Open Genesis 1 - KJV");
   await expect(page.locator(".tabcard__preview").first()).toContainText("In the beginning");
   // In the switcher the bottom bar is its controls: +, the group (the default group shows its count), OK.
   await expect(page.locator(".switcherbar__group")).toHaveText("1 tab");
@@ -546,7 +547,7 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await page.getByRole("button", { name: "View my groups" }).click();
   await page.getByRole("button", { name: /^1 tab\. Main group/ }).click();
   await expect(page.locator(".switcherbar__group")).toHaveText("1 tab");
-  await expect(page.locator(".switcher__page[data-active] .tabcard__title b").first()).toHaveText(/Genes/);
+  await expect(page.locator(".switcher__page[data-active] .tabcard__open").first()).toHaveAttribute("aria-label", "Open Genesis 1 - KJV");
   await expect(page.locator(".switcher__page[data-active] .tabcard__preview").first()).toContainText("In the beginning");
   if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/tabs.png` }); }
   await page.click(".switcherbar__ok");
