@@ -229,6 +229,8 @@ export function Tabs() {
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current; if (!d || d.failed || d.id !== e.pointerId) return;
+    // A mouse moving with no button down let go outside the switcher before its drag began.
+    if (e.buttons === 0 && !d.active) { drag.current = null; return; }
     const dx = e.clientX - d.x, dy = e.clientY - d.y;
     if (!d.active) {
       if (Math.abs(dy) > 10) { d.failed = true; return; }
