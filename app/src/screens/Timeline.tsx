@@ -88,7 +88,7 @@ function useMenu(onDetails: () => void, path: string) {
     haptic("select");
     const a = await sheet.open({ items: [{ id: "details", text: "Details" }, { id: "tab", text: "Open in a new tab" }] });
     if (a?.id === "details") onDetails();
-    if (a?.id === "tab") { newTab(path); navigate(path); }
+    if (a?.id === "tab") { newTab(path); navigate(path, { replace: true }); }
   };
 }
 

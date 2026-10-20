@@ -88,18 +88,13 @@ export const currentGroup = () => group();
 export const groupsNow = () => state.groups;
 
 export const isTabPath = (path: string) => !NOT_TABS.test(path);
-/**
- * Where the app is now becomes the current tab's place. Coming from Home or the menu (which
- * are not tabs) to somewhere new opens it in a new tab, as Bible Strong's Home does, unless the
- * current tab is still an empty New Tab page.
- */
-export function recordPath(path: string, fromOutside: boolean) {
+/** Where the app is now becomes the current tab's place. */
+export function recordPath(path: string) {
   if (!isTabPath(path)) return;
   const g = group(), cur = currentTab();
   // A group left with no tabs takes the place it is shown in as its first.
   if (!cur) { newTab(path); return; }
   if (cur.path === path) return;
-  if (fromOutside && !cur.path.startsWith("/new")) { const found = g.tabs.find((t) => t.path === path); if (found) selectTab(found.id); else newTab(path); return; }
   setGroup({ ...g, tabs: g.tabs.map((t) => (t.id === cur.id ? { ...t, path } : t)) });
 }
 /** A new tab in the current group, on the New Tab page by default; returns its path. */

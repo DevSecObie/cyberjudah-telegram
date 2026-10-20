@@ -1,3 +1,4 @@
+import { clearOver, historyIdx } from "@/lib/over-page";
 import { flushSync } from "react-dom";
 import { currentTab } from "@/lib/tabs";
 
@@ -72,6 +73,8 @@ type Mode = "overview" | "expand" | "slide";
 /** dir: for a slide, the side the new tab comes from (1 from the right, -1 from the left, 0 rising in place). */
 export function moveTab(update: () => void | false, mode: Mode, id = currentTab()?.id ?? "", dir = 0) {
   cancelMotion?.(); cancelRestore?.();
+  // Going to a tab leaves any page that was over the workspace.
+  clearOver(historyIdx());
   rememberTabPosition();
   const root = document.documentElement;
   const motionTiming = timing(reduced() ? 1 : 4);
