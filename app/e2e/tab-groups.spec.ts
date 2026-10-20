@@ -117,9 +117,17 @@ test("a card closed in a group after the first shrinks away where it was", async
   await setup(page, [main, { ...psalms, tabs: [...psalms.tabs, { id: "d", path: "/people" }] }], "g2");
   const card = page.locator(".switcher__page[data-active] .tabcard[data-tab-id='d']");
   const before = (await card.boundingBox())!;
+  // Where the ghost is when it is added, so a slow run cannot miss its 500 ms.
+  await page.evaluate(() => {
+    new MutationObserver((records) => {
+      for (const r of records) for (const n of r.addedNodes) if (n instanceof HTMLElement && n.matches(".tabcard[aria-hidden='true']")) {
+        const box = n.getBoundingClientRect(); (window as unknown as { __ghost: { x: number; y: number } }).__ghost = { x: box.x, y: box.y };
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  });
   await card.getByRole("button", { name: /^Close / }).click();
-  const ghost = await page.evaluate(() => { const g = document.querySelector<HTMLElement>(".tabcard[aria-hidden='true']"); if (!g) return null; g.getAnimations().forEach((a) => a.pause()); const r = g.getBoundingClientRect(); return { x: r.x, y: r.y }; });
-  expect(ghost).not.toBeNull();
+  await expect.poll(() => page.evaluate(() => !!(window as unknown as { __ghost?: object }).__ghost)).toBe(true);
+  const ghost = await page.evaluate(() => (window as unknown as { __ghost: { x: number; y: number } }).__ghost);
   expect(Math.abs(ghost!.x - before.x)).toBeLessThan(2);
   expect(Math.abs(ghost!.y - before.y)).toBeLessThan(2);
 });
