@@ -80,7 +80,8 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
     expect(minimumContrast).toBeGreaterThanOrEqual(3);
     for (const button of await bar.getByRole("button").all()) {
       const b = (await button.boundingBox())!;
-      expect(b.width).toBe(48); expect(b.height).toBe(48);
+      // Firefox lays seven buttons out on sub-pixel positions (47.999998 px).
+      expect(b.width).toBeCloseTo(48, 1); expect(b.height).toBeCloseTo(48, 1);
     }
     await bar.getByRole("button", { name: "Search", exact: true }).click();
     await expect(page).toHaveURL(/\/search/);
