@@ -20,7 +20,7 @@ test("the tab count pulses when a tab opens or closes, and not on load", async (
   await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
   await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
   await page.goto(`/settings${LAUNCH}`);
-  const tabsButton = (n: number) => page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: `${n} Tabs open`, exact: true });
+  const tabsButton = (n: number) => page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: `Tabs, ${n} open`, exact: true });
   await expect(tabsButton(1)).toBeVisible();
   expect(await pulses(page)).toEqual([]);
   const pulse = { delay: 300, duration: 1000, scales: ["scale(1)", "scale(1.2)", "scale(1)"] };

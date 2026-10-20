@@ -1,0 +1,6 @@
+- Pages opened from Home or the menu now sit over your tab, as in Bible Strong:
+  - Opening Settings, a study, a word of the day or any other page from Home or the menu no longer replaces the tab you were on, and no longer opens a new tab.
+  - Pages you open further in from there stay over the tab too.
+  - Back returns to your tab just as you left it, and reopening the app reopens the tab.
+  - Any bar button, the tab switcher or a swipe along the bar goes back to the tabs.
+- A new tab opened from the keyboard or the timeline no longer leaves a Back step into another tab.

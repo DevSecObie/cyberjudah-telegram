@@ -6,105 +6,119 @@ import { Cell, Chip as TgChip, Placeholder, Section as TgSection, SegmentedContr
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
 import { goBack, isRootPath, usePageActions } from "@/tg/hooks";
-import { adjacentTab, askTabPath, bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
+import { bibleTabPath, currentTab, kindTabIndex, searchTabPath, selectTab, settleTabFloor, useTabs } from "@/lib/tabs";
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { useReaderFullscreen } from "@/bible/session";
-import { SwitcherBar } from "@/screens/Tabs";
-import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
+import { contrastInk, SwitcherBar } from "@/screens/Tabs";
+import { NAV_ITEMS } from "@/lib/nav";
 
 import { Feather } from "@/bible/icons";
 import { Icon, type IconName } from "./icons";
 import { useSheetRoute } from "./sheetRoute";
 import { moveTab } from "./tab-motion";
+import { clearOver, historyIdx, isOver } from "@/lib/over-page";
+import { useAvailableUpdatesIndicator } from "@/resources/updates";
+import { useTabScrub } from "./TabScrub";
 export { Icon, type IconName } from "./icons";
 
 /**
- * Bible Strong's bottom bar (app-switcher/BottomTabBar): a flat full-width row of 48 px icon
- * buttons on the page colour with a line above it. Here the reader picks and orders the buttons
- * (lib/nav) and Menu ends the row. Search, the Bible and Ask go to their tab (or open one); the
- * tabs button shows how many are open and opens the switcher. A long press on the bar opens its
- * editor.
+ * Bible Strong's bottom bar (app-switcher/BottomTabBar): a flat full-width row of five 48 px icon
+ * buttons on the page colour with a line above it: Home, Search, the Bible, the tabs and Menu.
+ * Search and the Bible go to their tab (or open one); the tabs button shows how many are open and
+ * opens the switcher.
  */
 export function tabOf(path: string): string {
   if (path.startsWith("/more") || path.startsWith("/settings")) return "more";
   return NAV_ITEMS.find((i) => i.match.test(path))?.id ?? "";
 }
 
-const navPath = (id: NavId) => id === "search" ? searchTabPath() : id === "bible" ? bibleTabPath() : id === "ask" ? askTabPath() : navItem(id).path;
+/** BottomTabBar's row: HomeButton, SearchButton, BibleButton, TabButton, MenuButton. */
+const BUTTONS = ["home", "search", "bible", "tabs", "more"] as const;
+type ButtonId = typeof BUTTONS[number];
+const LABELS = { home: "Home", search: "Search", bible: "Bible" };
 
 export function TabBar() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
-  const { tabs, group, groups } = useTabs();
-  const [ids] = useNav();
+  const { tabs, current: currentTabId, group } = useTabs();
+  const { hasUnseenUpdates } = useAvailableUpdatesIndicator();
   // The count takes its group's colour, as Bible Strong's does; the default group stays plain.
-  const groupColor = groups.indexOf(group) > 0 ? group.color : undefined;
+  const groupColor = group.isDefault ? undefined : group.color;
   const drawer = useDrawer();
   const current = drawer ?? tabOf(pathname);
   // Bible Strong slides the bar down out of sight while the Bible is full screen.
   const hidden = useReaderFullscreen() && !drawer && current === "bible";
-  const press = useRef<number | undefined>(undefined);
   const swipe = useRef<{ x: number; y: number } | null>(null);
   const long = useRef(false);
   const pointer = useRef<number | null>(null);
   const touchTarget = useRef<HTMLButtonElement | null>(null);
   const touchClick = useRef<HTMLButtonElement | null>(null);
-  const order = buttonOrder(ids);
   const go = (to: string | (() => string), overview = false, toId = "") => {
     if (long.current) return;
-    // The new tab slides in from its side of the bar, as Bible Strong's tab carousel does.
-    const from = order.indexOf(current as NavId | "more"), at = order.indexOf(toId as NavId | "more");
-    const dir = from < 0 || at < 0 || at === from ? 0 : at > from ? 1 : -1;
-    haptic("select"); setDrawer(null);
+    // The tab slides in from its side, by its place in the group (Bible Strong's slideToIndex);
+    // a button for the tab already showing does nothing.
+    const from = tabs.findIndex((t) => t.id === currentTab()?.id);
+    const at = toId === "search" || toId === "bible" ? kindTabIndex(toId) : from;
+    const dir = from < 0 || at === from ? 0 : at > from ? 1 : -1;
+    setDrawer(null);
+    // A page over the tab is left for the tab even when its path is the same.
+    const wasOver = isOver(historyIdx());
     moveTab(() => {
       const target = typeof to === "function" ? to() : to;
-      if (target === pathname) { window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); return false; }
-      else navigate(target, { replace: true });
+      if (target === pathname + search && !wasOver) { settleTabFloor(historyIdx(), false); return false; }
+      navigate(target, { replace: true });
     }, overview ? "overview" : "slide", undefined, dir);
   };
   // Home and the menu are drawers, as in Bible Strong; the same button closes its own drawer.
-  const toggle = (side: DrawerSide) => { if (long.current) return; haptic("select"); setDrawer(drawer === side ? null : side); };
-  useEffect(() => () => { window.clearTimeout(press.current); }, []);
+  const toggle = (side: DrawerSide) => { if (long.current) return; setDrawer(drawer === side ? null : side); };
+  // A swipe along the bar scrubs through the open tabs (Bible Strong's useTabBarSwipeGesture).
+  // Settling on another tab leaves a page over the tab, as the buttons do; back on its own tab it stays.
+  const scrub = useTabScrub(tabs, currentTabId, (id) => {
+    setDrawer(null);
+    if (id === currentTabId) return;
+    const idx = historyIdx(), to = selectTab(id);
+    clearOver(idx);
+    navigate(to, { replace: true });
+  });
   const cancelPress = () => {
-    window.clearTimeout(press.current);
     swipe.current = null; touchTarget.current = null; touchClick.current = null; pointer.current = null;
+    scrub.cancel();
   };
-  // A long press edits the bar; a horizontal swipe along it moves to the next or previous open tab
-  // (Bible Strong's useTabBarSwipeGesture).
+  // A horizontal swipe along the bar scrubs through the open tabs (Bible Strong's
+  // useTabBarSwipeGesture). Bible Strong's bar has no long press.
   const hold = {
     onPointerDown: (e: React.PointerEvent) => {
       if (!e.isPrimary || e.button !== 0 || pointer.current !== null) return;
       // A finger that stops a moving page is not a tap on the bar (fling.ts): leave it to the
-      // browser, which drops that click, so it neither opens a section nor starts a long press.
+      // browser, which drops that click, so it does not open a section.
       if (e.pointerType === "touch" && stoppingScroll()) return;
       pointer.current = e.pointerId; touchClick.current = null;
       touchTarget.current = e.pointerType === "touch" ? (e.target as Element).closest<HTMLButtonElement>("button.tab") : null;
-      long.current = false; swipe.current = { x: e.clientX, y: e.clientY };
-      press.current = window.setTimeout(() => { long.current = true; haptic("heavy"); setDrawer(null); navigate("/settings/bar"); }, 600);
+      long.current = false; swipe.current = { x: e.clientX, y: e.clientY }; scrub.begin(e.clientX, e.clientY);
     },
     onPointerMove: (e: React.PointerEvent) => {
       if (pointer.current !== e.pointerId) return;
-      const s = swipe.current;
-      if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) window.clearTimeout(press.current);
+      // Once the swipe has started, the press is no longer a tap on the button it began on.
+      // It keeps following the finger off the bar (captured only now, so a tap still reaches its button).
+      if (scrub.move(e.clientX, e.clientY)) {
+        long.current = true; touchTarget.current = null;
+        const bar = e.currentTarget as Element;
+        if (!bar.hasPointerCapture(e.pointerId)) bar.setPointerCapture(e.pointerId);
+      }
     },
     onPointerCancel: (e: React.PointerEvent) => { if (pointer.current === e.pointerId) cancelPress(); },
     onPointerUp: (e: React.PointerEvent) => {
       if (pointer.current !== e.pointerId) return;
       pointer.current = null;
-      window.clearTimeout(press.current);
-      const s = swipe.current; swipe.current = null; if (!s || long.current) return;
+      const s = swipe.current; swipe.current = null;
+      if (scrub.end()) { window.setTimeout(() => { long.current = false; }, 50); return; }
+      if (!s || long.current) return;
       // Finish stationary taps at touchend, where the compatibility click can be canceled.
       // Opening a drawer at pointerup can otherwise retarget that click to its new scrim.
       const target = touchTarget.current; touchTarget.current = null;
       if (target?.isConnected && Math.hypot(e.clientX - s.x, e.clientY - s.y) < 10 && (e.target as Element).closest("button.tab") === target) {
-        touchClick.current = target; return;
+        touchClick.current = target;
       }
-      const dx = e.clientX - s.x, dy = e.clientY - s.y;
-      if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-      moveTab(() => {
-        const to = adjacentTab(dx < 0 ? 1 : -1); if (!to) return false;
-        long.current = true; window.setTimeout(() => { long.current = false; }, 50); haptic("select"); setDrawer(null); navigate(to, { replace: true });
-      }, "slide", undefined, dx < 0 ? 1 : -1);
     },
     onPointerLeave: (e: React.PointerEvent) => { if (pointer.current === e.pointerId) cancelPress(); },
     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
@@ -133,33 +147,30 @@ export function TabBar() {
     return () => { touchClick.current = null; nav.removeEventListener("touchend", finishTouch); };
   }, [pathname]);
   // While the switcher is open the bar becomes its controls, as in Bible Strong.
-  if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /><button type="button" className="tab tab--search" aria-label="Search" title="Search" onClick={() => go(searchTabPath, false, "search")}><Feather name="search" size={23} raw /></button></nav>;
+  if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /></nav>;
   const count = tabs.length > 100 ? ":)" : String(tabs.length);
-  const glyph = (id: NavId | "more") => {
-    if (id === "more") return <Feather name="more-horizontal" size={28} />;
+  const glyph = (id: ButtonId) => {
+    if (id === "more") return <span className="tab__more"><Feather name="more-horizontal" size={28} />{hasUnseenUpdates ? <NotificationDot style={{ top: 2, right: -3 }} /> : null}</span>;
     if (id === "home") return <Feather name="home" size={23} />;
     if (id === "search") return <Feather name="search" size={23} raw />;
     if (id === "bible") return <Feather name="book-open" size={23} />;
-    const item = navItem(id);
-    return item.icon === "count" ? <span ref={countBox} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={23} />;
+    return <span ref={countBox} className="tab__count" style={groupColor ? { ["--group" as string]: groupColor, ["--group-ink" as string]: contrastInk(groupColor) } : undefined} aria-hidden="true">{count}</span>;
   };
-  const label = (id: NavId | "more") => id === "more" ? "Menu" : id === "tabs" ? `${count} Tabs open` : navItem(id).label;
-  const press1 = (id: NavId | "more") => id === "more" ? toggle("more") : id === "home" ? toggle("home") : go(() => navPath(id), id === "tabs", id);
+  const label = (id: ButtonId) => id === "more" ? (hasUnseenUpdates ? "Main menu, updates available" : "Main menu") : id === "tabs" ? `Tabs, ${count} open` : LABELS[id];
+  const path = (id: "search" | "bible" | "tabs") => id === "search" ? searchTabPath() : id === "bible" ? bibleTabPath() : "/tabs";
+  const press1 = (id: ButtonId) => id === "more" ? toggle("more") : id === "home" ? toggle("home") : go(() => path(id), id === "tabs", id);
   return (
-    <nav ref={bar} className="tabs" aria-label="Sections" data-hidden={hidden ? "" : undefined} {...hold}>
-      {order.map((id) => {
-        const on = current === id;
-        return <button key={id} type="button" className="tab" data-nav={id} data-on={on ? "" : undefined} aria-current={on ? "page" : undefined}
-          aria-label={label(id)} title={label(id)} onClick={() => press1(id)}>{glyph(id)}</button>;
-      })}
-    </nav>
+    <>{scrub.layer}<nav ref={bar} className="tabs" aria-label="Sections" data-hidden={hidden ? "" : undefined} {...hold}>
+      <div className="tabs__row">
+        {BUTTONS.map((id) => <button key={id} type="button" className="tab" data-nav={id} aria-label={label(id)} title={label(id)} onClick={() => press1(id)}>{glyph(id)}</button>)}
+      </div>
+    </nav></>
   );
 }
 
-/** Bible Strong's row: the reader's buttons in their order, Search among them (second, as Bible Strong has it, if left out), and Menu last. */
-export function buttonOrder(ids: NavId[]): (NavId | "more")[] {
-  const row: (NavId | "more")[] = ids.includes("search") ? [...ids] : [...ids.slice(0, 1), "search", ...ids.slice(1)];
-  return [...row, "more"];
+/** Bible Strong's NotificationDot: a small green dot signalling something new, outlined so it stays legible over an icon. */
+export function NotificationDot({ size = 10, style }: { size?: number; style?: React.CSSProperties }) {
+  return <span className="notify-dot" aria-hidden="true" style={{ width: size, height: size, ...style }} />;
 }
 
 /**

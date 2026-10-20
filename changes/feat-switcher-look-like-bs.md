@@ -1,0 +1,7 @@
+- The tab switcher looks and responds more like Bible Strong's:
+  - A named group shows its count on its colour and its name in large type above its tabs.
+  - Cards carry Bible Strong's icons for the kinds of tab it shares with us, and cut long titles in the middle.
+  - A closed card shrinks away while the others slide into place.
+  - Only the ✕ dims when pressed: the card no longer shrinks, and nothing in the switcher vibrates.
+  - The switcher bar is just +, the group and OK; the extra Search button is gone.
+  - The switcher no longer has its own Back button.
