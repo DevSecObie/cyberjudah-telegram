@@ -190,8 +190,8 @@ export function Tabs() {
     if (track.current) track.current.style.transform = `translate3d(${v}px, 0, 0)`;
     // The last group fades to .3 as the create page comes in (TabGroupPage), which grows from .8 held in place (CreateGroupPage).
     const scrollX = -v, start = n * w, p = Math.min(1, Math.max(0, (scrollX - (start - w)) / w));
-    const last = pages.current.get(gs[n - 1]?.id ?? "");
-    if (last) last.style.opacity = String(1 - 0.7 * p);
+    const lastId = gs[n - 1]?.id;
+    for (const [id, el] of pages.current) el.style.opacity = id === lastId ? String(1 - 0.7 * p) : "";
     const cp = createPage.current;
     if (cp) { cp.style.opacity = String(p); cp.style.transform = `translateX(${-w + p * w}px) scale(${0.8 + 0.2 * p})`; }
   };
@@ -217,7 +217,7 @@ export function Tabs() {
 
   const drag = useRef<{ x: number; y: number; start: number; active: boolean; failed: boolean; id: number; samples: [number, number][] } | null>(null);
   const onPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || drag.current?.active) return;
     drag.current = { x: e.clientX, y: e.clientY, start: x.current, active: false, failed: false, id: e.pointerId, samples: [[performance.now(), e.clientX]] };
   };
   const onPointerMove = (e: React.PointerEvent) => {
@@ -234,8 +234,10 @@ export function Tabs() {
     d.samples.push([performance.now(), e.clientX]); if (d.samples.length > 6) d.samples.shift();
   };
   const onPointerEnd = (e: React.PointerEvent) => {
-    const d = drag.current; drag.current = null;
-    if (!d?.active || d.id !== e.pointerId) return;
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    drag.current = null;
+    if (!d.active) return;
     const n = groupsNow().length, w = live.current;
     const [t0, x0] = d.samples[0], [t1, x1] = d.samples[d.samples.length - 1];
     const velocity = performance.now() - t1 > 80 || t1 === t0 ? 0 : ((x1 - x0) / (t1 - t0)) * 1000;
@@ -290,7 +292,10 @@ function GroupHeader({ group }: { group: Group }) {
     // The text's own line, as React Native's onTextLayout gives it, not the row it sits in.
     const range = document.createRange(); range.selectNodeContents(el);
     const width = range.getBoundingClientRect().width, max = innerWidth * 0.7;
-    setSize(width > max ? Math.max(30 * (max / width), 20) : 30);
+    const next = width > max ? Math.max(30 * (max / width), 20) : 30;
+    // Written back at once: React leaves the style alone when the size it holds has not changed.
+    el.style.fontSize = `${next}px`;
+    setSize(next);
   }, [group.name]);
   return (
     <header key={group.id} className="switcher__group">
@@ -355,8 +360,14 @@ function useAddTab() {
   return () => {
     reflowTabs(() => newTab());
     // Bible Strong's useExpandNewTab: to the end of the list, a 300 ms pause, then the new card opens.
-    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" });
-    window.setTimeout(() => moveTab(() => { navigate("/new", { replace: true }); }, "expand"), 300);
+    // Each group's page scrolls on its own.
+    const page = document.querySelector<HTMLElement>(".switcher__page[data-active]");
+    page?.scrollTo({ top: page.scrollHeight, behavior: "instant" });
+    window.setTimeout(() => {
+      // Left for another tab in the meantime: that tab keeps its place.
+      if (!location.pathname.startsWith("/tabs")) return;
+      moveTab(() => { navigate("/new", { replace: true }); }, "expand");
+    }, 300);
   };
 }
 /** The group's name on its colour (getContrastTextColor): in dark, black on a light colour; in light, white on a dark one. */
