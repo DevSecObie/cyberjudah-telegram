@@ -130,23 +130,6 @@ html[data-theme="dark"] .tabicon--quint { color: rgb(253, 121, 168); }
 
 /* A tab contracts into its actual card and expands back; the glass controls stay separate. */
 html[data-tab-motion] .route, .route[data-tab-animated] { animation: none; }
-::view-transition-group(tab-surface) { transform-origin: 0 0; animation: tab-morph var(--dur-4) var(--ease-tab) both; }
-::view-transition-old(tab-surface), ::view-transition-new(tab-surface) { width: 100%; height: 100%; object-fit: fill; mix-blend-mode: normal; }
-::view-transition-old(tab-surface) { animation: tab-fade-out var(--dur-4) ease both; }
-::view-transition-new(tab-surface) { animation: fade-in var(--dur-4) ease both; }
-::view-transition-group(tab-controls) { animation: none; }
-/* Bible Strong's bar swaps its rows in 300 ms: going to the switcher, the buttons rise 30 px and
-   fade as its controls rise into place from 30 px below; coming back, the reverse. */
-::view-transition-old(tab-controls) { animation: bar-out-up 300ms cubic-bezier(0.455, 0.03, 0.515, 0.955) both; }
-::view-transition-new(tab-controls) { animation: bar-in-up 300ms cubic-bezier(0.455, 0.03, 0.515, 0.955) both; }
-html[data-tab-motion="expand"]::view-transition-old(tab-controls) { animation-name: bar-out-down; }
-html[data-tab-motion="expand"]::view-transition-new(tab-controls) { animation-name: bar-in-down; }
-@keyframes bar-out-up { to { transform: translateY(-30px); opacity: 0; } }
-@keyframes bar-in-up { from { transform: translateY(30px); opacity: 0; } }
-@keyframes bar-out-down { to { transform: translateY(30px); opacity: 0; } }
-@keyframes bar-in-down { from { transform: translateY(-30px); opacity: 0; } }
-@keyframes tab-morph { from { transform: var(--tab-from); } to { transform: var(--tab-to); } }
-@keyframes tab-fade-out { to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(tab-surface) { animation: none; }
 }
