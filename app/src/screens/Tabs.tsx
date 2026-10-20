@@ -3,10 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { data } from "@/api/data";
 import { useNavigate } from "react-router";
 
-import { adjacentGroup, closeAll, closeTab, deleteGroup, GROUP_COLORS, isDefaultGroup, MAX_GROUPS, newGroup, newTab, renameGroup, selectTab, switchGroup, tabKind, tabTitle, useTabs, type Group } from "@/lib/tabs";
+import { closeTab, currentGroup, groupsNow, isDefaultGroup, newTab, selectTab, switchGroup, tabKind, tabTitle, useTabs, type Group } from "@/lib/tabs";
 import { assetUrl } from "@/lib/asset";
-import { useSheet } from "@/ui/sheet";
-import { useToast } from "@/ui/toast";
+import { groupPager } from "@/ui/group-pager";
+import { CreateGroupPage, GroupActions, groupLabel } from "./tab-groups";
 import { useBackButton } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { Icon, Screen, type IconName } from "@/ui/ui";
@@ -70,63 +70,16 @@ export function NewTab() {
   );
 }
 
-/** The groups: switch, create, rename or delete (Bible Strong's GroupActionsPopover and ViewGroupsModal). */
-function useGroupActions() {
-  const sheet = useSheet();
-  const toast = useToast();
-  const { group, groups } = useTabs();
-  const pickColor = async (title: string, on?: string) => {
-    const c = await sheet.open({ title, colors: GROUP_COLORS.map((css, i) => ({ id: css, label: `Colour ${i + 1}`, css, on: css === on })) });
-    return c?.id;
-  };
-  // Bible Strong's CreateGroupPage: a name is required, the first colour is chosen until another is.
-  const createGroup = async () => {
-    const name = await sheet.open({ title: "New group", text: { label: "Name", placeholder: "Group name", submit: "Next" } });
-    if (!name?.value?.trim()) return;
-    if (groups.length >= MAX_GROUPS) { toast("Group limit reached", { tone: "error" }); return; }
-    const color = (await pickColor("Its colour")) ?? GROUP_COLORS[0];
-    newGroup(name.value, color);
-  };
-  const editGroup = async () => {
-    const name = await sheet.open({ title: "Rename the group", text: { label: "Name", value: group.name, submit: "Next" } });
-    if (!name) return;
-    const color = (await pickColor("Its colour", group.color)) ?? group.color;
-    renameGroup(group.id, name.value ?? group.name, color);
-  };
-  return async () => {
-    const a = await sheet.open({
-      title: "Groups",
-      items: [
-        // Bible Strong's GroupActionsPopover: Close all tabs on every group, with no question asked.
-        { id: "closeall", text: "Close all tabs", icon: <Icon name="close" size={18} /> },
-        ...groups.map((g) => ({ id: `g:${g.id}`, text: `${g.id === group.id ? "✓ " : ""}${groupLabel(g)}`, hint: `${g.tabs.length} ${g.tabs.length === 1 ? "tab" : "tabs"}`, icon: <span className="groupdot" style={{ background: g.color }} /> })),
-        { id: "new", text: "New group", icon: <Icon name="plus" size={18} /> },
-        ...(isDefault(group) ? [] : [
-          { id: "edit", text: `Rename “${group.name}”`, icon: <Icon name="compose" size={18} /> },
-          { id: "delete", text: "Delete group", destructive: true, icon: <Icon name="trash" size={18} /> },
-        ]),
-      ],
-    });
-    if (!a) return;
-    if (a.id === "closeall") { closeAll(group.id); return; }
-    if (a.id.startsWith("g:")) { switchGroup(a.id.slice(2)); return; }
-    if (a.id === "new") await createGroup();
-    else if (a.id === "edit") await editGroup();
-    else if (a.id === "delete") { const ok = await sheet.open({ title: "Delete group?", items: [{ id: "yes", text: "All tabs in this group will be closed.", destructive: true }] }); if (ok) deleteGroup(group.id); }
-  };
-}
 /** Bible Strong's default group: it has no name of its own, only its count. */
 const isDefault = isDefaultGroup;
-const groupLabel = (g: Group) => (isDefault(g) ? `${g.tabs.length} ${g.tabs.length === 1 ? "tab" : "tabs"}` : g.name);
 
 /**
  * The bottom bar while the switcher is open (Bible Strong's BottomTabBar in list mode): a new
- * tab, the group's name (the default group shows its count) which opens the groups, and OK.
+ * tab, the group's name (the default group shows its count) which opens the group's actions, and OK.
  */
 export function SwitcherBar() {
   const navigate = useNavigate();
   const { tabs, current, group } = useTabs();
-  const openGroups = useGroupActions();
   const add = useAddTab();
   const named = !isDefault(group);
   // Bible Strong's useBottomTabBar: the current card is scrolled into view, if it is not, before it opens.
@@ -139,34 +92,53 @@ export function SwitcherBar() {
   return (
     <div className="switcherbar" role="toolbar" aria-label="Tabs">
       <button type="button" className="switcherbar__add" aria-label="Add a tab" onClick={add}><Icon name="plus" size={23} /></button>
-      <button type="button" className="switcherbar__group" aria-label={`${groupLabel(group)}. Groups`} onClick={() => void openGroups()}
-        style={named ? { ["--group" as string]: group.color, ["--group-ink" as string]: contrastInk(group.color) } : undefined}>
+      <GroupActions label={groupLabel(group)} style={named ? { ["--group" as string]: group.color, ["--group-ink" as string]: contrastInk(group.color) } : undefined}>
         <span>{groupLabel(group)}</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
-      </button>
+      </GroupActions>
       <button type="button" className="switcherbar__ok" aria-label="Open selected tab" onClick={ok}>OK</button>
     </div>
   );
 }
 
+/** Reanimated 4's default withSpring (stiffness 900, damping 120, mass 4): critically damped, about half a second. */
+function spring(from: number, to: number, frame: (x: number) => void, done: () => void): () => void {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { frame(to); done(); return () => {}; }
+  let x = from, v = 0, last = performance.now(), id = 0;
+  const step = (now: number) => {
+    let dt = Math.min(0.064, (now - last) / 1000); last = now;
+    while (dt > 0) { const h = Math.min(dt, 1 / 240); v += ((-900 * (x - to) - 120 * v) / 4) * h; x += v * h; dt -= h; }
+    if (Math.abs(x - to) < 0.5 && Math.abs(v) < 5) { frame(to); done(); return; }
+    frame(x); id = requestAnimationFrame(step);
+  };
+  id = requestAnimationFrame(step);
+  return () => cancelAnimationFrame(id);
+}
+/** Bible Strong's rubberBand: 0.3 of the pull past either end, at most 100 px. */
+const rubberBand = (v: number, min: number, max: number) => (v < min ? min - Math.min((min - v) * 0.3, 100) : v > max ? max + Math.min((v - max) * 0.3, 100) : v);
+
 /**
- * Bible Strong's tab switcher (AppSwitcherScreen, StaticTabPreview): the current group's tabs,
- * two to a row, 20 px apart, each a card as tall as the screen's proportions allow with a 40 px
- * title bar (icon, title, ✕) over a round icon. A sideways swipe moves between groups.
+ * Bible Strong's tab switcher (CompactAppSwitcherScreen, TabGroupPager, TabGroupPage): each group
+ * a page of its own, side by side, with the create page after the last. The pages follow the
+ * finger (after 10 px across, given up after 10 px up or down), resist past either end, and on
+ * release spring to the nearest page, or on past it with a flick over 500 px/s. A group's tabs are
+ * two to a row, 20 px apart, each a card with a 40 px title bar (icon, title, ✕) over a round icon.
  */
 export function Tabs() {
   const navigate = useNavigate();
-  const { tabs, current, group } = useTabs();
+  const { groups, group } = useTabs();
   const go = (id: string) => { moveTab(() => { navigate(selectTab(id), { replace: true }); }, "expand", id); };
   // Bible Strong's switcher has no Back: it closes with OK or a card.
   useBackButton(() => true, false, true);
   // Card size: two per row with 20 px margins and gap; height from the screen's proportions x 0.7.
   const [size, setSize] = useState(() => cardSize());
+  const [width, setWidth] = useState(() => innerWidth);
   const container = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     const element = container.current!;
     const measure = () => {
       const next = cardSize(element.clientWidth);
+      setWidth(element.clientWidth);
       setSize(previous => previous.w === next.w && previous.h === next.h && previous.perRow === next.perRow ? previous : next);
     };
     const observer = new ResizeObserver(measure); observer.observe(element); measure();
@@ -174,35 +146,106 @@ export function Tabs() {
     return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
   }, []);
 
-  const start = useRef<{ x: number; y: number } | null>(null);
-  const onStart = (e: React.TouchEvent) => { const t = e.touches[0]; start.current = { x: t.clientX, y: t.clientY }; };
-  const onEnd = (e: React.TouchEvent) => {
-    const s0 = start.current; start.current = null; if (!s0) return;
-    const t = e.changedTouches[0], dx = t.clientX - s0.x, dy = t.clientY - s0.y;
-    if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
-    const id = adjacentGroup(dx < 0 ? 1 : -1);
-    if (id) switchGroup(id);
+  // The pager: x is the track's translation; the create page is page groups.length.
+  const index = Math.max(0, groups.findIndex((g) => g.id === group.id));
+  const track = useRef<HTMLDivElement>(null);
+  const pages = useRef(new Map<string, HTMLElement>());
+  const createPage = useRef<HTMLElement>(null);
+  const x = useRef(-index * width);
+  const [createShown, setCreateShown] = useState(false);
+  const stop = useRef<() => void>(() => {});
+  const springing = useRef(false);
+  const live = useRef(width);
+  live.current = width;
+  const apply = (v: number) => {
+    const gs = groupsNow(), w = live.current, n = gs.length;
+    x.current = v;
+    if (track.current) track.current.style.transform = `translate3d(${v}px, 0, 0)`;
+    // The last group fades to .3 as the create page comes in (TabGroupPage), which grows from .8 held in place (CreateGroupPage).
+    const scrollX = -v, start = n * w, p = Math.min(1, Math.max(0, (scrollX - (start - w)) / w));
+    const last = pages.current.get(gs[n - 1]?.id ?? "");
+    if (last) last.style.opacity = String(1 - 0.7 * p);
+    const cp = createPage.current;
+    if (cp) { cp.style.opacity = String(p); cp.style.transform = `translateX(${-w + p * w}px) scale(${0.8 + 0.2 * p})`; }
+  };
+  /** Bible Strong's navigateToPage: springs to a page; a group's page makes it the current group, and the one left scrolls back to its top. */
+  const navigateToPage = (page: number) => {
+    const gs = groupsNow(), w = live.current;
+    stop.current();
+    springing.current = true;
+    stop.current = spring(x.current, -page * w, apply, () => { springing.current = false; });
+    setCreateShown(page >= gs.length);
+    const target = gs[page];
+    if (target && target.id !== currentGroup().id) {
+      pages.current.get(currentGroup().id)?.scrollTo({ top: 0, behavior: "smooth" });
+      switchGroup(target.id);
+    }
+  };
+  useEffect(() => groupPager.subscribe(navigateToPage), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // A group chosen elsewhere, or a new width: the pager is put on it at once (useProviderEffects).
+  useLayoutEffect(() => {
+    if (springing.current || drag.current?.active || createShown) return;
+    stop.current(); apply(-index * width);
+  }, [index, width, groups.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const drag = useRef<{ x: number; y: number; start: number; active: boolean; failed: boolean; id: number; samples: [number, number][] } | null>(null);
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    drag.current = { x: e.clientX, y: e.clientY, start: x.current, active: false, failed: false, id: e.pointerId, samples: [[performance.now(), e.clientX]] };
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const d = drag.current; if (!d || d.failed || d.id !== e.pointerId) return;
+    const dx = e.clientX - d.x, dy = e.clientY - d.y;
+    if (!d.active) {
+      if (Math.abs(dy) > 10) { d.failed = true; return; }
+      if (Math.abs(dx) <= 10) return;
+      d.active = true; stop.current(); d.start = x.current;
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    }
+    const n = groupsNow().length, w = live.current;
+    apply(rubberBand(d.start + dx, -n * w, 0));
+    d.samples.push([performance.now(), e.clientX]); if (d.samples.length > 6) d.samples.shift();
+  };
+  const onPointerEnd = (e: React.PointerEvent) => {
+    const d = drag.current; drag.current = null;
+    if (!d?.active || d.id !== e.pointerId) return;
+    const n = groupsNow().length, w = live.current;
+    const [t0, x0] = d.samples[0], [t1, x1] = d.samples[d.samples.length - 1];
+    const velocity = performance.now() - t1 > 80 || t1 === t0 ? 0 : ((x1 - x0) / (t1 - t0)) * 1000;
+    const at = -x.current / w;
+    let page = Math.abs(velocity) > 500 ? (velocity > 0 ? Math.floor(at) : Math.ceil(at)) : Math.round(at);
+    page = Math.max(0, Math.min(page, n));
+    navigateToPage(page);
   };
 
   return (
-    <main ref={container} className="switcher" aria-label="Your tabs" onTouchStart={onStart} onTouchEnd={onEnd} onTouchCancel={() => { start.current = null; }}>
-      {!tabs.length ? <EmptyGroup /> : isDefault(group) ? null : <GroupHeader group={group} />}
-      <div className="switcher__grid" style={{ gridTemplateColumns: `repeat(${size.perRow}, ${size.w}px)` }}>
-        {tabs.map((t) => {
-          const title = tabTitle(t.path);
-          return (
-            <div key={t.id} className="tabcard" data-tab-id={t.id} data-current={t.id === current ? "" : undefined} style={{ width: size.w, height: size.h }}>
-              <button type="button" className="tabcard__open" onClick={() => go(t.id)} aria-label={`Open ${title}`}>
-                <TabPreview path={t.path} />
-                <span className="tabcard__icon"><TabIcon path={t.path} size={30} /></span>
-              </button>
-              <span className="tabcard__title"><TabIcon path={t.path} size={16} /><MiddleText text={title} /></span>
-              <button type="button" className="tabcard__close" aria-label={`Close ${title}`} onClick={() => closeTabCard(t.id, () => closeTab(t.id))}>
-                <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg></span>
-              </button>
+    <main ref={container} className="switcher" aria-label="Your tabs" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerEnd} onPointerCancel={onPointerEnd}>
+      <div ref={track} className="switcher__track" style={{ width: (groups.length + 1) * width, transform: `translate3d(${x.current}px, 0, 0)` }}>
+        {groups.map((g) => (
+          <section key={g.id} ref={(el) => { if (el) pages.current.set(g.id, el); else pages.current.delete(g.id); }} className="switcher__page"
+            data-group-id={g.id} data-active={g.id === group.id ? "" : undefined} data-empty={g.tabs.length ? undefined : ""} style={{ width }}
+            aria-hidden={g.id === group.id ? undefined : true} inert={g.id !== group.id}>
+            {!g.tabs.length ? <EmptyGroup /> : isDefault(g) ? null : <GroupHeader group={g} />}
+            <div className="switcher__grid" style={{ gridTemplateColumns: `repeat(${size.perRow}, ${size.w}px)` }}>
+              {g.tabs.map((t) => {
+                const title = tabTitle(t.path);
+                return (
+                  <div key={t.id} className="tabcard" data-tab-id={t.id} data-current={t.id === g.current ? "" : undefined} style={{ width: size.w, height: size.h }}>
+                    <button type="button" className="tabcard__open" onClick={() => go(t.id)} aria-label={`Open ${title}`}>
+                      <TabPreview path={t.path} />
+                      <span className="tabcard__icon"><TabIcon path={t.path} size={30} /></span>
+                    </button>
+                    <span className="tabcard__title"><TabIcon path={t.path} size={16} /><MiddleText text={title} /></span>
+                    <button type="button" className="tabcard__close" aria-label={`Close ${title}`} onClick={() => closeTabCard(t.id, () => closeTab(t.id))}>
+                      <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg></span>
+                    </button>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
+          </section>
+        ))}
+        <CreateGroupPage pageRef={createPage} shown={createShown} onCancel={() => navigateToPage(Math.max(0, groups.length - 1))} />
       </div>
     </main>
   );
@@ -242,12 +285,13 @@ const MATERIAL: [RegExp, string][] = [
   [/^\/(plans?|study)(\/|\?|$)/, "M14 10H2v2h12v-2zm0-4H2v2h12V6zM2 16h8v-2H2v2zm19.5-4.5L23 13l-6.99 7-4.51-4.5L13 14l3.01 3 5.49-5.5z"],
   [/^\/timeline/, "M23 8c0 1.1-.9 2-2 2-.18 0-.35-.02-.51-.07l-3.56 3.55c.05.16.07.34.07.52 0 1.1-.9 2-2 2s-2-.9-2-2c0-.18.02-.36.07-.52l-2.55-2.55c-.16.05-.34.07-.52.07s-.36-.02-.52-.07l-4.55 4.56c.05.16.07.33.07.51 0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2c.18 0 .35.02.51.07l4.56-4.55C8.02 9.36 8 9.18 8 9c0-1.1.9-2 2-2s2 .9 2 2c0 .18-.02.36-.07.52l2.55 2.55c.16-.05.34-.07.52-.07s.36.02.52.07l3.55-3.56C19.02 8.35 19 8.18 19 8c0-1.1.9-2 2-2s2 .9 2 2z"],
 ];
-export function TabIcon({ path, size }: { path: string; size: number }) {
+/** `plain`: in the theme's own ink, as View my groups shows them. */
+export function TabIcon({ path, size, plain }: { path: string; size: number; plain?: boolean }) {
   const art = BS_ICONS.find(([re]) => re.test(path));
-  if (art) return <span className={`tabicon tabicon--${art[2]}`} aria-hidden="true" style={{ width: size, height: size, ["--icon" as string]: `url("${assetUrl(`bs/tab-icons/${art[1]}.svg`)}")` }} />;
+  if (art) return <span className={`tabicon tabicon--${plain ? "default" : art[2]}`} aria-hidden="true" style={{ width: size, height: size, ["--icon" as string]: `url("${assetUrl(`bs/tab-icons/${art[1]}.svg`)}")` }} />;
   const material = MATERIAL.find(([re]) => re.test(path));
-  if (material) return <svg className="tabicon--tertiary" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={material[1]} /></svg>;
-  return <span className="tabicon--tertiary" style={{ display: "contents" }}><Icon name={tabKind(path).icon as IconName} size={size} /></span>;
+  if (material) return <svg className={plain ? "tabicon--default" : "tabicon--tertiary"} width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={material[1]} /></svg>;
+  return <span className={plain ? "tabicon--default" : "tabicon--tertiary"} style={{ display: "contents" }}><Icon name={tabKind(path).icon as IconName} size={size} /></span>;
 }
 
 /** One line cut in the middle when it does not fit (React Native's ellipsizeMode="middle"). */
@@ -289,7 +333,7 @@ function useAddTab() {
   };
 }
 /** The group's name on its colour (getContrastTextColor): in dark, black on a light colour; in light, white on a dark one. */
-function contrastInk(hex: string) {
+export function contrastInk(hex: string) {
   const rgb = hex.replace("#", "");
   const luminance = 0.2126 * (parseInt(rgb.slice(0, 2), 16) / 255) + 0.7152 * (parseInt(rgb.slice(2, 4), 16) / 255) + 0.0722 * (parseInt(rgb.slice(4, 6), 16) / 255);
   if (document.documentElement.dataset.theme === "dark") return luminance > 0.5 ? "#000000" : undefined;

@@ -7,3 +7,7 @@ are removed here because Bible Strong's app does not draw them either.
 public/bs/tab-icons/*.svg
 From Bible Strong (https://github.com/smontlouis/bible-strong), apps/expo/src/assets/images/tab-icons/,
 the icons its tab switcher shows for each kind of tab (getIconByTabType). GNU GPL v3.
+
+public/bs/new-group-tab.svg
+From Bible Strong (https://github.com/smontlouis/bible-strong), apps/expo/src/assets/images/new-group-tab.svg,
+the art behind its create-group page (CreateGroupPage). GNU GPL v3. The original notes it comes from SVG Repo.

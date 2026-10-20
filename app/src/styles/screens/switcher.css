@@ -17,12 +17,17 @@
 
 /* The switcher (TabGroupPage, TabPreview): two cards a row on the light grey, each on the page
    colour with a soft shadow, its content faint under a fade, a round icon, the title bar and ✕. */
-/* Bible Strong's list: 108 px under the last row plus the cards' own 20 px (TabGroupPage, TabPreview). */
-.switcher { min-height: 100dvh; padding: calc(var(--safe-top) + 20px) 20px 128px; background: var(--surface-1); touch-action: pan-y; }
+/* Bible Strong's TabGroupPager: each group a page that scrolls on its own, side by side, then the
+   create page; 108 px under the last row plus the cards' own 20 px (TabGroupPage, TabPreview). */
+.switcher { height: 100dvh; overflow: hidden; padding: 0; background: var(--surface-1); touch-action: pan-y; }
+.switcher__track { display: flex; height: 100%; will-change: transform; }
+.switcher__page { box-sizing: border-box; flex: none; height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: calc(var(--safe-top) + 20px) 20px 128px; touch-action: pan-y; scrollbar-width: none; }
+.switcher__page::-webkit-scrollbar { display: none; }
+.switcher__page[data-empty] { display: flex; flex-direction: column; padding: 0; }
 .switcher__grid { display: grid; gap: 20px; justify-content: start; }
 /* Bible Strong's empty group (TabGroupPage): the tabs picture at 150 px, faint and tertiary, over a
    Create a tab pill in the primary colour; the pill dims while pressed (TouchableOpacity). */
-.switcher__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: calc(100dvh - var(--safe-top) - var(--dock-space) - 60px); }
+.switcher__empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .switcher__empty-art { width: 150px; height: 150px; opacity: .3; background: var(--bs-tertiary, var(--text-3)); -webkit-mask: var(--art) center / contain no-repeat; mask: var(--art) center / contain no-repeat; }
 #root .switcher__create { display: flex; align-items: center; justify-content: center; padding: 12px 20px; border: 0; border-radius: 24px; background: var(--accent); color: var(--on-accent); font: 700 16px var(--font-ui); cursor: pointer; transition: opacity .15s; }
 #root .switcher__create:active { opacity: .2; }
@@ -52,6 +57,7 @@
 .tabicon--secondary { color: rgb(255, 188, 0); }
 .tabicon--quint { color: rgb(48, 51, 107); }
 .tabicon--color2 { color: #ff7675; }
+.tabicon--default { color: var(--bs-default, var(--text-1)); }
 html[data-theme="dark"] .tabicon--grey { color: rgb(150, 150, 150); }
 html[data-theme="dark"] .tabicon--quint { color: rgb(253, 121, 168); }
 .groupdot { flex: none; display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
@@ -86,3 +92,56 @@ html[data-tab-motion] .route, .route[data-tab-animated] { animation: none; }
 .naved__btn:not(:disabled):hover { background: var(--state-hover); }
 .naved__btn:not(:disabled)[data-pressed] { background: var(--state-press); }
 .naved__reset { display: block; min-height: var(--touch); margin: 18px auto 0; border: 0; background: none; font: 500 15px var(--font-ui); color: var(--accent); cursor: pointer; }
+
+/* Bible Strong's GroupActionsPopover rows (common/ActionMenu): 20 px all round, a 15 px icon in a
+   20 px column, the 16 px label 10 px after it, a line under each; Delete in quart. */
+.gmenu { min-width: 200px; }
+#root .gaction { display: flex; align-items: center; width: 100%; padding: 20px; border: 0; border-bottom: 1px solid var(--bs-border, var(--hairline)); background: none; color: var(--bs-default, var(--text-1)); font: 400 16px var(--font-ui); text-align: left; cursor: pointer; transition: opacity .25s; }
+#root .gaction:active { opacity: .2; transition-duration: .15s; }
+#root .gaction[data-quart] { color: rgb(194, 40, 57); }
+.gaction__icon { display: flex; justify-content: center; width: 20px; margin-right: 10px; }
+.gmenu__divider { height: 1px; background: var(--bs-border, var(--hairline)); }
+/* EditGroupModal: Name and Color, 20 px apart, under 13 px tertiary labels; Save at the right. */
+.gedit { display: grid; gap: 20px; padding: 20px; }
+.gedit__field { display: grid; gap: 8px; }
+.gedit__field > span { font: 400 13px var(--font-ui); color: var(--bs-tertiary, var(--text-3)); }
+.gedit input { box-sizing: border-box; width: 100%; height: 48px; border: 2px solid var(--bs-border, var(--hairline)); border-radius: 10px; padding: 0 15px; background: transparent; color: var(--bs-default, var(--text-1)); font: 400 16px var(--font-ui); }
+.gedit input::placeholder { color: var(--bs-grey, var(--text-3)); }
+.gedit__footer { display: flex; justify-content: flex-end; }
+.gswatches { display: flex; align-items: center; }
+.gswatches--edit { gap: 12px; justify-content: space-between; }
+.gswatches--create { gap: 8px; }
+#root .gswatch { flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 16px; cursor: pointer; transition: opacity .25s; }
+#root .gswatch:active { opacity: .2; transition-duration: .15s; }
+.gswatch > span { width: 12px; height: 12px; border-radius: 6px; background: #000; opacity: .5; }
+/* ViewGroupsModal: a card per group on light grey, the current one outlined in its colour. */
+.gview { padding: 16px 20px 0; }
+#root .gcard { display: flex; align-items: center; width: 100%; margin: 0 0 12px; padding: 16px; border: 0; border-radius: 16px; background: var(--surface-1); color: var(--bs-default, var(--text-1)); text-align: left; cursor: pointer; transition: opacity .25s; }
+#root .gcard[data-active] { border: 2px solid; }
+#root .gcard:active { opacity: .2; transition-duration: .15s; }
+.ggrid { flex: none; box-sizing: border-box; display: flex; gap: 2px; width: 50px; height: 50px; padding: 4px; border-radius: 10px; background: rgb(78, 79, 79); }
+html[data-theme="dark"] .ggrid { background: rgb(150, 150, 150); }
+.ggrid__col { flex: 1; display: flex; flex-direction: column; gap: 2px; opacity: .7; }
+.ggrid__cell { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 5px; background: var(--canvas); color: var(--bs-default, var(--text-1)); font: 400 8px var(--font-ui); }
+.gcard__text { flex: 1; min-width: 0; display: grid; gap: 4px; margin-left: 12px; }
+.gcard__name { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.gcard__dot { flex: none; width: 10px; height: 10px; border-radius: 5px; background: rgb(78, 79, 79); }
+html[data-theme="dark"] .gcard__dot { background: rgb(150, 150, 150); }
+.gcard__name b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 16px var(--font-ui); }
+.gcard small { font: 400 13px var(--font-ui); color: rgb(78, 79, 79); }
+html[data-theme="dark"] .gcard small { color: rgb(150, 150, 150); }
+/* CreateGroupPage: on the page colour with 24 px corners, ✕ and ✓, a 30 px name and the nine colours,
+   over the faint new-group art; it is revealed (opacity, scale) as the pager comes to it. */
+.gcreate { position: relative; box-sizing: border-box; flex: none; width: 100vw; height: 100%; padding-top: var(--safe-top); overflow: hidden; border-radius: 24px; background: var(--canvas); opacity: 0; }
+.gcreate__art { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.gcreate__art > span { padding: 20px; border-radius: 24px; background: var(--canvas); }
+.gcreate__art > span::before { content: ""; display: block; width: 120px; height: 120px; opacity: .3; background: var(--bs-tertiary, var(--text-3)); -webkit-mask: var(--art) center / contain no-repeat; mask: var(--art) center / contain no-repeat; }
+.gcreate__bar { position: relative; display: flex; justify-content: space-between; align-items: center; padding: 8px 20px; }
+#root .gcreate__bar > button { display: grid; place-items: center; padding: 8px; border: 0; border-radius: 24px; box-shadow: 0 2px 7px rgba(89, 131, 240, .1); cursor: pointer; transition: opacity .25s; }
+#root .gcreate__bar > button:active { opacity: .2; transition-duration: .15s; }
+#root .gcreate__cancel { background: var(--canvas); color: var(--bs-tertiary, var(--text-3)); }
+#root .gcreate__ok { background: var(--bs-primary, var(--accent)); color: var(--canvas); }
+#root .gcreate__ok:disabled { opacity: .6; color: var(--bs-border, var(--hairline)); cursor: default; }
+.gcreate__body { position: relative; display: grid; gap: 12px; padding: 0 20px; }
+.gcreate__name { box-sizing: border-box; width: 100%; height: 56px; padding: 0; border: 0; outline: none; background: none; color: var(--bs-default, var(--text-1)); font: 400 30px var(--font-ui); }
+.gcreate__name::placeholder { color: color-mix(in srgb, var(--bs-default, var(--text-1)) 50%, transparent); }

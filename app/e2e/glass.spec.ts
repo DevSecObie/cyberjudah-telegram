@@ -649,23 +649,21 @@ for (const reduced of [false, true]) {
     expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
     await page.keyboard.press("Escape");
     await page.goto(`/tabs${LAUNCH}`);
-    const groups = page.getByRole("button", { name: /\. Groups$/ });
+    const groups = page.locator(".switcherbar__group");
     await groups.click();
-    const menu = page.getByRole("dialog", { name: "Groups", exact: true });
+    // Bible Strong's GroupActionsPopover: a floating sheet that opens on Close all tabs, which asks nothing.
+    const menu = page.getByRole("dialog", { name: "Group actions", exact: true });
     await expect(menu).toBeVisible();
-    const actions = (await materials(page, [[".sheet[data-actions]"]]))[0];
+    const actions = (await materials(page, [[".bs-sheet"]]))[0];
     if (reduced) expect(actions).toMatchObject({ filter: "none", alpha: 255 });
     else expect(actions.filter).toContain("blur(");
-    // Bible Strong's GroupActionsPopover opens on Close all tabs, which asks nothing and is not destructive.
-    await expect(menu.locator(".sheet__item").first()).toHaveText("Close all tabs");
-    await expect(menu.locator(".sheet__item").first()).not.toHaveAttribute("data-destructive", "");
+    await expect(menu.locator(".gaction").first()).toHaveText("Close all tabs");
     expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
+    // New group slides the switcher to Bible Strong's create page, whose ✕ goes back.
     await menu.getByRole("button", { name: "New group", exact: true }).click();
-    await expect(page.getByRole("dialog", { name: "New group", exact: true }).getByRole("textbox", { name: "Name" })).toBeFocused();
-    // Bible Strong's RenameModal has no Cancel: Escape (a swipe or a tap outside on a phone) closes it.
-    await page.keyboard.press("Escape");
-    await expect(page.locator(".sheet[data-popover], .action-sheet")).toHaveCount(0);
-    await expect(groups).toBeFocused();
+    await expect(page.getByRole("textbox", { name: "Group name" })).toBeFocused();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.locator(".bs-sheet")).toHaveCount(0);
   });
 }
 
