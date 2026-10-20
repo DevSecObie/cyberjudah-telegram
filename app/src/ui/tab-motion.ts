@@ -4,13 +4,13 @@ import { currentTab } from "@/lib/tabs";
 type Position = { page: number; reader?: number };
 const positions = new Map<string, Position>();
 const path = () => location.pathname + location.search;
-const positionKey = () => `${currentTab().id}:${path()}`;
+const positionKey = () => `${currentTab()?.id ?? ""}:${path()}`;
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const timing = (level: 1 | 3 | 4) => {
   const style = getComputedStyle(document.documentElement);
   return { duration: parseFloat(style.getPropertyValue(`--dur-${level}`)), easing: style.getPropertyValue("--ease-tab").trim() };
 };
-const card = (id = currentTab().id) => document.querySelector<HTMLElement>(`.tabcard[data-tab-id="${CSS.escape(id)}"]`);
+const card = (id = currentTab()?.id ?? "") => document.querySelector<HTMLElement>(`.tabcard[data-tab-id="${CSS.escape(id)}"]`);
 let cancelMotion: (() => void) | undefined;
 let cancelRestore: (() => void) | undefined;
 const cancelPending = () => { cancelMotion?.(); cancelRestore?.(); };
@@ -70,7 +70,7 @@ type Mode = "overview" | "expand" | "slide";
 
 /** Bible Strong's collapse/expand flow, using ephemeral browser snapshots where supported. */
 /** dir: for a slide, the side the new tab comes from (1 from the right, -1 from the left, 0 rising in place). */
-export function moveTab(update: () => void | false, mode: Mode, id = currentTab().id, dir = 0) {
+export function moveTab(update: () => void | false, mode: Mode, id = currentTab()?.id ?? "", dir = 0) {
   cancelMotion?.(); cancelRestore?.();
   rememberTabPosition();
   const root = document.documentElement;

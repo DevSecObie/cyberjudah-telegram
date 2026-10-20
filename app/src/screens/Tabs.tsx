@@ -3,8 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { data } from "@/api/data";
 import { useNavigate } from "react-router";
 
-import { adjacentGroup, closeTab, DEFAULT_GROUP, deleteGroup, GROUP_COLORS, MAX_GROUPS, newGroup, newTab, renameGroup, selectTab, switchGroup, tabKind, tabTitle, useTabs, type Group } from "@/lib/tabs";
+import { adjacentGroup, closeAll, closeTab, deleteGroup, GROUP_COLORS, isDefaultGroup, MAX_GROUPS, newGroup, newTab, renameGroup, selectTab, switchGroup, tabKind, tabTitle, useTabs, type Group } from "@/lib/tabs";
+import { assetUrl } from "@/lib/asset";
 import { useSheet } from "@/ui/sheet";
+import { useToast } from "@/ui/toast";
 import { useBackButton } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { Icon, Screen, type IconName } from "@/ui/ui";
@@ -71,17 +73,19 @@ export function NewTab() {
 /** The groups: switch, create, rename or delete (Bible Strong's GroupActionsPopover and ViewGroupsModal). */
 function useGroupActions() {
   const sheet = useSheet();
+  const toast = useToast();
   const { group, groups } = useTabs();
   const pickColor = async (title: string, on?: string) => {
     const c = await sheet.open({ title, colors: GROUP_COLORS.map((css, i) => ({ id: css, label: `Colour ${i + 1}`, css, on: css === on })) });
     return c?.id;
   };
+  // Bible Strong's CreateGroupPage: a name is required, the first colour is chosen until another is.
   const createGroup = async () => {
-    if (groups.length >= MAX_GROUPS) { await sheet.open({ title: `You can keep ${MAX_GROUPS} groups. Delete one to make another.` }); return; }
-    const name = await sheet.open({ title: "New group", text: { label: "Name", placeholder: `Group ${groups.length + 1}`, submit: "Next" } });
-    if (!name) return;
-    const color = (await pickColor("Its colour")) ?? GROUP_COLORS[groups.length % GROUP_COLORS.length];
-    if (newGroup(name.value ?? "", color)) haptic("success");
+    const name = await sheet.open({ title: "New group", text: { label: "Name", placeholder: "Group name", submit: "Next" } });
+    if (!name?.value?.trim()) return;
+    if (groups.length >= MAX_GROUPS) { toast("Group limit reached", { tone: "error" }); return; }
+    const color = (await pickColor("Its colour")) ?? GROUP_COLORS[0];
+    newGroup(name.value, color);
   };
   const editGroup = async () => {
     const name = await sheet.open({ title: "Rename the group", text: { label: "Name", value: group.name, submit: "Next" } });
@@ -94,21 +98,26 @@ function useGroupActions() {
     const a = await sheet.open({
       title: "Groups",
       items: [
+        // Bible Strong's GroupActionsPopover: Close all tabs on every group, with no question asked.
+        { id: "closeall", text: "Close all tabs", icon: <Icon name="close" size={18} /> },
         ...groups.map((g) => ({ id: `g:${g.id}`, text: `${g.id === group.id ? "✓ " : ""}${groupLabel(g)}`, hint: `${g.tabs.length} ${g.tabs.length === 1 ? "tab" : "tabs"}`, icon: <span className="groupdot" style={{ background: g.color }} /> })),
         { id: "new", text: "New group", icon: <Icon name="plus" size={18} /> },
-        ...(isDefault(group) ? [] : [{ id: "edit", text: `Rename “${group.name}”`, icon: <Icon name="compose" size={18} /> }]),
-        { id: "delete", text: isDefault(group) ? "Close every tab" : `Delete “${group.name}” and its tabs`, destructive: true, icon: <Icon name="trash" size={18} /> },
+        ...(isDefault(group) ? [] : [
+          { id: "edit", text: `Rename “${group.name}”`, icon: <Icon name="compose" size={18} /> },
+          { id: "delete", text: "Delete group", destructive: true, icon: <Icon name="trash" size={18} /> },
+        ]),
       ],
     });
     if (!a) return;
+    if (a.id === "closeall") { closeAll(group.id); return; }
     if (a.id.startsWith("g:")) { switchGroup(a.id.slice(2)); haptic("select"); return; }
     if (a.id === "new") await createGroup();
     else if (a.id === "edit") await editGroup();
-    else if (a.id === "delete") { const ok = await sheet.open({ title: isDefault(group) ? "Close every tab?" : `Delete “${group.name}”?`, items: [{ id: "yes", text: isDefault(group) ? "Close them all" : "Delete the group", destructive: true }] }); if (ok) { deleteGroup(group.id); haptic("success"); } }
+    else if (a.id === "delete") { const ok = await sheet.open({ title: "Delete group?", items: [{ id: "yes", text: "All tabs in this group will be closed.", destructive: true }] }); if (ok) deleteGroup(group.id); }
   };
 }
-/** The first group is Bible Strong's default group: it has no name of its own, only its count. */
-const isDefault = (g: Group) => g.name === DEFAULT_GROUP;
+/** Bible Strong's default group: it has no name of its own, only its count. */
+const isDefault = isDefaultGroup;
 const groupLabel = (g: Group) => (isDefault(g) ? `${g.tabs.length} ${g.tabs.length === 1 ? "tab" : "tabs"}` : g.name);
 
 /**
@@ -120,11 +129,7 @@ export function SwitcherBar() {
   const { tabs, current, group } = useTabs();
   const openGroups = useGroupActions();
   const go = (resolve: () => string) => { haptic("select"); moveTab(() => { navigate(resolve(), { replace: true }); }, "expand"); };
-  const add = () => {
-    reflowTabs(() => newTab());
-    document.querySelector(".tabcard[data-current]")?.scrollIntoView({ block: "nearest", behavior: "instant" });
-    go(() => "/new");
-  };
+  const add = useAddTab();
   const named = !isDefault(group);
   return (
     <div className="switcherbar" role="toolbar" aria-label="Tabs">
@@ -134,7 +139,7 @@ export function SwitcherBar() {
         <span>{groupLabel(group)}</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
       </button>
-      <button type="button" className="switcherbar__ok" aria-label="Open the selected tab" title="Open the selected tab" onClick={() => go(() => tabs.find((t) => t.id === current)?.path ?? "/new")}>OK</button>
+      <button type="button" className="switcherbar__ok" aria-label="Open the selected tab" title="Open the selected tab" onClick={() => { const t = tabs.find((x) => x.id === current); if (t) go(() => t.path); }}>OK</button>
     </div>
   );
 }
@@ -182,6 +187,7 @@ export function Tabs() {
 
   return (
     <main ref={container} className="switcher" aria-label="Your tabs" onTouchStart={onStart} onTouchEnd={onEnd} onTouchCancel={() => { start.current = null; }}>
+      {!tabs.length ? <EmptyGroup /> : null}
       <div className="switcher__grid" style={{ gridTemplateColumns: `repeat(${size.perRow}, ${size.w}px)` }}>
         {tabs.map((t) => {
           const { icon } = tabKind(t.path);
@@ -205,6 +211,25 @@ export function Tabs() {
       </div>
     </main>
   );
+}
+/** Bible Strong's empty group (TabGroupPage): the tabs picture, faint, and a Create a tab button that opens a new tab. */
+function EmptyGroup() {
+  const add = useAddTab();
+  return (
+    <div className="switcher__empty">
+      <span className="switcher__empty-art" aria-hidden="true" style={{ ["--art" as string]: `url("${assetUrl("bs/tabs.svg")}")` }} />
+      <button type="button" className="switcher__create" onClick={add}><Icon name="plus" size={20} /><b>Create a tab</b></button>
+    </div>
+  );
+}
+/** Bible Strong's AddTabButton: a new tab at the end of the group, opened from its card. */
+function useAddTab() {
+  const navigate = useNavigate();
+  return () => {
+    reflowTabs(() => newTab());
+    document.querySelector(".tabcard[data-current]")?.scrollIntoView({ block: "nearest", behavior: "instant" });
+    moveTab(() => { navigate("/new", { replace: true }); }, "expand");
+  };
 }
 /** A tab's icon in its universe's colour (getIconByTabType): the Lexicon primary, the Dictionary secondary, the rest tertiary. */
 function tabColor(path: string) {

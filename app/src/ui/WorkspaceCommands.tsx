@@ -77,7 +77,7 @@ export function WorkspaceCommands() {
       else if (cycle) { e.preventDefault(); setIndex(openTabs.length > 1 ? e.shiftKey ? openTabs.length - 1 : 1 : 0); setMode("recent"); }
       else if (mod && e.altKey && !e.shiftKey && letter === "n") { e.preventDefault(); moveTab(() => { navigate(newTab()); }, "slide"); }
       else if (mod && e.altKey && !e.shiftKey && letter === "w" && isTabPath(location.pathname)) {
-        e.preventDefault(); moveTab(() => { closeTab(tabs.current); navigate(currentTab().path, { replace: true }); }, "slide");
+        e.preventDefault(); moveTab(() => { closeTab(tabs.current); navigate(currentTab()?.path ?? "/tabs", { replace: true }); }, "slide");
       } else if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && ["ArrowUp", "ArrowDown"].includes(e.key)) {
         e.preventDefault(); const at = openTabs.findIndex(t => t.tab === tabs.current), step = e.key === "ArrowUp" ? -1 : 1;
         choose(openTabs[(at + step + openTabs.length) % openTabs.length]);
