@@ -31,12 +31,15 @@ export function useTabScrub(tabs: Tab[], current: string, select: (id: string) =
   const gesture = useRef<Gesture | null>(null);
   const track = useRef<HTMLDivElement>(null);
   const layer = useRef<HTMLDivElement>(null);
+  // Where the cards came to rest, kept while the carousel fades: a render then leaves them there.
+  const settled = useRef(0);
   const offset = (index: number) => `translateX(${-index * (window.innerWidth + GAP)}px)`;
   const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const finish = (target: number) => {
     const t = track.current, l = layer.current;
     const id = tabs[target]?.id;
+    settled.current = target;
     if (id) select(id);
     if (!t || !l) { setShown(false); return; }
     // The cards glide to the chosen tab (300 ms), then the carousel fades over the tab already behind it.
@@ -85,7 +88,7 @@ export function useTabScrub(tabs: Tab[], current: string, select: (id: string) =
     },
     layer: shown ? createPortal(
       <div ref={layer} className="tabscrub" aria-hidden="true">
-        <div ref={track} className="tabscrub__track" style={{ transform: offset(gesture.current?.index ?? 0) }}>
+        <div ref={track} className="tabscrub__track" style={{ transform: offset(gesture.current?.index ?? settled.current) }}>
           {tabs.map((t) => {
             return (
               <div key={t.id} className="tabscrub__card" data-tab-id={t.id}>

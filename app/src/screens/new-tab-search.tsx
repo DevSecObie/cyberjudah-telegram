@@ -218,11 +218,10 @@ function useStudies(enabled: boolean, text: string) {
 /** The reader's verse notes, newest first, or those matching what is typed; each opens at its verse. */
 function useNotes(enabled: boolean, text: string) {
   const all = useAllNotes();
-  const [loading, setLoading] = useState(true);
-  useEffect(() => { if (enabled) { all.reload(); setLoading(false); } }, [enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (enabled) all.reload(); }, [enabled]); // eslint-disable-line react-hooks/exhaustive-deps
   const items: Item[] = all.rows.map((n) => ({ id: `note:${n.slug}/${n.chapter}/${n.key}`, kind: "notes", title: n.note.title || "Untitled note", subtitle: "Note",
     description: n.note.description || undefined, path: `/read/${n.slug}/${n.chapter}?v=${n.key.split("/")[0]}` }));
-  return { items: text ? searchWithMatches(items, text) : items, loading: loading && !all.rows.length };
+  return { items: text ? searchWithMatches(items, text) : items, loading: !all.loaded };
 }
 
 /** catalogSearch's searchTimeline: each period matching what is typed, then (once something is typed) its events. */
