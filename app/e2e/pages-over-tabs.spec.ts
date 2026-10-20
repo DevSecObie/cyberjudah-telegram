@@ -56,3 +56,28 @@ test("a new tab from the keyboard replaces the page, so Back does not cross into
   await expect(page).toHaveURL(/\/new$/);
   expect(await page.evaluate(() => history.length)).toBe(depth);
 });
+
+test("a reload on a page over the tab keeps it over the tab", async ({ page }) => {
+  await setup(page);
+  const before = await tabs(page);
+  await bar(page).getByRole("button", { name: "Main menu", exact: true }).click();
+  await page.locator(".drawer--more").getByRole("link", { name: "Settings", exact: true }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+  expect(await tabs(page)).toBe(before);
+});
+
+test("Open in a new tab from a timeline over the tab makes a tab that keeps its place", async ({ page }) => {
+  await setup(page);
+  await bar(page).getByRole("button", { name: "Main menu", exact: true }).click();
+  await page.locator(".drawer--more").getByRole("link", { name: "Bible timeline", exact: true }).click();
+  await expect(page).toHaveURL(/\/timeline$/);
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByText("Open in a new tab", { exact: true }).click();
+  await expect.poll(() => tabs(page)).toMatch(/ [^ ]+:\/timeline$/);
+  await page.locator('a[href^="/timeline/"]').first().click();
+  await expect(page).toHaveURL(/\/timeline\/.+/);
+  const path = new URL(page.url()).pathname;
+  await expect.poll(() => tabs(page)).toMatch(new RegExp(` [^ ]+:${path.replace(/\//g, "\\/")}$`));
+});
