@@ -110,6 +110,16 @@ export function TabBar() {
     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
   };
   const bar = useRef<HTMLElement>(null);
+  // Bible Strong's tab count grows and settles whenever a tab is opened or closed (useTabButtonPress):
+  // 300 ms after, to 1.2 over 500 ms and back over 500 ms.
+  const countBox = useRef<HTMLSpanElement>(null);
+  const counted = useRef(false);
+  useEffect(() => {
+    if (!counted.current) { counted.current = true; return; }
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const ease = "cubic-bezier(0.455, 0.03, 0.515, 0.955)";
+    countBox.current?.animate([{ transform: "scale(1)", easing: ease }, { transform: "scale(1.2)", easing: ease }, { transform: "scale(1)" }], { duration: 1000, delay: 300 });
+  }, [tabs.length]);
   useEffect(() => {
     const nav = bar.current; if (!nav) return;
     const finishTouch = (event: TouchEvent) => {
@@ -131,7 +141,7 @@ export function TabBar() {
     if (id === "search") return <Feather name="search" size={23} raw />;
     if (id === "bible") return <Feather name="book-open" size={23} />;
     const item = navItem(id);
-    return item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={23} />;
+    return item.icon === "count" ? <span ref={countBox} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={23} />;
   };
   const label = (id: NavId | "more") => id === "more" ? "Menu" : id === "tabs" ? `${count} Tabs open` : navItem(id).label;
   const press1 = (id: NavId | "more") => id === "more" ? toggle("more") : id === "home" ? toggle("home") : go(() => navPath(id), id === "tabs", id);
