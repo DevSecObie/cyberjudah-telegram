@@ -64,8 +64,10 @@ export function TabBar() {
     // A page over the tab is left for the tab even when its path is the same.
     const wasOver = isOver(historyIdx());
     moveTab(() => {
+      const before = currentTab()?.id;
       const target = typeof to === "function" ? to() : to;
-      if (target === pathname + search && !wasOver) { settleTabFloor(historyIdx(), false); return false; }
+      // Another tab on the same page still starts its own Back here.
+      if (target === pathname + search && !wasOver) { settleTabFloor(historyIdx(), currentTab()?.id !== before); return false; }
       navigate(target, { replace: true });
     }, overview ? "overview" : "slide", undefined, dir);
   };

@@ -116,3 +116,18 @@ test("the timeline lists its periods; a card Bible Strong does not search opens 
   await page.locator(".ntcard", { hasText: "Every Sabbath class" }).click();
   await expect(page).toHaveURL(/\/classes$/);
 });
+
+test("the Notes card never says there are none while the notes are read", async ({ page }) => {
+  // In the browser, outside Telegram: the notes are this browser's.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({ "3": { id: "n1", title: "Light was the first", description: "", date: 3000 } }));
+    new MutationObserver(() => { if (document.body?.textContent?.includes("No item found in notes")) (window as unknown as { __empty: boolean }).__empty = true; })
+      .observe(document, { childList: true, subtree: true, characterData: true });
+  });
+  await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
+  await page.goto("/new");
+  await page.getByRole("button", { name: "Kept", exact: true }).click();
+  await expect(sheet(page)).toContainText("Light was the first");
+  expect(await page.evaluate(() => !!(window as unknown as { __empty?: boolean }).__empty)).toBe(false);
+});

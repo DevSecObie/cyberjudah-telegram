@@ -188,6 +188,7 @@ export function Tabs() {
   const stop = useRef<() => void>(() => {});
   const springing = useRef(false);
   const live = useRef(width);
+  const laidOut = useRef(width);
   live.current = width;
   const apply = (v: number) => {
     const gs = groupsNow(), w = live.current, n = gs.length;
@@ -216,6 +217,10 @@ export function Tabs() {
   useEffect(() => groupPager.subscribe(navigateToPage), []); // eslint-disable-line react-hooks/exhaustive-deps
   // A group chosen elsewhere, or a new width: the pager is put on it at once (useProviderEffects).
   useLayoutEffect(() => {
+    const resized = laidOut.current !== width;
+    laidOut.current = width;
+    // A new width puts the page shown, the create page too, back on its edge, ending any spring.
+    if (resized && !drag.current?.active) { stop.current(); springing.current = false; apply(-(createShown ? groups.length : index) * width); return; }
     if (springing.current || drag.current?.active || createShown) return;
     stop.current(); apply(-index * width);
   }, [index, width, groups.length]); // eslint-disable-line react-hooks/exhaustive-deps

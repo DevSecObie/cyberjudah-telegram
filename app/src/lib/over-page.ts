@@ -10,4 +10,6 @@ const save = () => { try { sessionStorage.setItem(KEY, JSON.stringify([...over])
 export const historyIdx = (): number => window.history.state?.idx ?? 0;
 export const markOver = (idx: number) => { over.add(idx); save(); };
 export const clearOver = (idx: number) => { over.delete(idx); save(); };
+/** Clears the pages over the workspace ahead of an entry (the tab left owns them); returns them, to put back. */
+export const clearOverAhead = (idx: number): number[] => { const ahead = [...over].filter((i) => i > idx); for (const i of ahead) over.delete(i); save(); return ahead; };
 export const isOver = (idx: number) => over.has(idx);
