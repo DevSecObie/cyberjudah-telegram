@@ -8,7 +8,7 @@ type Group = { id: string; name: string; color: string; current: string; tabs: {
 const main: Group = { id: "default-group", name: "My tabs", color: "", isDefault: true, current: "a", tabs: [{ id: "a", path: "/settings" }, { id: "b", path: "/search" }] };
 const psalms: Group = { id: "g2", name: "Psalms", color: "#74b9ff", current: "c", tabs: [{ id: "c", path: "/lexicon" }], createdAt: Date.now() - 5 * 60_000 };
 
-async function setup(page: Page, groups: Group[], group = groups[0].id) {
+async function setup(page: Page, groups: Group[], group = groups[0].id, launch = LAUNCH) {
   await page.addInitScript((seed) => {
     if (sessionStorage.getItem("seeded")) return;
     sessionStorage.setItem("seeded", "1");
@@ -16,7 +16,7 @@ async function setup(page: Page, groups: Group[], group = groups[0].id) {
   }, JSON.stringify({ group, groups }));
   await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
   await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
-  await page.goto(`/tabs${LAUNCH}`);
+  await page.goto(`/tabs${launch}`);
   await expect(page.locator(".switcher__page[data-active]")).toBeVisible();
 }
 const saved = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("cj:tabgroups")!) as { group: string; groups: Group[] });
@@ -101,4 +101,25 @@ test("Edit group renames and recolours in one sheet; Delete asks Telegram, then 
   await page.evaluate(() => (window as unknown as { __tg: { answerPopup: (id: string) => void } }).__tg.answerPopup("delete"));
   await expect.poll(async () => (await saved(page)).groups.map((g) => g.id)).toEqual(["default-group"]);
   await expect(pill(page)).toHaveText("2 tabs");
+});
+
+test("without Telegram's popups, Delete asks the browser and deletes on OK", async ({ page }) => {
+  await setup(page, [main, psalms], "g2", LAUNCH.replace("9.1", "6.0"));
+  const asked: string[] = [];
+  page.on("dialog", (d) => { asked.push(d.message()); void d.accept(); });
+  await pill(page).click();
+  await menu(page).getByRole("button", { name: "Delete group" }).click();
+  await expect.poll(async () => (await saved(page)).groups.map((g) => g.id)).toEqual(["default-group"]);
+  expect(asked).toEqual(["Delete group?\n\nAll tabs in this group will be closed."]);
+});
+
+test("a card closed in a group after the first shrinks away where it was", async ({ page }) => {
+  await setup(page, [main, { ...psalms, tabs: [...psalms.tabs, { id: "d", path: "/people" }] }], "g2");
+  const card = page.locator(".switcher__page[data-active] .tabcard[data-tab-id='d']");
+  const before = (await card.boundingBox())!;
+  await card.getByRole("button", { name: /^Close / }).click();
+  const ghost = await page.evaluate(() => { const g = document.querySelector<HTMLElement>(".tabcard[aria-hidden='true']"); if (!g) return null; g.getAnimations().forEach((a) => a.pause()); const r = g.getBoundingClientRect(); return { x: r.x, y: r.y }; });
+  expect(ghost).not.toBeNull();
+  expect(Math.abs(ghost!.x - before.x)).toBeLessThan(2);
+  expect(Math.abs(ghost!.y - before.y)).toBeLessThan(2);
 });
