@@ -60,7 +60,7 @@ for (const mode of ["normal", "fallback", "reduced", "rejected"]) {
     await overview(page);
     await expect(page.locator('.tabcard[data-current]')).toBeInViewport();
     await expect(page.locator(".tabcard")).toHaveCount(8);
-    await page.getByRole("button", { name: "Open the selected tab", exact: true }).click();
+    await page.getByRole("button", { name: "Open selected tab", exact: true }).click();
     await expect(page.locator("html")).not.toHaveAttribute("data-tab-motion");
     await expect(page.locator("head style").filter({ hasText: /--tab-from:\s*translate/ })).toHaveCount(0);
     await expect(page).toHaveURL(/\/read\/genesis\/1/);
@@ -81,18 +81,13 @@ for (const mode of ["normal", "fallback", "reduced", "rejected"]) {
   });
 }
 
-test("tab flow: Escape and Telegram Back resume the selected tab; closing a card preserves its neighbors", async ({ page }) => {
+test("tab flow: the switcher has no Back or Escape, as in Bible Strong; closing a card preserves its neighbors", async ({ page }) => {
   await setup(page);
   await overview(page);
   await expect(page.getByRole("button", { name: "Open Bible timeline", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page).toHaveURL(/\/read\/genesis\/1/);
-  await expect(page.locator("html")).not.toHaveAttribute("data-tab-motion");
-  await overview(page);
   await page.evaluate(() => (window as unknown as { __tg: { press: (button: string) => void } }).__tg.press("back"));
-  await expect(page).toHaveURL(/\/read\/genesis\/1/);
-  await expect(page.locator("html")).not.toHaveAttribute("data-tab-motion");
-  await overview(page);
+  await expect(page).toHaveURL(/\/tabs/);
   await page.locator('.tabcard[data-tab-id="tab-2"] .tabcard__close').click();
   await expect(page.locator(".tabcard")).toHaveCount(7);
   // Bible Strong keeps the current position (useTabPreview, clampTabIndex): closing a card before it moves the selection on to the next tab.
@@ -110,18 +105,18 @@ test("tab flow: Escape and Telegram Back resume the selected tab; closing a card
   if (added.native) expect(added.source).toBe(added.current);
 });
 
-test("tab flow: Search slides into its own saved tab from the overview", async ({ page }) => {
+test("tab flow: Search slides into its own saved tab", async ({ page }) => {
   await setup(page);
-  await overview(page);
-  await page.getByRole("navigation", { name: "Tabs", exact: true }).getByRole("button", { name: "Search", exact: true }).click();
+  // Bible Strong's switcher bar has no Search: it is on the bar over a tab (BottomTabBar).
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.getByRole("searchbox", { name: "Search CyberJudah" })).toHaveValue("kept");
   await expect(page.locator("html")).not.toHaveAttribute("data-tab-motion");
   const motion = await page.evaluate(() => {
     const state = window as unknown as { __tabTransitions: number; __tabAnimations: Keyframe[][] };
-    return { native: state.__tabTransitions, supported: !!document.startViewTransition, entrance: state.__tabAnimations.flat().some(f => String(f.transform).includes("translate")) };
+    return { native: state.__tabTransitions, entrance: state.__tabAnimations.flat().some(f => String(f.transform).includes("translate")) };
   });
-  // Only opening the overview uses a card snapshot; Search has its separate slide entrance.
-  expect(motion.native).toBe(motion.supported ? 1 : 0);
+  // No card snapshot: Search has its own slide entrance.
+  expect(motion.native).toBe(0);
   expect(motion.entrance).toBe(true);
 });
 

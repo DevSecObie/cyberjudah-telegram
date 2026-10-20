@@ -34,7 +34,7 @@ for(const action of actions){
   for(let i=1;i<=45;i++){await page.mouse.move(from.x+from.width/2+(to.x-from.x)*i/45,from.y+from.height/2);await page.evaluate(()=>new Promise(requestAnimationFrame));}
   await page.mouse.up();
  }else if(action==='tab-overview'){await page.getByRole('button',{name:'Tabs, 4 open',exact:true}).click();await page.locator('.switcher').waitFor();}
- else if(action==='tab-return'){await page.getByRole('button',{name:'Open the selected tab',exact:true}).click();await page.locator('.bs-scroll').waitFor();}
+ else if(action==='tab-return'){await page.getByRole('button',{name:'Open selected tab',exact:true}).click();await page.locator('.bs-scroll').waitFor();}
  else if(action==='sheet-open'){await page.locator('#verset-1').click();await page.locator('.bs-selected').waitFor();}
  else if(action==='menu-morph'){await page.getByRole('button',{name:'Scripture options',exact:true}).click();await page.locator('.bs-dropdown').waitFor();}
  else{await page.locator('.bs-scroll').hover({position:{x:220,y:300}});await page.mouse.wheel(0,580);await page.waitForFunction(()=>document.querySelector('.bs-scroll').scrollTop>=579);await page.waitForTimeout(180);await page.mouse.wheel(0,-380);}
