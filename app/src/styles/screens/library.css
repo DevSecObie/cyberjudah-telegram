@@ -97,6 +97,8 @@
 .lex-row__meta b { font: 600 var(--fs-caption) var(--font-mono); color: var(--accent); }
 .lex-row__meta small { font: 400 11px var(--font-ui); color: var(--text-3); font-variant-numeric: tabular-nums; }
 .dict p { margin: 0 0 var(--sp-3); font: 400 var(--fs-callout)/1.6 var(--font-read); color: var(--text-2); }
+/* The tag screens run edge to edge, as Bible Strong's lists do. */
+.screen.tagsscreen, .screen.tagpage { --gutter: 0px; gap: 0; }
 /* Bible Strong's TagItem: the name in bold over its chips, the options on the right, a line 10 px in from each side. */
 .tagsscreen__list { padding-bottom: 70px; }
 .tagitem { position: relative; }
