@@ -1,16 +1,17 @@
+import { clearOver, historyIdx, isOver, markOver } from "@/lib/over-page";
 import { flushSync } from "react-dom";
 import { currentTab } from "@/lib/tabs";
 
 type Position = { page: number; reader?: number };
 const positions = new Map<string, Position>();
 const path = () => location.pathname + location.search;
-const positionKey = () => `${currentTab().id}:${path()}`;
+const positionKey = () => `${currentTab()?.id ?? ""}:${path()}`;
 const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 const timing = (level: 1 | 3 | 4) => {
   const style = getComputedStyle(document.documentElement);
   return { duration: parseFloat(style.getPropertyValue(`--dur-${level}`)), easing: style.getPropertyValue("--ease-tab").trim() };
 };
-const card = (id = currentTab().id) => document.querySelector<HTMLElement>(`.tabcard[data-tab-id="${CSS.escape(id)}"]`);
+const card = (id = currentTab()?.id ?? "") => document.querySelector<HTMLElement>(`.tabcard[data-tab-id="${CSS.escape(id)}"]`);
 let cancelMotion: (() => void) | undefined;
 let cancelRestore: (() => void) | undefined;
 const cancelPending = () => { cancelMotion?.(); cancelRestore?.(); };
@@ -68,88 +69,142 @@ function routeCommitted() {
 
 type Mode = "overview" | "expand" | "slide";
 
-/** Bible Strong's collapse/expand flow, using ephemeral browser snapshots where supported. */
-/** dir: for a slide, the side the new tab comes from (1 from the right, -1 from the left, 0 rising in place). */
-export function moveTab(update: () => void | false, mode: Mode, id = currentTab().id, dir = 0) {
+/** Bible Strong's card expand and collapse (useTabAnimations): 500 ms on this curve. */
+const EXPAND = { duration: 500, easing: "cubic-bezier(0.36, 0.77, 0.44, 1)" };
+/** Reanimated's withTiming default: 300 ms, ease in-out quad. */
+const TIMING = { duration: 300, easing: "cubic-bezier(0.455, 0.03, 0.515, 0.955)" };
+type Box = { x: number; y: number; width: number; height: number };
+const screen = (): Box => ({ x: 0, y: 0, width: innerWidth, height: innerHeight });
+const frame = (b: Box) => ({ left: `${b.x}px`, top: `${b.y}px`, width: `${b.width}px`, height: `${b.height}px` });
+
+/** A copy of a card (Bible Strong's TabPreview box), fixed under the bar, that resizes: its icon disc stays 80 px and centred. */
+function cardGhost(el: HTMLElement, at: Box) {
+  const ghost = el.cloneNode(true) as HTMLElement;
+  ghost.removeAttribute("data-tab-id"); ghost.removeAttribute("data-current");
+  ghost.setAttribute("aria-hidden", "true"); ghost.inert = true;
+  Object.assign(ghost.style, { position: "fixed", margin: "0", zIndex: "calc(var(--z-dock) - 1)", pointerEvents: "none", ...frame(at) });
+  (document.getElementById("root") ?? document.body).append(ghost);
+  return ghost;
+}
+/** The bar's row as it is, held in place over the bar (a see-through copy of it), to leave as the other comes (useBottomTabBar). */
+function barGhost() {
+  const nav = document.querySelector<HTMLElement>("nav.tabs");
+  if (!nav?.querySelector(".tabs__row, .switcherbar")) return null;
+  const ghost = nav.cloneNode(true) as HTMLElement;
+  ghost.removeAttribute("data-hidden"); ghost.setAttribute("aria-hidden", "true"); ghost.inert = true;
+  Object.assign(ghost.style, { background: "transparent", borderTopColor: "transparent", zIndex: "calc(var(--z-dock) + 1)", pointerEvents: "none" });
+  (document.getElementById("root") ?? document.body).append(ghost);
+  return ghost;
+}
+/** The bar's rows swap in 300 ms: going to the switcher the old rises 30 px and fades as the new rises in; coming back, the reverse. */
+function swapBar(old: HTMLElement | null, up: boolean) {
+  const fresh = document.querySelector<HTMLElement>("nav.tabs:not([aria-hidden]) > .tabs__row, nav.tabs:not([aria-hidden]) > .switcherbar");
+  const leaving = old?.querySelector<HTMLElement>(".tabs__row, .switcherbar");
+  const dy = up ? 30 : -30;
+  if (old && leaving) leaving.animate([{ transform: "none", opacity: 1 }, { transform: `translateY(${-dy}px)`, opacity: 0 }], { ...TIMING, fill: "forwards" }).finished.catch(() => {}).finally(() => old.remove());
+  else old?.remove();
+  fresh?.animate([{ transform: `translateY(${dy}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], TIMING);
+}
+
+/**
+ * Bible Strong's minimize and expand (useTabAnimations), and the tab slide:
+ * - To the switcher, the tab's live content goes at once and its card, at full screen, resizes
+ *   into its place in the grid over 500 ms while its title bar and ✕ fade in.
+ * - To a tab, the card resizes to full screen as its title bar and ✕ fade out, then the tab
+ *   fades in over 300 ms.
+ * - Under reduced motion it is immediate, as Reanimated's animations are.
+ * dir: for a slide, the side the new tab comes from (1 from the right, -1 from the left, 0 rising in place).
+ */
+export function moveTab(update: () => void | false, mode: Mode, id = currentTab()?.id ?? "", dir = 0) {
   cancelMotion?.(); cancelRestore?.();
+  // Going to a tab leaves any page that was over the workspace (put back if nothing moves).
+  const overIdx = historyIdx(), wasOver = isOver(overIdx);
+  clearOver(overIdx);
   rememberTabPosition();
   const root = document.documentElement;
-  const motionTiming = timing(reduced() ? 1 : 4);
-  let canceled = false, usingFallback = false, changed: void | false;
-  let commitPromise: Promise<void> | undefined;
-  let transition: ViewTransition | undefined, animation: Animation | undefined;
-  let geometry: HTMLStyleElement | undefined;
-  const named = new Set<HTMLElement>();
-  const name = (element: HTMLElement | null, value: string) => {
-    if (!element) return;
-    named.add(element); element.style.viewTransitionName = value;
-  };
-  const clearNames = () => { for (const element of named) element.style.removeProperty("view-transition-name"); named.clear(); };
+  let canceled = false;
+  const running: Animation[] = [];
+  const cleanups: (() => void)[] = [];
   const clean = () => {
     if (cancelMotion !== cancel) return;
-    clearNames(); delete root.dataset.tabMotion;
-    geometry?.remove();
+    for (const c of cleanups.splice(0)) c();
+    delete root.dataset.tabMotion;
     cancelMotion = undefined;
   };
-  const cancel = () => { canceled = true; transition?.skipTransition(); animation?.cancel(); clean(); };
+  const cancel = () => { canceled = true; for (const a of running.splice(0)) a.cancel(); clean(); };
   cancelMotion = cancel;
   root.dataset.tabMotion = mode;
-  const commit = () => {
-    if (canceled) return Promise.resolve();
-    return commitPromise ??= (async () => {
-      clearNames(); flushSync(() => { changed = update(); });
-      if (changed === false) return;
-      await routeCommitted();
-      if (canceled) return;
-      const route = document.querySelector<HTMLElement>(".route");
-      if (route) route.dataset.tabAnimated = "";
-      if (mode === "overview") {
-        window.scrollTo({ top: 0, behavior: "instant" });
-        card(id)?.scrollIntoView({ block: "nearest", behavior: "instant" });
-      } else restoreTabPosition();
-    })();
+  const animate = (el: Element, frames: Keyframe[], options: KeyframeAnimationOptions) => { const a = el.animate(frames, options); running.push(a); return a.finished.catch(() => {}); };
+  const commit = async () => {
+    let changed = true;
+    flushSync(() => { changed = update() !== false; });
+    if (!changed) { if (wasOver) markOver(overIdx); return false; }
+    await routeCommitted();
+    if (canceled) return false;
+    const route = document.querySelector<HTMLElement>(".route");
+    if (route) route.dataset.tabAnimated = "";
+    if (mode === "overview") {
+      // The grid is already where Bible Strong keeps it: the active card 200 px from the top.
+      const el = card(id), page = el?.closest<HTMLElement>(".switcher__page");
+      if (el && page) page.scrollTop = Math.max(0, el.getBoundingClientRect().top - page.getBoundingClientRect().top + page.scrollTop - 200);
+    } else restoreTabPosition();
+    return true;
   };
-  const fallback = () => {
-    if (canceled) return;
-    if (changed === false) { clean(); return; }
-    const target = document.querySelector<HTMLElement>(mode === "overview" ? ".switcher__grid" : ".route");
-    if (!target) { clean(); return; }
-    animation = target.animate(
-      reduced() ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: mode === "overview" ? "translateY(24px) scale(.97)" : dir ? `translateX(${dir * 24}px)` : "translateY(12px) scale(.985)" }, { opacity: 1, transform: "none" }],
-      motionTiming,
-    );
-    void animation.finished.catch(() => {}).then(clean);
-  };
-  const fromElement = mode === "expand" ? card(id) : root;
-  const from = fromElement === root ? { x: 0, y: 0, width: innerWidth, height: innerHeight } : fromElement?.getBoundingClientRect();
-  if (!document.startViewTransition || reduced() || !from || mode === "slide") {
-    void commit().then(fallback); return;
-  }
-  name(fromElement, "tab-surface");
-  name(document.querySelector("nav.tabs"), "tab-controls");
-  try {
-    transition = document.startViewTransition(async () => {
-      await commit(); if (canceled) return;
-      const next = mode === "overview" ? card(id) : root;
-      const to = next === root ? { x: 0, y: 0, width: innerWidth, height: innerHeight } : next?.getBoundingClientRect();
-      if (!next || !to?.width || !to.height) return;
-      name(next, "tab-surface"); name(document.querySelector("nav.tabs"), "tab-controls");
-      // Geometry belongs to the snapshot alone. Inherited root variables invalidate the
-      // entire reader/switcher subtree just as the browser is preparing its animation.
-      geometry = document.createElement("style");
-      geometry.textContent = `::view-transition-group(tab-surface) { --tab-from: translate(${from.x}px, ${from.y}px) scale(${from.width / to.width}, ${from.height / to.height}); --tab-to: translate(${to.x}px, ${to.y}px); }`;
-      document.head.append(geometry);
+  const still = reduced();
+  if (mode === "slide") {
+    void commit().then((done) => {
+      const target = document.querySelector<HTMLElement>(".route");
+      if (!done || still || !target) { clean(); return; }
+      void animate(target, [{ opacity: 0, transform: dir ? `translateX(${dir * 24}px)` : "translateY(12px) scale(.985)" }, { opacity: 1, transform: "none" }], timing(4)).then(clean);
     });
-    void transition.ready.catch(() => { usingFallback = true; return commit().then(fallback); });
-    void transition.finished.catch(() => {}).then(() => { if (!usingFallback) clean(); });
-  } catch {
-    clearNames(); void commit().then(fallback);
+    return;
   }
+  if (still) { void commit().then(clean); return; }
+  const bar = barGhost();
+  if (bar) cleanups.push(() => bar.remove());
+  if (mode === "overview") {
+    void commit().then(async (done) => {
+      const el = card(id);
+      if (!done || !el) { bar?.remove(); clean(); return; }
+      swapBar(bar, true);
+      const r = el.getBoundingClientRect(), ghost = cardGhost(el, screen());
+      el.style.visibility = "hidden";
+      cleanups.push(() => { ghost.remove(); el.style.removeProperty("visibility"); });
+      const chrome = ghost.querySelectorAll(".tabcard__title, .tabcard__close");
+      chrome.forEach((c) => void animate(c, [{ opacity: 0 }, { opacity: 1 }], EXPAND));
+      await animate(ghost, [frame(screen()), frame(r)], EXPAND);
+      clean();
+    });
+    return;
+  }
+  // expand: the card grows from where it is, then the tab fades in.
+  const el = card(id), from = el?.getBoundingClientRect();
+  const ghost = el && from?.width ? cardGhost(el, from) : null;
+  if (ghost) cleanups.push(() => ghost.remove());
+  void commit().then(async (done) => {
+    if (!done) { clean(); return; }
+    swapBar(bar, false);
+    const route = document.querySelector<HTMLElement>(".route");
+    if (!ghost || !from) { clean(); return; }
+    if (route) { route.style.opacity = "0"; cleanups.push(() => route.style.removeProperty("opacity")); }
+    ghost.querySelectorAll(".tabcard__title, .tabcard__close").forEach((c) => void animate(c, [{ opacity: 1 }, { opacity: 0 }], { ...EXPAND, fill: "forwards" }));
+    await animate(ghost, [frame(from), frame(screen())], { ...EXPAND, fill: "forwards" });
+    if (canceled) return;
+    // Two frames, then the tab fades in under the full-size card, which goes once it has.
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    // A motion started in those frames has already cleaned up after this one.
+    if (canceled) return;
+    ghost.remove();
+    if (route) { route.style.removeProperty("opacity"); await animate(route, [{ opacity: 0 }, { opacity: 1 }], TIMING); }
+    clean();
+  });
 }
 
 /** Retained cards settle into their new places when a neighboring tab closes. */
+/** Reanimated's LinearTransition and ZoomOut defaults: 300 ms, ease in-out quad. */
+const LAYOUT = { duration: 300, easing: "cubic-bezier(0.455, 0.03, 0.515, 0.955)" };
 export function reflowTabs(update: () => void) {
-  const motionTiming = timing(3);
+  const motionTiming = LAYOUT;
   const before = new Map([...document.querySelectorAll<HTMLElement>(".tabcard")].map(el => [el.dataset.tabId, el.getBoundingClientRect()]));
   flushSync(update);
   if (reduced()) return;
@@ -158,4 +213,24 @@ export function reflowTabs(update: () => void) {
     const next = el.getBoundingClientRect(), x = old.x - next.x, y = old.y - next.y;
     if (x || y) el.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: "none" }], motionTiming);
   }
+}
+
+/**
+ * Bible Strong's closing card (TabPreview, useTabPreview): it shrinks away about its centre
+ * (ZoomOut) while the others slide into their new places (LinearTransition).
+ */
+export function closeTabCard(id: string, update: () => void) {
+  const el = document.querySelector<HTMLElement>(`.tabcard[data-tab-id="${CSS.escape(id)}"]`);
+  const ghost = el && !reduced() ? (el.cloneNode(true) as HTMLElement) : null;
+  if (el && ghost) {
+    const r = el.getBoundingClientRect();
+    ghost.removeAttribute("data-tab-id"); ghost.removeAttribute("data-current");
+    ghost.setAttribute("aria-hidden", "true"); ghost.inert = true;
+    // The pager's translated track is the containing block of a fixed element inside it.
+    const box = el.closest<HTMLElement>(".switcher__track")?.getBoundingClientRect() ?? { left: 0, top: 0 };
+    Object.assign(ghost.style, { position: "fixed", left: `${r.left - box.left}px`, top: `${r.top - box.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: "0", zIndex: "2", pointerEvents: "none" });
+    el.parentElement!.append(ghost);
+    ghost.animate([{ transform: "scale(1)" }, { transform: "scale(0)" }], { ...LAYOUT, fill: "forwards" }).finished.catch(() => {}).finally(() => ghost.remove());
+  }
+  reflowTabs(update);
 }

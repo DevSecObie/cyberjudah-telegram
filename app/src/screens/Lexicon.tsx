@@ -36,6 +36,24 @@ export const gloss = (r: StrongsRow) => (r.def.replace(/^[^A-Za-z(]+/, "").repla
 const PAGE = 50;
 
 /**
+ * The Lexicon's list for a letter or a search: with no search, the words filed under the letter by
+ * meaning; a number is searched as typed ("G26" finds the Greek word whatever the filter, a bare
+ * number searches the filter's languages); a word is ranked by where it matches.
+ */
+export function findStrongs(all: StrongsRow[], rows: StrongsRow[], t: string, letter: string): StrongsRow[] {
+  if (!t) return rows.filter((r) => firstLetter(gloss(r)) === letter).sort((a, b) => gloss(a).localeCompare(gloss(b), "en", { sensitivity: "base" }));
+  const code = /^([hg])?\s*(\d+)$/i.exec(t);
+  if (code) {
+    const pool = code[1] ? all : rows;
+    const ns = code[1] ? [`${code[1].toUpperCase()}${+code[2]}`] : ["H", "G"].map((l) => `${l}${+code[2]}`);
+    return pool.filter((r) => ns.some((n) => r.n === n || r.n.startsWith(n))).sort((a, b) => a.n.length - b.n.length || +a.n.slice(1) - +b.n.slice(1));
+  }
+  const f = fold(t);
+  const score = (r: StrongsRow) => { const x = fold(r.xlit), d = fold(r.def); return r.lemma.includes(t) ? 0 : x === f ? 1 : x.startsWith(f) ? 2 : d.split(/\W+/).includes(f) ? 3 : x.includes(f) ? 4 : d.includes(f) ? 5 : 9; };
+  return rows.map((r) => [score(r), r] as const).filter(([s]) => s < 9).sort((a, b) => a[0] - b[0] || b[1].count - a[1].count).map(([, r]) => r);
+}
+
+/**
  * The Lexicon as Bible Strong's LexiqueListScreen: every Hebrew and Greek word of the King James,
  * filed by meaning under the letter's disc, opening on A with the alphabet along the bottom, a
  * filter for the language, and a search by number or word, each row opening its word study.
@@ -52,21 +70,7 @@ export function Lexicon() {
   useEffect(() => { const t = setTimeout(() => setDebounced(q.trim()), 150); return () => clearTimeout(t); }, [q]);
   const idx = useStrongsIndex();
   const rows = useMemo(() => (idx.data ?? []).filter((r) => filter === "all" || isLang(r, filter)), [idx.data, filter]);
-  const hits = useMemo(() => {
-    const t = debounced;
-    if (!t) return rows.filter((r) => firstLetter(gloss(r)) === letter).sort((a, b) => gloss(a).localeCompare(gloss(b), "en", { sensitivity: "base" }));
-    // A number is searched as typed: "G26" finds the Greek word whatever the filter, and a bare
-    // number searches the filter's languages.
-    const code = /^([hg])?\s*(\d+)$/i.exec(t);
-    if (code) {
-      const pool = code[1] ? idx.data ?? [] : rows;
-      const ns = code[1] ? [`${code[1].toUpperCase()}${+code[2]}`] : ["H", "G"].map((l) => `${l}${+code[2]}`);
-      return pool.filter((r) => ns.some((n) => r.n === n || r.n.startsWith(n))).sort((a, b) => a.n.length - b.n.length || +a.n.slice(1) - +b.n.slice(1));
-    }
-    const f = fold(t);
-    const score = (r: StrongsRow) => { const x = fold(r.xlit), d = fold(r.def); return r.lemma.includes(t) ? 0 : x === f ? 1 : x.startsWith(f) ? 2 : d.split(/\W+/).includes(f) ? 3 : x.includes(f) ? 4 : d.includes(f) ? 5 : 9; };
-    return rows.map((r) => [score(r), r] as const).filter(([s]) => s < 9).sort((a, b) => a[0] - b[0] || b[1].count - a[1].count).map(([, r]) => r);
-  }, [rows, debounced, letter, idx.data]);
+  const hits = useMemo(() => findStrongs(idx.data ?? [], rows, debounced, letter), [rows, debounced, letter, idx.data]);
   // Fifty rows at a time, the next fifty as the end of the list comes into view.
   const [limit, setLimit] = useState(PAGE);
   useEffect(() => setLimit(PAGE), [debounced, letter, filter]);

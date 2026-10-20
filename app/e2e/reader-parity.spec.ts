@@ -31,7 +31,7 @@ async function menu(page: Page, action: string) {
   await page.getByRole("menuitem", { name: action, exact: true }).click();
 }
 async function overview(page: Page) {
-  await page.getByRole("button", { name: /\d+ Tabs open/ }).click();
+  await page.getByRole("button", { name: /^Tabs, \d+ open$/ }).click();
   await expect(page.getByRole("main", { name: "Your tabs" })).toBeVisible();
 }
 test.beforeEach(async ({ page }) => setup(page));
@@ -172,7 +172,7 @@ test("reader chapter changes stay in place: Back leaves the reader and a collaps
 test("book picker long press opens the chapter in a new tab, as Bible Strong's web picker does", async ({ page }) => {
   await page.goto("/read/genesis/1");
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
-  await expect(page.getByRole("button", { name: "2 Tabs open", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tabs, 2 open", exact: true })).toBeVisible();
   await page.locator(".bs-pill--book").click();
   await page.locator(".bs-picker-sheet").getByRole("button", { name: "John", exact: true }).click();
   const tile = page.getByRole("button", { name: "Chapter 2", exact: true });
@@ -180,7 +180,7 @@ test("book picker long press opens the chapter in a new tab, as Bible Strong's w
   await page.mouse.move(t.x + t.width / 2, t.y + t.height / 2);
   await page.mouse.down(); await page.waitForTimeout(650); await page.mouse.up();
   await expect(page).toHaveURL(/\/read\/john\/2$/);
-  await expect(page.getByRole("button", { name: "3 Tabs open", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tabs, 3 open", exact: true })).toBeVisible();
   await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
 });
 
@@ -289,7 +289,7 @@ test("new Bible tab stays selected and carries its focused passage", async ({ pa
   await menu(page, "Open in new tab");
   await expect(page).toHaveURL(/\/read\/genesis\/1\?v=1-2/);
   await expect.poll(() => page.evaluate(() => { const s = JSON.parse(localStorage.getItem("cj:tabgroups")!); return s.groups[0].current; })).not.toBe("bible-one");
-  await expect(page.getByRole("button", { name: "3 Tabs open", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tabs, 3 open", exact: true })).toBeVisible();
   await expect(page.locator(".bs-verse")).toHaveCount(2);
 });
 
@@ -469,11 +469,11 @@ test("keyboard palette switches to an existing tab and opens a passage with its 
   const input = page.getByRole("combobox", { name: "Find a tab or tool" });
   await input.fill("John"); await input.press("Enter");
   await expect(page).toHaveURL(/\/read\/john\/3\?v=16-18/);
-  await expect(page.getByRole("button", { name: "2 Tabs open", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tabs, 2 open", exact: true })).toBeVisible();
   await page.keyboard.press("Control+k"); await input.fill("Genesis 1:2-3"); await input.press("Enter");
   await expect(page).toHaveURL(/\/read\/genesis\/1\?v=2-3/);
-  await expect(page.getByRole("button", { name: "3 Tabs open", exact: true })).toBeVisible();
-  await page.keyboard.press("Control+Alt+w"); await expect(page.getByRole("button", { name: "2 Tabs open", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tabs, 3 open", exact: true })).toBeVisible();
+  await page.keyboard.press("Control+Alt+w"); await expect(page.getByRole("button", { name: "Tabs, 2 open", exact: true })).toBeVisible();
   await page.keyboard.press("Control+k"); await input.fill("study");
   await expect(page.getByRole("option", { name: /My studies/ })).toBeVisible();
   await input.press("Enter"); await expect(page).toHaveURL(/\/studies$/);
@@ -625,7 +625,7 @@ test("a touch that stops a gliding page taps neither the verse nor the dock unde
   await page.clock.runFor(300);
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
   await glide(page);
-  await tapTab(page, "Classes");
+  await tapTab(page, "Search");
   await page.clock.runFor(300);
   await expect(page).toHaveURL(/\/read\/genesis\/1/);
   // Once the page has come to rest, the same taps work.
@@ -718,7 +718,7 @@ test("the drawers show the live class, the offline notice, the account and legal
   await context.setOffline(false);
   await expect(home.getByText("You are offline")).toHaveCount(0);
   await home.getByRole("button", { name: "Close Home" }).click();
-  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await page.getByRole("button", { name: "Main menu", exact: true }).click();
   const more = page.locator(".drawer--more");
   await expect(more.locator(".more__account")).toHaveAttribute("href", "/settings/account");
   await expect(more.getByRole("navigation", { name: "Legal" }).getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
@@ -727,7 +727,7 @@ test("the drawers show the live class, the offline notice, the account and legal
   await more.locator(".drawer__scroll").evaluate(el => { el.scrollTop = 300; });
   await more.getByRole("button", { name: "Close the menu" }).click();
   await expect(more).not.toHaveAttribute("data-open");
-  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await page.getByRole("button", { name: "Main menu", exact: true }).click();
   await expect.poll(() => more.locator(".drawer__scroll").evaluate(el => el.scrollTop)).toBe(300);
 });
 

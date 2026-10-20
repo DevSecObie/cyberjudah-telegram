@@ -1,9 +1,8 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { tabKind, tabTitle, type Tab } from "@/lib/tabs";
-import { tabColor } from "@/screens/Tabs";
+import { tabTitle, type Tab } from "@/lib/tabs";
+import { TabIcon } from "@/screens/Tabs";
 import { haptic } from "@/tg/sdk";
-import { Icon, type IconName } from "./icons";
 
 /**
  * Bible Strong's swipe along the bottom bar (app-switcher/BottomTabBar/useTabBarSwipeGesture and
@@ -88,10 +87,9 @@ export function useTabScrub(tabs: Tab[], current: string, select: (id: string) =
       <div ref={layer} className="tabscrub" aria-hidden="true">
         <div ref={track} className="tabscrub__track" style={{ transform: offset(gesture.current?.index ?? 0) }}>
           {tabs.map((t) => {
-            const { icon } = tabKind(t.path);
             return (
               <div key={t.id} className="tabscrub__card" data-tab-id={t.id}>
-                <span className="tabscrub__icon" style={{ color: tabColor(t.path) }}><Icon name={icon as IconName} size={30} /></span>
+                <span className="tabscrub__icon"><TabIcon path={t.path} size={30} /></span>
                 <b className="tabscrub__title">{tabTitle(t.path)}</b>
               </div>
             );
