@@ -1,4 +1,4 @@
-import { clearOver, historyIdx } from "@/lib/over-page";
+import { clearOver, historyIdx, isOver, markOver } from "@/lib/over-page";
 import { flushSync } from "react-dom";
 import { currentTab } from "@/lib/tabs";
 
@@ -117,8 +117,9 @@ function swapBar(old: HTMLElement | null, up: boolean) {
  */
 export function moveTab(update: () => void | false, mode: Mode, id = currentTab()?.id ?? "", dir = 0) {
   cancelMotion?.(); cancelRestore?.();
-  // Going to a tab leaves any page that was over the workspace.
-  clearOver(historyIdx());
+  // Going to a tab leaves any page that was over the workspace (put back if nothing moves).
+  const overIdx = historyIdx(), wasOver = isOver(overIdx);
+  clearOver(overIdx);
   rememberTabPosition();
   const root = document.documentElement;
   let canceled = false;
@@ -137,7 +138,7 @@ export function moveTab(update: () => void | false, mode: Mode, id = currentTab(
   const commit = async () => {
     let changed = true;
     flushSync(() => { changed = update() !== false; });
-    if (!changed) return false;
+    if (!changed) { if (wasOver) markOver(overIdx); return false; }
     await routeCommitted();
     if (canceled) return false;
     const route = document.querySelector<HTMLElement>(".route");
@@ -191,6 +192,8 @@ export function moveTab(update: () => void | false, mode: Mode, id = currentTab(
     if (canceled) return;
     // Two frames, then the tab fades in under the full-size card, which goes once it has.
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    // A motion started in those frames has already cleaned up after this one.
+    if (canceled) return;
     ghost.remove();
     if (route) { route.style.removeProperty("opacity"); await animate(route, [{ opacity: 0 }, { opacity: 1 }], TIMING); }
     clean();
