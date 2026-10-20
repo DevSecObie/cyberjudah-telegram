@@ -45,7 +45,12 @@ test("a quick flick goes to the next tab; an upward move starts no swipe", async
   const at = await setup(page);
   await page.mouse.move(at.x, at.y);
   await page.mouse.down();
-  await page.mouse.move(at.x - 60, at.y, { steps: 2 });
+  // The swipe starts past 15 px and shows the cards; from there one long move, short of half a
+  // tab, so only its speed carries it on to Search (110 px in under 137 ms is past 800 px/s).
+  await page.mouse.move(at.x - 16, at.y);
+  await expect(page.locator(".tabscrub")).toBeVisible();
+  await page.mouse.move(at.x - 20, at.y);
+  await page.mouse.move(at.x - 130, at.y);
   await page.mouse.up();
   await expect(page).toHaveURL(/\/search/);
   expect(await current(page)).toBe("b");
