@@ -31,7 +31,6 @@ async function menu(page: Page, action: string) {
   await page.getByRole("menuitem", { name: action, exact: true }).click();
 }
 async function overview(page: Page) {
-  if (await page.locator("nav.tabs[data-mini]").count()) await page.locator("nav.tabs .tab[data-kept]").click();
   await page.getByRole("button", { name: /\d+ Tabs open/ }).click();
   await expect(page.getByRole("main", { name: "Your tabs" })).toBeVisible();
 }

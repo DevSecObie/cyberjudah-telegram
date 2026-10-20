@@ -82,19 +82,12 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
     // Telegram's chrome takes the page colour while the tab is open, and gives it back after.
     if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(palette.reverse); app.setBackgroundColor(palette.reverse); }
     if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(palette.reverse);
-    // So does the dock: its glass takes the page's colour and ink, light or dark as the reader's theme is.
+    // So does the bottom bar: Bible Strong's takes the page colour, its border and its tertiary ink.
     const root = document.documentElement.style;
-    const dark = isDarkTheme(theme);
-    const dock: Record<string, string> = {
-      "--dock-base-override": palette.reverse,
-      "--dock-tint-override": `color-mix(in srgb, ${palette.reverse} var(--mat-density), transparent)`,
-      "--dock-ink-override": palette.default,
-      "--dock-selected-override": `color-mix(in srgb, ${palette.default} ${dark ? 14 : 9}%, transparent)`,
-      "--dock-edge-override": dark ? "color-mix(in srgb, #ffffff 12%, transparent)" : "color-mix(in srgb, #000000 9%, transparent)",
-    };
+    const dock: Record<string, string> = { "--dock-bg": palette.reverse, "--dock-line": palette.border, "--dock-ink": palette.tertiary };
     for (const [k, v] of Object.entries(dock)) root.setProperty(k, v);
     return () => { for (const k of Object.keys(dock)) root.removeProperty(k); const bg = getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim() || "#05070f"; if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(bg); app.setBackgroundColor(bg); } if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(bg); };
-  }, [palette.reverse, palette.default, theme]);
+  }, [palette.reverse, palette.border, palette.tertiary]);
 
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const list = books.data ?? [];

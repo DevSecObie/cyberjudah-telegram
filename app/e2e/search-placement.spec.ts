@@ -12,24 +12,26 @@ async function setup(page: Page, nav = ["home", "search", "bible", "classes", "a
 }
 
 for (const saved of [["search", "home", "bible"], ["home", "bible", "classes", "ask", "library", "tabs"], ["search"]]) {
-  test(`search placement: derives the trailing control without changing ${saved.join(",")}`, async ({ page }) => {
+  test(`search placement: puts Search in the bar without changing ${saved.join(",")}`, async ({ page }) => {
     await setup(page, saved);
     await page.goto(`/settings/bar${LAUNCH}`);
     const nav = page.getByRole("navigation", { name: "Sections" });
-    await expect(nav.locator(".tab").last()).toHaveAttribute("aria-label", "Search");
+    await expect(nav.locator(".tab").last()).toHaveAttribute("aria-label", "Menu");
     await expect(nav.getByRole("button", { name: "Search", exact: true })).toHaveCount(1);
-    expect(await nav.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual([...saved.filter(id => id !== "search"), "more", "search"]);
+    // Where the reader put Search, or second, where Bible Strong has it; Menu ends the row.
+    const row = saved.includes("search") ? saved : [saved[0], "search", ...saved.slice(1)];
+    expect(await nav.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual([...row, "more"]);
     await expect(page.getByRole("button", { name: "Remove Search", exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => JSON.parse((window as any).__tg.cloud.nav))).toEqual(saved);
     for (const width of [320, 390, 900, 1280]) for (const scale of [100, 200]) {
       await page.setViewportSize({ width, height: 844 });
       await page.evaluate(scale => document.documentElement.style.fontSize = `${scale}%`, scale);
-      const search = nav.getByRole("button", { name: "Search", exact: true });
-      await search.scrollIntoViewIfNeeded();
-      const box = (await search.boundingBox())!;
-      expect(box.width).toBeGreaterThanOrEqual(44); expect(box.height).toBeGreaterThanOrEqual(44);
-      expect(Math.abs(box.width - box.height)).toBeLessThan(1);
-      expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(width);
+      // Bible Strong's 48 px buttons share the row when there are more than fit.
+      for (const button of await nav.getByRole("button").all()) {
+        const box = (await button.boundingBox())!;
+        expect(box.height).toBe(48); expect(box.width).toBeGreaterThan(0); expect(box.width).toBeLessThanOrEqual(48);
+        expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(width);
+      }
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     }
     await nav.getByRole("button", { name: "Search", exact: true }).click();
@@ -38,13 +40,13 @@ for (const saved of [["search", "home", "bible"], ["home", "bible", "classes", "
   });
 }
 
-test("search placement: Search stays available in the minimized dock and the tab switcher", async ({ page }) => {
+test("search placement: Search stays in the bar while the page scrolls, and in the tab switcher", async ({ page }) => {
   await setup(page);
   await page.goto(`/settings${LAUNCH}`);
   const nav = page.getByRole("navigation", { name: "Sections" });
   await page.getByRole("switch", { name: "Justify the text", exact: true }).hover();
   await page.mouse.wheel(0, 300);
-  await expect(nav).toHaveAttribute("data-mini", "");
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
   await nav.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page).toHaveURL(/\/search/);
   await expect(page.getByRole("searchbox", { name: "Search CyberJudah" })).toBeVisible();
@@ -103,7 +105,7 @@ for (const theme of ["default", "dark", "sepia"]) {
       const search = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Search", exact: true });
       await expect(search).toBeVisible();
       if (["app", "system", "contrast", "forced"].includes(mode)) {
-        for (const selector of [".srch__bar--dock", "nav.tabs"]) expect(await page.locator(selector).evaluate(el => { const s = getComputedStyle(el, "::before"); return s.backdropFilter || s.getPropertyValue("-webkit-backdrop-filter"); }), `${mode} ${selector}`).toBe("none");
+        for (const [selector, pseudo] of [[".srch__bar--dock", "::before"], ["nav.tabs", undefined]] as const) expect(await page.locator(selector).evaluate((el, pseudo) => { const s = getComputedStyle(el, pseudo); return s.backdropFilter || s.getPropertyValue("-webkit-backdrop-filter"); }, pseudo), `${mode} ${selector}`).toBe("none");
       }
       if (mode === "motion") await expect(page.locator(".srch__bar--dock")).toHaveCSS("transition-property", "none");
     }

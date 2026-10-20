@@ -1,11 +1,16 @@
+import { useSyncExternalStore } from "react";
+
 /** Transient reading state belongs to a tab, not to the mounted route. No note text is kept here. */
 export type ReaderSession = { selected: number[]; contextMode: "focused" | "fullChapter"; fullscreen: boolean };
 const sessions = new Map<string, ReaderSession>();
 /** Bible Strong keeps fullscreen in one global atom (BasicFooter), so a collapsed header stays
  * collapsed across chapters and tabs. */
 let fullscreenNow = false;
+const fullscreenListeners = new Set<() => void>();
 export const readerFullscreen = () => fullscreenNow;
-export function saveReaderFullscreen(value: boolean) { fullscreenNow = value; }
+export function saveReaderFullscreen(value: boolean) { if (fullscreenNow === value) return; fullscreenNow = value; for (const l of fullscreenListeners) l(); }
+/** The same atom read by the bottom bar, which slides away while the Bible is full screen (BottomTabBar). */
+export const useReaderFullscreen = () => useSyncExternalStore((l) => { fullscreenListeners.add(l); return () => { fullscreenListeners.delete(l); }; }, readerFullscreen, () => false);
 export function readerSession(key: string, focused: boolean): ReaderSession {
   return sessions.get(key) ?? { selected: [], contextMode: focused ? "focused" : "fullChapter", fullscreen: false };
 }

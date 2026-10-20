@@ -20,7 +20,6 @@ import { SearchBar, useSettled } from "@/ui/search-bar";
 import { useSheet } from "@/ui/sheet";
 import { Empty, Icon } from "@/ui/ui";
 import { AgeEventDetail } from "./TimelineFinalCaptivity";
-import { BackgroundExtension } from "@/ui/BackgroundExtension";
 import { PhotoEdit, usePhotos } from "@/ui/photo-edit";
 import "@/styles/screens/timeline.css";
 
@@ -216,7 +215,6 @@ export function TimelinePeriod() {
   const navigate = useNavigate();
   const index = Math.min(Math.max(Number(n) || 0, 0), SECTIONS.length - 1);
   const s = SECTIONS[index];
-  const picture = usePeriodPicture(s);
   const prev = SECTIONS[index - 1], next = SECTIONS[index + 1];
   const box = useRef<HTMLDivElement>(null);
   const [vw, setVw] = useState(() => (typeof window === "undefined" ? 390 : Math.min(window.innerWidth, 1400)));
@@ -295,7 +293,6 @@ export function TimelinePeriod() {
   const color = { ["--tl-color" as string]: s.color } as CSSProperties;
   return (
     <main className="tl-period" style={color} data-phase={phase}>
-      <BackgroundExtension src={picture} />
       <Header title={s.title} color={s.color} onSearch={() => navigate("/timeline/search")} onMenu={menu} />
       <div className="tl-stage">
         {prev ? <div className="tl-behind" style={{ opacity: prevShown }} aria-hidden="true"><SectionCard s={prev} direction="previous" /></div> : null}
