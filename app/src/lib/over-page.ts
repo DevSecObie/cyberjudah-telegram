@@ -3,8 +3,11 @@
  * menu, or further in from such a page, sits over the current tab without changing any tab, and
  * Back returns to the tab as it was. Kept by history entry; a tab switch clears its entry.
  */
-const over = new Set<number>();
+const KEY = "cj:over";
+// Kept for the session, as the history entries are, so a reload does not take an over page for a tab.
+const over = ((): Set<number> => { try { return new Set(JSON.parse(sessionStorage.getItem(KEY) ?? "[]")); } catch { return new Set(); } })();
+const save = () => { try { sessionStorage.setItem(KEY, JSON.stringify([...over])); } catch { /* private mode */ } };
 export const historyIdx = (): number => window.history.state?.idx ?? 0;
-export const markOver = (idx: number) => { over.add(idx); };
-export const clearOver = (idx: number) => { over.delete(idx); };
+export const markOver = (idx: number) => { over.add(idx); save(); };
+export const clearOver = (idx: number) => { over.delete(idx); save(); };
 export const isOver = (idx: number) => over.has(idx);
