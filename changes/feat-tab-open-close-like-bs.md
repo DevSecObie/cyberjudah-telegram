@@ -1,0 +1,6 @@
+- Opening and closing tabs moves as in Bible Strong:
+  - Opening the tab switcher, the page goes at once and its card shrinks from full screen into its place among your tabs, its title and ✕ appearing as it lands.
+  - Opening a tab, its card grows to full screen as its title and ✕ fade, then the page fades in.
+  - Both take half a second, on Bible Strong's curve; the page no longer appears squashed while it moves.
+  - The switcher opens with your tab a little way down from the top, where Bible Strong keeps it.
+  - With reduced motion on, both happen at once.

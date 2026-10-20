@@ -38,7 +38,7 @@ test("Back stays in the tab the bar switched to, and the tab left keeps its page
 test("Back stays in the tab chosen in the switcher", async ({ page }) => {
   await setup(page, [{ id: "a", path: "/settings" }, { id: "b", path: "/search" }]);
   await openCredits(page);
-  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: /Tabs open/ }).click();
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: /^Tabs, / }).click();
   await page.locator('.tabcard[data-tab-id="b"]').click();
   await expect(page).toHaveURL(/\/search/);
   await expect.poll(() => backShown(page)).toBe(false);
@@ -46,9 +46,22 @@ test("Back stays in the tab chosen in the switcher", async ({ page }) => {
   await expect(page).toHaveURL(/\/search/);
   await expect.poll(async () => (await tabPaths(page)).a).toBe("/settings/credits");
   // Back within the tab still works: a page opened in it goes back to the tab's first page.
-  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: /Tabs open/ }).click();
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: /^Tabs, / }).click();
   await page.locator('.tabcard[data-tab-id="a"]').click();
   await expect(page).toHaveURL(/\/settings\/credits/);
   await back(page);
   await expect(page).toHaveURL(/\/settings$/);
+});
+
+test("a bar button for the tab already showing leaves Back as it was for the next page", async ({ page }) => {
+  await setup(page, [{ id: "a", path: "/search" }]);
+  await page.goto(`/search${LAUNCH}`);
+  const bar = page.getByRole("navigation", { name: "Sections" });
+  await bar.getByRole("button", { name: "Search", exact: true }).click();
+  await bar.getByRole("button", { name: "Main menu", exact: true }).click();
+  await page.locator(".drawer--more").getByRole("link", { name: "Settings", exact: true }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect.poll(() => backShown(page)).toBe(true);
+  // The menu takes Back while it closes; then Back leaves Settings for the tab under it.
+  await expect(async () => { await back(page); await expect(page).toHaveURL(/\/search/, { timeout: 500 }); }).toPass();
 });

@@ -9,8 +9,12 @@ import { APOCRYPHA } from "@/api/data";
  * drawers over the tabs. Kept on the device, per reader.
  */
 export type Tab = { id: string; path: string };
-/** A tab group (Bible Strong's TabGroup): its own tabs and its own current tab, a name and a colour. */
-export type Group = { id: string; name: string; color: string; tabs: Tab[]; current: string };
+/**
+ * A tab group (Bible Strong's TabGroup): its own tabs and its own current tab ("" while it has
+ * none), a name and a colour. The default group has no colour, is never renamed or deleted, and
+ * shows its count instead of its name.
+ */
+export type Group = { id: string; name: string; color: string; tabs: Tab[]; current: string; isDefault?: boolean; createdAt?: number };
 type State = { groups: Group[]; group: string };
 
 const KEY = "cj:tabgroups";
@@ -20,26 +24,44 @@ const NOT_TABS = /^\/(|more|tabs)(\?|$)/;
 export const MAX_GROUPS = 8;
 /** The first group's name: Bible Strong's default group, shown by its count, never renamed. */
 export const DEFAULT_GROUP = "My tabs";
-export const GROUP_COLORS = ["#2dd4bf", "#60a5fa", "#a78bfa", "#f472b6", "#fbbf24", "#34d399", "#f87171", "#94a3b8"];
+/** Bible Strong's GROUP_COLORS; a new group starts on the first. */
+export const GROUP_COLORS = ["#636e72", "#81ecec", "#74b9ff", "#a29bfe", "#fd79a8", "#ff7675", "#fdcb6e", "#55efc4", "#ffeaa7"];
+/** Bible Strong's DEFAULT_GROUP_ID. */
+export const DEFAULT_GROUP_ID = "default-group";
 const uid = () => `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-const freshGroup = (name: string, color: string, path = "/new"): Group => { const t = { id: uid(), path }; return { id: uid(), name, color, tabs: [t], current: t.id }; };
-const valid = (g: Group) => Array.isArray(g.tabs) && g.tabs.length > 0 && g.tabs.some((t) => t.id === g.current);
+/** Bible Strong's createDefaultGroup: one Bible tab, no colour. */
+const defaultGroup = (): Group => { const t = { id: uid(), path: "/bible" }; return { id: DEFAULT_GROUP_ID, name: DEFAULT_GROUP, color: "", isDefault: true, tabs: [t], current: t.id, createdAt: 0 }; };
+const valid = (g: Group) => !!g && typeof g.id === "string" && Array.isArray(g.tabs);
+/**
+ * A group may have no tabs (Bible Strong's empty group); a current tab that is gone falls back to
+ * the first, as Bible Strong clamps its active index. The first group is the default one when
+ * none is marked, and the default group has no colour.
+ */
+function normalize(s: State): State {
+  const marked = s.groups.some((g) => g.isDefault);
+  const groups = s.groups.map((g, i) => {
+    const current = g.tabs.some((t) => t.id === g.current) ? g.current : g.tabs[0]?.id ?? "";
+    const isDefault = marked ? !!g.isDefault : i === 0;
+    return { ...g, current, isDefault, color: isDefault ? "" : g.color };
+  });
+  return { groups, group: groups.some((g) => g.id === s.group) ? s.group : groups[0].id };
+}
 
 // Whether tabs were kept from an earlier visit; a first launch, or a kept state too damaged to read, has none to reopen.
 let kept = false;
 function load(): State {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) ?? "null") as State | null;
-    if (s && Array.isArray(s.groups) && s.groups.length && s.groups.every(valid) && s.groups.some((g) => g.id === s.group)) { kept = true; return s; }
+    if (s && Array.isArray(s.groups) && s.groups.length && s.groups.every(valid)) { kept = true; return normalize(s); }
     // Tabs kept before groups existed become the first group.
     const old = JSON.parse(localStorage.getItem(OLD_KEY) ?? "null") as { tabs: Tab[]; current: string } | null;
     if (old && Array.isArray(old.tabs) && old.tabs.length && old.tabs.some((t) => t.id === old.current)) {
-      const g = { id: uid(), name: "My tabs", color: GROUP_COLORS[0], tabs: old.tabs, current: old.current };
+      const g: Group = { id: DEFAULT_GROUP_ID, name: DEFAULT_GROUP, color: "", isDefault: true, tabs: old.tabs, current: old.current, createdAt: 0 };
       kept = true;
       return { groups: [g], group: g.id };
     }
   } catch { /* private mode */ }
-  const g = freshGroup("My tabs", GROUP_COLORS[0], "/bible");
+  const g = defaultGroup();
   return { groups: [g], group: g.id };
 }
 let state = load();
@@ -56,9 +78,14 @@ export const useTabs = () => {
   const g = s.groups.find((x) => x.id === s.group) ?? s.groups[0];
   return { tabs: g.tabs, current: g.current, group: g, groups: s.groups };
 };
-export const currentTab = () => { const g = group(); return g.tabs.find((t) => t.id === g.current) ?? g.tabs[0]; };
-/** The tab to reopen at launch: the current one, if tabs were kept from an earlier visit. */
-export const keptTab = () => (kept ? currentTab() : undefined);
+/** The current group's current tab; none while the group is empty. */
+export const currentTab = (): Tab | undefined => { const g = group(); return g.tabs.find((t) => t.id === g.current) ?? g.tabs[0]; };
+/** Where to reopen at launch: the current tab if tabs were kept, or the switcher when its group is empty (Bible Strong's useBottomTabBar). */
+export const keptPath = () => (kept ? currentTab()?.path ?? "/tabs" : undefined);
+export const isDefaultGroup = (g: Group) => !!g.isDefault;
+/** The current group and every group as they are now, outside React. */
+export const currentGroup = () => group();
+export const groupsNow = () => state.groups;
 
 export const isTabPath = (path: string) => !NOT_TABS.test(path);
 
@@ -72,30 +99,24 @@ let floor = 0, entering = false;
 const floorListeners = new Set<() => void>();
 /** A tab change is under way: the next page shown is the first of the tab's own history. */
 export const enterTab = () => { entering = true; };
-/** After a page is shown at a history index: a tab just entered starts its history there. */
-export function settleTabFloor(idx: number) {
-  const next = entering || idx < floor ? idx : floor;
+/**
+ * After a page is shown at a history index: a tab just entered starts its history there. A page
+ * pushed, or a tab change that showed nothing new (`entered` false), leaves the start where it was.
+ */
+export function settleTabFloor(idx: number, entered = true) {
+  const next = (entering && entered) || idx < floor ? idx : floor;
   entering = false;
   if (next !== floor) { floor = next; floorListeners.forEach((l) => l()); }
 }
 /** The history index Back may not go below. */
 export const useTabFloor = () => useSyncExternalStore((l) => { floorListeners.add(l); return () => floorListeners.delete(l); }, () => floor);
-/**
- * Where the app is now becomes the current tab's place. Coming from Home or the menu (which
- * are not tabs) to somewhere new opens it in a new tab, as Bible Strong's Home does, unless the
- * current tab is still an empty New Tab page.
- */
-export function recordPath(path: string, fromOutside: boolean) {
+/** Where the app is now becomes the current tab's place. */
+export function recordPath(path: string) {
   if (!isTabPath(path)) return;
   const g = group(), cur = currentTab();
+  // A group left with no tabs takes the place it is shown in as its first.
+  if (!cur) { newTab(path); return; }
   if (cur.path === path) return;
-  if (fromOutside && !cur.path.startsWith("/new")) {
-    // Opening from Home or the menu keeps Back to them, so this tab change is not entered.
-    const was = entering, found = g.tabs.find((t) => t.path === path);
-    if (found) selectTab(found.id); else newTab(path);
-    entering = was;
-    return;
-  }
   setGroup({ ...g, tabs: g.tabs.map((t) => (t.id === cur.id ? { ...t, path } : t)) });
 }
 /** A new tab in the current group, on the New Tab page by default; returns its path. */
@@ -105,51 +126,61 @@ export function newTab(path = "/new"): string {
   enterTab();
   return path;
 }
+/** Select a tab of the current group; its path, or the switcher when the group has none. */
 export function selectTab(id: string): string {
   const g = group(), t = g.tabs.find((x) => x.id === id) ?? g.tabs[0];
+  if (!t) return "/tabs";
   setGroup({ ...g, current: t.id });
   enterTab();
   return t.path;
 }
-/** Close a tab; the last tab of a group is never closed, it goes back to the New Tab page. */
+/**
+ * Close a tab, the last one too (Bible Strong's useTabPreview): the group keeps the position of
+ * its current tab, so the tab that slides into it becomes current, or the one before when the
+ * last was closed.
+ */
 export function closeTab(id: string) {
   const g = group();
-  if (g.tabs.length === 1) { const t = { id: uid(), path: "/new" }; setGroup({ ...g, tabs: [t], current: t.id }); return; }
+  if (!g.tabs.some((t) => t.id === id)) return;
+  const at = Math.max(0, g.tabs.findIndex((t) => t.id === g.current));
   const tabs = g.tabs.filter((t) => t.id !== id);
-  setGroup({ ...g, tabs, current: g.current === id ? tabs[tabs.length - 1].id : g.current });
+  setGroup({ ...g, tabs, current: tabs[Math.min(at, tabs.length - 1)]?.id ?? "" });
 }
-/** Close every tab of the current group. */
-export function closeAll() { const g = group(), t = { id: uid(), path: "/new" }; setGroup({ ...g, tabs: [t], current: t.id }); }
+/** Close every tab of a group, leaving it empty (Bible Strong's closeAllTabsAtom). */
+export function closeAll(id = state.group) {
+  set({ ...state, groups: state.groups.map((g) => (g.id === id ? { ...g, tabs: [], current: "" } : g)) });
+}
 
-/** A new group (Bible Strong's CreateGroupPage), made current, starting on the New Tab page. */
 /** The open tab before or after the current one in its group, selected: its path, or null at either end. */
 export function adjacentTab(step: 1 | -1): string | null {
   const g = group(), i = g.tabs.findIndex((t) => t.id === g.current), t = g.tabs[i + step];
   return t ? selectTab(t.id) : null;
 }
 
+/** A new group (Bible Strong's createGroup): named, empty, made current; its id, or null at the limit or without a name. */
 export function newGroup(name: string, color: string): string | null {
-  if (state.groups.length >= MAX_GROUPS) return null;
-  const g = freshGroup(name.trim() || `Group ${state.groups.length + 1}`, color);
+  if (state.groups.length >= MAX_GROUPS || !name.trim()) return null;
+  const g: Group = { id: uid(), name: name.trim(), color, tabs: [], current: "", createdAt: Date.now() };
   set({ groups: [...state.groups, g], group: g.id });
   enterTab();
-  return g.tabs[0].path;
+  return g.id;
 }
-/** Switch group; returns the path of that group's current tab. */
+/** Switch group; returns the path of that group's current tab, or the switcher when it has none. */
 export function switchGroup(id: string): string {
   const g = state.groups.find((x) => x.id === id) ?? state.groups[0];
   set({ ...state, group: g.id });
   enterTab();
-  return (g.tabs.find((t) => t.id === g.current) ?? g.tabs[0]).path;
+  return (g.tabs.find((t) => t.id === g.current) ?? g.tabs[0])?.path ?? "/tabs";
 }
 export function renameGroup(id: string, name: string, color?: string) {
   set({ ...state, groups: state.groups.map((g) => (g.id === id ? { ...g, name: name.trim() || g.name, color: color ?? g.color } : g)) });
 }
-/** Delete a group and its tabs; the last group is never deleted, it is emptied. */
+/** Delete a group and its tabs; never the default group. The group before it becomes current (Bible Strong's GroupActionsPopover). */
 export function deleteGroup(id: string) {
-  if (state.groups.length === 1) { closeAll(); return; }
+  const i = state.groups.findIndex((g) => g.id === id);
+  if (i < 0 || state.groups[i].isDefault) return;
   const groups = state.groups.filter((g) => g.id !== id);
-  set({ groups, group: state.group === id ? groups[0].id : state.group });
+  set({ groups, group: state.group === id ? groups[Math.max(0, i - 1)].id : state.group });
 }
 /** The group before or after the current one, for swiping between groups. */
 export function adjacentGroup(step: 1 | -1): string | null {
@@ -157,19 +188,22 @@ export function adjacentGroup(step: 1 | -1): string | null {
   return i >= 0 && i < state.groups.length ? state.groups[i].id : null;
 }
 
-/** Bible Strong's Bible and Search buttons: the current tab if it is one, else the latest such tab, else a new one. */
+/** Bible Strong's Bible and Search buttons (BibleButton, useSearchButton): the group's first such tab, else a new one at the end. */
 function tabOfKind(test: (p: string) => boolean, fresh: string): string {
-  const g = group(), cur = currentTab();
-  if (test(cur.path)) return cur.path;
-  const t = [...g.tabs].reverse().find((x) => test(x.path));
-  if (t) return selectTab(t.id);
-  if (cur.path.startsWith("/new")) { setGroup({ ...g, tabs: g.tabs.map((x) => (x.id === cur.id ? { ...x, path: fresh } : x)) }); return fresh; }
-  return newTab(fresh);
+  const t = group().tabs.find((x) => test(x.path));
+  return t ? selectTab(t.id) : newTab(fresh);
 }
-export const bibleTabPath = () => tabOfKind((p) => /^\/(bible|read)(\/|$)/.test(p), "/bible");
-export const searchTabPath = () => tabOfKind((p) => /^\/search(\?|$)/.test(p), "/search");
+/** A new Bible tab opens at Genesis 1:1 (Bible Strong's getDefaultBibleTab). */
+const KIND_PATH = { bible: /^\/(bible|read)(\/|$)/, search: /^\/search(\?|$)/, ask: /^\/ask(\/|\?|$)/ };
+export const bibleTabPath = () => tabOfKind((p) => KIND_PATH.bible.test(p), "/read/genesis/1");
+export const searchTabPath = () => tabOfKind((p) => KIND_PATH.search.test(p), "/search");
 /** Ask CyberJudah, the same way: its tab if one is open, else a new one. */
-export const askTabPath = () => tabOfKind((p) => /^\/ask(\/|\?|$)/.test(p), "/ask");
+export const askTabPath = () => tabOfKind((p) => KIND_PATH.ask.test(p), "/ask");
+/** Where the bar's button for a kind will land in the group: its first tab, or the end for a new one. */
+export function kindTabIndex(kind: keyof typeof KIND_PATH): number {
+  const tabs = group().tabs, at = tabs.findIndex((t) => KIND_PATH[kind].test(t.path));
+  return at < 0 ? tabs.length : at;
+}
 
 /** A tab's name and kind from its path, for the switcher's cards. */
 const KINDS: [RegExp, string, string][] = [
@@ -184,7 +218,7 @@ export function tabKind(path: string): { kind: string; icon: string } {
   return { kind: k?.[1] ?? "Page", icon: k?.[2] ?? "layers" };
 }
 /** Settings' own pages, named as the Menu names them. */
-const SETTINGS_PAGES: Record<string, string> = { bar: "Bottom bar", requests: "Note requests", credits: "Credits" };
+const SETTINGS_PAGES: Record<string, string> = { requests: "Note requests", credits: "Credits" };
 /** The place itself: "Genesis 1", "H430", a class title's slug, in words. */
 export function tabPlace(path: string): string {
   const p = path.split(/[?#]/)[0].split("/").filter(Boolean);

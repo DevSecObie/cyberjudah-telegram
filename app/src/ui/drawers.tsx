@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigationType } from "react-router";
 
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
+import { clearOver, markOver } from "@/lib/over-page";
 import { HomeBody } from "@/screens/Home";
 import { sheetOpened } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
@@ -35,6 +36,8 @@ export function Drawers() {
       // A page opened from a drawer remembers it: Back to the entry under it opens the drawer
       // again, as Bible Strong's drawer stays open under the page pushed over it.
       if (side) cameFrom.set(idx - 1, side); else cameFrom.delete(idx - 1);
+      // That page sits over the tab: it does not change the tab (lib/over-page).
+      if (side) markOver(idx); else clearOver(idx);
     }
     if (navType === "POP" && cameFrom.has(idx)) { setDrawer(cameFrom.get(idx)!); cameFrom.delete(idx); return; }
     if (navType !== "REPLACE") setDrawer(null);

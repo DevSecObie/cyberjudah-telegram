@@ -48,11 +48,10 @@ export function WorkspaceCommands() {
     close();
     moveTab(() => {
       if (choice.group && choice.tab) { switchGroup(choice.group); navigate(selectTab(choice.tab), { replace: true }); }
-      else navigate(newTab(choice.path));
+      else navigate(newTab(choice.path), { replace: true });
     }, "slide");
   };
   const open = () => { setQuery(""); setIndex(0); setMode("search"); };
-  useEffect(() => { window.addEventListener("cj:commands", open); return () => window.removeEventListener("cj:commands", open); }, []);
   useEffect(() => { if (mode === "search") input.current?.focus(); else if (mode) box.current?.querySelector<HTMLElement>('[role="listbox"]')?.focus(); }, [mode]);
   useEffect(() => { box.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" }); }, [selected]);
   useEffect(() => {
@@ -75,9 +74,9 @@ export function WorkspaceCommands() {
       const letter = /^[a-z]$/.test(key) ? key : e.keyCode >= 65 && e.keyCode <= 90 ? String.fromCharCode(e.keyCode).toLowerCase() : "";
       if (mod && key === "k" && !e.altKey && !e.shiftKey) { e.preventDefault(); open(); }
       else if (cycle) { e.preventDefault(); setIndex(openTabs.length > 1 ? e.shiftKey ? openTabs.length - 1 : 1 : 0); setMode("recent"); }
-      else if (mod && e.altKey && !e.shiftKey && letter === "n") { e.preventDefault(); moveTab(() => { navigate(newTab()); }, "slide"); }
+      else if (mod && e.altKey && !e.shiftKey && letter === "n") { e.preventDefault(); moveTab(() => { navigate(newTab(), { replace: true }); }, "slide"); }
       else if (mod && e.altKey && !e.shiftKey && letter === "w" && isTabPath(location.pathname)) {
-        e.preventDefault(); moveTab(() => { closeTab(tabs.current); navigate(currentTab().path, { replace: true }); }, "slide");
+        e.preventDefault(); moveTab(() => { closeTab(tabs.current); navigate(currentTab()?.path ?? "/tabs", { replace: true }); }, "slide");
       } else if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && ["ArrowUp", "ArrowDown"].includes(e.key)) {
         e.preventDefault(); const at = openTabs.findIndex(t => t.tab === tabs.current), step = e.key === "ArrowUp" ? -1 : 1;
         choose(openTabs[(at + step + openTabs.length) % openTabs.length]);

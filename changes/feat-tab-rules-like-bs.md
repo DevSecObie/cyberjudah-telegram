@@ -1,0 +1,7 @@
+- Tabs and tab groups now follow Bible Strong's rules:
+  - You can close the last tab of a group; the group then shows Bible Strong's empty screen, with a Create a tab button, and the app reopens there.
+  - Closing the tab you are on moves to the one that takes its place, not to the last tab.
+  - Close all tabs is offered for every group, without asking, and it no longer deletes the main group with all its tabs when there are other groups.
+  - A new group needs a name, starts empty, and starts on the first of Bible Strong's nine colours.
+  - Deleting a group returns to the one before it. The main group has no colour, and can't be renamed or deleted.
+  - The Bible and Search buttons go to the first such tab, or open a new one, rather than reusing a New Tab. A new Bible tab opens at Genesis 1.

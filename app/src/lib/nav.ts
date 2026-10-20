@@ -1,11 +1,6 @@
-import { useStored } from "@/tg/hooks";
 import type { IconName } from "@/ui/ui";
 
-/**
- * What the bottom bar can hold. Bible Strong's bar is Home, Search, Bible, the tabs and the menu;
- * ours lets each reader choose and order up to MAX_NAV buttons. Menu follows those choices;
- * Search is derived as a fixed trailing control without migrating the saved array.
- */
+/** The app's main sections, each with the paths it covers. */
 export type NavId = "home" | "search" | "bible" | "classes" | "ask" | "tabs" | "library" | "plan" | "bookmarks" | "sabbath" | "precepts" | "law" | "people" | "lexicon" | "history";
 export type NavItem = { id: NavId; label: string; icon: IconName | "count"; path: string; match: RegExp };
 
@@ -26,22 +21,3 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "lexicon", label: "Lexicon", icon: "spark", path: "/lexicon", match: /^\/lexicon/ },
   { id: "history", label: "History", icon: "clock", path: "/history", match: /^\/history/ },
 ];
-
-export const MAX_NAV = 6;
-export const DEFAULT_NAV: NavId[] = ["home", "search", "bible", "classes", "ask", "tabs"];
-const KNOWN = new Set<string>(NAV_ITEMS.map((i) => i.id));
-
-/** A stored choice, cleaned: known ids only, no repeats, at most MAX_NAV, never empty. */
-export function cleanNav(ids: unknown): NavId[] {
-  if (!Array.isArray(ids)) return DEFAULT_NAV;
-  const out: NavId[] = [];
-  for (const id of ids) if (typeof id === "string" && KNOWN.has(id) && !out.includes(id as NavId)) out.push(id as NavId);
-  return out.length ? out.slice(0, MAX_NAV) : DEFAULT_NAV;
-}
-
-export const navItem = (id: NavId) => NAV_ITEMS.find((i) => i.id === id)!;
-
-export function useNav(): [NavId[], (ids: NavId[]) => void] {
-  const [ids, setIds] = useStored<NavId[]>("nav", DEFAULT_NAV);
-  return [cleanNav(ids), (next) => setIds(cleanNav(next))];
-}
