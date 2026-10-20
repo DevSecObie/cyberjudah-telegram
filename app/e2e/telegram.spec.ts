@@ -1703,10 +1703,9 @@ test("the bottom bar sits above the Bible, and each reader chooses its buttons",
     expect(await page.evaluate(([x, yy]) => !!document.elementFromPoint(x, yy)?.closest(".tabs"), [bar.x + bar.width / 2, y])).toBe(true);
   }
   await expect(page.locator('.tab[aria-label="Classes"]')).toBeVisible();
-  // A long press opens the editor.
-  const home = (await page.locator('.tab[aria-label="Home"]').boundingBox())!;
-  await page.mouse.move(home.x + home.width / 2, home.y + home.height / 2);
-  await page.mouse.down(); await page.waitForTimeout(750); await page.mouse.up();
+  // The editor is in the menu (Bible Strong's bar has no long press).
+  await page.click('.tab[aria-label="Main menu"]');
+  await page.locator(".drawer--more").getByRole("link", { name: "Bottom bar", exact: true }).click();
   await expect(page).toHaveURL(/\/settings\/bar/);
   await expect(page.getByRole("button", { name: "Remove Search", exact: true })).toHaveCount(0);
   await page.click('[aria-label="Add Library"]');
