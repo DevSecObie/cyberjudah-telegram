@@ -22,7 +22,7 @@ test("Open in a new tab stays put and the toast goes to the new tab", async ({ p
   const toast = page.locator(".toast", { hasText: "New tab created" });
   await expect(toast).toBeVisible();
   await expect(page).toHaveURL(/\/timeline(#|$)/);
-  await expect(page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "2 Tabs open", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Tabs, 2 open", exact: true })).toBeVisible();
   let s = await state(page);
   expect(s.current).toBe("a");
   expect(s.tabs.map((t) => t.path)).toEqual(["/timeline", "/timeline"]);

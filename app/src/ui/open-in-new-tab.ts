@@ -12,8 +12,8 @@ export function useOpenInNewTab() {
   const toast = useToast();
   return (path: string) => {
     const at = addTab(path);
-    toast("New tab created", {
-      action: { label: "Go to tab", onClick: () => moveTab(() => { switchGroup(at.group); navigate(selectTab(at.tab), { replace: true }); }, "slide") },
-    });
+    // Bible Strong's goToTab: to the new tab's group, and the tab slides in from the end.
+    const go = () => moveTab(() => { switchGroup(at.group); navigate(selectTab(at.tab), { replace: true }); }, "slide", undefined, 1);
+    toast("New tab created", { action: { label: "Go to tab", onClick: go } });
   };
 }

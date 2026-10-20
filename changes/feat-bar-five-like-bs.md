@@ -1,0 +1,3 @@
+- The bottom bar has Bible Strong's five buttons: Home, Search, Bible, Tabs and Menu.
+  - Classes, Ask and the other sections open from Home, the Menu and New Tab.
+  - The Bottom bar editor is gone from the Menu, so every reader has the same bar.

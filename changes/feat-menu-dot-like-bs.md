@@ -1,0 +1,1 @@
+- When a newer release of a study resource you have downloaded is published, a green dot now appears on the Menu button until you open Downloads, and on the Downloads row in the menu until you install it, as in Bible Strong.
