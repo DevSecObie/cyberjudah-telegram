@@ -20,9 +20,10 @@ type Loaded = Record<string, TagData & { highlightVerses: number }>;
 /** Everything tagged, read once and again after a change. */
 function useTagData() {
   const [data, setData] = useState<Loaded>({});
-  const reload = useCallback(() => { void loadTagData().then(setData).catch(() => undefined); }, []);
+  const [loaded, setLoaded] = useState(false);
+  const reload = useCallback(() => { void loadTagData().then(setData).catch(() => undefined).finally(() => setLoaded(true)); }, []);
   useEffect(reload, [reload]);
-  return { data, reload };
+  return { data, loaded, reload };
 }
 
 /** Bible Strong's tagListQueryAtom (`entityListFilters.tags.v1`): the search and the order, kept between visits. */
@@ -160,7 +161,7 @@ export function TagScreen() {
   const sheet = useSheet();
   const [tags, setTags] = useTags();
   const tag = tags[id];
-  const { data } = useTagData();
+  const { data, loaded } = useTagData();
   const createGroup = useCreateTabGroupFromTag();
   const counts = tagCounts(data[id]);
   const menu = async () => {
@@ -180,7 +181,8 @@ export function TagScreen() {
   if (!tag) return <Screen title="" className="tagpage"><EmptyState icon="tag" message="This tag doesn't exist..." /></Screen>;
   return (
     <Screen title={tag.name} className="tagpage" action={<button type="button" className="panel-trigger" style={{ width: 54, height: 54 }} aria-label="More options" title="More options" onClick={() => void menu()}><Feather name="more-vertical" size={18} /></button>}>
-      {counts.itemCount ? <TagSections d={data[id]} /> : <div className="tagd-empty"><EmptyState icon="tag" message="You have not recorded anything with this label ..." /></div>}
+      {/* Nothing until what it carries is read, so an empty tag's message never flashes for a full one. */}
+      {!loaded ? null : counts.itemCount ? <TagSections d={data[id]} /> : <div className="tagd-empty"><EmptyState icon="tag" message="You have not recorded anything with this label ..." /></div>}
     </Screen>
   );
 }
