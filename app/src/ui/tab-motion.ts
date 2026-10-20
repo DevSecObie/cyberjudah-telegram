@@ -223,7 +223,9 @@ export function closeTabCard(id: string, update: () => void) {
     const r = el.getBoundingClientRect();
     ghost.removeAttribute("data-tab-id"); ghost.removeAttribute("data-current");
     ghost.setAttribute("aria-hidden", "true"); ghost.inert = true;
-    Object.assign(ghost.style, { position: "fixed", left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: "0", zIndex: "2", pointerEvents: "none" });
+    // The pager's translated track is the containing block of a fixed element inside it.
+    const box = el.closest<HTMLElement>(".switcher__track")?.getBoundingClientRect() ?? { left: 0, top: 0 };
+    Object.assign(ghost.style, { position: "fixed", left: `${r.left - box.left}px`, top: `${r.top - box.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: "0", zIndex: "2", pointerEvents: "none" });
     el.parentElement!.append(ghost);
     ghost.animate([{ transform: "scale(1)" }, { transform: "scale(0)" }], { ...LAYOUT, fill: "forwards" }).finished.catch(() => {}).finally(() => ghost.remove());
   }

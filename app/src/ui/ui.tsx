@@ -16,6 +16,7 @@ import { Feather } from "@/bible/icons";
 import { Icon, type IconName } from "./icons";
 import { useSheetRoute } from "./sheetRoute";
 import { moveTab } from "./tab-motion";
+import { historyIdx, isOver } from "@/lib/over-page";
 import { useAvailableUpdatesIndicator } from "@/resources/updates";
 export { Icon, type IconName } from "./icons";
 
@@ -34,7 +35,7 @@ export function tabOf(path: string): string {
 const navPath = (id: NavId) => id === "search" ? searchTabPath() : id === "bible" ? bibleTabPath() : id === "ask" ? askTabPath() : navItem(id).path;
 
 export function TabBar() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const { tabs, group } = useTabs();
   const { hasUnseenUpdates } = useAvailableUpdatesIndicator();
@@ -59,9 +60,11 @@ export function TabBar() {
     const at = toId === "search" || toId === "bible" || toId === "ask" ? kindTabIndex(toId) : from;
     const dir = from < 0 || at === from ? 0 : at > from ? 1 : -1;
     setDrawer(null);
+    // A page over the tab is left for the tab even when its path is the same.
+    const wasOver = isOver(historyIdx());
     moveTab(() => {
       const target = typeof to === "function" ? to() : to;
-      if (target === pathname) return false;
+      if (target === pathname + search && !wasOver) return false;
       navigate(target, { replace: true });
     }, overview ? "overview" : "slide", undefined, dir);
   };
