@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import { APPROVED_RESOURCE_IDS, type Catalog, type Manifest } from '@shared/resources';
 import { resourceCatalog, resourceManifest } from '@/resources/client';
 import { installedResources, installResource, removeResource, rollbackResource } from '@/resources/storage';
+import { useMarkAvailableUpdatesSeen } from '@/resources/updates';
 import { Sheet } from '@/bible/ui/Sheet';
 import { Empty, Screen } from '@/ui/ui';
 import './ResourceInstaller.css';
@@ -13,6 +14,7 @@ const size = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 const label = (id: string) => id === 'CC-BY-SA-unversioned' ? 'CC BY-SA · version unstated' : id === 'public-domain' ? 'Public domain edition' : id;
 export function ResourceInstaller() {
   useBackButton();
+  useMarkAvailableUpdatesSeen();
   const client = useQueryClient();
   const catalog = useQuery({ queryKey: ['resource-catalog'], queryFn: () => resourceCatalog() });
   const installed = useQuery({ queryKey: ['resource-installed'], queryFn: installedResources });

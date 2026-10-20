@@ -109,6 +109,9 @@
 /* The tabs count: a 20 px box; a coloured group fills it, its digits black or white to read on it. */
 .tabs .tab__count { display: grid; place-items: center; box-sizing: border-box; width: 20px; height: 20px; overflow: hidden; border: 2px solid currentColor; border-radius: 5px; font: 400 12px/15px var(--font-ui); }
 .tabs .tab__count[style*="--group"] { background: var(--group); border-color: var(--group); color: var(--group-ink, var(--bs-default, var(--text-1))); }
+.tabs .tab__more { position: relative; display: grid; }
+/* Bible Strong's NotificationDot: green, outlined in the page colour so it reads over the icon. */
+.notify-dot { position: absolute; box-sizing: border-box; border: 1.5px solid var(--canvas); border-radius: 50%; background: var(--success); pointer-events: none; }
 html[data-typing] .tabs { display: none; }
 /* A sheet, drawer or gallery always sits over the bar. */
 html:has([data-sheet-open]) .tabs { z-index: 40; }
