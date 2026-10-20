@@ -54,7 +54,7 @@ test("the Bible card opens Search on the books; a chapter turns this tab into it
   await expect(sheet(page).getByRole("button", { name: "Books" })).toContainText("Genesis");
   await sheet(page).getByRole("button", { name: "Genesis, Chapter 3", exact: true }).click();
   await expect(page).toHaveURL(/\/read\/genesis\/3$/);
-  expect(await tabs(page)).toEqual(["b:/read/exodus/2", "n:/read/genesis/3"]);
+  await expect.poll(() => tabs(page)).toEqual(["b:/read/exodus/2", "n:/read/genesis/3"]);
 });
 
 test("a reference typed is offered first, and opens at its verses", async ({ page }) => {
@@ -89,7 +89,7 @@ test("Strong browses by letter with the alphabet; a code typed finds the word an
   await expect(sheet(page).locator(".spick__title")).toHaveText(["loveG26"]);
   await sheet(page).getByRole("button", { name: "love", exact: true }).click();
   await expect(page).toHaveURL(/\/lexicon\/G26$/);
-  expect(await tabs(page)).toEqual(["b:/read/exodus/2", "n:/lexicon/G26"]);
+  await expect.poll(() => tabs(page)).toEqual(["b:/read/exodus/2", "n:/lexicon/G26"]);
 });
 
 test("Topics and the dictionary list their letter in their colour", async ({ page }) => {
