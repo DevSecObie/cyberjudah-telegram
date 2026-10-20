@@ -6,7 +6,7 @@ import { Cell, Chip as TgChip, Placeholder, Section as TgSection, SegmentedContr
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
 import { goBack, isRootPath, usePageActions } from "@/tg/hooks";
-import { adjacentTab, askTabPath, bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
+import { adjacentTab, askTabPath, bibleTabPath, enterTab, searchTabPath, settleTabFloor, useTabs } from "@/lib/tabs";
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { useReaderFullscreen } from "@/bible/session";
 import { SwitcherBar } from "@/screens/Tabs";
@@ -58,8 +58,9 @@ export function TabBar() {
     haptic("select"); setDrawer(null);
     moveTab(() => {
       const target = typeof to === "function" ? to() : to;
-      if (target === pathname) { window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); return false; }
-      else navigate(target, { replace: true });
+      if (target === pathname) { settleTabFloor(window.history.state?.idx ?? 0); window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); return false; }
+      enterTab();
+      navigate(target, { replace: true });
     }, overview ? "overview" : "slide", undefined, dir);
   };
   // Home and the menu are drawers, as in Bible Strong; the same button closes its own drawer.

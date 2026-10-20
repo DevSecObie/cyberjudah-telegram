@@ -61,6 +61,25 @@ export const currentTab = () => { const g = group(); return g.tabs.find((t) => t
 export const keptTab = () => (kept ? currentTab() : undefined);
 
 export const isTabPath = (path: string) => !NOT_TABS.test(path);
+
+/**
+ * Where the current tab's own history starts. In Bible Strong, Back never leaves the tab you are
+ * in: changing tab is not a step you can go back over. A tab change (the bar, a swipe, the
+ * switcher, a new tab) replaces the page in the browser's history, so the pages under it belong
+ * to the tab you came from; Back stops at the page this tab was entered on.
+ */
+let floor = 0, entering = false;
+const floorListeners = new Set<() => void>();
+/** A tab change is under way: the next page shown is the first of the tab's own history. */
+export const enterTab = () => { entering = true; };
+/** After a page is shown at a history index: a tab just entered starts its history there. */
+export function settleTabFloor(idx: number) {
+  const next = entering || idx < floor ? idx : floor;
+  entering = false;
+  if (next !== floor) { floor = next; floorListeners.forEach((l) => l()); }
+}
+/** The history index Back may not go below. */
+export const useTabFloor = () => useSyncExternalStore((l) => { floorListeners.add(l); return () => floorListeners.delete(l); }, () => floor);
 /**
  * Where the app is now becomes the current tab's place. Coming from Home or the menu (which
  * are not tabs) to somewhere new opens it in a new tab, as Bible Strong's Home does, unless the
@@ -70,18 +89,26 @@ export function recordPath(path: string, fromOutside: boolean) {
   if (!isTabPath(path)) return;
   const g = group(), cur = currentTab();
   if (cur.path === path) return;
-  if (fromOutside && !cur.path.startsWith("/new")) { const found = g.tabs.find((t) => t.path === path); if (found) selectTab(found.id); else newTab(path); return; }
+  if (fromOutside && !cur.path.startsWith("/new")) {
+    // Opening from Home or the menu keeps Back to them, so this tab change is not entered.
+    const was = entering, found = g.tabs.find((t) => t.path === path);
+    if (found) selectTab(found.id); else newTab(path);
+    entering = was;
+    return;
+  }
   setGroup({ ...g, tabs: g.tabs.map((t) => (t.id === cur.id ? { ...t, path } : t)) });
 }
 /** A new tab in the current group, on the New Tab page by default; returns its path. */
 export function newTab(path = "/new"): string {
   const g = group(), t = { id: uid(), path };
   setGroup({ ...g, tabs: [...g.tabs, t], current: t.id });
+  enterTab();
   return path;
 }
 export function selectTab(id: string): string {
   const g = group(), t = g.tabs.find((x) => x.id === id) ?? g.tabs[0];
   setGroup({ ...g, current: t.id });
+  enterTab();
   return t.path;
 }
 /** Close a tab; the last tab of a group is never closed, it goes back to the New Tab page. */
@@ -105,12 +132,14 @@ export function newGroup(name: string, color: string): string | null {
   if (state.groups.length >= MAX_GROUPS) return null;
   const g = freshGroup(name.trim() || `Group ${state.groups.length + 1}`, color);
   set({ groups: [...state.groups, g], group: g.id });
+  enterTab();
   return g.tabs[0].path;
 }
 /** Switch group; returns the path of that group's current tab. */
 export function switchGroup(id: string): string {
   const g = state.groups.find((x) => x.id === id) ?? state.groups[0];
   set({ ...state, group: g.id });
+  enterTab();
   return (g.tabs.find((t) => t.id === g.current) ?? g.tabs[0]).path;
 }
 export function renameGroup(id: string, name: string, color?: string) {

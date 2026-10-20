@@ -8,7 +8,7 @@ import { Route, Routes, useLocation, useNavigate, useNavigationType } from "reac
 import { RouteSheet, useSheetEntry } from "@/ui/routeSheet";
 import { UnderSheetContext } from "@/ui/sheetRoute";
 import { initialLaunchPath } from "@/tg/launch.mjs";
-import { isTabPath, keptTab, recordPath } from "@/lib/tabs";
+import { isTabPath, keptTab, recordPath, settleTabFloor } from "@/lib/tabs";
 import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
@@ -169,6 +169,7 @@ export function App() {
     const path = location.pathname + location.search;
     const prev = prevPath.current;
     recordPath(path, prev !== null && !isTabPath(prev));
+    settleTabFloor(window.history.state?.idx ?? 0);
     prevPath.current = path;
   }, [location.pathname, location.search, sheet]);
   const navigate = useNavigate();
