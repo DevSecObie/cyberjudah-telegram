@@ -192,6 +192,8 @@ export function moveTab(update: () => void | false, mode: Mode, id = currentTab(
     if (canceled) return;
     // Two frames, then the tab fades in under the full-size card, which goes once it has.
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    // A motion started in those frames has already cleaned up after this one.
+    if (canceled) return;
     ghost.remove();
     if (route) { route.style.removeProperty("opacity"); await animate(route, [{ opacity: 0 }, { opacity: 1 }], TIMING); }
     clean();
