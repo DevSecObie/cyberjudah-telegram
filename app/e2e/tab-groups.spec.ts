@@ -131,3 +131,30 @@ test("a card closed in a group after the first shrinks away where it was", async
   expect(Math.abs(ghost!.x - before.x)).toBeLessThan(2);
   expect(Math.abs(ghost!.y - before.y)).toBeLessThan(2);
 });
+
+test("a mouse let go outside the switcher before its drag began does not stop the next swipe", async ({ page }) => {
+  await setup(page, [main, psalms]);
+  const box = (await page.locator(".switcher").boundingBox())!;
+  // Down in the switcher, up and down past the drag's start, then let go over the bar outside it.
+  await page.mouse.move(box.x + 200, box.y + 300); await page.mouse.down();
+  await page.mouse.move(box.x + 200, box.y + 330, { steps: 4 });
+  await page.mouse.move(box.x + 200, box.y + box.height + 30, { steps: 4 });
+  await page.mouse.up();
+  await swipe(page, -300);
+  await expect.poll(async () => (await saved(page)).group).toBe("g2");
+});
+
+test("a new tab closed before it opens stays closed, and the switcher stays", async ({ page }) => {
+  await setup(page, [main]);
+  const add = page.getByRole("button", { name: "Add a tab" });
+  await add.waitFor();
+  // Both inside Bible Strong's 300 ms before the new card opens.
+  await add.evaluate((button) => {
+    (button as HTMLButtonElement).click();
+    const added = (JSON.parse(localStorage.getItem("cj:tabgroups")!).groups[0] as { current: string }).current;
+    document.querySelector<HTMLButtonElement>(`.tabcard[data-tab-id="${added}"] button[aria-label^="Close"]`)!.click();
+  });
+  await page.waitForTimeout(700);
+  await expect(page).toHaveURL(/\/tabs/);
+  expect((await saved(page)).groups[0].tabs.map((t) => t.id)).toEqual(["a", "b"]);
+});
