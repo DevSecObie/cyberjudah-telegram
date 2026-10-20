@@ -64,8 +64,8 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
     const box = (await bar.boundingBox())!;
     expect(box.x).toBe(0); expect(box.width).toBe(page.viewportSize()!.width);
     expect(box.y + box.height).toBe(page.viewportSize()!.height); expect(box.height).toBe(48);
-    // Home, Search, Bible, the reader's own buttons, Tabs and then Menu, as Bible Strong orders them.
-    expect(await bar.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "classes", "ask", "tabs", "more"]);
+    // Home, Search, Bible, Tabs and Menu, Bible Strong's five.
+    expect(await bar.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "tabs", "more"]);
     await expect(bar.getByRole("button", { name: "Bible", exact: true })).not.toHaveAttribute("aria-current");
     await page.waitForFunction(() => document.getAnimations().every(a => !(a instanceof CSSTransition) || a.playState !== "running"));
     const minimumContrast = await bar.evaluate(nav => {
@@ -120,9 +120,9 @@ test("bar: wide windows keep Bible Strong's bar along the bottom, and its button
   const bar = page.getByRole("navigation", { name: "Sections" });
   const box = (await bar.boundingBox())!;
   expect(box.x).toBe(0); expect(box.width).toBe(1280); expect(box.y + box.height).toBe(900);
-  await bar.getByRole("button", { name: "Classes", exact: true }).click();
-  await expect(page).toHaveURL(/\/classes/);
-  await expect(bar.getByRole("button", { name: "Classes", exact: true })).not.toHaveAttribute("aria-current");
+  await bar.getByRole("button", { name: "Bible", exact: true }).click();
+  await expect(page).toHaveURL(/\/(bible|read)/);
+  await expect(bar.getByRole("button", { name: "Bible", exact: true })).not.toHaveAttribute("aria-current");
   await bar.getByRole("button", { name: "Search", exact: true }).focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/search/);
@@ -677,7 +677,7 @@ for (const focus of ["field", "current Search control", "another control"] as co
     await page.route(/\/(?:assets\/Search-[^/]+\.js|src\/screens\/Search\.tsx)(?:\?.*)?$/, async route => { requested(); await gate; await route.continue(); });
     await page.goto(`/search${LAUNCH}`, { waitUntil: "domcontentloaded" });
     await waiting;
-    const next = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Classes", exact: true });
+    const next = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Bible", exact: true });
     try {
       if (focus === "another control") await next.focus();
       else if (focus === "current Search control") await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Search", exact: true }).focus();
@@ -689,7 +689,7 @@ for (const focus of ["field", "current Search control", "another control"] as co
     else {
       await expect(next).toBeFocused();
       await page.keyboard.press("Enter");
-      await expect(page).toHaveURL(/\/classes/);
+      await expect(page).toHaveURL(/\/(bible|read)/);
     }
   });
 }

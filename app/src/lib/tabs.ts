@@ -192,7 +192,7 @@ export function tabKind(path: string): { kind: string; icon: string } {
   return { kind: k?.[1] ?? "Page", icon: k?.[2] ?? "layers" };
 }
 /** Settings' own pages, named as the Menu names them. */
-const SETTINGS_PAGES: Record<string, string> = { bar: "Bottom bar", requests: "Note requests", credits: "Credits" };
+const SETTINGS_PAGES: Record<string, string> = { requests: "Note requests", credits: "Credits" };
 /** The place itself: "Genesis 1", "H430", a class title's slug, in words. */
 export function tabPlace(path: string): string {
   const p = path.split(/[?#]/)[0].split("/").filter(Boolean);

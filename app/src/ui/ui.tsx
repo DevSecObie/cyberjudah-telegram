@@ -6,11 +6,11 @@ import { Cell, Chip as TgChip, Placeholder, Section as TgSection, SegmentedContr
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
 import { goBack, isRootPath, usePageActions } from "@/tg/hooks";
-import { adjacentTab, askTabPath, bibleTabPath, currentTab, kindTabIndex, searchTabPath, useTabs } from "@/lib/tabs";
+import { adjacentTab, bibleTabPath, currentTab, kindTabIndex, searchTabPath, useTabs } from "@/lib/tabs";
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { useReaderFullscreen } from "@/bible/session";
 import { contrastInk, SwitcherBar } from "@/screens/Tabs";
-import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
+import { NAV_ITEMS } from "@/lib/nav";
 
 import { Feather } from "@/bible/icons";
 import { Icon, type IconName } from "./icons";
@@ -20,25 +20,26 @@ import { useAvailableUpdatesIndicator } from "@/resources/updates";
 export { Icon, type IconName } from "./icons";
 
 /**
- * Bible Strong's bottom bar (app-switcher/BottomTabBar): a flat full-width row of 48 px icon
- * buttons on the page colour with a line above it. Here the reader picks and orders the buttons
- * (lib/nav) and Menu ends the row. Search, the Bible and Ask go to their tab (or open one); the
- * tabs button shows how many are open and opens the switcher. A long press on the bar opens its
- * editor.
+ * Bible Strong's bottom bar (app-switcher/BottomTabBar): a flat full-width row of five 48 px icon
+ * buttons on the page colour with a line above it: Home, Search, the Bible, the tabs and Menu.
+ * Search and the Bible go to their tab (or open one); the tabs button shows how many are open and
+ * opens the switcher.
  */
 export function tabOf(path: string): string {
   if (path.startsWith("/more") || path.startsWith("/settings")) return "more";
   return NAV_ITEMS.find((i) => i.match.test(path))?.id ?? "";
 }
 
-const navPath = (id: NavId) => id === "search" ? searchTabPath() : id === "bible" ? bibleTabPath() : id === "ask" ? askTabPath() : navItem(id).path;
+/** BottomTabBar's row: HomeButton, SearchButton, BibleButton, TabButton, MenuButton. */
+const BUTTONS = ["home", "search", "bible", "tabs", "more"] as const;
+type ButtonId = typeof BUTTONS[number];
+const LABELS = { home: "Home", search: "Search", bible: "Bible" };
 
 export function TabBar() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { tabs, group } = useTabs();
   const { hasUnseenUpdates } = useAvailableUpdatesIndicator();
-  const [ids] = useNav();
   // The count takes its group's colour, as Bible Strong's does; the default group stays plain.
   const groupColor = group.isDefault ? undefined : group.color;
   const drawer = useDrawer();
@@ -50,13 +51,12 @@ export function TabBar() {
   const pointer = useRef<number | null>(null);
   const touchTarget = useRef<HTMLButtonElement | null>(null);
   const touchClick = useRef<HTMLButtonElement | null>(null);
-  const order = buttonOrder(ids);
   const go = (to: string | (() => string), overview = false, toId = "") => {
     if (long.current) return;
     // The tab slides in from its side, by its place in the group (Bible Strong's slideToIndex);
     // a button for the tab already showing does nothing.
     const from = tabs.findIndex((t) => t.id === currentTab()?.id);
-    const at = toId === "search" || toId === "bible" || toId === "ask" ? kindTabIndex(toId) : from;
+    const at = toId === "search" || toId === "bible" ? kindTabIndex(toId) : from;
     const dir = from < 0 || at === from ? 0 : at > from ? 1 : -1;
     setDrawer(null);
     moveTab(() => {
@@ -119,20 +119,20 @@ export function TabBar() {
   // While the switcher is open the bar becomes its controls, as in Bible Strong.
   if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /></nav>;
   const count = tabs.length > 100 ? ":)" : String(tabs.length);
-  const glyph = (id: NavId | "more") => {
+  const glyph = (id: ButtonId) => {
     if (id === "more") return <span className="tab__more"><Feather name="more-horizontal" size={28} />{hasUnseenUpdates ? <NotificationDot style={{ top: 2, right: -3 }} /> : null}</span>;
     if (id === "home") return <Feather name="home" size={23} />;
     if (id === "search") return <Feather name="search" size={23} raw />;
     if (id === "bible") return <Feather name="book-open" size={23} />;
-    const item = navItem(id);
-    return item.icon === "count" ? <span key={count} className="tab__count" style={groupColor ? { ["--group" as string]: groupColor, ["--group-ink" as string]: contrastInk(groupColor) } : undefined} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={23} />;
+    return <span key={count} className="tab__count" style={groupColor ? { ["--group" as string]: groupColor, ["--group-ink" as string]: contrastInk(groupColor) } : undefined} aria-hidden="true">{count}</span>;
   };
-  const label = (id: NavId | "more") => id === "more" ? (hasUnseenUpdates ? "Main menu, updates available" : "Main menu") : id === "tabs" ? `Tabs, ${count} open` : navItem(id).label;
-  const press1 = (id: NavId | "more") => id === "more" ? toggle("more") : id === "home" ? toggle("home") : go(() => navPath(id), id === "tabs", id);
+  const label = (id: ButtonId) => id === "more" ? (hasUnseenUpdates ? "Main menu, updates available" : "Main menu") : id === "tabs" ? `Tabs, ${count} open` : LABELS[id];
+  const path = (id: "search" | "bible" | "tabs") => id === "search" ? searchTabPath() : id === "bible" ? bibleTabPath() : "/tabs";
+  const press1 = (id: ButtonId) => id === "more" ? toggle("more") : id === "home" ? toggle("home") : go(() => path(id), id === "tabs", id);
   return (
     <nav ref={bar} className="tabs" aria-label="Sections" data-hidden={hidden ? "" : undefined} {...hold}>
       <div className="tabs__row">
-        {order.map((id) => <button key={id} type="button" className="tab" data-nav={id} aria-label={label(id)} title={label(id)} onClick={() => press1(id)}>{glyph(id)}</button>)}
+        {BUTTONS.map((id) => <button key={id} type="button" className="tab" data-nav={id} aria-label={label(id)} title={label(id)} onClick={() => press1(id)}>{glyph(id)}</button>)}
       </div>
     </nav>
   );
@@ -141,12 +141,6 @@ export function TabBar() {
 /** Bible Strong's NotificationDot: a small green dot signalling something new, outlined so it stays legible over an icon. */
 export function NotificationDot({ size = 10, style }: { size?: number; style?: React.CSSProperties }) {
   return <span className="notify-dot" aria-hidden="true" style={{ width: size, height: size, ...style }} />;
-}
-
-/** Bible Strong's row: the reader's buttons in their order, Search among them (second, as Bible Strong has it, if left out), and Menu last. */
-export function buttonOrder(ids: NavId[]): (NavId | "more")[] {
-  const row: (NavId | "more")[] = ids.includes("search") ? [...ids] : [...ids.slice(0, 1), "search", ...ids.slice(1)];
-  return [...row, "more"];
 }
 
 /**

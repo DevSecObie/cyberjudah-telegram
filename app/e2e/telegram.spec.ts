@@ -627,7 +627,7 @@ test("welcome keeps Search and Ask separate, with the dashboard in the Home draw
   await expect(welcome.getByRole("button", { name: "Search the teachings", exact: true })).toBeDisabled();
   await expect(welcome.getByRole("button", { name: "Ask your question" })).toBeDisabled();
   await expect(welcome.locator(".today-card, .stats, .shelf, .widgets")).toHaveCount(0);
-  await expect(page.locator(".tab")).toHaveCount(7);
+  await expect(page.locator(".tab")).toHaveCount(5);
   await search.fill("Seattle");
   await question.fill("Why do we keep the Passover?");
   await expect(search).toHaveValue("Seattle");
@@ -1666,19 +1666,6 @@ test("Reader: a class read in the chapter without notes plays in place, and its 
   expect(asked[0].title).not.toBe("");
 });
 
-test("Ask is on the bottom bar: it opens Ask CyberJudah in its own tab", async ({ page }) => {
-  await page.goto(`/read/genesis/1${LAUNCH}`);
-  const ask = page.locator('.tab[aria-label="Ask"]');
-  await expect(ask).toBeVisible();
-  await ask.click();
-  await expect(page).toHaveURL(/\/ask/);
-  await expect(ask).not.toHaveAttribute("aria-current");
-  if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/ask-tab.png` }); }
-  // The Bible is still its own tab to go back to.
-  await page.click('.tab[aria-label="Bible"]');
-  await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
-});
-
 test("an opened class keeps the tab bar, with its actions floating above it", async ({ page }) => {
   await page.route(`${DATA_ORIGIN}/api/notes/classes/2026/2026-09-26-keep-the-bar.json`, (r) => r.fulfill({
     contentType: "application/json",
@@ -1687,14 +1674,14 @@ test("an opened class keeps the tab bar, with its actions floating above it", as
   await page.goto(`/note/classes/2026/2026-09-26-keep-the-bar${LAUNCH}`);
   await expect(page.locator(".pageactions")).toBeVisible();
   await expect(page.locator(".tabs").first()).toBeVisible();
-  await expect(page.locator('.tabs .tab[aria-label="Ask"]')).toBeVisible();
+  await expect(page.locator('.tabs .tab[aria-label="Main menu"]')).toBeVisible();
   expect(await state(page)).toMatchObject({ main: null, second: null });
   const actions = await page.locator(".pageactions").boundingBox();
   const bar = await page.locator(".tabs").first().boundingBox();
   expect(actions!.y + actions!.height).toBeLessThanOrEqual(bar!.y + 1);
 });
 
-test("the bottom bar sits above the Bible, and each reader chooses its buttons", async ({ page }) => {
+test("the bottom bar sits above the Bible, with Bible Strong's five buttons", async ({ page }) => {
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   // Nothing covers the bar: the topmost element at its top edge and at its middle is the bar.
@@ -1702,22 +1689,11 @@ test("the bottom bar sits above the Bible, and each reader chooses its buttons",
   for (const y of [bar.y + 2, bar.y + bar.height / 2]) {
     expect(await page.evaluate(([x, yy]) => !!document.elementFromPoint(x, yy)?.closest(".tabs"), [bar.x + bar.width / 2, y])).toBe(true);
   }
-  await expect(page.locator('.tab[aria-label="Classes"]')).toBeVisible();
-  // The editor is in the menu (Bible Strong's bar has no long press).
-  await page.click('.tab[aria-label="Main menu"]');
-  await page.locator(".drawer--more").getByRole("link", { name: "Bottom bar", exact: true }).click();
-  await expect(page).toHaveURL(/\/settings\/bar/);
-  await expect(page.getByRole("button", { name: "Remove Search", exact: true })).toHaveCount(0);
-  await page.click('[aria-label="Add Library"]');
-  await page.click('[aria-label="Move Library up"]');
-  await expect(page.locator(".tabs .tab")).toHaveCount(8);
   const labels = await page.locator(".tabs .tab").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  // Search sits second, where Bible Strong has it, and Menu ends the row.
-  expect(labels).toEqual(["Home", "Search", "Bible", "Classes", "Ask", "Library", expect.stringMatching(/^Tabs, \d+ open$/), "Main menu"]);
-  await page.click('.tab[aria-label="Library"]');
-  await expect(page).toHaveURL(/\/books/);
-  // The choice is kept with the reader's other settings, in Telegram's cloud.
-  expect(JSON.parse((await cloud(page)).nav)).toEqual(["home", "bible", "classes", "ask", "library", "tabs"]);
+  expect(labels).toEqual(["Home", "Search", "Bible", expect.stringMatching(/^Tabs, \d+ open$/), "Main menu"]);
+  // The menu has no bar editor: Bible Strong's bar is the same for every reader.
+  await page.click('.tab[aria-label="Main menu"]');
+  await expect(page.locator(".drawer--more").getByRole("link", { name: "Bottom bar", exact: true })).toHaveCount(0);
 });
 
 test("a back step from the first screen stays in the app instead of going to a blank page", async ({ page }) => {

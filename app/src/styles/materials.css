@@ -97,9 +97,9 @@
 .tabs[data-hidden] { transform: translateY(100%); visibility: hidden; transition: transform 300ms ease, visibility 0s 300ms; }
 /* The row of buttons (BottomTabBar's view row), spread evenly. */
 .tabs__row { flex: 1; min-width: 0; height: 48px; display: flex; align-items: center; justify-content: space-around; }
-/* 48 px each; more buttons than Bible Strong's five share a narrow row rather than overflow it. */
+/* Bible Strong's five buttons, 48 px each (TAB_ICON_SIZE). */
 .tabs .tab {
-  flex: 0 1 48px; min-width: 0; height: 48px; padding: 0; margin: 0;
+  flex: 0 0 48px; min-width: 0; height: 48px; padding: 0; margin: 0;
   display: grid; place-items: center; border: 0; border-radius: 0; background: none; color: inherit; cursor: pointer;
   transition: opacity .25s;
 }

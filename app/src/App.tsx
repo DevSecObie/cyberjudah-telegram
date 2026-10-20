@@ -34,7 +34,6 @@ const More = lazy(() => import("@/screens/More").then((m) => ({ default: m.More 
 const ResourceInstaller = lazy(() => import("@/screens/ResourceInstaller").then((m) => ({ default: m.ResourceInstaller })));
 const ResourceReader = lazy(() => import("@/screens/ResourceReader").then((m) => ({ default: m.ResourceReader })));
 const AdminGate = lazy(() => import("@/admin/AdminGate").then((m) => ({ default: m.AdminGate })));
-const NavEditor = lazy(() => import("@/screens/NavEditor").then((m) => ({ default: m.NavEditor })));
 const Account = lazy(() => import("@/screens/Account").then(m => ({ default: m.Account })));
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
 const Help = lazy(() => import("@/screens/Help").then(m => ({ default: m.Help })));
@@ -109,7 +108,6 @@ const routes = (
     <Route path="/settings" element={<Settings />} />
     <Route path="/settings/help" element={<Help />} />
     <Route path="/settings/audio" element={<AudioSettings />} />
-    <Route path="/settings/bar" element={<NavEditor />} />
     <Route path="/settings/requests" element={<NoteRequests />} />
     <Route path="/plans" element={<ReadingPlans />} />
     <Route path="/plan" element={<Plan />} />
