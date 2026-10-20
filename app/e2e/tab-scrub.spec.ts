@@ -61,3 +61,18 @@ test("a quick flick goes to the next tab; an upward move starts no swipe", async
   await page.mouse.up();
   expect(await current(page)).toBe("b");
 });
+
+test("a swipe the browser cancels leaves the bar's buttons working from the keyboard", async ({ page }) => {
+  const at = await setup(page);
+  await page.evaluate(() => addEventListener("pointerdown", (e) => { (window as unknown as { __id: number }).__id = e.pointerId; }, true));
+  await page.mouse.move(at.x, at.y);
+  await page.mouse.down();
+  await page.mouse.move(at.x - 30, at.y, { steps: 3 });
+  await expect(page.locator(".tabscrub")).toBeVisible();
+  // The browser takes the pointer away mid-swipe.
+  await page.getByRole("navigation", { name: "Sections" }).evaluate((nav) => nav.dispatchEvent(new PointerEvent("pointercancel", { pointerId: (window as unknown as { __id: number }).__id, isPrimary: true, bubbles: true })));
+  await expect(page.locator(".tabscrub")).toHaveCount(0);
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Search", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/search/);
+});

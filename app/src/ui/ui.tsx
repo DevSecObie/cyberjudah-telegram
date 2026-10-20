@@ -82,7 +82,8 @@ export function TabBar() {
   });
   const cancelPress = () => {
     swipe.current = null; touchTarget.current = null; touchClick.current = null; pointer.current = null;
-    scrub.cancel();
+    // A swipe taken away leaves no press behind to swallow the next click.
+    long.current = false; scrub.cancel();
   };
   // A horizontal swipe along the bar scrubs through the open tabs (Bible Strong's
   // useTabBarSwipeGesture). Bible Strong's bar has no long press.
