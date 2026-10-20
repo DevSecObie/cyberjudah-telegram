@@ -50,12 +50,12 @@ test("cards carry their kind's icon and colour, the description as a hint", asyn
   await expect(page.locator(".ntsection__art")).toHaveCount(2);
 });
 
-test("a card opens in this tab", async ({ page }) => {
+test("a card Bible Strong does not search opens its page in this tab", async ({ page }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Dictionary", exact: true }).click();
-  await expect(page).toHaveURL(/\/dictionary/);
+  await page.locator(".ntcard", { hasText: "Everyone named in the Bible" }).click();
+  await expect(page).toHaveURL(/\/people/);
   const groups = await page.evaluate(() => JSON.parse(localStorage.getItem("cj:tabgroups") ?? "{}"));
-  expect(groups.groups[0].tabs.map((t: { id: string; path: string }) => `${t.id}:${t.path}`)).toEqual(["b:/read/genesis/1", "n:/dictionary"]);
+  expect(groups.groups[0].tabs.map((t: { id: string; path: string }) => `${t.id}:${t.path}`)).toEqual(["b:/read/genesis/1", "n:/people"]);
 });
 
 test("a wider page puts the cards side by side", async ({ page }) => {

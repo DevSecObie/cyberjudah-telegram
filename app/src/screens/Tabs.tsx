@@ -7,6 +7,7 @@ import { closeTab, currentGroup, groupsNow, isDefaultGroup, newTab, selectTab, s
 import { assetUrl } from "@/lib/asset";
 import { groupPager } from "@/ui/group-pager";
 import { CreateGroupPage, GroupActions, groupLabel } from "./tab-groups";
+import { SCOPES, SearchPicker, type Scope } from "./new-tab-search";
 import { useBackButton } from "@/tg/hooks";
 import { Feather } from "@/bible/icons";
 import { Icon, Screen, type IconName } from "@/ui/ui";
@@ -57,7 +58,10 @@ function SectionHeading({ title, image }: { title: string; image?: string }) {
 export function NewTab() {
   useBackButton(() => true, false, true);
   const navigate = useNavigate();
-  const open = (to: string) => navigate(to, { replace: true });
+  // A card of a kind Bible Strong searches opens the Search sheet for that kind (useLaunchSearch);
+  // the others open their page in this tab.
+  const [scope, setScope] = useState<Scope | null>(null);
+  const open = (to: string) => { if (SCOPES[to]) setScope(SCOPES[to]); else navigate(to, { replace: true }); };
   /** Bible Strong's NewTabItem: the kind's icon, the title over its description, a chevron; dims while pressed. */
   const Card = ({ item: [to, title, description], library }: { item: Item; library?: boolean }) => (
     <button type="button" className="ntcard" aria-label={title} aria-description={description} onClick={() => open(to)}>
@@ -93,6 +97,7 @@ export function NewTab() {
           </section>
         </div>
       </div>
+      <SearchPicker scope={scope} onClose={() => setScope(null)} onPick={(path) => { setScope(null); navigate(path, { replace: true }); }} />
     </Screen>
   );
 }
