@@ -171,6 +171,17 @@ export function newGroup(name: string, color: string): string | null {
   enterTab();
   return g.id;
 }
+/**
+ * A group made from a tag (Bible Strong's useCreateTabGroupFromTag): named after it, on the first
+ * colour, with a tab per path and the first current; its first tab's path, or null at the limit.
+ */
+export function groupWithTabs(name: string, paths: string[]): string | null {
+  const id = newGroup(name, GROUP_COLORS[0]);
+  if (!id) return null;
+  const tabs = paths.map((path) => ({ id: uid(), path }));
+  setGroup({ ...group(), tabs, current: tabs[0]?.id ?? "" });
+  return tabs[0]?.path ?? "/tabs";
+}
 /** Switch group; returns the path of that group's current tab, or the switcher when it has none. */
 export function switchGroup(id: string): string {
   const g = state.groups.find((x) => x.id === id) ?? state.groups[0];
