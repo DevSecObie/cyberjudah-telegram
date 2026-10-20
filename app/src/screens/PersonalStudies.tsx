@@ -4,7 +4,9 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { Screen, Icon } from "@/ui/ui";
 import { Button } from "@/ui/Button";
-import { Sheet } from "@/bible/ui/Sheet";
+import { Feather } from "@/bible/icons";
+import { useSheet } from "@/ui/sheet";
+import { StudyFooter, headingAt, type WritingTarget } from "@/studies/StudyFooter";
 import { StudyFilePicker, StudyNotice } from "@/studies/controls";
 import { useBackButton } from "@/tg/hooks";
 import { confirm } from "@/tg/sdk";
@@ -42,7 +44,9 @@ function StudyList() {
 
 function StudyEditor({ id }: { id: string }) {
   const navigate = useNavigate();
-  const [doc, setDoc] = useState<Study>(), [status, setStatus] = useState("Loading…"), [error, setError] = useState(""), [preview, setPreview] = useState(false), [optionsOpen, setOptionsOpen] = useState(false), [exportError, setExportError] = useState("");
+  const [doc, setDoc] = useState<Study>(), [status, setStatus] = useState("Loading…"), [error, setError] = useState(""), [editing, setEditing] = useState(false), [exportError, setExportError] = useState("");
+  const [target, setTarget] = useState<WritingTarget | null>(null), [header, setHeader] = useState(0);
+  const sheet = useSheet();
   const draft = useRef<Study | undefined>(undefined), saved = useRef<Study | undefined>(undefined), pending = useRef<Promise<void> | null>(null), stopped = useRef(false);
   const persist = async (): Promise<void> => {
     if (pending.current) { await pending.current; if (!stopped.current) return persist(); return; }
@@ -71,30 +75,60 @@ function StudyEditor({ id }: { id: string }) {
   const change = (next: Study) => { draft.current = next; setDoc(next); setStatus("Unsaved changes"); };
   const blocks = (next: StudyBlock[]) => { if (doc) change({ ...doc, blocks: next }); };
   const exportDoc = async (format: "json" | "md") => { const current = draft.current; if (!current) return; try { await saveFile(`cyberjudah-study-${id}.${format}`, format === "json" ? JSON.stringify(current, null, 2) : studyMarkdown(current), format === "json" ? "application/json" : "text/markdown"); setExportError(""); } catch { setExportError("The export could not finish. Your draft is still here; please try again."); } };
+  // Bible Strong's EditStudyScreen: a study opens to read, with the pencil to write in it; the
+  // title is renamed from the header, and the ⋮ holds the rest (EditStudyHeader).
+  const rename = async () => { if (!doc) return; const a = await sheet.open({ title: "Rename the study", text: { label: "Study title", value: doc.title, placeholder: "Study name", submit: "Save" } }); if (a?.value !== undefined) change({ ...doc, title: a.value.trim().slice(0, 160) }); };
+  const editTags = async () => { if (!doc) return; const a = await sheet.open({ title: "Edit the tags", text: { label: "Tags, separated by commas", value: doc.tags.filter(Boolean).join(", "), submit: "Save" } }); if (a?.value !== undefined) change({ ...doc, tags: a.value.split(",").map(t => t.trim().slice(0, 40)).filter(Boolean).slice(0, 20) }); };
+  const remove = async () => { if (!await confirm("Delete this study from this device? Export it first if you want to keep a copy.")) return; await persist(); if (stopped.current) return; try { await deleteStudy(id, saved.current!.revision); stopped.current = true; navigate("/studies"); } catch (e) { setError(e instanceof Error ? e.message : "Could not delete the study."); } };
+  const options = async () => {
+    const a = await sheet.open({ items: [
+      { id: "tags", text: "Edit tags", icon: <Icon name="tag" size={18} /> },
+      { id: "rename", text: "Rename", icon: <Icon name="edit-line" size={18} /> },
+      { id: "json", text: "Export study", icon: <Icon name="download" size={18} /> },
+      { id: "md", text: "Export Markdown", icon: <Icon name="note" size={18} /> },
+      { id: "print", text: "Print / PDF", icon: <Icon name="share" size={18} /> },
+      { id: "delete", text: "Delete", destructive: true },
+    ] });
+    if (a?.id === "tags") await editTags();
+    else if (a?.id === "rename") await rename();
+    else if (a?.id === "json" || a?.id === "md") await exportDoc(a.id);
+    else if (a?.id === "print") { setEditing(false); setTimeout(() => window.print(), 100); }
+    else if (a?.id === "delete") await remove();
+  };
   if (!doc) return <Screen title="My study" className="study-screen"><div className="personal-study"><StudyNotice error={!!error}>{error || status}</StudyNotice><Link to="/studies">All studies</Link></div></Screen>;
-  return <Screen title="My study" className="study-screen" action={<button type="button" className="icon-btn" aria-label="Study options" title="Study options" aria-haspopup="dialog" aria-expanded={optionsOpen} onClick={e => { e.currentTarget.focus({ preventScroll: true }); setOptionsOpen(true); }}><Icon name="more" /></button>}><div className="personal-study" data-study-editor="" data-preview={preview || undefined}>
-    <div className="study-editor-bar"><Link className="study-text-link" to="/studies"><Icon name="back" size={16} />All studies</Link><Button appearance="bordered" onClick={() => setPreview(!preview)}><Icon name={preview ? "compose" : "book-open"} size={18} />{preview ? "Edit" : "Preview"}</Button></div>
+  const title = doc.title || "Untitled study";
+  const add = async (kind: "writing" | "scripture" | "strong") => { if (kind === "writing") { if (doc.blocks.length < 200) blocks([...doc.blocks, textBlock()]); return; } do await persist(); while (!stopped.current && draft.current && draft.current !== saved.current); if (stopped.current) return; navigate(kind === "scripture" ? "/read/genesis/1" : "/lexicon"); };
+  const body = <>
     {error && <div className="study-conflict" role="alert"><p>{error}</p><Button appearance="bordered" onClick={async () => { try { const copy = await saveStudy({ ...doc, id: crypto.randomUUID(), revision: 0, title: `${doc.title} (copy)` }); stopped.current = true; navigate(`/studies/${copy.id}`); } catch { setError("The copy could not be saved. Export your draft to keep your work."); } }}>Save draft as a new copy</Button></div>}
     {exportError && <StudyNotice error>{exportError}</StudyNotice>}
-    <article className="study-paper">
-      <div className="study-paper__heading"><span className="study-eyebrow">Personal study</span><p className="study-save-status" role="status"><Icon name={status === "Saved on this device" ? "check" : "clock"} size={14} />{status}</p></div>
-      {preview ? <h2 className="study-document-title">{doc.title || "Untitled study"}</h2> : <label className="study-title-field"><span className="sr-only">Study title</span><input maxLength={160} value={doc.title} onChange={e => change({ ...doc, title: e.target.value })} placeholder="Give your study a title" /></label>}
-      {!preview ? <label className="study-tag-field"><Icon name="tag" size={16} /><span className="sr-only">Tags (comma separated)</span><input placeholder="Add tags, separated by commas" maxLength={400} value={doc.tags.join(",")} onChange={e => change({ ...doc, tags: e.target.value.split(",").slice(0, 20).map(t => t.slice(0, 40)) })} /></label> : doc.tags.filter(Boolean).length > 0 && <div className="study-tags">{doc.tags.filter(Boolean).map((tag, i) => <small key={i}>{tag}</small>)}</div>}
+    <article className="study-doc">
+      {!editing && doc.tags.filter(Boolean).length > 0 ? <div className="study-doc__chips">{doc.tags.filter(Boolean).map((tag, i) => <span key={i}>{tag}</span>)}</div> : null}
       {doc.blocks.map((b, i) => <section key={b.id} className={`study-block study-block--${b.kind}`} aria-label={`Block ${i + 1}`}>
-        {!preview && <div className="study-block__bar"><span><Icon name={b.kind === "text" ? "compose" : b.kind === "scripture" ? "book-open" : "type"} size={16} />{b.kind === "text" ? "Writing" : b.kind === "scripture" ? "Scripture · KJV" : "Strong’s entry"}</span><div className="study-block__tools"><button type="button" className="study-tool" aria-label={`Move block ${i + 1} up`} title="Move up" disabled={i === 0} onClick={() => { const list = [...doc.blocks]; [list[i - 1], list[i]] = [list[i], list[i - 1]]; blocks(list); }}><Icon name="arrowUp" size={16} /></button><button type="button" className="study-tool" aria-label={`Move block ${i + 1} down`} title="Move down" disabled={i === doc.blocks.length - 1} onClick={() => { const list = [...doc.blocks]; [list[i], list[i + 1]] = [list[i + 1], list[i]]; blocks(list); }}><Icon name="arrowUp" size={16} style={{ transform: "rotate(180deg)" }} /></button><button type="button" className="study-tool" aria-label={`Remove block ${i + 1}`} title="Remove block" onClick={async () => { if (await confirm("Remove this block?")) blocks(doc.blocks.filter(x => x.id !== b.id)); }}><Icon name="trash" size={16} /></button></div></div>}
-        {b.kind === "text" ? preview ? <StudyMarkdown text={b.text} /> : <Writing value={b.text} label={`Writing ${i + 1}`} onChange={text => blocks(doc.blocks.map(x => x.id === b.id ? { ...b, text } : x))} /> : b.kind === "scripture" ? <><h2><Link to={`/read/${b.book}/${b.chapter}?v=${b.verses[0].verse}`}>{b.reference}<Icon name="open" size={16} /></Link></h2><blockquote>{b.verses.map(v => <p key={v.verse}><sup>{v.verse}</sup> {v.text}</p>)}</blockquote></> : <><h2><Link to={`/lexicon/${b.number}`}>{b.number} · {b.lemma}<Icon name="open" size={16} /></Link></h2><StudyMarkdown text={b.definition} /></>}
+        {editing && <div className="study-block__bar"><span><Icon name={b.kind === "text" ? "compose" : b.kind === "scripture" ? "book-open" : "type"} size={16} />{b.kind === "text" ? "Writing" : b.kind === "scripture" ? "Scripture · KJV" : "Strong’s entry"}</span><div className="study-block__tools"><button type="button" className="study-tool" aria-label={`Move block ${i + 1} up`} title="Move up" disabled={i === 0} onClick={() => { const list = [...doc.blocks]; [list[i - 1], list[i]] = [list[i], list[i - 1]]; blocks(list); }}><Icon name="arrowUp" size={16} /></button><button type="button" className="study-tool" aria-label={`Move block ${i + 1} down`} title="Move down" disabled={i === doc.blocks.length - 1} onClick={() => { const list = [...doc.blocks]; [list[i], list[i + 1]] = [list[i + 1], list[i]]; blocks(list); }}><Icon name="arrowUp" size={16} style={{ transform: "rotate(180deg)" }} /></button><button type="button" className="study-tool" aria-label={`Remove block ${i + 1}`} title="Remove block" onClick={async () => { if (await confirm("Remove this block?")) blocks(doc.blocks.filter(x => x.id !== b.id)); }}><Icon name="trash" size={16} /></button></div></div>}
+        {b.kind === "text" ? !editing ? <StudyMarkdown text={b.text} /> : <Writing value={b.text} label={`Writing ${i + 1}`} onFocus={setTarget} onCaret={setHeader} onChange={text => { const cur = draft.current ?? doc; change({ ...cur, blocks: cur.blocks.map(x => x.id === b.id ? { ...x, text } : x) }); }} /> : b.kind === "scripture" ? <><h2><Link to={`/read/${b.book}/${b.chapter}?v=${b.verses[0].verse}`}>{b.reference}<Icon name="open" size={16} /></Link></h2><blockquote>{b.verses.map(v => <p key={v.verse}><sup>{v.verse}</sup> {v.text}</p>)}</blockquote></> : <><h2><Link to={`/lexicon/${b.number}`}>{b.number} · {b.lemma}<Icon name="open" size={16} /></Link></h2><StudyMarkdown text={b.definition} /></>}
       </section>)}
-      {!preview && <div className="study-add-block"><span className="study-eyebrow">Add to your study</span><div className="study-toolbar"><Button appearance="plain" disabled={doc.blocks.length >= 200} onClick={() => blocks([...doc.blocks, textBlock()])}><Icon name="plus" size={18} />Add writing</Button><Link className="study-inline-action" to="/read/genesis/1"><Icon name="book-open" size={18} />Scripture</Link><Link className="study-inline-action" to="/lexicon"><Icon name="type" size={18} />Strong’s entry</Link></div></div>}
     </article>
-    <p className="study-footnote"><Icon name="shield" size={16} />Your changes save on this device. Keep a copy with Export study.</p>
-    {optionsOpen && <Sheet open onClose={() => setOptionsOpen(false)} title="Study options"><div className="personal-study study-options"><p className="study-muted">Keep a copy of your work, or prepare it to share.</p><Button appearance="bordered" onClick={() => void exportDoc("json")}><Icon name="download" size={18} />Export study</Button><Button appearance="bordered" onClick={() => void exportDoc("md")}><Icon name="note" size={18} />Export Markdown</Button><Button appearance="bordered" onClick={() => { setOptionsOpen(false); setPreview(true); setTimeout(() => window.print(), 100); }}><Icon name="share" size={18} />Print / PDF</Button>{exportError && <StudyNotice error>{exportError}</StudyNotice>}<div className="study-danger-zone"><Button appearance="plain" className="study-danger" onClick={async () => { if (!await confirm("Delete this study from this device? Export it first if you want to keep a copy.")) return; await persist(); if (stopped.current) { setOptionsOpen(false); return; } try { await deleteStudy(id, saved.current!.revision); stopped.current = true; navigate("/studies"); } catch (e) { setError(e instanceof Error ? e.message : "Could not delete the study."); setOptionsOpen(false); } }}><Icon name="trash" size={18} />Delete study</Button></div></div></Sheet>}
-  </div></Screen>;
+    <p className="study-footnote" role="status"><Icon name={status === "Saved on this device" ? "check" : "clock"} size={16} />{status}. Studies save on this device; keep a copy with Export study.</p>
+  </>;
+  if (editing) return (
+    <Screen className="study-screen study-screen--editing">
+      <header className="study-edithead"><button type="button" className="study-edithead__done" aria-label="Done" title="Done" onClick={() => { setEditing(false); void persist(); }}><Feather name="check" size={25} color="#2ecc71" /></button></header>
+      <div className="personal-study" data-study-editor="">{body}</div>
+      <StudyFooter target={target} header={header} onAdd={add} />
+    </Screen>
+  );
+  return (
+    <Screen title={<button type="button" className="study-title" onClick={() => void rename()}>{title}</button>} className="study-screen" action={<button type="button" className="icon-btn" aria-label="Study options" title="Study options" aria-haspopup="menu" onClick={() => void options()}><Feather name="more-vertical" size={20} /></button>}>
+      <div className="personal-study" data-study-editor="" data-preview="">{body}</div>
+      <button type="button" className="study-fab" aria-label="Edit study" title="Edit study" onClick={() => setEditing(true)}><Feather name="edit-2" size={18} color="#fff" raw /></button>
+    </Screen>
+  );
 }
 
-function Writing({ value, onChange, label }: { value: string; onChange: (s: string) => void; label: string }) {
+function Writing({ value, onChange, label, onFocus, onCaret }: { value: string; onChange: (s: string) => void; label: string; onFocus: (t: WritingTarget) => void; onCaret: (level: number) => void }) {
   const ref = useRef<HTMLTextAreaElement>(null);
-  const format = (before: string, after = "") => { const el = ref.current; if (!el) return; const start = el.selectionStart, end = el.selectionEnd; onChange(value.slice(0, start) + before + value.slice(start, end) + after + value.slice(end)); requestAnimationFrame(() => { el.focus(); el.setSelectionRange(start + before.length, end + before.length); }); };
-  return <><div className="study-format" role="group" aria-label="Writing format"><button type="button" className="study-tool" onClick={() => format("**", "**")}>Bold</button><button type="button" className="study-tool" onClick={() => format("*", "*")}>Italic</button><button type="button" className="study-tool" onClick={() => format("\n## ")}>Heading</button><button type="button" className="study-tool" onClick={() => format("\n- ")}>List</button><button type="button" className="study-tool" onClick={() => format("\n> ")}>Quote</button></div><textarea ref={ref} aria-label={label} rows={9} placeholder="Start writing your observations…" maxLength={40_000} value={value} onChange={e => onChange(e.target.value)} /><small className="study-writing-hint">Markdown supported · Preview shows your formatted study</small></>;
+  const report = () => { const el = ref.current; if (el) { onFocus({ el, onChange }); onCaret(headingAt(el.value, el.selectionStart)); } };
+  return <textarea ref={ref} aria-label={label} rows={9} placeholder="Start writing your observations…" maxLength={40_000} value={value} onFocus={report} onSelect={report} onKeyUp={report} onChange={e => onChange(e.target.value)} />;
 }
 function StudyMarkdown({ text }: { text: string }) {
   const html = DOMPurify.sanitize(marked.parse(text, { async: false }) as string, { ALLOWED_TAGS: ["p", "br", "strong", "em", "h1", "h2", "h3", "h4", "ul", "ol", "li", "blockquote", "code", "pre", "hr", "a"], ALLOWED_ATTR: ["href", "title"], ALLOW_DATA_ATTR: false });

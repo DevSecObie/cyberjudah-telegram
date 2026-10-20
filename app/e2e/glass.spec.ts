@@ -255,7 +255,7 @@ for (const theme of ["default", "dark", "sepia"]) {
       }
       await page.goto(`/books/materials${LAUNCH}`);
       await expect(page.locator(".book__figure")).toBeVisible();
-      expect((await materials(page, [[".head", "::before"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
+      expect((await materials(page, [[".head"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
       await page.locator(".book__figure").click();
       await expect(page.locator(".pv")).toBeVisible();
       expect((await materials(page, [[".pv__bar", "::before"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
@@ -321,7 +321,7 @@ test("materials: content stays unfiltered at 200% shared text size with reduced 
   await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
   await expect.poll(() => title.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBe(normal * 2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
-  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(1);
   expect((await materials(page, [[".book__figure"]]))[0].filter).toBe("none");
   await page.locator(".book__figure").click();
   await expect(page.locator(".pv__bar")).toBeVisible();
@@ -554,7 +554,7 @@ for (const theme of ["default", "dark", "sepia"]) {
 for (const reduced of [false, true]) {
   test(`controls: every active bar shares a material-only scroll fade (reduced=${reduced})`, async ({ page }) => {
     await setup(page, "default", reduced);
-    for (const [path, selector] of [["/settings", ".screen > .head"], ["/search", ".srch__bar"], ["/ask", ".chat2__bar"], ["/read/genesis/1", ".bs-header"], ["/timeline", ".tlh"]]) {
+    for (const [path, selector] of [["/search", ".srch__bar"], ["/ask", ".chat2__bar"], ["/read/genesis/1", ".bs-header"], ["/timeline", ".tlh"]]) {
       await page.goto(`${path}${LAUNCH}`);
       await expect(page.locator(selector)).toBeVisible();
       for (const bar of [selector, ".tabs"]) {
@@ -663,48 +663,24 @@ test("navigation: resizing a minimized dock restores keyboard and first-click na
   await expect(page).toHaveURL(/\/read\//);
 });
 
-test("large titles: the title shrinks into the bar under scroll and returns at the top, and the page under it never moves", async ({ page }) => {
+test("header: Bible Strong's 54 px bar, its title in 14 px bold, stays put while the page scrolls under it", async ({ page }) => {
   await setup(page, "sepia");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  // Every measure of the bar, with its state at that moment, so a failure says when the full height was taken.
-  await page.addInitScript(() => {
-    const log: unknown[] = ((window as unknown as { __bar: unknown[] }).__bar = []);
-    const rect = Element.prototype.getBoundingClientRect;
-    Element.prototype.getBoundingClientRect = function (this: Element) {
-      const r = rect.call(this);
-      if (this.matches(".screen > .head")) log.push({ t: Math.round(performance.now()), h: +r.height.toFixed(2), compact: this.hasAttribute("data-compact"), pad: (this.parentElement as HTMLElement).style.paddingTop, y: Math.round(scrollY) });
-      return r;
-    };
-  });
   await page.goto(`/settings${LAUNCH}`);
   const head = page.locator(".screen > .head");
-  const bar = () => page.evaluate(() => JSON.stringify((window as unknown as { __bar: unknown[] }).__bar.slice(-12)));
-  await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
-  // The full bar's height can change after the page first lays out (a web font arriving, as in
-  // Firefox); the bar must make up for the height it has when it shrinks, not the first one.
-  const plain = await head.evaluate(el => (el as HTMLElement).offsetHeight);
-  await page.addStyleTag({ content: ".screen > .head:not([data-compact]) .title { padding-block: 10px; }" });
-  // WebKit can lay the new padding out after the tag resolves; measure only once the bar has grown.
-  await expect.poll(() => head.evaluate(el => (el as HTMLElement).offsetHeight)).toBeGreaterThan(plain);
-  // Where the first thing under the bar sits in the document, and how tall the document is.
-  const layout = () => page.evaluate(() => { const next = document.querySelector(".screen > .head")!.nextElementSibling!; const bar = document.querySelector(".screen > .head") as HTMLElement; return { at: next.getBoundingClientRect().top + scrollY, height: document.documentElement.scrollHeight, bar: bar.offsetHeight, pad: (bar.parentElement as HTMLElement).style.paddingTop }; });
-  const before = await layout();
-  await page.evaluate(() => { document.documentElement.scrollTop = 120; });
-  await expect(head).toHaveAttribute("data-compact", "");
-  // Firefox can restyle the title a frame after the bar turns compact, and lay the correction out
-  // after that; the page must settle where it was (within a pixel: engines round the padding above
-  // the bar to their own layout units), so wait for that, and report the layout if it never does.
-  const still = await expect.poll(async () => { const l = await layout(); return Math.max(Math.abs(l.at - before.at), Math.abs(l.height - before.height)); }, { timeout: 3000 }).toBeLessThan(1).then(() => true, () => false);
-  const compact = await layout();
-  if (!still) expect(Math.abs(compact.at - before.at), `${JSON.stringify({ before, compact })} ${await bar()}`).toBeLessThan(1);
-  expect(Math.abs(compact.height - before.height)).toBeLessThanOrEqual(1);
-  await page.evaluate(() => { document.documentElement.scrollTop = 0; });
-  await expect(head).not.toHaveAttribute("data-compact");
-  // Firefox can measure the bar a frame before the full title is laid out again; the page must
-  // settle back where it was, so wait for that, and report the layout if it never does.
-  const settled = await expect.poll(async () => Math.abs((await layout()).at - before.at), { timeout: 3000 }).toBeLessThan(1).then(() => true, () => false);
-  if (!settled) { const top = await layout(); expect(Math.abs(top.at - before.at), `${JSON.stringify({ before, compact, top, y: await page.evaluate(() => scrollY) })} ${await bar()}`).toBeLessThan(1); }
+  const title = page.getByRole("heading", { name: "Settings", exact: true });
+  await expect(title).toBeVisible();
+  await expect(title).toHaveCSS("font-size", "14px");
+  await expect(title).toHaveCSS("font-weight", "700");
+  const back = head.getByRole("button", { name: "Back", exact: true });
+  expect(await back.evaluate(el => [el.getBoundingClientRect().width, el.getBoundingClientRect().height])).toEqual([54, 54]);
+  const height = async () => Math.round(await head.evaluate(el => el.getBoundingClientRect().height));
+  expect(await height()).toBe(55);
+  await expect(head).toHaveCSS("border-bottom-width", "1px");
+  await page.evaluate(() => { document.documentElement.scrollTop = 400; });
+  expect(await height()).toBe(55);
+  expect(Math.round(await head.evaluate(el => el.getBoundingClientRect().top))).toBe(0);
 });
 
 test("navigation: document, Bible and Timeline scrolls minimize down and expand up", async ({ page }) => {
