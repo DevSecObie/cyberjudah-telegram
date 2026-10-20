@@ -126,10 +126,12 @@ for (const width of [390, 768, 1280]) {
     await setup(page);
     await page.addStyleTag({ content: "html { font-size: 200% !important }" });
     await overview(page);
-    expect(await page.locator(".switcher").evaluate(e => e.scrollWidth <= e.clientWidth + 1)).toBe(true);
+    // Each group is a page of the pager; the cards fit the page that is showing.
+    const shown = page.locator(".switcher__page[data-active]");
+    expect(await shown.evaluate(e => e.scrollWidth <= e.clientWidth + 1)).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    const bounds = (await page.locator(".switcher").boundingBox())!;
-    for (const card of await page.locator(".tabcard").all()) {
+    const bounds = (await shown.boundingBox())!;
+    for (const card of await shown.locator(".tabcard").all()) {
       const box = (await card.boundingBox())!;
       expect(box.x).toBeGreaterThanOrEqual(bounds.x);
       expect(box.x + box.width).toBeLessThanOrEqual(bounds.x + bounds.width);
