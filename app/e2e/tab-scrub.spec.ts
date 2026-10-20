@@ -61,3 +61,37 @@ test("a quick flick goes to the next tab; an upward move starts no swipe", async
   await page.mouse.up();
   expect(await current(page)).toBe("b");
 });
+
+test("a swipe the browser cancels leaves the bar's buttons working from the keyboard", async ({ page }) => {
+  const at = await setup(page);
+  await page.evaluate(() => addEventListener("pointerdown", (e) => { (window as unknown as { __id: number }).__id = e.pointerId; }, true));
+  await page.mouse.move(at.x, at.y);
+  await page.mouse.down();
+  await page.mouse.move(at.x - 30, at.y, { steps: 3 });
+  await expect(page.locator(".tabscrub")).toBeVisible();
+  // The browser takes the pointer away mid-swipe.
+  await page.getByRole("navigation", { name: "Sections" }).evaluate((nav) => nav.dispatchEvent(new PointerEvent("pointercancel", { pointerId: (window as unknown as { __id: number }).__id, isPrimary: true, bubbles: true })));
+  await expect(page.locator(".tabscrub")).toHaveCount(0);
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Search", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/search/);
+});
+
+test("the cards stay on the chosen tab while the carousel fades", async ({ page }) => {
+  const at = await setup(page);
+  await page.mouse.move(at.x, at.y);
+  await page.mouse.down();
+  await page.mouse.move(at.x - 60, at.y, { steps: 2 });
+  await expect(page.locator(".tabscrub")).toBeVisible();
+  // Every place the track is put after the finger lifts.
+  await page.locator(".tabscrub__track").evaluate((track) => {
+    const seen: string[] = []; (window as unknown as { __seen: string[] }).__seen = seen;
+    new MutationObserver(() => seen.push((track as HTMLElement).style.transform)).observe(track, { attributes: true, attributeFilter: ["style"] });
+  });
+  await page.mouse.up();
+  await expect(page).toHaveURL(/\/search/);
+  await expect(page.locator(".tabscrub")).toHaveCount(0);
+  const seen = await page.evaluate(() => (window as unknown as { __seen: string[] }).__seen);
+  expect(seen.length).toBeGreaterThan(0);
+  expect(seen.every((t) => t === `translateX(${-(390 + 20)}px)`)).toBe(true);
+});
