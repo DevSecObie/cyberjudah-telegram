@@ -27,8 +27,8 @@ for (const [width, height, theme] of [[390, 844, "light"], [1280, 800, "dark"]] 
     await page.goto(`/classes${LAUNCH}`);
     const notice = page.getByRole("status").filter({ hasText: "New uploads may be delayed" });
     await expect(notice).toBeVisible();
-    await expect(page.locator("article.post")).toContainText(saved.title);
-    await expect(page.locator("article.post")).toContainText("Notes for this class are coming soon. You can watch it now.");
+    await expect(page.locator(".pml-card").first()).toContainText(saved.title);
+    await expect(page.locator(".pml-card").first()).toContainText("Notes coming soon");
     const dismiss = page.getByRole("button", { name: "Dismiss upload notice" });
     const size = await dismiss.boundingBox();
     expect(size!.width).toBeGreaterThanOrEqual(44);
@@ -44,7 +44,7 @@ for (const status of [true, undefined]) {
   test(`feed status ${status}: no outage notice and recent recordings remain visible`, async ({ page }) => {
     await setup(page, () => status);
     await page.goto(`/classes${LAUNCH}`);
-    await expect(page.locator("article.post")).toContainText(saved.title);
+    await expect(page.locator(".pml-card").first()).toContainText(saved.title);
     await expect(page.locator(".cfeed__notice")).toHaveCount(0);
   });
 }
@@ -66,7 +66,7 @@ test("a recovered feed clears dismissal so a later outage is announced again", a
   healthy = false;
   await refresh(10 * 60_000);
   await expect(page.locator(".cfeed__notice")).toBeVisible();
-  await expect(page.locator("article.post")).toContainText(saved.title);
+  await expect(page.locator(".pml-card").first()).toContainText(saved.title);
 });
 
 for (const available of [true, false]) {
@@ -92,13 +92,15 @@ for (const available of [true, false]) {
     // Verified broadcast starts order the day. Without them the channel feed's listing order
     // decides: Morning class (CO-THOc-IhQ) is the only one of the day the feed lists, so it leads
     // and the rest keep source order. Its upload time (15:00Z) is never read as a broadcast start.
-    await expect(page.locator('.post__title')).toHaveText(available
+    await expect(page.locator('.pml-card__title')).toHaveText(available
       ? ['Newest day', 'Haiti evening class', 'Afternoon class', 'Midday class', 'Morning class', 'Previous week']
       : ['Newest day', 'Haiti evening class', 'Morning class', 'Afternoon class', 'Midday class', 'Previous week']);
-    await expect(page.getByRole('link', { name: 'Morning class', exact: true })).toHaveAttribute('href', '/note/classes/CO-THOc-IhQ');
-    await expect(page.getByRole('link', { name: 'Haiti evening class', exact: true })).toHaveAttribute('href', '/watch/pZs5reAzxi4');
-    await page.getByRole('searchbox').fill('class');
-    await expect(page.locator('.post__title')).toHaveText(available
+    await expect(page.locator('.pml-card', { hasText: 'Morning class' })).toHaveAttribute('href', '/note/classes/CO-THOc-IhQ');
+    await expect(page.locator('.pml-card', { hasText: 'Haiti evening class' })).toHaveAttribute('href', '/watch/pZs5reAzxi4');
+    await page.getByRole('button', { name: 'Filter', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Filters' }).getByRole('button', { name: /^Search/ }).click();
+    await page.getByRole('searchbox', { name: 'Search' }).fill('class');
+    await expect(page.locator('.pml-card__title')).toHaveText(available
       ? ['Haiti evening class', 'Afternoon class', 'Midday class', 'Morning class']
       : ['Haiti evening class', 'Morning class', 'Afternoon class', 'Midday class']);
   });

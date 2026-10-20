@@ -1,27 +1,28 @@
-import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
 import { fmtDate } from "@/api/data";
-import { toggleBookmark, useBookmarks } from "@/lib/marks";
+import { Feather } from "@/bible/icons";
 import { useKeptScroll, useVisitState } from "@/lib/place";
-import { share } from "@/lib/share";
+import { seriesLabel } from "@/lib/series";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
-import { useSheet } from "@/ui/sheet";
-import { Chip, Chips, Empty, Icon, Screen, SearchField } from "@/ui/ui";
-import { teachingLabel, teachingTo, useTeachings, type Teaching } from "./Home";
+import { FiltersButton, PanelSearch } from "@/ui/panel";
+import { Empty, Icon, Img, Screen } from "@/ui/ui";
+import { KIND_NAME, teachingTo, useTeachings, type Teaching } from "./Home";
 
 type Feed = "all" | "classes" | "captains" | "history" | "truth";
 const FEEDS: [Feed, string][] = [["all", "All"], ["classes", "Sabbath"], ["captains", "Captains"], ["history", "History"], ["truth", "Truth"]];
+/** Each feed's section on the library page, in Bible Strong's SectionList order. */
+const SECTIONS: [Exclude<Feed, "all">, string][] = [["classes", "Sabbath classes"], ["captains", "15 Min w/ Captains"], ["history", "Our Hidden History"], ["truth", "The Truth Shall Make You Free"]];
 const TRUTH = "The Truth Shall Make You Free";
 const PAGE = 12;
 const inFeedOf = (f: Feed, t: Teaching) => f === "all" || (f === "history" ? t.kind === "history" : f === "captains" ? t.kind === "captains" : f === "truth" ? t.kind === "class" && t.collection === TRUTH : t.kind === "class" && t.collection !== TRUTH);
-const embed = (id: string) => `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0`;
 
 /**
- * The teachings as a feed of posts, the way Instagram lays one out: who taught it and when, the
- * recording, what you can do with it, then the title and the opening of the notes. A recording
- * plays in its post when asked, one at a time; the notes open on their own page.
+ * Courses & videos (Bible Strong's PassageMediaLibraryScreen): the heading and subtitle, the latest
+ * class featured, then a section per feed of PassageMediaLibraryCard rows. The filter button
+ * (Bible Strong's FiltersHeader) searches and narrows them to one feed, teacher, year or series.
  */
 export function Classes() {
   const [params, setParams] = useSearchParams();
@@ -29,18 +30,16 @@ export function Classes() {
   const teacher = params.get("teacher") ?? "", year = params.get("year") ?? "", series = params.get("series") ?? "";
   useBackButton();
   useBottomButtons(null, null);
-  const sheet = useSheet();
   const [q, setQ] = useVisitState("q", "");
   const [shown, setShown] = useVisitState("shown", PAGE);
-  const [playing, setPlaying] = useState<string | null>(null);
   const [feedNoticeOff, setFeedNoticeOff] = useState(false);
   const query = useDeferredValue(q.trim().toLowerCase());
   const res = useTeachings();
   useEffect(() => { if (res.feedOk !== false) setFeedNoticeOff(false); }, [res.feedOk]);
   useKeptScroll(!!res.data);
-  const set = (next: Record<string, string | undefined>) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries({ feed, teacher, year, series, ...next })) if (v && v !== "all") p.set(k, v); setParams(p, { replace: true }); setShown(PAGE); setPlaying(null); };
+  const set = (next: Record<string, string | undefined>) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries({ feed, teacher, year, series, ...next })) if (v && v !== "all") p.set(k, v); setParams(p, { replace: true }); setShown(PAGE); };
   const all = useMemo(() => {
-    // One post per class: the notes and the channel's newest uploads can name the same recording.
+    // One card per class: the notes and the channel's newest uploads can name the same recording.
     const seen = new Set<string>();
     return (res.data ?? []).filter((t) => { const k = t.video ?? t.url; if (seen.has(k)) return false; seen.add(k); return true; });
   }, [res.data]);
@@ -48,6 +47,7 @@ export function Classes() {
   const counts = useMemo(() => Object.fromEntries(FEEDS.map(([f]) => [f, all.filter((t) => inFeedOf(f, t)).length])), [all]);
   const teachers = useMemo(() => [...new Set(inFeed.map((t) => t.teacher).filter(Boolean))].sort(), [inFeed]);
   const years = useMemo(() => [...new Set(inFeed.map((t) => t.date.slice(0, 4)).filter(Boolean))].sort().reverse(), [inFeed]);
+  const seriesNames = useMemo(() => [...new Set(inFeed.map((t) => t.series?.name).filter((s): s is string => !!s))].sort(), [inFeed]);
   const rows = useMemo(() => {
     const out = inFeed.filter((t) => (!series || t.series?.name === series) && (!teacher || t.teacher === teacher) && (!year || t.date.startsWith(year)) && (!query || `${t.title} ${t.teacher} ${t.series?.name ?? ""} ${t.topics.join(" ")} ${t.books.join(" ")} ${(t.opens ?? []).map((o) => o.label).join(" ")}`.toLowerCase().includes(query)));
     // A series reads in its own order: part 1 first, then by date.
@@ -55,13 +55,9 @@ export function Classes() {
   }, [inFeed, series, teacher, year, query]);
   const filtered = !!(q.trim() || teacher || year || series || feed !== "all");
   const reset = () => { setQ(""); set({ feed: "all", teacher: undefined, year: undefined, series: undefined }); };
-  const choose = async (title: string, current: string, options: string[], key: "teacher" | "year") => {
-    haptic("select");
-    const a = await sheet.open({ title, items: [{ id: "", text: key === "year" ? "Every year" : "Every teacher", hint: current ? undefined : "Selected" }, ...options.map((o) => ({ id: o, text: o, hint: o === current ? "Selected" : undefined }))] });
-    if (a) set({ [key]: a.id || undefined });
-  };
+  const latest = all.find((t) => t.kind === "class");
 
-  // More posts as the reader nears the end, so the feed never stops short; the button stays for keyboards.
+  // More cards as the reader nears the end of a filtered list; the button stays for keyboards.
   const more = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = more.current;
@@ -69,22 +65,24 @@ export function Classes() {
     const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) setShown((s) => (s < rows.length ? s + PAGE : s)); }, { rootMargin: "800px 0px" });
     io.observe(el);
     return () => io.disconnect();
-  }, [rows.length, setShown, res.data]);
+  }, [rows.length, setShown, res.data, filtered]);
+
+  const choices = (current: string, options: string[], every: string, key: "teacher" | "year" | "series") =>
+    [{ key: "", label: every, selected: !current, onSelect: () => set({ [key]: undefined }) }, ...options.map((o) => ({ key: o, label: o, selected: o === current, onSelect: () => set({ [key]: o }) }))];
+  const feedLabel = FEEDS.find(([f]) => f === feed)?.[1] ?? "All";
+  const resultsTitle = series || (SECTIONS.find(([f]) => f === feed)?.[1] ?? "Results");
+  const filters = (
+    <FiltersButton onReset={reset} filters={[
+      { key: "search", icon: "search", label: "Search", value: q.trim() || undefined, active: !!q.trim(), content: () => <PanelSearch value={q} onChange={(v) => { setQ(v); setShown(PAGE); }} placeholder="Search classes, teachers, books" /> },
+      { key: "feed", icon: "layers", label: "Collection", value: feedLabel, active: feed !== "all", options: FEEDS.map(([f, label]) => ({ key: f, label: res.data ? `${label} (${counts[f].toLocaleString()})` : label, selected: feed === f, onSelect: () => set({ feed: f, teacher: undefined, year: undefined, series: undefined }) })) },
+      { key: "teacher", icon: "user", label: "Teacher", value: teacher || undefined, active: !!teacher, options: choices(teacher, teachers, "Every teacher", "teacher") },
+      { key: "year", icon: "clock", label: "Year", value: year || undefined, active: !!year, options: choices(year, years, "Every year", "year") },
+      { key: "series", icon: "list", label: "Series", value: series || undefined, active: !!series, options: choices(series, seriesNames, "Every class", "series") },
+    ]} />
+  );
 
   return (
-    <Screen title="Classes" className="classes">
-      <div className="cfeed__tools">
-        <SearchField id="class-q" value={q} onChange={(v) => { setQ(v); setShown(PAGE); }} placeholder="Search classes, teachers, books" />
-        <div className="cfeed__series" role="group" aria-label="Series">
-          <Chips>{FEEDS.map(([f, label]) => <Chip key={f} on={feed === f} onClick={() => set({ feed: f, teacher: undefined, year: undefined, series: undefined })}>{label}{res.data ? <span className="chip__n"> {counts[f]}</span> : null}</Chip>)}</Chips>
-        </div>
-        <div className="cfeed__filters">
-          <button type="button" className="cfeed__pick" data-on={year ? "" : undefined} disabled={years.length < 2} aria-label={`${year || "Any year"}: choose a year`} title={`${year || "Any year"}: choose a year`} onClick={() => void choose("Year", year, years, "year")}><span>{year || "Any year"}</span><Icon name="chevron" size={14} /></button>
-          <button type="button" className="cfeed__pick" data-on={teacher ? "" : undefined} disabled={teachers.length < 2} aria-label={`${teacher || "Any teacher"}: choose a teacher`} title={`${teacher || "Any teacher"}: choose a teacher`} onClick={() => void choose("Teacher", teacher, teachers, "teacher")}><span>{teacher || "Any teacher"}</span><Icon name="chevron" size={14} /></button>
-          {series ? <button type="button" className="cfeed__pick" data-on="" aria-label={`${series}: show every class`} title={`${series}: show every class`} onClick={() => { haptic("select"); set({ series: undefined }); }}><span>{series}</span><Icon name="close" size={14} /></button> : null}
-          {filtered ? <button type="button" className="cfeed__reset" onClick={() => { haptic("select"); reset(); }}>Reset</button> : null}
-        </div>
-      </div>
+    <Screen title="Courses & videos" className="pml" action={filters}>
       {res.feedOk === false && !feedNoticeOff ? (
         <div className="cfeed__notice" role="status">
           <Icon name="alert" size={16} />
@@ -92,136 +90,83 @@ export function Classes() {
           <button type="button" className="cfeed__noticex" aria-label="Dismiss upload notice" onClick={() => { haptic("select"); setFeedNoticeOff(true); }}><Icon name="close" size={14} /></button>
         </div>
       ) : null}
-      {res.isPending ? <FeedSkeleton /> : res.isError ? (
+      <div className="pml__intro">
+        <h2>Explore the Bible through video</h2>
+        <p>The Sabbath classes, the Captains and Our Hidden History.</p>
+      </div>
+      {res.isPending ? <LibrarySkeleton /> : res.isError ? (
         <Empty title="The classes did not load" action={{ label: "Try again", onClick: () => void res.refetch() }}>Check your connection.</Empty>
-      ) : !rows.length ? (
-        <Empty title="No class matches that" action={{ label: "Reset the search", onClick: reset }}>Try a topic like “Passover”, or a book like “Isaiah”.</Empty>
+      ) : filtered ? (
+        rows.length ? (
+          <section aria-label={resultsTitle}>
+            <h3 className="pml__section">{resultsTitle}<small>{rows.length.toLocaleString()}</small></h3>
+            {rows.slice(0, shown).map((t) => <MediaCard key={t.url} t={t} />)}
+            <div ref={more} className="cfeed__more">
+              {rows.length > shown ? <button type="button" className="cfeed__morebtn" onClick={() => setShown(shown + PAGE)}>Show more classes</button> : null}
+            </div>
+          </section>
+        ) : <Empty title="No class matches that" action={{ label: "Reset the search", onClick: reset }}>Try a topic like “Passover”, or a book like “Isaiah”.</Empty>
       ) : (
         <>
-          <p className="cfeed__count" aria-live="polite">{rows.length.toLocaleString()} {rows.length === 1 ? "class" : "classes"}</p>
-          <div className="cfeed" role="feed" aria-label="Classes">
-            {rows.slice(0, shown).map((t, i) => <ClassPost key={t.url} t={t} index={i} total={rows.length} playing={playing === t.url} onPlay={(on) => setPlaying(on ? t.url : null)} onSeries={series ? undefined : (name) => { set({ series: name }); window.scrollTo({ top: 0 }); }} />)}
-          </div>
-          <div ref={more} className="cfeed__more">
-            {rows.length > shown ? <button type="button" className="cfeed__morebtn" onClick={() => setShown(shown + PAGE)}>Show more classes</button> : <p className="cfeed__end">You’re all caught up</p>}
-          </div>
+          {latest ? <FeaturedCard t={latest} /> : null}
+          {SECTIONS.map(([f, title]) => {
+            const items = all.filter((t) => t !== latest && inFeedOf(f, t));
+            if (!items.length) return null;
+            return (
+              <section key={f} aria-label={title}>
+                <h3 className="pml__section">{title}</h3>
+                {items.slice(0, PAGE).map((t) => <MediaCard key={t.url} t={t} />)}
+                {items.length > PAGE ? <button type="button" className="pml__all" onClick={() => { haptic("select"); set({ feed: f }); window.scrollTo({ top: 0 }); }}>See all {counts[f].toLocaleString()}<Feather name="chevron-right" size={16} /></button> : null}
+              </section>
+            );
+          })}
         </>
       )}
     </Screen>
   );
 }
 
-/** The teacher's mark beside a post: their initial (titles left off), or the series' when no teacher is named. */
-function TeacherMark({ t }: { t: Teaching }) {
-  const name = t.teacher.replace(/^(Bishop|Deacon|Captain|Elder|Brother|Sister|Officer|Priest|Chief|Minister|Lieutenant|Sergeant)\s+/i, "");
-  const letter = (name.match(/[A-Za-z]/)?.[0] ?? "").toUpperCase();
-  let h = 0; for (const c of t.teacher || t.kind) h = (h * 31 + c.charCodeAt(0)) % 360;
-  return <span className="post__mark" aria-hidden="true" style={{ ["--mark-h" as string]: String(h) }}>{letter || <Icon name="play" size={14} />}</span>;
-}
+/** What a card's small primary line names (Bible Strong's "Episode N"): the episode, the series and its part, else the collection. */
+const cardLabel = (t: Teaching) => t.sub ?? (t.series ? seriesLabel(t.series) : KIND_NAME[t.kind]);
+/** Bible Strong's grey third line (the duration there): when, and who taught it. */
+const cardMeta = (t: Teaching) => [t.date ? fmtDate(t.date) : "Date to come", t.teacher].filter(Boolean).join(" · ");
 
-function ClassPost({ t, index, total, playing, onPlay, onSeries }: { t: Teaching; index: number; total: number; playing: boolean; onPlay: (on: boolean) => void; onSeries?: (name: string) => void }) {
-  const [marks, setMarks] = useBookmarks();
-  const [open, setOpen] = useState(false);
-  const [scripture, setScripture] = useState(false);
-  const [clamped, setClamped] = useState(false);
-  const intro = useRef<HTMLParagraphElement>(null);
-  const to = teachingTo(t);
-  const kept = marks.some((m) => m.id === t.url);
-  const id = `post-${index}`;
-  const opens = t.opens ?? [];
-  const label = [teachingLabel(t), t.sub].filter(Boolean).join(" · ");
-  // A series name opens the rest of the series.
-  const series = t.series && onSeries ? <button type="button" className="post__series" onClick={() => { haptic("select"); onSeries(t.series!.name); }}>{label}</button> : label;
-  // "Read more" only where the preview is actually cut.
-  useLayoutEffect(() => {
-    const el = intro.current; if (!el || open) return;
-    const measure = () => setClamped(el.scrollHeight > el.clientHeight + 1);
-    measure();
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
-    ro?.observe(el);
-    return () => ro?.disconnect();
-  }, [t.intro, open]);
-
+/** Bible Strong's PassageMediaLibraryCard: the 16:9 picture, then the label, the title and the meta line. */
+function MediaCard({ t }: { t: Teaching }) {
   return (
-    <article className="post" aria-labelledby={id} aria-posinset={index + 1} aria-setsize={total}>
-      <header className="post__head">
-        <TeacherMark t={t} />
-        <div className="post__who">
-          <b>{t.teacher || (t.series ? series : teachingLabel(t))}</b>
-          <span>{t.teacher ? <>{series} · </> : t.sub ? `${t.sub} · ` : ""}{t.date ? <time dateTime={t.date}>{fmtDate(t.date)}</time> : "Date to come"}</span>
-        </div>
-        {!t.pending ? (
-          <div className="post__tools">
-            <button type="button" className="post__icon" aria-label={`Share ${t.title}`} title={`Share ${t.title}`} onClick={() => { haptic("select"); void share({ kind: "note", title: t.title, text: teachingLabel(t), sitePath: t.url }); }}><Icon name="share" size={20} /></button>
-            <button type="button" className="post__icon" aria-pressed={kept} aria-label={kept ? "Remove from saved" : "Save"} title={kept ? "Remove from saved" : "Save"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: t.url, kind: "note", title: t.title, text: [teachingLabel(t), fmtDate(t.date)].filter(Boolean).join(" · "), href: t.url })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={20} /></button>
-          </div>
-        ) : null}
-      </header>
-
-      <div className="post__media">
-        {playing && t.video ? (
-          <iframe src={embed(t.video)} title={t.title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen />
-        ) : t.video ? (
-          <button type="button" className="post__poster" aria-label={`Play ${t.title}`} title={`Play ${t.title}`} onClick={() => { haptic("select"); onPlay(true); }}>
-            <Poster src={t.thumb} />
-            <span className="post__playicon" aria-hidden="true"><Icon name="play" size={22} /></span>
-          </button>
-        ) : (
-          <Link to={to} className="post__poster" aria-label={`Open ${t.title}`}><Poster src={t.thumb} /></Link>
-        )}
-      </div>
-
-      <div className="post__actions">
-        {t.video ? (
-          <button type="button" className="post__act" aria-pressed={playing} onClick={() => { haptic("select"); onPlay(!playing); }}>
-            <Icon name={playing ? "close" : "play"} size={18} /><span>{playing ? "Stop" : "Watch"}</span>
-          </button>
-        ) : null}
-        {!t.pending ? <Link to={to} className="post__act" onClick={() => haptic("select")}><Icon name="note" size={18} /><span>Notes</span></Link> : null}
-        {opens.length ? (
-          <button type="button" className="post__act" aria-expanded={scripture} aria-controls={`${id}-s`} onClick={() => { haptic("select"); setScripture(!scripture); }}>
-            <Icon name="book-open" size={18} /><span>Scripture <small>{opens.length}</small></span>
-          </button>
-        ) : null}
-      </div>
-
-      {scripture && opens.length ? (
-        <div className="post__scripture" id={`${id}-s`}>
-          <small>Opened in this class, in order</small>
-          <div>{opens.map((o, i) => <Link key={`${o.slug}-${o.chapter}-${i}`} to={`/read/${o.slug}/${o.chapter}`} className="post__ref" onClick={() => haptic("select")}>{o.label}</Link>)}</div>
-        </div>
-      ) : null}
-
-      <div className="post__body">
-        <h2 id={id} className="post__title"><Link to={to}>{t.title}</Link></h2>
-        {t.intro ? (
-          <>
-            <p ref={intro} className="post__intro" data-open={open ? "" : undefined}>{t.intro}</p>
-            {open ? <Link to={to} className="post__more">Read the full notes</Link> : clamped ? <button type="button" className="post__more" onClick={() => { haptic("select"); setOpen(true); }}>Read more</button> : null}
-          </>
-        ) : t.pending ? <p className="post__soon">Notes for this class are coming soon. You can watch it now.</p> : null}
-      </div>
-    </article>
+    <Link to={teachingTo(t)} className="pml-card" onClick={() => haptic("select")}>
+      <span className="pml-card__thumb">{t.thumb ? <Img src={t.thumb} /> : <span className="pml-card__noimg"><Icon name="play" size={22} /></span>}</span>
+      <span className="pml-card__body">
+        <b className="pml-card__label">{cardLabel(t)}</b>
+        <span className="pml-card__title">{t.title}</span>
+        <small className="pml-card__meta">{cardMeta(t)}{t.pending ? <span className="soon">Notes coming soon</span> : null}</small>
+      </span>
+    </Link>
   );
 }
 
-/** The recording's picture at 16:9, its space held before it loads; a quiet tile when there is none. */
-/** YouTube's 320px still blurs on a wide feed: offer its 480px one too (its letterbox is cropped by object-fit). */
-const sharper = (src: string) => /\/mqdefault\.jpg$/.test(src) ? `${src} 320w, ${src.replace(/mqdefault\.jpg$/, "hqdefault.jpg")} 480w` : undefined;
-
-function Poster({ src }: { src: string }) {
-  const [failed, setFailed] = useState(!src);
-  return failed ? <span className="post__noimg"><Icon name="play" size={28} /></span> : <img src={src} srcSet={sharper(src)} sizes="(min-width: 700px) 600px, 100vw" alt="" width={320} height={180} loading="lazy" decoding="async" onError={() => setFailed(true)} />;
+/** The latest class, above the sections: the card at full width, its picture on top. */
+function FeaturedCard({ t }: { t: Teaching }) {
+  return (
+    <Link to={teachingTo(t)} className="pml-card pml-card--featured" onClick={() => haptic("select")}>
+      <span className="pml-card__thumb">{t.thumb ? <Img src={t.thumb} eager /> : <span className="pml-card__noimg"><Icon name="play" size={28} /></span>}</span>
+      <span className="pml-card__body">
+        <b className="pml-card__label">Latest class</b>
+        <span className="pml-card__title">{t.title}</span>
+        <small className="pml-card__meta">{cardMeta(t)}{t.pending ? <span className="soon">Notes coming soon</span> : null}</small>
+      </span>
+    </Link>
+  );
 }
 
-function FeedSkeleton() {
+function LibrarySkeleton() {
   return (
-    <div className="cfeed" aria-busy="true" aria-label="Loading">
-      {[0, 1].map((i) => (
-        <div key={i} className="post">
-          <div className="post__head"><span className="skel" style={{ width: 36, height: 36, borderRadius: 18 }} /><span className="post__who"><span className="skel" style={{ width: 120, height: 12 }} /><span className="skel" style={{ width: 160, height: 10, marginTop: 6 }} /></span></div>
-          <div className="post__media"><span className="skel" style={{ position: "absolute", inset: 0, borderRadius: 0 }} /></div>
-          <div className="post__body"><span className="skel" style={{ width: "80%", height: 16 }} /><span className="skel" style={{ width: "95%", height: 12, marginTop: 8 }} /><span className="skel" style={{ width: "70%", height: 12, marginTop: 6 }} /></div>
+    <div aria-busy="true" aria-label="Loading">
+      <span className="skel" style={{ display: "block", aspectRatio: "16 / 9", borderRadius: 12 }} />
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="pml-card">
+          <span className="pml-card__thumb"><span className="skel" style={{ position: "absolute", inset: 0, borderRadius: 12 }} /></span>
+          <span className="pml-card__body"><span className="skel" style={{ width: 70, height: 10 }} /><span className="skel" style={{ width: "90%", height: 14 }} /><span className="skel" style={{ width: 110, height: 10 }} /></span>
         </div>
       ))}
     </div>

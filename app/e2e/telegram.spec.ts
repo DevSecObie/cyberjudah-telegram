@@ -642,6 +642,8 @@ test("welcome keeps Search and Ask separate, with the dashboard in the Home draw
   await expect(home.locator(".stats__cell")).toHaveCount(6);
   await expect(home.locator('.home a[href="/plan"]')).toHaveText(/Start a reading plan/);
   await expect(home.locator(".shelf")).toHaveText(["Learn", "Study", "Meditate", "Go further"]);
+  // Bible Strong's Courses & videos card opens the classes.
+  await expect(home.getByRole("link", { name: "Open courses and videos" })).toHaveAttribute("href", "/classes");
   await expect(home.locator(".widget")).toHaveCount(6);
   await home.getByRole("button", { name: "Close Home" }).click();
   await search.fill("Seattle");
@@ -1254,101 +1256,93 @@ test("The Law: a law found by its words opens in its section, brought into view;
   await expect(page.getByRole("region", { name: "The Ten Commandments" })).toBeVisible();
 });
 
-test("Classes: a feed of posts with the series, filters and search, kept on the way back from a class", async ({ page }) => {
+// Bible Strong's FiltersHeader on Courses & videos: open the panel, then one filter's screen.
+async function classFilter(page: Page, name: string) {
+  await page.getByRole("button", { name: /^(Filter|\d+ filters?)$/ }).click();
+  await page.getByRole("dialog", { name: "Filters" }).getByRole("button", { name: new RegExp(`^${name}`) }).click();
+}
+
+test("Courses & videos: the latest class featured, a section per feed, filters and search kept on the way back from a class", async ({ page }) => {
   await page.goto(`/classes${LAUNCH}`);
-  const series = page.getByRole("group", { name: "Series" });
-  await expect(series.getByRole("button", { name: /^All\s?[\d,]+$/ })).toHaveAttribute("aria-pressed", "true");
-  await series.getByRole("button", { name: /^Captains\s?[\d,]+$/ }).click();
+  await expect(page.locator(".pml-card--featured .pml-card__label")).toHaveText("Latest class");
+  await expect(page.getByRole("region", { name: "Sabbath classes" }).locator(".pml-card").first()).toBeVisible();
+  await classFilter(page, "Collection");
+  await page.getByRole("radio", { name: /^Captains/ }).click();
+  await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/feed=captains/);
-  const post = page.locator("article.post").first();
-  await expect(post.locator(".post__who b")).toHaveText(/^Captain /);
-  await expect(post.locator(".post__who time")).toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}$/);
-  await page.fill("#class-q", "passover");
-  // A series changed with a search typed keeps the search.
-  await series.getByRole("button", { name: /^All\s?[\d,]+$/ }).click();
+  await expect(page.locator(".pml-card--featured")).toHaveCount(0);
+  await expect(page.locator(".pml-card").first().locator(".pml-card__meta")).toContainText("Captain ");
+  await classFilter(page, "Search");
+  await page.getByRole("searchbox", { name: "Search" }).fill("passover");
+  await page.keyboard.press("Escape");
+  // A collection changed with a search typed keeps the search.
+  await classFilter(page, "Collection");
+  await page.getByRole("radio", { name: /^All/ }).click();
+  await page.keyboard.press("Escape");
   await expect(page).not.toHaveURL(/feed=/);
-  await expect(page.locator("#class-q")).toHaveValue("passover");
-  const title = (await post.locator(".post__title").innerText()).trim();
-  await post.locator(".post__title a").click();
+  await expect(page.getByRole("button", { name: "1 filter", exact: true })).toBeVisible();
+  const card = page.locator(".pml-card").first();
+  const title = (await card.locator(".pml-card__title").innerText()).trim();
+  await card.click();
   await expect(page).toHaveURL(/\/note\//);
   await expect(page.getByText("Class notes", { exact: true }).first()).toBeVisible();
   await press(page, "back");
   await expect(page).toHaveURL(/\/classes(\?|$)/);
-  await expect(page.locator("#class-q")).toHaveValue("passover");
-  await expect(page.locator("article.post").first().locator(".post__title")).toHaveText(title);
-  await page.getByRole("button", { name: "Reset" }).click();
-  await expect(page.locator("#class-q")).toHaveValue("");
+  await expect(page.locator(".pml-card").first().locator(".pml-card__title")).toHaveText(title);
+  await page.getByRole("button", { name: "1 filter", exact: true }).click();
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".pml-card--featured")).toBeVisible();
 });
 
-test("Classes: a class in a series is labelled by it, and the series opens in order", async ({ page }) => {
+test("Courses & videos: a class in a series is labelled by it, and the series opens in order", async ({ page }) => {
   await page.goto(`/classes${LAUNCH}`);
-  await page.fill("#class-q", "Navigating Through Paul");
-  const post = page.locator("article.post").first();
-  const name = post.getByRole("button", { name: "Navigating Through Paul's Letters", exact: true });
-  await expect(name).toBeVisible();
-  await expect(post.locator(".post__who")).not.toContainText("Sabbath class");
-  await name.click();
+  await classFilter(page, "Search");
+  await page.getByRole("searchbox", { name: "Search" }).fill("Navigating Through Paul");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".pml-card").first().locator(".pml-card__label")).toContainText("Navigating Through Paul's Letters");
+  await classFilter(page, "Series");
+  await page.getByRole("radio", { name: "Navigating Through Paul's Letters", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/series=Navigating/);
-  const posts = page.locator("article.post");
-  await expect.poll(() => posts.count()).toBeGreaterThan(1);
-  // Oldest first, as the series was taught.
-  const dates = await page.locator("article.post .post__who time").evaluateAll((els) => els.map((e) => e.getAttribute("datetime") ?? ""));
-  expect(dates).toEqual([...dates].sort());
-  // Leaving the series shows every class again.
-  await page.getByRole("button", { name: /^Navigating.*: show every class$/ }).click();
+  const labels = page.locator(".pml-card .pml-card__label");
+  await expect.poll(() => labels.count()).toBeGreaterThan(1);
+  // In order, as the series was taught.
+  const parts = (await labels.allInnerTexts()).map((l) => Number(/Part (\d+)/.exec(l)?.[1] ?? 0));
+  expect(parts).toEqual([...parts].sort((x, y) => x - y));
+  // Every class leaves the series.
+  await classFilter(page, "Series");
+  await page.getByRole("radio", { name: "Every class", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(page).not.toHaveURL(/series=/);
 });
 
-test("Classes: one recording plays at a time, a preview reads on, the scripture opens, and a class is saved", async ({ page }) => {
-  // Exercise a written class, not whichever new upload the live channel currently puts first.
+test("Courses & videos: a section shows its first twelve, See all opens the feed, and more come as it scrolls", async ({ page }) => {
   const classes = Array.from({ length: 14 }, (_, i) => ({
-    title: `Class fixture ${i + 1}`, url: `/classes/fixture-${i + 1}`, date: "2026-01-01", year: "2026",
+    title: `Class fixture ${i + 1}`, url: `/classes/fixture-${i + 1}`, date: `2026-01-${String(28 - i).padStart(2, "0")}`, year: "2026",
     teacher: "Test teacher", thumb: "", books: ["Genesis"], videoId: String(i).padStart(11, "a"),
-    intro: "The class opens the Scriptures and reads the passage in its context. ".repeat(12),
-    opens: [{ label: "Genesis 1", slug: "genesis", chapter: 1 }],
   }));
   await page.route(`${DATA_ORIGIN}/search/classes.json`, r => r.fulfill({ json: classes }));
   await page.route(`${DATA_ORIGIN}/search/captains.json`, r => r.fulfill({ json: [] }));
   await page.route(`${DATA_ORIGIN}/api/history/index.json`, r => r.fulfill({ json: [] }));
   await page.route("**/api/recent", r => r.fulfill({ json: { videos: [] } }));
   await page.goto(`/classes${LAUNCH}`);
-  const posts = page.locator("article.post");
-  await expect(posts).toHaveCount(12);
-  const [a, b] = [posts.nth(0), posts.nth(1)];
-  // Nothing plays until asked; then only the one asked for.
-  await expect(page.locator("article.post iframe")).toHaveCount(0);
-  await a.getByRole("button", { name: "Watch" }).click();
-  await expect(a.locator("iframe")).toHaveCount(1);
-  // Bring the next control into view before click's stability checks run.
-  await b.getByRole("button", { name: "Watch" }).scrollIntoViewIfNeeded();
-  await b.getByRole("button", { name: "Watch" }).click();
-  await expect(b.locator("iframe")).toHaveCount(1);
-  await expect(a.locator("iframe")).toHaveCount(0);
-  await b.getByRole("button", { name: "Stop" }).click();
-  await expect(page.locator("article.post iframe")).toHaveCount(0);
-  // The preview is cut at three lines with Read more; read on, the full notes are a tap away. The
-  // newest class may not have its notes yet (they are written after it airs), so this uses the
-  // first class in the feed that has them.
-  const c = posts.filter({ has: page.locator(".post__intro") }).first();
-  const intro = c.locator(".post__intro");
-  const short = await intro.evaluate((e) => e.clientHeight);
-  await c.getByRole("button", { name: "Read more" }).click();
-  await expect(intro).toHaveAttribute("data-open", "");
-  expect(await intro.evaluate((e) => e.clientHeight)).toBeGreaterThan(short);
-  await expect(c.getByRole("link", { name: "Read the full notes" })).toHaveAttribute("href", /^\/note\//);
-  // The chapters the class opened, in order, each to the reader.
-  await c.getByRole("button", { name: /^Scripture/ }).click();
-  const ref = c.locator(".post__ref").first();
-  await expect(ref).toHaveAttribute("href", /^\/read\/[a-z0-9-]+\/\d+$/);
-  // Saved to the bookmarks, and unsaved.
-  await c.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(c.getByRole("button", { name: "Remove from saved" })).toHaveAttribute("aria-pressed", "true");
-  await c.getByRole("button", { name: "Remove from saved" }).click();
-  // More posts come as the feed nears its end, none twice.
+  const featured = page.locator(".pml-card--featured");
+  await expect(featured).toHaveAttribute("href", "/note/classes/fixture-1");
+  await expect(featured.locator(".pml-card__title")).toHaveText("Class fixture 1");
+  const sabbath = page.getByRole("region", { name: "Sabbath classes" });
+  await expect(sabbath.locator(".pml-card")).toHaveCount(12);
+  await expect(sabbath.locator(".pml-card").first()).toHaveAttribute("href", "/note/classes/fixture-2");
+  await expect(page.getByRole("region", { name: "15 Min w/ Captains" })).toHaveCount(0);
+  await sabbath.getByRole("button", { name: "See all 14" }).click();
+  await expect(page).toHaveURL(/feed=classes/);
+  // The whole feed, the featured class among them, as more come on the way down.
+  const cards = page.getByRole("region", { name: "Sabbath classes" }).locator(".pml-card");
   await page.locator(".cfeed__more").scrollIntoViewIfNeeded();
-  await expect.poll(() => posts.count()).toBeGreaterThan(12);
-  const urls = await page.locator("article.post .post__title a").evaluateAll((els) => els.map((e) => e.getAttribute("href")));
-  expect(new Set(urls).size).toBe(urls.length);
+  await expect(cards).toHaveCount(14);
+  await expect(page.locator(".pml-card--featured")).toHaveCount(0);
+  const urls = await cards.evaluateAll((els) => els.map((e) => e.getAttribute("href")));
+  expect(new Set(urls).size).toBe(14);
 });
 
 for (const width of [320, 390, 820, 1280]) {
@@ -1356,7 +1350,7 @@ for (const width of [320, 390, 820, 1280]) {
     await page.setViewportSize({ width, height: 860 });
     for (const path of ["/classes", "/law", "/law/02-relationship-to-god/2h"]) {
       await page.goto(`${path}${LAUNCH}`);
-      await expect(page.locator("article.post, .laws__part, .lawcard").first()).toBeVisible();
+      await expect(page.locator(".pml-card, .laws__part, .lawcard").first()).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), path).toBeLessThanOrEqual(0);
     }
     await page.route("**/api/ask/account", (r) => r.fulfill({ json: { metered: false, unlimited: false, balance: {}, perQuestion: 1, freeDaily: 0, plan: {}, packs: [] } }));
