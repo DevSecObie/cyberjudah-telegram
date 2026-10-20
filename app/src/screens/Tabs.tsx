@@ -207,7 +207,7 @@ export function Tabs() {
   );
 }
 /** A tab's icon in its universe's colour (getIconByTabType): the Lexicon primary, the Dictionary secondary, the rest tertiary. */
-function tabColor(path: string) {
+export function tabColor(path: string) {
   if (path.startsWith("/lexicon")) return "var(--accent)";
   if (path.startsWith("/dictionary")) return "rgb(255, 188, 0)";
   return "var(--text-3)";
