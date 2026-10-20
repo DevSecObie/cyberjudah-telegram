@@ -1,18 +1,19 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
+import { goInApp } from "./telegram-harness";
 
 // Bible Strong's Back never leaves the tab you are in: changing tab is not a step back.
 const MOCK = fs.readFileSync(new URL("./telegram-mock.js", import.meta.url), "utf8");
 const LAUNCH = "#tgWebAppData=query_id%3Dtab-back&tgWebAppVersion=9.1&tgWebAppPlatform=ios";
 type Tg = { __tg: { press: (button: string) => void; state: () => { back: boolean } } };
 
-async function setup(page: Page, tabs: { id: string; path: string }[]) {
-  await page.addInitScript((tabs) => {
+async function setup(page: Page, tabs: { id: string; path: string }[], current = tabs[0].id) {
+  await page.addInitScript(({ tabs, current }) => {
     // Seeded once: a reload keeps what the test did.
     if (sessionStorage.getItem("seeded")) return;
     sessionStorage.setItem("seeded", "1");
-    localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "one", groups: [{ id: "one", name: "My tabs", color: "#2dd4bf", current: tabs[0].id, tabs }] }));
-  }, tabs);
+    localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "one", groups: [{ id: "one", name: "My tabs", color: "#2dd4bf", current, tabs }] }));
+  }, { tabs, current });
   await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
   await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
 }
@@ -106,4 +107,23 @@ test("a swipe along the bar to a tab on the same page starts that tab's Back the
   await back(page);
   await expect(page).toHaveURL(/\/settings$/);
   expect(await page.evaluate(() => history.state.idx as number)).toBe(idx);
+});
+
+test("a bar button that picks another tab on the same page starts that tab's Back there", async ({ page }) => {
+  await setup(page, [{ id: "a", path: "/classes" }, { id: "b", path: "/search" }], "b");
+  await page.goto(`/search${LAUNCH}`);
+  const bar = page.getByRole("navigation", { name: "Sections" });
+  // Tab b goes on to Classes: both tabs now show the same page, b with a page behind it.
+  await goInApp(page, "/classes");
+  await expect(page).toHaveURL(/\/classes$/);
+  await expect.poll(() => backShown(page)).toBe(true);
+  // Classes in the bar picks the first Classes tab, a: its Back starts here, not in b's history.
+  await expect(async () => {
+    await bar.getByRole("button", { name: "Classes", exact: true }).click();
+    await expect.poll(async () => JSON.parse(await page.evaluate(() => localStorage.getItem("cj:tabgroups")!)).groups[0].current, { timeout: 500 }).toBe("a");
+  }).toPass();
+  await expect.poll(() => backShown(page)).toBe(false);
+  await back(page);
+  await expect(page).toHaveURL(/\/classes$/);
+  expect(await tabPaths(page)).toEqual({ a: "/classes", b: "/classes" });
 });
