@@ -172,7 +172,7 @@ export function App() {
     if (!isOver(idx)) recordPath(path);
     settleTabFloor(idx, navType !== "PUSH");
     prevPath.current = path;
-  }, [location.pathname, location.search, sheet]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [location.key, location.pathname, location.search, sheet]); // eslint-disable-line react-hooks/exhaustive-deps
   const navigate = useNavigate();
   useSettingsButton();
 

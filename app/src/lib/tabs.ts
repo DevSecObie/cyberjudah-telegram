@@ -145,6 +145,8 @@ export function closeTab(id: string) {
   const at = Math.max(0, g.tabs.findIndex((t) => t.id === g.current));
   const tabs = g.tabs.filter((t) => t.id !== id);
   setGroup({ ...g, tabs, current: tabs[Math.min(at, tabs.length - 1)]?.id ?? "" });
+  // Closing the tab you are in moves you into another.
+  if (id === g.current) enterTab();
 }
 /** Close every tab of a group, leaving it empty (Bible Strong's closeAllTabsAtom). */
 export function closeAll(id = state.group) {
