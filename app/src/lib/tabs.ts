@@ -79,6 +79,12 @@ export function newTab(path = "/new"): string {
   setGroup({ ...g, tabs: [...g.tabs, t], current: t.id });
   return path;
 }
+/** A new tab beside the current one, which stays current (Bible Strong's openInNewTab without autoRedirect). */
+export function addTab(path: string): { group: string; tab: string } {
+  const g = group(), t = { id: uid(), path };
+  setGroup({ ...g, tabs: [...g.tabs, t] });
+  return { group: g.id, tab: t.id };
+}
 export function selectTab(id: string): string {
   const g = group(), t = g.tabs.find((x) => x.id === id) ?? g.tabs[0];
   setGroup({ ...g, current: t.id });
