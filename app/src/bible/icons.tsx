@@ -6,7 +6,7 @@ export type FeatherName =
   | "music" | "alert-circle" | "feather"
   | "file-plus" | "file-text" | "tag" | "link" | "git-merge" | "precepts" | "bookmark" | "crosshair" | "edit-2" | "copy" | "share-2" | "download" | "check-square" | "layers"
   | "sun" | "moon" | "sunrise" | "type" | "align-left" | "align-justify" | "arrow-right" | "corner-down-right" | "chevron-right" | "chevron-down" | "chevron-up" | "chevron-left" | "chevrons-left" | "chevrons-right" | "chevrons-down"
-  | "more-vertical" | "arrow-left" | "x" | "list" | "hash" | "grid" | "arrow-left-circle" | "bold" | "italic" | "minus" | "rotate-cw" | "plus-square" | "list-ordered" | "arrow-right-circle" | "book" | "book-open" | "search" | "plus" | "check" | "clock" | "settings" | "trash-2" | "film" | "external-link" | "play" | "pause" | "skip-back" | "skip-forward" | "volume-2" | "edit-3" | "square" | "mic" | "sliders" | "users" | "repeat" | "arrow-up" | "arrow-down" | "heart" | "rotate-ccw" | "user" | "map-pin" | "globe" | "play-circle" | "watch" | "refresh-cw" | "home" | "more-horizontal" | "x-circle";
+  | "more-vertical" | "arrow-left" | "x" | "list" | "hash" | "grid" | "arrow-left-circle" | "bold" | "italic" | "minus" | "rotate-cw" | "plus-square" | "list-ordered" | "arrow-right-circle" | "book" | "book-open" | "search" | "plus" | "check" | "clock" | "settings" | "trash-2" | "film" | "external-link" | "play" | "pause" | "skip-back" | "skip-forward" | "volume-2" | "edit-3" | "square" | "mic" | "sliders" | "users" | "repeat" | "arrow-up" | "arrow-down" | "heart" | "rotate-ccw" | "user" | "map-pin" | "globe" | "play-circle" | "message-circle" | "watch" | "refresh-cw" | "home" | "more-horizontal" | "x-circle";
 
 const P: Record<FeatherName, string> = {
   feather: '<path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/>',
@@ -80,6 +80,7 @@ const P: Record<FeatherName, string> = {
   "map-pin": '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
   globe: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
   "play-circle": '<circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>',
+  "message-circle": '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
   "external-link": '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>',
   play: '<polygon points="5 3 19 12 5 21 5 3"/>',
   pause: '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>',
