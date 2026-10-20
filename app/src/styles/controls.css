@@ -78,9 +78,15 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgu
 
 /* ── Fields ───────────────────────────────────────────────────────────────────────────────── */
 .field { display: block; min-width: 0; }
-.field > div { padding-left: 0; padding-right: 0; }
-.field input::-webkit-search-cancel-button { display: none; }
-.field__clear, .hero__clear { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--fill-2); color: var(--text-1) !important; font-size: 17px !important; line-height: 1; cursor: pointer; }
+/* Bible Strong's SearchInput: rounded-full, rgba(0,0,0,.1), h 36, pl 8, pr 4, mb 5; the icon 20 px
+   in the text colour with 8 px after it; the input 15 px, its placeholder grey; the ✕ in 36 × 36. */
+.bs-searchinput { display: flex; align-items: center; box-sizing: border-box; height: 36px; margin: 0 0 5px; padding: 0 4px 0 8px; border-radius: 999px; background: rgba(0, 0, 0, .1); color: var(--text-1); }
+.bs-searchinput > svg { flex: none; margin-right: 8px; }
+.bs-searchinput input { flex: 1; min-width: 0; height: 100%; margin: 0; padding: 0; border: 0; outline: 0; background: none; color: var(--text-1); font: 400 .9375rem var(--font-ui); -webkit-appearance: none; appearance: none; }
+.bs-searchinput input::placeholder { color: var(--bs-grey, var(--text-3)); opacity: 1; }
+.bs-searchinput input::-webkit-search-cancel-button { display: none; }
+#root .bs-searchinput__clear { flex: none; display: grid; place-items: center; width: 36px; height: 36px; margin: 0; padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
+.hero__clear { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--fill-2); color: var(--text-1) !important; font-size: 17px !important; line-height: 1; cursor: pointer; }
 /* A text box or area: a well with a visible edge (3:1), an accent ring when focused. */
 .input, .sheet__form textarea, .edit input, .tagadd input, .edit__text {
   box-sizing: border-box; width: 100%; min-height: var(--h-md); padding: 10px 12px;
