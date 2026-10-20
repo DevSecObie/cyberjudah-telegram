@@ -625,7 +625,7 @@ test("a touch that stops a gliding page taps neither the verse nor the dock unde
   await page.clock.runFor(300);
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
   await glide(page);
-  await tapTab(page, "Classes");
+  await tapTab(page, "Search");
   await page.clock.runFor(300);
   await expect(page).toHaveURL(/\/read\/genesis\/1/);
   // Once the page has come to rest, the same taps work.
