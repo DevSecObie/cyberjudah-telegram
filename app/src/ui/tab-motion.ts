@@ -126,14 +126,14 @@ export function moveTab(update: () => void | false, mode: Mode, id = currentTab(
     void commit().then(fallback); return;
   }
   name(fromElement, "tab-surface");
-  name(document.querySelector("nav.tabs"), "tab-controls");
+  name(document.querySelector("nav.tabs > .tabs__row, nav.tabs > .switcherbar"), "tab-controls");
   try {
     transition = document.startViewTransition(async () => {
       await commit(); if (canceled) return;
       const next = mode === "overview" ? card(id) : root;
       const to = next === root ? { x: 0, y: 0, width: innerWidth, height: innerHeight } : next?.getBoundingClientRect();
       if (!next || !to?.width || !to.height) return;
-      name(next, "tab-surface"); name(document.querySelector("nav.tabs"), "tab-controls");
+      name(next, "tab-surface"); name(document.querySelector("nav.tabs > .tabs__row, nav.tabs > .switcherbar"), "tab-controls");
       // Geometry belongs to the snapshot alone. Inherited root variables invalidate the
       // entire reader/switcher subtree just as the browser is preparing its animation.
       geometry = document.createElement("style");

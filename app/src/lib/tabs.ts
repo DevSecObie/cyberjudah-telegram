@@ -173,10 +173,16 @@ function tabOfKind(test: (p: string) => boolean, fresh: string): string {
   return t ? selectTab(t.id) : newTab(fresh);
 }
 /** A new Bible tab opens at Genesis 1:1 (Bible Strong's getDefaultBibleTab). */
-export const bibleTabPath = () => tabOfKind((p) => /^\/(bible|read)(\/|$)/.test(p), "/read/genesis/1");
-export const searchTabPath = () => tabOfKind((p) => /^\/search(\?|$)/.test(p), "/search");
+const KIND_PATH = { bible: /^\/(bible|read)(\/|$)/, search: /^\/search(\?|$)/, ask: /^\/ask(\/|\?|$)/ };
+export const bibleTabPath = () => tabOfKind((p) => KIND_PATH.bible.test(p), "/read/genesis/1");
+export const searchTabPath = () => tabOfKind((p) => KIND_PATH.search.test(p), "/search");
 /** Ask CyberJudah, the same way: its tab if one is open, else a new one. */
-export const askTabPath = () => tabOfKind((p) => /^\/ask(\/|\?|$)/.test(p), "/ask");
+export const askTabPath = () => tabOfKind((p) => KIND_PATH.ask.test(p), "/ask");
+/** Where the bar's button for a kind will land in the group: its first tab, or the end for a new one. */
+export function kindTabIndex(kind: keyof typeof KIND_PATH): number {
+  const tabs = group().tabs, at = tabs.findIndex((t) => KIND_PATH[kind].test(t.path));
+  return at < 0 ? tabs.length : at;
+}
 
 /** A tab's name and kind from its path, for the switcher's cards. */
 const KINDS: [RegExp, string, string][] = [
