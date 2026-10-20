@@ -171,56 +171,6 @@ export function PageActions() {
   return <div className="pageactions" role="toolbar" aria-label="Actions">{secondary ? button(secondary, true) : null}{main ? button(main, false) : null}</div>;
 }
 
-/**
- * iOS 26's large title: it stands large at the top of the page and, once the page scrolls under the
- * bar, shrinks to a standard title in the bar; back at the top it returns. A margin makes up the
- * difference in the bar's height either way (a short header can grow to the bar's touch height),
- * so the page under it never moves while it scrolls.
- */
-function useLargeTitle(head: React.RefObject<HTMLElement | null>) {
-  const [compact, setCompact] = useState(false);
-  const full = useRef(0);
-  // The page's own top padding, read once before the bar ever changes it: WebKit can report the
-  // padding just removed as still there, which stacked the correction on itself.
-  const base = useRef<number | null>(null);
-  useEffect(() => {
-    const el = head.current; if (!el) return;
-    let frame = 0;
-    const check = () => {
-      frame = 0; const main = el.parentElement; if (!main) return;
-      // The full bar is measured as it stands, just before it can shrink: fonts and wrapping can
-      // change its height after the page first lays out.
-      if (!el.hasAttribute("data-compact")) full.current = el.getBoundingClientRect().height;
-      const scrolled = -main.getBoundingClientRect().top;
-      setCompact(c => c ? scrolled > 24 : scrolled > 56);
-    };
-    const onScroll = () => { if (!frame) frame = requestAnimationFrame(check); };
-    addEventListener("scroll", onScroll, { capture: true, passive: true }); check();
-    return () => { cancelAnimationFrame(frame); removeEventListener("scroll", onScroll, { capture: true }); };
-  }, [head]);
-  useLayoutEffect(() => {
-    const el = head.current; if (!el) return;
-    // The height the bar loses is given back above it, as the page's own top padding: Firefox can
-    // leave a changed margin on the sticky bar out of the page's layout.
-    const main = el.parentElement; if (!main) return;
-    const fit = () => {
-      if (base.current === null && !main.style.paddingTop) base.current = parseFloat(getComputedStyle(main).paddingTop) || 0;
-      if (!el.hasAttribute("data-compact")) { main.style.removeProperty("padding-top"); full.current = el.getBoundingClientRect().height; return; }
-      main.style.paddingTop = `${Math.max(0, (base.current ?? 0) + full.current - el.getBoundingClientRect().height)}px`;
-    };
-    fit();
-    // The bar can still settle after it changes (Firefox lays the compact bar out again a frame
-    // later, and can restyle the title after the bar): follow the bar's and the title's sizes,
-    // before paint, for as long as it is shown, and measure again once the next frame is laid out.
-    const watch = new ResizeObserver(fit);
-    watch.observe(el, { box: "border-box" });
-    const title = el.querySelector(".title"); if (title) watch.observe(title, { box: "border-box" });
-    let frame = requestAnimationFrame(() => { frame = requestAnimationFrame(fit); });
-    return () => { cancelAnimationFrame(frame); watch.disconnect(); main.style.removeProperty("padding-top"); };
-  }, [compact, head]);
-  return compact;
-}
-
 export function Screen({ title, kicker, action, children, className }: { title?: ReactNode; kicker?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
   const sheet = useSheetRoute();
   if (sheet) return <SheetScreen title={title} kicker={kicker} action={action} className={className} sheet={sheet}>{children}</SheetScreen>;
@@ -245,14 +195,16 @@ function SheetScreen({ title, kicker, action, children, className, sheet }: { ti
   );
 }
 
+/**
+ * A page under Bible Strong's Header (common/Header.tsx): 54 px with a line under it, the ← in a
+ * 54 px square on every page but the main places (the same Back as Telegram's), the title in 14 px
+ * bold with the subtitle in 12 px grey under it, and the page's actions on the right.
+ */
 function PageScreen({ title, kicker, action, children, className }: { title?: ReactNode; kicker?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
-  const head = useRef<HTMLElement>(null);
-  const compact = useLargeTitle(head);
-  // Every page but the main places has its own ←, as Bible Strong's Header does; it is the same Back as Telegram's.
   const back = !isRootPath(useLocation().pathname);
   return (
     <main className={`screen${className ? ` ${className}` : ""}`}>
-      {title ? <header ref={head} className="head" data-compact={compact ? "" : undefined}>{back ? <button type="button" className="icon-btn head__back" aria-label="Back" title="Back" onClick={goBack}><Icon name="back" size={20} /></button> : null}<div>{kicker ? <p className="kicker">{kicker}</p> : null}<h1 className="title">{title}</h1></div>{action}</header> : null}
+      {title ? <header className="head">{back ? <button type="button" className="head__back" aria-label="Back" title="Back" onClick={goBack}><Icon name="arrow-left" size={20} /></button> : null}<div className="head__titles"><h1 className="title">{title}</h1>{kicker ? <p className="kicker">{kicker}</p> : null}</div>{action}</header> : null}
       {children}
     </main>
   );

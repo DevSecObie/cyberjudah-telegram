@@ -38,23 +38,28 @@
   padding: calc(var(--sp-3) + var(--safe-top)) calc(var(--gutter) + var(--safe-right)) var(--sp-6) calc(var(--gutter) + var(--safe-left));
   display: flex; flex-direction: column; gap: 22px; min-width: 0;
 }
-.head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-3); min-width: 0; }
-.head > div { min-width: 0; }
-.head__back + div { flex: 1; }
-/* The ← sits over the bar's padding, out of its flow, so it never changes the bar's height (the
-   large title's collapse keeps the page still by those heights). */
-.head__back { position: absolute; inset-inline-start: calc(var(--gutter) - var(--sp-2)); bottom: var(--sp-2); }
-.screen > .head:has(> .head__back) > div { padding-inline-start: calc(var(--touch) + var(--sp-1)); }
+/* Bible Strong's Header (common/Header.tsx): 54 px on the page colour with a line under it; the ←
+   in a 54 px square (Back padding); the title 14 px bold (in rem, so it follows the shared text size), 20 px in when there is no ←, with the
+   subtitle 12 px grey under it; the actions on the right. */
+.head { display: flex; align-items: center; min-width: 0; min-height: 54px; }
+.head__titles { flex: 1; min-width: 0; padding-inline-start: 20px; }
+#root .head__back { flex: none; display: grid; place-items: center; width: 54px; height: 54px; margin: 0; padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
+.head__back + .head__titles { padding-inline-start: 0; }
+.head .title { margin: 0; font: 700 .875rem/1.3 var(--font-ui); letter-spacing: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.head .kicker { margin: 0; font: 400 .75rem/1.3 var(--font-ui); color: var(--bs-grey, var(--text-3)); letter-spacing: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .head__actions { display: flex; gap: var(--sp-2); flex: none; }
+/* Its icon actions are plain icons in 54 px squares, as Bible Strong's header buttons are. */
+#root .screen > .head .icon-btn { min-width: 54px; height: 54px; padding: 0; border-radius: 0; background: none; }
 
 /* The header bar: sticky, full bleed, on the navigation glass with a scroll edge that lets the page
    fade out beneath it. The glass is a pseudo-element so it can run edge to edge past the column. */
 .screen > .head, .srch__bar, .chat2__bar, .reader__bar {
   position: sticky; top: 0; z-index: var(--z-sticky); isolation: isolate;
 }
-.screen > .head { margin: 0 calc(-1 * var(--gutter)); padding: calc(var(--sp-2) + var(--safe-top)) var(--gutter) var(--sp-2); }
-.screen > .head .title { font-size: var(--fs-title1); }
-.screen > .head::before, .srch__bar::before, .chat2__bar::before, .reader__bar::before {
+.screen > .head { margin: calc(-1 * (var(--sp-3) + var(--safe-top))) calc(-1 * var(--gutter) - var(--safe-right)) 0 calc(-1 * var(--gutter) - var(--safe-left)); padding: var(--safe-top) var(--safe-right) 0 var(--safe-left); border-bottom: 1px solid var(--hairline); background: var(--canvas);
+  /* The page colour and the line run to the screen's edges past a wide page's column. */
+  border-image: linear-gradient(var(--hairline), var(--hairline)) 0 0 1 0 / 0 0 1px 0 / 0 100vmax; box-shadow: 0 0 0 100vmax var(--canvas); clip-path: inset(0 -100vmax); }
+.srch__bar::before, .chat2__bar::before, .reader__bar::before {
   content: ""; position: absolute; z-index: -1; top: 0; bottom: calc(-1 * var(--mat-scroll-edge-depth)); left: 50%; width: var(--content-width); margin-left: calc(var(--content-width) / -2); pointer-events: none;
   background: var(--mat-nav);
   -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
@@ -65,12 +70,12 @@
   content: ""; position: absolute; inset: 0 0 calc(-1 * var(--mat-scroll-edge-depth)); z-index: -1; pointer-events: none;
   background: var(--mat-nav); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
 }
-:is(.screen > .head, .srch__bar, .chat2__bar, .reader__bar, .bs-header, .tlh, .pv__bar)::before {
+:is(.srch__bar, .chat2__bar, .reader__bar, .bs-header, .tlh, .pv__bar)::before {
   -webkit-mask-image: var(--mat-scroll-edge); mask-image: var(--mat-scroll-edge);
 }
 .tlh.glass, .pv__bar { isolation: isolate; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* A hairline where the glass meets the page, drawn inside the fade so it reads as an edge. */
-.screen > .head::after, .srch__bar::after, .chat2__bar::after, .reader__bar::after {
+.srch__bar::after, .chat2__bar::after, .reader__bar::after {
   content: ""; position: absolute; z-index: -1; bottom: 0; left: 50%; width: var(--content-width); margin-left: calc(var(--content-width) / -2); height: .5px; pointer-events: none;
   background: var(--mat-edge);
 }
@@ -236,18 +241,7 @@ html[data-actions] .toasts { bottom: calc(var(--dock-space) + var(--h-md) + var(
 @media (prefers-reduced-motion: reduce) { #shell .route, .tabs, .tabs[data-hidden], .pageactions, .drawer, .drawer-scrim, .nsheet { transition: none; } .sheet, .sheet__scrim { animation: none; } }
 
 
-/* iOS 26's large title, shrunk into the bar once the page scrolls under it (ui.tsx, useLargeTitle). */
-/* The bar makes up for its own change in height (useLargeTitle), so scroll anchoring must not make
-   up for it a second time: Firefox adjusts for the frame before the bar settles and keeps the
-   adjustment, leaving a scroll short by the difference. */
 .screen, .screen * { overflow-anchor: none; }
-.screen > .head[data-compact] { align-items: center; padding-top: calc(var(--sp-1) + var(--safe-top)); padding-bottom: var(--sp-1); min-height: calc(var(--touch) + var(--sp-2)); }
-.screen > .head[data-compact] .kicker { display: none; }
-.screen > .head[data-compact] > div:first-of-type { flex: 1; text-align: center; }
-.screen > .head[data-compact] .head__back { top: var(--safe-top); bottom: 0; margin-block: auto; }
-.screen > .head[data-compact]:has(> .head__back) > div { padding-inline: calc(var(--touch) + var(--sp-1)); }
-.screen > .head[data-compact] .title { font-size: var(--fs-callout); font-weight: 600; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: title-in var(--dur-2) var(--ease); }
-@keyframes title-in { from { opacity: 0; transform: translateY(4px); } }
 
 /* Glass materializes rather than fades: it gathers from a soft blur as it grows into place. */
 @keyframes materialize { from { opacity: 0; transform: scale(.92); filter: blur(6px); } 60% { filter: blur(0); } to { opacity: 1; transform: none; filter: none; } }
@@ -266,5 +260,5 @@ html[data-transparency="reduced"] .glass-light { display: none; }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) { .glass-light { display: none; } }
 /* Glass controls swell a little under the finger and spring back with a small bounce when it lifts,
    where content controls press in. The overshoot comes from the spring curve on the way back. */
-#root :is(.screen > .head, .srch__bar, .chat2__bar, .reader__bar, .tlh, .pv__bar) :is(.icon-btn, .btn), #root .pageaction { transition: transform var(--dur-4) var(--ease-spring), opacity var(--dur-2) ease; }
-#root :is(.screen > .head, .srch__bar, .chat2__bar, .reader__bar, .tlh, .pv__bar) :is(.icon-btn, .btn)[data-pressed]:not(:disabled), #root .pageaction[data-pressed]:not(:disabled) { transform: scale(var(--glass-press-scale)); transition-duration: var(--dur-1); transition-timing-function: var(--ease); }
+#root :is(.srch__bar, .chat2__bar, .reader__bar, .tlh, .pv__bar) :is(.icon-btn, .btn), #root .pageaction { transition: transform var(--dur-4) var(--ease-spring), opacity var(--dur-2) ease; }
+#root :is(.srch__bar, .chat2__bar, .reader__bar, .tlh, .pv__bar) :is(.icon-btn, .btn)[data-pressed]:not(:disabled), #root .pageaction[data-pressed]:not(:disabled) { transform: scale(var(--glass-press-scale)); transition-duration: var(--dur-1); transition-timing-function: var(--ease); }
