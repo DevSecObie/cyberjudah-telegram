@@ -1,0 +1,1 @@
+- Search fields on the list pages (People, Classes, The Law, the Lexicon, the Dictionary and the rest) now look like Bible Strong's: a grey rounded pill with the search icon, and a ✕ to clear while there is text.
