@@ -217,7 +217,9 @@ export function Tabs() {
 
   const drag = useRef<{ x: number; y: number; start: number; active: boolean; failed: boolean; id: number; samples: [number, number][] } | null>(null);
   const onPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0 || drag.current) return;
+    // A second pointer is refused; the same pointer pressing again means its last release was missed
+    // (a mouse let go outside the switcher before the drag began).
+    if (e.button !== 0 || (drag.current && drag.current.id !== e.pointerId)) return;
     drag.current = { x: e.clientX, y: e.clientY, start: x.current, active: false, failed: false, id: e.pointerId, samples: [[performance.now(), e.clientX]] };
   };
   const onPointerMove = (e: React.PointerEvent) => {
@@ -248,7 +250,7 @@ export function Tabs() {
   };
 
   return (
-    <main ref={container} className="switcher" aria-label="Your tabs" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerEnd} onPointerCancel={onPointerEnd}>
+    <main ref={container} className="switcher" aria-label="Your tabs" data-creating={createShown ? "" : undefined} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerEnd} onPointerCancel={onPointerEnd}>
       <div ref={track} className="switcher__track" style={{ width: (groups.length + 1) * width, transform: `translate3d(${x.current}px, 0, 0)` }}>
         {groups.map((g) => (
           <section key={g.id} ref={(el) => { if (el) pages.current.set(g.id, el); else pages.current.delete(g.id); }} className="switcher__page"
@@ -360,13 +362,14 @@ function useAddTab() {
   return () => {
     const group = currentGroup().id;
     reflowTabs(() => newTab());
+    const added = currentGroup().current;
     // Bible Strong's useExpandNewTab: to the end of the list, a 300 ms pause, then the new card opens.
     // Each group's page scrolls on its own.
     const page = document.querySelector<HTMLElement>(".switcher__page[data-active]");
     page?.scrollTo({ top: page.scrollHeight, behavior: "instant" });
     window.setTimeout(() => {
-      // Left for another tab or group in the meantime: they keep their place.
-      if (!location.pathname.startsWith("/tabs") || currentGroup().id !== group) return;
+      // Left for another tab or group, the new tab closed, or the create page opened in the meantime: they keep their place.
+      if (!location.pathname.startsWith("/tabs") || currentGroup().id !== group || currentGroup().current !== added || document.querySelector(".switcher[data-creating]")) return;
       moveTab(() => { navigate("/new", { replace: true }); }, "expand");
     }, 300);
   };
