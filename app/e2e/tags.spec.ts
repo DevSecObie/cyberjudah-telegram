@@ -110,3 +110,14 @@ test("a tag's page lists what it carries in sections that open when tapped", asy
   await page.goto("/tags/t3");
   await expect(page.getByText("You have not recorded anything with this label ...")).toBeVisible();
 });
+
+test("a tag's page never shows the empty message while what it carries is read", async ({ page }) => {
+  await page.addInitScript(() => {
+    new MutationObserver(() => { if (document.body?.textContent?.includes("You have not recorded anything")) (window as unknown as { __emptySeen: boolean }).__emptySeen = true; })
+      .observe(document, { subtree: true, childList: true, characterData: true });
+  });
+  await seed(page);
+  await page.goto("/tags/t1");
+  await expect(page.getByRole("button", { name: /^Highlights/ })).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { __emptySeen?: boolean }).__emptySeen ?? false)).toBe(false);
+});

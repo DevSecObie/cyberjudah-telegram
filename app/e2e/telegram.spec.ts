@@ -627,7 +627,7 @@ test("welcome keeps Search and Ask separate, with the dashboard in the Home draw
   await expect(welcome.getByRole("button", { name: "Search the teachings", exact: true })).toBeDisabled();
   await expect(welcome.getByRole("button", { name: "Ask your question" })).toBeDisabled();
   await expect(welcome.locator(".today-card, .stats, .shelf, .widgets")).toHaveCount(0);
-  await expect(page.locator(".tab")).toHaveCount(5);
+  await expect(page.locator(".tab")).toHaveCount(6);
   await search.fill("Seattle");
   await question.fill("Why do we keep the Passover?");
   await expect(search).toHaveValue("Seattle");
@@ -1675,7 +1675,7 @@ test("an opened class keeps the tab bar, with its actions floating above it", as
   expect(actions!.y + actions!.height).toBeLessThanOrEqual(bar!.y + 1);
 });
 
-test("the bottom bar sits above the Bible, with Bible Strong's five buttons", async ({ page }) => {
+test("the bottom bar sits above the Bible, with Bible Strong's buttons and Classes", async ({ page }) => {
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   // Nothing covers the bar: the topmost element at its top edge and at its middle is the bar.
@@ -1684,10 +1684,25 @@ test("the bottom bar sits above the Bible, with Bible Strong's five buttons", as
     expect(await page.evaluate(([x, yy]) => !!document.elementFromPoint(x, yy)?.closest(".tabs"), [bar.x + bar.width / 2, y])).toBe(true);
   }
   const labels = await page.locator(".tabs .tab").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  expect(labels).toEqual(["Home", "Search", "Bible", expect.stringMatching(/^Tabs, \d+ open$/), "Main menu"]);
+  expect(labels).toEqual(["Home", "Search", "Bible", "Classes", expect.stringMatching(/^Tabs, \d+ open$/), "Main menu"]);
   // The menu has no bar editor: Bible Strong's bar is the same for every reader.
   await page.click('.tab[aria-label="Main menu"]');
   await expect(page.locator(".drawer--more").getByRole("link", { name: "Bottom bar", exact: true })).toHaveCount(0);
+});
+
+test("Classes in the bar opens a Classes tab, then returns to it, as Search and the Bible do", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  const bar = page.getByRole("navigation", { name: "Sections" });
+  const paths = () => page.evaluate(() => { const s = JSON.parse(localStorage.getItem("cj:tabgroups")!) as { group: string; groups: { id: string; tabs: { path: string }[] }[] }; return s.groups.find((g) => g.id === s.group)!.tabs.map((t) => t.path); });
+  await bar.getByRole("button", { name: "Classes", exact: true }).click();
+  await expect(page).toHaveURL(/\/classes$/);
+  await expect.poll(paths).toContain("/classes");
+  const count = (await paths()).length;
+  await bar.getByRole("button", { name: "Bible", exact: true }).click();
+  await expect(page).toHaveURL(/\/read\//);
+  await bar.getByRole("button", { name: "Classes", exact: true }).click();
+  await expect(page).toHaveURL(/\/classes$/);
+  expect((await paths()).length).toBe(count);
 });
 
 test("a back step from the first screen stays in the app instead of going to a blank page", async ({ page }) => {

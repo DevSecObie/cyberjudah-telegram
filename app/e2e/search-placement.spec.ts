@@ -11,12 +11,12 @@ async function setup(page: Page, theme = "default", reduced = false) {
   await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
 }
 
-test("search placement: Search is second in Bible Strong's five, and the row fits every width", async ({ page }) => {
+test("search placement: Search is second in the bar, and the row fits every width", async ({ page }) => {
   await setup(page);
   await page.goto(`/settings${LAUNCH}`);
   const nav = page.getByRole("navigation", { name: "Sections" });
   await expect(nav.locator(".tab").last()).toHaveAttribute("aria-label", "Main menu");
-  expect(await nav.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "tabs", "more"]);
+  expect(await nav.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "classes", "tabs", "more"]);
   for (const width of [320, 390, 900, 1280]) for (const scale of [100, 200]) {
     await page.setViewportSize({ width, height: 844 });
     await page.evaluate(scale => document.documentElement.style.fontSize = `${scale}%`, scale);
