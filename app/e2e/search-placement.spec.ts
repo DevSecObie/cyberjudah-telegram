@@ -40,7 +40,7 @@ for (const saved of [["search", "home", "bible"], ["home", "bible", "classes", "
   });
 }
 
-test("search placement: Search stays in the bar while the page scrolls, and in the tab switcher", async ({ page }) => {
+test("search placement: Search stays in the bar while the page scrolls, and is not in the tab switcher's bar", async ({ page }) => {
   await setup(page);
   await page.goto(`/settings${LAUNCH}`);
   const nav = page.getByRole("navigation", { name: "Sections" });
@@ -51,10 +51,10 @@ test("search placement: Search stays in the bar while the page scrolls, and in t
   await expect(page).toHaveURL(/\/search/);
   await expect(page.getByRole("searchbox", { name: "Search CyberJudah" })).toBeVisible();
   await page.goto(`/tabs${LAUNCH}`);
+  // Bible Strong's list-mode row is +, the group and OK (BottomTabBar).
   const switcher = page.getByRole("navigation", { name: "Tabs", exact: true });
-  await expect(switcher.getByRole("button").last()).toHaveAttribute("aria-label", "Search");
-  await switcher.getByRole("button", { name: "Search", exact: true }).click();
-  await expect(page).toHaveURL(/\/search/);
+  await expect(switcher.getByRole("button").last()).toHaveAttribute("aria-label", "Open selected tab");
+  await expect(switcher.getByRole("button", { name: "Search", exact: true })).toHaveCount(0);
 });
 
 test("search placement: touch opens Menu once per tap", async ({ page, browserName }) => {
