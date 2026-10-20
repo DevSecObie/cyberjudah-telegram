@@ -1,4 +1,4 @@
-- The bottom bar has Bible Strong's buttons, with Classes kept: Home, Search, Bible, Classes, Tabs and Menu.
-  - Classes goes to your Classes tab, or opens one, the way Search and Bible do.
-  - Ask and the other sections open from Home, the Menu and New Tab.
+- The bottom bar has Bible Strong's buttons, with Classes and Ask kept: Home, Search, Bible, Classes, Ask, Tabs and Menu.
+  - Classes and Ask go to your Classes or Ask tab, or open one, the way Search and Bible do.
+  - On the narrowest phones the bar gives up its side margins first, so the seven buttons still fit.
   - The Bottom bar editor is gone from the Menu, so every reader has the same bar.
