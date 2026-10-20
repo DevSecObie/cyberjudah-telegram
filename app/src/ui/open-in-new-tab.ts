@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { addTab, selectTab, switchGroup } from "@/lib/tabs";
+import { addTab, groupsNow, selectTab, switchGroup } from "@/lib/tabs";
 import { moveTab } from "./tab-motion";
 import { useToast } from "./toast";
 
@@ -13,7 +13,11 @@ export function useOpenInNewTab() {
   return (path: string) => {
     const at = addTab(path);
     // Bible Strong's goToTab: to the new tab's group, and the tab slides in from the end.
-    const go = () => moveTab(() => { switchGroup(at.group); navigate(selectTab(at.tab), { replace: true }); }, "slide", undefined, 1);
+    const go = () => moveTab(() => {
+      // A tab closed before the toast is tapped is gone: nothing to go to.
+      if (!groupsNow().find((g) => g.id === at.group)?.tabs.some((t) => t.id === at.tab)) return false;
+      switchGroup(at.group); navigate(selectTab(at.tab), { replace: true });
+    }, "slide", undefined, 1);
     toast("New tab created", { action: { label: "Go to tab", onClick: go } });
   };
 }
