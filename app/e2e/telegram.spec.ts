@@ -601,7 +601,7 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   await home.locator('.stats__cell[href="/studies"]').click();
   await expect(page).toHaveURL(/\/studies$/);
   await page.getByRole("button", { name: "New study", exact: true }).click();
-  await expect(page.getByLabel("Study title", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Edit study", exact: true })).toBeVisible();
   await goInApp(page, "/read/genesis/1");
   await page.getByRole("button", { name: "Home", exact: true }).click();
   await expect(home.locator('.stats__cell[href="/studies"] b')).toHaveText("1");

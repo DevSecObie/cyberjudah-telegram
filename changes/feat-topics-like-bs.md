@@ -1,0 +1,2 @@
+- Topics and Precepts now look and work like Bible Strong's topics list: one letter at a time, filed under the letter's coloured disc, with the alphabet along the bottom and a search that replaces it. Every precept of a letter is listed (the list no longer stops at 300).
+- The discs take the theme's own colours, red for Precepts and violet or pink for Topics, made a little darker where their white letter would not read (Night blue, and Topics in the dark themes).

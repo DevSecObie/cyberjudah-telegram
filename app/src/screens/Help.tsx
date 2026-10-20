@@ -14,7 +14,7 @@ export function Help() {
       <p>Tap verses to select them. Annotate has highlights, notes, tags, links, personal precepts, bookmarks and focus. Study opens word tools, commentary and related scripture; it also adds scripture to your own study. Share offers copy, sharing and passage export.</p>
       <p>A long press opens the verse’s resources. You can swap short and long press in Scripture options → Font and settings. Focus shows just your passage; Read whole chapter expands its context.</p>
       <p>To mark individual words, select a verse and choose Annotate → Free mode, or double-tap a word. In annotation mode, long-press a word and drag either handle across words or verses, then highlight, underline or circle them. Tap a saved mark in this mode to change it, add a note or delete it. Done returns to reading; tapping a saved mark while reading selects its verse, or seeks to it while audio plays.</p>
-      <p><Link to="/studies">My studies</Link> keeps your own writing, scripture and Strong’s entries. Preview shows formatting; export keeps a file you can take elsewhere.</p>
+      <p><Link to="/studies">My studies</Link> keeps your own writing, scripture and Strong’s entries. A study opens to read; the pencil lets you write in it, and export keeps a file you can take elsewhere.</p>
     </Card></Section>
     <Section title="Search and translations"><Card>
       <p>Scripture options → Search the Scriptures accepts a reference, a name or words from the text. Put a phrase in quotes to keep it together. Filter by testament or book, change the result order, and use More verses to continue.</p>
