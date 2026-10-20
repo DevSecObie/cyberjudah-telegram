@@ -12,8 +12,9 @@ import { ContextualPanel, FiltersButton, PanelAction, PanelSearch, PanelTextForm
 import { useSheet } from "@/ui/sheet";
 import { moveTab } from "@/ui/tab-motion";
 import { useToast } from "@/ui/toast";
-import { List, Row, Screen, Section } from "@/ui/ui";
+import { Screen } from "@/ui/ui";
 import { EmptyState } from "./new-tab-search";
+import { TagSections } from "./tag-detail";
 
 type Loaded = Record<string, TagData & { highlightVerses: number }>;
 /** Everything tagged, read once and again after a change. */
@@ -152,7 +153,7 @@ export function Tags() {
   );
 }
 
-/** One tag (Bible Strong's TagScreen): its name, and its menu: Edit, Create tab group, Remove. */
+/** One tag (Bible Strong's TagScreen): its name and menu (Edit, Create tab group, Remove), then what it carries. */
 export function TagScreen() {
   const { id = "" } = useParams();
   useBackButton();
@@ -176,15 +177,10 @@ export function TagScreen() {
       goBack();
     }
   };
-  if (!tag) return <Screen title=""><EmptyState icon="tag" message="This tag doesn't exist..." /></Screen>;
+  if (!tag) return <Screen title="" className="tagpage"><EmptyState icon="tag" message="This tag doesn't exist..." /></Screen>;
   return (
-    <Screen title={tag.name} action={<button type="button" className="panel-trigger" style={{ width: 54, height: 54 }} aria-label="More options" title="More options" onClick={() => void menu()}><Feather name="more-vertical" size={18} /></button>}>
-      <Section title="Carries This Tag">
-        <List>
-          <Row href={`/bookmarks?tab=highlights&tag=${id}`} icon="bookmark" title="Highlights" meta={<small>{counts.highlights + counts.wordAnnotations}</small>} />
-          <Row href={`/bookmarks?tab=notes&tag=${id}`} icon="note" title="Notes" meta={<small>{counts.notes}</small>} />
-        </List>
-      </Section>
+    <Screen title={tag.name} className="tagpage" action={<button type="button" className="panel-trigger" style={{ width: 54, height: 54 }} aria-label="More options" title="More options" onClick={() => void menu()}><Feather name="more-vertical" size={18} /></button>}>
+      {counts.itemCount ? <TagSections d={data[id]} /> : <div className="tagd-empty"><EmptyState icon="tag" message="You have not recorded anything with this label ..." /></div>}
     </Screen>
   );
 }
