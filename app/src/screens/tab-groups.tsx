@@ -4,7 +4,7 @@ import { Feather, type FeatherName } from "@/bible/icons";
 import { Button, Sheet } from "@/bible/ui/Sheet";
 import { assetUrl } from "@/lib/asset";
 import { closeAll, deleteGroup, GROUP_COLORS, isDefaultGroup, newGroup, renameGroup, useTabs, type Group } from "@/lib/tabs";
-import { popup } from "@/tg/sdk";
+import { features, popup } from "@/tg/sdk";
 import { groupPager } from "@/ui/group-pager";
 import { useToast } from "@/ui/toast";
 import { TabIcon } from "./Tabs";
@@ -33,8 +33,11 @@ export function GroupActions({ children, label, style }: { children: React.React
   const close = () => setOpen(null);
   const remove = async () => {
     close();
-    const answer = await popup({ title: "Delete group?", message: "All tabs in this group will be closed.", buttons: [{ id: "cancel", type: "cancel" }, { id: "delete", type: "destructive", text: "Delete" }] });
-    if (answer !== "delete") return;
+    // Outside Telegram's popups, the browser's own confirm asks the same.
+    const ok = features.popups
+      ? await popup({ title: "Delete group?", message: "All tabs in this group will be closed.", buttons: [{ id: "cancel", type: "cancel" }, { id: "delete", type: "destructive", text: "Delete" }] }) === "delete"
+      : window.confirm("Delete group?\n\nAll tabs in this group will be closed.");
+    if (!ok) return;
     const index = groups.findIndex((g) => g.id === group.id);
     deleteGroup(group.id);
     groupPager.navigateToPage(Math.max(0, index - 1));
