@@ -127,6 +127,16 @@ export function TabBar() {
     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
   };
   const bar = useRef<HTMLElement>(null);
+  // Bible Strong's tab count grows and settles whenever a tab is opened or closed (useTabButtonPress):
+  // 300 ms after, to 1.2 over 500 ms and back over 500 ms.
+  const countBox = useRef<HTMLSpanElement>(null);
+  const counted = useRef(false);
+  useEffect(() => {
+    if (!counted.current) { counted.current = true; return; }
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const ease = "cubic-bezier(0.455, 0.03, 0.515, 0.955)";
+    countBox.current?.animate([{ transform: "scale(1)", easing: ease }, { transform: "scale(1.2)", easing: ease }, { transform: "scale(1)" }], { duration: 1000, delay: 300 });
+  }, [tabs.length]);
   useEffect(() => {
     const nav = bar.current; if (!nav) return;
     const finishTouch = (event: TouchEvent) => {
@@ -149,7 +159,7 @@ export function TabBar() {
     if (id === "bible") return <Feather name="book-open" size={23} />;
     if (id === "classes") return <Feather name="play-circle" size={23} />;
     if (id === "ask") return <Feather name="message-circle" size={23} />;
-    return <span key={count} className="tab__count" style={groupColor ? { ["--group" as string]: groupColor, ["--group-ink" as string]: contrastInk(groupColor) } : undefined} aria-hidden="true">{count}</span>;
+    return <span ref={countBox} className="tab__count" style={groupColor ? { ["--group" as string]: groupColor, ["--group-ink" as string]: contrastInk(groupColor) } : undefined} aria-hidden="true">{count}</span>;
   };
   const label = (id: ButtonId) => id === "more" ? (hasUnseenUpdates ? "Main menu, updates available" : "Main menu") : id === "tabs" ? `Tabs, ${count} open` : LABELS[id];
   const path = (id: "search" | "bible" | "classes" | "ask" | "tabs") => id === "search" ? searchTabPath() : id === "bible" ? bibleTabPath() : id === "classes" ? classesTabPath() : id === "ask" ? askTabPath() : "/tabs";
