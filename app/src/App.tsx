@@ -56,6 +56,8 @@ const DictionaryEntry = lazy(() => import("@/screens/Dictionary").then((m) => ({
 const Person = lazy(() => import("@/screens/Person").then((m) => ({ default: m.Person })));
 const Relations = lazy(() => import("@/screens/Relations").then((m) => ({ default: m.Relations })));
 const Bookmarks = lazy(() => import("@/screens/Bookmarks").then((m) => ({ default: m.Bookmarks })));
+const Highlights = lazy(() => import("@/screens/Bookmarks").then((m) => ({ default: m.Highlights })));
+const Notes = lazy(() => import("@/screens/Bookmarks").then((m) => ({ default: m.Notes })));
 const Sabbath = lazy(() => import("@/screens/Sabbath").then((m) => ({ default: m.Sabbath })));
 const Books = lazy(() => import("@/screens/Books").then((m) => ({ default: m.Books })));
 const BookScreen = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookScreen })));
@@ -128,6 +130,8 @@ const routes = (
     <Route path="/books/:slug/p/:page" element={<BookPageLink />} />
     <Route path="/books/:slug/:k" element={<BookChapterScreen />} />
     <Route path="/bookmarks" element={<Bookmarks />} />
+    <Route path="/highlights" element={<Highlights />} />
+    <Route path="/notes" element={<Notes />} />
     <Route path="/sabbath" element={<Sabbath />} />
     <Route path="/studies" element={<PersonalStudies />} />
     <Route path="/studies/:id" element={<PersonalStudies />} />

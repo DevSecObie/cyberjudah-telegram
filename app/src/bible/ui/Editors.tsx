@@ -31,7 +31,6 @@ export function BookmarkSheet({ open, onClose, reference, location, existing, bo
   };
   const move = (b: Bookmark) => { setBookmarks(bookmarks.map((x) => (x.id === b.id ? { ...x, book: location.book, chapter: location.chapter, verse: location.verse } : x))); haptic("success"); onClose(); };
   const remove = async () => { if (!existing) return; if (await confirm("Are you sure you want to delete this bookmark?")) { setBookmarks(bookmarks.filter((b) => b.id !== existing.id)); onClose(); } };
-  const COLORS = ["#cc0000", "#e17055", "#fdcb6e", "#00b894", "#0984e3", "#6c5ce7", "#fd79a8", "#2d3436"];
   return (
     <Sheet open={open} onClose={onClose} title="Bookmark" subTitle={reference} footer={mode === "select" ? undefined : <div className="bs-sheet__actions">{existing ? <Button reverse onClick={() => void remove()}>Remove</Button> : null}<Button onClick={save}>Save</Button></div>}>
       {mode === "select" ? (
@@ -42,13 +41,23 @@ export function BookmarkSheet({ open, onClose, reference, location, existing, bo
           <small className="bs-bmcount">Bookmarks: {bookmarks.length}/{MAX_BOOKMARKS}</small>
         </div>
       ) : (
-        <div className="bs-bmform">
-          <div className="bs-bmform__row"><Ion name="bookmark" size={24} color={color} /><input className="bs-input" placeholder={defaultName} value={name} onChange={(e) => setName(e.target.value)} maxLength={40} aria-label="Bookmark name" /></div>
-          <div className="bs-coloredit__grid" role="radiogroup" aria-label="Color">{COLORS.map((c) => <button key={c} type="button" role="radio" aria-checked={color === c} aria-label={c} title={c} style={{ background: c, boxShadow: color === c ? "0 0 0 3px var(--bs-reverse), 0 0 0 5px var(--bs-primary)" : undefined }} onClick={() => setColor(c)} />)}</div>
-          <label className="bs-coloredit__hex">Color <input type="color" value={color} onChange={(e) => setColor(e.target.value)} /><span>{color}</span></label>
-        </div>
+        <BookmarkForm name={name} color={color} placeholder={defaultName} onNameChange={setName} onColorChange={setColor} />
       )}
     </Sheet>
+  );
+}
+
+const BOOKMARK_COLORS = ["#cc0000", "#e17055", "#fdcb6e", "#00b894", "#0984e3", "#6c5ce7", "#fd79a8", "#2d3436"];
+
+/** Bible Strong's BookmarkForm: the bookmark in its colour beside the name, the colours, then Save when given one. */
+export function BookmarkForm({ name, color, placeholder, onNameChange, onColorChange, onSave }: { name: string; color: string; placeholder?: string; onNameChange: (name: string) => void; onColorChange: (color: string) => void; onSave?: () => void }) {
+  return (
+    <div className="bs-bmform">
+      <div className="bs-bmform__row"><Ion name="bookmark" size={24} color={color} /><input className="bs-input" placeholder={placeholder} value={name} onChange={(e) => onNameChange(e.target.value)} maxLength={40} aria-label="Bookmark name" /></div>
+      <div className="bs-coloredit__grid" role="radiogroup" aria-label="Color">{BOOKMARK_COLORS.map((c) => <button key={c} type="button" role="radio" aria-checked={color === c} aria-label={c} title={c} style={{ background: c, boxShadow: color === c ? "0 0 0 3px var(--bs-reverse), 0 0 0 5px var(--bs-primary)" : undefined }} onClick={() => onColorChange(c)} />)}</div>
+      <label className="bs-coloredit__hex">Color <input type="color" value={color} onChange={(e) => onColorChange(e.target.value)} /><span>{color}</span></label>
+      {onSave ? <div className="bs-bmform__save"><Button onClick={onSave}>Save</Button></div> : null}
+    </div>
   );
 }
 

@@ -104,16 +104,19 @@ test("tapping verses selects them, the sheet highlights, notes, tags and bookmar
   await tapVerse(page, 1);
   await expect(page.locator(".bs-selected")).toHaveCount(0);
   await expect(page.locator(".bs-pill--book")).toHaveText("Psalms 23");
-  // The lists: bookmarks, highlights with the tag, notes.
-  await page.click('.tab[aria-label="Main menu"]');
-  await expect(page.locator(".drawer--more[data-open]")).toBeVisible();
-  await page.click(".mcard__row >> text=Bookmarks, highlights");
-  await expect(page.locator(".row__title").first()).toHaveText("Comfort");
-  await page.click('[role=tab] >> text=Highlights');
+  // The lists, each its own screen as in Bible Strong: bookmarks, highlights with the tag, notes.
+  const fromMenu = async (label: string) => {
+    await page.click('.tab[aria-label="Main menu"]');
+    await expect(page.locator(".drawer--more[data-open]")).toBeVisible();
+    await page.locator(".mcard__row", { hasText: new RegExp(`^${label}$`) }).click();
+  };
+  await fromMenu("Bookmarks");
+  await expect(page.locator(".bmitem__text b").first()).toHaveText("Comfort");
+  await fromMenu("Highlights");
   await expect(page.locator(".row__title").first()).toHaveText("Psalms 23");
   await page.click(".chip >> text=promises");
   await expect(page.locator(".row__sub").first()).toContainText("Verses 1");
-  await page.click('[role=tab] >> text=Notes');
+  await fromMenu("Notes");
   await expect(page.locator(".row__title").first()).toHaveText("The shepherd psalm.");
 });
 
@@ -412,11 +415,11 @@ test("coming back keeps your place: typed search words, the menu a page was open
   await expect(page).toHaveURL(/\/search/);
   await expect(page.locator(".srch__bar #q")).toHaveValue("John 3:16");
   await expect(page.locator(".drawer--more[data-open]")).toBeVisible();
-  await page.goto(`/bookmarks${LAUNCH}`);
-  await page.getByRole("tab", { name: /^Highlights/ }).click();
-  await expect(page).toHaveURL(/tab=highlights/);
+  // Kept's old address for its highlights leads to the Highlights screen, and stays there.
+  await page.goto(`/bookmarks?tab=highlights${LAUNCH}`);
+  await expect(page).toHaveURL(/\/highlights(#|$)/);
   await page.reload();
-  await expect(page.getByRole("tab", { name: /^Highlights/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".head h1")).toHaveText("Highlights");
 });
 
 test("Home is Bible Strong's drawer: it slides the app aside and closes with a swipe", async ({ page }) => {
@@ -592,8 +595,8 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   await expect(home.locator(".stats__cell small")).toHaveText(["Highlight", "Bookmarks", "Note", "Studies", "Precepts", "Tags"]);
   // A reading plan is not a personal study.
   await expect(home.locator('.stats__cell[href="/studies"] b')).toHaveText("0");
-  await expect(home.locator('.stats__cell[href="/bookmarks?tab=highlights"] b')).toHaveText("1");
-  await expect(home.locator('.stats__cell[href="/bookmarks?tab=notes"] b')).toHaveText("1");
+  await expect(home.locator('.stats__cell[href="/highlights"] b')).toHaveText("1");
+  await expect(home.locator('.stats__cell[href="/notes"] b')).toHaveText("1");
   await expect(home.locator('.stats__cell[href="/relations"] b')).toHaveText("2");
   await home.getByRole("button", { name: "Image", exact: true }).click();
   const image = page.getByRole("dialog", { name: "Verse image" });

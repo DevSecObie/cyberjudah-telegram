@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 
 import { Feather, type FeatherName } from "@/bible/icons";
 import { Button, Sheet } from "@/bible/ui/Sheet";
-import { haptic } from "@/tg/sdk";
+import { features, haptic, popup } from "@/tg/sdk";
 
 import { Icon } from "./icons";
 import "./panel.css";
@@ -130,4 +130,11 @@ export function FiltersButton({ filters, onReset }: { filters: FiltersHeaderItem
       className={`bs-filter${count ? " bs-filter--on" : ""}`}
       trigger={count ? <span className="bs-filter__pill"><span>{count === 1 ? <Feather name={active[0].icon} size={14} /> : <b>{count}</b>}</span><span><Icon name="chevron-down" size={13} /></span></span> : <Icon name="filter" size={20} />} />
   );
+}
+
+/** Bible Strong's useConfirmDelete: Warning, the question, No or the destructive answer. */
+export async function confirmDelete(message: string, confirmLabel: string) {
+  return features.popups
+    ? await popup({ title: "Warning", message, buttons: [{ id: "no", type: "default", text: "No" }, { id: "yes", type: "destructive", text: confirmLabel }] }) === "yes"
+    : window.confirm(`Warning\n\n${message}`);
 }

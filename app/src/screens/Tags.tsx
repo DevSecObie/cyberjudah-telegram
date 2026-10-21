@@ -7,8 +7,8 @@ import { queryTagList, TAG_LIST_SORTS, type TagListSort } from "@/lib/entity-lis
 import { loadTagData, removeTagEverywhere, tagCounts, tagTabPaths, type TagCounts, type TagData } from "@/lib/tag-items";
 import { groupsNow, groupWithTabs, MAX_GROUPS } from "@/lib/tabs";
 import { goBack, useBackButton } from "@/tg/hooks";
-import { features, haptic, popup } from "@/tg/sdk";
-import { ContextualPanel, FiltersButton, PanelAction, PanelSearch, PanelTextForm } from "@/ui/panel";
+import { haptic } from "@/tg/sdk";
+import { confirmDelete, ContextualPanel, FiltersButton, PanelAction, PanelSearch, PanelTextForm } from "@/ui/panel";
 import { useSheet } from "@/ui/sheet";
 import { moveTab } from "@/ui/tab-motion";
 import { useToast } from "@/ui/toast";
@@ -42,13 +42,7 @@ function useTagQuery(): [TagQuery, (next: TagQuery) => void] {
   return [q, (next) => { setQ(next); try { localStorage.setItem(QUERY_KEY, JSON.stringify(next)); } catch { /* private mode */ } }];
 }
 
-/** Bible Strong's useConfirmDelete: Warning, the question, No or the destructive answer. */
-async function confirmRemove(confirmLabel: string) {
-  const message = "Are you sure you want to delete this tag?";
-  return features.popups
-    ? await popup({ title: "Warning", message, buttons: [{ id: "no", type: "default", text: "No" }, { id: "yes", type: "destructive", text: confirmLabel }] }) === "yes"
-    : window.confirm(`Warning\n\n${message}`);
-}
+const confirmRemove = (confirmLabel: string) => confirmDelete("Are you sure you want to delete this tag?", confirmLabel);
 
 /**
  * Bible Strong's useCreateTabGroupFromTag: a new group named after the tag, a tab for each thing it
