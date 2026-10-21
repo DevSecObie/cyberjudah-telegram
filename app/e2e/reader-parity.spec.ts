@@ -868,3 +868,47 @@ test("a saved relation between two non-verse items opens from the saved list", a
   await expect(page).toHaveURL(/endpoint=dictionary%3Aeden/);
   await expect(page.locator(".rel-row", { hasText: "A class" })).toBeVisible();
 });
+
+test("a reference in content opens a preview card of the passage, with Open and nested Back, and closing leaves the page", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({ "1/2": { id: "n", title: "Creation", description: "Light came first (Genesis 1:3)", date: 1 } }));
+    localStorage.setItem("cj:rel_genesis_1", JSON.stringify([
+      { id: "r1", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-20"], label: "Genesis 1:20" }, { type: "verse", verseKeys: ["john-3-16"], label: "John 3:16" }], createdAt: 1, updatedAt: 1 },
+      { id: "r2", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-20"], label: "Genesis 1:20" }, { type: "note", verseKey: "genesis-1-2", label: "Creation" }], createdAt: 1, updatedAt: 2 },
+    ]));
+  });
+  await page.goto("/read/genesis/1");
+  const john = page.locator("#verset-20 .rel-tag", { hasText: "John 3:16" });
+  await john.scrollIntoViewIfNeeded();
+  const top = () => page.locator("#verset-20").evaluate((el) => Math.round(el.getBoundingClientRect().top));
+  const before = await top();
+
+  await john.click();
+  const card = page.getByRole("dialog", { name: "John 3:16 · KJV" });
+  await expect(card).toContainText("Verse 16:");
+  await expect(card).not.toContainText("Verse 17:");
+  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  await expect(card.getByRole("button", { name: "Back" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(card).toBeHidden();
+  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  expect(await top()).toBe(before);
+
+  // A reference inside the card opens on top of it; Back returns.
+  await page.locator("#verset-20 .rel-tag", { hasText: "Creation" }).click();
+  const note = page.getByRole("dialog", { name: "Note" });
+  await expect(note).toContainText("Light came first");
+  await note.getByRole("link", { name: "Genesis 1:3" }).click();
+  const nested = page.getByRole("dialog", { name: "Genesis 1:3 · KJV" });
+  await expect(nested).toContainText("Verse 3:");
+  await nested.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("dialog", { name: "Note" })).toContainText("Light came first");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Note" })).toBeHidden();
+  expect(await top()).toBe(before);
+
+  await john.click();
+  await card.getByRole("button", { name: "Open" }).click();
+  await expect(page).toHaveURL(/\/read\/john\/3\?v=16/);
+});

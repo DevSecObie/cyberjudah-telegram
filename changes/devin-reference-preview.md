@@ -1,0 +1,1 @@
+- Tapping a scripture reference in a note, a precept, a lexicon or dictionary entry, a case or an answer now opens a small card with the passage, as Bible Strong does. Open goes to the passage, Back returns through nested cards, and closing it leaves the page where it was.

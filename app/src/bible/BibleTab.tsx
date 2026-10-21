@@ -6,7 +6,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from "react-rout
 import { compressVerses, data, verseNumbers, type Chapter as ChapterData } from "@/api/data";
 import { isRead, markRead, pushHistory, unmarkRead, useHistory, useLast, usePlan, useProgress } from "@/lib/marks";
 import { advance, planDay } from "@/lib/plan";
-import { annotationEndpoint, annotationParam, createRelation, deleteRelation, endpointHref, useChapterRelations, useEndpointRelations, verseKey, type Endpoint, type Relation, type VerseEndpoint, type VerseRelationItem } from "@/lib/relations";
+import { annotationEndpoint, annotationParam, createRelation, deleteRelation, endpointHref, parseVerseKey, useChapterRelations, useEndpointRelations, verseKey, type Endpoint, type Relation, type VerseEndpoint, type VerseRelationItem } from "@/lib/relations";
 import { share } from "@/lib/share";
 import { useReaderSpeech, useAudioPlayer } from "@/lib/AudioPlayer";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
@@ -18,6 +18,8 @@ import { colorItems, DEFAULT_COLOR_KEYS, highlightInfo, paletteOf, resolveTheme,
 import { cssVars, isDarkTheme } from "./theme";
 import { useToast } from "@/ui/toast";
 import { useOpenInNewTab } from "@/ui/open-in-new-tab";
+import { useReferencePreview, verseSpec } from "@/ui/refpreview";
+import { popoverTrigger } from "@/ui/popover";
 import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
 import { BookSelectorSheet, VersePopup } from "./ui/BookSelectorSheet";
 import { VerseJump } from "./ui/VerseJump";
@@ -277,12 +279,21 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
     await createRelation([verseEndpoint(), { type: "link", url: v.url, label: v.title }]);
     setSheet(null); setSelected([]); haptic("success");
   };
+  const preview = useReferencePreview();
   const openRelationItem = async (it: VerseRelationItem) => {
     const t = it.target;
     // The library's note on a verse's precepts: why they are there.
     if (isWhy(it.relation)) { setWhyAt(whyVerse(it.relation)); setSheet("why"); return; }
-    if (t.type === "note") { const found = await readNote(t.verseKey); if (found) { setNoteEdit({ key: found.key, note: found.note, relation: it.relation }); setSheet("note"); } else void alert("This note no longer exists"); return; }
+    if (t.type === "note") {
+      const anchor = popoverTrigger();
+      const found = await readNote(t.verseKey);
+      const edit = () => { if (found) { setNoteEdit({ key: found.key, note: found.note, relation: it.relation }); setSheet("note"); } else void alert("This note no longer exists"); };
+      if (!preview({ kind: "note", note: found?.note ?? null, open: edit }, anchor)) edit();
+      return;
+    }
     if (t.type === "link") { openLink(endpointHref(t)); return; }
+    const p = t.type === "verse" ? parseVerseKey(t.verseKeys[0]) : null;
+    if (t.type === "verse" && p && preview({ kind: "bible", slug: p.slug, chapter: p.chapter, verses: verseSpec(t.verseKeys.map((k) => parseVerseKey(k)!.verse)), open: () => navigate(endpointHref(t)) })) return;
     navigate(endpointHref(t));
   };
 

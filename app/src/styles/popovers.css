@@ -35,3 +35,18 @@
 .sheet__scrim[data-anchored] { inset: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left); display: block; background: transparent; pointer-events: none; animation: none; }
 .sheet__scrim[data-anchored] .sheet { position: absolute; pointer-events: auto; margin: 0; width: min(320px, calc(100% - 16px)); max-height: calc(100% - 16px); border-radius: var(--r-xl); }
 .sheet__scrim[data-anchored] .sheet__grip { display: none; }
+
+/* Bible Strong's reference preview (ReferencePreviewHost): 440 wide, a one-line header with Back
+   and Open, the passage scrolling on its own under min(360px, 55% of the viewport) at 16/24. */
+.sheet__scrim[data-anchored] .refpreview { width: min(440px, calc(100% - 16px)); padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+.refpreview__head { display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 4px; border-bottom: 1px solid var(--hairline); }
+.refpreview__title { flex: 1; min-width: 0; text-align: center; font: 600 var(--fs-body) var(--font-ui); color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.refpreview__btn { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 0; padding: 0; background: none; color: var(--text-1); cursor: pointer; }
+.refpreview__btn[data-primary] { color: var(--accent); }
+.refpreview__body { max-height: min(360px, 55vh); overflow-y: auto; overscroll-behavior: contain; padding: 10px 16px; }
+.refpreview__text { margin: 0; font-family: var(--bs-font, var(--font-read)); font-size: 16px; line-height: 24px; color: var(--text-1); }
+.refpreview__num { font-size: 11px; color: var(--text-3); }
+.refpreview__notetitle { display: block; font-size: 16px; font-weight: 600; color: var(--text-1); }
+.refpreview__state { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 0; padding: 12px 0; font-size: 14px; color: var(--text-3); }
+.refpreview__state p { margin: 0; }
+.refpreview__retry { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; cursor: pointer; }
