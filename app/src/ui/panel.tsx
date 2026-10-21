@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 
 import { Feather, type FeatherName } from "@/bible/icons";
 import { Button, Sheet } from "@/bible/ui/Sheet";
-import { haptic } from "@/tg/sdk";
+import { features, haptic, popup } from "@/tg/sdk";
 
 import { Icon } from "./icons";
 import "./panel.css";
@@ -82,14 +82,14 @@ export function PanelSearch({ value, onChange, placeholder = "Search" }: { value
   return <div className="panel-search"><input type="search" aria-label="Search" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} autoFocus /></div>;
 }
 
-export type FilterOption = { key: string; label: string; selected: boolean; onSelect: () => void };
-/** Bible Strong's FilterChoices: one row per choice, a check on the one chosen. */
+export type FilterOption = { key: string; label: string; selected: boolean; color?: string; onSelect: () => void };
+/** Bible Strong's FilterChoices: one row per choice, its colour if it has one, a check on the one chosen. */
 export function FilterChoices({ options }: { options: FilterOption[] }) {
   return (
     <div role="radiogroup">
       {options.map((o) => (
         <button key={o.key} type="button" role="radio" aria-checked={o.selected} className="panel-choice" onClick={() => { haptic("select"); o.onSelect(); }}>
-          <span>{o.label}</span>{o.selected ? <span className="panel-choice__check"><Feather name="check" size={20} /></span> : null}
+          {o.color ? <span className="panel-choice__color" style={{ background: o.color }} /> : null}<span>{o.label}</span>{o.selected ? <span className="panel-choice__check"><Feather name="check" size={20} /></span> : null}
         </button>
       ))}
     </div>
@@ -97,7 +97,7 @@ export function FilterChoices({ options }: { options: FilterOption[] }) {
 }
 
 /** A filter of Bible Strong's FiltersHeader: either its own screen (`content`) or a list of choices (`options`). */
-export type FiltersHeaderItem = { key: string; icon: FeatherName; label: string; value?: string; active?: boolean; content?: (navigation: PanelNavigation) => ReactNode; options?: FilterOption[] };
+export type FiltersHeaderItem = { key: string; icon: FeatherName; label: string; value?: string; color?: string; active?: boolean; content?: (navigation: PanelNavigation) => ReactNode; options?: FilterOption[] };
 
 /**
  * Bible Strong's FiltersHeader button: the filter icon, or once filters are set the count (or the
@@ -114,6 +114,7 @@ export function FiltersButton({ filters, onReset }: { filters: FiltersHeaderItem
         <button key={f.key} type="button" className="panel-filter" data-active={f.active ? "" : undefined} onClick={() => nav.open(f.key)}>
           <span className="panel-filter__icon"><Feather name={f.icon} size={20} /></span>
           <span className="panel-filter__label">{f.label}</span>
+          {f.color ? <span className="panel-filter__color" style={{ background: f.color }} /> : null}
           <span className="panel-filter__value">{f.value}</span>
           <span className="panel-filter__chevron"><Feather name="chevron-right" size={20} /></span>
         </button>
@@ -130,4 +131,11 @@ export function FiltersButton({ filters, onReset }: { filters: FiltersHeaderItem
       className={`bs-filter${count ? " bs-filter--on" : ""}`}
       trigger={count ? <span className="bs-filter__pill"><span>{count === 1 ? <Feather name={active[0].icon} size={14} /> : <b>{count}</b>}</span><span><Icon name="chevron-down" size={13} /></span></span> : <Icon name="filter" size={20} />} />
   );
+}
+
+/** Bible Strong's useConfirmDelete: Warning, the question, No or the destructive answer. */
+export async function confirmDelete(message: string, confirmLabel: string) {
+  return features.popups
+    ? await popup({ title: "Warning", message, buttons: [{ id: "no", type: "default", text: "No" }, { id: "yes", type: "destructive", text: confirmLabel }] }) === "yes"
+    : window.confirm(`Warning\n\n${message}`);
 }

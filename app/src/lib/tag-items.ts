@@ -53,6 +53,48 @@ export async function loadTagData(): Promise<Record<string, TagData & { highligh
   return out;
 }
 
+/**
+ * Every highlight and every word mark, for the Highlights screen: a highlight made at one moment
+ * over several verses is one (Bible Strong's buildGroupedHighlights), a mark over several verses one.
+ */
+export async function loadHighlightItems(): Promise<{ highlights: TaggedHighlight[]; wordAnnotations: TaggedMark[] }> {
+  const byDate = new Map<number, TaggedHighlight>();
+  for (const k of await store.keys()) {
+    const h = chapterOf(k, "bs_h_");
+    if (!h) continue;
+    for (const [v, hl] of Object.entries(await json.get<Record<string, Highlight>>(k, {}))) {
+      if (!byDate.has(hl.date)) byDate.set(hl.date, { date: hl.date, color: hl.color, tags: hl.tags, verses: [] });
+      byDate.get(hl.date)!.verses.push({ ...h, verse: +v });
+    }
+  }
+  const marks = new Map<string, Annotation[]>();
+  for (const a of await allAnnotations().catch(() => [] as Annotation[])) marks.set(markId(a), [...(marks.get(markId(a)) ?? []), a]);
+  const wordAnnotations = [...marks].map(([id, records]): TaggedMark => {
+    const first = records[0];
+    const tags = Object.fromEntries([...new Set(records.flatMap((r) => Object.keys(r.tags ?? {})))].map((t) => [t, true as const]));
+    return { id, verseKeys: records.map((r) => r.verseKey), quote: records.map((r) => r.quote).join(" "), date: Date.parse(first.created) || 0, color: first.color, style: first.style, tags };
+  });
+  return { highlights: [...byDate.values()], wordAnnotations };
+}
+
+/** Change or remove (null) each highlighted verse of a highlight, chapter by chapter. */
+export async function editHighlight(item: TaggedHighlight, edit: (h: Highlight) => Highlight | null) {
+  const byChapter = new Map<string, number[]>();
+  for (const v of item.verses) byChapter.set(`bs_h_${v.slug}_${v.chapter}`, [...(byChapter.get(`bs_h_${v.slug}_${v.chapter}`) ?? []), v.verse]);
+  for (const [key, verses] of byChapter) {
+    const all = await json.get<Record<string, Highlight>>(key, {});
+    for (const v of verses) { const h = all[String(v)]; if (!h) continue; const next = edit(h); if (next) all[String(v)] = next; else delete all[String(v)]; }
+    json.set(key, all);
+  }
+}
+
+/** Change or remove (null) every record of a word mark. */
+export async function editMark(id: string, edit: (a: Annotation) => Annotation | null) {
+  const records = (await allAnnotations()).filter((a) => markId(a) === id);
+  const next = records.map((a) => [a, edit(a)] as const);
+  await changeAnnotations({ update: next.filter(([, b]) => b).map(([, b]) => b!), remove: next.filter(([, b]) => !b).map(([a]) => a.id) });
+}
+
 export function tagCounts(d: (TagData & { highlightVerses: number }) | undefined): TagCounts {
   if (!d) return { highlights: 0, notes: 0, links: 0, wordAnnotations: 0, itemCount: 0 };
   return { highlights: d.highlights.length, notes: d.notes.length, links: d.links.length, wordAnnotations: d.wordAnnotations.length, itemCount: d.highlightVerses + d.notes.length + d.links.length + d.wordAnnotations.length };

@@ -393,7 +393,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
           onSwipe={(dir) => step(dir === "left" ? next : prev)} onFullscreen={setFullscreen}
           onOpenBookmark={(b) => { setBookmarkTarget({ verse: b.verse, existing: b }); setSheet("bookmark"); }}
           onOpenRelations={(v) => navigate(`/relations?endpoint=${verseKey(slug, ch, v)}`)} onOpenRelationItem={(it) => void openRelationItem(it)}
-          onOpenTags={(v) => { const group = Object.entries(highlights).filter(([, h]) => h.date === highlights[String(v)]?.date).map(([k]) => +k); setTagsTarget(group.length ? group : [v]); setSheet("tags"); }} onOpenTag={(id) => navigate(`/bookmarks?tag=${id}`)} />
+          onOpenTags={(v) => { const group = Object.entries(highlights).filter(([, h]) => h.date === highlights[String(v)]?.date).map(([k]) => +k); setTagsTarget(group.length ? group : [v]); setSheet("tags"); }} onOpenTag={(id) => navigate(`/highlights?tag=${id}`)} />
       )}
       <Footer hasPrev={!!prev && !loading} hasNext={!!next && !loading} onPrev={() => step(prev)} onNext={() => step(next)} speech={player.speech} fullscreen={fullscreen} hidden={contextMode === "focused" && !!focus} bottomBar={bottomBar} reference={chapterLabel} verseCount={verses.length} repeat={repeat} setRepeat={setRepeat} expanded={audioOpen} setExpanded={setAudioOpen} />
 

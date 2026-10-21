@@ -16,9 +16,9 @@ import { Empty, Icon, Screen, SearchField } from "@/ui/ui";
 type Lang = "hebrew" | "greek";
 const isLang = (r: StrongsRow, l: Lang) => r.n.startsWith(l === "hebrew" ? "H" : "G");
 /** The whole Strong's index (14,197 rows), kept for the session. */
-export const useStrongsIndex = () => {
+export const useStrongsIndex = (enabled = true) => {
   const release = useResourceRelease("strongs");
-  return useQuery({ queryKey: ["strongs-index", release], enabled: release !== undefined, queryFn: () => data.strongsIndex(release), staleTime: Infinity });
+  return useQuery({ queryKey: ["strongs-index", release], enabled: enabled && release !== undefined, queryFn: () => data.strongsIndex(release), staleTime: Infinity });
 };
 /** Strong's word of the day in a language: a word used often enough to be worth meeting (Bible Strong's StrongOfTheDay). */
 export function strongOfDay(rows: StrongsRow[] | undefined, lang: Lang): StrongsRow | undefined {

@@ -7,8 +7,8 @@ import { queryTagList, TAG_LIST_SORTS, type TagListSort } from "@/lib/entity-lis
 import { loadTagData, removeTagEverywhere, tagCounts, tagTabPaths, type TagCounts, type TagData } from "@/lib/tag-items";
 import { groupsNow, groupWithTabs, MAX_GROUPS } from "@/lib/tabs";
 import { goBack, useBackButton } from "@/tg/hooks";
-import { features, haptic, popup } from "@/tg/sdk";
-import { ContextualPanel, FiltersButton, PanelAction, PanelSearch, PanelTextForm } from "@/ui/panel";
+import { haptic } from "@/tg/sdk";
+import { confirmDelete, ContextualPanel, FiltersButton, PanelAction, PanelSearch, PanelTextForm } from "@/ui/panel";
 import { useSheet } from "@/ui/sheet";
 import { moveTab } from "@/ui/tab-motion";
 import { useToast } from "@/ui/toast";
@@ -42,13 +42,7 @@ function useTagQuery(): [TagQuery, (next: TagQuery) => void] {
   return [q, (next) => { setQ(next); try { localStorage.setItem(QUERY_KEY, JSON.stringify(next)); } catch { /* private mode */ } }];
 }
 
-/** Bible Strong's useConfirmDelete: Warning, the question, No or the destructive answer. */
-async function confirmRemove(confirmLabel: string) {
-  const message = "Are you sure you want to delete this tag?";
-  return features.popups
-    ? await popup({ title: "Warning", message, buttons: [{ id: "no", type: "default", text: "No" }, { id: "yes", type: "destructive", text: confirmLabel }] }) === "yes"
-    : window.confirm(`Warning\n\n${message}`);
-}
+const confirmRemove = (confirmLabel: string) => confirmDelete("Are you sure you want to delete this tag?", confirmLabel);
 
 /**
  * Bible Strong's useCreateTabGroupFromTag: a new group named after the tag, a tab for each thing it
@@ -82,7 +76,7 @@ function chips(c: TagCounts) {
 }
 
 /** Bible Strong's TagOptionsPanel: Edit (rename, in the panel), Create tab group, Remove. */
-function TagOptions({ tag, data, onRename, onRemove }: { tag: Tag; data: TagData | undefined; onRename: (name: string) => void; onRemove: () => void }) {
+function TagOptions({ tag, data, loaded, onRename, onRemove }: { tag: Tag; data: TagData | undefined; loaded: boolean; onRename: (name: string) => void; onRemove: () => void }) {
   const createGroup = useCreateTabGroupFromTag();
   return (
     <ContextualPanel triggerSize={54} trigger={<Feather name="more-vertical" size={20} />} label="More options" initialScreen="actions" screens={{
@@ -91,7 +85,7 @@ function TagOptions({ tag, data, onRename, onRemove }: { tag: Tag; data: TagData
         content: (nav) => (
           <>
             <PanelAction nested icon="edit-3" label="Edit" onPress={() => nav.open("rename")} />
-            <PanelAction icon="layers" label="Create tab group" onPress={() => { nav.close(); createGroup(tag, data); }} />
+            <PanelAction icon="layers" label="Create tab group" onPress={() => { nav.close(); if (loaded) createGroup(tag, data); }} />
             <PanelAction icon="trash-2" destructive label="Remove" onPress={() => { nav.close(); void confirmRemove("Remove").then((ok) => { if (ok) onRemove(); }); }} />
           </>
         ),
@@ -109,7 +103,7 @@ export function Tags() {
   useBackButton();
   const sheet = useSheet();
   const [tags, setTags] = useTags();
-  const { data, reload } = useTagData();
+  const { data, loaded, reload } = useTagData();
   const [q, setQ] = useTagQuery();
   const rows = useMemo(() => Object.values(tags).filter((t): t is Tag => !!t?.id && typeof t.name === "string").map((tag) => {
     const counts = tagCounts(data[tag.id]);
@@ -143,7 +137,7 @@ export function Tags() {
                   <b>{r.title}</b>
                   <span className="tagitem__chips">{chips(r.counts).map((c) => <span key={c} className="tagitem__chip">{c}</span>)}</span>
                 </Link>
-                <TagOptions tag={r.tag} data={data[r.id]} onRename={(name) => rename(r.tag, name)} onRemove={() => void remove(r.tag)} />
+                <TagOptions tag={r.tag} data={data[r.id]} loaded={loaded} onRename={(name) => rename(r.tag, name)} onRemove={() => void remove(r.tag)} />
               </div>
             </div>
           ))}
@@ -172,7 +166,7 @@ export function TagScreen() {
       const r = await sheet.open({ title: "Rename tag", text: { label: "Tag name", value: tag.name, placeholder: "Tag name", submit: "Save" } });
       if (r?.id === "text" && r.value) setTags({ ...tags, [id]: { ...tag, name: r.value } });
     }
-    if (a?.id === "create-group") createGroup(tag, data[id]);
+    if (a?.id === "create-group" && loaded) createGroup(tag, data[id]);
     if (a?.id === "delete" && await confirmRemove("Yes")) {
       await removeTagEverywhere(id);
       const next = { ...tags }; delete next[id]; setTags(next);

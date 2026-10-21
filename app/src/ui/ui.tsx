@@ -16,7 +16,7 @@ import { Feather } from "@/bible/icons";
 import { Icon, type IconName } from "./icons";
 import { useSheetRoute } from "./sheetRoute";
 import { moveTab } from "./tab-motion";
-import { clearOver, historyIdx, isOver } from "@/lib/over-page";
+import { historyIdx, isOver } from "@/lib/over-page";
 import { useAvailableUpdatesIndicator } from "@/resources/updates";
 import { useTabScrub } from "./TabScrub";
 export { Icon, type IconName } from "./icons";
@@ -78,9 +78,7 @@ export function TabBar() {
   const scrub = useTabScrub(tabs, currentTabId, (id) => {
     setDrawer(null);
     if (id === currentTabId) return;
-    const idx = historyIdx(), to = selectTab(id);
-    clearOver(idx);
-    navigate(to, { replace: true });
+    moveTab(() => { navigate(selectTab(id), { replace: true }); }, "slide");
   });
   const cancelPress = () => {
     swipe.current = null; touchTarget.current = null; touchClick.current = null; pointer.current = null;

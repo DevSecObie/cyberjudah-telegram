@@ -54,8 +54,11 @@ const History = lazy(() => import("@/screens/History").then((m) => ({ default: m
 const Dictionary = lazy(() => import("@/screens/Dictionary").then((m) => ({ default: m.Dictionary })));
 const DictionaryEntry = lazy(() => import("@/screens/Dictionary").then((m) => ({ default: m.DictionaryEntry })));
 const Person = lazy(() => import("@/screens/Person").then((m) => ({ default: m.Person })));
+const Place = lazy(() => import("@/screens/Place").then((m) => ({ default: m.Place })));
 const Relations = lazy(() => import("@/screens/Relations").then((m) => ({ default: m.Relations })));
 const Bookmarks = lazy(() => import("@/screens/Bookmarks").then((m) => ({ default: m.Bookmarks })));
+const Highlights = lazy(() => import("@/screens/Highlights").then((m) => ({ default: m.Highlights })));
+const Notes = lazy(() => import("@/screens/Notes").then((m) => ({ default: m.Notes })));
 const Sabbath = lazy(() => import("@/screens/Sabbath").then((m) => ({ default: m.Sabbath })));
 const Books = lazy(() => import("@/screens/Books").then((m) => ({ default: m.Books })));
 const BookScreen = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookScreen })));
@@ -121,6 +124,7 @@ const routes = (
     <Route path="/lexicon/:number" element={<LexiconEntry />} />
     <Route path="/people" element={<People />} />
     <Route path="/person/:id" element={<Person />} />
+    <Route path="/place/:id" element={<Place />} />
     <Route path="/tags" element={<Tags />} />
     <Route path="/tags/:id" element={<TagScreen />} />
     <Route path="/books" element={<Books />} />
@@ -128,6 +132,8 @@ const routes = (
     <Route path="/books/:slug/p/:page" element={<BookPageLink />} />
     <Route path="/books/:slug/:k" element={<BookChapterScreen />} />
     <Route path="/bookmarks" element={<Bookmarks />} />
+    <Route path="/highlights" element={<Highlights />} />
+    <Route path="/notes" element={<Notes />} />
     <Route path="/sabbath" element={<Sabbath />} />
     <Route path="/studies" element={<PersonalStudies />} />
     <Route path="/studies/:id" element={<PersonalStudies />} />

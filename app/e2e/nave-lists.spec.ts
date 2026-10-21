@@ -75,7 +75,7 @@ test("the discs take the theme's own quart and quint, darkened only where their 
     await expect(page.locator("html")).toHaveAttribute("data-palette", theme);
     const precepts = await disc("/precepts", "s"), topics = await disc("/topics", "a");
     for (const d of [precepts, topics]) { expect(d.ink).toBe("rgb(255, 255, 255)"); expect(ratio(d.bg, d.ink)).toBeGreaterThanOrEqual(4.5); }
-    // Bible Strong's colours stand wherever they already read: quart on Paper, quint on Paper.
+    // Bible Strong's colours stand wherever they already read: quart on White, quint on White.
     if (theme === "default") { expect(precepts.bg).toBe("rgb(194, 40, 57)"); expect(topics.bg).toBe("rgb(48, 51, 107)"); }
   }
 });
