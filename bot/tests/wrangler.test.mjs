@@ -57,3 +57,11 @@ test("only staging exempts the release check's synthetic reader from the search 
   assert.equal(config.vars.SEARCH_AI_QUOTA_EXEMPT, "");
   assert.equal(config.env.staging.vars.SEARCH_AI_QUOTA_EXEMPT, "1");
 });
+
+test("the compatibility date is one the pinned workerd runs, so local runs match production", () => {
+  const { version } = JSON.parse(readFileSync(new URL("../../node_modules/workerd/package.json", import.meta.url), "utf8"));
+  const runs = version.split(".")[1].replace(/(\d{4})(\d{2})(\d{2})/, "$1-$2-$3");
+  assert.match(config.compatibility_date, /^\d{4}-\d{2}-\d{2}$/);
+  assert.ok(config.compatibility_date <= runs, `${config.compatibility_date} is past workerd ${version}`);
+  assert.equal(config.env.staging.compatibility_date, undefined, "staging inherits the same date");
+});
