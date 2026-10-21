@@ -60,7 +60,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: approved-resource-bundles-${{ github.sha }}
           path: ${{ runner.temp }}/resource-bundles
