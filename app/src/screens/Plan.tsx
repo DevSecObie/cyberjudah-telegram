@@ -50,7 +50,8 @@ export function Plan() {
   // pending celebration across that boundary, without replaying an old one on every visit.
   useEffect(() => {
     if (leaving.current || !active || !stored || !planReady || !progressReady || !books.data || !days.length) return;
-    const increased = stored.seenCompleted !== undefined && completion.completed > stored.seenCompleted;
+    // Only the current day being finished advances the streak and is celebrated, not a later day read early.
+    const increased = stored.seenCompleted !== undefined && completion.completed > stored.seenCompleted && days[stored.day]?.done === true;
     if (increased && !document.hidden) setSuccess(completion.finished ? "plan" : "day");
     if (document.hidden && increased) return;
     if (stored.day !== completion.resume || stored.seenCompleted !== completion.completed) {
@@ -76,7 +77,7 @@ export function Plan() {
         if (answer?.id !== "start") return;
       }
       setPlan({ ...plan, startedAt: today, seenCompleted: completion.completed, day: completion.resume });
-      const first = days[0]?.chapters[0];
+      const resume = days[completion.resume], first = resume?.chapters.find(c => !c.read) ?? resume?.chapters[0];
       if (first) openChapter(first.slug, first.chapter);
     } else {
       const next = shown.chapters.find(c => !c.read) ?? shown.chapters[0];

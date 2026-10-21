@@ -504,6 +504,29 @@ test("plan completion can be corrected by keyboard and its read action stays ins
   await expect(page.locator("#verset-1")).toBeVisible();
 });
 
+test("starting a plan whose first day is already read opens the next reading", async ({ page }) => {
+  await page.addInitScript(() => { if (!localStorage.getItem("cj:read")) localStorage.setItem("cj:read", JSON.stringify({ john: "1" })); });
+  await page.goto("/plan?catalog=book%3Ajohn&pace=1");
+  await page.getByRole("button", { name: "Start this plan", exact: true }).click();
+  await expect(page).toHaveURL(/\/read\/john\/2$/);
+});
+
+test("reading a later day early neither advances the streak nor celebrates; finishing the current day does", async ({ page }) => {
+  await page.addInitScript(() => { if (!localStorage.getItem("cj:plan")) localStorage.setItem("cj:plan", JSON.stringify({ startedAt: new Date().toISOString().slice(0, 10), day: 0, streak: 0, perDay: 1, books: ["john"], name: "John", seenCompleted: 0 })); });
+  await page.goto("/plan");
+  const stored = () => page.evaluate(() => JSON.parse(localStorage.getItem("cj:plan")!));
+  await page.getByRole("button", { name: "Next day", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Day 2 of 3" })).toBeVisible();
+  await page.getByRole("checkbox", { name: "John 2", exact: true }).click();
+  await expect.poll(async () => (await stored()).seenCompleted).toBe(1);
+  await expect(page.getByRole("dialog", { name: "Congratulations" })).toHaveCount(0);
+  expect(await stored()).toMatchObject({ streak: 0, day: 0 });
+  await page.getByRole("button", { name: "Previous day", exact: true }).click();
+  await page.getByRole("checkbox", { name: "John 1", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Congratulations" })).toBeVisible();
+  await expect.poll(async () => (await stored()).streak).toBe(1);
+});
+
 test("resetting a selected plan starts it again on day one and unmarks only its own chapters", async ({ page }) => {
   await page.addInitScript(() => {
     if (sessionStorage.getItem("seeded")) return; sessionStorage.setItem("seeded", "1");
