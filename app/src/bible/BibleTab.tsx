@@ -23,6 +23,8 @@ import { popoverTrigger } from "@/ui/popover";
 import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
 import { BookSelectorSheet, VersePopup } from "./ui/BookSelectorSheet";
 import { VerseJump } from "./ui/VerseJump";
+import { StrongModeSheet, StrongSelectionSheet, useStrongModeShortcut } from "./ui/StrongMode";
+import { useStrongMode, type StrongSelection } from "./strongMode";
 import { BookmarkSheet, LinkSheet, NoteSheet, TagsPanel } from "./ui/Editors";
 import { ChapterEnd } from "./ui/ChapterEnd";
 import { ChapterPeople } from "./ui/ChapterPeople";
@@ -174,6 +176,13 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   useEffect(() => { if (chapterLabel && loaded) setHistory(pushHistory(history, { slug, chapter: ch, verse: verseToScroll ?? 1, name: chapterLabel })); }, [slug, ch, chapterLabel, verseToScroll, loaded]); // eslint-disable-line react-hooks/exhaustive-deps
   const progressRef = useRef(progress); progressRef.current = progress;
   const rootRef = useRef<HTMLElement>(null);
+  // Bible Strong's Strong's mode, kept with the tab, and the reference tapped in it: tapping it again,
+  // or a change of chapter, passage, mode or annotation mode, closes its sheet.
+  const [strongMode, setStrongMode] = useStrongMode(tabId);
+  const [strongSel, setStrongSel] = useState<StrongSelection | null>(null);
+  useEffect(() => { setStrongSel(null); }, [slug, ch, strongMode, annotating, contextMode, focus?.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+  useStrongModeShortcut(rootRef, strongMode, setStrongMode);
+  const strongHebrew = verses.find((v) => v.words?.some(([, n]) => n.length))?.words?.find(([, n]) => n.length)?.[1][0].startsWith("H") ?? false;
   useEffect(() => { const t = setTimeout(() => setProgress(markRead(progressRef.current, slug, ch)), 20_000); return () => clearTimeout(t); }, [slug, ch]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!plan || !list.length || !planDay(plan, list, progress).done) return;
@@ -183,7 +192,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   }, [plan, list, progress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sheets.
-  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare" | "study" | "markNote" | "markTags" | "palette" | "colorEdit">(null);
+  const [sheet, setSheet] = useState<null | "books" | "version" | "verses" | "params" | "bookmark" | "tags" | "note" | "link" | "relation" | "resources" | "export" | "why" | "search" | "compare" | "study" | "markNote" | "markTags" | "palette" | "colorEdit" | "strong">(null);
   // The colour palette as a picker (ColorPickerModal's atom): what is selected, and where a pick goes.
   const [paletteRequest, setPaletteRequest] = useState<PaletteRequest | null>(null);
   const openPalette = (request: PaletteRequest) => { setPaletteRequest(request); setSheet("palette"); };
@@ -385,7 +394,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
       {chapterLabel ? <h1 className="sr-only">{chapterLabel}, KJV</h1> : null}
       <Header bookLabel={chapterLabel} version="KJV" onBook={() => setSheet("books")} onVersion={() => setSheet("version")} onVerses={() => setSheet("verses")}
         selectedReference={selectedReference} focusedReference={focusedReference} onClearFocus={clearFocus} collapsed={fullscreen}
-        onMenu={onMenu} hasChapterBookmark={!!chapterBookmark} chapterBookmarkColor={chapterBookmark?.color} onChapterBookmark={() => { setBookmarkTarget({ existing: chapterBookmark }); setSheet("bookmark"); }} menuOpen={menuOpen} setMenuOpen={setMenuOpen} annotating={annotating} onExitAnnotation={exitAnnotation} />
+        onMenu={onMenu} hasChapterBookmark={!!chapterBookmark} chapterBookmarkColor={chapterBookmark?.color} onChapterBookmark={() => { setBookmarkTarget({ existing: chapterBookmark }); setSheet("bookmark"); }} menuOpen={menuOpen} setMenuOpen={setMenuOpen} annotating={annotating} onExitAnnotation={exitAnnotation} strongMode={strongMode} onStrongMode={() => setSheet("strong")} />
       {focus && !annotating ? <PassageContextBar focused={contextMode === "focused"} collapsed={fullscreen} onExpand={() => setContextMode("fullChapter")} onCollapse={() => { setContextMode("focused"); setNavRequest((n) => n + 1); }} onExit={clearFocus} /> : null}
       {text.isError ? (
         <div className="bs-error" style={{ paddingTop: headerHeight + 100 }}><span className="bs-error__icon"><Feather2 /></span><p>This chapter did not load. Check your connection, or save this book for offline reading in Settings.</p><button type="button" className="bs-btn" onClick={() => void text.refetch()}>Retry</button></div>
@@ -395,6 +404,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
           highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={relItems}
           moments={classMoments.data} deck={{ reference: chapterLabel, from: `/read/${slug}/${ch}` }}
           headerHeight={headerHeight} fullscreen={fullscreen} canSwipe={!annotating}
+          strongMode={strongMode} strong={{ selected: strongSel, onSelect: (sel) => setStrongSel((prev) => prev && prev.verse === sel.verse && prev.occurrence === sel.occurrence ? null : sel) }}
           header={text.data?.prologue?.length ? <Prologue items={text.data.prologue} settings={settings} palette={palette} /> : null}
           footer={<><ChapterPeople slug={slug} chapter={ch} palette={palette} resources={chapterDeck.length ? <MediaDeck items={chapterDeck} placement="chapter" palette={palette} fontScale={settings.fontSizeScale} reference={chapterLabel} from={`/read/${slug}/${ch}`}
             sections={[{ title: `Taught from ${chapterLabel}`, items: chapterGroups.taught }, { title: `Read in class`, items: chapterGroups.read }].filter((x) => x.items.length)} /> : null} /><ChapterEnd read={isRead(progress, slug, ch)} today={plan && list.length ? planDay(plan, list, progress) : null} slug={slug} chapter={ch}
@@ -439,6 +449,8 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
       <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v, true)} onLongSelect={(s, c, v) => navigate(newTab(`/read/${s}/${c}${v > 1 ? `?at=${v}` : ""}`), { replace: true })} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />
       <SearchSheet open={sheet === "search"} initial={searchSeed} onClose={() => { setSheet(null); setSearchSeed(""); }} books={list} onGo={(s, c, v, end) => navigate(`/read/${s}/${c}${v ? `?v=${v}${end ? `-${end}` : ""}` : ""}`)} />
       <VersionSheet open={sheet === "version"} onClose={() => setSheet(null)} />
+      <StrongModeSheet open={sheet === "strong"} onClose={() => setSheet(null)} mode={strongMode} onMode={setStrongMode} hebrew={strongHebrew} />
+      <StrongSelectionSheet selection={strongSel} onClose={() => setStrongSel(null)} books={list} here={{ slug, chapter: ch }} />
       <VerseJump root={rootRef} label={chapterLabel} count={verses.length} onNavigate={(v) => { setVerseToScroll(v); setNavRequest((n) => n + 1); }} />
       <VersePopup open={sheet === "verses"} onClose={() => setSheet(null)} count={verses.length} selected={verseToScroll} onSelect={(v) => { setVerseToScroll(v); setNavRequest((n) => n + 1); }} />
       <ParamsSheet open={sheet === "params"} onClose={() => setSheet(null)} settings={settings} set={setSettings} palette={palette} theme={theme} />

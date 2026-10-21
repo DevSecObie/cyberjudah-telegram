@@ -14,6 +14,7 @@ import { comparePositions, type SelectionRange, type WordPosition } from "../ann
 import { getWordIndexFromCharOffset, tokenizeVerseText } from "../annotation/wordTokenizer";
 import { useVerseGestures } from "./gestures";
 import { Verse, type VerseTagGroup } from "./Verse";
+import { strongReferences, type StrongDisplay, type StrongMode } from "../strongMode";
 
 /**
  * The verse area (BibleDOM/BibleDOMComponent.tsx): its own scroll view under the header, the
@@ -25,7 +26,7 @@ const READING_TEXT_MAX_WIDTH = 580, HORIZONTAL_PADDING = 15, RETURN_BOTTOM_OFFSE
 
 export type ChapterProps = {
   readingVerse?: number | null; onSeekVerse?: (verse: number) => void;
-  slug: string; chapter: number; verses: { verse: number; text: string }[];
+  slug: string; chapter: number; verses: { verse: number; text: string; words?: [string, string[]][] }[];
   settings: BibleSettings; palette: Palette; theme: ThemeName;
   selected: number[]; focusVerses: number[] | null; contextDisplayMode: "focused" | "fullChapter";
   verseToScroll: number | undefined; navigationRequest: number;
@@ -43,6 +44,8 @@ export type ChapterProps = {
   onSelectMark?: (id: string | null) => void; onExitAnnotation?: () => void;
   onSwipe: (dir: "left" | "right") => void; onFullscreen: (on: boolean) => void;
   onOpenBookmark: (b: Bookmark) => void; onOpenRelations: (v: number) => void; onOpenRelationItem: (it: VerseRelationItem) => void; onOpenTags: (v: number) => void; onOpenTag: (id: string) => void;
+  /** The tab's Strong's mode, and the reference tapped in it. */
+  strongMode?: StrongMode; strong?: StrongDisplay;
   /** Before verse 1 (a book's prologue); hidden while a passage is focused. */
   header?: ReactNode;
   footer?: ReactNode;
@@ -120,6 +123,9 @@ export function Chapter(p: ChapterProps) {
     for (const g of byDate.values()) if (g.tagIds.size) out.set(g.last, { tags: [...g.tagIds].map((id) => p.tags[id]).filter(Boolean) });
     return out;
   }, [p.highlights, p.tags]);
+  // Bible Strong shows no Strong's references while annotating; the highlight still moves to the number.
+  const strongOn = p.strongMode === "visible";
+  const strongRefs = useMemo(() => strongOn ? new Map(p.verses.map((v) => [v.verse, strongReferences(v.text, v.words)])) : null, [strongOn, p.verses]);
   const bookmarkOf = useMemo(() => { const m = new Map<number, Bookmark>(); for (const b of p.bookmarks) if (b.book === slug && b.chapter === chapter && b.verse) m.set(b.verse, b); return m; }, [p.bookmarks, slug, chapter]);
 
   const verseOf = (vk: string) => Number(vk.split("-").pop());
@@ -137,7 +143,7 @@ export function Chapter(p: ChapterProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const { highlightRects, handles } = useAnnotationHighlights({
     containerRef: layerRef, marks: p.marks ?? [], verses: wordRows, selection: mode ? wordSel : null, colorOf: p.colorOf ?? (() => null),
-    chapterKey: `${slug}-${chapter}`, layoutKey: [s.fontSizeScale, s.lineHeight, s.fontFamily, s.textDisplay, s.showVerseNumbers, p.contextDisplayMode, focus?.join(","), p.headerHeight, p.verses.length].join("|"),
+    chapterKey: `${slug}-${chapter}`, layoutKey: [s.fontSizeScale, s.lineHeight, s.fontFamily, s.textDisplay, s.showVerseNumbers, p.contextDisplayMode, focus?.join(","), p.headerHeight, p.verses.length, p.strongMode].join("|"),
   });
   const wordOfTap = (vk: string, pos: { x: number; y: number }): SelectionRange | null => { const w = wordAt(pos.x, pos.y); return w && w.verseKey === vk ? { start: w, end: w } : null; };
   // handleTapVerseAnnotationMode: a mark selects (or deselects) it; inside the selection nothing;
@@ -293,6 +299,8 @@ export function Chapter(p: ChapterProps) {
               isVerseToScroll={!isContextFocused && p.verseToScroll === n && n !== 1} isFocused={isFocused}
               relationItems={items} relationCount={items?.length || undefined}
               moments={p.moments?.[n]} deck={p.deck}
+              strongMode={strongOn} strongRefs={mode ? undefined : strongRefs?.get(n)} strongSelected={p.strong?.selected?.numbers[0]}
+              onStrong={(r) => p.strong?.onSelect({ verse: n, occurrence: r.occurrence, word: r.word, numbers: r.numbers })}
               tagGroup={tagGroups.get(n)} taggedItemsCount={p.highlights[String(n)]?.tags ? Object.keys(p.highlights[String(n)].tags!).length : 0}
               onOpenBookmark={p.onOpenBookmark} onOpenRelations={() => p.onOpenRelations(n)} onOpenRelationItem={p.onOpenRelationItem} onOpenTags={() => p.onOpenTags(n)} onOpenTag={p.onOpenTag} />
           );

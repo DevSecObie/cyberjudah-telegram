@@ -1,0 +1,3 @@
+- Strong's mode, as Bible Strong has it: the "S" in the reader's header opens Text display, where Strong shows each word's Strong's numbers right after it (H0430, G2316). Reverse interlinear is listed but stays off, since there is no original-language text to show.
+- Tap a number to open its sheet: the word, its numbers as pills and a card for each, with the original word, its transliteration and the start of the definition. A card opens the full entry; tapping the same number again closes it.
+- The mode belongs to the tab and is remembered. On a keyboard, `s` switches it on and off. While it is on, a highlight colours the verse number, and the numbers hide in annotation mode.
