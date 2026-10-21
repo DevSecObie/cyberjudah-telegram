@@ -55,7 +55,7 @@ test("a row per bookmark, newest first: its colour, its name over its reference;
 test("a bookmark's options: View in Bible, Edit its name and colour, Remove after asking", async ({ page }) => {
   await setup(page);
   await page.goto("/bookmarks");
-  const options = (name: string) => page.locator(".bmitem", { hasText: name }).getByRole("button", { name: "Options", exact: true });
+  const options = (name: string) => page.locator(".bmitem", { hasText: name }).getByRole("button", { name: "More options", exact: true });
   await options("The beginning").click();
   await expect(page.locator(".panel-action")).toHaveText(["View in Bible", "Edit", "Remove"]);
   await page.locator(".panel-action", { hasText: "Edit" }).click();
