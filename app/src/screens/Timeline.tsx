@@ -25,7 +25,7 @@ import { PhotoEdit, usePhotos } from "@/ui/photo-edit";
 import "@/styles/screens/timeline.css";
 
 /**
- * Bible Strong's Bible Timeline (strong/apps/expo/src/features/timeline), ported to the web:
+ * Bible Strong's Bible Timeline (apps/expo/src/features/timeline), ported to the web:
  * the periods (TimelineHomeScreen, TimelineItem); a period's canvas with its events placed by
  * year, the date bar, the line and the year under it, and the periods either side
  * (TimelineSection, ScrollView, TimelineEvent, Datebar, Line, CurrentYear, SectionImage); the

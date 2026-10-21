@@ -1,3 +1,0 @@
-import PassageMediaLibraryScreen from '~features/passageMediaLibrary/PassageMediaLibraryScreen'
-
-export default PassageMediaLibraryScreen
