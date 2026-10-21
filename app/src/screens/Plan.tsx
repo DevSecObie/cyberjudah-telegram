@@ -92,7 +92,7 @@ export function Plan() {
     // Bible Strong's Reset restarts the plan from today. The chapters stay marked read: the bot shares them.
     if (answer?.id === "reset" && stored) {
       const confirmed = await sheet.open({ title: `Warning: Restart ${plan.name ?? "Whole Bible with Apocrypha"}? Your completed chapters stay marked.`, items: [{ id: "cancel", text: "Cancel" }, { id: "reset", text: "Reset", destructive: true }] });
-      if (confirmed?.id === "reset") { setPlan({ ...stored, startedAt: today, streak: 0, lastDone: undefined }); setChosen(null); }
+      if (confirmed?.id === "reset") { setPlan({ ...stored, startedAt: dayKey(), streak: 0, lastDone: undefined }); setChosen(null); }
     }
     if (answer?.id === "stop") {
       const confirmed = await sheet.open({ title: "Warning: Are you sure you want to stop this plan?", items: [{ id: "cancel", text: "Cancel" }, { id: "remove", text: "Remove", destructive: true }] });
