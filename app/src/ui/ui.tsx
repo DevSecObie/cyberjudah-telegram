@@ -16,6 +16,8 @@ import { Feather } from "@/bible/icons";
 import { Icon, type IconName } from "./icons";
 import { useSheetRoute } from "./sheetRoute";
 import { moveTab } from "./tab-motion";
+import { historyIdx, isOver } from "@/lib/over-page";
+import { useAvailableUpdatesIndicator } from "@/resources/updates";
 export { Icon, type IconName } from "./icons";
 
 /**
@@ -33,9 +35,10 @@ export function tabOf(path: string): string {
 const navPath = (id: NavId) => id === "search" ? searchTabPath() : id === "bible" ? bibleTabPath() : id === "ask" ? askTabPath() : navItem(id).path;
 
 export function TabBar() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const { tabs, group } = useTabs();
+  const { hasUnseenUpdates } = useAvailableUpdatesIndicator();
   const [ids] = useNav();
   // The count takes its group's colour, as Bible Strong's does; the default group stays plain.
   const groupColor = group.isDefault ? undefined : group.color;
@@ -57,9 +60,11 @@ export function TabBar() {
     const at = toId === "search" || toId === "bible" || toId === "ask" ? kindTabIndex(toId) : from;
     const dir = from < 0 || at === from ? 0 : at > from ? 1 : -1;
     setDrawer(null);
+    // A page over the tab is left for the tab even when its path is the same.
+    const wasOver = isOver(historyIdx());
     moveTab(() => {
       const target = typeof to === "function" ? to() : to;
-      if (target === pathname) return false;
+      if (target === pathname + search && !wasOver) return false;
       navigate(target, { replace: true });
     }, overview ? "overview" : "slide", undefined, dir);
   };
@@ -118,14 +123,14 @@ export function TabBar() {
   if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /></nav>;
   const count = tabs.length > 100 ? ":)" : String(tabs.length);
   const glyph = (id: NavId | "more") => {
-    if (id === "more") return <Feather name="more-horizontal" size={28} />;
+    if (id === "more") return <span className="tab__more"><Feather name="more-horizontal" size={28} />{hasUnseenUpdates ? <NotificationDot style={{ top: 2, right: -3 }} /> : null}</span>;
     if (id === "home") return <Feather name="home" size={23} />;
     if (id === "search") return <Feather name="search" size={23} raw />;
     if (id === "bible") return <Feather name="book-open" size={23} />;
     const item = navItem(id);
     return item.icon === "count" ? <span key={count} className="tab__count" style={groupColor ? { ["--group" as string]: groupColor, ["--group-ink" as string]: contrastInk(groupColor) } : undefined} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={23} />;
   };
-  const label = (id: NavId | "more") => id === "more" ? "Main menu" : id === "tabs" ? `Tabs, ${count} open` : navItem(id).label;
+  const label = (id: NavId | "more") => id === "more" ? (hasUnseenUpdates ? "Main menu, updates available" : "Main menu") : id === "tabs" ? `Tabs, ${count} open` : navItem(id).label;
   const press1 = (id: NavId | "more") => id === "more" ? toggle("more") : id === "home" ? toggle("home") : go(() => navPath(id), id === "tabs", id);
   return (
     <nav ref={bar} className="tabs" aria-label="Sections" data-hidden={hidden ? "" : undefined} {...hold}>
@@ -134,6 +139,11 @@ export function TabBar() {
       </div>
     </nav>
   );
+}
+
+/** Bible Strong's NotificationDot: a small green dot signalling something new, outlined so it stays legible over an icon. */
+export function NotificationDot({ size = 10, style }: { size?: number; style?: React.CSSProperties }) {
+  return <span className="notify-dot" aria-hidden="true" style={{ width: size, height: size, ...style }} />;
 }
 
 /** Bible Strong's row: the reader's buttons in their order, Search among them (second, as Bible Strong has it, if left out), and Menu last. */

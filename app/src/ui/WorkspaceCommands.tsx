@@ -48,7 +48,7 @@ export function WorkspaceCommands() {
     close();
     moveTab(() => {
       if (choice.group && choice.tab) { switchGroup(choice.group); navigate(selectTab(choice.tab), { replace: true }); }
-      else navigate(newTab(choice.path));
+      else navigate(newTab(choice.path), { replace: true });
     }, "slide");
   };
   const open = () => { setQuery(""); setIndex(0); setMode("search"); };
@@ -74,7 +74,7 @@ export function WorkspaceCommands() {
       const letter = /^[a-z]$/.test(key) ? key : e.keyCode >= 65 && e.keyCode <= 90 ? String.fromCharCode(e.keyCode).toLowerCase() : "";
       if (mod && key === "k" && !e.altKey && !e.shiftKey) { e.preventDefault(); open(); }
       else if (cycle) { e.preventDefault(); setIndex(openTabs.length > 1 ? e.shiftKey ? openTabs.length - 1 : 1 : 0); setMode("recent"); }
-      else if (mod && e.altKey && !e.shiftKey && letter === "n") { e.preventDefault(); moveTab(() => { navigate(newTab()); }, "slide"); }
+      else if (mod && e.altKey && !e.shiftKey && letter === "n") { e.preventDefault(); moveTab(() => { navigate(newTab(), { replace: true }); }, "slide"); }
       else if (mod && e.altKey && !e.shiftKey && letter === "w" && isTabPath(location.pathname)) {
         e.preventDefault(); moveTab(() => { closeTab(tabs.current); navigate(currentTab()?.path ?? "/tabs", { replace: true }); }, "slide");
       } else if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && ["ArrowUp", "ArrowDown"].includes(e.key)) {

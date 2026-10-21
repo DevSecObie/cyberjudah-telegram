@@ -117,7 +117,7 @@
 #root .mcard__row:hover { background: var(--state-hover); }
 #root .mcard__row[data-pressed] { background: var(--state-press); }
 .mcard__row + .mcard__row { border-top: .5px solid var(--hairline); }
-.mcard__icon { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-inner); }
+.mcard__icon { position: relative; flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-inner); }
 .mcard__label { flex: 1; min-width: 0; }
 .mcard__chev { display: grid; color: var(--text-4); }
 .more__account { display: flex; align-items: center; gap: var(--sp-3); margin: 0 var(--sp-5) var(--sp-4); padding: var(--sp-3) 14px; border-radius: var(--group-radius); background: var(--surface-2); box-shadow: var(--card-edge); color: var(--text-1); text-decoration: none; }
