@@ -53,7 +53,7 @@ test("the People list shows the portrait on the row and the letter for everyone 
   // Anyone on the list without an approved portrait keeps the first letter of the name.
   // Read them in one snapshot: the filtered list can still re-render, so a count and then a separate
   // wait on the first one can race (the row it counted is gone by the time it is awaited).
-  const letters = await page.locator(".row .avatar:not(:has(img))").allTextContents();
+  const letters = await page.locator(".personrow .avatar:not(:has(img))").allTextContents();
   for (const l of letters) expect(l.trim()).toMatch(/^[A-Z?]$/);
 });
 

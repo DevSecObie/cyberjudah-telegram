@@ -1036,7 +1036,7 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     await page.fill("#people-q", "abraham");
     // Filtering is debounced; wait for its result before the list changes under a click.
     await expect(page.getByRole("heading", { name: "1 person", exact: true })).toBeVisible();
-    await page.locator(".row", { hasText: "Abraham" }).first().click();
+    await page.locator(".personrow", { hasText: "Abraham" }).first().click();
     await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
     // The summary card: what they are, the name, their Strong's number (to the word study), who they were.
     await expect(page.locator(".entity__summary .entity__eyebrow")).toHaveText("Man · Early Patriarch");
