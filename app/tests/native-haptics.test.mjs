@@ -30,6 +30,13 @@ test("each haptic kind plays the native feedback Telegram plays for it, with sel
 
 test("a plugin that fails to load or to play never throws to the screen", async () => {
   const { nativeHaptics } = await load();
+  const unhandled = [];
+  const onUnhandled = (reason) => unhandled.push(reason);
+  process.on("unhandledRejection", onUnhandled);
+  nativeHaptics(async () => { throw new Error("not implemented"); });
+  await settle();
+  process.off("unhandledRejection", onUnhandled);
+  assert.deepEqual(unhandled, [], "a plugin that fails to load before any haptic is asked for");
   const missing = nativeHaptics(async () => { throw new Error("not implemented"); });
   assert.doesNotThrow(() => missing("tap"));
   const calls = [];
