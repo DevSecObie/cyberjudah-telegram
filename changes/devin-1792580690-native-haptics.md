@@ -1,0 +1,1 @@
+- The iPhone and Android apps now give the same small vibrations on taps, selections and saves that the app gives inside Telegram.

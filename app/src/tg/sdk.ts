@@ -1,4 +1,5 @@
 import { native, nativePlatform, apiURL, nativeOpen } from "@/native/platform";
+import { nativeHaptics, type HapticKind } from "@/native/haptics";
 import type { HomeScreenStatus, InvoiceStatus, PopupParams, WebApp } from "./types";
 
 /**
@@ -28,7 +29,10 @@ export const features = {
   deviceStorage: has("9.0"), secureStorage: has("9.0"), hideKeyboard: has("9.1"), invoices: has("6.1"),
 };
 
-export function haptic(kind: "tap" | "select" | "success" | "warning" | "error" | "heavy" = "tap") {
+const nativeHaptic = native ? nativeHaptics(() => import("@capacitor/haptics")) : null;
+
+export function haptic(kind: HapticKind = "tap") {
+  if (nativeHaptic) return nativeHaptic(kind);
   if (!features.haptics) return;
   const h = app!.HapticFeedback;
   if (kind === "select") h.selectionChanged();
