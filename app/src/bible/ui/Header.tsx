@@ -6,6 +6,8 @@ import { Feather, Ion, type FeatherName } from "../icons";
 import { useModal } from "@/ui/modal";
 import { usePopover } from "@/ui/popover";
 import { HeaderPicker } from "./HeaderPicker";
+import { StrongMark } from "./StrongMode";
+import type { StrongMode } from "../strongMode";
 import { HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGHT } from "../dom/Chapter";
 
 /**
@@ -16,12 +18,14 @@ import { HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGHT } from 
  * fast scroll down collapses it to 20 px (its controls fade, its texts lift 4 px).
  */
 export type MenuAction = "params" | "history" | "bookmark" | "export" | "search" | "newtab";
-export function Header({ bookLabel, version, onBook, onVersion, onVerses, selectedReference, focusedReference, onClearFocus, collapsed, onMenu, chapterBookmarkColor, onChapterBookmark, hasChapterBookmark, menuOpen, setMenuOpen, annotating, onExitAnnotation }: {
+export function Header({ bookLabel, version, onBook, onVersion, onVerses, selectedReference, focusedReference, onClearFocus, collapsed, onMenu, chapterBookmarkColor, onChapterBookmark, hasChapterBookmark, menuOpen, setMenuOpen, annotating, onExitAnnotation, strongMode, onStrongMode }: {
   bookLabel: string; version: string; onBook: () => void; onVersion: () => void; onVerses: () => void;
   selectedReference: string | null; focusedReference: string | null; onClearFocus: () => void; collapsed: boolean;
   onMenu: (a: MenuAction) => void; chapterBookmarkColor?: string; onChapterBookmark: () => void; hasChapterBookmark: boolean; menuOpen: boolean; setMenuOpen: (v: boolean) => void;
   /** Annotation mode: Bible Strong shows the passage and Done in the reader header. */
   annotating?: boolean; onExitAnnotation?: () => void;
+  /** Bible Strong's strongModeButton: the "S", before the ⋮ menu, opens the tab's Text display. */
+  strongMode?: StrongMode; onStrongMode?: () => void;
 }) {
   const fade = { opacity: collapsed ? 0 : 1, transition: "opacity .3s" } as const;
   const lift = { transform: `translateY(${collapsed ? -4 : 0}px)`, transition: "transform .3s" } as const;
@@ -46,6 +50,7 @@ export function Header({ bookLabel, version, onBook, onVersion, onVerses, select
         ) : focusedReference ? (
           <>
             <div className="bs-header__focus"><b style={lift}>{focusedReference} - {version}</b></div>
+            {onStrongMode ? <StrongButton mode={strongMode} style={fade} onClick={onStrongMode} /> : null}
             <MenuButton style={fade} onClick={() => setMenuOpen(true)} />
           </>
         ) : (
@@ -56,6 +61,7 @@ export function Header({ bookLabel, version, onBook, onVersion, onVerses, select
             </div>
             <div className="bs-header__right toolbar-group" role="group" aria-label="Scripture actions">
             <button type="button" className="bs-header__verses" aria-label="Choose a verse" title="Choose a verse" style={fade} onClick={() => { haptic("select"); onVerses(); }}><Feather name="chevrons-down" size={20} style={{ opacity: 0.3 }} /></button>
+              {onStrongMode ? <StrongButton mode={strongMode} style={fade} onClick={onStrongMode} /> : null}
               <MenuButton style={fade} onClick={() => setMenuOpen(true)} />
               {focusedReference ? <button type="button" className="bs-iconbtn" aria-label="Exit focus mode" title="Exit focus mode" onClick={onClearFocus}><Feather name="x" size={20} /></button> : null}
             </div>
@@ -66,6 +72,10 @@ export function Header({ bookLabel, version, onBook, onVersion, onVerses, select
       <OptionsMenu open={menuOpen} hasChapterBookmark={hasChapterBookmark} onClose={() => setMenuOpen(false)} onPick={(a) => { setMenuOpen(false); onMenu(a); }} />
     </header>
   );
+}
+function StrongButton({ mode, onClick, style }: { mode?: StrongMode; onClick: () => void; style?: React.CSSProperties }) {
+  const on = !!mode && mode !== "hidden";
+  return <button type="button" className="bs-strongbtn" aria-label="Choose the Strong Bible display" title="Choose the Strong Bible display" aria-pressed={on} style={style} onClick={() => { haptic("select"); onClick(); }}><StrongMark highlighted={on} /></button>;
 }
 function MenuButton({ onClick, style }: { onClick: () => void; style?: React.CSSProperties }) {
   return <button type="button" className="bs-iconbtn" aria-label="Scripture options" title="Scripture options" style={style} onClick={() => { haptic("select"); onClick(); }}><Feather name="more-vertical" size={18} /></button>;
