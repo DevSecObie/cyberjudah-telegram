@@ -129,3 +129,25 @@ test("reader search distinguishes an empty result from an ordinary failure and r
   await expect(page.getByText('No results found for "light"')).toBeVisible();
   expect(calls).toBe(2);
 });
+
+test("an empty previous search does not report the next query empty before it finishes", async ({ page }) => {
+  await setup(page);
+  await page.goto("/read/genesis/1?search=light");
+  await expect(page.locator(".bs-search__hit")).toHaveCount(20);
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/bs/v1/bibles/KJV/search?**", async r => {
+    if (new URL(r.request().url()).searchParams.get("q") === "mercy") await held;
+    await r.fulfill({ json: { results: [], count: 0 } });
+  });
+  const input = page.getByRole("searchbox", { name: "Search", exact: true });
+  await input.fill("empty");
+  await input.press("Enter");
+  await expect(page.getByText('No results found for "empty"')).toBeVisible();
+  await input.fill("mercy");
+  await input.press("Enter");
+  await expect(page.getByRole("status").filter({ hasText: "Searching" })).toBeVisible();
+  await expect(page.getByText('No results found for "mercy"')).toHaveCount(0);
+  release();
+  await expect(page.getByText('No results found for "mercy"')).toBeVisible();
+});

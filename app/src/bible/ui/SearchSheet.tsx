@@ -109,7 +109,7 @@ export function SearchSheet({ open, initial = "", onClose, books, onGo }: { open
         {!text ? <p className="bs-search__hint">Type a reference to go there, or a few words to find the verses. Put words in quotes to keep them together.</p> : null}
         {enabled && found.isFetching && !found.isFetchingNextPage ? <p className="bs-search__hint" role="status">Searching…</p> : null}
         {enabled && found.isError && limited === undefined ? <p className="bs-search__hint" role="alert">Bible search could not be opened. <button type="button" onClick={() => void found.refetch()}>Retry</button></p> : null}
-        {enabled && found.isSuccess && !hits.length && !bookOnly ? <Empty title="No results">No results found for "{text}"</Empty> : null}
+        {enabled && found.isSuccess && !found.isPlaceholderData && !hits.length && !bookOnly ? <Empty title="No results">No results found for "{text}"</Empty> : null}
         {hits.length > 0 && <p className="bs-search__count">{count.toLocaleString()} {count === 1 ? "verse" : "verses"}{bookFilter ? ` in ${name(bookFilter)}` : canon ? ` in the ${canon}` : ""}</p>}
         {hits.map((h) => (
           <button key={`${h.slug}${h.chapter}:${h.verse}`} type="button" className="bs-search__hit" onClick={() => go(h.slug, h.chapter, h.verse)}>
