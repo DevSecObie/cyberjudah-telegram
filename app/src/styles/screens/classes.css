@@ -76,3 +76,8 @@
 #root .post .post__more { justify-self: start; min-height: var(--touch); margin-block: -4px; padding: 0; border: 0; background: none; font: 600 var(--fs-sub) var(--font-ui); color: var(--text-3); cursor: pointer; }
 #root .post a.post__more { display: inline-flex; align-items: center; color: var(--accent); }
 .post__soon { margin: 2px 0 0; font: 400 var(--fs-sub)/1.45 var(--font-ui); color: var(--text-3); }
+
+/* A show's own section: what it is, its name, and how far its notes have come. */
+.cfeed__show { padding: 4px 0 0; }
+.cfeed__show h2 { margin: 0; font: 600 var(--fs-title2)/var(--lh-snug) var(--font-ui); color: var(--text-1); }
+.cfeed__show p:last-child { margin: var(--sp-1) 0 0; font: 400 var(--fs-footnote)/var(--lh-snug) var(--font-ui); color: var(--text-2); }
