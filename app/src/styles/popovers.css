@@ -44,7 +44,7 @@
 .refpreview__title { flex: 1; min-width: 0; text-align: center; font: 600 var(--fs-body) var(--font-ui); color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .refpreview__btn { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 0; padding: 0; background: none; color: var(--text-1); cursor: pointer; }
 .refpreview__btn[data-primary] { color: var(--accent); }
-.refpreview__body { max-height: min(360px, 55vh); overflow-y: auto; overscroll-behavior: contain; padding: 10px 16px; }
+.refpreview__body { box-sizing: border-box; max-height: min(360px, 55vh); overflow-y: auto; overscroll-behavior: contain; padding: 10px 16px; }
 .refpreview__text { margin: 0; font-family: var(--bs-font, var(--font-read)); font-size: 16px; line-height: 24px; color: var(--text-1); }
 .refpreview__num { font-size: 11px; color: var(--text-3); }
 .refpreview__notetitle { display: block; font-size: 16px; font-weight: 600; color: var(--text-1); }

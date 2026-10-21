@@ -924,3 +924,34 @@ test("a reference in content opens a preview card of the passage, with Open and 
   await card.getByRole("button", { name: "Open" }).click();
   await expect(page).toHaveURL(/\/read\/john\/3\?v=16/);
 });
+
+test("reference preview body includes its padding within the viewport cap and scrolls independently", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    localStorage.setItem("cj:rel_genesis_1", JSON.stringify([
+      { id: "r", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-2"], label: "Genesis 1:2" }, { type: "verse", verseKeys: Array.from({ length: 21 }, (_, i) => `john-3-${i + 1}`), label: "John 3:1-21" }], createdAt: 1, updatedAt: 1 },
+    ]));
+  });
+  await page.goto("/read/genesis/1");
+  const readerScroll = () => page.locator(".bs-scroll").evaluate((el) => el.scrollTop);
+  const before = await readerScroll();
+  await page.locator("#verset-2 .rel-tag", { hasText: "John 3:1-21" }).click();
+  const card = page.getByRole("dialog", { name: "John 3:1-21 · KJV" });
+  const body = card.locator(".refpreview__body");
+  await expect(card).toContainText("Verse 21:");
+  await expect(card).not.toContainText("Verse 22:");
+  for (const height of [844, 600]) {
+    await page.setViewportSize({ width: 390, height });
+    const cap = Math.min(360, height * 0.55);
+    await expect.poll(() => body.evaluate((el) => el.clientHeight)).toBe(cap);
+    expect(await body.evaluate((el) => el.scrollHeight)).toBeGreaterThan(cap);
+  }
+  await body.hover();
+  await page.mouse.wheel(0, 800);
+  await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  expect(await readerScroll()).toBe(before);
+  await page.keyboard.press("Escape");
+  await expect(card).toBeHidden();
+  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  expect(await readerScroll()).toBe(before);
+});
