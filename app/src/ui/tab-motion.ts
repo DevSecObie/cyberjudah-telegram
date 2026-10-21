@@ -148,8 +148,10 @@ export function moveTab(update: () => void | false, mode: Mode, id = currentTab(
 }
 
 /** Retained cards settle into their new places when a neighboring tab closes. */
+/** Reanimated's LinearTransition and ZoomOut defaults: 300 ms, ease in-out quad. */
+const LAYOUT = { duration: 300, easing: "cubic-bezier(0.455, 0.03, 0.515, 0.955)" };
 export function reflowTabs(update: () => void) {
-  const motionTiming = timing(3);
+  const motionTiming = LAYOUT;
   const before = new Map([...document.querySelectorAll<HTMLElement>(".tabcard")].map(el => [el.dataset.tabId, el.getBoundingClientRect()]));
   flushSync(update);
   if (reduced()) return;
@@ -158,4 +160,22 @@ export function reflowTabs(update: () => void) {
     const next = el.getBoundingClientRect(), x = old.x - next.x, y = old.y - next.y;
     if (x || y) el.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: "none" }], motionTiming);
   }
+}
+
+/**
+ * Bible Strong's closing card (TabPreview, useTabPreview): it shrinks away about its centre
+ * (ZoomOut) while the others slide into their new places (LinearTransition).
+ */
+export function closeTabCard(id: string, update: () => void) {
+  const el = document.querySelector<HTMLElement>(`.tabcard[data-tab-id="${CSS.escape(id)}"]`);
+  const ghost = el && !reduced() ? (el.cloneNode(true) as HTMLElement) : null;
+  if (el && ghost) {
+    const r = el.getBoundingClientRect();
+    ghost.removeAttribute("data-tab-id"); ghost.removeAttribute("data-current");
+    ghost.setAttribute("aria-hidden", "true"); ghost.inert = true;
+    Object.assign(ghost.style, { position: "fixed", left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: "0", zIndex: "2", pointerEvents: "none" });
+    el.parentElement!.append(ghost);
+    ghost.animate([{ transform: "scale(1)" }, { transform: "scale(0)" }], { ...LAYOUT, fill: "forwards" }).finished.catch(() => {}).finally(() => ghost.remove());
+  }
+  reflowTabs(update);
 }

@@ -123,7 +123,7 @@ export function TabBar() {
     return () => { touchClick.current = null; nav.removeEventListener("touchend", finishTouch); };
   }, [pathname]);
   // While the switcher is open the bar becomes its controls, as in Bible Strong.
-  if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /><button type="button" className="tab tab--search" aria-label="Search" title="Search" onClick={() => go(searchTabPath, false, "search")}><Feather name="search" size={23} raw /></button></nav>;
+  if (pathname.startsWith("/tabs")) return <nav className="tabs tabs--switcher" aria-label="Tabs"><SwitcherBar /></nav>;
   const count = tabs.length > 100 ? ":)" : String(tabs.length);
   const glyph = (id: NavId | "more") => {
     if (id === "more") return <Feather name="more-horizontal" size={28} />;

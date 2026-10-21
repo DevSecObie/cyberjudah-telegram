@@ -10,7 +10,7 @@ import { useToast } from "@/ui/toast";
 import { useBackButton } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { Icon, Screen, type IconName } from "@/ui/ui";
-import { moveTab, reflowTabs } from "@/ui/tab-motion";
+import { closeTabCard, moveTab, reflowTabs } from "@/ui/tab-motion";
 
 /** Bible Strong's New Tab page (TabScreen/NewTab/NewTabContent): every resource, by section, each opening in this tab. */
 type Item = [to: string, title: string, description: string, icon: IconName];
@@ -94,7 +94,6 @@ function useGroupActions() {
     renameGroup(group.id, name.value ?? group.name, color);
   };
   return async () => {
-    haptic("select");
     const a = await sheet.open({
       title: "Groups",
       items: [
@@ -110,7 +109,7 @@ function useGroupActions() {
     });
     if (!a) return;
     if (a.id === "closeall") { closeAll(group.id); return; }
-    if (a.id.startsWith("g:")) { switchGroup(a.id.slice(2)); haptic("select"); return; }
+    if (a.id.startsWith("g:")) { switchGroup(a.id.slice(2)); return; }
     if (a.id === "new") await createGroup();
     else if (a.id === "edit") await editGroup();
     else if (a.id === "delete") { const ok = await sheet.open({ title: "Delete group?", items: [{ id: "yes", text: "All tabs in this group will be closed.", destructive: true }] }); if (ok) deleteGroup(group.id); }
@@ -128,18 +127,24 @@ export function SwitcherBar() {
   const navigate = useNavigate();
   const { tabs, current, group } = useTabs();
   const openGroups = useGroupActions();
-  const go = (resolve: () => string) => { haptic("select"); moveTab(() => { navigate(resolve(), { replace: true }); }, "expand"); };
   const add = useAddTab();
   const named = !isDefault(group);
+  // Bible Strong's useBottomTabBar: the current card is scrolled into view, if it is not, before it opens.
+  const ok = () => {
+    const t = tabs.find((x) => x.id === current); if (!t) return;
+    const card = document.querySelector<HTMLElement>(`.tabcard[data-tab-id="${CSS.escape(t.id)}"]`), r = card?.getBoundingClientRect();
+    if (card && r && (r.bottom <= 0 || r.top >= innerHeight)) card.scrollIntoView({ block: "start", behavior: "instant" });
+    moveTab(() => { navigate(selectTab(t.id), { replace: true }); }, "expand", t.id);
+  };
   return (
     <div className="switcherbar" role="toolbar" aria-label="Tabs">
-      <button type="button" className="switcherbar__add" aria-label="Add a tab" title="Add a tab" onClick={add}><Icon name="plus" size={23} /></button>
-      <button type="button" className="switcherbar__group" aria-label={`${groupLabel(group)}. Groups`} title={`${groupLabel(group)}. Groups`} onClick={() => void openGroups()}
+      <button type="button" className="switcherbar__add" aria-label="Add a tab" onClick={add}><Icon name="plus" size={23} /></button>
+      <button type="button" className="switcherbar__group" aria-label={`${groupLabel(group)}. Groups`} onClick={() => void openGroups()}
         style={named ? { ["--group" as string]: group.color, ["--group-ink" as string]: contrastInk(group.color) } : undefined}>
         <span>{groupLabel(group)}</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
       </button>
-      <button type="button" className="switcherbar__ok" aria-label="Open the selected tab" title="Open the selected tab" onClick={() => { const t = tabs.find((x) => x.id === current); if (t) go(() => t.path); }}>OK</button>
+      <button type="button" className="switcherbar__ok" aria-label="Open selected tab" onClick={ok}>OK</button>
     </div>
   );
 }
@@ -151,16 +156,10 @@ export function SwitcherBar() {
  */
 export function Tabs() {
   const navigate = useNavigate();
-  const { tabs, current } = useTabs();
-  const go = (id: string) => { haptic("select"); moveTab(() => { navigate(selectTab(id), { replace: true }); }, "expand", id); };
-  useBackButton(() => { go(current); return true; }, true);
-  useEffect(() => {
-    const back = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !document.querySelector("[data-sheet-open]")) { event.preventDefault(); go(current); }
-    };
-    window.addEventListener("keydown", back);
-    return () => window.removeEventListener("keydown", back);
-  }, [current, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { tabs, current, group } = useTabs();
+  const go = (id: string) => { moveTab(() => { navigate(selectTab(id), { replace: true }); }, "expand", id); };
+  // Bible Strong's switcher has no Back: it closes with OK or a card.
+  useBackButton(() => true, false, true);
   // Card size: two per row with 20 px margins and gap; height from the screen's proportions x 0.7.
   const [size, setSize] = useState(() => cardSize());
   const container = useRef<HTMLElement>(null);
@@ -182,27 +181,23 @@ export function Tabs() {
     const t = e.changedTouches[0], dx = t.clientX - s0.x, dy = t.clientY - s0.y;
     if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
     const id = adjacentGroup(dx < 0 ? 1 : -1);
-    if (id) { switchGroup(id); haptic("select"); }
+    if (id) switchGroup(id);
   };
 
   return (
     <main ref={container} className="switcher" aria-label="Your tabs" onTouchStart={onStart} onTouchEnd={onEnd} onTouchCancel={() => { start.current = null; }}>
-      {!tabs.length ? <EmptyGroup /> : null}
+      {!tabs.length ? <EmptyGroup /> : isDefault(group) ? null : <GroupHeader group={group} />}
       <div className="switcher__grid" style={{ gridTemplateColumns: `repeat(${size.perRow}, ${size.w}px)` }}>
         {tabs.map((t) => {
-          const { icon } = tabKind(t.path);
           const title = tabTitle(t.path);
           return (
             <div key={t.id} className="tabcard" data-tab-id={t.id} data-current={t.id === current ? "" : undefined} style={{ width: size.w, height: size.h }}>
-              <button type="button" className="tabcard__open" onClick={() => go(t.id)} aria-label={`Open ${title}`} title={`Open ${title}`}>
+              <button type="button" className="tabcard__open" onClick={() => go(t.id)} aria-label={`Open ${title}`}>
                 <TabPreview path={t.path} />
-                <span className="tabcard__icon" style={{ color: tabColor(t.path) }}><Icon name={icon as IconName} size={30} /></span>
+                <span className="tabcard__icon"><TabIcon path={t.path} size={30} /></span>
               </button>
-              <span className="tabcard__title" style={{ color: tabColor(t.path) }}><Icon name={icon as IconName} size={16} /><b>{title}</b></span>
-              <button type="button" className="tabcard__close" aria-label={`Close ${title}`} title={`Close ${title}`} onClick={() => {
-                haptic("select"); reflowTabs(() => closeTab(t.id));
-                document.querySelector<HTMLButtonElement>(".tabcard[data-current] .tabcard__open")?.focus({ preventScroll: true });
-              }}>
+              <span className="tabcard__title"><TabIcon path={t.path} size={16} /><MiddleText text={title} /></span>
+              <button type="button" className="tabcard__close" aria-label={`Close ${title}`} onClick={() => closeTabCard(t.id, () => closeTab(t.id))}>
                 <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg></span>
               </button>
             </div>
@@ -212,6 +207,67 @@ export function Tabs() {
     </main>
   );
 }
+/**
+ * Bible Strong's GroupHeader (TabGroupPage), over a named group's tabs: its count on a 24 px
+ * square of its colour, then its name at 30 px, made smaller to fit 70% of the screen, never under 20.
+ */
+function GroupHeader({ group }: { group: Group }) {
+  const name = useRef<HTMLSpanElement>(null);
+  const [size, setSize] = useState(30);
+  useLayoutEffect(() => {
+    const el = name.current; if (!el) return;
+    el.style.fontSize = "30px";
+    // The text's own line, as React Native's onTextLayout gives it, not the row it sits in.
+    const range = document.createRange(); range.selectNodeContents(el);
+    const width = range.getBoundingClientRect().width, max = innerWidth * 0.7;
+    setSize(width > max ? Math.max(30 * (max / width), 20) : 30);
+  }, [group.name]);
+  return (
+    <header key={group.id} className="switcher__group">
+      <span className="switcher__badge" style={{ background: group.color, color: contrastInk(group.color) }}>{group.tabs.length}</span>
+      <span ref={name} className="switcher__name" style={{ fontSize: size }}>{group.name}</span>
+    </header>
+  );
+}
+
+/**
+ * Bible Strong's tab icons (getIconByTabType) for the kinds we share, in their universe's colour
+ * (themes/universeColors); our other kinds keep their own icon, in the tertiary colour.
+ */
+const BS_ICONS: [RegExp, string, string][] = [
+  [/^\/new/, "plus", "grey"], [/^\/(bible|read)/, "book-open", "tertiary"], [/^\/search/, "search", "tertiary"], [/^\/lexicon/, "lexique", "primary"],
+  [/^\/dictionary/, "dictionary", "secondary"], [/^\/topics/, "nave", "quint"], [/^\/studies/, "feather", "tertiary"], [/^\/(bookmarks|tags)/, "file-text", "color2"],
+];
+const MATERIAL: [RegExp, string][] = [
+  [/^\/(plans?|study)(\/|\?|$)/, "M14 10H2v2h12v-2zm0-4H2v2h12V6zM2 16h8v-2H2v2zm19.5-4.5L23 13l-6.99 7-4.51-4.5L13 14l3.01 3 5.49-5.5z"],
+  [/^\/timeline/, "M23 8c0 1.1-.9 2-2 2-.18 0-.35-.02-.51-.07l-3.56 3.55c.05.16.07.34.07.52 0 1.1-.9 2-2 2s-2-.9-2-2c0-.18.02-.36.07-.52l-2.55-2.55c-.16.05-.34.07-.52.07s-.36-.02-.52-.07l-4.55 4.56c.05.16.07.33.07.51 0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2c.18 0 .35.02.51.07l4.56-4.55C8.02 9.36 8 9.18 8 9c0-1.1.9-2 2-2s2 .9 2 2c0 .18-.02.36-.07.52l2.55 2.55c.16-.05.34-.07.52-.07s.36.02.52.07l3.55-3.56C19.02 8.35 19 8.18 19 8c0-1.1.9-2 2-2s2 .9 2 2z"],
+];
+export function TabIcon({ path, size }: { path: string; size: number }) {
+  const art = BS_ICONS.find(([re]) => re.test(path));
+  if (art) return <span className={`tabicon tabicon--${art[2]}`} aria-hidden="true" style={{ width: size, height: size, ["--icon" as string]: `url("${assetUrl(`bs/tab-icons/${art[1]}.svg`)}")` }} />;
+  const material = MATERIAL.find(([re]) => re.test(path));
+  if (material) return <svg className="tabicon--tertiary" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={material[1]} /></svg>;
+  return <span className="tabicon--tertiary" style={{ display: "contents" }}><Icon name={tabKind(path).icon as IconName} size={size} /></span>;
+}
+
+/** One line cut in the middle when it does not fit (React Native's ellipsizeMode="middle"). */
+function MiddleText({ text }: { text: string }) {
+  const el = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const node = el.current; if (!node) return;
+    node.textContent = text;
+    if (node.scrollWidth <= node.clientWidth) return;
+    let lo = 0, hi = text.length;
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2);
+      node.textContent = `${text.slice(0, Math.ceil(mid / 2))}…${text.slice(text.length - Math.floor(mid / 2))}`;
+      if (node.scrollWidth <= node.clientWidth) lo = mid; else hi = mid - 1;
+    }
+    node.textContent = `${text.slice(0, Math.ceil(lo / 2))}…${text.slice(text.length - Math.floor(lo / 2))}`;
+  });
+  return <b ref={el}>{text}</b>;
+}
+
 /** Bible Strong's empty group (TabGroupPage): the tabs picture, faint, and a Create a tab button that opens a new tab. */
 function EmptyGroup() {
   const add = useAddTab();
@@ -227,15 +283,10 @@ function useAddTab() {
   const navigate = useNavigate();
   return () => {
     reflowTabs(() => newTab());
-    document.querySelector(".tabcard[data-current]")?.scrollIntoView({ block: "nearest", behavior: "instant" });
-    moveTab(() => { navigate("/new", { replace: true }); }, "expand");
+    // Bible Strong's useExpandNewTab: to the end of the list, a 300 ms pause, then the new card opens.
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" });
+    window.setTimeout(() => moveTab(() => { navigate("/new", { replace: true }); }, "expand"), 300);
   };
-}
-/** A tab's icon in its universe's colour (getIconByTabType): the Lexicon primary, the Dictionary secondary, the rest tertiary. */
-function tabColor(path: string) {
-  if (path.startsWith("/lexicon")) return "var(--accent)";
-  if (path.startsWith("/dictionary")) return "rgb(255, 188, 0)";
-  return "var(--text-3)";
 }
 /** The group's name on its colour (getContrastTextColor): in dark, black on a light colour; in light, white on a dark one. */
 function contrastInk(hex: string) {
