@@ -8,14 +8,22 @@ import { share } from "@/lib/share";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { useSheet } from "@/ui/sheet";
-import { Chip, Chips, Empty, Icon, Screen, SearchField } from "@/ui/ui";
-import { teachingLabel, teachingTo, useTeachings, type Teaching } from "./Home";
+import { inShow, showLine } from "@/lib/series";
+import { Chip, Chips, Empty, Icon, List, Row, Screen, SearchField, Skeleton } from "@/ui/ui";
+import type { ShowRow } from "@/api/data";
+import { teachingLabel, teachingTo, useShows, useTeachings, type Teaching } from "./Home";
 
-type Feed = "all" | "classes" | "captains" | "history" | "truth";
-const FEEDS: [Feed, string][] = [["all", "All"], ["classes", "Sabbath"], ["captains", "Captains"], ["history", "History"], ["truth", "Truth"]];
+type Feed = "all" | "classes" | "captains" | "history" | "truth" | "shows";
+const FEEDS: [Feed, string][] = [["all", "All"], ["classes", "Sabbath"], ["captains", "Captains"], ["history", "History"], ["truth", "Truth"], ["shows", "Shows"]];
 const TRUTH = "The Truth Shall Make You Free";
 const PAGE = 12;
-const inFeedOf = (f: Feed, t: Teaching) => f === "all" || (f === "history" ? t.kind === "history" : f === "captains" ? t.kind === "captains" : f === "truth" ? t.kind === "class" && t.collection === TRUTH : t.kind === "class" && t.collection !== TRUTH);
+// The show's radio episodes carry its name followed by the station ("… · Kente FM Radio").
+const isTruth = (t: Teaching) => !!t.collection?.startsWith(TRUTH);
+/** In one of the shows with a section of their own, rather than a Sabbath class or a 15 Minutes episode. */
+const ofShow = (t: Teaching, shows: ShowRow[]) => isTruth(t) || shows.some((s) => inShow(t.series?.name, s));
+const inFeedOf = (f: Feed, t: Teaching, shows: ShowRow[]) => f === "all" || (f === "history" ? t.kind === "history" : f === "captains" ? t.kind === "captains" && !t.series : f === "truth" ? t.kind === "class" && isTruth(t) : f === "classes" ? t.kind === "class" && !ofShow(t, shows) : false);
+/** The shows that had a section before the rest keep it: their place in the list opens that feed. */
+const OWN_FEED: Record<string, Feed> = { "the-truth-shall-make-you-free": "truth", "15-minutes-with-the-captains": "captains", "our-hidden-history": "history" };
 const embed = (id: string) => `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0`;
 
 /**
@@ -26,7 +34,7 @@ const embed = (id: string) => `https://www.youtube-nocookie.com/embed/${encodeUR
 export function Classes() {
   const [params, setParams] = useSearchParams();
   const feed = (FEEDS.some(([f]) => f === params.get("feed")) ? params.get("feed") : "all") as Feed;
-  const teacher = params.get("teacher") ?? "", year = params.get("year") ?? "", series = params.get("series") ?? "";
+  const teacher = params.get("teacher") ?? "", year = params.get("year") ?? "", series = params.get("series") ?? "", showSlug = params.get("show") ?? "";
   useBackButton();
   useBottomButtons(null, null);
   const sheet = useSheet();
@@ -36,16 +44,21 @@ export function Classes() {
   const [feedNoticeOff, setFeedNoticeOff] = useState(false);
   const query = useDeferredValue(q.trim().toLowerCase());
   const res = useTeachings();
+  const showsRes = useShows();
+  const shows = useMemo(() => showsRes.data ?? [], [showsRes.data]);
+  const show = feed === "shows" && showSlug ? shows.find((s) => s.slug === showSlug) ?? null : null;
   useEffect(() => { if (res.feedOk !== false) setFeedNoticeOff(false); }, [res.feedOk]);
   useKeptScroll(!!res.data);
-  const set = (next: Record<string, string | undefined>) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries({ feed, teacher, year, series, ...next })) if (v && v !== "all") p.set(k, v); setParams(p, { replace: true }); setShown(PAGE); setPlaying(null); };
+  const set = (next: Record<string, string | undefined>) => { const p = new URLSearchParams(); for (const [k, v] of Object.entries({ feed, show: showSlug, teacher, year, series, ...next })) if (v && v !== "all") p.set(k, v); setParams(p, { replace: true }); setShown(PAGE); setPlaying(null); };
   const all = useMemo(() => {
     // One post per class: the notes and the channel's newest uploads can name the same recording.
     const seen = new Set<string>();
     return (res.data ?? []).filter((t) => { const k = t.video ?? t.url; if (seen.has(k)) return false; seen.add(k); return true; });
   }, [res.data]);
-  const inFeed = useMemo(() => all.filter((t) => inFeedOf(feed, t)), [all, feed]);
-  const counts = useMemo(() => Object.fromEntries(FEEDS.map(([f]) => [f, all.filter((t) => inFeedOf(f, t)).length])), [all]);
+  const inFeed = useMemo(() => (feed === "shows" ? (show ? all.filter((t) => inShow(t.series?.name, show)) : []) : all.filter((t) => inFeedOf(feed, t, shows))), [all, feed, show, shows]);
+  const counts = useMemo(() => Object.fromEntries(FEEDS.map(([f]) => [f, f === "shows" ? shows.length : all.filter((t) => inFeedOf(f, t, shows)).length])), [all, shows]);
+  // The list of shows, searched by name or what it is.
+  const listed = useMemo(() => shows.filter((s) => !query || `${s.name} ${s.kind}`.toLowerCase().includes(query)), [shows, query]);
   const teachers = useMemo(() => [...new Set(inFeed.map((t) => t.teacher).filter(Boolean))].sort(), [inFeed]);
   const years = useMemo(() => [...new Set(inFeed.map((t) => t.date.slice(0, 4)).filter(Boolean))].sort().reverse(), [inFeed]);
   const rows = useMemo(() => {
@@ -54,7 +67,8 @@ export function Classes() {
     return series ? out.sort((a, b) => (a.series?.part ?? 0) - (b.series?.part ?? 0) || a.date.localeCompare(b.date)) : out;
   }, [inFeed, series, teacher, year, query]);
   const filtered = !!(q.trim() || teacher || year || series || feed !== "all");
-  const reset = () => { setQ(""); set({ feed: "all", teacher: undefined, year: undefined, series: undefined }); };
+  const reset = () => { setQ(""); set({ feed: "all", show: undefined, teacher: undefined, year: undefined, series: undefined }); };
+  const directory = feed === "shows" && !show;
   const choose = async (title: string, current: string, options: string[], key: "teacher" | "year") => {
     haptic("select");
     const a = await sheet.open({ title, items: [{ id: "", text: key === "year" ? "Every year" : "Every teacher", hint: current ? undefined : "Selected" }, ...options.map((o) => ({ id: o, text: o, hint: o === current ? "Selected" : undefined }))] });
@@ -74,16 +88,16 @@ export function Classes() {
   return (
     <Screen title="Classes" className="classes">
       <div className="cfeed__tools">
-        <SearchField id="class-q" value={q} onChange={(v) => { setQ(v); setShown(PAGE); }} placeholder="Search classes, teachers, books" />
+        <SearchField id="class-q" value={q} onChange={(v) => { setQ(v); setShown(PAGE); }} placeholder={directory ? "Search shows and series" : "Search classes, teachers, books"} />
         <div className="cfeed__series" role="group" aria-label="Series">
-          <Chips>{FEEDS.map(([f, label]) => <Chip key={f} on={feed === f} onClick={() => set({ feed: f, teacher: undefined, year: undefined, series: undefined })}>{label}{res.data ? <span className="chip__n"> {counts[f]}</span> : null}</Chip>)}</Chips>
+          <Chips>{FEEDS.map(([f, label]) => <Chip key={f} on={feed === f} onClick={() => set({ feed: f, show: undefined, teacher: undefined, year: undefined, series: undefined })}>{label}{(f === "shows" ? showsRes.data : res.data) ? <span className="chip__n"> {counts[f]}</span> : null}</Chip>)}</Chips>
         </div>
-        <div className="cfeed__filters">
+        {directory ? null : <div className="cfeed__filters">
           <button type="button" className="cfeed__pick" data-on={year ? "" : undefined} disabled={years.length < 2} aria-label={`${year || "Any year"}: choose a year`} title={`${year || "Any year"}: choose a year`} onClick={() => void choose("Year", year, years, "year")}><span>{year || "Any year"}</span><Icon name="chevron" size={14} /></button>
           <button type="button" className="cfeed__pick" data-on={teacher ? "" : undefined} disabled={teachers.length < 2} aria-label={`${teacher || "Any teacher"}: choose a teacher`} title={`${teacher || "Any teacher"}: choose a teacher`} onClick={() => void choose("Teacher", teacher, teachers, "teacher")}><span>{teacher || "Any teacher"}</span><Icon name="chevron" size={14} /></button>
           {series ? <button type="button" className="cfeed__pick" data-on="" aria-label={`${series}: show every class`} title={`${series}: show every class`} onClick={() => { haptic("select"); set({ series: undefined }); }}><span>{series}</span><Icon name="close" size={14} /></button> : null}
           {filtered ? <button type="button" className="cfeed__reset" onClick={() => { haptic("select"); reset(); }}>Reset</button> : null}
-        </div>
+        </div>}
       </div>
       {res.feedOk === false && !feedNoticeOff ? (
         <div className="cfeed__notice" role="status">
@@ -92,8 +106,28 @@ export function Classes() {
           <button type="button" className="cfeed__noticex" aria-label="Dismiss upload notice" onClick={() => { haptic("select"); setFeedNoticeOff(true); }}><Icon name="close" size={14} /></button>
         </div>
       ) : null}
-      {res.isPending ? <FeedSkeleton /> : res.isError ? (
+      {show ? (
+        <header className="cfeed__show">
+          <p className="kicker">{show.kind}</p>
+          <h2>{show.name}</h2>
+          <p>{showLine({ ...show, kind: "" })}</p>
+        </header>
+      ) : null}
+      {directory ? (
+        showsRes.isPending ? <Skeleton rows={8} /> : showsRes.isError ? (
+          <Empty title="The shows did not load" action={{ label: "Try again", onClick: () => void showsRes.refetch() }}>Check your connection.</Empty>
+        ) : !listed.length ? (
+          <Empty title="No show matches that" action={{ label: "Clear the search", onClick: () => setQ("") }}>Try a name like “Patient Saints”.</Empty>
+        ) : (
+          <>
+            <p className="cfeed__count">The radio shows, TV shows, podcasts and series besides the Sabbath classes. {shows.filter((s) => s.notes).length} of {shows.length} have notes so far; the rest are added as their notes are written.</p>
+            <List>{listed.map((s) => <Row key={s.slug} href={OWN_FEED[s.slug] ? `/classes?feed=${OWN_FEED[s.slug]}` : `/classes?feed=shows&show=${encodeURIComponent(s.slug)}`} title={s.name} sub={showLine(s)} />)}</List>
+          </>
+        )
+      ) : res.isPending ? <FeedSkeleton /> : res.isError ? (
         <Empty title="The classes did not load" action={{ label: "Try again", onClick: () => void res.refetch() }}>Check your connection.</Empty>
+      ) : show && !inFeed.length ? (
+        <Empty title="No notes yet" action={{ label: "See every show", onClick: () => set({ show: undefined }) }}>{`No notes have been written for ${show.name} yet.${show.recordings ? ` ${show.recordings.toLocaleString()} of its recordings are transcribed, and` : ""} its notes will appear here as they are written.`}</Empty>
       ) : !rows.length ? (
         <Empty title="No class matches that" action={{ label: "Reset the search", onClick: reset }}>Try a topic like “Passover”, or a book like “Isaiah”.</Empty>
       ) : (
