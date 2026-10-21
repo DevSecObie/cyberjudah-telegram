@@ -1,13 +1,14 @@
 /* ── The Law: a handbook to browse, a section to read law by law ───────────────────────────── */
 .laws, .lawsec { max-width: 680px; }
-.laws__tools { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
-.laws__head { margin: 0; font: 600 var(--fs-footnote) var(--font-ui); letter-spacing: .02em; color: var(--text-3); }
-.laws__head span { font-weight: 500; }
-.laws__note { margin: 0; font: 400 var(--fs-sub)/1.45 var(--font-ui); color: var(--text-3); }
-.laws__wait { display: grid; gap: var(--sp-2); padding: 6px 0; }
-.laws__hits, .laws__part { display: grid; gap: 10px; min-width: 0; }
-.laws__parthead { display: flex; align-items: baseline; gap: 10px; margin: 10px 0 0; font: 700 var(--fs-callout)/1.3 var(--font-ui); letter-spacing: -.01em; color: var(--text-1); overflow-wrap: anywhere; scroll-margin-top: calc(var(--header-h) + var(--safe-top) + 12px); }
-.laws__n { flex: none; min-width: 1.6em; font: 600 var(--fs-footnote) var(--font-ui); color: var(--text-3); font-variant-numeric: tabular-nums; }
+/* The handbook as Bible Strong's CommentaryLibraryScreen: a grey band per part, held at the top, then its rows. */
+.laws__body { margin: 20px calc(-1 * var(--gutter)) 0; }
+.laws__band { position: sticky; top: var(--section-top, 0px); z-index: 1; margin: 0; padding: 11px 20px; border-bottom: 1px solid var(--bs-border, var(--hairline)); background: var(--bs-light-grey, var(--surface-1)); font: 700 13px var(--font-ui); color: var(--bs-grey, var(--text-3)); }
+.laws__note { margin: 0; padding: 11px 18px; border-bottom: 1px solid var(--bs-border, var(--hairline)); font: 400 12px/1.45 var(--font-ui); color: var(--bs-grey, var(--text-3)); }
+/* Its CommentaryLibraryItem: at least 78 px, 11 px by 18 px, the title 16 px bold on two lines, a 12 px grey line 3 px under it. */
+#root .laws__body .lawlink { box-sizing: border-box; flex-direction: column; align-items: stretch; justify-content: center; gap: 0; min-height: 78px; padding: 11px 18px; border-bottom: 1px solid var(--bs-border, var(--hairline)); background: var(--canvas); }
+.lawlink__title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 700 16px var(--font-ui); color: var(--bs-default, var(--text-1)); }
+.lawlink__meta { margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 12px var(--font-ui); color: var(--bs-grey, var(--text-3)); }
+.lawlink__meta .lawlink__code { min-width: 0; padding: 0; background: none; color: inherit; font: inherit; }
 /* One grouped list per part: hairlines between, rounded as a whole. */
 .laws__list { margin: 0; padding: 0; list-style: none; overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
 .laws__list > li + li { border-top: .5px solid var(--hairline); }
@@ -19,7 +20,6 @@
 .lawlink__body { flex: 1 1 auto; display: grid; gap: 2px; min-width: 0; }
 .lawlink__body b { font: 600 15.5px/1.3 var(--font-ui); overflow-wrap: anywhere; }
 .lawlink__body small { font: 400 var(--fs-footnote)/1.3 var(--font-ui); color: var(--text-3); overflow-wrap: anywhere; }
-.lawlink__law { font: 400 15px/1.45 var(--font-ui); color: var(--text-1); overflow-wrap: anywhere; }
 
 .lawsec__head { display: grid; gap: var(--sp-2); }
 .lawsec__top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-3); }

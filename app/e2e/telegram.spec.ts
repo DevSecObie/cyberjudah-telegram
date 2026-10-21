@@ -1234,7 +1234,7 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
   });
 }
 
-test("The Law: a law found by its words opens in its section, brought into view; a part narrows the handbook and Reset clears it", async ({ page }) => {
+test("The Law: a law found by its words opens in its section, brought into view; a part from the filter panel narrows the handbook and Reset clears it", async ({ page }) => {
   await page.goto(`/law${LAUNCH}`);
   await page.fill("#law-q", "usury");
   const hits = page.getByRole("region", { name: "Laws that say this" });
@@ -1249,14 +1249,14 @@ test("The Law: a law found by its words opens in its section, brought into view;
   await expect(card).toBeInViewport();
   await press(page, "back");
   await expect(page.locator("#law-q")).toHaveValue("usury");
-  await page.getByRole("button", { name: "Reset" }).click();
-  await expect(page.locator("#law-q")).toHaveValue("");
-  // One part only.
-  await page.getByRole("button", { name: "Every part: choose a part" }).click();
-  await page.locator(".sheet__item", { hasText: "9. Feasts and observances" }).click();
+  await page.fill("#law-q", "");
+  // One part only, from Bible Strong's filter panel; its Reset clears it.
+  await page.getByRole("button", { name: "Filter", exact: true }).click();
+  await page.locator(".panel-filter", { hasText: "Part" }).click();
+  await page.getByRole("radio", { name: "9. Feasts and observances" }).click();
   await expect(page.locator(".laws__part")).toHaveCount(1);
   await expect(page.getByRole("region", { name: "Feasts and observances" })).toBeVisible();
-  await page.getByRole("button", { name: "Reset" }).click();
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(page.getByRole("region", { name: "The Ten Commandments" })).toBeVisible();
 });
 
