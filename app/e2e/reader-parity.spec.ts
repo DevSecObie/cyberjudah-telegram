@@ -494,25 +494,27 @@ test("plan completion can be corrected by keyboard and its read action stays ins
   });
   const base = (process.env.CYBERJUDAH_APP_BASE ?? "/").replace(/\/$/, "");
   await page.goto(`${base}/plan`);
-  await expect(page.locator(".card__ref")).toContainText("0% of this plan");
-  const check = page.getByRole("button", { name: "John 1 read", exact: true });
-  await check.focus(); await page.keyboard.press("Space"); await expect(check).toHaveAttribute("aria-pressed", "true");
-  await page.keyboard.press("Space"); await expect(check).toHaveAttribute("aria-pressed", "false");
-  await page.getByRole("button", { name: "Read John 1", exact: true }).click();
+  const check = page.getByRole("checkbox", { name: "John 1", exact: true });
+  await check.focus(); await page.keyboard.press("Space"); await expect(check).toHaveAttribute("aria-checked", "true");
+  // Finishing the day's reading is celebrated, as in Bible Strong.
+  await page.getByRole("dialog", { name: "Congratulations" }).getByRole("button", { name: "Continue", exact: true }).click();
+  await check.focus(); await page.keyboard.press("Space"); await expect(check).toHaveAttribute("aria-checked", "false");
+  await page.getByRole("button", { name: "Continue my journey", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`${base}/read/john/1$`));
   await expect(page.locator("#verset-1")).toBeVisible();
 });
 
-test("restarting a selected plan keeps its books and resets its streak date", async ({ page }) => {
+test("resetting a selected plan keeps its books and resets its start and streak dates", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("cj:plan", JSON.stringify({ startedAt: "2026-10-01", day: 1, streak: 3, lastDone: "2026-10-07", perDay: 1, books: ["john"], name: "John" })));
   await page.goto("/plan");
-  page.once("dialog", d => d.accept());
-  await page.getByRole("button", { name: "Start over", exact: true }).click();
-  await expect(page.getByRole("link", { name: "John · Change plan", exact: true })).toBeVisible();
+  // Bible Strong's Reset, from the plan menu, after a confirmation.
+  await page.getByRole("button", { name: "Plan options", exact: true }).click();
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(page.getByRole("link", { name: "John 1", exact: true })).toBeVisible();
-  const plan = await page.evaluate(() => JSON.parse(localStorage.getItem("cj:plan")!));
-  expect(plan).toMatchObject({ day: 0, streak: 0, books: ["john"], name: "John" });
-  expect(plan.lastDone).toBeUndefined();
+  const today = await page.evaluate(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; });
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cj:plan")!))).toMatchObject({ startedAt: today, day: 0, streak: 0, books: ["john"], name: "John" });
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cj:plan")!).lastDone)).toBeUndefined();
 });
 
 test("the reading guide is reachable from Settings and has usable tab shortcuts", async ({ page }) => {
