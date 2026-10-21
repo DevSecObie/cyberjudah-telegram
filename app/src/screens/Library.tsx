@@ -83,9 +83,12 @@ function NaveDetail({ query, list, kind, page }: {
   const openInNewTab = useOpenInNewTab();
   const endpoint = useMemo<EntryEndpoint | null>(() => (page ? { type: "entry", url: page.url, kind, label: page.title } : null), [page?.url, page?.title, kind]); // eslint-disable-line react-hooks/exhaustive-deps
   const { count } = useEndpointRelations(endpoint);
-  if (query.isPending) return <Screen title={list}><p className="bs-list__loading">Loading...</p></Screen>;
-  if (query.isError) return <Screen title={list}><Empty title={`This ${kind} did not load`} action={{ label: "Retry", onClick: () => void query.refetch() }}>Check your connection.</Empty></Screen>;
-  if (!page || !endpoint) return <Screen title={list}><Empty title={`Unable to load the ${kind}...`} /></Screen>;
+  // A page already loaded stays up when a later refetch fails.
+  if (!page || !endpoint) {
+    if (query.isPending) return <Screen title={list}><p className="bs-list__loading">Loading...</p></Screen>;
+    if (query.isError) return <Screen title={list}><Empty title={`This ${kind} did not load`} action={{ label: "Retry", onClick: () => void query.refetch() }}>Check your connection.</Empty></Screen>;
+    return <Screen title={list}><Empty title={`Unable to load the ${kind}...`} /></Screen>;
+  }
   const relations = () => navigate(`/relations?endpoint=${encodeURIComponent(`entry:${endpoint.url}`)}&label=${encodeURIComponent(endpoint.label)}`);
   const menu = async () => {
     const a = await sheet.open({ items: [
