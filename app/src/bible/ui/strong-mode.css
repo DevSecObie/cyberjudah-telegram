@@ -1,0 +1,63 @@
+/* Bible Strong's Strong's mode: the header's "S", the Text display cards, the inline references
+   and the sheet a tapped reference opens. Values are Bible Strong's. */
+
+/* strongModeButton: a 40 px box; StrongMark is a 17 px bold serif S, tertiary until the numbers show. */
+.bs-strongbtn { flex: none; width: 40px; height: 40px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; padding: 0; transition: opacity .3s; }
+.bs-strongbtn[data-pressed] { opacity: .6; }
+.bs-strongmark { font: 700 17px/1 Georgia, serif; color: var(--bs-tertiary); }
+.bs-strongmark[data-highlighted] { color: var(--bs-primary); }
+
+/* StrongModeSelectorSheet: 16 px in, 10 px between the cards. */
+.bs-modes { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+/* BibleDisplayModeCard (list): 92 px, 16 px in, a 1 px line, 16 px corners, the page at half. */
+#root .bs-modecard { box-sizing: border-box; display: flex; flex-direction: row; align-items: center; gap: 12px; width: 100%; height: 92px; padding: 16px; border: 1px solid var(--bs-border); border-radius: 16px; background: color-mix(in srgb, var(--bs-reverse) 50%, transparent); color: var(--bs-default); font-family: var(--font-ui); text-align: left; cursor: pointer; }
+.bs-modecard:active { opacity: .72; }
+.bs-modecard[data-disabled] { opacity: .5; cursor: default; }
+.bs-modecard[data-disabled]:active { opacity: .5; }
+/* Radio: 22 px, a 2 px ring, the dot at 42 %. */
+.bs-radio { flex: none; box-sizing: border-box; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 11px; border: 2px solid var(--bs-tertiary); }
+.bs-radio[data-selected] { border-color: var(--bs-primary); }
+.bs-radio > span { width: 9.24px; height: 9.24px; border-radius: 4.62px; background: var(--bs-primary); }
+.bs-modecard__text { flex: 1.15; display: flex; flex-direction: column; justify-content: center; }
+.bs-modecard__text b { font-size: 14px; line-height: 17px; font-weight: 700; color: var(--bs-default); }
+.bs-modecard__text b[data-selected] { color: var(--bs-primary); }
+.bs-modecard__text small { margin-top: 2px; font-size: 10px; line-height: 13px; color: var(--bs-tertiary); }
+.bs-modecard__preview { flex: 1; display: flex; flex-direction: column; align-items: flex-end; }
+.bs-modecard__word { font-size: 16px; line-height: 21px; text-align: right; }
+.bs-modecard__strong { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 4px; }
+.bs-modecard__code { font: 400 10px Georgia, serif; color: var(--bs-tertiary); }
+.bs-modecard__interlinear { display: flex; flex-direction: column; align-items: flex-end; }
+.bs-modecard__interlinear b { font-size: 14px; line-height: 18px; }
+.bs-modecard__original { font: 400 16px/20px Georgia, serif; }
+.bs-modecard__interlinear small { font-size: 8px; color: var(--bs-tertiary); }
+
+/* BibleStrongRef presses at 0.6. */
+.bs-strongref-inline:active { opacity: .6; }
+
+/* StrongSelectionSheet: 12 px above, 24 below, 14 between the pills and the cards. */
+.bs-strongsel__body { display: flex; flex-direction: column; gap: 12px; padding: 12px 0 24px; }
+.bs-strongsel__pills { display: flex; gap: 8px; padding: 0 20px; overflow-x: auto; scrollbar-width: none; }
+.bs-strongsel__pills::-webkit-scrollbar { display: none; }
+#root .bs-strongsel__pill { flex: none; padding: 8px 13px; border: 0; border-radius: 12px; background: color-mix(in srgb, var(--bs-light-grey) 50%, transparent); color: var(--bs-default); font: 700 13px/1.2 var(--font-ui); cursor: pointer; }
+#root .bs-strongsel__pill[aria-selected="true"] { background: var(--bs-primary); color: var(--bs-reverse); }
+.bs-strongsel__pill:active { opacity: .7; }
+.bs-strongsel__pager { display: flex; gap: 12px; padding: 0 20px; overflow-x: hidden; scroll-snap-type: x mandatory; scroll-padding-left: 20px; scrollbar-width: none; }
+.bs-strongsel__pager[data-multiple] { overflow-x: auto; padding-right: 44px; }
+.bs-strongsel__pager::-webkit-scrollbar { display: none; }
+#root .bs-strongsel__card { flex: none; box-sizing: border-box; display: flex; flex-direction: column; gap: 9px; padding: 14px 15px; border: 0; border-radius: 14px; background: color-mix(in srgb, var(--bs-reverse) 50%, transparent); color: var(--bs-default); font-family: var(--font-ui); text-align: left; scroll-snap-align: start; cursor: pointer; }
+.bs-strongsel__card:active { opacity: .7; }
+.bs-strongsel__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.bs-strongsel__titles { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.bs-strongsel__titles b { font-size: 16px; font-weight: 700; }
+.bs-strongsel__original { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.bs-strongsel__original > span { font-size: 17px; }
+.bs-strongsel__original small { font-size: 12px; color: var(--bs-tertiary); }
+/* StrongPreviewFade: 72 px, fading out from 65 %. */
+.bs-strongsel__fade { display: block; height: 72px; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, black 0%, black 65%, transparent 100%); mask-image: linear-gradient(to bottom, black 0%, black 65%, transparent 100%); }
+.bs-strongsel__def { display: block; font-size: 13px; line-height: 18px; color: var(--bs-tertiary); }
+.bs-strongsel__none { min-height: 100px; display: grid; place-items: center; margin: 0; color: var(--bs-tertiary); }
+/* The loading skeleton: two pills and two cards on the light grey at half. */
+.bs-strongsel__skeleton { display: flex; flex-direction: column; gap: 12px; }
+.bs-strongsel__skeleton .bs-strongsel__pills > span { height: 34px; border-radius: 12px; background: color-mix(in srgb, var(--bs-light-grey) 50%, transparent); }
+.bs-strongsel__skelcards { display: flex; gap: 12px; padding-left: 20px; overflow: hidden; }
+.bs-strongsel__skelcards > span { flex: none; height: 153px; border-radius: 14px; background: color-mix(in srgb, var(--bs-light-grey) 50%, transparent); }

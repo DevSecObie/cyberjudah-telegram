@@ -992,3 +992,95 @@ test("reference previews filter a very large verse range without expanding it", 
   await page.keyboard.press("Escape");
   await expect(card).toBeHidden();
 });
+
+test("Strong's mode puts each word's numbers after it, per tab, and a tapped number opens its entries", async ({ page }) => {
+  const words = [["In the beginning", ["H7225"]], ["God", ["H430"]], ["created", ["H1254", "H853"]], ["the heaven", ["H8064"]], ["and", ["H853"]], ["the earth.", []]];
+  await page.route(/\/api\/kjv\/genesis\/1\.json$/, r => r.fulfill({ json: { book: "genesis", chapter: 1, translation: "KJV", verses: verses.map(v => v.verse === 1 ? { ...v, words } : v) } }));
+  const glosses: Record<string, [string, string, string]> = { H7225: ["רֵאשִׁית", "rêʼshîyth", "beginning"], H430: ["אֱלֹהִים", "ʼĕlôhîym", "god"], H1254: ["בָּרָא", "bârâʼ", "create"], H853: ["אֵת", "ʼêth", "untranslated"], H8064: ["שָׁמַיִם", "shâmayim", "heaven"] };
+  await page.route(/\/api\/strongs\/H\d+\.json$/, r => {
+    const n = /(H\d+)\.json$/.exec(r.request().url())![1];
+    const [lemma, xlit, word] = glosses[n];
+    return r.fulfill({ json: { number: n, language: "Hebrew", lemma, xlit, pron: "", derivation: "", def: `The definition of ${n}.`, kjv: "", count: 1, verses: 1, words: [{ word, count: 1 }], occurrences: [], source: "" } });
+  });
+  await page.goto("/read/genesis/1");
+  const verse = page.locator("#verset-1");
+  await expect(verse.locator(".bs-text")).toContainText("In the beginning God created");
+  const s = page.getByRole("button", { name: "Choose the Strong Bible display", exact: true });
+  await expect(s).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator(".bs-strongref-inline")).toHaveCount(0);
+
+  // Text display: Text, Strong (with the Old Testament's H0430), and Reverse interlinear, which needs an original text.
+  await s.click();
+  const display = page.getByRole("dialog", { name: "Text display" });
+  await expect(display.getByRole("radio", { name: "Text. Translation only" })).toHaveAttribute("aria-checked", "true");
+  await expect(display.getByRole("radio", { name: "Strong. Text + numbers" })).toContainText("H0430");
+  await expect(display.getByRole("radio", { name: "Reverse interlinear. Translation then original" })).toHaveAttribute("aria-disabled", "true");
+  await display.getByRole("radio", { name: "Strong. Text + numbers" }).click();
+  await expect(display).toBeHidden();
+  await expect(s).toHaveAttribute("aria-pressed", "true");
+
+  // Each keyed word keeps its text and gets its numbers after it, "the earth." none.
+  const refs = verse.locator(".bs-strongref-inline");
+  await expect(refs).toHaveText(["H7225", "H0430", "H1254 · H0853", "H8064", "H0853"]);
+  expect(await verse.locator(".bs-text").evaluate((el) => [...el.childNodes].map((n) => (n as HTMLElement).dataset?.ignoreVerseTouch === undefined ? n.textContent : "").join(""))).toBe("In the beginning God created the heaven and the earth.");
+
+  // A tapped reference opens its sheet, its numbers as pills, the tapped one first; every reference to that number is marked.
+  await refs.nth(2).click();
+  const sel = page.getByRole("dialog", { name: "created · KJV" });
+  await expect(sel.getByRole("tab")).toHaveText(["H1254", "H0853"]);
+  await expect(sel.getByRole("tab", { name: "H1254" })).toHaveAttribute("aria-selected", "true");
+  await expect(sel.getByRole("button", { name: "H1254 · create" })).toBeVisible();
+  await expect(refs.nth(2)).toHaveAttribute("data-selected", "");
+  await expect(refs.nth(4)).not.toHaveAttribute("data-selected", "");
+  await sel.getByRole("tab", { name: "H0853" }).click();
+  await expect(sel.getByRole("tab", { name: "H0853" })).toHaveAttribute("aria-selected", "true");
+  // The same reference again closes it.
+  await refs.nth(2).click();
+  await expect(sel).toBeHidden();
+  await expect(refs.nth(2)).not.toHaveAttribute("data-selected", "");
+
+  // A card opens the full entry.
+  await refs.nth(1).click();
+  const god = page.getByRole("dialog", { name: "God · KJV" });
+  await god.getByRole("button", { name: "H0430 · god" }).click();
+  await expect(god).toBeHidden();
+  await expect(page.getByRole("dialog", { name: "Word study" })).toBeVisible();
+  await page.getByRole("dialog", { name: "Word study" }).press("Escape");
+  await expect(page.getByRole("dialog", { name: "Word study" })).toBeHidden();
+
+  // The mode is the tab's, kept on the device; "s" cycles it while nothing is open.
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cj:strong-mode") ?? "{}"))).toEqual({ "bible-one": "visible" });
+  await page.reload();
+  await expect(verse.locator(".bs-strongref-inline")).toHaveCount(5);
+  await page.locator("body").press("s");
+  await expect(verse.locator(".bs-strongref-inline")).toHaveCount(0);
+  await expect(s).toHaveAttribute("aria-pressed", "false");
+  await page.locator("body").press("s");
+  await expect(verse.locator(".bs-strongref-inline")).toHaveCount(5);
+});
+
+test("Strong's mode moves a background highlight to the verse number and hides its numbers while annotating", async ({ page }) => {
+  await page.route(/\/api\/kjv\/genesis\/1\.json$/, r => r.fulfill({ json: { book: "genesis", chapter: 1, translation: "KJV", verses: verses.map(v => v.verse === 1 ? { ...v, words: [["In the beginning", ["H7225"]], ["God", ["H430"]], ["created the heaven and the earth.", []]] } : v) } }));
+  await page.addInitScript(() => localStorage.setItem("cj:strong-mode", JSON.stringify({ "bible-one": "visible" })));
+  await page.goto("/read/genesis/1");
+  const verse = page.locator("#verset-1");
+  await expect(verse.locator(".bs-strongref-inline")).toHaveCount(2);
+  await verse.locator(".bs-num").click();
+  const sheet = page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true });
+  await page.locator(".bs-colors__cell").nth(1).click();
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+  // Bible Strong's getNumberHighlight: the number takes the colour, the text and its numbers stay clear.
+  await expect(verse.locator(".bs-num")).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(verse.locator(".bs-num")).toHaveCSS("border-radius", "3px");
+  expect(await verse.locator(".bs-text").evaluate((el) => getComputedStyle(el.parentElement!).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
+  // Annotating shows no numbers; leaving brings them back.
+  await verse.locator(".bs-num").click();
+  await sheet.getByRole("tab", { name: "Annotate", exact: true }).click();
+  await sheet.getByRole("button", { name: "Free mode", exact: true }).click();
+  await expect(page.locator(".bs-container")).toHaveAttribute("data-annotating", "");
+  await expect(verse.locator(".bs-strongref-inline")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Choose the Strong Bible display", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Exit annotation mode", exact: true }).click();
+  await expect(verse.locator(".bs-strongref-inline")).toHaveCount(2);
+});
