@@ -117,7 +117,8 @@ test("tapping verses selects them, the sheet highlights, notes, tags and bookmar
   await expect(page.locator(".tagd-item__ref").first()).toContainText("Psalms 23:1-2");
   await expect(page.locator(".tagd-item").first().locator(".tagd-chip")).toContainText("promises");
   await fromMenu("Notes");
-  await expect(page.locator(".row__title").first()).toHaveText("The shepherd psalm.");
+  await expect(page.locator(".noteitem__title").first()).toHaveText("The shepherd psalm.");
+  await expect(page.locator(".noteitem__meta").first()).toContainText("Psalms 23:1-2 - ");
 });
 
 test("the book pill opens Books; a chapter tile opens the chapter; the chevrons jump to a verse", async ({ page }) => {

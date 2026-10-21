@@ -1,16 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 
 import { data } from "@/api/data";
 import { useBackButton } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { Feather, Ion } from "@/bible/icons";
-import { useAllNotes, useBookmarks, useTags, type Bookmark } from "@/bible/store";
+import { useBookmarks, type Bookmark } from "@/bible/store";
 import { BookmarkForm } from "@/bible/ui/Editors";
 import { confirmDelete, ContextualPanel, FiltersButton, PanelAction, PanelSearch } from "@/ui/panel";
-import { Chip, Chips, Empty, List, Row, Screen, SearchField } from "@/ui/ui";
-import { ENTITY_LIST_SORTS, queryEntityList, type EntityListSort } from "@/lib/entity-list";
+import { Screen } from "@/ui/ui";
 import { EmptyState } from "./new-tab-search";
 
 function useBookName() {
@@ -91,33 +90,5 @@ function BookmarkOptions({ bookmark, onNavigate, onSave, onRemove }: { bookmark:
         ),
       },
     }} />
-  );
-}
-
-/** Bible Strong's AllNotesTabScreen: filter by tag, then search and sort (queryEntityList). */
-export function Notes() {
-  useBackButton();
-  const [params, setParams] = useSearchParams();
-  const [tags] = useTags();
-  const bookName = useBookName();
-  const tagFilter = params.get("tag") ?? "";
-  const { rows: allNotes } = useAllNotes();
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<EntityListSort>("newest");
-  const tagged = useMemo(() => (tagFilter ? allNotes.filter((n) => n.note.tags?.[tagFilter]) : allNotes), [allNotes, tagFilter]);
-  const notes = useMemo(() => queryEntityList(tagged.map((n) => ({ ...n, id: `${n.slug}/${n.chapter}/${n.key}`, title: n.note.title || "Untitled note", description: n.note.description, date: n.note.date })), { query, sort }), [tagged, query, sort]);
-  return (
-    <Screen title="Notes" kicker="Synced with your Telegram account">
-      {!allNotes.length ? <Empty title="No notes yet" action={{ label: "Open the Bible", href: "/bible" }}>Select a verse and tap Note.</Empty> : (
-        <>
-          <SearchField id="notes-search" value={query} onChange={setQuery} placeholder="Search notes" />
-          <Chips>{ENTITY_LIST_SORTS.map(([value, label]) => <Chip key={value} on={sort === value} onClick={() => setSort(value)}>{label}</Chip>)}</Chips>
-          {Object.keys(tags).length ? <Chips><Chip on={!tagFilter} onClick={() => setParams({}, { replace: true })}>All tags</Chip>{Object.values(tags).map((t) => <Chip key={t.id} on={tagFilter === t.id} onClick={() => setParams(tagFilter === t.id ? {} : { tag: t.id }, { replace: true })}>{t.name}</Chip>)}</Chips> : null}
-          {!notes.length ? <Empty title="No matching notes">Try another word, tag or order.</Empty> : (
-            <List>{notes.map((n) => <Row key={n.id} href={`/read/${n.slug}/${n.chapter}?v=${n.key.split("/")[0]}`} meta={`${bookName(n.slug)} ${n.chapter}:${n.key.replace("/", ",")}`} title={n.title} sub={n.note.description} />)}</List>
-          )}
-        </>
-      )}
-    </Screen>
   );
 }
