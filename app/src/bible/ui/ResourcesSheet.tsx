@@ -1,7 +1,7 @@
 import { WordAlignment } from "./WordAlignment";
 import { useQuery } from "@tanstack/react-query";
 import { avatarKind, EntityAvatar } from "@/ui/avatar";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { data, shelf, type Book, type Citation, type VerseComment } from "@/api/data";
@@ -11,6 +11,7 @@ import { Feather } from "../icons";
 import { ResourceIcon, type ResourceKind } from "./ResourceIcon";
 import { Sheet } from "./Sheet";
 import { VerseLexicon } from "./VerseLexicon";
+import { BibleVerseDetailFooter } from "./BibleVerseDetailFooter";
 import { WordSheet } from "./WordSheet";
 import { Xrefs } from "@/ui/xrefs";
 import { preceptsForVerse, slugOfUrl, teacherRank, usePeopleNamed, useReadings, useTaughtPrecepts } from "@/lib/taught";
@@ -79,6 +80,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   const [allRead, setAllRead] = useState(false);
   const shown = new Set(breakdowns.map((c) => c.note.url));
   const also = [...new Map(comments.filter((c) => c.verses && !shown.has(c.url)).map((c) => [c.url, c] as const)).values()];
+  const hasVerseContext = tab === "dictionary" || tab === "themes" || tab === "commentary";
   return (
     <Sheet open={open} onClose={onClose} snapPoints={[1]} background="reverse" className="bs-resources-sheet" title={reference} subTitle={TABS.find((t) => t.id === tab)?.subtitle} hasBack onBack={onClose}
       right={tab === "words" && verseWords ? <div className="bs-resmenu">
@@ -99,8 +101,10 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
         </VerseLexicon>
       ) : null}
       {word ? <WordSheet number={word} open onClose={() => { setWord(null); onClose(); }} onBack={() => setWord(null)} books={books} here={{ slug, chapter, verse }} /> : null}
-      {tab === "words" && verseWords ? null : <div className="bs-resources">
-        <p className="bs-resources__verse"><b>{verse}</b> {text}</p>
+      {tab === "words" && verseWords ? null : <div className={hasVerseContext ? "bs-resource-panel" : undefined} data-fixed-context={tab === "dictionary" || tab === "themes" ? "" : undefined}>
+        {hasVerseContext ? <ResourceVerseContext key={tab} verse={verse} verses={verses} onVerse={onVerse} text={text} /> : null}
+        <div className="bs-resources">
+        {hasVerseContext ? null : <p className="bs-resources__verse"><b>{verse}</b> {text}</p>}
         {tab === "words" ? (spans.isPending ? <p className="bs-loading">Loading...</p> : !verseWords ? (lxx.isPending ? <p className="bs-loading">Loading...</p> : greek ? (
           <div className="bs-greek">
             <p className="bs-resources__sub">The Greek of this verse</p>
@@ -149,8 +153,50 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
           {also.length ? <p className="bs-resources__sub">{breakdowns.length ? "Also taught in" : "Taught in"}</p> : null}
           {also.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(`${toApp(c.url)}#p-${`${reference.replace(/:.*$/, "")}:${c.verses}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`); }}><b>{c.label.replace(/^[^·]+·\s*/, "")}</b><small>{shelf(c.url, c.kind)} · {reference.replace(/:.*$/, "")}:{c.verses}</small></button>)}
         </>) : null}
+        </div>
       </div>}
     </Sheet>
+  );
+}
+
+function ResourceVerseContext({ verse, verses, onVerse, text }: { verse: number; verses: number; onVerse: (v: number) => void; text: string }) {
+  const layout = useRef<HTMLDivElement>(null);
+  const passage = useRef<HTMLDivElement>(null);
+  const direction = useRef(1);
+  const previousHeight = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const el = passage.current;
+    const box = layout.current;
+    if (!el || !box || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timing = { easing: "ease-in-out" };
+    const animations = [el.animate([{ opacity: 0, transform: `translateX(${direction.current * 10}px)` }, { opacity: 1, transform: "translateX(0)" }], { ...timing, duration: 180 })];
+    if (previousHeight.current !== null) animations.push(box.animate([{ height: `${previousHeight.current}px` }, { height: `${el.offsetHeight}px` }], { ...timing, duration: 220 }));
+    return () => animations.forEach(a => a.cancel());
+  }, [verse]);
+  const navigateVerse = (next: number) => {
+    direction.current = next > verse ? 1 : -1;
+    const el = passage.current;
+    if (el && layout.current && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      previousHeight.current = layout.current.getBoundingClientRect().height;
+      const old = el.cloneNode(true) as HTMLElement;
+      old.inert = true;
+      old.setAttribute("aria-hidden", "true");
+      Object.assign(old.style, { position: "absolute", inset: "0 0 auto", pointerEvents: "none" });
+      layout.current.append(old);
+      old.animate([{ opacity: 1, transform: "translateX(0)" }, { opacity: 0, transform: `translateX(${-direction.current * 8}px)` }], { duration: 140, easing: "ease-in-out", fill: "forwards" }).finished.catch(() => {}).finally(() => old.remove());
+    }
+    onVerse(next);
+  };
+  return (
+    <div className="bs-resource-context">
+      <div ref={layout} className="bs-resource-context__layout">
+        <div key={verse} ref={passage} className="bs-vdetail__verse">
+          <div className="bs-vdetail__num"><span>{verse}</span></div>
+          <p className="bs-resources__verse">{text.replace(/\n/g, "")}</p>
+        </div>
+      </div>
+      <BibleVerseDetailFooter verse={verse} verses={verses} onVerse={navigateVerse} />
+    </div>
   );
 }
 
