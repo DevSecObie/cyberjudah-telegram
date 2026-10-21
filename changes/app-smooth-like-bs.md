@@ -1,0 +1,3 @@
+- Smoother, as Bible Strong is on the web: bars, menus and sheets are solid, on the page colour, instead of frosted glass the phone had to redraw on every frame of a scroll or an animation. The Glass setting is gone with it.
+- Sheets are Bible Strong's web sheet (vaul): they slide in and out and follow a downward swipe without redrawing the page. A sheet opens at its size and keeps it; a pull down closes it.
+- Popups grow in without a blur.

@@ -10,24 +10,25 @@
    fraction of --sheet-max; below the last one an iOS 26 sheet floats inset with round corners, at
    full height it meets the screen's edges. */
 :root { --sheet-max: calc(100dvh - var(--safe-top) - var(--sheet-gap)); }
-.sheet__scrim.bs-scrim { padding: 0; position: fixed; inset: 0; z-index: 90; background: var(--scrim-modal); display: flex; align-items: flex-end; justify-content: center; animation: bs-fadein .15s ease-out; transition: background-color .25s ease; }
-.bs-scrim.bs-scrim--clear { background: transparent; pointer-events: none; }
-.bs-scrim--clear > .bs-sheet { pointer-events: auto; box-shadow: 0 -8px 30px rgba(0,0,0,.18); }
-.bs-sheet { box-sizing: border-box; width: calc(100% - 2 * var(--sheet-gap) - var(--safe-left) - var(--safe-right)); max-width: 640px;
+/* vaul's overlay and drawer: the drawer is fixed to the bottom; vaul slides it in and out. */
+.sheet__scrim.bs-scrim { padding: 0; position: fixed; inset: 0; z-index: 90; background: var(--scrim-modal); }
+.bs-sheet[data-clear] { box-shadow: 0 -8px 30px rgba(0,0,0,.18); }
+.bs-sheet { position: fixed; z-index: 91; bottom: 0; left: 0; right: 0; box-sizing: border-box; width: calc(100% - 2 * var(--sheet-gap) - var(--safe-left) - var(--safe-right)); max-width: 640px;
   max-height: calc(var(--sheet-max) - var(--safe-bottom) - var(--sheet-gap)); margin: 0 auto calc(var(--sheet-gap) + var(--safe-bottom));
   margin-left: max(calc(var(--sheet-gap) + var(--safe-left)), calc((100% - 640px + var(--safe-left) - var(--safe-right)) / 2));
   display: flex; flex-direction: column; min-width: 0; overflow: hidden; color: var(--bs-default);
   background: var(--mat-elevated); -webkit-backdrop-filter: var(--mat-blur-strong); backdrop-filter: var(--mat-blur-strong);
   --r-outer: var(--r-sheet); --inset: 16px; --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset)));
-  border-radius: var(--r-outer); border: 1px solid var(--mat-edge); box-shadow: var(--mat-highlight), var(--shadow-3); padding-bottom: 10px; animation: bs-rise .22s ease-out; }
+  border-radius: var(--r-outer); border: 1px solid var(--mat-edge); box-shadow: var(--mat-highlight), var(--shadow-3); padding-bottom: 10px; }
 .bs-sheet[data-background="reverse"] { background: var(--bs-reverse); -webkit-backdrop-filter: none; backdrop-filter: none; }
 .bs-sheet.bs-sheet--full { width: 100%; margin: 0 auto; max-height: var(--sheet-max); padding-bottom: var(--safe-bottom); border-radius: var(--r-sheet) var(--r-sheet) 0 0; border-bottom: 0; }
 /* UIKit's grabber: 36 × 5, 5 px from the top, over the sheet rather than in a row of its own. */
 .bs-sheet__grab { flex: none; position: relative; touch-action: none; cursor: grab; }
 .bs-sheet__grab:not(:has(.bs-sheet__head)) { min-height: 16px; }
-.bs-sheet__grabber { position: absolute; z-index: 1; top: 0; left: 50%; transform: translateX(-50%); display: flex; justify-content: center; width: 64px; height: 16px; margin: 0; padding: 0; border: 0; background: transparent; }
-button.bs-sheet__grabber { height: 22px; cursor: ns-resize; }
-.bs-sheet__handle { display: block; width: 36px; height: 5px; margin-top: 5px; border-radius: 2.5px; background: color-mix(in srgb, var(--bs-default) 28%, transparent); flex: none; }
+/* vaul's Handle, drawn as UIKit's grabber: a 36 × 5 bar 5 px from the top, in a 64 × 16 strip
+   over the sheet rather than in a row of its own. */
+.bs-sheet__grabber[data-vaul-handle] { position: absolute; z-index: 1; top: 0; left: 50%; transform: translateX(-50%); display: flex; justify-content: center; width: 64px; height: 16px; margin: 0; padding: 0; border-radius: 0; background: transparent; opacity: 1; }
+.bs-sheet__grabber[data-vaul-handle]::before, .bs-sheet__handle { content: ""; display: block; width: 36px; height: 5px; margin-top: 5px; border-radius: 2.5px; background: color-mix(in srgb, var(--bs-default) 28%, transparent); flex: none; }
 /* SheetHeader: a 54 px row with a line under it, then anything below the title (a search field). */
 .bs-sheet__head { border-bottom: 1px solid var(--bs-border); }
 .bs-sheet__header { display: flex; align-items: center; min-height: 54px; }
@@ -51,8 +52,8 @@ button.bs-sheet__grabber { height: 22px; cursor: ns-resize; }
 .bs-switch[data-on] span { transform: translateX(14px); }
 .bs-checkbox { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--bs-border); display: grid; place-items: center; box-sizing: border-box; }
 .bs-checkbox[data-checked] { background: var(--bs-primary); border-color: var(--bs-primary); }
-.bs-sheet { transition: transform .22s cubic-bezier(.2, .8, .2, 1), height .3s cubic-bezier(.2, .9, .25, 1); }
-@media (prefers-reduced-motion: reduce) { .bs-sheet, .bs-scrim { animation: none; transition: none; } }
+/* BottomSheet.tsx: the height eases between snap points over 0.3 s. */
+.bs-sheet[data-vaul-drawer] { transition-property: transform, height; transition-duration: .5s, .3s; transition-timing-function: cubic-bezier(.32, .72, 0, 1), ease; }
 /* A route screen in its sheet (ui/routeSheet): the page's own padding, without the space for the
    status bar, under Bible Strong's route Header (common/Header.tsx), which stays at the top. */
 .route-sheet .bs-sheet__body { padding-bottom: var(--safe-bottom); }

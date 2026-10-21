@@ -562,7 +562,8 @@ test("notes list searches and sorts as Bible Strong's BibleVerseNotesScreen, and
     localStorage.setItem("cj:bs_n_john_1", JSON.stringify({ "4": { id: "n3", title: "Ark of the word", description: "The life was the light of men.", date: 2000 } }));
   });
   await page.goto("/notes");
-  const order = () => page.getByRole("link").filter({ hasText: /Light was the first|Beginning|Ark of the word/ }).allInnerTexts().then(t => t.map(s => /Light was the first|Beginning|Ark of the word/.exec(s)![0]));
+  // The list as drawn: an open panel's dimmed page is hidden from the accessibility tree, as a modal dialog's is.
+  const order = () => page.locator("a").filter({ hasText: /Light was the first|Beginning|Ark of the word/ }).allInnerTexts().then(t => t.map(s => /Light was the first|Beginning|Ark of the word/.exec(s)![0]));
   await expect.poll(order).toEqual(["Light was the first", "Ark of the word", "Beginning"]);
   // Bible Strong's filter panel: Order, Search, Tags.
   const choose = async (row: string, choice: string) => {

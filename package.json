@@ -13,7 +13,8 @@
     "build": "npm run build --workspace app",
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "deploy": "npm run build && npm run deploy --workspace bot"
+    "deploy": "npm run build && npm run deploy --workspace bot",
+    "postinstall": "patch-package"
   },
   "engines": {
     "node": ">=22"
@@ -24,5 +25,8 @@
     "xcode": {
       "uuid": "11.1.1"
     }
+  },
+  "devDependencies": {
+    "patch-package": "8.0.1"
   }
 }
