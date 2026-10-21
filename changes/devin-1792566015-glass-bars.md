@@ -1,0 +1,1 @@
+- The bottom bar and page headers are frosted glass again. They keep Bible Strong's layout, sizes and buttons; Reduce transparency and increased contrast still make them solid.

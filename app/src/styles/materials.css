@@ -5,8 +5,8 @@
    content; standard materials inside the content layer; never glass on glass):
      canvas      the page itself (base.css)
      content     .surface / cards: tinted, edged, no backdrop filter
-     navigation  .glass: the header bars, the frosted layers on a screen; the bottom bar is
-                 Bible Strong's, flat on the page colour
+     navigation  .glass: the header bars and the bottom bar, the frosted layers on a screen;
+                 Bible Strong's layout, on the page colour's glass
      elevated    menus and popovers: a denser glass, transient
      overlay     content sheets, Home drawer and dialogs: opaque over a dimming scrim, no blur
 
@@ -56,9 +56,9 @@
 .screen > .head, .srch__bar, .chat2__bar, .reader__bar {
   position: sticky; top: 0; z-index: var(--z-sticky); isolation: isolate;
 }
-.screen > .head { margin: calc(-1 * (var(--sp-3) + var(--safe-top))) calc(-1 * var(--gutter) - var(--safe-right)) 0 calc(-1 * var(--gutter) - var(--safe-left)); padding: var(--safe-top) var(--safe-right) 0 var(--safe-left); border-bottom: 1px solid var(--hairline); background: var(--canvas);
-  /* The page colour and the line run to the screen's edges past a wide page's column. */
-  border-image: linear-gradient(var(--hairline), var(--hairline)) 0 0 1 0 / 0 0 1px 0 / 0 100vmax; box-shadow: 0 0 0 100vmax var(--canvas); clip-path: inset(0 -100vmax); }
+.screen > .head { margin: calc(-1 * (var(--sp-3) + var(--safe-top))) calc(-1 * var(--gutter) - var(--safe-right)) 0 calc(-1 * var(--gutter) - var(--safe-left)); padding: var(--safe-top) var(--safe-right) 0 var(--safe-left); border-bottom: 1px solid var(--hairline); background: none;
+  /* The line runs to the screen's edges past a wide page's column. */
+  border-image: linear-gradient(var(--hairline), var(--hairline)) 0 0 1 0 / 0 0 1px 0 / 0 100vmax; clip-path: inset(0 -100vmax calc(-1 * var(--mat-scroll-edge-depth))); }
 .srch__bar::before, .chat2__bar::before, .reader__bar::before {
   content: ""; position: absolute; z-index: -1; top: 0; bottom: calc(-1 * var(--mat-scroll-edge-depth)); left: 50%; width: var(--content-width); margin-left: calc(var(--content-width) / -2); pointer-events: none;
   background: var(--mat-nav);
@@ -66,11 +66,11 @@
   -webkit-mask-image: var(--mat-scroll-edge); mask-image: var(--mat-scroll-edge);
 }
 /* One scroll-edge mask for every header material, including lazy-loaded screens. */
-:is(.bs-header, .tlh, .pv__bar)::before {
+:is(.screen > .head, .bs-header, .tlh, .pv__bar)::before {
   content: ""; position: absolute; inset: 0 0 calc(-1 * var(--mat-scroll-edge-depth)); z-index: -1; pointer-events: none;
   background: var(--mat-nav); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
 }
-:is(.srch__bar, .chat2__bar, .reader__bar, .bs-header, .tlh, .pv__bar)::before {
+:is(.screen > .head, .srch__bar, .chat2__bar, .reader__bar, .bs-header, .tlh, .pv__bar)::before {
   -webkit-mask-image: var(--mat-scroll-edge); mask-image: var(--mat-scroll-edge);
 }
 .tlh.glass, .pv__bar { isolation: isolate; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
@@ -91,10 +91,19 @@
   /* Bible Strong's 20 px in from the sides, given up first on phones too narrow for seven 48 px buttons. */
   padding: 0 clamp(0px, (100vw - 336px) / 2, 20px) var(--safe-bottom);
   display: flex; align-items: center;
-  border-top: 1px solid var(--dock-line, var(--hairline)); background: var(--dock-bg, var(--canvas)); color: var(--dock-ink, var(--bs-tertiary, var(--text-3)));
+  border-top: 1px solid var(--dock-line, var(--hairline)); background: none; color: var(--dock-ink, var(--bs-tertiary, var(--text-3)));
   touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
   transition: transform 300ms ease;
 }
+/* Its glass: the page colour (the reader's, inside the Bible) at the material's density, frosted.
+   Reduce transparency and increased contrast make it the solid page colour. */
+.tabs::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: color-mix(in srgb, var(--dock-bg, var(--canvas)) var(--mat-density), transparent);
+  -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
+}
+/* The selection sheet brings its own material; never glass on glass. */
+html:has(.bs-selected) .tabs::before { background: var(--dock-bg, var(--canvas)); -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* Out of sight, it is out of reach too, once it has slid away. */
 .tabs[data-hidden] { transform: translateY(100%); visibility: hidden; transition: transform 300ms ease, visibility 0s 300ms; }
 /* The row of buttons (BottomTabBar's view row), spread evenly. */
@@ -118,7 +127,7 @@ html[data-typing] .tabs { display: none; }
 /* A sheet, drawer or gallery always sits over the bar. */
 html:has([data-sheet-open]) .tabs { z-index: 40; }
 /* Full-screen media already covers the app's navigation. Do not keep hidden filters running. */
-html:has(.pv) :is(.bs-header, .head, .srch__bar, .chat2__bar, .reader__bar, .tlh)::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
+html:has(.pv) :is(.tabs, .bs-header, .head, .srch__bar, .chat2__bar, .reader__bar, .tlh)::before { -webkit-backdrop-filter: none; backdrop-filter: none; }
 
 /* The switcher's controls take the bar's place, as Bible Strong's list mode does. */
 /* Bible Strong's list-mode row: +, the group's pill in the middle, OK; each dims while pressed. */

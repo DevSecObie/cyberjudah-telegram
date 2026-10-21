@@ -36,12 +36,12 @@ export function auditContrast(options?: { includePanels?: boolean; fadedContext?
     }
   }
   probe.remove();
-  // Bible Strong's bottom bar is opaque: each icon button's ink is checked on the bar's own
-  // colour, at the non-text minimum.
+  // The bottom bar's glass is the page colour, translucent: each icon button's ink is checked on
+  // that glass over the page, at the non-text minimum.
   const dock = document.querySelector('nav.tabs[aria-label="Sections"]');
   if (dock) {
-    const bar = getComputedStyle(dock).backgroundColor;
-    for (const button of dock.querySelectorAll(".tab")) check(`bar ${button.getAttribute("aria-label")}`, getComputedStyle(button).color, [bar], 3);
+    const bar = [getComputedStyle(document.querySelector(".bs") ?? document.body).backgroundColor, getComputedStyle(dock, "::before").backgroundColor];
+    for (const button of dock.querySelectorAll(".tab")) check(`bar ${button.getAttribute("aria-label")}`, getComputedStyle(button).color, bar, 3);
   }
   // Actual text on flat content surfaces catches component-level color/opacity overrides.
   let textNodes = 0; const manual: string[] = [];

@@ -98,7 +98,7 @@ for (const theme of ["default", "dark", "sepia"]) {
       const search = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Search", exact: true });
       await expect(search).toBeVisible();
       if (["app", "system", "contrast", "forced"].includes(mode)) {
-        for (const [selector, pseudo] of [[".srch__bar--dock", "::before"], ["nav.tabs", undefined]] as const) expect(await page.locator(selector).evaluate((el, pseudo) => { const s = getComputedStyle(el, pseudo); return s.backdropFilter || s.getPropertyValue("-webkit-backdrop-filter"); }, pseudo), `${mode} ${selector}`).toBe("none");
+        for (const [selector, pseudo] of [[".srch__bar--dock", "::before"], ["nav.tabs", "::before"]] as const) expect(await page.locator(selector).evaluate((el, pseudo) => { const s = getComputedStyle(el, pseudo); return s.backdropFilter || s.getPropertyValue("-webkit-backdrop-filter"); }, pseudo), `${mode} ${selector}`).toBe("none");
       }
       if (mode === "motion") await expect(page.locator(".srch__bar--dock")).toHaveCSS("transition-property", "none");
     }

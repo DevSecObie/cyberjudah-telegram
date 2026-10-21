@@ -48,17 +48,22 @@ async function setup(page: Page, theme = "default", reduced = false) {
 }
 
 for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "mauve", "night"]) {
-  test(`bar: ${theme} is Bible Strong's flat bar, on the page colour, with legible 48 px icon buttons`, async ({ page }) => {
+  test(`bar: ${theme} is Bible Strong's bar in the page colour's glass, with legible 48 px icon buttons`, async ({ page }) => {
     await setup(page, theme);
     await page.goto(`/read/genesis/1${LAUNCH}`);
     await expect(page.locator("#verset-1")).toBeVisible();
     const bar = page.getByRole("navigation", { name: "Sections" });
     await expect(page.locator("html")).toHaveAttribute("data-palette", theme);
     const style = await bar.evaluate(nav => {
-      const s = getComputedStyle(nav), filters = [nav, ...nav.querySelectorAll("*")].map(el => getComputedStyle(el).backdropFilter || getComputedStyle(el).getPropertyValue("-webkit-backdrop-filter"));
-      return { background: s.backgroundColor, page: getComputedStyle(document.querySelector(".bs")!).backgroundColor, line: s.borderTopWidth, filters };
+      const s = getComputedStyle(nav), glass = getComputedStyle(nav, "::before"), filters = [nav, ...nav.querySelectorAll("*")].map(el => getComputedStyle(el).backdropFilter || getComputedStyle(el).getPropertyValue("-webkit-backdrop-filter"));
+      const ctx = Object.assign(document.createElement("canvas"), { width: 1, height: 1 }).getContext("2d")!;
+      const px = (colour: string) => { ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = colour; ctx.fillRect(0, 0, 1, 1); return [...ctx.getImageData(0, 0, 1, 1).data]; };
+      return { glass: px(glass.backgroundColor), frost: glass.backdropFilter || glass.getPropertyValue("-webkit-backdrop-filter"), page: px(getComputedStyle(document.querySelector(".bs")!).backgroundColor), line: s.borderTopWidth, filters };
     });
-    expect(style.background).toBe(style.page);
+    // The glass is the reader's page colour, translucent and frosted; its buttons add no filters.
+    style.glass.slice(0, 3).forEach((channel, i) => expect(Math.abs(channel - style.page[i])).toBeLessThanOrEqual(2));
+    expect(style.glass[3]).toBeLessThan(255);
+    expect(style.frost).toContain("blur");
     expect(style.line).toBe("1px");
     expect(style.filters.every(f => !f || f === "none")).toBe(true);
     const box = (await bar.boundingBox())!;
@@ -73,7 +78,7 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
       const ctx = canvas.getContext("2d")!;
       const sample = (colour: string) => { ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = colour; ctx.fillRect(0, 0, 1, 1); return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3); };
       const lum = (rgb: number[]) => rgb.map(v => v / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4).reduce((s, v, i) => s + v * [.2126, .7152, .0722][i], 0);
-      const ground = lum(sample(getComputedStyle(nav).backgroundColor));
+      const ground = lum(sample(getComputedStyle(document.querySelector(".bs")!).backgroundColor));
       return Math.min(...[...nav.querySelectorAll(".tab")].map(button => { const ink = lum(sample(getComputedStyle(button).color)); return (Math.max(ink, ground) + .05) / (Math.min(ink, ground) + .05); }));
     });
     // Icon buttons: the non-text minimum, 3:1, in Bible Strong's own palettes.
@@ -108,8 +113,12 @@ for (const preference of ["app", "contrast"] as const) {
     await setup(page, "dark", preference === "app");
     await page.goto(`/settings${LAUNCH}`);
     await expect(page.getByRole("switch", { name: "Justify the text", exact: true })).toBeVisible();
-    const style = await page.locator("nav.tabs").evaluate(nav => ({ background: getComputedStyle(nav).backgroundColor, canvas: getComputedStyle(document.body).backgroundColor, filter: getComputedStyle(nav).backdropFilter || getComputedStyle(nav).getPropertyValue("-webkit-backdrop-filter") }));
-    expect(style.background).toBe(style.canvas);
+    const style = await page.locator("nav.tabs").evaluate(nav => {
+      const glass = getComputedStyle(nav, "::before"), ctx = Object.assign(document.createElement("canvas"), { width: 1, height: 1 }).getContext("2d")!;
+      const px = (colour: string) => { ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = colour; ctx.fillRect(0, 0, 1, 1); return [...ctx.getImageData(0, 0, 1, 1).data]; };
+      return { background: px(glass.backgroundColor), canvas: px(getComputedStyle(document.body).backgroundColor), filter: glass.backdropFilter || glass.getPropertyValue("-webkit-backdrop-filter") };
+    });
+    expect(style.background).toEqual(style.canvas);
     expect(style.filter).toBe("none");
   });
 }
@@ -147,7 +156,7 @@ for (const theme of ["default", "dark", "sepia"]) {
         if (mode === "system") expect(await page.evaluate(() => matchMedia("(prefers-reduced-transparency: reduce)").matches)).toBe(true);
         await page.getByRole("button", { name: "Scripture options" }).click();
         await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
-        for (const material of await materials(page, [[".bs-header", "::before"], [".tabs"], [".bs-dropdown"]])) {
+        for (const material of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) {
           expect(material.filter, material.selector).toBe("none");
           expect(material.alpha, material.selector).toBe(255);
         }
@@ -162,7 +171,7 @@ for (const theme of ["default", "dark", "sepia"]) {
       }
       await page.goto(`/books/materials${LAUNCH}`);
       await expect(page.locator(".book__figure")).toBeVisible();
-      expect((await materials(page, [[".head"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
+      expect((await materials(page, [[".head", "::before"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
       await page.locator(".book__figure").click();
       await expect(page.locator(".pv")).toBeVisible();
       expect((await materials(page, [[".pv__bar", "::before"]]))[0]).toMatchObject({ filter: "none", alpha: 255 });
@@ -175,11 +184,12 @@ test("materials: header, menu and selection stay within budget without stacked g
   await setup(page);
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
-  await expect.poll(() => filteredSurfaces(page)).toHaveLength(1);
+  // At rest: the header and the bottom bar; the menu makes three.
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
   await page.getByRole("button", { name: "Scripture options" }).click();
   const menu = page.getByRole("menu", { name: "Passage options" });
   await expect(menu).toBeVisible();
-  await expect.poll(() => filteredSurfaces(page)).toHaveLength(2);
+  await expect.poll(() => filteredSurfaces(page)).toHaveLength(3);
   expect(await menu.evaluate(element => {
     for (let parent = element.parentElement; parent; parent = parent.parentElement) {
       const style = getComputedStyle(parent);
@@ -228,8 +238,8 @@ test("materials: content stays unfiltered at 200% shared text size with reduced 
   await page.evaluate(() => { document.documentElement.style.fontSize = "200%"; });
   await expect.poll(() => title.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBe(normal * 2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
-  // The page header and the bottom bar are both flat, as Bible Strong's: nothing is frosted at rest.
-  await expect.poll(() => filteredSurfaces(page)).toEqual([]);
+  // The page header and the bottom bar are the two frosted layers at rest.
+  await expect.poll(async () => (await filteredSurfaces(page)).length).toBe(2);
   expect((await materials(page, [[".book__figure"]]))[0].filter).toBe("none");
   await page.locator(".book__figure").click();
   await expect(page.locator(".pv__bar")).toBeVisible();
@@ -292,7 +302,7 @@ test("materials: unsupported-filter CSS branch yields opaque reader surfaces", a
   expect(changed).toBeGreaterThan(0);
   await page.getByRole("button", { name: "Scripture options" }).click();
   await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
-  for (const material of await materials(page, [[".bs-header", "::before"], [".tabs"], [".bs-dropdown"]])) expect(material).toMatchObject({ filter: "none", alpha: 255 });
+  for (const material of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) expect(material).toMatchObject({ filter: "none", alpha: 255 });
 });
 
 for (const theme of ["default", "dark", "sepia"]) {
@@ -363,7 +373,7 @@ for (const theme of ["default", "dark", "sepia"]) {
           expect(b.x).toBeGreaterThanOrEqual(14); expect(b.x + b.width).toBeLessThanOrEqual(width - 20);
         }
         if (["system", "app", "contrast", "forced"].includes(preference)) {
-          for (const m of await materials(page, [[".bs-header", "::before"], [".tabs"], [".bs-dropdown"]])) {
+          for (const m of await materials(page, [[".bs-header", "::before"], [".tabs", "::before"], [".bs-dropdown"]])) {
             expect(m.filter).toBe("none"); expect(m.alpha).toBe(255);
           }
         }
