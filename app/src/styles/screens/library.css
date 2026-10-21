@@ -201,3 +201,6 @@
 #root .tagd-chip { display: inline-flex; align-items: center; gap: 4px; margin: 5px 5px 2px 0; padding: 3px 7px; border-radius: 20px; background: var(--accent-soft); color: var(--accent); font: 400 12px/1.3 var(--font-ui); text-decoration: none; }
 .tagd-chip span { max-width: 100px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .tagd-empty { padding: 40px 20px 0; }
+/* Bible Strong's NaveDetailTabScreen: the page at most 600 px wide, the relations' chip in line with it. */
+.nave-detail__body { max-width: 600px; }
+#root button.tagd-chip { border: 0; cursor: pointer; }

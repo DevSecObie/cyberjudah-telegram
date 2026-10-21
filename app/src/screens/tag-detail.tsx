@@ -25,14 +25,16 @@ function useBookName() {
 }
 const readerAt = (slug: string, chapter: number, verses: number[]) => `/read/${slug}/${chapter}?v=${compressVerses(verses)}`;
 
-/** Bible Strong's EntityChipList: the item's tags as small accent chips; each opens its tag. */
-function EntityChipList({ tags }: { tags?: Record<string, true> }) {
+/** Bible Strong's EntityChipList: the item's tags as small accent chips, each opening its tag, then the count of its relations, opening them. */
+export function EntityChipList({ tags, relationCount = 0, onRelationPress }: { tags?: Record<string, true>; relationCount?: number; onRelationPress?: () => void }) {
   const [all] = useTags();
   const items = Object.keys(tags ?? {}).map((id) => all[id]).filter((t): t is Tag => !!t);
-  if (!items.length) return null;
+  const relations = relationCount > 0 && !!onRelationPress;
+  if (!items.length && !relations) return null;
   return (
     <span className="tagd-chips">
       {items.map((t) => <Link key={t.id} to={`/tags/${t.id}`} className="tagd-chip" onClick={(e) => { e.stopPropagation(); haptic("select"); }}><Feather name="tag" size={10} /><span>{t.name}</span></Link>)}
+      {relations ? <button type="button" className="tagd-chip" onClick={(e) => { e.stopPropagation(); haptic("select"); onRelationPress!(); }}><Feather name="git-merge" size={10} /><span>{relationCount}</span></button> : null}
     </span>
   );
 }

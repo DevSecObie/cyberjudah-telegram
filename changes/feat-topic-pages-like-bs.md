@@ -1,0 +1,1 @@
+- A precept's and a topic's page follow Bible Strong's Nave page: the name in the header with a ⋮ menu (Share the link, Copy the text, Edit relations, Open in new tab) in place of the Share button under the page, a chip with the count of its relations that opens them, then the page as before. Loading, a failure with Retry, and nothing found have Bible Strong's states.
