@@ -11,21 +11,20 @@ import {
 import raw from "@/data/timeline.json";
 import { data, type ResolvedRef } from "@/api/data";
 import { Feather } from "@/bible/icons";
-import { newTab } from "@/lib/tabs";
+import { useOpenInNewTab } from "@/ui/open-in-new-tab";
 import { useKeptScroll } from "@/lib/place";
 import { useBackButton, useStored } from "@/tg/hooks";
 import { haptic, hideKeyboard } from "@/tg/sdk";
 import { Lit } from "@/ui/search-hero";
 import { SearchBar, useSettled } from "@/ui/search-bar";
 import { useSheet } from "@/ui/sheet";
-import { moveTab } from "@/ui/tab-motion";
 import { Empty, Icon } from "@/ui/ui";
 import { AgeEventDetail } from "./TimelineFinalCaptivity";
 import { PhotoEdit, usePhotos } from "@/ui/photo-edit";
 import "@/styles/screens/timeline.css";
 
 /**
- * Bible Strong's Bible Timeline (strong/apps/expo/src/features/timeline), ported to the web:
+ * Bible Strong's Bible Timeline (apps/expo/src/features/timeline), ported to the web:
  * the periods (TimelineHomeScreen, TimelineItem); a period's canvas with its events placed by
  * year, the date bar, the line and the year under it, and the periods either side
  * (TimelineSection, ScrollView, TimelineEvent, Datebar, Line, CurrentYear, SectionImage); the
@@ -84,13 +83,12 @@ const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(pre
 /** The menu at the right of a header (their ContextualMenu): Details, Open in a new tab. */
 function useMenu(onDetails: () => void, path: string) {
   const sheet = useSheet();
-  const navigate = useNavigate();
+  const openInNewTab = useOpenInNewTab();
   return async () => {
     haptic("select");
     const a = await sheet.open({ items: [{ id: "details", text: "Details" }, { id: "tab", text: "Open in a new tab" }] });
     if (a?.id === "details") onDetails();
-    // As every new tab does, through moveTab, which also ends a page opened over the tab before.
-    if (a?.id === "tab") moveTab(() => { navigate(newTab(path), { replace: true }); }, "slide");
+    if (a?.id === "tab") openInNewTab(path);
   };
 }
 

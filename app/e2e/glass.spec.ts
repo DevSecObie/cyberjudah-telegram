@@ -64,7 +64,7 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
     const box = (await bar.boundingBox())!;
     expect(box.x).toBe(0); expect(box.width).toBe(page.viewportSize()!.width);
     expect(box.y + box.height).toBe(page.viewportSize()!.height); expect(box.height).toBe(48);
-    // Home, Search, Bible, the reader's own buttons, Tabs and then Menu, as Bible Strong orders them.
+    // Bible Strong's Home, Search, Bible, Tabs and Menu, with our Classes and Ask before the tabs.
     expect(await bar.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "classes", "ask", "tabs", "more"]);
     await expect(bar.getByRole("button", { name: "Bible", exact: true })).not.toHaveAttribute("aria-current");
     await page.waitForFunction(() => document.getAnimations().every(a => !(a instanceof CSSTransition) || a.playState !== "running"));
@@ -80,7 +80,8 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
     expect(minimumContrast).toBeGreaterThanOrEqual(3);
     for (const button of await bar.getByRole("button").all()) {
       const b = (await button.boundingBox())!;
-      expect(b.width).toBe(48); expect(b.height).toBe(48);
+      // Firefox lays seven buttons out on sub-pixel positions (47.999998 px).
+      expect(b.width).toBeCloseTo(48, 1); expect(b.height).toBeCloseTo(48, 1);
     }
     await bar.getByRole("button", { name: "Search", exact: true }).click();
     await expect(page).toHaveURL(/\/search/);
@@ -120,9 +121,9 @@ test("bar: wide windows keep Bible Strong's bar along the bottom, and its button
   const bar = page.getByRole("navigation", { name: "Sections" });
   const box = (await bar.boundingBox())!;
   expect(box.x).toBe(0); expect(box.width).toBe(1280); expect(box.y + box.height).toBe(900);
-  await bar.getByRole("button", { name: "Classes", exact: true }).click();
-  await expect(page).toHaveURL(/\/classes/);
-  await expect(bar.getByRole("button", { name: "Classes", exact: true })).not.toHaveAttribute("aria-current");
+  await bar.getByRole("button", { name: "Bible", exact: true }).click();
+  await expect(page).toHaveURL(/\/(bible|read)/);
+  await expect(bar.getByRole("button", { name: "Bible", exact: true })).not.toHaveAttribute("aria-current");
   await bar.getByRole("button", { name: "Search", exact: true }).focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/search/);
@@ -677,7 +678,7 @@ for (const focus of ["field", "current Search control", "another control"] as co
     await page.route(/\/(?:assets\/Search-[^/]+\.js|src\/screens\/Search\.tsx)(?:\?.*)?$/, async route => { requested(); await gate; await route.continue(); });
     await page.goto(`/search${LAUNCH}`, { waitUntil: "domcontentloaded" });
     await waiting;
-    const next = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Classes", exact: true });
+    const next = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Bible", exact: true });
     try {
       if (focus === "another control") await next.focus();
       else if (focus === "current Search control") await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Search", exact: true }).focus();
@@ -689,7 +690,7 @@ for (const focus of ["field", "current Search control", "another control"] as co
     else {
       await expect(next).toBeFocused();
       await page.keyboard.press("Enter");
-      await expect(page).toHaveURL(/\/classes/);
+      await expect(page).toHaveURL(/\/(bible|read)/);
     }
   });
 }
@@ -863,7 +864,7 @@ for (const theme of ["default", "dark", "sepia"]) {
         if (scene === "chats") { await page.getByRole("button", { name: "Your chats", exact: true }).click(); await page.locator(".chats__open").waitFor();
           await page.getByRole("dialog", { name: "Your chats", exact: true }).evaluate(async el => { await Promise.all(el.getAnimations({ subtree: true }).filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))); });
         }
-        const selector = scene === "chats" ? ".chats__open, .chats__del" : scene === "more" ? ".mcard__row" : ".list .row, .list .toggle";
+        const selector = scene === "chats" ? ".chats__open, .chats__del" : scene === "more" ? ".mcard__row" : scene === "bookmarks" ? ".bmitem" : ".list .row, .list .toggle";
         const rows = page.locator(selector); await expect(rows.first()).toBeVisible();
         if (scene === "more" || scene === "chats") { const label = page.locator(scene === "more" ? ".mcard__label" : ".chats__open b").first(); expect(await label.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBe((scene === "more" ? 15 : 15.5) * scale / 100); }
         for (const row of await rows.all()) {

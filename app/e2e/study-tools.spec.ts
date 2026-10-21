@@ -52,6 +52,8 @@ test("the formatting bar writes the study's Markdown on the line or selection be
   await page.getByRole("button", { name: /^Normal/ }).click();
   await page.getByRole("menuitem", { name: "Subtitle", exact: true }).click();
   await expect(writing).toHaveValue("## **Light**");
+  // The toolbar gives back the selection a frame later; filling before that would write into it.
+  await expect.poll(() => writing.evaluate((el: HTMLTextAreaElement) => el.selectionStart)).toBe(5);
   // A quote or a list marks every selected line, and Undo takes a toolbar change back.
   await writing.fill("Light\nDarkness");
   await writing.evaluate((el: HTMLTextAreaElement) => { el.focus(); el.setSelectionRange(0, el.value.length); });
@@ -107,8 +109,12 @@ test("a single-book plan starts only after choosing its start action", async ({ 
   await setup(page); await page.goto("/plans");
   await page.getByRole("combobox", { name: "Choose a book", exact: true }).selectOption("genesis");
   await expect(page).toHaveURL(/\/plans$/);
-  await page.getByRole("button", { name: "Start this book", exact: true }).click();
-  await expect(page).toHaveURL(/\/plan$/);
-  await expect(page.getByRole("link", { name: "Genesis · Change plan", exact: true })).toBeVisible();
+  // Bible Strong previews a plan before it is started.
+  await page.getByRole("button", { name: "Explore this plan", exact: true }).click();
+  await expect(page).toHaveURL(/\/plan\?catalog=book%3Agenesis/);
   await expect(page.getByRole("link", { name: "Genesis 1", exact: true })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("cj:plan"))).toBeNull();
+  await page.getByRole("button", { name: "Start this plan", exact: true }).click();
+  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cj:plan")!))).toMatchObject({ name: "Genesis", books: ["genesis"], catalogId: "book:genesis" });
 });

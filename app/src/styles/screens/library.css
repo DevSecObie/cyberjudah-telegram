@@ -97,8 +97,34 @@
 .lex-row__meta b { font: 600 var(--fs-caption) var(--font-mono); color: var(--accent); }
 .lex-row__meta small { font: 400 11px var(--font-ui); color: var(--text-3); font-variant-numeric: tabular-nums; }
 .dict p { margin: 0 0 var(--sp-3); font: 400 var(--fs-callout)/1.6 var(--font-read); color: var(--text-2); }
-.tagadd { display: flex; gap: var(--sp-2); }
-.tagadd input { flex: 1; min-width: 0; }
+/* The tag screens run edge to edge, as Bible Strong's lists do. */
+/* Bible Strong's HistoryScreen: the 54 px trash button, then rows 20 px all round, a line 20 px in from each side. */
+.screen.histscreen { --gutter: 0px; gap: 0; }
+#root .histscreen__clear { display: grid; place-items: center; width: 54px; height: 54px; padding: 0; border: 0; background: none; color: var(--bs-quart, var(--danger)); cursor: pointer; }
+#root .histitem { position: relative; display: flex; align-items: center; padding: 20px; color: var(--bs-default, var(--text-1)); text-decoration: none; transition: none; }
+.histitem::after { content: ""; position: absolute; left: 20px; right: 20px; bottom: 0; border-bottom: 1px solid var(--bs-border, var(--hairline)); }
+.histitem__title { font: 700 16px var(--font-ui); }
+.histitem__side { display: flex; flex-direction: column; margin-left: auto; }
+/* Its Chip: 15 px tall, 7 px round, 5 px each side, 5 px over the time, the "Verse" in 8 px bold. */
+.histitem__chip { align-self: flex-end; display: grid; place-items: center; height: 15px; margin-bottom: 5px; padding: 0 5px; border-radius: 7px; background: var(--bs-border, var(--hairline)); font: 700 8px var(--font-ui); color: var(--bs-default, var(--text-1)); }
+.histitem__ago { font: 400 10px var(--font-ui); color: var(--bs-grey, var(--text-3)); }
+/* A Strong's word or a dictionary word: its original or its dictionary under it, 12 px grey, 5 px down. */
+.histitem__main { display: flex; flex-direction: column; min-width: 0; }
+.histitem__sub { margin-top: 5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 400 12px var(--font-ui); color: var(--bs-grey, var(--text-3)); }
+/* The chip's colour by type: Strong in the accent (reverse ink), Word in secondary, Nave in quint (white ink). */
+.histitem__chip[data-type="strong"] { background: var(--bs-primary, var(--accent)); color: var(--bs-reverse, var(--canvas)); }
+.histitem__chip[data-type="dictionary"] { background: var(--bs-secondary, var(--gold)); }
+.histitem__chip[data-type="topic"] { background: var(--bs-quint, var(--violet)); color: white; }
+.screen.tagsscreen, .screen.tagpage { --gutter: 0px; gap: 0; }
+/* Bible Strong's TagItem: the name in bold over its chips, the options on the right, a line 10 px in from each side. */
+.tagsscreen__list { padding-bottom: 70px; }
+.tagitem { position: relative; }
+.tagitem::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; border-bottom: 1px solid var(--bs-border); }
+.tagitem__row { display: flex; align-items: center; }
+#root .tagitem__link { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 10px 0 10px 20px; color: var(--bs-default); text-decoration: none; }
+.tagitem__link b { font: 700 16px/1.3 var(--font-ui); }
+.tagitem__chips { display: flex; flex-wrap: wrap; }
+.tagitem__chip { margin: 5px 5px 5px 0; padding: 3px 7px; border-radius: 20px; background: var(--bs-border); color: var(--bs-default); font: 400 10px/1.3 var(--font-ui); }
 
 /* ── Topic thread: the scriptures a topic's classes opened, in Bible order ───────────────── */
 .thread { position: relative; margin: 0; padding: 0 0 0 4px; list-style: none; }
@@ -160,3 +186,73 @@
 .bs-filter__pill > span:first-child { min-width: 28px; padding: 0 6px 0 8px; box-sizing: border-box; }
 .bs-filter__pill > span:last-child { padding: 0 6px 0 4px; border-left: 2px solid var(--canvas); }
 .bs-filter__blank { display: inline-block; width: 18px; }
+
+/* Bible Strong's TagScreen: a section per kind, closed until tapped, then its items. */
+#root .tagd-section { display: flex; align-items: center; width: 100%; padding: 20px; border: 0; border-bottom: 1px solid var(--hairline); background: var(--canvas); color: var(--text-1); font: 400 16px/1.3 var(--font-ui); text-align: left; cursor: pointer; }
+.tagd-section__title { flex: 1; display: flex; align-items: center; }
+.tagd-section__icon { display: flex; margin-right: 12px; }
+.tagd-section__count { margin-left: 8px; padding: 2px 8px; border-radius: 12px; background: var(--hairline); font: 700 12px/1.3 var(--font-ui); }
+.tagd-section__chevron { display: grid; place-items: center; width: 17px; height: 17px; color: var(--text-3); transition: transform 500ms; }
+.tagd-section__chevron[data-open] { transform: rotate(180deg); }
+/* Highlight and word mark items: 20 px in, 20 px under, a line at the foot. */
+.tagd-item--verse { margin: 20px 20px 0; padding-bottom: 20px; border-bottom: 1px solid var(--hairline); }
+#root .tagd-item__open { display: block; color: var(--text-1); text-decoration: none; }
+.tagd-item__head { display: flex; align-items: center; margin-bottom: 10px; padding-right: 32px; }
+.tagd-item__ref { flex: 1; display: flex; align-items: center; gap: 10px; font: 400 14px/1.3 var(--font-read); }
+.tagd-item__head small { color: var(--text-3); font-size: 10px; }
+.tagd-item__text { display: block; margin-bottom: 15px; font: 400 15px/23px var(--font-read); }
+.tagd-item__quote { display: block; margin-bottom: 15px; font: 400 14px/1.4 var(--font-ui); }
+/* Note and link items: 20 px round, a line under each. */
+.tagd-item--note, .tagd-item--link { padding: 20px; border-bottom: 1px solid var(--hairline); }
+.tagd-item--link { display: flex; }
+.tagd-item__meta { display: block; color: var(--text-3); font: 700 11px/1.3 var(--font-ui); }
+.tagd-item__title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 400 17px/1.3 var(--font-read); }
+.tagd-item__desc { display: block; font: 400 17px/23px var(--font-read); color: var(--text-1); }
+.tagd-link__icon { flex: none; display: grid; place-items: center; width: 24px; height: 24px; margin-right: 10px; border-radius: 4px; }
+.tagd-link__icon b { color: #fff; font: 700 12px/1 var(--font-ui); }
+.tagd-link__body { flex: 1; min-width: 0; }
+.tagd-link__title { display: block; font: 400 16px/1.3 var(--font-read); }
+.tagd-link__url { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text-3); font: 400 13px/17px var(--font-read); }
+/* EntityChipList: the tags as small accent chips. */
+.tagd-chips { display: flex; flex-wrap: wrap; }
+#root .tagd-chip { display: inline-flex; align-items: center; gap: 4px; margin: 5px 5px 2px 0; padding: 3px 7px; border-radius: 20px; background: var(--accent-soft); color: var(--accent); font: 400 12px/1.3 var(--font-ui); text-decoration: none; }
+.tagd-chip span { max-width: 100px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tagd-empty { padding: 40px 20px 0; }
+/* Bible Strong's NaveDetailTabScreen: the page at most 600 px wide, the relations' chip in line with it. */
+.nave-detail__body { max-width: 600px; }
+#root button.tagd-chip { border: 0; cursor: pointer; }
+
+/* Bible Strong's BookmarksScreen: a row of 10 px by 20 px (none on the right, where the ⋮ is), the
+   bookmark in its colour, 10 px, then the name in bold over the reference at 14 px, 4 px apart; a
+   line under each, 20 px in from both sides. */
+.screen.bmscreen { --gutter: 0px; gap: 0; }
+.bmscreen__list { padding-bottom: 70px; }
+.bmitem { position: relative; display: flex; align-items: center; padding: 10px 0 10px 20px; }
+.bmitem::after { content: ""; position: absolute; left: 20px; right: 20px; bottom: 0; border-bottom: 1px solid var(--bs-border); }
+#root .bmitem__link { flex: 1; min-width: 0; display: flex; align-items: center; color: var(--bs-default); text-decoration: none; }
+.bmitem__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; margin-left: 10px; }
+.bmitem__text b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 16px/1.3 var(--font-ui); }
+.bmitem__text span { font: 400 14px/1.3 var(--font-ui); }
+
+/* Bible Strong's HighlightsScreen: its Verse and AnnotationItem rows, each with HighlightOptions'
+   28 px ⋮ at the top right; the colours of "Change color" spread in their row. */
+.screen.hlscreen { --gutter: 0px; gap: 0; }
+.hlscreen__list { padding-bottom: 70px; }
+.hlscreen .tagd-item--verse { position: relative; }
+.tagd-item__options { position: absolute; top: 0; right: 0; }
+.hlscreen__colors { padding: 10px 0; }
+
+/* Bible Strong's BibleVerseNotesScreen: a BibleNoteItem per note, padded 20 px (none on the right,
+   where the 54 px ⋮ is; 8 px under it when chips follow), the 11 px bold grey "where - when", the
+   title at 17 px on two lines, the text; the chips 20 px in; a line 20 px in from both sides. */
+.screen.notesscreen { --gutter: 0px; gap: 0; }
+.notesscreen__list { padding-bottom: 30px; }
+.noteitem { position: relative; display: flex; align-items: center; }
+.noteitem::after { content: ""; position: absolute; left: 20px; right: 20px; bottom: 0; border-bottom: 1px solid var(--bs-border); }
+.noteitem__main { flex: 1; min-width: 0; }
+#root .noteitem__link { display: flex; flex-direction: column; padding: 20px 0 20px 20px; color: var(--bs-default); text-decoration: none; }
+#root .noteitem__link[data-chips] { padding-bottom: 8px; }
+.noteitem__meta { color: var(--bs-dark-grey, var(--text-3)); font: 700 11px/1.3 var(--font-ui); }
+.noteitem__title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 400 17px/1.3 var(--font-read); }
+.noteitem__desc { font: 400 17px/23px var(--font-read); }
+.noteitem__chips { padding: 0 20px 20px; }

@@ -88,6 +88,28 @@ export const currentGroup = () => group();
 export const groupsNow = () => state.groups;
 
 export const isTabPath = (path: string) => !NOT_TABS.test(path);
+
+/**
+ * Where the current tab's own history starts. In Bible Strong, Back never leaves the tab you are
+ * in: changing tab is not a step you can go back over. A tab change (the bar, a swipe, the
+ * switcher, a new tab) replaces the page in the browser's history, so the pages under it belong
+ * to the tab you came from; Back stops at the page this tab was entered on.
+ */
+let floor = 0, entering = false;
+const floorListeners = new Set<() => void>();
+/** A tab change is under way: the next page shown is the first of the tab's own history. */
+export const enterTab = () => { entering = true; };
+/**
+ * After a page is shown at a history index: a tab just entered starts its history there. A page
+ * pushed, or a tab change that showed nothing new (`entered` false), leaves the start where it was.
+ */
+export function settleTabFloor(idx: number, entered = true) {
+  const next = (entering && entered) || idx < floor ? idx : floor;
+  entering = false;
+  if (next !== floor) { floor = next; floorListeners.forEach((l) => l()); }
+}
+/** The history index Back may not go below. */
+export const useTabFloor = () => useSyncExternalStore((l) => { floorListeners.add(l); return () => floorListeners.delete(l); }, () => floor);
 /** Where the app is now becomes the current tab's place. */
 export function recordPath(path: string) {
   if (!isTabPath(path)) return;
@@ -101,13 +123,21 @@ export function recordPath(path: string) {
 export function newTab(path = "/new"): string {
   const g = group(), t = { id: uid(), path };
   setGroup({ ...g, tabs: [...g.tabs, t], current: t.id });
+  enterTab();
   return path;
+}
+/** A new tab beside the current one, which stays current (Bible Strong's openInNewTab without autoRedirect). */
+export function addTab(path: string): { group: string; tab: string } {
+  const g = group(), t = { id: uid(), path };
+  setGroup({ ...g, tabs: [...g.tabs, t] });
+  return { group: g.id, tab: t.id };
 }
 /** Select a tab of the current group; its path, or the switcher when the group has none. */
 export function selectTab(id: string): string {
   const g = group(), t = g.tabs.find((x) => x.id === id) ?? g.tabs[0];
   if (!t) return "/tabs";
   setGroup({ ...g, current: t.id });
+  enterTab();
   return t.path;
 }
 /**
@@ -121,6 +151,8 @@ export function closeTab(id: string) {
   const at = Math.max(0, g.tabs.findIndex((t) => t.id === g.current));
   const tabs = g.tabs.filter((t) => t.id !== id);
   setGroup({ ...g, tabs, current: tabs[Math.min(at, tabs.length - 1)]?.id ?? "" });
+  // Closing the tab you are in moves you into another.
+  if (id === g.current) enterTab();
 }
 /** Close every tab of a group, leaving it empty (Bible Strong's closeAllTabsAtom). */
 export function closeAll(id = state.group) {
@@ -138,12 +170,25 @@ export function newGroup(name: string, color: string): string | null {
   if (state.groups.length >= MAX_GROUPS || !name.trim()) return null;
   const g: Group = { id: uid(), name: name.trim(), color, tabs: [], current: "", createdAt: Date.now() };
   set({ groups: [...state.groups, g], group: g.id });
+  enterTab();
   return g.id;
+}
+/**
+ * A group made from a tag (Bible Strong's useCreateTabGroupFromTag): named after it, on the first
+ * colour, with a tab per path and the first current; its first tab's path, or null at the limit.
+ */
+export function groupWithTabs(name: string, paths: string[]): string | null {
+  const id = newGroup(name, GROUP_COLORS[0]);
+  if (!id) return null;
+  const tabs = paths.map((path) => ({ id: uid(), path }));
+  setGroup({ ...group(), tabs, current: tabs[0]?.id ?? "" });
+  return tabs[0]?.path ?? "/tabs";
 }
 /** Switch group; returns the path of that group's current tab, or the switcher when it has none. */
 export function switchGroup(id: string): string {
   const g = state.groups.find((x) => x.id === id) ?? state.groups[0];
   set({ ...state, group: g.id });
+  enterTab();
   return (g.tabs.find((t) => t.id === g.current) ?? g.tabs[0])?.path ?? "/tabs";
 }
 export function renameGroup(id: string, name: string, color?: string) {
@@ -168,11 +213,13 @@ function tabOfKind(test: (p: string) => boolean, fresh: string): string {
   return t ? selectTab(t.id) : newTab(fresh);
 }
 /** A new Bible tab opens at Genesis 1:1 (Bible Strong's getDefaultBibleTab). */
-const KIND_PATH = { bible: /^\/(bible|read)(\/|$)/, search: /^\/search(\?|$)/, ask: /^\/ask(\/|\?|$)/ };
+const KIND_PATH = { bible: /^\/(bible|read)(\/|$)/, search: /^\/search(\?|$)/, ask: /^\/ask(\/|\?|$)/, classes: /^\/(classes|note|watch)(\/|\?|$)/ };
 export const bibleTabPath = () => tabOfKind((p) => KIND_PATH.bible.test(p), "/read/genesis/1");
 export const searchTabPath = () => tabOfKind((p) => KIND_PATH.search.test(p), "/search");
 /** Ask CyberJudah, the same way: its tab if one is open, else a new one. */
 export const askTabPath = () => tabOfKind((p) => KIND_PATH.ask.test(p), "/ask");
+/** Courses & videos, the same way. */
+export const classesTabPath = () => tabOfKind((p) => KIND_PATH.classes.test(p), "/classes");
 /** Where the bar's button for a kind will land in the group: its first tab, or the end for a new one. */
 export function kindTabIndex(kind: keyof typeof KIND_PATH): number {
   const tabs = group().tabs, at = tabs.findIndex((t) => KIND_PATH[kind].test(t.path));
@@ -182,7 +229,7 @@ export function kindTabIndex(kind: keyof typeof KIND_PATH): number {
 /** A tab's name and kind from its path, for the switcher's cards. */
 const KINDS: [RegExp, string, string][] = [
   [/^\/new/, "New tab", "compose"], [/^\/(bible|read)/, "Bible", "book-open"], [/^\/search/, "Search", "search"], [/^\/lexicon/, "Strong", "spark"],
-  [/^\/dictionary/, "Dictionary", "type"], [/^\/topics/, "Topics", "tag"], [/^\/(person|people)/, "People", "star"], [/^\/(classes|note|watch)/, "Classes", "play"],
+  [/^\/dictionary/, "Dictionary", "type"], [/^\/topics/, "Topics", "tag"], [/^\/(person|people)/, "People", "star"], [/^\/place\//, "Places", "map-pin"], [/^\/(classes|note|watch)/, "Classes", "play"],
   [/^\/history/, "Recently viewed", "history"], [/^\/timeline/, "Bible timeline", "clock"], [/^\/books/, "Library", "layers"], [/^\/encyclopedia/, "Encyclopedia", "book"], [/^\/law/, "The Law", "law"],
   [/^\/precepts/, "Precepts", "quote"], [/^\/cases/, "Case studies", "folder"], [/^\/plans/, "Reading plans", "check"], [/^\/plan/, "Reading plan", "check"], [/^\/studies/, "My studies", "compose"], [/^\/study/, "4 Chapters a Day", "book"],
   [/^\/(bookmarks|tags)/, "Kept", "bookmark"], [/^\/ask/, "Ask CyberJudah", "chat"], [/^\/relations/, "Your precepts", "precepts"], [/^\/sabbath/, "Sabbath", "sun"], [/^\/settings/, "Settings", "gear"],
@@ -192,7 +239,7 @@ export function tabKind(path: string): { kind: string; icon: string } {
   return { kind: k?.[1] ?? "Page", icon: k?.[2] ?? "layers" };
 }
 /** Settings' own pages, named as the Menu names them. */
-const SETTINGS_PAGES: Record<string, string> = { bar: "Bottom bar", requests: "Note requests", credits: "Credits" };
+const SETTINGS_PAGES: Record<string, string> = { requests: "Note requests", credits: "Credits" };
 /** The place itself: "Genesis 1", "H430", a class title's slug, in words. */
 export function tabPlace(path: string): string {
   const p = path.split(/[?#]/)[0].split("/").filter(Boolean);

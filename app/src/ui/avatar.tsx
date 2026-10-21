@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
+import { assetUrl } from "@/lib/asset";
 import { bundledSrc, pictureSrc } from "./pictures";
 import approved from "../../scripts/timeline-portraits.json";
 
@@ -8,9 +9,10 @@ import approved from "../../scripts/timeline-portraits.json";
  * (app/scripts/timeline-portraits.json, public/people/<id>-<size>.webp; docs/AVATARS.md). Everyone
  * else keeps the name's first letter on a tint for its kind.
  */
-export type AvatarKind = "male" | "female" | "group" | "other";
+export type AvatarKind = "male" | "female" | "group" | "other" | "place";
 
-export const AVATAR_IMAGES: Partial<Record<AvatarKind, string>> = {};
+/** A place has Bible Strong's place picture (assets/images/entity-avatars/place.png); people keep their portrait or letter. */
+export const AVATAR_IMAGES: Partial<Record<AvatarKind, string>> = { place: assetUrl("bs/entity-avatars/place.png") };
 
 /** The kind of avatar from TIPNR's type ("Male", "Female", "Group" ...). */
 export function avatarKind(type?: string): AvatarKind {

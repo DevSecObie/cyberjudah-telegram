@@ -88,14 +88,14 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgu
 #root .bs-searchinput__clear { flex: none; display: grid; place-items: center; width: 36px; height: 36px; margin: 0; padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
 .hero__clear { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--fill-2); color: var(--text-1) !important; font-size: 17px !important; line-height: 1; cursor: pointer; }
 /* A text box or area: a well with a visible edge (3:1), an accent ring when focused. */
-.input, .sheet__form textarea, .edit input, .tagadd input, .edit__text {
+.input, .sheet__form textarea, .edit input, .edit__text {
   box-sizing: border-box; width: 100%; min-height: var(--h-md); padding: 10px 12px;
   border: 1px solid var(--control-edge); border-radius: var(--r-md); background: var(--surface-2); color: var(--text-1);
   font: 400 var(--fs-body)/1.45 var(--font-ui); outline: none; transition: none;
 }
 .sheet__form textarea { resize: vertical; }
-.input::placeholder, .sheet__form textarea::placeholder, .edit input::placeholder, .tagadd input::placeholder, .edit__text::placeholder { color: var(--text-4); }
-.input:focus, .sheet__form textarea:focus, .edit input:focus, .tagadd input:focus, .edit__text:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.input::placeholder, .sheet__form textarea::placeholder, .edit input::placeholder, .edit__text::placeholder { color: var(--text-4); }
+.input:focus, .sheet__form textarea:focus, .edit input:focus, .edit__text:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .input[aria-invalid="true"], .edit input[aria-invalid="true"] { border-color: var(--danger); }
 .field__error { margin: 4px 2px 0; font: 500 var(--fs-footnote) var(--font-ui); color: var(--danger); }
 

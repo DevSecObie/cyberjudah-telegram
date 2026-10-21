@@ -75,6 +75,9 @@ test("Open in a new tab from a timeline over the tab makes a tab that keeps its 
   await expect(page).toHaveURL(/\/timeline$/);
   await page.getByRole("button", { name: "More", exact: true }).click();
   await page.getByText("Open in a new tab", { exact: true }).click();
+  // The page stays put (Bible Strong's openInNewTab); the toast goes to the new tab.
+  await expect(page).toHaveURL(/\/timeline$/);
+  await page.locator(".toast", { hasText: "New tab created" }).getByRole("button", { name: "Go to tab" }).click();
   await expect.poll(async () => (await tabs(page)).endsWith(":/timeline")).toBe(true);
   await page.locator('a[href^="/timeline/"]').first().click();
   await expect(page).toHaveURL(/\/timeline\/.+/);
@@ -89,11 +92,10 @@ test("a bar swipe with no tab to go to leaves the page over the tab", async ({ p
   await page.locator(".drawer--home .stats__cell[href=\"/studies\"]").click();
   await expect(page).toHaveURL(/\/studies$/);
   // The current tab is the last, so a swipe toward the next one finds none.
-  await bar(page).evaluate((nav) => {
-    const r = nav.getBoundingClientRect(), y = r.y + 24, at = (x: number) => ({ clientX: x, clientY: y, bubbles: true, cancelable: true, pointerId: 9, pointerType: "mouse", isPrimary: true, button: 0 });
-    nav.dispatchEvent(new PointerEvent("pointerdown", at(r.right - 30)));
-    nav.dispatchEvent(new PointerEvent("pointerup", at(r.x + 30)));
-  });
+  const box = (await bar(page).boundingBox())!, y = box.y + 24;
+  await page.mouse.move(box.x + box.width - 30, y); await page.mouse.down();
+  for (let x = box.x + box.width - 50; x > box.x + 30; x -= 20) await page.mouse.move(x, y);
+  await page.mouse.up();
   await page.waitForTimeout(400);
   await expect(page).toHaveURL(/\/studies$/);
   // Back to the tab and forward again: the page is still over it, not written into it.
