@@ -50,7 +50,13 @@ self.addEventListener("fetch", (e) => {
   if (!asset && !page) return;
   e.respondWith((async () => {
     const name = await currentShell(), cache = name ? await caches.open(name) : null;
-    if (asset) { const kept = await cache?.match(e.request); if (kept) return kept; return fetch(e.request); }
+    if (asset) {
+      const kept = await cache?.match(e.request); if (kept) return kept;
+      // Hashed chunks left out of the shell are kept on first use, so they open offline afterwards.
+      const fresh = await fetch(e.request);
+      if (fresh.ok && cache) e.waitUntil(cache.put(e.request, fresh.clone()).catch(() => undefined));
+      return fresh;
+    }
     try { const fresh = await fetch(e.request); if (fresh.ok) return fresh; } catch { /* saved shell below */ }
     const saved = await cache?.match(new URL(`${ASSET_BASE}index.html`, self.location.origin).href);
     // Static hosts may redirect index.html to /. A navigation's redirect mode can

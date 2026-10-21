@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, readFile, stat } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, stat } from "node:fs/promises";
 import http from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -9,10 +9,10 @@ import { fileURLToPath } from "node:url";
 test.use({ serviceWorkers: "allow" });
 const dataOrigin = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
 const app = fileURLToPath(new URL("..", import.meta.url));
-let server: http.Server, origin: string;
+let server: http.Server, origin: string, output: string;
 test.beforeAll(async () => {
   test.setTimeout(120_000);
-  const output = await mkdtemp(path.join(tmpdir(), "cj-offline-mounts-"));
+  output = await mkdtemp(path.join(tmpdir(), "cj-offline-mounts-"));
   // The normal suite builds /. Exercise the actual production /app/ asset URLs too.
   execFileSync(process.execPath, [fileURLToPath(new URL("../../node_modules/vite/bin/vite.js", import.meta.url)), "build", "--base", "/app/", "--outDir", output], { cwd: app, stdio: "pipe" });
   server = http.createServer(async (req, res) => {
@@ -47,10 +47,20 @@ for (const mount of ["/app", ""]) test(`production assets relaunch offline from 
   }, { books, chapter, dataOrigin });
   await expect.poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.scope)).toBe(`${origin}${mount}/`);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  // Bundled timeline data is not in the shell; the worker keeps it once it has been fetched.
+  const manifest = JSON.parse(await readFile(path.join(output, "offline-shell.json"), "utf8"));
+  const lazy = (await readdir(path.join(output, "assets"))).find(f => /^final-captivity-.*\.js$/.test(f));
+  expect(lazy).toBeTruthy();
+  expect(manifest.paths).not.toContain(`assets/${lazy}`);
+  const lazyUrl = `${origin}/app/assets/${lazy}`;
+  await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+  await page.evaluate(async src => { await fetch(src); }, lazyUrl);
+  await expect.poll(() => page.evaluate(async src => !!(await caches.match(src)), lazyUrl)).toBe(true);
   await page.unrouteAll({ behavior: "wait" });
   await context.setOffline(true);
   const reopened = await context.newPage();
   await reopened.goto(url);
   await expect(reopened.locator("#verset-1")).toContainText(chapter.verses[0].text);
   expect(await reopened.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+  expect(await reopened.evaluate(async src => (await fetch(src)).ok, lazyUrl)).toBe(true);
 });

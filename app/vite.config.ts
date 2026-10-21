@@ -3,11 +3,15 @@ import react from "@vitejs/plugin-react";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
-/** The reader shell includes lazy reader chunks; admin editors load only after authorization. */
-let assetBase = "/";
+/**
+ * The reader shell includes lazy reader chunks; admin editors load only after authorization.
+ * Bundled timeline data and (when sync is off) the account chunk are left to the worker's
+ * cache-on-first-use, so installing the shell does not download them up front.
+ */
+let assetBase = "/", accountSync: string | undefined;
 const offlineShell: Plugin = {
   name: "offline-shell", apply: "build",
-  configResolved(config) { assetBase = config.base; },
+  configResolved(config) { assetBase = config.base; accountSync = config.env.VITE_ACCOUNT_SYNC; },
   generateBundle: { order: "post", handler(_options, bundle) {
     const reader = new Set<string>(['index.html']);
     const visit = (name: string) => {
@@ -16,6 +20,9 @@ const offlineShell: Plugin = {
       if (!chunk || chunk.type !== 'chunk') return;
       // Do not let service-worker installation bypass the runtime admin gate.
       if (/\/src\/(?:admin\/(?:Admin|TimelineEditor|ResourceAdmin|ClassEditor|PeopleEditor|PreceptEditor)|ui\/(?:photo-editor|note-edit))\./.test(chunk.facadeModuleId ?? '')) return;
+      // Heavy data and account sync stay out of the first download; the worker caches them on first use.
+      if (/\/src\/data\/[^/]+\.json$/.test(chunk.facadeModuleId ?? '')) return;
+      if (accountSync !== "true" && /\/src\/sync\/account\./.test(chunk.facadeModuleId ?? '')) return;
       reader.add(name);
       const css = (chunk as typeof chunk & { viteMetadata?: { importedCss: Set<string> } }).viteMetadata?.importedCss;
       css?.forEach(name => reader.add(name));

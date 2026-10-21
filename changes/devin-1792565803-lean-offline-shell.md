@@ -1,0 +1,1 @@
+- The app downloads about a third less on first install. The timeline's bundled history data is saved for offline use the first time you open it, instead of up front.
