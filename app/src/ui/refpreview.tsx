@@ -27,12 +27,11 @@ export function verseSpec(verses: number[]) {
 
 function wantedVerses(spec: string) {
   if (!spec) return null;
-  const set = new Set<number>();
-  for (const part of spec.split(",")) {
+  const ranges = spec.split(",").map((part) => {
     const [a, b = a] = part.split("-").map(Number);
-    for (let v = a; v <= b; v++) set.add(v);
-  }
-  return set;
+    return [a, b] as const;
+  });
+  return { has: (v: number) => ranges.some(([a, b]) => v >= a && v <= b) };
 }
 
 /** A reader path, "/read/genesis/1?v=1-3", as a passage to preview. */
