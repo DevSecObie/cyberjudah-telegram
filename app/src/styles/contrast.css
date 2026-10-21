@@ -65,9 +65,9 @@
     --rim-highlight: #ffffff !important;
   }
   html[data-theme="light"] {
-    --canvas: var(--palette-canvas, #fcfbf7) !important;
-    --surface-1: var(--palette-card, #f2f1ec) !important;
-    --surface-2: var(--palette-inset, #e4e2dc) !important;
+    --canvas: var(--palette-canvas, #ffffff) !important;
+    --surface-1: var(--palette-card, #f4f7ff) !important;
+    --surface-2: var(--palette-inset, #e6e6e6) !important;
     --widget-ink: var(--text-1) !important; --widget-ground: var(--surface-1) !important;
     --canvas-glow: transparent !important;
     --fill-1: color-mix(in srgb, var(--text-1) 6%, transparent) !important;

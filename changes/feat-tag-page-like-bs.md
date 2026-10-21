@@ -1,0 +1,1 @@
+- A tag's page lists what it carries, as in Bible Strong: a section each for highlights (with word marks), notes and links, with its count, opened by a tap. Each item shows its passage, how long ago it was made, its text and its tags, and opens the reader at its verses.

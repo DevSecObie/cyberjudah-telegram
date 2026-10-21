@@ -1,6 +1,6 @@
 /**
  * Bible Strong's timeline, its layout maths ported as they are
- * (strong/apps/expo/src/features/timeline: constants.ts, timeline.hooks.ts): a period is a
+ * (apps/expo/src/features/timeline: constants.ts, timeline.hooks.ts): a period is a
  * canvas whose width is its span of years at `100 / interval` pixels a year, each event a bar
  * at its start year on one of 24 rows, and the year under a fixed line at 40% of the screen.
  * The data is app/src/data/timeline.json (app/scripts/timeline-data.mjs): their history with

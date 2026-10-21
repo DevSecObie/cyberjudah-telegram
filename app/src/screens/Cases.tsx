@@ -11,7 +11,9 @@ import { haptic } from "@/tg/sdk";
 import { avatarKind, EntityAvatar } from "@/ui/avatar";
 import { RefText } from "@/ui/reftext";
 import { ScriptureCard } from "@/ui/scripture";
-import { Chip, Chips, Empty, List, Row, Screen, SearchField, Segmented } from "@/ui/ui";
+import { useHeaderOffset } from "@/ui/alphabet";
+import { FiltersButton } from "@/ui/panel";
+import { Empty, List, Row, Screen, SearchField } from "@/ui/ui";
 
 /**
  * The case studies: the judgments recorded in scripture, and those who kept the law and were
@@ -22,6 +24,13 @@ import { Chip, Chips, Empty, List, Row, Screen, SearchField, Segmented } from "@
 const verdictName = (v: string) => v.charAt(0).toUpperCase() + v.slice(1);
 const kindName = (k: CaseRow["kind"]) => (k === "blessing" ? "Blessing" : "Judgment");
 
+const KINDS = [["all", "All"], ["judgment", "Judgments"], ["blessing", "Blessings"]] as const;
+
+/**
+ * The case studies as Bible Strong's CommentaryLibraryScreen: the title with the filter button
+ * (Bible Strong's FiltersHeader: the kind, the era), the search field under it as the Lexicon has,
+ * then a section per era, its name on a grey band held at the top, a row per case.
+ */
 export function Cases() {
   useBackButton();
   const [params, setParams] = useSearchParams();
@@ -30,6 +39,7 @@ export function Cases() {
   const idx = useQuery({ queryKey: ["cases"], queryFn: data.cases, staleTime: Infinity, retry: 1 });
   const [q, setQ] = useVisitState("q", "");
   useKeptScroll(!!idx.data);
+  const top = useHeaderOffset();
   const all = idx.data?.cases ?? [];
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -37,44 +47,43 @@ export function Cases() {
   }, [all, kind, era, q]);
   const set = (k: string, v: string) => { const p = new URLSearchParams(params); if (v) p.set(k, v); else p.delete(k); setParams(p, { replace: true }); };
   const groups = useMemo(() => (idx.data?.eras ?? []).map((e) => [e, list.filter((c) => c.era === e)] as const).filter(([, rows]) => rows.length), [idx.data, list]);
-  const judged = all.filter((c) => c.kind !== "blessing").length;
+  const count = (k: string) => (k === "all" ? all.length : all.filter((c) => c.kind === k).length);
+  const filters = (
+    <FiltersButton onReset={() => setParams(new URLSearchParams(), { replace: true })} filters={[
+      { key: "kind", icon: "layers", label: "Kind", value: KINDS.find(([k]) => k === kind)![1], active: kind !== "all", options: KINDS.map(([k, label]) => ({ key: k, label: idx.data ? `${label} (${count(k)})` : label, selected: kind === k, onSelect: () => set("kind", k === "all" ? "" : k) })) },
+      { key: "era", icon: "clock", label: "Era", value: era || "Every era", active: !!era, options: [{ key: "", label: "Every era", selected: !era, onSelect: () => set("era", "") }, ...(idx.data?.eras ?? []).map((e) => ({ key: e, label: e, selected: era === e, onSelect: () => set("era", e) }))] },
+    ]} />
+  );
 
   return (
-    <Screen className="cases" title="Case studies" kicker={idx.data ? `${judged} judgments · ${all.length - judged} blessings` : "The judgments, and the blessings"}>
-      <Segmented label="Kind" value={kind} onChange={(v) => set("kind", v === "all" ? "" : v)} options={[["all", "All"], ["judgment", "Judgments"], ["blessing", "Blessings"]]} />
+    <Screen className="cases" title="Case studies" action={filters}>
       <SearchField id="case-q" value={q} onChange={setQ} placeholder="A name, a charge, a verdict" />
-      {idx.data ? <div className="cases__eras"><Chips><Chip on={!era} onClick={() => set("era", "")}>Every era</Chip>{idx.data.eras.map((e) => <Chip key={e} on={era === e} onClick={() => set("era", era === e ? "" : e)}>{e}</Chip>)}</Chips></div> : null}
-      {idx.isPending ? <CaseListSkeleton /> : idx.isError ? (
-        <Empty title="The case studies did not load" action={{ label: "Try again", onClick: () => void idx.refetch() }}>Check your connection.</Empty>
+      {idx.isPending ? <p className="bs-list__loading">Loading...</p> : idx.isError ? (
+        <Empty title="The case studies did not load" action={{ label: "Retry", onClick: () => void idx.refetch() }} />
       ) : !list.length ? (
-        <Empty title="No case matches" action={{ label: "Clear the filters", onClick: () => { setQ(""); setParams(new URLSearchParams(), { replace: true }); } }}>Try a name, a charge or another era.</Empty>
-      ) : groups.map(([e, rows]) => (
-        <section key={e} className="cases__era" aria-label={e}>
-          <h2 className="cases__eraname">{e}<span>{rows.length}</span></h2>
-          <ul className="cases__list">{rows.map((c) => <CaseListRow key={c.slug} c={c} />)}</ul>
-        </section>
-      ))}
+        <Empty title="No case found...">Try a name, a charge or another era.</Empty>
+      ) : (
+        <div className="cases__body" style={{ ["--section-top" as string]: `${top}px` }}>
+          {groups.map(([e, rows]) => (
+            <section key={e} aria-label={e}>
+              <h2 className="cases__era">{e}</h2>
+              {rows.map((c) => <CaseListRow key={c.slug} c={c} />)}
+            </section>
+          ))}
+        </div>
+      )}
     </Screen>
   );
 }
 
+/** Bible Strong's CommentaryLibraryItem: the name in bold over two lines, then a grey line, here the charge. */
 function CaseListRow({ c }: { c: CaseRow }) {
   return (
-    <li>
-      <Link to={c.url} className="caserow" data-kind={c.kind} onClick={() => haptic("select")}>
-        <span className="caserow__body">
-          <b className="caserow__name">{c.name}</b>
-          <span className="caserow__charge">{c.charge}</span>
-          <span className="caserow__meta"><i className="caserow__dot" aria-hidden="true" />{kindName(c.kind)} · {verdictName(c.verdict)}{c.code ? <span className="caserow__code">{c.code}</span> : null}</span>
-        </span>
-        <Feather name="chevron-right" size={18} color="currentColor" />
-      </Link>
-    </li>
+    <Link to={c.url} className="caserow" onClick={() => haptic("select")}>
+      <b className="caserow__name">{c.name}</b>
+      <span className="caserow__charge">{c.charge}</span>
+    </Link>
   );
-}
-
-function CaseListSkeleton() {
-  return <div className="cases__list" aria-busy="true" aria-label="Loading">{Array.from({ length: 6 }, (_, i) => <div key={i} className="caserow caserow--wait"><span className="caserow__body"><span className="skel" style={{ width: `${40 + ((i * 13) % 30)}%`, height: 16 }} /><span className="skel" style={{ width: "88%" }} /><span className="skel" style={{ width: "30%", height: 10 }} /></span></div>)}</div>;
 }
 
 const SCRIPTURE_FIRST = 4, SCRIPTURE_MORE = 6, SHOWN_VERSES = 8;

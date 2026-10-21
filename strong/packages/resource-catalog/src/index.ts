@@ -1,5 +1,0 @@
-export * from './catalog'
-export * from './commentaryCatalog'
-export * from './interlinearBiblePublicationCatalog'
-export * from './ordinaryBibleVersions'
-export * from './strongBibleCatalog'

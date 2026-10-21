@@ -48,19 +48,17 @@ test("hashed build assets are cached as immutable, and nothing else is", () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test("the report-only script policy names each inline script the staged pages carry, by hash", () => {
+test("the report-only script policy names each inline script the app carries, by hash", () => {
   const root = mkdtempSync(join(tmpdir(), "cj-stage-"));
   try {
     mkdirSync(join(root, "bot/scripts"), { recursive: true });
     cpSync(new URL("../scripts/prepare-assets.sh", import.meta.url), join(root, "bot/scripts/prepare-assets.sh"));
     mkdirSync(join(root, "app/dist/assets"), { recursive: true });
-    mkdirSync(join(root, "strong/dist"), { recursive: true });
     const theme = "\n      document.documentElement.setAttribute('data-theme', 'dark');\n    ";
     writeFileSync(join(root, "app/dist/index.html"), `<script src="https://telegram.org/js/telegram-web-app.js?59"></script><script>${theme}</script><script type="module" crossorigin src="/app/assets/index-abc.js"></script>`);
-    writeFileSync(join(root, "strong/dist/index.html"), "<script>var strong = 1;</script><script>var strong = 1;</script><script src=\"/app/strong/x.js\" defer></script>");
     execFileSync("sh", [join(root, "bot/scripts/prepare-assets.sh")], { stdio: "pipe" });
     const line = readFileSync(join(root, ".deploy/_headers"), "utf8").split("\n").find((h) => h.startsWith("  Content-Security-Policy-Report-Only:"));
     const hash = (s) => `'sha256-${createHash("sha256").update(s).digest("base64")}'`;
-    assert.equal(line, `  Content-Security-Policy-Report-Only: script-src 'self' https://telegram.org https://apis.google.com ${hash(theme)} ${hash("var strong = 1;")}; object-src 'none'; base-uri 'self'`);
+    assert.equal(line, `  Content-Security-Policy-Report-Only: script-src 'self' https://telegram.org https://apis.google.com ${hash(theme)}; object-src 'none'; base-uri 'self'`);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

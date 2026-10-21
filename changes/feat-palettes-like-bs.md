@@ -1,0 +1,4 @@
+- The Bible's colours are Bible Strong's own:
+  - The default day colour is White, as Bible Strong names and draws it: black text on a white page, with its grey cards and lines.
+  - Black is Bible Strong's Black: a black page with its grey text.
+  - Every theme takes its own accent colour, in place of the teal and cyan the app laid over them.
