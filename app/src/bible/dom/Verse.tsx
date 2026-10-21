@@ -43,9 +43,9 @@ export function Verse(p: VerseProps) {
   const block = s.textDisplay === "block";
   // Keep context readable with semantic ink; selection also has a dashed underline.
   let hl: CSSProperties = { background: "transparent", borderRadius: 0 };
-  // Bible Strong's getNumberHighlight: in Strong's mode a background highlight moves to the verse number.
+  // Bible Strong's getNumberHighlight: in Strong's mode a background highlight moves to the verse number (the text keeps it while numbers are hidden).
   let numberHl: CSSProperties | undefined;
-  if (p.highlightedColor && p.strongMode) {
+  if (p.highlightedColor && p.strongMode && s.showVerseNumbers) {
     const { hex, type } = highlightInfo(p.highlightedColor, s, c);
     if (type === "background" && hex !== "transparent") numberHl = { backgroundColor: convertHex(hex, HIGHLIGHT_BACKGROUND_OPACITY), borderRadius: 3, color: contrastText(hex, isDarkTheme(theme)) };
   }
