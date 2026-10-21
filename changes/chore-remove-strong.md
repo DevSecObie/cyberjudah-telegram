@@ -1,0 +1,2 @@
+- The Bible Strong fork (strong/) is gone, with its build, its deploy and stage checks, and its Dependabot entry. The app was already doing everything it did.
+- Old /app/strong links now open the app.
