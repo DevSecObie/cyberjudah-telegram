@@ -1,1 +1,2 @@
 - Episodes of The Truth Shall Make You Free are labelled with the show's name instead of "Sabbath class".
+- The Truth feed also lists the show's radio episodes, whose collection names the station after the show (for example "The Truth Shall Make You Free · Kente FM Radio").

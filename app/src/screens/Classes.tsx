@@ -15,7 +15,9 @@ type Feed = "all" | "classes" | "captains" | "history" | "truth";
 const FEEDS: [Feed, string][] = [["all", "All"], ["classes", "Sabbath"], ["captains", "Captains"], ["history", "History"], ["truth", "Truth"]];
 const TRUTH = "The Truth Shall Make You Free";
 const PAGE = 12;
-const inFeedOf = (f: Feed, t: Teaching) => f === "all" || (f === "history" ? t.kind === "history" : f === "captains" ? t.kind === "captains" : f === "truth" ? t.kind === "class" && t.collection === TRUTH : t.kind === "class" && t.collection !== TRUTH);
+// The show's radio episodes carry its name followed by the station ("… · Kente FM Radio").
+const isTruth = (t: Teaching) => !!t.collection?.startsWith(TRUTH);
+const inFeedOf = (f: Feed, t: Teaching) => f === "all" || (f === "history" ? t.kind === "history" : f === "captains" ? t.kind === "captains" : f === "truth" ? t.kind === "class" && isTruth(t) : t.kind === "class" && !isTruth(t));
 const embed = (id: string) => `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&playsinline=1&rel=0`;
 
 /**
