@@ -535,19 +535,20 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await expect(page.locator(".tabcard")).toHaveCount(1);
   // A new group starts empty, with Bible Strong's Create a tab; the first group keeps its Bible tab.
   await page.click(".switcherbar__group");
-  await page.click(".sheet__item >> text=New group");
-  await page.locator(".action-sheet #sheet-text").fill("Revelation");
-  await page.press(".action-sheet #sheet-text", "Enter");
-  await page.locator(".action-sheet .swatch").nth(2).click();
+  await page.getByRole("button", { name: "New group" }).click();
+  await page.getByRole("textbox", { name: "Group name" }).fill("Revelation");
+  await page.getByRole("radio", { name: "Color 3" }).click();
+  await page.getByRole("button", { name: "Create group" }).click();
   await expect(page.locator(".switcherbar__group")).toHaveText("Revelation");
-  await expect(page.locator(".tabcard")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Create a tab" })).toBeVisible();
+  await expect(page.locator(".switcher__page[data-active] .tabcard")).toHaveCount(0);
+  await expect(page.locator(".switcher__page[data-active]").getByRole("button", { name: "Create a tab" })).toBeVisible();
   if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/tabs-groups.png` }); }
   await page.click(".switcherbar__group");
-  await page.click(".sheet__item >> text=1 tab");
+  await page.getByRole("button", { name: "View my groups" }).click();
+  await page.getByRole("button", { name: /^1 tab\. Main group/ }).click();
   await expect(page.locator(".switcherbar__group")).toHaveText("1 tab");
-  await expect(page.locator(".tabcard__open").first()).toHaveAttribute("aria-label", "Open Genesis 1 - KJV");
-  await expect(page.locator(".tabcard__preview").first()).toContainText("In the beginning");
+  await expect(page.locator(".switcher__page[data-active] .tabcard__open").first()).toHaveAttribute("aria-label", "Open Genesis 1 - KJV");
+  await expect(page.locator(".switcher__page[data-active] .tabcard__preview").first()).toContainText("In the beginning");
   if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/tabs.png` }); }
   await page.click(".switcherbar__ok");
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");

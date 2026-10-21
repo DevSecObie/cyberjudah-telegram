@@ -83,6 +83,9 @@ export const currentTab = (): Tab | undefined => { const g = group(); return g.t
 /** Where to reopen at launch: the current tab if tabs were kept, or the switcher when its group is empty (Bible Strong's useBottomTabBar). */
 export const keptPath = () => (kept ? currentTab()?.path ?? "/tabs" : undefined);
 export const isDefaultGroup = (g: Group) => !!g.isDefault;
+/** The current group and every group as they are now, outside React. */
+export const currentGroup = () => group();
+export const groupsNow = () => state.groups;
 
 export const isTabPath = (path: string) => !NOT_TABS.test(path);
 /**

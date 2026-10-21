@@ -22,7 +22,7 @@ async function setup(page: Page, named: false | "short" | "long" = false) {
   await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
   await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
   await page.goto(`/tabs${LAUNCH}`);
-  await expect(page.locator(".tabcard")).toHaveCount(3);
+  await expect(page.locator(".switcher__page[data-active] .tabcard")).toHaveCount(3);
 }
 
 test("the switcher bar is +, the group and OK, with no Back on the switcher", async ({ page }) => {

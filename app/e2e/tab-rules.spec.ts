@@ -17,7 +17,7 @@ async function setup(page: Page, groups: Group[], group = groups[0].id) {
 }
 const saved = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("cj:tabgroups")!) as { group: string; groups: Group[] });
 const close = (page: Page, title: string) => page.getByRole("button", { name: `Close ${title}`, exact: true }).click();
-const groupsMenu = (page: Page) => page.getByRole("toolbar", { name: "Tabs" }).getByRole("button", { name: /Groups$/ }).click();
+const groupsMenu = (page: Page) => page.getByRole("toolbar", { name: "Tabs" }).locator(".switcherbar__group").click();
 const three: Group = { id: "default-group", name: "My tabs", color: "", isDefault: true, current: "b", tabs: [{ id: "a", path: "/settings" }, { id: "b", path: "/search" }, { id: "c", path: "/timeline" }] };
 
 test("closing the current tab selects the one that takes its place, and the last tab can close too", async ({ page }) => {
@@ -61,14 +61,14 @@ test("a new group needs a name, starts empty and takes the first colour", async 
   await page.goto(`/tabs${LAUNCH}`);
   await groupsMenu(page);
   await page.getByRole("button", { name: "New group" }).click();
-  await page.getByRole("textbox", { name: "Name" }).fill("Psalms");
-  await page.getByRole("button", { name: "Next" }).click();
-  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Create group" })).toBeDisabled();
+  await page.getByRole("textbox", { name: "Group name" }).fill("Psalms");
+  await page.getByRole("button", { name: "Create group" }).click();
   await expect.poll(async () => (await saved(page)).groups.length).toBe(2);
   const s = await saved(page);
   expect(s.groups[1]).toMatchObject({ name: "Psalms", color: "#636e72", tabs: [], current: "" });
   expect(s.group).toBe(s.groups[1].id);
-  await expect(page.getByRole("button", { name: "Create a tab" })).toBeVisible();
+  await expect(page.locator(".switcher__page[data-active]").getByRole("button", { name: "Create a tab" })).toBeVisible();
 });
 
 test("kept groups from before are kept: the first is the default group, without a colour", async ({ page }) => {
@@ -81,5 +81,6 @@ test("kept groups from before are kept: the first is the default group, without 
   // It is named by its count; the other group keeps its name and colour.
   await expect(page.getByRole("toolbar", { name: "Tabs" })).toContainText("1 tab");
   await groupsMenu(page);
-  await expect(page.getByRole("button", { name: /Work/ })).toBeVisible();
+  await page.getByRole("button", { name: "View my groups" }).click();
+  await expect(page.getByRole("dialog", { name: "View my groups" }).getByRole("button", { name: /^Work\. / })).toBeVisible();
 });
