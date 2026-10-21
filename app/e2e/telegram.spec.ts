@@ -320,6 +320,7 @@ test("relations: a verse linked to a passage shows as a tag under the verse, wit
   expect(JSON.parse(c.rel_psalms_23)[0].type).toBe("linked");
   expect(JSON.parse(c.rel_john_10)[0].id).toBe(JSON.parse(c.rel_psalms_23)[0].id);
   await tag.click();
+  await page.getByRole("dialog", { name: "John 10:11 · KJV" }).getByRole("button", { name: "Open" }).click();
   await expect(page).toHaveURL(/\/read\/john\/10\?v=11/);
   await expect(page.locator("#verset-11 .rel-inline .rel-tag", { hasText: "Psalms 23:1" })).toBeVisible();
   // The relations screen reads "is linked to"; edit and delete there.
@@ -1131,7 +1132,9 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     const ref = page.getByRole("region", { name: "The obedience" }).getByRole("link", { name: "Genesis 12:1", exact: true });
     await ref.scrollIntoViewIfNeeded();
     const y = await page.evaluate(() => Math.round(scrollY));
+    // It opens a preview card first, as Bible Strong's does; Open goes to the verse.
     await ref.click();
+    await page.getByRole("dialog", { name: "Genesis 12:1 · KJV" }).getByRole("button", { name: "Open" }).click();
     await expect(page).toHaveURL(/\/read\/genesis\/12\?v=1$/);
     await expect(page.locator("#verset-1")).toBeVisible();
     await press(page, "back");
@@ -1384,6 +1387,7 @@ test("Ask: scripture in an answer opens the verse, and a source card shows its w
   await expect(text.getByRole("link", { name: "Isaiah 51:2" })).toBeVisible();
   await expect(page.locator(".msg--ai .srccard__text")).toContainText("Look unto Abraham your father");
   await text.getByRole("link", { name: "Genesis 12:1" }).click();
+  await page.getByRole("dialog", { name: "Genesis 12:1 · KJV" }).getByRole("button", { name: "Open" }).click();
   await expect(page).toHaveURL(/\/read\/genesis\/12\?v=1$/);
   await expect(page.locator("#verset-1")).toBeVisible();
   await press(page, "back");

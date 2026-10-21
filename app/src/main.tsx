@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { App } from "./App";
 import { SheetProvider } from "./ui/sheet";
+import { ReferencePreviewProvider } from "./ui/refpreview";
 import { ToastProvider } from "./ui/toast";
 import { app, boot } from "./tg/sdk";
 import { connectPersonalStore } from "./tg/store";
@@ -43,7 +44,9 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter basename={basename}>
         <ToastProvider>
         <SheetProvider>
+          <ReferencePreviewProvider>
           <App />
+          </ReferencePreviewProvider>
         </SheetProvider>
         </ToastProvider>
       </BrowserRouter>
