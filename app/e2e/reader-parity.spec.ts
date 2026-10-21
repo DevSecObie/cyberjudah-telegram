@@ -284,12 +284,15 @@ test("reader selections and expanded passage context belong to their own tabs", 
   await expect(page.locator("#verset-1")).not.toHaveAttribute("data-selected");
 });
 
-test("new Bible tab stays selected and carries its focused passage", async ({ page }) => {
+test("a new Bible tab carries its focused passage, and the reader stays in their tab until Go to tab", async ({ page }) => {
   await page.goto("/read/genesis/1?v=1-2");
   await menu(page, "Open in new tab");
-  await expect(page).toHaveURL(/\/read\/genesis\/1\?v=1-2/);
-  await expect.poll(() => page.evaluate(() => { const s = JSON.parse(localStorage.getItem("cj:tabgroups")!); return s.groups[0].current; })).not.toBe("bible-one");
+  const current = () => page.evaluate(() => { const s = JSON.parse(localStorage.getItem("cj:tabgroups")!); return s.groups[0].current; });
   await expect(page.getByRole("button", { name: "Tabs, 3 open", exact: true })).toBeVisible();
+  expect(await current()).toBe("bible-one");
+  await page.locator(".toast", { hasText: "New tab created" }).getByRole("button", { name: "Go to tab" }).click();
+  await expect(page).toHaveURL(/\/read\/genesis\/1\?v=1-2/);
+  await expect.poll(current).not.toBe("bible-one");
   await expect(page.locator(".bs-verse")).toHaveCount(2);
 });
 
@@ -625,7 +628,7 @@ test("a touch that stops a gliding page taps neither the verse nor the dock unde
   await page.clock.runFor(300);
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
   await glide(page);
-  await tapTab(page, "Classes");
+  await tapTab(page, "Search");
   await page.clock.runFor(300);
   await expect(page).toHaveURL(/\/read\/genesis\/1/);
   // Once the page has come to rest, the same taps work.

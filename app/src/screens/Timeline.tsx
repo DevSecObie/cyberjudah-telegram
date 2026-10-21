@@ -11,7 +11,7 @@ import {
 import raw from "@/data/timeline.json";
 import { data, type ResolvedRef } from "@/api/data";
 import { Feather } from "@/bible/icons";
-import { newTab } from "@/lib/tabs";
+import { useOpenInNewTab } from "@/ui/open-in-new-tab";
 import { useKeptScroll } from "@/lib/place";
 import { useBackButton, useStored } from "@/tg/hooks";
 import { haptic, hideKeyboard } from "@/tg/sdk";
@@ -83,12 +83,12 @@ const reducedMotion = () => typeof matchMedia === "function" && matchMedia("(pre
 /** The menu at the right of a header (their ContextualMenu): Details, Open in a new tab. */
 function useMenu(onDetails: () => void, path: string) {
   const sheet = useSheet();
-  const navigate = useNavigate();
+  const openInNewTab = useOpenInNewTab();
   return async () => {
     haptic("select");
     const a = await sheet.open({ items: [{ id: "details", text: "Details" }, { id: "tab", text: "Open in a new tab" }] });
     if (a?.id === "details") onDetails();
-    if (a?.id === "tab") { newTab(path); navigate(path); }
+    if (a?.id === "tab") openInNewTab(path);
   };
 }
 

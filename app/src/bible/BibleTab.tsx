@@ -17,6 +17,7 @@ import { Chapter, HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGH
 import { colorItems, DEFAULT_COLOR_KEYS, highlightInfo, paletteOf, resolveTheme, telegramScheme, useBibleSettings, useSchemeChange, type DefaultColorKey, type HighlightType } from "./settings";
 import { cssVars, isDarkTheme } from "./theme";
 import { useToast } from "@/ui/toast";
+import { useOpenInNewTab } from "@/ui/open-in-new-tab";
 import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
 import { BookSelectorSheet, VersePopup } from "./ui/BookSelectorSheet";
 import { VerseJump } from "./ui/VerseJump";
@@ -200,6 +201,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const [noteEdit, setNoteEdit] = useState<{ key: string; note: Note; relation?: Relation } | null>(null);
   const [tagsTarget, setTagsTarget] = useState<number[]>([]);
   const toast = useToast();
+  const openInNewTab = useOpenInNewTab();
   const say = (m: string) => toast(m, { ms: 2800 });
   const speech = useReaderSpeech(text.isPlaceholderData ? [] : verses, chapterLabel, { slug, chapter: ch });
   const player = useAudioPlayer();
@@ -303,7 +305,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
     if (a === "bookmark") { setBookmarkTarget({ existing: bookmarks.find((b) => b.book === slug && b.chapter === ch && !b.verse) }); setSheet("bookmark"); }
     if (a === "export") void exportSel("chapter");
     if (a === "search") setSheet("search");
-    if (a === "newtab") navigate(newTab(`/read/${slug}/${ch}${focus ? `?v=${compressVerses(focus)}` : ""}`), { replace: true });
+    if (a === "newtab") openInNewTab(`/read/${slug}/${ch}${focus ? `?v=${compressVerses(focus)}` : ""}`);
   };
   const chapterBookmark = bookmarks.find((b) => b.book === slug && b.chapter === ch && !b.verse);
   const formatBookmark = (b: Bookmark) => `${bookName(b.book)} ${b.chapter}${b.verse ? `:${b.verse}` : ""}`;

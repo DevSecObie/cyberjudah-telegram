@@ -1,0 +1,1 @@
+- Back stays in the tab you are in, as in Bible Strong: after changing tab (the bottom bar, a swipe on it, the tab switcher or a new tab), Back no longer returns to the page of the tab you left, and it no longer puts that page into the current tab. Pages opened inside a tab still go back as before, and Back to Home or the menu after opening something from them is unchanged.

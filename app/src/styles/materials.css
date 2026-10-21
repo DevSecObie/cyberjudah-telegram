@@ -87,7 +87,9 @@
    300 ms while the Bible is full screen. */
 .tabs {
   position: fixed; z-index: var(--z-dock); left: 0; right: 0; bottom: 0;
-  box-sizing: border-box; height: calc(48px + var(--safe-bottom)); margin: 0; padding: 0 20px var(--safe-bottom);
+  box-sizing: border-box; height: calc(48px + var(--safe-bottom)); margin: 0;
+  /* Bible Strong's 20 px in from the sides, given up first on phones too narrow for seven 48 px buttons. */
+  padding: 0 clamp(0px, (100vw - 336px) / 2, 20px) var(--safe-bottom);
   display: flex; align-items: center;
   border-top: 1px solid var(--dock-line, var(--hairline)); background: var(--dock-bg, var(--canvas)); color: var(--dock-ink, var(--bs-tertiary, var(--text-3)));
   touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
@@ -97,7 +99,7 @@
 .tabs[data-hidden] { transform: translateY(100%); visibility: hidden; transition: transform 300ms ease, visibility 0s 300ms; }
 /* The row of buttons (BottomTabBar's view row), spread evenly. */
 .tabs__row { flex: 1; min-width: 0; height: 48px; display: flex; align-items: center; justify-content: space-around; }
-/* 48 px each; more buttons than Bible Strong's five share a narrow row rather than overflow it. */
+/* Bible Strong's buttons, 48 px each (TAB_ICON_SIZE); on the narrowest phones the seven share the row. */
 .tabs .tab {
   flex: 0 1 48px; min-width: 0; height: 48px; padding: 0; margin: 0;
   display: grid; place-items: center; border: 0; border-radius: 0; background: none; color: inherit; cursor: pointer;
@@ -236,6 +238,8 @@ html[data-actions] .toasts { bottom: calc(var(--dock-space) + var(--h-md) + var(
 .toast[data-tone="error"] .toast__icon { color: var(--danger); }
 .toast[data-tone="success"] .toast__icon { color: var(--success); }
 .toast__text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+/* Bible Strong's toast action (sonner-native's action button, in their primary colour): a pill under the message. */
+#root .toast__action { display: block; margin-top: 16px; padding: 6px 14px; border: 1px solid transparent; border-radius: 999px; background: var(--accent); color: var(--on-accent); font: 600 14px/20px var(--font-ui); white-space: nowrap; cursor: pointer; }
 #root .toast__close { flex: none; display: grid; place-items: center; width: 32px; height: 32px; margin: -6px -6px -6px 0; border: 0; border-radius: 50%; background: none; color: var(--text-3); cursor: pointer; }
 .toast__timer { position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: var(--accent); transform-origin: left; animation: toast-timer var(--toast-ms, 3500ms) linear forwards; }
 .toast:hover .toast__timer, .toast:focus-within .toast__timer { animation-play-state: paused; }

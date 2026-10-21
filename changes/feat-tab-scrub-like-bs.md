@@ -1,0 +1,1 @@
+- Swiping along the bottom bar now works as in Bible Strong: your open tabs appear as full-screen cards that follow your finger, with a tick at each tab you pass. Letting go settles on the nearest tab, or on the next one when you flick. A swipe no longer also counts as a tap on the button under your finger.

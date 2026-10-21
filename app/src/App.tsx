@@ -1,3 +1,4 @@
+import { historyIdx, isOver, markOver } from "@/lib/over-page";
 import { NativeLifecycle } from "@/native/NativeLifecycle";
 import { WorkspaceCommands } from "@/ui/WorkspaceCommands";
 import { AudioPlayerProvider, AudioPlayerBar } from "@/lib/AudioPlayer";
@@ -8,7 +9,7 @@ import { Route, Routes, useLocation, useNavigate, useNavigationType } from "reac
 import { RouteSheet, useSheetEntry } from "@/ui/routeSheet";
 import { UnderSheetContext } from "@/ui/sheetRoute";
 import { initialLaunchPath } from "@/tg/launch.mjs";
-import { isTabPath, keptPath, recordPath } from "@/lib/tabs";
+import { isTabPath, keptPath, recordPath, settleTabFloor } from "@/lib/tabs";
 import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
@@ -33,7 +34,6 @@ const More = lazy(() => import("@/screens/More").then((m) => ({ default: m.More 
 const ResourceInstaller = lazy(() => import("@/screens/ResourceInstaller").then((m) => ({ default: m.ResourceInstaller })));
 const ResourceReader = lazy(() => import("@/screens/ResourceReader").then((m) => ({ default: m.ResourceReader })));
 const AdminGate = lazy(() => import("@/admin/AdminGate").then((m) => ({ default: m.AdminGate })));
-const NavEditor = lazy(() => import("@/screens/NavEditor").then((m) => ({ default: m.NavEditor })));
 const Account = lazy(() => import("@/screens/Account").then(m => ({ default: m.Account })));
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
 const Help = lazy(() => import("@/screens/Help").then(m => ({ default: m.Help })));
@@ -108,7 +108,6 @@ const routes = (
     <Route path="/settings" element={<Settings />} />
     <Route path="/settings/help" element={<Help />} />
     <Route path="/settings/audio" element={<AudioSettings />} />
-    <Route path="/settings/bar" element={<NavEditor />} />
     <Route path="/settings/requests" element={<NoteRequests />} />
     <Route path="/plans" element={<ReadingPlans />} />
     <Route path="/plan" element={<Plan />} />
@@ -162,15 +161,18 @@ export function App() {
   const sheet = useSheetEntry(location, navType);
   const page = sheet?.background ?? location;
   // Bible Strong's tabs: where the app is becomes the current tab's place (lib/tabs.ts); a sheet
-  // over it does not move the tab.
+  // over it does not move the tab, nor does a page over the workspace (lib/over-page.ts): one
+  // opened from Home or the menu (a drawer, or the Home and menu pages), or further in from one.
   const prevPath = useRef<string | null>(null);
   useEffect(() => {
     if (sheet) return;
     const path = location.pathname + location.search;
-    const prev = prevPath.current;
-    recordPath(path, prev !== null && !isTabPath(prev));
+    const prev = prevPath.current, idx = historyIdx();
+    if (navType === "PUSH" && !isOver(idx) && prev !== null && (!isTabPath(prev) || isOver(idx - 1))) markOver(idx);
+    if (!isOver(idx)) recordPath(path);
+    settleTabFloor(idx, navType !== "PUSH");
     prevPath.current = path;
-  }, [location.pathname, location.search, sheet]);
+  }, [location.key, location.pathname, location.search, sheet]); // eslint-disable-line react-hooks/exhaustive-deps
   const navigate = useNavigate();
   useSettingsButton();
 

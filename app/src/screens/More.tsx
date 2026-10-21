@@ -81,7 +81,6 @@ export function MoreBody() {
       <Card icon="gear" title="Settings" items={[
         { icon: "gear", label: "Settings", color: C.slate, href: "/settings" },
         { icon: "download", label: "Downloads", color: C.green, href: "/resources", dot: hasUpdates, a11y: hasUpdates ? "Downloads, updates available" : undefined },
-        { icon: "list", label: "Bottom bar", color: C.blue, href: "/settings/bar" },
         pin ? { icon: "star", label: "Add to Home Screen", color: C.amber, onClick: addToHomeScreen } : null,
         { icon: "download", label: "Download the vault", color: C.green, onClick: () => downloadFile(`${DATA_ORIGIN}/downloads/vault.zip`, "cyberjudah-vault.zip") },
       ]} />
