@@ -10,29 +10,18 @@ async function setup(page: Page, mode = "normal") {
   await page.addInitScript(({ mode }) => {
     const tabs = Array.from({ length: 8 }, (_, i) => ({ id: `tab-${i}`, path: i === 5 ? "/read/genesis/1" : i === 0 ? "/timeline" : i === 1 ? "/search?q=kept" : `/classes?tab=${i}` }));
     localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "one", groups: [{ id: "one", name: "My tabs", color: "#2dd4bf", current: "tab-5", tabs }] }));
+    // View Transitions are not used for a tab's open or close; their absence or failure changes nothing.
     if (mode === "fallback") Object.defineProperty(document, "startViewTransition", { configurable: true, value: undefined });
-    if (mode === "rejected") Object.defineProperty(document, "startViewTransition", { configurable: true, writable: true, value: (update: () => void) => {
-      const updateCallbackDone = Promise.resolve().then(update);
-      return { updateCallbackDone, ready: Promise.reject(new Error("Snapshot unavailable")), finished: updateCallbackDone, skipTransition() {} };
-    } });
-    const state = window as unknown as { __tabAnimations: Keyframe[][]; __tabTransitions: number; __tabReady: boolean[]; __tabSources: (string | null)[] };
-    state.__tabAnimations = []; state.__tabTransitions = 0; state.__tabReady = []; state.__tabSources = [];
+    if (mode === "rejected") Object.defineProperty(document, "startViewTransition", { configurable: true, writable: true, value: () => { throw new Error("Snapshot unavailable"); } });
+    const state = window as unknown as { __tabAnimations: { el: string; frames: Keyframe[]; duration: number; easing: string }[] };
+    state.__tabAnimations = [];
     const animate = Element.prototype.animate;
-    Element.prototype.animate = function (...args) {
-      const animation = animate.apply(this, args);
-      if (this.matches(".switcher__grid, .route")) state.__tabAnimations.push((animation.effect as KeyframeEffect).getKeyframes());
+    Element.prototype.animate = function (keyframes, options) {
+      const animation = animate.call(this, keyframes, options);
+      const timing = animation.effect!.getTiming();
+      state.__tabAnimations.push({ el: (this as Element).className.toString(), frames: (animation.effect as KeyframeEffect).getKeyframes(), duration: Number(timing.duration), easing: String(timing.easing) });
       return animation;
     };
-    if (document.startViewTransition) {
-      const start = document.startViewTransition.bind(document);
-      document.startViewTransition = (...args) => {
-        state.__tabTransitions++;
-        state.__tabSources.push(document.querySelector<HTMLElement>('.tabcard[style*="tab-surface"]')?.dataset.tabId ?? null);
-        const transition = start(...args);
-        void transition.ready.then(() => state.__tabReady.push(true), () => state.__tabReady.push(false));
-        return transition;
-      };
-    }
   }, { mode });
   await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
   await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
@@ -66,18 +55,15 @@ for (const mode of ["normal", "fallback", "reduced", "rejected"]) {
     await expect(page).toHaveURL(/\/read\/genesis\/1/);
     // Firefox can retain a fractional CSS pixel after the transformed viewport settles.
     await expect.poll(() => page.locator(".bs-scroll").evaluate(e => Math.abs(e.scrollTop - 740))).toBeLessThanOrEqual(1);
-    const motion = await page.evaluate(() => {
-      const s = window as unknown as { __tabAnimations: Keyframe[][]; __tabTransitions: number; __tabReady: boolean[] };
-      return { frames: s.__tabAnimations, native: s.__tabTransitions, ready: s.__tabReady, supported: !!document.startViewTransition };
-    });
-    if (mode === "normal" && motion.supported) { expect(motion.native).toBe(2); expect(motion.ready).toEqual([true, true]); }
-    else {
-      expect(motion.native).toBe(mode === "rejected" ? 2 : 0);
-      if (mode === "rejected") expect(motion.ready).toEqual([false, false]);
-      expect(motion.frames.length).toBeGreaterThanOrEqual(2);
-      if (mode === "reduced") expect(motion.frames.flat().every(f => !f.transform || f.transform === "none")).toBe(true);
-      else expect(motion.frames.flat().some(f => String(f.transform).includes("translate"))).toBe(true);
-    }
+    const motion = await page.evaluate(() => (window as unknown as { __tabAnimations: { el: string; frames: Keyframe[]; duration: number; easing: string }[] }).__tabAnimations);
+    // Bible Strong's useTabAnimations: the card resizes (not scales) over 500 ms on its curve, to its
+    // place on the way out and to full screen on the way back; then the tab fades in over 300 ms.
+    const resizes = motion.filter(m => m.el.includes("tabcard") && m.frames.some(f => f.width));
+    if (mode === "reduced") { expect(resizes).toHaveLength(0); return; }
+    expect(resizes).toHaveLength(2);
+    for (const r of resizes) { expect(r.duration).toBe(500); expect(r.easing).toBe("cubic-bezier(0.36, 0.77, 0.44, 1)"); }
+    expect(resizes[0].frames[0].width).toBe("390px"); expect(resizes[1].frames.at(-1)!.width).toBe("390px");
+    expect(motion.some(m => m.el.includes("route") && m.duration === 300 && Number(m.frames[0].opacity) === 0)).toBe(true);
   });
 }
 
@@ -98,11 +84,13 @@ test("tab flow: the switcher has no Back or Escape, as in Bible Strong; closing 
   const added = await page.evaluate(() => {
     const saved = JSON.parse(localStorage.getItem("cj:tabgroups")!);
     const group = saved.groups.find((g: { id: string }) => g.id === saved.group);
-    return { current: group.current, count: group.tabs.length, source: (window as unknown as { __tabSources: (string | null)[] }).__tabSources.at(-1), native: !!document.startViewTransition };
+    const grew = (window as unknown as { __tabAnimations: { el: string; frames: Keyframe[] }[] }).__tabAnimations.filter(m => m.el.includes("tabcard") && m.frames.some(f => f.width)).at(-1);
+    return { current: group.current, count: group.tabs.length, grewTo: grew?.frames.at(-1)?.width };
   });
   expect(added.count).toBe(8);
   expect(added.current).not.toBe("tab-6");
-  if (added.native) expect(added.source).toBe(added.current);
+  // The new tab's card grew to full screen (useExpandNewTab).
+  expect(added.grewTo).toBe("390px");
 });
 
 test("tab flow: Search slides into its own saved tab", async ({ page }) => {
@@ -111,13 +99,10 @@ test("tab flow: Search slides into its own saved tab", async ({ page }) => {
   await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.getByRole("searchbox", { name: "Search CyberJudah" })).toHaveValue("kept");
   await expect(page.locator("html")).not.toHaveAttribute("data-tab-motion");
-  const motion = await page.evaluate(() => {
-    const state = window as unknown as { __tabTransitions: number; __tabAnimations: Keyframe[][] };
-    return { native: state.__tabTransitions, entrance: state.__tabAnimations.flat().some(f => String(f.transform).includes("translate")) };
-  });
-  // No card snapshot: Search has its own slide entrance.
-  expect(motion.native).toBe(0);
-  expect(motion.entrance).toBe(true);
+  const motion = await page.evaluate(() => (window as unknown as { __tabAnimations: { el: string; frames: Keyframe[] }[] }).__tabAnimations);
+  // No card resizes: Search has its own slide entrance.
+  expect(motion.some(m => m.el.includes("tabcard") && m.frames.some(f => f.width))).toBe(false);
+  expect(motion.some(m => m.el.includes("route") && m.frames.some(f => String(f.transform).includes("translate")))).toBe(true);
 });
 
 for (const width of [390, 768, 1280]) {
