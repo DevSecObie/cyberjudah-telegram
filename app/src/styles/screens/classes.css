@@ -46,3 +46,8 @@
 .cfeed__more { display: grid; justify-items: center; padding: var(--sp-2) 0 4px; }
 #root .cfeed__more .cfeed__morebtn { min-height: var(--touch); padding: 0 var(--sp-5); border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); font: 600 var(--fs-sub) var(--font-ui); color: var(--text-1); cursor: pointer; }
 
+/* A show's own section: what it is, its name, and how far its notes have come. */
+.cfeed__show { padding: 4px 0 0; }
+.cfeed__show h2 { margin: 0; font: 600 var(--fs-title2)/var(--lh-snug) var(--font-ui); color: var(--text-1); }
+.cfeed__show p:last-child { margin: var(--sp-1) 0 0; font: 400 var(--fs-footnote)/var(--lh-snug) var(--font-ui); color: var(--text-2); }
+.cfeed__count { margin: 0 0 var(--sp-2); font: 500 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
