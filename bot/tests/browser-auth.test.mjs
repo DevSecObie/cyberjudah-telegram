@@ -48,10 +48,15 @@ test("OIDC state, PKCE, signed claims, nonce, cookies, CSRF and revocation prote
   };
   try {
     const badState = await browserAuth.request(`${origin}/callback?code=test&state=wrong`, { headers: { cookie: loginCookie } }, e);
-    assert.match(badState.headers.get("location"), /login=failed/); assert.equal(exchanges, 0);
+    assert.equal(badState.headers.get("location"), "/app/settings/account?login=failed&reason=state"); assert.equal(exchanges, 0);
+    const noCookie = await browserAuth.request(`${origin}/callback?code=test&state=${pending.state}`, {}, e);
+    assert.equal(noCookie.headers.get("location"), "/app/settings/account?login=failed&reason=cookie"); assert.equal(exchanges, 0);
     nonce = "wrong";
     const wrongNonce = await browserAuth.request(`${origin}/callback?code=test&state=${pending.state}`, { headers: { cookie: loginCookie } }, e);
-    assert.match(wrongNonce.headers.get("location"), /login=failed/);
+    assert.equal(wrongNonce.headers.get("location"), "/app/settings/account?login=failed&reason=nonce");
+    nonce = undefined;
+    const noNonce = await browserAuth.request(`${origin}/callback?code=test&state=${pending.state}`, { headers: { cookie: loginCookie } }, e);
+    assert.equal(noNonce.headers.get("location"), "/app/settings/account?login=failed&reason=claims-nonce");
     nonce = pending.nonce;
     const rejected = async () => {
       const response = await browserAuth.request(`${origin}/callback?code=test&state=${pending.state}`, { headers: { cookie: loginCookie } }, e);
