@@ -72,7 +72,7 @@ function BookmarkOptions({ bookmark, onNavigate, onSave, onRemove }: { bookmark:
   const [color, setColor] = useState(bookmark.color);
   const reset = () => { setName(bookmark.name); setColor(bookmark.color); };
   return (
-    <ContextualPanel triggerSize={54} trigger={<Feather name="more-vertical" size={20} />} label="Options" initialScreen="actions" onClose={reset} screens={{
+    <ContextualPanel triggerSize={54} trigger={<Feather name="more-vertical" size={20} />} label="More options" initialScreen="actions" onClose={reset} screens={{
       actions: {
         title: "Bookmark",
         content: (nav) => (
