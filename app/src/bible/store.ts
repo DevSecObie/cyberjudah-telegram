@@ -79,8 +79,8 @@ export function useAllNotes(enabled = true) {
         const notes = await json.get<Record<string, Note>>(k, {});
         for (const [key, note] of Object.entries(notes)) out.push({ slug: m[1], chapter: +m[2], key, note });
       }
-      setRows(out.sort((a, b) => b.note.date - a.note.date)); setLoaded(true);
-    });
+      setRows(out.sort((a, b) => b.note.date - a.note.date));
+    }).catch(() => undefined).finally(() => setLoaded(true));
   }, []);
   useEffect(() => { if (enabled) reload(); }, [enabled, reload]);
   return { rows, loaded, reload };

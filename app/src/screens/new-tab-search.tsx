@@ -207,7 +207,7 @@ function useStudies(enabled: boolean, text: string) {
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     if (!enabled) return;
-    const load = () => void listStudies().then(setStudies).finally(() => setLoaded(true));
+    const load = () => void listStudies().then(setStudies).catch(() => undefined).finally(() => setLoaded(true));
     load();
     return subscribeStudies(load);
   }, [enabled]);
