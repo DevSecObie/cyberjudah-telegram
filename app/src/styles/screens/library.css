@@ -109,7 +109,7 @@
 .histitem__chip { align-self: flex-end; display: grid; place-items: center; height: 15px; margin-bottom: 5px; padding: 0 5px; border-radius: 7px; background: var(--bs-border, var(--hairline)); font: 700 8px var(--font-ui); color: var(--bs-default, var(--text-1)); }
 .histitem__ago { font: 400 10px var(--font-ui); color: var(--bs-grey, var(--text-3)); }
 /* A Strong's word or a dictionary word: its original or its dictionary under it, 12 px grey, 5 px down. */
-.histitem__main { display: flex; flex-direction: column; min-width: 0; }
+.histitem__main { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
 .histitem__sub { margin-top: 5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font: 400 12px var(--font-ui); color: var(--bs-grey, var(--text-3)); }
 /* The chip's colour by type: Strong in the accent (reverse ink), Word in secondary, Nave in quint (white ink). */
 .histitem__chip[data-type="strong"] { background: var(--bs-primary, var(--accent)); color: var(--bs-reverse, var(--canvas)); }
