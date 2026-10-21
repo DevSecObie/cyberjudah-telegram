@@ -18,6 +18,11 @@ on:
 permissions:
   contents: read
 
+env:
+  # Account sync stays off in production until the Firebase web API key is restricted
+  # (docs/PRODUCTION_CHECKLIST.md §2), as docs/PRIVACY.md promises. Set to "true" once that is done.
+  ACCOUNT_SYNC: "false"
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -33,7 +38,7 @@ jobs:
       - run: npm run build
         env:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
-          VITE_ACCOUNT_SYNC: "true"
+          VITE_ACCOUNT_SYNC: ${{ env.ACCOUNT_SYNC }}
           CYBERJUDAH_APP_BASE: /app/
 
   release-browser-checks:
@@ -74,7 +79,7 @@ jobs:
       - run: npm run build
         env:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
-          VITE_ACCOUNT_SYNC: "true"
+          VITE_ACCOUNT_SYNC: ${{ env.ACCOUNT_SYNC }}
           CYBERJUDAH_APP_BASE: /app/
       - name: Upload the app's pictures to R2
         working-directory: bot
@@ -84,6 +89,7 @@ jobs:
         # Portraits and Timeline paintings are served from R2 (/api/img/); only new or changed files go up.
         run: node scripts/deploy-images.mjs
       - name: Require the account sync signing secret
+        if: env.ACCOUNT_SYNC == 'true'
         working-directory: bot
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -202,7 +208,7 @@ jobs:
           WORKER_URL: ${{ steps.deploy.outputs.url }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           EXPECTED_SEARCH_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8"
-          VERIFY_ACCOUNT_SYNC: "true"
+          VERIFY_ACCOUNT_SYNC: ${{ env.ACCOUNT_SYNC }}
         run: node scripts/verify-release.mjs
       # A deploy that went live but then failed a later step (secrets, setup, either check
       # above) is put back to the version that was serving before, so readers never stay on a
