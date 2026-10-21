@@ -188,7 +188,7 @@ html[data-theme="sepia"] {
   --scrim-soft: rgba(30, 20, 5, .2);
 }
 
-/* Regular glass protects the ink even over black/white content. The darker ink of Paper and
+/* Regular glass protects the ink even over black/white content. The darker ink of White and
    Sepia allows a lighter material; other reader palettes need more tint for small labels. */
 html[data-palette="default"], html[data-palette="sepia"] { --mat-density: 80%; }
 

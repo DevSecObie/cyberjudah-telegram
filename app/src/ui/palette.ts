@@ -2,7 +2,7 @@ import type { Palette } from "@/bible/theme";
 
 /**
  * The app's colour tokens, taken from the reader's palette, so the whole app wears the theme
- * chosen in the Bible (Paper, Sepia, Nature, Sunset, Dark, Black, Mauve, Night blue). The page
+ * chosen in the Bible (White, Sepia, Nature, Sunset, Dark, Black, Mauve, Night blue). The page
  * is the reader's page, cards its light grey, lines its border, text its ink; the secondary
  * inks are mixed toward the page only as far as they still read (4.5:1 on page and card).
  */
