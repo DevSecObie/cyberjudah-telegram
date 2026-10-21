@@ -66,7 +66,7 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
     expect(box.y + box.height).toBe(page.viewportSize()!.height); expect(box.height).toBe(48);
     // Home, Search, Bible, the reader's own buttons, Tabs and then Menu, as Bible Strong orders them.
     expect(await bar.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "classes", "ask", "tabs", "more"]);
-    await expect(bar.getByRole("button", { name: "Bible", exact: true })).toHaveAttribute("aria-current", "page");
+    await expect(bar.getByRole("button", { name: "Bible", exact: true })).not.toHaveAttribute("aria-current");
     await page.waitForFunction(() => document.getAnimations().every(a => !(a instanceof CSSTransition) || a.playState !== "running"));
     const minimumContrast = await bar.evaluate(nav => {
       const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
@@ -87,11 +87,11 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
   });
 }
 
-test("glass: the selected Menu still responds to an ordinary tap", async ({ page }) => {
+test("glass: Main menu responds to an ordinary tap on its own page", async ({ page }) => {
   await setup(page);
   await page.goto(`/settings${LAUNCH}`);
-  const menu = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Menu", exact: true });
-  await expect(menu).toHaveAttribute("aria-current", "page");
+  const menu = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Main menu", exact: true });
+  await expect(menu).not.toHaveAttribute("aria-current");
   await menu.click();
   await expect(page.locator(".drawer--more")).toHaveAttribute("data-open", "");
   // The drawer pushes the bar offscreen; Escape closes it and returns to its trigger.
@@ -122,7 +122,7 @@ test("bar: wide windows keep Bible Strong's bar along the bottom, and its button
   expect(box.x).toBe(0); expect(box.width).toBe(1280); expect(box.y + box.height).toBe(900);
   await bar.getByRole("button", { name: "Classes", exact: true }).click();
   await expect(page).toHaveURL(/\/classes/);
-  await expect(bar.getByRole("button", { name: "Classes", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(bar.getByRole("button", { name: "Classes", exact: true })).not.toHaveAttribute("aria-current");
   await bar.getByRole("button", { name: "Search", exact: true }).focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/search/);
@@ -640,7 +640,7 @@ for (const reduced of [false, true]) {
   test(`menus: navigation and group actions share one elevated surface (${reduced ? "solid" : "glass"})`, async ({ page }) => {
     await setup(page, "dark", reduced);
     await page.goto(`/settings${LAUNCH}`);
-    await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Menu", exact: true }).click();
+    await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Main menu", exact: true }).click();
     const drawer = page.getByRole("dialog", { name: "More", exact: true });
     await expect(drawer).toBeVisible();
     const more = (await materials(page, [[".drawer--more"]]))[0];

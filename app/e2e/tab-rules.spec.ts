@@ -77,7 +77,7 @@ test("kept groups from before are kept: the first is the default group, without 
   await expect(page).toHaveURL(/\/settings/);
   // The default group's count is plain, as Bible Strong's has no colour.
   await expect(page.locator(".tabs .tab__count")).not.toHaveAttribute("style", /--group/);
-  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: /Tabs open/ }).click();
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: /^Tabs, \d+ open$/ }).click();
   // It is named by its count; the other group keeps its name and colour.
   await expect(page.getByRole("toolbar", { name: "Tabs" })).toContainText("1 tab");
   await groupsMenu(page);
