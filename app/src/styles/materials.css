@@ -87,7 +87,9 @@
    300 ms while the Bible is full screen. */
 .tabs {
   position: fixed; z-index: var(--z-dock); left: 0; right: 0; bottom: 0;
-  box-sizing: border-box; height: calc(48px + var(--safe-bottom)); margin: 0; padding: 0 20px var(--safe-bottom);
+  box-sizing: border-box; height: calc(48px + var(--safe-bottom)); margin: 0;
+  /* Bible Strong's 20 px in from the sides, given up first on phones too narrow for seven 48 px buttons. */
+  padding: 0 clamp(0px, (100vw - 336px) / 2, 20px) var(--safe-bottom);
   display: flex; align-items: center;
   border-top: 1px solid var(--dock-line, var(--hairline)); background: var(--dock-bg, var(--canvas)); color: var(--dock-ink, var(--bs-tertiary, var(--text-3)));
   touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
@@ -97,7 +99,7 @@
 .tabs[data-hidden] { transform: translateY(100%); visibility: hidden; transition: transform 300ms ease, visibility 0s 300ms; }
 /* The row of buttons (BottomTabBar's view row), spread evenly. */
 .tabs__row { flex: 1; min-width: 0; height: 48px; display: flex; align-items: center; justify-content: space-around; }
-/* 48 px each; more buttons than Bible Strong's five share a narrow row rather than overflow it. */
+/* Bible Strong's buttons, 48 px each (TAB_ICON_SIZE); on the narrowest phones the seven share the row. */
 .tabs .tab {
   flex: 0 1 48px; min-width: 0; height: 48px; padding: 0; margin: 0;
   display: grid; place-items: center; border: 0; border-radius: 0; background: none; color: inherit; cursor: pointer;

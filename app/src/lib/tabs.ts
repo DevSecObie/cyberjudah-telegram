@@ -168,11 +168,13 @@ function tabOfKind(test: (p: string) => boolean, fresh: string): string {
   return t ? selectTab(t.id) : newTab(fresh);
 }
 /** A new Bible tab opens at Genesis 1:1 (Bible Strong's getDefaultBibleTab). */
-const KIND_PATH = { bible: /^\/(bible|read)(\/|$)/, search: /^\/search(\?|$)/, ask: /^\/ask(\/|\?|$)/ };
+const KIND_PATH = { bible: /^\/(bible|read)(\/|$)/, search: /^\/search(\?|$)/, ask: /^\/ask(\/|\?|$)/, classes: /^\/(classes|note|watch)(\/|\?|$)/ };
 export const bibleTabPath = () => tabOfKind((p) => KIND_PATH.bible.test(p), "/read/genesis/1");
 export const searchTabPath = () => tabOfKind((p) => KIND_PATH.search.test(p), "/search");
 /** Ask CyberJudah, the same way: its tab if one is open, else a new one. */
 export const askTabPath = () => tabOfKind((p) => KIND_PATH.ask.test(p), "/ask");
+/** Courses & videos, the same way. */
+export const classesTabPath = () => tabOfKind((p) => KIND_PATH.classes.test(p), "/classes");
 /** Where the bar's button for a kind will land in the group: its first tab, or the end for a new one. */
 export function kindTabIndex(kind: keyof typeof KIND_PATH): number {
   const tabs = group().tabs, at = tabs.findIndex((t) => KIND_PATH[kind].test(t.path));
@@ -192,7 +194,7 @@ export function tabKind(path: string): { kind: string; icon: string } {
   return { kind: k?.[1] ?? "Page", icon: k?.[2] ?? "layers" };
 }
 /** Settings' own pages, named as the Menu names them. */
-const SETTINGS_PAGES: Record<string, string> = { bar: "Bottom bar", requests: "Note requests", credits: "Credits" };
+const SETTINGS_PAGES: Record<string, string> = { requests: "Note requests", credits: "Credits" };
 /** The place itself: "Genesis 1", "H430", a class title's slug, in words. */
 export function tabPlace(path: string): string {
   const p = path.split(/[?#]/)[0].split("/").filter(Boolean);
