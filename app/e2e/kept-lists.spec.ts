@@ -47,6 +47,10 @@ for (const theme of ["light", "dark"]) test(`kept lists screenshots: ${theme}`, 
     await page.goto(`/bookmarks?tab=${tab}`);
     await expect(page.getByRole("heading", { name: tab === "bookmarks" ? "Bookmarks" : tab === "highlights" ? "Highlights" : "Notes", exact: true })).toBeVisible();
     await expect(page.locator(".row").filter({ hasText: tab === "bookmarks" ? "Creation" : tab === "highlights" ? "Genesis" : "A note about faith" }).first()).toBeVisible();
+    if (process.env.REVIEW_PHASE !== "before") {
+      await expect(page.getByRole("button", { name: "Filter", exact: true })).toHaveAttribute("title", "Filter");
+      if (tab === "bookmarks") await expect(page.locator(".kept-screen__options").first()).toHaveAttribute("title", "Bookmark options");
+    }
     await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: `e2e/review/kept-lists/${process.env.REVIEW_PHASE || "after"}/${theme}-${tab}-390.png` });
   }
