@@ -589,9 +589,10 @@ test("history keeps the verse gone to and opens on it, as Bible Strong's history
   await expect(page.locator("#verset-28")).toBeInViewport();
   await page.goto("/history");
   // One row per passage: the chapter itself and verse 28 of it.
-  await expect(page.getByRole("link", { name: /Genesis 1:28$/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Genesis 1$/ })).toBeVisible();
-  await page.getByRole("link", { name: /Genesis 1:28$/ }).click();
+  const row = (title: string) => page.locator(".histitem", { has: page.locator(".histitem__title", { hasText: new RegExp(`^${title}$`) }) });
+  await expect(row("Genesis 1:28")).toBeVisible();
+  await expect(row("Genesis 1")).toBeVisible();
+  await row("Genesis 1:28").click();
   await expect(page).toHaveURL(/\/read\/genesis\/1\?at=28$/);
   await expect(page.locator("#verset-28")).toBeVisible();
 });
@@ -749,7 +750,7 @@ test("the drawers show the live class, the offline notice, the account and legal
 test("a verse picked from History opens the whole chapter at that verse, not a focused passage", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("cj:hist", JSON.stringify([{ slug: "genesis", chapter: 1, verse: 18, name: "Genesis 1", at: Date.now() }])));
   await page.goto("/history");
-  await page.getByRole("link", { name: /Genesis 1:18/ }).click();
+  await page.locator(".histitem", { hasText: "Genesis 1:18" }).click();
   await expect(page).toHaveURL(/\/read\/genesis\/1\?at=18$/);
   await expect(page.locator("#verset-18")).toBeInViewport();
   await expect(page.locator("#verset-1")).toHaveCount(1);

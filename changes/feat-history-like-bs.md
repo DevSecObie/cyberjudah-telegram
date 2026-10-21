@@ -1,0 +1,1 @@
+- Recently viewed follows Bible Strong's history screen: a trash button that clears it after asking, then a row per passage read, the reference in bold and at the right a small Verse chip over how long ago, kept current a minute at a time. Empty, it shows Bible Strong's "No recently viewed content."
