@@ -77,7 +77,7 @@ export const store = {
     });
     return v;
   },
-  set(key: string, value: string | null) {
+  set(key: string, value: string | null): Promise<void> | void {
     if (readerCollection(key) && opening) {
       const baseline = cache.get(key) ?? null;
       void personal.then(synced => synced ? synced.set(key, value, baseline) : store.set(key, value))
@@ -97,7 +97,16 @@ export const store = {
     writes.set(key, (writes.get(key) ?? 0) + 1);
     writeDevice(key, value);
     emit(key, value);
-    if (features.cloud) { if (value === null) app!.CloudStorage.removeItem(key); else app!.CloudStorage.setItem(key, value); }
+    if (!features.cloud) return;
+    const completed = new Promise<void>((resolve, reject) => {
+      const done = (error: string | null) => error ? reject(new Error(error)) : resolve();
+      if (value === null) app!.CloudStorage.removeItem(key, done);
+      else app!.CloudStorage.setItem(key, value, done);
+    });
+    // Existing callers can remain fire-and-forget; serialized editors can await the original
+    // promise and surface failure without starting another read from an uncommitted snapshot.
+    void completed.catch(() => window.dispatchEvent(new CustomEvent("cj:sync-error", { detail: "This change could not save to Telegram. Keep this page open and try again when connected." })));
+    return completed;
   },
   subscribe(key: string, l: Listener): () => void {
     if (!listeners.has(key)) listeners.set(key, new Set());
@@ -121,7 +130,7 @@ export const json = {
     if (v === null) return fallback;
     try { return JSON.parse(v) as T; } catch { return fallback; }
   },
-  set<T>(key: string, value: T) { store.set(key, JSON.stringify(value)); },
+  set<T>(key: string, value: T) { return store.set(key, JSON.stringify(value)); },
 };
 
 /**
