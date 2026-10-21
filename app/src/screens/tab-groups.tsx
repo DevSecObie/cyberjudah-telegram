@@ -191,7 +191,7 @@ export function CreateGroupPage({ shown, onCancel, pageRef }: { shown: boolean; 
   const off = !name.trim();
   return (
     <section ref={pageRef} className="gcreate" aria-label="New group" inert={!shown}>
-      <span className="gcreate__art" aria-hidden="true"><span style={{ ["--art" as string]: `url("${assetUrl("art/new-group.svg")}")` }} /></span>
+      <span className="gcreate__art" aria-hidden="true"><span style={{ ["--art" as string]: `url("${assetUrl("bs/new-group-tab.svg")}")` }} /></span>
       <div className="gcreate__bar">
         <button type="button" className="gcreate__cancel" aria-label="Cancel" onClick={cancel}><Feather name="x" size={24} raw /></button>
         <button type="button" className="gcreate__ok" aria-label="Create group" disabled={off} onClick={create}><Feather name="check" size={24} raw /></button>
