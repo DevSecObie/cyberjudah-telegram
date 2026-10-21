@@ -1,0 +1,1 @@
+- Scripture search now waits until you pause typing, searches immediately with the Search key, keeps the previous results while the next search loads, and loads more verses as you scroll. When searches are rate limited, it explains the wait and retries once automatically.
