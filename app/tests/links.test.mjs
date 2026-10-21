@@ -23,6 +23,8 @@ test("site links inside the notes open the app's screens", () => {
   assert.equal(toAppPath("/law/01-x/1a#1A.1"), "/law/01-x/1a#1A.1");
   assert.equal(toAppPath("/captains"), "/classes?feed=captains");
   assert.equal(toAppPath("/truth-shall-make-you-free"), "/classes?feed=truth");
+  assert.equal(toAppPath("/shows"), "/classes?feed=shows");
+  assert.equal(toAppPath("/shows/patient-saints-radio"), "/classes?feed=shows&show=patient-saints-radio");
   assert.equal(toAppPath("https://example.com/x"), null);
 });
 
