@@ -526,12 +526,12 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await expect(page.locator(".switcherbar__group")).toHaveText("1 tab");
   await page.click('[aria-label="Add a tab"]');
   await expect(page.locator(".nt-heading")).toHaveText("What would you like to explore?");
-  await page.getByRole("button", { name: "Strong", exact: true }).click();
-  await expect(page).toHaveURL(/\/lexicon/);
+  await page.locator(".ntcard", { hasText: "Everyone named in the Bible" }).click();
+  await expect(page).toHaveURL(/\/people/);
   await page.click('.tab[aria-label$="Tabs open"]');
   await expect(page.locator(".tabcard")).toHaveCount(2);
   await expect(page.locator(".switcherbar__group")).toHaveText("2 tabs");
-  await page.click('.tabcard__close[aria-label="Close Strong"]');
+  await page.click('.tabcard__close[aria-label="Close People"]');
   await expect(page.locator(".tabcard")).toHaveCount(1);
   // A new group starts empty, with Bible Strong's Create a tab; the first group keeps its Bible tab.
   await page.click(".switcherbar__group");

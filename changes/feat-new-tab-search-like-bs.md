@@ -1,0 +1,7 @@
+- On the New Tab, a card now opens Search for its kind, as in Bible Strong, and the tab becomes what you pick:
+  - Bible lists the books, then a book's chapters; a chapter opens in this tab. Typing a reference ("Gen 1:2-5") or words finds passages.
+  - Strong, Topics and the Dictionary list the words under a letter, with the alphabet along the bottom, or what you type.
+  - Studies and Kept list your own studies and notes, newest first, or those matching what you type.
+  - Timeline lists its periods, and its events once you type.
+  - Closing Search leaves the New Tab as it was.
+- The other cards still open their page in this tab.
