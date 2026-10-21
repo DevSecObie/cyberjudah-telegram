@@ -17,7 +17,7 @@ import { assetUrl } from "@/lib/asset";
 import { SearchHero } from "@/ui/search-hero";
 import { PersonOfTheDay, PreceptOfTheDay, StrongOfTheDay, StudyStats, TopicOfTheDay, WordOfTheDay, useRandomVerse } from "./home-widgets";
 
-import { seriesLabel, seriesOf, showOf, type Series } from "@/lib/series";
+import { seriesLabel, seriesOf, showMatcher, showOf, type Series } from "@/lib/series";
 import { TodayCard, type DailyVerse as Verse } from "./TodayCard";
 export type LiveNow = { live: boolean; upcoming: boolean; video: string | null; title: string | null; starts: string | null };
 /** Whether a class is on the air, asked again every minute while Home is open. */
@@ -66,10 +66,14 @@ function useNotedTeachings() {
   });
 }
 
+/** The shows and series besides the Sabbath classes, each with its own section. */
+export const useShows = () => useQuery({ queryKey: ["shows"], queryFn: () => data.shows(), staleTime: 60 * 60_000, retry: 1 });
+
 /** In the order the classes went live, newest first, including pending notes. */
 export function useTeachings() {
   const notes = useNotedTeachings();
   const recent = useRecent();
+  const shows = useShows();
   const broadcasts = useQuery({ queryKey: ["class-broadcasts"], queryFn: () => data.broadcasts(), staleTime: 10 * 60_000, retry: false });
   const teachings = useMemo(() => {
     if (!notes.data) return notes.data;
@@ -78,13 +82,17 @@ export function useTeachings() {
     const all = orderTeachings([...notes.data, ...extra], broadcasts.data, undefined, (recent.data?.videos ?? []).map((v) => v.video));
     // A class taught as one of a run, or on one of the shows, carries that name: the show its note
     // names as its collection ("The Truth Shall Make You Free"), else the name read from the titles.
+    // A recording of one of the shows is shown as that show, by the shows' own list where it has loaded.
     const series = seriesOf(all.filter((t) => t.kind === "class").map((t) => t.title));
+    const showFor = showMatcher(shows.data ?? []);
     return all.map((t) => {
-      if (t.kind !== "class") return t;
-      const s = (t.collection ? { name: t.collection } : undefined) ?? series.get(t.title) ?? (showOf(t.title) ? { name: showOf(t.title)! } : undefined);
+      if (t.kind === "history") return t;
+      const show = t.collection || showFor(t.title)?.name;
+      if (t.kind === "captains") return show ? { ...t, series: { name: show } } : t;
+      const s = (show ? { name: show } : undefined) ?? series.get(t.title) ?? (showOf(t.title) ? { name: showOf(t.title)! } : undefined);
       return s ? { ...t, series: s } : t;
     });
-  }, [notes.data, recent.data, broadcasts.data]);
+  }, [notes.data, recent.data, broadcasts.data, shows.data]);
   return { ...notes, data: teachings, feedOk: recent.data?.feedOk };
 }
 
