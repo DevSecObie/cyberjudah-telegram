@@ -1,4 +1,7 @@
 import { useStored } from "@/tg/hooks";
+import type { HistoryRow } from "./history";
+export { getHistoryItemKey, normalizeHistory, pushHistory } from "./history";
+export type { HistoryRow, HistoryInput } from "./history";
 
 /**
  * The reader's marks, in CloudStorage: bookmarks (a verse or a note kept for later, with the
@@ -13,7 +16,6 @@ export type Highlights = Record<string, string>;
 export type VerseNotes = Record<string, string>;
 export type Progress = Record<string, string>;
 export type Last = { slug: string; chapter: number; name: string; at: number };
-export type HistoryRow = { slug: string; chapter: number; verse?: number; name: string; at: number };
 export type Plan = { startedAt: string; day: number; streak: number; lastDone?: string; perDay: number; books?: string[]; name?: string } | null;
 
 export const COLORS = [
@@ -85,15 +87,6 @@ export function setHighlight(hl: Highlights, key: string, verses: number[], colo
   const next = { ...hl }; const s = serializeHl(m);
   if (s) next[key] = s; else delete next[key];
   return next;
-}
-
-/** Bible Strong's addHistoryItem: one row per book, chapter and verse, newest first. Bible Strong keeps
- * 50; ours stays at 30 and within one 4 KB CloudStorage value. */
-export function pushHistory(h: HistoryRow[], row: Omit<HistoryRow, "at">): HistoryRow[] {
-  const verse = row.verse ?? 1;
-  const out = [{ ...row, verse, at: Date.now() }, ...h.filter((x) => !(x.slug === row.slug && x.chapter === row.chapter && (x.verse ?? 1) === verse))].slice(0, 30);
-  while (out.length > 1 && JSON.stringify(out).length > 4000) out.pop();
-  return out;
 }
 
 /** Yesterday / today as YYYY-MM-DD in local time, for streaks. */
