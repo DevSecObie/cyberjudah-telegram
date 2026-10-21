@@ -10,6 +10,7 @@ export type HapticKind = "tap" | "select" | "success" | "warning" | "error" | "h
 export function nativeHaptics(load: () => Promise<typeof CapacitorHaptics>) {
   // Selection feedback only plays between selectionStart and selectionEnd, so it is started once.
   const ready = load().then((m) => m.Haptics.selectionStart().then(() => m, () => m));
+  ready.catch(() => undefined);
   return (kind: HapticKind) => {
     void ready.then(({ Haptics, ImpactStyle, NotificationType }) => {
       if (kind === "select") return Haptics.selectionChanged();
