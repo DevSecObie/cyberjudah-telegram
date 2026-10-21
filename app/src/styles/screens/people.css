@@ -55,26 +55,15 @@
 
 /* Case studies: the list, era by era. */
 .case__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); }
-.cases__eras { margin: 2px calc(-1 * var(--gutter)) 0; padding: 0 var(--gutter); overflow-x: auto; scrollbar-width: none; }
-.cases__eras::-webkit-scrollbar { display: none; }
-.cases__eras .chips { flex-wrap: nowrap; width: max-content; margin: 0; padding: 2px 0; }
-.cases__era { margin-top: 26px; }
-.cases__eraname { display: flex; align-items: baseline; gap: var(--sp-2); margin: 0 0 var(--sp-2); font: 700 var(--fs-footnote) var(--font-ui); color: var(--text-1); scroll-margin-top: calc(var(--header-h) + var(--safe-top) + 12px); }
-.cases__eraname span { font-weight: 600; letter-spacing: 0; color: var(--text-3); font-variant-numeric: tabular-nums; }
-.cases__list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
-.cases__list > li + li .caserow, .cases__list > .caserow + .caserow { border-top: .5px solid var(--hairline); }
-#root .caserow { display: flex; align-items: center; gap: var(--sp-3); min-height: 64px; padding: 13px 14px 13px var(--sp-4); color: var(--text-3); text-decoration: none; transition: none; }
-#root .caserow:hover { background: var(--state-hover); }
-#root .caserow[data-pressed] { background: var(--state-press); }
-.caserow:focus-visible { outline: 2px solid var(--accent) !important; outline-offset: -2px; }
-.caserow__body { flex: 1; min-width: 0; display: grid; gap: 4px; }
-.caserow__name { font: 650 var(--fs-body)/1.3 var(--font-ui); letter-spacing: -.01em; color: var(--text-1); }
-.caserow__charge { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 400 var(--fs-sub)/1.45 var(--font-ui); color: var(--text-2); }
-.caserow__meta { display: flex; align-items: center; gap: 6px; font: 500 var(--fs-caption) var(--font-ui); color: var(--text-3); }
-.caserow__dot, .ccard__meta i, .case__verdict i { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); }
-[data-kind="blessing"] .caserow__dot, .ccard[data-kind="blessing"] .ccard__meta i, .case__verdict[data-kind="blessing"] i { background: var(--success); }
-.caserow__code { margin-left: auto; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
-.caserow--wait { pointer-events: none; }
+.cases__body { margin: 20px calc(-1 * var(--gutter)) 0; }
+/* Bible Strong's CommentaryLibraryScreen section header: 13 px bold grey on the light grey band, held at the top. */
+.cases__era { position: sticky; top: var(--section-top, 0px); z-index: 1; margin: 0; padding: 11px 20px; border-bottom: 1px solid var(--bs-border, var(--hairline)); background: var(--bs-light-grey, var(--surface-1)); font: 700 13px var(--font-ui); color: var(--bs-grey, var(--text-3)); }
+/* Its CommentaryLibraryItem: at least 78 px, 11 px by 18 px, the name 16 px bold on two lines, a 12 px grey line 3 px under it. */
+#root .caserow { box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; min-height: 78px; padding: 11px 18px; border-bottom: 1px solid var(--bs-border, var(--hairline)); background: var(--canvas); text-decoration: none; transition: none; }
+.caserow__name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 700 16px var(--font-ui); color: var(--bs-default, var(--text-1)); }
+.caserow__charge { margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 12px var(--font-ui); color: var(--bs-grey, var(--text-3)); }
+.ccard__meta i, .case__verdict i { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); }
+.ccard[data-kind="blessing"] .ccard__meta i, .case__verdict[data-kind="blessing"] i { background: var(--success); }
 
 /* A case: the heading, the charge, the reading, the people and the related. */
 .case__title { margin: 6px 0 0; font: 700 var(--fs-title1)/1.15 var(--font-ui); letter-spacing: -.02em; color: var(--text-1); text-wrap: balance; overflow-wrap: anywhere; }
@@ -98,3 +87,16 @@
 .ccard__preview { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 0; font: 400 15px/1.55 var(--font-ui); color: var(--text-2); }
 .ccard__go { justify-self: end; display: inline-flex; align-items: center; gap: 1px; min-height: var(--touch); color: var(--accent); font: 600 15px var(--font-ui); }
 @media (min-width: 900px) { .case__title { font-size: var(--fs-large); } .case__prose p { font-size: var(--fs-callout); } }
+
+/* ── People: Bible Strong's CommentaryLibraryScreen ───────────────────────────────────────────── */
+.screen.people { max-width: var(--w-read); }
+.people__body { margin: 20px calc(-1 * var(--gutter)) 0; }
+/* Its section header: 13 px bold grey on the light grey band, held at the top. */
+.people__band { position: sticky; top: var(--section-top, 0px); z-index: 1; margin: 0; padding: 11px 20px; border-bottom: 1px solid var(--bs-border, var(--hairline)); background: var(--bs-light-grey, var(--surface-1)); font: 700 13px var(--font-ui); color: var(--bs-grey, var(--text-3)); }
+/* Its CommentaryLibraryItem: at least 78 px, 11 px by 18 px, the 48 px avatar, 13 px to the name (16 px bold, two lines) and a 12 px grey line 3 px under it. */
+#root .personrow { box-sizing: border-box; display: flex; align-items: center; min-height: 78px; padding: 11px 18px; border-bottom: 1px solid var(--bs-border, var(--hairline)); background: var(--canvas); text-decoration: none; transition: none; }
+.personrow .avatar { flex: none; }
+.personrow__text { display: flex; flex-direction: column; flex: 1; min-width: 0; margin-left: 13px; }
+.personrow__name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 700 16px var(--font-ui); color: var(--bs-default, var(--text-1)); }
+.personrow__sub { margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 12px var(--font-ui); color: var(--bs-grey, var(--text-3)); }
+.personrow__count { flex: none; margin-left: 10px; font: 400 12px var(--font-ui); color: var(--bs-grey, var(--text-3)); font-variant-numeric: tabular-nums; white-space: nowrap; }

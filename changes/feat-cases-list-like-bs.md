@@ -1,0 +1,1 @@
+- The case studies list follows Bible Strong's Commentary library: the title with the filter button (Kind and Era, each with its choices, and Reset), the search field under it, then each era on a grey band that stays at the top while its cases scroll, a row per case with its name over its charge. Loading, a failure with Retry, and nothing found have Bible Strong's states.

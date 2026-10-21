@@ -1,0 +1,1 @@
+- People follows Bible Strong's library list: the order (Most spoken of, or A to Z) is in the filter button, and each person is a Bible Strong library row, their portrait, their name over who they were, and how often they are named. A search shows its count on a grey band held at the top. Long lists draw as you scroll, with no More button.

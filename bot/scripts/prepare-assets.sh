@@ -13,12 +13,6 @@ rm -rf .deploy
 mkdir -p .deploy/app
 cp -r app/dist/. .deploy/
 cp -r app/dist/. .deploy/app/
-# The Bible Strong fork (strong/, built by strong/build-web.sh) is staged beside the current
-# app at /app/strong while it is built out; the current app at /app is unchanged.
-if [ -d strong/dist ]; then
-  mkdir -p .deploy/app/strong
-  cp -r strong/dist/. .deploy/app/strong/
-fi
 # Vite names every file under assets/ by its content hash, so a browser may keep one for a
 # year without asking again; a new build references new names. index.html, sw.js and the
 # public files keep their names across builds and keep the default caching.
@@ -27,8 +21,8 @@ fi
 # Telegram's phone and desktop apps open it in their own web view, which frame-ancestors does not touch.
 # A script policy is reported only, not enforced, until reports show it fits normal use: scripts
 # from this site, Telegram's Mini App SDK (telegram.org, in index.html), Google's API loader that
-# Firebase Auth fetches on phones and Safari (apis.google.com), and the inline scripts the staged
-# pages carry (the theme set before the first paint), named by hash so a change to one is seen.
+# Firebase Auth fetches on phones and Safari (apis.google.com), and the inline scripts the app
+# carries (the theme set before the first paint), named by hash so a change to one is seen.
 INLINE=$(node -e '
   const fs = require("fs"), { createHash } = require("crypto"), q = String.fromCharCode(39), out = new Set();
   for (const f of process.argv.slice(1)) {
@@ -37,7 +31,7 @@ INLINE=$(node -e '
       if (m[1].trim()) out.add(q + "sha256-" + createHash("sha256").update(m[1]).digest("base64") + q);
   }
   process.stdout.write([...out].map((h) => " " + h).join(""));
-' .deploy/index.html .deploy/app/strong/index.html)
+' .deploy/index.html)
 cat > .deploy/_headers <<HEADERS
 /*
   X-Content-Type-Options: nosniff

@@ -1,0 +1,1 @@
+- Places, as Bible Strong has them: "In This Chapter" now shows the places a chapter names after its people, each with the place picture, and each place opens its own page with its region, its Strong's number, the other names the King James gives it, and every verse that names it.

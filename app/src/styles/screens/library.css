@@ -98,6 +98,16 @@
 .lex-row__meta small { font: 400 11px var(--font-ui); color: var(--text-3); font-variant-numeric: tabular-nums; }
 .dict p { margin: 0 0 var(--sp-3); font: 400 var(--fs-callout)/1.6 var(--font-read); color: var(--text-2); }
 /* The tag screens run edge to edge, as Bible Strong's lists do. */
+/* Bible Strong's HistoryScreen: the 54 px trash button, then rows 20 px all round, a line 20 px in from each side. */
+.screen.histscreen { --gutter: 0px; gap: 0; }
+#root .histscreen__clear { display: grid; place-items: center; width: 54px; height: 54px; padding: 0; border: 0; background: none; color: var(--bs-quart, var(--danger)); cursor: pointer; }
+#root .histitem { position: relative; display: flex; align-items: center; padding: 20px; color: var(--bs-default, var(--text-1)); text-decoration: none; transition: none; }
+.histitem::after { content: ""; position: absolute; left: 20px; right: 20px; bottom: 0; border-bottom: 1px solid var(--bs-border, var(--hairline)); }
+.histitem__title { font: 700 16px var(--font-ui); }
+.histitem__side { display: flex; flex-direction: column; margin-left: auto; }
+/* Its Chip: 15 px tall, 7 px round, 5 px each side, 5 px over the time, the "Verse" in 8 px bold. */
+.histitem__chip { align-self: flex-end; display: grid; place-items: center; height: 15px; margin-bottom: 5px; padding: 0 5px; border-radius: 7px; background: var(--bs-border, var(--hairline)); font: 700 8px var(--font-ui); color: var(--bs-default, var(--text-1)); }
+.histitem__ago { font: 400 10px var(--font-ui); color: var(--bs-grey, var(--text-3)); }
 .screen.tagsscreen, .screen.tagpage { --gutter: 0px; gap: 0; }
 /* Bible Strong's TagItem: the name in bold over its chips, the options on the right, a line 10 px in from each side. */
 .tagsscreen__list { padding-bottom: 70px; }
@@ -201,3 +211,41 @@
 #root .tagd-chip { display: inline-flex; align-items: center; gap: 4px; margin: 5px 5px 2px 0; padding: 3px 7px; border-radius: 20px; background: var(--accent-soft); color: var(--accent); font: 400 12px/1.3 var(--font-ui); text-decoration: none; }
 .tagd-chip span { max-width: 100px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .tagd-empty { padding: 40px 20px 0; }
+/* Bible Strong's NaveDetailTabScreen: the page at most 600 px wide, the relations' chip in line with it. */
+.nave-detail__body { max-width: 600px; }
+#root button.tagd-chip { border: 0; cursor: pointer; }
+
+/* Bible Strong's BookmarksScreen: a row of 10 px by 20 px (none on the right, where the ⋮ is), the
+   bookmark in its colour, 10 px, then the name in bold over the reference at 14 px, 4 px apart; a
+   line under each, 20 px in from both sides. */
+.screen.bmscreen { --gutter: 0px; gap: 0; }
+.bmscreen__list { padding-bottom: 70px; }
+.bmitem { position: relative; display: flex; align-items: center; padding: 10px 0 10px 20px; }
+.bmitem::after { content: ""; position: absolute; left: 20px; right: 20px; bottom: 0; border-bottom: 1px solid var(--bs-border); }
+#root .bmitem__link { flex: 1; min-width: 0; display: flex; align-items: center; color: var(--bs-default); text-decoration: none; }
+.bmitem__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; margin-left: 10px; }
+.bmitem__text b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 16px/1.3 var(--font-ui); }
+.bmitem__text span { font: 400 14px/1.3 var(--font-ui); }
+
+/* Bible Strong's HighlightsScreen: its Verse and AnnotationItem rows, each with HighlightOptions'
+   28 px ⋮ at the top right; the colours of "Change color" spread in their row. */
+.screen.hlscreen { --gutter: 0px; gap: 0; }
+.hlscreen__list { padding-bottom: 70px; }
+.hlscreen .tagd-item--verse { position: relative; }
+.tagd-item__options { position: absolute; top: 0; right: 0; }
+.hlscreen__colors { padding: 10px 0; }
+
+/* Bible Strong's BibleVerseNotesScreen: a BibleNoteItem per note, padded 20 px (none on the right,
+   where the 54 px ⋮ is; 8 px under it when chips follow), the 11 px bold grey "where - when", the
+   title at 17 px on two lines, the text; the chips 20 px in; a line 20 px in from both sides. */
+.screen.notesscreen { --gutter: 0px; gap: 0; }
+.notesscreen__list { padding-bottom: 30px; }
+.noteitem { position: relative; display: flex; align-items: center; }
+.noteitem::after { content: ""; position: absolute; left: 20px; right: 20px; bottom: 0; border-bottom: 1px solid var(--bs-border); }
+.noteitem__main { flex: 1; min-width: 0; }
+#root .noteitem__link { display: flex; flex-direction: column; padding: 20px 0 20px 20px; color: var(--bs-default); text-decoration: none; }
+#root .noteitem__link[data-chips] { padding-bottom: 8px; }
+.noteitem__meta { color: var(--bs-dark-grey, var(--text-3)); font: 700 11px/1.3 var(--font-ui); }
+.noteitem__title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 400 17px/1.3 var(--font-read); }
+.noteitem__desc { font: 400 17px/23px var(--font-read); }
+.noteitem__chips { padding: 0 20px 20px; }

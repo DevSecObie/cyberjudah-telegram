@@ -544,7 +544,7 @@ test("Mac shortcuts cycle recent tabs and do not interrupt a note editor", async
   await expect(page.getByRole("textbox", { name: "Description", exact: true })).toHaveValue("Keep my writing");
 });
 
-test("notes list searches and sorts as Bible Strong's AllNotesTabScreen, and filters by tag", async ({ page }) => {
+test("notes list searches and sorts as Bible Strong's BibleVerseNotesScreen, and filters by tag", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("cj:bs_tags", JSON.stringify({ t1: { id: "t1", name: "Light", date: 1 } }));
     localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({
@@ -553,18 +553,30 @@ test("notes list searches and sorts as Bible Strong's AllNotesTabScreen, and fil
     }));
     localStorage.setItem("cj:bs_n_john_1", JSON.stringify({ "4": { id: "n3", title: "Ark of the word", description: "The life was the light of men.", date: 2000 } }));
   });
-  await page.goto("/bookmarks?tab=notes");
+  await page.goto("/notes");
   const order = () => page.getByRole("link").filter({ hasText: /Light was the first|Beginning|Ark of the word/ }).allInnerTexts().then(t => t.map(s => /Light was the first|Beginning|Ark of the word/.exec(s)![0]));
   await expect.poll(order).toEqual(["Light was the first", "Ark of the word", "Beginning"]);
-  await page.getByRole("button", { name: "Title A–Z", exact: true }).click();
+  // Bible Strong's filter panel: Order, Search, Tags.
+  const choose = async (row: string, choice: string) => {
+    await page.locator(".head .bs-filter").click();
+    await page.locator(".panel-filter", { hasText: row }).click();
+    await page.getByRole("radio", { name: choice, exact: true }).click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  };
+  await choose("Order", "Title A–Z");
   await expect.poll(order).toEqual(["Ark of the word", "Beginning", "Light was the first"]);
-  await page.getByRole("button", { name: "Oldest", exact: true }).click();
+  await choose("Order", "Oldest");
   await expect.poll(order).toEqual(["Beginning", "Ark of the word", "Light was the first"]);
   // Fuzzy search over titles and text, as upstream's searchWithMatches.
-  await page.getByRole("searchbox", { name: "Search notes" }).fill("beginning");
+  await page.locator(".head .bs-filter").click();
+  await page.locator(".panel-filter", { hasText: "Search" }).click();
+  await page.getByRole("searchbox", { name: "Search" }).fill("beginning");
   await expect.poll(order).toEqual(["Beginning"]);
-  await page.getByRole("searchbox", { name: "Search notes" }).fill("");
-  await page.getByRole("button", { name: "Light", exact: true }).click();
+  await page.getByRole("searchbox", { name: "Search" }).fill("");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await choose("Tags", "Light");
   await expect.poll(order).toEqual(["Light was the first"]);
 });
 
@@ -577,9 +589,10 @@ test("history keeps the verse gone to and opens on it, as Bible Strong's history
   await expect(page.locator("#verset-28")).toBeInViewport();
   await page.goto("/history");
   // One row per passage: the chapter itself and verse 28 of it.
-  await expect(page.getByRole("link", { name: /Genesis 1:28$/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Genesis 1$/ })).toBeVisible();
-  await page.getByRole("link", { name: /Genesis 1:28$/ }).click();
+  const row = (title: string) => page.locator(".histitem", { has: page.locator(".histitem__title", { hasText: new RegExp(`^${title}$`) }) });
+  await expect(row("Genesis 1:28")).toBeVisible();
+  await expect(row("Genesis 1")).toBeVisible();
+  await row("Genesis 1:28").click();
   await expect(page).toHaveURL(/\/read\/genesis\/1\?at=28$/);
   await expect(page.locator("#verset-28")).toBeVisible();
 });
@@ -737,7 +750,7 @@ test("the drawers show the live class, the offline notice, the account and legal
 test("a verse picked from History opens the whole chapter at that verse, not a focused passage", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("cj:hist", JSON.stringify([{ slug: "genesis", chapter: 1, verse: 18, name: "Genesis 1", at: Date.now() }])));
   await page.goto("/history");
-  await page.getByRole("link", { name: /Genesis 1:18/ }).click();
+  await page.locator(".histitem", { hasText: "Genesis 1:18" }).click();
   await expect(page).toHaveURL(/\/read\/genesis\/1\?at=18$/);
   await expect(page.locator("#verset-18")).toBeInViewport();
   await expect(page.locator("#verset-1")).toHaveCount(1);

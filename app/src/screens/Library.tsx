@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useParams, useSearchParams } from "react-router";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { compressVerses, data, fmtDate, type ConcordanceBook, type GlossaryEntry, type ResolvedRef, type ThreadStop } from "@/api/data";
+import { Feather } from "@/bible/icons";
 import { PALETTES } from "@/bible/theme";
+import { useEndpointRelations, type EntryEndpoint } from "@/lib/relations";
 import { haptic } from "@/tg/sdk";
 import { AlphabetList, SectionTitle, firstLetter, sections, useHeaderOffset } from "@/ui/alphabet";
 import { readableColor } from "@/ui/palette";
@@ -11,7 +13,11 @@ import { useAppTheme } from "@/ui/theme";
 import { toAppPath } from "@shared/links.mjs";
 import { share } from "@/lib/share";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
+import { useOpenInNewTab } from "@/ui/open-in-new-tab";
+import { useSheet } from "@/ui/sheet";
+import { useToast } from "@/ui/toast";
 import { Chip, Chips, Empty, Icon, List, Row, Screen, SearchField, Section, Segmented, Skeleton } from "@/ui/ui";
+import { EntityChipList } from "./tag-detail";
 const toApp = (sitePath: string) => toAppPath(sitePath) ?? sitePath;
 
 /** The law, the precepts, the cases, the topics, the study notes and the encyclopedia: the reference shelf. */
@@ -60,6 +66,52 @@ function NaveList({ title, rows, tone, failed, retry }: { title: string; rows: {
   );
 }
 
+/**
+ * Bible Strong's NaveDetailTabScreen, which a precept's and a topic's page follow: the name in the
+ * header with the ⋮ menu (share the link, copy the text, edit relations, open in a new tab), the
+ * relations' chip, then the page. Loading, a failure with Retry, and nothing found have its states.
+ */
+function NaveDetail({ query, list, kind, page }: {
+  query: { isPending: boolean; isError: boolean; refetch: () => unknown };
+  list: string;
+  kind: "precept" | "topic";
+  page: { title: string; kicker: string; url: string; text: () => string; body: ReactNode } | null;
+}) {
+  const navigate = useNavigate();
+  const sheet = useSheet();
+  const toast = useToast();
+  const openInNewTab = useOpenInNewTab();
+  const endpoint = useMemo<EntryEndpoint | null>(() => (page ? { type: "entry", url: page.url, kind, label: page.title } : null), [page?.url, page?.title, kind]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { count } = useEndpointRelations(endpoint);
+  // A page already loaded stays up when a later refetch fails.
+  if (!page || !endpoint) {
+    if (query.isPending) return <Screen title={list}><p className="bs-list__loading">Loading...</p></Screen>;
+    if (query.isError) return <Screen title={list}><Empty title={`This ${kind} did not load`} action={{ label: "Retry", onClick: () => void query.refetch() }}>Check your connection.</Empty></Screen>;
+    return <Screen title={list}><Empty title={`Unable to load the ${kind}...`} /></Screen>;
+  }
+  const relations = () => navigate(`/relations?endpoint=${encodeURIComponent(`entry:${endpoint.url}`)}&label=${encodeURIComponent(endpoint.label)}`);
+  const menu = async () => {
+    const a = await sheet.open({ items: [
+      { id: "share", text: "Share the link", icon: <Feather name="share-2" size={16} /> },
+      { id: "copy", text: "Copy the text", icon: <Feather name="copy" size={16} /> },
+      { id: "relations", text: "Edit relations", icon: <Feather name="git-merge" size={16} /> },
+      { id: "tab", text: "Open in new tab", icon: <Feather name="external-link" size={16} /> },
+    ] });
+    if (a?.id === "share") void share({ kind: "note", title: page.title, text: page.kicker, sitePath: page.url });
+    else if (a?.id === "copy") { try { await navigator.clipboard.writeText(page.text()); toast("Copied to the clipboard."); } catch { toast("Error while sharing."); } }
+    else if (a?.id === "relations") relations();
+    else if (a?.id === "tab") openInNewTab(toApp(page.url));
+  };
+  return (
+    <Screen title={page.title} kicker={page.kicker} className="nave-detail" action={<button type="button" className="icon-btn" aria-label="More options" title="More options" aria-haspopup="menu" onClick={() => void menu()}><Feather name="more-vertical" size={18} /></button>}>
+      <div className="nave-detail__body">
+        {count ? <div className="nave-detail__chips"><EntityChipList relationCount={count} onRelationPress={relations} /></div> : null}
+        {page.body}
+      </div>
+    </Screen>
+  );
+}
+
 export function Precepts() {
   useBackButton();
   const rows = useQuery({ queryKey: ["precepts"], queryFn: data.precepts });
@@ -71,14 +123,13 @@ export function PreceptScreen() {
   const { slug = "" } = useParams();
   useBackButton();
   const p = useQuery({ queryKey: ["precept", slug], queryFn: () => data.precept(slug) });
-  useBottomButtons(p.data ? { text: "Share", onClick: () => void share({ kind: "note", title: `Precept: ${p.data!.title}`, text: `${p.data!.refs.length} scriptures · CyberJudah`, sitePath: p.data!.url }) } : null);
-  if (p.isPending) return <Screen title="…"><Skeleton /></Screen>;
-  if (!p.data) return <Screen title="Precept"><Empty title="This precept did not load" /></Screen>;
-  return (
-    <Screen title={p.data.title} kicker={`Precept · ${p.data.refs.length} scriptures`}>
-      <List>{p.data.refs.map((r) => <div key={r.label} className="lawrow"><b>{r.label}{r.key ? " · key" : ""}</b>{r.text.length ? <Quote r={r} /> : null}<Refs refs={[r]} /></div>)}</List>
-    </Screen>
-  );
+  useBottomButtons(null, null);
+  const d = p.data;
+  return <NaveDetail query={p} list="Precepts" kind="precept" page={d ? {
+    title: d.title, kicker: `Precept · ${d.refs.length} scriptures`, url: d.url,
+    text: () => [d.title, ...d.refs.map((r) => [r.label, r.text.map((v) => v.text).join(" ")].filter(Boolean).join("\n"))].join("\n\n"),
+    body: <List>{d.refs.map((r) => <div key={r.label} className="lawrow"><b>{r.label}{r.key ? " · key" : ""}</b>{r.text.length ? <Quote r={r} /> : null}<Refs refs={[r]} /></div>)}</List>,
+  } : null} />;
 }
 
 export function Topics() {
@@ -92,17 +143,18 @@ export function TopicScreen() {
   const { slug = "" } = useParams();
   useBackButton();
   const t = useQuery({ queryKey: ["topic", slug], queryFn: () => data.topic(slug) });
-  if (t.isPending) return <Screen title="…"><Skeleton /></Screen>;
-  if (!t.data) return <Screen title="Topic"><Empty title="This topic did not load" /></Screen>;
-  const notes = t.data.items.filter((i) => i.kind !== "case"), cases = t.data.items.filter((i) => i.kind === "case");
-  const thread = t.data.thread ?? [];
-  return (
-    <Screen title={t.data.label} kicker="Topic">
+  const d = t.data;
+  const notes = d?.items.filter((i) => i.kind !== "case") ?? [], cases = d?.items.filter((i) => i.kind === "case") ?? [];
+  const thread = d?.thread ?? [];
+  return <NaveDetail query={t} list="Topics" kind="topic" page={d ? {
+    title: d.label, kicker: "Topic", url: d.url,
+    text: () => [d.label, ...thread.map((s) => `${s.label}\n${s.text}`), ...d.items.map((i) => i.title)].join("\n\n"),
+    body: <>
       {thread.length ? <Section title="The Thread"><p className="hint">{thread.length} scriptures the classes opened on this, in Bible order. Tap one for the classes and the precepts read with it.</p><Thread stops={thread} /></Section> : null}
       {notes.length ? <Section title="Classes and Episodes"><List>{notes.map((i) => <Row key={i.url} href={i.url} meta={[i.kind === "captains" ? "Captains" : "Class", fmtDate(i.date), i.teacher].filter(Boolean).join(" · ")} title={i.title} />)}</List></Section> : null}
       {cases.length ? <Section title="Cases"><List>{cases.map((i) => <Row key={i.url} href={i.url} meta={i.verdict} title={i.title} sub={i.charge} />)}</List></Section> : null}
-    </Screen>
-  );
+    </>,
+  } : null} />;
 }
 
 /** A topic's scriptures in Bible order: each with the verse, the classes that opened it (the recording at that second) and the precepts read with it. */

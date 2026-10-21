@@ -52,6 +52,8 @@ test("the formatting bar writes the study's Markdown on the line or selection be
   await page.getByRole("button", { name: /^Normal/ }).click();
   await page.getByRole("menuitem", { name: "Subtitle", exact: true }).click();
   await expect(writing).toHaveValue("## **Light**");
+  // The toolbar gives back the selection a frame later; filling before that would write into it.
+  await expect.poll(() => writing.evaluate((el: HTMLTextAreaElement) => el.selectionStart)).toBe(5);
   // A quote or a list marks every selected line, and Undo takes a toolbar change back.
   await writing.fill("Light\nDarkness");
   await writing.evaluate((el: HTMLTextAreaElement) => { el.focus(); el.setSelectionRange(0, el.value.length); });

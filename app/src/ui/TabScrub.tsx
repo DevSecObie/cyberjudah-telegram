@@ -78,7 +78,8 @@ export function useTabScrub(tabs: Tab[], current: string, select: (id: string) =
     end(): boolean {
       const g = gesture.current; gesture.current = null;
       if (!g?.active) return false;
-      finish(swipeTarget(g.index, g.vx, tabs.length));
+      // A finger that stopped before lifting is not a flick: its last speed is stale.
+      finish(swipeTarget(g.index, performance.now() - g.lastT > 100 ? 0 : g.vx, tabs.length));
       return true;
     },
     /** A cancelled swipe goes back to the tab it started on. */

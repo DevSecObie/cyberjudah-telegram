@@ -1,4 +1,4 @@
-/* The Bible Timeline, after Bible Strong's (strong/.../features/timeline), in the app's glass.
+/* The Bible Timeline, after Bible Strong's (apps/expo/src/features/timeline), in the app's glass.
    Geometry is theirs: 24 rows of 30px + 10px from 50px down, 100px a date mark, major events
    60px tall with a 140px title block, minor ones 25px pills, the line at 40% of the screen,
    the year in a 100 x 30 tab under it. Each period carries its own colour (--tl-color). */

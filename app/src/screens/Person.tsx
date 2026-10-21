@@ -99,14 +99,14 @@ export function Person() {
             })}
           </div>
         ) : <p className="entity__empty">No class has taught on {d.name} by name yet.</p>}
-        <More shown={taughtShown} total={taught.length} step={TAUGHT_MORE} onMore={setTaughtShown} />
+        <EntityMore shown={taughtShown} total={taught.length} step={TAUGHT_MORE} onMore={setTaughtShown} />
       </EntitySection>
 
       <EntitySection title="Verses" count={verses.length} note={verses.length ? <>First named in {refLabel(verses[0], bookName)}</> : null}>
         <div className="entity__cards">
           {verses.slice(0, versesShown).map((r) => <ScriptureCard key={`${r.slug}/${r.chapter}/${r.from}`} at={r} label={refLabel(r, bookName)} />)}
         </div>
-        <More shown={versesShown} total={verses.length} step={VERSES_MORE} onMore={setVersesShown} />
+        <EntityMore shown={versesShown} total={verses.length} step={VERSES_MORE} onMore={setVersesShown} />
       </EntitySection>
 
       <p className="entity__source">Names, family and verses: <button type="button" onClick={() => openLink(d.source.url)}>{d.source.name}</button> ({d.source.license}).</p>
@@ -115,7 +115,7 @@ export function Person() {
 }
 
 /** Bible Strong's StrongEditorialSection: a rule, the title as an eyebrow, the content. */
-function EntitySection({ title, count, note, children }: { title: string; count?: number; note?: ReactNode; children: ReactNode }) {
+export function EntitySection({ title, count, note, children }: { title: string; count?: number; note?: ReactNode; children: ReactNode }) {
   return (
     <section className="entity__section" aria-label={title}>
       <h2 className="entity__eyebrow">{title}{count ? <span> · {count.toLocaleString()}</span> : null}</h2>
@@ -125,7 +125,7 @@ function EntitySection({ title, count, note, children }: { title: string; count?
   );
 }
 
-function More({ shown, total, step, onMore }: { shown: number; total: number; step: number; onMore: (n: number) => void }) {
+export function EntityMore({ shown, total, step, onMore }: { shown: number; total: number; step: number; onMore: (n: number) => void }) {
   if (shown >= total) return null;
   const next = Math.min(step, total - shown);
   return <button type="button" className="entity__more" onClick={() => { haptic("select"); onMore(shown + next); }}>Show {next} more<span> · {(total - shown).toLocaleString()} left</span></button>;
@@ -153,7 +153,7 @@ function StrongChips({ person, first }: { person: P; first: VerseRef | null }) {
   );
 }
 
-function EntitySkeleton() {
+export function EntitySkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading">
       <div className="entity__id"><span className="skel" style={{ width: 48, height: 48, borderRadius: 24 }} /><div style={{ flex: 1, display: "grid", gap: 8 }}><span className="skel" style={{ width: 70, height: 10 }} /><span className="skel" style={{ width: "46%", height: 22 }} /></div></div>

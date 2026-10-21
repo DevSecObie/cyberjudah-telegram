@@ -145,9 +145,9 @@ export function StudyStats({ expanded = false, active = true }: { expanded?: boo
   }, []);
   const relations = useSavedRelations();
   const cells: [string, number, string, IconName][] = [
-    ["Highlights", c.highlights, "/bookmarks?tab=highlights", "edit-line"],
+    ["Highlights", c.highlights, "/highlights", "edit-line"],
     ["Bookmarks", c.bookmarks, "/bookmarks", "bookmark-outline"],
-    ["Notes", c.notes, "/bookmarks?tab=notes", "note-outline"],
+    ["Notes", c.notes, "/notes", "note-outline"],
     ...(expanded ? [["Studies", studyCount, "/studies", "feather"], ["Precepts", relations.length, "/relations", "chain"]] as [string, number, string, IconName][] : []),
     ["Tags", c.tags, "/tags", "tag-outline"],
   ];

@@ -101,3 +101,28 @@ test("the cards stay on the chosen tab while the carousel fades", async ({ page 
   expect(seen.length).toBeGreaterThan(0);
   expect(seen.every((t) => t === `translateX(${-(390 + 20)}px)`)).toBe(true);
 });
+
+test("a swipe to another tab keeps each tab's place, as the bar's buttons do", async ({ page }) => {
+  const at = await setup(page);
+  // Every page tall enough to scroll.
+  await page.addStyleTag({ content: ".route { min-height: 3000px; }" });
+  await page.evaluate(() => scrollTo(0, 600));
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(600);
+  const flick = async (from: number, by: number) => {
+    await page.mouse.move(from, at.y);
+    await page.mouse.down();
+    await page.mouse.move(from + Math.sign(by) * 16, at.y);
+    await expect(page.locator(".tabscrub")).toBeVisible();
+    await page.mouse.move(from + Math.sign(by) * 20, at.y);
+    await page.mouse.move(from + by, at.y);
+    await page.mouse.up();
+    await expect(page.locator(".tabscrub")).toHaveCount(0);
+  };
+  // To Search, which opens at its top; then back, to the place Settings was left at.
+  await flick(at.x, -130);
+  await expect(page).toHaveURL(/\/search/);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
+  await flick(at.x - 200, 130);
+  await expect(page).toHaveURL(/\/settings(?!\/)/);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(600);
+});
