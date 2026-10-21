@@ -75,6 +75,9 @@ test("Open in a new tab from a timeline over the tab makes a tab that keeps its 
   await expect(page).toHaveURL(/\/timeline$/);
   await page.getByRole("button", { name: "More", exact: true }).click();
   await page.getByText("Open in a new tab", { exact: true }).click();
+  // The page stays put (Bible Strong's openInNewTab); the toast goes to the new tab.
+  await expect(page).toHaveURL(/\/timeline$/);
+  await page.locator(".toast", { hasText: "New tab created" }).getByRole("button", { name: "Go to tab" }).click();
   await expect.poll(async () => (await tabs(page)).endsWith(":/timeline")).toBe(true);
   await page.locator('a[href^="/timeline/"]').first().click();
   await expect(page).toHaveURL(/\/timeline\/.+/);
