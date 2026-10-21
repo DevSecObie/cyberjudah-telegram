@@ -15,7 +15,7 @@ const TEXTS = [
   { id: "2A.3", text: "You shall not make for yourself any graven image to bow down to it.", url: "/law/02-relationship-to-god/2a#2A.3" },
 ];
 
-async function setup(page: Page, { fail = false } = {}) {
+async function setup(page: Page, { fail = false, failTexts = false } = {}) {
   page.setDefaultTimeout(15_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -24,7 +24,7 @@ async function setup(page: Page, { fail = false } = {}) {
   await page.route(`${DATA}/**`, r => {
     const path = new URL(r.request().url()).pathname;
     if (path === "/api/laws/index.json") return fail ? r.fulfill({ status: 500, body: "" }) : r.fulfill({ json: INDEX });
-    if (path === "/search/laws.json") return r.fulfill({ json: TEXTS });
+    if (path === "/search/laws.json") return failTexts ? r.fulfill({ status: 500, body: "" }) : r.fulfill({ json: TEXTS });
     return r.fulfill({ status: 404, body: "" });
   });
 }
@@ -79,4 +79,14 @@ test("a handbook that fails to load offers Retry, and loads on Retry", async ({ 
   await page.route(`${DATA}/**`, r => new URL(r.request().url()).pathname === "/api/laws/index.json" ? r.fulfill({ json: INDEX }) : r.fulfill({ status: 404, body: "" }));
   await page.getByRole("button", { name: "Retry", exact: true }).click();
   await expect(titles(page)).toHaveCount(3);
+});
+
+test("when the laws' words fail to load, a search that names no section still offers Retry", async ({ page }) => {
+  await setup(page, { failTexts: true });
+  await page.goto("/law");
+  await page.fill("#law-q", "zz");
+  const hits = page.getByRole("region", { name: "Laws that say this" });
+  await expect(hits.getByText("The laws’ words did not load.")).toBeVisible({ timeout: 20_000 });
+  await expect(hits.getByRole("button", { name: "Retry", exact: true })).toBeVisible();
+  await expect(page.getByText("No law found...")).toHaveCount(0);
 });

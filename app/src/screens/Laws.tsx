@@ -55,7 +55,7 @@ export function LawIndex() {
       <SearchField id="law-q" value={q} onChange={setQ} placeholder="Search the law: Sabbath, usury, idols" />
       {laws.isPending ? <p className="bs-list__loading">Loading...</p> : laws.isError ? (
         <Empty title="The law did not load" action={{ label: "Retry", onClick: () => void laws.refetch() }} />
-      ) : !parts.length && !(query.length > 1 && hits.length) && !(query.length > 1 && texts.isPending) ? (
+      ) : !parts.length && !(query.length > 1 && (hits.length || texts.isPending || texts.isError)) ? (
         <Empty title="No law found...">Try another word: Sabbath, marriage, idols.</Empty>
       ) : (
         <div className="laws__body" style={{ ["--section-top" as string]: `${top}px` }}>
