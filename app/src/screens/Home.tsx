@@ -76,11 +76,12 @@ export function useTeachings() {
     const have = new Set(notes.data.map((t) => t.video ?? videoOfThumb(t.thumb)).filter(Boolean));
     const extra = (recent.data?.videos ?? []).filter((v) => !have.has(v.video)).map<Teaching>((v) => ({ kind: "class", url: `/watch/${v.video}`, title: v.title, date: v.published.slice(0, 10), teacher: "", thumb: thumbOf(v.video), topics: [], books: [], video: v.video, pending: true }));
     const all = orderTeachings([...notes.data, ...extra], broadcasts.data, undefined, (recent.data?.videos ?? []).map((v) => v.video));
-    // A class taught as one of a run, or on one of the shows, carries that name, read from the titles.
+    // A class taught as one of a run, or on one of the shows, carries that name: the show its note
+    // names as its collection ("The Truth Shall Make You Free"), else the name read from the titles.
     const series = seriesOf(all.filter((t) => t.kind === "class").map((t) => t.title));
     return all.map((t) => {
       if (t.kind !== "class") return t;
-      const s = series.get(t.title) ?? (showOf(t.title) ? { name: showOf(t.title)! } : undefined);
+      const s = (t.collection ? { name: t.collection } : undefined) ?? series.get(t.title) ?? (showOf(t.title) ? { name: showOf(t.title)! } : undefined);
       return s ? { ...t, series: s } : t;
     });
   }, [notes.data, recent.data, broadcasts.data]);
