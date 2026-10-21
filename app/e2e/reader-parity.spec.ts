@@ -598,9 +598,9 @@ test("history keeps the verse gone to and opens on it, as Bible Strong's history
   await page.goto("/history");
   // One row per passage: the chapter itself and verse 28 of it.
   const row = (title: string) => page.locator(".histitem", { has: page.locator(".histitem__title", { hasText: new RegExp(`^${title}$`) }) });
-  await expect(row("Genesis 1:28")).toBeVisible();
-  await expect(row("Genesis 1")).toBeVisible();
-  await row("Genesis 1:28").click();
+  await expect(row("Genesis 1:28 KJV")).toBeVisible();
+  await expect(row("Genesis 1 KJV")).toBeVisible();
+  await row("Genesis 1:28 KJV").click();
   await expect(page).toHaveURL(/\/read\/genesis\/1\?at=28$/);
   await expect(page.locator("#verset-28")).toBeVisible();
 });

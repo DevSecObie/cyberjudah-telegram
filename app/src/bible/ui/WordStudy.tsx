@@ -2,7 +2,8 @@ import { AddToStudy } from "@/studies/AddToStudy";
 import { useResourceRelease } from "@/resources/hooks";
 import { ReferenceText } from "@/resources/ReferenceText";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { pushHistory, useHistory } from "@/lib/marks";
 import { useNavigate } from "react-router";
 
 import { data, type Book, type StrongsEntry } from "@/api/data";
@@ -27,6 +28,14 @@ export function WordStudy({ number, books, here, onRead, enabled = true, release
   const [allBooks, setAllBooks] = useState(false);
   const [openBook, setOpenBook] = useState<string | null>(null);
   const e = q.data;
+  const [history, setHistory, historyReady] = useHistory();
+  const recorded = useRef<string | null>(null);
+  useEffect(() => {
+    if (!enabled) { recorded.current = null; return; }
+    if (!e || !historyReady || recorded.current === e.number) return;
+    recorded.current = e.number;
+    setHistory(pushHistory(history, { type: "strong", reference: e.number, name: e.xlit || e.lemma, original: e.lemma }));
+  }, [enabled, e, historyReady, history, setHistory]);
   const revision = e?.occurrencePages?.revision;
   const more = useInfiniteQuery({
     queryKey: ["strongs-pages", number, e?.resourceRelease, revision],

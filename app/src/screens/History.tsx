@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 
 import { Feather } from "@/bible/icons";
-import { useHistory, type HistoryRow } from "@/lib/marks";
+import { historyHref } from "@/lib/history";
+import { getHistoryItemKey, normalizeHistory, useHistory, type HistoryRow } from "@/lib/marks";
 import { useBackButton } from "@/tg/hooks";
 import { confirm, haptic } from "@/tg/sdk";
 import { Screen } from "@/ui/ui";
@@ -11,12 +12,13 @@ import { timeAgo } from "./tab-groups";
 
 /**
  * Bible Strong's HistoryScreen: the trash button (Clear history, after asking), then a row per
- * passage read, newest first: the reference in bold, and at the right its "Verse" chip over how long
- * ago. The rows keep their time current, a minute at a time.
+ * item viewed, newest first: its title in bold, and at the right its chip over how long ago. The
+ * rows keep their time current, a minute at a time.
  */
 export function History() {
   useBackButton();
-  const [rows, setRows] = useHistory();
+  const [stored, setRows] = useHistory();
+  const rows = useMemo(() => normalizeHistory(stored), [stored]);
   const [now, setNow] = useState(Date.now);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60_000); return () => clearInterval(t); }, []);
   const clear = async () => {
@@ -31,21 +33,28 @@ export function History() {
     <Screen title="Recently viewed" className="histscreen" action={trash}>
       {rows.length ? (
         <div className="histscreen__list">
-          {rows.map((r) => <HistoryItem key={`${r.slug}${r.chapter}${r.verse ?? 1}${r.at}`} row={r} now={now} />)}
+          {rows.map((r) => <HistoryItem key={getHistoryItemKey(r)} row={r} now={now} />)}
         </div>
       ) : <EmptyState icon="history" message="No recently viewed content." />}
     </Screen>
   );
 }
 
-/** Bible Strong's verse HistoryItem: the reference (":1" left off) and, at the right, the chip over "… ago". */
+/**
+ * Bible Strong's HistoryItem, by type: a verse ("Genesis 1:3 KJV", ":1" left off) with its Verse
+ * chip; a Strong's word over its original, Strong; a dictionary word over its dictionary, Word;
+ * a topic, Nave.
+ */
+const CHIP: Record<NonNullable<HistoryRow["type"]>, string> = { bible: "Verse", strong: "Strong", dictionary: "Word", topic: "Nave" };
 function HistoryItem({ row, now }: { row: HistoryRow; now: number }) {
-  const verse = row.verse ?? 1;
+  const type = row.type ?? "bible";
+  const title = row.type === undefined || row.type === "bible" ? `${(row.verse ?? 1) > 1 ? `${row.name}:${row.verse}` : row.name} KJV` : row.name;
+  const sub = row.type === "strong" ? row.original : row.type === "dictionary" ? row.dictionaryTitle : undefined;
   return (
-    <Link to={`/read/${row.slug}/${row.chapter}${verse > 1 ? `?at=${verse}` : ""}`} className="histitem" onClick={() => haptic("select")}>
-      <b className="histitem__title">{verse > 1 ? `${row.name}:${verse}` : row.name}</b>
+    <Link to={historyHref(row)} className="histitem" onClick={() => haptic("select")}>
+      <span className="histitem__main"><b className="histitem__title">{title}</b>{sub ? <span className="histitem__sub">{sub}</span> : null}</span>
       <span className="histitem__side">
-        <span className="histitem__chip">Verse</span>
+        <span className="histitem__chip" data-type={type}>{CHIP[type]}</span>
         <span className="histitem__ago">{timeAgo(row.at, now)}</span>
       </span>
     </Link>
