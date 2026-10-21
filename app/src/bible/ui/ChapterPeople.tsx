@@ -3,8 +3,8 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 
-import { data, type PersonIndexRow } from "@/api/data";
-import { usePeopleNamed } from "@/lib/taught";
+import { data } from "@/api/data";
+import { usePeopleNamed, usePlacesNamed } from "@/lib/taught";
 import { sheetOpened } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { avatarKind, EntityAvatar, type AvatarKind } from "@/ui/avatar";
@@ -14,31 +14,42 @@ import type { Palette } from "../theme";
 
 /**
  * Bible Strong's ChapterEntities, at the end of the chapter: "In This Chapter", with the people
- * named in it as a small fanned stack of avatars beside the deck of classes that taught it. A tap
- * spreads the people over the page, each avatar flying from the stack to its place; a person
- * opens their page.
+ * and then the places named in it (its order: people first, then places) as a small fanned stack
+ * of avatars beside the deck of classes that taught it. A tap spreads them over the page, each
+ * avatar flying from the stack to its place; a person or a place opens its page.
  */
 const MAX_STACKED = 3;
 const ROUND: [string, string] = ["50%", "50%"];
 const fan = (i: number, n: number) => { if (n <= 1) return { x: 0, y: 0, r: 0 }; const p = (i / (n - 1)) * 2 - 1; return { x: p * 6, y: Math.abs(p) * 2, r: p * 5 }; };
-const KIND_LABEL: Record<AvatarKind, string> = { male: "Man", female: "Woman", group: "People", other: "Person" };
+const KIND_LABEL: Record<AvatarKind, string> = { male: "Man", female: "Woman", group: "People", other: "Person", place: "Place" };
 
-type Named = { p: PersonIndexRow; n: number; kind: AvatarKind };
+/** One person or place named in the chapter; `key` tells them apart (a man and a city can share an id: Enoch). */
+type Named = { key: string; id: string; name: string; n: number; kind: AvatarKind; href: string };
 const inkOf = (kind: AvatarKind, c: Palette) => kind === "female" ? c.quart : kind === "male" ? c.primary : c.tertiary;
 
 export function ChapterPeople({ slug, chapter, palette: c, resources }: { slug: string; chapter: number; palette: Palette; resources?: ReactNode }) {
   const named = usePeopleNamed(slug, chapter);
+  const placed = usePlacesNamed(slug, chapter);
   const everyone = useQuery({ queryKey: ["people-index"], enabled: !!named.data && Object.keys(named.data).length > 0, staleTime: Infinity, queryFn: () => data.people() });
+  const everywhere = useQuery({ queryKey: ["places-index"], enabled: !!placed.data && Object.keys(placed.data).length > 0, staleTime: Infinity, queryFn: () => data.places() });
   const stack = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [slug, chapter]);
 
+  // Each named in how many of the chapter's verses, most first: the people, then the places.
+  const tally = (byVerse: Record<string, string[]>) => {
+    const count = new Map<string, number>();
+    for (const ids of Object.values(byVerse)) for (const id of ids) count.set(id, (count.get(id) ?? 0) + 1);
+    return [...count.entries()].sort((a, b) => b[1] - a[1]);
+  };
   const people: Named[] = [];
   if (named.data && everyone.data) {
-    const count = new Map<string, number>();
-    for (const ids of Object.values(named.data)) for (const id of ids) count.set(id, (count.get(id) ?? 0) + 1);
     const byId = new Map(everyone.data.map((p) => [p.id, p]));
-    for (const [id, n] of [...count.entries()].sort((a, b) => b[1] - a[1])) { const p = byId.get(id); if (p) people.push({ p, n, kind: avatarKind(p.type) }); }
+    for (const [id, n] of tally(named.data)) { const p = byId.get(id); if (p) people.push({ key: `person:${id}`, id, name: p.name, n, kind: avatarKind(p.type), href: `/person/${id}` }); }
+  }
+  if (placed.data && everywhere.data) {
+    const byId = new Map(everywhere.data.map((p) => [p.id, p]));
+    for (const [id, n] of tally(placed.data)) { const p = byId.get(id); if (p) people.push({ key: `place:${id}`, id, name: p.name, n, kind: "place", href: `/place/${id}` }); }
   }
   if (!people.length && !resources) return null;
   const shown = people.slice(0, MAX_STACKED);
@@ -48,12 +59,12 @@ export function ChapterPeople({ slug, chapter, palette: c, resources }: { slug: 
       <div className="bs-entities__row">
         {shown.length ? (
           <button ref={stack} type="button" className="bs-entities__stack" data-ignore-verse-touch=""
-            aria-label={`People in this chapter: ${people.map(({ p }) => p.name).join(", ")}`} title={`People in this chapter: ${people.map(({ p }) => p.name).join(", ")}`}
+            aria-label={`In this chapter: ${people.map(({ name }) => name).join(", ")}`} title={`In this chapter: ${people.map(({ name }) => name).join(", ")}`}
             onClick={(e) => { e.stopPropagation(); haptic("select"); setOpen(true); }}>
-            {shown.map(({ p, kind }, i) => {
+            {shown.map(({ key, id, name, kind }, i) => {
               const f = fan(i, shown.length);
-              return <EntityAvatar key={p.id} id={p.id} name={p.name} kind={kind} size={62} ink={inkOf(kind, c)} base={c.reverse} className="bs-entities__avatar"
-                data-person-stack={p.id} data-rotate={String(f.r)}
+              return <EntityAvatar key={key} id={kind === "place" ? undefined : id} name={name} kind={kind} size={62} ink={inkOf(kind, c)} base={c.reverse} className="bs-entities__avatar"
+                data-person-stack={key} data-rotate={String(f.r)}
                 style={{ transform: `translate(${f.x}px, ${f.y}px) rotate(${f.r}deg)`, zIndex: i + 1, borderColor: c.reverse, visibility: open ? "hidden" : undefined }} />;
             })}
           </button>
@@ -72,8 +83,8 @@ function PeopleOverlay({ people, source, palette: c, onClosed }: { people: Named
   const [closing, setClosing] = useState(false);
   const stacked = [...(source.current?.querySelectorAll<HTMLElement>("[data-person-stack]") ?? [])].map((el) => el.dataset.personStack!);
   const extraStart = stacked.length ? (stacked.length - 1) * SOURCE_STAGGER + SOURCE_SETTLE : 160;
-  const rest = people.filter(({ p }) => !stacked.includes(p.id));
-  const delayOf = (id: string) => { const i = stacked.indexOf(id); return i >= 0 ? i * SOURCE_STAGGER : extraStart + rest.findIndex(({ p }) => p.id === id) * EXTRA_STAGGER; };
+  const rest = people.filter(({ key }) => !stacked.includes(key));
+  const delayOf = (key: string) => { const i = stacked.indexOf(key); return i >= 0 ? i * SOURCE_STAGGER : extraStart + rest.findIndex((x) => x.key === key) * EXTRA_STAGGER; };
 
   // The stack's avatars fly to their places; everyone else fades in after them.
   useLayoutEffect(() => {
@@ -112,7 +123,7 @@ function PeopleOverlay({ people, source, palette: c, onClosed }: { people: Named
   });
 
   return createPortal(
-    <div ref={root} className="bs-gallery bs-gallery--people" data-open={shown ? "" : undefined} role="dialog" aria-modal="true" aria-label="People in this chapter" data-sheet-open=""
+    <div ref={root} className="bs-gallery bs-gallery--people" data-open={shown ? "" : undefined} role="dialog" aria-modal="true" aria-label="In this chapter" data-sheet-open=""
       style={{ ["--deck-bg" as string]: "var(--canvas)", ["--deck-ink" as string]: "var(--text-1)", ["--deck-primary" as string]: "var(--accent)", color: "var(--text-1)" }}
       onClick={close}>
       <button type="button" className="bs-gallery__close" aria-label="Close" title="Close" style={{ background: "var(--canvas)", color: "var(--text-1)" }} onClick={(e) => { e.stopPropagation(); close(); }}>
@@ -120,12 +131,12 @@ function PeopleOverlay({ people, source, palette: c, onClosed }: { people: Named
       </button>
       <div className="bs-gallery__scroll">
         <div className={`bs-people${people.length <= 6 ? " bs-people--center" : ""}`}>
-          {people.map(({ p, n, kind }) => (
-            <button key={p.id} type="button" className="bs-people__item" aria-label={`Open ${p.name}`} title={`Open ${p.name}`}
-              onClick={(e) => { e.stopPropagation(); haptic("select"); navigate(`/person/${p.id}`); }}>
-              <EntityAvatar id={p.id} name={p.name} kind={kind} size={68} ink={inkOf(kind, c)} base={c.reverse} className="bs-people__avatar" data-person-card={p.id} style={{ borderColor: c.reverse }} />
-              <span className="bs-people__text" style={{ animationDelay: `${delayOf(p.id) + 180}ms` }}>
-                <b>{p.name}</b>
+          {people.map(({ key, id, name, n, kind, href }) => (
+            <button key={key} type="button" className="bs-people__item" aria-label={`Open ${name}`} title={`Open ${name}`}
+              onClick={(e) => { e.stopPropagation(); haptic("select"); navigate(href); }}>
+              <EntityAvatar id={kind === "place" ? undefined : id} name={name} kind={kind} size={68} ink={inkOf(kind, c)} base={c.reverse} className="bs-people__avatar" data-person-card={key} style={{ borderColor: c.reverse }} />
+              <span className="bs-people__text" style={{ animationDelay: `${delayOf(key) + 180}ms` }}>
+                <b>{name}</b>
                 <small>{KIND_LABEL[kind]} · {n} {n === 1 ? "verse" : "verses"}</small>
               </span>
             </button>

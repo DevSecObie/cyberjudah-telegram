@@ -891,11 +891,11 @@ test("a verse links to each class that read it, on YouTube at that moment", asyn
   const stack = page.locator(".bs-entities__stack");
   await stack.scrollIntoViewIfNeeded();
   await expect(page.locator(".bs-entities__title")).toHaveText("In This Chapter");
-  await expect(stack).toHaveAttribute("aria-label", /^People in this chapter: Cain, /);
+  await expect(stack).toHaveAttribute("aria-label", /^In this chapter: Cain, /);
   await expect(stack.locator("[data-person-stack]")).toHaveCount(3);
   // A tap spreads everyone over the page; Escape puts them back; a person opens their page.
   await stack.click();
-  const people = page.getByRole("dialog", { name: "People in this chapter" });
+  const people = page.getByRole("dialog", { name: "In this chapter" });
   await expect(people.locator(".bs-people__item").first()).toContainText("Cain");
   await page.keyboard.press("Escape");
   await expect(people).toHaveCount(0);
