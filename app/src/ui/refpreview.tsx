@@ -170,7 +170,7 @@ function Passage({ slug, chapter, verses }: { slug: string; chapter: number; ver
   const list = text.data?.verses.filter((v) => !wanted || wanted.has(v.verse)) ?? [];
   if (text.isPending) return <p className="refpreview__state" role="status">Loading…</p>;
   if (!list.length) return <div className="refpreview__state"><p>This passage can't be shown.</p><button type="button" className="refpreview__retry" onClick={() => void text.refetch()}>Retry</button></div>;
-  return <p className="refpreview__text">{list.map((v) => <Fragment key={v.verse}><span className="refpreview__num">{v.verse} </span>{v.text.replace(/<[^>]*>/g, "")}{" "}</Fragment>)}</p>;
+  return <p className="refpreview__text">{list.map((v) => <Fragment key={v.verse}><span className="refpreview__num">{v.verse} </span>{v.text}{" "}</Fragment>)}</p>;
 }
 
 function NoteBody({ note }: { note: Note | null }) {
