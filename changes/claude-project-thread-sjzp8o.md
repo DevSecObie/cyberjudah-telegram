@@ -1,0 +1,2 @@
+- Classes has a Shows section listing every IUIC show and series besides the Sabbath classes (Patient Saints Radio, The Bible: Book of Our Fathers, Escaping the Plantation 2.0, Armor of God Radio, Hammer Time, Days of Camp, Giving The Sense From A to Z and the rest, 43 in all), each saying what it is (radio show, TV show, podcast, series) and how many notes it has. Each show opens its own feed of notes, and says plainly when none are written yet.
+- A note of one of the shows is labelled by its show and is no longer listed with the Sabbath classes or the 15 Minutes episodes.
