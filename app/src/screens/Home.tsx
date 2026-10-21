@@ -186,7 +186,7 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
 
   const random = useRandomVerse();
   const latestClass = feed.data?.find((t) => t.kind === "class");
-  const rows = useMemo(() => (feed.data ?? []).filter((t) => t.url !== latestClass?.url).slice(0, 8), [feed.data, latestClass]);
+  const rows = useMemo(() => (feed.data ?? []).slice(0, 8), [feed.data]);
   // In Bible Strong's Meditations place: the newest class series, to be followed part by part.
   const series = useMemo(() => {
     const newest = (feed.data ?? []).find((t) => t.series);

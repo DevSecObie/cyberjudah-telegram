@@ -55,15 +55,9 @@ function SectionHeading({ title, image }: { title: string; image?: string }) {
   );
 }
 
-export function NewTab() {
-  useBackButton(() => true, false, true);
-  const navigate = useNavigate();
-  // A card of a kind Bible Strong searches opens the Search sheet for that kind (useLaunchSearch);
-  // the others open their page in this tab.
-  const [scope, setScope] = useState<Scope | null>(null);
-  const open = (to: string) => { if (SCOPES[to]) setScope(SCOPES[to]); else navigate(to, { replace: true }); };
-  /** Bible Strong's NewTabItem: the kind's icon, the title over its description, a chevron; dims while pressed. */
-  const Card = ({ item: [to, title, description], library }: { item: Item; library?: boolean }) => (
+/** Bible Strong's NewTabItem: the kind's icon, the title over its description, a chevron; dims while pressed. */
+function Card({ item: [to, title, description], library, open }: { item: Item; library?: boolean; open: (to: string) => void }) {
+  return (
     <button type="button" className="ntcard" aria-label={title} aria-description={description} onClick={() => open(to)}>
       <span className="ntcard__row">
         <TabIcon path={to} size={library ? 34 : 28} />
@@ -72,6 +66,15 @@ export function NewTab() {
       <Feather name="chevron-right" size={18} raw />
     </button>
   );
+}
+
+export function NewTab() {
+  useBackButton(() => true, false, true);
+  const navigate = useNavigate();
+  // A card of a kind Bible Strong searches opens the Search sheet for that kind (useLaunchSearch);
+  // the others open their page in this tab.
+  const [scope, setScope] = useState<Scope | null>(null);
+  const open = (to: string) => { if (SCOPES[to]) setScope(SCOPES[to]); else navigate(to, { replace: true }); };
   return (
     <Screen className="newtab">
       <div className="newtab__content">
@@ -85,15 +88,15 @@ export function NewTab() {
           <img className="ntcard__art" src={assetUrl("bs/new-tab/bible-reader.webp")} alt="" aria-hidden="true" />
           <Feather name="chevron-right" size={22} raw />
         </button>
-        <div className="ntgrid ntgrid--read">{READ.map((i) => <Card key={i[0]} item={i} />)}</div>
+        <div className="ntgrid ntgrid--read">{READ.map((i) => <Card open={open} key={i[0]} item={i} />)}</div>
         <div className="newtab__more">
           <section>
             <SectionHeading title="Studies and notes" image="notes-writer" />
-            <div className="ntgrid ntgrid--personal">{PERSONAL.map((i) => <Card key={i[0]} item={i} />)}</div>
+            <div className="ntgrid ntgrid--personal">{PERSONAL.map((i) => <Card open={open} key={i[0]} item={i} />)}</div>
           </section>
           <section>
             <SectionHeading title="Library" image="library-reader" />
-            <div className="ntgrid ntgrid--library">{LIBRARY.map((i) => <Card key={i[0]} item={i} library />)}</div>
+            <div className="ntgrid ntgrid--library">{LIBRARY.map((i) => <Card open={open} key={i[0]} item={i} library />)}</div>
           </section>
         </div>
       </div>

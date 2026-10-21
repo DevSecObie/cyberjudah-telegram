@@ -1,0 +1,1 @@
+- Fixes from the review of the parity PRs: a swipe along the bar now keeps each tab's place and its Forward history, as the bar's buttons do; the latest class is in Home's Latest Teachings again; a New Tab card is no longer rebuilt each time its Search opens or closes; and a Search for another kind no longer downloads the whole Strong's index.

@@ -167,7 +167,7 @@ function usePassages(enabled: boolean, text: string, words: string, books: Book[
 
 /** Strong's words under the letter, by meaning, or found by number or word; twenty at a time. */
 function useStrongs(enabled: boolean, settled: string, letter: string) {
-  const idx = useStrongsIndex();
+  const idx = useStrongsIndex(enabled);
   const [limit, setLimit] = useState(PAGE);
   useEffect(() => setLimit(PAGE), [settled, letter]);
   const rows = useMemo(() => enabled ? findStrongs(idx.data ?? [], idx.data ?? [], settled, letter) : [], [enabled, idx.data, settled, letter]);
