@@ -1,92 +1,144 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 
-import { useAllNotes, useTags, type Highlight, type Tag } from "@/bible/store";
-import { useBackButton } from "@/tg/hooks";
-import { confirm, haptic } from "@/tg/sdk";
-import { json, store } from "@/tg/store";
-import { Empty, Icon, List, Row, Screen, Section } from "@/ui/ui";
+import { data } from "@/api/data";
+import { Feather } from "@/bible/icons";
+import { Sheet } from "@/bible/ui/Sheet";
+import { paletteOf, resolveTheme, telegramScheme, useBibleSettings } from "@/bible/settings";
+import { useTags, uuid, verseToReference, type Tag } from "@/bible/store";
+import { useBackButton, useStored } from "@/tg/hooks";
+import { haptic } from "@/tg/sdk";
+import { store } from "@/tg/store";
+import { subscribeStudies } from "@/studies/storage";
+import { Empty, Icon, List, Row, Screen, SearchField, Section } from "@/ui/ui";
+import { useSheet } from "@/ui/sheet";
+import { DEFAULT_TAG_QUERY, TAG_SORTS, itemsForTag, normalizeTagQuery, queryTags, type TaggedItem } from "@/lib/tag-list";
+import { deleteTagEverywhere, readTagInventory } from "@/lib/tag-storage";
+import { parseVerseKey } from "@/lib/relations";
+import { timeAgo } from "./tab-groups";
+import "./tags.css";
 
-/** How many highlights and notes carry each tag, read once from everything kept. */
-function useTagCounts() {
-  const { rows: notes } = useAllNotes();
-  const [hl, setHl] = useState<Record<string, number>>({});
+function useTagInventory() {
+  const client = useQueryClient();
+  const query = useQuery({ queryKey: ["tag-inventory"], queryFn: readTagInventory });
   useEffect(() => {
-    void store.keys().then(async (keys) => {
-      const out: Record<string, number> = {};
-      for (const k of keys.filter((x) => x.startsWith("bs_h_"))) for (const h of Object.values(await json.get<Record<string, Highlight>>(k, {}))) for (const t of Object.keys(h.tags ?? {})) out[t] = (out[t] ?? 0) + 1;
-      setHl(out);
+    let live = true;
+    const refresh = () => { void client.invalidateQueries({ queryKey: ["tag-inventory"] }); };
+    const off = [subscribeStudies(refresh)];
+    void store.keys().then(keys => {
+      if (!live) return;
+      for (const key of keys.filter(key => /^bs_[hnl]_.+_\d+$/.test(key))) off.push(store.subscribe(key, refresh));
+      refresh();
     }).catch(() => undefined);
-  }, []);
-  const nt = useMemo(() => { const out: Record<string, number> = {}; for (const r of notes) for (const t of Object.keys(r.note.tags ?? {})) out[t] = (out[t] ?? 0) + 1; return out; }, [notes]);
-  return { hl, nt };
+    return () => { live = false; off.forEach(stop => stop()); };
+  }, [client]);
+  return query;
 }
 
-/**
- * Tags (Bible Strong's TagsScreen): every tag the reader made, with what carries it;
- * a tag opens to its highlights and notes, can be renamed, and can be deleted.
- */
+function useTagActions(onDeleted?: () => void) {
+  const [tags, setTags] = useTags();
+  const sheet = useSheet();
+  const client = useQueryClient();
+  const [error, setError] = useState("");
+  const edit = async (tag?: Tag) => {
+    const answer = await sheet.open({ title: tag ? "Rename tag" : "New tag", text: { label: "Tag name", value: tag?.name, submit: "Save" } });
+    if (answer?.id !== "text" || !answer.value?.trim()) return;
+    const id = tag?.id ?? `t_${uuid()}`;
+    setTags({ ...tags, [id]: { id, name: answer.value.trim(), date: tag?.date ?? Date.now() } });
+    haptic("success");
+  };
+  const options = async (tag: Tag) => {
+    const answer = await sheet.open({ title: tag.name, items: [{ id: "edit", text: "Edit", icon: <Feather name="edit-3" size={18} /> }, { id: "delete", text: "Delete", icon: <Feather name="trash-2" size={18} />, destructive: true }] });
+    if (answer?.id === "edit") return edit(tag);
+    if (answer?.id !== "delete") return;
+    const confirmed = await sheet.open({ title: "Warning: Are you sure you want to delete this tag?", items: [{ id: "no", text: "No" }, { id: "yes", text: "Yes", destructive: true }] });
+    if (confirmed?.id !== "yes") return;
+    try {
+      setError("");
+      await deleteTagEverywhere(tag.id);
+      await client.invalidateQueries({ queryKey: ["tag-inventory"] });
+      haptic("success"); onDeleted?.();
+    } catch { setError("This tag could not be deleted. Try again."); }
+  };
+  return { edit, options, error };
+}
+
+/** 27.2.0 TagsScreen: search, name/count sorting and counts for supported tagged kinds. */
 export function Tags() {
   useBackButton();
-  const [tags, setTags] = useTags();
-  const { hl, nt } = useTagCounts();
-  const [adding, setAdding] = useState("");
-  const all = Object.values(tags).filter((t): t is Tag => !!t && typeof t.name === "string").sort((a, b) => a.name.localeCompare(b.name));
-  const add = () => { const name = adding.trim(); if (!name) return; const id = `t_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`; setTags({ ...tags, [id]: { id, name, date: Date.now() } }); setAdding(""); haptic("success"); };
-  return (
-    <Screen title="Tags" kicker={all.length ? `${all.length} ${all.length === 1 ? "tag" : "tags"}` : "Sort what you keep"}>
-      <form className="tagadd" onSubmit={(e) => { e.preventDefault(); add(); }}>
-        <input value={adding} onChange={(e) => setAdding(e.target.value)} placeholder="A new tag" aria-label="A new tag" />
-        <button type="submit" className="icon-btn" disabled={!adding.trim()} aria-label="Add" title="Add"><Icon name="check" size={18} /></button>
-      </form>
-      {!all.length ? <Empty title="No tags yet">Tag a highlight or a note from the verse menu, or add one here. A tag gathers everything you kept about one thing.</Empty> : (
-        <Section>
-          <List>{all.map((t) => { const n = (hl[t.id] ?? 0) + (nt[t.id] ?? 0); return <Row key={t.id} href={`/tags/${t.id}`} icon="tag" title={t.name} sub={n ? [hl[t.id] ? `${hl[t.id]} ${hl[t.id] === 1 ? "highlight" : "highlights"}` : "", nt[t.id] ? `${nt[t.id]} ${nt[t.id] === 1 ? "note" : "notes"}` : ""].filter(Boolean).join(" · ") : "Nothing tagged yet"} />; })}</List>
-        </Section>
-      )}
-    </Screen>
-  );
+  const [tags] = useTags();
+  const inventory = useTagInventory();
+  const [saved, save] = useStored("tag-list-query", DEFAULT_TAG_QUERY);
+  const state = normalizeTagQuery(saved);
+  const actions = useTagActions();
+  const sheet = useSheet();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const activeCount = Number(!!state.query.trim()) + Number(state.sort !== "name-asc");
+  const rows = queryTags(Object.values(tags).filter(tag => tag && typeof tag.name === "string"), inventory.data ?? [], state);
+  const sort = async () => {
+    const answer = await sheet.open({ title: "Order", items: TAG_SORTS.map(([id, text]) => ({ id, text, icon: state.sort === id ? <Icon name="check" size={18} /> : undefined })) });
+    if (answer && TAG_SORTS.some(([id]) => id === answer.id)) save(normalizeTagQuery({ ...state, sort: answer.id }));
+  };
+  const filters = async () => {
+    const answer = await sheet.open({ title: "Filters", items: [
+      { id: "search", text: "Search", hint: state.query.trim() || undefined, icon: <Feather name="search" size={20} /> },
+      { id: "order", text: "Order", hint: TAG_SORTS.find(([id]) => id === state.sort)?.[1], icon: <Feather name="list" size={20} /> },
+      ...(activeCount ? [{ id: "reset", text: "Reset" }] : []),
+    ] });
+    if (answer?.id === "search") setSearchOpen(true);
+    if (answer?.id === "order") void sort();
+    if (answer?.id === "reset") save(DEFAULT_TAG_QUERY);
+  };
+  return <Screen title="Tags" className="tag-screen" action={<button type="button" className="tag-screen__filter" aria-label={activeCount ? `${activeCount} active filters` : "Filter"} onClick={() => void filters()}>{activeCount ? <span>{activeCount === 1 ? <Feather name={state.query.trim() ? "search" : "list"} size={14} /> : activeCount}<Feather name="chevron-down" size={13} /></span> : <Icon name="filter" size={20} />}</button>}>
+    <Sheet open={searchOpen} onClose={() => setSearchOpen(false)} title="Search" headerChildren={<div className="tag-screen__search"><SearchField id="tag-search" value={state.query} onChange={query => save({ ...state, query })} onSubmit={() => setSearchOpen(false)} placeholder="Search a tag" autoFocus /></div>}><></></Sheet>
+    {actions.error ? <p role="alert">{actions.error}</p> : null}
+    {inventory.isError ? <Empty title="Tags could not be loaded" action={{ label: "Retry", onClick: () => void inventory.refetch() }} /> : !rows.length ? <Empty title={Object.keys(tags).length ? `No results found for "${state.query}"` : "No Tag..."} /> :
+      <List>{rows.map(row => <div className="tag-screen__row" key={row.id}>
+        <Row href={`/tags/${row.id}`} title={row.title} sub={<span className="tag-screen__chips">{Object.entries(row.counts).filter(([, count]) => count > 0).map(([kind, count]) => <span key={kind}>{count} {count === 1 ? kind.slice(0, -1) : kind}</span>)}</span>} trailing={<></>} />
+        <button type="button" className="tag-screen__options" aria-label={`Options for ${row.title}`} onClick={() => void actions.options(row.tag)}><Feather name="more-vertical" size={18} /></button>
+      </div>)}</List>}
+    <button type="button" className="tag-screen__add" aria-label="Add tag" title="Add tag" onClick={() => void actions.edit()}><Feather name="plus" size={24} /></button>
+  </Screen>;
 }
 
-/** One tag: rename or delete it, and see what carries it. */
 export function TagScreen() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   useBackButton();
-  const [tags, setTags] = useTags();
+  const [tags, , loaded] = useTags();
+  const [settings] = useBibleSettings();
+  const palette = paletteOf(resolveTheme(settings, telegramScheme()), settings);
   const tag = tags[id];
-  const [name, setName] = useState(tag?.name ?? "");
-  useEffect(() => { if (tag) setName(tag.name); }, [tag]);
-  const { hl, nt } = useTagCounts();
-  const rename = () => { const n = name.trim(); if (!tag || !n || n === tag.name) return; setTags({ ...tags, [id]: { ...tag, name: n } }); haptic("success"); };
-  const remove = async () => {
-    if (!tag || !(await confirm(`Delete the tag “${tag.name}”? What it marks stays; only the tag goes.`))) return;
-    const next = { ...tags }; delete next[id]; setTags(next);
-    // Take the tag off every highlight and note that carried it.
-    const keys = await store.keys();
-    for (const k of keys.filter((x) => x.startsWith("bs_h_") || x.startsWith("bs_n_"))) {
-      const map = await json.get<Record<string, { tags?: Record<string, true> }>>(k, {});
-      let changed = false;
-      for (const v of Object.values(map)) if (v.tags?.[id]) { delete v.tags[id]; changed = true; }
-      if (changed) await json.set(k, map);
-    }
-    haptic("success"); navigate("/tags", { replace: true });
-  };
-  if (!tag) return <Screen title="Tag"><Empty title="This tag is gone" action={{ label: "All tags", href: "/tags" }} /></Screen>;
-  return (
-    <Screen title={tag.name} kicker="Tag">
-      <form className="tagadd" onSubmit={(e) => { e.preventDefault(); rename(); }}>
-        <input value={name} onChange={(e) => setName(e.target.value)} aria-label="Tag name" />
-        <button type="submit" className="icon-btn" disabled={!name.trim() || name.trim() === tag.name} aria-label="Rename" title="Rename"><Icon name="check" size={18} /></button>
-        <button type="button" className="icon-btn" onClick={() => void remove()} aria-label="Delete tag" title="Delete tag"><Icon name="trash" size={18} /></button>
-      </form>
-      <Section title="Carries This Tag">
-        <List>
-          <Row href={`/bookmarks?tab=highlights&tag=${id}`} icon="bookmark" title="Highlights" meta={<small>{hl[id] ?? 0}</small>} />
-          <Row href={`/bookmarks?tab=notes&tag=${id}`} icon="note" title="Notes" meta={<small>{nt[id] ?? 0}</small>} />
-        </List>
-      </Section>
-      <p className="hint">Tag a verse from the verse menu: select it, then Tag. <Link to="/bookmarks">Everything you kept</Link>.</p>
-    </Screen>
-  );
+  const actions = useTagActions(() => navigate("/tags", { replace: true }));
+  const inventory = useTagInventory();
+  const [expanded, setExpanded] = useState<string[]>([]);
+  const items = itemsForTag(inventory.data ?? [], id);
+  const sections = [
+    { id: "highlights", title: "Highlights", icon: "edit-3" as const, items: items.filter(item => item.kind === "highlight" || item.kind === "word") },
+    { id: "notes", title: "Notes", icon: "file-text" as const, items: items.filter(item => item.kind === "note") },
+    { id: "links", title: "Links", icon: "link" as const, items: items.filter(item => item.kind === "link") },
+  ].filter(section => section.items.length);
+  if (!tag) return <Screen title="Tag">{loaded ? <Empty title="This tag doesn't exist..." /> : null}</Screen>;
+  return <Screen title={tag.name} className="tag-screen" action={<button type="button" className="tag-screen__options" aria-label={`Options for ${tag.name}`} onClick={() => void actions.options(tag)}><Feather name="more-vertical" size={18} /></button>}>
+    {actions.error ? <p role="alert">{actions.error}</p> : null}
+    {inventory.isError ? <Empty title="Tags could not be loaded" action={{ label: "Retry", onClick: () => void inventory.refetch() }} /> : inventory.isPending ? null : !sections.length ? <Empty title="You have not recorded anything with this label ..." /> : sections.map(section => <Section key={section.id}>
+      <button type="button" className="tag-screen__section" aria-expanded={expanded.includes(section.id)} onClick={() => setExpanded(current => current.includes(section.id) ? current.filter(value => value !== section.id) : [...current, section.id])}>
+        <Feather name={section.icon} size={18} color={section.id === "highlights" ? palette.color1 : section.id === "notes" ? palette.color2 : "var(--bs-tertiary)"} />
+        <span>{section.title}</span><b>{section.items.length}</b><Feather name={expanded.includes(section.id) ? "chevron-up" : "chevron-down"} size={17} />
+      </button>
+      {expanded.includes(section.id) ? <List>{section.items.map(item => <TagItem key={item.id} item={item} tagName={tag.name} />)}</List> : null}
+    </Section>)}
+  </Screen>;
+}
+
+function TagItem({ item, tagName }: { item: TaggedItem; tagName: string }) {
+  const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
+  const first = parseVerseKey(item.references[0]);
+  const chapter = useQuery({ queryKey: ["chapter", first?.slug, first?.chapter], queryFn: () => data.chapter(first!.slug, first!.chapter), enabled: item.kind === "highlight" && !!first, staleTime: Infinity });
+  const reference = verseToReference(item.references, slug => books.data?.find(book => book.slug === slug)?.book ?? slug);
+  const description = item.kind === "highlight" ? chapter.data?.verses.filter(verse => item.references.includes(`${first!.slug}-${first!.chapter}-${verse.verse}`)).map(verse => verse.text).join(" ") : item.description;
+  return <div className={`tag-screen__item tag-screen__item--${item.kind}`}>
+    <Row href={first ? `/read/${first.slug}/${first.chapter}?v=${first.verse}` : undefined} title={item.title || reference} meta={`${reference} · ${timeAgo(item.date, Date.now())}`} sub={<><span>{item.url || description?.slice(0, 100)}</span><span className="tag-screen__chips"><span>{tagName}</span></span></>} trailing={<></>} />
+  </div>;
 }

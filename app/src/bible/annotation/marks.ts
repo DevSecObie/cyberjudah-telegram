@@ -1,4 +1,4 @@
-import { changeAnnotations, markId, type Annotation, type AnnotationNote } from "@/studies/storage";
+import { allAnnotations, changeAnnotations, markId, type Annotation, type AnnotationNote } from "@/studies/storage";
 import { buildRangesFromSelection, normalizeRange, type SelectionRange, type SelectionVerse } from "./selectionUtils";
 import { tokenizeVerseText } from "./wordTokenizer";
 
@@ -57,6 +57,15 @@ export async function eraseMarks(marks: Mark[], selection: SelectionRange, verse
 }
 
 export const deleteMark = removeMark;
+/** Remove a deleted tag from every record, including every verse of a grouped word mark. */
+export async function removeTagFromMarks(id: string) {
+  const update = (await allAnnotations()).filter(record => record.tags?.[id]).map(record => {
+    const tags = { ...record.tags }; delete tags[id];
+    return { ...record, tags };
+  });
+  await changeAnnotations({ update });
+}
+
 export async function updateMark(m: Mark, change: Partial<Pick<Annotation, "style" | "color" | "note" | "tags">>) {
   const update = m.records.map(r => {
     const next: Annotation = { ...r, ...change };

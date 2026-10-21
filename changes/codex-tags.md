@@ -1,0 +1,1 @@
+- Tags can be searched and sorted by name or item count, and now show grouped highlights, word marks, notes and links. Renaming and deletion use the app's sheets; deleting a tag removes it from links and every word-mark record as well as highlights and notes.
