@@ -6,10 +6,10 @@ import { Cell, Chip as TgChip, Placeholder, Section as TgSection, SegmentedContr
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
 import { goBack, isRootPath, usePageActions } from "@/tg/hooks";
-import { adjacentTab, askTabPath, bibleTabPath, searchTabPath, useTabs } from "@/lib/tabs";
+import { adjacentTab, askTabPath, bibleTabPath, currentTab, kindTabIndex, searchTabPath, useTabs } from "@/lib/tabs";
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { useReaderFullscreen } from "@/bible/session";
-import { SwitcherBar } from "@/screens/Tabs";
+import { contrastInk, SwitcherBar } from "@/screens/Tabs";
 import { NAV_ITEMS, navItem, useNav, type NavId } from "@/lib/nav";
 
 import { Feather } from "@/bible/icons";
@@ -43,7 +43,6 @@ export function TabBar() {
   const current = drawer ?? tabOf(pathname);
   // Bible Strong slides the bar down out of sight while the Bible is full screen.
   const hidden = useReaderFullscreen() && !drawer && current === "bible";
-  const press = useRef<number | undefined>(undefined);
   const swipe = useRef<{ x: number; y: number } | null>(null);
   const long = useRef(false);
   const pointer = useRef<number | null>(null);
@@ -52,46 +51,39 @@ export function TabBar() {
   const order = buttonOrder(ids);
   const go = (to: string | (() => string), overview = false, toId = "") => {
     if (long.current) return;
-    // The new tab slides in from its side of the bar, as Bible Strong's tab carousel does.
-    const from = order.indexOf(current as NavId | "more"), at = order.indexOf(toId as NavId | "more");
-    const dir = from < 0 || at < 0 || at === from ? 0 : at > from ? 1 : -1;
-    haptic("select"); setDrawer(null);
+    // The tab slides in from its side, by its place in the group (Bible Strong's slideToIndex);
+    // a button for the tab already showing does nothing.
+    const from = tabs.findIndex((t) => t.id === currentTab()?.id);
+    const at = toId === "search" || toId === "bible" || toId === "ask" ? kindTabIndex(toId) : from;
+    const dir = from < 0 || at === from ? 0 : at > from ? 1 : -1;
+    setDrawer(null);
     moveTab(() => {
       const target = typeof to === "function" ? to() : to;
-      if (target === pathname) { window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); return false; }
-      else navigate(target, { replace: true });
+      if (target === pathname) return false;
+      navigate(target, { replace: true });
     }, overview ? "overview" : "slide", undefined, dir);
   };
   // Home and the menu are drawers, as in Bible Strong; the same button closes its own drawer.
-  const toggle = (side: DrawerSide) => { if (long.current) return; haptic("select"); setDrawer(drawer === side ? null : side); };
-  useEffect(() => () => { window.clearTimeout(press.current); }, []);
+  const toggle = (side: DrawerSide) => { if (long.current) return; setDrawer(drawer === side ? null : side); };
   const cancelPress = () => {
-    window.clearTimeout(press.current);
     swipe.current = null; touchTarget.current = null; touchClick.current = null; pointer.current = null;
   };
-  // A long press edits the bar; a horizontal swipe along it moves to the next or previous open tab
-  // (Bible Strong's useTabBarSwipeGesture).
+  // A horizontal swipe along the bar moves to the next or previous open tab (Bible Strong's
+  // useTabBarSwipeGesture). Bible Strong's bar has no long press.
   const hold = {
     onPointerDown: (e: React.PointerEvent) => {
       if (!e.isPrimary || e.button !== 0 || pointer.current !== null) return;
       // A finger that stops a moving page is not a tap on the bar (fling.ts): leave it to the
-      // browser, which drops that click, so it neither opens a section nor starts a long press.
+      // browser, which drops that click, so it does not open a section.
       if (e.pointerType === "touch" && stoppingScroll()) return;
       pointer.current = e.pointerId; touchClick.current = null;
       touchTarget.current = e.pointerType === "touch" ? (e.target as Element).closest<HTMLButtonElement>("button.tab") : null;
       long.current = false; swipe.current = { x: e.clientX, y: e.clientY };
-      press.current = window.setTimeout(() => { long.current = true; haptic("heavy"); setDrawer(null); navigate("/settings/bar"); }, 600);
-    },
-    onPointerMove: (e: React.PointerEvent) => {
-      if (pointer.current !== e.pointerId) return;
-      const s = swipe.current;
-      if (s && Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) window.clearTimeout(press.current);
     },
     onPointerCancel: (e: React.PointerEvent) => { if (pointer.current === e.pointerId) cancelPress(); },
     onPointerUp: (e: React.PointerEvent) => {
       if (pointer.current !== e.pointerId) return;
       pointer.current = null;
-      window.clearTimeout(press.current);
       const s = swipe.current; swipe.current = null; if (!s || long.current) return;
       // Finish stationary taps at touchend, where the compatibility click can be canceled.
       // Opening a drawer at pointerup can otherwise retarget that click to its new scrim.
@@ -131,17 +123,15 @@ export function TabBar() {
     if (id === "search") return <Feather name="search" size={23} raw />;
     if (id === "bible") return <Feather name="book-open" size={23} />;
     const item = navItem(id);
-    return item.icon === "count" ? <span key={count} className="tab__count" style={{ ["--group" as string]: groupColor }} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={23} />;
+    return item.icon === "count" ? <span key={count} className="tab__count" style={groupColor ? { ["--group" as string]: groupColor, ["--group-ink" as string]: contrastInk(groupColor) } : undefined} aria-hidden="true">{count}</span> : <Icon name={item.icon} size={23} />;
   };
-  const label = (id: NavId | "more") => id === "more" ? "Menu" : id === "tabs" ? `${count} Tabs open` : navItem(id).label;
+  const label = (id: NavId | "more") => id === "more" ? "Main menu" : id === "tabs" ? `Tabs, ${count} open` : navItem(id).label;
   const press1 = (id: NavId | "more") => id === "more" ? toggle("more") : id === "home" ? toggle("home") : go(() => navPath(id), id === "tabs", id);
   return (
     <nav ref={bar} className="tabs" aria-label="Sections" data-hidden={hidden ? "" : undefined} {...hold}>
-      {order.map((id) => {
-        const on = current === id;
-        return <button key={id} type="button" className="tab" data-nav={id} data-on={on ? "" : undefined} aria-current={on ? "page" : undefined}
-          aria-label={label(id)} title={label(id)} onClick={() => press1(id)}>{glyph(id)}</button>;
-      })}
+      <div className="tabs__row">
+        {order.map((id) => <button key={id} type="button" className="tab" data-nav={id} aria-label={label(id)} title={label(id)} onClick={() => press1(id)}>{glyph(id)}</button>)}
+      </div>
     </nav>
   );
 }
