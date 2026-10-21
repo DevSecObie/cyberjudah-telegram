@@ -84,6 +84,9 @@ export type Env = {
   PUSH_TEST_ORIGIN?: string;
   /** Workers Rate Limiting binding for the reading-reminder endpoints (wrangler.jsonc "ratelimits"). */
   REMIND_LIMIT?: RateLimit;
+  /** Speed measurements from readers' devices (shared/vitals.mjs), and their per-network limit. */
+  VITALS?: AnalyticsEngineDataset;
+  VITALS_LIMIT?: RateLimit;
 };
 
 /** A daily-verse subscription, KV key sub:<userId>. hour is local, tz the offset in minutes. */

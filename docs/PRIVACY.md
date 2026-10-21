@@ -88,6 +88,18 @@ sunset and removed with Forget; like every CloudStorage key it is part of a back
 The reminder endpoints also pass the caller's IP address to Cloudflare's rate limiter
 (`REMIND_LIMIT`, per minute), which the app does not store.
 
+### Speed measurements
+
+To see how fast the app feels on readers' own phones, each visit sends one beacon to
+`/api/vitals` (`app/src/lib/vitals.ts`, checked by `shared/vitals.mjs`) when the page is hidden. It holds the
+Core Web Vitals timings (TTFB, FCP, LCP, INP, CLS), the screen area the visit started in (`read`,
+`search`…, never the book, chapter, video or note), the platform (Telegram, iOS, Android or web),
+how the page was opened (navigate, reload, back) and the connection type the browser reports
+(`4g`…). It carries no launch data, ID, cookie or words, so it cannot be linked to a reader, and
+the Worker writes only those fields to Cloudflare Workers Analytics Engine (`VITALS`), which keeps
+them for three months. The caller's IP address goes to Cloudflare's rate limiter (`VITALS_LIMIT`)
+and is not stored.
+
 Records from before this change (under Telegram IDs, unsealed) are moved by `privacy-migrate.ts`,
 a bounded amount each hour, until none are left. Chats also move the first time they are read.
 

@@ -14,7 +14,7 @@ import { consented, withdraw } from "@/lib/ai-consent";
  * the other. Required by Telegram's Bot Developer Terms (section 4) and Standard Bot Privacy
  * Policy (7.3), and by Apple's App Review Guidelines 5.1.1(i) and 5.1.2(i).
  */
-export const PRIVACY_UPDATED = "2026-10-13";
+export const PRIVACY_UPDATED = "2026-10-21";
 /** Where privacy questions and requests go (the owner's address). */
 export const PRIVACY_CONTACT = "privacy@cyberjudah.io";
 
@@ -86,6 +86,7 @@ export function Privacy() {
           <li><b>Class-note requests:</b> so each person counts once. Kept until the notes are written.</li>
           <li><b>Counts:</b> how many times today you asked, used the search answer or the reading voice, shared or reported an answer, for limits and costs. Cleared daily.</li>
           <li><b>Network address for Ask:</b> the address a question comes from, with a count, to limit abuse from one network. Never linked to you. Cleared within two days.</li>
+          <li><b>Speed measurements:</b> how long the app took to load and to answer your taps, which part of the app you opened (such as the reader or Search, never the chapter), whether it was Telegram, the phone app or a browser, and the connection type. Sent without your ID or anything else that could identify you, and kept by Cloudflare for three months.</li>
           <li><b>New browsers for reminders:</b> how many browsers set up reminders from one network address today, filed under a keyed code of the address rather than the address itself. Cleared after two days.</li>
         </ul>
       </Section>

@@ -36,6 +36,7 @@ import { askedBy, closeRequest, getRequest, listRequests, requestNotes, validVid
 import { tellAdmins } from "./health";
 import { syncRequestIssue } from "./request-issues";
 import { reportMessage } from "./report.mjs";
+import { vitalsPoints } from "../../shared/vitals.mjs";
 import { notePdf, pdfName } from "./pdf.mjs";
 import { donationsConfig, invoiceFor, invoiceForDonation, pruneBilling, refundStars } from "./billing";
 import { adjust, creditsConfig, history as creditHistory, ownerOfUser, prepare as prepareCredits, typicalMc, usageDayCredits, wallet as creditWallet } from "./credits";
@@ -88,6 +89,8 @@ app.use("/api/*", async (c, next) => {
   if (c.req.path === "/api/verse-of-day" || c.req.path === "/api/health" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
   // The donation presets, bounds, link and pause state are public, like the resource catalog: a plain-browser visitor sees them too, even though only the Mini App can open a Stars invoice.
   if (c.req.method === "GET" && c.req.path === "/api/donations") return next();
+  // Speed measurements carry no ID and are sent as a beacon, which cannot carry launch data.
+  if (c.req.method === "POST" && c.req.path === "/api/vitals") return next();
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
   // Thirty days: Telegram keeps a Mini App open in the background for weeks, and its launch
   // data is only made afresh when it is opened again, so a short window turned every Search
@@ -530,6 +533,20 @@ app.post("/api/share", async (c) => {
 
 // "Report this answer" (report.mjs): which answer and why, to the admins; never its text or who
 // reported it. A few a day per reader, so it cannot be used to flood the admins.
+// Core Web Vitals from readers' devices (shared/vitals.mjs, docs/PRIVACY.md "Speed measurements").
+// The network address only feeds Cloudflare's rate limiter; it is not written anywhere.
+app.post("/api/vitals", async (c) => {
+  const text = await c.req.text();
+  let body: unknown = null;
+  try { body = text.length <= 2048 ? JSON.parse(text) : null; } catch { /* refused below */ }
+  const points = vitalsPoints(body);
+  if (!points) return c.body(null, 400);
+  const limited = await c.env.VITALS_LIMIT?.limit({ key: c.req.header("cf-connecting-ip") ?? "unknown" }).then(r => !r.success, () => false);
+  if (limited) return c.body(null, 429);
+  for (const point of points) c.env.VITALS?.writeDataPoint(point);
+  return c.body(null, 204);
+});
+
 app.post("/api/report", async (c) => {
   const text = reportMessage(await c.req.json().catch(() => null));
   if (!text) return c.json({ ok: false, error: "bad-request" }, 400);

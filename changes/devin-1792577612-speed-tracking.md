@@ -1,0 +1,1 @@
+- The app measures how fast it loads and answers taps on readers' own devices, without any ID, so slow screens can be found and fixed. The Privacy screen lists what is sent.

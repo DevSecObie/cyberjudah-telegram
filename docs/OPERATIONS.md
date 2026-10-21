@@ -109,6 +109,36 @@ What a production deploy does, in order (`deploy.yml`, job `deploy`), and what t
 10. **Roll back** if a check fails: see below. The search index is not part of a rollback;
     the next deploy or the nightly `refresh-search` reloads it.
 
+## Speed
+
+Each visit sends its Core Web Vitals (TTFB, FCP, LCP, INP, CLS) to `/api/vitals` when the page is
+hidden, and the Worker writes one Analytics Engine data point per measurement to the
+`cyberjudah_vitals` dataset (`cyberjudah_vitals_staging` in staging). What a point holds and why
+it identifies no one is in docs/PRIVACY.md, "Speed measurements". Each point is:
+
+| Field | Holds |
+|---|---|
+| `index1`, `blob1` | The measurement: `TTFB`, `FCP`, `LCP`, `INP` (milliseconds) or `CLS` (score) |
+| `blob2` | Screen area the visit started in (`home`, `read`, `search`, `other`…) |
+| `blob3` | `telegram`, `ios`, `android` or `web` |
+| `blob4` | How the page was opened (`navigate`, `reload`, `back-forward`…) |
+| `blob5` | Connection type (`4g`, `3g`…, `unknown`) |
+| `double1` | The value |
+
+Read it with the SQL API (an API token with Account Analytics Read):
+
+```sh
+curl "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/analytics_engine/sql" \
+  -H "Authorization: Bearer $TOKEN" --data "
+    SELECT blob1 AS metric, blob3 AS platform, SUM(_sample_interval) AS visits,
+           quantileExactWeighted(0.75)(double1, _sample_interval) AS p75
+    FROM cyberjudah_vitals WHERE timestamp > NOW() - INTERVAL '7' DAY
+    GROUP BY metric, platform ORDER BY metric, platform"
+```
+
+Judge by p75, as Google does: good is LCP ≤ 2500 ms, INP ≤ 200 ms, CLS ≤ 0.1. Points are kept for
+three months. A network sending more than 20 reports a minute gets 429 (`VITALS_LIMIT`).
+
 ## Rollback
 
 No rebuilds. The `rollback` workflow (`Actions → rollback → Run workflow`) repoints the

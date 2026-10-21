@@ -57,3 +57,12 @@ test("only staging exempts the release check's synthetic reader from the search 
   assert.equal(config.vars.SEARCH_AI_QUOTA_EXEMPT, "");
   assert.equal(config.env.staging.vars.SEARCH_AI_QUOTA_EXEMPT, "1");
 });
+
+test("speed measurements go to a separate dataset in staging, each behind its own rate limit", () => {
+  const dataset = env => env.analytics_engine_datasets.find(d => d.binding === "VITALS").dataset;
+  assert.equal(dataset(config), "cyberjudah_vitals");
+  assert.equal(dataset(config.env.staging), "cyberjudah_vitals_staging");
+  const limit = env => env.ratelimits.find(r => r.name === "VITALS_LIMIT");
+  assert.notEqual(limit(config.env.staging).namespace_id, limit(config).namespace_id);
+  assert.deepEqual(limit(config.env.staging).simple, limit(config).simple);
+});
