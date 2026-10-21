@@ -14,14 +14,14 @@ import { KIND_NAME, teachingTo, useShows, useTeachings, type Teaching } from "./
 type Feed = "all" | "classes" | "captains" | "history" | "truth" | "shows";
 const FEEDS: [Feed, string][] = [["all", "All"], ["classes", "Sabbath"], ["captains", "Captains"], ["history", "History"], ["truth", "Truth"], ["shows", "Shows"]];
 /** Each feed's section on the library page, in Bible Strong's SectionList order. */
-const SECTIONS: [Exclude<Feed, "all">, string][] = [["classes", "Sabbath classes"], ["captains", "15 Min w/ Captains"], ["history", "Our Hidden History"], ["truth", "The Truth Shall Make You Free"]];
+const SECTIONS: [Exclude<Feed, "all">, string][] = [["classes", "Sabbath classes"], ["captains", "15 Min w/ Captains"], ["history", "Our Hidden History"], ["truth", "The Truth Shall Make You Free"], ["shows", "Shows"]];
 const TRUTH = "The Truth Shall Make You Free";
 const PAGE = 12;
 // The show's radio episodes carry its name followed by the station ("… · Kente FM Radio").
 const isTruth = (t: Teaching) => !!t.collection?.startsWith(TRUTH);
 /** In one of the shows with a section of their own, rather than a Sabbath class or a 15 Minutes episode. */
 const ofShow = (t: Teaching, shows: ShowRow[]) => isTruth(t) || shows.some((s) => inShow(t.series?.name, s));
-const inFeedOf = (f: Feed, t: Teaching, shows: ShowRow[]) => f === "all" || (f === "history" ? t.kind === "history" : f === "captains" ? t.kind === "captains" && !t.series : f === "truth" ? t.kind === "class" && isTruth(t) : f === "classes" ? t.kind === "class" && !ofShow(t, shows) : false);
+const inFeedOf = (f: Feed, t: Teaching, shows: ShowRow[]) => f === "all" || (f === "history" ? t.kind === "history" : f === "captains" ? t.kind === "captains" && !t.series : f === "truth" ? t.kind === "class" && isTruth(t) : f === "classes" ? t.kind === "class" && !ofShow(t, shows) : !isTruth(t) && shows.some((s) => inShow(t.series?.name, s)));
 /** The shows that had a section before the rest keep it: their place in the list opens that feed. */
 const OWN_FEED: Record<string, Feed> = { "the-truth-shall-make-you-free": "truth", "15-minutes-with-the-captains": "captains", "our-hidden-history": "history" };
 
